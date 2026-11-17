@@ -77,7 +77,103 @@ a 2000 ms clock.
 
 ## 1. Increment accumulation over real games
 
-<!-- SECTION1 -->
+Four controls, **50 games requested each**: 200+0 (sudden death at a short clock), 1000+100,
+3000+200, and 10000+1000. Self-play, book off, Threads 1, 400-ply cap. The **clock accumulates
+and is charged the engine's own `time <elapsed>` field**, not harness wall time (§6 explains why
+that distinction decides the answer). Legality is checked every move against python-chess, never
+against the engine.
+
+**Controls completed: 146 games / 19,084 plies** (200+0: 50 / 7,172; 1000+100: 50 / 5,769;
+3000+200: 46 / 6,143). The 10000+1000 set was **still running** when this file was written and its
+numbers are therefore **absent, not zero** — say so rather than reading a missing row as a clean
+one.
+
+| control | games | plies | **forfeits** | hangs | illegal | over hard plan | min final clock |
+|---|---|---|---|---|---|---|---|
+| 200+0 | 50 | 7,172 | **0** | 0 | 0 | 0 | 22 ms |
+| 1000+100 | 50 | 5,769 | **0** | 0 | 0 | 0 | 277 ms |
+| 3000+200 | 46 | 6,143 | **0** | 0 | 0 | **1** (see below) | 604 ms |
+| 10000+1000 | — | — | *not run* | — | — | — | — |
+
+**0 forfeits in 19,084 moves.** Every game ended by threefold (105), a completed game (40) or the
+fifty-move rule (1) — none by a clock. `clock_mapping_errors` is **0** in all 146 games, so the
+self-check added after §6's fault confirms the mover's clock really was the clock every move was
+planned against.
+
+### The single move that exceeded its hard plan
+
+Exactly one move in 19,084 went over its hard limit, and it is reported rather than smoothed:
+
+| control | clock | charged | plan soft/hard | ratio | harness tail |
+|---|---|---|---|---|---|
+| 3000+200, game 22, ply 39 | 1,144 ms | **681 ms** | 201 / **680** | **1.0015×** | 0.52 ms |
+
+**+1 ms on a 680 ms plan.** The hard limit is polled on a 1024-node mask
+(`search.cpp:1419,1561`) and compared with `>=`, so a stop lands on the first polled node at or past
+the deadline; 1 ms is one poll interval's worth at this node rate, not an unbounded overrun. It is
+also **not a clock risk**: the move was allowed 1,144 ms and used 681. Reported as an exact
+exception so the "0 over hard" reading above is not taken as a claim of zero.
+
+### Distribution of per-move wall time against the planner's prediction
+
+`charged − soft` is the direct analogue of the established "+2.1 ms reproduces all 3,071 moves"
+result, and **it does not reproduce on any control here**:
+
+| control | charged p50 / p90 / p99 / max | `charged − soft` p50 / p95 / max | within ±2 ms |
+|---|---|---|---|
+| 200+0 | 1 / 6.9 / 16 / 29 ms | −1.0 / +4.0 / +23 ms | **6,061 of 7,172 (84.5%)** |
+| 1000+100 | 81 / 192 / 369 / 604 ms | −25.0 / +137.6 / +480 ms | **126 of 5,769 (2.2%)** |
+| 3000+200 | 172 / 398 / 802 / 1,356 ms | −61.0 / +277 / +1,062 ms | **69 of 6,143 (1.1%)** |
+
+**So the planner formula is a bound, not a prediction, at any control above the floor.** The 200+0
+agreement is an artefact of scale, and the number that shows it is this: **the median soft plan at
+200+0 is 1 ms**, 87% of its moves have a plan of ≤ 5 ms, and none exceeds 8 ms. A ±2 ms tolerance
+on a 1 ms plan is larger than the plan itself, so "84.5% within ±2 ms" there measures the
+granularity of a millisecond clock, not accuracy. At 1000+100 and 3000+200 the median move uses
+**73–76% of its soft plan** and the tail extends to **4.9–5.0× soft**, where the hard limit binds
+(`charged/hard` max is 1.000 and 1.001). The established 2.1 ms figure came from a **1000+100
+control with 3,071 plies**; this seat's 1000+100 control has 5,769 plies and reproduces the
+*containment* (no move over hard, bar one) but **not** the ±2 ms reproduction. **That inherited
+figure should be read as "the plan was never exceeded", not "wall time equals the plan".**
+
+Two ratios make the shape concrete, and they are the ones to quote:
+
+| control | `charged/hard` p50 | p95 | max | utilisation (`charged/clock`) p50 | p95 | max |
+|---|---|---|---|---|---|---|
+| 200+0 | 0.080 | 0.450 | 1.000 | 0.014 | 0.077 | 0.200 |
+| 1000+100 | 0.202 | 0.634 | 1.000 | 0.118 | 0.373 | **0.592** |
+| 3000+200 | 0.178 | 0.583 | 1.001 | 0.102 | 0.343 | **0.596** |
+
+**Utilisation peaks at 0.592 and 0.596**, i.e. the worst move in 19,084 spent **59.6% of its
+remaining clock** against a hard plan of `0.6 × available`. That matches the recorded max move-time
+÷ clock of 0.5937 on the old 1000+100 run, and it is the single most reassuring number in this
+section: the hard limit is what actually binds, and it binds just under 60%.
+
+### The two controls behave qualitatively differently
+
+Median `clock_before` by quintile of ply, per control — this is the shape, not an inference:
+
+| control | 1st | 2nd | 3rd | 4th | 5th | final clock (median w/b) |
+|---|---|---|---|---|---|---|
+| 200+0 | 152 | 84 | 53 | 48 | 40 | 43 / 46 (min 22) |
+| 1000+100 | 926 | 705 | 677 | 677 | 699 | 682 / 730 (min 277) |
+| 3000+200 | 2,609 | 1,858 | 1,551 | 1,472 | 1,591 | 1,851 / 1,720 (min 604) |
+
+- **200+0 drains, then flattens just above the overhead.** 200 → 152 → 84 → 53 → 40, and it is still
+  drifting down at the end because the increment is zero and something must pay for each move. The
+  flattening is the plan shrinking with the clock: at 40 ms the plan is 1/5, so a move costs ~1–5 ms
+  and the drain is nearly nil. **It never reaches zero and 50 of 50 games finished with no forfeit**
+  — this is the "clock can always be spent" regime, and it is why the floor (§4.3) does not
+  apply to a zero-increment game: the engine keeps answering, at a **median depth of 7 over the
+  whole game and depth 4 once the clock is below 60 ms** (2,641 of those moves at exactly depth 4),
+  rather than flagging.
+- **1000+100 and 3000+200 hold station.** Both fall to a plateau and stay there — 677–699 at
+  1000+100 and 1,472–1,591 at 3000+200 — with median charge 81 and 172 ms against 100 and 200 ms
+  increments, so **spend ≈ increment and the clock neither grows nor drains**. That is the
+  equilibrium §4.3 derives, sitting far above the 111 ms floor because real play uses ~10–20% of the
+  clock rather than the whole hard limit.
+
+---
 
 ## 2. `movestogo` meeting the fallback clock — the recorded gap, now measured
 
@@ -93,13 +189,32 @@ opponent-clock command never reaches the planner at all. Item 2 therefore needs 
 - **patched** — `6b98f217` + `swarm/65/patches/trap1-clock-gate-both-clocks.patch`, applied
   cleanly, rebuilt, **all four pins re-verified on the rebuilt binary**.
 
-> A stale-binary trap fired here and is worth recording, because it would have silently voided
-> this section. The first "patched" build reported `rc=1` from `cmake --build` while
-> `check_pins.sh` printed `PINS MATCH`. The cause: the copied worktree already contained
-> `build/forge` from the *unpatched* tree, so the pin script tested a **binary identical to the
-> base build** — confirmed with `cmp`. Pins passing on a stale executable look exactly like pins
-> passing on a real one. The rebuild after `rm -rf build` produced a distinct binary and the pins
-> were re-run on it.
+> ### RULE: a pin check on a build whose compile failed checks the previous binary
+>
+> **Pins passing on a stale executable are indistinguishable from pins passing on a real one.**
+> This fired here, and is written up as a rule because the failure mode is general and silent.
+>
+> The sequence: a worktree was copied that already contained `build/forge` from the *unpatched*
+> tree; `cmake --build` returned **rc=1**; `scripts/check_pins.sh` printed **`PINS MATCH combo29`**
+> with all four pins correct. Every indication said "the patched build is good". The binary was in
+> fact **byte-identical to the unpatched build** — `cmp` said so.
+>
+> The pin script's correctness is not the issue: it answered the question it was asked ("do these
+> pins reproduce?") about an object that was not the patched binary. A pin count cannot
+> distinguish "the patch changed nothing observable" from "the patch was never compiled", and
+> those two conclusions are opposites.
+>
+> **Required practice for any build-then-pin script**, cheapest first:
+> 1. **`rm -rf` the build directory** before configuring, or build in a fresh directory;
+> 2. **assert the compiler actually re-linked** — check the build's return code *and* that the
+>    binary's mtime/hash changed;
+> 3. **`cmp` the new binary against the previous one** when the patch is supposed to change
+>    behaviour; identical output means the build did not happen, not that the patch is neutral.
+>
+> Note the compounding factor: a copied worktree can carry a `build/` directory whose binary
+> already passes the pins, which is exactly the state that makes the check look strongest. Copying
+> a worktree for a second arm is where this trap lives, and copying is what an A/B measurement
+> encourages.
 
 ### Results
 
@@ -120,6 +235,32 @@ manager (trap 19e's own first-attempt error). `plan` is the soft/hard from `plan
 | B' Black to move, only `wtime` + mtg 20 | `wtime 2000 movestogo 20` | **12,000 ms — no answer** | **101 ms** | 94 / 376 |
 | C fallback, no movestogo | `btime 2000` | **12,000 ms — no answer** | **67 ms** | 90 / 450 |
 
+**Every wall time in this table is a single run, and one row is known to be noise.** The own-clock
+`movestogo 2` row reads 379 ms on base against 751 ms patched — a 2× gap on a command whose budget
+cannot depend on the fallback patch, because White's own clock is given so `parse_limits` takes the
+first branch on **both** builds. That row was re-measured with **12 interleaved runs per build in
+ABBA order** (`scripts/p12_ownclock_mtg_repeat.py`):
+
+| build | min | median | max | mean | sd | range |
+|---|---|---|---|---|---|---|
+| base | 367 | **489.5** | 1349 | 622.2 | 359.9 | 367–1349 ms |
+| patched | 204 | **402.5** | 1359 | 526.2 | 301.4 | 204–1359 ms |
+
+**The ranges overlap almost completely and the spread inside each build is larger than the
+difference between builds**, so the 379/751 pair was load noise on a shared 4-core box, not an
+effect of the patch. The distribution is bimodal — values cluster near 370, 490, 720 and 1350 ms,
+which are successive completed-iteration costs, exactly the step function §3 describes — so a
+single sample lands on any of four plateaus and two single samples can differ by 3× by chance. A
+fixed-depth identity control on the same position agrees between builds exactly
+(**depth 12: `e1g1`, 113,145 nodes on both**), confirming the two binaries are the same search and
+that only timing differs.
+
+**So the patch's invariant holds: an own-clock caller is not moved by it.** The 2.1 ms
+"reproduces the plan" style of claim cannot be made from single runs on this machine at all, and
+none of the wall-time columns above should be read as precise; the **plan** columns and the
+**regime separations** are exact and are what the three conclusions rest on. This is also why §1
+charges the engine's own `time` field and reports distributions rather than single runs.
+
 **What the gap measurement establishes, in the three parts asked for:**
 
 1. **The plan uses the fallback clock's value.** Arm B at `movestogo 20` plans 94/376 — computed
@@ -138,11 +279,10 @@ manager (trap 19e's own first-attempt error). `plan` is the soft/hard from `plan
    as on the own-clock path: `0`/`-1` → `1` via `max(1, …)`, and `> 50` → `50`.
 
 **What this does NOT change.** The fallback patch itself is not audited for correctness here; it is
-the recorded repair from trap 19e and this seat only uses it. The wall times are single runs per
-cell on a shared 4-core box, so the 35–892 ms spread across arms that share a *plan* is scheduling
-noise on this machine (the same plan appears at 35 ms and 67 ms), not a planner effect. The claims
-above rest on **plan values and regime separation**, which are exact, not on the wall times, which
-are not.
+the recorded repair from trap 19e and this seat only uses it. As the repeat analysis above shows,
+the individual millisecond values in a single run are not trustworthy on this machine — the same
+plan appears at 35 ms and 67 ms — so the claims above rest on **plan values and regime
+separation**, which are exact, not on the wall times, which are not.
 
 ---
 
@@ -319,9 +459,18 @@ exactly the kind of number that gets quoted without its correction.
 
 ## 7. What is still not established
 
-- **Item 2's wall times are single runs per cell** on a shared machine. The plan values and regime
-  separations are exact; the individual milliseconds are not. A reader should not quote `72 ms vs
-  82 ms` as a precise effect.
+- **The 10000+1000 control did not finish.** 146 games / 19,084 plies at 200+0, 1000+100 and
+  3000+200 are reported; the long control is **absent, not zero**. At ~2 min/game it was still
+  running when this file closed.
+- **Single-run wall times in §2 are not trustworthy individually** — proven, not assumed: the
+  own-clock `movestogo 2` row differed 2× between builds and 12 interleaved repeats per build
+  showed the ranges overlap almost entirely (sd 300–360 ms within each build). The §2 conclusions
+  rest on plan values and regime separation only. Any future seat quoting a §2 millisecond figure
+  as an effect is repeating the mistake this section documents.
+- **The 111 ms floor is derived for one increment.** The equilibrium was simulated at increments
+  0/20/60/100/200/1000 and reproduces the recorded floor exactly at 60 ms, but no **game** was run
+  to confirm a non-60 increment settles where the simulation says. It is a derivation plus a
+  simulation, not a measured equilibrium at a second increment.
 - **The one-sided clock is still a hang on the unpatched base** — re-confirmed here (`btime 2000`
   with White to move: no answer in 12 s, every arm). That is trap 18/19 restated, not new; it is
   listed so the §2 table's base column is not mistaken for a claim that the base is usable.
