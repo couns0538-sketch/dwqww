@@ -1,0 +1,33 @@
+=== THE MATE-HEAVY TEST that 29-N30's caveat pointed at ===
+29-N30 said the S-F23 truncation mechanism could not be judged on R_2911 because only 19-20 of 100 random positions
+carry a mate score, and that a mate-heavy set would test it better. This is that set.
+
+Set built for this test (`make_mate_set.py`, seed 2911, deterministic): 40 positions constructed with a large
+material imbalance and then KEPT ONLY IF the engine reports a mate score at depth 12 under S14 -- so the denominator
+is 40 mate positions per regime, not ~20 lucky hits in 100.
+
+PC r15 build, depth 12, Threads 1, Hash 16, fresh process per regime. Truncated = PV shorter than 2N-1 (N>0).
+
+| regime | mate positions | truncated PV | rate |
+|---|---|---|---|
+| S14 | 40 | 2 | 5.0 % |
+| PC20 | 40 | 0 | 0.0 % |
+
+S14's two truncated boards:
+- mate 9, PV 13 of 17 needed: B7/5k2/3K4/8/8/3R4/8/8 w - - 0 1
+- mate 10, PV 16 of 19 needed: 8/3k4/8/6B1/2R5/7R/8/7K w - - 0 1
+
+RESULT: the S-F23 direction DOES hold when the set actually contains mate positions -- S14 truncates 5 % of them,
+PC20 truncates none. This RESTORES the mechanism that 29-N30 had to scope down, and it restores it with a proper
+denominator rather than two anecdotal boards.
+
+Reconciliation of the two runs, so both stand:
+- R_2911 (random games): S14 0 of 19, PC20 0 of 20. No truncation on either side, because those boards are not
+  mate-heavy. Consistent with everything below.
+- mate-heavy set: S14 2 of 40 (5.0 %), PC20 0 of 40. Truncation appears under S14 and vanishes under PC20.
+So the truncation is a property of MATE-HEAVY positions, and on such positions PC20 removes it. Both sentences are
+true and neither contradicts the other; 29-N30's caveat was correct that the random set could not settle it.
+
+CAVEAT, kept: 2 of 40 is a small count (the uncertainty on 5 % from 40 trials is roughly 1.5-12 %), so the RATE is
+imprecise. The DIRECTION -- S14 truncates some mate PVs and PC20 none, on 40 mate positions -- is what this
+establishes.

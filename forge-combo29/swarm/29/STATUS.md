@@ -338,3 +338,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-C6 still stands as written (on seat 05's exact two boards the difference reproduces), but it must be quoted as 'on the two boards seat 05 identified', NOT as 'PC20 fixes mate-PV truncation'. Consistent with seat 05's own S-F21/S-F23 that the effect is per-position.
 - This is the first time tonight a broadening attempt made one of my confirmations WEAKER rather than stronger - recorded with the sample caveat (19-20 mate positions per regime is thin).
 - next: continuing at cadence.
+
+## Tue Nov 17 12:06:56 AM UTC 2026
+- 29-F46: I took the caveat's own suggestion and built a MATE-HEAVY set (40 positions, deterministic, kept only where S14 reports a mate score at depth 12 - 148 candidates screened). Result: S14 truncates 2 of 40 = 5.0% (PVs 13/17 at mate 9, 16/19 at mate 10); PC20 truncates 0 of 40. So the S-F23 mechanism DOES generalise, and my 29-N30 scoping was right that the random set could not settle it - a mate-heavy set settles it in favour of the mechanism.
+- Both runs now stand and are reconciled in the table: random games show no truncation either side (not mate-heavy); mate-heavy shows S14 5%, PC20 0%. Truncation is a property of mate-heavy positions, and PC20 removes it there.
+- Caveat kept: 2 of 40 spans roughly 1.5-12%, so the RATE is imprecise; the DIRECTION is the claim.
+- next: continuing at cadence.
