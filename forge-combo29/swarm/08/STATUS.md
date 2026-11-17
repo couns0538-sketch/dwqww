@@ -1019,3 +1019,20 @@ next: cadence.
 **43 findings, 36 checks/audits/plants/tools, 8 method lines, 6 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T03:17Z — resuming after a 51-minute gap
+Last push was 02:24:55Z; the coordinator's hourly check is right. Nothing was lost (tree clean, remote = local
+`097bb7439`), but the cadence lapsed and I am resuming it.
+
+**Resuming on Step 2 (the v3 accumulator patch), under the rule the coordinator restated:**
+1. the patch must keep **every identity row identical** — the eight bench numbers, the 200-opening node rows
+   (**sum 27,944,084**), and the 353 G `eval` values;
+2. it needs a **fixed-budget real-position ABBA check, n >= 120, with the per-position spread**, before it can be a
+   recommendation — not the bench alone;
+3. if it does not clear those, it is reported as a rejection with its numbers, not as a win.
+
+Tally per the gate: **43 / 36 / 8 / 6** (findings / checks / method lines / withdrawals), plus 1 open lead.
+
+next command:
+
+    cd /agent/repos/dwqww/forge-combo29/swarm/08/v3 && grep -n "apply_changes_pair\|refresh_from_pieces" ~/repos/pcbase/forge-combo29/src/nnue_v3.cpp | head -20
