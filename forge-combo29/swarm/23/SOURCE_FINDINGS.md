@@ -586,3 +586,136 @@ using `score == 0` would be wrong**, which is the concrete argument for A1's one
 | 3 | Reachable from the counter alone? | **Yes** — same `\|\|` at `:2251`, same `if` at `:2253`; confirmed by bare FEN at halfmove 100 giving `nodes 0 / cp 0` with no history at all, and by the repaired build searching that same root (380 nodes, same `cp 0`, which arrives via the leaf rule at `:1302`). |
 
 No new files; this addendum is appended to `forge-combo29/swarm/23/SOURCE_FINDINGS.md`.
+
+---
+
+# ADDENDUM B — MultiPV, and what a GUI should do with the signal
+
+Two additions requested after the owner read the first addendum. Both are measurements on the same base build,
+Threads 1, Hash 16, `OwnBook false`, drained to `bestmove`.
+
+---
+
+## B1. MultiPV > 1 — the `pv`-empty discriminator holds, and MultiPV itself degrades on the bail path
+
+I flagged `:2520-2531` as untested. It is now tested, and it **holds**: on a bailing root the PV is empty at every
+MultiPV setting, so the discriminator is unconditional across the option. But the run turned up a second,
+independent consequence of the guard's position that is worth more than the caveat it closes.
+
+**The discriminator holds.** E2 threefold, `go depth 10`, MultiPV 1 / 2 / 3:
+
+| root | MultiPV | `#info depth` lines | nodes | `pv` empty? | `multipv` field present? | bestmove |
+|---|---|---|---|---|---|---|
+| E2 threefold (**BAIL**) | 1 | 10 | 0 | **yes** | no | `d5d1` |
+| E2 threefold (**BAIL**) | 2 | 10 | 0 | **yes** | yes | `d5d1` |
+| E2 threefold (**BAIL**) | 3 | 10 | 0 | **yes** | yes | `d5d1` |
+| E2 bare (**SEARCHES**) | 1 | 10 | 7,581 | no | no | `d5b5` |
+| E2 bare (**SEARCHES**) | 2 | **20** | 16,916 | no | yes | `b8c7` |
+| E2 bare (**SEARCHES**) | 3 | **30** | 23,178 | no | yes | `b8c7` |
+| M1 threefold (**BAIL**) | 1 / 2 / 3 | 10 / 10 / 10 | 0 | **yes** | — | `e5e4` |
+
+So `pv` empty survives MultiPV: **10 of 10 bailing cells across two boards and three settings** show an empty PV,
+and no searching cell does. That caveat is closed.
+
+**But look at the line counts.** A searching root emits `depth × multipv` lines (10 → 20 → 30). **The bail emits
+exactly 10 regardless of MultiPV** — it never multiplies. Per depth, on the bail root with MultiPV 3:
+
+```
+info depth 1 multipv 1 score cp 0 seldepth 1 nodes 0 …
+info depth 2 multipv 1 score cp 0 seldepth 2 nodes 0 …
+info depth 3 multipv 1 score cp 0 seldepth 3 nodes 0 …
+info depth 4 multipv 1 score cp 0 seldepth 4 nodes 0 …        (go depth 4, MultiPV 3)
+```
+
+Only `multipv 1` ever appears, once per depth, and the searched control at the same setting emits two lines per
+depth with different moves and PVs.
+
+**Why, and it is the same structural reason as everything else in this document.** The alternate-line workers are
+constructed at `search.cpp:2384` (`if (multipv > 1 && is_main())`), and the emit that uses them is gated at
+`:2462` (`if (alt_worker && !result.pv.empty())`). **The bail returns at `:2271`, 113 lines before `alt_worker`
+exists.** The branch never reaches either line, so the MultiPV machinery is never built and never used; the `emit`
+calls it does make are the plain `emit(depth, score, {})` at `:2262`, which passes `pv_index = 1` from its
+initialiser at `:2222` and never updates it. Note the second half of the gate at `:2462` too — `!result.pv.empty()`
+is *also* false on the bail path, so even if the workers had been constructed, the alternate-line block could not
+have run.
+
+**Consequence for a caller, and it is a different symptom from the depth inflation.** With `MultiPV 3` a GUI expects
+three lines per depth and gets one. A GUI that reads the expected number of lines will either wait for lines that
+never come (a stall on the PV panel) or pad the table with stale entries from the previous position. This is not an
+error in the engine's arithmetic — reporting one line is the honest thing to do when there is one answer — but it is
+another place where the protocol cannot say why. **The `pv`-empty test resolves it, because it tells the GUI the
+position is adjudicated and no alternate lines exist to wait for.**
+
+---
+
+## B2. What a GUI should do with the `pv`-empty signal
+
+Short answer: **treat an empty `pv` with `nodes 0` as an adjudication, not as a search result. Do not play the
+`bestmove`. Report the game state instead.** Concretely, in priority order:
+
+1. **Do not play the move in a game.** `bestmove` on this path is `root_candidates.front()` (`:2265`) — the
+   generator's first legal move, never scored, never compared against any alternative. In a won position it can be a
+   move that walks into mate (23-F72 measured mate in 5 against itself). Playing it in a game is the one thing that
+   is definitely wrong.
+2. **Check for `0000` first, but do not read it as "game over".** A null move is printed as `0000` by
+   `uci.cpp:562-563` (`result.best_move.from == result.best_move.to ? "0000" : …`). Two different things produce it:
+   a genuinely terminal root (checkmate, stalemate — `root_candidates` empty because `legal` is empty), **and** the
+   `searchmoves` case where the restriction names no legal move, which shares this branch through
+   `root_candidates.empty()` at `:2253` and sets `restricted_root_empty` at `:2210`. Measured:
+
+   ```
+   go depth 4 searchmoves a1a2      (on a board where a1a2 is not legal)
+   info string searchmoves restriction has no legal root moves
+   info depth 1 seldepth 1 score cp 0 nodes 0 … pv
+   bestmove 0000
+   ```
+
+   So `0000` means "no move was selected", and the engine **does** emit a diagnostic for the `searchmoves` variety —
+   an `info string` line just before the depth lines. A GUI can tell them apart by that string, or by knowing whether
+   it sent `searchmoves`. Without that, `0000` on its own is ambiguous between "checkmated" and "your restriction was
+   empty", and the score distinguishes them: checkmate arrives as `score mate 0`, the `searchmoves` case as `cp 0`.
+3. **Otherwise, the empty `pv` (with `nodes 0`) is the signal**, and on this path `bestmove` is a legal move that
+   carries no evaluation. Report the position, not the move: the engine has adjudicated it as drawn by repetition,
+   fifty-move or insufficient material, and the distinction between those three is *not* on the wire — only the
+   engine's caller-side `board` state has it.
+4. **Distinguish it from "no search happened"** — `go nodes 0` / `go nodes 1` and the `go`+`quit` path emit **zero**
+   info lines and answer `a2a3`. If there is no `info depth` line at all, the answer is not an adjudication, it is a
+   search that never started, and the `bestmove` is the same kind of placeholder for a different reason. Do not
+   conflate the two: an adjudicated draw is a *fact about the position*; a never-started search is a *harness fault*.
+
+The full matrix, one run each, `go depth 10`, base build — this is what a GUI actually has to discriminate:
+
+| root | `bestmove` | `#info` | last score | nodes | `pv` |
+|---|---|---|---|---|---|
+| checkmated | `0000` | 10 | `mate 0` | 0 | **EMPTY** |
+| stalemate | `0000` | 10 | `cp 0` | 0 | **EMPTY** |
+| `searchmoves` naming no legal move | `0000` | 10 | `cp 0` | 0 | **EMPTY** |
+| bare K vs K | **`d1c1`** | 10 | `cp 0` | 0 | **EMPTY** |
+| threefold (repetition) | **`d5d1`** | 10 | `cp 0` | 0 | **EMPTY** |
+| fifty-move (halfmove 100) | **`d5d1`** | 10 | `cp 0` | 0 | **EMPTY** |
+| searched (same board, no history) | `d5b5` | 10 | `cp 381` | 7,581 | present |
+
+The bare-K-vs-K row is the one that most needs saying aloud: **the engine answers `d1c1` — a legal move — in a
+position that is a dead draw by insufficient material, with `cp 0`, `nodes 0` and an empty PV.** There is nothing in
+the `bestmove` line to tell a GUI that this position is over. If the GUI plays `d1c1`, the game continues, and both
+sides shuffle kings until the fifty-move counter or the GUI's own draw detection ends it. That is exactly 23-F71's
+finding arriving from the protocol side.
+
+**So the one sentence for the owner:** *an empty `pv` on an `info` line means the engine adjudicated the position and
+did not search; the `bestmove` beside it is the first legal move in generation order and must not be played; `0000`
+means no move was selected (checkmate, stalemate, or an empty `searchmoves` restriction — the score and the preceding
+`info string` tell you which); and no info lines at all means the search never ran.* The engine has all three facts
+and publishes none of them explicitly, which is why the one-field fix in A1 is worth making — but a GUI can be made
+correct today with the table above, without waiting for it.
+
+---
+
+## B3. Where these two additions leave the summary
+
+| item | status |
+|---|---|
+| `pv`-empty discriminator under MultiPV | **holds** — 10 of 10 bailing cells across 2 boards × MultiPV 1/2/3, no searching cell |
+| MultiPV on the bail path | **degrades silently** — 1 line per depth instead of `multipv`, because `alt_worker` is built at `:2384` after the bail returns at `:2271`, and `:2462`'s `!result.pv.empty()` gate is false anyway |
+| GUI advice | do not play the move; empty `pv` + `nodes 0` = adjudicated draw (repetition, fifty-move or insufficient material — not distinguishable on the wire); `0000` = no move selected (checkmate/stalemate/empty `searchmoves`, told apart by the score and the `info string`); zero info lines = search never started |
+
+No new files; appended to `forge-combo29/swarm/23/SOURCE_FINDINGS.md`.
