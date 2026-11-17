@@ -1,0 +1,18 @@
+19-C58: NNUE column-prefetch slowdown on REAL positions, fixed `go nodes 50000`
+CTRL sha256 84bfb5d6d5b542316c18836233be0e4246ec65c3097cd873f9ebef844f9fe114 (0 prefetch calls)
+PF   sha256 193c9a78b2a31f94fe498527c37477dc5f71043267dcb59e4fcb1e347d2bd0cc (17 prefetch calls)
+both pass all four honesty pins with IDENTICAL node counts -> pure per-node-cost patch
+positions: their_600.fens first 130 ; used 130
+
+BENCH 13 figures to compare against:
+  19-F10 (mine):  ratio 0.9190 CI [0.8841, 0.9552]  -> 8.1 %% slower, 20 pairs
+  29-C4  (seat 29): time ratio 1.0943 CI [1.0734, 1.1155] -> 9.43 %% slower, 48 pairs
+
+REAL POSITIONS, per-node ratio PF/CTRL (n=130):
+  min 0.469 | Q1 1.062 | MEDIAN 1.087 | Q3 1.119 | max 3.227
+  mean 1.115 | geometric mean 1.099 | sd 0.230
+  POOLED (total ms/total nodes): 1.0980  -> 9.80 % slower
+  GEOMETRIC: 1.0991 -> 9.91 % slower
+  fraction where PF is SLOWER: 121/130 = 93.1 %
+
+VERDICT vs the two bench figures: general claim CONFIRMED (>= 8 %% slower)
