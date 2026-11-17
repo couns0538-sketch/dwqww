@@ -849,3 +849,9 @@ every sentence.
   defect extends to long endgame mates |N| = 16 and 20, beyond the boards I had. The ply-count test alone would have
   counted them as clean gains.
 - next command: continue at cadence.
+
+## $(date -u)
+- REPORT_deepgain.md written (deepgain/): the assignment's table both ways, with all 16 score pairs verified against the
+  raw run file (identical sets; the only difference found was unicode-minus vs ascii in my own table, not data).
+- Also fixed a wrong placeholder row (midgame 8) and, before that, the even-count median off-by-one in S-F65.
+- next command: continue at cadence.
