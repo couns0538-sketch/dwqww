@@ -142,13 +142,20 @@ distance right, so any warm difference cannot be blamed on precision):
 | of those, warm differs | **14 / 168 = 8.3%** |
 | **of those, an ENCODING defect** | **0 / 14** |
 
-**All 14 warm divergences are honest mates at their own length** (11 verified by
-replaying the engine's own PV; 3 unverifiable because the PV was truncated, which the
-findings doc establishes is *unverifiable rather than false*).
-- **9 of the 14 deltas are an ODD number of moves**, which an even-ply adjustment
-  error **cannot produce** — parity alone rules encoding out for those.
-- The other 5 have odd *plies* deltas? No — those 5 are even-move deltas, and each was
-  classified by PV replay: **`PRECISION-warm-honest-at-its-own-length`**.
+**None of the 14 warm divergences is an encoding defect.** The 14 split three ways, and
+the split is measured rather than asserted (`evidence/G_warm_divergence.jsonl`):
+
+| shape of the divergence | n | what it means |
+|---|---|---|
+| **delta of an ODD number of moves** | **9** | an even-ply adjustment error **cannot produce this** — parity alone rules encoding out |
+| delta of an EVEN number of moves | 2 | both classified by PV replay as **`PRECISION-warm-honest-at-its-own-length`** |
+| warm arm returned `cp`, not a mate | 3 | it did not find the mate at that depth at all; no distance to miscount |
+
+**11 of the 14 were confirmed by replaying the engine's own PV**, which mates in
+exactly the plies the score claims. **The remaining 3 are `UNVERIFIABLE`** — not
+"false" — because the warm arm emitted a centipawn score with a truncated PV, and the
+findings doc establishes that a PV shorter than the claim is unverifiable rather than
+wrong. **`UNVERIFIABLE` is a row in this table, not a pass.**
 
 **So the divergence is search instability under a warm table, not a miscounted mate.**
 This is consistent with findings §7 item 3 (warm state shifts scores) and it is the
