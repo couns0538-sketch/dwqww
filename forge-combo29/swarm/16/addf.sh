@@ -8,8 +8,8 @@ TARGET="$HERE/FINDINGS.md"
 [ -f "$TARGET" ] || { echo "STOP: $TARGET does not exist"; exit 1; }
 NEW="$(cat)"
 case "$NEW" in
-  "| S-"*) ;;
-  *) echo "STOP: input does not start with '| S-'"; exit 1 ;;
+  "| S-"*|"| v3"*) ;;
+  *) echo "STOP: input must start with '| S-' or '| v3' (file 7 tags v3 finds that way)"; exit 1 ;;
 esac
 ID="$(printf '%s' "$NEW" | cut -d'|' -f2 | tr -d ' ')"
 if grep -q "^| $ID |" "$TARGET"; then

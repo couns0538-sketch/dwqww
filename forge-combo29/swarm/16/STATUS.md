@@ -621,3 +621,23 @@ seed: 1601
 - Also built the file-7 v3 toolchain: make_v3_testnet.py reproduces the test net EXACTLY (6,309,096 bytes,
   fnv1a64 fdff70de72e4ca82, sha256 1db8525e...) and the v3 engine builds with NNUEArch present. Step 0 next.
 - check_folder.py ALL CHECKS PASS (432 files, 46 findings rows). Cadence continues.
+
+## 2026-11-17T05:55Z
+- FILE 7 STEP 0 RUN AND STOPPED, per its own rule. Result: SEVEN of eight bench numbers and ALL THREE eval lines
+  match file 7 exactly. The one failure is `net_only bench 13`: 4,151,906 against the published 4,191,906 —
+  reproducible over three consecutive runs, so a build difference, not noise.
+- The net itself is verified: load line reads checksum fdff70de72e4ca82, max 64/96/16, kernel avx512 — every
+  field file 7 requires to match does match. So this is NOT a bad net load.
+- My environment differs from the PC's and that is the likely cause: Intel Xeon vs AMD Zen 5, g++ 13.3.0 vs clang,
+  -march=x86-64-v4 vs znver5. Supporting evidence: only the net-DOMINATED row moves, while all three rows that
+  include PC20 pruning match exactly. I tried to test the compiler half with clang 18 and could not — clang fails
+  to link on this machine — so the hypothesis is stated as a hypothesis.
+- Because one identity row is already wrong, I did NOT start Steps 1-3: a speed patch must keep those rows, so
+  any patch measured here would inherit the disagreement. That is file 7's own instruction, not my choice.
+- Two harness bugs found and fixed en route, both worth naming: (a) my wait loop for `bench` expected bestmove
+  when bench answers `info string bench ...` + readyok, so the first run hung at 0% CPU; (b) I sent `ucinewgame`
+  AFTER `position`, which resets the board to startpos on this tree (seat 12's S-F1), so every eval returned 968.
+  Both were caught by the numbers being wrong, not by inspection.
+- addf.sh earned its keep twice: it refused to write when invoked from the wrong directory, and it refused a
+  `| v3` row until I widened its guard to file 7's tagging convention — a refusal, never a stray.
+- check_folder.py ALL CHECKS PASS (440 files, 47 findings rows). Cadence continues to 10:18:40Z.
