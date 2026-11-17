@@ -1,0 +1,36 @@
+PREDICTION — SW-23 job 51 (is the engine's generation ORDER structured by piece type, and is index 0 predictable?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+WHY: 23-F98/F100 show the drawn-root path plays generator index 0, and 23-F101 prices it at a median ~625 cp. If index
+0 is PREDICTABLE from the position, a tool author can say which move will be played without running the engine, and a
+match designer can decide whether that matters. If it is not predictable, that is also worth knowing.
+
+WHAT THE EXISTING DIVIDES SUGGEST: on 23-F60's position the first six generated moves were
+`e6e5, h6h5, a7a6, a7a5, f6e4, f6g4` — four pawn moves then two knight moves. That is NOT sorted by to-square (a7a5
+goes to a5 = index 32 while e6e5 goes to e5 = 36, so a4-square ordering would put a7a5 earlier than 4th). It IS
+consistent with grouping by PIECE TYPE with pawns before knights. On the five endgame roots the index-0 move was always
+a KING or ROOK move, which is also consistent (no pawns exist on those boards).
+
+FIXTURES: 12 positions, every 400th line of the validated seed-2301 set (the same deterministic sample as job 50, so
+the two jobs share a population and can be compared). Base build, Threads 1, Hash 16, OwnBook false.
+
+METHOD: for each position, `go perft 1` -> the full divide in the engine's own order (parsed lines asserted equal to the
+`nodes` total, per 23-F99). For each move record the moving piece type. Then test:
+  (a) is the piece-type sequence SORTED under a single fixed priority that is the same on all 12 positions?
+  (b) what is the piece type of index 0, and is it always the highest-priority type present?
+  (c) does the divide order equal the order of a SECOND independent ask (same position, fresh process)? If not, the
+      order is not a stable property and nothing can be predicted.
+
+Prediction (each with the range that kills it):
+  P1  THE MOVE SEQUENCE IS GROUPED BY PIECE TYPE on at least 10 of 12 positions — i.e. the piece-type sequence has at
+      most 3 "blocks" (a switch back to an earlier type counts as a new block), not interleaved. KILLED if fewer than
+      10 positions satisfy that, in which case ordering is by something else and P2 is moot.
+  P2  INDEX 0 IS ALWAYS A PAWN MOVE WHEN A PAWN MOVE EXISTS (and on the endgame roots it was king/rook, which have no
+      pawns) — so "index 0 = highest-priority piece type present" holds on at least 10 of 12. KILLED if index 0 is a
+      piece move on a position that has pawn moves.
+  P3  THE ORDER IS STABLE: the divide for the same position in a fresh process is IDENTICAL. KILLED if it differs,
+      which would make the whole predictability question unanswerable rather than answered.
+
+If P1-P3 hold, the finding is: generation is piece-type-blocked with a fixed priority, and index 0 is predictable from
+the position alone (highest-priority type present, and within that block some order I will describe only if the data
+shows it). If P2's within-block order is not obvious from the data, I say so rather than guessing.
