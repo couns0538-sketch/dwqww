@@ -1,0 +1,30 @@
+S-C48: is i=16's 18.4x work verification or waste? Full PV comparison.
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+fen: 3Q4/7p/8/2P1P1bk/P1K2p2/5P2/R1B3P1/1N2B1Rn b - - 1 74
+go depth 12, Threads 1, Hash 16, every depth's PV captured.
+
+depth	score S14	nodes S14	score PC20	nodes PC20	PV S14	PV PC20
+1	cp -3396	20	cp -3396	20	g5d8 g1h1 h5g5	g5d8 g1h1 h5g5
+2	cp -3396	40	cp -3396	40	g5d8 g1h1 h5g5	g5d8 g1h1 h5g5
+3	cp -3796	74	cp -3796	74	g5d8 g1h1 h5g5 e1h4 g5h6	g5d8 g1h1 h5g5 e1h4 g5h6
+4	cp -3796	104	cp -3796	104	g5d8 g1h1 h5g5 e1h4 g5h6 h4d8 h6g7	g5d8 g1h1 h5g5 e1h4 g5h6 h4d8 h6g7
+5	cp -3953	244	cp -3953	244	g5d8 g1h1 d8h4 h1h4 h5g5 h4g4 g5h6	g5d8 g1h1 d8h4 h1h4 h5g5 h4g4 g5h6
+6	cp -4154	521	cp -4154	538	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5
+7	cp -4277	757	cp -4277	790	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6
+8	cp -4669	1114	cp -4653	1054	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q
+9	cp -4653	1483	cp -4639	2198	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q h6g7 c8b7 g7f8	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q h6g7 c8d7 g7g8 d7e6 g8g7 e6f6 g7g8
+10	mate -9	2626	mate -4	8341	g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q h6g7 c8b7 g7f8	h1g3 d8e8 h5h6 e8f8 h6h5 f8f7 h5h6 f7h7
+11	mate -4	4004	mate -4	12682	h1f2 d8e8 h5h6 e8f8 h6h5 f8f7 h5h6 f7h7	h1g3 d8e8 h5h6 e8f8 h6h5 f8f7 h5h6 f7h7
+12	mate -4	4711	mate -4	17936	h1f2 d8e8 h5h6 e8f8 h6h5 f8f7 h5h6 f7h7	h1g3 d8e8 h5h6 e8f8 h6h5 f8f7 h5h6 f7h7
+
+FIRST DIVERGENCE at depth 9
+  S14  : g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q h6g7 c8b7 g7f8   (cp -4653, 1483 nodes)
+  PC20 : g5d8 g1h1 d8h4 h1h4 h5g5 c5c6 h7h5 c6c7 g5h6 c7c8q h6g7 c8d7 g7g8 d7e6 g8g7 e6f6 g7g8   (cp -4639, 2198 nodes)
+  moves only in S14's line : c8b7 g7f8
+  moves only in PC20's line: c8d7 g7g8 d7e6 g8g7 e6f6 g7g8
+  same move SET: no
+
+VERDICT: VERIFICATION - PC20's line contains 6 move(s) S14's does not, so the extra work
+  examined resources outside S14's tree. The identical score is better-founded under PC20,
+  because it survived defences S14 never looked at.

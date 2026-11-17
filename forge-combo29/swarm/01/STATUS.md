@@ -283,10 +283,54 @@ and nodes alone, and the scores refuted it. Then I labelled the last one "verifi
 **score-by-depth** trace refuted that too: PC20 was still returning `cp -3363` three iterations after S14 had a mate.
 **Each time the missing column was the one that said what the search had learned.**
 
-**A node-count claim is meaningless without its workload.** Bench node ratios flip sign across benches — **+14.5 % on
-bench 11, −10.6 % on bench 13, +8.7 % on bench 16** — while real game positions sit at **−9.1 %**. So "PC20 saves
-7.4 % of nodes" is a true statement about `depth 12` on one FEN sample and a false one about the engine. It joins the
-list of things a number cannot be quoted without: build, Threads, Hash, settings, **and workload**.
+**A method that indicts one row must be run against every row it was used on — and mine changed two verdicts out of
+five.** `S-C47` classified five positions by depth, seldepth, nodes and the **final** score. Then i=16 showed the final
+score hides *when* the answer arrived. Re-running the same lens over all five changed **two** verdicts, and both were
+the ones I had called "more verification":
+
+* **i=16**: PC20 reached the mate **three iterations later** than S14 (d12 vs d9) — later convergence.
+* **i=99**: PC20 had the **correct** score one iteration **earlier** (d10 `mate −4` while S14 still said `mate −9`) —
+  earlier correctness, a real benefit.
+
+**"Same answer, more work" is not a diagnosis.** It is what the final score looks like when you have not looked at the
+path. The cheap test that separates every case: **find the first iteration at which each setting reports its final
+answer.** Two numbers per position.
+
+**And a limit on a rule I stated a day earlier, which is the part worth keeping.** I wrote that a search should be
+classified by *what it concluded*, not only by how far it looked — and that rule is right about **finished** searches
+and **wrong about iterations of the same search.** Applying it to mid-flight PVs, I called i=16 "verification" because
+PC20's depth-4 line contained moves S14's did not. But depth 4 was an *unsettled* position in a search that had not
+converged; divergence there meant **"has not got there yet"**, not **"found a new defence."** I compared two snapshots
+taken mid-flight and drew a conclusion about what each had learned.
+
+> **A PV comparison is valid at convergence and invalid mid-flight. Before comparing what two searches "know", check
+> that both have finished knowing it.**
+
+**A node-count claim is meaningless without its workload — but bench is not thereby useless, and I nearly said it was.**
+
+My first version of this rule read "bench node ratios flip sign across benches (+14.5 % / −10.6 % / +8.7 %) while real
+positions sit at −9.1 %, so a node-count claim needs its workload". **That is true and it was over-applied**, which seat
+19's audit caught. The corrected rule, with their evidence:
+
+> **Bench is valid for: pins, determinism, ablation DIRECTION, structural counters, and the pooled effect of one
+> isolated toggle. Bench is NOT valid for: per-node cost, or the aggregate PC20 set. And always report the
+> per-position spread.**
+
+Their two cases are the whole argument:
+
+* **A single toggle transfers.** `CorrHistV2` alone measures **4.3 %** of nodes on bench 13 and **5.2 %** on 120 real
+  positions — the same effect. Discarding bench magnitudes wholesale would have thrown this away.
+* **The aggregate PC20 set does not.** It goes **+14.5 / −10.6 / +8.7** across benches 11/13/16 against **−9.1** on real
+  positions. That is the case that fails, and it is a statement about a *set*, not about bench.
+
+So "PC20 saves 7.4 % of nodes" is still a claim that needs its workload attached — but the reason is that it aggregates
+a set whose sign flips, **not** that bench numbers are untrustworthy. A bench number for one toggle, one pin, or one
+direction is worth exactly what it measures.
+
+**And the spread is not optional.** `CorrHistV2`'s 5.2 % pooled saving wins on only **54.2 %** of positions, with
+quartiles **0.767–1.180** — an IQR **28× the effect size**. That is a real pooled effect and an unusable per-position
+predictor, and reporting only the pooled figure would misrepresent both. **A pooled ratio without a spread is the same
+class of deficiency as an extremum without a trace.**
 
 ### The instance that proves that thesis, better than the table above (S-F130)
 
@@ -2240,3 +2284,57 @@ Next: continue at cadence; i=16 is the one open thread from this analysis.
    Threads, Hash and settings on the list of things a number cannot be quoted without.
 Gates: 190 rows, 0 wrong pipe counts, pairing check proven on a transposition, exit contract explicit, stamps in order.
 Next: re-examine i=99 under the score-by-depth lens, since it was classified with the weaker method.
+## 2026-11-17T01:45:12Z — the score-by-depth lens run against all five, and TWO verdicts change (S-C49)
+A METHOD THAT INDICTS ONE ROW MUST BE RUN AGAINST EVERY ROW IT WAS USED ON. S-C47 classified five outliers by depth,
+seldepth, nodes and the FINAL score; S-C48 then showed, for i=16, that the final score hides WHEN the answer arrived.
+So I ran that lens over all five.
+TWO VERDICTS CHANGE, AND BOTH WERE THE ONES I HAD CALLED "MORE VERIFICATION":
+  i=99 - I wrote "raised seldepth 21->26 at the SAME score, more verification of the same answer". The trace shows PC20
+         had the CORRECT score one iteration EARLIER: at depth 10 PC20 said mate -4 while S14 still said mate -9, and
+         S14 only converged at depth 11. So PC20's extra nodes bought EARLIER CORRECTNESS - a real benefit of the same
+         kind as a shorter mate, not redundant checking.
+  i=16 - already corrected in S-C48: LATER convergence (d12 vs d9), the opposite of i=99 despite both having had the
+         same "verification" label.
+UNCHANGED BUT SHARPENED:
+  i=78  - PC20 already mate 5 vs S14's mate 7 at the first depth either found a mate (d7), so it was ahead from the
+          moment a mate existed.
+  i=116 - mate 4 vs mate 5 at the same d11: one move shorter, immediately.
+  i=72  - verdict unchanged but the PATH is not monotone: tied d8-d9, S14 AHEAD at d10 (mate 5 vs mate 6), PC20
+          overtakes at d11 (mate 4). So "stronger" is right and "monotonically better" would be wrong.
+SO THE FIVE ARE NOT ONE PHENOMENON WITH FIVE INSTANCES: PC20 finds the answer sooner-or-better in three (78, 116, 99),
+later in one (16), and better-after-trailing in one (72). The node ratio alone cannot separate these, which is exactly
+why the mean misled.
+THE RULE, AND IT IS A LIMIT ON MY OWN EARLIER RULE. S-C47 said classify by WHAT a search concluded, not only how far it
+looked - right about FINISHED searches, WRONG about iterations of the same search. I applied it to mid-flight PVs and
+called i=16 "verification" because PC20's depth-4 line held moves S14's did not; at depth 4 the search had not
+converged, so divergence meant "has not got there yet", not "found a new defence". Recorded in the FINAL as:
+  "A PV comparison is valid at convergence and invalid mid-flight. Before comparing what two searches know, check that
+   both have finished knowing it."
+And: "same answer, more work" is not a diagnosis - it is what the final score looks like when you have not looked at the
+path. The cheap separating test is to find the first iteration at which each setting reports its final answer.
+Gates: 191 rows, 0 wrong pipe counts, pairing check clean, page shape OK, stamps in order.
+Next: continue at cadence.
+## 2026-11-17T01:46:54Z — the workload rule corrected (it was over-applied), and the spread requirement indicted my own artifact (S-C50, S-F139)
+SEAT 19 AUDITED EVERY BENCH-BASED NODE CLAIM IN THE RUN AND FOUND MY BLANKET RULE WRONG IN THE CAUTIOUS DIRECTION.
+CORRECTED RULE now in the FINAL: BENCH IS VALID for pins, determinism, ablation DIRECTION, structural counters, and the
+pooled effect of ONE ISOLATED TOGGLE; BENCH IS NOT VALID for per-node cost or for the aggregate PC20 set; and ALWAYS
+report the per-position spread.
+  The two cases that make the argument: CorrHistV2 ALONE measures 4.3 % on bench 13 and 5.2 % on 120 real positions -
+  the magnitude TRANSFERS, so discarding bench magnitudes wholesale would have thrown away a good result. The aggregate
+  PC20 SET goes +14.5 / -10.6 / +8.7 across benches 11/13/16 against -9.1 on real positions - and THAT is the case that
+  fails. So my "a node-count claim needs its workload" was true but too broad: the reason is that it AGGREGATES A SET
+  whose sign flips, not that bench numbers are untrustworthy. A bench number for one toggle, one pin or one direction is
+  worth exactly what it measures.
+AND THE SPREAD IS NOT OPTIONAL, which caught me immediately. CorrHistV2's 5.2 % pooled saving wins on only 54.2 % of
+positions with quartiles 0.767-1.180 - an IQR 28x the effect: a real pooled effect and an unusable per-position
+predictor. I checked my own equivalent and found the same shape: PC20's node saving wins on 59.5 % of positions with
+Q1 0.705 / median 0.926 / Q3 1.159, sd 1.769, max 18.37, IQR 0.454 = 6.1x the effect. AND MY OWN wall_time_pc20.txt
+REPORTED THE POOLED RATIO WITH NO DISTRIBUTION AT ALL - a real deficiency in an artifact I had already committed.
+Fixed at the source: the spread now sits ON the headline line, not only in a block further down, because a reader who
+stops at the headline must still see the distribution.
+BUILDING THE CHECK REPRODUCED TRAP 8 TWICE (S-F139). First version examined ZERO lines and passed - my regex matched
+only the literal word "pooled", which my files never use; decorative in exactly the way S-F122 describes. Widened, it
+then correctly FAILED my own file on three pooled ratios, which is the right outcome. Re-proven both ways with rc=$?
+captured on the same line: spreads stripped -> rc=1, restored -> rc=0. Now a gate step.
+Gates: 193 rows, 0 wrong pipe counts, spread check gating, pairing check clean, stamps in order, gate rc=0.
+Next: continue at cadence.

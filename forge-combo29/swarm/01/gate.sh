@@ -206,6 +206,13 @@ fi
 #     12,657 vs 10,075. This is the narrow class of prose number that HAS a machine-readable anchor, so it is checked.
 run "per-depth node claims vs trace" python3 check_depth_claims.py FINDINGS.md clockfloor/analyse_outliers.json
 
+# 3h. EVERY POOLED RATIO CARRIES A PER-POSITION SPREAD (S-F139). Seat 19's audit supplied the rule: CorrHistV2's
+#     pooled 5.2 % node saving wins on only 54.2 % of positions with an IQR 28x the effect - a real pooled effect and an
+#     unusable per-position predictor. A pooled ratio without a spread is the same deficiency class as an extremum
+#     without a trace. This immediately indicted MY OWN wall_time_pc20.txt, which reported "median node ratio 0.926
+#     (7.4 % fewer nodes)" with no distribution at all.
+run "pooled ratios carry a spread" python3 check_pooled_spread.py clockfloor
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

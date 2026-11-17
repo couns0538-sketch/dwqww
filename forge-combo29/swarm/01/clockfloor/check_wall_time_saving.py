@@ -172,9 +172,20 @@ def main():
         node_ratios = [r["node_ratio"] for r in good if r["node_ratio"]]
         L.append("PAIRS: %d usable, %d skipped (depth not reached)" % (len(good), len(skipped)))
         L.append("")
+        wr_sorted = sorted(r["ratio"] for r in good)
+        def _q(v, pp):
+            k = (len(v) - 1) * pp
+            f = int(k)
+            c = min(f + 1, len(v) - 1)
+            return v[f] + (v[c] - v[f]) * (k - f)
         L.append("WALL TIME, PC20 / S14:")
+        # the spread goes ON the pooled line, not only in a block further down: a reader who stops at the headline
+        # must still see the distribution (S-F139 - a pooled ratio without a spread is the extremum-without-trace class)
         L.append("  **median paired ratio %.3f**   (95 %% CI on the geometric mean: %.3f - %.3f)"
-                 % (stats["median_ratio"], stats["ci_lo"], stats["ci_hi"]))
+                 "  per-position Q1/median/Q3 = %.3f / %.3f / %.3f, min %.3f max %.3f"
+                 % (stats["median_ratio"], stats["ci_lo"], stats["ci_hi"],
+                    _q(wr_sorted, .25), statistics.median(wr_sorted), _q(wr_sorted, .75),
+                    wr_sorted[0], wr_sorted[-1]))
         L.append("  geometric mean of paired ratios %.3f over n=%d" % (stats["geo_mean_ratio"], stats["n"]))
         L.append("  (median and geometric mean are different statistics, both labelled deliberately)")
         L.append("")
@@ -185,6 +196,27 @@ def main():
             same = sum(1 for r in node_ratios if abs(r - 1.0) < 1e-9)
             L.append("  pairs with IDENTICAL node counts: %d of %d (those test nothing about a node saving)"
                      % (same, len(node_ratios)))
+            # PER-POSITION SPREAD IS NOT OPTIONAL (S-F139). A pooled ratio describes a set; without the spread a
+            # reader cannot tell a uniform improvement from a coin flip with a tail. Seat 19's CorrHistV2 case is the
+            # model: 5.2 % pooled, but it wins on only 54.2 % of positions with an IQR 28x the effect.
+            nr = sorted(node_ratios)
+            def q(v, p):
+                k = (len(v) - 1) * p
+                f = int(k)
+                c = min(f + 1, len(v) - 1)
+                return v[f] + (v[c] - v[f]) * (k - f)
+            iqr = q(nr, 0.75) - q(nr, 0.25)
+            eff = abs(1 - statistics.median(nr))
+            L.append("  **PER-POSITION SPREAD (node ratio): min %.3f Q1 %.3f median %.3f Q3 %.3f max %.3f sd %.3f**"
+                     % (nr[0], q(nr, .25), statistics.median(nr), q(nr, .75), nr[-1], statistics.stdev(nr)))
+            L.append("  PC20 uses FEWER nodes on **%.1f %%** of positions; IQR %.3f is **%.1fx the effect size**"
+                     % (100 * sum(1 for x in nr if x < 1) / len(nr), iqr, iqr / eff if eff else 0))
+            L.append("  -> a POOLED effect and an unusable per-position predictor, exactly the CorrHistV2 shape")
+            wr2 = sorted(r["ratio"] for r in good)
+            L.append("  PER-POSITION SPREAD (wall ratio): min %.3f Q1 %.3f median %.3f Q3 %.3f max %.3f; PC20 faster on"
+                     " %.1f %% of positions"
+                     % (wr2[0], q(wr2, .25), statistics.median(wr2), q(wr2, .75), wr2[-1],
+                        100 * sum(1 for x in wr2 if x < 1) / len(wr2)))
         L.append("")
         L.append("SCORED AGAINST SEAT 19's PREDICTION (0.88-0.93 wall ratio):")
         r = stats["median_ratio"]
