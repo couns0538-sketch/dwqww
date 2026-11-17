@@ -272,7 +272,30 @@ Three things, all caught by my own controls rather than by review:
 - **`DrawJitter` > 0.** All runs used the default; a nonzero jitter perturbs leaf
   scores near 0 and could interact with the mate band, untested.
 
-## 8. Files
+## 8. How to reproduce this branch
+
+**The branch carries only `forge-combo29/swarm/matehash/`** — the collapse commit
+`7887ea699` removed the rest of the tree so the PR diff is just this seat's work. The
+scripts therefore need the engine sources present, and they are not in the branch:
+
+```bash
+git checkout 6b98f217 -- forge-combo29/src forge-combo29/include forge-combo29/CMakeLists.txt
+export LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13
+cmake -S forge-combo29 -B /tmp/build-matehash \
+      -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DFORGE_MARCH=x86-64-v4 -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/build-matehash -j4
+cd forge-combo29/swarm/matehash && python3 scripts/pins.py /tmp/build-matehash/forge
+```
+
+`scripts/pins.py` must print `PINS PASS` before any other script's output is
+comparable — the pins are what tie a number to this binary.
+
+**Verified after the collapse, on the restored sources:** `scripts/unit_score_tt.py`
+reproduces `extracted_sha256 21ef96d3…`, **118,332 cells, 0 failures**, planted twins
+**234,608 failures**. The extraction hash is the guarantee that the code under test is
+`6b98f217`'s `search.cpp` and not an edited copy.
+
+## 9. Files
 
 - `scripts/engine.py` — UCI driver that reads to `bestmove` before sending anything
   (never pipes `quit` into a live search).
