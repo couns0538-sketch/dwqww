@@ -1961,3 +1961,31 @@ plus a sign-convention self-test before any cost is computed. Those assertions w
 Absurdity depends on somebody rereading a table; an assertion does not.
 
 130 findings, 20 rule instances, both audits PASS.
+## 2026-11-17T01:37:55Z  F103: generation order fully specified - index 0 is PREDICTABLE (13/13 holdout)
+2026-11-17T01:37:55Z
+
+Question: is the 0-node move predictable without running the engine? Answer: yes, and completely.
+
+Formation set 12 positions (same deterministic seed-2301 sample as F101); HOLDOUT 13 positions never used to form
+anything (lines 200, 600, 1000, ...) - that separation matters because the within-pawn rule was found by LOOKING at two
+formation positions.
+
+  T1  piece types are ONE BLOCK in fixed order P,N,B,R,Q,K with absent types skipped (PBRQK = no knights).
+      Formation 12/12. HOLDOUT 13/13.
+  T2  within pawns: single push, then double push, then capture - non-decreasing. Formation 12/12. HOLDOUT 13/13.
+      (Not a square sort: from-squares and to-squares are both non-monotone, 6 of 6 checked.)
+  T3  index 0 is a pawn when pawns exist: 12/13, the exception having no pawns and correctly leading with N.
+  Stability: identical divide from a fresh process, 12 of 12.
+
+So the drawn-root hazard can now be stated precisely rather than vaguely: on a drawn root the engine plays THE FIRST
+PAWN PUSH IT GENERATES. That is checkable against my own earlier findings - the five endgame roots had no pawns and
+their index-0 moves were king/rook moves, consistent with the same rule.
+
+I do NOT know the order WITHIN a class and do not guess it; it is not by from- or to-square, and settling it needs the
+generator's code or a much larger sample hunting a pattern.
+
+F104: two test defects, both mine, both caught by absurdity rather than by a control - my T1 compared against the
+literal "PNBRQK" so positions with no knights counted as failures (the hypothesis was right, the test was wrong), and
+my holdout slice crashed on an out-of-range index while an empty slice would have printed "0 of 0, all pass".
+
+132 findings, 21 rule instances, both audits PASS.

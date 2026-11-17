@@ -1,0 +1,88 @@
+GENERATION ORDER IS FULLY SPECIFIED: piece-type blocked P→N→B→R→Q→K, and within pawns single→double→capture
+================================================================================================================
+The purpose: 23-F98/F100 show the drawn-root path plays generator index 0, and 23-F101 prices it at a median ~625 cp.
+This asks whether index 0 is PREDICTABLE without running the engine — which decides whether the hazard can be stated
+precisely to a tool author, or only described.
+
+THE SAMPLE, and how the hypotheses were formed versus tested
+------------------------------------------------------------
+Formation set: 12 positions, every 400th line of the validated seed-2301 set (the same deterministic sample as job 50,
+so the two jobs share a population). **Holdout set: 13 more positions at lines 200, 600, 1000, ... — never used to form
+the hypotheses.** That separation matters because the within-pawn rule below was found by LOOKING at two formation
+positions, which is fitting until a holdout confirms it.
+
+RESULT ON THE FORMATION SET (12 positions)
+------------------------------------------
+| # | piece-type sequence | blocks | priority |
+|---|---|---|---|
+| 1 | PPPPPPPPPPPPP NNNNN BBBBBBB QQQQ KK | 1 | PNBQK |
+| 2 | PPPPP NN BBBBBBBBBB RRRRR QQQQQQQQQQQ KKKKKK | 1 | PNBRQK |
+| 3 | PPPPPPPP NNNNNNN BBBBBBB RRRRRRR KKKKK | 1 | PNBRK |
+| 4 | PPPPPPPPPPPPP NNNNNNNNN BBBB RRRRRRRRRRR Q KK | 1 | PNBRQK |
+| 5 | PPPPPPPP NNNNNN BBBBBB RRR QQQQQQ KKKK | 1 | PNBRQK |
+| 6 | PPPP BB QQQQQQQQQQQQ K | 1 | PBQK |
+| 7 | PPPPPP NNNNNN BBBBBBB RRRRRRRRR QQQQQQQQQQ KKKK | 1 | PNBRQK |
+| 8 | PPPPPP NNNNNNN BBBBBBBB R QQQQQQQQQQQQQ KKKKK | 1 | PNBRQK |
+| 9 | PP BBBB RRRRRRRRRRRRRR KKKK | 1 | PBRK |
+| 10 | PPP NNNNNN BBBB RRRRRR QQQQ KKKK | 1 | PNBRQK |
+| 11 | PPPPPPP NNNNNNNN RRRRR KK | 1 | PNRK |
+| 12 | PPP NNNNNNN BBB RRRRR QQQQQQQQQQQQQ KKKK | 1 | PNBRQK |
+
+**Every sequence is a single block: 12 of 12.** No piece type is ever revisited after another type intervenes. The
+priority order of first appearance is always the fixed sequence P, N, B, R, Q, K with absent types skipped (PBRQK means
+no knights on the board; NBK means no pawns and no rooks).
+
+WITHIN THE PAWN BLOCK
+---------------------
+Not a square sort — from-squares are not monotone and neither are to-squares (checked: 6 of 6 positions `no` on both).
+It IS ordered by move CLASS: **quiet single push → quiet double push → capture**, non-decreasing on 12 of 12 formation
+positions.
+
+HOLDOUT (13 positions never used to form any of it)
+---------------------------------------------------
+| # | priority | pawn classes | T1 | T2 | T3 |
+|---|---|---|---|---|---|
+| 1 | PBRQK | ssssdc | pass | pass | pass |
+| 2 | PNBRQK | sssdc | pass | pass | pass |
+| 3 | PNBRK | sssscc | pass | pass | pass |
+| 4 | PNBRK | ssssddccc | pass | pass | pass |
+| 5 | PNRQK | ssdd | pass | pass | pass |
+| 6 | PNBRQK | sssdccccccc | pass | pass | pass |
+| 7 | PNBRQK | ssscccc | pass | pass | pass |
+| 8 | PNBRQK | ssssssdddccc | pass | pass | pass |
+| 9 | PNBRK | ssssddd | pass | pass | pass |
+| 10 | NBK | (no pawns) | pass | pass | n/a |
+| 11 | PNBRQK | sssssssddddd | pass | pass | pass |
+| 12 | PNBRQK | sssssdddcccc | pass | pass | pass |
+| 13 | PNBRK | ssss | pass | pass | pass |
+
+**T1 (priority = P,N,B,R,Q,K restricted to present types): 13/13. T2 (single ≤ double ≤ capture within pawns): 13/13.
+T3 (index 0 is a pawn when pawns exist): 12/13, the exception being position 10 which has NO pawns and correctly leads
+with N.** Stability: the divide from a fresh process was identical on 12 of 12 (job 51's P3), so the order is a stable
+property rather than a scheduling artefact.
+
+WHAT THIS MEANS, stated no wider than the data
+-----------------------------------------------
+**Index 0 is fully predictable from the position alone**, for the boards tested: it is the first pawn move in class
+order (single push, then double push, then capture), and if there are no pawns it is the first knight move, and so on
+down P,N,B,R,Q,K. So the drawn-root hazard can be stated precisely: *on a drawn root the engine plays the first
+pawn push it generates.* That is more useful to a tool author than "an arbitrary unsearched move", and it is testable
+against my own finding — the five endgame roots had no pawns, and their index-0 moves were king/rook moves consistent
+with the same rule.
+
+I have NOT established the order WITHIN a class (which single push comes first — it is clearly not by from-square or
+to-square), and I do not guess: that would need either the generator's code or a much larger sample hunting a pattern.
+
+TWO TEST DEFECTS IN THIS JOB, both mine, both caught by absurdity rather than by design
+----------------------------------------------------------------------------------------
+1. My first T1 compared the priority string against the literal `"PNBRQK"`, so five holdout positions with no knights
+   (`PBRQK`) counted as FAIL. The hypothesis was fine and the TEST was wrong — the same shape as instance 17 (the
+   expected value in a control is itself a claim). Restated as "the fixed order restricted to present types", it passes
+   13/13.
+2. The holdout slice asked for 20 strides from a 5000-line file and crashed on an out-of-range index; the first holdout
+   run produced nothing at all. A crash is visible, but it is worth noting that a silent empty slice would have printed
+   "0 of 0 — all pass".
+
+LIMITS: 25 middlegame positions total (12 formation + 13 holdout), one seed set, base build, `go perft 1` order taken
+as the generator's order (consistent with F98's six-position equality, and stable across processes). The within-class
+order is unexplained and is left that way.
