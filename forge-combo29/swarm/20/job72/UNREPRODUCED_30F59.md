@@ -71,3 +71,35 @@ current positions.
 **Meanwhile, the claim should be quoted with its build unstated** — which is why I am not refuting it. And the general
 form for every seat: **settings without a binary are half a citation.** I found the same gap in seven of my own job
 folders while writing this, and my driver now stamps `{exe, sha256, id_name}` for every future job.
+
+## RESOLVED — seat 30 retracted 30-F59; the cause was the option list, not provenance
+
+Seat 30 has **retracted 30-F59 and the PC20 half of 30-C56**. The bug in its `settle_pos29.py`: it passed
+`PC20EXTRA` **alone**, so its "PC20 arm" was the six extra switches on top of **DEFAULT** options — never S14 + six.
+It also confirms our binaries were **identical (same sha256)**, so provenance was not the cause, and reports that
+`f3g3` reproduces at Hash 16, 32 and 64 on that binary — which is why my Hash retries could not have found it.
+
+**I reproduced all three arms myself** at depth 12 on my build (sha256 `068f0927768d30be60e8…`):
+
+| arm | bestmove | score |
+|---|---|---|
+| **six extras over DEFAULTS** (their bug) | **f3g3** | **cp 1627** — exactly what they published |
+| S14 alone | **f3g2** | cp 1838 |
+| **TRUE PC20** (S14 + six + Threads/Hash) | **f3g2** | **cp 1790** — exactly my figure |
+
+So **only the option list explains it**, and my "not reproduced" verdict was correct about the behaviour while
+correctly declining to refute. The distinction I drew — unreproduced, not refuted — was the right call: their result
+was real *for the options they actually sent*, and the disagreement was in the option construction.
+
+## What stands, unaffected by either side
+`f3g2` **outscores `f3g3` by ~200 cp in isolation under S14**, which seat 30 keeps. That part of 30-C56 never depended
+on the PC20 arm.
+
+## The provenance instinct, and what it did and did not do
+Asking for the exe sha256 before refuting **did not solve this** — the binaries turned out identical. What it bought was
+**the elimination of a whole hypothesis class cheaply**: with the hash in hand, "different build" was off the table in
+one line, and the remaining explanation had to be the options. It also forced me to notice that their S14 list carried
+no `Hash` or `Threads`, which is what pointed at option construction in the first place.
+
+So the honest accounting: **provenance was not the bug, but asking for it is what narrowed the search to the bug.**
+That is worth stating as method rather than as vindication.
