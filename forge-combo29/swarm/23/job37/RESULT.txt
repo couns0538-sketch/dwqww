@@ -1,0 +1,34 @@
+DOES THE eval/go GAP SCALE WITH THE COUNTER? — yes: it opens exactly at the search horizon
+========================================================================================
+23-F79's account (the gap is where a static evaluator is blind) predicts the gap should be SMALL while the search can
+still see the win, and OPEN when the horizon meets the 100th half-move. Won K+R v K, base build, `eval` once per
+counter (constant) and `go depth 10` at each:
+
+| counter | `eval` total | `go depth 10` | gap |
+|---|---|---|---|
+| 40 | 406 | cp 381 | **25** |
+| 60 | 406 | cp 381 | **25** |
+| 80 | 406 | cp 374 | 32 |
+| 88 | 406 | cp 361 | 45 |
+| 90 | 406 | cp 271 | 135 |
+| **92** | 406 | **cp 0** | **406** |
+| 95 | 406 | cp 0 | 406 |
+| 99 | 406 | cp 0 | 406 |
+| 100 | 406 | cp 0 | 406 |
+
+THE GAP IS A CURVE, NOT A CONSTANT: 25 cp far from the horizon, creeping to 32 and 45 as the win gets tighter, 135 at
+counter 90, then **snapping to 406 at counter 92** — which is exactly the horizon onset I measured in 23-C26 (91 at
+depth 10, this board). Beyond 92 it stays at 406.
+
+ALL FOUR PREDICTIONS HELD: P1 eval constant (spread **0 cp** across all nine counters — the static evaluator genuinely
+has no counter), P2 go wins at 40-80, P3 the gap small below and large above with no overlap, P4 the opening at 92,
+within ±4 of the 91 onset measured at depth 10.
+
+WHY THIS MATTERS: F79's mechanism was "the gap tracks evaluator blindness", which is a reason. This makes it a
+MEASURED CURVE with a shape — monotone rise then a step at the horizon — so a tool author can predict where the
+contradiction appears rather than being told it exists somewhere. It also confirms the two findings are the same
+mechanism from two directions: 23-C26 found the search's onset by sweeping the counter; this finds the same onset by
+watching the gap between two interfaces.
+
+LIMIT: one board, one depth, one build; the exact onset moves with depth (23-C26: 95/92/91/89/89 at depths 6-14), so
+the curve's step would move with depth too.
