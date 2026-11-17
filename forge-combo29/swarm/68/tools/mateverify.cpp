@@ -413,6 +413,11 @@ struct SearchCtx {
     std::vector<uint64_t> path;
 };
 
+inline int mateDistance(int v) {  // plies from root; 0 = mate at root
+    const int a = std::abs(v);
+    return a >= MATE - 255 ? MATE - a : -1;  // -1 = no mate
+}
+
 // Transposition table. Mate scores are stored relative to the NODE (distance
 // from this node to the mate) rather than to the root, and converted on the way
 // in and out. Storing a root-relative score and reading it at another ply is the
@@ -470,7 +475,16 @@ int nega(Pos& p, int depth, int ply, SearchCtx& ctx) {
 
     const size_t slot = ttIndex(p.key);
     if (tt[slot].valid && tt[slot].key == p.key && tt[slot].depth >= depth) {
-        return ttLoad(tt[slot].value, ply);
+        const int cached = ttLoad(tt[slot].value, ply);
+        // A cached MATE score carries a node-relative distance. That distance is
+        // path-independent and correct, but it may be LONGER than the depth this
+        // caller has left: the entry could have been proven at this position on a
+        // shallower path with more remaining depth. Returning it then claims a
+        // mate deeper than the horizon actually searched, which is how this
+        // verifier came to report mate 12 at horizon 9. Only accept a mate value
+        // that fits inside the current depth budget.
+        const int cachedDist = mateDistance(cached);
+        if (cachedDist < 0 || cachedDist <= depth) return cached;
     }
 
     const bool check = in_check(p, p.side);
@@ -605,11 +619,6 @@ std::string json_escape(const std::string& s) {
 
 const char* color_name(int c) { return c == WHITE ? "white" : "black"; }
 
-inline int mateDistance(int v) {  // plies from root; 0 = mate at root
-    const int a = std::abs(v);
-    return a >= MATE - 255 ? MATE - a : -1;  // -1 = no mate
-}
-
 struct Verdict {
     std::string status;     // CORRECT / WRONG / INCONCLUSIVE / BADFEN
     std::string direction;  // over / under / none
@@ -625,33 +634,48 @@ Verdict verify(Pos& p, int claimed, uint64_t nodeCap, double timeLimitSec) {
     if (N <= 0) { v.status = "INCONCLUSIVE"; v.detail = "claimed mate 0"; return v; }
     const int expected = claimed > 0 ? 2 * N - 1 : 2 * N;
 
-    // Exact DTM by iterative deepening. The first horizon at which a mate
-    // appears yields the exact distance, because every shallower horizon proved
-    // that no faster mate exists. Deepening rather than single-shot matters here:
-    // the label may be wrong in EITHER direction, and only an exact distance
-    // says which.
-    SearchCtx ctx;
-    ctx.nodeCap = nodeCap;
-    ctx.deadline = std::chrono::steady_clock::now() +
-                   std::chrono::milliseconds(static_cast<long long>(timeLimitSec * 1000));
-
+    // Exact DTM by iterative deepening, with the transposition table kept only
+    // within ONE horizon.
+    //
+    // Two facts force this design, both measured on this verifier:
+    //
+    //  1. Keeping the TT across horizons produced a WRONG distance. On
+    //     `8/8/7K/8/8/7k/2Q5/8 b - - 0 1` the shared table reported mate 12 at
+    //     horizon 9 and mate 10 at horizon 10; clearing the table per horizon
+    //     makes horizon 9 return "no mate" and horizon 10 return mate 10, which
+    //     agrees with two other implementations. The cause is that a value
+    //     proven at a shallow horizon is stored with that horizon's depth, and a
+    //     deeper horizon reuses it where it is no longer valid: the stored
+    //     distance was computed with too little lookahead to see the defence.
+    //
+    //  2. The first horizon that reports a mate IS its exact distance, because
+    //     every shallower horizon was searched exactly (TT within the horizon is
+    //     sound) and returned "no mate". That is why the loop can stop at the
+    //     first mate rather than waiting for a value to stabilise.
     const int cap = expected + 12;
-    int found = 0;   // signed plies; 0 = none yet
+    int found = 0;  // signed plies
+    uint64_t totalNodes = 0;
+    bool aborted = false;
     for (int d = 1; d <= cap; ++d) {
+        std::fill(tt.begin(), tt.end(), TTEntry{});
+        SearchCtx ctx;
+        ctx.nodeCap = nodeCap;
+        ctx.deadline = std::chrono::steady_clock::now() +
+                       std::chrono::milliseconds(static_cast<long long>(timeLimitSec * 1000));
         const int val = nega(p, d, 0, ctx);
-        if (ctx.aborted) break;
-        // The search returns +-(MATE - pliesToMate); convert to a signed ply count.
-        const int d2 = mateDistance(val);
-        if (d2 >= 0) {
-            found = val > 0 ? d2 : -d2;
+        totalNodes += ctx.nodes;
+        if (ctx.aborted) { aborted = true; break; }
+        const int dd = mateDistance(val);
+        if (dd >= 0) {
+            found = val > 0 ? dd : -dd;
             break;
         }
     }
 
-    if (ctx.aborted && found == 0) {
+    if (aborted && found == 0) {
         v.status = "INCONCLUSIVE";
         v.detail = "node/time cap at depth " + std::to_string(cap) + " (" +
-                   std::to_string(ctx.nodes) + " nodes)";
+                   std::to_string(totalNodes) + " nodes)";
         return v;
     }
 
@@ -664,9 +688,9 @@ Verdict verify(Pos& p, int claimed, uint64_t nodeCap, double timeLimitSec) {
         return v;
     }
 
-    const int dist = std::abs(found);
-    const bool attackerIsStm = found > 0;
-    const int signedPlies = attackerIsStm ? dist : -dist;
+    const int signedPlies = found;
+    const int dist = std::abs(signedPlies);
+    const bool attackerIsStm = signedPlies > 0;
     v.dtmPlies = signedPlies;
     v.attacker = attackerIsStm ? p.side : 1 - p.side;
 
@@ -724,7 +748,7 @@ int main(int argc, char** argv) {
             return 2;
         }
         const int claimed = std::atoi(argv[3]);
-        const Verdict v = verify(p, claimed, 40000000ULL, 180.0);
+        const Verdict v = verify(p, claimed, 400000000ULL, 600.0);
         const int attacker = v.attacker >= 0 ? v.attacker : p.side;
         std::printf("{\"status\":\"%s\",\"direction\":\"%s\",\"claimed\":%d,\"attacker\":\"%s\","
                     "\"attacker_from\":\"sign_of_exact_score\",\"stm\":\"%s\",\"dtm_plies\":%d,"
@@ -756,7 +780,7 @@ int main(int argc, char** argv) {
                 continue;
             }
             const int claimed = std::atoi(f[1].c_str());
-            const Verdict v = verify(p, claimed, 40000000ULL, 90.0);
+            const Verdict v = verify(p, claimed, 400000000ULL, 300.0);
             const int attacker = v.attacker >= 0 ? v.attacker : p.side;
             std::printf("{\"fen\":\"%s\",\"claimed\":%d,\"attacker\":\"%s\",\"stm\":\"%s\","
                         "\"status\":\"%s\",\"direction\":\"%s\",\"dtm_plies\":%d,"
