@@ -1,0 +1,39 @@
+=== ROUTE 1 IS A NON-STARTER IN THE PC'S OWN REGIME: cont4 is OFF under PC20 ===
+Following up my own 29-F61 handover, and this kills Route 1 before anyone builds a flag for it.
+
+## The fact
+`src/search.cpp:160`: `bool ContHist4PlyRead = false;` — default OFF, and `src/uci.cpp:332` advertises it as
+`option name ContHist4PlyRead type check default false`.
+**`ContHist4PlyRead` is NOT one of PC20's options** (PC20 = S14's 14 settings + CuckooRep, HistRework 2, TtPruneV2,
+CorrHistV2, MateAlphaGuard, OwnBook false). So in the owner's real configuration:
+
+    cont4 = tune::ContHist4PlyRead && ...   ->   false && ...   ->   nullptr always
+
+and `quiet_history_sum()`'s line `if (cont4 != nullptr) score += ...` **never executes a table read**. The compiler can
+even see that the branch is taken from a global that does not change within a search, so the read is dead code at
+runtime for PC20.
+
+## What this does to my numbers
+My 29-F60 line-level attribution put `if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;` at **41,747,582
+instructions**. That line was measured on the portable `-g` build under **PC20+net**, where the flag is false — so
+those 41.7 M are the **null-check and the branch overhead**, not a table read. Which means:
+- the two READS that cost 165,603,995 each are **cont1 and cont2 only** (both always non-null in the PC's regime);
+- cont4 contributes **nothing to read traffic** in the owner's configuration, and my "three history reads per
+  candidate" statement in 29-F61 was **wrong for PC20** — it is two.
+
+## So Route 1 is dead, and the handover must say two reads, not three
+"Skip cont4 when provably all-zero" cannot help: it is already skipped by the flag being off. The remaining routes are
+the ones that touch cont1/cont2:
+1. **Prove a continuation table is empty for this node and skip its read.** This is the real candidate and needs:
+   - a per-frame flag set when the frame's `continuation` table has never been written, and
+   - **a test that the flag agrees with the read on every quiet candidate of every node** — the test is the work, not
+     the patch: instrument both paths and assert `flag_says_empty == (read_returns_zero_for_all_pieces_and_to)`
+     across a bench-13 run and the 200-opening set. Only then is the skip bit-exact.
+2. Prefetch cont1/cont2 blocks — bit-exact, but 29-F10 (and seat 19's 19-F10) found added prefetch requests SLOW this
+   loop down, so expect a loss.
+3. Shrink `PieceToHistory` — changes values, out of scope.
+
+## Correction to record
+29-F61 said "three history reads per candidate" and treated cont4 as traffic. Under PC20 it is **two reads**, and the
+41.7 M attributed to the cont4 line is branch overhead. The cache-line arithmetic in 29-F61 still holds (26 lines per
+table, three different objects) — it is the COUNT that was wrong for the PC's regime.

@@ -514,3 +514,11 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Withdrawn from the handover. Realistic routes instead: (1) skip cont4 when provably all-zero - bit-exact if the flag is equivalent to the read, needs a per-frame flag and a test; (2) prefetch, bit-exact by definition but my F10/seat 19's 19-F10 found extra prefetch requests made this loop SLOWER; (3) shrink the entry, changes values, out of scope.
 - Arithmetic only, not measured - but it stops the next seat wasting an hour on a route that cannot work.
 - next: continuing at cadence.
+
+## Tue Nov 17 01:10:02 AM UTC 2026
+- 29-F62 kills Route 1 of my own handover, and corrects my read count. ContHist4PlyRead DEFAULTS FALSE (search.cpp:160) and is NOT in PC20, so cont4 is always nullptr in the owner's configuration and its line never performs a table read.
+  -> The two 165,603,995-instruction reads are cont1 and cont2 ONLY; the 41,747,582 I attributed to the cont4 line is null-check/branch overhead, not traffic.
+  -> So my F61 phrase 'three history reads per candidate' was WRONG for PC20 - it is TWO - and 'skip cont4 when empty' cannot help because it is already skipped.
+  -> The cache-line arithmetic in F61 still stands (26 lines per table, three distinct objects); only the COUNT was wrong.
+- Real remaining route: prove a cont1/cont2 table is empty for a node and skip its read. Needs a per-frame flag AND a test that the flag agrees with the read on every quiet candidate of every node - instrument both paths, assert flag_says_empty == read_returns_zero for all pieces/to, across bench 13 and the 200-opening set. The TEST is the work, not the patch.
+- next: continuing at cadence.
