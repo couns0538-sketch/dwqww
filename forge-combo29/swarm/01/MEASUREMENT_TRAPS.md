@@ -180,6 +180,28 @@ and the block that landed has blanks where the backticked words should be (`posi
 
 Same shape as Trap 8: **a step that fails silently reports success.**
 
+## The shape the three harness traps share
+
+Trap 0 (typing), Trap 8 (tests that cannot fire), and Trap 9 (shell writing) are not three separate lessons; they
+are one:
+
+> **A check is a claim, and claims get tested. A step that fails silently reports success.**
+
+Each of the three, in my own session, produced a confident output that was wrong:
+
+| trap | the confident output | what was actually true |
+|---|---|---|
+| 0 — typing | a number in a finding | the sweep had printed a different one |
+| 8 — cannot-fire test | a clean "0 of 3" | the test was incapable of a positive |
+| 9 — shell writing | an exit code of 0 | the block had holes in it |
+
+And the same shape recurred in my **checks of my own checks**: a table checker that compared pipes against cells, a
+zero-node flag that scored 220-node cells "healthy", and an evidence command that returned three commits while
+claiming none. **Three times a check of mine turned out to be the thing that was wrong.**
+
+The only defence that worked, every time, was **running the thing and reading the output** — not reasoning about
+what it should do.
+
 ## The family of four settings, and why one rule covers all of them
 
 **To mean no limit, omit the token.**
