@@ -79,21 +79,44 @@ either as verified.
 
 ## 5. The size of the MultiPV effect on this set (independent of the mate question)
 
-On all 250 R4 boards at depth 12, MultiPV 1 versus MultiPV 3, fresh process for each configuration:
+On all 250 R4 boards, MultiPV 1 versus MultiPV 3, fresh process for each configuration, at each of two depths:
 
-| measurement | count |
-|---|---|
-| identical top-line score | 203 / 250 |
-| different top-line score | **47 / 250** |
-| different bestmove | **47 / 250** (and all 47 are exactly the score-different ones — 0 are score ties) |
-| top-line mate scores | 4 in both configurations |
-| mate-number disagreements | **1** (board 103: `mate 6` vs `mate 4`) |
-| top-line mate PVs replaying to a right-length checkmate | 4/4 in both configurations |
+| measurement | depth 12 | depth 16 |
+|---|---|---|
+| different top-line score | **47 / 250 (18.8%)** | **41 / 250 (16.4%)** |
+| different bestmove | **47 / 250** | **41 / 250** |
+| differing bestmoves that are score TIES | **0** | **0** |
+| top-line mate scores | 4 in both configurations | 6 in both configurations |
+| mate-number disagreements | 1 (board 103) | 0 |
 
-The clean correspondence — every bestmove difference is also a score difference, with zero ties — says these
-are 47 genuine search differences, not bookkeeping noise. This is consistent with what I already published as
-S-C24 (MultiPV changes node throughput by ~3x through TT clearing) and it extends it: on a fixed depth budget,
-MultiPV also changes **which move the engine calls best on 19% of random middlegame positions**.
+Three things follow, and the third is the one that matters for the owner's pipeline:
+
+1. **Every disagreement is a real search difference, not bookkeeping.** In both depth families the count of
+   differing bestmoves exactly equals the count of differing scores, with **zero** ties. Two searches that
+   merely broke a tie would produce equal scores; these do not.
+2. **It does not wash out with depth.** 18.8% at depth 12, 16.4% at depth 16. If this were a shallow-search
+   artifact, raising the depth should dissolve it; it barely moves. So "run deeper and the MultiPV setting
+   stops mattering" is false on this evidence.
+3. **Most of it is small, but the tail is large.** Among the centipawn disagreements the score gap is median
+   **15 cp** at depth 12 and **21 cp** at depth 16, but 5 (depth 12) and 7 (depth 16) boards disagree by more
+   than **100 cp**, and the largest gaps are **452 cp** and **315 cp**. So the practical harm is not "19% of
+   moves are slightly different" — it is that roughly 2-3% of positions get a materially different evaluation
+   depending on a display setting.
+
+| measurement | depth 12 | depth 16 |
+|---|---|---|
+| centipawn-gap median among disagreements | 15 cp | 21 cp |
+| gap > 100 cp | 5 boards | 7 boards |
+| gap > 300 cp | 1 board | 1 board |
+| largest gap | 452 cp | 315 cp |
+
+### A confound I checked and then discarded
+
+At depth 12 the MultiPV-1 answer matched the depth-16 answer on 88.0% of boards and the MultiPV-3 answer on
+80.0%. That comparison is **not usable as evidence**: the depth-16 reference is itself a free (MultiPV-1)
+search, so it favours MultiPV 1 by construction. I report the numbers only to say that I computed them and do
+not rely on them. The disagreement-rate stability above is the sound version of the same question.
+
 
 ## 6. What this means for the owner, in one paragraph
 

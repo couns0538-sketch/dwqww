@@ -230,11 +230,19 @@ sentence "never 9-7-5" is true only of a **fixed first move** - a free-search de
 with distance changes and cannot separate them. S-C31's qualifier in this file now carries this.
 
 **The new number (S-C48): MultiPV decides which move the engine calls best on 47 of 250 random middlegame positions
-(19%).** At a fixed depth 12, Threads 1, Hash 16, one fresh process per configuration: same top score **203/250**,
-different score AND different bestmove **47/250**, and **0** differing bestmoves with equal scores - so all 47 are
-genuine search differences, not ties. This extends S-C24 (MultiPV costs ~3x throughput) with the other half: on a
-fixed depth budget MultiPV also changes the answer. The direction is not uniform (MultiPV 3 found the SHORTER mate on
-board 103), so there is no "MultiPV is more accurate" rule to state.
+(18.8%), and raising the depth does not make it go away (41/250 = 16.4% at depth 16).** At a fixed depth 12,
+Threads 1, Hash 16, one fresh process per configuration: same top score **203/250**, different score AND different
+bestmove **47/250**, and **0** differing bestmoves with equal scores - so all 47 are genuine search differences, not
+ties. The depth-16 repeat is the part that matters: if this were a shallow-search artifact, more search should
+dissolve it, and instead it barely moves. **Magnitude is mostly small with a real tail:** centipawn gaps are median
+**15 cp** (d12) and **21 cp** (d16), but **5** and **7** boards respectively differ by more than **100 cp**, the
+largest by **452 cp** and **315 cp** - so the practical harm is that roughly 2-3% of positions get a materially
+different evaluation depending on a display setting, not that 19% of moves are slightly different. This extends
+S-C24 (MultiPV costs ~3x throughput) with the other half: on a fixed depth budget MultiPV also changes the answer.
+The direction is not uniform (MultiPV 3 found the SHORTER mate on board 103), so there is no "MultiPV is more
+accurate" rule to state. **A confound I computed and then discarded:** "mpv1 matches depth 16 on 88.0% of boards vs
+mpv3 on 80.0%" is not evidence, because the depth-16 reference is itself a free MultiPV-1 search and so favours
+mpv1 by construction.
 
 **Independent verification, and its limits.** `matesolve3.py` is a brute-force solver with no engine code; it confirms
 `h3h4` forces mate in exactly 4 (engine agrees) and `pv_truth.py` confirms that 7-ply PV survives defender-best-play
