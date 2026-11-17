@@ -249,6 +249,21 @@ overlap zero, before the run). With that check the naive driver fails both hazar
 **The rule:** a fixture is part of the control. Ask "could this input produce the same observable output under both
 the correct and the broken behaviour?" If yes, the fixture cannot distinguish and any result from it is worthless.
 
+**The mechanical fix, which is what caught both errors — use it every time a test discriminates between two
+possible boards or states:**
+
+```python
+stale_set    = {m.uci() for m in STALE.legal_moves}
+intended_set = {m.uci() for m in INTENDED.legal_moves}
+print("stale", len(stale_set), "intended", len(intended_set),
+      "overlap", len(stale_set & intended_set))
+assert stale_set.isdisjoint(intended_set), "fixture cannot distinguish the two boards"
+```
+
+Print the sizes AND the overlap before the run, and let the assertion stop it. An overlap of 0 is the only
+thing that makes "which board was searched?" answerable from the move alone; my two errors both had a fixture
+where the answer was the same either way, and neither looked wrong until the sets were compared.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if
