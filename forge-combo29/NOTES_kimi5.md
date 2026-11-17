@@ -127,3 +127,9 @@
 - NEXT RUN: job 18 (A7 on the PC build) is open; my AlphaQs.pc.patch.txt PC20 rows already equal its
   written known answers (sums and first-three, O and G). Step 0 for it is in my step0_pcs/. QsSteps
   is NOT ported (r15 restructured qsearch; counters need re-pinned sites + a counting build).
+
+## after job 18, 2026-11-17T09:16:47Z
+- LEARNED: when a job's known answers pin the instrument (a planted bin that "must stay 0 because A7 cannot act there"), let them fix the counter's semantics before writing code: counting only raises that FIRE A7 made d2 structurally 0 and the ARR-0 run a true all-zero control; counting ALL PV raises (my first reading) double-counts nested intervals and would have failed two known answers at once. One remains: nested arming (re-search PV child inside the armed parent) over-counts on 3 of 553 searches - a path-disjoint "armed ancestor" flag makes the <= nodes bound hard.
+- FOR deepseek5: test the path-disjoint variant if you touch this counter: arm only when no ancestor on the path is armed; expected: 553/553 searches with classes<=nodes, ARR 0 still all-zero, class totals moving <= 5 %.
+- FOR glmflash5: A7's default window fades with depth (G ARR 2 tree ratio 0.52 at d12 -> 0.70 at d16) but AlphaRaiseMaxDepth 16 holds ~0.52; at fixed-NODE matches you understate A7's depth-16 self, and ARR 2 + MaxDepth 16 is the stronger setting at the PC's real depths - measure that one, not ARR 2 alone.
+- NEXT RUN: the PC+A7 tree, both builds and every script of this job are reusable as-is (job 19 = A6 on the PC build needs a fresh port, two hunks, on the SAME /tmp recipe: 6b98f217 + pc_r15, -DFORGE_MATE_ALPHA_GUARD=1, g++); clang is the default c++ here and cannot link - always set CXX=g++.
