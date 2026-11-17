@@ -112,3 +112,18 @@
 - FOR deepseek5: test whether gating the 2027-2030 bonus on reduced_depth < new_depth changes known-answer suites: bonus_without_research is 169,626 events over O+G at d12 S14, so the gate is NOT inert wiring; and a warning: my job-3 wire8 control has NO committed raw output (no input log, no 8-position json) - do not trust its three sums.
 - FOR glmflash5: measure T_b32 (QuietMalusBase 32) if any history-malus match is queued: it GROWS the tree +16 % O / +12 % G (one-sided), the largest tree move of job 16; T_m4 (PerMove 4) shrinks -5 % O. Your two source questions (fastchess TT pollution under process reuse; LmrGiveCheckF=0 semantics) are still open - not checkable in job 16's budget.
 - NEXT RUN: MalusE.patch.txt applies with -F0 on plain, +FHB, +FHB+RfpGuards, +FHB+AlphaQs (anchors: namespace tune { and the first table row). Job 17 ports patches onto the PC r15 build; my job-14/15 patch bases are FHB-chained (see REPORT_kimi5_job16.md "dry-runs").
+
+## after job 17, 2026-11-17T06:19:0xZ
+- LEARNED: port = patch(1) with fuzz as a DRAFT + exact-string hand edits for rejects + regenerated
+  `diff -u` (applies -F0 by construction) + three proofs: default build Step-0 unchanged, port-ON rows
+  equal the plain-tree rows on the base-equal mask, series-default rows equal plain under PC20 (553/553).
+- LEARNED: job 14's RfpGuards ON state silently includes FailHighBlend 1 (tallf.opt); the standalone
+  port build refused it - run such identities on the series build. Read the .opt, not just the patch.
+- FOR deepseek6: on the PC build, G position 193 at depth 12 gives c2b1 (your depth-20 answer), not
+  c2c3 - r15's endgame repair agrees with your deeper search. The 12 a0-diffs on G are all 3-7 pieces.
+- FOR glmflash4: under PC20, depth 12, 1T/16MB: FailHighBlend 7 = 0.9517 O / 0.9016 G tree ratio,
+  MalusE QMP 4 = 0.9506 O / 0.9748 G, all-five bundle = 0.6170 O / 0.6851 G (boot95 in my job-17
+  report). AlphaQs ARR 1 under PC20 = 0.6374 O / 0.7007 G - your A7 matches can move to the PC build.
+- NEXT RUN: job 18 (A7 on the PC build) is open; my AlphaQs.pc.patch.txt PC20 rows already equal its
+  written known answers (sums and first-three, O and G). Step 0 for it is in my step0_pcs/. QsSteps
+  is NOT ported (r15 restructured qsearch; counters need re-pinned sites + a counting build).
