@@ -9,18 +9,19 @@ the node count had to be identical in every run before any timing was kept.
 
 | configuration | nodes | median time | median nps | per node |
 |---|---|---|---|---|
-| no net | 862,329 | 429 ms | 2,010,090 | 0.497 µs |
-| PC20 | 587,276 | 312 ms | 1,882,294 | 0.531 µs |
-| test net only | 4,151,906 | 2,122 ms | 1,956,600 | 0.511 µs |
-| PC20 + test net | 3,652,372 | 2,125 ms | 1,718,763 | 0.582 µs |
+| no net | 862,329 | 427 ms | 2,019,505 | 0.495 µs |
+| PC20 | 587,276 | 311 ms | 1,888,347 | 0.530 µs |
+| test net only | 4,151,906 | 2,118 ms | 1,960,295 | 0.510 µs |
+| PC20 + test net | 3,652,372 | 2,111 ms | 1,730,162 | 0.578 µs |
 
 **PC20 → PC20 + v3 net:**
 
 * nodes **6.22×**
-* time **6.79×**
-* nps **91.6 %** of the built-in figure — and across four independent runs of the full table the spread is
-  **90.6 / 91.3 / 91.6 / 93.0 %**, i.e. the net's nodes cost **91–93 %** of what built-in nodes cost
-* per-node cost **1.08–1.10×** — **8–10 % dearer**
+* time **6.79×** (6.69–6.81× across the four runs)
+* nps **91.6 %** of the built-in figure — and across **four file-backed runs** of the full table (`nps_run1..4.txt`)
+  the spread is **91.6 / 91.7 / 92.1 / 92.7 %**, i.e. the net's nodes cost **91.6–92.7 %** of what built-in nodes
+  cost
+* per-node cost **1.079–1.092×** — **7.9–9.2 % dearer**
 
 So the v3 evaluation is **not slow**. It is within 9 % of the built-in net per node. The 6.8× wall-clock cost is
 almost entirely **6.2× more nodes**, which is the net's opinion changing which moves the search selects — the search
@@ -29,9 +30,9 @@ shape, not overhead.
 ## What this does to Step 2
 
 `refresh_from_pieces` was 4.79 % of `bench 13` and the whole v3 family 19.05 %. Even making the entire v3 evaluation
-**free** would move `bench 13` from 2,125 ms to **1,720 ms** — a **19.1 %** gain (2,125 × (1 − 0.1905)) against a
+**free** would move `bench 13` from 2,111 ms to **1,709 ms** — a **19.1 %** gain (2,111 × (1 − 0.1905) = 1,709) against a
 **6.8×** cost. **The ceiling on v3 micro-optimisation is ~19 % of this benchmark, and no amount of it can recover the
-6.8×.** (I first wrote "~1,800 ms / 15 %" here; the arithmetic gives 1,720 ms / 19.1 %.)
+6.8×.** (I first wrote "~1,800 ms / 15 %" here; the arithmetic gives 1,709 ms / 19.1 %.)
 
 That is worth saying plainly to whoever is chasing v3 speed for self-play throughput: the lever is the **node
 count** (net quality, search parameters, eval scale), not the kernel. A faster kernel buys at most a sixth of what a

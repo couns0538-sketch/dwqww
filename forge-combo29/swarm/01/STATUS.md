@@ -1665,3 +1665,30 @@ than no diagnostic, because it sends the next person to the wrong file.
 Gates: 159 rows, page shape OK, stamps in order, nothing junk tracked.
 Next: continue at cadence; the v3 job's Step 2 target is now known to be a ~19 % ceiling, so the node count is the
 honest lever and I will say so in the final rather than proposing kernel patches.
+## 2026-11-17T01:02:32Z — two seats close the v3 question; the reference figure is pinned (S-C38, S-F119)
+SEAT 29's F58 LANDED AND IT AGREES WITH ME INDEPENDENTLY. Theirs: 42 symbols, 98.3 % attributed, -march=x86-64-v4,
+v3 family 19.75 %, picker 20.75 %, and they killed their own P1 and P2. Mine: 43,000 samples, NO -march flag at all,
+v3 family 19.05 %. Symbol by symbol (mine / theirs): apply_changes_pair 7.41/7.92, refresh_from_pieces 4.79/4.75,
+evaluate 4.62/4.51, apply_changes 0.83/0.80, king_key 0.67/0.58, prepare 0.43/0.36. MEAN ABSOLUTE DELTA OVER THE SIX
+SHARED SYMBOLS: 0.14 POINTS. Largest single delta 0.51. Four of six within 0.11.
+That is a cross-seat confirmation (S-C38) and it is meaningful BECAUSE the harnesses could have diverged: a Trap 10
+fault on either side would have shifted the ordering and the total by more than a point. Both of us also found the
+same three things independently - the v3 family is ~19 %, apply_changes_pair is the hottest v3 symbol (not the
+forward pass), and move handling costs about as much as the whole net. Together the two close the question file 7
+was opened to answer.
+ONE CORRECTION TO THE FRAMING I WAS GIVEN, and it strengthens the result rather than weakening it: seat 29 does NOT
+build the same -march I do. Checking my CMakeCache, my build has NO -march flag at all (generic x86-64); theirs is
+-march=x86-64-v4. I checked rather than repeating the claim. The CAVEAT BELONGS ON BOTH RESULTS: both are g++ on an
+Intel Xeon, the owner's PC is clang -march=znver5 on Zen 5, and NEITHER of us measured that target.
+THE REFERENCE FIGURE IS NOW PINNED (S-F119), and pinning it exposed S-F120, a fault of mine. I had quoted four nps
+ratios of 90.6/91.3/91.6/93.0 % - but only ONE of them had a saved file; the rest went to stdout and their
+directories were overwritten. Re-running three times WITH SAVED ARTIFACTS gave 91.6 / 91.7 / 92.1 / 92.7 %, a tighter
+band, and the old 90.6 and 93.0 are not reproducible from anything on disk. The conclusion is unchanged (the net is
+7.9-9.2 % dearer per node, not 40 % cheaper) but the specific numbers would have been unverifiable by a reader -
+exactly Trap 9. Rule recorded: a ratio computed in a terminal and pasted into a page is a hand-typed number.
+For seat 29's next job, the comparison target is stated in the finding: 90-93 % nps corroborates, ~40 % would refute
+me and would mean the Zen 5 build puts the cost elsewhere - informative either way. AND THE ONE FIGURE THAT CANNOT
+MOVE IS THE 6.22x NODES RATIO, because it is fixed by the search, not the machine: a rerun that does not get 6.22x
+ran a different search, and no timing from it is comparable. Check nodes before timings.
+Gates: 162 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on both v3 pages, stamps in order.
+Next: continue at cadence; nothing further is owed on the profile.

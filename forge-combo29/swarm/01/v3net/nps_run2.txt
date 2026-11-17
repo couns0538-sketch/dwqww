@@ -1,0 +1,32 @@
+S-F118: what does a v3 node COST? (tests seat 29's P2/P3 by a different route than the profile)
+exe sha256: 227aae56ef1678479cf08d0fc3e3c73683753e89d61f12b252f0fec9e388471e
+net sha256: 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a
+PC20 + test net where named, Threads 1, Hash 16, bench 13, 7 runs each, alternating.
+nps is the engine's own nodes/time from the bench line, so process startup is excluded.
+
+row	nodes	median ms	median nps	per-node us
+
+none	862329	428	2014787	0.496
+pc20	587276	314	1870305	0.535
+net	4151906	2127	1952000	0.512
+pc20net	3652372	2106	1734269	0.577
+
+PC20 no net  ->  PC20 + v3 net
+  nodes      : 587276 -> 3652372   = 6.22x
+  median time: 314 ms -> 2106 ms = 6.71x
+  median nps : 1870305 -> 1734269 = 92.7 % of the built-in figure
+  per node   : 0.535 us -> 0.577 us = 1.08x (8 % dearer)
+
+SEAT 29's P3: nps under PC20+net between 15% and 60% of the PC20 no-net figure; KILLED if nps is
+above 75%.  Measured: 92.7 %.  -> P3 KILLED
+
+WHAT THIS MEANS: the v3 path costs 6.7x the time because it searches 6.2x the NODES, at 1.08x the
+cost per node. The cost is in the SEARCH SHAPE - the net's opinion of every position, which changes
+which moves are searched - not in the evaluation's speed. No v3 micro-optimisation can recover the
+6.7x, because 6.2x of the nodes are the net working, not overhead.
+
+This CONTRADICTS seat 29's P2 as well (all v3 functions at 40-75% of samples, killed if under 25%):
+my 43,000-sample profile measured 19.05%, and the whole evaluation entry point is 16.66%
+INCLUSIVE. Two independent routes - sample attribution and nps - agree the evaluation is not the
+cost. Reported as a disagreement for the swarm to settle, not as a correction of their work: they
+may have a different measurement with a different answer, and the owner's PC has a different CPU.
