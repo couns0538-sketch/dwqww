@@ -1415,3 +1415,16 @@ DRAWN-ROOT CHAIN COMPLETE, five links, counterweight intact at every one:
 Counterweight: a match program ends the game at the third occurrence, so the move is never played there; the cost
 lands on analysis tools and anything searching past the repetition.
 102 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 22 m remain.
+## 2026-11-17T00:57:36Z  chain saved as ONE LINE for the FINAL (FINAL_CHAIN_LINE.txt); 23-C28 confirms 21-F22 and answers its ask
+2026-11-17T00:57:36Z
+
+The drawn-root chain is now a single line on disk (forge-combo29/swarm/23/FINAL_CHAIN_LINE.txt) so the FINAL block
+carries it verbatim instead of being reconstructed from five findings late:
+  exists (F44) -> clock path (F57) -> reached by an actual clock game (F58) -> costs up to mate-in-5 against itself at
+  0 nodes while reporting cp 0 (F60/61/72) -> fires in 8 of 10 self-play games, a lower bound (F75); in a MATCH the
+  program ends the game at that third occurrence, so the move is never played and the cost lands on analysis tools.
+
+23-C28 CONFIRMS seat 21's 21-F22 and supplies its attribution: their board reproduces (PC depth 12 38,865,114 nodes
+3.7 s; depth 13 165,410,810 nodes 19.9 s; base 721M/834M) and the four compile-time variants answer the ask -
+ONE_THREAD carries it (C and D byte-identical at 265,319,796), the LMR cap does nothing once it is on.
+103 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 21 m remain.
