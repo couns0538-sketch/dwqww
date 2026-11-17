@@ -1692,3 +1692,28 @@ MOVE IS THE 6.22x NODES RATIO, because it is fixed by the search, not the machin
 ran a different search, and no timing from it is comparable. Check nodes before timings.
 Gates: 162 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on both v3 pages, stamps in order.
 Next: continue at cadence; nothing further is owed on the profile.
+## 2026-11-17T01:08:49Z — confirmed seat 02's clamp finding, then caught my gate being decorative (S-C39, S-F121, S-F122)
+SEAT 02's S-C19 CONFIRMED ON INDEPENDENT BOARDS (S-C39). Theirs: 8 real game boards, 0 of 8 hit the depth-64 clamp.
+Mine: 8 DIFFERENT game-like positions (startpos, Italian, Ruy Lopez, Sicilian middlegame, King's Indian, two
+endgames, an open middlegame), none solved - depths 17-21, 0 of 8 reached the clamp, none cut by my harness.
+THE CONTROL IS THE POINT: 3 of 4 solved positions DID reach depth 64 (mated board and stalemate both bestmove 0000
+at 0 nodes, mate-in-1 at 1,344 nodes), so the clamp is reachable under the exact clock command and my 0-of-8 is a
+fact about the positions rather than an inability of the test to fire. Mechanism at search.cpp:2539-2540:
+mate_depth = 64 without a mate token, so the clock path's ceiling is 64 and only a search that would exceed 64
+touches it. The clamp is a harness hazard on solved positions, not a bound the owner's play can reach.
+THEN I MEASURED THE SAME THING THREE TIMES AND GOT THREE ANSWERS (S-F121), all of my own making. Question: how many
+info depth lines on a mated root? (1) my one-liner said 1 for EVERY command. (2) S-C18's own script said 64 for
+nodes/movetime/depth 64 and 5 for depth 5. (3) a protocol that waits for bestmove before quitting said 64 for ALL
+FOUR, INCLUDING THE CLOCK COMMAND. So my intermediate conclusion "the clock path is exempt" was ALSO wrong, and I had
+already written a paragraph explaining why it was exempt. MECHANISM OF BOTH ERRORS: piping quit straight after go
+closes the pipe and truncates the output, so the harness reports one iteration of a 64-iteration loop. Trap 5 in its
+purest form - the engine behaved identically all three times. What caught it was DISTRUST OF AGREEMENT: my one-liner
+agreed with itself across five commands and that consistency looked like evidence.
+AND THE GATE ITSELF COULD NOT FAIL (S-F122). check_findings_table.py always exited 0 - its text said STRUCTURAL
+PROBLEMS while its exit status said success, and a shell gate reads the status, not the prose. So the gate's first
+check had been decorative for the whole session: Trap 8 applied to my own verification. Found only because the gate
+said "passed" while the table said "1 row with a wrong pipe count" - two of MY tools disagreeing. Fixed and
+negative-tested BOTH directions: bad row -> exit 1 -> gate exit 1 with FAIL; clean -> exit 0 -> GATE: passed. It then
+immediately caught a literal pipe in the very row describing the bug.
+Gates: 164 rows, 0 wrong pipe counts, exit 0 verified, page shape OK, stamps in order.
+Next: continue at cadence.

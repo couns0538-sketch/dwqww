@@ -1,0 +1,36 @@
+CHECK of seat 02's S-C19: does the depth-64 clamp reach the owner's clock path?
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC r15 + PC20, Threads 1, Hash 16. Clock command under test: go wtime 6000 btime 6000 winc 60 binc 60
+Mechanism (src/search.cpp:2539-2540): mate_depth = 64 without a `mate` token, so the clock path's ceiling
+is 64; the clamp bites only a search that would otherwise exceed 64, i.e. a position that finishes fast.
+
+A. game-like positions (none solved)
+case	depth	nodes	bestmove	elapsed_s	cut_by_harness	score
+startpos	19	650246	e2e4	0.35	False	cp 7
+italian	19	667698	f1b5	0.39	False	cp 13
+ruy-lopez	20	1047143	a2a4	0.59	False	cp 107
+sicilian-mid	17	362362	a2a3	0.21	False	cp -308
+kings-indian	18	317945	h2h3	0.17	False	cp 61
+endgame-rook	18	597027	d4d1	0.20	False	cp 1250
+endgame-pawns	21	479853	b4f4	0.20	False	cp 93
+open-mid	17	501519	c4d5	0.29	False	cp -16
+
+B. CONTROL - these SHOULD end on their own; if none of them does, the clamp cannot fire and the
+   whole test would be unable to produce a positive (Trap 8).
+case	depth	nodes	bestmove	elapsed_s	ended_early	score
+mated-board	64	0	0000	0.00	True	mate 0
+stalemate	64	0	0000	0.00	True	cp 0
+mate-in-1	64	1344	e1e8	0.00	True	mate 1
+kp-vs-k	43	1042670	e3f3	0.20	True	cp 0
+
+RESULTS
+  game positions: depths [17, 17, 18, 18, 19, 19, 20, 21]
+  reached depth 64: 0 of 8
+  control positions reaching depth 64: 3 of 4 (mated-board, stalemate, mate-in-1)
+  control positions that ended on their own: 4 of 4
+
+VERDICT: CONFIRMS seat 02's S-C19. No game-like position reached the clamp (deepest 21 of a
+  possible 64), while the control set DID reach it (mated-board, stalemate, mate-in-1) - so the clamp is reachable and these
+  clock searches simply do not get there. The clamp is a harness hazard on solved positions, not a
+  bound the owner's play can hit.

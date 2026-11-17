@@ -95,6 +95,10 @@ def main():
     text = "\n".join(out) + "\n"
     pathlib.Path("check_findings_table.txt").write_text(text)
     print(text)
+    # EXIT NON-ZERO ON A PROBLEM. Until 2026-11-17 this script always returned 0, so gate.sh printed it as "ok" even
+    # while it reported a literal pipe splitting a row - a checker that cannot fail its caller is Trap 8 applied to
+    # the gate itself. The caller's exit status is the only part a script can be trusted to honour.
+    return 1 if (problems or dupes) else 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
