@@ -61,18 +61,53 @@ the call graph contradicted my reading of the source, and the call graph was rig
 | P5 | full refresh **rare**, ~10 % of v3 | **43.2 %, the largest v3 item** | **REFUTED — inverted** |
 | P6 | bookkeeping = 10 % of v3 | inlined, no separate entry | NOT MEASURED |
 
-**3 confirmed / 2 refuted / 1 unmeasured.** (I first wrote "5 of 6 refuted" by eyeballing the table; the arithmetic
-against my own pre-registered kill ranges says 3/2. Corrected in place, correction visible.)
+**3 confirmed / 2 refuted / 1 unmeasured.**
 
-## What Step 2 should now target — stated as a hypothesis, not a patch claim
-The expensive case is *a perspective whose king key changed*, and the code answers it with a rebuild even though the
-**piece placement of the other 15 pieces is already correct in the parent's accumulator**. A cheaper path would carry
-the parent accumulator forward and apply the king-column change (one column), but the feature index depends on
-`key.bucket` and `key.flip`, so *every* feature index changes when the bucket changes — which is exactly why the code
-rebuilds. **I am not claiming a patch exists.** File 7 requires every bench, node row and eval value to stay identical;
-a bucket change permutes all 768 features, so a same-numbers speed patch here would have to be a better rebuild (e.g.
-summing columns in a different order is not bit-identical for int16 saturation), not a shortcut. That is the honest
-state: the hot spot is identified, the fix is not obvious, and guessing one would waste a build cycle.
+### How that number was obtained, because the method is the point
+
+I first wrote **"5 of 6 refuted"** by looking at the table and seeing that the top function was not the one I named.
+That was an eyeball, and it was wrong in **both directions**: it scored P2, P3 and P4 as refuted when all three
+landed *inside* the ranges I had pre-registered, and it scored P5 as merely refuted when P5 was **inverted** (I
+predicted the refresh was rare; it is the single largest v3 item). A reader given "5 of 6 refuted" would have
+concluded the model was worthless, when in fact five of six pre-registered intervals bracketed the truth.
+
+The correction was arithmetic, not a second reading: each prediction carried a **kill range written down before any
+profiling**, so scoring is a comparison, not a judgement —
+`43.2 %` against `[25,65]` → confirmed; `21.6 %` against `[15,55]` → confirmed; `18.9 %` against `[8,38]` → confirmed;
+`refresh` as the top function → refuted; `43.2 %` against `[2,28]` → refuted. **Six comparisons, no discretion.**
+
+This is the same discipline as the call-graph correction one section above: when my own number and my own narrative
+disagree, the number wins, and the correction stays visible rather than being quietly edited away. Prediction files
+that are graded by the person who wrote them are worth nothing unless the grading rule was fixed first — which is
+the only reason pre-registering the kill ranges was worth the commit.
+
+## Why no patch is offered — the reason, stated plainly
+
+**A king-bucket change permutes all 768 feature indices of that perspective, so there is no incremental shortcut to
+take.** The feature index is
+
+```
+feature_index = key.bucket * InputsPerBucket + (relative_color*6 + type)*64 + relative_square
+relative_square = (square ^ (perspective == White ? 0 : 56)) ^ key.flip
+```
+
+Both `key.bucket` and `key.flip` are multiplicative/additive terms on **every** one of the 768 indices. When the king
+crosses a bucket boundary, or crosses the mirror line so `flip` changes, *no* weight row of the new accumulator is the
+same weight row as the old one — the old accumulator's contents are not merely shifted, they are drawn from a
+different slice of `w1` entirely. Carrying the parent accumulator forward and "fixing up the king column" is therefore
+not available: the parent's 768 values index the *wrong* weights, not stale values of the right weights.
+
+This is why the code rebuilds, and it is **the reason no patch is offered**: any patch that stayed bit-exact would have
+to make the rebuild itself cheaper (different summation order is not bit-identical under int16 saturation; a wider
+temporary changes nothing about the saturation points), not skip it. File 7 requires every bench number, per-position
+node row and eval value to be **identical**; a shortcut that skips the rebuild would change eval values, and a
+non-shortcut has no obvious win. Stating "no patch here" is the finding, not a failure to find one — the same way a
+withdrawal by bound is stronger than a re-run.
+
+## What a patch *would* have to be, if a later seat wants to try
+Not a shortcut but a cheaper rebuild: e.g. keeping a second accumulator per perspective at the *other* flip so a flip
+change is a pointer swap (memory cost: 2× accumulators, and `MaxPly+8` of them), or batching the bucket-constant part.
+Both are design changes with a memory/behaviour cost, not one-line wins, and neither is bit-exact for free.
 
 ## It generalises to real positions (file 7's own workload)
 

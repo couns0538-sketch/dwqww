@@ -907,3 +907,15 @@ Next: Step 2 needs the real hot spot; and S-F70 wants an independent confirmatio
   exactly why the code rebuilds; a same-numbers patch would need a better rebuild, not a shortcut. Hot spot identified,
   fix not obvious, and guessing one would waste a build cycle.
 Next: seek independent confirmation of the 18.8/19.8/20.6 % rate; then the openings workload file 7 also asks for.
+
+## 2026-11-17T00:41:17Z S-F70 now states WHY no patch is offered, and HOW the prediction was scored
+- No-patch reason, verified in source (`InputsPerBucket = 768`, include/forge/nnue_v3.hpp:60): `key.bucket` multiplies
+  every feature index and `key.flip` XORs every relative square, so a bucket/flip change means the parent accumulator
+  indexes a DIFFERENT slice of w1 for all 768 inputs — not stale values of the same weights. Carrying it forward is not
+  available; "fix up the king column" is not a shortcut that exists. Bit-exactness under file 7 forces a cheaper
+  rebuild, not a skip, and different summation order is not bit-identical under int16 saturation.
+- Scoring method made explicit: the 3/2/1 came from SIX comparisons against kill ranges fixed BEFORE profiling, not a
+  second eyeball. The "5 of 6" version was wrong in both directions (it refuted P2/P3/P4, all inside their intervals).
+- Also recorded what a patch would have to be (second accumulator at the other flip / batched bucket-constant part),
+  with its memory cost, so a later seat does not have to rediscover that it is design work and not a one-liner.
+Next: independent confirmation of the 18.8/19.8/20.6 % (21.45 % openings) rate.
