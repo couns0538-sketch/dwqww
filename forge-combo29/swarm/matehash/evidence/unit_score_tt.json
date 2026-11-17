@@ -1,0 +1,7 @@
+{
+  "extracted_sha256": "21ef96d3fb71763b667a9750c27a3b6c8e1dda9729f8161bd948a3c0266781d3",
+  "source_file": "/agent/repos/dwqww/forge-combo29/src/search.cpp",
+  "extracted_source": "constexpr int MaxPly = 128;\nconstexpr int Infinite = 32001;\nconstexpr int MateValue = 32000;\nconstexpr int MateInMaxPly = MateValue - MaxPly;\nconstexpr int ValueNone = 32002;\n\n[[nodiscard]] int score_to_tt(int score, int ply) {\n    if (score >= MateInMaxPly) return score + ply;\n    if (score <= -MateInMaxPly) return score - ply;\n    return score;\n}\n\n[[nodiscard]] int score_from_tt(int score, int ply) {\n    if (score == ValueNone) return ValueNone;\n    if (score >= MateInMaxPly) {\n        const int adjusted = score - ply;\n        return adjusted >= MateInMaxPly ? adjusted : ValueNone;\n    }\n    if (score <= -MateInMaxPly) {\n        const int adjusted = score + ply;\n        return adjusted <= -MateInMaxPly ? adjusted : ValueNone;\n    }\n    return score;\n}\n",
+  "stdout": "cells_checked 118327\nfailures 0\nplanted_cells_checked 118322\nplanted_failures 234608\n  PLANT-FAIL planted-noadjust p=1 q=0 rem=1 got=31998 want=31999\n  PLANT-FAIL planted-invert p=1 q=0 rem=1 got=31997 want=31999\n  PLANT-FAIL planted-noadjust p=1 q=1 rem=1 got=31997 want=31998\n  PLANT-FAIL planted-invert p=1 q=1 rem=1 got=31996 want=31998\n  PLANT-FAIL planted-noadjust p=1 q=2 rem=1 got=31996 want=31997\n  PLANT-FAIL planted-invert p=1 q=2 rem=1 got=31995 want=31997\nverdict PASS\nplanted_verdict PLANT-CAUGHT\n",
+  "returncode": 0
+}
