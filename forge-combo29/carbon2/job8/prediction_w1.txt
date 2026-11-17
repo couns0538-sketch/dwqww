@@ -1,0 +1,22 @@
+Step W1 Prediction (committed ALONE before any Step W1 timed run)
+=================================================================
+Step name: `W1` (`w1_fused_simd_movepicker_and_lazy_threats.patch.txt`, stacked on Job 7 `bundle3.patch.txt` at default `InfoOnce false`, `Hash 16`)
+
+What Step W1 removes and its measured counts from `forge-combo29/carbon2/job8/wasted_work_counts_hash16.txt` (60 games, `7,670` searches, `25,641,316` nodes):
+1. Fused AVX-512 per-piece-type `MovePicker::generate_quiets()`:
+   - In `wasted_work_counts_hash16.txt`, `generate_quiets()` ran `2,700,559` times (`45,009`/game), generating into `picker_scratch_` and scalar-scoring **`64,700,448` quiet moves** (`43,336,924` [`66.98%`] never yielded) and consuming **`1,158.84 ms` thread CPU (`19.314 ms/game`, `7.80%` of counting-build engine CPU / `~8.5%` uninstrumented)**.
+   - Pre-sums `cont1[p] + cont2[p] + (cont4 ? cont4[p]/2 : 0) + (check_squares[pt] ? 12000 : 0)` in AVX-512 (`4` `ZMM` vectors = `64 x int32`) once per present piece type `pt`, hoists `main[from]` and `rework_side[from_bit][0/1][from]` row pointers once per piece square `from`, and pushes directly into `moves_` in the identical order of `fill_pseudo_legal<Quiets>`, eliminating `picker_scratch_`, `64.7M` `piece_at`/`piece_type` loads, `194.1M` continuation null/index ops, and `64.7M` per-move `check_squares` branches.
+2. Fused `MovePicker::generate_captures()`:
+   - Eliminates `picker_scratch_` buffer round-trips and `14,163,731` `piece_at(from)` re-loads across `8,382,756` capture-generation calls (`139,713`/game).
+3. Single-pass `QuietMoves` pin-legality & `gives_check` reuse:
+   - In `wasted_work_counts_hash16.txt`, `5,893,419 / 6,443,182` (`91.47%`) of non-check `Board::is_legal` calls in `Worker::search` were unpinned non-king, non-EP moves, and every yielded `QuietMoves` candidate re-queried `board.is_legal(move)` and `board.gives_check(move)` despite `generate_quiets()` having already populated `KingLines`. Checking pin/king legality and computing `last_quiet_gives_check_` once inside `QuietMoves` eliminates both duplicate per-move calls in `Worker::search`.
+4. Lazy & piece-type-selective `b4::lesser_threats`:
+   - In `wasted_work_counts_hash16.txt`, **`1,399,941 / 7,539,533` (`18.57%`, `23,332`/game)** of `b4::lesser_threats(board)` computations were never read before a TT/capture cutoff, and `14,158,261` pre-quiet `quiet_history` calls only needed `by_pawn` whenever the killer/TT/counter move was a Pawn, Knight, Bishop, or King. Computing `by_pawn` inline for minor/pawn `rework_entry` calls when `!threat_map_ready_[ply]`, building `threat_maps_[ply]` lazily on first Rook/Queen or `GenerateQuiets` read, and skipping `by_rook` (`us` has no Queen) / `by_minor` (`us` has no Rook/Queen) removes all `1.40M+` unread threat-map builds.
+
+Predicted self-play gain at `Hash 16` (`A = Job 7 bundle3`, `B = bundle3 + W1`, both at default options `InfoOnce false`, 12 rounds x 60 games ABBA on Intel Xeon @ 2.60GHz):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+2.0%` to `+5.0%` (`1.020x` to `1.050x`)**, with `>= 10 / 12` paired rounds faster.
+- End-to-end self-play wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+1.8%` to `+4.8%` (`1.018x` to `1.048x`)**, with `>= 10 / 12` paired rounds faster.
+
+Kill range:
+- Any mismatch on the all-stages `MovePicker` oracle, the `55,868`-sequence evasion oracle, the engine identity pins (`bench 11/13/16` on `net512` & `net768`, 250 depth-9 rows, 1000 evals, 6-game traces), or the 48-run 60-game FNV trace (`ee465caeff9c0fcf`) kills `W1` immediately.
+- If the 12-round x 60-game `Hash 16` `median_of_paired_round_ratios` is `<= 1.015x` (`<= +1.5%`) on engine `getrusage` CPU OR fewer than `9 / 12` paired rounds are faster on engine `getrusage` CPU, the `W1` speed prediction is killed.
