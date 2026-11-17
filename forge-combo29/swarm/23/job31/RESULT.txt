@@ -1,0 +1,34 @@
+FREQUENCY: how often does a clock self-play game reach a GENUINE third occurrence?
+=================================================================================
+Ten games, ten distinct openings, PC r15 + PC20, 6 s+0.06, up to 250 plies each. A game counts only if the position
+occurred 3 times by my own key AND `is_insufficient_material()` is FALSE AND halfmove < 100 (the criterion 23-F71
+forced on me).
+
+| # | opening | plies | occurrence at | halfmove | pieces | GENUINE |
+|---|---|---|---|---|---|---|
+| 1 | (none) | 31 | ply 31 | 11 | 30 | yes |
+| 2 | e2e4 | 69 | ply 69 | 16 | 18 | yes |
+| 3 | d2d4 | 31 | ply 31 | 11 | 30 | yes |
+| 4 | c2c4 | 75 | ply 75 | 9 | 22 | yes |
+| 5 | g1f3 | 251 | — | — | — | no occurrence in 250 plies |
+| 6 | b1c3 | 92 | ply 92 | 8 | 14 | yes |
+| 7 | e2e4 e7e5 | 179 | — | — | — | no occurrence in 250 plies |
+| 8 | d2d4 d7d5 | 31 | ply 31 | 11 | 30 | yes |
+| 9 | e2e4 c7c5 | 75 | ply 75 | 9 | 19 | yes |
+| 10 | d2d4 g8f6 c2c4 | 120 | ply 120 | 10 | 13 | yes |
+
+**8 of 10 games (80 %) reached a genuine third occurrence.** 95 % Wilson interval 49 % to 94 % — so ten games cannot
+pin it tighter than "about half to nearly all", and I quote the interval rather than the point estimate.
+
+Prediction scored: P1 held (8 of 10, inside my predicted 2-8 band's upper edge — technically at the boundary, so I
+note it as "at the edge rather than comfortably inside"). P2 held (two games hit the cap with no occurrence). P3 held
+(occurrence plies 31-120, all between 30 and 130). P4 held (piece counts 13-30, none bare-king).
+
+WHAT THIS ADDS, and why it matters for the drawn-root defect: if roughly 80 % of self-play games reach a genuine
+repetition, and 23-F72 showed the base answers 0 nodes with a worse move in 5 of 5 such positions, then the defect is
+not an occasional curiosity — it fires in most self-play games, on the positions at their end. (In a real MATCH the
+program ends the game at that third occurrence, so the move is never played; the cost lands on analysis and on any
+tool that keeps searching past the repetition.)
+
+LIMITS: ten games, one settings combination, all self-play of this build against itself; the openings are mine and not
+a match distribution; and the interval is wide by construction.
