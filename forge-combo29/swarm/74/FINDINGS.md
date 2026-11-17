@@ -17,9 +17,13 @@ mismatch section to fill in — the fuzz found nothing, and that is the result.
 | standard suite (7 positions × depths 1–7) | 42 cells | 0 |
 | special-move fixtures | 11 fixtures / 33 cells | 0 |
 | fuzz, uniform random play | 2,000 positions | 0 |
-| fuzz, directed en-passant | 500 positions | 0 |
+| fuzz, directed en-passant (any ep) | 500 positions | 0 |
 | fuzz, directed castling | 500 positions | 0 |
-| **total** | **3,075 comparisons** | **0** |
+| **fuzz, targeted: ep discovers check** | **500 positions** | **0** |
+| **fuzz, targeted: ep exposes king (illegal)** | **500 positions** | **0** |
+| **fuzz, targeted: castling rights lost by rook capture** | **500 positions** | **0** |
+| **fuzz, targeted: underpromotion to knight giving check** | **500 positions** | **0** |
+| **total** | **5,075 comparisons** | **0** |
 
 ## 1. Standard suite
 
@@ -86,13 +90,47 @@ Measured over the 2,000 compared positions:
 | a pinned piece present | 171 / 2,000 |
 
 A green result over 19 promotions would say almost nothing about promotion
-handling. So two directed generators were added, both still producing legal
-positions through random play rather than hand-built FENs:
+handling. So the fuzz was extended in two ways.
+
+First, two broadly directed generators (still legal positions via random play):
 
 | directed set | positions | edge available | mismatches |
 |---|---:|---|---:|
 | en passant | 500 | ep capture 500/500 | 0 |
 | castling | 500 | castling 371/500, in check 90/500 | 0 |
+
+Second — and this is the part with real marginal value — a **targeted** mode
+(`--target`) per named edge. Each target has a generator that samples until the
+edge is genuinely live, and a predicate that proves the edge from python-chess's
+own semantics, re-checked per position inside the run so a drifting generator
+shows up as a refusal rather than a false green.
+
+| target | positions | what the run proves held in every one | mismatches |
+|---|---:|---|---:|
+| `ep-check` | 500 | ep capture available 500/500, giving **discovered** check (pawn itself does not attack the king from its new square) | 0 |
+| `ep-expose` | 500 | ep right present 500/500, capture **suppressed as illegal** 500/500 | 0 |
+| `rook-rights` | 500 | one right intact with its rook, the other lost with no friendly rook on the square | 0 |
+| `knight-check` | 500 | a knight promotion gives check and **no queen promotion does** | 0 |
+
+The two ep shapes are *constructed* rather than sampled, because the geometry is
+too specific to stumble on (the earlier sampling version reached ep-exposes-king
+zero times in hundreds of thousands of attempts). The constructors, predicates
+and counters were each checked against hand-verified truth cases, including
+negatives: e.g. `edge_ep_discovers_check` is true on the constructed position and
+false on startpos; `edge_underpromotion_knight_check` is true with White to move
+and false with Black to move in the same placement.
+
+Two claims worth separating, because the second is the one that would otherwise
+be assumed:
+
+- *knight-check*: verified that the knight checks and the queen does not, in
+  60 of 60 sampled positions. (The first version of that verification script
+  demanded that **all** promotions check and reported 0/60; the positions were
+  fine, the check was wrong. Corrected and re-run.)
+- *rook-rights*: verified in 60 of 60 that one right survives with its rook while
+  the other has no friendly rook. The lost rook may have been replaced by an
+  enemy piece rather than leaving an empty square — "rook gone" means "no
+  friendly rook", not "empty".
 
 ## 4. Mismatches
 
@@ -142,6 +180,32 @@ Self-test output (`python3 uci_perft.py <binary>`): planted bad count → red,
 published-vs-python disagreement → refused, illegal FEN → rejected in gate 1,
 board swap → detected, go-stream diagnostic → caught.
 
+### 5b. A second FEN trap: python-chess silently deletes an ep square
+
+Found while building the targeted generators, and it damages exactly the edge
+this seat was asked to prove:
+
+```python
+>>> chess.Board("8/8/8/8/k2pP2R/8/8/4K3 b - e3 0 1").fen()
+'8/8/8/8/k2pP2R/8/8/4K3 b - - 0 1'
+```
+
+`Board.fen()` **drops the en-passant square when no legal ep capture exists** —
+because the only capture is illegal. That is precisely the ep-exposes-king
+position. So a generated position built to test that edge silently loses it on
+the way to the engine, and the comparison then runs on a different, weaker
+position and reports green. The engine itself accepts the FEN with the square
+present and returns the same count as python-chess (`nodes 6`), so the engine is
+fine; the pitfall is in the harness.
+
+Fix: `fen_with_ep()` in `fuzz.py` serializes the square unconditionally and is
+used for every constructed position. The hand-written fixture in §2 was never
+affected because its FEN is a literal, but any *generated* version would have
+been — which is why the targeted `ep-expose` set is only trustworthy now.
+
+This is the same class of failure as §5: a silent, plausible-looking substitution
+that turns a real edge case into a vacuous green.
+
 ## 6. Faults found in my own scaffolding
 
 Recorded because each one, had it gone unnoticed, would have produced a
@@ -160,6 +224,14 @@ confident and wrong report:
 4. **Two illegal fixture FENs.** An "in check" fixture whose black king sat
    behind White's rook (opposite check), and a promotion fixture whose quiet push
    was not actually blocked, which the `FIXTURE DEAD` guard caught.
+5. **`Board.fen()` dropping the ep square** (§5b). Caught because the round-trip
+   predicate disagreed with the live board object: `ep_square` was `f3` on the
+   board but `None` after serializing and reparsing.
+6. **Two wrong verification scripts of my own.** The knight-check verifier
+   demanded every promotion check (0/60 on good positions), and the rook-rights
+   verifier required the lost rook's square to be empty when the correct
+   predicate is "no friendly rook". Both reported failures against correct data;
+   both were fixed and re-run.
 
 Every one of these was caught by a gate, which is the point: the gates are the
 finding, not just the numbers.
@@ -169,11 +241,12 @@ finding, not just the numbers.
 - Depth 3 is shallow. The fuzz proves move generation, castling rights, ep and
   promotion legality across 3,000 positions, not search correctness, and says
   nothing about evaluation, pruning or time management.
-- The fuzz positions come from random play, so they are over-represented in
-  quiet, undeveloped, high-material positions. The directed sets offset this for
-  ep and castling; promotion and pin coverage remain thinner (34 and 6 in the ep
-  set, 4 and 2 in the castle set). The fixtures cover those edges decisively but
-  in single positions each.
+- The fuzz positions from uniform random play are over-represented in quiet,
+  undeveloped, high-material positions. That is now offset for all four named
+  edges by 500 targeted positions each, but note what the targeted sets are: each
+  one is deliberately concentrated on its edge, so they prove that edge in bulk
+  and prove little about the rest of the position. The fixture set remains the
+  only place where a single position is asserted move-for-move.
 - Perft only checks move *counts*. A movegen bug that substitutes one legal move
   for another while preserving counts would be invisible to it. The depth-1
   move-set comparison in the fixtures narrows this but does not close it
@@ -194,6 +267,11 @@ python3 fixtures.py ../../build-swarm74/forge --self-test
 python3 fuzz.py ../../build-swarm74/forge --count 2000 --seed 74000   # ~70s
 python3 fuzz.py ../../build-swarm74/forge --count 500 --seed 4 --ep
 python3 fuzz.py ../../build-swarm74/forge --count 500 --seed 5 --castle
+# targeted edges (the seat's marginal value)
+python3 fuzz.py ../../build-swarm74/forge --count 500 --seed 21 --target ep-check
+python3 fuzz.py ../../build-swarm74/forge --count 500 --seed 21 --target ep-expose
+python3 fuzz.py ../../build-swarm74/forge --count 500 --seed 21 --target rook-rights
+python3 fuzz.py ../../build-swarm74/forge --count 500 --seed 21 --target knight-check
 ```
 
 Note on the build: `cmake` defaults to clang here, and clang cannot link against
