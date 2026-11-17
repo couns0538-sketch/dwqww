@@ -16,7 +16,7 @@ found, and one claim in the brief was **refuted**.
 | 2. Threshold | correct — 3 occurrences, `matches >= 2` |
 | 3. Fifty-move | correct — `>= 100`, resets work and are visible |
 | 4. Interaction | **DEFECT** — a waivable draw claim suppresses a legal mate |
-| 5. In-tree repetition | detection fires; not shown to be decisive (limitation L2) |
+| 5. In-tree repetition | present and live; not shown load-bearing (31 footprinted positions, 0 verdict changes) |
 | 6. Insufficient material | all 9 material sets agree with FIDE |
 
 ## The defect: a claimable draw is treated as an automatic draw
@@ -182,12 +182,10 @@ present here.
 | `e1d1` from hm 99 | hm → 100 | increment |
 | `b1b8` capture from hm 99 | hm → 0 | reset |
 
-## Question 5: in-tree repetition
+## In-tree repetition
 
-Three facts, kept separate because they are not the same claim.
-
-**1. The branch executes below the root.** An instrumented build counting how
-often the repetition branch fires, split by ply:
+**Detection exists.** An instrumented build counting the repetition branch,
+split by ply, shows it firing well below the root:
 
 | search | `ply > 0` hits | `ply == 0` hits |
 |---|---|---|
@@ -196,42 +194,62 @@ often the repetition branch fires, split by ply:
 | occurrence-#2 rook cycle, depth 10 | **158** | 0 |
 | perpetual study, depth 10 | **6** | 0 |
 
-**2. It affects the search tree.** With the cycling move forced, the ablated
-build explores a *different number of nodes*, which can only happen if the
-branch ran:
+It also leaves a **footprint**: with the repeating move forced, the ablated
+build visits 4187 nodes where the stock build visits 4186 at depth 6. A branch
+that executes perturbs the tree even when its verdict does not change, which is
+what makes a null about it checkable.
 
-| depth | with repetition | ablated | score |
-|---|---|---|---|
-| 5 | 1382 nodes | 1382 | same |
-| 6 | 4186 | **4187** | same |
-| 7 | 16395 | **16418** | same |
-| 8 | 31115 | **31138** | same |
+**It is not shown to be load-bearing.** Two scans, and the difference between
+them is the point:
 
-**3. It did not change any verdict I could construct.** Scores are identical
-because none of my fixtures is repeat-dependent: the engine has a better line
-available, so cutting the repeating line costs nodes but not score.
-
-### The wide scan, and why it is not evidence
-
-I widened the differential scan to 199 positions (opening corpus; each root
-placed on occurrence #2 by a verified 4-ply reversible cycle, then searched
-at depth 8 with both binaries). Result: **0 score differences, 0 node-count
-differences**.
-
-That zero is not evidence of anything, and saying otherwise would be the same
-error the brief warns about. Zero node differences means the branch never
-executed — in an opening position a forced repetition is nowhere near the
-best line, so the search never explores it. Instrumenting two of the scanned
-positions confirms `in_tree=0` for both:
+*Opening positions (vacuous).* 199 roots from the shipped opening corpus, each
+placed on occurrence #2 by a verified 4-ply reversible cycle, depth 8, both
+binaries. Result: 0 score differences **and 0 node-count differences**.
+Identical node counts prove the branch never executed — in an opening position
+a forced repetition is nowhere near the best line, so the search never explores
+it. Instrumenting two scanned positions confirms `in_tree=0`:
 
 | position | in-tree hits | result |
 |---|---|---|
 | `rnbqkb1r/pp1pn1pp/2p5/3P4/2P1pp2/4B2N/PP2PPPP/RN1QKB1R w` | 0 | `cp117` |
 | `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/RBQK2R w` | 0 | `cp54` |
 
-A null result from a corpus that cannot exercise the code path is vacuous.
-The honest summary is therefore: **the mechanism is present and live (facts 1
-and 2), but I did not produce a position where removing it changes a score.**
+A null from a corpus that cannot reach the code is vacuous, so this is not
+counted as evidence.
+
+*Footprint-selected endgames (a real null).* 600 generated endgames (rook/rook,
+Q/Q+R, B+B with pawns), each root on occurrence #2. The instrumented build is
+run **first** and only roots where the branch fired are kept, so the comparison
+cannot be empty by construction:
+
+| measurement | result |
+|---|---|
+| roots where a cycle was playable | 62 |
+| roots with a repetition footprint below the root | **31** |
+| footprint range | 1–24 executions per search |
+| positions where stock and ablated scores differ | **0** |
+
+That is a genuine null: the branch ran, up to 24 times in one search, and no
+verdict moved.
+
+**And the null is not a missed draw.** A position scoring ≈ −550 while the
+branch fires could be either "really lost" or "engine failed to find the
+draw". Those separate under deeper search — a missed draw trends toward 0, a
+real loss trends further negative:
+
+| root | depth 6 | depth 8 | depth 10 | depth 12 |
+|---|---|---|---|---|
+| `3r3k/8/8/q7/4Q3/8/8/K7 w` | −550 | −564 | −571 | **−1010** |
+| `7k/8/7r/8/4Q3/8/5q2/K7 w` | −536 | −544 | −553 | **−560** |
+| `7k/8/5r2/3Q4/8/8/5q2/K7 w` | −546 | −552 | −558 | **−559** |
+
+All three deepen, so these are confirmed losses, not missed draws.
+
+**Conclusion:** the mechanism is present, live, and leaves a trace; removing it
+changed no score on 31 positions where it demonstrably executed. What I cannot
+claim is that in-tree detection is load-bearing — no fixture showed a draw
+becoming a loss when it was ablated.
+
 
 Constructing a position where the repetition is provably decisive is the one
 piece of work this audit did not finish. The selection machinery is in place
@@ -257,6 +275,32 @@ fixture in every suite now passes: python-chess validation → both reply
 streams scanned for `invalid FEN` → `go perft 1` move count and move set equal
 to python-chess. `tools/audit72/test_guards.py` proves each of those gates can
 fail, including a stale-board trap that demonstrates the exact failure mode.
+
+## Two nulls of mine that were withdrawn
+
+Both are instances of the same rule applied in opposite directions, and both
+are recorded because they are the kind of error that reads as a finding.
+
+**1. A missing witness.** An early perpetual verifier accepted a line where the
+"checking" move actually won a piece — `Qxf8+` after an interposition. That is
+not a draw by repetition, and the fixture would have shown a correct engine to
+be wrong. The corrected verifier requires the material balance at the looping
+position to equal the balance at the root, so a winning capture can no longer
+be mistaken for a perpetual.
+
+**2. A null without a footprint.** The 199-position opening scan returned zero
+differences, which looked like evidence that in-tree repetition never matters.
+It was not: node counts were also identical, proving the branch never executed.
+The fix was to select candidates by the footprint (keep only roots where the
+branch fires) rather than by intuition. That re-run is a real null — 31
+positions, 1–24 executions each, still zero verdict changes — and its losing
+scores were confirmed as genuine losses by a depth trend rather than a missed
+draw.
+
+The general rule both teach: **an absence needs the same proof as a defect, and
+a null needs a footprint.** To show a code path does *not* matter, show that it
+ran and that nothing followed.
+
 
 ## Recommendation
 

@@ -13,7 +13,7 @@
 | 2 | Threshold 3 occurrences / 2 matches | DONE — correct | 4–6, 14 |
 | 3 | Fifty-move `halfmove >= 100`, resets | DONE — correct | 7–13 |
 | 4 | Repetition × fifty-move interaction | DONE — **1 defect** | 26 |
-| 5 | Threefold inside the search tree | DONE — fires; not decisive on fixtures | 15–16 |
+| 5 | Threefold inside the search tree | DONE — fires + footprint; not load-bearing | 15–16 |
 | 6 | Insufficient material | DONE — all 9 sets agree | 17–25 |
 
 **RULES_TABLE.md row count: 26.**
@@ -62,11 +62,14 @@ as an automatic draw — the same modelling error in both places.
 - **Fifty-move** — 99 plays on, 100 and 101 bail; pawn moves and captures
   reset to 0; quiet moves increment; a reset available at hm 99 is visible to
   the search (`cp+748` rather than 0).
-- **In-tree repetition detection executes** — instrumented counter shows 8
-  hits at depth 6 and 158 at depth 10 below the root. Disabling it does not
-  change any tested score, so I report "no measurable effect on these
-  fixtures" rather than claiming a defect; the mechanism is documented in
-  limitation L2.
+- **In-tree repetition detection executes and leaves a footprint** — 8 hits at
+  depth 6 and 158 at depth 10 below the root; with the repeating move forced
+  the ablated build visits 4187 nodes where the stock build visits 4186. It is
+  not shown to be *load-bearing*: a first 199-position scan was vacuous (zero
+  node-count differences prove the branch never ran), so candidates were
+  re-selected *by footprint* — 31 positions with 1–24 executions each, still
+  zero verdict changes, with a depth trend confirming those are genuine losses
+  rather than missed draws.
 
 ## Fixture integrity
 

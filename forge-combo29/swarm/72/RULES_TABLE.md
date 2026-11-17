@@ -27,7 +27,7 @@ stated in the **fide verdict** column, not against the engine's own comments.
 | 13 | Clock reset is visible to the search | 9.3 | hm 99 with a pawn move available → `cp+748` (1082 nodes), not a drawn root | `search.cpp:493` reads the live clock | search must not declare a draw when a reset exists | **agree** |
 | 14 | Threefold is NOT reached at 2 occurrences | 9.2 | occ 2 searched to `cp+575` | as row 5 | not yet a draw | **agree** |
 | 15 | In-tree repetition detection exists below the root | 9.2 | instrumented build fires the repetition branch at `ply > 0`: 8 hits at depth 6, 158 at depth 10 from an occurrence-#2 root | `search.cpp:493-500` (`ply` guard only excludes `null_branch`) | repetition must be recognised wherever it arises | **agree** |
-| 16 | In-tree repetition is *load-bearing* on the tested perpetual | 9.2 | ablated build (detection forced false) gives **identical** scores at depths 6–12 on every tested perpetual: `cp-23`, `cp-16`, `cp-11` both ways | ablation of `is_repetition()` | a forced perpetual should score 0 | **no measurable effect** (see limitation L2) |
+| 16 | In-tree repetition is *load-bearing* on the tested perpetual | 9.2 | Withdrawing detection leaves every tested score unchanged | ablation of `is_repetition()` | a forced perpetual should score 0 | **no measurable effect** (see limitation L2) |
 | 17 | K vs K is dead | 5.2.2 | `insufficient=1` → draw | `is_insufficient_material()` `board.cpp:855-865` (`minor_count <= 1`) | dead draw | **agree** |
 | 18 | KN vs K is dead | 5.2.2 | `insufficient=1` | same, `minor_count <= 1` | dead draw (no legal mate: exhaustive search finds none) | **agree** |
 | 19 | KB vs K is dead | 5.2.2 | `insufficient=1` | same | dead draw (no legal mate) | **agree** |
@@ -137,16 +137,17 @@ strength loss in any game that reaches such a position while still won.
 - **L1.** The audit exercises the engine through UCI plus two purpose-built
   C++ probes that link the real `Board`/`Searcher`, not the shipped binary's
   internals. Behaviour is the same code path.
-- **L2.** Row 16 is stated as "no measurable effect" rather than "defect".
-  In-tree detection demonstrably executes (row 15) and demonstrably changes the
-  search tree — with the repeating move forced, the ablated build visits 4187
-  nodes where the stock build visits 4186 at depth 6 — but I could not
-  construct a position where removing it changes a *score*. A 199-position
-  differential scan returned zero differences, which I explicitly do **not**
-  count as evidence: zero node-count differences there prove the branch never
-  executed, so that corpus cannot speak to the question. The honest reading is
-  that the tested fixtures are not repeat-dependent, not that in-tree
-  detection is broken.
+- **L2.** Row 16 is stated as "no measurable effect" rather than "defect",
+  and the qualifier is now earned rather than assumed. A first scan of 199
+  opening positions returned zero differences **with zero node-count
+  differences**, which proves the repetition branch never executed there; that
+  null was vacuous and is not counted. Selecting candidates by footprint
+  instead (keep only roots where the branch fires) produced 31 positions with
+  1–24 branch executions each, still with **zero** verdict changes, and a depth
+  trend confirming the losing scores there are real losses rather than missed
+  draws. So: the mechanism is present and live, but I found no fixture where
+  removing it changes a score, i.e. in-tree detection is not shown to be
+  load-bearing.
 - **L3.** All 26 rows are for the six cases the brief named plus the
   combinations those imply. This is not a proof of correctness for arbitrary
   material (e.g. KBB vs KN).
