@@ -1,0 +1,55 @@
+{
+ "note": "planted-fault control for the TSan arm: one process-wide accumulator written and read by every worker. These runs MUST report.",
+ "runs": [
+  {
+   "label": "planted shared accumulator, T4 depth 11",
+   "options": [
+    [
+     "Threads",
+     "4"
+    ],
+    [
+     "Hash",
+     "32"
+    ]
+   ],
+   "fen": "r2q1rk1/pp2ppbp/2n2np1/2pp4/3P1B2/2PBPN2/PP1N1PPP/R2Q1RK1 w - - 0 9",
+   "go": "go depth 11",
+   "info_lines": 11,
+   "searched": true,
+   "exit": 66,
+   "tsan_reports": 3,
+   "tsan_lines": [
+    "WARNING: ThreadSanitizer: data race (pid=10632)",
+    "SUMMARY: ThreadSanitizer: data race /tmp/tree-planted/src/search.cpp:1090 in forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)",
+    "ThreadSanitizer: reported 1 warnings"
+   ],
+   "bestmove": "bestmove h2h3"
+  },
+  {
+   "label": "planted shared accumulator, T4 depth 11 (Q)",
+   "options": [
+    [
+     "Threads",
+     "4"
+    ],
+    [
+     "Hash",
+     "32"
+    ]
+   ],
+   "fen": "4rrk1/pp1n1ppp/2pb4/8/2B1P3/2N2N2/PP3PPP/R2R2K1 w - - 1 15",
+   "go": "go depth 11",
+   "info_lines": 11,
+   "searched": true,
+   "exit": 66,
+   "tsan_reports": 3,
+   "tsan_lines": [
+    "WARNING: ThreadSanitizer: data race (pid=10638)",
+    "SUMMARY: ThreadSanitizer: data race /tmp/tree-planted/src/search.cpp:1090 in forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)",
+    "ThreadSanitizer: reported 1 warnings"
+   ],
+   "bestmove": "bestmove d1d6"
+  }
+ ]
+}
