@@ -1,0 +1,39 @@
+PREDICTION — SW-23 job 44 (on a threefold root, does either build give the RIGHT answer for the LOSING side?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F78 measured `eval` vs `go` on the F58 threefold root, where WHITE to move is WINNING (+406). That is a fixture
+that cannot discriminate: a repetition draw is a CLAIM under FIDE 9.2, and a winning side has no reason to claim, so
+cp 507 from the PC is defensible there and "the PC contradicts itself" is too strong. The discriminating fixture is a
+threefold root where the side to move is LOSING — then claiming is strictly better than playing on, so the correct
+score is cp 0 and any winning score is WRONG.
+
+FIXTURES, both validated with python-chess alone before any engine ran (`job44_fixture_check.out`,
+`job44_fixture_check2.out`), no engine involved in the validation:
+
+  T-W `1K6/8/8/3R4/8/8/8/k7 w` moves `d5d6 a1b1 d6d5 b1a1 d5d6 a1b1 d6d5 b1a1` — root occurs 3 times, WHITE to move,
+      white is WINNING. (The F58/F78 fixture, rerun for comparison.) Correct score is arguable: white need not claim.
+  T-L `1K6/8/8/3R4/8/8/8/k7 b` moves `a1b1 d5d6 b1a1 d6d5 a1b1 d5d6 a1b1 d6d5` — root occurs 3 times, BLACK to move,
+      black is LOST. Correct score is **cp 0**: black claims. Any winning-for-white score is wrong.
+
+Both builds, Threads 1, Hash 16, OwnBook false, no PC20 switches, `go depth 12`, plus `eval` on both roots.
+
+Prediction (each with the range that kills it):
+  P1  ON T-L THE BASE SCORES cp 0 — a losing side's search sees the draw and takes it. KILLED if the base shows a
+      winning score (mate or cp > 100) for black's opponent... i.e. if base reports anything other than cp 0 or a
+      LOSS for black on T-L.
+  P2  ON T-L THE PC ALSO SCORES cp 0, NOT the winning score F78 saw on T-W. If the PC instead reports a win on T-L,
+      then the PC's drawn-root handling is WRONG on the losing side, which would be a correctness defect in the
+      repair and would make F78's "contradiction" a real one rather than an arguable one.
+                                                                              KILLED if the PC reports != cp 0 on T-L.
+  P3  THE TWO FIXTURES DIFFER, which is the point of the job: the base gives the same score on T-W and T-L only if
+      it treats the repetition as "winning side won't claim"; the PC differing between them is CORRECT behaviour
+      (a side may claim or not). So what would be surprising is the PC giving the same WINNING score on both.
+                                                                              KILLED if PC(T-W) == PC(T-L) AND both are
+                                                                              winning, or both are cp 0.
+  P4  `eval` IS THE SAME ON BOTH ROOTS (406 for white's material) — it is static and has no history, so the threefold
+      cannot move it.                                                        KILLED if the two eval totals differ.
+
+If P2 holds (PC = cp 0 on T-L), then F78 must be scoped: the eval/go contradiction exists, but the PC's search is not
+wrong on a repetition root where claiming is in the side's interest — only on the winning side, where "no claim" is a
+legal and reasonable answer. That is a narrowing of my own finding and I would rather find it than have it found.
+If P2 fails, the PC has a correctness defect on repetition roots and that outranks everything else in this batch.
