@@ -1,0 +1,32 @@
+## seat 17 S-F9 — does Hash size change the ANSWER? (and the node count?)
+
+PC r15, PC20, Threads 1, `go depth 14`, position A.
+
+| Hash MB | bestmove | nodes | hashfull |
+|---|---|---|---|
+| 1 | c3b5 | 69,686 | 450 |
+| 8 | c3b5 | 73,610 | 65 |
+| 32 | c3b5 | 73,610 | 17 |
+| 512 | c3b5 | 73,610 | 1 |
+| 2048 | c3b5 | 73,610 | 0 |
+
+### THE PLANT — a different position must give a different answer
+
+| position | bestmove | nodes |
+|---|---|---|
+| A (as above, Hash 32) | c3b5 | 73,610 |
+| B (different position) | g7g6 | 97,289 |
+
+**PLANT: the harness CAN report a changed bestmove, so its 'unchanged' verdicts are meaningful.**
+
+## The claim, tested
+
+| question | answer |
+|---|---|
+| bestmove identical across all five Hash sizes | **YES** (c3b5) |
+| hashfull varies with size (the pressure) | **450, 65, 17, 1, 0** |
+| node count varies with size | **YES — 69,686, 73,610** |
+
+**CONFIRMS**: the answer does not change across Hash 1..2048 MB while hashfull does, so a TT resize changes
+the pressure and not the choice. Node counts: see the row above — if they are identical, the search is
+bit-identical; if they differ, the search changed but not the choice, which is the weaker statement and I say which.
