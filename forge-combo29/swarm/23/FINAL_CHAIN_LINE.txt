@@ -223,22 +223,27 @@ correct behaviour, and it is a better result for the repair than the "policy" fr
 > repository and activated with one `git config` line, so a fresh clone has the mechanism but not the enforcement
 > until that line is run.
 
-Why the scope matters more than the claim: **a gate claim is only as broad as the number of its members individually
-shown to fail.** For several hours this seat reported "gate live and proved" while **two of the three checkers printed a
-failure and exited 0** — `doc_check.py` never called `sys.exit` at all — so a gate testing `$?` read them as passes. It
-survived its own earlier proof because that proof exercised the one checker that did exit nonzero. The general form:
-**proving a gate on one of its members proves only that member.**
+**A first instance, and the one that matters: a checker can print a failure and exit 0.** `doc_check.py` ended with a
+`print("VERDICT: ...")` and no `sys.exit`, so its status was always 0 while it reported DROP; a gate testing `$?` read
+that as a pass (23-F199).
 
-**A third instance, and this one is the gate WORKING rather than failing: three times tonight a new finding was refused
+**A second instance, and it is the general form: a gate claim is only as broad as the number of its members
+individually shown to fail.** For several hours this seat reported "gate live and proved" while **two of the three
+checkers printed a failure and exited 0** — `doc_check.py` never called `sys.exit` at all — so a gate testing `$?` read
+them as passes. It survived its own earlier proof because that proof exercised the one checker that did exit nonzero. So
+**proving a gate on one of its members proves only that member**, and "the gate works" without a count of members tested
+is not a claim anyone can check.
+
+**A third instance, smaller:** the count checker silently skipped a number word outside its vocabulary,
+so a test intended to prove it *could* fail passed by accident. "I could not evaluate this" must never be reported as
+"this is fine".
+
+**A fourth instance, and this one is the gate WORKING rather than failing: three times tonight a new finding was refused
 because its evidence cell cited no resolvable file — a bare commit SHA, a `sed` line range, or a source path the
 resolver could not find.** That is the audit enforcing its own rule that every row names something a reader can open, and
 it is worth knowing that the refusal was correct each time: a commit SHA is not evidence a reader can check without the
 repository, and a resolver cannot verify what it cannot find. **An evidence rule that rejects the convenient form is the
 rule earning its place.**
-
-A second, smaller instance from the same hour: the count checker silently skipped a number word outside its vocabulary,
-so a test intended to prove it *could* fail passed by accident. "I could not evaluate this" must never be reported as
-"this is fine".
 
 **And the count, as a dated figure rather than a bare number:** **241 distinct rows at 2026-11-17T03:37:22Z** — 213 `F` (this
 seat's findings) and 28 `C` (confirmations of other seats'). It is stated with a timestamp and recomputed by
