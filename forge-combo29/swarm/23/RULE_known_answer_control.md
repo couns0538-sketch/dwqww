@@ -448,6 +448,14 @@ The common shape: **the measurement was fine and the thing I compared it against
 was meant; an empty set where a population was meant; a square ranking that included pieces whose moves do not exist.
 Each produced a confident verdict in the WRONG direction — two false failures and one false refutation.
 
+**The directions are not equally dangerous, and that asymmetry is the reason this instance matters.** A false FAILURE
+(instances 1 and 2 above) is self-limiting: it accuses my own work, so I look again. A false REFUTATION IN THE ENGINE'S
+DISFAVOUR survives review, because nobody is motivated to check a claim that something is broken — and it is the shape
+that BROADENS a defect rather than narrowing it. Instance 22's third case was exactly that: I counted occurrences of my
+STARTING position instead of the position being searched, which made a root-specific bail look history-wide — a bigger
+public claim than the data supported. When a comparator error would enlarge a finding, treat it as the more serious kind
+and re-derive the operand before writing anything down.
+
 **The rule: state what the comparator IS before comparing against it.** For a claim about generated moves, compare
 against the GENERATED SET, not against all pieces of that type on the board. For a claim about a family of values,
 compare against the family restricted to what is present. Where a set could be empty, print its size.

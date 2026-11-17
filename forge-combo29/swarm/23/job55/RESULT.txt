@@ -61,3 +61,24 @@ than manufacturing a fixture to fit the answer is the correct stopping point.
 LIMITS: two boards, one build, `go depth 10`; T1 constructed by search on the rich board only. The rich-board T2 result
 is a single cell and is reported as such — it is a SCOPE LIMIT on the earlier findings, not yet a characterisation of
 when the bail fires.
+
+ADDENDA, added after review
+
+1. WHAT WOULD SETTLE THE ROOT-SPECIFIC QUESTION — stated as a PROPERTY rather than a fixture.
+   The requirement is a board where a repetition cycle has MORE THAN ONE RETURN PATH: enough material that a shuttle
+   can repeat an INTERMEDIATE position, then LEAVE that loop, and land on a position that has never occurred. Knight or
+   bishop plus pawns is the shape that satisfies it (the shuttle returns to a non-root square, and a pawn push makes a
+   genuinely fresh position). A K+R v K endgame cannot: with two kings and one rook every 4-ply shuttle necessarily
+   returns to the root, so no fresh final position is reachable after the loop — which is exactly why T1 was impossible
+   on the sparse board. On such a board, BOTH cells are required in one run: T1 (searched position occurs once, an
+   intermediate >= 3, and the bail STILL fires) and T2 (root 3x, bail fires). If T1 searches while T2 bails, the bail is
+   root-specific. If both bail, it is history-wide. If T2 does not bail (as on the F112 board), nothing is concluded —
+   which is the state this job ended in.
+
+2. THE FIRST T1 IS INSTANCE 22 IN ITS STRONGEST FORM — the comparator error that would have BROADENED a defect.
+   I counted occurrences of my STARTING fen rather than of the POSITION BEING SEARCHED. The consequence was not a
+   missed finding but an OVER-CLAIM: the wrong comparator made a root-specific bail look like a history-wide one, i.e.
+   it pointed toward a bigger public claim than the engine supports. The earlier comparator faults in this session
+   (23-F104 x2) produced false FAILURES, which are self-limiting because they make you look again; this one produced a
+   false REFUTATION IN THE ENGINE'S DISFAVOUR, which is the direction that survives review. That asymmetry is why it
+   belongs in the report at full strength.
