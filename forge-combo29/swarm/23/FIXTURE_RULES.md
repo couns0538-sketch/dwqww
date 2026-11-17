@@ -41,7 +41,14 @@ case is in the self-test.
 6. **Print the count beside the verdict** — `counted=3 python-chess=3 expect=3` — so a reader can see the population
    the claim rests on (23-F89's printed-population habit).
 7. **If a fixture is rejected, publish the rejection.** A rejected fixture in a results table is information; a silently
-   dropped one is a hole.
+   dropped one is a hole. **A sample of two with one exclusion stated is honest; the same sample with the exclusion
+   silent is a sample of two that a reader will assume was chosen.** State WHICH case dropped and WHY it could not
+   answer (no cycle exists / it is confounded / it fails validation), every time.
+8. **Separate a confound from a refutation before reporting either.** 23-F132's bare-kings cell returned 0 nodes at two
+   occurrences and looked like a counter-example to the "only if" half; it also returns 0 nodes with NO history at all,
+   because insufficient material is an automatic draw. The zero came from a different rule. The test is: run the same
+   cell with the variable under test REMOVED (here, no move list) and see whether the outcome persists — if it does,
+   you have measured the confound.
 
 ## Where the evidence lives
 

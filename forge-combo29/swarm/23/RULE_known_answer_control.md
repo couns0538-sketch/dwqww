@@ -542,12 +542,11 @@ attempts (unbounded recursion; a cycle guard keyed on positions that included th
 finally a depth-bounded formulation), which is itself the argument that a broken tool should be FIXED rather than
 dropped: the fix was not obvious, and abandoning it was the cheaper path that cost a false finding.**
 
-Two mechanical consequences worth installing:
-- **Name the tool's dependants when it breaks.** 23-F49's entry recorded that the prover was unreliable; it did not say
-  "therefore no mate-distance claim may be made in this seat", which is the sentence that would have stopped F90.
-- **A claim requiring an unobtained ground truth is a claim to DEFER, not a claim to soften.** I softened it instead —
-  I wrote "the distance can be wrong" rather than "mate 10 is true DTM", which felt appropriately modest and was still
-  unsupported. Softening a claim hides the missing oracle; deferring it exposes the gap.
+**MECHANICAL CONSEQUENCE (the check, not the intention): when a tool fails its control, write its dependants into the
+finding that records the failure — one line, "therefore no <claim type> may be made in this seat until this is fixed".**
+23-F49 recorded that the prover was unreliable but never wrote that line, so nothing stopped F90. And when a claim needs
+that tool, the sentence is DEFERRED rather than softened: I wrote "the distance can be wrong" instead of "mate 10 is the
+true DTM", which felt modest and was still unsupported — softening hides the missing oracle, deferring exposes it.
 
 ## Named pattern — A HARD CAP IN THE TOOL SILENTLY CONVERTS A VALID INPUT INTO AN IMPOSSIBLE ONE
 
@@ -559,16 +558,11 @@ it reported that incapacity as a property of the fixture.
 **A validator with an internal limit becomes a filter that rejects truth.** The failure is worse than a wrong answer
 because it looks like rigour: the rejection message is confident, and the fixture — not the tool — takes the blame.
 
-Three mechanical consequences:
-- **any constant bound inside a checker must be derived from the input**, or printed beside the verdict so a reader can
-  see the ceiling being applied;
-- **the self-test must include a case AT the previous ceiling**, which is why a six-occurrence case now exists — the
-  original four-case self-test passed while the cap was in place;
-- **a rejection is a claim to audit, not a verdict to trust**: when a table cell behaves unlike its neighbours, suspect
-  the gate as readily as the cell.
-
-The general form: this is instance 1 of this page (a checker silent for a bad reason) wearing the opposite mask — a
-checker LOUD for a bad reason. Both produce a confident report about something the checker never examined.
+**MECHANICAL CONSEQUENCE (the check, not the intention): every constant bound inside a checker is PRINTED BESIDE ITS
+VERDICT, and the self-test carries a case AT that bound and one beyond it.** The six-occurrence case exists because the
+original four-case self-test passed while a cap of five silently rejected good fixtures; printing the bound would have
+exposed it at once. Corollary needing no discipline: **a rejection is a claim to audit, not a verdict to trust** — when
+a table cell behaves unlike its neighbours, suspect the gate as readily as the cell.
 
 ## Named pattern — THE ONE-FIXTURE SENTENCE, THREE TIMES IN ONE SEAT
 
