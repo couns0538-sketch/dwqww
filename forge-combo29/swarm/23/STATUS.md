@@ -1129,3 +1129,20 @@ comparing my board to theirs, not swept), where a reader meets it as a closing c
 
 State: 88 findings, 18 confirmations (two refutations), eleven named harness faults, six reference pages.
 10 h 10 m remain - continuing at cadence with measurements.
+## 2026-11-17T00:09:15Z  23-F64: the self-play path is stable too - all three paths now characterised
+2026-11-17T00:09:15Z
+
+go softnodes 2000, two independent processes, 30 fresh quiet positions: 0 move disagreements, 0 node-count
+disagreements, overshoot present on all 30 (2,026-3,445 for a 2,000 budget), deterministic depth per position.
+
+THREE-WAY PICTURE COMPLETE:
+  clock (matches)   stable   0 of 20 at 6 s, 0 of 20 at 1 s   (23-F54, F55)
+  self-play         stable   0 of 30                          (23-F64, this job)
+  node budgets      UNSTABLE ~30 % of positions change move    (23-F24)
+Mechanical reason: softnodes and the clock take their stop from the search's own progress and stop at a COMPLETED
+depth; go nodes aims at a fixed count and stops wherever the depth boundary falls - consistent with 23-F56's
+'a DEPTH difference changes the move'.
+Practical upshot: both paths the owner's engine is DRIVEN on are reproducible move-for-move; the node-budget
+lottery is confined to the comparison path.
+Limit: quiet middlegames, one build/settings combo, 30 positions; no claim about tactical positions.
+89 findings, 18 confirmations. 10 h 10 m remain.
