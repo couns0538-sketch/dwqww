@@ -974,3 +974,12 @@ every sentence.
   line that matters: "a pattern needs its sample size stated beside it, every time, because '3 of 4' and '12 of 20, with
   11 exceptions' are not the same kind of statement."
 - next command: continue at cadence.
+
+## $(date -u)
+- I checked S-F51's exponent against S-F54's ceiling and THOUGHT they conflicted (6000->24000 looked like 1.45x).
+  That was SAMPLE MIXING on my part: 1968 ms is the 10-position set's 6000 value, 2860 ms is the 6-position set's
+  24000 value. Recorded as S-W13 — no finding was wrong, my check was.
+- S-F75 closes the real gap: the SAME 10 positions S-F51 used, extended to 24000 ms (4 runs/cell, sequential):
+  60 -> 199 ms/d22; 600 -> 497/d24 (2.50x); 6000 -> 1946/d29 (3.91x); **24000 -> 1973/d29 (1.01x FLAT)**. So one
+  set now shows both the exponent range and the ceiling, and they agree with S-F53/S-F54.
+- next command: continue at cadence.
