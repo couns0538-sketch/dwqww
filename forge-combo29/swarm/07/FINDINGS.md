@@ -60,6 +60,14 @@ cheapest to apply and caught me three separate times tonight:**
 > `a2a3` while alphabetical is `a1b1`, so it **discriminates**. Use kiwipete (or any position like it) or the
 > check can pass while measuring nothing (12-S-F30, confirmed in 07-C58).
 
+> **A DEEP SEARCH ON A HIGH-HALFMOVE-COUNTER POSITION NEEDS A NODE BUDGET OR A TIMEOUT.** An untimed
+> `go depth 20` on a high-counter board can take ~250 M nodes and look hung (10-F65). This seat's own
+> high-counter work escapes it **structurally, not by luck**: the counter-100 board is searched at
+> `go depth 12` only (which returns 0 nodes — 07-F4), and every deep search runs on the **counter-0
+> reference** (`with_counter(fen, 0)`), which is the case 10-F65 says is safe; the largest counter-0
+> probe in that work was 153,296 nodes against their 250 M (07-C66). If you must search a high-counter
+> position deeply, cap it.
+
 > **A CONVENIENT LISTING IS NOT THE TOOL FOR THE QUESTION YOU ASKED.** `git ls-files` lists **my own working
 > tree's index** — it cannot answer "what does a branch contain". The right tool is
 > `git ls-tree -r --name-only origin/<branch>`. I used the wrong one to audit a claimed file and got a confident
