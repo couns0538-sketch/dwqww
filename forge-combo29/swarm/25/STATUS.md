@@ -264,6 +264,62 @@ rather than weaken the guard, and note that the guard over-reports on ordinary E
 **Guards at 03:15Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
 `audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> re-run at the close below.
 
+## 2026-11-17T03:40Z - CYCLE (e) seed 2551: S-C51 firmed up on a selected set, and a SECOND right-length-wrong-mate board that fails in the other direction
+
+**Prediction pushed alone at `325afac53` before measuring.** Report: `job1f/REPORT_job1f.md`.
+**Prediction record:** S1 HIT, S2 HIT, S3 HIT, S4 HIT, S5 HIT, S6 HIT, **S7 MISS (28 vs predicted 40-100)**, **S8
+technically HIT (0) but on the wrong axis** - see below.
+
+### Owner's ask 1: the unstable stratum, with its size, its interval, and the selection rule
+
+**Selection rule, stated so the figure cannot be misread:** a board is "unstable" iff a free MultiPV-1 search chose a
+different best move at depth 12 than at depth 16 (`bestmove(d12) != bestmove(d16)`). The outcome measured is the
+MultiPV-1-vs-MultiPV-3 disagreement, which played no part in selecting boards. **The stratum is deliberately enriched
+and must NOT be compared with the ~18% population figure**; the valid comparison is unstable-to-stable in one draw.
+
+| population | n | disagree | rate | 95% CI |
+|---|---|---|---|---|
+| **R6 unstable (selected)** | **58** | 31 | **53.4%** | **[40.8%, 65.7%]** |
+| **R6 stable (same draw)** | 342 | 35 | **10.2%** | [7.5%, 13.9%] |
+| R4 unstable | 30 | 16 | 53.3% | [36.1%, 69.8%] |
+| R4 stable | 220 | 31 | 14.1% | [10.1%, 19.3%] |
+
+**The rate did not move when the stratum nearly doubled** (53.3% on 30 boards, 53.4% on 58) and the interval tightened
+from 33.7 points wide to 24.9. **The interval is still 25 points wide** and I am not implying otherwise: tightening it
+to ±5 points would need roughly 350 unstable boards, about 2,400 random positions at the 14.5% incidence. The
+instability fraction itself is consistent across draws (R4 12.0%, R6 14.5%), so "unstable is ~1 in 7" is a usable
+planning number. **0 score ties among 66 disagreements**, planted-case control repeated and passing (self-vs-self 0/40;
+three plants all caught).
+
+### Owner's ask 2: a second board of the class, and which setting failed
+
+**Found, and it fails in the OTHER direction.** R6 board 121 (`1nbk2r1/... b`, black to move) reports **`mate 7` at
+depth 12** and **`mate 4` at depth 16**, from the **same** first move `f4e3`, with both PVs legal, of exactly the
+claimed length (13 plies; 7 plies), and both ending in checkmate. Exhaustive search: black forces mate in **exactly 4**
+(n=4 forced, 53.7 s, 697k entries). So `mate 7` is **wrong by 3 moves**.
+
+| board | failure mode | which search failed |
+|---|---|---|
+| S-C52 (R5 222) | MultiPV1 `mate -5` vs MultiPV3 `mate -6` | **the one with MORE lines**, over-estimate by 1 |
+| S-C53 (R6 121) | depth12 `mate 7` vs depth16 `mate 4` | **the SINGLE-line search at the shallower depth**, over-estimate by 3 |
+
+**Two boards, opposite directions, so no direction claimed** - and the pair says something neither board says alone:
+**the failure is not a MultiPV artifact at all.** Board 121's contradiction is between two depths of the same setting
+with the same best move in both reports, so the error is in the **distance**, not the move choice, and no display
+setting is involved. What the pair establishes: **a mate score is not corroborated by its own PV being the right
+length and ending in checkmate.** Two independent demonstrations now, not one.
+
+**A refinement this forced on my own S-C51 proxy, recorded rather than quietly redefined:** board 121 is STABLE by my
+rule (same best move at both depths) yet its mate number moved by 3. "Search still changing its mind" as I
+operationalised it (a bestmove change) does not capture a search that keeps the move while still revising its
+evaluation. A better enrichment criterion for a later run is a material **score** change between depths.
+
+**S7 was missed and S8 was a hit on the wrong axis:** S8 predicted at most 3 mate-number disagreements *between
+MultiPV settings* (found 0) while the class I was hunting turned up on a *depth* ladder. Both recorded as such.
+
+**Guards at 03:40Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
+`audit_final.py` -> **0 mismatches**.
+
 ## 2026-11-17T03:17Z - CYCLE (d) CLOSE: all three guards green, 99 findings
 
 `compliance_check.sh` -> **PASS**: tracked binaries 0 | files outside my folder 0 | non-text files 0 | engine source
