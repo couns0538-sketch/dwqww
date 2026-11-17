@@ -227,9 +227,9 @@ def main():
               % (label, s["n_moves"], s["median_wall_ms"], s["p99_wall_ms"], s["max_wall_ms"],
                  s.get("net_drain_per_move_ms"), s.get("plies_to_zero_at_median")))
 
-    with open(os.path.join(a.outdir, "check_15f35.json"), "w") as f:
+    with open(os.path.join(a.outdir, "check_15f35_%s.json" % a.settings), "w") as f:
         json.dump(out, f, indent=2)
-    print("\nwrote", os.path.join(a.outdir, "check_15f35.json"))
+    print("\nwrote", os.path.join(a.outdir, "check_15f35_%s.json" % a.settings))
 
 
 if __name__ == "__main__":

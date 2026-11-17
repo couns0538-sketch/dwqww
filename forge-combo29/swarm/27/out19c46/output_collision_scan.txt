@@ -1,0 +1,51 @@
+check_output_collision.py — does the S-C80 filename-collision pattern generalise?
+generated 2026-11-17T03:27:19Z
+
+=== THE QUESTION ===
+My S-C80: a script taking --baseline {s14,pc20} wrote both designs to one fixed path,
+so the second run silently destroyed 600 cells of the first. The coordinator asked whether
+that generalises past my directory. Answered by scanning four other seats, not by reasoning.
+
+=== THE DETECTOR'S OWN FAILURE, WHICH HAD TO BE FIXED FIRST ===
+v1: only looked at open()/os.path.join() ARGUMENTS. The real shape is
+      out = os.path.join(dir, "name_%d.json" % n)   then   json.dump(x, open(out,'w'))
+    -- the literal lives in an Assign, one step from the write. Detected 0.
+v2: added Assign walking, still 0, because the FINAL line
+      return [o for o in outs if '.' in os.path.basename(o)]
+    filtered out the "__FIXED__" sentinel I had just appended. A post-filter written for
+    one kind of entry deleted a different kind added later -- the same defect as a control
+    that cannot fire.
+v3: keeps the sentinel, catches the reconstructed bug:
+      /tmp/scan2/buggy.py -> variant arg 'baseline', fixed output 'assigned path at line 7'
+
+=== SCAN OF FOUR OTHER SEATS, 494 .py files ===
+controls:
+  1 variant arg + FIXED output IS reported                 PASS 
+  2 variant arg IN the filename is NOT reported            PASS 
+  3 no variant arg is NOT reported                         PASS 
+
+scanned 494 .py files; 0 candidate(s)
+
+=== SCAN OF MY OWN FOLDER, 48 .py files ===
+
+scanned 48 .py files; 16 candidate(s)
+A candidate is not necessarily a bug: a fixed name inside a per-job directory is fine.
+It is a bug when one script runs TWO designs into ONE path.
+
+=== IS ANY OF MY 16 A REAL COLLISION? ===
+Tested check_15f35_clock.py (takes --settings {PC20,S14,none}, fixed output check_15f35.json):
+  run 1 with PC20 -> check_15f35.json, settings field = PC20
+  run 2 with S14  -> ABORTED with Missing('no info depth line') before writing, so no collision.
+  So it did NOT lose data -- but only because that run CRASHED first. The file name is still
+  one-per-directory, and the guard against loss is an unrelated error, not a safeguard.
+
+=== SO DOES IT GENERALISE? ===
+NO for the other four seats: 0 candidates in 494 files. They write into per-job directories
+(job41/RESULT.txt, job42/result.out), so a repeated name cannot collide.
+YES for me: 16 of my 48 scripts take --settings and write one fixed filename. That is a real
+latent hazard in MY folder, not a swarm-wide pattern. My scripts mostly embed "settings": a.settings
+INSIDE the JSON, so a collision would leave the wrong label visible rather than silent -- weaker
+than S-C80, where the design was not in the payload at all.
+RECOMMENDATION FOR THE REPORT: keep it seat-local, with one sentence of the general form,
+(a script that takes a design argument must put the design in the output path), which is
+the SAME rule as 'a settings label must name the settings'. No other seat needs to act.

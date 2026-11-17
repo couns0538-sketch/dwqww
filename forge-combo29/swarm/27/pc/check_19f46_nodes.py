@@ -196,7 +196,7 @@ def main():
         "all_deterministic": all(c["hard"]["deterministic"] and c["soft"]["deterministic"]
                                  for c in out["cells"]),
     }
-    with open(os.path.join(a.outdir, "check_19f46.json"), "w") as f:
+    with open(os.path.join(a.outdir, "check_19f46_%s.json" % a.settings), "w") as f:
         json.dump(out, f, indent=2)
     s = out["summary"]
     print("\nhard nodes/N: median %.3f (min %.3f, max %.3f)" % (s["hard_median_frac"], s["hard_min_frac"], s["hard_max_frac"]))
