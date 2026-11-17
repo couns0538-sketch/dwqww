@@ -476,3 +476,15 @@ next: cadence.
 Tally: 33 findings, 19 checks/plants (C1..C19), 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:13Z
+- **08-C20: seat 21 21-F12 CONFIRMS, including the exact 8-node figure**, on a board I built and verified
+  (`7k/8/6K1/8/8/8/8/4R3 w - - 100 1`, e1e8 is a legal MATE at halfmove 100). Base 0 nodes, **PC r15 8 nodes**;
+  illegal-name control still 0000 + info string. **Beyond their line:** on the plain `go depth 4` path the base
+  build returns `e1a1` in 0 nodes — a NON-MATING move from a mate-in-1 — while PC returns the mate in 85 nodes.
+- 08-F24's finding line now carries the 08-C19 correction in place (2.5-13.7 %, median ~4.1 %, a range; small share
+  is not a defect and carries no strength claim).
+
+Tally: 33 findings, 20 checks/plants (C1..C20), 3 method lines, 1 withdrawal.
+
+next: cadence.
