@@ -1,0 +1,24 @@
+Job 11 Leave-One-Out SP-Profile Ablation Prediction (committed ALONE before building or timing any `bundle5 minus X` binary)
+============================================================================================================================
+Method (per `FABLE_TO_carbon2_11.md` lines 68–72):
+Because `bundle 5` kept **`+2.59%`** paired engine CPU (`1.0259x`, `12/12` rounds faster; `timing2_sp_r15d_vs_bundle5_12x60_hash16_raw.txt` line 66) on the SP-profile build, we partition `bundle 5` into 6 disjoint functional components `X` and time **`bundle 5 minus X`** on the SP-profile build (`6` palindromic rounds x `60` games at `Hash 16`, paired against two SP-profiled `bundle 5` builds and two SP-profiled `r15d` builds in every round):
+  1. `L_s1236` = `bundle 5` minus (`S1_nnue + S2 + S3 + S6`: `refresh_one_and_evaluate`, `CuckooRep`/`Board` helpers, `CorrHistV2`/`TtPruneV2` tweaks, `S6` pawn-recapture `SEE`)
+  2. `L_s45`   = `bundle 5` minus (`S4 + S5`: `-2.56 KB` `MovePicker` buffer removal + `Board::make_move` `precomputed_key` & slim `Undo`)
+  3. `L_s7`    = `bundle 5` minus (`S7` parts 1 & 2: zero-alloc `std::string_view` `position` parser + `Worker::clear()` `memset`)
+  4. `L_g14`   = `bundle 5` minus (`G1..G4`: cached `material_corr_key`, `see_ge` fast no-recapture, `known_gives_check` + off-ray `has_legal_move`, `v3_active_net_` + `king_sq_`)
+  5. `L_w12`   = `bundle 5` minus (`W1 + W2`: fused `MovePicker` stage gen, single-pass `QuietMoves` pin-legality, lazy/selective `b4::lesser_threats`, 1D row pointers)
+  6. `L_p1`    = `bundle 5` minus (`P1`: register `check_node_or_periodic_stop()`, 56B `TTProbe` + no-copy miss fast-path, `WK/BK` `is_legal`)
+
+Pre-declared Carrier Keep / Drop Gate for `curated_sp_bundle.patch.txt`:
+- Component `X` is **KEPT** iff `median_r(bundle5_r / (bundle5_minus_X)_r) >= 1.0035x` (`>= +0.35%` marginal loss when `X` is removed) AND `bundle 5 > bundle 5 minus X` in **`>= 4 / 6`** rounds on `getrusage` engine CPU; otherwise `X` is **DROPPED**.
+
+Predicted Marginal Contributions `median_r(bundle5 / (bundle5_minus_X))` on SP-Profile Engine CPU:
+- `W1 + W2` (`L_w12`): **`+0.6%` to `+1.8%` (`1.006x..1.018x`, `>= 4/6`)** — **KEPT** (`1,399,941` unread threat maps + `5,893,419` `QuietMoves` `is_legal` calls in `job8/wasted_work_counts_hash16.txt`).
+- `S4 + S5` (`L_s45`): **`+0.4%` to `+1.4%` (`1.004x..1.014x`, `>= 4/6`)** — **KEPT** (`-2.56 KB/ply` stack + `make_move` `2.87% -> 1.71%` in `job10/pgo_time_profile_raw.txt`).
+- `G1..G4` (`L_g14`): **`+0.4%` to `+1.4%` (`1.004x..1.014x`, `>= 4/6`)** — **KEPT** (`material_corr_key` + `known_gives_check` + `has_legal_move` `1.56%` in `job10/pgo_time_profile_raw.txt`).
+- `P1` (`L_p1`): **`+0.35%` to `+1.2%` (`1.0035x..1.012x`, `>= 4/6`)** — **KEPT** (`32.90M` `total_nodes()` loops + `14.94M` TT miss copies in `job9/counts_hash16.txt`).
+- `S1_nnue + S2 + S3 + S6` (`L_s1236`): **`-1.2%` to `+0.3%` (`0.988x..1.003x`)** — **DROPPED** (`refresh_one_and_evaluate` regressed `-2.55%` in `job10/pgo_time_profile_raw.txt`).
+- `S7` (`L_s7`): **`-0.2%` to `+0.5%` (`0.998x..1.005x`)** — borderline (`0.32%` total in `job7/REPORT_carbon2_job7.md` once SP-profile warms `uci.cpp`); decided strictly by the `>= 1.0035x` & `>= 4/6` gate.
+
+Kill range:
+- Any trace divergence from `ee465caeff9c0fcf` kills immediately; any individual component prediction outside its stated interval or failing its predicted KEPT/DROPPED classification is graded **KILLED** on that row, and `curated_sp_bundle.patch.txt` follows the empirical `>= 1.0035x` & `>= 4/6` carrier gate.
