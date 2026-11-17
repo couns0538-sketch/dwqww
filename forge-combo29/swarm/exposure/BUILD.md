@@ -33,6 +33,24 @@ bash build_all.sh            # builds all three under /tmp/forge-exposure/build
 `build_all.sh` also asserts the composed repair's sha256:
 `24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671`.
 
+## Path containment (all scripts)
+
+Every script reads and writes paths that come from the command line, so all of them go through
+`scripts/paths.py`, which confines those paths to the evidence root (the directory above
+`scripts/`, or `FORGE_EXPOSURE_ROOT`). Two consequences:
+
+- **Relative `--out` values are relative to the evidence root**, not the shell's cwd. `--out
+  oracle.json` writes `<root>/oracle.json`.
+- **A path that escapes the root is refused**, not silently clipped: `--out /tmp/x.json` raises
+  `path escapes the evidence root`. Put outputs under the root instead.
+
+This exists because SonarCloud flags CLI-supplied paths as path traversal, and the finding is
+correct as a data-flow statement even for local analysis scripts. The fix is containment rather
+than suppression, and it is tested: `under_root('../../etc/passwd')` and
+`glob_under_root('../../*')` both raise, while normal relative paths resolve. Re-running
+`final_numbers.py` after this change reproduced every figure byte-identically — the refactor
+changed no number.
+
 ## Order of operations
 
 Each step writes JSON that the next consumes. `FORGE_EXPOSURE_ROOT` points the scripts at the

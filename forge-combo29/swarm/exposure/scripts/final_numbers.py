@@ -20,6 +20,7 @@ import chess
 from scipy.stats import chi2
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import glob_under_root, load_json, open_json_out
 from predicates import wilson  # noqa: E402
 
 # Evidence root: override with FORGE_EXPOSURE_ROOT. Defaults to the parent of scripts/.
@@ -48,11 +49,32 @@ def cluster_bootstrap(games: list[dict], reps: int = 40000, seed: int = 7) -> tu
     return out[int(0.025 * reps)], out[int(0.975 * reps)]
 
 
+def first_divergence(base_moves: list[str], other_moves: list[str],
+                     limit: int = 1000) -> int:
+    """Index of the first differing move between two move lists.
+
+    Bounded on purpose. The lists come from JSON evidence files, so their length is
+    input-controlled; an unbounded walk over file content is the "unchecked input for
+    loop condition" pattern. `limit` is well above the 300-ply game cap these files are
+    produced under, and a list longer than it is treated as malformed rather than
+    walked indefinitely.
+    """
+    if not isinstance(base_moves, list) or not isinstance(other_moves, list):
+        raise TypeError("move lists must be lists of UCI strings")
+    n = min(len(base_moves), len(other_moves), limit)
+    for i in range(n):
+        if base_moves[i] != other_moves[i]:
+            return i
+    if len(base_moves) > limit or len(other_moves) > limit:
+        raise ValueError(f"move list exceeds the {limit}-move sanity bound")
+    return n
+
+
 def rate_block(globs: list[str], label: str) -> dict:
     games = []
     for pat in globs:
-        for path in sorted(glob.glob(pat)):
-            games.extend(json.load(open(path))["rows"])
+        for path in glob_under_root(pat):
+            games.extend(load_json(path)["rows"])
     n = len(games)
     plies = sum(g["plies"] for g in games)
     firings = sum(g["n_firings"] for g in games)
@@ -86,7 +108,7 @@ def main() -> int:
     }
 
     # ---- cost / move-change, from the production adjudication -------------------
-    d = json.load(open(os.path.join(ROOT, "cost_prod.json")))
+    d = load_json(os.path.join(ROOT, "cost_prod.json"))
     rows = [r for r in d["rows"] if "error" not in r]
 
     def grp(r):
@@ -141,24 +163,21 @@ def main() -> int:
     out["cost"] = cost
 
     # ---- mechanism: does the bail play the engine's generated head? -------------
-    m = json.load(open(os.path.join(ROOT, "mech_prod.json"))) if glob.glob(
+    m = load_json(os.path.join(ROOT, "mech_prod.json")) if glob_under_root(
         os.path.join(ROOT, "mech_prod.json")) else None
     if m:
         out["mechanism"] = {"rows": len(m["rows"]), "is_head": m["is_head"],
                             "in_generated": m["in_generated"]}
 
     # ---- games decided -------------------------------------------------------
-    if glob.glob(os.path.join(ROOT, "pairs_s101.json")):
-        p = json.load(open(os.path.join(ROOT, "pairs_s101.json")))
+    if glob_under_root(os.path.join(ROOT, "pairs_s101.json")):
+        p = load_json(os.path.join(ROOT, "pairs_s101.json"))
         reached = [r for r in p["rows"] if r["base_reached_firing"]]
         trans = collections.Counter((r["base_result"], r["nobail_result"]) for r in reached)
         # divergence point vs first firing
         aligned = 0
         for r in reached:
-            bm, nm = r["base"]["moves"], r["nobail"]["moves"]
-            k = 0
-            while k < min(len(bm), len(nm)) and bm[k] == nm[k]:
-                k += 1
+            k = first_divergence(r["base"]["moves"], r["nobail"]["moves"])
             if r["base"]["first_firing_ply"] == k:
                 aligned += 1
         out["pairs"] = {
@@ -177,8 +196,8 @@ def main() -> int:
     fired = []
     played = collections.Counter()
     total_played = 0
-    for path in sorted(glob.glob(os.path.join(ROOT, "prod", "d10_s*.json"))):
-        for g in json.load(open(path))["rows"]:
+    for path in glob_under_root(os.path.join(ROOT, "prod", "d10_s*.json")):
+        for g in load_json(path)["rows"]:
             for f in g["firings"]:
                 fired.append(f)
             board = chess.Board()
@@ -210,8 +229,8 @@ def main() -> int:
     }
     # opening-family spread
     fam = collections.defaultdict(lambda: [0, 0])
-    for path in sorted(glob.glob(os.path.join(ROOT, "prod", "d10_s*.json"))):
-        for g in json.load(open(path))["rows"]:
+    for path in glob_under_root(os.path.join(ROOT, "prod", "d10_s*.json")):
+        for g in load_json(path)["rows"]:
             key = g["prefix"][0] if g["prefix"] else "none"
             fam[key][0] += 1
             if g["firings"]:
@@ -224,7 +243,7 @@ def main() -> int:
     out["clustering"]["n_opening_families"] = len(rates)
 
     print(json.dumps(out, indent=2))
-    with open(os.path.join(ROOT, "final_numbers.json"), "w") as fh:
+    with open_json_out(os.path.join(ROOT, "final_numbers.json")) as fh:
         json.dump(out, fh, indent=2)
     return 0
 

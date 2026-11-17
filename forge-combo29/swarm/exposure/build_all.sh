@@ -17,7 +17,7 @@
 set -euo pipefail
 
 REPO_ROOT=${REPO_ROOT:-$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null || true)}
-if [ -z "$REPO_ROOT" ]; then
+if [[ -z "$REPO_ROOT" ]]; then
   echo "FATAL: could not find the repository root; set REPO_ROOT explicitly" >&2
   exit 1
 fi
@@ -33,7 +33,7 @@ mkdir -p "$WORK"
 cd "$REPO_ROOT"
 
 # ---------------------------------------------------------------- sources
-if [ ! -d "$WORK/base" ]; then
+if [[ ! -d "$WORK/base" ]]; then
   git worktree prune
   git worktree add --detach -f "$WORK/base" "$BASE_COMMIT"
 fi
@@ -58,7 +58,7 @@ patch -p1 < "$WORK/reporting.patch"
 GOT=$(sha256sum "$WORK/patched/forge-combo29/src/search.cpp" | cut -d' ' -f1)
 WANT=24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671
 echo "composed src/search.cpp sha256: $GOT"
-if [ "$GOT" != "$WANT" ]; then
+if [[ "$GOT" != "$WANT" ]]; then
   echo "FATAL: composed repair does not match the expected sha256" >&2
   exit 1
 fi

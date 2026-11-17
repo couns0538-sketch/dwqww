@@ -27,6 +27,7 @@ import sys
 import chess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import glob_under_root, load_json, open_json_out
 from predicates import is_drawn_root, reason  # noqa: E402
 import os
 
@@ -103,7 +104,7 @@ def main() -> int:
         "terms": dict(terms),
         "rows": rows,
     }
-    with open(args.out, "w") as fh:
+    with open_json_out(args.out) as fh:
         json.dump(out, fh, indent=1)
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}, indent=2))
     return 0

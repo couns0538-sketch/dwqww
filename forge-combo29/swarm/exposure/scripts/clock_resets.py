@@ -20,6 +20,8 @@ import statistics
 
 import chess
 
+from paths import glob_under_root, load_json, open_json_out
+
 
 def one(args) -> dict:
     seed, max_plies = args
@@ -68,7 +70,7 @@ def main() -> int:
     }
     print(json.dumps(out, indent=2))
     if args.out:
-        with open(args.out, "w") as fh:
+        with open_json_out(args.out) as fh:
             json.dump({**out, "rows": rows}, fh, indent=1)
     return 0
 

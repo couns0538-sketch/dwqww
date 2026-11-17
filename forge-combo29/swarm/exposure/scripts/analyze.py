@@ -28,6 +28,7 @@ import os
 ROOT = os.environ.get("FORGE_EXPOSURE_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import glob_under_root, load_json, open_json_out
 
 
 def group_of(row: dict) -> str:
@@ -60,7 +61,7 @@ def stats(values: list[float]) -> dict:
 
 def main() -> int:
     path = sys.argv[1]
-    d = json.load(open(path))
+    d = load_json(path)
     rows = [r for r in d["rows"] if "error" not in r]
     errs = [r for r in d["rows"] if "error" in r]
 
@@ -116,7 +117,7 @@ def main() -> int:
         min(r["legal"], 40) // 5 * 5 for r in rows).most_common()
 
     print(json.dumps(out, indent=2))
-    with open(path.replace(".json", "_analysis.json"), "w") as fh:
+    with open_json_out(path.replace(".json", "_analysis.json")) as fh:
         json.dump(out, fh, indent=2)
     return 0
 

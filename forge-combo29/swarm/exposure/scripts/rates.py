@@ -24,13 +24,14 @@ from __future__ import annotations
 
 import glob
 import json
+import os
 import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import glob_under_root, load_json, open_json_out  # noqa: E402
 from predicates import wilson  # noqa: E402
 from scipy.stats import chi2  # noqa: E402
-import os
 
 # Evidence root: override with FORGE_EXPOSURE_ROOT. Defaults to the parent of scripts/.
 ROOT = os.environ.get("FORGE_EXPOSURE_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -44,8 +45,8 @@ def poisson_ci(k: int, exposure: float = 1.0) -> tuple[float, float]:
 
 def load(pattern: str) -> list[dict]:
     rows = []
-    for path in sorted(glob.glob(pattern)):
-        with open(path) as fh:
+    for path in glob_under_root(pattern):
+        with open(path, encoding="utf-8") as fh:
             d = json.load(fh)
         d["_path"] = path
         rows.append(d)

@@ -35,6 +35,7 @@ import sys
 import chess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import glob_under_root, load_json, open_json_out
 from predicates import is_drawn_root, reason, endgame_type  # noqa: E402
 from uci import Engine  # noqa: E402
 
@@ -185,7 +186,7 @@ def main() -> int:
            "max_plies": args.max_plies, "firings": firings, "seed": args.seed,
            "games_with_firing": sum(1 for r in rows if r["n_firings"]),
            "rows": rows}
-    with open(args.out, "w") as fh:
+    with open_json_out(args.out) as fh:
         json.dump(out, fh, indent=1)
     print(json.dumps({k: out[k] for k in
                       ("build", "depth", "games", "distinct_games", "plies",

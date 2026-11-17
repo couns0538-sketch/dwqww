@@ -34,6 +34,7 @@ import sys
 import chess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import glob_under_root, load_json, open_json_out
 from uci import Engine, parse_info  # noqa: E402
 
 # Evidence root: override with FORGE_EXPOSURE_ROOT. Defaults to the parent of scripts/.
@@ -160,8 +161,8 @@ def main() -> int:
 
     data = []
     for path_glob in args.runs:
-        for path in sorted(glob.glob(path_glob)):
-            d = json.load(open(path))
+        for path in glob_under_root(path_glob):
+            d = load_json(path)
             for g in d["rows"]:
                 for f in g["firings"]:
                     data.append({"game": g["game"], "moves": g["moves"], "firing": f})
@@ -179,7 +180,7 @@ def main() -> int:
             rows.append(row)
             if len(rows) % 50 == 0:
                 print(f"  {len(rows)}/{len(work)}", flush=True)
-    with open(args.out, "w") as fh:
+    with open_json_out(args.out) as fh:
         json.dump({"depth": args.depth, "rows": rows}, fh, indent=1)
 
     errs = [r for r in rows if "error" in r]

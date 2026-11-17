@@ -20,6 +20,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import load_json, open_json_out  # noqa: E402
+
 # Evidence root: override with FORGE_EXPOSURE_ROOT. Defaults to the parent of scripts/.
 ROOT = os.environ.get("FORGE_EXPOSURE_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -62,7 +65,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--jobs", type=int, default=os.cpu_count())
     args = ap.parse_args()
-    d = json.load(open(args.cost))
+    d = load_json(args.cost)
     rows = [r for r in d["rows"] if "error" not in r]
     with mp.Pool(args.jobs) as pool:
         res = pool.map(check, rows, chunksize=1)
@@ -73,7 +76,7 @@ def main() -> int:
     bad = [r for r in res if not r["is_head"]]
     for r in bad[:10]:
         print(f"  NOT HEAD: {r['fen']} base={r['base_move']} head={r['generated_head']}")
-    with open(args.out, "w") as fh:
+    with open_json_out(args.out) as fh:
         json.dump({"rows": res, "is_head": head, "in_generated": inside}, fh, indent=1)
     return 0
 
