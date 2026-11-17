@@ -27,8 +27,8 @@ findings about.
 
 **The one-line version:** *a green pin means "the eval and search constants still
 produce the same tree on 8 middlegame positions at depth 13". It does not mean the engine
-still plays chess. Four of the nine behavioural changes tested here are invisible to it,
-including three the audit has already written up as shipping decisions.*
+still plays chess. Six of the nine behavioural changes tested here are invisible to it,
+including two of the report's own shipping decisions.*
 
 ---
 
@@ -198,7 +198,7 @@ live:
 | `B3_rule50_damp` | `EvalRule50Damp` off → on | **moved** | kiwipete d11, leaf98 | pin caught it |
 | `B7_qs_futility` | `QsFutilityMargin` 160 → 4000 | **moved** | kiwipete d11 | pin caught it |
 
-**Five of nine real behaviour changes pass a green gate.** B5 and B9 are the two that
+**Six of nine real behaviour changes pass a green gate.** B5 and B9 are the two that
 should be uncomfortable: **B5 is `Threads`, whose wrong value the findings rank as decision
 #3 in the whole report**, and **B9 is the drawn-root bail, which is decision #2.** The pin
 that the audit used to certify both is silent on both.

@@ -117,6 +117,25 @@ COST = [float(x) for x in (EV / "gate_cost.txt").read_text().split()]
 expect("gate wall under 3 s for every run", all(c < 3.0 for c in COST), True)
 expect("gate wall sample count", len(COST), 5)
 
+# --- 9b. COUNT WORDS must agree with the evidence -------------------------
+# A stale count word is the failure this document complains about: every number correct,
+# the sentence around it wrong. Two rows of an earlier draft still said "four" and "five"
+# after a probe fix had made the real count six. These are derived, never typed.
+WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven",
+         8: "eight", 9: "nine", 10: "ten"}
+blind_pass = sum(1 for m, r in BLIND.items()
+                 if r["pins_all_match"] and r["verdict"] == "gate-passes-a-real-change")
+total_blind = len(BLIND)
+expect("blind-spot count", (blind_pass, total_blind), (6, 9))
+for stale in ("Four of the nine", "Five of nine", "five of nine",
+              "Five of the nine", "seven of nine"):
+    if stale in DOC:
+        fails.append(f"stale count word {stale!r}; evidence says {blind_pass} of {total_blind}")
+if f"{WORDS[blind_pass].capitalize()} of the nine" not in DOC and \
+   f"{WORDS[blind_pass].capitalize()} of nine" not in DOC:
+    fails.append(f"the document does not state the blind-spot count as "
+                 f"{WORDS[blind_pass]!r} of nine")
+
 # --- 10. the document actually quotes the figures -------------------------
 for needle in ("63.0 %", "59.6 %", "64.1 %", "61.1 %", "70.1 %", "70.7 %",
                "862,329", "3,024,920", "109,247", "101,640", "956,783",
