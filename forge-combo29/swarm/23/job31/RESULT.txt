@@ -32,3 +32,14 @@ tool that keeps searching past the repetition.)
 
 LIMITS: ten games, one settings combination, all self-play of this build against itself; the openings are mine and not
 a match distribution; and the interval is wide by construction.
+
+THE MISSES ARE A GAME-LENGTH ARTEFACT, not an engine property
+===========================================================
+Both of the two non-occurrences hit the **250-ply cap** (g1f3 at 251 plies, e2e4 e7e5 at 179). So the rate I measured
+is **bounded by how long I let the game run**, not by anything in the engine: a longer cap would raise it, and the 80 %
+figure is therefore a LOWER bound for games of unbounded length rather than an intrinsic probability.
+
+That matters for how the number should be read: "8 of 10" describes what happened in ten 250-ply games, and the honest
+statement is that the true rate depends on game length — with a cap that long, two games simply had not repeated yet
+when I stopped them. It also means the interval's lower end is pessimistic for any real self-play run that plays to a
+conclusion.
