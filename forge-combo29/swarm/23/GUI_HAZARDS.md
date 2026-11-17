@@ -166,8 +166,8 @@ own self-play or matches. These matter for **anyone else writing a front end**, 
 
 | hazard | raw evidence |
 |---|---|
-| refused FEN -> previous game's move | `forge-combo29/swarm/23/check21/RESULT.txt`, `refused_readyok.out` |
-| illegal token -> truncated game | `forge-combo29/swarm/23/check11/RESULT_SF57.txt`, `s57.out` |
+| refused FEN -> previous game's move | `forge-combo29/swarm/23/check21/RESULT.txt`, `forge-combo29/swarm/23/check21/refused_readyok.out` |
+| illegal token -> truncated game | `forge-combo29/swarm/23/check11/RESULT_SF57.txt`, `forge-combo29/swarm/23/check11/s57.out` |
 | the defence, three protocols | `forge-combo29/swarm/23/check11/gui_defence.out` |
-| partial clock -> no answer, no diagnostic | `forge-combo29/swarm/23/check02/RESULT.txt`, `partial_clock.out` |
+| partial clock -> no answer, no diagnostic | `forge-combo29/swarm/23/check02/RESULT.txt`, `forge-combo29/swarm/23/check02/partial_clock.out` |
 | related, same family | 23-C23 (refused FEN keeps previous board), 23-C24 (illegal token truncates), 23-C25 (partial clock hangs), 23-F53 (the defence) |

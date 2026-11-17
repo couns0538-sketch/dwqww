@@ -190,7 +190,7 @@ control proved nothing, so the main result proved nothing either.
 
 The control is discriminating at BOTH limits — A and B differ either way — but the actual moves differ between the
 two limits (`f1b5`/`b1c3` at softnodes 2000, `f1c4`/`c2c4` at depth 6). My first version of this entry quoted one
-limit's moves against the other limit's test, which my own `assert_quoted.py` caught. **A quoted move is incomplete
+limit's moves against the other limit's test, which my own `forge-combo29/swarm/23/tools/assert_quoted.py` caught. **A quoted move is incomplete
 without its search limit.**
 
 Reproduce: `cd forge-combo29/swarm/23/check21 && python3 refused_readyok.py` (uses `go depth 6`).
@@ -216,7 +216,7 @@ budget (`depth`, `nodes`, `softnodes`, clock), so a board+moves claim must carry
 reproducible — and two true numbers from different budgets can be combined into a false claim.
 
 This is the first fault in the family caught by a **tool** rather than by a control row or by re-reading. It is also
-the first caught *before publication*, which is what `assert_quoted.py` was written for.
+the first caught *before publication*, which is what `forge-combo29/swarm/23/tools/assert_quoted.py` was written for.
 
 ## Instance 11 — a proxy for the condition is not the condition (23-F59)
 
@@ -304,11 +304,11 @@ A criterion that is easy to compute is usually a proxy; assert the thing itself.
 
 | instance | fix, and where it lives | verified how (command + result) |
 |---|---|---|
-| 1. parse found nothing | `job1/integrity_selftest.sh` — feeds the comparison script 7 malformed inputs | `bash job1/integrity_selftest.sh` -> **7 cases exit 2 with HARD FAILURE**, 1 clean case exits 0 |
-| 2. compared fewer cases | `ROW COUNT GUARD` in every `*/compare_perft.py` (8 files) plus a printed PARTIAL note | `grep -l "ROW COUNT GUARD" */compare_perft.py \| wc -l` -> **8**; fault case (ask DEPTHS=1..5 against 4-depth data) -> `HARD FAILURE: engine row 0 has no depth 5 / NO VERDICT` |
-| 3. prover returned zero | `check30/mate_solve.py` — mandatory self-test, `sys.exit(2)` with "refusing to report" if any known-answer case fails | shallow known-answer controls: KQ-vs-K mate in 1 -> **1 PASS**, KQ-vs-K within 3 -> **1 PASS**, K-vs-K no mate -> **None PASS**; on failure the script exits 2 and reports nothing |
+| 1. parse found nothing | `forge-combo29/swarm/23/job1/integrity_selftest.sh` — feeds the comparison script 7 malformed inputs | `cd forge-combo29/swarm/23 && bash job1/integrity_selftest.sh` -> **7 cases exit 2 with HARD FAILURE**, 1 clean case exits 0 |
+| 2. compared fewer cases | `ROW COUNT GUARD` in every `*/compare_perft.py` (8 files) plus a printed PARTIAL note | `cd forge-combo29/swarm/23 && grep -l "ROW COUNT GUARD" */compare_perft.py` -> **8 files**; fault case (ask DEPTHS=1..5 against 4-depth data) -> `HARD FAILURE: engine row 0 has no depth 5 / NO VERDICT` |
+| 3. prover returned zero | `forge-combo29/swarm/23/check30/mate_solve.py` — mandatory self-test, `sys.exit(2)` with "refusing to report" if any known-answer case fails | shallow known-answer controls: KQ-vs-K mate in 1 -> **1 PASS**, KQ-vs-K within 3 -> **1 PASS**, K-vs-K no mate -> **None PASS**; on failure the script exits 2 and reports nothing |
 
-Note on cost: the 9-ply KR-vs-K self-test in `mate_solve.py` is too slow to run casually (>100 s), which is itself
+Note on cost: the 9-ply KR-vs-K self-test in `forge-combo29/swarm/23/check30/mate_solve.py` is too slow to run casually (>100 s), which is itself
 worth knowing — the cheap controls (mate in 1, within 3, and a drawn position) are enough to prove the prover can
 both FIND a mate and REFUSE to invent one, and they run in under a second.
 

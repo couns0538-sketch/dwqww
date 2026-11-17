@@ -9,7 +9,7 @@ own harness, Threads 1, Hash 16, `OwnBook false`, fresh process per line, draine
 
 ## The build is the PC's source, and its numbers reproduce
 
-Patch from `FABLE_TO_swarm_5.md`, sha256 `d6bd72c531f785f4…` **verified before applying** (a truncated extraction
+Patch from `FABLE_TO_swarm_5.md` (NOT in this checkout: it lives on branch `handoff/fable-opus-combo29-all-20261114`, fetched with `git fetch --depth 1 origin handoff/fable-opus-combo29-all-20261114`), sha256 `d6bd72c531f785f4…` **verified before applying** (a truncated extraction
 that drops the trailing newline gives `61da918e…` and silently loses the last line — I hit that and re-extracted).
 Applied with `patch -p1` to a separate worktree, 11 files, no fuzz; built with `-DFORGE_MATE_ALPHA_GUARD=1`.
 
@@ -52,7 +52,7 @@ base there. Four of the six reach the threshold (depths 22/22/23/20) and one mat
 
 | switch (file 5) | what I measured |
 |---|---|
-| drawn-root repair | a won K+R v K at halfmove 150: base **0 nodes**, PC **160**; and on a **threefold-repetition** root (claimable, not forced) base **cp 0 / 0 nodes**, PC **cp 399 / 6,941 nodes**, different move — so the repair is a real cost avoided, not cosmetics (23-F43/F44). **Cost when it is missing:** in 5 of 5 naturally reached repetitions the base played a worse move, from −31 cp to **mate in 5 against itself**, while reporting cp 0 (23-F72); and **8 of 10 self-play games (49–94 % Wilson) reach such a position** (23-F75) — so the defect fires at the end of most games. In a MATCH the program ends the game at the third occurrence, so the move is never played there |
+| drawn-root repair | a won K+R v K at halfmove 150: base **0 nodes**, PC **160**; and on a **threefold-repetition** root (claimable, not forced) base **cp 0 / 0 nodes**, PC **cp 399 / 6,941 nodes**, different move — so the repair is a real cost avoided, not cosmetics (23-F43/F44). **Cost when it is missing:** in 5 of 5 naturally reached repetitions the base played a worse move, from −31 cp to **mate in 5 against itself**, while reporting cp 0 (23-F72); and **8 of 10 self-play games (49–94 % confidence interval) reach such a position** (23-F75) — so the defect fires at the end of most games. In a MATCH the program ends the game at the third occurrence, so the move is never played there |
 | lone-king repair | mates surface at ~depth 20 on the PC, never at 12; base also mates at 24-32 on the clock, so the practical difference is confined to two shapes (23-F45/F46/F47) |
 | `FORGE_FIX_GO_PARSE` | malformed `go` lines where `go` sits where a number belongs: base truncates to **1 info line**, PC returns **64** and a normal bestmove (23-F48). Robustness only — matches never send `go` as a value |
 

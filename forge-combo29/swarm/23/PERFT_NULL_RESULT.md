@@ -9,9 +9,9 @@ should be able to weigh it without reading 16 job folders.**
 |---|---|---|---|
 | R seed 2301 (random legal games, one position every 7 plies) | 5,000 | perft 1–4 | 0 differences (23-F4) |
 | R seed 2401 (independent draw, 0 FENs in common with 2301) | 5,000 | perft 1–4 | 0 differences (23-F22) |
-| R seed 2301, first 200 | 200 | perft **5** | 0 differences, 7,399,207,740 nodes/side (23-F11) |
-| set G, first 30 | 30 | perft **5** | 0 differences, 1,022,355,864 nodes/side (23-F12) |
-| R seed 2501 (third independent draw, 0 overlap) | 100 | perft **5** | 0 differences, 2,603,588,130 nodes/side (23-F33) |
+| R seed 2301, first 200 | 200 | perft **5** | 0 differences, 7,399,207,740 nodes on each side (23-F11) |
+| set G, first 30 | 30 | perft **5** | 0 differences, 1,022,355,864 nodes on each side (23-F12) |
+| R seed 2501 (third independent draw, 0 overlap) | 100 | perft **5** | 0 differences, 2,603,588,130 nodes on each side (23-F33) |
 | special positions filtered from R+G by python-chess | 58 | perft 1–4 | 0 differences (job 2) |
 | seat 13's special-position set (their FENs) | 494 | perft 1–4 | 0 differences, 1,976/1,976 pairs (23-C3) |
 | seat 03's set_all230 (their FENs) | 230 | perft 1–5 | 0 differences, 1,150/1,150 pairs (23-C2) |
