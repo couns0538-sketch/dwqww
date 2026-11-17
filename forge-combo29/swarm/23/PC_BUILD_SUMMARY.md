@@ -52,6 +52,24 @@ base there. Four of the six reach the threshold (depths 22/22/23/20) and one mat
 | lone-king repair | mates surface at ~depth 20 on the PC, never at 12; base also mates at 24-32 on the clock, so the practical difference is confined to two shapes (23-F45/F46/F47) |
 | `FORGE_FIX_GO_PARSE` | malformed `go` lines where `go` sits where a number belongs: base truncates to **1 info line**, PC returns **64** and a normal bestmove (23-F48). Robustness only — matches never send `go` as a value |
 
+
+## Is the engine reproducible in play? Yes on both paths the owner uses
+
+| path | command | stable across fresh processes? |
+|---|---|---|
+| **clock** (strength matches) | `go wtime ... btime ... winc ... binc ...` | **yes** — same move on 20 of 20 positions, twice over; also at a 1 s control (23-F54/F55) |
+| **self-play** | `go softnodes 2000` | **yes** — same move AND same node count on 30 of 30 (23-F64) |
+| node budgets (comparisons) | `go nodes 20000 / 50000 / 250000` | **no** — about 30 % of quiet positions change move between budgets (23-F24) |
+
+The mechanical reason: the clock and `softnodes` take their stopping point from the search's own progress and stop at
+a **completed depth**; `go nodes` aims at a fixed count and stops wherever the depth boundary happens to fall. A depth
+difference is what changes the move (23-F56), so the path that varies its depth varies its move.
+
+**Practical meaning:** the two paths the PC's engine is actually driven on are reproducible move-for-move, so a match
+result and a self-play game are repeatable. The per-move lottery lives in the node-budget path, which is used for
+comparisons rather than play — so a node-budget comparison is not reproducible move-for-move and its results are not
+interchangeable with clock results.
+
 ## Caveats that must travel with this page
 
 - **The PC plays its own trained net file, which is NOT shared.** My PC build uses the built-in net, so every number
