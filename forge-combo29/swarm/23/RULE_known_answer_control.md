@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty-eight** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-nine** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-EIGHT instances plus twelve named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-NINE instances plus twelve named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty-eight faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-nine faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -837,6 +837,25 @@ have needed a correction.
 
 **Why it is worse than an ordinary one-fixture generalisation:** the excluded fixture is not random — it is the one the
 author already suspected would disagree, which is why the sentence described it away instead of testing it.
+
+## Instance 29 — the edit that overwrote a neighbour (reported by the coordinator, and it is this page's own subject)
+
+While adding a rule to a shared section, the coordinator **overwrote a different rule that was already there**, and caught
+it on re-read rather than through any check.
+
+That is the append-in-place failure this page already names ("documents accumulate defects the way code does", four in
+four consecutive reads) occurring in the act of editing the section about it. The mechanism is identical to the ones
+above: an insert that is not a *checked* insert silently replaces rather than adds, and nothing errors — the file is
+still valid markdown, the section still reads fluently, and only the missing paragraph knows.
+
+**MECHANICAL CONSEQUENCE: before writing into an existing section, record its content length or its heading list, then
+compare after.** For this seat that is `rule_check.py`'s job for the rule page — it counts instance and named-pattern
+sections and would show a DELETION as a numbering gap — but the general form is one line: take a checksum of what is
+there, write, compare. An edit that only adds cannot decrease a count.
+
+**And the limit, since it applies to me too:** the coordinator caught this by re-reading, which is the detector this page
+says is the only one that finds prose defects. A count check would have caught a deleted section heading; it would not
+have caught a deleted paragraph inside one.
 
 ## The fix, in one line each
 
