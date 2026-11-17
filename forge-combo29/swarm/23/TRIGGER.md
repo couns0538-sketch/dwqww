@@ -114,4 +114,6 @@ that gives you one withholds the other. That is a fact about chess positions, no
 both axes are recorded as *untested with a structural reason* rather than as negative results.
 
 What is NOT withheld: the mechanism itself. The base plays the generator's first move without looking (23-F98/F172), and
-where that move forfeits a mate in 1 it did so on 4 of 4 fixtures — one back-rank structure, four variations (23-F175).
+where that move forfeits a mate in 1 it did so on **6 of 6 fixtures spanning TWO mate types** — back-rank mates and a
+direct queen mate (`e1e8`) — after the first round's four were correctly identified as variations of ONE structure
+(23-F175/F177).
