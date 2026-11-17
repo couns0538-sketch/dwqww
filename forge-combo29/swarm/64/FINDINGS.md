@@ -91,8 +91,8 @@ Bandwidth-bound, proportional to table size. At Hash 256 the collapse is
 ### After Patch A (clear removed only)
 
 - **unsafe cells: 22/48 -> 5/48.**
-- **17/48 came into the safe region**, which is every cell at Hash <= 128 plus
-  Hash 32 MPV 3-6 and Hash 48 MPV 4-6.
+- **17/48 came into the safe region**: Hash 32 MPV 3-6, Hash 48 MPV 4-6,
+  Hash 64 MPV 2-6, Hash 128 MPV 2-6 — every previously-unsafe cell at Hash <= 128.
 - **5/48 remain unsafe: Hash 256 at MPV 2,3,4,5,6 — ratios 1.94, 1.99, 1.97, 1.90, 1.90.**
 
 The survivors are **flat in MultiPV**. A per-line cost would keep climbing from 2

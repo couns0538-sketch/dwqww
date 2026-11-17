@@ -1,6 +1,6 @@
 # Forge MultiPV x Hash grid, fixed 200000-node budget
 
-Engine: `/tmp/build-base/forge`  
+Engine: base build (`forge-combo29` at the base commit, `-march=x86-64-v4`, GCC 13.3)  
 Budget: `go nodes 200000` (literal), Threads 1, fresh process per cell  
 Positions per cell: 6 (listed below), repeats per position: 3  
 Runs completed: 864/864 in 295.5 s  
