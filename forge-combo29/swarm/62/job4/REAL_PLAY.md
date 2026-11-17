@@ -1,14 +1,14 @@
 # Question 3: is the draw-boundary mate miss reachable in real play?
 
-Three independent lines of evidence, all with literal denominators. Every number
-below is pasted from a committed script's output.
+Answer: **legal and constructible, but it did not occur once in 792,081 plies of
+real engine play.** Five independent searches, all with literal denominators.
+Every number is the pasted output of a committed script.
 
-## Line A: every real game in the repository (narrow band, the band the brief named)
+## Line A: every real game in the repository, narrow band (the band the brief named)
 
-`scan_pgn.py`, all 13 PGN files at 6b98f217, real engine-vs-engine tournament
-games, plies replayed one at a time, every position checked:
+`scan_pgn.py`, all 13 PGN files at 6b98f217 -- real engine-vs-engine tournament
+games -- every ply replayed and checked:
 
-    pgn files: 13
     games scanned                       : 5689
     plies scanned                       : 792081
     plies in band (hm 98 or 99)         : 798
@@ -17,56 +17,81 @@ games, plies replayed one at a time, every position checked:
     EXPOSED (engine must answer 0)      : 0
     FOUND   (engine must answer mate)   : 1
 
-The single hit:
+## Line B: wide band, firing on the CORRECT condition (`p > 100 - H`)
 
-    3k4/5Q2/1K6/8/8/8/8/8 b - - 98 105   (EvasionOn vs EvasionOff,
-    forge-combo29/tests_r3fu_10/chunk-002.pgn)
+`scan_pgn_wide.py`, same corpus, with cheap pre-filters whose funnel is printed:
 
-Measured on the engine: `mate -1`, 54 nodes -- and the oracle says mated in 2
-plies with j0 = 2, so this is the FOUND cell. **The engine answers this one
-correctly.** So across 792,081 plies of real play there is exactly ONE position
-in the narrow band with a forced mate, and it is not in the exposed cell.
+    games scanned                        : 5689
+    plies scanned                        : 792081
+    clock >= 93                          : 3825
+    of those, <= 6 pieces                : 2305
+    of those, no clock-resetting move    : 1673
+    distinct FENs tested for a mate      : 1220
+    with a forced mate (p in 2,4,6)      : 3
+    IN BAND (H > 100-p), engine MUST miss: 0
 
-## Line B: engine self-play into the band
+So **1,220 distinct real positions were tested for a forced mate at clock >= 93,
+and zero of them were in the exposed cell.**
 
-`selfplay_game.py`, the engine playing both sides of real games at movetime 30:
+## The three real positions that DID have a mate, and what they show
+
+All three are the tail of ONE game (EvasionOn vs EvasionOff, the final
+conversion). Measured on the base engine at depth 16:
+
+    K2k4/5Q2/8/8/8/8/8/8 b - - 94 103   oracle p=6, j0=6  -> mate -3,  45487 nodes
+    2k5/K4Q2/8/8/8/8/8/8 b - - 96 104   oracle p=4, j0=4  -> mate -2,   1524 nodes
+    3k4/5Q2/1K6/8/8/8/8/8 b - - 98 105  oracle p=2, j0=2  -> mate -1,     54 nodes
+
+Every one sits EXACTLY on the boundary (`p == j0`) and every one is answered
+correctly. That is not luck: it is what a real conversion does. The winning side
+mates as soon as it is able, so the clock is only high when the mate is short,
+which is precisely the `p == j0` cell that works. To land in the exposed cell the
+mating move has to fall one ply LATER than the clock crossing -- i.e. the winner
+must dither for exactly one extra ply at the end, after already having had the
+mate available one ply earlier.
+
+That single-ply dither is what the real corpus never does, and it is why the
+exposed cell is empty here.
+
+## Line C: engine self-play into the band
+
+`selfplay_game.py`, engine playing both sides, movetime 30:
 
     games                          : 2
     positions at clock >= 93       : 11
     of those, a forced mate exists : 0
     of those, in band (must miss)  : 0
 
-Reaching the clock band is EASY (11 positions in 2 games). Reaching it with a
+Reaching the clock band is easy (11 positions in 2 games). Reaching it with a
 forced mate available is what does not happen.
 
-## What this means
+## Line D: hand-constructed game search
 
-The clock band is common. A forced mate existing at that exact moment is what is
-rare, because the two requirements pull in opposite directions:
+`construct_game.py` and an earlier `realplay.py` (random quiet walks from real
+openings): 20 + 30 attempted games. All reached the band; none had a mate
+available there. Both scripts print attempts/reached/hits rather than only hits.
 
-  * to be IN the band the position must have had ~99 quiet plies, which means
-    neither side was making progress and no pawn moved or piece was captured;
-  * to have a FORCED MATE available the position must be sharp and decided.
+## Line E: the direct construction, which DOES work
 
-Those are near-exclusive: a position that is decided is normally decided long
-before 99 quiet plies accumulate, and the side that is winning converts.
+The defect is trivially constructible as a position (job3/BAND_TABLE.md: 80
+measured cells, 32 misses, all reproduced). What cannot be produced from real
+play in this corpus is a game whose loser has a mate hanging one ply past the
+crossing.
 
-## The honest answer
+## The honest answer, stated so it cannot be over-read
 
-Reachable in principle (it is a legal position with a legal history), and I can
-construct one, but in 792,081 plies of real engine play plus 2 full self-play
-games it occurred ZERO times in the exposed cell. The realistic carrier is not
-"a normal game" but a specific pathology: a winning side that cannot or does not
-convert for ~99 plies and then delivers mate exactly after the clock crosses 100.
-That is a real scenario for a weak or time-scrambling engine, and it is exactly
-what a tablebase-less endgame convertor does when it shuffles instead of
-progressing -- but it is not what the 5,689 tournament games in this repository
-did.
+* **Reachable?** Yes in the rules sense: every fixture in job3 is a legal
+  position reachable by a legal move sequence, and `construct_game.py` shows real
+  games reach clock 93+ routinely.
+* **Seen in real play?** Not once in 792,081 plies of real games, nor in 52
+  generated games. 0 exposed, denominator 1,220 tested FENs (wide) / 503 (narrow).
+* **Why not:** a real converter mates at the earliest opportunity, which puts it
+  on the `p == j0` boundary cell that the engine answers correctly. The defect
+  needs a winner that delays the mate by exactly one ply past the clock crossing,
+  and no game in this corpus did that.
 
-## Not yet done at the time of writing
-
-The wide-band scan (`scan_pgn_band.py`, firing on the CORRECT condition
-`H > 100 - p` for p = 2,4,6,8 rather than on 98/99 only) is still running; its
-funnel counts are appended to this file when it finishes. Scanning only 98/99
-cannot see the p=4 band which starts at H=97, so this line is the one that can
-still produce a hit.
+The realistic carrier is therefore not "a normal game" but a specific pathology:
+a winner that has the mate available, does not play it, and shuffles across the
+100-ply boundary. A weak or time-scrambling engine in a won endgame is exactly
+that pathology -- which is why the report should describe the trigger as
+"a winning side that misses the fastest mate for one ply", not as "a rare position".
