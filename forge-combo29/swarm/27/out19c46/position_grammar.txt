@@ -1,0 +1,18 @@
+POSITION COMMAND GRAMMAR - the last unswept surface in this family
+PC r15, fresh process per row, then `go depth 6` to see what position was ACTUALLY searched
+
+position command                                         diagnostic                             bm     nodes    score
+position startpos                                        NONE                                   d2d4   1703     score cp 34
+position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR NONE                                   d2d4   1703     score cp 34
+position fen 8/8/8/8/8/8/8/K6k w - - 0 1 extra junk      NONE                                   a1b1   0        score cp 0
+position fen 8/8/8/8/8/8/8/K6k x - - 0 1                 invalid FEN: invalid FEN fields        d2d4   1703     score cp 34
+position fen 8/8/8/8/8/8/8/K6k w XYZ - 0 1               invalid FEN: invalid castling righ     d2d4   1703     score cp 34
+position fen 8/8/8/8/8/8/8/K6k w - - 0                   invalid FEN: FEN must contain six      d2d4   1703     score cp 34
+position fen                                             invalid FEN: FEN must contain six      d2d4   1703     score cp 34
+position startpos moves e2e5                             illegal move e2e5                      d2d4   1703     score cp 34
+position startpos moves e2e4 zzzz e7e5                   illegal move zzzz                      e7e5   2682     score cp -21
+position nonsense                                        NONE                                   d2d4   1703     score cp 34
+
+=== READING ===
+Compare each row's bm/nodes/score with `position startpos` (row 1) and the K6k row (row 2).
+A row whose answer matches startpos SILENTLY SEARCHED STARTPOS - the S-C84 shape.
