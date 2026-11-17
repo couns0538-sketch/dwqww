@@ -424,3 +424,16 @@ next: cadence; then continue confirmations.
 Tally: 33 findings, 15 checks/plants (C1..C15), 3 method lines (N1..N3), 1 withdrawal (C6W).
 
 next: cadence.
+
+## 2026-11-17T01:01Z
+- **08-C16: seat 06's S-F6 + S-F27 CONFIRMED EXACTLY, to the digit.** Whole G set, 353 mirror pairs, depth 10,
+  Threads 1, my own harness: base **101/353 (28.6 %)** bestmoves not mirrored and **334/353** scores unequal —
+  their exact S-F6 figures; PC r15/PC20 **120/353 (34.0 %)** — their exact S-F27 figure. Three headline counts
+  reproduce exactly, which also validates my mirror translation against another seat's.
+- **Upgrades 08-C15:** the OFF-vs-ON switch difference is **+5.4 points at 353 pairs** (interval ±5), not the
+  +8.3 seen at 60 pairs — so "NOT an effect and NOT identical either". Recorded as a change of framing.
+- S-F6 is the base claim all of seat 06's symmetry work rests on; it now has an exact confirmation.
+
+Tally: 33 findings, 16 checks/plants, 3 method lines, 1 withdrawal.
+
+next: cadence.
