@@ -983,3 +983,13 @@ every sentence.
   60 -> 199 ms/d22; 600 -> 497/d24 (2.50x); 6000 -> 1946/d29 (3.91x); **24000 -> 1973/d29 (1.01x FLAT)**. So one
   set now shows both the exponent range and the ceiling, and they agree with S-F53/S-F54.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F75 now leads with the 1.01x flat demonstration (24000 ms = 1973 vs 6000 ms = 1946, same depth 29).
+- S-F76: S-F73's rule survives the test that killed S-F74. Instead of one line per position, I replayed EVERY mate line
+  from `go depth 6..20` on 12 fresh positions: **37 mate lines, 27 complete (all 27 mated), 10 short (none mated),
+  0 violations.** So the per-line rule holds where the depth-structure claim collapsed — it is about each printed line
+  independently, which is why it survives scaling.
+- Total support for the rule now: my 39 + seat 07's 24 + these 37 = 100 lines, no exception (63 and 37 overlap in
+  method but the 37 covers depths no earlier run reached — said so in the finding).
+- next command: continue at cadence.
