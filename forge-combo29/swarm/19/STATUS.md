@@ -1220,8 +1220,8 @@ a sign-share is unavailable and why.**
 | **19-C54** PC20 per-node cost | **+7.1 %** (median 1.071) | **90.0 %** (162/180 dearer) | **PER-POSITION, a tax** |
 | **19-C58** prefetch slowdown | **+9.80 %** | **93.1 %** (121/130 slower) | **PER-POSITION, a tax** |
 | **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — weak lean |
-| **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728) | **52.9 %** (63/119) | **COIN FLIP** |
-| **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %** | **54.2 %** (65/120) | **COIN FLIP** |
+| **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728), CI **[0.9014, 1.0497] includes 1.0** | **52.9 %** (63/119) | **UNRESOLVED** — the pooled CI includes no effect, so this is *not* "a real effect that is random per position"; it is *not established either way* |
+| **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %** (pooled, large enough to be real) | **54.2 %** (65/120) | **COIN FLIP** — a real pooled effect that is per-position random. *This* is what the label means; see the wall-time row for what it does not. |
 | **19-C60** TtPruneV2 | −4.7 % | 60.8 % (73/120) | weak lean, p = 1.000 |
 | **19-C60** CuckooRep | −0.9 % | 52.5 % (63/120) | coin flip, p = 1.000 |
 | **19-C60** HistRework | +3.1 % | 46.7 % (56/120) | coin flip, p = 0.523 |
