@@ -671,3 +671,16 @@ next: cadence.
 Tally: 38 findings, 27 checks/audits/plants, 4 method lines, 2 withdrawals.
 
 next: cadence.
+
+## 2026-11-17T01:54Z
+- **08-F39: the 2 counter-cases are UNEXPLAINED, and that is the honest outcome.** Read the gate from the patch (cap
+  fires at a node only if the root has a lone king AND that node has a side with only its king), then measured the
+  lone-king node fraction over the EXACT legal tree to depth 4: **100.0 % on all 11 boards**, counter-cases included.
+  So the gate is active everywhere and cannot distinguish them — the "cap has less to act on there" explanation is
+  REFUTED, and they point at a second mechanism (reduction/pruning-cascade interaction) that I cannot characterise
+  from outside the engine and do not claim.
+- This vindicates the strong-tendency framing: 08-F38 keeps them because it does not exclude them.
+
+Tally: 39 findings, 28 checks/audits/plants, 4 method lines, 2 withdrawals.
+
+next: cadence.
