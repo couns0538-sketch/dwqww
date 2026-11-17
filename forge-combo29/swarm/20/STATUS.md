@@ -819,3 +819,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z); still-confirming other br
 - Flagged for routing: matches AND training data both see the clocked stop, so positions from the sparse class carry
   noisier LABELS — a data-quality point, not a playing-strength one.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:23:09Z S-C53a NARROWS the data-quality point — sparse moves held 4/4, so volatility is score-only in this sample
+- Same four sparse boards, clocked vs `go depth clocked+4`: **4 of 4 IDENTICAL moves** (f4f5, g5h5, g7g6, e6d6),
+  **including position 1 where `cp 4302` became `mate 9`**. The clocked search picked the same move while its
+  EVALUATION of it was categorically incomplete.
+- Narrowed routing: **if the label is a MOVE -> sparse class not obviously noisier (4/4 survived a 4-ply check); if the
+  label is a SCORE or mate flag -> it is** (a +4302 cp eval and `mate 9` are not interchangeable). Which field the
+  pipeline consumes I cannot see and will not guess.
+- Counts not rates; did not average mate into centipawns (the 106x mistake). Reproduced the PHENOMENON, not seat 08's
+  specific instance pairs.
+Next: continue in the window (ends 2026-11-17T10:18Z).
