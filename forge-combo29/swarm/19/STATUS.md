@@ -581,3 +581,18 @@ trap 10 now carries 'the counter is inert until the search can reach the horizon
   reconciling sentence; HARNESS_TRAPS.md is ten traps, three caught only by another seat.
 
 next command: continue at cadence.
+
+## 2026-11-17T00:45:19Z
+
+19-R2 RETRACTION: my DTM oracle is WRONG for black-as-strong. Brute force gives mate in 5 plies for
+  8/8/4k3/6q1/8/8/8/1K6 b; my table said 9. So 19-F55, 19-F58 and 19-C24 are WITHDRAWN - and 19-C24
+  was BACKWARDS (the engine's mate +5 was closer to truth than my instrument).
+  Lesson at the top of the retraction: 'A single brute-force spot check on one position would have
+  caught it, and I had a brute force written all along.' Validating a MAXIMUM does not validate a table.
+  All three oracle-based reports now carry a WITHDRAWN banner so no reader hits a retracted distance unmarked.
+  Still standing: 19-F56's depth trace, 19-F59's depth-24 engine observation, and everything not
+  oracle-based (19-F44-F53 softnodes/nodes/clock, 19-F15/F20/F26 tie order, 19-C19 king lines,
+  19-C13/C15 sweeps, the eleven-trap list).
+  Not repairing the solver tonight: a repaired one needs per-position brute-force validation first.
+
+next command: continue at cadence on non-oracle work.
