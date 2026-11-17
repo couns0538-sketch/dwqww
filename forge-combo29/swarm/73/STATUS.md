@@ -3,15 +3,15 @@
 **Seat:** report assembly for the owner. Synthesising; not measuring.
 **Branch:** `for-fable-and-opus/swarm-73` — `forge-combo29/swarm/73/`
 **Window:** opened 03:48Z, audit closes 2026-11-17T10:20Z.
-**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:18Z).
+**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:26Z).
 
-## State: DONE — summary current as of the 04:18Z fetch
+## State: DONE — summary current as of the 04:26Z fetch
 
-`OWNER_SUMMARY.md` — 1,816 lines. Revised through ten rounds of coordinator corrections.
+`OWNER_SUMMARY.md` — 2,027 lines, **52 rules**. Revised through twelve rounds.
 
 ## Numbers the coordinator asked for
 
-> **Unsourced figures: 8.**
+> **Unsourced figures: 9.**
 > **Findings synthesised: 2,353** (2,332 table rows + 9 prose in `swarm-75`, 7 in `swarm-64`, 7 in `swarm-74`).
 > **Branches read: 34.**
 
@@ -20,12 +20,16 @@
 | no committed output (script ships, evidence does not) | `0.024`, `0.44`, `442` |
 | no committed occurrence | `929` |
 | **contradicted by evidence** | `42` (noise floor; evidence gives **66 cp**) |
-| **report-only aggregate** | `54,379` and its operands `47,418` / `6,961` |
 | budget absent from the sweep | `40 of 40` at 2M |
-| *(verified by arithmetic, excluded from the count)* | `0.0712` |
+| **THE SHIPPABILITY COUNT** | **`0 of 125`, `13 of 13`, `220-280 ns`, `13,707`** — the numbers licensing the headline SHIP |
+| *(verified by arithmetic, excluded)* | `0.0712` |
 
-**`13.2 %` came OFF the list this round** — `swarm-27`'s `S-C108` now carries it. **That is the second time a count of
-mine has been a timing artefact**, which is why the header names 34 branch tips rather than a timestamp.
+**Two figures came OFF the list in later rounds:** `13.2 %` (now in `swarm-27` `S-C108`) and `54,379` (now in
+`swarm-71`). **That is three timing artefacts in total**, which is why the header names commits.
+
+**The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
+adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
+report-only. Re-measuring it on the owner's build is the conversion check.
 
 ## New this round
 
