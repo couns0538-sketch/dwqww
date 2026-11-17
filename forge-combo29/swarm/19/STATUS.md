@@ -721,3 +721,16 @@ HARNESS_TRAPS.md = twelve traps; traps 11 and 12 each carry their own failure as
   line pairs Rule 1's purpose with the one check every harness needs (nodes>0 and non-empty PV).
 
 next command: continue at cadence on counter/reproduction work.
+
+## 2026-11-17T00:55:10Z
+
+19-C33 third sweep: the nodes-0/empty-PV check is MECHANICALLY ROBUST (immune to readyok interleaving)
+  but SEMANTICALLY BLIND - nodes 0 is the engine's CORRECT answer on drawn/terminal roots. Verified on
+  seat 21's asan_raw_031.txt (drawn root, score cp 0 nodes 0, empty pv, real bestmove) - and 21 is the
+  terminal-position seat, so its 469/6770 majority is by design. NO defect count reported.
+  The distinguishing information is the POSITION, not the output.
+  Three sweeps, three instructive failures, all kept: input-file (19-C13) flags suspicion only +
+  committed!=used (19-C21) ; output sweeps broke on indentation then block boundaries (19-C14/C16) ;
+  this one sound but blind. Sweep line CLOSED.
+
+next command: continue at cadence on counter/reproduction work only.
