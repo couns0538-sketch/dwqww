@@ -1571,3 +1571,16 @@ diverge completely, earlier they roughly agree - so a GUI showing eval is most m
 for a counter draw. That is the actionable form of F78/F79/F80: not "they disagree" but "they disagree HERE, and the
 gap grows as the position approaches a counter draw".
 108 findings, 18 confirmations (2 refutations), thirteen named faults, six reference pages. 9 h 17 m remain.
+## 2026-11-17T01:04:36Z  "one mechanism, two directions" stated where F80 and C26 meet - and what it does NOT establish
+2026-11-17T01:04:36Z
+
+F80 now says: 23-C26 and this are one mechanism seen from two directions - C26 found the search's own onset by
+sweeping the counter; this found the SAME onset by watching the gap between two interfaces. "Neither is evidence for
+the other's cause - they are the same cause observed through two different instruments, and they agree to 1 cp of
+counter position."
+Stated in three places (the finding, GUI_HAZARDS where the curve is shown, and job37/RESULT.txt) because overclaiming
+here would be easy: two measurements agreeing is not proof of a mechanism, it is two instruments on one cause.
+DID NOT duplicate work: I did not re-run the depth sweep to re-derive the moved onset - 23-C26 already measured it at
+five depths on this board (95/92/91/89/89 at depths 6-14); job37/RESULT says the depth-dependence is CITED from there,
+not re-measured here.
+108 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 16 m remain.
