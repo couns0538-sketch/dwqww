@@ -103,7 +103,13 @@ moved toward a smaller effect as the sample grew:
 kept in FINDINGS beside the new ones rather than deleted, so the shrinkage is visible rather than tidied away.
 
 **WHY THIS IS SYSTEMATIC AND NOT RANDOM, which is the part that matters:** every inflated magnitude ran in the
-direction of a stronger story. The match-depth saving was overstated (19.5 % -> 11.9 %, 14.1 % -> 11.0 %, 12.7 % ->
+direction of a stronger story, **and my errors ran toward ALARM, not flattery.** The cleanest evidence is the
+PC20 move-quality tally, which drifted monotonically toward PC20 as the sample grew: **0-3 against PC20 at n=3
+(published as 29-F50), 8-4 for PC20 at n=13, 19-10 for PC20 at n=31 (200 positions)**. At every stage the first
+thing I had was the most alarming reading and the least supported one — a small sample made the engine look like it
+was losing quality it was not losing. That is worth stating plainly because a reader would reasonably expect
+small-sample bias to flatter an author's own recommendation; here it did the opposite, and it still had to be caught
+by widening the sample. The match-depth saving was overstated (19.5 % -> 11.9 %, 14.1 % -> 11.0 %, 12.7 % ->
 10.7 %) and the one cell that looked like a COST turned out to be a wash (2.3 % -> 0.3 %). Small samples did not
 scatter my errors at random — they biased every number toward the more interesting claim, because a large effect is
 what makes a measurement feel worth reporting. So the sample-size rule is not merely about precision: it is what

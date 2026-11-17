@@ -452,3 +452,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N41: the PC20 thread is CLOSED on my own evidence. The recipe changes from an open question into a CONFIRMATION target for a second seat, with the numbers to beat (20-20-7 at d10, 19-10-2 at d14).
 - Note: the direction moved monotonically toward PC20 as samples grew (0-3 at n=3, 8-4 at n=13, 19-10 at n=31) - consistent with N38, my small-sample errors ran toward the more alarming story.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:45:58 AM UTC 2026
+- 29-N42 in the FINAL beside the n-quoting rule: the bias ran toward ALARM, not flattery. Evidence is the PC20 quality tally drifting monotonically toward PC20 as n grew: 0-3 AGAINST PC20 at n=3 (published as F50, withdrawn), 8-4 for PC20 at n=13, 19-10 for PC20 at n=31.
+- At every stage my first reading was the most alarming and least supported - a small sample made the engine look like it was losing quality it was not. Worth stating because a reader would expect small-sample bias to FLATTER an author's own recommendation; here it ran the other way and still needed widening to catch.
+- Pairs with N38 (magnitudes inflated toward a stronger story): one sampling fault, two faces - inflated effect sizes AND exaggerated bad news.
+- next: continuing at cadence.
