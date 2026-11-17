@@ -449,3 +449,16 @@ next: cadence.
 Tally: 33 findings, 17 checks/plants (C1..C17), 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:10Z
+- **08-C18: PARTLY CONFIRMS seat 03 S-F20, correcting its depth.** Board `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183`,
+  root score per move: depth 12 **c6c7 cp -1092 vs c6d6 cp -1139 — the CHOSEN move is better by 47 cp**; c6d6 only
+  overtakes at depth 14 (46) / 16 (22) and becomes clearly better at **depth 18 (mate -9 vs cp -1195)**. Their
+  quoted `c6c7 mate -20, c6d6 cp -1192` at depth 12 does NOT reproduce on base/S14, PC/PC20 or PC/S14.
+  The substance holds from depth 18; their S-F22's 0-of-50 at depth 16 is CONSISTENT (gap is 22 cp there).
+- Found by my own plant failing: it expected a queen-sized gap at depth 12 and found 47 cp the other way. I did not
+  lower the threshold to make it pass.
+
+Tally: 33 findings, 18 checks/plants (C1..C18), 3 method lines, 1 withdrawal.
+
+next: cadence.
