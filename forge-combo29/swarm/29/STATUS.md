@@ -445,3 +445,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N40: the handover is now ONE question, not three findings. REPRODUCE_pc20_quality.md rewritten (46 lines) to open with it: 'does PC20's smaller tree stay quality-neutral at the depths the PC actually plays?' - and to state what is settled (F42 tree sizes at n>=60 every cell; F44 quality at depth 10, 13-13-4 over 30 disagreements, 20-20-7 with the earlier 7-7-3) versus open (depth 14+: 8-4 on 13 outcomes, 28-24-8 combined).
 - The recipe gives the numbers to beat, a >=30-disagreement threshold, the falsification condition, and the three traps that caught me tonight (sub-20 tallies, dropped parse rows, judging under the tested regime).
 - next: continuing at cadence.
+
+## Tue Nov 17 12:45:13 AM UTC 2026
+- 29-F55 CLOSES the handover's one open question, and the answer favours PC20. Depth 14, 200 positions, Threads 1, Hash 16: 169/200 same bestmove (84.5%); of 31 disagreements judged under the neutral S14 regime at depth 17, PC20's move is better 19, S14's 10, tie 2.
+- Complete tally over ALL my samples (600 positions, 96 disagreements): PC20 49, S14 36, ties 11. A modest advantage overall that is itself not significant (sign test p~0.10), so the safe claim is 'no disadvantage at any depth I measured, possibly a small advantage'.
+- 29-N41: the PC20 thread is CLOSED on my own evidence. The recipe changes from an open question into a CONFIRMATION target for a second seat, with the numbers to beat (20-20-7 at d10, 19-10-2 at d14).
+- Note: the direction moved monotonically toward PC20 as samples grew (0-3 at n=3, 8-4 at n=13, 19-10 at n=31) - consistent with N38, my small-sample errors ran toward the more alarming story.
+- next: continuing at cadence.
