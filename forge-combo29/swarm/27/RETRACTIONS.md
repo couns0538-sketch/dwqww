@@ -127,13 +127,20 @@ guard both **from the start** rather than rediscover them:
 
 | mechanism | instances | what it produces |
 |---|---|---|
-| **a settings label that was not the settings sent** | S-C18 group (a "PC20" ladder with no PC20 applied), S-C11 group (clock figures from a mis-set harness), S-F12 (book left on) | numbers that are real measurements of the **wrong configuration**, carrying a confident label |
+| **a settings label that was not the settings sent** | S-C18 group (a "PC20" ladder with no PC20 applied), S-C11 group (clock figures from a mis-set harness), S-F12 (book left on), **S-C57/S-C58 (a "22 options asserted on the PC arm" claim from a harness that built 17)** | numbers that are real measurements of the **wrong configuration**, carrying a confident label |
 | **a number computed in prose rather than regenerated from its data file** | S-C43 (a Wilson interval from the wrong count), S-C38 (a subset swap reported as before/after), the material counter that valued N and B at zero | arithmetic that is correct **as arithmetic** and attached to the wrong cell set |
 
 Both have the same root, and it is worth stating in one line because it covers the rest of this file:
 
 > **A value without its provenance is not evidence** — whether the missing provenance is *which settings
 > produced it* or *which cell set produced it*.
+
+**Four instances of the first, three of the second — and the fourth is the one that taught the most**, because it
+happened *after* the guard existed. `pc/check_settings.py` had been written, proven, and recorded in this file;
+and `pc/check_08c33_matrix.py` still published "22 options asserted on the PC arm" while building 17. **The
+guard was a separate script the harness had to remember to call, and a guard you have to remember to run is
+not a guard.** The fix is not a better guard but a *closer* one: the option count is now an argument inside
+the harness's own `run()`, which aborts the cell on a mismatch, and it fired immediately on first wiring.
 
 Three instances each is also why both guards are **mechanical rather than attentional.** "Be careful with
 labels" did not work: six harnesses were silently building 21 options. "Double-check your arithmetic" did not

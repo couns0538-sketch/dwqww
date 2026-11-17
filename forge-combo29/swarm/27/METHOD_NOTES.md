@@ -14,6 +14,43 @@ because they cost three seats real findings tonight, and because either one alon
 **The transferable form:** before quoting either, name the object's provenance — the option list actually parsed,
 or the command actually run. **A figure without its provenance is not evidence, it is a number.**
 
+## A guard you have to remember to run is not a guard
+
+Four separate retractions in this seat's record come from **a settings label that was not the settings sent**.
+The fourth happened *after* the guard for it had been written, proven, and documented here — which is the
+only part of this worth reading.
+
+`pc/check_settings.py` existed. It asserted that all 22 PC20 options were advertised and accepted, it had been
+proven to fail on a malformed `setoption name X Y` form, and the rule was the first line of this file. And
+`pc/check_08c33_matrix.py` published **"22 options asserted on the PC arm"** while its own option list was
+`["Hash 16", "Threads 1", "OwnBook false"] + S14` — **17 options, no PC switches**, and it never printed or
+asserted the count.
+
+**Why the guard did not prevent it:** it was a *separate script the harness had to remember to call*. A
+checker that lives beside the pipeline, rather than inside it, is a checker that will be skipped on exactly
+the runs where someone is moving fast — which are the runs where the label is most likely to drift.
+
+**The fix is proximity, not diligence.** The option count is now an **argument inside the harness's own
+`run()`**, and a mismatch aborts the cell rather than annotating it:
+
+```python
+SETTINGS = {"S14": [...], "PC20": [...]}          # 17 and 22 options
+EXPECT = {"S14": 17, "PC20": 22}
+...
+if expect is not None and n_applied != expect:
+    return {"error": "applied %d options, label promises %d" % (n_applied, expect)}
+```
+
+It fired on the first wiring attempt — every PC20 cell returned
+`ERR: applied 17 options, label promises 22` — because `run()` was still reading a module-level default
+instead of the parameter. **That is the behaviour you want: the harness refuses to produce a number rather
+than producing one under a false label.**
+
+Generalised: **put the assertion where the number is produced, not where it is reviewed.** The same argument
+as the preflight that refuses to measure, and the same argument as the non-vacuity control — all three are
+cases where the check has to sit inside the thing it is checking, because the alternative depends on the
+operator remembering.
+
 ## START HERE (0): a settings name in a finding is not evidence that the settings were sent
 
 **The failure, and it cost three findings:** I ran board `5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1` and labelled the results

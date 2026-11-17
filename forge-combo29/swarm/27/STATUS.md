@@ -787,3 +787,25 @@ base+S14 and FALSE of PC20 on the same board. Every mate-distance finding from t
 root side force mate" is correctly False - my first control asserted True and the suite refused to report.
 **Unfinished and stated as such**: whether `g4h5` specifically forces mate in 6 (needs 11 plies, exceeded the
 270 s budget at 1.8M nodes). It does not affect any conclusion - mate 4 being forced and optimal is sufficient.
+
+## 2026-11-17T04:5xZ S-C58 INVERTED: seat 08 is PC20, my harness was S14 — and the guard existed
+**Tested the reconciliation rather than filing it. It is the reverse of the stated resolution:**
+  repetition door, PC r15, go depth 4, option count asserted per cell
+    S14  (17 opts)  -> twice c2c3/701    THREE d2d4/505
+    PC20 (22 opts)  -> twice d2d4/412    THREE d2d4/389
+    seat 08's figures     412                 389      <-- PC20 TO THE DIGIT
+Also tested Hash 1/16/64/1024 and single-option ablations: **389 appears only under PC20** (HistRework is the
+option that moves it; removing TtPruneV2 gives 501). Base cells agree in EVERY variant (a2a3/0, c2c3/701),
+which is what the coordinator's argument turned on and it is the right argument - it left the PC arm's option
+list as the only free parameter, and it explains both numbers.
+**MY ERROR, AND THE INSTRUCTIVE PART: S-C57 claimed "22 options asserted on the PC arm". FALSE - the harness
+built 17 and never printed or asserted the count. This is mechanism 1 of my own retraction ledger recurring in
+a finding written AFTER I documented it.** `pc/check_settings.py` existed, was proven, and was named in
+METHOD_NOTES - but it was **a separate script this harness never called.** New METHOD_NOTES section: **a guard
+you have to remember to run is not a guard** - put the assertion where the number is PRODUCED, not where it is
+reviewed. The count is now an argument inside run() and aborts the cell on mismatch; it fired on first wiring
+(every PC20 cell: `ERR: applied 17 options, label promises 22`).
+**S-C60**: under PC20 the **two-occurrence control cell changes too** (base/S14 c2c3/701, PC20 d2d4/412).
+Neither drawn so the control's purpose holds, but the move differs - not a like-for-like control if quoted.
+**What stands regardless**: every move and every zero/nonzero split reproduces under BOTH settings, so
+08-C33/34 hold on substance - two independent doors, boundary exactly hm 99->100, PC repair covers both.
