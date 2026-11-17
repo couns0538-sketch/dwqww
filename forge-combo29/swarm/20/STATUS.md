@@ -617,3 +617,16 @@ Next: continue confirming other seats' claims rather than re-opening the closed 
   files **kept and LABELLED** (`job3/DISCARDED_HARNESS.md`) rather than deleted, so the defect stays visible.
 - Own assessment: conclusions unaffected, but 222 unlabelled fabricated-bestmove files in an evidence dir IS a fault.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:12:02Z "unused not invalid" recorded; the transcript rule is now a TOOL (S-F62)
+- "**The job3 evidence is UNUSED rather than INVALID**" now in job3/DISCARDED_HARNESS.md — nothing rests on the 222
+  files, no published number is invalid; the fault was leaving fabricated bestmoves present and UNLABELLED.
+- **S-F62: AUDIT/transcript_audit.py** (exit 0 = clean) scans the branch for **engine transcripts** (carrying an
+  `id name`/`option name` banner) with a **bestmove but no `info depth`** line — the piped-quit signature — separating
+  them from **script summaries** (no banner; zero info-depth normal, the distinction a mechanical sweep cannot make) and
+  from an allowlist of deliberately-captured unsearched-path files. Result: **0 violations, 222 allowlisted, nothing
+  outside job3/out affected.**
+- All three gates pass: findings_lint CLEAN, transcript_audit exit 0, machine_clean exit 0, tree clean.
+- Three defect classes now each have a written rule AND an executable check: driver (read to bestmove, abort on zero
+  info-depth), findings file (mkdir first, no duplicate ids), machine (no leaked engine, zombies excluded).
+Next: continue in the window (ends 2026-11-17T10:18Z).
