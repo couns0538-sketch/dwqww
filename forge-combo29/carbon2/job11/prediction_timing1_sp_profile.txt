@@ -1,0 +1,17 @@
+Job 11 Timing (1) Prediction — `r15d` Bench-Profile vs `r15d` SP-Profile (committed ALONE before any Job 11 build or timed run)
+===============================================================================================================================
+Comparison: `A = r15d` built with today's bench-only PGO profile (`bench 11 / 13 / 16` with `net768.fnn3` and the 4 PC20 boolean/int switches, `1` `.profraw` file per build) vs `B = r15d` built with the SP profile (`bench 11 / 13 / 16` + `60` disjoint-opening self-play games at `go softnodes 2000`, `PC20`, `net768.fnn3`, `Hash 16`, `Threads 1`, `2` `.profraw` files merged per build), both compiled with `clang++-18` (`18.1.3`) + GCC 13 `libstdc++` + ThinLTO (`lld-18`) + `-march=sapphirerapids` + all six `FORGE_SPD_*` / `FORGE_SEARCH_SPEED2` switches of File 10 fact `(c)`.
+
+What changes and its committed counts / shares:
+- Zero engine C++ lines change; only LLVM PGO branch weights, inlining thresholds, and hot/cold code placement change.
+- In `forge-combo29/carbon2/job9/counts_hash16.txt` (lines 7 and 14), 60 self-play games at `Hash 16` run `7,670` searches (`25,641,316` nodes) and execute **`32,930,134`** per-node `Worker::should_stop()` calls (`22,539,233` in `search` + `10,326,949` in `qsearch` + `63,952` root) because `node_limit_specified_ == true`, plus `60` `ucinewgame`, `7,670` `position` move-replay commands, and `~70,500` `info` lines — all of which had `0` count in `bench 11/13/16` (`node_limit_specified_ == false`).
+- In `forge-combo29/carbon2/job10/pgo_time_profile_raw.txt` (lines 2 and 25), `Worker::should_stop_with(unsigned long)` took **`0.54%` (`1.166 ms/game` of `216.342 ms/game`)** self CPU as an un-inlined cold function on bench-profiled `r15d`, while PGO-cold `uci.cpp` accounted for most of `S7`'s **`1.0109x` (`+1.09%`)** gain in `forge-combo29/carbon2/job10/pgo_bundle1_steps_alone_6x60_hash16_raw.txt` (line 68).
+- On the PC (`FABLE_TO_carbon2_11.md` line 42), the same SP profile on `r15d` measured `1.0218x` (`+2.18%`, `9/10` rounds faster) engine CPU and `1.0240x` (`+2.40%`, `10/10`) wall.
+
+Predicted self-play gain at `Hash 16` (`A = r15d` bench-profile, `B = r15d` SP-profile, 12 rounds x 60 games ABBA, two independent builds of each):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+0.8%` to `+3.5%` (`1.008x` to `1.035x`)**, with **`>= 9 / 12`** paired rounds faster.
+- Wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+0.6%` to `+3.5%` (`1.006x` to `1.035x`)**.
+
+Kill range:
+- Any Step 0 mismatch or divergence from `ee465caeff9c0fcf` (`7,670` searches, `25,641,316` nodes) across the 48 runs kills immediately.
+- If `r15d_sp / r15d_bench` `median_of_paired_round_ratios` on `getrusage` engine CPU is `< 1.0080x` (`< +0.80%`) OR fewer than `9 / 12` paired rounds are faster on `getrusage` engine CPU, `prediction_timing1_sp_profile` is graded **KILLED**.
