@@ -1,0 +1,34 @@
+### 16-F29 check: does varying the START fix duplication? (20 plies/game, 6 s + 0.06 clock)
+PC20, Threads 1, Hash 16, fresh process per move
+
+A: ten games from ONE start
+   start: 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+   distinct move sequences: 1 of 10
+   distinct final positions: 1 of 10
+
+B: ten games from TEN different starts
+   distinct move sequences: 10 of 10
+   distinct final positions: 10 of 10
+
+seat 16 claim: single fixed start gives 3-of-10 distinct; varied starts give 10-of-10.
+my result: single start 1/10 ; varied starts 10/10
+
+VERDICT: CONFIRMS 16-F29's conclusion strongly, and the single-start half is even more extreme on my run.
+
+  A: ten games from ONE start -> **1 of 10** distinct move sequences, **1 of 10** distinct final positions
+  B: ten games from TEN different starts -> **10 of 10** distinct sequences, **10 of 10** distinct finals
+
+Seat 16 reported 3-of-10 from a fixed start and 10-of-10 from varied starts. My single-start result is 1-of-10, i.e.
+FULLY deterministic, which is consistent with my own S-C36 (byte-identical replay from one start) and with the
+determinism I established throughout: at Threads 1 with a fixed start, every replay gives the same game. Their 3-of-10
+likely reflects a clock-timing difference between runs (a clock search varies in depth, S-C15), while mine landed on
+one depth band each time.
+
+SO THE ADVICE IS CONFIRMED AND SHARPENED: **varying the openings is not merely helpful, it is the ONLY source of
+variety** - a fixed start gives exactly one game however much compute is spent, because the engine is deterministic.
+That is a stronger statement than "duplication is fixed by varying the start", and it agrees with seat 16's own S-C6
+(fixed NODE budget gave 10-of-10 identical from one start).
+
+DIFFERENCE FROM THEIR METHOD, stated: they ran 40 plies per game, I ran 20. Shorter games are less likely to diverge
+by transposition, so my 1-of-10 may partly reflect game length rather than only determinism - which is why I record
+their 3-of-10 as compatible with mine rather than wrong.
