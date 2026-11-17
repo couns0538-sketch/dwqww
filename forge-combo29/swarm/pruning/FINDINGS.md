@@ -6,8 +6,16 @@ my corpus.** Every wrong answer the default engine gave was fixed by *more
 depth* on the same engine — so those are horizon limits, not pruning bugs.
 
 **But `SoundMatePruning=true` — the option whose whole purpose is mate safety —
-makes the engine materially worse, and loses five forced mates the default
-finds.** That is the finding. It reproduces on the pristine `6b98f217` build.
+loses forced mates the default finds.** That is the finding. It reproduces on
+the pristine `6b98f217` build.
+
+**The cost is depth-bounded, and that qualifier is part of the claim.** All five
+harms occur in a **shallow band, depths 5–9**; every one of them is gone by
+**depth 10**. Above depth 10 the option is neutral-to-helpful on this corpus.
+An earlier version of this section listed the five harms under a "depths
+8/10/12" heading with no depth column, which read as "harmed across the grid".
+That was a defect in my presentation, not in my data — the stored rows were
+always per-depth and always showed depth 8 only. It is corrected in §1.1.
 
 | | |
 |---|---|
@@ -15,37 +23,116 @@ finds.** That is the finding. It reproduces on the pristine `6b98f217` build.
 | Build | `g++ -O3 -march=x86-64-v4 -DFORGE_MARCH=x86-64-v4`, `LIBRARY_PATH=…/gcc/13` |
 | Settings | `Threads 1`, `Hash 64`, `OwnBook false`, `go depth N` |
 | Corpus | 30 fixtures, mates in 1/2/3 moves (10 each), every distance verified by 3 independent solvers |
-| Cells measured | 30 fixtures × depths {8,10,12} = 90, plus a 240-row depth sweep {1,2,3,4,6,8,10,12} |
+| Cells measured | 30 fixtures × depths {8,10,12} = 90, **30 at each depth**, plus a 240-row depth sweep {1,2,3,4,6,8,10,12} |
 
 ---
 
-## 1. The finding: `SoundMatePruning=true` loses forced mates
+## 1. The finding: `SoundMatePruning=true` loses forced mates — at depths 5 to 9
 
-90 cells, depths 8/10/12. Compared against the default engine and against the
-oracle's exact distance.
+90 cells, 30 at each of depths 8/10/12. Compared against the default engine and
+against the oracle's exact distance.
 
-| arm | wrong cells | changed verdict | helped | **harmed** |
+| arm | wrong cells (of 90) | changed verdict | helped | **harmed** |
 |---|---|---|---|---|
 | default | 6 | — | — | — |
 | `SoundMatePruning=true` | **7** | 9 | 4 | **5** |
 
-The five harms are cells where **the default engine is RIGHT and the option
-makes it wrong**. All five were brute-force verified (explicit minimax, third
-implementation) and all five reproduce on the pristine build.
+**All 9 changed cells are at depth 8, 10 or 12, and the split is the whole
+story:**
 
-| fixture | true | default | `SoundMatePruning=true` |
-|---|---|---|---|
-| `8/8/8/8/8/7Q/k7/2K5 w` | m2 | `h3e3` **m2** | `h3h8` cp 1230 |
-| `8/8/8/3K4/k7/8/4Q3/8 w` | m3 | `d5c4` **m3** | `e2a2` cp 1239 |
-| `7Q/8/1R6/8/8/7K/8/5k2 w` | m3 | `b6b2` **m3** | `h8f8` cp 1689 |
-| `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` **m3** | `g2h1` cp 978 |
-| `5k2/8/8/4K3/8/4R3/8/8 w` | m3 | `e5f6` **m3** | `e5d5` cp 447 |
+| depth | cells | default wrong | SMP wrong | harmed | helped |
+|---|---|---|---|---|---|
+| 8 | 30 | 3 | 7 | **5** | 1 |
+| 10 | 30 | 2 | 0 | **0** | 2 |
+| 12 | 30 | 1 | 0 | **0** | 1 |
+
+**Every harm is at depth 8. Every change at depths 10 and 12 is a HELP** — cells
+the default engine was failing and the option fixed. So on this corpus the
+correct summary is: *`SoundMatePruning=true` costs a mate at shallow depth,
+recovers by depth 10, and is net-beneficial at depths 10–12.*
+
+### 1.1 Per-cell table, with the depth beside each harm
+
+Measured on `build/forge-base-6b98f217` (`e06310ec…`, the pristine audit base),
+`Threads 1`, `Hash 64`, `OwnBook false`. Raw `info` lines are in
+`evidence/smp_depth_bands.txt`.
+
+| fixture | true | depth | default | `SoundMatePruning=true` | verdict |
+|---|---|---|---|---|---|
+| `8/8/8/8/8/7Q/k7/2K5 w` | m2 | **8** | `h3e3` m2 | `h3h8` cp 1230 | **HARM** |
+| | | 10 | `h3e3` m2 | `h3e3` m2 | same |
+| | | 12 | `h3e3` m2 | `h3e3` m2 | same |
+| `8/8/8/3K4/k7/8/4Q3/8 w` | m3 | **8** | `d5c4` m3 | `e2a2` cp 1239 | **HARM** |
+| | | 10 | `d5c4` m3 | `e2b2` m3 | same (different mating move) |
+| | | 12 | `d5c4` m3 | `e2b2` m3 | same |
+| `7Q/8/1R6/8/8/7K/8/5k2 w` | m3 | **8** | `b6b2` m3 | `h8f8` cp 1689 | **HARM** |
+| | | 10 | `b6b2` m3 | `b6b2` m3 | same |
+| | | 12 | `b6b2` m3 | `b6b2` m3 | same |
+| `8/8/8/8/8/8/6KQ/4k3 w` | m3 | **8** | `g2f3` m3 | `g2h1` cp 978 | **HARM** |
+| | | 10 | `g2f3` m3 | `g2f3` m3 | same |
+| | | 12 | `g2f3` m3 | `g2f3` m3 | same |
+| `5k2/8/8/4K3/8/4R3/8/8 w` | m3 | **8** | `e5f6` m3 | `e5d5` cp 447 | **HARM** |
+| | | 10 | `e5f6` m3 | `e5f6` m3 | same |
+| | | 12 | `e5f6` m3 | `e5f6` m3 | same |
+
+### 1.2 The band is depths 5–9, and the default needs less depth to be right
+
+The 90-cell grid only samples 8/10/12. Re-measured on a finer grid
+(depths 6–16, five fixtures, same binary and settings), the harm is a **band**
+that closes. Four states are distinguished, because "the two arms agree" is not
+the same as "the default is right":
+
+- **HARM** — default right, `SoundMatePruning=true` wrong
+- **help** — default wrong, option right (none occurred in this band)
+- **both-right** — both reach the true mate
+- **both-wrong** — neither arm found the true mate (a horizon at that depth)
+
+| fixture | 5 | 6 | 7 | 8 | 9 | 10 | 12 | 14 | 16 |
+|---|---|---|---|---|---|---|---|---|---|
+| `8/8/8/8/8/7Q/k7/2K5 w` | both-wrong | both-wrong | both-wrong | **HARM** | both-right | both-right | both-right | both-right | both-right |
+| `8/8/8/3K4/k7/8/4Q3/8 w` | both-wrong | both-wrong | **HARM** | **HARM** | both-right | both-right | both-right | both-right | both-right |
+| `7Q/8/1R6/8/8/7K/8/5k2 w` | **HARM** | **HARM** | **HARM** | **HARM** | **HARM** | both-right | both-right | both-right | both-right |
+| `8/8/8/8/8/8/6KQ/4k3 w` | both-wrong | both-wrong | both-wrong | **HARM** | both-right | both-right | both-right | both-right | both-right |
+| `5k2/8/8/4K3/8/4R3/8/8 w` | both-wrong | both-wrong | **HARM** | **HARM** | both-right | both-right | both-right | both-right | both-right |
+
+Depths 1–4 are `both-wrong` for all five (neither arm has found the mate yet),
+so the table starts at 5 where the first harm appears. Across these 45 cells:
+**24 both-right, 11 HARM, 10 both-wrong, 0 help.**
+
+**The harm band is depths 5–9, and it closes at depth 10.** Depth 8 is the only
+depth where all five fixtures are harmed simultaneously — which is precisely why
+the 90-cell 8/10/12 grid saw five harms: it sampled the worst depth in the band
+and then two depths outside it.
+
+**An earlier version of this table marked the `both-wrong` cells "ok", which was
+wrong** — at depth 6 the default engine is *not* finding these mates, so an "ok"
+there reads as "the default handles it" when the truth is that neither arm does.
+That is the same defect class as the missing depth column: a correct measurement
+rendered into a table that says something stronger than the measurement.
+
+**The harm is bounded: no cell at or above depth 10, worst case five consecutive
+depths (5–9).** And the option is strictly *slower* to find these mates — the
+depth at which each arm FIRST reaches the true mate:
+
+| fixture | true | default first correct | SMP first correct | extra depth |
+|---|---|---|---|---|
+| `8/8/8/8/8/7Q/k7/2K5 w` | m2 | **8** | 9 | +1 |
+| `8/8/8/3K4/k7/8/4Q3/8 w` | m3 | **7** | 9 | +2 |
+| `7Q/8/1R6/8/8/7K/8/5k2 w` | m3 | **5** | 10 | +5 |
+| `8/8/8/8/8/8/6KQ/4k3 w` | m3 | **8** | 9 | +1 |
+| `5k2/8/8/4K3/8/4R3/8/8 w` | m3 | **7** | 9 | +2 |
+
+**So the honest, actionable form is: `SoundMatePruning=true` buys mate safety at
+a cost of 1–5 plies of effective depth on these fixtures.** At a fixed depth
+below 10 that costs mates; at a fixed *time* the cost is that the search reaches
+those mates later. The 90-cell grid understated the harm (only depth 8 sampled
+it) and overstated its extent (10 and 12 are clean or helpful).
 
 ### Minimal reproduction
 
 Two of these have a **unique** mating move, which makes them the cleanest
 statement of the defect — the engine does not merely pick a slower mate, it
-stops finding the only mate:
+stops finding the only mate **at that depth**:
 
 ```
 position fen 8/8/8/8/8/8/6KQ/4k3 w - - 0 1
@@ -53,6 +140,8 @@ setoption name SoundMatePruning value false
 go depth 8        ->  bestmove g2f3   score mate 3   (correct; g2f3 is the ONLY mating move)
 setoption name SoundMatePruning value true
 go depth 8        ->  bestmove g2h1   score cp 978   (mate lost)
+setoption name SoundMatePruning value true
+go depth 10       ->  bestmove g2f3   score mate 3   (RECOVERS at depth 10)
 ```
 
 ```
@@ -61,7 +150,13 @@ setoption name SoundMatePruning value false
 go depth 8        ->  bestmove e5f6   score mate 3   (correct; e5f6 is the ONLY mating move)
 setoption name SoundMatePruning value true
 go depth 8        ->  bestmove e5d5   score cp 447   (mate lost)
+setoption name SoundMatePruning value true
+go depth 10       ->  bestmove e5f6   score mate 3   (RECOVERS at depth 10)
 ```
+
+**Both harnesses must be said: the depth is depth 8.** Quoting either of these
+without the depth invites exactly the rebuttal that `go depth 12` refutes it —
+the reviewer runs depth 12, sees `mate 3`, and the whole finding looks wrong.
 
 Both at `Threads 1`, `Hash 64`. Verified on `build/clean/forge` (unmodified
 `6b98f217` source), so this is not my instrumentation.
@@ -90,9 +185,18 @@ local guard — and it is not mate-aware in the way its name suggests: it does
 nothing about null move, razoring, RFP or LMR, which are separate predicates.
 
 So the option trades a mate-safety guard for a global perturbation of the
-search, and on this corpus the perturbation costs more than the guard buys.
-**Recommendation: do not ship `SoundMatePruning` on.** It is off by default,
-which is the right default.
+search, and the perturbation costs **1–5 plies of effective depth** on these
+fixtures. That is a real cost at shallow depth and it is why the harm appears
+below depth 10 and vanishes above it — the extra depth the option needs is
+exactly what a deeper search supplies anyway.
+
+**Recommendation: keep `SoundMatePruning` off** (its current default). The
+depth-bounded form of the defect is the actionable one: for a fixed-**time**
+consumer the option makes the search reach these mates later, and for a
+fixed-**depth** consumer below 10 it loses them outright. Above depth 10 on this
+corpus it is neutral to helpful, so it is not a universally bad option — it is
+an option whose cost is paid in depth and whose benefit did not show up at the
+depths where the cost bites.
 
 `MateAlphaGuard` is **absent from the base build** (`uci` does not advertise it;
 measured, not remembered) — consistent with §2's recorded
@@ -252,6 +356,51 @@ proved live on a planted fault (`check_instruments_live.py`).
 
 ---
 
+## 8. Correction log — a presentation defect that overstated the finding
+
+**Withdrawn claim, reported by the coordinator and confirmed here:** the first
+published version of §1 listed the five harms in a table with **no depth
+column**, under a heading that said "90 cells, depths 8/10/12", and the summary
+line read *"makes the engine materially worse"*. A reader takes that table as
+five fixtures harmed across all three depths.
+
+**The data never said that.** `evidence/options.json` — unchanged since the
+first run — shows all five harms at depth 8 and none at 10 or 12. Re-running the
+fixture the coordinator named, on the same binary sha `e06310ec…`, reproduces
+exactly: `h3h8 cp 1230` at depth 8, `h3e3 mate 2` at depths 10 and 12.
+
+**What went wrong, and it is worth naming because it is not an arithmetic
+error:** I aggregated a per-cell grid into a per-fixture table and dropped the
+axis that distinguished the cells. Every number in the table was individually
+correct; the table as a whole asserted something none of the rows said. That is
+the "correct number with an overstated inference" class §3 already records, and
+it survived my own checks because each check tested a number rather than the
+table's claim.
+
+**The fix, and what it cost:** §1 is now per-cell with the depth beside every
+harm; §1.2 adds a finer grid (depths 1–16) that bounds the harm to depths 5–9;
+and the summary is now the depth-qualified form. **The finding got stronger.**
+"Loses a mate at depth 8, recovers at 10, costs 1–5 plies of effective depth"
+is actionable; "materially worse across the grid" is falsified in seconds by
+anyone who tries depth 12.
+
+**A mechanical check now guards the specific error.**
+`scripts/check_findings_consistency.py` asserts, cell by cell, that the tables in
+this file match `evidence/*.json`: every harm inside the stated band, no harm at
+a depth the prose calls clean, the per-depth counts, and the band table compared
+**positionally** rather than by token presence. It was proved on two planted
+faults — a harm inserted at depth 12 (the exact error reported) and one flipped
+band cell — and catches both. A token-presence version passed the planted fault
+and was replaced.
+
+**A second defect in the same section, found while fixing the first:** the finer
+grid first marked cells where *neither* arm found the mate as "ok". At depth 6
+the default engine is not finding these mates either, so "ok" read as "the
+default handles it". Those cells are now `both-wrong` and counted separately
+(6 of 40). Same class of error: a label that asserted more than the measurement.
+
+---
+
 ## Reproducing
 
 ```bash
@@ -267,4 +416,6 @@ python3 scripts/options_test.py            # SoundMatePruning / MateAlphaGuard
 python3 scripts/zugzwang_test.py           # null move in zugzwang-adjacent positions
 python3 scripts/matrix.py 8,10,12          # the feature x fixture table
 python3 scripts/ablate.py                  # per-class attribution
+python3 scripts/smp_depth_bands.py         # per-depth grid for SoundMatePruning
+python3 scripts/check_findings_consistency.py  # doc tables vs evidence, cell by cell
 ```

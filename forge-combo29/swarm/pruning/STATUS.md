@@ -4,10 +4,20 @@
 
 ## Headline
 
-1. **`SoundMatePruning=true` loses forced mates.** 5 of 90 cells go from a
-   correct mate to a non-mate score, all reproducing on the pristine `6b98f217`
-   build. Two have a unique mating move. Minimal repro in `FINDINGS.md` §1.
-   Recommendation: keep it off (its current default).
+1. **`SoundMatePruning=true` loses forced mates — in a band, depths 5–9.** 5 of
+   90 cells (30 at each of depths 8/10/12) go from a correct mate to a non-mate
+   score. **All five harms are at depth 8; depths 10 and 12 are clean, and the
+   only changes there are four cells the option FIXED.** Re-measured on a finer
+   grid the harm is depths 5–9 and nothing at or above 10. The cost is **1–5
+   plies of effective depth**, and two of the fixtures have a unique mating move.
+   Reproduces on the pristine `6b98f217` (`e06310ec…`) build. Minimal repro in
+   `FINDINGS.md` §1; raw `info` lines in `evidence/smp_depth_bands.txt`.
+   **Quote it with the depth** — at depth 12 the option is correct, and an
+   unqualified claim invites exactly that rebuttal.
+   **The harm band is depths 5–9 and closes at 10**; depth 8 is the only depth
+   where all five coincide, which is why the 8/10/12 grid saw five.
+   `scripts/check_findings_consistency.py` now asserts the doc's tables against
+   the evidence cell by cell, and was proved on planted faults.
 2. **The default pruning paths did NOT lose or mis-distance a mate** on a
    corpus where every class provably fired. All six distinct wrong cells were
    fixed by *more depth* on the same unablated engine — horizon, not pruning.
