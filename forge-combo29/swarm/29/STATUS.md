@@ -417,3 +417,7 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N37 SELF-CHECK: I first wrote that table's sample sizes from memory and got TWO WRONG (said the scan-rate run was '60 -> 200' when it was 20 -> 200 plus a separate 60-position 2x2; and labelled the depth row '30 -> 30' when the widening there was an AXIS change, not an n change). Corrected by reading six raw files instead of trusting recall.
 - Worth noting because N36 is a rule about quoting n - a table quoting n wrongly would discredit the very rule it evidences.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:24:35 AM UTC 2026
+- As asked: the misquoted-n correction now sits INSIDE the 29-N23 rule row itself, not only in the separate N37 note - 'the five-instance table written to evidence this rule first misquoted two of its own n values from memory (29-N37), corrected by reading six raw files. A rule about quoting n whose own table misquotes n is the clearest possible argument for the rule.'
+- next: continuing at cadence on the PC path.
