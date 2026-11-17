@@ -611,3 +611,19 @@ state of my thread: oracle WORK closed and retracted (19-R2, trap 11, three repo
   reproductions, not derived tables.
 
 next command: continue at cadence with counter-based confirmations of other seats' open findings.
+
+## 2026-11-17T00:46:16Z
+
+trap 1b added (sibling of trap 1): info lines that EXIST but describe nothing - base tree emits 4 depth
+  lines with nodes 0 and EMPTY pv on the drawn-root path. Closing check of the list: a search happened
+  only if nodes > 0 AND the PV is non-empty; neither an info line nor a bestmove is sufficient.
+  HARNESS_TRAPS.md = twelve traps, four caught only by another seat.
+
+19-C26 replicated seat 24's 24-F31: base tree, S14, Threads 1, Hash 16, OwnBook false, depth 12,
+  first 40 of G, two fresh processes each -> 40 of 40 identical in move AND node count. Supports my
+  own 19-F24 (Threads-1 regime) from the other direction.
+
+confirmed-for-others tally, all exact integers: 19-C19 king-lines 804,371/779,027 ; 19-C25 searchmoves
+  8 vs 0 nodes ; 19-C26 40/40 ; 19-C23 counter 2x nodes 7,608,471 vs 15,702,225.
+
+next command: continue at cadence with counter/reproduction confirmations only.
