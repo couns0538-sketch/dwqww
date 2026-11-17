@@ -1,0 +1,23 @@
+--- /mnt/data/forge514_baseline/chess-engine-forge-5.14.0/tools/uci_regression.py	2026-10-05 17:31:48.000000000 +0000
++++ /mnt/data/forge515_work/tools/uci_regression.py	2026-10-05 18:23:36.690613697 +0000
+@@ -140,6 +140,20 @@
+         move, _ = e.search("go depth 3 searchmoves e2e4 d2d4")
+         assert move in ("e2e4", "d2d4")
+         passed.append("restricted searchmoves")
++        null_fen = "fen 2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34"
++        null_cases = (
++            ("a3b5", "a3b5", "score cp 1374"),
++            ("g4g3", "g4g3", "score cp 1498"),
++            ("a3b5 g4g3", "g4g3", "score cp 1498"),
++        )
++        for restricted, expected_move, expected_score in null_cases:
++            e.send("setoption name Clear Hash")
++            e.ready()
++            e.position(null_fen)
++            move, lines = e.search("go depth 6 searchmoves " + restricted)
++            assert move == expected_move, (restricted, move)
++            assert any("info depth 6 " in line and expected_score in line for line in lines), lines
++        passed.append("shallow null PVS verification")
+         e.position()
+         move, _ = e.search("go nodes 1 searchmoves e2e4")
+         if a.known_v56 and move == "0000":

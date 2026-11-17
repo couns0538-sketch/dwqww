@@ -1,0 +1,17 @@
+--- /mnt/data/forge_run9/src518/chess-engine-forge-5.18.0/src/search.cpp	2026-10-05 21:10:42.000000000 +0000
++++ /mnt/data/forge_run9/work519/src/search.cpp	2026-10-05 21:29:03.704458742 +0000
+@@ -442,14 +442,6 @@
+     order_moves(board, moves, qtt_move, Move{}, ply);
+     Move best_move{};
+     for (const Move move : moves) {
+-        int victim_value = 0;
+-        if (!checked && move.is_capture() && (move.flags & Promotion) == 0U) {
+-            victim_value = (move.flags & EnPassant) != 0U
+-                ? PieceValue[1]
+-                : PieceValue[static_cast<std::size_t>(piece_type(board.piece_at(move.to)))];
+-        }
+-        if (!checked && (move.flags & Promotion) == 0U && alpha > -MateScore + 128 &&
+-            stand_pat + victim_value + 150 <= alpha) continue;
+         Undo undo;
+         (void)board.make_move(move, undo);
+         const int score = -quiescence(board, ply + 1, -beta, -alpha, null_branch);

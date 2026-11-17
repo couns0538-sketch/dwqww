@@ -1,0 +1,46 @@
+--- /mnt/data/forge_work/baseline/chess-engine-forge-5.13.0/tools/uci_regression.py	2026-10-05 16:35:08.000000000 +0000
++++ /mnt/data/forge_work/chess-engine-forge-5.14.0/tools/uci_regression.py	2026-10-05 17:31:48.401304186 +0000
+@@ -54,6 +54,27 @@
+         self.send("isready")
+         self.until(lambda line: line == "readyok")
+ 
++    def ready_burst(self, count: int, timeout: float = 5.0):
++        self.transcript.extend(["> isready"] * count)
++        self.process.stdin.write("isready\n" * count)
++        self.process.stdin.flush()
++        deadline = time.monotonic() + timeout
++        seen = 0
++        while seen < count:
++            remaining = deadline - time.monotonic()
++            if remaining <= 0:
++                raise AssertionError(f"received only {seen}/{count} standalone readyok records")
++            try:
++                line = self.lines.get(timeout=remaining)
++            except queue.Empty as error:
++                raise AssertionError(f"received only {seen}/{count} standalone readyok records") from error
++            if line is None:
++                raise AssertionError("engine exited during readiness burst")
++            if "readyok" in line and line != "readyok":
++                raise AssertionError(f"interleaved UCI output record: {line!r}")
++            if line == "readyok":
++                seen += 1
++
+     def assert_absent(self, predicate, duration: float):
+         deadline = time.monotonic() + duration
+         while True:
+@@ -176,13 +197,13 @@
+         e.position()
+         e.send("go infinite")
+         e.until(lambda line: line.startswith("info depth "))
+-        e.ready()
++        e.ready_burst(512)
+         start = time.monotonic()
+         e.send("stop")
+         reply = e.until(lambda line: line.startswith("bestmove "), timeout=2)
+         timings["stop_seconds"] = time.monotonic() - start
+         assert reply[-1] != "bestmove 0000"
+-        passed.append("infinite/isready/stop")
++        passed.append("atomic concurrent info/readiness records and stop")
+         e.position()
+         start = time.monotonic()
+         assert e.search("go movetime 50")[0] != "0000"

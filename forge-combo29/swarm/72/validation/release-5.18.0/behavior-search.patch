@@ -1,0 +1,16 @@
+--- /mnt/data/forge_run50/src/chess-engine-forge-5.17.0/src/search.cpp	2026-10-05 19:11:12.000000000 +0000
++++ src/search.cpp	2026-10-05 21:10:42.671179900 +0000
+@@ -447,13 +447,6 @@
+             victim_value = (move.flags & EnPassant) != 0U
+                 ? PieceValue[1]
+                 : PieceValue[static_cast<std::size_t>(piece_type(board.piece_at(move.to)))];
+-            const int attacker_value = PieceValue[static_cast<std::size_t>(piece_type(board.piece_at(move.from)))];
+-            // Capturing an equal-or-more-valuable piece is normally guaranteed non-negative
+-            // by material SEE. The exception is a capture onto the back rank, where an enemy
+-            // pawn can recapture while promoting and gain additional material.
+-            const bool promotion_recapture_risk = move.to < 8U || move.to >= 56U;
+-            if ((victim_value < attacker_value || promotion_recapture_risk) &&
+-                board.static_exchange(move) < 0) continue;
+         }
+         if (!checked && (move.flags & Promotion) == 0U && alpha > -MateScore + 128 &&
+             stand_pat + victim_value + 150 <= alpha) continue;

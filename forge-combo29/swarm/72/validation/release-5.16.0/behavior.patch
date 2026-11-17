@@ -1,0 +1,264 @@
+diff --git a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/include/forge/board.hpp b/./include/forge/board.hpp
+index bb63e0e..752fa72 100644
+--- a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/include/forge/board.hpp
++++ b/./include/forge/board.hpp
+@@ -72,6 +72,7 @@ struct Undo {
+     std::uint16_t fullmove = 1;
+     std::uint64_t key = 0;
+     std::uint64_t pawn_key = 0;
++    std::uint64_t repetition_context = 0;
+ };
+ 
+ struct NullUndo {
+@@ -114,6 +115,9 @@ public:
+     [[nodiscard]] Color side_to_move() const { return side_; }
+     [[nodiscard]] std::uint64_t key() const { return key_; }
+     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
++    // Position key combined with the known reversible legal-history context.
++    // Rule-50 and synthetic-null compatibility remain separate TT contexts.
++    [[nodiscard]] std::uint64_t transposition_history_key() const;
+     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
+     [[nodiscard]] const std::vector<std::uint64_t>& key_history() const { return key_history_; }
+ 
+@@ -129,6 +133,7 @@ private:
+     std::uint16_t fullmove_ = 1;
+     std::uint64_t key_ = 0;
+     std::uint64_t pawn_key_ = 0;
++    std::uint64_t repetition_context_ = 0;
+     std::vector<std::uint64_t> key_history_;
+ 
+     void add_pawn_moves(MoveList& moves, int square, bool captures_only) const;
+diff --git a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/include/forge/search.hpp b/./include/forge/search.hpp
+index 5256791..86e7c27 100644
+--- a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/include/forge/search.hpp
++++ b/./include/forge/search.hpp
+@@ -132,6 +132,12 @@ private:
+         return tt_mask_ != 0 ? static_cast<std::size_t>(key) & tt_mask_
+                              : static_cast<std::size_t>(key % table_.size());
+     }
++    [[nodiscard]] static std::uint64_t tt_key(const Board& board, bool null_branch = false) {
++        // Legal-search bounds depend on known reversible repetition history.
++        // Synthetic-null branches suppress legal repetition adjudication and
++        // retain the ordinary position key under the dedicated null context tag.
++        return null_branch ? board.key() : board.transposition_history_key();
++    }
+     [[nodiscard]] static constexpr std::size_t eval_index(std::uint64_t key) {
+         return static_cast<std::size_t>(key) & (EvalCacheSize - 1U);
+     }
+diff --git a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/src/board.cpp b/./src/board.cpp
+index a816b59..587169c 100644
+--- a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/src/board.cpp
++++ b/./src/board.cpp
+@@ -380,6 +380,7 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
+     halfmove_ = static_cast<std::uint16_t>(std::min(halfmove, 65535));
+     fullmove_ = static_cast<std::uint16_t>(std::min(fullmove, 65535));
+     key_ = compute_key();
++    repetition_context_ = mix(key_);
+     pawn_key_ = 0;
+     for (int square = 0; square < 64; ++square) {
+         const Piece piece = squares_[static_cast<std::size_t>(square)];
+@@ -390,6 +391,13 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
+     return true;
+ }
+ 
++std::uint64_t Board::transposition_history_key() const {
++    // Future repetition adjudication depends on occurrence counts in the known
++    // reversible legal history, not merely the current position. Addition makes
++    // this an order-independent multiset fingerprint. Irreversible moves reset it.
++    return key_ ^ std::rotl(repetition_context_, 23);
++}
++
+ std::string Board::fen() const {
+     std::ostringstream out;
+     for (int rank = 7; rank >= 0; --rank) {
+@@ -586,7 +594,8 @@ bool Board::in_check(Color color) const {
+ 
+ bool Board::make_move(const Move& move, Undo& undo) {
+     const Piece moving = squares_[move.from];
+-    undo = Undo{squares_[move.to], castling_, ep_square_, halfmove_, fullmove_, key_, pawn_key_};
++    undo = Undo{squares_[move.to], castling_, ep_square_, halfmove_, fullmove_, key_, pawn_key_,
++                repetition_context_};
+     const bool old_ep_hashed = ep_square_ >= 0 && has_legal_en_passant_capture();
+     key_ ^= piece_key(move.from, moving);
+     if (undo.captured != Empty) key_ ^= piece_key(move.to, undo.captured);
+@@ -665,6 +674,10 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= mix(1000 + static_cast<std::uint64_t>(file_of(ep_square_)));
+     }
++    const bool irreversible = piece_type(moving) == 1 || undo.captured != Empty ||
++                              castling_ != undo.castling;
++    if (irreversible) repetition_context_ = 0;
++    repetition_context_ += mix(key_);
+     key_history_.push_back(key_);
+     return true;
+ }
+@@ -721,6 +734,7 @@ void Board::unmake_move(const Move& move, const Undo& undo) {
+     halfmove_ = undo.halfmove;
+     key_ = undo.key;
+     pawn_key_ = undo.pawn_key;
++    repetition_context_ = undo.repetition_context;
+ }
+ 
+ void Board::make_null_move(NullUndo& undo) {
+diff --git a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/src/search.cpp b/./src/search.cpp
+index 96e36e1..2e78f9c 100644
+--- a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/src/search.cpp
++++ b/./src/search.cpp
+@@ -376,8 +376,9 @@ std::vector<Move> Searcher::extract_pv(Board board, int depth) const {
+     for (int ply = 0; ply < depth; ++ply) {
+         if (std::find(seen.begin(), seen.end(), board.key()) != seen.end()) break;
+         seen.push_back(board.key());
+-        const TTEntry& entry = table_[tt_index(board.key())];
+-        if (entry.key != board.key() || entry.move.from == entry.move.to) break;
++        const std::uint64_t key = tt_key(board);
++        const TTEntry& entry = table_[tt_index(key)];
++        if (entry.key != key || entry.move.from == entry.move.to) break;
+         const auto legal = board.legal_moves();
+         const auto found = std::find_if(legal.begin(), legal.end(), [&](const Move& move) {
+             return same_move(move, entry.move);
+@@ -406,10 +407,11 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
+     beta = std::min(beta, MateScore - ply - 1);
+     if (alpha >= beta) return alpha;
+     const int original_alpha = alpha;
+-    TTEntry& qentry = table_[tt_index(board.key())];
++    const std::uint64_t qkey = tt_key(board, null_branch);
++    TTEntry& qentry = table_[tt_index(qkey)];
+     Move qtt_move{};
+     const std::uint8_t qcontext = current_tt_context(board, null_branch);
+-    if (qentry.key == board.key()) {
++    if (qentry.key == qkey) {
+         qtt_move = qentry.move;
+         if (tt_depth(qentry) == 0 && tt_context(qentry) == qcontext) {
+             const int tt_score = score_from_tt(qentry.score, ply);
+@@ -462,7 +464,7 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
+         if (aborted_) return 0;
+         if (score >= beta) {
+             if (tt_depth(qentry) <= 0) {
+-                qentry.key = board.key();
++                qentry.key = qkey;
+                 qentry.move = move;
+                 qentry.score = static_cast<std::int16_t>(std::clamp(normalized_score_for_tt(beta, ply), -32767, 32767));
+                 set_tt_meta(qentry, 0, Lower, qcontext);
+@@ -472,7 +474,7 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
+         if (score > alpha) { alpha = score; best_move = move; }
+     }
+     if (tt_depth(qentry) <= 0) {
+-        qentry.key = board.key();
++        qentry.key = qkey;
+         qentry.move = best_move;
+         qentry.score = static_cast<std::int16_t>(std::clamp(normalized_score_for_tt(alpha, ply), -32767, 32767));
+         set_tt_meta(qentry, 0, alpha <= original_alpha ? Upper : Exact, qcontext);
+@@ -496,10 +498,11 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
+     beta = std::min(beta, MateScore - ply - 1);
+     if (alpha >= beta) return alpha;
+     const int original_alpha = alpha;
+-    TTEntry& entry = table_[tt_index(board.key())];
++    const std::uint64_t key = tt_key(board, null_branch);
++    TTEntry& entry = table_[tt_index(key)];
+     Move tt_move{};
+     const std::uint8_t context = current_tt_context(board, null_branch);
+-    if (entry.key == board.key()) {
++    if (entry.key == key) {
+         tt_move = entry.move;
+         if (ply > 0 && tt_depth(entry) >= depth && tt_context(entry) == context) {
+             const int tt_score = score_from_tt(entry.score, ply);
+@@ -636,7 +639,7 @@ int Searcher::alpha_beta(Board& board, int depth, int ply, int alpha, int beta,
+ 
+     if (!aborted_ && ply == 0) root_best_move_ = best_move;
+     if (!aborted_ && !(ply == 0 && root_restricted_)) {
+-        entry.key = board.key();
++        entry.key = key;
+         entry.move = best_move;
+         entry.score = static_cast<std::int16_t>(std::clamp(normalized_score_for_tt(alpha, ply), -32767, 32767));
+         set_tt_meta(entry, depth, alpha <= original_alpha ? Upper : (alpha >= beta ? Lower : Exact), context);
+diff --git a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/tests/tests.cpp b/./tests/tests.cpp
+index de3965d..acefd8c 100644
+--- a/mnt/data/forge_run9/src515/chess-engine-forge-5.15.0/tests/tests.cpp
++++ b/./tests/tests.cpp
+@@ -17,8 +17,9 @@ struct SearcherTestProbe {
+         return searcher.quiescence(board, ply, -32000, 32000, null_branch);
+     }
+ 
+-    static int alpha_beta(Searcher& searcher, Board& board, int depth, int alpha, int beta) {
+-        return searcher.alpha_beta(board, depth, 0, alpha, beta);
++    static int alpha_beta(Searcher& searcher, Board& board, int depth, int alpha, int beta,
++                          int ply = 0) {
++        return searcher.alpha_beta(board, depth, ply, alpha, beta);
+     }
+ 
+     static std::uint64_t null_tries(const Searcher& searcher) { return searcher.null_tries_; }
+@@ -36,8 +37,9 @@ struct SearcherTestProbe {
+             [](const Searcher::TTEntry& entry) { return Searcher::tt_depth(entry) >= 0; }));
+     }
+     static bool has_tt_entry(const Searcher& searcher, const Board& board) {
+-        const Searcher::TTEntry& entry = searcher.table_[searcher.tt_index(board.key())];
+-        return entry.key == board.key() && Searcher::tt_depth(entry) >= 0;
++        const std::uint64_t key = Searcher::tt_key(board);
++        const Searcher::TTEntry& entry = searcher.table_[searcher.tt_index(key)];
++        return entry.key == key && Searcher::tt_depth(entry) >= 0;
+     }
+ };
+ 
+@@ -493,6 +495,62 @@ int main() {
+     }
+     check(board.is_repetition(), "non-capturable ep target does not hide threefold repetition");
+ 
++    forge::Board repeated_context;
++    check(repeated_context.set_fen("6nk/8/8/8/8/8/8/1Q2K1N1 w - - 0 1"),
++          "repetition TT fixture parses");
++    for (const auto move : {"g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1"}) {
++        play(repeated_context, move);
++    }
++    forge::Board fresh_context;
++    check(fresh_context.set_fen(repeated_context.fen()), "repetition TT fresh twin parses");
++    check(fresh_context.key() == repeated_context.key() &&
++              fresh_context.halfmove_clock() == repeated_context.halfmove_clock(),
++          "repetition TT fixture shares ordinary key and rule-50 context");
++    check(fresh_context.transposition_history_key() != repeated_context.transposition_history_key(),
++          "TT identity distinguishes known reversible histories");
++
++    forge::Searcher history_warm(1);
++    forge::Searcher history_cold(1);
++    const int fresh_history_score = forge::SearcherTestProbe::alpha_beta(
++        history_warm, fresh_context, 1, -32000, 32000, 1);
++    const int warm_repetition_score = forge::SearcherTestProbe::alpha_beta(
++        history_warm, repeated_context, 1, -32000, 32000, 1);
++    const int cold_repetition_score = forge::SearcherTestProbe::alpha_beta(
++        history_cold, repeated_context, 1, -32000, 32000, 1);
++    check(fresh_history_score < -500, "fresh history fixture is losing without a repetition claim");
++    check(warm_repetition_score == 0 && cold_repetition_score == 0,
++          "warm TT cannot override an available repetition draw from another history");
++
++    forge::Board zeroed_history;
++    check(zeroed_history.set_fen(forge::Board::StandardStartFen), "history reset fixture parses");
++    for (const auto move : {"g1f3", "g8f6", "f3g1", "f6g8", "e2e4"}) {
++        play(zeroed_history, move);
++    }
++    forge::Board rebuilt_history;
++    check(rebuilt_history.set_fen(zeroed_history.fen()), "zeroing-move twin parses");
++    check(zeroed_history.transposition_history_key() == rebuilt_history.transposition_history_key(),
++          "pawn move resets obsolete repetition context");
++
++    forge::Board castling_reset;
++    check(castling_reset.set_fen("4k2r/8/8/8/8/8/8/R3K2R w KQk - 0 1"),
++          "castling-right reset fixture parses");
++    play(castling_reset, "h1h2");
++    forge::Board castling_rebuilt;
++    check(castling_rebuilt.set_fen(castling_reset.fen()), "castling-right reset twin parses");
++    check(castling_reset.transposition_history_key() == castling_rebuilt.transposition_history_key(),
++          "castling-right loss resets obsolete repetition context");
++
++    const std::uint64_t before_history_key = zeroed_history.transposition_history_key();
++    const auto history_moves = zeroed_history.legal_moves();
++    check(!history_moves.empty(), "history make/unmake fixture has a legal move");
++    if (!history_moves.empty()) {
++        forge::Undo history_undo;
++        (void)zeroed_history.make_move(history_moves.front(), history_undo);
++        zeroed_history.unmake_move(history_moves.front(), history_undo);
++        check(zeroed_history.transposition_history_key() == before_history_key,
++              "make/unmake restores repetition TT context exactly");
++    }
++
+     check_incremental_keys(forge::Board::StandardStartFen, "ordinary move");
+     check_incremental_keys("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "castling move");
+     check_incremental_keys("4k3/P7/8/8/8/8/8/4K3 w - - 0 1", "promotion move");
