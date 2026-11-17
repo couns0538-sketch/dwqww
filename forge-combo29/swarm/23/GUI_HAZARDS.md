@@ -176,6 +176,12 @@ So add a fifth check, for tooling that may run on the un-repaired build:
 | threefold root (BAIL) | 10 | cp 0 / **0** | **0 (empty)** | d5d1 |
 | same board, bare FEN (SEARCHES) | 10 | cp 381 / 7,581 | **11** | d5b5 |
 
+**And the `cp 0` can be wrong about the POSITION even when it is right about the RULE.** On a genuine threefold root
+where the side to move has mate in one (`6k1/5ppp/8/8/8/8/5PPP/1Q4K1 w`, 23-F171), the base reports `cp 0` and plays a
+move that FORFEITS the mate, while the PC reports `mate 1` and mates. The draw is claimable, and a winning side would not
+claim it — so `cp 0` is defensible under the rule and still tells a user the wrong thing about the game. Never present a
+bailed root's `cp 0` as an assessment of the position.
+
 An empty PV is the RELIABLE signal, and reliable for a structural reason rather than a convention: the terminal branch
 never assigns `result.pv` (`search.cpp:2250-2271` contains no `pv` write, per the source reading), while every searching
 path publishes a non-empty PV because a completed iteration always has at least one move. So a tool should test

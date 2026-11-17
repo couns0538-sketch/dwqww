@@ -1,0 +1,44 @@
+fixture: PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+
+The position AFTER the move list — what the engine actually searches:
+   6k1/5ppp/8/8/8/8/5PPP/1Q4K1 w - - 8 5
+  mover: white
+  white material: 12
+  mate in 1 available: ['b1b8']
+
+Under FIDE 9.2 the repetition draw is CLAIMABLE by the side to move. White to move with mate in 1 would play
+b1b8 and win; claiming the draw would be strictly worse. So cp 0 is defensible as 'the game is drawn if claimed',
+and the tool-facing statement is that the SCORE describes a claimable draw, not the position's value.
+
+  base  depth 10 -> (('cp', 0, 0), 'f2f3')
+  base  depth 20 -> (('cp', 0, 0), 'f2f3')
+  PC    depth 10 -> (('mate', 1, 281), 'b1b8')
+  PC    depth 20 -> (('mate', 1, 561), 'b1b8')
+
+And the position AFTER the bail's chosen move f2f3 — does White still have the mate?
+  after f2f3, black to move, white mate in 1 available: NO - the move gave it up
+
+WHAT THIS IS, AND HOW STRONGLY IT CAN BE PUT
+---------------------------------------------
+The position searched is `6k1/5ppp/8/8/8/8/5PPP/1Q4K1 w` with a genuine threefold (validated 3=3). **White has mate in
+one: `b1b8`.** So the position is NOT drawn in any practical sense — the repetition draw is CLAIMABLE under FIDE 9.2, and
+the side to move is winning, so it would never claim.
+
+| build | depth 10 | depth 20 | move played |
+|---|---|---|---|
+| base | cp 0 / 0 nodes | cp 0 / 0 nodes | **`f2f3`** |
+| PC | **mate 1** / 281 nodes | mate 1 / 561 nodes | **`b1b8`** |
+
+And the base's chosen move FORFEITS the mate: after `f2f3` there is no mate in 1 for White any more.
+
+So the accurate statement, with the strength calibrated:
+- **The base's score of `cp 0` is defensible only in the narrow sense "the game is drawn if the draw is claimed"** — it is
+  not the value of the position. A tool that shows `cp 0` here is telling a user the game is drawn when White is winning
+  in one move.
+- **The base's MOVE is worse than its score suggests: it gives up a mate in 1.** That is the 23-F60 class of cost
+  (unsearched move loses something) with a sharper instance, since here the lost thing is a mate rather than material.
+- **The PC gets both right**: `mate 1` and the mating move.
+
+This is also the cleanest available answer to whether the repair "helps": it is a cell where the base bails and the PC
+does not, on a board where the only difference between the builds is the repair — the discriminating shape 23-F170 asks
+for.

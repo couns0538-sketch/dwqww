@@ -69,6 +69,11 @@ from the two automatic draw rules, which persist.
   on a drawn root with NO forced win available the PC reports `cp 0`, i.e. it does claim. The `cp 425` on R3 was the
   MATE talking, not a rule against claiming. So the accurate contrast is "the PC finds the win where one exists and
   reports the draw where none does", which is correct behaviour, not a different policy.**
+- **The `cp 0` CAN ALSO UNDERSTATE A WIN — the sharpest single case in the family (23-F171).** On a genuine threefold
+  root where White has **mate in one** (`6k1/5ppp/8/8/8/8/5PPP/1Q4K1 w`), the base reports `cp 0` and plays `f2f3`,
+  **forfeiting the mate**; the PC reports `mate 1` and plays `b1b8`. So the score is defensible only as "drawn if the draw
+  is claimed" — and a winning side never claims — while the MOVE loses a forced mate. A tool showing that `cp 0` tells a
+  user a game is drawn that is won in one move.
 - **The MOVE is where the base's damage is** — and the cost figure belongs to the MOVE, not to the score. Two DISJOINT
   12-position samples give medians of **~625 cp** and **~1,004 cp** with nine or ten of twelve at ≥ 300 cp (23-F101,
   23-F144), so the honest form is "roughly 600 to 1,000 cp, sample-dependent" rather than a single number. On a real
