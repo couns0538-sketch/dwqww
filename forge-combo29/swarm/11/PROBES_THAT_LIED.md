@@ -253,6 +253,11 @@ fault they must catch:
 - The same logic explains why my first `check_docs.py` run's **8 false positives** were useful: they
   proved the checker could see problems before I refined it to report zero.
 
+**This is the easiest place to forget the rule: we plant faults in the engine all night and then trust
+a script that has never been shown to fail.** The engine gets a planted hang, a planted race, a planted
+heap over-read; the reporting tools usually get nothing. A checker whose failure mode has never been
+demonstrated is the one part of a measurement chain that is taken on faith.
+
 ## The pattern behind all of them
 Each trap produced a *plausible* engine defect from a *provably wrong* probe, and each was killed by a
 control rather than by re-reading the code:
