@@ -1,0 +1,31 @@
+ATTEMPTED REPRODUCTION of the reported bare-king depth-13 explosion (192-211M nodes, 24-30 s) — NOT REPRODUCED
+==============================================================================================================
+The report: bare-king endgames explode at depth 13, 108x from depth 12, on base AND PC20, invisible at a 6 s clock
+because matches never reach that depth. Exposure is a harness sending `go depth 13`+ on endgames.
+
+MY ATTEMPT: base build, Threads 1, Hash 16, OwnBook false, depth 12 vs 13, six VALID endgame boards (each verified
+with python-chess `is_valid()` before use):
+
+| board | d12 nodes | d13 nodes | ratio | d13 wall |
+|---|---|---|---|---|
+| KRvKR | 46,330 | 50,770 | 1.10x | 0.0 s |
+| KQvKR | 45,652 | 63,018 | 1.38x | 0.0 s |
+| KRvK (`1K6/8/8/3R4/8/8/8/k7`) | 22,108 | 25,660 | 1.16x | 0.0 s |
+| KRvKP | 24,182 | 40,291 | 1.67x | 0.0 s |
+| KQvK | 74,552 | 110,854 | 1.49x | 0.0 s |
+| KBBvK | 0 | 0 | — | (insufficient material, answered at once) |
+
+**No explosion at all: the largest ratio is 1.67x and every search finished in well under a second.** So I cannot
+confirm the report on the boards I chose, and I am NOT contradicting it either — the 192M-node boards are evidently
+specific ones I did not have. What I can say is that "bare-king endgames" as a CLASS does not explode on these six.
+
+A TRAP I HIT ON THE WAY, worth recording because it nearly produced a fake result: two of my first-choice boards
+(`8/8/4k3/8/8/4K3/8/R5p1`, `8/8/4k3/8/4P3/4K3/8/6p1`) are INVALID in python-chess (a pawn on the back rank), and the
+engine REFUSED them — which left it on the PREVIOUS position. The give-away was two different boards reporting
+IDENTICAL node counts (56,720 and 72,062 for both). That is exactly the "identical numbers from a refused FEN" smell
+from 23-C14/23-C23, and it is why every board in the table above is now verified before use.
+
+WHERE THIS LEAVES MY OWN HARNESSES: the depth 13+ endgame runs I have done are `check_drawn/bare_king_one_thread.py`
+(six lone-king boards at depths 12/20/24, which completed in 200 s total) and the job-23 quality checks (depth 16 on
+two repetition boards, seconds). If the reported explosion is real on other boards, my sweeps were simply on boards
+that do not explode; none of my reported numbers came from a hang, and every one finished in the times stated.
