@@ -849,3 +849,23 @@ The fourth instance is the instructive one: it happened AFTER the guard existed,
 separate script the harness never called. **In every case the check judged by appearance because appearance is
 cheap and measurement is not.** The one-line test: *what would this have printed if the thing it is checking
 were broken?* If the answer is "the same thing", it is judging appearance.
+
+## 2026-11-17T05:5xZ S-C65/66/67 — a latent NameError of mine, and my own guard was wrong twice
+**S-C65: `job3/f2_harness_can_fail.py` RAISED `Missing` 4 times and never DEFINED it**, and sat uncommitted
+for hours. Any run reaching one of those raises would have died with `NameError` - **and that file's whole
+purpose is to prove a harness can fail, so it would have crashed for the wrong reason and looked like a
+detection.** Found by `git status` on an otherwise clean branch; the METHOD_NOTES one-liner for this check had
+never been run over my own folder. Fixed.
+**S-C66: I then wrote the guard for it, and the guard was confidently wrong TWICE before it worked.**
+  v1 `DEF_RE` missing `re.M` -> `^` matched only file start -> no definition ever found -> **25 false positives
+     in 45 files**;
+  v2 regex over raw text -> matched the words "raise Missing" inside DOCSTRINGS -> **reported my own checker and
+     emit_config_v2 as broken because their COMMENTS DESCRIBED the bug**;
+  v3 `ast.walk` over `ast.Raise` -> **0 false positives, planted case still caught, exits 1**.
+Final: **45 .py files, 0 undefined custom exceptions.** Both bad versions produced confident wrong answers -
+exactly what the script exists to detect.
+**S-C67 - the generalisation, fourth time tonight: a checker judging the TEXT of a thing instead of the thing
+has now failed in FOUR media** - a variable name (seat 08), a prose claim (my S-C57), a Python list shape
+(`emit_config.py` v1), and raw source text with docstrings (my v1/v2). Fix every time: **ask the artifact.**
+**And every one was caught by running the checker on a case whose answer was already known** - `class Missing`
+on line 25, a planted `RealProblem`, four measured engine cells. **None was caught by reading the checker.**

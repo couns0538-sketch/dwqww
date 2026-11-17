@@ -23,6 +23,18 @@ Three guard failures on this thread, by three different seats, all from the same
 | a harness's configuration | the **variable name** `S14` | printing the list it sends | seat 08 |
 | a harness's configuration | a **sentence** claiming "22 options asserted" | printing the list it sends | me (S-C57) |
 | whether a list is an option list | its **Python shape** (a list of 2-tuples) | the names the engine advertises | `emit_config.py` v1 |
+| whether a file raises an undefined exception | its **raw text**, docstrings included | `ast` nodes | my `check_custom_exceptions.py` v1/v2 |
+
+**That last one is the sharpest, because I wrote it as the guard for this exact bug and it was confidently wrong
+twice before it worked.** v1 lacked `re.M`, so no definition was ever found and it reported 25 false positives
+in 45 files. v2 parsed raw text and matched the words "raise Missing" inside docstrings — so it reported **files
+whose comments described the bug as having the bug.** Only v3, walking `ast.Raise` nodes, gave 0 false
+positives while still catching a planted case.
+
+**All four failures were caught by running the checker on a case whose answer was already known** — a file with
+`class Missing` on line 25, a planted `RealProblem`, four measured engine cells. None was caught by reading the
+checker. That is the practical form of the rule: **a checker is tested by giving it a case you already know the
+answer to, never by reviewing its logic.**
 
 The fourth instance is the interesting one, because it happened **after** the guard for it existed: the
 settings checker was a separate script the harness never called. **In every case the check was judging by
