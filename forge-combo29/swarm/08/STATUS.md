@@ -592,3 +592,16 @@ next: cadence.
 - Tally: 35 findings, 23 checks/audits/plants, 4 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:42Z
+- **08-C24: seat 01 S-F102/S-F103 CONFIRMS, all four clauses.** PC r15 PC20 Threads 1, OwnBook true, three opening
+  positions: `go depth 12` **0 of 3** book lines (12 real info lines each); `go wtime 6000` **3 of 3**;
+  `go movetime 100` **3 of 3**; `OwnBook false` **suppresses** the clock case (0 book lines, 19 real info lines).
+  The negative and positive are in the SAME run, so the 0-of-3 is measured, not structurally blind.
+  **Corroborates my own 08-F12 from a different route** — and sharpens its advice: the book hazard is specific to
+  the `movetime`/`wtime` forms; a `go depth` harness can never hit it. `go nodes`/`go infinite` remain unmeasured
+  by me and I say so.
+
+Tally: 35 findings, 24 checks/audits/plants, 4 method lines, 1 withdrawal.
+
+next: cadence.
