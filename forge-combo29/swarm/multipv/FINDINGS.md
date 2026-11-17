@@ -202,9 +202,32 @@ to the **final** block, where a client's last render comes from: `441` of `593` 
 same thing happens in `289` of `480` blocks — **more often, proportionally, than at MultiPV>1**.
 Extensions make a PV longer than nominal depth; that is what `seldepth` is for.
 
-Against **`seldepth`** the count is `0` at MultiPV>1, and `480` of `480` blocks at MultiPV 1.
-**So the depth claim is sound if and only if you read `seldepth`; the `depth` field cannot bound
-a PV.**
+Against **`seldepth`** the answer is a clean bill, and it is a **different measurement** from
+the row above — the earlier wording compared a violation count with a clean count and could be
+read as a defect. Both arms use the one predicate
+
+```
+violation  <=>  len(pv) > seldepth
+```
+
+and the denominators are lines, not blocks:
+
+| arm | MultiPV settings | lines | violations `len(pv) > seldepth` | lines where `len(pv) <= seldepth` |
+|---|---|---|---|---|
+| MultiPV 1 | 1 | `480` | `0` | `480` |
+| MultiPV > 1 | 2, 3, 4, 6 | `7116` | `0` | `7116` |
+
+(`evidence/seldepth_check.json`, `scripts/seldepth_check.py`; measured over the same `40`
+positions at depth `12`.)
+
+**Does any line have `len(pv) > seldepth`? No.** `0` violations across all `7596` lines, at
+every MultiPV setting measured, and the worst margin `len(pv) - seldepth` is `0` — the bound is
+reached exactly, never exceeded. So **`480` of `480` at MultiPV 1 was a clean bill, not 480
+violations**, and the same holds for the `7116` lines above MultiPV 1.
+
+The contrast is the point: against `depth` the same corpus has `3118` lines with `len(pv) >
+depth`, and against `seldepth` it has none. **`seldepth` bounds a PV; `depth` does not.** That
+is the whole claim, and it is a guarantee rather than a tendency — a client can rely on it.
 
 ---
 
@@ -459,8 +482,9 @@ problem.
 1. **Ordering and score monotonicity are free — rely on them.** Do not re-sort; do not validate.
 2. **Size the PV pane from the longest line in the block, never from `multipv 1`.** Line 1 is not
 the longest in half the blocks, and it is the line whose moves a user most wants to read.
-3. **Use `seldepth`, never `depth`, to bound a PV.** A PV longer than `depth` is normal at MultiPV 1
-too; PV longer than `seldepth` never happens.
+3. **Use `seldepth`, never `depth`, to bound a PV.** `len(pv) > depth` is normal and happens in
+`3118` of `7596` lines measured; `len(pv) > seldepth` happens in `0` of them. `seldepth` is a
+real bound, `depth` is not. (Full measurement and predicate: §5b.)
 4. **On `bestmove`, fall back to the last FULL block.** A budget stop truncates the *final* block, so
 the last thing on screen is the incomplete one.
 5. **Handle `N > legal moves` by accepting the short block without waiting.** No marker exists; the

@@ -66,6 +66,8 @@ stage "property 5 judge" "$PY" "$HERE/judge.py" "$EXE" \
 stage "judge noise floor" "$PY" "$HERE/agreement.py" "$EXE" \
       --positions 12 --depth 12 --judge-depth 16 --mpv 6 --json "$EV/agreement.json"
 stage "fast paths" "$PY" "$HERE/fastpaths.py" "$EXE" --json "$EV/fastpaths.json"
+stage "seldepth bound" "$PY" "$HERE/seldepth_check.py" "$EXE" \
+      --positions 40 --depth 12 --json "$EV/seldepth_check.json"
 
 # --- the report's figures, checked against the JSON ------------------------------------------
 cp "$EV/wire/selftest.txt" /dev/null 2>/dev/null || true

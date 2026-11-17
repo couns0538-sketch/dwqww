@@ -63,6 +63,7 @@ forge-combo29/swarm/multipv/
    agreement.py               the judge noise floor that retired the searchmoves judge
    fastpaths.py               property 6: book, drawn roots, precedence, searchmoves
    budget_stability.py        the same budget measurement three times; reports every repeat
+   seldepth_check.py          does any line have len(pv) > seldepth?  measured directly, every line
    render.py                  template -> FINDINGS.md; fails if any marker survives
    lint_scripts.py            the 4 static checks CI raised against this seat's first push
   evidence/
@@ -72,6 +73,7 @@ forge-combo29/swarm/multipv/
    agreement.json             judge noise floor
    fastpaths.json             book, drawn, precedence, restricted
    budget_stability.json      per-repeat budget counts, so the range is in the evidence
+   seldepth_check.json        the len(pv) vs seldepth bound, per MultiPV, every line
    pins.json                  the four honesty pins
    selftest.json              checker selftest counts, lifted from its own output
    wire_control.json          wire-control counts, lifted from its own output

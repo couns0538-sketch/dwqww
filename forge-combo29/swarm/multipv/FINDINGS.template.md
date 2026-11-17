@@ -223,9 +223,34 @@ thing happens in `[[audit.controls.pv_len_gt_depth]]` of `[[audit.controls.block
 **more often, proportionally, than at MultiPV>1**. Extensions make a PV longer than nominal depth;
 that is what `seldepth` is for.
 
-Against **`seldepth`** the count is `[[audit.structural.pv_longer_than_seldepth]]` at MultiPV>1, and
-`[[audit.controls.pv_len_le_seldepth]]` of `[[audit.controls.blocks]]` blocks at MultiPV 1. **So the
-depth claim is sound if and only if you read `seldepth`; the `depth` field cannot bound a PV.**
+Against **`seldepth`** the answer is a clean bill, and it is a **different measurement** from the
+row above — the earlier wording compared a violation count with a clean count and could be read as
+a defect. Both arms use the one predicate
+
+```
+violation  <=>  len(pv) > seldepth
+```
+
+and the denominators are lines, not blocks:
+
+| arm | MultiPV settings | lines | violations `len(pv) > seldepth` | lines where `len(pv) <= seldepth` |
+|---|---|---|---|---|
+| MultiPV 1 | 1 | `[[seldepth.multipv1_lines_total]]` | `[[seldepth.multipv1_violations]]` | `[[seldepth.multipv1_clean]]` |
+| MultiPV > 1 | 2, 3, 4, 6 | `[[seldepth.multipv_gt1_lines_total]]` | `[[seldepth.multipv_gt1_violations]]` | `[[seldepth.multipv_gt1_clean]]` |
+
+(`evidence/seldepth_check.json`, `scripts/seldepth_check.py`; measured over the same
+`[[seldepth.positions]]` positions at depth `[[seldepth.depth]]`.)
+
+**Does any line have `len(pv) > seldepth`? No.** `[[seldepth.all_violations]]` violations across all
+`[[seldepth.all_lines_total]]` lines, at every MultiPV setting measured, and the worst margin
+`len(pv) - seldepth` is `[[seldepth.worst_margin]]` — the bound is reached exactly, never
+exceeded. So **`480` of `480` at MultiPV 1 was a clean bill, not 480 violations**, and the same
+holds for the `[[seldepth.multipv_gt1_lines_total]]` lines above MultiPV 1.
+
+The contrast is the point: against `depth` the same corpus has
+`[[seldepth.all_lines_pv_longer_than_depth]]` lines with `len(pv) > depth`, and against `seldepth`
+it has none. **`seldepth` bounds a PV; `depth` does not.** That is the whole claim, and it is a
+guarantee rather than a tendency — a client can rely on it.
 
 ---
 
@@ -482,8 +507,10 @@ and the gate is a fullmove field a FEN author can get wrong.** That is why 19b's
 1. **Ordering and score monotonicity are free — rely on them.** Do not re-sort; do not validate.
 2. **Size the PV pane from the longest line in the block, never from `multipv 1`.** Line 1 is not
    the longest in half the blocks, and it is the line whose moves a user most wants to read.
-3. **Use `seldepth`, never `depth`, to bound a PV.** A PV longer than `depth` is normal at MultiPV 1
-   too; PV longer than `seldepth` never happens.
+3. **Use `seldepth`, never `depth`, to bound a PV.** `len(pv) > depth` is normal and happens in
+   `[[seldepth.all_lines_pv_longer_than_depth]]` of `[[seldepth.all_lines_total]]` lines measured;
+   `len(pv) > seldepth` happens in `[[seldepth.all_violations]]` of them. `seldepth` is a real
+   bound, `depth` is not. (Full measurement and predicate: §5b.)
 4. **On `bestmove`, fall back to the last FULL block.** A budget stop truncates the *final* block, so
    the last thing on screen is the incomplete one.
 5. **Handle `N > legal moves` by accepting the short block without waiting.** No marker exists; the

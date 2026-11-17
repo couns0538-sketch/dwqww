@@ -48,6 +48,8 @@ MUST_BE_NONZERO = (
     "judge.positions", "instability.positions", "agreement.noise.pairs",
     "budgetstats.positions", "budgetstats.repeats",
     "pins.bench11", "pins.bench13", "pins.bench16", "pins.perft5",
+    "seldepth.multipv1_lines_total", "seldepth.multipv_gt1_lines_total",
+    "seldepth.all_lines_total", "seldepth.positions",
     "selftest.checks", "selftest.planted_faults", "wire.assertions",
 )
 
@@ -61,6 +63,7 @@ SOURCES = [
     ("pins.json", "pins"),
     ("selftest.json", "selftest"),
     ("wire_control.json", "wire"),
+    ("seldepth_check.json", "seldepth"),
 ]
 
 MARKER = re.compile(r"\[\[([A-Za-z0-9_.:\-]+)\]\]")
@@ -111,6 +114,14 @@ def build_evidence():
                     str(r["short"]) for r in d["repeats"])
                 flat["%s.%s_stable" % (prefix, tag)] = str(d["stable"]).lower()
                 flat["%s.%s_bestmove_ok" % (prefix, tag)] = str(d["bestmove_all_agree"]).lower()
+        elif name == "seldepth_check.json":
+            for k, v in data.items():
+                if k in ("per_mpv", "corpus"):
+                    continue
+                if isinstance(v, dict):
+                    flatten(prefix + "." + k, v, flat)
+                else:
+                    flat["%s.%s" % (prefix, k)] = v
         elif name == "audit.json":
             for k, v in data.items():
                 if isinstance(v, list):
