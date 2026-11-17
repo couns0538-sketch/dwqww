@@ -607,6 +607,41 @@ the function look validated.** Committed in `checks/sign_test.py` as `check_symm
 
 ---
 
+## 20. A sign-share computed from a timer is a share of the TIMER's resolution (19-C64/19-C65)
+
+> **Before quoting a sign-share from wall time, report the EXACT-TIE fraction. On short searches, most "losses"
+> are ties, and the share measures the clock, not the effect.**
+
+**The case.** I reported the material-key cache as "PF faster on 36/130 = **27.7 %**" at `go nodes 50000`, and later
+"**52.5 %**" at 500000 — **as though they disagreed.** Two errors, in order of severity:
+
+1. **The two figures were from different samples** (36/130 vs 21/40), so the comparison was never valid.
+2. **At 50k the median search is 19 ms and the engine reports whole milliseconds, so two thirds of pairs are exact
+   ties** — and a "strict" share counting ties as non-wins reports the timer's granularity.
+
+**Same 130 positions, both budgets, decomposed:**
+
+| budget | median | PF faster | **exact tie** | PF slower | strict share | **wins/decided** |
+|---|---|---|---|---|---|---|
+| `nodes 50000` | 19 ms | 30 | **84 (64.6 %)** | 16 | 23.1 % | **65.2 %** |
+| `nodes 500000` | 218 ms | 71 | **9 (6.9 %)** | 50 | 54.6 % | **58.7 %** |
+
+**Once ties are excluded the budgets agree (65.2 % ≈ 58.7 %). It was a definition effect, not a budget effect.**
+
+**The rule, in three parts:**
+1. **Report wins / exact-ties / losses**, never a bare "share faster". A tie is neither a win nor a loss, and which
+   way you count it can move the answer by 30 points.
+2. **Check the tie fraction against the timer's resolution.** If the median measurement is a small multiple of the
+   resolution (19 ms at 1 ms), the experiment cannot resolve the effect and the share is noise.
+3. **Lengthen the measurement, don't redefine the share.** Raising the budget from 50k to 500k took ties from 64.6 %
+   to 6.9 % without changing the effect's direction.
+
+**Scope check — the rest of this record is clean, and that had to be verified, not assumed:** exact node ties are
+**0.0 %** in 19-C61 (n=464) and **0.8-1.7 %** in all four 19-C60 switches (node counts, not timers). **Wall-time ties
+in 19-C61 are 3.7 %** at a 31 ms median. **The trap bit only in 19-C64, where searches were 19 ms.**
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
