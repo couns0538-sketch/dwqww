@@ -1192,3 +1192,17 @@ where a changed move costs least, and is rarer where a wrong move loses material
 
 Limit: 30 positions, one build/settings combo, "tactical" is my filter not a curated suite.
 90 findings, 18 confirmations. 10 h 9 m remain.
+## 2026-11-17T00:11:17Z  PC page now carries the quiet-concentration framing; budget thread closed
+2026-11-17T00:11:17Z
+
+The reproducibility table's node-budget row reads: "30 % of QUIET positions change move, and 20 % of TACTICAL ones
+(23-F24, 23-F65) - the lottery is concentrated in quiet positions, exactly where a changed move costs least."
+That replaces the bare "about 30 %", so a reader gets the bounded statement rather than the number that overstates.
+
+AREAS, all with the same protocol and per-row board labels:
+  move generation   clean on 10,000 positions (depths 1-4) + 330 at depth 5; relation and both walkers audited
+  search paths      clock and self-play reproducible; node budgets not; lottery concentrated where it costs least
+  PC repairs        drawn-root blunders (-805); lone-king merely fails to convert (-11..+75)
+  front-end         3 hazards confirmed on the PC build, 2 rules (count info strings; send both clocks)
+  my own faults     11, each named with the rule that catches it
+90 findings, 18 confirmations (2 refutations), six reference pages. 10 h 7 m remain.
