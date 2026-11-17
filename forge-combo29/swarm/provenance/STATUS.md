@@ -3,8 +3,8 @@
 **State: COMPLETE.** No finding re-measured (not the assignment). Every claim below is
 backed by a script in `scripts/` and a transcript in `evidence/`.
 
-Audit base `6b98f2170a3210e71beed04bbd2553972c253ed7` · census **8,899 commits / 617 refs**
-(612 `origin/*`, 3 tags, 2 heads — the audit branch is itself a ref) · `evidence/refs_census.txt`.
+Audit base `6b98f2170a3210e71beed04bbd2553972c253ed7` · census **8,898 commits / 615 refs**
+(611 `origin/*`, 3 tags, 2 heads; the audit's own branch is excluded by name) · `evidence/refs_census.txt`.
 
 ## The brief's premise, checked
 
@@ -66,12 +66,19 @@ finding rides on them: `b109a0a5`, `7c4e1aee`, `6e0e9522`, `81c52608`, `1a9460d6
    check was wrong — the exact wrong-span trap the corpus documents.
 6. **"the owner's PC" matched 31 findings on a bare mention.** Only net-dependent rows
    count → **3**.
-7. **The hash→path map was produced by an unrecorded shell one-liner**, and it
-   undercounted: it enumerated blobs but reported the *first* path per blob, so a hash
-   appearing in 30 files was reported as 22. A provenance audit must not depend on an
-   unrecorded command, so it is now `scripts/find_unresolved_paths.py` and the counts are
-   per path (`b109a0a5` 22 → **30**). No finding count changed — that map only feeds the
-   transitive-dependency pass.
+7. **The hash→path map was produced by an unrecorded shell one-liner**, so it is now
+   `scripts/find_unresolved_paths.py`. Two things came out of making it a real script,
+   and the second corrected a claim I had already written down:
+   - **First I diagnosed an undercount and was wrong.** The script reported 30 paths for
+     `b109a0a5` against the one-liner's 22, and I wrote that the one-liner was counting
+     blobs rather than paths. Re-running after the refactor pushed the numbers *further*
+     up (32, then 38 for some hashes), which exposed the actual cause: **the map was
+     counting this audit's own evidence files**, which quote the hashes they discuss.
+     With `/swarm/provenance/` excluded the answer is **22 — the one-liner was right** and
+     my "undercount" explanation was a story fitted to two numbers. Per-row the counts were
+     never affected (no finding row is sourced from this branch), so no published figure
+     changed; the lesson is that a number that moves toward your hypothesis deserves one
+     more run before it becomes a sentence.
 8. **I rewrote a regex to silence a lint warning, and it changed the audit's answer.**
    The super-linear-backtracking warning was legitimate, so I replaced
    `owner'?s?[^.\n]{0,30}\bnet\b` with a hand-rolled "linear" predicate and checked

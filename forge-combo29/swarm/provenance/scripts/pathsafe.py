@@ -69,3 +69,58 @@ def load_json(path, root):
 
     with open_read(path, root) as fh:
         return json.load(fh)
+
+
+SWARM_PREFIX = "forge-combo29/swarm/"
+
+
+def swarm_objects(repo):
+    """Every object that ever lived under forge-combo29/swarm/, as (blob, path) pairs.
+
+    Read out of git rather than the worktree, so a superseded or deleted report is
+    still audited -- and so this cannot be satisfied by a stale checkout.
+    """
+    import subprocess
+
+    listing = subprocess.run(
+        ["git", "rev-list", "--all", "--objects"],
+        cwd=repo, capture_output=True, text=True, errors="replace",
+    ).stdout.splitlines()
+    pairs = []
+    for line in listing:
+        p = line.split(maxsplit=1)
+        if len(p) == 2 and p[1].startswith(SWARM_PREFIX):
+            pairs.append((p[0], p[1]))
+    return pairs
+
+
+def read_text_blobs(repo, blob_ids, chunk=400):
+    """{blob sha: decoded text} for the given blobs, skipping anything binary.
+
+    One ``git cat-file --batch`` per chunk. Binary files are skipped by looking for a
+    NUL in the first 8 KiB, which is the cheapest reliable test and avoids decoding
+    megabytes of ELF into replacement characters.
+    """
+    import subprocess
+
+    texts = {}
+    ids = sorted(set(blob_ids))
+    for s in range(0, len(ids), chunk):
+        part = ids[s : s + chunk]
+        out = subprocess.run(
+            ["git", "cat-file", "--batch"],
+            cwd=repo, input="\n".join(part).encode(), capture_output=True,
+        ).stdout
+        i = 0
+        while i < len(out):
+            nl = out.index(b"\n", i)
+            f = out[i:nl].decode().split()
+            if len(f) < 3:
+                i = nl + 1
+                continue
+            sha, size = f[0], int(f[2])
+            data = out[nl + 1 : nl + 1 + size]
+            i = nl + 1 + size + 1
+            if b"\x00" not in data[:8192]:
+                texts[sha] = data.decode("utf-8", errors="replace")
+    return texts

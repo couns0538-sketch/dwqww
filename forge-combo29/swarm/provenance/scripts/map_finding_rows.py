@@ -161,34 +161,8 @@ def main():
     ap.add_argument("--identifiers", default="evidence/identifiers.json")
     args = ap.parse_args()
 
-    listing = git("rev-list", "--all", "--objects", repo=args.repo).stdout.splitlines()
-    pairs = []
-    for line in listing:
-        p = line.split(maxsplit=1)
-        if len(p) == 2 and p[1].startswith("forge-combo29/swarm/"):
-            pairs.append((p[0], p[1]))
-    blobs = sorted({p[0] for p in pairs})
-
-    # read texts
-    texts = {}
-    for s in range(0, len(blobs), 400):
-        part = blobs[s : s + 400]
-        out = subprocess.run(
-            ["git", "cat-file", "--batch"], cwd=args.repo,
-            input="\n".join(part).encode(), capture_output=True,
-        ).stdout
-        i = 0
-        while i < len(out):
-            nl = out.index(b"\n", i)
-            f = out[i:nl].decode().split()
-            if len(f) < 3:
-                i = nl + 1
-                continue
-            sha, size = f[0], int(f[2])
-            data = out[nl + 1 : nl + 1 + size]
-            i = nl + 1 + size + 1
-            if b"\x00" not in data[:8192]:
-                texts[sha] = data.decode("utf-8", errors="replace")
+    pairs = pathsafe.swarm_objects(args.repo)
+    texts = pathsafe.read_text_blobs(args.repo, [b for b, _ in pairs])
 
     # keep the newest blob per path so a superseded file is not counted twice
     newest = {}

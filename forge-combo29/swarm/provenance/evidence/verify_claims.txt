@@ -1,10 +1,11 @@
 
 === refs and commits the negative claims quantify over
-  refs=617 (origin/*=612, tags=3)  commits=8899
+  refs=615 (origin/*=611, tags=3)  commits=8898
+  scope: every ref EXCEPT refs/remotes/origin/swarm/provenance and refs/heads/swarm/provenance (this audit's own branch).
   both refs/remotes/origin/* AND refs/tags are inside this census.
 
 === CLAIM: no COMMIT starts with 068f  (expected: it is a binary sha256, not a commit)
-  PASS  git rev-list --all | grep -c '^068f' (0)
+  PASS  git rev-list <all refs except self> | grep -c '^068f' (0)
 
 === CLAIM: the audit base is a real commit containing forge-combo29/
   PASS  git cat-file -t 6b98f217 (commit)

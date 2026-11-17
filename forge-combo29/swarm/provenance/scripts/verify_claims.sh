@@ -15,15 +15,26 @@ chk() { # chk <description> <actual> <expected>
 }
 
 say "refs and commits the negative claims quantify over"
-REFS=$(git -C "$REPO" for-each-ref --format='%(refname)' | wc -l | tr -d ' ')
-ORIGIN=$(git -C "$REPO" for-each-ref --format='%(refname)' | grep -c '^refs/remotes/origin/')
+# Exclude this audit's OWN branch from the census. The audit adds commits and a ref just
+# by existing, so including them makes the published number grow with every push and
+# makes the count disagree with the figures in FINDINGS.md/STATUS.md. Every claim here is
+# about the SEAT reports, which live on other refs, so excluding the audit ref is the
+# correct scope -- and it is stated rather than silent.
+SELF_REF="refs/remotes/origin/swarm/provenance"
+SELF_LOCAL="refs/heads/swarm/provenance"
+REFS=$(git -C "$REPO" for-each-ref --format='%(refname)' | grep -v -x "$SELF_REF" | grep -v -x "$SELF_LOCAL" | wc -l | tr -d ' ')
+ORIGIN=$(git -C "$REPO" for-each-ref --format='%(refname)' | grep -v -x "$SELF_REF" | grep -v -x "$SELF_LOCAL" | grep -c '^refs/remotes/origin/')
 TAGS=$(git -C "$REPO" for-each-ref --format='%(refname)' | grep -c '^refs/tags/')
-COMMITS=$(git -C "$REPO" rev-list --all | wc -l | tr -d ' ')
+# NOTE: `rev-list --all --exclude=<ref>` left the count unchanged when tested, so the
+# refs are enumerated explicitly and the audit's own branch is filtered out by name.
+REFLIST=$(git -C "$REPO" for-each-ref --format='%(refname)' | grep -v 'refs/heads/swarm/provenance' | grep -v 'refs/remotes/origin/swarm/provenance')
+COMMITS=$(git -C "$REPO" rev-list $REFLIST | wc -l | tr -d ' ')
 echo "  refs=$REFS (origin/*=$ORIGIN, tags=$TAGS)  commits=$COMMITS"
+echo "  scope: every ref EXCEPT $SELF_REF and $SELF_LOCAL (this audit's own branch)."
 echo "  both refs/remotes/origin/* AND refs/tags are inside this census."
 
 say "CLAIM: no COMMIT starts with 068f  (expected: it is a binary sha256, not a commit)"
-chk "git rev-list --all | grep -c '^068f'" "$(git -C "$REPO" rev-list --all | grep -c '^068f')" 0
+chk "git rev-list <all refs except self> | grep -c '^068f'" "$(git -C "$REPO" rev-list $REFLIST | grep -c '^068f')" 0
 
 say "CLAIM: the audit base is a real commit containing forge-combo29/"
 chk "git cat-file -t 6b98f217" "$(git -C "$REPO" cat-file -t 6b98f217 2>&1)" "commit"

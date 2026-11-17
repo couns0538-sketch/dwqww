@@ -37,36 +37,16 @@ def main():
     ap.add_argument("--out", default="evidence")
     args = ap.parse_args()
 
-    listing = subprocess.run(
-        ["git", "rev-list", "--all", "--objects"],
-        cwd=args.repo, capture_output=True, text=True, errors="replace",
-    ).stdout.splitlines()
-    pairs = []
-    for line in listing:
-        p = line.split(maxsplit=1)
-        if len(p) == 2 and p[1].startswith("forge-combo29/swarm/"):
-            pairs.append((p[0], p[1]))
-
-    blobs = sorted({p[0] for p in pairs})
-    texts = {}
-    for s in range(0, len(blobs), 400):
-        part = blobs[s : s + 400]
-        out = subprocess.run(
-            ["git", "cat-file", "--batch"], cwd=args.repo,
-            input="\n".join(part).encode(), capture_output=True,
-        ).stdout
-        i = 0
-        while i < len(out):
-            nl = out.index(b"\n", i)
-            f = out[i:nl].decode().split()
-            if len(f) < 3:
-                i = nl + 1
-                continue
-            sha, size = f[0], int(f[2])
-            data = out[nl + 1 : nl + 1 + size]
-            i = nl + 1 + size + 1
-            if b"\x00" not in data[:8192]:
-                texts[sha] = data.decode("utf-8", errors="replace")
+    # Exclude this audit's own directory. Its evidence files quote the very hashes
+    # being searched for, so including them made the map count the audit as another
+    # place the hash occurs -- 8-10 self-referential paths per hash, growing with
+    # every re-run. A census that counts itself is not a census.
+    pairs = [
+        (b, p)
+        for b, p in pathsafe.swarm_objects(args.repo)
+        if "/swarm/provenance/" not in p
+    ]
+    texts = pathsafe.read_text_blobs(args.repo, [b for b, _ in pairs])
 
     hits = collections.defaultdict(set)
     for blob, path in pairs:

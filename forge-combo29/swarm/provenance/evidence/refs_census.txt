@@ -1,27 +1,15 @@
-=== CENSUS: what the negative claims are measured against ===
+=== CENSUS ===
 
--- refs enumerated (for-each-ref, all namespaces):
-617
--- of which refs/remotes/origin/*:
-612
--- of which refs/tags/*:
-3
--- of which refs/heads/*:
-2
+scope: every ref EXCEPT the audit's own branch (excluded by name)
+refs: 615  (origin/*: 611, tags: 3, heads: 1)
+commits: 8898
 
--- commits reachable from ALL refs (git rev-list --all | wc -l):
-8899
-
-NOTE: this census includes the audit's OWN branch (swarm/provenance), so the
-commit count is one higher than when the audit began (8,898). The finding
-counts did not change: 874 findings name some build, 45 on an unresolved one.
-
-=== TRAP 2f CHECK: does any commit start with 068f ? ===
-$ git rev-list --all | grep -c "^068f"
+=== TRAP 2f: does any COMMIT start with 068f? ===
+$ git rev-list <all refs except self> | grep -c "^068f"
 0
-(0 = no COMMIT. Expected: 068f is a binary sha256, not a commit.)
+(0 = no commit; 068f is a binary sha256, so this is expected)
 
-=== does any commit start with the other cited hashes? ===
+=== other cited hashes, as commits ===
 6b98f217     commits=1
 e06310ec     commits=0
 d6bd72c5     commits=0

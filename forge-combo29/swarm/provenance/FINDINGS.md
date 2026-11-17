@@ -1,15 +1,22 @@
 # Build provenance audit — every build identifier in the seat reports
 
 Audit base: `6b98f2170a3210e71beed04bbd2553972c253ed7`, folder `forge-combo29/`.
-Measured against: **8,899 commits reachable from 617 refs** (612 `refs/remotes/origin/*`,
-3 `refs/tags/*`, 2 `refs/heads/*`, including this audit's own branch). Command that enumerates them, and the full census:
+Measured against: **8,898 commits reachable from 615 refs** (611 `refs/remotes/origin/*`,
+3 `refs/tags/*`, 2 `refs/heads/*`; this audit's own branch is excluded and named in
+`scripts/verify_claims.sh`, so the figure does not drift with its own pushes). Command that enumerates them, and the full census:
 `evidence/refs_census.txt`.
 
 > **The negative claim in the brief had to name its command, and so does this one.**
-> "No object starts with `068f`" is a claim about a list. The list is
-> `git rev-list --all`, over all 616 refs including every `origin/*` remote branch and
-> all 3 tags. Run it and `grep -c '^068f'` returns **0**. That is the whole evidence,
-> and it is reproduced in `evidence/refs_census.txt`.
+> "No object starts with `068f`" is a claim about a list. The list is every ref in the
+> repository except this audit's own branch — 615 refs, including all 611
+> `refs/remotes/origin/*` remote branches and all 3 tags — enumerated by name in
+> `scripts/verify_claims.sh`. Run it and `grep -c '^068f'` returns **0**. That is the
+> whole evidence, and it is reproduced in `evidence/refs_census.txt`.
+>
+> The audit's own branch is excluded **by name, not silently**, because including it
+> makes the published figure grow with every push — and it is the branch under audit, so
+> counting it would be the census counting itself. (`rev-list --all --exclude=<ref>` was
+> tried first and left the count unchanged; the explicit ref list is what works.)
 
 ---
 

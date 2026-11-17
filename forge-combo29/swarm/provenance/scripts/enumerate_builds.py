@@ -66,59 +66,17 @@ def seat_of(path):
 
 
 def build_corpus(repo, cache_dir):
-    """Materialise every text blob that ever lived under forge-combo29/swarm/.
+    """Every text blob that ever lived under forge-combo29/swarm/.
 
-    Uses the full object list, not branch tips, so files deleted from a tip are
-    still audited -- a withdrawn report is still a report that made a claim.
+    Uses the full object list, not branch tips, so files deleted from a tip are still
+    audited -- a withdrawn report is still a report that made a claim. Thin wrapper:
+    the git plumbing lives in pathsafe so the four scripts that need it share one copy.
     """
-    listing = git("rev-list", "--all", "--objects", repo=repo).stdout.splitlines()
-    pairs = []
-    for line in listing:
-        parts = line.split(maxsplit=1)
-        if len(parts) == 2 and parts[1].startswith("forge-combo29/swarm/"):
-            pairs.append((parts[0], parts[1]))
-    ids = sorted({p[0] for p in pairs})
-    info = git("cat-file", "--batch-check", repo=repo)
-    # batch-check needs stdin; redo with communicate
-    proc = subprocess.run(
-        ["git", "cat-file", "--batch-check"],
-        cwd=repo,
-        input="\n".join(ids).encode(),
-        capture_output=True,
-    )
-    kinds = {}
-    for line in proc.stdout.decode().splitlines():
-        f = line.split()
-        if len(f) == 3:
-            kinds[f[0]] = (f[1], int(f[2]))
-    blobs = [i for i in ids if kinds.get(i, ("", 0))[0] == "blob"]
-
     pathsafe.checked_path(cache_dir, os.getcwd(), create=True, allow_outside=True)
-    texts = {}
-    chunk = 400
-    for s in range(0, len(blobs), chunk):
-        part = blobs[s : s + chunk]
-        out = subprocess.run(
-            ["git", "cat-file", "--batch"],
-            cwd=repo,
-            input="\n".join(part).encode(),
-            capture_output=True,
-        ).stdout
-        i = 0
-        while i < len(out):
-            nl = out.index(b"\n", i)
-            head = out[i:nl].decode()
-            f = head.split()
-            if len(f) < 3:
-                i = nl + 1
-                continue
-            sha, size = f[0], int(f[2])
-            data = out[nl + 1 : nl + 1 + size]
-            i = nl + 1 + size + 1
-            if b"\x00" in data[:8192]:
-                continue  # binary
-            texts[sha] = data.decode("utf-8", errors="replace")
-    return pairs, texts, len(ids), len(blobs)
+    pairs = pathsafe.swarm_objects(repo)
+    ids = sorted({p[0] for p in pairs})
+    texts = pathsafe.read_text_blobs(repo, ids)
+    return pairs, texts, len(ids), len(texts)
 
 
 # ------------------------------------------------------- identifier patterns
