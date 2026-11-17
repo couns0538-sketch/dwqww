@@ -60,6 +60,24 @@ At `go nodes 250000` the same position is consistent (`mate 7`, 13/13), as is `g
 So the honest statement is: **the rate falls as the budget rises, but the defect is still present at a 50,000-node match
 budget on long mates, and I have NOT established any budget at which it is absent.**
 
+### The window is generic: a second position, and it lands on a different match budget
+
+Scanning the node ladder (20,000 / 50,000 / 80,000 / 150,000 / 250,000) for each mate position:
+
+| position | truncating budget | detail |
+|---|---|---|
+| G/192 `8/8/1p6/8/p3p3/8/2Kpk3/8 w` | **`go nodes 20000`** | `mate -7`, 10-ply PV needing 14, **short 4**, depth 8 — **4 of 4 fresh runs identical** |
+| S-F58 board `r2r4/pB2kpp1/…` | **`go nodes 50000`** | `mate +11`, 18 of 21 plies, short 3, depth 11 — 3 of 3 identical |
+| R/120 | none in 20k…250k | — |
+| G/59 | none in 20k…250k | — |
+
+G/192's window has the same shape as the violator's: 15,000 nodes → `cp -2588` (no mate yet), **20,000 → truncated**,
+30,000 → `mate -4` 8/8 correct, 50,000 → `mate -4` 8/8.
+
+So the defect is not one position's quirk nor one budget's quirk: **each long-mate position appears to have its own
+narrow window, and 20,000 and 50,000 nodes are both owner match budgets.** Two of the three match budgets have a
+position that truncates on them.
+
 ### The node ladder — the evidence, on the known violator
 
 Position `r2r4/pB2kpp1/n1p4p/1p5p/2n5/1q1bP2P/2PBN3/4K2R b - - 1 40`, PC r15 + PC20, Threads 1, Hash 16, OwnBook false,
