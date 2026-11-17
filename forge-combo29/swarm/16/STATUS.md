@@ -593,3 +593,15 @@ seed: 1601
   are needed (committed-then-deleted vs exists-now-uncommitted, the latter being the likelier state when you run it).
 - check_folder.py ALL CHECKS PASS (424 files, 45 findings rows, both scans clean). Cadence continues; FINAL block at
   10:18:40Z.
+
+## 2026-11-17T04:50Z
+- Verified both sentences the coordinator asked to keep are in place, rather than assuming:
+  1. In FINAL's STANDING CAUTION (habit 6, line 50): "Before trusting a green result, ask which LAYER it looked at."
+     — kept as written.
+  2. In check_folder.py the two-scan reason is now stated crisply as the coordinator put it: COMMITTED-THEN-DELETED
+     and UNTRACKED-NOW are different faults with different lifetimes, (a) sees the first and is blind to never-
+     committed, (b) sees the second and is blind to already-deleted, and both are needed because the untracked-now
+     state is the likelier one when you run the check (you have just written the row that went astray).
+- Re-verified the tool both ways after the header edit: ALL CHECKS PASS on my real folder, and it still FAILS on the
+  planted uncommitted stray in the scratch repo. A doc edit to a check deserves the same re-test as a code edit.
+- check_folder.py ALL CHECKS PASS (424 files, 45 findings rows). Cadence continues; FINAL block at 10:18:40Z.

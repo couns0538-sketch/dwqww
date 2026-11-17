@@ -30,12 +30,15 @@ WHAT EACH OF THE THREE CHECKS CATCHES
    Note: an id gap is not always a fault — a seat may deliberately skip an id — so the line is a prompt to look,
    not an automatic failure. Malformed rows and duplicates are always failures.
 
-2. NOTHING OUTSIDE YOUR FOLDER — COMMITTED **OR** UNTRACKED
-   Two scans, because each alone has a blind spot:
-     (a) `git log --diff-filter=A` from your seat commit lists every file ever ADDED on your branch — catches a
-         stray that was staged once and later deleted;
-     (b) `git status --porcelain --untracked-files=all` lists files that exist now but are not committed — catches
-         a stray that was just written and would otherwise be invisible to (a).
+2. NOTHING OUTSIDE YOUR FOLDER — TWO SCANS, BECAUSE "OUTSIDE" HAS TWO STATES
+   **COMMITTED-THEN-DELETED** and **UNTRACKED-NOW** are different faults with different lifetimes, and a single
+   scan can only see one of them:
+     (a) `git log --diff-filter=A` from your seat commit — every file ever ADDED on your branch. Sees a stray that
+         was committed and later deleted; blind to anything never committed.
+     (b) `git status --porcelain --untracked-files=all` — files that exist NOW but are not committed. Sees a stray
+         that was just written; blind to one already deleted.
+   Keeping both is not belt-and-braces: it is the only way to see both states, and the untracked-now one is the
+   likelier state at the moment you run the check, because you have usually just written the row that went astray.
    (b) was added after a real miss: an append with a wrong relative path wrote eleven findings rows into
    `forge-combo29/swarm/FINDINGS.md`, the file was never `git add`ed, and scan (a) alone reported clean. A stray you
    have not committed yet is still a stray, and it is the most likely state at the moment you run this.
