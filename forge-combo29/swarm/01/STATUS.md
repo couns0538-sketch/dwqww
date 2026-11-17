@@ -2730,3 +2730,26 @@ FORMAT-AND-DIRECTORY REACH IS NOW TESTABLE; WHICH DIRECTORIES SHOULD EXIST IS ST
 Gates: 212 rows, 0 wrong pipe counts, path substitution gating, gate rc=0 across 59 checks.
 Next: continue at cadence; seat 19 has 19-C61 running at NPOS=470 on the wall question, which is my decomposition's
 territory, so I will check it when it lands.
+## 2026-11-17T03:20:49Z — checked the per-node CELL, not the point estimates; three routes agree within 2 per cent (S-C56)
+CHECKED THE CELL YOU POINTED AT, and it is the strongest agreement in the thread.
+  seat 19's 19-C61: node 0.9131 CI [0.8752,0.9528], time 0.9715 CI [0.9273,1.0151], n=464.
+  IMPLIED per-node = 0.9715 / 0.9131 = 1.0640 - matches their quote TO FOUR DECIMALS, and sits 0.50 per cent from their own
+  direct fixed-node measurement 1.0693 at n=180.
+THREE ROUTES, TWO BUILDS, TWO HARNESSES, THREE SAMPLE SIZES:
+  direct fixed go-nodes n=180        1.0693
+  implied at n=464                   1.0640   (0.50 per cent from the direct)
+  implied on my build, n=116         1.0472   (1.58 per cent from their implied, 2.07 per cent from their direct)
+All inside a 2 per cent band - and TWO OF THE THREE ARE DERIVED, not measured, which is what makes the decomposition
+load-bearing rather than a fitted identity.
+WHAT MOVED vs WHAT HELD, which is the part worth recording: their node saving SHRANK 12.39 per cent -> 8.69 per cent and the time
+ratio moved toward 1.0 as n grew to 464, and they say plainly their prediction failed. BUT THE PER-NODE CELL STAYED AT
+1.064-1.069 ACROSS BOTH SAMPLE SIZES. So the node saving is real-but-smaller, the per-node penalty is real-and-stable,
+and the net wall gain is NOT established BECAUSE THE TWO COMPONENTS NEARLY CANCEL - not because either is absent.
+"PC20 is faster" is unsupported; "~9 per cent fewer nodes against ~6.4 per cent more per node, nearly cancelling" is supported three
+ways, and it predicts that a larger sample keeps failing to establish a net gain, which is what n=464 did.
+AND ONE ATTRIBUTION I CAUGHT IN MY OWN PAGE: I wrote "90 per cent of positions" beside the n=464 figure, but that sign-share is
+162/180 from the DIRECT n=180 measurement - the n=464 number is implied from two pooled ratios and cannot supply a
+per-position sign-share at all. Corrected with the distinction stated. Borrowing a sign-share across methods is the same
+class as borrowing a number across runs (S-F155).
+Gates: 213 rows, 0 wrong pipe counts, cell verified arithmetically, attribution corrected, gate rc=0 across 59 checks.
+Next: continue at cadence to the 10:20Z close.
