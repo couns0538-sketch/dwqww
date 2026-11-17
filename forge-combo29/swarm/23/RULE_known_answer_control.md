@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-one** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-ONE instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-one faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -408,6 +408,29 @@ the eligible count first, then evaluate against that number, and say which fixtu
 
 Worth noting the outcome was still useful: the same run confirmed 23-F93's zero-node rule on a SECOND root, which is
 what let F96 be re-scoped to one fixture instead of being withdrawn entirely.
+
+## Instance 21 — three arithmetic defects in one function, and none caught by a control I designed (23-F102)
+
+Cost scoring for 23-F101 went through three wrong versions:
+
+1. `sign = -1 if not b.turn else 1`, evaluated after the move was pushed — so `b.turn` was the OPPONENT, and every
+   black-to-move row was inverted.
+2. `100000 - 1000*val` applied to `mate -4` — the side to move IS mated — giving **+104000**, i.e. a big win.
+3. `sorted[n//2]` printed and labelled "median" — for an even count that is the upper of the two middle elements.
+
+**None of the three was caught by a control. Each was caught because the resulting NUMBER WAS ABSURD** when I reread
+the table: a depth-12 searched best move 2,222 cp worse than an unsearched one; a mate scored as a win for the wrong
+colour; a "median" that disagreed with the sorted list on inspection.
+
+What should have caught 1 and 2 is not a known-answer control but a **DIRECTIONAL ASSERTION**: these quantities have a
+known order. A searched best move must never be materially worse than the unsearched generator head (beyond search
+noise), and a cell reporting a mate must not score negative for the mover. Both are one-line assertions over data I
+already had. The script now contains them and prints `ABSURDITY` plus the row when they fire.
+
+**The rule: absurdity is a detector that depends on somebody rereading the table, while an assertion does not. Any
+quantity whose direction is already known should be ASSERTED in the loop, not inspected afterwards.** A control asks
+"can this checker see anything"; an assertion asks "is this answer consistent with what I already know" — and the
+second is cheaper and needs nobody's attention.
 
 ## The fix, in one line each
 

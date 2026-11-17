@@ -48,11 +48,29 @@ gaps = [i for i in range(1, max(nums) + 1) if i not in nums] if nums else []
 dups = sorted({n for n in nums if nums.count(n) > 1})
 print("gaps:", gaps, "| duplicates:", dups)
 
-prose = re.findall(r"\b([A-Za-z]+)\b instances?\b", text) + re.findall(r"\*\*([a-z]+)\*\* faults", text)
+# A stated count is a number-word ADJACENT to "instances"/"faults", standing alone (start of a bolded phrase or after
+# a comma), so "a one-line assertion" cannot match. TWO patterns are needed because the page states the count twice in
+# different casing: "**One rule, TWENTY-ONE instances from this seat" and "**twenty-one** faults".
+prose = re.findall(r"[A-Za-z,\s]*?\b([A-Za-z]+(?:-[A-Za-z]+)?)\s+instances?\b", text) \
+      + re.findall(r"\*\*([a-z]+(?:-[a-z]+)?)\*\* faults", text)
+# hyphenated number words like twenty-one need normalising before lookup
+prose = [w for w in prose if w.lower().split('-')[0] in
+         {'one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen',
+          'fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','thirty','forty'}]
 words = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,
          'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,
          'eighteen':18,'nineteen':19,'twenty':20}
-stated = [(w, words[w.lower()]) for w in prose if w.lower() in words]
+def numword(w):
+    parts = w.lower().split('-')
+    base = words.get(parts[0])
+    if base is None:
+        return None
+    if len(parts) == 1:
+        return base
+    add = words.get(parts[1])
+    return base + add if add is not None else None
+
+stated = [(w, numword(w)) for w in prose if numword(w) is not None]
 print("counts stated in prose:", stated)
 bad_counts = [(w, n) for w, n in stated if n != len(nums)]
 print("counts that disagree with the actual section count:", bad_counts)

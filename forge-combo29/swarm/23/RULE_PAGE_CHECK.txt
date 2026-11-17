@@ -31,3 +31,18 @@ TWO FALSE ALARMS FROM THE CHECKER ITSELF, before it was right:
       blockquote paragraph.
   Both were the checker disagreeing with a CORRECT document. That is the dangerous direction for a structural
   check: it trains you to 'fix' the document. The planted-failure proof is what restored the right to trust it.
+
+=== RE-RUN AFTER INSTANCE 21 WAS ADDED, and the count check needed two fixes of its own ===
+The instance count went 20 -> 21 and the page states it twice ("**One rule, TWENTY-ONE instances" and
+"**twenty-one** faults"). Adding the text "a one-line assertion" broke my count regex, which reported a stated count
+of "ONE" and failed the page.
+
+Fix attempt 1 required adjacency to "instances" and excluded hyphenated compounds — which made the check find ZERO
+stated counts and PASS. That is the fault this page is about: a check that passes while checking nothing. It was
+caught by printing the counts it FOUND beside the verdict, which the script already did.
+
+Fix attempt 2 accepts a hyphenated number word, normalises "twenty-one" to 21, and is proven able to fail:
+  unmodified page                  -> PASS
+  TWENTY-ONE -> TWENTY-TWO         -> FAIL
+  **twenty-one** -> **twenty-two** -> FAIL
+Page restored byte-identical after each probe.
