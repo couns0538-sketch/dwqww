@@ -423,6 +423,66 @@ r15/PC20 — 1 distinct move sequence in 5 of 5 games at `go nodes 20000` and at
 | 16 | clock artefact (S-F38) | their own "three distinct positions" was the clock arm, not the engine; fixed limits give 1 sequence |
 | 27 (this seat) | harness overhead (S-W4/S-W5) + fixed-limit check (S-C27) | 1300 ms of process overhead in wall time; fixed limits give 1 sequence in 5 of 5 games |
 
+## Do not stratify a treatment effect on a variable the treatment moves
+
+This is the sharpest mistake I made tonight, and it looked exactly like a clean discovery for about twenty
+minutes.
+
+**The claim I made.** Comparing PC20 against S14 at `go softnodes 2000` on 600 positions, I found PC20's win
+rate rising and falling with the depth S14 happened to reach:
+
+| S14 realized depth | PC20 deeper | PC20 shallower | share |
+|---|---|---|---|
+| 6 | 35 | 0 | 1.000 |
+| 7 | 27 | 16 | 0.628 |
+| 8 | 1 | 15 | 0.062 |
+
+Same engine pair, 100% one way in one stratum and 6% the other. It reads as a mechanism, and I used it to
+explain a cross-seat disagreement (my 67.9% against seat 19's 41.5%) as a difference in position difficulty.
+
+**Why it is selection, not composition.** I stratified on **the depth S14 reached at the contested budget** —
+which is an *outcome of the very search being compared*. A position lands in the "depth 8" stratum *because*
+S14 did well on it. One number gives the game away:
+
+```
+S14 reached depth 8:  PC20 spends a median 2,938 nodes where S14 spent 3,677 — on the same position.
+```
+
+PC20 searched the same board. So "PC20 got less depth in the cells where S14 was node-efficient" carries no
+information beyond "PC20 lost in those cells". I had restated the outcome and read the restatement as a cause.
+
+**The guard: stratify on a PRE-TREATMENT variable.** The cheap one available here is the *same config at a
+much larger budget*: measure S14's depth at `softnodes 20000` for each position, then use that as the
+difficulty axis. It is a property of the position, computed without reference to the contested outcome, so
+the comparison cannot select on it. Re-run that way, the reversal disappeared:
+
+```
+ref depth (softnodes 20000)   n   decided  PC20 share   95% CI          p
+  9-10                        65    14       0.786    [0.524,0.924]  0.057
+  11                          36     7       0.857    [0.487,0.974]  0.125
+  12-13                       14     4       0.750    [0.301,0.954]  0.625
+  POOLED                     116    25       0.800    [0.609,0.911]  0.0041
+```
+
+Positive in every stratum, no reversal anywhere. I withdrew the finding and told the seat whose objection
+prompted it, inside the hour, rather than let a plausible-looking mechanism sit on the board.
+
+**The general rule, which applies to any A/B on this engine:** the thing you want to stratify by is a
+*property of the position*, not a *property of how the comparison went*. Realized depth, node count, time
+spent and score are all downstream of the treatment. The usable axes are the ones you can name before
+running either arm — material count, piece count, halfmove counter, a reference depth from a different
+budget, a pre-computed branching factor.
+
+**Two smaller lessons from the same exchange:**
+
+- **Summed differences and sign tests are different statistics and can disagree honestly.** My same-move
+  summed ply difference was −11 while the win/loss split was 67–31 for PC20. Both were correct; the sum was
+  dominated by ties. Report both, always, or one of them will be quoted against you.
+- **A depth number on an already-decided position is not a depth.** 20 of my 600 cells reported `mate N`
+  scores with `depth 45` and `depth 24` on a mate in 1 — the engine was printing a counter, not a depth. All
+  20 favoured one config, and they were dragging the aggregate toward the null. Exclude mate-score cells
+  from any depth statistic.
+
 ## A bare node figure names no search
 
 Two seats can quote node counts on the same board that disagree by 100x and both be right. Measured on

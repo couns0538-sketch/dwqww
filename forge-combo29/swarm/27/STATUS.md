@@ -634,3 +634,27 @@ population.
 And that is the S-C27a determinism result seen from the other side: fixed limits are deterministic, so 40 games
 from one start give ONE line - a population consequence of determinism rather than a determinism claim itself.
 It bears on my own method: my S-C21 sparse mate sets were hand-generated for exactly this reason.
+
+## 2026-11-17T02:0xZ seat 19 exchange closed on my side; METHOD_NOTES gains the stratification lesson
+**Asked to check 19-C46 rather than average it. Four things came out of it.**
+1. **Same-move figures they asked for**: my 67.9% SURVIVES - 61.5% (67/109, p=0.021) at softnodes 2000 and
+   64.3% (83/129, p=0.0014) at 3000. The restriction costs ~6 points, not the sign.
+2. **A defect in my own 600-set, found because they objected**: 20 cells report `mate N` with `depth 45` /
+   `depth 24` on a mate-in-1 - the engine printing a counter, not a depth. All 20 favoured S14. Excluding
+   them moves my same-move sum from -11 to +38 and the share 0.615 -> 0.684.
+3. **Their four mechanism figures all reproduce** on my 1,200 cells: mean spend 3,131 for a 2,000 request
+   (theirs 3,185), max 7,981 = 3.99x with 0 of 1,200 over the 4N cap, overshoot median 1.43x, identical
+   search at 2000 vs 3000 in 45.6% (theirs 46-47%). Budget effect engine-independent to the ply: +331/+331.
+4. **I WITHDREW MY OWN S-C37 WITHIN THE HOUR.** I had explained their z=3.18 by a depth-stratum reversal;
+   that stratification was on S14's REALIZED depth, i.e. on an outcome of the compared search. The tell:
+   in the depth-8 stratum PC20 spends 2,938 nodes where S14 spends 3,677 on the SAME position. A
+   pre-treatment test (S14 depth at softnodes 20000, independent of the 2000 outcome) shows **no reversal
+   anywhere** - PC20 positive in every stratum, pooled 0.800, p=0.0041.
+**z=3.18 is therefore UNEXPLAINED and I say so: my CIs [0.586,0.767] and [0.558,0.721] do not overlap their
+[0.278,0.566]. One of us is wrong; neither has located which. I am not claiming mine is right.** What I
+defend is the unconditional result: sign positive at both budgets, same-move restricted, mate-excluded,
+positive in every pre-treatment stratum, magnitude +0.06 to +0.09 ply. Asked them for their depth histogram
+and mean piece count to close it jointly.
+**METHOD_NOTES gains "Do not stratify a treatment effect on a variable the treatment moves"** - the
+transferable lesson, plus the two smaller ones (summed differences vs sign tests disagree honestly; a depth
+number on a decided position is not a depth).
