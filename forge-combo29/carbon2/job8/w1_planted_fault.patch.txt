@@ -1,0 +1,13 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 18:41:43.077143771 +0000
++++ b/src/search.cpp	2026-11-17 18:45:21.313143771 +0000
+@@ -764,8 +764,7 @@
+ #if FORGE_SPD_KING_LINES
+                         if (move.from == own_king_sq_) {
+                             if (!board_.is_legal(move)) continue;
+-                        } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
+-                                   !attacks::aligned(own_king_sq_, move.from, move.to)) {
++                        } else if (((pinned_ >> move.from) & 1ULL) != 0 /* PLANTED FAULT: reject legal pin-ray quiet slide */) {
+                             continue;
+                         }
+ #else
