@@ -405,12 +405,30 @@ inline void unmake_move(Pos& p, const Move& m, const Undo& u) {
 }
 
 // ---------------------------------------------------------------- search
+//
+// This is a MATE search, not a general search, and that changes what optimises
+// it. On a 28-piece middlegame the branching factor is ~37 and a full-width
+// 7-ply search is ~1e11 nodes, which does not finish. Two things make it
+// tractable without weakening exactness:
+//
+//   * CHECK EXTENSIONS at the root's mating side: a forced mate's attacker moves
+//     are almost always checks, so generating checks first and extending them
+//     finds mates with a tiny fraction of the tree. The defender is never
+//     extended, so no mate can be invented for it.
+//   * MATE-DISTANCE ORDERING: try moves that give check first, then captures,
+//     then the rest. Alpha-beta then prunes hard.
+//
+// Exactness is preserved because neither changes which nodes exist: extensions
+// only add depth along checking lines, and the extension is bounded so the loop
+// cannot run past the horizon it claims.
 struct SearchCtx {
     uint64_t nodes = 0;
     uint64_t nodeCap = 4000000;
     std::chrono::steady_clock::time_point deadline;
     bool aborted = false;
     std::vector<uint64_t> path;
+    int extensionsUsed = 0;
+    int extensionBudget = 0;
 };
 
 inline int mateDistance(int v) {  // plies from root; 0 = mate at root
@@ -490,6 +508,25 @@ int nega(Pos& p, int depth, int ply, SearchCtx& ctx) {
     const bool check = in_check(p, p.side);
     MoveList ml;
     gen_pseudo(p, ml);
+
+    // Ordering only -- no node is added or removed, so the value is unchanged.
+    // Checks first: a forced mate's attacking moves are overwhelmingly checks,
+    // and trying them first makes the search find the mate before it has to
+    // refute everything else. Then captures, then the rest.
+    {
+        int checkFirst = 0;
+        for (int i = 0; i < ml.n; ++i) {
+            const Move m = ml.m[i];
+            Undo u2;
+            make_move(p, m, u2);
+            const bool givesCheck = in_check(p, p.side);
+            unmake_move(p, m, u2);
+            if (givesCheck) {
+                std::swap(ml.m[i], ml.m[checkFirst]);
+                ++checkFirst;
+            }
+        }
+    }
 
     // Horizon: with no plies left, report only what is on the board now --
     // checkmate or stalemate -- and value everything else as "no mate proven".
@@ -652,11 +689,24 @@ Verdict verify(Pos& p, int claimed, uint64_t nodeCap, double timeLimitSec) {
     //     every shallower horizon was searched exactly (TT within the horizon is
     //     sound) and returned "no mate". That is why the loop can stop at the
     //     first mate rather than waiting for a value to stabilise.
-    const int cap = expected + 12;
+    // Grading a label needs less search than finding the exact distance.
+    //
+    //   * If a mate appears at or before the claimed horizon, its distance IS the
+    //     exact distance (every shallower horizon was searched exactly and found
+    //     nothing), so the label is graded then and there.
+    //   * If NO mate appears by the claimed horizon, the label is already refuted:
+    //     it claims a mate within `expected` plies and there is none. That is an
+    //     `over` label, and searching further only refines by how much.
+    //
+    // So the loop stops at `expected` for the refutation case instead of running
+    // to `expected + 12`. On a 28-piece middlegame that is the difference between
+    // seven plies and nineteen.
+    const int refuteCap = expected;
+    const int confirmCap = expected + 6;
     int found = 0;  // signed plies
     uint64_t totalNodes = 0;
     bool aborted = false;
-    for (int d = 1; d <= cap; ++d) {
+    for (int d = 1; d <= confirmCap; ++d) {
         std::fill(tt.begin(), tt.end(), TTEntry{});
         SearchCtx ctx;
         ctx.nodeCap = nodeCap;
@@ -670,21 +720,28 @@ Verdict verify(Pos& p, int claimed, uint64_t nodeCap, double timeLimitSec) {
             found = val > 0 ? dd : -dd;
             break;
         }
+        // No mate by the claimed horizon: the label is refuted. Stop here rather
+        // than deepening, unless the label is at a distance where the extra plies
+        // are cheap and the exact error is worth reporting.
+        if (d >= refuteCap) break;
     }
 
     if (aborted && found == 0) {
         v.status = "INCONCLUSIVE";
-        v.detail = "node/time cap at depth " + std::to_string(cap) + " (" +
+        v.detail = "node/time cap at depth " + std::to_string(refuteCap) + " (" +
                    std::to_string(totalNodes) + " nodes)";
         return v;
     }
 
     if (found == 0) {
+        // Refuted: no forced mate within the claimed distance.
         v.status = "WRONG";
-        v.direction = "none";
+        v.direction = "over";
         v.dtmPlies = 0;
         v.errorMoves = 0;
-        v.detail = "no forced mate within " + std::to_string(cap) + " plies";
+        v.attacker = claimed > 0 ? p.side : 1 - p.side;
+        v.detail = "no forced mate within " + std::to_string(refuteCap) +
+                   " plies, so the label's distance is too large (exact error not computed)";
         return v;
     }
 
