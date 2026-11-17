@@ -958,3 +958,21 @@ next: cadence.
 **43 findings, 34 checks/audits/plants/tools, 5 method lines, 5 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:37Z — emit_config.py v2: seat 27's matcher defects fixed
+- **Fix 1: "found nothing" is now a FAILURE, exit 1.** Verified with real exit codes: a file with no option names
+  exits **1** with "do not treat this run as a verification"; a recognised file exits 0.
+- **Fix 2: recognition by CONTENT against the engine's own 92 `uci` option names**, not by Python shape — so dicts,
+  concatenation, comprehensions and shell scripts all work. Verified: my defective script -> **22 names, 5 PC20
+  switches**; seat 27's dict+concatenation shape -> **6 names, 2 PC20 switches**.
+- **v1 was itself a confident-wrong-answer instance** (matched a list of TEST-CASE tuples, printed "2 options; PC20
+  switches present: 0"), recorded as **08-N6** with the second instance from elsewhere tonight and the fix pattern:
+  make "found nothing" an error, and recognise by content against an authority.
+- **Also my own slip while verifying the fix:** I read `$?` through a pipeline and got `tail`'s exit code — the same
+  class a third time, now noted in 08-N6.
+- Tool is complementary to seat 27's `expect=` check (theirs validates the list as APPLIED per cell, mine as WRITTEN).
+
+## 2026-11-17T02:37Z — TALLY (generated, not maintained)
+**43 findings, 34 checks/audits/plants/tools, 6 method lines, 5 withdrawals** (and 1 open lead).
+
+next: cadence.

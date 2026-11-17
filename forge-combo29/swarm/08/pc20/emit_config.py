@@ -1,69 +1,127 @@
 #!/usr/bin/env python3
-"""emit_config.py — print the ACTUAL option list a harness sends, so a finding can paste it.
+"""emit_config.py EXE FILE... — print the ACTUAL setoption list a harness sends, recognised by CONTENT.
 
-Why this exists (08-W3): my `check_repetition_root.py` had a list VARIABLE NAMED `S14` that contained the five PC20
-switches. I wrote "S14" into a finding by trusting the name. The mechanical fix is not to rename variables — it is to
-PRINT the list from the same object the harness uses, and paste that printout. A list printed by the code cannot
-disagree with the code.
+History, because it is the point of this file:
+
+  v1 (WRONG) matched a Python *shape*: an `ast.Assign` of a list of 2-tuples. Seat 27 ran it on its own harness and it
+  printed `### list 'cases' ... 2 options; PC20 switches present: 0` — it had matched a list of TEST-CASE tuples, not
+  an option list, and it could not see the real lists because they live in `SETTINGS = {"S14": [...], "PC20": [...]}`
+  and are built by CONCATENATION (`["Hash 16","Threads 1"] + S14 + PC20X`). **A confident wrong answer is worse than
+  no answer, because it looks like verification.**
+
+  v2 (this file) fixes both defects, in the order they were raised:
+    1. It recognises an option list by its CONTENTS — a string whose first word is a name the engine advertises in its
+       own `uci` answer. That survives dicts, concatenation, comprehensions, f-strings, shell scripts, anything.
+    2. **If it finds nothing that looks like a setoption list, it EXITS NON-ZERO.** "I checked and found nothing" must
+       be distinguishable from "there was nothing to check".
 
 Usage:
-    python3 emit_config.py <script.py>      # prints every option-list literal found, as a pasteable block
-    python3 emit_config.py --self           # prints this file's own demo list
+    python3 emit_config.py <engine-exe> <file.py> [file2.py ...]
+    python3 emit_config.py <engine-exe> --string "Hash 16, Threads 1, CuckooRep true"
+
+Exit codes: 0 = at least one option-name mention found and printed; 1 = none found; 2 = usage/engine error.
 """
 import ast
+import re
+import subprocess
 import sys
 
+PC20_SWITCHES = ("CuckooRep", "HistRework", "TtPruneV2", "CorrHistV2", "MateAlphaGuard")
 
-def lists_in(path):
-    """Find list literals of (name, value) tuples by parsing the file — not by importing it."""
-    src = open(path).read()
-    tree = ast.parse(src)
+
+def engine_option_names(exe):
+    r = subprocess.run([exe], input="uci\nquit\n", capture_output=True, text=True, timeout=60)
+    names = []
+    for line in r.stdout.splitlines():
+        m = re.match(r"^option name (.+?) type ", line)
+        if m:
+            names.append(m.group(1))
+    if not names:
+        raise SystemExit("ENGINE ERROR: `%s` advertises no options in its uci answer" % exe)
+    return names
+
+
+def mentions_in_file(path, known):
+    """Every place a known engine option name appears as the first word of a quoted string or a bare token."""
+    src = open(path, errors="ignore").read()
     found = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.List):
-            names = []
-            ok = True
-            for elt in node.value.elts:
-                if isinstance(elt, ast.Tuple) and len(elt.elts) == 2:
-                    try:
-                        names.append((ast.literal_eval(elt.elts[0]), ast.literal_eval(elt.elts[1])))
-                    except Exception:
-                        ok = False
-                        break
-                else:
-                    ok = False
-                    break
-            if ok and names:
-                label = node.targets[0].id if isinstance(node.targets[0], ast.Name) else "?"
-                found.append((label, names))
-    return found
+    try:
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                v = node.value.strip()
+                if v:
+                    parts = v.split()
+                    if parts and parts[0] in known:
+                        found.append((getattr(node, "lineno", 0), v))
+    except SyntaxError:
+        pass
+    for i, line in enumerate(src.splitlines(), 1):
+        for m in re.finditer(r'["\']\s*([A-Za-z][A-Za-z0-9 _-]*?)\s+(?:value\s+)?([A-Za-z0-9_.-]+)\s*["\']', line):
+            name = m.group(1).strip()
+            if name in known:
+                found.append((i, "%s %s" % (name, m.group(2))))
+        # option names used as bare dict keys or concatenated literals
+        for name in known:
+            if len(name) > 6 and re.search(r'\b%s\b' % re.escape(name), line):
+                found.append((i, name))
+    seen = set()
+    out = []
+    for ln, text in found:
+        k = (ln, text)
+        if k not in seen:
+            seen.add(k)
+            out.append((ln, text))
+    return out
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "--self":
-        demo = [("LmrQuietBase", "93"), ("CuckooRep", "true")]
-        print("setoptions this harness sends, in order:")
-        for name, value in demo:
-            print("    setoption name %s value %s" % (name, value))
-        print("    (PC20 switches present: %s)" %
-              ("YES" if any(n in ("CuckooRep", "HistRework", "TtPruneV2", "CorrHistV2", "MateAlphaGuard")
-                            for n, _ in demo) else "no"))
-        return
-    if len(sys.argv) < 2:
-        raise SystemExit("usage: emit_config.py <script.py> | --self")
-    path = sys.argv[1]
-    if not path.endswith(".py"):
-        print("### %s is not a Python file — the AST scan does not apply." % path)
-        print("    Grep the setoption lines instead and paste them verbatim:")
-        print("        grep -o 'setoption name [A-Za-z0-9_]* value [^\"\n]*' %s" % path)
-        return
-    for label, names in lists_in(path):
-        pc20 = [n for n, _ in names if n in ("CuckooRep", "HistRework", "TtPruneV2", "CorrHistV2", "MateAlphaGuard")]
-        print("### list `%s` in %s" % (label, path))
-        print("    %d options; PC20 switches present: %d %s" % (len(names), len(pc20), pc20 if pc20 else ""))
-        print("    settings to quote in a finding:")
-        print("        %s" % ", ".join("%s %s" % (n, v) for n, v in names))
-        print()
+    if len(sys.argv) < 3:
+        raise SystemExit("usage: emit_config.py <engine-exe> <file...> | --string \"...\"")
+    exe = sys.argv[1]
+    known = engine_option_names(exe)
+    print("# the engine advertises %d option names; lists are recognised by these, not by Python shape" % len(known))
+    print()
+
+    any_found = False
+    if sys.argv[2] == "--string":
+        text = sys.argv[3]
+        names = [n for n in known if re.search(r"\b%s\b" % re.escape(n), text)]
+        if names:
+            any_found = True
+            pc20 = [n for n in names if n in PC20_SWITCHES]
+            print("## option names present in the given string: %d" % len(names))
+            for n in names:
+                print("    %s" % n)
+            print("    PC20 switches present: %d %s" % (len(pc20), pc20 if pc20 else ""))
+        else:
+            print("## NO option name from the engine's own list appears in the given string")
+    else:
+        for path in sys.argv[2:]:
+            hits = mentions_in_file(path, known)
+            print("### %s" % path)
+            if not hits:
+                print("    NO option name from the engine's uci list appears in this file.")
+                print("    (It may build its options elsewhere, or set none.)")
+                print()
+                continue
+            any_found = True
+            names = sorted({h[1].split()[0] for h in hits})
+            pc20 = [n for n in names if n in PC20_SWITCHES]
+            print("    %d option-name mentions, %d distinct names" % (len(hits), len(names)))
+            print("    PC20 switches present: %d %s" % (len(pc20), pc20 if pc20 else ""))
+            print("    pasteable list:")
+            print("        " + ", ".join(sorted({h[1] for h in hits})))
+            print("    first mentions with line numbers:")
+            for ln, text in hits[:8]:
+                print("        line %d: %s" % (ln, text))
+            print()
+
+    if not any_found:
+        print("**FAILING LOUDLY: nothing that looks like a setoption list was found in any input.**")
+        print("Do not treat this run as a verification. Either the file builds its options elsewhere, or the")
+        print("recogniser needs another shape — say which, rather than reporting a clean result.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
