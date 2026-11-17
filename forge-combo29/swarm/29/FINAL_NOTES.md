@@ -34,8 +34,9 @@ was wrong for the same reason, **four times in one hour**:
 Every one was caught by varying one more axis before believing the first measurement. Before a figure goes
 into a finding, a rule or a summary: measure it at another value of whatever it most plausibly depends on, and if the
 answer moves, report the TABLE rather than the number. A single figure may stand only when the sweep shows it is
-flat — and then the flatness is the finding. The depth-10 sign flip is the sharpest example: it says the PC20
-switches are NOT free at low depth, which no single depth-12 number would ever have revealed.
+flat — and then the flatness is the finding. The depth-10 comparison is the sharpest example: at n=30 it read
++2.3 % and looked like a cost, at n=100 it reads +0.3 % and is neutral — so the sweep found the axis, and the sample
+size then fixed the magnitude.
 
 ## MUST APPEAR IN THE FINAL BLOCK: the open work and its recipe (29-N29)
 The PC20 move-quality findings (29-F42, 29-F44, 29-F45) stay **OPEN — no second seat has checked them.** That label
@@ -88,6 +89,10 @@ way and the 13-outcome sample of the same configuration reversed it.
 
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
+- 29-F42/29-F52 (tree size, RE-VERIFIED at n=100): **PC20 searches a smaller tree at match depths on both sets —
+  -11.9 % on R_2911 and -10.7 % on G at depth 12 — and depth 10 is approximately NEUTRAL (+0.3 %), not a clear
+  cost.** Use these magnitudes, not the n=25-30 ones (which read -19.5 % and +2.3 %): the direction was always stable,
+  the magnitudes were inflated by small samples.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation
   (96.0 % slot-0 hits vs 26/25/25/24 %; 0 vs 16,811 generation writes; 50 of 861,904 vs a high real-play rate).
 - 29-F36 recommendation: picker scoring 2.91 % vs selection 0.77 % → reduce history reads per move, not the sort.

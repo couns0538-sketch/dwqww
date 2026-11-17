@@ -1,0 +1,26 @@
+=== 29-F42 TABLE RE-VERIFIED AT 100 POSITIONS PER CELL (was 25-30) ===
+Applying my own sample-size rule to my own table, which was built on 25-30 positions per cell -- the weakness I had
+just criticised in 29-F51. Same build, same settings (PC r15, PC20 vs S14, Threads 1, Hash 16, depth 12 unless noted),
+same measurement, 100 positions per cell.
+
+| set | depth | n (was -> now) | S14 nodes | PC20 nodes | PC20 vs S14 (was -> now) |
+|---|---|---|---|---|---|
+| R_2911 | 10 | 30 -> 100 | 2,609,660 | 2,617,493 | **+2.3 % -> +0.3 %** |
+| R_2911 | 12 | 30 -> 100 | 8,813,133 | 7,765,730 | **-19.5 % -> -11.9 %** |
+| G | 12 | 25 -> 100 | 5,810,612 | 5,187,912 | **-12.7 % -> -10.7 %** |
+| G | 10 | 25 -> (not re-run) | - | - | -15.9 % (unre-verified) |
+
+WHAT CHANGES AND WHAT SURVIVES:
+1. **The depth-10 "sign flip" SHRINKS from +2.3 % to +0.3 %.** It is still not a saving, but it is now inside the
+   noise of a per-position node count rather than a clear cost. 29-F41's "the switches are not free at low depth" was
+   over-read: they are approximately FREE at depth 10 on R_2911, marginally costly at most.
+2. **The match-depth saving is smaller than published: -11.9 % on R_2911 (not -19.5 %) and -10.7 % on G (not -12.7 %).**
+   Both still clearly favour PC20, and the sign is stable, but the magnitudes were inflated by small samples in the
+   same direction as the flip was.
+3. **The stable claim is unchanged and is the one to relay:** PC20 searches a smaller tree at match depths on both
+   sets (about 11-12 % here), and the depth-10 comparison is approximately neutral rather than a clear cost.
+
+This is the FIFTH time tonight a small sample has distorted a magnitude or a sign in my own work (29-F38/39, F40/41,
+F41/42, F43/44, now F42 itself). The direction of every surviving claim has been stable; the NUMBERS attached to them
+have all moved toward smaller effects as the samples grew. That is worth stating plainly in the FINAL: quote the
+direction with confidence, quote the magnitude with the n it came from.

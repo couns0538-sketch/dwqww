@@ -402,3 +402,12 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Installed the four-sample tally as the worked example beside the sweep rule in FINDINGS, and in FINAL_NOTES: 17 outcomes -> 7-7-3 (dead heat); 5 -> 2-2-1 (dead heat); 3 -> 0-3 AGAINST PC20 (published as F50, withdrawn 20 min later); 13 -> 8-4 mildly pro-PC20. The same configuration produced opposite signs at n=3 and n=13.
 - Operational form kept verbatim: 'any tally under about twenty outcomes is a hint at most' - treat a small one-sided tally as a reason to collect more, never as a finding.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:23:46 AM UTC 2026
+- 29-F52: applied my own sample-size rule to MY OWN tree-size table, which was built on 25-30 positions per cell. Re-ran at 100 per cell:
+    R_2911 d10: +2.3% -> +0.3%  (the 'sign flip' is now INSIDE NOISE - switches are approximately FREE at depth 10, not a clear cost)
+    R_2911 d12: -19.5% -> -11.9%
+    G      d12: -12.7% -> -10.7%
+- Direction of every claim unchanged; three published MAGNITUDES were inflated in the same direction the flip was. Top-of-file table now shows the n=100 figures as current and keeps the old row only to show what small samples did.
+- 29-N36 pattern for the FINAL: the DIRECTION of every surviving claim has been stable; the NUMBERS have all moved toward smaller effects as samples grew (fifth instance). Quote direction with confidence, magnitude only with its n.
+- next: continuing at cadence.

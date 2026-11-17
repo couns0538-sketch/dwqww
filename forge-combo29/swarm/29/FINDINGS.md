@@ -39,18 +39,30 @@ separate sentence that names its scope.
 If any PC20-vs-S14 node figure from me is quoted anywhere, quote THIS, not a single number. PC r15 build,
 Threads 1, Hash 16. Both position sets, both depths where I have them:
 
+**RE-VERIFIED AT 100 POSITIONS PER CELL (29-F52) — USE THIS TABLE, NOT THE OLD ONE:**
+
+| set | depth | n | S14 nodes | PC20 nodes | PC20 vs S14 |
+|---|---|---|---|---|---|
+| R_2911 | 10 | 100 | 2,609,660 | 2,617,493 | **+0.3 %** (was +2.3 % at n=30) |
+| R_2911 | 12 | 100 | 8,813,133 | 7,765,730 | **-11.9 %** (was -19.5 % at n=30) |
+| G | 12 | 100 | 5,810,612 | 5,187,912 | **-10.7 %** (was -12.7 % at n=25) |
+| R_2911 | 14 | 20 | 5,888,909 | 5,061,004 | -14.1 % (NOT re-run at 100) |
+| G | 10 | 25 | 582,081 | 489,649 | -15.9 % (NOT re-run at 100) |
+
+Old n=25-30 table, kept only to show what small samples did to the magnitudes:
+
 | set | depth | S14 nodes | PC20 nodes | PC20 vs S14 |
 |---|---|---|---|---|
-| R_2911 | 10 | 861,000 | 880,419 | **+2.3 %** |
+| R_2911 | 10 | 861,000 | 880,419 | +2.3 % |
 | R_2911 | 12 | 3,078,383 | 2,478,658 | -19.5 % |
 | R_2911 | 14 | 5,888,909 | 5,061,004 | -14.1 % |
-| G | 10 | 582,081 | 489,649 | **-15.9 %** |
+| G | 10 | 582,081 | 489,649 | -15.9 % |
 | G | 12 | 1,700,791 | 1,484,712 | -12.7 % |
 
 Reading it: the effect depends on **depth AND position set together**. At the SAME depth 10, PC20 costs 2.3 % more on
 R_2911 and saves 15.9 % on G, so neither "PC20 always prunes" nor "PC20 costs more at low depth" is true in general.
-The one stable claim: **at match depths PC20 searches a smaller tree on both sets** (-12.7 % G, -19.5 % R_2911 at
-depth 12). Three of my last three conclusions on this topic needed exactly this reframing (29-F38 -> 39, 29-F40 -> 41,
+The one stable claim, re-verified at n=100: **at match depths PC20 searches a smaller tree on both sets** (-10.7 % G,
+-11.9 % R_2911 at depth 12), and **depth 10 is approximately neutral (+0.3 %), not a clear cost.** Three of my last three conclusions on this topic needed exactly this reframing (29-F38 -> 39, 29-F40 -> 41,
 29-F41 -> 42), which is why 29-N23 makes the sweep the default.
 
 ## NAMED RULE (29-N23): sweep the second variable before any number reaches a summary
@@ -209,3 +221,5 @@ transposition-table work on BOTH grounds: the distribution it samples and the co
 | 29-N34 | 9 | CORRECTION for the FINAL state of F44: it can no longer be summarised as "quality shows no sign of damage". Accurate form: **dead heat at depths 10-12 (7-7-3 on R_2911, 2-2-1 on late G), but at depth 14 all three disagreements in a 30-position sample favour S14, one of them by a full move of mate distance (mate -6 vs mate -7).** n=3 is a signal, not a result, and the honest state is **OPEN with a signal against PC20 at match depths** — which is more useful to the owner than a clean bill of health, because depth 14 is where the PC actually plays. | `slots/raw_soundness_d14_table.txt` | NEW |
 | 29-F51 | 9 | **The depth-14 signal against PC20 was SAMPLE NOISE — withdrawn, and 29-F44 is restored.** I ran the next measurement 29-F50 named: depth 14, 80 positions (up from 30), Threads 1, Hash 16, disagreements judged under the neutral S14 regime at depth 17. **67 of 80 same bestmove (83.8 %); of the 13 disagreements, PC20 better 8, S14 better 4, tie 1.** So the earlier **3-of-3 favouring S14 was chance**, as a 3-disagreement sample easily produces. The direction at depth 14 is if anything mildly pro-PC20, consistent with the depth-10/12 dead heats. Across all my samples the tally has swung 7-7 (d12, n=17), 2-2 (late G, n=5), 0-3 (d14, n=3) and 8-4 (d14, n=13) — sampling noise, and no sample has shown PC20 systematically worse. Caveat: 13 disagreements is still few; the firm claim is "no consistent direction across samples", not equality. | `slots/raw_soundness_d14_wide.txt`, `raw_soundness_d14_wide_table.txt`, `raw_tally_d14_wide.txt` | NEW |
 | 29-N35 | 9 | WITHDRAWAL of 29-F50's "signal against PC20 at depth 14" and restoration of 29-F44's "no sign of damage" for depths 10-12 AND 14. FINAL state for F44: **no consistent direction across samples (7-7-3, 2-2-1, 0-3, 8-4) — no sample shows PC20 systematically worse, and none proves equality.** This is the FOURTH time tonight a small tally pointed the wrong way (joining the 4-of-6 in 29-F43 and the two single-cell percentages). The lesson is unchanged and now heavily evidenced: widen the sample before reporting a sign, and treat any tally under ~20 outcomes as a hint at most. | `slots/raw_soundness_d14_wide_table.txt` | NEW |
+| 29-F52 | 9 | **29-F42's table re-verified at 100 positions per cell (it was built on 25-30), and the magnitudes shrink.** Same build and settings, PC r15, PC20 vs S14, Threads 1, Hash 16: **R_2911 depth 10, n 30 -> 100: +2.3 % -> +0.3 %** (the "sign flip" is now inside noise — the switches are approximately FREE at depth 10, not a clear cost); **R_2911 depth 12: -19.5 % -> -11.9 %**; **G depth 12: -12.7 % -> -10.7 %**. So the DIRECTION of every claim is unchanged and the STABLE form to relay stands — **PC20 searches a smaller tree at match depths on both sets (about 11-12 % here), and depth 10 is approximately neutral** — but three of my published magnitudes were inflated by small samples in the same direction the sign-flip was. Fifth small-sample distortion of the hour. | `slots/raw_f42_reverified.txt`, `slots/pc20_tt_effect.py` | NEW |
+| 29-N36 | 9 | **PATTERN worth carrying into the FINAL: the DIRECTION of every surviving claim of mine has been stable; the NUMBERS have all moved toward smaller effects as the samples grew.** Five instances: 29-F38/39 (scan rate 11.1 % -> 0.1-44.8 % range), F40/41 (tree size vs depth), F41/42 (the flip is set-specific), F43/44 (4-of-6 -> 7-7-3), F52 (magnitudes 19.5 -> 11.9 %, 12.7 -> 10.7 %, flip 2.3 -> 0.3 %). Recommendation for the FINAL: **quote the direction with confidence, quote the magnitude only with the n it came from.** The old table's numbers in FINDINGS are annotated SUPERSEDED-BY 29-F52 rather than deleted, so the record shows what sampling did. | `slots/raw_f42_reverified.txt` | NEW |
