@@ -178,6 +178,38 @@ def build_cases() -> list[Case]:
                                  (b"go perft 2\n", "wait_nodes")],
                           note="refused FEN must not silently keep the predecessor"))
 
+    # terminal positions: `bestmove 0000` is the known hazard here
+    for nm, key in (("checkmate", "mate"), ("stalemate", "stalemate")):
+        for pat in PATTERNS:
+            cases.append(Case(cid=f"terminal:{nm}[{pat}]", cls="terminal", pattern=pat,
+                              steps=[(b"position fen " + FENS[key].encode() + b"\n", "cmd"),
+                                     (b"isready\n", "wait_ready"),
+                                     (b"go depth 3\n", "wait_bestmove")],
+                              note="no legal move exists; what is the bestmove reply?"))
+            cases.append(Case(cid=f"terminal:{nm}+illegal-move[{pat}]", cls="terminal", pattern=pat,
+                              steps=[(b"position fen " + FENS[key].encode() + b" moves a1a8\n", "cmd"),
+                                     (b"isready\n", "wait_ready"),
+                                     (b"go depth 3\n", "wait_bestmove")],
+                              note="illegal move appended to a finished position"))
+
+    # FEN field-count sweep: 1..9 fields. Six is the only legal count.
+    base_fields = [b"8/8/8/8/8/8/8/K6k", b"w", b"-", b"-", b"0", b"1", b"extra", b"more", b"nine"]
+    for n in list(range(1, 6)) + [7, 8, 9]:
+        fen = b" ".join(base_fields[:n])
+        cases.append(Case(cid=f"fen:field-count-{n}", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position fen " + fen + b"\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 1\n", "wait_nodes")],
+                          note=f"{n} fields; only 6 is legal"))
+
+    # a legal move string that is not legal in this position
+    for pat in PATTERNS:
+        cases.append(Case(cid=f"fen:moves-a1a8[{pat}]", cls="position_fen", pattern=pat,
+                          steps=[(b"position fen " + FENS["bare"].encode() + b" moves a1a8\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 1\n", "wait_nodes")],
+                          note="syntactically valid, positionally illegal move"))
+
     # ---------------- class: go --------------------------------------------
     go_cmds = {
         "depth-0": b"go depth 0\n",
