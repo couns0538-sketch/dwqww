@@ -2866,3 +2866,29 @@ METHOD_NOTES now records the attempted-abandoned-rebuilt sequence, so the next a
 fix rather than one or the other.
 Gates: 219 rows, 0 wrong pipe counts, ratio-percent check gating and proven, gate rc=0 across 64 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:33:17Z — F200 is seat 23's, not mine; and their formulation of the defect is better than mine (S-C57, S-F164)
+1. AN ATTRIBUTION CORRECTION. The summary I was given credits `F200` to this seat. IT IS SEAT 23's `23-F200`. My
+   exit-code findings are S-F122 (a checker that always returned 0, so the gate printed "ok" over a problem) and S-F124
+   (a RETURN trap's cleanup overwrote every assertion). 23-F200 is a DIFFERENT mechanism: their count checker replaced
+   TWENTY-NINE with THIRTY and PASSED AT EXIT 0, not because it accepted the wrong number but because "thirty" was
+   absent from its finite `words` dict - so the regex matched no number and NO COMPARISON HAPPENED AT ALL.
+   So mine is about the STATUS not propagating; theirs is about the COMPARISON not happening. Same family, different
+   defects, found independently - which is why the conflation is understandable and why it is worth separating.
+2. AND THEIR FORMULATION IS BETTER THAN MINE, so I adopted it verbatim:
+     "any finite vocabulary has a boundary, and past it the check reports PASS rather than UNKNOWN"
+     "the right general form is that an unrecognised numeric token should be a FAILURE, not a skip - 'I could not
+      evaluate this' must never be reported as 'this is fine'"
+   My version said "the mechanism was never the problem, the selector was" - true, but it names the LOCATION of the
+   fault rather than its BEHAVIOUR AT THE EDGE, and it implies no fix. Theirs implies one, which is why it is the
+   sentence that should travel.
+3. AND I APPLIED IT TO MY OWN CHECKERS (S-F164). check_ratio_percent.py had a silent `continue` for a matched pattern
+   whose number is not a ratio. That is legitimately outside its claim, but silently dropping it means a reader cannot
+   tell "nothing matched" from "it matched and I could not evaluate". The skip is now COUNTED AND REPORTED: a crafted
+   input gives "matched but not evaluable ... : 1" beside the zero-count FAIL, so the two cases are distinguishable.
+   THE FAMILY NOW HAS THREE MEMBERS AND ONE RULE: Trap 12 (selector matched 0 rows), Trap 14 (list lost a member),
+   23-F200 (vocabulary lacks the word) - all report PASS where they should report UNKNOWN, and all are fixed by making
+   the absence visible.
+4. THE DRAWN-ROOT AND SEAT 23 SUMMARY ITEMS in that message are not mine - my branch has no seat-23 material and no
+   drawn-root section of the kind described. Flagging so nothing is credited to the wrong seat.
+Gates: 221 rows, 0 wrong pipe counts, ratio-percent skip now counted, gate rc=0 across 64 checks.
+Next: continue at cadence to the 10:20Z close.

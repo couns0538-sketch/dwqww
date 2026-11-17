@@ -58,7 +58,7 @@ def strip_quoted(text):
 def main():
     files = sys.argv[1:] or [str(p) for p in sorted(
         set(list(Path(".").glob("*.md")) + list(Path(".").glob("*/*.md")) + list(Path(".").glob("*/*.txt"))))]
-    examined, bad = 0, []
+    examined, bad, skipped_range = 0, [], 0
     for fn in files:
         p = Path(fn)
         if not p.exists():
@@ -66,7 +66,12 @@ def main():
         for n, line in enumerate(strip_quoted(p.read_text(errors="replace")), 1):
             for m in CLAIM.finditer(line):
                 ratio, pct, word = float(m.group(1)), float(m.group(2)), m.group(3).lower()
-                if not (0.5 <= ratio <= 1.5):   # not a ratio; skip silently rather than guess
+                if not (0.5 <= ratio <= 1.5):
+                    # Counted, not silently dropped (23-F200's rule): a matched pattern whose number is not a ratio
+                    # is a case I COULD NOT EVALUATE, and that must be visible rather than absent. It is not a
+                    # failure - a non-ratio is legitimately outside this check's claim - but the count shows the
+                    # boundary of the vocabulary instead of hiding it.
+                    skipped_range += 1
                     continue
                 examined += 1
                 expect = (1 - ratio) * 100 if word in DECREASING else (ratio - 1) * 100
@@ -75,6 +80,10 @@ def main():
                                % (fn, n, ratio, word, expect, pct))
 
     print("ratio-with-percentage claims examined: %d" % examined)
+    if skipped_range:
+        print("matched but not evaluable (number outside the ratio range 0.5-1.5): %d" % skipped_range)
+        print("  -> these are the VOCABULARY BOUNDARY of this check: reported so a reader sees what it could not")
+        print("     evaluate, per 23-F200 (\"I could not evaluate this\" must never be reported as \"this is fine\").")
     if examined == 0:
         print("\nFAIL: examined 0 claims (Trap 12) - either none are written in this form or the selector is wrong.")
         return 1
