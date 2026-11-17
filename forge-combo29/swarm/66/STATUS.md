@@ -20,7 +20,7 @@ cmake --build /tmp/w66/build -j4
 cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 ```
 
-## STATE AT THIS PUSH: all seven cases measured; the 3+2 20-game set still running
+## STATE AT THIS PUSH: cases 1-6 and 7a/7c measured and verified; only the 3+2 set (7b) still accumulating
 
 | case | state | headline |
 | --- | --- | --- |
@@ -32,13 +32,13 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 | 5 huge clocks | **DONE 27/27** | 2e9 / 3e9 / int64-max / 36,028,797,018,963,967 / one-past / 30 digits: all accepted, none answers inside 8 s, all answer `stop` |
 | 6 repeated `go` | **DONE 15/15** | nothing accumulates: 6 goes at a fixed 1000 ms clock spent 485 ms total |
 | 7a 20 games at 1000+100 | **DONE 9/9** | **0 forfeits / 0 hangs / 0 illegal / 0 refused over 20 games and 3,071 plies**; max move-time/clock **0.5937**; floor reached: max **114.5 ms** at a ≤200 ms clock = 0.6×(200−10) |
-| 7b 20 games at 3000+2000 | **RUNNING** (1 game complete, 0 forfeits, clock never fell below 3000 ms) | at 3+2 the clock GROWS, so this control cannot test the floor |
+| 7b 20 games at 3000+2000 | **PARTIAL, 2 of 20 games** (0 forfeits; clock never fell below 3000 ms) | at 3+2 the clock GROWS, so this control cannot test the floor |
 | 7c drain control | **DONE** | 10× overcharge reaches clock 0; 60/60 moves legal in 0.1–0.6 ms, both with and without increment |
 
 ## Three measurements that correct the brief's framing
-1. **"Does a 300 s one-sided clock terminate?"** — No, not by itself. It was still searching at depth 39
-   after 288.7 s and required an explicit `stop`. The depth-64 ceiling would have bound eventually, but
-   nothing in the engine says so and it prints no diagnostic (case 1).
+1. **"Does a 300 s one-sided clock terminate?"** — No. It is a **hang**, not a slow move: still searching at
+   depth 39 after 288.7 s, 25 depths short of the ceiling, ended only by an explicit `stop`, with no
+   diagnostic at all (case 1).
 2. **`wtime 0` is not a 0-node reply.** Holding stdin open, the engine prints one
    `info depth 1 ... nodes 26 ... pv d2d4` line and answers in ~1 ms. The 0-node / `a2a3` answer that a
    plain `printf ... | ./forge` pipe produces is an **EOF artifact**: closing stdin aborts the search.
@@ -57,4 +57,8 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 - every FEN (and every move list) is validated with python-chess before it is sent.
 
 ## Next
-- finish case 7, write FINDINGS.md / CLOCK_TABLE.md, push.
+- Nothing is outstanding for the deliverables. The 3+2 set (7b) is still appending to
+  `case7_partial_20_3000_2000.json`; if it finishes, run
+  `python3 case7_analyse.py case7_partial_20_3000_2000.json` and update the 7b row in FINDINGS/CLOCK_TABLE.
+  No conclusion in this report depends on it — the floor claim rests on the 1000+100 match (7a) and the drain
+  control (7c), both complete.
