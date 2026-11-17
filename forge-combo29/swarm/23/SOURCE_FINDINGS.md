@@ -277,6 +277,21 @@ Everything else in the table is consistent with the code, and in particular:
 I did **not** find any code that would explain a bail on a root whose castling-neutral cycle does not return to the
 root's identity, and 23-F122 already established there are none.
 
+**Three findings that landed while I was writing this confirm the source reading and tighten one of my sentences.**
+23-F125 and 23-F133 measured the trigger as a monotone threshold: 2 occurrences search, 3/4/5/6 all bail, across
+nine board-level tests. 23-F140 then refined *which* position's count matters — the position at the **end of the sent
+move list**, not the game's first position — and 23-F141/23-F142 extended that to long lists and a dense middlegame.
+
+The code agrees with all of it, and says why in one line: the guard tests `board` (`search.cpp:2251`), and `board` at
+that point is *the position the search is about*, i.e. the end of the move list, not the FEN's start. `set_fen` seeds
+`key_history_` with one entry (`board.cpp:365`, `:357-358`), and `apply_position` replays every listed move through
+`make_move` (`uci.cpp:59-69`), each of which pushes the resulting key (`board.cpp:1104`). So `key_history_` is the
+key of the FEN's position followed by one key per sent move, and `is_repetition()` compares `key_` — the current key —
+against that trace. The count that decides the verdict is therefore necessarily the count of the **last** position.
+**"At least three" rather than "exactly three" is also what the code says:** `:1232` is `matches >= 2`, so 4, 5 and 6
+occurrences all satisfy it, with no upper bound anywhere in the predicate. My §1 wording ("the full-history
+overload") was right but under-specified; 23-F140's sentence is the precise one, and the code supports it as written.
+
 ---
 
 ## 5. Direct answers
