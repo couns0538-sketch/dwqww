@@ -1584,3 +1584,16 @@ DID NOT duplicate work: I did not re-run the depth sweep to re-derive the moved 
 five depths on this board (95/92/91/89/89 at depths 6-14); job37/RESULT says the depth-dependence is CITED from there,
 not re-measured here.
 108 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 16 m remain.
+## 2026-11-17T01:04:55Z  23-F81: the PC repair changes ONLY the already-drawn band (>= halfmove 100), not the curve onset at 92
+2026-11-17T01:04:55Z
+
+KRvK, depth 10, both builds, fifty-move counter sweep:
+  counters 40-90: both builds report a WINNING score (shapes identical); 92-99: both report cp 0
+  counter 100 and 150: base 0 nodes, PC 200 nodes  <- the ONLY qualitative difference, i.e. the repair
+So "the drawn root is searched" is narrower than it sounds: inside the claimable band both builds agree the position is
+drawn at the same counter boundary, and the repair's visible effect is confined to the already-drawn band.
+RECORDED NOT CLAIMED: scores differ slightly above the onset (PC 490 vs base 381 at c40 = the 23-F66 PC20 switch
+effect); and at counter 90 the BASE explodes to 10,445,791 nodes vs the PC's 930,573 - 11x, unpredicted, unexplained.
+STATED IN THE TABLE: this does NOT reproduce 23-F58's 0-node answer in the claimable band (base at c92 = 1,353,048
+nodes), because 23-F58 was a REPETITION at halfmove 11 - a different mechanism; conflating them is my 23-F71 error.
+109 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 14 m remain.
