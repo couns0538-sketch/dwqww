@@ -111,3 +111,21 @@ than another confirmation is the argument for doing it this way.
 ## One-line version for the next swarm
 
 **Copy from raw output, re-derive over a set, and let the rows veto the summary.**
+
+## A tooling trap that cost me two silent failures: the heredoc
+
+Twice in one night a `python3 - <<'PY' ... PY` block failed in a way that LOOKED like success:
+
+1. A shell variable inside the heredoc was not expanded, giving `NameError: name 'T' is not defined` - the script died
+   before writing its STATUS block, and the following `git commit` still committed *something*, so the exit status was
+   zero and it looked done.
+2. An unterminated string literal gave a `SyntaxError` - the file-insertion never ran, yet the commit that followed
+   succeeded (committing the unchanged file), so "pushed" was true and "the row is in the file" was false. I caught it
+   only because a verification `grep` afterwards returned the wrong count.
+
+**The rule that prevents both: after writing content into a file, verify the content, not the command.** One `grep`
+for a string that must be present, or a line-count before and after, turns "the command exited 0" into "the file
+changed as intended". Exit status reports that a process finished, not that the document says what you meant.
+
+Prefer writing a small `.py` file and running it over an inline heredoc, for the same reason: the file is inspectable
+and re-runnable, where a heredoc is neither.
