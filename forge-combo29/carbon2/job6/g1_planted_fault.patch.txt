@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 15:49:52.285143771 +0000
++++ b/src/search.cpp	2026-11-17 15:50:54.109143771 +0000
+@@ -1450,7 +1450,7 @@
+     else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast<std::size_t>(them)];
+     if (cap_nonpawn || move.is_promotion()) keep &= static_cast<std::uint8_t>(~4U);
+     else child->corr_mat_mix = ss->corr_mat_mix;
+-    if (captured != Empty || move.is_promotion()) keep &= static_cast<std::uint8_t>(~8U);
++    if (move.is_promotion() /* PLANTED FAULT: fail to invalidate corr_mat_idx on captures */) keep &= static_cast<std::uint8_t>(~8U);
+     else child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_valid = keep;
+ 

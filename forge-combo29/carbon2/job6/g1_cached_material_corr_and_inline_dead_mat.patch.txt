@@ -1,0 +1,115 @@
+diff -ruN a/include/forge/eval.hpp b/include/forge/eval.hpp
+--- a/include/forge/eval.hpp	2026-11-17 15:31:56.713143771 +0000
++++ b/include/forge/eval.hpp	2026-11-17 15:49:28.989143771 +0000
+@@ -51,6 +51,9 @@
+ // king score 0; king, bishop and knight versus king scores a corner drive.
+ // Returns false for every other position and leaves `score` untouched.
+ [[nodiscard]] bool dead_material_score(const Board& board, int& score);
++[[nodiscard]] inline bool has_dead_material_candidates(const Board& board) noexcept {
++    return (board.pieces(Pawn) | board.pieces(Rook) | board.pieces(Queen)) == 0;
++}
+ 
+ class Evaluator {
+ public:
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 15:31:56.717143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 15:49:50.849143771 +0000
+@@ -452,8 +452,9 @@
+     bool entered_null = false;
+     bool diff_known = false;
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+-    mutable std::uint64_t corr_mat_mix = 0;
++    mutable std::uint16_t corr_mat_idx = 0;
+     mutable std::uint8_t corr_valid = 0;
++    mutable std::uint64_t corr_mat_mix = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 15:31:56.717143771 +0000
++++ b/src/search.cpp	2026-11-17 15:49:52.285143771 +0000
+@@ -1302,6 +1302,7 @@
+             entry.entered_null = false;
+             entry.diff_known = false;
+             entry.corr_np_idx = {};
++            entry.corr_mat_idx = 0;
+             entry.corr_mat_mix = 0;
+             entry.corr_valid = 0;
+         }
+@@ -1374,7 +1375,7 @@
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     // Score recognized endings before any accumulator refresh or network call.
+-    if (dead_material_enabled) {
++    if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+@@ -1449,6 +1450,8 @@
+     else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast<std::size_t>(them)];
+     if (cap_nonpawn || move.is_promotion()) keep &= static_cast<std::uint8_t>(~4U);
+     else child->corr_mat_mix = ss->corr_mat_mix;
++    if (captured != Empty || move.is_promotion()) keep &= static_cast<std::uint8_t>(~8U);
++    else child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_valid = keep;
+ 
+     if (!nnue::enabled || !nnue::available()) return;
+@@ -1495,6 +1498,7 @@
+ void Worker::record_null_move(SearchStack* ss) {
+     SearchStack* child = ss + 1;
+     child->corr_np_idx = ss->corr_np_idx;
++    child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_mat_mix = ss->corr_mat_mix;
+     child->corr_valid = ss->corr_valid;
+     child->entered_null = true;
+@@ -1515,6 +1519,9 @@
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const std::uint64_t pkey = board.pawn_key();
+     __builtin_prefetch(&(*correction_history_)[side][pkey & (CorrectionSize - 1U)]);
++    if (tune::MaterialCorrectionWeight > 0 && (child->corr_valid & 8U) != 0U) {
++        __builtin_prefetch(&(*material_correction_)[side][child->corr_mat_idx]);
++    }
+     if (tune::NonPawnCorrection) {
+         if ((child->corr_valid & 1U) != 0U) {
+             __builtin_prefetch(&(*non_pawn_white_correction_)[side][child->corr_np_idx[0]]);
+@@ -1534,14 +1541,24 @@
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+-    if (dead_material_enabled) {
++    if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+-        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++        std::size_t mat_idx;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 8U) == 0U) {
++                ss->corr_mat_idx = static_cast<std::uint16_t>(material_key(board) & (CorrectionSize - 1U));
++                ss->corr_valid |= 8U;
++            }
++            mat_idx = ss->corr_mat_idx;
++        } else {
++            mat_idx = material_key(board) & (CorrectionSize - 1U);
++        }
++        correction += (*material_correction_)[side][mat_idx] * tune::MaterialCorrectionWeight / 100;
+     }
+     if (tune::NonPawnCorrection) {
+         std::size_t idx_w;
+@@ -1603,7 +1620,12 @@
+         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+-    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MaterialCorrectionWeight > 0) {
++        const std::size_t mat_idx = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_mat_idx)
++            : (material_key(board) & (CorrectionSize - 1U));
++        apply((*material_correction_)[side][mat_idx]);
++    }
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+             ? static_cast<std::size_t>(ss->corr_np_idx[0])
