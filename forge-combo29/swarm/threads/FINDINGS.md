@@ -67,10 +67,9 @@ Before believing any threaded result, three controls (`scripts/multithread_contr
 **`Threads × MultiPV > 1` silently runs single-threaded.** Confirmed from behaviour,
 not just from the source line: `single_threaded = workers_.size() == 1 ||
 worker_limits.multipv > 1` (`src/search.cpp:2711`) and `all` is cut to
-`workers_.front()` when `multipv > 1` (`src/search.cpp:2700`).
-not just from the source line. A "Threads 4 at MultiPV 3" measurement is a Threads 1
-measurement wearing a threaded label. Anyone with a MultiPV corpus should assume their
-Threads setting did nothing.
+`workers_.front()` when `multipv > 1` (`src/search.cpp:2700`). A "Threads 4 at
+MultiPV 3" measurement is a Threads 1 measurement wearing a threaded label. Anyone
+with a MultiPV corpus should assume their Threads setting did nothing.
 
 **I had to fix this control once.** My first version required bench *wall time* to be
 bit-identical at T1 and T8 and reported FAIL on a correct engine, because wall time is
