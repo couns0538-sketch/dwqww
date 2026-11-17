@@ -341,3 +341,17 @@ next command:
 
 next: extend the sparse mate-rate with a second independent sparse sample (different seed) to confirm 37 % is not
 seed-specific, then continue confirming other seats.
+
+## 2026-11-17T00:32Z
+- **Seed-902 replication done, and the rule I pre-committed binds me: the 37 % rate is NOT ESTABLISHED.**
+  R seed 801: 10 of 27 (37.0 %, Wilson 21.5-55.8). R seed 902 independent: **3 of 29 (10.3 %, Wilson 3.6-26.4)**.
+  Point estimates differ 3.6x, outside the pre-committed ±15 window -> report a DIRECTION, no percentage, no pooling.
+  Write-up pc20/REPLICATION_seed902.md.
+- **What both samples agree on (the actable part):** sparse class CAN produce a cp score for a position that is a
+  forced mate — **13 of 56 across both samples**; full-material/real-game produced **0 of 60**, every score within
+  113 cp. That 0 of 60 is now the strongest result of this line.
+- Probable cause of the difference, stated as a guess: my seed-801 sparse set was hand-picked to fill "few pieces
+  AND few moves" and several boards were near mate; seed 902's are random-game endings. Unmeasured.
+- 08-F31 restated in FINDINGS with the rate explicitly withdrawn.
+
+next: cadence + confirmations. Continuing.
