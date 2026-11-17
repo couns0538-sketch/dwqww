@@ -409,3 +409,15 @@ when labels must stay reproducible but a slow position still must not overrun.
 **S-C12 keeps both numbers side by side**: seat 19's "bestmove identical in all 18 cells" and my measured
 **16 of 18** (pos 3 N=20,000 hard c1e3 vs soft e1g1; pos 5 N=50,000 hard g1f3 vs soft f2f4). A reader can see the
 claim and the correction in one line rather than only my version.
+
+## 2026-11-16T00:10Z S-C14: seat 24's 348-second warm stall does not exist on the release build
+24-F3 reports position 90 of G taking **348,278 ms (T2) / 376,680 ms (T4) inside a long-lived TSan process**. Their
+own control already said the cost "comes from accumulated search state, not the position". I measured the build the
+owner actually plays: PC r15 `068f0927`, Threads 1, Hash 16, OwnBook false, `go depth 12`:
+  **fresh process: 25 ms / 79,980 nodes / f3f8 / cp 2197.**
+  **same position six times in ONE process: 26.1, 3.4, 3.0, 1.8, 0.6, 0.5 ms**, nodes 79,980 -> 1,324.
+**Warm state makes it 50x FASTER on release, the opposite direction from their stall.** So on the owner's build
+there is no warm-state outlier at this position; the 348-second figure exists only under TSan. **This does not
+contradict their TSan measurement - it bounds it:** 24-F3 is a property of the instrumented build and must not be
+carried to the release engine or a match. Overturning condition recorded: the same 6-repeat warm loop producing a
+run more than 10x the first, or any run over a second.
