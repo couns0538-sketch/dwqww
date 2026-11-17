@@ -54,6 +54,13 @@ cheapest to apply and caught me three separate times tonight:**
 > set-dependent", which is more useful than either a bare CONFIRMS or a bare REFUTES. So: reproduce on the original
 > sample first; only then decide whether you are correcting a measurement or bounding a generalisation.
 
+> **BEFORE QUOTING A COUNT, CHECK THAT EACH ITEM IS A DISTINCT INSTANCE.** I wrote "three occurrences" of a
+> refused FEN and the number was **one**: the illustrative example I had put *in the rule itself* was already
+> one of the three, so quoting it again counted the same incident twice, and the other two I remembered were
+> not refusals at all. **This is a different fault from mis-counting a list** — every item I named was real;
+> the error was that two of them were the same item. When an example and a tally live near each other, check
+> whether the example is *in* the tally (07-C71).
+
 > **WHEN MY SUMMARY LINE AND MY RAW DATA DISAGREE, BELIEVE THE DATA.** This caught **three** of my wrong
 > verdicts tonight, and it is the cheapest self-check here: my script's printed `RESULT:` said "does not
 > reproduce" three times while the per-row numbers in the same output already confirmed the claim. Each time

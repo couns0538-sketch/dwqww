@@ -161,6 +161,10 @@ the wrong order to read them in. Grouped by what they are for:
 
 ### Is my comparison right?
 
+- **Before quoting a count, check that each item is a distinct instance.** I wrote "three occurrences" of a
+  refused FEN and the number was **one** — the illustrative example *in the rule itself* was already one of
+  the three, so quoting it again double-counted one incident. Every item was real; two were the same item.
+  That is a different fault from mis-counting a list (07-C71).
 - **When my summary line and my raw data disagree, believe the data.** Caught three wrong verdicts; each
   was a wrong comparison, and a summary is a second implementation that gets less review.
 - **If a defect should vanish with more budget and it does not, suspect the checker** — and if it does
