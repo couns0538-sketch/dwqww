@@ -45,7 +45,7 @@ And where a mate label IS gained, the printed line often does not deliver it. Th
 
 | source | complete PV -> mated | short PV -> not mated | lines |
 |---|---|---|---|
-| my depth-12 work on O+G and R | 35/35 | 4/4 | 39 |
+| my depth-12 work on O+G and R (28 lines) **+ the 11-line probe** | 35/35 | 4/4 | 39 |
 | **seat 07, independent implementation** | 23/23 | 1/1 | 24 |
 | my depth ladder 6-20, winning positions | 27/27 | 10/10 | 37 |
 | **my depth ladder 6-20, losing positions** | 29/29 | 4/4 | 33 |
@@ -53,6 +53,10 @@ And where a mate label IS gained, the printed line often does not deliver it. Th
 
 Two independent implementations, and within mine the test crosses position sets, both mate signs (`mate +N` and
 `mate -N` — a pipeline labels those differently) and depths 6 to 20.
+
+The 39 in the first row is two of my own runs combined — the 28-line depth-12 corpus (26 complete + 2 short) and an
+11-line probe (9 complete + 2 short) — which I had to re-derive from the raw files because I first described that row as
+the depth-12 work alone.
 
 **Method caveat, stated so the total is not over-read:** all four sources replay PVs with python-chess, so they share a
 *method*; what varies is position set, sign, depth range and — for seat 07 — the implementation. The rule has not been
