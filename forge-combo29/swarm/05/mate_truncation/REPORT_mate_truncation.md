@@ -60,27 +60,32 @@ At `go nodes 250000` the same position is consistent (`mate 7`, 13/13), as is `g
 So the honest statement is: **the rate falls as the budget rises, but the defect is still present at a 50,000-node match
 budget on long mates, and I have NOT established any budget at which it is absent.**
 
-**A later measurement narrowed it to a one-iteration window.** On that same position the full node ladder is: 5000 → no
-mate score (cp +3725, d8); 10000 → cp +3935 (d9); 15000/20000/30000 → cp +4056, d10, all identical (10,515 nodes);
-**50000 → `mate 11`, 18 of 21 plies, short by 3**; 80000 → `mate 7` 13/13 (74,525 nodes, d13); 120000 → identical;
-250000 → `mate 7` 13/13 (d14); 500000 → same (d15).
+### The node ladder — the evidence, on the known violator
 
-So the defect is neither "below" nor "above" a narrow band: below 50,000 nodes the engine has not yet found the mate,
-and from 80,000 up the mate it finds is short enough for its depth. That makes it a **one-iteration artefact** — the
-depth-11 iteration completes carrying a mate score whose PV that depth cannot fill — rather than a general property of
-node-limited search. It is still on the owner's path, because 50,000 nodes is one of their match budgets.
+Position `r2r4/pB2kpp1/n1p4p/1p5p/2n5/1q1bP2P/2PBN3/4K2R b - - 1 40`, PC r15 + PC20, Threads 1, Hash 16, OwnBook false,
+fresh process per row:
 
-**And where it does occur, the move does not change — now checked on the match-budget case too.** Two positions:
+| `go nodes` | score | depth | nodes used | PV plies | needed | verdict |
+|---|---|---|---|---|---|---|
+| 5,000 | cp +3725 | 8 | 3,190 | 14 | — | no mate score yet |
+| 10,000 | cp +3935 | 9 | 5,736 | 12 | — | no mate score yet |
+| 15,000 | cp +4056 | 10 | 10,515 | 10 | — | no mate score yet |
+| 20,000 | cp +4056 | 10 | 10,515 | 10 | — | no mate score yet |
+| 30,000 | cp +4056 | 10 | 10,515 | 10 | — | no mate score yet |
+| **50,000** | **mate +11** | 11 | 44,749 | **18** | **21** | **SHORT by 3** |
+| 80,000 | mate +7 | 13 | 74,525 | 13 | 13 | ok |
+| 120,000 | mate +7 | 13 | 74,525 | 13 | 13 | ok |
+| 250,000 | mate +7 | 14 | 138,869 | 13 | 13 | ok |
+| 500,000 | mate +7 | 15 | 293,711 | 13 | 13 | ok |
 
-- G/59 at `go softnodes 2000`: score `mate 4` with a 6-ply PV (needing 7), but the move is `c4a6` at softnodes 2000, 5000,
-  `go depth 12` and `go nodes 20000` — identical.
-- The S-F58 position that truncates at `go nodes 50000` (`mate 11`, 18 of 21 plies): the move is **`b3c2` at every budget** —
-  softnodes 2000, nodes 20000, nodes 50000, nodes 250000 and depth 20 — and the PV's first move equals the bestmove in
-  every row.
+**Reproducibility at the three decisive budgets, 3 fresh runs each:** 30,000 → `cp +4056` pv10 ×3; 50,000 → `mate +11`
+pv18 ×3; 80,000 → `mate +7` pv13 ×3 — identical within each budget (`out/ladder_repeat.txt`).
 
-So the defect as I can observe it is confined to the **score and PV-length reporting**: the engine chose the same move
-whether or not its PV was long enough to justify its own score. That is two positions, not a distribution — enough to say
-"the move did not change here", not enough to claim it never does.
+Read the table: below 50,000 nodes the engine has not yet found the mate at all; from 80,000 up the mate it finds is
+short enough for its depth. The defect exists in a **narrow one-iteration window** — the depth-11 iteration completes
+carrying a `mate 11` whose PV that depth cannot fill. It is not a general property of node-limited search, and it is
+still on the owner's path because 50,000 nodes is one of their match budgets. Where it occurs the MOVE was unaffected
+(S-F59).
 
 ## What I got wrong along the way, and corrected
 
