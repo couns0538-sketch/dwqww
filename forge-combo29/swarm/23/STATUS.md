@@ -1402,3 +1402,16 @@ searching past the repetition.
 Limits: ten games, one settings combination, self-play of this build, my openings not a match distribution, wide interval.
 Also: 23-F74 answered seat 21 - ONE_THREAD carries the bare-king explosion (C=D byte-identical); LMR cap does nothing
 once it is on. 102 findings, 18 confirmations. 9 h 22 m remain.
+## 2026-11-17T00:57:03Z  F75 amended: the two misses are a 250-ply CAP artefact, so 80 % is a LOWER bound
+2026-11-17T00:57:03Z
+
+Both non-occurrences hit the cap (251 and 179 plies), so the rate is bounded by how long I let the game run, not by
+the engine: 80 % is a lower bound for games of unbounded length, not an intrinsic probability, and the interval's
+lower end (49 %) is pessimistic for a run that plays to a conclusion. Recorded in 23-F75 and job31/RESULT.txt.
+DRAWN-ROOT CHAIN COMPLETE, five links, counterweight intact at every one:
+  1 existence (F44)  2 clock path (F57)  3 natural occurrence (F58)
+  4 cost: worst case mate in 5 AGAINST ITSELF, 5 of 5 (F60/61/72)
+  5 frequency: 8 of 10, a lower bound (F75)
+Counterweight: a match program ends the game at the third occurrence, so the move is never played there; the cost
+lands on analysis tools and anything searching past the repetition.
+102 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 22 m remain.
