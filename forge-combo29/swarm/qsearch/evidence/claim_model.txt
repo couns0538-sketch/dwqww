@@ -1,0 +1,44 @@
+=== Independent FIDE claim model vs engine ===
+
+PART 1 - the model's depth instability on position A. This is why the
+         '-620' value was WITHDRAWN: the model alternates -520/-620 by depth
+         parity, on two independent movegens, so neither value is established.
+
+  scripts/claim_model.cpp, position A (6k1/5ppp/8/8/8/8/8/R5NK b - - H 40):
+  depth     H=96     H=97     H=98
+      2     -520     -520     -520
+      3     -520     -520        0
+      4     -620     -620        0
+      5     -520     -520        0
+      6     -620     -620        0
+      7     -520     -520        0
+      8     -620     -620        0
+
+  H=96 and H=97 are IDENTICAL at every depth. The parity alternation is a property
+  of the material-only leaf, not of the position.
+
+PART 2 - base vs repair, the numbers the report actually uses.
+
+  --- base (go depth 20) ---
+    H    score       nodes  seldepth
+   94     -631     4734937        38
+   95     -638     3349692        46
+   96     -630     3402177        39
+   97        0        2672        20
+   98        0        1079        20
+   99        0         635        20
+  100        0           0        20
+
+  --- repair (go depth 20) ---
+    H    score       nodes  seldepth
+   94     -631     4734937        38
+   95     -638     3349692        46
+   96     -630     3402177        39
+   97     -649     5243161        37
+   98        0        1079        20
+   99        0         654        20
+  100        0           0        20
+
+Position B (mate available, no pawn resets) at go depth 12:
+  base    H=96:-1/63  H=97:-1/63  H=98:-1/63  H=99:0/36  H=100:0/0
+  repair  H=96:-1/63  H=97:-1/63  H=98:-1/63  H=99:-1/63  H=100:0/0
