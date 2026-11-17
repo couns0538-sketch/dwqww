@@ -863,3 +863,11 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - **SPLITS my own S-F43**: "no PC20 switch closes empty searchmoves" stays true for empty/ILLEGAL restrictions, while a
   SATISFIABLE restriction IS repaired. Two inputs, both statements true, previously bundled as one.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:25:17Z searchmoves split stated as a PAIRED claim in all three places (incl. the owner page)
+- Paired form: **a SATISFIABLE restriction IS repaired** (searchmoves <legal mating move> at hm100 -> `mate 1` / 8
+  nodes, vs base cp 0 / 0 nodes) **and an EMPTY OR ILLEGAL restriction is NOT** (`go searchmoves` naming nothing legal
+  -> `0000` / cp 0 / 0 nodes, PC build too). Either half alone misleads.
+- Placed in FINDINGS, job81/CONFIRM_21F12.md, and the OWNER PAGE (new section "two different searchmoves answers"),
+  because a page reader is the one most likely to act on half of it.
+Next: continue in the window (ends 2026-11-17T10:18Z).
