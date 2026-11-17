@@ -1,0 +1,61 @@
+## FABLE file 7 Step 3 — two builds per side, 20 alternating runs each
+
+Order per round is B1 P1 B2 P2, so machine drift hits both sides equally.
+
+| round | B1 ms | P1 ms | B2 ms | P2 ms | nodes all equal? |
+|---|---|---|---|---|---|
+| 1 | 2110 | 2066 | 2106 | 2057 | yes |
+| 2 | 2109 | 2087 | 2139 | 2090 | yes |
+| 3 | 2151 | 2069 | 2124 | 2081 | yes |
+| 4 | 2101 | 2067 | 2101 | 2078 | yes |
+| 5 | 2107 | 2072 | 2092 | 2061 | yes |
+| 6 | 2107 | 2069 | 2097 | 2079 | yes |
+| 7 | 2134 | 2059 | 2117 | 2068 | yes |
+| 8 | 2117 | 2076 | 2113 | 2069 | yes |
+| 9 | 2127 | 2064 | 2109 | 2072 | yes |
+| 10 | 2092 | 2081 | 2108 | 2075 | yes |
+| 11 | 2121 | 2069 | 2102 | 2086 | yes |
+| 12 | 2097 | 2093 | 2107 | 2094 | yes |
+| 13 | 2093 | 2075 | 2103 | 2068 | yes |
+| 14 | 2125 | 2072 | 2088 | 2084 | yes |
+| 15 | 2089 | 2068 | 2087 | 2105 | yes |
+| 16 | 2106 | 2064 | 2101 | 2081 | yes |
+| 17 | 2100 | 2078 | 2099 | 2090 | yes |
+| 18 | 2108 | 2080 | 2116 | 2095 | yes |
+| 19 | 2136 | 2091 | 2127 | 2102 | yes |
+| 20 | 2108 | 2076 | 2094 | 2086 | yes |
+
+## The four builds
+
+| build | median ms | min | max | runs |
+|---|---|---|---|---|
+| B1 | **2108** | 2089 | 2151 | 20 |
+| B2 | **2104** | 2087 | 2139 | 20 |
+| P1 | **2072** | 2059 | 2093 | 20 |
+| P2 | **2081** | 2057 | 2105 | 20 |
+
+## The build-to-build spread the brief warns about (19-F7: 4.2 %)
+
+| comparison | ratio | meaning |
+|---|---|---|
+| B2 / B1 (same source, two builds) | **0.9983** | 0.2 % apart |
+| P2 / P1 (same source, two builds) | **1.0043** | 0.4 % apart |
+
+## The effect, pooled over both builds per side
+
+| quantity | value |
+|---|---|
+| base median ms (40 runs) | 2107 |
+| patch median ms (40 runs) | 2076 |
+| **ratio patch/base** | **0.9853** |
+| speed change | **+1.47 %** |
+| bootstrap 95 % interval of the ratio | **0.9822 .. 0.9884** |
+| as a speed gain | +1.16 % .. +1.78 % |
+
+| question | answer |
+|---|---|
+| is the interval entirely below 1.0 (patch faster)? | **YES** |
+| is the effect larger than the build-to-build spread? | **YES** (effect 1.47 %, spread 0.43 %) |
+
+**Step 3 verdict: the patch is faster, and the interval excludes 1.0** — 1.47 % pooled, over 40 runs per
+side across two builds each, with the build-to-build spread reported beside it.
