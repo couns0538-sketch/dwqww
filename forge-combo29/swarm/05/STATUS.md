@@ -755,3 +755,10 @@ every sentence.
   Their "violations get more frequent with depth" was measured under S14 and needs that qualifier.
 - This also refines my own S-F27 story: PC20 shrinks the window (S-F29), and here it closes a case entirely.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-W8 INCONCLUSIVE (recorded so it is not read as a zero): I tried to test seat 15's "violations get more frequent with
+  depth" under PC20 — 60 G positions at depths 12/14/16 gave only 1, 1 and 2 mate scores respectively, none truncated.
+  0-of-1 and 0-of-2 is not evidence about a rate; G positions almost never carry a mate score at those depths (their own
+  15-F8 says the same of O). A real test needs the long-mate set from S-F58.
+- next command: continue at cadence.
