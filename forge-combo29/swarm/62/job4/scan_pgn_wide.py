@@ -48,6 +48,16 @@ def no_reset(board):
 
 
 def mate_distance(board):
+    """Smallest even k in K_VALUES with a forced mate, or None.
+
+    A board with NO legal moves is excluded: that is a terminal position
+    (checkmate or stalemate), already decided, and the engine answers `mate 0`
+    with 0 nodes for it. Counting such a position as a "hit" of the fifty-move
+    defect would be wrong -- the first version of this scan did exactly that on
+    `2k1Q3/8/1K6/8/8/8/8/8 b - - 100 106`, which is already checkmate.
+    """
+    if not any(board.legal_moves):
+        return None
     for k in K_VALUES:
         if mated_within(board, k):
             return k
@@ -109,8 +119,14 @@ def main():
                     if p is None:
                         continue
                     H = board.halfmove_clock
-                    rec = {"fen": fen, "H": H, "p": p, "j0": 100 - H,
-                           "in_band": H > 100 - p,
+                    j0 = 100 - H
+                    # The defect needs the clock-100 node to be reached BELOW the
+                    # root, i.e. j0 >= 1 (H <= 99). At H = 100 the side to move
+                    # can itself claim the fifty-move draw, so 0 is correct there
+                    # and that cell is excluded rather than counted as a hit.
+                    in_band = (j0 >= 1) and (p > j0)
+                    rec = {"fen": fen, "H": H, "p": p, "j0": j0,
+                           "in_band": in_band,
                            "file": os.path.basename(path),
                            "white": game.headers.get("White", "?"),
                            "black": game.headers.get("Black", "?"),
