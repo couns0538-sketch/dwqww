@@ -48,8 +48,8 @@ answer in only 22 of 40 positions.
 
 ```
 forge-combo29/swarm/multipv/
-  FINDINGS.md                  the report; every count is a [[marker]] resolved from evidence/
-  FINDINGS.rendered.md         same file with markers substituted (generated, do not edit)
+  FINDINGS.md                  THE REPORT. Generated from the template, zero markers
+  FINDINGS.template.md         source with [[markers]]; edit this, then run render.py
   STATUS.md                    this file
   scripts/
    00_build_and_pins.sh       build with g++ + LIBRARY_PATH, check the four honesty pins
@@ -63,7 +63,7 @@ forge-combo29/swarm/multipv/
    agreement.py               the judge noise floor that retired the searchmoves judge
    fastpaths.py               property 6: book, drawn roots, precedence, searchmoves
    budget_stability.py        the same budget measurement three times; reports every repeat
-   verify_counts.py           resolves every marker, or fails; has its own selftest
+   render.py                  template -> FINDINGS.md; fails if any marker survives
   evidence/
    audit.json                 structural, controls, agreement, time pressure, promotion
    judge.json                 property 5 verdicts and the depth-only control
@@ -108,5 +108,6 @@ cd forge-combo29
 ./swarm/multipv/scripts/run_all.sh build/forge   # writes evidence/, renders FINDINGS.rendered.md
 ```
 
-`run_all.sh` exits non-zero if any stage fails, including `verify_counts.py`, which fails if any
-report marker names no counter.
+`run_all.sh` exits non-zero if any stage fails. The last two stages are `render.py` (fails if a
+marker survives into its output, if a marker names no counter, or if a denominator resolves to 0)
+and `render.py --check` (fails if the committed `FINDINGS.md` is stale or contains a marker).

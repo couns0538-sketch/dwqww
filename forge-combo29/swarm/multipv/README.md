@@ -46,15 +46,16 @@ cd forge-combo29
 ```
 
 `run_all.sh` runs the checker self-tests **before** the measurements, prints each stage's counters,
-and ends with `verify_counts.py`, which resolves every `[[counter]]` marker in `FINDINGS.md` against
-the JSON in `evidence/` and fails if any names no counter.
+and ends with `render.py`, which turns `FINDINGS.template.md` into `FINDINGS.md` and **fails if any
+`[[counter]]` marker survives into its own output**. `FINDINGS.md` is the file a reader opens; it is
+generated, so it cannot be committed with a placeholder in it.
 
 ## Layout
 
 | file | what it is |
 |---|---|
-| `FINDINGS.md` | the report. Every measured figure is a `[[marker]]`, not a typed number |
-| `FINDINGS.rendered.md` | the same file with markers substituted; generated, do not edit |
+| `FINDINGS.md` | **the report a reader opens.** Generated; every figure resolved, zero markers |
+| `FINDINGS.template.md` | the source a human edits. Carries `[[marker]]`s instead of typed numbers |
 | `STATUS.md` | verdict, the six properties as a table, control inventory, limits |
 | `scripts/multipv_lib.py` | strict UCI harness — Threads 1, wait on `bestmove`, FEN gate |
 | `scripts/check_multipv.py` | the property checks + `--selftest` with 13 planted faults |
@@ -65,5 +66,5 @@ the JSON in `evidence/` and fails if any names no counter.
 | `scripts/agreement.py` | the `searchmoves` noise floor that retired the first judge |
 | `scripts/fastpaths.py` | property 6: book, drawn roots, precedence, `searchmoves` |
 | `scripts/budget_stability.py` | the budget measurement three times, so the range is visible |
-| `scripts/verify_counts.py` | resolves report markers or fails; has its own `--selftest` |
+| `scripts/render.py` | renders the template into `FINDINGS.md`; 4 checks incl. zero-residual; `--selftest` |
 | `evidence/` | every JSON the report cites, plus raw stdout under `evidence/wire/` |

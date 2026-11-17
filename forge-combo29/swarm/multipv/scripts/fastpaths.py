@@ -100,9 +100,13 @@ def main():
         "max_pv_len": max((len(p["pv"]) for p in infos), default=0)})
 
     # summary, computed not typed
+    book_gt1 = [r for r in out["book"] if r["ownbook"] and r["mpv"] > 1]
     s = {
-        "book_lines_at_mpv_gt_1": sorted({r["info_depth_lines"] for r in out["book"]
-                                          if r["ownbook"] and r["mpv"] > 1}),
+        # scalar so a report marker can cite a number, not a set of one element
+        "book_lines_at_mpv_gt_1": max(r["info_depth_lines"] for r in book_gt1),
+        "book_multipv_tokens_max": max(r["multipv_tokens"] for r in book_gt1),
+        "book_arms_at_mpv_gt_1": len(book_gt1),
+        "book_controls": sum(1 for r in out["book"] if not r["ownbook"]),
         "book_control_info_lines_min": min(r["info_depth_lines"] for r in out["book"] if not r["ownbook"]),
         "book_control_multipv_tokens_min": min(r["multipv_tokens"] for r in out["book"] if not r["ownbook"]),
         "book_bestmove_matches_info_string": all(
@@ -110,7 +114,10 @@ def main():
             for r in out["book"] if r["ownbook"] and r["info_string_lines"]),
         "drawn_max_multipv_index_at_mpv_gt_1": max(max(r["multipv_indices"]) for r in out["drawn"]
                                                    if r["mpv"] > 1),
-        "drawn_distinct_depths": sorted({r["distinct_depths"] for r in out["drawn"]}),
+        "drawn_arms": sum(1 for r in out["drawn"] if r["mpv"] > 1),
+        "drawn_arms_max_index_gt_1": sum(1 for r in out["drawn"]
+                                         if r["mpv"] > 1 and max(r["multipv_indices"]) > 1),
+        "drawn_distinct_depths_max": max(r["distinct_depths"] for r in out["drawn"]),
         "drawn_pv_all_empty": all(r["pv_all_empty"] for r in out["drawn"]),
         "drawn_nodes_all_zero": all(r["nodes_all_zero"] for r in out["drawn"]),
         "precedence_book_lines": out["precedence"][0]["info_depth_lines"],

@@ -115,8 +115,22 @@ def ex(res, kind, **kw):
 # --------------------------------------------------------------------------------------------
 # 1-4: structural, fixed depth
 # --------------------------------------------------------------------------------------------
+ZERO_IF_ABSENT = ("emission_order_violations", "index_order_violations", "pvlen_violations",
+                  "pv_longer_than_depth", "pv_longer_than_seldepth", "illegal_pv_moves",
+                  "duplicate_first_moves", "incomplete_blocks", "bestmove_mismatch_final",
+                  "final_block_short", "printed_nodes_non_monotone_in_block",
+                  "hashfull_decreases_inside_block", "line_pv_gt_depth", "no_info_lines",
+                  "final_pv_len_eq_depth", "final_pv_len_ne_depth",
+                  "final_block_pv_monotone", "final_block_pv_not_monotone",
+                  "final_block_line1_longest", "final_block_line1_not_longest")
+
+
 def audit_structural(exe, fens, mpvs, depth, res):
     t = res["structural"]
+    # register every counter at 0 before measuring, so a clean run reports 0 rather than omitting
+    # the key.  An absent key and a measured zero print the same in a report; only one is evidence.
+    for k in ZERO_IF_ABSENT:
+        t.add(k, 0)
     for fen in fens:
         legal = chess.Board(fen).legal_moves.count()
         for mpv in mpvs:

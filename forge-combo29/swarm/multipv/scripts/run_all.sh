@@ -53,7 +53,7 @@ stage "wire control" bash -c "$PY '$HERE/wire_control.py' '$EXE' | tee '$EV/wire
 # --- the six properties ----------------------------------------------------------------------
 stage "structural + controls + agreement" "$PY" "$HERE/audit.py" "$EXE" \
       --positions 40 --depth 12 --json "$EV/audit.json"
-stage "verify_counts selftest" bash -c "$PY '$HERE/verify_counts.py' --selftest"
+stage "render selftest" bash -c "$PY '$HERE/render.py' --selftest"
 stage "budget stability" "$PY" "$HERE/budget_stability.py" "$EXE" \
       --positions 40 --mpv 6 --repeats 3 --json "$EV/budget_stability.json"
 stage "instability control" "$PY" "$HERE/instability.py" "$EXE" \
@@ -80,7 +80,8 @@ json.dump({"assertions": int(m.group(1)), "blind": int(m.group(2)),
           open(os.path.join(ev, "wire_control.json"), "w"), indent=1)
 print("selftest/wire counters lifted from their own output")
 PYEOF
-stage "verify counts" "$PY" "$HERE/verify_counts.py"
+stage "render report" "$PY" "$HERE/render.py"
+stage "report is committed and current" "$PY" "$HERE/render.py" --check
 
 echo
 if [ "$rc" = 0 ]; then echo "run_all: all stages passed"; else echo "run_all: AT LEAST ONE STAGE FAILED"; fi
