@@ -578,3 +578,17 @@ truncation artefact. That check is in the finding deliberately, because S-W1's w
 Method note for anyone repeating this: seat 19's committed `dtm.py` enumerates whole signatures and its tables are
 summaries, so for picking individual positions the workable oracle is generating candidates and reading the
 engine's own mate distance at depth 20.
+
+## 2026-11-17T01:10Z CLOCK THREAD CLOSED on seat 28's proof; settings discipline complete
+**The clock question is settled by arithmetic, not by anything I measured.** Seat 28's S-F44 gives the fixed point of
+`clock' = clock - spend + increment`; I recomputed it from `clock_plan.hpp` independently and it holds exactly:
+**worst-case spend converges to 111 ms from EVERY starting clock (6000/3000/1000/500/300/200/150), matching their
+analytic `MoveOverhead + increment*100/TmHardPercent` = 110 ms within integer division; typical spend settles far
+higher (1,230 ms from 6 s, 452 ms from 1 s).** Both halves belong together: **the clock cannot be lost by searching,
+and a real game sits well above the floor.** My earlier forfeits were my harness draining a clock through ~1300 ms of
+per-move overhead. **Quote S-F44, not my S-C11 chain.**
+**Settings discipline is now two assertions, both runnable in one command:** `check_settings.py` (count = 22, "were
+they sent?") and `check_settings_values.py` (values match canon, "were they the right ones?"). The value check is
+proven to catch a planted `5643 -> 5634` transposition; 15 of 15 harnesses pass by value.
+**Five corrections on this subject, in order:** magnitude retracted, mechanism retracted, PC20 label found false,
+S-C18a's counter inference withdrawn, and finally closed on seat 28's proof.
