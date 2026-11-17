@@ -1,0 +1,30 @@
+THE COUNTER-90 ANOMALY IS REAL AND REPRODUCIBLE: the BASE explodes near the horizon, the PC does not
+=============================================================================================
+My first sighting of this was a single run at counter 90 (base 10.4M nodes vs PC 930k). Three FRESH PROCESSES per
+cell, both builds, depth 10 — every cell identical across its three runs, so this is engine behaviour, not noise:
+
+| counter | base nodes (3/3) | PC nodes (3/3) | base score | PC score |
+|---|---|---|---|---|
+| 88 | 97,384 | 178,232 | cp 361 | cp 271 |
+| 89 | 501,621 | 306,279 | cp 364 | cp 279 |
+| **90** | **10,445,791** | **930,573** | cp 271 | cp 231 |
+| **91** | **16,370,887** | **7,251,835** | cp 0 | cp 0 |
+| 92 | 1,353,048 | 1,459,778 | cp 0 | cp 0 |
+
+WHAT IS REAL: **the base build explodes as the counter approaches 100, by up to 11x the PC's node count (counter 90:
+10.4M vs 930k), peaking at 16.4M at counter 91.** Every value is identical across three fresh processes, so this is a
+deterministic property of the engine, not measurement noise.
+
+WHY IT IS A FINDING AND NOT AN ANOMALY NOW: an 11x node explosion at a specific counter near the fifty-move horizon is
+a real cost on a real board — it is the same family as seat 21's depth-13 explosion (23-F74) and is invisible at a
+clock (the position is answered long before depth 10 is reached in a fast game). It also means a harness sweeping
+counters at fixed depth meets an 11x wall between counters 89 and 90 that has nothing to do with the position's value
+(the score only changes from cp 364 to cp 271).
+
+WHAT I DO NOT KNOW: the mechanism. I have not read the code path, and I am not going to guess in a finding line. The
+honest statements are (a) it is reproducible to the node in three fresh processes, (b) it is the base more than the
+PC, and (c) it happens in the two counters immediately below the fifty-move boundary.
+
+CONTEXT FROM 23-C26/F80: those swept the same board and saw 90 -> cp 271, 91 -> cp 0 at depth 10 without recording node
+counts, so the earlier findings are unaffected — this is about COST, not about the score curve, and the curve is
+unchanged (cp 364 at 89, cp 271 at 90, cp 0 at 91).
