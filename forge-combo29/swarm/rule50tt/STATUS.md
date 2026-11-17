@@ -69,3 +69,12 @@
 (the two shared-process sweeps, retained as the withdrawn designs their successors fixed)
 
 No binaries, no `__pycache__` committed.
+
+## Where the engine lives
+
+**`main` does not contain `forge-combo29/`.** This branch is `main` plus
+`forge-combo29/swarm/rule50tt/` only, so the scripts need the engine sources from base
+`6b98f217` to run. `FINDINGS.md` "Reproducing" has the exact checkout sequence. This was
+caught by trying it: `pins.sh` on this branch alone fails at `cmake` with
+"does not appear to contain CMakeLists.txt", which a reader would otherwise have hit
+after following the instructions.

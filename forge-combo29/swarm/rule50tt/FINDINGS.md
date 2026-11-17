@@ -308,8 +308,22 @@ find it there. The TT's own clock field is not implicated anywhere in this seat.
 
 ## Reproducing
 
+**Read this first.** `main` does not contain `forge-combo29/` at all, and this branch is
+`main` plus `swarm/rule50tt/` only (deliberately — it keeps the PR diff to 38 files instead
+of 13,000). So **the scripts here cannot be run against the branch alone**: they need the
+engine sources at **base commit `6b98f217`**.
+
 ```bash
+git clone https://github.com/couns0538-sketch/dwqww
+cd dwqww
+git checkout 6b98f217                                    # the audit base, NOT main
+git checkout cd4a44b65 -- forge-combo29/swarm/rule50tt    # this seat's folder
 cd forge-combo29
+```
+
+Then:
+
+```bash
 swarm/rule50tt/scripts/pins.sh                      # gate: four pins, refuses to continue
 python3 swarm/rule50tt/scripts/make_plan.py /tmp/plan.csv
 g++ -std=c++20 -O2 -I include -DNDEBUG -DFORGE_NNUE_HIDDEN=256 \
@@ -325,6 +339,14 @@ python3 swarm/rule50tt/scripts/fresh_diff.py stale  /tmp/stale.json
 python3 swarm/rule50tt/scripts/report_stale.py      /tmp/stale.json
 python3 swarm/rule50tt/scripts/sweep_branches_final.py
 python3 swarm/rule50tt/scripts/exp_bail.py
+python3 swarm/rule50tt/scripts/exp_evasion.py
+python3 swarm/rule50tt/scripts/exp_evasion_diff.py
 ```
 
-Variants build under `/tmp/forge-variants/`; **none are committed as binaries**.
+Variants build under `/tmp/forge-variants/`; **none are committed as binaries**. The
+`FORGE_NNUE_WEIGHTS` value must reach the compiler with the quotes intact — an unquoted path
+fails with `#include expects "FILENAME"`.
+
+**Verified, not asserted:** `/tmp/ttprobe` was built from a clean clone of this branch and
+reproduced `43 cells, landed 43, mismatches 0` with both controls firing, after the branch
+had been collapsed to `main` + this folder.
