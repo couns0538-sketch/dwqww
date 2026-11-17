@@ -264,6 +264,53 @@ rather than weaken the guard, and note that the guard over-reports on ordinary E
 **Guards at 03:15Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
 `audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> re-run at the close below.
 
+## 2026-11-17T04:07Z - CYCLE (f) seed 2561: the score-change remedy FAILS and inverts; and a prediction that contradicted its own definition
+
+**Prediction pushed alone at `e1003ced8` before measuring.** Report: `job1g/REPORT_job1g.md`.
+**Record:** S1 HIT, S2 HIT, **S3 direction right / magnitude wrong by 5x**, **S4 KILLED by my own definition**, S5 HIT,
+S6 HIT, S7 HIT (1 board), S8 honoured (no mate-frequency guess).
+
+### S-C56: the criterion S-C53 named as the remedy is INVERTED, not merely weaker
+
+Three strata on R7 (300 positions), all defined from the **selection** data only, with the outcome playing no part
+in selection:
+
+| stratum | definition | n | disagree | rate | 95% CI |
+|---|---|---|---|---|---|
+| **move-unstable** (S-C51/S-C54 rule) | `bestmove(d12) != bestmove(d16)` | 35 | 20 | **57.1%** | [40.9, 72.0] |
+| **score-unstable** (the remedy) | same move, `|Δscore| >= 50 cp` | 109 | 7 | **6.4%** | [3.1, 12.7] |
+| **neither** | — | 156 | 21 | **13.5%** | [9.0, 19.7] |
+
+**The remedy targets boards where the effect is rarest** - less than half the rate of the boards it excludes. The
+mechanism: a big score change with the move unchanged marks a search that has **already converged on the choice** and
+is refining only its evaluation; MultiPV perturbs the *choice*, so a settled choice does not move. **The instability
+that matters is instability of the CHOICE, not of the NUMBER.**
+
+That also explains board 121 retrospectively: it was STABLE by the move rule yet wrong about its distance, because
+its failure is a **distance** error in a settled search while the MultiPV effect is a **choice** effect in an unsettled
+one. Conflating the two was the error, and the data separated them cleanly. **S-C53's named limitation stands, but the
+remedy it proposed is now measured and rejected** - recorded there rather than quietly dropped.
+
+### S-C57: a prediction whose falsification was guaranteed by my own definitions
+
+S4 predicted 60-100% overlap between the move and score strata, while the same document defines the score stratum as
+`bestmove(d12) == bestmove(d16)` and the move stratum as `!=`. **The intersection is empty by construction.** The run
+reported "KILLED" for a prediction that was dead when written. **New error class: not a wrong number, not a wrong
+harness, but a prediction the definitions made unfalsifiable** - worse than a wrong guess, because a wrong guess can
+inform. Nineteenth control error; the first located in the prediction instead of the measurement. The substantive
+question is now answered properly: of the 35 move-unstable boards, **10 (28.6%)** also change score by >=50 cp, so the
+two phenomena are largely SEPARATE rather than nested - which is itself why the score criterion cannot substitute.
+
+### Board 106: a third candidate, verdict pending at this block
+
+R7 board 106 (`6nr/7p/p2krp2/R1pP1bP1/1QP4p/4p3/3NP3/1B2K1NR w`) reports `mate 10` / `a5a6` at depth 12 (19-ply PV,
+right length, ends in mate) and `mate 7` / `b4c5` at depth 16 (13-ply PV, right length, ends in mate). Verifying the
+shorter claim first: **n=1..5 all not forced** (n=5 took 422.9 s, 4.6 M memo entries); **n=6 and n=7 unfinished** when
+this block was written. So a third instance stays **unconfirmed** and the demonstrated count remains **two**.
+
+**Guards at 04:07Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
+`audit_final.py` -> **0 mismatches**.
+
 ## 2026-11-17T03:40Z - CYCLE (e) seed 2551: S-C51 firmed up on a selected set, and a SECOND right-length-wrong-mate board that fails in the other direction
 
 **Prediction pushed alone at `325afac53` before measuring.** Report: `job1f/REPORT_job1f.md`.
