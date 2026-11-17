@@ -12,8 +12,10 @@ Run from within forge-combo29/swarm/23.
 """
 import os, re, sys
 
-PAGE = 'RULE_known_answer_control.md'
-HERE = os.path.abspath(os.getcwd())
+# 23-F227: was os.getcwd() - the CALLER's directory - so every relative open below silently
+# resolved against wherever the script was invoked from. Anchored to the script itself.
+HERE = os.path.dirname(os.path.abspath(__file__))
+PAGE = os.path.join(HERE, 'RULE_known_answer_control.md')
 ROOT = '/agent/repos/dwqww'
 SEAT = 'forge-combo29/swarm/23'
 prefixes = ['', './', HERE + '/', ROOT + '/', os.path.join(ROOT, SEAT) + '/']

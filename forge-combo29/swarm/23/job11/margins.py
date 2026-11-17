@@ -107,7 +107,14 @@ for fen, a, c in changed:
         print("| %s | %s | MISSING | %s | MISSING | - | - |" % (fen, a, c))
         continue
     gap = abs(sa - sc)
-    winner = a if sa > sc else c
+    # A tie must be its own outcome: `a if sa > sc else c` credits an equal score to c,
+    # and the c-count below would then read the tie as evidence for the 250000 budget (23-F225).
+    if sa > sc:
+        winner = a
+    elif sc > sa:
+        winner = c
+    else:
+        winner = "tie"
     rows.append({"fen": fen, "a": a, "sa": sa, "c": c, "sc": sc, "gap": gap, "winner": winner})
     print("| %s | %s | %d | %s | %d | %d | %s |" % (fen, a, sa, c, sc, gap, winner))
 
@@ -115,12 +122,14 @@ if rows:
     gaps = sorted(r["gap"] for r in rows)
     med = gaps[len(gaps) // 2]
     better_250 = sum(1 for r in rows if r["winner"] == r["c"])
+    ties = sum(1 for r in rows if r["winner"] == "tie")
     print()
     print("changed positions measured: %d" % len(rows))
     print("gap (centipawns, both candidates at depth %d): min %d, median %d, max %d"
           % (FIXED_DEPTH, gaps[0], med, gaps[-1]))
     print("positions where the 250000 move scores HIGHER at the fixed depth: %d of %d (%.0f %%)"
           % (better_250, len(rows), 100.0 * better_250 / len(rows)))
+    print("ties (equal score at the fixed depth, counted for NEITHER budget): %d" % ties)
     print("positions where the two candidates are within 30 cp: %d" % sum(1 for g in gaps if g <= 30))
 
 with open(OUT, "w") as f:

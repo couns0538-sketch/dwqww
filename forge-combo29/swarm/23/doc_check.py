@@ -11,7 +11,9 @@ Run from within forge-combo29/swarm/23.
 """
 import os, re, sys
 
-HERE = os.path.abspath(os.getcwd())
+# 23-F227: was os.getcwd() - the CALLER's directory - so every relative open below silently
+# resolved against wherever the script was invoked from. Anchored to the script itself.
+HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = '/agent/repos/dwqww'
 SEAT = 'forge-combo29/swarm/23'
 
@@ -60,6 +62,8 @@ ALLOW = {
 
 overall_ok = True
 for page in PAGES:
+    # 23-F227: PAGES are bare names; resolve against the script, not the caller's cwd.
+    page = page if os.path.isabs(page) else os.path.join(HERE, page)
     if not os.path.exists(page):
         print("%-34s MISSING PAGE" % page)
         overall_ok = False
@@ -98,6 +102,8 @@ print()
 print("leaked shell/code outside fenced blocks, by page:")
 _any_leak = False
 for page in PAGES:
+    # 23-F227: PAGES are bare names; resolve against the script, not the caller's cwd.
+    page = page if os.path.isabs(page) else os.path.join(HERE, page)
     if not os.path.exists(page):
         continue
     in_fence = False
@@ -140,8 +146,8 @@ if _any_drop:
 
 # COUNT-SNAPSHOT CHECK (23-F208): the FINAL states F / C / total row counts in prose, and a prose number is a snapshot
 # that goes stale the moment a row is added. Recompute from FINDINGS.md and compare.
-_fin = open('FINAL_CHAIN_LINE.txt').read() if os.path.exists('FINAL_CHAIN_LINE.txt') else ''
-_find = open('FINDINGS.md').read() if os.path.exists('FINDINGS.md') else ''
+_fin = open(os.path.join(HERE,'FINAL_CHAIN_LINE.txt')).read() if os.path.exists(os.path.join(HERE,'FINAL_CHAIN_LINE.txt')) else ''
+_find = open(os.path.join(HERE,'FINDINGS.md')).read() if os.path.exists(os.path.join(HERE,'FINDINGS.md')) else ''
 _rows = [l for l in _find.split('\n') if l.startswith('| 23-')]
 _ids = [l.split('|')[1].strip() for l in _rows]
 _nf = sum(1 for i in _ids if '-F' in i)
@@ -163,8 +169,8 @@ else:
 # that is not compared is a paraphrase with a label on it. Compare the two blocks directly.
 print()
 try:
-    _fin = open('FINAL_CHAIN_LINE.txt').read()
-    _gh = open('GUI_HAZARDS.md').read()
+    _fin = open(os.path.join(HERE,'FINAL_CHAIN_LINE.txt')).read()
+    _gh = open(os.path.join(HERE,'GUI_HAZARDS.md')).read()
     _i = _gh.index("| situation | `#info depth` lines")
     _j = _gh.index("\n\n", _i)
     _table = _gh[_i:_j].strip()

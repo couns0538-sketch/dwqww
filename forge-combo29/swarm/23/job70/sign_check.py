@@ -9,10 +9,10 @@ UCI convention: a score is from the SIDE TO MOVE of the position sent. This scri
 tests that convention on constructed boards where the answer is not in doubt.
 
 Exits nonzero if the sign is inverted or the convention does not hold."""
-import re, subprocess, sys
+import re, subprocess, sys, os
 INFO=re.compile(r"^info depth (\d+) .*?score (cp|mate) (-?\d+)")
 PC="/home/ubuntu/pcbuild/forge"
-OPTS=[l.strip() for l in open("pc20_opts.txt") if l.strip() and not l.startswith("#")]+["setoption name OwnBook value false"]
+OPTS=[l.strip() for l in open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"pc20_opts.txt")) if l.strip() and not l.startswith("#")]+["setoption name OwnBook value false"]
 def score(fen,depth=12):
     p=subprocess.Popen([PC],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
     p.stdin.write("uci\n");p.stdin.flush();names=set()

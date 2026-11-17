@@ -84,14 +84,23 @@ for mv in CYC:
     b.push(chess.Move.from_uci(mv))
 mates = [m.uci() for m in b.legal_moves if (lambda c: (c.push(m), c.is_checkmate())[1])(b.copy())]
 
+ok1 = last[2] == 0 and pvlen == 0
+ok2 = bm == order[0]
+ok3 = bool(mates) and bm not in mates
 print()
 print("CLAIM 1  the bail fires on a genuine threefold:      %s" % (
-    "PASS" if last[2] == 0 and pvlen == 0 else "**FAIL** (nodes %d, pv %s)" % (last[2], pvlen)))
+    "PASS" if ok1 else "**FAIL** (nodes %d, pv %s)" % (last[2], pvlen)))
 print("CLAIM 2  the move played is generator index 0:       %s  (index0 %s, played %s)" % (
-    "PASS" if bm == order[0] else "**FAIL**", order[0], bm))
+    "PASS" if ok2 else "**FAIL**", order[0], bm))
 print("CLAIM 3  that move forfeits an available mate:       %s  (mate in 1 %s, played %s)" % (
-    "PASS" if mates and bm not in mates else "**FAIL**", ",".join(mates) or "none", bm))
+    "PASS" if ok3 else "**FAIL**", ",".join(mates) or "none", bm))
 print()
 print("score reported: %s %d | info-line pv: %d plies" % (last[0], last[1], pvlen))
 print()
 print("If all three PASS, the FINAL's first page is verified on this board by this command.")
+print()
+if ok1 and ok2 and ok3:
+    print("VERDICT: PASS")
+    sys.exit(0)
+print("VERDICT: FAIL (%d of 3 claims)" % (3 - (ok1 + ok2 + ok3)))
+sys.exit(1)

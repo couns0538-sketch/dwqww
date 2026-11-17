@@ -16,7 +16,9 @@ Run from within forge-combo29/swarm/23.
 """
 import re, os, sys
 
-HERE = os.path.abspath(os.getcwd())
+# 23-F227: was os.getcwd() - the CALLER's directory - so every relative open below silently
+# resolved against wherever the script was invoked from. Anchored to the script itself.
+HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = '/agent/repos/dwqww'
 SEAT = 'forge-combo29/swarm/23'
 
@@ -52,7 +54,7 @@ if not ctl_ok or ctl_bad:
     sys.exit(2)
 
 rows = []
-for line in open('FINDINGS.md'):
+for line in open(os.path.join(HERE,'FINDINGS.md')):
     if not line.startswith('| 23-'):
         continue
     cells = [c.strip() for c in line.rstrip('\n').strip('|').split('|')]
@@ -95,7 +97,7 @@ if _strays:
 # that are not table rows. A findings file containing executable-looking text is a defect whether or not it breaks a table.
 _LEAK_PAT = ("open(", "print(", "import ", "subprocess", "PY", "python3 ", "git add", "git commit", "XEOF", "EOF")
 _leaks = []
-_in_text = open("FINDINGS.md").read().split("\n")
+_in_text = open(os.path.join(HERE,"FINDINGS.md")).read().split("\n")
 _in_fence = False
 for _i, _l in enumerate(_in_text, 1):
     _t = _l.strip()

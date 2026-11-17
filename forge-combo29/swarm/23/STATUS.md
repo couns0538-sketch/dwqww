@@ -2,7 +2,7 @@
 
 **Block: cold read of the FINAL's first page, then the fix, then the record. `date -u` at time of writing: 2026-11-17T03:41:47Z.**
 Window closes `2026-11-17T10:18:41Z`; **6h37m remaining**. Area 3, move generation vs python-chess. Seed 2301.
-Tip: `for-fable-and-opus/swarm-23`. **250 rows at 03:43:06Z.**
+Tip: `for-fable-and-opus/swarm-23`. **254 rows at 03:45:05Z.**
 
 ## This block
 
@@ -48,6 +48,22 @@ briefly thought the FINAL carried another error. My script had maximised WHITE's
 move — Black's worst. Ordered correctly, Black's recaptures give +6/+6/+8, so **the report's +6 is correct and my
 contradiction was the bug** (23-F220). The tell was in my own output: a "knight recapture" that took a pawn.
 
+**Then the tooling audit, which found the largest defect of the block.** Acting on the coordinator's point that a
+wrong-comparator error in a checker is worth finding, I asked the same question of every script: **can it report NO?**
+Two of the scripts the FINAL tells a reader to run — `frontpage_check.py` and `final_recheck.py` — **printed `**FAIL**`
+and exited 0**; `final_recheck`'s "11 of 11 agreeing" was a sentence in the report that no code produced (23-F226). Both
+now fail correctly, verified by planting a fault.
+
+Then, one level out: **five scripts had verdicts that depended on the directory you ran them from**, including all three
+gate checkers, whose `HERE = os.getcwd()` reads like hygiene and is the bug. The hook `cd`s first so the gate was safe,
+but a reader following §9's one-liners was not — and `doc_check.py` would have read the FINAL as an **empty string** and
+compared nothing against nothing (23-F227/F228). **All nine cited scripts now anchor to `__file__`, and
+`run_all_checks.sh` runs each twice, own-dir and from `/tmp`, failing if any verdict disagrees: 9 of 9 agree.**
+
+The comparator's sibling: `job11/margins.py` credited a **tie** to one candidate, which the c-count would have read as
+evidence. It never fired (17 rows, 0 ties) but was live; fixed to a three-way branch and tested against the old line
+(23-F225).
+
 ## The class, extended
 
 The coordinator's rule: a claim relating two texts is mechanisable when the relation is equality, but what actually holds
@@ -69,18 +85,20 @@ The boundary in three parts, each with a different answer, now stated in the FIN
 
 ## Numbers
 
-**250 distinct rows at 2026-11-17T03:43:06Z — 222 F (this seat's findings) and 28 C (confirmations of other seats').**
+**254 distinct rows at 2026-11-17T03:45:05Z — 226 F (this seat's findings) and 28 C (confirmations of other seats').**
 
 Stated as the count script printed it, not carried in my head. `sync_counts.py` rewrites the FINAL from `FINDINGS.md`.
 
 ## Checks, all three, this block
 
 - `audit_findings.py` → 0
-- `doc_check.py` → 0 (counts agree 222/28/250; GUI table and rules verbatim; VERDICT: PASS)
+- `doc_check.py` → 0 (counts agree 226/28/254; GUI table and rules verbatim; VERDICT: PASS)
 - `rule_check.py` → 0
 - `job70/verb_check.py` → 0 (13/13; planted fault → 1)
 - `job70/mech_check.py` → 0 (new; 10/10; planted wrong mechanism → 1)
-- `job70/sign_check.py` → 0 (new; sign convention verified on 3 constructed boards)
+- `job70/sign_check.py` → 0 (sign convention verified on 3 constructed boards)
+- `job11/tie_test.py` → 0 (new; tie branch tested from the real source; old line → exit 1)
+- `run_all_checks.sh` → 0 (new; all 9 scripts agree from own-dir and /tmp)
 - `job69/frontpage_check.py` → PASS, `job68/final_recheck.py` → 11/11
 
 ## Next
