@@ -14,7 +14,7 @@ engine searches normally; 3 plies past → it occurs three times → the engine 
 |---|---|---|
 | 2 | 29,994 | searches |
 | **3** | **0** | **BAIL** |
-| 4 (12-ply list) | **0** | **BAIL** |
+| 4 (12-ply list — the spacing variants could not hold the count at 3, see F142) | **0** | **BAIL** |
 
 And it holds when the repeated position sits at the END of a long list rather than at the root — 10-ply preamble, 2 →
 searches (17,399 nodes), 3/4/5 → bails (23-F141). So neither the branching factor nor the list position changes the rule.
