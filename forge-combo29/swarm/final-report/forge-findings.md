@@ -30,7 +30,7 @@ start here if you want the reasoning.
 | 7 | `AspirationDelta` and the two aspiration switches | **leave the delta at 18 and do not enable either switch without re-screening.** Changing the delta moves the score on **126 of 133** positions and the move on **95 of 133** for a **12–15% median node saving**; one position's `cp 517` becomes a **true `mate 2`** at delta 200, so the default window misses a forced mate a wider one finds. Both switches lose a mate the default finds at fixed depth | §3 |
 | 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it on the evidence so far** — it costs **2–3 plies of effective depth** on forced mates and is **the only thing on this engine measured to lose a mate the default finds**. On 30 verified fixtures it changes 9 verdicts, helps 4, **harms 5**. **It does converge**: every harm recovers by depth 9 or 10, so the cost is depth-efficiency, not soundness | §3 |
 | 9 | `ContHist4PlyRead` | **never enable it for anything that reads mate scores** — it reports **`mate 12` for a mate in 5 plies**, a claim 7 plies wrong whose printed PV cannot deliver it. **Default is `false` and the default build is correct on the same position**, so this is a hazard for whoever turns it on, not a live defect. Scope 1 of 30 mate fixtures; mechanism unknown | §1b |
-| 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 167 of 192 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Zero of the 37 attributable failures involved the bail**, so patching the bail fixes none of them | §9c |
+| 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 167 of 192 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Zero of the 37 attributable failures involved the bail**, so patching the bail fixes none of them. **More depth is not the answer either**: KQK needs ~4× the mate's own depth, and KBNK converts **less** at depth 20 than at 16 | §9c |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
 question that was not asked, in **five** distinct ways, and three of the five are indistinguishable from
@@ -4699,10 +4699,26 @@ come close, and the pattern is not random:
    the engine held the win for 100 plies, the clock reached 99, its score collapsed to `cp 0` in 320
    nodes, it played **`Kxh3`, giving up the rook**, and the remainder is K vs K with the bail firing every
    ply. **The clock defect created the material bail, not the reverse.**
-- **Horizon does not rescue it**, and the ladder belongs with the numbers: at depth 12 the exact KQK
-   positions that fail need depths in the tens to convert, and the node counts at clock 90 (101 million on
-   a three-piece board) show why that is not a practical answer. **The report's §2 band repair is the
-   relevant fix, not more depth and not the bail patch.**
+- **Horizon behaviour differs by family, and the KBNK result is the sharper finding because it is
+  NON-MONOTONIC.** For **KQK it IS a horizon effect**: `8/8/8/8/8/8/6k1/KQ6` (mate in 8 moves) is drawn at
+  depths 8 and 12, and converts at 16 and 20 — but at depth 16 it takes **34 moves**, so **the engine needs
+  roughly 4× the depth of the mate itself to convert a KQK win**, which is not a search one ply short but a
+  win-detection that has to outrun a draw-scoring rule firing ten plies before the horizon.
+  **For KBNK it is NOT a horizon effect, and that was measured rather than assumed**: on the 17 KBNK
+  positions that failed at depth 12, conversion is **0/17 at depth 12, 5/17 at 16 and 4/17 at 20** —
+  **worse at the deeper rung** — with individual positions flipping both ways (three convert at 16 and revert
+  at 20; two convert only at 20). **Union across all three depths is 8 of 17.**
+  - **So the honest statement is "a search that cannot hold a 33-move plan together"**, not "needs more
+    depth", and it is why the rate is quoted per depth rather than pooled. **The hypothesis space is
+    narrower than before, not wider**: KBNK is not the bare-minor inversion (its static sign is correct:
+    `cp 282/282/282/320/196/0/0` at clocks 0/40/70/80/85/90/95, and `hce` is +465 to +483 with the residual
+    negative but not crossing zero) and it is not a missing horizon.
+  - **What is left for KBNK is the clock collapse plus a genuine planning failure, and separating those two
+    needs a 4-piece table the seat did not build.** So it stays a measurement without a mechanism, with a
+    smaller candidate set.
+- **The fix indicated is the §2 band repair, not more depth and not the bail patch** — for KQK because the
+  depth needed is 4× the mate, for KBNK because more depth makes it worse, and for both because **the node
+  counts at clock 90 (101 million on a three-piece board) show depth is not a practical answer anyway.**
 
 ## 10. What is not established
 
