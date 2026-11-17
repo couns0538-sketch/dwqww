@@ -12,12 +12,12 @@ invisible to this instrument", never "this change is safe"**, and the two are on
 probe proves the change was live. The measurement is in §6, the blind-spot list in §10.
 
 **A companion file enumerates the whole run as a matrix rather than an argument**:
-[`test-matrix.md`](test-matrix.md) — **135 rows**: 31 areas tested and correct, 32 tested and wrong, 16
-tested with a conditional answer, 21 never tested (each with the reason), and **35 instruments in this
+[`test-matrix.md`](test-matrix.md) — **137 rows**: 31 areas tested and correct, 33 tested and wrong, 16
+tested with a conditional answer, 21 never tested (each with the reason), and **36 instruments in this
 audit that reported something false**, with what caught each one. Start there if you want the checklist;
 start here if you want the reasoning.
 
-**Start here — the eleven decisions, in the order they cost you if you get them wrong.**
+**Start here — the twelve decisions, in the order they cost you if you get them wrong.**
 
 | # | decision | verdict | section |
 |---|---|---|---|
@@ -32,6 +32,7 @@ start here if you want the reasoning.
 | 9 | **Mate distances on sparse endgames** | **do not trust a `mate N` distance on a bare KQ-vs-K type position — but this is a base-engine reporting imprecision, NOT a switch defect, and an earlier version of this row was WRONG.** On `3k4/8/6K1/1Q6/8/8/8/8 w` the true distance is **mate in 3 moves (5 plies)**; the baseline reports **`cp 1203` with no mate at all**, while `ContHist4PlyRead` reports **`mate 12`** — an over-long distance on a real mate. **The switches move the number in both directions and on one position the switch is MORE accurate than the baseline.** **The earlier claim that `ContHist4PlyRead` "reports a false mate" is retracted**: a depth-12 PV cannot exceed 12 moves, so a short PV proves nothing, and I used exactly that unsound inference (§9c) | §1b |
 | 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 569 of 640 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Only 7 of 193 KPK failures contain a bail at all, while the bail fires 56,768 times and 80.9% of won cells still convert** — so patching the bail fixes none of them. **More depth is not the answer either**: KQK needs ~4× the mate's own depth, and KBNK converts **less** at depth 20 than at 16 | §9c |
 | 11 | **Any mate label from this engine** | **verify it independently — roughly a quarter to a third of verifiable labels are WRONG, and the errors are overwhelmingly over-statements.** Two independent corpora: **62/238 = 26.1%** on a uniform random sample (all over), and **89/240 = 37.1%** on labels of five moves or fewer (**85 over, 4 under**). Off-by-one dominates. **The PV-length filter catches only 9 of 62 (14.5%)** — it removes unverifiable claims, not wrong ones, because at depth 12 the engine completes its PV before its distance. A label is only safe after an independent mate search | §4 |
+| 12 | **`QuietExtinction`** (off by default) | **leave it off, and this is a mate-safety cost that outlasts depth 10.** On a mate-in-7 with a **single, quiet** mating move (`K7/8/8/8/8/8/7k/Q7 w`, only `a1g7` mates; three solvers agree) the option plays `a1f1` at depths **10, 11, 12 and 13** where the default plays `a1g7` at all four. Across 30 verified fixtures × 10 depths it changes the verdict in **16 of 300 cells, harms 12 and helps 4**. **The harm band is depths 6–16 and does not close at 10** — one fixture is still wrong at **d16** and correct only from **d17**. **No depth control was run on the corpus cells**, so read the 12 as fixed-depth differences; the dedicated fixtures stand alone because a *unique* mating move is missed at the depth where it happens | §3 |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
 question that was not asked, in **five** distinct ways, and three of the five are indistinguishable from
@@ -45,7 +46,7 @@ is present-and-empty, never absent, at every terminal and drawn root measured. *
 tolerate absence, since the spec allows it, but against this engine it will only ever meet the empty form.**
 
 **Everything still open is listed in §10, with a name on each gap** — **four areas remain open at close**,
-each with the reason it is open rather than a silent omission, and **eight more were dispatched late and
+each with the reason it is open rather than a silent omission, and **nine more were dispatched late and
 closed** with their numbers in the same table.
 
 **And a field-by-field audit of the `info` line found FOUR fields wrong, two unfalsifiable and three
@@ -1559,6 +1560,66 @@ nodes on Kiwipete and 0% on four other positions**, with full-game cost unmeasur
   - **Scope of that null, stated because it is a null**: 30 fixtures, mates in 1–3, depths 8–12, one build.
     It does not cover mates longer than 3, positions where the pruning cascade interacts with a forced
     sequence beyond the horizon, or any threaded search.
+  - **And that null is now bounded by one exception, which arrived after the null was written: `QuietExtinction`
+    is NOT inert.** This section previously listed it with `SingularExt` as inert in endgames. **Measured on
+    `build/clean/forge` with no probe instrumentation, 30 verified fixtures × 10 depths plus three dedicated
+    unique-quiet fixtures: 12 of 300 cells HARM** (default right, option wrong), 4 help, 23 both-wrong,
+    261 both-right. **The harm band is depths 6–16 and does not close at 10**, unlike `SoundMatePruning`.
+  - **Why this rule is the one to worry about, in its own code terms.** After **two** quiet moves miss
+    `alpha` by `>= QuietWideGap`, it calls `close_quiet_tail()` and **drops every remaining non-checking
+    quiet move at that node**; before that, one wide miss halves the futility slack for later ordinary
+    quiets (`futility_tight`), a second chance to drop the same move. **A mating move that is neither check
+    nor capture is exactly what move ordering puts late and exactly what this rule discards** — the
+    mechanism predicts the defect rather than being fitted to it.
+  - **The fixture that makes it concrete is a mate in SEVEN with a UNIQUE quiet mating move**:
+    `K7/8/8/8/8/8/7k/Q7 w — 0 1`, only `a1g7` mates, verified by three solvers at 13 plies, and `a1g7` is
+    neither a check nor a capture.
+    | depth | OFF | ON |
+    |---|---|---|
+    | 10 | `a1g7` | **`a1f1`** |
+    | 11 | `a1g7` | **`a1f1`** |
+    | 12 | `a1g7` | **`a1f1`** |
+    | 13 | `a1g7` | **`a1f1`** |
+    | 14, 16 | `a1g7` | `a1g7` |
+
+    **Note what is and is not lost here: neither arm reports a mate score at any of these depths** — both
+    print centipawns in the 835–1,066 band — so this is a **wrong move at a fixed depth**, not a dropped
+    mate label. The engine fails to see the mate at d10–d13 either way; the option makes it play the wrong
+    first move while failing to see it. **Both arms converge on `a1g7` from d14**, so the option costs four
+    plies of move accuracy on a `mate 7`.
+  - **The other two dedicated fixtures, split by what is actually lost** — and the split matters, because
+    only some harms are mate-score harms:
+    | fixture | truth | only move | harmed at | what the ON arm reports there |
+    |---|---|---|---|---|
+    | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` | **d8–d13** (six depths) | `g2h1` with **no mate score** (cp 846–894) |
+    | `8/8/8/8/8/K7/3R4/1k6 w` | m3 | `a3b3` | **d9** | `d2f2` with **no mate score** (cp 403) — and again at d10 as `a3b3 mate 4` against a true m3 |
+  - **Of the 12 corpus harms, the split is 9 lost mate scores and 3 wrong distances, and every one of them
+    is a move that still wins.** Classified per cell rather than aggregated:
+    - **9 cells lose the mate label entirely on the same or a different move**: `8/8/8/3K4/k7/8/4Q3/8 w`
+      d7 (same move `d5c4`, `mate 3` becomes cp 1177), `8/8/8/8/8/8/6KQ/4k3 w` d8–d13 (six cells,
+      `g2f3 mate 3` becomes `g2h1` cp 846–894), `8/8/8/8/8/K7/3R4/1k6 w` d9 (`a3b3 mate 3` becomes
+      `d2f2` cp 403), `7Q/8/1R6/8/8/7K/8/5k2 w` d6 (`b6b2 mate 3` becomes `h8f8` cp 1533).
+    - **3 cells get the right move with a WRONG DISTANCE, which a move-only checker would score as a pass**:
+      `8/8/8/8/8/K7/3R4/1k6 w` d10 (`a3b3` **m4** against a true m3), `8/7k/8/5K2/8/4R3/8/8 w` d11
+      (`f5f6` **m4** against m3), and `3KR3/5R2/8/k7/8/8/8/8 w` d16 (`e8e4` **m5** against m3, and the wrong
+      move, so this one is both).
+    - **The band's far end, which is the row that breaks "closes at 10"**: `3KR3/5R2/8/k7/8/8/8/8 w` is
+      correct in the OFF arm at every depth tested, is **wrong at d15 (`e8e4` m6) and d16 (`e8e4` m5)**, and
+      recovers only at **d17**. Deterministic, reproduced twice at d16.
+  - **The counter evidence, because a rule that never fires explains nothing.** On the dedicated deep
+    fixtures: `quiet_tail_closed` **4,302**, `futility_tight_set` **4,899**, `extinguish_futility_skip`
+    **590**. **And the seat nearly published a vacuous null on this**: its first counter check sampled the
+    first eight corpus entries, which are all mates in one, so the search resolves them, the tail never
+    closes, and all three counters read **0** — which would have "shown" the rule never fires. That is the
+    same class as trap 13 and it is recorded as **trap 3ad** in §7.
+  - **What this does NOT establish, in the seat's own words and mine.** **No depth control was run on the
+    corpus cells**, so the 12 should be read as **fixed-depth differences, not 12 proven pruning defects** —
+    for `SoundMatePruning` that control dissolved the attribution, and its absence here is a real gap. The
+    three dedicated fixtures stand on their own for a different reason: a **unique** mating move missed at
+    the depth where it is missed is not excused by more depth. **Three fixtures is a demonstration set, not
+    a rate**, two are KQ-vs-K conversions, and **no strength claim is made** — nothing here says the option
+    is bad for play, only that it costs mate accuracy on these positions. **`QuietExtinction` is off by
+    default**, so this is a do-not-enable result rather than a shipped defect.
 - **Aspiration windows never publish a bound, so the question "can a fail-high leak a wrong-bound score"
   is unanswerable from the wire.** The engine prints **no `lowerbound` or `upperbound` token anywhere**.
   Measured instead by instrumenting the root loop to report, per finished iteration, whether the
@@ -3482,8 +3543,8 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
 
 **Read this section by NUMBER, not by position: the numbers run in discovery order and the inserted
 suffixes (`3a000`, `5a0`, `14b`, `19a`–`19e`, `19c0`, `20a00`, `21a`) are later findings attached to the
-family they belong to, so they sit beside their parent rather than at the end.** There are **65 numbered
-traps: base numbers 1–30 with 35 suffixed variants.** Renumbering is deliberately avoided —
+family they belong to, so they sit beside their parent rather than at the end.** There are **66 numbered
+traps: base numbers 1–30 with 36 suffixed variants.** Renumbering is deliberately avoided —
 a renumber breaks every cross-reference in this document and in the branch reports, and it breaks them
 silently while leaving "the reference resolves" true. **A mechanical check confirms every `trap N`
 reference in this document resolves to a definition here.**
@@ -3631,8 +3692,9 @@ reference in this document resolves to a definition here.**
   - **Which heuristics actually change a mate answer, measured with 19 distinct binaries**: **the TT gates
     change 0 of 148 answers while halving or doubling nodes**, so TT is a speed question and not a
     correctness one. **`Lmr` + `FutilityPrune` change 55 of 148 answers and at fixed depth can lose a mate** — one board
-    goes from `mate 2 / g1b1 / 894 nodes` to **`cp 831 / g2h1 / 331`**. **But a later seat showed why that count is not yet a pruning verdict: ablating LMR changed which answers came out at a FIXED depth while a plain depth increase on the same engine reached the same right answer — one board 'fixed' by ablation at depth 8 in 1,304 nodes is also right by depth 14 unablated. **Ablation changes tree shape, so 55-of-148 needs a depth control before it is called a defect**, and this report does not have one.** **`SingularExt` and
-    `QuietExtinction` are inert**, and only in endgames.
+    goes from `mate 2 / g1b1 / 894 nodes` to **`cp 831 / g2h1 / 331`**. **But a later seat showed why that count is not yet a pruning verdict: ablating LMR changed which answers came out at a FIXED depth while a plain depth increase on the same engine reached the same right answer — one board 'fixed' by ablation at depth 8 in 1,304 nodes is also right by depth 14 unablated. **Ablation changes tree shape, so 55-of-148 needs a depth control before it is called a defect**, and this report does not have one.** **`SingularExt` is
+    inert**, and only in endgames. **`QuietExtinction` is NOT — see the `QuietExtinction` entry above,
+    which is a measured mate-accuracy defect across depths 6–16.**
   - **And a ninth mate mode, which I first reported as a switch defect and then had to RETRACT: mate
     DISTANCE is imprecise on sparse endgames, and it is pre-existing on the base engine.** The evidence, on
     `3k4/8/6K1/1Q6/8/8/8/8 w - - 6 4`: the true distance is **mate in 3 moves (5 plies)**; the **baseline
@@ -3813,6 +3875,24 @@ reference in this document resolves to a definition here.**
      reported `go depth 123 → depth 26`; that was an 8-second cap, and the same command reaches depth 29
      at 49 s and is still searching. **Separate `RETURNED` from `CAPPED` in any such table**, which is
      exactly what makes the two unbounded base rows visible at all.
+3ad. **A COUNTER SAMPLED WHERE THE RULE CANNOT FIRE READS ZERO, and zero is what a dead instrument and a
+   sound engine both look like.** This is trap 13 with a specific and very tempting trigger: the "counter
+   evidence" that a suspected rule *is reached at all*. A seat auditing `QuietExtinction` needed to show
+   `close_quiet_tail()` fires before any harm could be attributed to it, and sampled the first eight corpus
+   entries — which are **all mates in one**, so the search resolves them at once and the quiet tail never
+   closes. All three counters read **0**, `quiet_tail_closed`, `futility_tight_set` and
+   `extinguish_futility_skip`, and that would have supported a publishable "the rule never fires, so the
+   defect cannot be it." **Re-sampled on dedicated deep fixtures the same counters read 4,302 / 4,899 /
+   590.** **So a zero needs a reachability argument, not a plausible-looking sample**: state where the rule
+   *can* fire, sample there, and check that a neighbouring rule or a planted fault in the same channel does
+   fire. **A counter that reads zero on a corpus sorted by depth is usually reading the sort, not the rule** —
+   shallow entries resolve before the heuristic that needs depth has anything to skip.
+   **Corollary, and it is why this trap is here rather than in §6**: the same seat's headline was that
+   `QuietExtinction` "loses forced mates". Re-reading its own recorded per-cell output, **neither arm
+   reports a mate score on the mate-in-7 fixture** — both print centipawns — so what the option loses there
+   is **the correct move**, not a mate label. The distinction is the §4 one, and a headline that names the
+   wrong loss is a smaller version of the same error as a counter sampled where the rule cannot fire. **Read
+   the cells before writing the sentence.**
 3ab. **An unrecognised `position` TYPE is silently ignored and the previous position is re-searched**,
    with **nothing on the wire at all** (re-confirmed on the base commit: `position nonsense` after a
    book-answered K+R v K position returns `d2d4` with no diagnostic, while the six-field form returns
@@ -5025,13 +5105,20 @@ Collected here so a reader does not mistake a closed behaviour for a closed mech
 
 **Never tested at all when this run began, and each now has a seat on it**
 
-**Status of the seats still running at close.** Twelve areas were dispatched in the final hours; **six closed
-before the deadline and six are still open**. Both sets are listed here, because **a reader needs to know which
+**Status of the seats still running at close.** Twelve areas were dispatched in the final hours; **eight closed
+before the deadline and four are still open**. Both sets are listed here, because **a reader needs to know which
 questions were answered and which were only asked.** Open rows are untested-with-reason, and **an open row is
 an open question, not a clean bill** — the same discipline that makes the vacuous nulls elsewhere in this
 section honest applies here: **an area nobody reached is not an area that was cleared.**
 
-**CLOSED — the eight that reported, with their numbers:**
+**One further area reported after the close and is folded in**: a funded follow-up on **`QuietExtinction`**,
+which was dispatched from an open lead in §3 rather than from the twelve. It closed as a **ninth CLOSED row**,
+and it also adds a **fifth open row**, because its corpus harm count still lacks a depth control. **That it
+overturned a line this report already carried is the point of recording it**: §3 previously listed
+`QuietExtinction` as inert alongside `SingularExt`, and on measurement it is the sharpest mate-accuracy
+defect in the prune set.
+
+**CLOSED — the nine that reported, with their numbers:**
 
 | area | result |
 |---|---|
@@ -5040,6 +5127,7 @@ section honest applies here: **an area nobody reached is not an area that was cl
 | **Book play inside a full two-sided game** | **Clean.** **1,120 games over five arms**: 0 illegal moves, 0 engine errors, **0 games left the book into an illegal position**, and the move after book exit is a legal searched move. **Every game exits at exactly ply 16** (the book's deepest leaf) and **the position graph is acyclic, so no book line can reach a repetition** — a structural fact, not a sampling result. 13 of 589 played book moves concede material, **0 condemned at depth 18**, largest gap 51 cp against an 18 cp noise floor |
 | **Mate scores through the transposition table** | **Correct, and verified against the exact failure modes.** `score_to_tt` adds `ply` on store and `score_from_tt` subtracts it on probe (`search.cpp:179-199`), applied at **all 10 store sites and both score-bearing probes** — checked by enumeration, with a grep for a store lacking the wrapper returning **nothing**. The probe-side clamp **discards** a score that would decode into the centipawn band (returns `ValueNone`) rather than clamping it, which is the right direction: clamping would report a mate at a distance that does not exist. **The named experiment passes**: a DTM stored at ply 4 and re-probed at ply 8 keeps the distance BELOW the node unchanged (1→1, 3→3, 5→5, 7→7, 9→9). **Exhaustive sweep: 118,332 cells, 0 failures**, and two planted-wrong pairs — no adjustment, and an inverted one — produce **234,608 failures**, so the checker demonstrably fires |
 | **Endgame conversion at game level — CLOSED, and the answer is NO** | KRK **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK **569 of 640** won cells, against an **exact-table oracle at 20/20, 20/20 and 192/192**. **All 193 KPK failures are fifty-move claims, only 7 contain a bail, and the bail fires 56,768 times while 80.9% of won cells still convert**; the mechanism is the §2 clock band (`cp 0` at halfmove 90 on a won board). **Decision 10 in the opening table.** **KBNK is a measurement without a mechanism** — the seat built no 4-piece table and refused to borrow the KQK explanation |
+| **`QuietExtinction` against forced mates — CLOSED late, and it overturns an "inert" line this report already carried** | **30 verified fixtures × 10 depths plus three dedicated unique-quiet fixtures, on a clean build: 12 of 300 cells HARM, 4 help, 23 both-wrong, 261 both-right.** **Harm band depths 6–16, and it does not close at 10** — `3KR3/5R2/8/k7/8/8/8/8 w` is wrong at d15 and d16 and right only from d17. **9 of the 12 harms lose the mate label; 3 keep the right move with a wrong distance.** Mechanism is stated before the fixture and the fixture confirms it: `close_quiet_tail()` discards non-checking quiets, and the mate-in-7 `K7/8/8/8/8/8/7k/Q7 w` has a unique mating move `a1g7` that is neither check nor capture — the ON arm plays `a1f1` at d10–d13 with no mate score in either arm. **Counter evidence that the rule fires: 4,302 / 4,899 / 590** — and only after the seat replaced a first sample that read **0/0/0** because it was taken on eight mates in one (trap 3ad). **Open**: the corpus cells have **no depth control**, so the 12 are fixed-depth differences. The cell-by-cell evidence is in §3 |
 | **`bestmove 0000` consistency across mate roots — CLOSED, and it is consistent** | **6 of 6 mate roots answer `bestmove 0000`**, never a move. That was the specific sweep that mattered, because an inconsistency would break every client's mate detection. The three protocol shapes (`0000` with `mate 0`, with `cp 0`, and with a restriction) all reproduce, and `info string` appears only on the restriction form |
 | **ThreadSanitizer with recorded flags — CLOSED, and the seat I had recorded as lost had in fact pushed.** | **147 driven searches at `Threads 4`: zero ThreadSanitizer reports of any kind, in processes whose exit was observed.** The provenance is the deliverable and it is complete: `g++ 13.3.0`, the exact `-fsanitize=thread` line, `libtsan.so.2` resolved, **21 `__tsan_*` symbols**, and binary `sha256 889a9b46…`. **And it found a reproducibility trap worth keeping**: a bare `-g` build hashes differently per checkout path and build directory (`21189c77…`, `bbe13ccc…`, `df59381e…` from the same source), **so the two `-ffile-prefix-map` flags are part of the flag line rather than a convenience** — with them the build is byte-reproducible across paths. **It also caught the exit-report trap in its own driver**: its first driver sent `quit` and called `wait()` without draining, so a planted-race build's `ThreadSanitizer: reported 25 warnings` and `exit 66` were never seen; **the first clean run was discarded rather than relabelled**, and the fixed driver records `drained_to_eof` and the real exit code. **Every clean row reports `exit_code 0` with `post_quit_lines 0`, and both planted builds exit 66**, so exit status is an independent second signal agreeing with the empty race count |
 | **A full undefined-behaviour sweep — CLOSED, UBSan clean and the zero is instrumented** | **2,408 bounded probes across 12 phases: 0 UBSan reports, 0 ASan reports, 0 leak reports at exit, 0 crashed processes**, and the four honesty pins reproduce exactly on the sanitizer build (plus an unchanged net-off signature, so instrumentation did not move the arithmetic). **Every phase carries positive evidence its code executed**, so the zero is not a corpus that could not reach the condition, and the sanitizer is proven **linked** (`nm | grep -c __ubsan_` = 15 against 0). **And the finding worth keeping is about the TOOL, not the engine**: GCC's `-fsanitize=undefined` **silently omits `float-cast-overflow` and `float-divide-by-zero`**, demonstrated on a planted fault that goes **0 lines under the default group and 10 under the named flags** — and `src/nnue.cpp:274` is exactly a `static_cast<int>` of a float, safe only because a `std::clamp` precedes it. **So the audit's specified sanitizer configuration was never checking the one float-to-int conversion in the evaluation path**, and a future edit that moved that clamp would be invisible. **The seat explicitly does NOT report this as a defect**, which is the correct call
@@ -5048,11 +5136,12 @@ section honest applies here: **an area nobody reached is not an area that was cl
 
 | area | what is untested, and why |
 |---|---|
+| **`QuietExtinction` harm with a depth control** | The harm is measured (**12 of 300 cells, depths 6–16**, `QuietExtinction` decision 12 in the opening table) **but the depth control that would separate "the rule is wrong" from "the tree shape needed more depth" was not run**. For `SoundMatePruning` the same control dissolved the attribution, so its absence here is the reason those 12 are reported as fixed-depth differences rather than as 12 proven pruning defects. **The three dedicated fixtures do not need the control** — a unique mating move missed at the depth where it is missed is not a horizon effect |
 | **Quiescence TT store depth guard** | The defect is measured (a depth-0 store overwrites a depth-24 entry), **the fix is not**: a guard on `store_body` is a design change with unmeasured strength impact, deliberately left to the owner rather than shipped |
 | **The qsearch false-draw repair** | ~20 lines, closes both wrong cells, costs zero pins — but it changes `Worker::is_draw`, shared with the main search and the drawn-root work. **Needs the owner's decision plus the full 14-cell sweep** |
 | **Pruning features against forced mates, at feature level** | **What IS established**: the default engine's misses on the corpus are **all fixed by more depth on the same engine**, so they are horizon limits rather than pruning bugs, and null-move, razor, RFP, LMP, SEE, LMR and singular **provably fired inside mate positions** (cells fired of 90: LMR 90, RFP 60, LMP 57, SEE-noisy 57, futility-quiet 44, razor 30, singular 29, SEE-quiet 24, null 12). **`futility(capture)` fired 0 of 90 and is NOT REACHED, not safe.** **What is NOT established**: which individual feature loses a mate — the 55-of-148 ablation figure has **no depth control**, and `ablate lmr` reaching the same right answer at depth 14 in 1,304 nodes against 3,184 shows ablation moves tree shape rather than a correctness rule |
 | ~~**Long-game replay position identity**~~ **— CLOSED, and it is clean where it matters** | **200 games, 27,788 plies** replayed in one process at `go depth 8`, with a 40-game / 5,401-ply fresh-process arm drawn before measuring. **Position identity: 5,401/5,401 at perft 4 and 1,852/1,852 at perft 5** — the move-list board IS the FEN board. **Halfmove clock agreement 5,369/5,369, boundary exactly at 100.** **RSS 42.2 MiB at all 277 samples from ply 300 to the end, +1.6 MiB total.** **But in-process vs fresh-process bestmove differs on 46.0% of plies (2,486/5,401)** — and scored against a depth-14 fresh oracle that is **better 85 / equal 37 / worse 78, median 0 cp**, so it is **the same engine making equally good moves off a warm table, not a defect and not a strength claim.** **`ucinewgame` between plies makes it byte-identical, 5,401 of 5,401.** **Bails: 0 differences out of 5,401, and all 89 bails predicted independently 89/89.** **So the thing that would have been a defect — accumulating state or a diverging board — is absent, and the 46% is a property of depth-8 move identity across processes, which the report now says plainly because it is the number most likely to be quoted wrongly** |
-| **Mate labels over a corpus** | Two labelling errors are recorded (eight by-eye fixtures all one ply short; ten "false" mates that were merely unverifiable). **A corpus-level rate with an oracle's provenance does not exist**, and a handful of examples is not a rate |
+| ~~**Mate labels over a corpus**~~ **— CLOSED, and it is the worst rate in this report** | The gap was that "a corpus-level rate with an oracle's provenance does not exist". It does now: **62 of 238 verifiable labels wrong (26.1%)** on a uniform random sample, **89 of 240 (37.1%)** on labels of five moves or fewer with **4 under-statements**, and the PV-length filter catches only **9 of 62 (14.5%)**. **Decision 11 in the opening table.** What remains open is not the rate but the **repair**: no relabelling pass was run, so every existing label in the repo's corpus should be treated as unverified |
 | ~~**The 51 tunables behind `FORGE_EXPOSE_TUNABLES`**~~ **— CLOSED, and it is the cleanest row in the audit** | **All 51, five values each, 255 cells, every one correct.** Each tunable was sent its advertised `min` and `max` (accepted silently), `min−1` and `max+1` (reported **and clamped**), and `abc` (refused, old value kept) — **and then a search was run**, so "accepted" is behaviour rather than a `setoption` reply. **0 crashes, 0 hangs, 0 non-conforming rows.** **And all 51 moved the probe search at some value**, so none is a dead option — which is the field a clamp-only check would have missed entirely. The count is sourced: `tune::parameters()` at `search.cpp:114-148` lists 51 entries, and 51 + the four non-tunable spins (`Hash`, `Threads`, `MultiPV`, `Move Overhead`) = the 55 advertised |
 
 - **Three items on this list are CLOSED**: the lone-king second mechanism now has an instrument and a
