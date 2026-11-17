@@ -90,4 +90,56 @@ python3 "$SWARM/scripts/separation.py" "$SWARM/evidence/loneking_d10_capON.json"
     "$SWARM/evidence/loneking_d10_capOFF.json" > "$RAW/separation_d10.txt" 2>&1
 cat "$RAW/separation_d10.txt"
 
+echo "### the instrument's own arithmetic, with its negative control"
+python3 "$SWARM/scripts/run_search.py" "$ON" \
+  "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3" \
+  --depth 10 --option Threads=1 --option Hash=16 --option OwnBook=false \
+  --out "$RAW/instrument_consistency_input.txt" > /dev/null 2>&1
+python3 "$SWARM/scripts/check_instrument.py" "$RAW/instrument_consistency_input.txt" \
+  > "$RAW/check_instrument.txt" 2>&1
+cat "$RAW/check_instrument.txt"
+
+echo "### per-depth: where do the builds first part, and what does the clamp do there"
+python3 "$SWARM/scripts/divergence_depth.py" "$CAPON" "$CAPOFF" --depth 10 \
+  --json "$SWARM/evidence/divergence_d10.json" > "$RAW/divergence_d10.txt" 2>&1
+cat "$RAW/divergence_d10.txt"
+python3 "$SWARM/scripts/score_trajectory.py" "$CAPON" "$CAPOFF" --depth 10 \
+  --json "$SWARM/evidence/trajectory_d10.json" > "$RAW/trajectory_d10.txt" 2>&1
+python3 "$SWARM/scripts/cascade_test.py" "$SWARM/evidence/trajectory_d10.json" \
+  > "$RAW/cascade_d10.txt" 2>&1
+cat "$RAW/cascade_d10.txt"
+python3 "$SWARM/scripts/clamp_profile.py" "$CAPON" "$CAPOFF" --depth 10 \
+  --json "$SWARM/evidence/clamp_d10.json" > "$RAW/clamp_d10.txt" 2>&1
+cat "$RAW/clamp_d10.txt"
+python3 "$SWARM/scripts/immediate_effect.py" "$SWARM/evidence/divergence_d10.json" \
+  > "$RAW/immediate_d10.txt" 2>&1
+cat "$RAW/immediate_d10.txt"
+python3 "$SWARM/scripts/flip_test.py" "$SWARM/evidence/divergence_d10.json" \
+  > "$RAW/flip_d10.txt" 2>&1
+cat "$RAW/flip_d10.txt"
+
+echo "### per-depth profile of both counter-case boards"
+for b in "$CAPON:capON" "$CAPOFF:capOFF"; do
+  exe="${b%%:*}"; tag="${b##*:}"
+  python3 "$SWARM/scripts/perdepth.py" "$exe" "8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0 109" --depth 10 \
+    > "$RAW/perdepth_${tag}_cntr1.txt" 2>&1
+  python3 "$SWARM/scripts/perdepth.py" "$exe" "8/8/8/4R3/2k5/P7/8/2K5 w - - 22 127" --depth 10 \
+    > "$RAW/perdepth_${tag}_cntr2.txt" 2>&1
+done
+
+echo "### reduction statistics on ordinary positions (the new numbers)"
+python3 "$SWARM/scripts/ordinary_stats.py" "$ON" "$SWARM/evidence/OG200.fens" \
+  --depth 12 --limit 40 --json "$SWARM/evidence/ordinary_d12_base.json" \
+  > "$RAW/ordinary_d12_base.txt" 2>&1
+cat "$RAW/ordinary_d12_base.txt"
+python3 "$SWARM/scripts/ordinary_stats.py" "$CAPOFF" "$SWARM/evidence/OG200.fens" \
+  --depth 12 --limit 40 --json "$SWARM/evidence/ordinary_d12_capoff.json" \
+  > "$RAW/ordinary_d12_capoff.txt" 2>&1
+echo "control (cap tree, cap OFF — must equal the base tree):"
+grep -E "reductions / 1000|pooled mean r" "$RAW/ordinary_d12_capoff.txt"
+python3 "$SWARM/scripts/ordinary_stats.py" "$ON" "$SWARM/evidence/OG200.fens" \
+  --depth 8 --limit 40 --json "$SWARM/evidence/ordinary_d8_base.json" \
+  > "$RAW/ordinary_d8_base.txt" 2>&1
+grep -E "reductions / 1000|pooled mean r" "$RAW/ordinary_d8_base.txt"
+
 echo "done"
