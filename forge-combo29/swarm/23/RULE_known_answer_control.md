@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-EIGHT instances plus eleven named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-EIGHT instances plus twelve named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -815,6 +815,28 @@ corrected phrases took three tuning passes to fall from 8 false positives to 3, 
 text — it cannot distinguish a stale figure from a legitimate second one, or a corrected phrase from a correct use of that
 phrase describing the defect it names. So this check stays a READING DISCIPLINE, not a gate. Not every good check
 automates.
+
+## Named pattern — RUN THE FIXTURE THE SENTENCE CALLS "NORMAL"
+
+The sharpest method instance in this seat, because the sentence needing a fixture was the sentence that excluded it.
+
+23-F189 said `go infinite` "stops at the depth ceiling in this build, immediately on a drawn root and after ~19 s on a
+**normal position**". The ~19 s came from the bare K+R v K **twin** — a sparse endgame — and the drawn root was the fast
+path. Neither is a normal position. When the coordinator asked for a quiet position with no forced line, **startpos took
+my whole 75-second cap and reached only depth 30** (23-F191). The claim was refuted by exactly the fixture the wording had
+set aside.
+
+**The tell: the word "normal", "typical", "ordinary" or "real" in a claim, with evidence drawn from something that is
+none of those.** The word is doing the generalising work while the measurement is not; wherever a sentence says "a normal
+X", the fixture behind it should be an X that a user would recognise, or the word has to go.
+
+**MECHANICAL CONSEQUENCE: when a draft says "normal" (or typical/ordinary/real), the NEXT measurement is the one that
+word describes — not the next supporting case.** Either that fixture is run and the number replaced, or the sentence is
+narrowed to name what was actually measured. "After ~19 s on a sparse K+R v K endgame" would have been true and would not
+have needed a correction.
+
+**Why it is worse than an ordinary one-fixture generalisation:** the excluded fixture is not random — it is the one the
+author already suspected would disagree, which is why the sentence described it away instead of testing it.
 
 ## The fix, in one line each
 
