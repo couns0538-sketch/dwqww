@@ -12,7 +12,9 @@ MOVELINE = re.compile(r"^([a-h][1-8][a-h][1-8][qrbn]?): (\d+)$")
 SUM = re.compile(r"^nodes (\d+)$")
 BASE = os.path.expanduser("~/build/forge")
 PC = os.path.expanduser("~/pcbuild/forge")
-SRC = sorted([p for p in (sys.argv[1] if len(sys.argv) > 1 else "../job1/R_2301.fens",) if os.path.exists(p)])[0]
+_cand = sys.argv[1] if len(sys.argv) > 1 else "../job1/R_2301.fens"
+_cands = [_cand, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "job1", "R_2301.fens")]
+SRC = next(p for p in _cands if os.path.exists(p))
 
 
 def conn(exe):

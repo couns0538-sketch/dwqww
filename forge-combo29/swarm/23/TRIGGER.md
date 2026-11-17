@@ -6,7 +6,22 @@ established as a monotone threshold and not as a set of bailing fixtures (23-F12
 position rather than the game's initial one (23-F140: 1 ply past a repetition → searched position occurs once → the
 engine searches normally; 3 plies past → it occurs three times → the engine bails).
 
-| true occurrences of the root | nodes | verdict |
+### Start here if you are deciding whether this affects you: it is not an endgame artefact
+
+**On a DENSE MIDDLEGAME position with about thirty legal moves the threshold is the same.** `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w - -`, cycle `f3g5 g8e7 g5f3 e7g8`:
+
+| searched position occurs | nodes | verdict |
+|---|---|---|
+| 2 | 29,994 | searches |
+| **3** | **0** | **BAIL** |
+| 4 (12-ply list) | **0** | **BAIL** |
+
+And it holds when the repeated position sits at the END of a long list rather than at the root — 10-ply preamble, 2 →
+searches (17,399 nodes), 3/4/5 → bails (23-F141). So neither the branching factor nor the list position changes the rule.
+
+### The clean arithmetic, on a sparse endgame where the counts are easiest to check
+
+| true occurrences | nodes | verdict |
 |---|---|---|
 | 2 | 7,581 | searches |
 | **3** | **0** | **BAIL** |
@@ -15,10 +30,7 @@ engine searches normally; 3 plies past → it occurs three times → the engine 
 | 6 | 0 | BAIL |
 
 Same board, same castling-neutral cycle, every fixture validated by `job59/validate.py` with two independent counters
-agreeing and asserted to its exact count before the engine was called. **The threshold also holds on a DENSE MIDDLEGAME
-board with about thirty legal moves — 2 occurrences → 29,994 nodes and searched, 3 and 4 → 0 nodes and bailed (23-F143) —
-so it is not an artefact of the endgames where it was first found.** And it holds when the repeated position sits at the
-END of a long list rather than at the root (23-F141: 10-ply preamble, 2 → searches, 3/4/5 → bail).
+agreeing and asserted to its exact count before the engine was called.
 
 ## The standard rebuttal to any future "this 0-node cell breaks the threshold" report
 
@@ -54,10 +66,11 @@ from the two automatic draw rules, which persist.
   claim (base `cp 0`, PC `cp 425` on the R3 root): **both are defensible, and this is a POLICY difference about claiming,
   not a correctness defect in either build.** R3 is documented here in that form deliberately, and a later reader who
   turns it into a defect has changed the finding into something the evidence does not support.
-- **The MOVE is where the base's damage is** — and the ~625 cp figure belongs to the MOVE, not to the score (23-F101:
-  median over 12 deterministically sampled middlegame positions, ten of twelve ≥ 300 cp, measuring the cost of playing
-  generator index 0). On a real self-play board the unsearched move lost **6 pawns of material** by allowing a queen
-  capture (23-F60, re-verified under the corrected validator in 23-F129).
+- **The MOVE is where the base's damage is** — and the cost figure belongs to the MOVE, not to the score. Two DISJOINT
+  12-position samples give medians of **~625 cp** and **~1,004 cp** with nine or ten of twelve at ≥ 300 cp (23-F101,
+  23-F144), so the honest form is "roughly 600 to 1,000 cp, sample-dependent" rather than a single number. On a real
+  self-play board the unsearched move lost **6 pawns of material** by allowing a queen capture (23-F60, re-verified under
+  the corrected validator in 23-F129).
 - **The PC's repair removes the 0-node path, which is what produced both losses** — and on ONE of two measured boards
   it also picks a materially better move (F60 board 1: base loses +6, PC +0) while on the other it is **material-neutral**
   (F60 board 2: base +1, PC +1, 23-F130). So the honest form of the advice is: the repair buys honesty about the score
