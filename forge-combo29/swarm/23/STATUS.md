@@ -1237,3 +1237,16 @@ Third refutation in my record and the first of my own MEASUREMENT (not a framing
 ALSO: my job 28 driver test has the same flaw - both hazard boards shared the answer move with the stale board, so
 "legal" could not distinguish them. Rebuilding with disjoint legal sets.
 Real time 00:12Z; 10h6m remain.
+## 2026-11-17T00:13:27Z  23-F67: the driver protocol is VALIDATED for the refused-FEN hazard, with a disjoint-set control
+2026-11-17T00:13:27Z
+
+Stale board 42 legal moves; INTENDED boards 26/27 with legal sets DISJOINT from it (overlap 0, verified first).
+  NAIVE     -> g1f3: ILLEGAL on the board it meant to play, legal on the stale one -> it searched the WRONG BOARD
+  COMPLIANT -> f7g7: legal on the intended board, illegal on the stale one -> CORRECT
+That is the discrimination my first attempt lacked (it compared against the truncated board, so both looked right).
+H2 (illegal token) stays AMBIGUOUS: the two-ply board shares its whole legal set with the stale board, so the move
+cannot say which was searched. Reported as ambiguous, not scored; a proper H2 discriminator needs disjoint sets AND
+the intended board reachable from startpos, which I did not build.
+
+So the driver page's recommendation is validated for ONE hazard and honestly untested for another - not asserted
+for all three. 93 findings, 18 confirmations. 10 h 5 m remain.
