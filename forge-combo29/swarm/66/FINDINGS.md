@@ -236,11 +236,27 @@ spend falls as its clock falls, so a mild overcharge cannot reach the floor. A 1
 reaches **clock 0** and the engine still answers legally in **0.1–0.6 ms** for all 60 plies, in both the
 increment and no-increment arms.
 
+### F7b — The lesson, stated generally: a control that passes is not the same as a control that tests
+
+The brief's item 7 asked for 20 games at 3+2 to confirm the floor. Playing that control as specified would
+have produced a clean table — 20 games, zero forfeits — and confirmed **nothing about the floor**, because
+at 3+2 the increment exceeds the mean per-move spend and the clock rises. The control would have passed
+without ever exercising the property it was meant to test.
+
+The diagnostic question before running any clock control is: *does the clock actually reach the region I
+claim to be testing?* For a floor claim that means measuring the minimum clock reached, not just counting
+games. Here the minimum at 3+2 is the starting value itself (3000 ms), which is the tell.
+
+Two changes made the floor testable: a control whose increment is below the mean spend (1000+100, giving
+63 moves at ≤200 ms and a 176 ms minimum), and an artificial drain (10× overcharge) that reaches clock 0
+outright. The second is not a realistic game and is not presented as one — it answers "what happens at the
+bottom of the range", while the 1000+100 match answers "does the planner hold across a real game".
+
 Re-run:
 ```bash
 python3 case7_game_driver.py /tmp/w66/build/forge 20 1000 100      # ~6 min
 python3 case7_analyse.py case7_partial_20_1000_100.json             # 9/9 checks
-python3 case7_game_driver.py /tmp/w66/build/forge 20 3000 2000     # ~60 min
+python3 case7_game_driver.py /tmp/w66/build/forge 20 3000 2000     # ~110 min; clock never falls
 ```
 Raw: `case7_partial_20_1000_100.json` (+ `_analysis.json`); the 3+2 set lands in
 `case7_partial_20_3000_2000.json`.
