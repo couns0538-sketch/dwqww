@@ -1442,12 +1442,12 @@ bench 11 = 312,866 · bench 13 = 862,329 · bench 16 = 3,024,920 · perft 5 = 4,
 
 ## Reproducibility, verified at close
 **Every p-value in the corrected 19-C60 table now recomputes from committed files alone:**
-\`checks/coinflip/perposition_*.txt\` → 73/120 → 0.0221, 63/120 → 0.6483, 65/120 → 0.4114, 56/120 → 0.5230,
+`checks/coinflip/perposition_*.txt` → 73/120 → 0.0221, 63/120 → 0.6483, 65/120 → 0.4114, 56/120 → 0.5230,
 matching both seat 27's replication and the coordinator's independent arithmetic. **That closes the specific gap
 that let the bug through — the p-values originally had no committed source, so nobody could recompute them.** The
-generating code is \`checks/sign_test.py\` with a symmetry self-test.
+generating code is `checks/sign_test.py` with a symmetry self-test.
 
-**Every job has a \`PREDICTION.md\` committed before \`RESULT.md\`** — 19-C48 through 19-C66 — so a reader can check
+**Every job has a `PREDICTION.md` committed before `RESULT.md`** — 19-C48 through 19-C66 — so a reader can check
 each claim against what I expected rather than only against what I found.
 
 ## What I did not do
