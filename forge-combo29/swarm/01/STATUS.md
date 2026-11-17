@@ -2075,3 +2075,22 @@ increment and removes only what was spent), not the sample. The 12 points are wh
 mechanism is what makes the generalisation reasonable rather than reckless. Both are now stated separately in S-C43.
 Gates: 182 rows, 0 wrong pipe counts, page shape OK.
 Next: continue at cadence.
+## 2026-11-17T01:36:12Z — clock arithmetic is not a game, and that distinction is a method note now (S-C43)
+YOUR POINT 2 BELONGS ON A PAGE, NOT IN A MESSAGE, so it is now a section of CLOCK_REPRODUCIBILITY_RULE.md plus a
+seventh item on that page's practical checklist. The distinction: my first forfeit harness sent `position startpos`
+before every ply, so EVERY MOVE COST THE SAME and the only variable left was the clock. That harness can confirm a
+fixed point exists and that the arithmetic converges - and it can say nothing about a GAME, where each move's cost
+depends on the position. That variance is the only plausible way a "never forfeits" claim could fail, so removing it
+removed the risk along with the evidence.
+The section shows both forms side by side (send("position startpos") vs accumulating moves.append(mv) + send(...)),
+copied from the actual script rather than written from memory, and states the general rule: BEFORE QUOTING A CLOCK
+RESULT, ASK WHICH QUANTITY VARIED. "Only the clock" means the finding is about the clock formula; "the clock and the
+position" means it is about play. Neither is better - they support different claims - and saying which one you
+measured is the same discipline as naming the settings.
+Why it went on that checklist rather than in a note about one harness: BOTH FORMS PRINT A FULL TABLE OF PLAUSIBLE
+NUMBERS, so the difference is invisible in the output and only visible in what was varied. A trap you cannot see in
+the artefact has to live where harnesses are built.
+Also relocated the new section ahead of the checklist after the page-shape checker flagged it as appended after
+closing material - the tool was right and the fix was to move the section, not to add an exception.
+Gates: 182 rows, 0 wrong pipe counts, page shape OK on the edited page, stamps in order.
+Next: continue at cadence.

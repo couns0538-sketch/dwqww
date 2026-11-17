@@ -50,6 +50,35 @@ This is the **same species as the sample-size lesson** (`TWO_GUARDS_CHECKER_AND_
 not a distribution, and the second guard — repetition — is separate from the first, which only proves the
 instrument works.
 
+## Clock arithmetic is not a game: advance the move list (S-C43)
+
+When I re-tested the forfeit claim (`S-F77`, "impossible from any starting clock") my first harness reset the position
+to `startpos` before **every** ply. It produced twelve clean rows and 0 forfeits, and it was measuring the wrong thing.
+
+With the position fixed, **every move costs the same**. The only variable left is the clock itself, so such a harness
+can confirm that a fixed point exists and that the arithmetic converges — and it cannot say anything about a **game**,
+where each move's cost depends on the position. That variance is the only plausible way a "never forfeits" claim could
+fail, so a harness that removes it has removed the risk along with the evidence.
+
+The fix is one line, and it changes the character of the result:
+
+```python
+# measures clock arithmetic: every move costs the same
+send("position startpos")
+
+# measures a game: cost varies with position, which is where a forfeit would hide
+moves.append(mv)
+send("position startpos moves " + " ".join(moves))
+```
+
+Both forms print a full table of plausible numbers. **The difference is not visible in the output — only in what was
+being varied**, which is why it belongs on this checklist rather than in a note about one harness.
+
+The general rule: **before quoting a clock result, ask which quantity varied.** If the answer is "only the clock",
+the finding is about the clock formula; if it is "the clock and the position", it is about play. Neither is better —
+they support different claims, and stating which one you measured is the same discipline as naming the settings.
+
+
 ## Practical checklist for a clock harness
 
 1. **Sweep** the clock finely enough to see the plateaus (steps of ~50 ms were enough here).
@@ -64,3 +93,5 @@ instrument works.
    count matches, the whole search matches. This makes the sweep a one-off cost rather than a per-run one.
 6. For exact reproducibility use `go nodes N` instead — but remember it reports only completed iterations, so
    add the same allowance on both sides of any cost comparison (S-F57).
+7. **Advance the position every move.** If the harness sends `position startpos` before each ply, it is measuring
+   clock arithmetic, not a game — see below (S-C43).
