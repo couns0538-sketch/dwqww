@@ -1,0 +1,26 @@
+Clean Production Bundle `bundle5` Prediction (committed ALONE before creating `bundle5` or running any `bundle5` timing)
+========================================================================================================================
+Step / Bundle name: `bundle5`
+- Delivered in two byte-identical forms for convenience on the PC:
+  1. `bundle5.patch.txt`: single unified diff against `pc_r15` (`6b98f217 + pc_r15.patch`) containing `E1` + (`Job 5 bundle1` without `S7` part 3) + `S5` debug `precomputed_key` assert + `W1` + `W2` + `P1`, with **ZERO** `O2` (`InfoOnce`) and **ZERO** `S7` part 3 (`Hash` resize skip).
+  2. `delta_r15e_to_bundle5.patch.txt`: single unified diff directly against `r15e` (`pc_r15 + E1 + bundle1_no_s7p3`, the tree currently queued for checks on the PC per `FABLE_TO_carbon2_9.md`), containing ONLY the post-`r15e` delta (`S5` debug assert + `W1` + `W2` + `P1`, zero `O2`).
+
+What `bundle5` removes relative to `r15e` per 60 self-play games at `Hash 16` (`7,670` searches, `25,641,316` nodes), from `job8/wasted_work_counts_hash16.txt` and `job9/counts_hash16.txt`:
+1. `W1` (Job 8):
+   - Lazy `LesserThreats`: skips **`6,193,932 / 14,768,547` (`41.94%`)** `lesser_threats()` slider/knight attack-map builds where `MovePicker` returns a cutoff before `QuietsInit`.
+   - Fused quiet generate+filter+pin-mask `Board::is_legal` + AVX2 8-wide `pick_best`: skips **`54,487,510 / 79,482,664` (`68.55%`)** full `Board::is_legal()` calls on unpinned non-king quiet moves and vectorizes **`23,365,612`** `pick_best` scans (`594,917,053` inner comparisons).
+2. `W2` (Job 8):
+   - Hoists the two 64-entry history destination row pointers before scoring **`79,482,664`** quiet moves across **`8,574,615`** `QuietsInit` stages (eliminating `~397M` `piece_index` multiplies/adds) and splits `GoodCapturesInit` / `QuietsInit` `noinline` (`Worker::search` frame `4,720 -> 4,512 B`).
+3. `P1` (Job 9):
+   - Inline PGO-proof single-worker node-cap stop check (`Worker::check_node_or_periodic_stop`): eliminates **`32,897,975 / 32,930,134` (`99.90%`)** `should_stop() -> should_stop_with() -> total_nodes()` call chains + atomic stores + `all_workers_` loops per 60 games (`Worker::search` frame `4,512 -> 4,496 B`).
+   - `TranspositionTable::probe_body` miss fast-path & packed `TTProbe` (`64 -> 56 B`): skips copying unread 16-byte `TTEntry` on all **`14,942,337 / 31,963,180` (`46.75%`)** TT probe misses and returns slot `0` immediately when unoccupied.
+   - Table-free `(moving != WK && moving != BK)` check across the **`16,525,641`** remaining `Board::is_legal` calls (`75.73%` unpinned non-king non-EP).
+4. `S5` debug `assert(!precomputed_key || *precomputed_key == key_)` restored in `Board::make_move`, verified in a `-UNDEBUG` build on a corrupted key.
+
+Predicted self-play gain at `Hash 16` (`A = r15e`, `B = bundle5`, 12 rounds x 60 games ABBA on Intel Xeon @ 2.60GHz; cumulative post-`r15e` gain of `W1 + W2 + P1`, step product `1.0423 * 1.0159 * 1.0095 = 1.0689x`):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+5.0%` to `+9.0%` (`1.050x` to `1.090x`)**, with **`>= 11 / 12`** paired rounds faster.
+- End-to-end self-play wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+4.5%` to `+9.0%` (`1.045x` to `1.090x`)**, with **`>= 10 / 12`** paired rounds faster.
+
+Kill range:
+- Any mismatch on the engine identity pins (`bench 11/13/16` both nets, `250/250` depth-9 rows, `1,000` evals, both 6-game traces), the 48-run `Hash 16` FNV trace (`ee465caeff9c0fcf`), the 500,000-op TT + stop-boundary oracle, the `2,010`-sequence all-stages `MovePicker` oracle, the `55,868`-sequence check-evasion oracle, failure of the `-UNDEBUG` `S5` `precomputed_key` assert check, or failure of the `bundle5` planted-fault check kills `bundle5` immediately.
+- If the 12-round x 60-game `Hash 16` `median_of_paired_round_ratios` (`bundle5 / r15e`) on `getrusage` engine CPU is `< 1.045x` (`< +4.5%`) OR fewer than `11 / 12` paired rounds are faster on `getrusage` engine CPU, `prediction_bundle5` is graded **KILLED**.
