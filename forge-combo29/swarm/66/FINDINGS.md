@@ -7,11 +7,43 @@ Each finding carries its **re-run command** and the **denominator as a literal**
 
 ---
 
-## F1 — A one-sided clock does not terminate at a real budget. It reached depth 39 and printed nothing.
+## INSTRUCTION TO ANYONE READING A 0-NODE OR `a2a3` ROW IN THIS RUN'S TABLES
+
+Two different things produce "no search, first legal move" in this corpus, and they are **not
+interchangeable**. Before quoting any 0-node or `a2a3` row as clock behaviour, determine which one it is.
+
+| what you see | how it was produced | is it clock behaviour? |
+| --- | --- | --- |
+| `bestmove a2a3`, **no `info depth` line**, and the harness closed stdin after `go` | the engine saw EOF, aborted the search, and fell back to the first legal move | **NO** — it is a piped-abort artifact |
+| `bestmove d2d4`, **one `info depth 1` line with 26 nodes**, stdin held open, cold table (F4a) | the empty-reserve path searched one ply because there was no hash move | yes |
+| `bestmove d2d4`, **no `info depth` line**, stdin held open, warm table (F4a) | the empty-reserve path played the TT hash move at 0 nodes | yes |
+
+The discriminating test is not the move and not the node count. It is: **was stdin still open when the
+`bestmove` arrived?** A `printf '...' | ./forge` pipeline closes it. Every script in this directory
+(`ucilib.Engine`) holds stdin open and waits for `bestmove` explicitly, so rows from these scripts are the
+clock answer; rows from an ad-hoc pipe are not, and several tables in this run have rows of that shape.
+
+Re-measure a suspect row by holding stdin open:
+
+```bash
+( printf 'uci\nsetoption name OwnBook value false\nisready\nposition startpos\ngo wtime 0\n'; sleep 1 ) \
+  | ./forge | grep -E 'info depth|bestmove'
+```
+
+Measured both ways in F4b. The `a2a3`/no-info answer appears only with the pipe that closes stdin.
+
+---
+
+## F1 — A one-sided clock is a hang, not a poor move: 288.7 s, depth 39, 416 M nodes, zero diagnostics.
 
 `go wtime 300000` with **Black to move** (so `wtime` is the opponent's clock) ran for **288.7 s**, reached
 **depth 39 / seldepth 56** and **416,554,567 nodes**, and was still searching when the harness stopped it.
 It emitted **zero `info string` lines** — nothing in the output tells a GUI that a clock was ignored.
+
+**This is a hang, not a slow move or a lost game on time.** The engine has no bound it can reach inside any
+plausible game: it was still 25 depths from `SearchLimits::depth = 64` after nearly five minutes, and the
+only event that ends it is a `stop` from outside. A GUI that sends a `go` naming only the opponent's clock
+receives no `bestmove` and no diagnostic, indefinitely.
 
 `parse_limits` (`src/uci.cpp`) assigns `limits.time_ms` only for the side to move:
 
@@ -20,14 +52,11 @@ else if (token == "wtime") { const std::int64_t value = read_clock(); if (side =
 else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
 ```
 
-So the search gets no clock at all and runs to `SearchLimits::depth = 64`. At 300 s it had not got there.
+So the search gets no clock at all and runs to the depth ceiling.
 
 Control that makes this a measurement of the engine: the **same position** with `go btime 300000` (its own
 clock) terminated by itself in **13.1 s at depth 31**; with `go btime 1000` in **31 ms at depth 14**. The
 mirror case (`go btime 300000` with White to move) also never answered inside 3 s.
-
-Answering the question directly: **it does not terminate; the only thing that ends it is `stop`.** The
-depth-64 ceiling would bound it eventually, but that is a bound in tens of minutes to hours, not a clock.
 
 Re-run:
 ```bash
@@ -111,8 +140,12 @@ so this is not a race — it is the table state. Anyone quoting "`wtime 0` retur
 | stdin closed immediately (the usual pipe) | `bestmove a2a3`, **no info line at all** |
 
 Closing stdin makes the engine see EOF, abort the search and fall back to the first legal move. `a2a3` is
-*not* the engine's clock answer; it is its EOF answer. Several swarm scripts use the pipe form, so a
-0-node/`a2a3` row anywhere in the swarm's tables should be re-checked with stdin held open.
+*not* the engine's clock answer; it is its EOF answer.
+
+**Instruction, not just a note:** several tables in this run have rows of the shape "0 nodes" or "`a2a3`",
+and a row of that shape is ambiguous until it is re-checked with stdin held open. The three answers and the
+test that separates them are tabulated at the top of this file. Do not quote a 0-node row as clock
+behaviour unless the harness that produced it held stdin open and waited for `bestmove` explicitly.
 
 ---
 
@@ -170,9 +203,33 @@ zero-forfeit count for that control is filled in from `case7_partial_20_3000_200
 | worst overshoot of the predicted hard limit | **+2.1 ms** over 3,071 moves |
 
 Spend at a clock ≤200 ms: **max 114.5 ms, median 99.5 ms** over 63 moves. That maximum is
-`0.6 × (200 − 10)` = 114 ms — the 60% hard cap on `available`, matched to the millisecond. The formula
-reproduced **every one of 3,071 moves** within +2.1 ms, and the closest moves sit exactly on the limit
-(1.012 of predicted hard at clock 306).
+`0.6 × (200 − 10)` = 114.0 ms — the 60% hard cap on `available`, matched to half a millisecond inside a
+0.5 ms measurement resolution.
+
+### The formula is a prediction that held, not a description fitted afterwards
+
+This is the load-bearing result of the clock work. `case7_analyse.py` computes, for **every one of the
+3,071 moves**, what `plan_clock_budget` says the hard limit should be from that move's own remaining clock:
+
+```
+available = max(1, clock - 10)
+soft      = available/22 + increment*75/100
+hard      = min(available*60/100, soft*5)
+```
+
+and compares it with the time the engine actually spent:
+
+| result | value |
+| --- | ---: |
+| moves where the plan formula was evaluated | **3,071 of 3,071** |
+| worst overshoot of the predicted hard limit | **+2.1 ms** |
+| closest approach to the predicted hard limit | 1.012 (clock 306 → 179.1 ms spent vs 177 ms predicted) |
+
+The prediction was not tuned to the data. It is the same four constants the source uses, applied per move to
+whatever clock the driver had accumulated at that point — i.e. it is evaluated on 3,071 different clocks, and
+no move exceeds it by more than a millisecond or two. That turns the floor from an observation ("the worst
+move I saw spent 114.5 ms") into a prediction ("the engine spends `0.6 × (clock − overhead)`, always").
+Anyone questioning a floor figure can recompute it for any row from that row's own clock.
 
 **The drain control.** A 2× overcharge reached equilibrium at 1376 ms and drained no further — the engine's
 spend falls as its clock falls, so a mild overcharge cannot reach the floor. A 10× + 200 ms overcharge
