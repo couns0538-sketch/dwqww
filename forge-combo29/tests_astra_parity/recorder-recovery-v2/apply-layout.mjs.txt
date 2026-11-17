@@ -1,0 +1,27 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const file='/workspace/work/parity-equality-preparation-v2/control.mjs';let s=fs.readFileSync(file,'utf8');fs.writeFileSync(file+'.pre-root-layout.txt',s,{flag:'wx'});
+function replace(a,b){assert.ok(s.includes(a),a);s=s.replaceAll(a,b);}
+replace("const dir=ROOT+'/equality-'+stageName,stageFile=dir+'/stage.txt',json=", "const step=stageName==='speed'?'step1':'step2',prefix=stageName==='speed'?'S1':'S2',dir=ROOT+'/equality-'+stageName,stageFile=dir+'/stage.txt',configsDir=ROOT+'/equality-configs/'+step,batchesDir=ROOT+'/equality-batches/'+step,WRAPPER=ROOT+'/equality-tools/compare4.mjs',json=");
+replace("assert.equal(hashFile(s.candidate.binary),s.candidate.sha256);", "assert.equal(hashFile(s.candidate.binary),s.candidate.sha256);assert.equal(hashFile(s.candidate.buildFlags),s.candidate.buildFlagsSha256);");
+replace("filter(x=>/^E-\\d{4}\\.txt$/.test(x))", "filter(x=>/^(S1|S2)-\\d{4}\\.txt$/.test(x))");
+replace("assert.equal(name,'E-'+String(i+1).padStart(4,'0')+'.txt');", "assert.equal(name,(base.endsWith('equality-speed')?'S1':'S2')+'-'+String(i+1).padStart(4,'0')+'.txt');");
+replace("for(const x of r.summaries)assert.equal(hashFile(x.file),x.sha256);", "for(const x of r.summaries)assert.equal(hashFile(x.file),x.sha256);assert.equal(hashFile(r.config.file),r.config.sha256);");
+replace("assert.equal(s.candidate.sourceCommit,SPEED_COMMIT);const receipts=", "assert.equal(s.candidate.sourceCommit,SPEED_COMMIT);assert.equal(hashFile(s.candidate.binary),s.candidate.sha256);assert.equal(hashFile(s.reference.binary),s.reference.sha256);const receipts=");
+replace("Object.fromEntries(toolNames.map(name=>[HERE+'/'+name,hashFile(HERE+'/'+name)]))", "Object.fromEntries([...toolNames.map(name=>[HERE+'/'+name,hashFile(HERE+'/'+name)]),[WRAPPER,hashFile(WRAPPER)]])");
+replace("for(const name of ['configs','batches','receipts','faults','audit-attempts'])fs.mkdirSync(dir+'/'+name);", "for(const name of ['receipts','faults','audit-attempts'])fs.mkdirSync(dir+'/'+name);fs.mkdirSync(configsDir,{recursive:true});fs.mkdirSync(batchesDir,{recursive:true});");
+replace("const expectedId='E-'+", "const expectedId=prefix+'-'+");
+replace("dir+'/configs/'", "configsDir+'/'");replace("dir+'/batches/'", "batchesDir+'/'");
+replace("(stageName==='speed'?611180000:611190000)", "(stageName==='speed'?1449530000:1449540000)");
+replace("HERE+'/compare4.mjs','run',file", "WRAPPER,'run',file");
+replace("const config=read(configsDir+'/'+id+'.json.txt');assert.equal(config.stageSha256,hashFile(stageFile));const summary=", "const configFile=configsDir+'/'+id+'.json.txt',config=read(configFile);checkConfig(config,id,s,receipts);const summary=");
+replace("current=read(summary);assert.equal", "current=read(summary);const recorded=read(batchesDir+'/'+id+'/config.txt'),plan=makePlan(config);assert.equal(recorded.inputConfig,configFile);for(const key of Object.keys(plan))assert.deepEqual(recorded[key],plan[key],'executed plan differs: '+key);assert.equal");
+replace("stageSha256:hashFile(stageFile),summaries:files.map", "stageSha256:hashFile(stageFile),config:{file:configFile,sha256:hashFile(configFile)},summaries:files.map");
+const pos=s.indexOf("if(action==='init'||action==='inspect')");assert.ok(pos>0);s=s.slice(0,pos)+`function checkConfig(c,id,s,receipts){
+ assert.equal(c.driver,DRIVER);assert.equal(c.merged,s.candidate.binary);assert.equal(c.lock,REFERENCE);assert.equal(c.manifest,MANIFEST);assert.equal(c.out,batchesDir+'/'+id);assert.equal(c.seconds,330);assert.equal(c.seed,String((stageName==='speed'?1449530000:1449540000)+receipts.length+1));
+ const expected=receipts.length?read(receipts.at(-1).summaries.at(-1).file).nextWorkers.map(w=>({worker:w.worker,offset:w.offset,remainingEligible:w.remainingEligible})):[0,1,2,3].map(worker=>({worker,offset:0,remainingEligible:25000}));assert.deepEqual(c.workers,expected,'config cursors');
+ if(c.stageSha256!==undefined)assert.equal(c.stageSha256,hashFile(stageFile));else assert.equal(id,'S1-0001','Only root initial config predates stage metadata');
+ if(c.previousReceipts){assert.equal(c.previousReceipts.length,receipts.length);for(const pin of c.previousReceipts)assert.equal(hashFile(pin.file),pin.sha256);}
+ if(c.expectedBinarySha256){assert.equal(c.expectedBinarySha256.merged,s.candidate.sha256);assert.equal(c.expectedBinarySha256.lock,REFERENCE_SHA);}
+}
+`+s.slice(pos);
+fs.writeFileSync(file,s);fs.copyFileSync(file,file+'.txt');console.log('Updated stage-local controller for immutable root S1/S2 batch paths; no stage/native execution.');

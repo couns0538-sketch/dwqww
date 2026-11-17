@@ -1,0 +1,10 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {verifyAdmission,verifyLaunchGate,hash} from './protocol.mjs';
+const here='/workspace/work/parity-match-0018-preparation',d=JSON.parse(fs.readFileSync(here+'/DECLARATION-INPUT.template.txt')),checks=[];
+function check(name,fn){fn();checks.push({name,passed:true});}
+check('0018 accepts truthful unfinished Job A after accepted Step2',()=>verifyAdmission(d));
+for(const [key,value]of [['jobAComplete',true],['step2Accepted',false],['sanitizerPending',false],['sourceCommit','0'.repeat(40)],['binarySha256','0'.repeat(64)]])check('Reject changed '+key,()=>assert.throws(()=>verifyAdmission({...d,[key]:value})));
+check('Reject changed authority commit',()=>assert.throws(()=>verifyAdmission({...d,decision0018:{...d.decision0018,commit:'0'.repeat(40)}})));
+check('Reject changed acceptance evidence',()=>assert.throws(()=>verifyAdmission({...d,step2AcceptanceEvidence:[{...d.step2AcceptanceEvidence[0],sha256:'0'.repeat(64)}]})));
+check('Root stop gate is observed without alteration',()=>{const file='/workspace/work/parity-run/state.json',s=JSON.parse(fs.readFileSync(file));if(s.blockFurtherEngineWork||!s.step2EffectiveGatePassed)assert.throws(()=>verifyLaunchGate());else assert.equal(verifyLaunchGate(),true);});
+assert.equal(fs.existsSync('/workspace/work/parity-run/matches-hindsight/DECLARATION.txt'),false);
+console.log(JSON.stringify({checks,passed:true,engineRuns:0,realDeclarationWrites:0,rootStateWrites:0,decisionSha256:hash(d.decision0018.file),step2AcceptanceSha256:hash(d.step2AcceptanceEvidence[0].file)},null,2));

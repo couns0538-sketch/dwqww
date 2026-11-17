@@ -1,0 +1,45 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+const started=new Date().toISOString();
+const repo='/workspace/work/dwqww-r4-guard',commit='f7d1e3196834b1d89ffbd5acd81887e6a3742ed1';
+const relative='forge-combo29/tests_astra_mateguard/matches',published=repo+'/'+relative,scratch='/workspace/work/r4-run/matches';
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+const git=args=>{const r=spawnSync('git',args,{cwd:repo,encoding:null,maxBuffer:24*1024*1024});if(r.status!==0)throw Error('git failed '+args.join(' '));return r.stdout;};
+const remoteRef='refs/heads/for-fable-and-opus/astra-r4-mate-alpha-guard';
+const remoteOutput=git(['ls-remote','--heads','origin',remoteRef]).toString().trim();
+const remoteTip=remoteOutput.split(/\s+/)[0];
+git(['merge-base','--is-ancestor',commit,remoteTip]);
+const entries=new Map(git(['ls-tree','-r','-z',commit,'--',relative]).toString().split('\0').filter(Boolean).map(l=>{const [meta,name]=l.split('\t');return [name,meta.split(' ')[2]];}));
+const raw=fs.readdirSync(scratch).filter(n=>/\.(?:debug|engine)\.log$/.test(n)).map(n=>scratch+'/'+n).sort();
+const seen=new Set(),results=[];
+for(const name of fs.readdirSync(published).sort()){
+ const mf=path.join(published,name,'MANIFEST.txt');if(!fs.existsSync(mf))continue;
+ const rel=relative+'/'+name+'/MANIFEST.txt',live=fs.readFileSync(mf),blob=git(['cat-file','blob',commit+':'+rel]);
+ if(!live.equals(blob))throw Error('Working manifest differs from committed '+mf);
+ const manifest=JSON.parse(blob);
+ for(const f of manifest.files.filter(f=>/\.(?:debug|engine)\.log$/.test(f.source))){
+  if(seen.has(f.source))throw Error('Duplicate source manifest '+f.source);seen.add(f.source);
+  const st=fs.statSync(f.source),fd=fs.openSync(f.source,'r'),whole=crypto.createHash('sha256');let offset=0;
+  for(const c of f.chunks){
+   if(c.offset!==offset||c.bytes<=0)throw Error('Gap/overlap/empty chunk '+c.path);
+   const localPath=path.join(path.dirname(mf),c.path),relPath=relative+'/'+name+'/'+c.path;
+   if(!entries.has(relPath))throw Error('Chunk is not in pinned commit '+relPath);
+   const part=fs.readFileSync(localPath),slice=Buffer.alloc(c.bytes);
+   if(part.length!==c.bytes||hash(part)!==c.sha256)throw Error('Chunk size/hash mismatch '+c.path);
+   const stored=git(['cat-file','blob',entries.get(relPath)]);
+   if(!stored.equals(part))throw Error('Chunk bytes differ from committed blob '+c.path);
+   let got=0;while(got<slice.length){const n=fs.readSync(fd,slice,got,slice.length-got,offset+got);if(!n)throw Error('Raw trace ended early');got+=n;}
+   if(!slice.equals(part))throw Error('Raw trace differs byte-for-byte '+f.source+' offset '+offset);
+   whole.update(part);offset+=part.length;
+  }
+  fs.closeSync(fd);
+  const final=fs.statSync(f.source),sha256=whole.digest('hex');
+  if(offset!==f.bytes||offset!==st.size||final.size!==st.size||final.mtimeMs!==st.mtimeMs||sha256!==f.sha256)throw Error('Incomplete, changed, or wrong total hash '+f.source);
+  results.push({source:f.source,manifest:mf,manifestGitPath:rel,pinnedCommit:commit,bytes:offset,sha256,chunks:f.chunks.length,byteIdenticalToOrderedCommittedChunks:true});
+ }
+}
+if(raw.length!==seen.size||raw.some(p=>!seen.has(p)))throw Error('Uncovered raw trace');
+const totalBytes=results.reduce((n,r)=>n+r.bytes,0);
+console.log(JSON.stringify({command:['node',process.argv[1]],started,ended:new Date().toISOString(),pinnedCommit:commit,remoteVerification:{command:['git','ls-remote','--heads','origin',remoteRef],stdout:remoteOutput,pinnedCommitIsAncestorOfRemoteTip:true},rawDebugLogs:raw.filter(p=>p.endsWith('.debug.log')).length,rawEngineLogs:raw.filter(p=>p.endsWith('.engine.log')).length,verified:results,totalBytes,totalGiB:totalBytes/2**30,rawFilesUntouched:true,exit:0},null,2));

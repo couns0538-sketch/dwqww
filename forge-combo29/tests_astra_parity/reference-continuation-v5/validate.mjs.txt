@@ -1,0 +1,29 @@
+import fs from 'node:fs';import cp from 'node:child_process';import assert from 'node:assert/strict';
+import {allows} from './policy.mjs';import {classifyReferenceCutoffs} from './cutoff-reference.mjs';
+const dir='/workspace/work/parity-reference-continuation-v5',file='/workspace/work/parity-run/equality-final-v4/audits/S2-0004.txt',raw=fs.readFileSync(file,'utf8'),a=JSON.parse(raw),rows=[];
+function check(name,f,expected=false){const x=structuredClone(a);f(x);const before=JSON.stringify(x);assert.equal(allows(x,true),expected,name);assert.equal(JSON.stringify(x),before,'raw mutation');rows.push({name,passed:true});}
+const event=x=>x.partialEvidence.find(p=>p.worker===3&&p.partial?.context?.index===17229).partial;
+check('two qualifying cutoff events',()=>{},true);
+check('candidate secondtimeout',x=>{x.shutdownTiming.candidateTimeoutOccurrences=2;x.decision0012.escalationRequired=true;});
+check('unsolicited SIGSEGV',x=>event(x).initial.lock.shutdown.signal=11);
+check('SIGKILL notallowed',x=>{event(x).initial.lock.shutdown.signal=9;event(x).initial.lock.shutdown.driver_sigkill=true;});
+check('SIGTERM notdriverissued',x=>event(x).initial.lock.shutdown.driver_sigterm=false);
+check('unreaped status',x=>event(x).initial.lock.shutdown.reaped=false);
+check('full250msbudget notcutoffclass',x=>event(x).initial.lock.shutdown.shutdown_budget_ms=250);
+check('zerobudget rejected',x=>event(x).initial.lock.shutdown.shutdown_budget_ms=0);
+check('missingmeasurement rejected',x=>event(x).initial.lock.shutdown.quit_to_exit_ms=null);
+check('completedtuple mismatch',x=>event(x).initial.lock.result.nodes++);
+check('missingresult rejected',x=>event(x).initial.lock.result=null);
+check('candidate shutdownfault rejected',x=>event(x).initial.merged.shutdown.timed_out=true);
+check('diagnostic rejected',x=>event(x).initial.lock.sanitizer_issues=1);
+check('countedpair rejected',x=>event(x).counted=true);
+check('changedsummaryhash rejected',x=>x.batches.at(-1).sha256='0'.repeat(64));
+check('extraunrelatedpartialfault rejected',x=>x.partialOperationalFindings.at(-1).faults.transport_issues=1);
+check('committedcrash rejected',x=>x.counts.crashes++);
+check('validationerror rejected',x=>x.validationErrors.push({test:true}));
+assert.equal(allows(a,false),false);rows.push({name:'oneactualscoredifference still requiresattribution',passed:true});
+function command(label,args,expected=0){const r=cp.spawnSync('node',args,{encoding:'utf8',timeout:95000,maxBuffer:64*1024*1024});fs.writeFileSync(dir+'/'+label+'.command.txt',JSON.stringify({argv:['node',...args],exit:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr},null,2)+'\n',{flag:'wx'});assert.equal(r.status,expected,label+' '+r.stderr);return r.stdout;}
+for(const n of ['control.mjs','policy.mjs','cutoff-reference.mjs','audit-all-differences.mjs','record-equality.mjs'])command('syntax-'+n.replaceAll('.','-'),['--check',dir+'/'+n]);
+const preview=command('preview-migration',[dir+'/control.mjs','preview-migration','final','/workspace/work/parity-run/equality-final-v4/stage.txt']);fs.writeFileSync(dir+'/preview-stage.txt',preview,{flag:'wx'});const stage=JSON.parse(preview);assert.equal(stage.inheritedReceipts.length,4);assert.equal(new Set(stage.inheritedReceipts.map(x=>x.file)).size,4);assert.ok(Object.keys(stage.migration.pins).every(p=>/\.(mjs|txt|md|cpp|hpp|json)$/.test(p)),'All migration snapshot paths are text');
+const summaries=a.batches.map(x=>x.file),out=command('preview-aggregate',[dir+'/audit-all-differences.mjs',dir+'/preview-stage.txt',...summaries],1),next=JSON.parse(out);for(const k of Object.keys(a).filter(k=>!['supplementalReferenceClassification','continuationDecision'].includes(k)))assert.deepEqual(next[k],a[k],k);assert.equal(next.cutoffReferenceClassification.allowed,true);assert.equal(next.cutoffReferenceClassification.classifiedCount,2);assert.equal(next.operationalFaults,2);assert.equal(next.decision0012.continuationAllowed,false);assert.equal(next.shutdownTiming.candidateTimeoutOccurrences,1);fs.writeFileSync(dir+'/preview-audit.txt',out,{flag:'wx'});assert.equal(fs.readFileSync(file,'utf8'),raw);
+fs.writeFileSync(dir+'/VALIDATION.txt',JSON.stringify({tests:rows,rawAuditFieldsUnchanged:true,originalBlockedAuditRetained:true,inheritedReceipts:4,classification:classifyReferenceCutoffs(a,true),engineRuns:0,rootStateWrites:0,gitWrites:0},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({tests:rows.length,passed:true,engineRuns:0,rootStateWrites:0}));

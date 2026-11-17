@@ -1,0 +1,212 @@
+// One warm instrumented UCI child; frozen baseline Board is the legal oracle.
+// Accepted workload consists only of complete usual/soft game pairs.
+#include "uci_process.hpp"
+#include "softnodes_labels.hpp"
+#include "forge/search.hpp"
+#include <iostream>
+#include <memory>
+#include <random>
+
+namespace {
+using Clock = std::chrono::steady_clock;
+std::string quote(const std::string& s) {
+    std::string out = "\""; const char* hex = "0123456789abcdef";
+    for (unsigned char c : s) {
+        if (c == '"' || c == '\\') { out += '\\'; out += static_cast<char>(c); }
+        else if (c < 32) { out += "\\u00"; out += hex[c >> 4]; out += hex[c & 15]; }
+        else out += static_cast<char>(c);
+    }
+    return out + '"';
+}
+std::uint64_t mix(std::uint64_t x) {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+}
+bool diagnostic(const std::string& s) {
+    for (const char* p : {"AddressSanitizer", "UndefinedBehaviorSanitizer", "LeakSanitizer",
+             "ThreadSanitizer", "MemorySanitizer", "runtime error:", "Sanitizer CHECK failed", "terminate called"})
+        if (s.find(p) != std::string::npos) return true;
+    return false;
+}
+struct Config {
+    std::string engine;
+    std::uint64_t seed = 1, nodes = 2000, pairs = 1000000, first_pair = 0;
+    int threads = 1, depth = 0, seconds = 180;
+    bool enabled = false;
+};
+Config arguments(int argc, char** argv) {
+    Config c;
+    for (int i = 1; i < argc; ++i) {
+        const std::string key = argv[i];
+        if (++i >= argc) throw std::runtime_error("missing argument value");
+        const std::string value = argv[i];
+        if (key == "--engine") c.engine = value;
+        else if (key == "--seed") c.seed = std::stoull(value);
+        else if (key == "--nodes") c.nodes = std::stoull(value);
+        else if (key == "--pairs") c.pairs = std::stoull(value);
+        else if (key == "--first-pair") c.first_pair = std::stoull(value);
+        else if (key == "--threads") c.threads = std::stoi(value);
+        else if (key == "--depth") c.depth = std::stoi(value);
+        else if (key == "--seconds") c.seconds = std::stoi(value);
+        else if (key == "--HindsightAndGuard") {
+            if (value != "true" && value != "false") throw std::runtime_error("boolean required");
+            c.enabled = value == "true";
+        } else throw std::runtime_error("unknown argument " + key);
+    }
+    if (c.engine.empty() || c.seconds < 1 || c.seconds > 330 || c.threads < 1 || c.threads > 4 || !c.pairs)
+        throw std::runtime_error("invalid configuration");
+    if ((c.depth == 0 && c.nodes == 0) || c.depth < 0) throw std::runtime_error("usual search limit required");
+    return c;
+}
+struct Counts {
+    std::uint64_t games = 0, searches = 0, moves = 0, mates = 0, stalemates = 0;
+    std::uint64_t repetitions = 0, fifty = 0, insufficient = 0, ply_caps = 0;
+    std::uint64_t x_count = 0, x_sum = 0, caps = 0;
+    std::string json() const {
+        return "{\"games\":"+std::to_string(games)+",\"searches\":"+std::to_string(searches)+
+            ",\"moves\":"+std::to_string(moves)+",\"mates\":"+std::to_string(mates)+
+            ",\"stalemates\":"+std::to_string(stalemates)+",\"repetitions\":"+std::to_string(repetitions)+
+            ",\"fifty\":"+std::to_string(fifty)+",\"insufficient\":"+std::to_string(insufficient)+
+            ",\"ply_caps\":"+std::to_string(ply_caps)+",\"soft_x_count\":"+std::to_string(x_count)+
+            ",\"soft_x_sum\":"+std::to_string(x_sum)+",\"soft_mean_x\":"+
+            (x_count ? std::to_string(static_cast<double>(x_sum)/x_count) : "null")+
+            ",\"soft_hard_cap_reached\":"+std::to_string(caps)+"}";
+    }
+};
+int left_ms(Clock::time_point end) {
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end-Clock::now()).count();
+    if (ms <= 0) throw std::runtime_error("batch_or_search_deadline");
+    return static_cast<int>(std::min<std::int64_t>(15000, ms));
+}
+std::vector<std::string> stdout_lines(const std::string& transcript) {
+    std::istringstream in(transcript); std::string line; std::vector<std::string> out;
+    while (std::getline(in,line)) if (line.rfind("< stdout ",0)==0) out.push_back(line.substr(9));
+    return out;
+}
+std::string shutdown_json(const UciShutdownResult& s) {
+    return "{\"reaped\":"+std::to_string(s.reaped)+",\"exit\":"+std::to_string(s.exit_code)+
+        ",\"signal\":"+std::to_string(s.signal)+",\"timed_out\":"+std::to_string(s.timed_out)+
+        ",\"driver_sigterm\":"+std::to_string(s.driver_sigterm)+",\"driver_sigkill\":"+std::to_string(s.driver_sigkill)+
+        ",\"quit_attempted\":"+std::to_string(s.quit_attempted)+",\"quit_sent\":"+std::to_string(s.quit_sent)+
+        ",\"quit_to_exit_ms\":"+(s.quit_to_exit_ms >= 0 ? std::to_string(s.quit_to_exit_ms) : "null")+
+        ",\"shutdown_total_ms\":"+std::to_string(s.shutdown_total_ms)+",\"error\":"+quote(s.error)+"}";
+}
+int self_test() {
+    const std::string exact="info depth 7 score cp 21 nodes 3000 time 2 pv e2e4 e7e5";
+    const auto test=[&](const std::string& name,std::vector<std::string> lines,bool p2,bool p3,bool p4,bool error=false){
+        const auto r=check_labels(lines,true);
+        if(r.item2!=p2||r.item3!=p3||r.item4!=p4||(!r.error.empty())!=error)throw std::runtime_error("self-test "+name);
+        std::cout<<"SELFTEST "<<name<<" passed\n";
+    };
+    test("ordinary",{exact,"info string softnodes nodes 3100","bestmove e2e4","readyok"},true,true,true);
+    test("bounded_line_does_not_replace_exact",{exact,"info depth 8 score cp 30 lowerbound nodes 4000 time 3 pv d2d4","info string softnodes nodes 4100","bestmove e2e4"},true,true,true);
+    test("cap_exception",{"info depth 5 score cp 20 nodes 1000 time 1 pv e2e4","info string softnodes nodes 10000","bestmove e2e4"},true,true,true);
+    test("mate_exception",{"info depth 3 score mate 2 nodes 50 time 1 pv e2e4","info string softnodes nodes 51","bestmove e2e4"},true,true,true);
+    test("wrong_label_move",{exact,"info string softnodes nodes 3100","bestmove d2d4"},true,false,true);
+    test("below_target_without_exception",{"info depth 5 score cp 20 nodes 2499 time 1 pv e2e4","info string softnodes nodes 9999","bestmove e2e4"},true,true,false);
+    test("duplicate_line",{exact,"info string softnodes nodes 3100","info string softnodes nodes 3100","bestmove e2e4"},false,true,true);
+    test("late_line",{exact,"bestmove e2e4","info string softnodes nodes 3100","readyok"},false,true,true);
+    test("missing_exact",{"info string softnodes nodes 10000","bestmove e2e4"},true,false,false,true);
+    test("malformed_last_exact",{exact,"info depth 8 score cp 50 time 4 pv e2e4","info string softnodes nodes 5000","bestmove e2e4"},true,true,false,true);
+    test("missing_soft_line",{exact,"bestmove e2e4"},false,true,true);
+    test("malformed_soft_line",{exact,"info string softnodes nodes -1","bestmove e2e4"},false,true,true);
+    std::cout<<"SELFTEST SUMMARY 12 passed; engine runs 0\n";
+    return 0;
+}
+}
+
+int main(int argc,char**argv) {
+    if(argc==2&&std::string(argv[1])=="--self-test")return self_test();
+    Config c; try { c=arguments(argc,argv); } catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 2;}
+    const auto start=Clock::now(),target=start+std::chrono::seconds(c.seconds),hard=start+std::chrono::seconds(420);
+    std::unique_ptr<UciProcess> engine;
+    Counts observed[2],accepted[2];
+    std::uint64_t pairs_completed=0,pair=c.first_pair; int ply=-1,mode=-1;
+    std::string context,fault;
+    bool label_fault=false;
+    std::size_t published_trace=0;
+    UciShutdownResult shutdown;
+    bool shutdown_observed=false;
+    auto publish=[&](){if(engine){const auto& text=engine->transcript();std::cout<<text.substr(published_trace);published_trace=text.size();std::cout.flush();}};
+    std::cout<<"CONFIG {\"engine\":"<<quote(c.engine)<<",\"seed\":"<<c.seed<<",\"threads\":"<<c.threads
+        <<",\"nodes\":"<<c.nodes<<",\"depth\":"<<c.depth<<",\"seconds\":"<<c.seconds<<",\"pairs\":"<<c.pairs
+        <<",\"first_pair\":"<<c.first_pair<<",\"softnodes\":2500,\"soft_cap\":10000,\"Hash\":16,\"OwnBook\":false"
+        <<",\"HindsightDepth\":"<<(c.enabled?"true":"false")<<",\"MateAlphaGuard\":"<<(c.enabled?"true":"false")
+        <<",\"opening_plies\":8,\"ply_limit\":300,\"protocol\":\"one usual and one soft game per pair; clear only between games\"}"<<std::endl;
+    try {
+        engine=std::make_unique<UciProcess>(c.engine,c.threads,15000);
+        engine->send("setoption name HindsightDepth value "+std::string(c.enabled?"true":"false"));
+        engine->send("setoption name MateAlphaGuard value "+std::string(c.enabled?"true":"false"));
+        engine->ready(); publish();
+        if(diagnostic(engine->transcript()))throw std::runtime_error("sanitizer_at_startup");
+        for(;pairs_completed<c.pairs&&Clock::now()<target;++pair){
+            for(int half=0;half<2;++half){
+                mode=static_cast<int>((pair+half)%2);
+                auto& counts=observed[mode];
+                forge::Board board;
+                if(!board.set_fen(forge::Board::StandardStartFen))throw std::runtime_error("oracle_start_fen");
+                std::mt19937_64 random(mix(c.seed^mix(pair)));
+                std::string history;
+                engine->send("ucinewgame",left_ms(hard));engine->ready(left_ms(hard));publish();
+                for(ply=0;ply<8;++ply){
+                    const auto legal=board.legal_moves();if(legal.empty())throw std::runtime_error("opening_terminal");
+                    const auto move=legal[static_cast<std::size_t>(random()%legal.size())];forge::Undo u;
+                    if(!board.make_move(move,u))throw std::runtime_error("oracle_opening_move");
+                    history+=" "+forge::Board::move_to_uci(move);
+                }
+                for(;ply<300;++ply){
+                    const auto legal=board.legal_moves();
+                    if(legal.empty()){if(board.in_check())++counts.mates;else ++counts.stalemates;break;}
+                    if(board.is_repetition()){++counts.repetitions;break;}
+                    if(board.halfmove_clock()>=100){++counts.fifty;break;}
+                    if(board.is_insufficient_material()){++counts.insufficient;break;}
+                    const std::string position="position startpos moves"+history;
+                    const std::string go=mode?"go softnodes 2500":(c.depth?"go depth "+std::to_string(c.depth):"go nodes "+std::to_string(c.nodes));
+                    context="{\"seed\":"+std::to_string(c.seed)+",\"pair\":"+std::to_string(pair)+",\"half\":"+std::to_string(half)+",\"mode\":"+quote(mode?"soft":"usual")+",\"ply\":"+std::to_string(ply)+",\"threads\":"+std::to_string(c.threads)+",\"fen\":"+quote(board.fen())+",\"position\":"+quote(position)+",\"go\":"+quote(go)+"}";
+                    std::cout<<"TRIGGER "<<context<<std::endl;
+                    const auto begin=engine->transcript().size();
+                    const auto search_end=std::min(hard,Clock::now()+std::chrono::seconds(15));
+                    engine->send(position,left_ms(search_end));engine->send(go,left_ms(search_end));
+                    for(;;){const auto line=engine->line(left_ms(search_end));if(line.rfind("bestmove",0)==0)break;}
+                    // Barrier exposes late/duplicate labels and pending diagnostics.
+                    engine->ready(left_ms(search_end));
+                    const auto transcript=engine->transcript().substr(begin);publish();
+                    const auto r=check_labels(stdout_lines(transcript),mode==1);
+                    ++counts.searches;
+                    if(mode&&r.x_valid){++counts.x_count;counts.x_sum+=r.x;if(r.x>=10000)++counts.caps;}
+                    std::cout<<"CHECK {\"pair\":"<<pair<<",\"mode\":"<<quote(mode?"soft":"usual")<<",\"ply\":"<<ply
+                        <<",\"bestmove\":"<<quote(r.bestmove)<<",\"last_exact\":"<<quote(r.exact_line)<<",\"soft_lines\":"<<r.soft_lines
+                        <<",\"x\":"<<(r.x_valid?std::to_string(r.x):"null")<<",\"item2\":"<<r.item2<<",\"item3\":"<<r.item3<<",\"item4\":"<<r.item4<<"}"<<std::endl;
+                    if(mode&&(!r.item3||!r.item4)){label_fault=true;throw std::runtime_error(!r.item3?"softnodes_item3_label_move":"softnodes_item4_iteration_nodes");}
+                    if(mode&&!r.item2)throw std::runtime_error("softnodes_item2_line_count_or_order");
+                    if(!r.error.empty())throw std::runtime_error(r.error);
+                    if(diagnostic(transcript))throw std::runtime_error("sanitizer_diagnostic");
+                    if(r.score < -forge::MateValue || r.score > forge::MateValue)throw std::runtime_error("score_out_of_range");
+                    const auto found=std::find_if(legal.begin(),legal.end(),[&](const forge::Move& m){return forge::Board::move_to_uci(m)==r.bestmove;});
+                    if(found==legal.end())throw std::runtime_error(r.bestmove.empty()||r.bestmove=="0000"?"missing_move":"illegal_move");
+                    forge::Undo undo;if(!board.make_move(*found,undo))throw std::runtime_error("oracle_move_rejected");
+                    history+=" "+r.bestmove;++counts.moves;
+                }
+                if(ply==300)++counts.ply_caps;
+                ++counts.games;
+                std::cout<<"GAME {\"pair\":"<<pair<<",\"mode\":"<<quote(mode?"soft":"usual")<<",\"completed\":true}"<<std::endl;
+            }
+            ++pairs_completed;accepted[0]=observed[0];accepted[1]=observed[1];
+            std::cout<<"PAIR {\"pair\":"<<pair<<",\"completed\":true}"<<std::endl;
+        }
+    } catch(const UciStartupError&e){fault=e.what();shutdown=e.shutdown;shutdown_observed=true;std::cout<<"STARTUP_EXCEPTION "<<quote(fault)<<std::endl;}
+      catch(const std::exception&e){fault=e.what();publish();}
+    if(engine){shutdown=engine->finish(1000);shutdown_observed=true;publish();}
+    if(shutdown_observed){
+        std::cout<<"SHUTDOWN "<<shutdown_json(shutdown)<<std::endl;
+        if(fault.empty()&&(!shutdown.reaped||shutdown.exit_code!=0||shutdown.signal||shutdown.timed_out||!shutdown.error.empty()))fault="shutdown_fault";
+        if(fault.empty()&&diagnostic(shutdown.transcript+shutdown.stderr_output))fault="sanitizer_at_shutdown";
+    }
+    if(!fault.empty())std::cout<<"FAULT {\"reason\":"<<quote(fault)<<",\"label_fault\":"<<(label_fault?"true":"false")<<",\"context\":"<<(context.empty()?"null":context)<<"}"<<std::endl;
+    std::cout<<"SUMMARY {\"pairs_completed\":"<<pairs_completed<<",\"usual\":"<<accepted[0].json()<<",\"soft\":"<<accepted[1].json()
+        <<",\"observed_usual_including_partial_pair\":"<<observed[0].json()<<",\"observed_soft_including_partial_pair\":"<<observed[1].json()
+        <<",\"fault\":"<<quote(fault)<<",\"label_fault\":"<<(label_fault?"true":"false")<<",\"shutdown_observed\":"<<(shutdown_observed?"true":"false")<<"}"<<std::endl;
+    return fault.empty()?0:1;
+}

@@ -1,0 +1,9 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const run='/workspace/work/v3-run',sf=run+'/state.json',s=JSON.parse(fs.readFileSync(sf)),repo=s.repo,records=[];
+function git(args){const p=cp.spawnSync('git',args,{cwd:repo,encoding:'utf8',timeout:60000,maxBuffer:8*1024*1024});records.push({utc:new Date().toISOString(),argv:['git',...args],cwd:repo,exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr});fs.writeFileSync(run+'/inputs/import-v3-git.txt',JSON.stringify(records,null,2)+'\n');assert.equal(p.status,0);return p.stdout;}
+assert.equal(git(['branch','--show-current']).trim(),s.branch);assert.equal(git(['status','--porcelain']).trim(),'');assert.equal(git(['rev-parse','HEAD']).trim(),s.base);
+const imports=[['forge-combo29/include/forge/nnue_v3.hpp','cc2d0bcfba41993098061cd43d7a88eb450b2074'],['forge-combo29/src/nnue_v3.cpp','122ce37ad66b43438c3c8c73a15c61255083b541']];
+const files=[];for(const [rel,blob]of imports){const text=git(['cat-file','blob',blob]);assert.ok(!text.includes('\0'));fs.writeFileSync(repo+'/'+rel,text,{flag:'wx'});assert.equal(git(['hash-object',rel]).trim(),blob);files.push({file:rel,blob,sha256:crypto.createHash('sha256').update(text).digest('hex')});}
+git(['add','--sparse','--',...imports.map(x=>x[0])]);assert.deepEqual(git(['diff','--cached','--name-only']).trim().split('\n').sort(),imports.map(x=>x[0]).sort());
+git(['-c','user.name=Codex','-c','user.email=codex@openai.com','commit','-m','Import the two pinned standalone NNUE v3 source files']);const commit=git(['rev-parse','HEAD']).trim();
+s.sourceCommits.push({step:1,commit,sourceBranch:'fable/standalone-h512-20261111',files,exactBlobImports:true});s.phase='Job C step 1 imported; hooks pending';fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');console.log(JSON.stringify({commit,files,sourceOnly:true,engineRuns:0},null,2));

@@ -1,0 +1,91 @@
+PASS opponent-clock `go` does NOT terminate inside the budget budget 300s, bestmove=None after 330.0s
+PASS opponent-clock `go` reaches a depth no clock search reaches depth 39 in 330.0s
+PASS opponent-clock `go` prints no diagnostic at all 0 info string lines
+PASS explicit stop answers exactly one bestmove     stop -> 'bestmove c7c5'
+PASS the unmanaged search's move is legal           bestmove 'c7c5'
+PASS the mirror (White to move, btime only) also never answers in 3 s timed_out=True after 3.00s
+PASS control: the same position with its OWN clock terminates and stops early 22 ms depth 18
+PASS control: a managed budget-sized clock terminates by itself (soft ~ budget/22) 8.1 s at depth 31
+
+case 1: opponent's clock only: 8/8 checks passed
+{
+  "opponent_clock_mirror": {
+    "go": "go btime 300000",
+    "info_strings": [],
+    "terminated_within_3s": false
+  },
+  "opponent_clock_only": {
+    "depth_at_budget": 39,
+    "engine_time_ms_at_budget": 238847,
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+    "go": "go wtime 300000",
+    "info_strings": [],
+    "invalid_fen_position_reply": [
+      "readyok"
+    ],
+    "nodes_at_budget": 416554567,
+    "seldepth_at_budget": 56,
+    "stop_bestmove": "bestmove c7c5",
+    "terminated": false,
+    "wall_ms_at_budget": 330000.3860309998
+  },
+  "own_clock_control_1000": {
+    "depth": 18,
+    "go": "go btime 1000",
+    "terminated": true,
+    "wall_ms": 22.222138999495655
+  },
+  "own_clock_control_budget": {
+    "depth": 31,
+    "go": "go btime 300000",
+    "terminated": true,
+    "wall_ms": 8101.240101999792
+  },
+  "summary": {
+    "passed": 8,
+    "rows": [
+      {
+        "check": "opponent-clock `go` does NOT terminate inside the budget",
+        "detail": "budget 300s, bestmove=None after 330.0s",
+        "pass": true
+      },
+      {
+        "check": "opponent-clock `go` reaches a depth no clock search reaches",
+        "detail": "depth 39 in 330.0s",
+        "pass": true
+      },
+      {
+        "check": "opponent-clock `go` prints no diagnostic at all",
+        "detail": "0 info string lines",
+        "pass": true
+      },
+      {
+        "check": "explicit stop answers exactly one bestmove",
+        "detail": "stop -> 'bestmove c7c5'",
+        "pass": true
+      },
+      {
+        "check": "the unmanaged search's move is legal",
+        "detail": "bestmove 'c7c5'",
+        "pass": true
+      },
+      {
+        "check": "the mirror (White to move, btime only) also never answers in 3 s",
+        "detail": "timed_out=True after 3.00s",
+        "pass": true
+      },
+      {
+        "check": "control: the same position with its OWN clock terminates and stops early",
+        "detail": "22 ms depth 18",
+        "pass": true
+      },
+      {
+        "check": "control: a managed budget-sized clock terminates by itself (soft ~ budget/22)",
+        "detail": "8.1 s at depth 31",
+        "pass": true
+      }
+    ],
+    "title": "case 1: opponent's clock only",
+    "total": 8
+  }
+}

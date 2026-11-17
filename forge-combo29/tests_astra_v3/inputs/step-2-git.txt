@@ -1,0 +1,161 @@
+[
+  {
+    "utc": "2026-11-15T05:12:49.715Z",
+    "argv": [
+      "git",
+      "branch",
+      "--show-current"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "for-fable-and-opus/astra-0017-v3-path\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.723Z",
+    "argv": [
+      "git",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.741Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "forge-combo29/include/forge/nnue.hpp\nforge-combo29/include/forge/search.hpp\nforge-combo29/src/search.cpp\nforge-combo29/src/uci.cpp\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.745Z",
+    "argv": [
+      "git",
+      "hash-object",
+      "forge-combo29/include/forge/nnue_v3.hpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "cc2d0bcfba41993098061cd43d7a88eb450b2074\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.748Z",
+    "argv": [
+      "git",
+      "hash-object",
+      "forge-combo29/src/nnue_v3.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "122ce37ad66b43438c3c8c73a15c61255083b541\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.758Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.768Z",
+    "argv": [
+      "git",
+      "diff",
+      "--",
+      "forge-combo29/include/forge/nnue.hpp",
+      "forge-combo29/include/forge/search.hpp",
+      "forge-combo29/src/search.cpp",
+      "forge-combo29/src/uci.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "diff --git a/forge-combo29/include/forge/nnue.hpp b/forge-combo29/include/forge/nnue.hpp\nindex 2a2cd783..659ae8d3 100644\n--- a/forge-combo29/include/forge/nnue.hpp\n+++ b/forge-combo29/include/forge/nnue.hpp\n@@ -7,6 +7,10 @@\n #include <string>\n #include <string_view>\n \n+#ifndef FORGE_NNUE_V3\n+#define FORGE_NNUE_V3 0\n+#endif\n+\n namespace forge::nnue {\n \n // Architecture: for each colour's perspective, 768 piece-square inputs feed a\ndiff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp\nindex a1edeaa4..98959af8 100644\n--- a/forge-combo29/include/forge/search.hpp\n+++ b/forge-combo29/include/forge/search.hpp\n@@ -3,6 +3,9 @@\n #include \"forge/board.hpp\"\n #include \"forge/eval.hpp\"\n #include \"forge/nnue.hpp\"\n+#if FORGE_NNUE_V3\n+#include \"forge/nnue_v3.hpp\"\n+#endif\n \n #include <array>\n #include <atomic>\n@@ -476,6 +479,9 @@ private:\n     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;\n     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;\n     std::array<SearchStack, MaxPly + 8> stack_{};\n+#if FORGE_NNUE_V3\n+    std::unique_ptr<nnue::v3::WorkerState> v3_state_;\n+#endif\n     std::array<Move, 256> root_effort_moves_{};\n     std::array<std::uint64_t, 256> root_move_nodes_{};\n     std::size_t root_effort_count_ = 0;\n@@ -549,6 +555,9 @@ private:\n     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;\n     void update_correction(const Board& board, int depth, int best_score, int static_eval);\n     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);\n+#if FORGE_NNUE_V3\n+    [[nodiscard]] int static_evaluate_v3(const Board& board, SearchStack* ss);\n+#endif\n     void record_move(SearchStack* ss, const Board& board, const Move& move);\n     void record_null_move(SearchStack* ss);\n };\ndiff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp\nindex 0640bc4f..9e818063 100644\n--- a/forge-combo29/src/search.cpp\n+++ b/forge-combo29/src/search.cpp\n@@ -1066,6 +1066,9 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {\n         if (dead_material_score(board, fixed)) return fixed;\n     }\n     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);\n+#if FORGE_NNUE_V3\n+    if (nnue::v3::active()) return static_evaluate_v3(board, ss);\n+#endif\n     const bool residual = nnue::residual();\n     // Features used for this evaluation. A null move keeps the parent's\n     // accumulator: the piece set is unchanged, and a float copy would be the\n@@ -1114,6 +1117,21 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {\n     return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);\n }\n \n+#if FORGE_NNUE_V3\n+int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {\n+    if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();\n+    const nnue::v3::Net& net = *nnue::v3::loaded();\n+    nnue::v3::WorkerState& state = *v3_state_;\n+    nnue::v3::prepare(net, state, MaxPly + 8);\n+    auto dirty_of = [this](int k) -> const nnue::DirtyPieces& {\n+        SearchStack& frame = stack_[static_cast<std::size_t>(k)];\n+        ensure_piece_diff(&frame);\n+        return frame.dirty;\n+    };\n+    nnue::v3::make_valid(net, state, ss->ply + 4, board, dirty_of);\n+    return nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);\n+}\n+#endif\n void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {\n     // Called before make_move. The change list is ready, but the feature\n     // columns are added only when this position is evaluated.\n@@ -1128,6 +1146,9 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)\n                                           static_cast<Color>(child->entered_side));\n     child->diff_known = true;\n     child->accumulator.valid = false;\n+#if FORGE_NNUE_V3\n+    if (v3_state_) v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;\n+#endif\n     child->runtime_psqt.valid = false;\n }\n \n@@ -1161,6 +1182,9 @@ void Worker::record_null_move(SearchStack* ss) {\n     child->diff_known = true;\n     child->dirty.count = 0;\n     child->accumulator.valid = false;\n+#if FORGE_NNUE_V3\n+    if (v3_state_) v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;\n+#endif\n     child->runtime_psqt.valid = false;\n }\n \n@@ -2308,6 +2332,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf\n         entry.entered_null = false;\n         entry.dirty.count = 0;\n     }\n+#if FORGE_NNUE_V3\n+    if (v3_state_) v3_state_->invalidate();\n+    if (nnue::enabled && nnue::available() && nnue::v3::active()) {\n+        (void)static_evaluate_v3(board, ss);\n+    } else\n+#endif\n     if (nnue::enabled && nnue::available()) {\n         nnue::refresh(board, ss->accumulator);\n         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);\ndiff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp\nindex 66d4bf70..e0d8aee0 100644\n--- a/forge-combo29/src/uci.cpp\n+++ b/forge-combo29/src/uci.cpp\n@@ -1,6 +1,9 @@\n #include \"forge/board.hpp\"\n #include \"forge/book.hpp\"\n #include \"forge/nnue.hpp\"\n+#if FORGE_NNUE_V3\n+#include \"forge/nnue_v3.hpp\"\n+#endif\n #include \"forge/search.hpp\"\n #include \"forge/uci.hpp\"\n #include \"forge/uci_clock.hpp\"\n@@ -173,6 +176,16 @@ int uci_loop(std::istream& in) {\n         if (worker.joinable()) worker.join();\n         ponder_search_active = false;\n     };\n+#if FORGE_NNUE_V3\n+    auto v3_ready = [&]() {\n+        const std::string error = forge::nnue::v3::problem();\n+        if (error.empty()) return true;\n+        stop_search();\n+        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());\n+        std::cout << \"info string ERROR NNUE v3: \" << error << std::endl;\n+        return false;\n+    };\n+#endif\n \n     std::string line;\n     while (std::getline(in, line)) {\n@@ -196,6 +209,10 @@ int uci_loop(std::istream& in) {\n             if (forge::nnue::available()) {\n                 std::cout << \"option name UseNNUE type check default true\\n\"\n                              \"option name NnueFile type string default <empty>\\n\";\n+#if FORGE_NNUE_V3\n+                std::cout << \"option name NNUEArch type check default false\\n\"\n+                             \"option name NNUEArchFile type string default <empty>\\n\";\n+#endif\n             }\n             std::cout << \"option name ContHist4PlyRead type check default false\\n\"\n                          \"option name NonPawnCorrection type check default false\\n\"\n@@ -230,6 +247,9 @@ int uci_loop(std::istream& in) {\n             std::cout << \"option name Clear Hash type button\\n\"\n                          \"uciok\" << std::endl;\n         } else if (command == \"isready\") {\n+#if FORGE_NNUE_V3\n+            if (!v3_ready()) return 2;\n+#endif\n             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << \"readyok\" << std::endl; }\n         } else if (command == \"ucinewgame\") {\n             stop_search();\n@@ -324,6 +344,42 @@ int uci_loop(std::istream& in) {\n                         std::cout << \"info string loaded nnue \" << path << std::endl;\n                     }\n                 }\n+#if FORGE_NNUE_V3\n+            } else if (name == \"NNUEArchFile\") {\n+                std::string rest;\n+                std::getline(input, rest);\n+                std::string path = value_text + rest;\n+                while (!path.empty() && (path.back() == ' ' || path.back() == '\\r')) path.pop_back();\n+                std::string message;\n+                if (path.empty() || path == \"<empty>\") {\n+                    forge::nnue::v3::unload();\n+                    forge::nnue::v3::set_problem(\"\");\n+                    message = \"unloaded\";\n+                } else {\n+                    std::string error;\n+                    if (!forge::nnue::v3::load(path, &error)) {\n+                        forge::nnue::v3::set_problem(error);\n+                        message = error;\n+                    } else if (forge::nnue::v3::loaded()->residual) {\n+                        forge::nnue::v3::unload();\n+                        message = \"residual v3 networks are not supported\";\n+                        forge::nnue::v3::set_problem(message);\n+                    } else {\n+                        forge::nnue::v3::set_problem(\"\");\n+                        message = \"loaded \" + forge::nnue::v3::describe(*forge::nnue::v3::loaded());\n+                    }\n+                }\n+                searcher.clear_hash();\n+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());\n+                std::cout << \"info string NNUE v3: \" << message << std::endl;\n+            } else if (name == \"NNUEArch\") {\n+                if (value_text == \"true\" || value_text == \"false\") {\n+                    forge::nnue::v3::requested = value_text == \"true\";\n+                    searcher.clear_hash();\n+                } else {\n+                    note_invalid();\n+                }\n+#endif\n             } else if (name == \"UseNNUE\") {\n                 if (value_text == \"true\" || value_text == \"false\") {\n                     forge::nnue::enabled = value_text == \"true\";\n@@ -424,6 +480,9 @@ int uci_loop(std::istream& in) {\n             apply_position(board, input);\n         } else if (command == \"go\") {\n             stop_search();\n+#if FORGE_NNUE_V3\n+            if (!v3_ready()) return 2;\n+#endif\n             std::string first;\n             const auto position = input.tellg();\n             input >> first;\n@@ -514,6 +573,14 @@ int uci_loop(std::istream& in) {\n                 });\n             }\n         } else if (command == \"eval\") {\n+#if FORGE_NNUE_V3\n+            if (forge::nnue::v3::active()) {\n+                const int value = forge::nnue::v3::evaluate_reference(*forge::nnue::v3::loaded(), board);\n+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());\n+                std::cout << \"info string eval nnue_v3 \" << value << std::endl;\n+                continue;\n+            }\n+#endif\n             const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);\n             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());\n             std::cout << \"info string eval hce \" << parts.hce << \" nnue \" << parts.nnue\n@@ -524,6 +591,9 @@ int uci_loop(std::istream& in) {\n             // Fixed-depth search over a small position set; prints a node\n             // signature and speed for quick regression and performance checks.\n             stop_search();\n+#if FORGE_NNUE_V3\n+            if (!v3_ready()) return 2;\n+#endif\n             int depth = 13;\n             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);\n             constexpr std::array<std::string_view, 8> fens{\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.794Z",
+    "argv": [
+      "git",
+      "add",
+      "--sparse",
+      "--",
+      "forge-combo29/include/forge/nnue.hpp",
+      "forge-combo29/include/forge/search.hpp",
+      "forge-combo29/src/search.cpp",
+      "forge-combo29/src/uci.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.800Z",
+    "argv": [
+      "git",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "forge-combo29/include/forge/nnue.hpp\nforge-combo29/include/forge/search.hpp\nforge-combo29/src/search.cpp\nforge-combo29/src/uci.cpp\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.825Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Add the requested default-off standalone NNUE v3 hooks"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "[for-fable-and-opus/astra-0017-v3-path d738f6f7] Add the requested default-off standalone NNUE v3 hooks\n 4 files changed, 113 insertions(+)\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:12:49.828Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "d738f6f7b1db8f35c96f7e5220476a66b079114c\n",
+    "stderr": ""
+  }
+]

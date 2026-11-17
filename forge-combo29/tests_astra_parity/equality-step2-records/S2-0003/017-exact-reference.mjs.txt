@@ -1,0 +1,25 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+import {hashFile} from './evidence-integrity.mjs';
+import {allows as oldAllows} from '/workspace/work/parity-equality-preparation-v3/policy.mjs';
+const declarationFile=new URL('./EXACT-REFERENCE-EXCEPTION.txt',import.meta.url),d=JSON.parse(fs.readFileSync(declarationFile));
+const same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+export function classifyExactReference(a,allowDifferences=false){
+ if(oldAllows(a,allowDifferences))return {allowed:true,exceptionApplied:false,originalPolicyAllowed:true};
+ try {
+  for(const [file,pin]of Object.entries(d.pins))assert.equal(hashFile(file),pin,'Pinned evidence changed: '+file);
+  const batch=a.batches.filter(x=>x.file===d.batch);assert.equal(batch.length,1);assert.equal(batch[0].sha256,d.pins[d.batch]);
+  const occurrence=a.shutdownTiming.timeoutOccurrences.filter(x=>x.batch===d.batch&&x.worker===d.worker&&x.localIndex===d.localIndex&&x.attempt===d.attempt&&x.side===d.side);assert.equal(occurrence.length,1);
+  assert.deepEqual(occurrence[0],{batch:d.batch,worker:1,localIndex:3929,globalRecordIndex:15717,attempt:0,side:'lock',pureShutdownAllowanceOccurrence:false,quitToExitMs:3.014613,shutdownBudgetMs:4});
+  const partial=a.partialEvidence.filter(x=>x.batch===d.batch&&x.worker===1&&x.partial?.context?.index===3929);assert.equal(partial.length,1);assert.equal(partial[0].partial.counted,false);assert.ok(same(partial[0].partial.context,d.event.context));assert.ok(same(partial[0].partial.initial,d.event.pair));
+  const findings=a.partialOperationalFindings.filter(x=>x.batch===d.batch&&x.worker===1&&x.localIndex===3929&&x.attempt===0&&x.engine==='lock');assert.equal(findings.length,1);assert.equal(findings[0].fen,d.fen);assert.equal(findings[0].budgetInterrupted,false);assert.deepEqual(findings[0].faults,{shutdown_timeouts:1});
+  const p=d.event.pair;assert.equal(p.complete,true);assert.equal(p.different,false);
+  for(const side of ['merged','lock']){const r=p[side];assert.equal(r.attempted,true);assert.equal(r.budget_interrupted,false);assert.equal(r.error,'');for(const k of ['illegal','missing','missing_info','wrong_depth','sanitizer_issues','transport_issues','crashes','nonzero_exits'])assert.equal(r[k],0);assert.deepEqual({move:r.result.bestmove,kind:r.result.score_kind,score:r.result.score,bound:r.result.bound,nodes:r.result.nodes,depth:r.result.depth},{move:'f1a1',kind:'mate',score:2,bound:'',nodes:705,depth:9});}
+  const q=p.lock.shutdown;assert.equal(q.reaped,true);assert.equal(q.exit_code,-1);assert.equal(q.signal,15);assert.equal(q.driver_sigterm,true);assert.equal(q.driver_sigkill,false);assert.equal(q.quit_attempted,true);assert.equal(q.quit_sent,true);assert.equal(q.shutdown_budget_ms,4);assert.equal(q.quit_to_exit_ms,3.014613);assert.equal(q.error,'');assert.equal(p.lock.shutdown_timeouts,1);
+  assert.ok(a.operationalFaults>=1&&a.partialOperationalFaults>=1&&a.decision0012.otherOperationalFaults>=1);
+  // Replay only: remove this one retained operational exception from the old gate.
+  // The original audit, native counters and measured statuses are never mutated.
+  const replay=structuredClone(a);replay.operationalFaults--;replay.partialOperationalFaults--;replay.decision0012.otherOperationalFaults--;replay.shutdownTiming.timeoutOccurrences=replay.shutdownTiming.timeoutOccurrences.filter(x=>!(x.batch===d.batch&&x.worker===1&&x.localIndex===3929&&x.attempt===0&&x.side==='lock'));replay.partialOperationalFindings=replay.partialOperationalFindings.filter(x=>!(x.batch===d.batch&&x.worker===1&&x.localIndex===3929&&x.attempt===0&&x.engine==='lock'));
+  const allowed=oldAllows(replay,allowDifferences);
+  return {schema:1,allowed,exceptionApplied:true,originalPolicyAllowed:false,exactExceptionDeclaration:declarationFile.pathname,exactExceptionSha256:hashFile(declarationFile.pathname),authorization:d.authorization,interpretation:d.interpretation,retainedOperationalFindings:a.operationalFaults,retainedExceptionCount:1,otherOperationalFaultsAfterExactException:replay.decision0012.otherOperationalFaults,candidateTimeoutOccurrences:a.shutdownTiming.candidateTimeoutOccurrences,escalationRequired:a.decision0012.escalationRequired,rawAuditFieldsUnchanged:true,originalAuditSha256:d.oldAuditSha256,originalReceiptSha256:d.oldReceiptSha256,internalPolicyReplayOnly:true};
+ } catch(error){return {schema:1,allowed:false,exceptionApplied:false,originalPolicyAllowed:false,error:error.message,rawAuditFieldsUnchanged:true};}
+}

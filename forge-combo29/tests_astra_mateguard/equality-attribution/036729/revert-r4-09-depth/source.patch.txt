@@ -1,0 +1,36 @@
+--- 12c791d5/src/search.cpp
++++ revert-r4-09-depth/search.cpp
+@@ -194,6 +194,15 @@
+     return stored_clock == static_cast<std::uint8_t>(clock);
+ }
+ 
++[[nodiscard]] bool attribution_legacy_score_usable(const TTEntry& entry, std::uint16_t current_clock) {
++    if (is_mate_score(entry.score)) {
++        const int distance = MateValue - (entry.score < 0 ? -static_cast<int>(entry.score) : static_cast<int>(entry.score));
++        if (static_cast<int>(current_clock) + distance > 100) return false;
++    }
++    const int capped = current_clock < 100 ? current_clock : 100;
++    return (entry.rule50_clock < 90 && capped < 90) || entry.rule50_clock == capped;
++}
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -1275,7 +1284,7 @@
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
++    const int tt_score = tt_hit && attribution_legacy_score_usable(tte, board.halfmove_clock()) &&
+                                  rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+@@ -1425,7 +1434,7 @@
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
++    const int tt_score = tt_hit && attribution_legacy_score_usable(tte, board.halfmove_clock()) &&
+                                  rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;

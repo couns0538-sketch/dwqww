@@ -1,0 +1,82 @@
+6d8717d287cc5f1038d53355b8b03d3cbba9e604	refs/heads/grok47/r3-12-soft-nodes
+110a87b06704cad16545b3ac8082ca6b3e38ac7a	refs/heads/grok47/r4-01-integrate-r3
+1605-    node_limit_specified_ = parent_worker_ != nullptr
+1606-        ? parent_worker_->node_limit_specified_
+1607-        : (is_main() && (limits.nodes_specified || limits.nodes != 0));
+1608:    soft_node_limit_ = 0;
+1609-    // Soft budget is the finished-iteration target. The hard budget stays on the
+1610-    // existing node stop, so a runaway iteration still discards its partial move.
+1611-    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
+1612-        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
+1613-        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
+1614-        node_limit_specified_ = true;
+1615:        soft_node_limit_ = limits.nodes;
+1616-    }
+1617-
+1618-    // Time allocation.
+--
+1674-        const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+1675-            std::chrono::steady_clock::now() - start_).count();
+1676-        const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+1677:        const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+1678-        const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+1679-        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+1680-        const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+--
+1915-        if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+1916-        // The iteration above is finished. Passing the soft budget stops here,
+1917-        // keeping this move and score. The hard cap is enforced inside search.
+1918:        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+1919-        if (should_stop()) break;
+1920-        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+1921-            // Stop early when the best move has been stable; spend longer when it keeps changing.
+--
+1950-    result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+1951-        std::chrono::steady_clock::now() - start_).count());
+1952-    if (result.best_move.is_none()) result.best_move = root_candidates.front();
+1953:    if (emit_info && soft_node_limit_ != 0) {
+1954-        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+1955:        std::cout << "info string softnodes nodes " << result.nodes << std::endl;
+1956-    }
+1957-    return result;
+1958-}
+1993-    node_limit_specified_ = parent_worker_ != nullptr
+1994-        ? parent_worker_->node_limit_specified_
+1995-        : ((!limits.soft_nodes || is_main()) && (limits.nodes_specified || limits.nodes != 0));
+1996:    soft_node_limit_ = 0;
+1997-    // Soft budget is the finished-iteration target. The hard budget stays on the
+1998-    // existing node stop, so a runaway iteration still discards its partial move.
+1999-    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
+2000-        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
+2001-        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
+2002-        node_limit_specified_ = true;
+2003:        soft_node_limit_ = limits.nodes;
+2004-    }
+2005-
+2006-    // Time allocation. Movetime keeps its own limit. Clock play goes through
+--
+2053-        const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+2054-            std::chrono::steady_clock::now() - start_).count();
+2055-        const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+2056:        const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+2057-        const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+2058-        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+2059-        const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+--
+2366-        if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+2367-        // The iteration above is finished. Passing the soft budget stops here,
+2368-        // keeping this move and score. The hard cap is enforced inside search.
+2369:        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+2370-        if (should_stop()) break;
+2371-        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+2372-            if (finish_sampling) {
+--
+2452-        result.ponder_move = Move::none();
+2453-    }
+2454-    if (result.best_move.is_none()) result.best_move = root_candidates.front();
+2455:    if (emit_info && soft_node_limit_ != 0) {
+2456-        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+2457:        std::cout << "info string softnodes nodes " << result.nodes << std::endl;
+2458-    }
+2459-    return result;
+2460-}

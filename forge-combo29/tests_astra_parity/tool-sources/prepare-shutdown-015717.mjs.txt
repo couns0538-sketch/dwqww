@@ -1,0 +1,9 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const r='/workspace/work/parity-run',dir=r+'/shutdown-review-015717';assert.ok(!fs.existsSync(dir));fs.mkdirSync(dir);
+const original=r+'/equality-batches/step2/S2-0001/worker-1.jsonl.pending-3929.txt';
+const candidate=r+'/builds/step2-release/forge',reference='/workspace/work/r4-run/builds/guard-enabled/forge',header='/workspace/work/parity-equality-preparation-v3/uci_process.hpp';
+const oldFen='rn4rN/p1k5/8/P1p3P1/2b1p3/b2P2pR/4Q1q1/1R2KBN1 w - - 1 33',fen='6rb/1b2pk2/p1p1p3/P3PP2/1P3P1p/K1P4P/6q1/R4r2 b - - 0 49';
+let source=fs.readFileSync(r+'/shutdown-review-017629/repeat-pairs.cpp','utf8');assert.equal(source.split(oldFen).length,2);source=source.replace(oldFen,fen);
+fs.writeFileSync(dir+'/repeat-pairs.cpp',source,{flag:'wx'});fs.copyFileSync(header,dir+'/uci_process.hpp',fs.constants.COPYFILE_EXCL);fs.copyFileSync(original,dir+'/original-pending-full.txt',fs.constants.COPYFILE_EXCL);
+const sha=f=>crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+const d={utc:new Date().toISOString(),purpose:'Ten fresh candidate/reference pairs at full250ms quit allowance after a reference forced shutdown with4ms allowance at native batch cutoff; all outputs retained and no corpus credit.',pairs:10,fen,threads:1,hash:16,ownBook:false,depth:9,expected:{move:'f1a1',scoreKind:'mate',score:2,nodes:705},source,headerSha256:sha(header),binaryPins:{[candidate]:sha(candidate),[reference]:sha(reference)},original,originalSha256:sha(original),timing:'Measured header identical to v3 corpus transport; timing retained in every full transcript.'};fs.writeFileSync(dir+'/DECLARATION.txt',JSON.stringify(d,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({directory:dir,declaration:d},null,2));

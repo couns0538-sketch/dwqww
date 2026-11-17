@@ -1,0 +1,167 @@
++ engine_objects=()
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/search.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/uci.cpp.o != */uci.cpp.o ]]
++ g++ -std=c++20 -O3 -DNDEBUG -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 '-DFORGE_NNUE_WEIGHTS="/workspace/work/dwqww-all/forge-combo29/src/nnue_weights.inc"' -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -Iforge-combo29/include forge-combo29/soak_all/endgame_driver.cpp /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/search.cpp.o -o /workspace/work/all-run/builds/endgame_driver
+forge-combo29/soak_all/endgame_driver.cpp: In function ‘int {anonymous}::run(const Options&)’:
+forge-combo29/soak_all/endgame_driver.cpp:384:101: error: no match for ‘operator+’ (operand types are ‘std::__cxx11::basic_string<char>’ and ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’)
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~
+      |                                                                                        |                    |
+      |                                                                                        |                    std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>
+      |                                                                                        std::__cxx11::basic_string<char>
+In file included from /usr/include/c++/14/bits/stl_algobase.h:67,
+                 from /usr/include/c++/14/algorithm:60,
+                 from forge-combo29/soak_all/uci_process.hpp:5,
+                 from forge-combo29/soak_all/endgame_driver.cpp:18:
+/usr/include/c++/14/bits/stl_iterator.h:627:5: note: candidate: ‘template<class _Iterator> constexpr std::reverse_iterator<_IteratorL> std::operator+(typename reverse_iterator<_IteratorL>::difference_type, const reverse_iterator<_IteratorL>&)’
+  627 |     operator+(typename reverse_iterator<_Iterator>::difference_type __n,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/stl_iterator.h:627:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/stl_iterator.h:1798:5: note: candidate: ‘template<class _Iterator> constexpr std::move_iterator<_IteratorL> std::operator+(typename move_iterator<_IteratorL>::difference_type, const move_iterator<_IteratorL>&) requires requires{{std::operator+::__x->base() + std::operator+::__n} -> decltype(auto) [requires std::same_as<<placeholder>, _Iterator>];}’
+ 1798 |     operator+(typename move_iterator<_Iterator>::difference_type __n,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/stl_iterator.h:1798:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+In file included from /usr/include/c++/14/string:54,
+                 from /usr/include/c++/14/bits/locale_classes.h:40,
+                 from /usr/include/c++/14/bits/ios_base.h:41,
+                 from /usr/include/c++/14/ios:44,
+                 from /usr/include/c++/14/istream:40,
+                 from /usr/include/c++/14/sstream:40,
+                 from /usr/include/c++/14/chrono:45,
+                 from forge-combo29/soak_all/uci_process.hpp:7:
+/usr/include/c++/14/bits/basic_string.h:3598:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 3598 |     operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3598:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3616:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 3616 |     operator+(const _CharT* __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3616:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   mismatched types ‘const _CharT*’ and ‘std::__cxx11::basic_string<char>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3635:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(_CharT, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 3635 |     operator+(_CharT __lhs, const basic_string<_CharT,_Traits,_Alloc>& __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3635:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3652:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const _CharT*)’
+ 3652 |     operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3652:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   mismatched types ‘const _CharT*’ and ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3670:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, _CharT)’
+ 3670 |     operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs, _CharT __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3670:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   deduced conflicting types for parameter ‘_CharT’ (‘char’ and ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’)
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3682:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(__cxx11::basic_string<_CharT, _Traits, _Allocator>&&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 3682 |     operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3682:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3689:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&)’
+ 3689 |     operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3689:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3696:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(__cxx11::basic_string<_CharT, _Traits, _Allocator>&&, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&)’
+ 3696 |     operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3696:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3719:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(const _CharT*, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&)’
+ 3719 |     operator+(const _CharT* __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3719:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   mismatched types ‘const _CharT*’ and ‘std::__cxx11::basic_string<char>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3726:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(_CharT, __cxx11::basic_string<_CharT, _Traits, _Allocator>&&)’
+ 3726 |     operator+(_CharT __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3726:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’ is not derived from ‘std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3733:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(__cxx11::basic_string<_CharT, _Traits, _Allocator>&&, const _CharT*)’
+ 3733 |     operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3733:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   mismatched types ‘const _CharT*’ and ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
+/usr/include/c++/14/bits/basic_string.h:3740:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr std::__cxx11::basic_string<_CharT, _Traits, _Allocator> std::operator+(__cxx11::basic_string<_CharT, _Traits, _Allocator>&&, _CharT)’
+ 3740 |     operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/14/bits/basic_string.h:3740:5: note:   template argument deduction/substitution failed:
+forge-combo29/soak_all/endgame_driver.cpp:384:117: note:   deduced conflicting types for parameter ‘_CharT’ (‘char’ and ‘std::__detail::_Quoted_string<std::__cxx11::basic_string<char>&, char>’)
+  384 |             std::string row = "{\"mode\":\"prepare\",\"unit\":" + std::to_string(next) + ",\"id\":" + quoted(root.id) +
+      |                                                                                                                     ^
++ engine_objects=()
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/search.cpp.o != */uci.cpp.o ]]
++ engine_objects+=("$object")
++ for object in /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/*.o
++ [[ /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/uci.cpp.o != */uci.cpp.o ]]
++ g++ -std=c++20 -O3 -DNDEBUG -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 '-DFORGE_NNUE_WEIGHTS="/workspace/work/dwqww-all/forge-combo29/src/nnue_weights.inc"' -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -Iforge-combo29/include forge-combo29/soak_all/endgame_driver.cpp /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/search.cpp.o -o /workspace/work/all-run/builds/endgame_driver
