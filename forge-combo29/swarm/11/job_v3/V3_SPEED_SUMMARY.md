@@ -61,6 +61,10 @@ explanation in this table**, which is a reason to expect the same patches to beh
 rather than a reason to think they would win.
 
 ## Instrument notes (so the next person does not repeat my detours)
+- **clang 18.1.3 IS available**, contrary to what my first failed build suggested. It needs
+  `-isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13` to find the C++
+  headers and `-L/usr/lib/gcc/x86_64-linux-gnu/13 -lstdc++` to link. With those it builds the PC
+  tree cleanly, which is how S-F115's clang retest was possible.
 - **`perf` is not installed** on this machine and there is no root to add it; `/proc/PID/stack` is
   root-only; no gdb, no valgrind. That is why the numbers above come from source instrumentation.
 - **`-pg`/gprof is available but distorts by 28 %** (1,198,284 nps instrumented vs 1,666,988 clean),
