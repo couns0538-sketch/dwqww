@@ -39,9 +39,13 @@ and not a missing score. **A caller that checks `pv` catches all four of the sha
 that checks the score catches none of them.** The fifth shape does not return in usable time, so no
 reader-side check can catch it: **a malformed `nodes` or `mate` value applies no limit, and the only
 defence is to validate your own tokens before sending.**
+**And the `pv` check is easier than the spec implies, because this engine always emits the token** — it
+is present-and-empty, never absent, at every terminal and drawn root measured. **A client still has to
+tolerate absence, since the spec allows it, but against this engine it will only ever meet the empty form.**
 
-**Everything still open is listed in §10, with a name on each gap** — including nine classes that had
-never been tested at all when this run began, each now being measured by a seat rather than merely noted.
+**Everything still open is listed in §10, with a name on each gap** — **six areas remain open at close**,
+each with the reason it is open rather than a silent omission, and **six more were dispatched late and
+closed** with their numbers in the same table.
 
 **And a field-by-field audit of the `info` line found FOUR fields wrong, two unfalsifiable and three
 clean.** This is the strongest form of the protocol finding in this report, because each verdict is about
@@ -4792,13 +4796,13 @@ Collected here so a reader does not mistake a closed behaviour for a closed mech
 
 **Never tested at all when this run began, and each now has a seat on it**
 
-**Status of the seats still running at close.** Twelve areas were dispatched in the final hours; **nine are
-still open and three closed before the deadline**. They are listed here as untested-with-reason rather than
-held open. **A reader should treat each open row as an open question, not as a clean bill** — the same
-discipline that makes the vacuous nulls elsewhere in this section honest applies here: an area nobody
-reached is not an area that was cleared.
+**Status of the seats still running at close.** Twelve areas were dispatched in the final hours; **six closed
+before the deadline and six are still open**. Both sets are listed here, because **a reader needs to know which
+questions were answered and which were only asked.** Open rows are untested-with-reason, and **an open row is
+an open question, not a clean bill** — the same discipline that makes the vacuous nulls elsewhere in this
+section honest applies here: **an area nobody reached is not an area that was cleared.**
 
-**CLOSED since this list was written — the three that reported, with their numbers:**
+**CLOSED — the six that reported, with their numbers:**
 
 | area | result |
 |---|---|
@@ -4806,6 +4810,8 @@ reached is not an area that was cleared.
 | **The fifty-move clock inside TT entries** | **Sound, and the null is earned.** All four `score_usable` branches are reached in live search (**262M / 681k / 143k / 37M** verdicts over 76 searches), so none is dead code. Warming at clock 10 and probing at 90 changed the score on **6 of 7 boards — and the same-clock warm control changed it on the same boards**, so the drift is the ordinary warm-table effect, **not clock provenance**. The mate-distance branch is verified against a separately generated expectation set: **43 cells, 0 mismatches**, with controls that must fire and do. **Limit stated by the seat**: 7 boards, depth 12, one clock pair |
 | **Book play inside a full two-sided game** | **Clean.** **1,120 games over five arms**: 0 illegal moves, 0 engine errors, **0 games left the book into an illegal position**, and the move after book exit is a legal searched move. **Every game exits at exactly ply 16** (the book's deepest leaf) and **the position graph is acyclic, so no book line can reach a repetition** — a structural fact, not a sampling result. 13 of 589 played book moves concede material, **0 condemned at depth 18**, largest gap 51 cp against an 18 cp noise floor |
 | **Mate scores through the transposition table** | **Correct, and verified against the exact failure modes.** `score_to_tt` adds `ply` on store and `score_from_tt` subtracts it on probe (`search.cpp:179-199`), applied at **all 10 store sites and both score-bearing probes** — checked by enumeration, with a grep for a store lacking the wrapper returning **nothing**. The probe-side clamp **discards** a score that would decode into the centipawn band (returns `ValueNone`) rather than clamping it, which is the right direction: clamping would report a mate at a distance that does not exist. **The named experiment passes**: a DTM stored at ply 4 and re-probed at ply 8 keeps the distance BELOW the node unchanged (1→1, 3→3, 5→5, 7→7, 9→9). **Exhaustive sweep: 118,332 cells, 0 failures**, and two planted-wrong pairs — no adjustment, and an inverted one — produce **234,608 failures**, so the checker demonstrably fires |
+| **Endgame conversion at game level — CLOSED, and the answer is NO** | KRK **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK **167 of 192** won cells, against an **exact-table oracle at 20/20, 20/20 and 192/192**. **All 37 attributable failures are fifty-move claims with zero bails**, and the mechanism is the §2 clock band (`cp 0` at halfmove 90 on a won board). **Decision 10 in the opening table.** **KBNK is a measurement without a mechanism** — the seat built no 4-piece table and refused to borrow the KQK explanation |
+| **`bestmove 0000` consistency across mate roots — CLOSED, and it is consistent** | **6 of 6 mate roots answer `bestmove 0000`**, never a move. That was the specific sweep that mattered, because an inconsistency would break every client's mate detection. The three protocol shapes (`0000` with `mate 0`, with `cp 0`, and with a restriction) all reproduce, and `info string` appears only on the restriction form |
 
 **STILL OPEN — these are the rows that are genuinely unreached:**
 
@@ -4817,8 +4823,6 @@ reached is not an area that was cleared.
 | **ThreadSanitizer with recorded flags** | The prior TSan work is this audit's worst provenance gap — **27 findings across 8 seats with no flag set, compiler line or hash recorded**, and its most-quoted row is a ~1,000× wall-clock outlier measured inside that process. **A proper run needs the flags written down before the numbers mean anything.** The seat dispatched for it **was lost before pushing anything** — it is no longer reachable — so this area is **untouched**, not merely unfinished |
 | **A full undefined-behaviour sweep — PARTIAL, and honestly recorded** | The seat is **mid-work at close**, and what it has pushed is the **right shape**: `STATUS.md` records the **exact flags** (`-fsanitize=undefined,address -fno-sanitize-recover=all -fno-omit-frame-pointer -g`, resolved `CXX_FLAGS` copied from `flags.make`), the **runtime options** (`UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0:report_error_type=1`), the **binary sha256** (`3104e9a5…`) against the baseline `e06310ec…`, and the proof the sanitizer is **linked** (`nm | grep -c __ubsan_` = 15 versus 0). **12 planted UB classes, one per check class, all caught, control clean**, and **four pins match on the sanitizer build**. **What is missing is the 12-phase workload result and the widened arithmetic arm** (`float-cast-overflow`, `float-divide-by-zero`, which GCC's plain `-fsanitize=undefined` excludes). **So this is a provenance-complete partial, and it is recorded as exactly that** — the opposite of the TSan situation above, where nothing was recorded and the numbers cannot be attributed
 | ~~**Long-game replay position identity**~~ **— CLOSED, and it is clean where it matters** | **200 games, 27,788 plies** replayed in one process at `go depth 8`, with a 40-game / 5,401-ply fresh-process arm drawn before measuring. **Position identity: 5,401/5,401 at perft 4 and 1,852/1,852 at perft 5** — the move-list board IS the FEN board. **Halfmove clock agreement 5,369/5,369, boundary exactly at 100.** **RSS 42.2 MiB at all 277 samples from ply 300 to the end, +1.6 MiB total.** **But in-process vs fresh-process bestmove differs on 46.0% of plies (2,486/5,401)** — and scored against a depth-14 fresh oracle that is **better 85 / equal 37 / worse 78, median 0 cp**, so it is **the same engine making equally good moves off a warm table, not a defect and not a strength claim.** **`ucinewgame` between plies makes it byte-identical, 5,401 of 5,401.** **Bails: 0 differences out of 5,401, and all 89 bails predicted independently 89/89.** **So the thing that would have been a defect — accumulating state or a diverging board — is absent, and the 46% is a property of depth-8 move identity across processes, which the report now says plainly because it is the number most likely to be quoted wrongly** |
-| **Endgame conversion at game level** | The static inversion is measured (KB vs K = −147, KN vs K = −144, both below K vs K's +2) and reaches search for KNN vs K, but **no conversion rate exists**: nobody measured whether KBNK or KPK is actually won at a real budget |
-| **`bestmove 0000` consistency across mate roots** | A checkmate root answers `mate 0` / 0 nodes / `bestmove 0000` on the fixtures tested. **Whether that holds at every mate root** matters because an inconsistency breaks every client's mate detection, and it was not swept |
 | **Mate labels over a corpus** | Two labelling errors are recorded (eight by-eye fixtures all one ply short; ten "false" mates that were merely unverifiable). **A corpus-level rate with an oracle's provenance does not exist**, and a handful of examples is not a rate |
 | ~~**The 51 tunables behind `FORGE_EXPOSE_TUNABLES`**~~ **— CLOSED, and it is the cleanest row in the audit** | **All 51, five values each, 255 cells, every one correct.** Each tunable was sent its advertised `min` and `max` (accepted silently), `min−1` and `max+1` (reported **and clamped**), and `abc` (refused, old value kept) — **and then a search was run**, so "accepted" is behaviour rather than a `setoption` reply. **0 crashes, 0 hangs, 0 non-conforming rows.** **And all 51 moved the probe search at some value**, so none is a dead option — which is the field a clamp-only check would have missed entirely. The count is sourced: `tune::parameters()` at `search.cpp:114-148` lists 51 entries, and 51 + the four non-tunable spins (`Hash`, `Threads`, `MultiPV`, `Move Overhead`) = the 55 advertised |
 
