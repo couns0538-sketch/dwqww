@@ -102,8 +102,9 @@ moved toward a smaller effect as the sample grew:
 **So: quote the direction with confidence, and quote a magnitude only with the n it came from.** The old numbers are
 kept in FINDINGS beside the new ones rather than deleted, so the shrinkage is visible rather than tidied away.
 
-**WHY THIS IS SYSTEMATIC AND NOT RANDOM, which is the part that matters:** every inflated magnitude ran in the
-direction of a stronger story, **and my errors ran toward ALARM, not flattery.** The cleanest evidence is the
+**ONE SAMPLING FAULT, TWO FACES (29-N42, absorbing 29-N38) — and the rule is: beware the first direction you get,
+whichever way it points.** (a) *Inflated effect sizes:* every inflated magnitude ran in the direction of a stronger
+story. (b) *Exaggerated bad news:* my errors also ran toward ALARM, not flattery. The cleanest evidence is the
 PC20 move-quality tally, which drifted monotonically toward PC20 as the sample grew: **0-3 against PC20 at n=3
 (published as 29-F50), 8-4 for PC20 at n=13, 19-10 for PC20 at n=31 (200 positions)**. At every stage the first
 thing I had was the most alarming reading and the least supported one — a small sample made the engine look like it
