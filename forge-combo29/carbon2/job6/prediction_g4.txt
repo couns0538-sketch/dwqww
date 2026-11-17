@@ -1,0 +1,27 @@
+Step G4 Prediction (committed BEFORE any Step G4 timed run)
+===========================================================
+Step name: `G4` (`g4_snapshot_v3_net_hoist_prepare_and_king_sq.patch.txt`, stacked on `bundle.patch.txt + G1 + G2 + G3`)
+
+Functions and `profile_bundle1.txt` self-time share attacked:
+- `forge::Worker::static_evaluate_v3` (`3.82%` self, `5,842,844` calls — Rank #8 in `profile_bundle1.txt`)
+- `forge::Worker::record_move` (`1.06%` self, `14,126,707` calls — Rank #21)
+- `forge::nnue::v3::loaded()` (`0.64%` self, `25,928,470` calls — Rank #28)
+- `forge::Worker::static_evaluate` (`0.42%` self, `5,839,471` calls — Rank #35)
+- `forge::nnue::v3::king_key` (`0.21%` self, `14,994,786` calls — Rank #39)
+- `forge::nnue::v3::prepare` (`0.21%` self, `5,842,844` calls — Rank #42; `6,464 B` stack frame)
+- `forge::nnue::available()` (`19,969,553` calls — Rank #48)
+- Total attacked share: `6.36%` of `profile_bundle1.txt` self samples.
+- Why not already done in Jobs 1-5: Job 4 `S1` fused single-king refresh (`refresh_one_and_evaluate`) and tiled `refresh_side`, without touching the per-node `loaded()`/`available()`/`prepare()` queries, `prepare`'s `6,464 B` `Accumulator{}`/`Entry{}` stack temporaries, or the `dirty.changes` king-square scan + unconditional `king_key` calls inside `static_evaluate_v3`.
+
+Work removed:
+1. Snapshot `v3_active_net_` and `nnue_active_` once per search in `Worker::search`, and hoist `nnue::v3::prepare` out of `Worker::static_evaluate_v3` to run once at search entry (eliminating `25.93M` `loaded()` calls, `19.97M` `available()` calls, and `5.84M` `prepare()` calls across 24 games).
+2. Replace `assign(..., Accumulator{})` / `assign(..., RefreshCache::Entry{})` in `nnue::v3::prepare` with `.resize(...)` + explicit field resets, eliminating `6,464 B` of stack temporaries (`> 4,096 B` Windows `_chkstk` threshold).
+3. In `Worker::static_evaluate_v3`, read `king0 = board.king_square(White)` and `king1 = board.king_square(Black)` directly from `board` instead of scanning `dirty.changes`, and when `king0 == parent.king_sq[0] && king1 == parent.king_sq[1]` (~92% of moves), reuse `parent.keys[0]` and `parent.keys[1]` directly without calling `king_key` (~13.8M `king_key` calls removed); inline `king_key` in `nnue_v3.hpp` for king moves.
+
+Predicted `bench 13` gain on this cloud CPU (Intel Xeon @ 2.60GHz, g++ 13.3 AVX-512, `PC20 + net768`):
+- Predicted `bench 13` `median_of_paired_round_ratios`: `+0.8%` to `+2.5%` (`1.008x` to `1.025x`) on both `getrusage` CPU NPS and wall NPS.
+- Stack sizes (`G3 -> G4`): `sizeof(MovePicker) = 2240 -> 2240 B (+0 B)`, `Worker::search` unchanged (`~4496 B`), `Worker::qsearch` unchanged (`~2704 B`), `nnue::v3::prepare` cut from `6,464 B` to `< 128 B`.
+
+Kill range:
+- Any identity mismatch kills the step immediately.
+- If `bench 13` `median_of_paired_round_ratios` is `<= 1.005x` (`<= +0.5%`) OR does not exceed the A/A build-noise spread (`not measured`), the standalone `bench 13` speed prediction is killed (while keeping the proven-identical step in `bundle2.patch.txt`).
