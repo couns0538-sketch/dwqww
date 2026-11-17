@@ -19,6 +19,25 @@ WHAT IT DETECTS, per row:
   * the qualifier test is crude on purpose: if the absolute phrase and the supersede-pointer are in the same
     row, the row is REPORTED so a human reads it. False positives are cheap here; a missed one is not.
 
+KNOWN LIMIT - THIS DETECTOR FIRES ON THE TEXT THAT RETIRES THE PHRASE IT LOOKS FOR.
+
+A correction to "there is no duplicate signature" necessarily CONTAINS the words "no duplicate signature" - that
+is how you name the thing you are correcting. So the fixed sentence is textually indistinguishable, to a regex,
+from the sentence it replaces. **This is not a bug to be eliminated; it is the shape of the problem.** Any
+detector for a stale absolute will flag the correction that kills it.
+
+Three consequences, and the first is why this note is here rather than in a commit message:
+
+1. **Expect the false positive and read the candidates, do not suppress them.** The qualifier set below
+   (`not ... none`, `often no`, `only N of M`) catches the common self-rejecting forms, but a new phrasing will
+   slip through and be reported. A tool whose output is silently filtered is a tool whose output cannot be
+   trusted - so the filter is documented and its gaps are visible.
+2. **The detector cannot tell "corrected" from "uncorrected" in the same row.** Its real output is a LIST OF ROWS
+   TO READ, not a list of defects. It found the third instance in S-C87 by pointing at a row I had already
+   "fixed" - which is only possible because it reads text, not intent.
+3. **The false positive is itself evidence the fix landed.** When a row flips from flagged-on-the-absolute to
+   flagged-on-the-correction, the absolute has been replaced. That is a weak signal, but it is a signal.
+
 CONTROLS:
   1. a row with a pointer AND a bare absolute IS reported
   2. a row with a pointer AND the absolute already qualified ("does not look ... in THIS cell") is NOT reported
