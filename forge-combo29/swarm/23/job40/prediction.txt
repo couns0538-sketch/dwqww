@@ -1,0 +1,35 @@
+PREDICTION — SW-23 job 40 (the PC scores the same board as a MATE where the base scores cp; is that reach or artefact?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+HONEST FRAMING: this job is prompted by job39's OUTPUT, which I did not predict. Job 39 tested only WHERE the eval/go
+step sits, and it found the PC's step at 90 rather than the base's 89 (prediction P4 allowed that: within one counter).
+Two things in job39's table were NOT predicted and are the subject here:
+  (a) at depth 12, counters 78 and 84, the PC reports `mate 8` where the base reports cp 410 / cp 364;
+  (b) at depth 12, counter 89, the PC reports **cp 278** where the base reports **cp 0** — a one-counter window in
+      which the two builds disagree about whether the position is drawn.
+Post-hoc observation, pre-registered test. If these predictions fail, the honest reading is that the disagreement is
+about search SCHEDULING (how a build spends its depth), not about a drawn-root repair changing what is reachable.
+
+Board `1K6/8/8/3R4/8/8/8/k7 w` at counters 78 and 89. Builds: base and PC r15, Threads 1, Hash 16, OwnBook false,
+NO PC20 switches. Depths 12, 14, 16, 20.
+
+Arithmetic that grounds the expectations: at counter 78 the slack is 22 plies, at 84 it is 16, at 89 it is 11. A
+`mate 8` needs 2*8-1 = 15 plies, so it fits at 78 and 84 but NOT at 89 (15 > 11) — which is why (b) matters: if the
+PC's cp 278 at 89 claimed a mate it would be claiming a mate outside the rule's window, and cp 278 is not a mate
+claim anyway.
+
+Prediction (each with the range that kills it):
+  P1  AT COUNTER 78 THE MATE IS REAL AND BOTH BUILDS FIND IT GIVEN DEPTH: at depth 16 and 20 the BASE also reports a
+      mate (any mate N), though it reports cp at 12.                         KILLED if the base reports cp at depth 20.
+  P2  WHEN BOTH REPORT A MATE ON COUNTER 78 THEY AGREE ON THE DISTANCE: mate 8 from both builds at the depths where
+      each reports a mate.                                                    KILLED if the two mates differ by > 1.
+  P3  THE PC's cp 278 AT COUNTER 89 IS A DEPTH ARTEFACT, NOT A REACHABLE WIN: at depths 14, 16, 20 the PC reports
+      cp 0 there.                                                            KILLED if the PC still reports a win
+      (anything other than cp 0) at depth 16 or deeper.
+  P4  THE BASE's cp 0 AT COUNTER 89 IS PERMANENT ACROSS DEPTH: base reports cp 0 at 12, 14, 16 and 20.
+                                                                              KILLED if the base reports a win at any.
+
+If P1-P4 hold: the counter-89 disagreement is a depth artefact in the PC build (its extra root work buys a shallower
+effective horizon at that one counter), NOT the repair making a drawn position look winnable — and the mate at 78 is
+a genuine reach difference in efficiency rather than in correctness. That distinction is the whole point: one is a
+harmless scheduling artefact, the other would be a correctness claim I would have to make carefully.
