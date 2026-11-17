@@ -1,0 +1,34 @@
+=== Case A: position, then isready (defensive pattern)
+  position-reply region: ['info string invalid FEN: invalid FEN placement', 'readyok']
+  go-output region     : ['info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4', 'info depth 2 seldepth 2 score cp 49 nodes 54 nps 0 hashfull 0 time 0 pv d2d4 d7d6', 'info depth 3 seldepth 3 score cp 18 nodes 215 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4']
+  in POSITION reply: True  | in GO output: False
+  reader that scans ONLY go output -> MISSES IT
+
+=== Case B: position, then go, no isready between
+  position-reply region: ['info string invalid FEN: invalid FEN placement']
+  go-output region     : ['info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4', 'info depth 2 seldepth 2 score cp 49 nodes 54 nps 0 hashfull 0 time 0 pv d2d4 d7d6', 'info depth 3 seldepth 3 score cp 18 nodes 215 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4']
+  in POSITION reply: True  | in GO output: False
+  reader that scans ONLY the position reply -> sees it
+
+=== Case C: FRESH session, first and only position is the bad one
+  in POSITION reply: True  | in GO output: False  (corrected clause: always emitted)
+
+=== What the engine answered anyway
+  A: bestmove=['bestmove e2e4']  info-depth-lines=4
+  B: bestmove=['bestmove e2e4']  info-depth-lines=4
+  C: bestmove=['bestmove e2e4']  info-depth-lines=4
+
+case pre-readyok in-go     emitted   before-1st-depth
+A    True       False     True      True          
+B    True       False     True      True          
+C    True       False     True      True          
+
+rows examined: 3
+1. diagnostic emitted in EVERY case (corrected clause):        True
+2. diagnostic precedes the FIRST `info depth` line in all 3:   True
+3. with `isready` it lands before `readyok` (case A):          True
+4. a reader that scans only post-readyok output misses case A: True
+
+NOTE: cases A and B put the diagnostic before the first search line either way, so a
+harness that buffers from `position` through `bestmove` catches both. The rule that
+matters is therefore: scan the whole window, not one named reply.
