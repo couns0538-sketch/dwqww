@@ -30,10 +30,11 @@ distance correctly, 32 of 32 proven endgames. It **always terminates**, at
 positions it is **not a comparable label** with `go depth 2N-1`: 1140 of 1600
 cells differ, the median node ratio at `N=4` is **188×**, and the 163× figure in
 the findings is **not an outlier there — it is roughly the median**. Its failure
-mode is benign in shape (a plain cp score, a full-length PV, no mate-shaped line)
-but it has one real defect: at the edge of its window it can report a mate
-distance that is **wrong and unprovable at the depth it searched** (2 of 6 hits
-on a 400-position scan, 1 in 1200 requests).
+mode is benign in shape (a plain cp score, a PV never truncated, no mate-shaped
+line) but it has one real defect: at the edge of its window it can report a mate
+distance that is **wrong and unprovable at the depth it searched** —
+**6 of 1200 requests**, of which **2 are false claims** and 4 are true reports
+that exceed the N that was asked for.
 
 ---
 
@@ -109,7 +110,8 @@ and **230–342 million nodes** on two ordinary positions. `go mate 1` is free;
 
 ## 3. The disabled heuristics, and the TT — which ones change the ANSWER
 
-Eleven source gates read `mate_moves_` and turn something off. Each was made
+Eleven source gates read `mate_moves_` and turn something off (`search.cpp` has 12
+references to `mate_moves_`: 11 gates plus the assignment at line 2217). Each was made
 independently switchable (`scripts/variants.py`). The build step produced
 **19 distinct binaries**: the control plus 18 distinct gate sets, from 20 arm
 names (one name, `TT_BOTH`, is an alias for the gate set `TTq+TTmain` and is
@@ -163,10 +165,20 @@ node changes (`evidence/ablation.json`).
   exactly for QuietExtinction). A gate that is inert on a mate-rich corpus is a
   candidate for removal, but 0 of 148 on **sparse endgames** is not 0 of 148 on
   middlegames, and this document does not claim the latter.
-* **A caution about the ablation itself.** The 163× node saving when pruning is
-  re-enabled is the same order as the mate-mode overhead in §5. Pruning is what
-  mate mode buys its search with; the ablation cannot separate "the gate is
-  wrong" from "the gate is doing exactly what mate mode needs".
+* **A caution about the ablation itself.** Re-enabling pruning cuts nodes
+  **up to 1365×** (RazorRfpNull max) — the same order as the mate-mode overhead in
+  §5, and larger. Pruning is what mate mode buys its search with; the ablation
+  cannot separate "the gate is wrong" from "the gate is doing exactly what mate
+  mode needs". What it *can* say is that the answer changes, and in the direction
+  of losing mates.
+* **The count in the findings does not match what I measured, and I did not
+  reconcile it.** `forge-findings.md` §7 says `mate_moves_ > 0` "changes seven
+  heuristics plus the TT cutoff". There are **eleven** `mate_moves_` gates in
+  `search.cpp` (eleven `if` sites, listed in the table above by line). Some of the
+  eleven are one gate covering two heuristics (razoring + RFP + null move is one
+  `if`), so "seven heuristics" may well be right at the level of *heuristics*
+  while eleven is right at the level of *code sites*. **I measured gates, not
+  heuristics, and this document should be read that way.**
 
 ---
 
@@ -208,15 +220,20 @@ a score the clockless search does **not** give at the same reported depth:
 | board | movetime | reported depth | reported | reference at that depth |
 |---|---|---|---|---|
 | mate-in-4 | 80 ms | 7 | **cp 939** | **mate 4** |
-| mate-in-4 | 20 ms | 6 | cp 891 | cp 939 |
-| kiwipete | 5 ms | 1 | **cp 0** | cp −76 |
+| mate-in-4 | 20 ms | 6 | cp 891 | cp 939 || kiwipete | 5 ms | 1 | **cp 0** | cp −76 |
 | kiwipete | 10 ms | 1 | **cp 0** | cp −76 |
 | kiwipete | 320 ms | 7 | cp −104 | cp −117 |
 
+(The `kiwipete 5 ms` and `10 ms` rows are `cp 0` with **1024 nodes** — a search that
+reached depth 1 without finishing it, publishing a default score against a
+completed-looking depth label. `mate-in-4 20 ms` is the milder form: depth 6's
+label carrying depth 5's score.)
+
 **The first row is the damaging one**: a clocked `go mate 4` prints `depth 7` with
-depth 5's score, so a consumer reading the last line sees depth 7 completed and no
-mate, when depth 7 is what would have found it. `depth` in a clocked mate reply is
-not the depth that produced the score beside it.
+**depth 6's** score (`cp 939`; depth 5 is `cp 891`, and the reference at depth 7 is
+`mate 4`), so a consumer reading the last line sees depth 7 completed and no mate,
+when depth 7 is exactly the iteration that would have found it. `depth` in a
+clocked mate reply is **not** the depth that produced the score beside it.
 
 (Note on a withdrawn reading: an earlier run of this check reported 21 of 21 cells
 "mixed". That was a tuple-vs-list comparison in my own checker, not an engine
@@ -292,9 +309,11 @@ go mate 4  ->  depth 7  score mate 6  nodes 687776  pv h7h2 f1e1 a4b4 e1f1 b4b3 
 go mate 5  ->  depth 9  score mate 5  nodes 2592168 (correct, PV replays to mate)
 ```
 
-`mate 6` implies **11 plies**. The search reported `depth 7` and its own PV is
-**7 plies**, ending in a quiet move — **it does not replay to mate**. A score of
-mate 6 cannot be proved by an 7-ply search: it needs 4 plies it never searched.
+`mate 6` implies **11 plies**. The search reported `depth 7` with `seldepth 8`, and
+its own PV is **7 plies**, ending in a quiet move — **it does not replay to mate**.
+A mate in 6 moves cannot be established by a 7-ply search: it needs **11 plies**,
+four more than the iteration ever reached. The score is real in the sense that the
+engine's own search produced it; it is simply not a proved mate.
 
 ### Mechanism, as arithmetic a reader can check
 
@@ -371,8 +390,8 @@ the invariant scan of 301 mate-scored cells (`evidence/mate_invariant.json`).
 * **No fix proposed.** I did not write a patch. The window clamp and the
   encoding-passing-the-break-test are both plausible sites and a patch would need
   its own before/after on the 1200-request scan.
-* **No `go mate` beyond N=6**, so the wall-time extrapolation past ~135 s is
-  arithmetic, not measurement.
+* **No `go mate` beyond N=6.** 135.2 s is the largest wall time **measured**; I did
+  not extrapolate past it and the document contains no extrapolated figure.
 
 ## What I am NOT sure about
 
