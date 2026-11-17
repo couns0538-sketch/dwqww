@@ -1,0 +1,110 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -90,10 +90,40 @@
+ #define FORGE_ABORT_FAIL_HIGH_FALLBACK 0
+ #endif
+ 
++// FORGE_LMRD_CHECK (kimi5 job 21; default 0 = the code before it): LMR capture-history
++// counters, observe only. 1 = one LMRD counter line per UCI search.
++#ifndef FORGE_LMRD_CHECK
++#define FORGE_LMRD_CHECK 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_LMRD_CHECK
++// LMRD counters (kimi5 job 21). Observe only: no value, control flow or table entry of
++// the search changes. All runs of this job use Threads 1, so plain counters. One
++// counter set per UCI search: reset where the search's own counters reset, one LMRD
++// line printed where the search result returns. Index by t + 2 with
++// t = clamp(history / 2048, -2, 2), D = 2048 itself, whatever the option's value.
++namespace lmrd {
++std::uint64_t quiet_in = 0;  // quiet moves entering the LMR block, for scale
++std::uint64_t cap_in = 0;    // eligible captures entering the block
++std::uint64_t mv[5] = {}, above[5] = {}, res[5] = {}, refail[5] = {}, same_depth[5] = {};
++void reset() {
++    quiet_in = cap_in = 0;
++    for (int k = 0; k < 5; ++k) mv[k] = above[k] = res[k] = refail[k] = same_depth[k] = 0;
++}
++void print() {
++    const char* names[5] = {"tm2", "tm1", "t0", "tp1", "tp2"};
++    std::cout << "info string LMRD v1 quiet " << quiet_in << " caps " << cap_in;
++    for (int k = 0; k < 5; ++k)
++        std::cout << ' ' << names[k] << ' ' << mv[k] << ',' << above[k] << ',' << res[k] << ',' << refail[k] << ',' << same_depth[k];
++    std::cout << std::endl;
++}
++} // namespace lmrd
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -2275,6 +2305,10 @@
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+             int r = reduction(quiet, depth, move_count);
++#if FORGE_LMRD_CHECK
++            if (quiet) ++lmrd::quiet_in;
++            else if (capture) ++lmrd::cap_in;
++#endif
+             if (ss->tt_pv) r -= 1;
+             if (!improving) r += 1;
+             if (cut_node) r += 2;
+@@ -2295,10 +2329,22 @@
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             if (bare_king_lmr_cap) r = std::min(r, 1);
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
++#if FORGE_LMRD_CHECK
++            const int lmrd_t = capture ? std::clamp(history / 2048, -2, 2) : 0;
++            if (capture) {
++                ++lmrd::mv[lmrd_t + 2];
++                if (lmrd_t != 0 && std::clamp(new_depth - (r - lmrd_t), 1, new_depth) == reduced_depth)
++                    ++lmrd::same_depth[lmrd_t + 2];
++            }
++#endif
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search_child(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
++#if FORGE_LMRD_CHECK
++            const bool lmrd_research = capture && full_depth_needed;
++            if (capture && score > alpha) ++lmrd::above[lmrd_t + 2];
++#endif
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+@@ -2310,6 +2356,12 @@
+                 }
+                 full_depth_needed = false;
+             }
++#if FORGE_LMRD_CHECK
++            if (lmrd_research) {
++                ++lmrd::res[lmrd_t + 2];
++                if (score <= alpha) ++lmrd::refail[lmrd_t + 2];
++            }
++#endif
+             if (!aborted_ && quiet && score > alpha) {
+                 // A late quiet move that beat expectations deserves a history boost.
+                 update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
+@@ -2491,6 +2543,9 @@
+     stopped_by_nodes_ = false;
+     extra_nodes_ = 0;
+     pondering_ = limits.ponder;
++#if FORGE_LMRD_CHECK
++    lmrd::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
+@@ -3146,6 +3201,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_LMRD_CHECK
++    lmrd::print(); // one LMRD counter line per UCI search
++#endif
+     return result;
+ }
+ 

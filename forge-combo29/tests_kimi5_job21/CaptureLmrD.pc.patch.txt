@@ -1,0 +1,27 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -119,6 +119,7 @@
+ int SeeNoisyMultiplier = 150;
+ int SeeNoisyHistDiv = 0;
+ int GoodCaptureHistDiv = 0;
++int LmrCaptureHistDiv = 0;
+ int SingularDepth = 7;
+ int SingularMargin = 2;
+ int IirDepth = 4;
+@@ -203,6 +204,7 @@
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SeeNoisyHistDiv", &SeeNoisyHistDiv, 0, 1024},
+         {"GoodCaptureHistDiv", &GoodCaptureHistDiv, 0, 1024},
++        {"LmrCaptureHistDiv", &LmrCaptureHistDiv, 0, 16384},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+@@ -2281,6 +2283,8 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::LmrCaptureHistDiv > 0 && capture)
++                r -= std::clamp(history / tune::LmrCaptureHistDiv, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
