@@ -507,3 +507,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Caveat is now a **column in the table row** (`⚠ is this a fix? | NO — diagnostic only`) plus a callout, so the flat
   14.0 cannot be skimmed as a fix.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:01:46Z I built the share-table fix — it restores depth and STILL fails the line-quality test (S-F57)
+- Change: `SharedSearchState` borrows the MAIN table instead of allocating a second one. Hash 2048, MPV 3, 5 positions:
+  **main-line depth 1 -> 11-15 (that half PASSES)**, but alternate-line scores still move by up to **~900 cp**
+  (pos 5 line 3: -280 -> -1185), in both directions (pos 3 improves ~90 cp).
+- WHY it fails and it is structural: a shared table makes the alternate line probe bounds computed for a **different
+  root restriction**, so its tree changes by construction — the mechanism my own S-C23 measured for `searchmoves`.
+- **Both named directions now fail**: fixed-64MB cap (lines <=775 cp, S-F56); share one table (lines <=900 cp, S-F57).
+- **Narrowed requirement**: the alternate line needs its **OWN table that is cheap to allocate** — i.e. lazy/adaptive
+  sizing (allocate small, grow if needed), NOT built; or accept the depth cost at very large Hash (status quo). The
+  acceptance table remains the pass/fail criterion.
+Next: continue in the window (ends 2026-11-17T10:18Z).
