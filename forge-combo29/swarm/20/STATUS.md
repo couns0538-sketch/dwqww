@@ -775,3 +775,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   G positions so the tail is not expected. Stated rather than smoothed.
 - Re-confirms my S-F49 at scale: real clock play uses **0.2-0.4 s of a 6 s clock (3-7% of budget)** at depth 16-20.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:19:39Z S-C52: verified the material bound (K vs K+R, mate -25 impossible) — bound beats measurement, 3rd time tonight
+- `6k1/8/5K2/8/6r1/8/8/8 w` is **K vs K+R** (python-chess: White has only a king). `mate -25` = **49 plies**; max DTM
+  for K+R v K is **<=16 moves (31 plies)** => **arithmetically impossible**, killable in seconds with no harness/build
+  question. That is why withdrawal-by-bound is stronger than a re-run.
+- THIRD hard bound to beat measurement tonight: (1) my S-F21 (claimed missed mate on a board with no forced mate);
+  (2) my S-C48b (budget-limited search called defective vs a deeper one); (3) this.
+- RULE: **when a number contradicts a hard bound, the bound wins and the measurement is over** — faster and more certain
+  than re-measuring. Pre-check before any mate score: is it reachable on this material at all (K+R/K+Q v K <= 16 moves;
+  K+B/B+N v K is not a forced win).
+- Reconciliation paragraph now sits directly under the S-C51 confirmation table, not in a footnote.
+Next: continue in the window (ends 2026-11-17T10:18Z).
