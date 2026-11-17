@@ -204,6 +204,25 @@ position, so test it against the position.
 
 Two seats have now been caught by the zero-info-line class. It is listed here first for that reason.
 
+## START HERE (2): never use caller-measured wall as the engine's think time
+
+**The number that makes this concrete: a `go depth 1` search the engine reports as `time 0` takes 1300 ms of wall
+through a Python harness.** Python interpreter startup, `subprocess` spawn and the `uci`/`setoption`/`isready`
+preamble all land on the clock. I published "the engine spends 2–3× its per-move increment" on that artefact; the
+engine's own `time` field said **322–329 ms against a 433 ms hard limit**, i.e. inside its plan.
+
+**The one-command check, run this before trusting any timing number:**
+
+```bash
+# a search the engine calls time 0 must take ~0 ms of YOUR measure too
+printf 'uci\nisready\nposition startpos\nisready\ngo depth 1\nquit\n' | ./forge | grep 'info depth 1'
+# engine says "time 0"; if your harness reports more than a few ms, your number is apparatus
+```
+
+**Use the engine's own `time` field for think time; use wall only for totals and label it apparatus.**
+Any claim stated in nodes, scores, plies or info-line counts survives a harness-overhead error. Any claim stated
+in milliseconds must be re-measured.
+
 ## Never use caller-measured wall as the engine's think time
 
 The engine publishes its own **`time`** field on every `info depth` line. Use that for "how long did the search
