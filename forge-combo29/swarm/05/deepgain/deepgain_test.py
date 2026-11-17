@@ -188,7 +188,14 @@ def run_set(name, positions):
         print(f"| {label} | {cclock} | {c['depth']} | {cdeep} d{d['depth']} | "
               f"{'**YES**' if gained_mate else 'no'} | {mv_txt} | {rp} |")
     movements.sort()
-    med = movements[len(movements) // 2] if movements else None
+    # median for an EVEN count is the mean of the two middle values. My first version used
+    # movements[len//2], which is one of the two middle values and read 6 where the true median is 5.5.
+    if not movements:
+        med = None
+    elif len(movements) % 2:
+        med = movements[len(movements) // 2]
+    else:
+        med = (movements[len(movements) // 2 - 1] + movements[len(movements) // 2]) / 2.0
     print()
     print(f"**{name}: {gained} of {len(positions)} gained a mate**"
           + (f"; median cp movement on the rest: {med} cp (n={len(movements)})" if med is not None else ""))
