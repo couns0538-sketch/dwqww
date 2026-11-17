@@ -108,8 +108,31 @@ def main():
         say("expected commit", a.expect_commit)
         say("equal to HEAD", "yes" if eq else "no", eq or anc)
         if not (eq or anc):
-            print()
-            print("  The expected commit is NOT an ancestor of this worktree.")
+            # DISTINGUISH "behind" from "UNRELATED". `merge-base` returns non-zero for both, but they are
+            # different conditions: a branch that merely lacks a later commit can be rebased onto it, whereas
+            # two histories with NO COMMON ANCESTOR cannot be reconciled by re-running anything - every
+            # measurement describes an unrelated engine. This distinction was worth making because
+            # `integrate/combo29-all` is 57 commits ahead and has NO merge-base with 6b98f217 at all.
+            # git() returns (returncode, stdout, stderr) - unpacking it as (value, _, _) silently put the
+            # EXIT CODE into `mb`. Caught immediately by the orphan-branch control: an empty merge-base is
+            # exactly the case this branch of the code exists to handle, so the one path that mattered was
+            # also the one path never exercised until a real disjoint history was constructed.
+            _rc, mb, _err = git(a.worktree, "merge-base", a.expect_commit, "HEAD")
+            if not mb:
+                print()
+                print("  ** NO COMMON ANCESTOR ** - these histories are DISJOINT.")
+                print("  This is worse than 'behind': nothing measured here can describe the expected engine,")
+                print("  and re-running on this binary will never converge on the base behaviour.")
+            else:
+                ahead_rc, ahead, _ = git(a.worktree, "rev-list", "--count",
+                                          "%s..HEAD" % a.expect_commit)
+                behind_rc, behind, _ = git(a.worktree, "rev-list", "--count",
+                                           "HEAD..%s" % a.expect_commit)
+                print()
+                print("  The expected commit is NOT an ancestor of this worktree.")
+                print("  diverge point %s" % mb[:12])
+                print("  worktree is %s commit(s) ahead, %s behind that point"
+                      % (ahead or "?", behind or "?"))
             print("  Anything measured on this binary describes a different engine.")
 
     # 2. staleness
