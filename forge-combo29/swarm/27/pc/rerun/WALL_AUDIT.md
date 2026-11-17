@@ -1,7 +1,52 @@
-# Audit: which of my findings rest on caller-side wall time?
+# Audit: which findings rest on wall time — and the evidence that settles the timer question
 
-Requested after S-W4 showed my clock harness charges ~1300 ms of its own startup to the search. The question is
-which surviving findings would change if wall time is discarded.
+## 1. THE EVIDENCE THAT SETTLES IT: my timer against the engine's own `time` field
+
+| ply | my in-process wall | engine's own `time` | difference |
+|---|---|---|---|
+| 0 | 331.5 ms | 331 ms | 0.5 ms |
+| 1 | 449.9 ms | 449 ms | 0.9 ms |
+| 2 | **1051.6 ms** | **1051 ms** | 0.6 ms |
+| 3 | 455.6 ms | 455 ms | 0.6 ms |
+| 4 | **1439.7 ms** | **1439 ms** | 0.7 ms |
+| 5 | 909.1 ms | 908 ms | 1.1 ms |
+
+Six consecutive moves of a real game loop at 6 s + 500 ms increment, PC r15, PC20, Threads 1. **Agreement within
+about 1 ms on every move**, and a `time 0` search costs my timer **0.74 / 0.81 / 0.68 ms** — the same as seat 15's
+0.83 ms. My timer starts immediately after `readyok` and immediately before `go`, which is the correct placement.
+**The 1300 ms I blamed in S-W4 was an outer shell loop timing the whole `python3 harness.py …` invocation.**
+
+## 2. What the engine does against its own plan — no clock defect found
+
+Per-row comparison against `clock_plan.hpp` with the CMake defaults, using the clock *before* each move:
+
+| arm | rows | median | max | rows above their own hard limit | by how much |
+|---|---|---|---|---|---|
+| owner 6s+0.06 (`/tmp/rep4280`) | 89 | 139 ms | 546 ms | 2 | **0 ms** |
+| owner 6s+0.06 (`/tmp/op2`) | 200 | 87 ms | 860 ms | 19 | **0-1 ms** |
+| control 6s+0.5 (`/tmp/rep4280`) | 65 | 416 ms | 1674 ms | 8 | **0 ms** |
+| control 6s+0.5 (`/tmp/op2`) | 200 | 374 ms | 2910 ms | 9 | **0-1 ms** |
+
+**Every row that looks like an overrun is over by 0 or 1 millisecond, which is integer rounding in the engine's own
+`time` field.** The engine stops exactly at its hard limit. Rows exceeding the SOFT limit are expected — the soft
+limit decides when to stop starting iterations; the hard limit is the cap.
+
+**So: the engine's time management is consistent with its own plan at the owner's control, and no measurement of
+mine shows a clock defect.**
+
+## 3. Still unmeasured, and open
+
+Whether the engine's *internal* bookkeeping would forfeit in the games where my harness recorded a forfeit. My
+harness decremented each side's clock by that side's think time, which is self-consistent, but that is not the same
+as the engine maintaining its own count. After four revisions on this thread I am not going to imply an answer I
+have not measured.
+
+## 4. THE TRANSFERABLE LINE
+
+**A claim in nodes, scores, plies or info-line counts survives a harness error; a claim in milliseconds must be
+verified against the engine's own `time` field.**
+
+---
 
 ## The three that DO rest on wall time — do not quote these
 
