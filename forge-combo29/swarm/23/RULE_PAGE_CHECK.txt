@@ -1,0 +1,33 @@
+RULE PAGE STRUCTURAL CHECK — run at 2026-11-17T01:28:51Z
+the page itself says reading it whole is the only check that finds its defects; this script automates the
+mechanical half of that read (numbering, counts, path claims) so the human half can spend its attention elsewhere.
+
+== controls: the resolver finds a real file and misses a fake one ==
+  FINDINGS.md -> RESOLVED
+  fake_zz9.out -> NOT resolved (correct)
+
+instance sections found: 18 -> [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+gaps: [] | duplicates: []
+counts stated in prose: [('EIGHTEEN', 18), ('eighteen', 18)]
+counts that disagree with the actual section count: []
+headline says 'Five'; bolded lead sentences found: 5
+headline count wrong: False
+unresolved path tokens (excluding 4 allow-listed script names): []
+
+VERDICT: PASS
+
+PLANTED-FAILURE PROOF (the check must be able to fail, per the page's own rule):
+  stale total count                              -> PASS (control: unmodified page still passes)
+  count off by one, EIGHTEEN -> NINETEEN         -> FAIL (caught)
+  numbering gap, instance 12 heading renamed     -> FAIL (caught)
+  headline Five -> Six                           -> FAIL (caught)
+  page restored byte-identical afterwards (diff -q clean).
+
+TWO FALSE ALARMS FROM THE CHECKER ITSELF, before it was right:
+  first it counted EVERY bolded quote line in the file (11) instead of the 5 inside the sentences block —
+      an un-scoped regex reading a whole document as if it were one section;
+  then, scoped, it counted 6 because a bolded EMPHASIS mid-paragraph ('And watch the LEVEL of description')
+      looks the same to a line regex as a bolded LEAD. Fixed by requiring the bolded line to start a
+      blockquote paragraph.
+  Both were the checker disagreeing with a CORRECT document. That is the dangerous direction for a structural
+  check: it trains you to 'fix' the document. The planted-failure proof is what restored the right to trust it.
