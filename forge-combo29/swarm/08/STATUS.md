@@ -552,3 +552,16 @@ next: cadence.
 Tally: 35 findings, 22 checks/plants, 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:37Z
+- Made the **218-vs-1585 cell the headline of 08-F35** as requested — and that caught **three wrong numbers in my own
+  text**: I had quoted the plan as "1600 ms -> soft 72 / hard 360" and "200 ms -> soft 8 / hard 40". Computed from
+  clock_plan.hpp: **1600 ms -> soft 117 / hard 585** and **200 ms -> soft 53 / hard 114** (6000 -> 317/1585 was
+  right). Corrected in the F35 line, the owner page and the script's printed text, and regenerated the committed
+  output so the file matches.
+- Fourth time tonight that re-reading a number against its mechanism found an error; second time the error was in
+  text I had just written rather than in a measurement.
+
+Tally: 35 findings, 22 checks/plants, 3 method lines, 1 withdrawal.
+
+next: cadence.
