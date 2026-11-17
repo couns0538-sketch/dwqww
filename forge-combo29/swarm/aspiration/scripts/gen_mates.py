@@ -15,7 +15,9 @@ move can force mate against every defence inside `d` plies. Results are memoised
 on (position, d) with the clocks stripped, so the search is exhaustive rather
 than heuristic.
 """
+import itertools
 import json
+import pathlib
 import random
 import sys
 
@@ -95,8 +97,27 @@ def random_position(rng, rook_only):
         return bd.fen()
 
 
+def resolve_output(argv, default_dir):
+    """Resolve the output path, refusing anything that escapes `default_dir`.
+
+    The path comes from argv, so it is constrained: with no argument the
+    evidence file is used; with one, the argument must name a file INSIDE the
+    audit's evidence directory. A relative name is taken as relative to that
+    directory. `..` and absolute paths elsewhere are rejected rather than
+    silently written, so a typo cannot clobber an unrelated file.
+    """
+    base = default_dir.resolve()
+    if len(argv) < 2:
+        return base / "mates_verified.json"
+    candidate = pathlib.Path(argv[1])
+    target = (candidate if candidate.is_absolute() else base / candidate).resolve()
+    if not target.is_relative_to(base):
+        raise SystemExit(f"refusing to write outside {base}: {argv[1]}")
+    return target
+
+
 def main():
-    out_path = sys.argv[1] if len(sys.argv) > 1 else "/tmp/asp/evidence/mates_verified.json"
+    out_path = resolve_output(sys.argv, pathlib.Path(__file__).resolve().parent.parent / "evidence")
     rng = random.Random(20261117)
     want = {1: 2, 3: 2, 5: 2, 7: 2}
     found = {k: [] for k in want}
@@ -108,7 +129,8 @@ def main():
         # Cheap pre-filter: a position that cannot mate in 1 does not need the
         # full budget; walk the ladder from the bottom so most candidates die at d=1.
         d = exact_dtm(bd, limit=7)
-        if d in want and len(found[d]) < want[d] and fen not in sum(found.values(), []):
+        already = set(itertools.chain.from_iterable(found.values()))
+        if d in want and len(found[d]) < want[d] and fen not in already:
             found[d].append(fen)
             print(f"dtm {d} plies: {fen}", flush=True)
 
@@ -122,7 +144,9 @@ def main():
                 "label": f"verified-mate-in-{(plies + 1) // 2}",
                 "index": i,
             })
-    with open(out_path, "w") as fh:
+    destination = out_path
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("w") as fh:
         json.dump({"convention": "plies for side to move; mate in N = 2N-1 plies",
                    "positions_tried": tried, "rows": rows}, fh, indent=2)
         fh.write("\n")

@@ -27,11 +27,12 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
+import asp_paths  # noqa: E402
 from uci import Engine  # noqa: E402
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
-STOCK = "/tmp/asp/build-stock/forge"
-NOASP = "/tmp/asp/build-noasp/forge"
+EVIDENCE = asp_paths.EVIDENCE
+STOCK = str(asp_paths.binary("stock"))
+NOASP = str(asp_paths.binary("noasp"))
 BASE = {"OwnBook": "false"}
 PINS = {"bench11": 312866, "bench13": 862329, "bench16": 3024920, "perft5": 4865609}
 

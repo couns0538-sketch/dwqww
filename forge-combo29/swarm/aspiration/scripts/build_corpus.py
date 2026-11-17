@@ -22,9 +22,10 @@ import sys
 import chess
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
+import asp_paths  # noqa: E402
 from uci import Engine, RefusedFen  # noqa: E402
 
-OUT = pathlib.Path("/tmp/asp/evidence")
+OUT = asp_paths.EVIDENCE
 
 BENCH_FENS = [
     chess.STARTING_FEN,
@@ -68,7 +69,7 @@ def selfplay_positions(engine_path, games=3, max_plies=90):
 
 
 def main():
-    engine_path = sys.argv[1]
+    engine_path = sys.argv[1] if len(sys.argv) > 1 else str(asp_paths.binary("stock"))
     OUT.mkdir(parents=True, exist_ok=True)
 
     mates = json.loads((OUT / "mates_verified.json").read_text())["rows"]
@@ -98,7 +99,11 @@ def main():
         raise SystemExit("engine refused a fixture; a pass here would be manufactured")
 
     payload = {
-        "engine": engine_path,
+        # Record the BUILD NAME, not the path it happened to live at: an
+        # absolute path makes this file differ on every machine without any
+        # content changing. The build flags for each name are in
+        # asp_paths.BUILD_FLAGS and FINDINGS.md.
+        "build": "stock",
         "audit_base": "6b98f217",
         "depth_positions": [{"fen": f, "label": f"depth-{i:02d}"}
                             for i, f in enumerate(depth_fens)],

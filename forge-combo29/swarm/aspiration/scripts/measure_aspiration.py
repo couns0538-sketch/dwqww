@@ -32,15 +32,11 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
+import asp_paths  # noqa: E402
 from uci import Engine  # noqa: E402
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
-BUILDS = {
-    "stock": "/tmp/asp/build-stock/forge",
-    "trace": "/tmp/asp/build-trace/forge",
-    "fault": "/tmp/asp/build-fault/forge",
-    "noasp": "/tmp/asp/build-noasp/forge",
-}
+EVIDENCE = asp_paths.EVIDENCE
+BUILDS = {name: str(asp_paths.binary(name)) for name in asp_paths.BUILD_FLAGS}
 
 
 def load_corpus():
@@ -142,7 +138,14 @@ def phase_validity(depth, limit):
         out["rows"].append(row)
 
     # C: planted fault must be caught by exactly the same two checks.
-    fault_positions = positions[: min(8, len(positions))]
+    #
+    # The denominator has to be "rows where the fault actually fires", not "rows
+    # tried": the planted defect needs a fail-high at the LAST root iteration, and
+    # most positions do not have one. Reporting 3/8 as if it were a detector miss
+    # rate would be a denominator error in the safe direction, which is the exact
+    # trap the shared brief records for the fuzz count. So both numbers are kept.
+    fault_positions = positions[: min(40, len(positions))]
+    fault_opportunities = 0
     for pos in fault_positions:
         fen = pos["fen"]
         f = run_one(BUILDS["fault"], {}, fen, go, want_trace=True)
@@ -151,16 +154,29 @@ def phase_validity(depth, limit):
         rs = summarize(ref)
         traces = f["traces"]
         last_trace = traces[-1] if traces else None
+        fired = bool(last_trace and last_trace.get("exit") == "high_fault")
+        caught = bool(last_trace and last_trace.get("inside") == 0)
+        if fired:
+            fault_opportunities += 1
         out["fault_rows"].append({
             "label": pos["label"],
             "fen": fen,
             "fault": fs,
             "ref": rs,
             "fault_exit": last_trace.get("exit") if last_trace else None,
-            "final_bound_detected": bool(last_trace and last_trace.get("inside") == 0),
+            "fault_fired": fired,
+            "final_bound_detected": caught,
             "score_differs_from_ref": (fs["score_kind"], fs["score"]) != (rs["score_kind"], rs["score"]),
-            "caught": bool(last_trace and last_trace.get("inside") == 0),
+            "caught": caught,
         })
+    out["fault_control"] = {
+        "rows_tried": len(fault_positions),
+        "fault_fired": fault_opportunities,
+        "detected": sum(r["caught"] for r in out["fault_rows"] if r["fault_fired"]),
+        "note": "detected/fault_fired is the detector rate; rows_tried is not the "
+                "denominator because the planted defect needs a fail-high on the "
+                "last root iteration and most positions do not have one",
+    }
     return out
 
 
@@ -254,10 +270,9 @@ def main():
               f"final_bound={sum(r['final_bound'] for r in rows)} "
               f"score_mismatch={sum(not r['score_agrees'] for r in rows)} "
               f"move_mismatch={sum(not r['move_agrees'] for r in rows)}")
-        caught = sum(r["caught"] for r in v["fault_rows"])
-        diff = sum(r["score_differs_from_ref"] for r in v["fault_rows"])
-        print(f"[fault control ] rows={len(v['fault_rows'])} detected_as_bound={caught} "
-              f"differs_from_reference={diff}")
+        fc = v["fault_control"]
+        print(f"[fault control ] rows_tried={fc['rows_tried']} fired={fc['fault_fired']} "
+              f"detected={fc['detected']}/{fc['fault_fired']}")
     if args.phase in ("all", "delta"):
         d = phase_delta(args.depth, args.limit)
         (EVIDENCE / f"delta_d{args.depth}.json").write_text(json.dumps(d, indent=2) + "\n")

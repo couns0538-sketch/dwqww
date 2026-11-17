@@ -18,14 +18,11 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
+import asp_paths  # noqa: E402
 from uci import Engine  # noqa: E402
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
-BUILDS = {
-    "trace": "/tmp/asp/build-trace/forge",
-    "noasp": "/tmp/asp/build-noasp/forge",
-    "stock": "/tmp/asp/build-stock/forge",
-}
+EVIDENCE = asp_paths.EVIDENCE
+BUILDS = {name: str(asp_paths.binary(name)) for name in asp_paths.BUILD_FLAGS}
 BASE = {"OwnBook": "false"}
 
 

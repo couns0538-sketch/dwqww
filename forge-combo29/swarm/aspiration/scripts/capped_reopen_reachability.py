@@ -36,11 +36,12 @@ from collections import Counter
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
+import asp_paths  # noqa: E402
 from uci import Engine  # noqa: E402
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
-TRACE = "/tmp/asp/build-trace/forge"
-FAULT = "/tmp/asp/build-fault/forge"
+EVIDENCE = asp_paths.EVIDENCE
+TRACE = str(asp_paths.binary("trace"))
+FAULT = str(asp_paths.binary("fault"))
 BASE = {"OwnBook": "false"}
 
 

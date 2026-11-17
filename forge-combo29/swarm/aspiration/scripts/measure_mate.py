@@ -24,14 +24,11 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
+import asp_paths  # noqa: E402
 from uci import Engine  # noqa: E402
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
-BUILDS = {
-    "trace": "/tmp/asp/build-trace/forge",
-    "stock": "/tmp/asp/build-stock/forge",
-    "noasp": "/tmp/asp/build-noasp/forge",
-}
+EVIDENCE = asp_paths.EVIDENCE
+BUILDS = {name: str(asp_paths.binary(name)) for name in asp_paths.BUILD_FLAGS}
 BASE = {"OwnBook": "false"}
 
 
@@ -55,10 +52,10 @@ def top(fen, res):
 
 
 def mate_of(row):
+    """The `mate N` value straight off the wire, sign included, or None."""
     if not row or not row.get("is_mate"):
         return None
-    n = row["score"]
-    return n if n > 0 else n
+    return row["score"]
 
 
 def main():

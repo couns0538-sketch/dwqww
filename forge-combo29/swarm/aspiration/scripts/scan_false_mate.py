@@ -19,9 +19,10 @@ import chess
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
+import asp_paths  # noqa: E402
 from uci import Engine  # noqa: E402
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
+EVIDENCE = asp_paths.EVIDENCE
 BASE = {"OwnBook": "false"}
 
 FIXTURES = [
@@ -34,10 +35,10 @@ FIXTURES = [
 ]
 
 ARMS = {
-    "asp_on": ("/tmp/asp/build-stock/forge", {}),
-    "asp_off": ("/tmp/asp/build-noasp/forge", {}),
-    "capped": ("/tmp/asp/build-stock/forge", {"AspCappedReopen": "true"}),
-    "arm_late": ("/tmp/asp/build-stock/forge", {"AspArmLate": "true"}),
+    "asp_on": (str(asp_paths.binary("stock")), {}),
+    "asp_off": (str(asp_paths.binary("noasp")), {}),
+    "capped": (str(asp_paths.binary("stock")), {"AspCappedReopen": "true"}),
+    "arm_late": (str(asp_paths.binary("stock")), {"AspArmLate": "true"}),
 }
 
 

@@ -11,9 +11,14 @@
 set -u
 B=${1:?usage: pin.sh <path-to-forge>}
 
+if [[ ! -x $B ]]; then
+  echo "not executable: $B" >&2
+  exit 2
+fi
+
 fail=0
 expect() { # name got want
-  if [ "$2" = "$3" ]; then
+  if [[ $2 == "$3" ]]; then
     printf '%-10s %10s  OK\n' "$1" "$2"
   else
     printf '%-10s %10s  MISMATCH (want %s)\n' "$1" "${2:-NONE}" "$3"

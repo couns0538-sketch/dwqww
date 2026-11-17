@@ -201,16 +201,36 @@ nothing in the output would reveal it if that changed.
 
 ## Reproduction
 
+The scripts resolve paths from their own location. `ASP_BUILD_ROOT` points at the four
+`forge` binaries (default `<this folder>/../builds`, which is not committed — they are build
+outputs and the brief forbids binaries); `ASP_EVIDENCE` defaults to the committed
+`../evidence`. Build each variant with:
+
+```sh
+cmake -S <repo>/forge-combo29 -B builds/<name> \
+  -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release \
+  -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_FLAGS="-DFORGE_ASP_TRACE=<0|1> -DFORGE_ASP_FAULT=<0|1> -DFORGE_ASP_OFF=<0|1>"
+make -C builds/<name> -j
 ```
-scripts/pin.sh              # four honesty pins, all four builds
-scripts/build_corpus.py     # 133 depth + 8 proved-mate positions, dual-validated
-scripts/gen_mates.py        # DTM by AND/OR proof, engine not involved
-scripts/measure_aspiration.py --depth 10   # measures 1, 3, 4
+
+with the per-build macro sets in `scripts/asp_paths.py`. The patch that introduces the three
+macros is `scripts/patches/asp-trace-fault-off.patch` (one file, `src/search.cpp`).
+
+```
+ASP_BUILD_ROOT=/path/to/builds scripts/pin.sh builds/stock/forge
+scripts/build_corpus.py                    # 133 depth + 8 proved-mate positions
+scripts/gen_mates.py                       # DTM by AND/OR proof, engine not involved
+scripts/measure_aspiration.py --depth 10   # measures 1, 3, 4 (validity/delta/switches)
 scripts/measure_mate.py                    # measure 2
 scripts/capped_reopen_reachability.py      # measure 3, with planted-fault control
 scripts/stock_vs_wide.py                   # pinned stock vs never-narrow
+scripts/scan_false_mate.py                 # per-depth mate-claim scan, four arms
 scripts/classify_mate_claims.py            # FALSE / LOOSE / TRUE_TIGHT verdicts
 ```
+
+Every evidence file in `evidence/` was produced by these scripts; re-running them from a
+clean checkout reproduces the files byte-for-byte except for fields that record a build
+*path*, which were deliberately replaced with build *names* for that reason.
 
 Pins on the analysis build: bench 11 = 312,866; bench 13 = 862,329; bench 16 = 3,024,920;
 `go perft 5` = 4,865,609. `bench N` sent on **stdin**, `OwnBook false` (it defaults true, and

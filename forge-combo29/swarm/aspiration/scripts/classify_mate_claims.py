@@ -30,7 +30,9 @@ import chess
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
-EVIDENCE = pathlib.Path("/tmp/asp/evidence")
+import asp_paths  # noqa: E402
+
+EVIDENCE = asp_paths.EVIDENCE
 
 
 def mate_within(bd, plies, memo):

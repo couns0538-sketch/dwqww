@@ -5,6 +5,8 @@ Rules this enforces (from the shared brief):
   * A refused FEN is caught. The engine reports `invalid FEN` on the `position`
     command, not in the search output, so the driver reads that reply.
 """
+import os
+import pathlib
 import re
 import subprocess
 
@@ -16,6 +18,10 @@ TIME_RE = re.compile(r"\btime (\d+)")
 PV_RE = re.compile(r"\bpv (.*)$")
 ASP_PREFIX = "info string ASPTRACE "
 INT_RE = re.compile(r"-?\d+")
+# Anchored and possessive-ish (`[^ ]` classes instead of `.+?`), because the
+# original `(.+?) type \S+(?: default (.*))?$` backtracked super-linearly on a
+# long option line. Only the shape the engine actually emits is accepted.
+OPTION_RE = re.compile(r"option name ([^ ](?:[^ ]| [^ ])*?) type [^ ]+(?: default (.*))?$")
 
 
 class RefusedFen(RuntimeError):
@@ -75,10 +81,22 @@ def parse_info(line):
 
 
 class Engine:
+    """Drives one engine process.
+
+    `path` is executed, so it is accepted only when it resolves to an existing
+    executable file. That is not a substitute for trusting the caller — this is
+    an audit harness, not a sandbox — but it turns "some string got executed"
+    into "a real binary at a known path got executed", which is the property the
+    scripts in this folder actually rely on.
+    """
+
     def __init__(self, path, options=None):
-        self.path = path
+        resolved = pathlib.Path(path).resolve()
+        if not resolved.is_file() or not os.access(resolved, os.X_OK):
+            raise ValueError(f"engine path is not an executable file: {path!r}")
+        self.path = str(resolved)
         self.proc = subprocess.Popen(
-            [path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            [self.path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, bufsize=1)
         self._send("uci")
         self.options = {}
@@ -101,7 +119,7 @@ class Engine:
         while True:
             line = self._readline()
             if line.startswith("option name"):
-                m = re.match(r"option name (.+?) type \S+(?: default (.*))?$", line)
+                m = OPTION_RE.match(line)
                 if m:
                     self.options[m.group(1).strip()] = (m.group(2) or "").strip()
             elif line.startswith("uciok"):
