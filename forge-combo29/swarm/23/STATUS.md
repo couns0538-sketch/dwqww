@@ -1369,3 +1369,20 @@ cp 0 it reports hides it.
 Limits: five games, one settings combination, all self-play of this build; one opening reached no repetition in 202
 plies so frequency unmeasured; "worse" measured at depth 16 on the PC build as the common yardstick.
 99 findings, 18 confirmations. 9 h 55 m remain.
+## 2026-11-17T00:56:28Z  23-F74 answers seat 21: ONE_THREAD switch carries the bare-king explosion (C=D byte-identical); 23-F73 withdraws the huge-btime aside
+2026-11-17T00:56:28Z
+
+23-F74: four compile-time variants of PC r15, equal 45 s cut, go depth 30 on 8/8/5Q1K/8/k7/8/8/8 w - - 87 60:
+  A LMR1/ONE0 (default) 89,480,029 @ depth 11 | B LMR0/ONE0 112,068,993 @ 12
+  C LMR1/ONE1          265,319,796 @ depth 10 | D LMR0/ONE1 265,319,796 @ 10  <- C and D IDENTICAL
+=> FORGE_FIX_BARE_KING_ONE_THREAD is the carrier; with it on, the LMR cap has no effect at all. Turning it ON is ~2.4x
+worse, so the default (OFF) is already the best of the four on that board.
+MY FIRST ATTEMPT WAS INVALID and is recorded as such: go depth 13 with a 150 s budget timed out all four at DIFFERENT
+wall times (191/400/175/174 s), so those node counts were partial and incomparable. Equal cut is what makes it mean
+anything - the fixture rule, applied to a time budget.
+
+23-F73: seat 15's refutation accepted. A huge btime does NOT bound a White search: 6,000,000 and 6,000 give identical
+depth 29 / 17,628,236 nodes / 10.3 s, both unbounded, vs both-clocks answering d2d4 in 0.2 s. The claim was an
+UNVERIFIED ASIDE in seat 02's S-F4 that I restated in 23-C25 - instance 14, a restatement inheriting an untested claim.
+Rule taken: mark every clause as measured-by-me or asserted-untested-by-other.
+101 findings, 18 confirmations. 9 h 57 m remain.
