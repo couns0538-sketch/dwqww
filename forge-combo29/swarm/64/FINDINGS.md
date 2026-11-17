@@ -106,7 +106,8 @@ The survivors are **flat in MultiPV**. A per-line cost would keep climbing from 
 lines to 6; it does not. So the residual is not per line — it is the
 **allocation of the second full-size table, once per search**.
 `make_unique<TTCluster[]>` value-initialises, so the allocator zero-fills the whole
-block before the depth loop. Measured as time-to-first-`info depth`:
+block before the depth loop. Measured as time-to-first-`info depth` (single
+position, single run per cell — a *shape* measurement, not a per-cell estimate):
 
 | Hash MB | MPV 1 first info | MPV 2 first info | gap (ms) | gap per MB |
 |---|---|---|---|---|
@@ -115,6 +116,11 @@ block before the depth loop. Measured as time-to-first-`info depth`:
 | 64 | 0.9 | 38.5 | 37.6 | 0.59 |
 | 128 | 1.1 | 56.4 | 55.2 | 0.43 |
 | 256 | 1.4 | 105.9 | 104.5 | 0.41 |
+
+Repeated across all 6 positions at Hash 256, the allocation gap is **104.2 ms
+median, range 100-109** — so the per-MB slope above is stable and the single-run
+figures are not outliers. The gap does **not** depend on the position, which is
+what makes it an allocation and not a search cost.
 
 Full decomposition at Hash 256, patched, one representative position:
 
@@ -131,14 +137,28 @@ The allocation column is ~110-130 ms at every MPV > 1, and 1.5 ms at MPV 1.
 
 **Residual, in the units asked for:**
 
-| quantity | value |
-|---|---|
-| residual at Hash 256 after patch | 1.90x-1.99x, **flat in MultiPV**, 5 cells |
-| residual in ms (Hash 256 MPV 2, grid medians) | 279.0 - 143.6 = **135.4 ms** excess |
-| of which allocation | **~104.5 ms** (108.5 ms on the single-position run above) |
-| of which search | **~31 ms = 1.2x**, inside the safe region |
-| residual in **nodes at MPV 1** | **0** — 178297 base and patched |
-| residual in nodes at MPV > 1 | nodes *differ* (0/40 cells match), because alternate lines now reuse the table and reach **greater depth for the same budget**. The extra time at MPV>1 buys a deeper search, it does not buy a slower one. |
+| quantity | value | how measured |
+|---|---|---|
+| residual at Hash 256 after patch | 1.90x-1.99x, **flat in MultiPV**, 5 cells | cell medians, 6 positions x 3 repeats |
+| residual in ms (Hash 256 MPV 2) | 279.0 - 143.6 = **135.4 ms** excess | **cell** medians, patched build |
+| of which allocation | **~104 ms** (range 100-109) | time-to-first-`info` gap, 6 positions x 2 repeats |
+| of which search | **~31 ms**, i.e. 1.2x of the MPV 1 search | subtraction |
+| residual in **nodes at MPV 1** | **0** — 178297 base and patched | cell medians |
+| residual in nodes at MPV > 1 | nodes *differ* (0/40 cells match), because alternate lines now reuse the table and reach **greater depth for the same budget** | cell medians |
+
+**Two limits on that decomposition, stated rather than left implicit:**
+
+- **The two terms come from different samples.** 135.4 ms is a median over cell
+  medians (6 positions x 3 repeats); the allocation term is a separate
+  time-to-first-`info` measurement over 6 positions x 2 repeats. They agree closely
+  but are not drawn from one experiment.
+- **The excess is not position-independent.** Per-position excess ranges
+  **135.0 to 195.6 ms** (median 140.5) against the cell-level 135.4. Using the
+  median rather than the cell figure would give a search residual of ~36 ms rather
+  than ~31 ms. Both are inside the safe region; neither is a precise estimate.
+  The ratio framing is the robust part: allocation-only would predict 1.72x, and
+  1.94x is observed, so **~0.2x of the total is search** — a bound, not a
+  measurement to three significant figures.
 
 Patch A removes **100% of the per-wipe cost** and leaves **one** cost: the
 alternate table's allocation, proportional to Hash only, paid once per search.
