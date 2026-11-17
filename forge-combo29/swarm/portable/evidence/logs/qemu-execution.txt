@@ -1,0 +1,30 @@
+### execution under qemu-x86_64 (AVX2/SSE2/BMI2 ARE emulated; AVX-512 is NOT)
+
+## qemu validity check first -- what each CPU model actually advertises
+Nehalem:             avx2=0 avx512f=0 avx512bw=0 avx512dq=0 avx512vl=0 bmi2=0
+SandyBridge:         avx2=0 avx512f=0 avx512bw=0 avx512dq=0 avx512vl=0 bmi2=0
+Haswell:             avx2=1024 avx512f=0 avx512bw=0 avx512dq=0 avx512vl=0 bmi2=131072
+Cascadelake-Server:  avx2=1024 avx512f=0 avx512bw=0 avx512dq=0 avx512vl=0 bmi2=131072
+SapphireRapids:      avx2=1024 avx512f=0 avx512bw=0 avx512dq=0 avx512vl=0 bmi2=131072
+max:                 avx2=1024 avx512f=0 avx512bw=0 avx512dq=0 avx512vl=0 bmi2=131072
+
+## => avx512f=0 everywhere, including max: an AVX-512 SIGILL under qemu is qemu's gap,
+##    not a property of the binary. No AVX-512 build can be executed this way.
+
+## control: native build on Nehalem -- expected SIGILL (it is built for sapphirerapids)
+qemu: uncaught target signal 4 (Illegal instruction) - core dumped
+
+## v2 build on Nehalem (2008 CPU: no AVX, no BMI2) -- depths 11/13/16, net on and off, plus perft 5
+info string bench depth 11 nodes 312866 time 4567 nps 68505
+info string bench depth 13 nodes 862329 time 12487 nps 69058
+info string bench depth 16 nodes 3024920 time 42653 nps 70919
+info string bench depth 11 nodes 375354 time 925 nps 405788
+info string bench depth 13 nodes 907205 time 2316 nps 391712
+info string bench depth 16 nodes 2448617 time 5538 nps 442148
+nodes 4865609
+
+## v3 build on Haswell (AVX2, no AVX-512) -- bench 11
+info string bench depth 11 nodes 312866 time 6407 nps 48831
+
+## negative control: v3 build on SandyBridge (AVX but NO AVX2) -- expected SIGILL
+qemu: uncaught target signal 4 (Illegal instruction) - core dumped

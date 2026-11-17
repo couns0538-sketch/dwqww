@@ -1,0 +1,26 @@
+slot bias measured by the A/A control: s = 0.9890 (B slot 1.10% faster than A slot, same binary both slots)
+
+build                                              ratio     cost              CI95     faster  implied s  vs A/A
+-----------------------------------------------------------------------------------------------------------------
+x86-64-v2, FORGE_PORTABLE=ON                      1.1614  +16.14% [1.1572,1.1671]    0/120       0.9857   0.34%
+x86-64-v3, FORGE_PORTABLE=ON                      1.0422   +4.22% [1.0372,1.0450]   14/120       0.9892   0.01%
+x86-64-v3, PEXT=1 ZMM=0 (hand-built)              1.0143   +1.43% [1.0090,1.0202]   32/120       0.9887   0.04%
+x86-64-v4, PEXT=1 ZMM=1 (CMake default, closest to native)  1.0228   +2.28% [1.0142,1.0337]   36/120       0.9929   0.39%
+x86-64-v4, PEXT=0 ZMM=0 (v4 ISA, no switches)     1.0384   +3.84% [1.0310,1.0446]   19/120       0.9864   0.27%
+x86-64-v4, PEXT=1 ZMM=0 (only ZMM off)            1.0286   +2.86% [1.0217,1.0318]   28/120       0.9892   0.02%
+x86-64-v4, PEXT=0 ZMM=1 (only PEXT off)           1.0232   +2.32% [1.0134,1.0308]   35/120       0.9933   0.43%
+
+'ratio' is portable/native on wall time at a fixed 'go nodes 200000':
+  ratio > 1 means the portable build is SLOWER by (ratio-1).
+'implied s' is sqrt(fwd / rev^-1) -- a prediction fixed by the raw medians.
+  It must match the A/A s above; the last column is the disagreement.
+
+Both-arms table, and the sign test on the per-position direction:
+build                                                sign p
+x86-64-v2, FORGE_PORTABLE=ON                       1.50e-36
+x86-64-v3, FORGE_PORTABLE=ON                       1.16e-18
+x86-64-v3, PEXT=1 ZMM=0 (hand-built)               3.18e-07
+x86-64-v4, PEXT=1 ZMM=1 (CMake default, closest to native)   1.39e-05
+x86-64-v4, PEXT=0 ZMM=0 (v4 ISA, no switches)      1.08e-14
+x86-64-v4, PEXT=1 ZMM=0 (only ZMM off)             3.77e-09
+x86-64-v4, PEXT=0 ZMM=1 (only PEXT off)            5.73e-06

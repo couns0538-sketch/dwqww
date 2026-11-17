@@ -1,0 +1,8 @@
+### what the -march labels actually mean, probed under qemu
+Nehalem:       sse2=16 sse4_2=256 popcnt=4 avx=0 avx2=0 bmi2=0 avx512f=0
+SandyBridge:   sse2=16 sse4_2=256 popcnt=4 avx=512 avx2=0 bmi2=0 avx512f=0
+Haswell:       sse2=16 sse4_2=256 popcnt=4 avx=512 avx2=1024 bmi2=131072 avx512f=0
+
+=> SandyBridge has avx=512 and avx2=0, so the v3 SIGILL there
+   is a genuine negative control on the AVX2 requirement.
+=> x86-64-v2 is SSE4.2+POPCNT (not merely SSE2), consistent with the v2 disassembly.
