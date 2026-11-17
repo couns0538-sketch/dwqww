@@ -1119,3 +1119,13 @@ mistimed nor a defect on my board - it is the horizon reporting the draw the fif
 Method note worth keeping: refute the framing, THEN run the deciding test - do not stop at the refutation.
 
 88 findings, 18 confirmations (two refutations). 10 h 16 m remain.
+## 2026-11-17T00:08:40Z  F63 now led by the arithmetic; limit moved to the end of the RESULT
+2026-11-17T00:08:40Z
+
+23-F63's headline is now the arithmetic, as ordered: MATES 8 NEEDS 15 PLIES AND COUNTER 92 LEAVES 8, so the cp 0
+is CORRECT under file 6 - the sweep and the depth-dependence table sit behind it as support.
+check25/RESULT.txt now ENDS with the limit (one board per sweep; 92-vs-99 board dependence asserted from
+comparing my board to theirs, not swept), where a reader meets it as a closing caveat.
+
+State: 88 findings, 18 confirmations (two refutations), eleven named harness faults, six reference pages.
+10 h 10 m remain - continuing at cadence with measurements.
