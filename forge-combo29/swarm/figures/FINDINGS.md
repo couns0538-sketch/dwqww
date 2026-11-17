@@ -18,7 +18,8 @@ the machine-readable form is `evidence/ledger.json`.
 
 ```
 python3 scripts/figures.py --forge ./forge --seats <NN/ seat trees> \
-    --base <worktree at 6b98f217> --repo <repo> --json evidence/ledger.json
+    --base <worktree at 6b98f217> --repo <repo> --json evidence/ledger.json \
+    --json-root evidence
 ```
 
 ---

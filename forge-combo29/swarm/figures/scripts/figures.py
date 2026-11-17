@@ -151,11 +151,28 @@ def checked_json_target(path):
     return ap
 
 
-def write_json(target):
-    """Serialise the ledger to an already-validated absolute path."""
+def _contain(root, candidate):
+    """Resolve `candidate` and prove it is inside `root`. Returns the resolved path.
+
+    This is the sanitizer the static analyser looks for and the property a reader wants:
+    the result is a REAL path (symlinks followed) and the containment test is done on the
+    resolved form, so `..` and a symlink pointing out of the tree are both refused after
+    resolution rather than by inspecting the string. `os.path.commonpath` is used instead of
+    `str.startswith` because `/a/bc` starts with `/a/b` and is not inside it.
+    """
+    root_r = os.path.realpath(root)
+    cand_r = os.path.realpath(candidate)
+    if os.path.commonpath([root_r, cand_r]) != root_r:
+        raise ValueError("refusing a path outside %r: %r" % (root_r, cand_r))
+    return cand_r
+
+
+def write_json(target, root):
+    """Serialise the ledger to `target`, which must resolve inside `root`."""
+    safe = _contain(root, target)
     rows = [{k: (str(v) if not isinstance(v, (str, int, float, bool, type(None), list)) else v)
              for k, v in r.items()} for r in RESULTS]
-    with open(target, "w", encoding="utf-8") as fh:
+    with open(safe, "w", encoding="utf-8") as fh:
         json.dump(rows, fh, indent=1)
 
 
@@ -875,12 +892,19 @@ CITES = [
 
 def check_citations(base):
     for label, where, rel, line, expect in CITES:
-        path = os.path.join(base, "forge-combo29", rel)
+        # `rel` is a module constant from CITES; `base` is caller-supplied, so the resolved
+        # path is proven to stay inside it before anything is opened.
+        try:
+            path = _contain(base, os.path.join(base, "forge-combo29", rel))
+        except ValueError:
+            record(label, where, "%s:%d" % (rel, line), None, "NOT-RE-DERIVABLE",
+                   "citation path escapes the base worktree")
+            continue
         if not os.path.exists(path):
             record(label, where, "%s:%d" % (rel, line), None, "NOT-RE-DERIVABLE",
                    "file not present at 6b98f217")
             continue
-        with open(checked_read(path), encoding="utf-8", errors="replace") as fh:
+        with open(path, encoding="utf-8", errors="replace") as fh:
             lines = fh.read().splitlines()
         got = lines[line - 1].strip() if line <= len(lines) else "<past EOF>"
         record(label, where, "%s:%d" % (rel, line), got,
@@ -1077,6 +1101,8 @@ def main():
     ap.add_argument("--base", required=True, help="worktree at 6b98f217")
     ap.add_argument("--repo", default=".", help="the git repo, for history lookups")
     ap.add_argument("--json")
+    ap.add_argument("--json-root", default=".",
+                    help="directory the --json output must resolve inside (default: cwd)")
     a = ap.parse_args()
     global SEATS
     SEATS = resolve_exe(a.seats)
@@ -1113,7 +1139,7 @@ def main():
             print("                  regenerated: %s" % (r["regenerated"],))
             print("                  %s" % r["note"])
     if a.json:
-        write_json(checked_json_target(a.json))
+        write_json(checked_json_target(a.json), a.json_root)
     return 1 if counts.get("MISMATCH") else 0
 
 

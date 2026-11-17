@@ -99,7 +99,7 @@ printf 'uci\nsetoption name Hash value 16\nsetoption name Threads value 1\nisrea
 cd forge-combo29/swarm/figures
 python3 scripts/figures.py --forge /tmp/base/forge-combo29/build/forge \
     --seats <dir with NN/ seat trees> --base /tmp/base --repo . \
-    --json evidence/ledger.json
+    --json evidence/ledger.json --json-root evidence
 ```
 
 `--seats` expects one directory per seat (`01/`, `19/`, …), each containing that seat's
