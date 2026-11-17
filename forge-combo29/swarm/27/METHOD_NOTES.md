@@ -298,3 +298,19 @@ and each was caught only by reading the committed artefact afterwards.
 
 **The common thread: every one of these looked correct at the moment of writing.** The rule that catches all four
 is the same — after writing, read the file as a reader would, not as its author.
+
+## Deep mate scores are not reproducible where node counts are — check them against the material
+
+A reproducibility result worth knowing before quoting any deep `mate N`:
+
+| what | reproduces across machines/runs? |
+|---|---|
+| node counts on a fixed board and depth, Threads 1 | **YES — to the digit** (d13 66,609,862 and d14 599,407,784 identical on two machines) |
+| deep `mate N` on a high-counter KRvK board | **NO** — my -21/-25/-23 against another seat's -16/-15/-19 on the same board and settings |
+
+**The decisive check is against the material, not against another seat.** KR vs K has a maximum DTM of 16 moves, so
+**any `mate N` with |N| > 16 on that material is a truncated score, not a distance** — which makes a
+seat-versus-seat comparison of those numbers meaningless. My own `mate -25` was withdrawn for exactly this reason.
+
+**So: before quoting a deep mate score, check that 2|N| is reachable with the material on the board.** It is a
+one-line test and it settles in cases where no amount of re-running will.
