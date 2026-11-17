@@ -49,3 +49,28 @@ clock tail to the training-data concern.
 ## Limits
 - 4 + 4 boards, one clock, one depth offset (+4), built-in net, Threads 1.
 - "Sparse" = material ≤ 14 by my own threshold; seat 08 used its own class definitions.
+
+## Does the volatile score also change the MOVE in the sparse class? — NO, on 4 of 4
+
+The data-quality concern is sharper if the label's *move* is also unstable, so I checked the same four sparse boards:
+clocked stop vs completed `go depth <clocked+4>`.
+
+| pos | depth | clocked move | deeper move | same? |
+|---|---|---|---|---|
+| 1 | 19 | f4f5 | f4f5 | **SAME** |
+| 2 | 18 | g5h5 | g5h5 | **SAME** |
+| 3 | 27 | g7g6 | g7g6 | **SAME** |
+| 4 | 22 | e6d6 | e6d6 | **SAME** |
+
+**4 of 4 identical**, including position 1 — the board where `cp 4302` became `mate 9`. So in this sample the volatility
+is **confined to the score, not the move**: the clocked search picked the same move while its *evaluation* of it was
+categorically incomplete.
+
+**That bounds the data-quality concern usefully.** If a self-play label is a **move**, the sparse class is not
+obviously noisier — the move survived a 4-ply deeper check on every board. If the label is a **score or a mate flag**
+(as in training data that stores evaluations, or in any analysis that reports mate distance), then it is: a +4302 cp
+evaluation and a `mate 9` are not interchangeable labels for the same position.
+
+**So the honest form of the finding is:** sparse-class clocked evaluation is **score-volatile and mate-blind at the
+depth reached**, while its **move choice held in 4 of 4**. Whether that matters depends entirely on **which field of the
+label the owner's pipeline consumes** — which I cannot see from here and should not guess.
