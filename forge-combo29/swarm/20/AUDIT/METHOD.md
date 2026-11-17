@@ -152,7 +152,7 @@ Three cases where I held to this tonight:
 thing?** A mate and a centipawn score are not; two depths are; two plies short are. When they are not, report the
 counts separately and let him compare what he cares about.
 
-## MEASURING
+## WRITING A FINDING
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
    file **twice**, and a second row kept a stale "STILL LIVE" status after its finding was withdrawn. Both were
@@ -163,20 +163,20 @@ counts separately and let him compare what he cares about.
    that creates the path.
 3. **Quote the thing, do not paraphrase it.** S-F28 was a citation until I extracted the verbatim text with its
    commit, blob and sha256.
-3. **State build + settings in every line.** Base `6b98f217` vs PC r15; `none` / `S14` / `PC20`; Threads 1 unless the
+4. **State build + settings in every line.** Base `6b98f217` vs PC r15; `none` / `S14` / `PC20`; Threads 1 unless the
    job is about threading.
-4. **A zero needs a planted one** (FABLE file 2, rule 1). Every "0 findings" of mine has a planted control through the
+5. **A zero needs a planted one** (FABLE file 2, rule 1). Every "0 findings" of mine has a planted control through the
    same harness, or it is labelled "not shown".
-5. **Pre-state the rule before measuring.** The worse-than-noise-band rule for the MultiPV class test, and the
+6. **Pre-state the rule before measuring.** The worse-than-noise-band rule for the MultiPV class test, and the
    "UNSAFE if median depth < half healthy" rule for the Hash boundary, were both written before the numbers.
 
-## Measuring
-6. **Cold or warm — always say which.** A fresh process per search and one long-lived process differ by ~2 plies at a
+## MEASURING
+7. **Cold or warm — always say which.** A fresh process per search and one long-lived process differ by ~2 plies at a
    fixed clock (S-F51). Any clock table without that word is not a number.
-7. **Check the machine before and after a timing or depth run**: `machine_clean.sh` (exit 0 = fit to measure). A leaked
+8. **Check the machine before and after a timing or depth run**: `machine_clean.sh` (exit 0 = fit to measure). A leaked
    engine process of mine held a core for 3,400 s and produced one bogus probe, which I withdrew.
-8. **Both clocks in every `go` line.** A one-sided clock hangs when the OMITTED clock is the side to move's (S-C39).
-9. **Never add a timing number I measured badly.** I declined to re-quote seat 30's speed table because this shared-but-
+9. **Both clocks in every `go` line.** A one-sided clock hangs when the OMITTED clock is the side to move's (S-C39).
+10. **Never add a timing number I measured badly.** I declined to re-quote seat 30's speed table because this shared-but-
    single-tenant box needs their interleaved method; a weak number in an owner-facing page is worse than none.
 
 ## Correcting myself
