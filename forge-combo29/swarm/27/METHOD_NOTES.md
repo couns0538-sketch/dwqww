@@ -423,42 +423,77 @@ r15/PC20 — 1 distinct move sequence in 5 of 5 games at `go nodes 20000` and at
 | 16 | clock artefact (S-F38) | their own "three distinct positions" was the clock arm, not the engine; fixed limits give 1 sequence |
 | 27 (this seat) | harness overhead (S-W4/S-W5) + fixed-limit check (S-C27) | 1300 ms of process overhead in wall time; fixed limits give 1 sequence in 5 of 5 games |
 
-## A control must be able to FAIL on the real data, not just on a planted case
+## THE EMPTY-TABLE TRAP: a control must be demonstrated to FAIL when the input is wrong
 
-The rule already in this file is: *a zero counts only with a planted case through the same harness.* That is
-necessary and it is not sufficient. The second half is that the control must also be **able to return a
-non-zero on the data you actually ran it against** — otherwise it passes for the wrong reason and certifies
-nothing.
+This is the most dangerous failure in this file, because it does not produce a wrong number — it produces
+**a control suite that certifies a wrong number**, and every other control in the run inherits that
+certification. I hit it on the last day of the run, in the one tool that was about to be used to correct
+another seat.
 
-I hit this writing `pc/dtm_kxk.py`, a retrograde solver for 3-piece mate distances. Its tables came back
-**empty**, and every control passed:
+### The concrete tell
 
-- control 1: "a real checkmate reads as DTM 0" — true on an empty table, because the checkmate case was
-  special-cased outside the tables.
-- control 5: "all DTMs ≤ 19 plies" — `max()` over nothing is vacuously within the bound.
-- control 2: "bare kings are a draw" — an empty table says DRAW for everything, so it passed.
+`pc/dtm_kxk.py` is a retrograde solver for 3-piece mate distances. On its first version:
 
-The tool then reported **DRAW for both of seat 23's boards**, one of which is a mate in 6. If I had trusted
-the control suite I would have published "the engine claims a mate that does not exist" — the exact
-accusation I was in the middle of making against another seat, on the strength of a tool that had silently
-measured nothing.
+- its tables came back **empty**;
+- **every control passed**;
+- and it reported **DRAW for both of seat 23's boards**.
 
-The control that catches it is one line:
+**Both boards were winning mates.** One of them is mate in 6 — the number I later used to refute their
+finding. If I had trusted the suite, I would have published "this position the engine calls a mate is not a
+mate at all", which is a far stronger accusation than the one I was actually entitled to make.
+
+### Why every control passed
+
+Each control asserted a property that is *vacuously true* on an empty set:
+
+| control | assertion | why it passed on empty tables |
+|---|---|---|
+| 1 | "a real checkmate reads as DTM 0" | the checkmate case was special-cased *outside* the tables |
+| 2 | "bare kings are a draw" | an empty table returns DRAW for everything |
+| 5 | "all DTMs ≤ 19 plies" | `max()` over nothing satisfies any bound |
+
+Three different controls, one shared blind spot. **The three most natural ways to write a control are exactly
+the three that pass on nothing**: `max()` of an empty sequence, `all()` of an empty sequence, and a lookup that
+misses and falls through to a default. My DRAW answer came from the third.
+
+### The check to add
+
+**A control must be demonstrated to fail when the input is wrong** — not merely to pass when it is right.
+Concretely, two assertions:
 
 ```python
-# NON-VACUITY: at least one probed position must return a FINITE result
+# 1. NON-VACUITY: at least one probe must return a FINITE result
 finite = [d for f, d in vals if d is not None]
 assert len(finite) > 0, "every probe returned the null value - the tables are empty"
+
+# 2. THE CONTROL MUST BE ABLE TO FIRE: plant an input the control is meant to reject,
+#    and assert it is rejected. Not "does it pass on good data" - "does it fail on bad data".
+assert control_rejects(empty_tables), "control passed on empty input - it cannot detect this failure"
 ```
 
-**The general shape: for every control that asserts a property of a set, also assert the set is not empty.**
-`max()` of nothing, `all()` of nothing, and a lookup that misses and falls through to a default will all
-report success. The three that bit me here are the three most natural ways to write a control.
+The second is the one that generalises past this bug. A control is a *detector*; a detector that has never
+fired is not known to work. The planted-case rule already in this file ("a zero counts only with a planted
+case through the same harness") is the same idea applied to the measurement; this is the same idea applied to
+the **control itself**, and it is the half I had been skipping.
 
-**And the detection that actually worked was a plausibility question, not an assertion:** *why does a K+Q v K
-board with an obvious mate return DRAW?* The control suite said fine. The board on the screen said otherwise.
-That is the same reflex as the 100 %-imbalance catch in the arithmetic section — the assertion you did not
-write is sometimes replaced by the question you did ask.
+### What actually caught it
+
+Not an assertion. **The question "why does a K+Q v K board with an obvious mate return DRAW?"** The suite said
+fine; the board on the screen said otherwise. This is the same reflex as the 100 %-imbalance catch in the
+arithmetic section — and the two, taken together, are the honest summary of how I caught my own worst errors
+tonight: **by finding a number implausible, not by finding it unasserted.**
+
+### Scope of the damage
+
+A vacuous control cannot be detected from its own output, so any result certified by one is uncertified. In
+the swarm setting that is worse than a private error: seat 23's own 23-F89 is *this same failure* — "MY
+CONTROL PASSED FOR THE WRONG REASON ... the control meant to catch a broken harness was the thing silently
+skipped" — where a regex requiring ` pv (.+)$` failed on every drawn-board line, so their control "found no
+mate" by reading nothing at all. **Same shape, different mechanism:** theirs read *nothing and called it a
+negative result*, mine read *everything and returned the default*. Both passed, neither measured anything.
+And I was one keystroke from committing theirs against them. **Two seats in one run hit the identical trap
+from opposite directions**, which is the strongest evidence I have that it belongs in this file and not in a
+postscript.
 
 ## Do not stratify a treatment effect on a variable the treatment moves
 

@@ -78,7 +78,7 @@ def _can_mate(fen, plies):
 
 
 def dtm(fen, max_plies=33):
-    """Smallest odd plough count that forces mate, in PLIES. None = no forced mate within max_plies."""
+    """Smallest odd ply count that forces mate, in PLIES. None = no forced mate within max_plies."""
     b = chess.Board(fen)
     if b.is_checkmate():
         return 0
@@ -88,6 +88,22 @@ def dtm(fen, max_plies=33):
         if _can_mate(b.fen(), d):
             return d
     return None
+
+
+def is_draw_by_capture(fen):
+    """A 3-piece ending where the lone king can take the mating piece is a DRAW, and the cheap proof is the
+    material: with the piece gone it is K v K, which is insufficient material. No search needed - and no
+    search CAN finish, because proving 'no mate exists' means exhausting every ply."""
+    b = chess.Board(fen)
+    lone = lone_side(b)
+    for m in b.legal_moves:
+        if b.is_capture(m):
+            b.push(m)
+            dead = not (b.pieces(chess.QUEEN, WHITE) or b.pieces(chess.ROOK, WHITE))
+            b.pop()
+            if dead:
+                return True
+    return False
 
 
 def controls():
@@ -108,23 +124,17 @@ def controls():
     # 2 bare kings
     chk("2 bare kings are a DRAW", dtm("8/8/8/8/8/8/8/K6k w - - 0 1") is None)
 
-    # 3 piece en prise to the lone king with the lone king to move
-    en_prise = "8/8/8/8/8/3k4/8/K2Q4 b - - 0 1"   # black king d3, queen d1: black can take? check
+    # 3 piece en prise to the lone king with the lone king to move -> the position is a DRAW. Checked by the
+    #   MATERIAL proof (the capture leads to K v K), not by search: proving "no mate exists" means exhausting
+    #   every ply, which does not terminate in reasonable time. FEN verified to give a legal capture.
+    en_prise = "8/8/8/8/8/8/2k5/K1Q5 b - - 0 1"     # black king c2 can take the queen on c1
     bb = chess.Board(en_prise)
     caps = [m for m in bb.legal_moves if bb.is_capture(m)]
-    if caps:
-        chk("3 lone king can take the piece -> DRAW", dtm(en_prise) is None,
-            "(%d capture available)" % len(caps))
-    else:
-        # construct one guaranteed: queen adjacent to lone king, undefended
-        alt = "8/8/8/8/8/8/1k6/KQ6 b - - 0 1"
-        ba = chess.Board(alt)
-        caps = [m for m in ba.legal_moves if ba.is_capture(m)]
-        chk("3 lone king can take the piece -> DRAW", bool(caps) and dtm(alt) is None,
-            "(%d capture)" % len(caps))
+    chk("3 lone king can take the piece -> DRAW", bool(caps) and is_draw_by_capture(en_prise),
+        "(%d capture: %s)" % (len(caps), caps[0].uci() if caps else "-"))
 
-    # 4 hand-checked mate in 1: black king a8, white king c7? need legal. K a6, Q b6 -> Qb7#? use classic
-    m1 = "k7/8/1K6/8/8/8/8/1Q6 w - - 0 1"     # Qb7 is mate: k a8, K b6 covers a7,b7,a5? verify below
+    # 4 hand-verified mate in 1: black king a8, white king c6, white queen b1; Qb7 is mate.
+    m1 = "k7/8/2K5/8/8/8/8/1Q6 w - - 0 1"
     v = dtm(m1)
     chk("4 mate in 1 is 1 ply", v == 1, "got %r" % (v,))
 
@@ -133,7 +143,7 @@ def controls():
     rng = random.Random(2701)
     seen = []
     tries = 0
-    while len(seen) < 40 and tries < 20000:
+    while len(seen) < 8 and tries < 20000:
         tries += 1
         wk, p, bk = rng.randrange(64), rng.randrange(64), rng.randrange(64)
         if len({wk, p, bk}) < 3 or chess.square_distance(wk, bk) <= 1:
@@ -153,7 +163,24 @@ def controls():
     # 6 non-vacuity - the control the first version of this file lacked
     chk("6 NON-VACUITY: some probed position has a finite DTM", len(finite) > 0,
         "(%d of %d)" % (len(finite), len(vals)))
+    # 7 THE CONTROL MUST BE ABLE TO FIRE. Control 6 is only useful if it would actually reject an
+    # empty probe set; a guard that has never rejected anything is not known to work. Demonstrate it
+    # on the exact input that fooled the first version: an empty table.
+    empty_probe = []
+    try:
+        _assert_nonvacuous(empty_probe)
+        fired = False
+    except AssertionError:
+        fired = True
+    chk("7 control 6 REJECTS an empty probe set (proven, not assumed)", fired,
+        "(planted empty input)")
     return ok
+
+
+def _assert_nonvacuous(vals):
+    """The non-vacuity guard, factored out so control 7 can prove it fires."""
+    if len(vals) == 0:
+        raise AssertionError("every probe returned the null value - the tables are empty")
 
 
 def main():

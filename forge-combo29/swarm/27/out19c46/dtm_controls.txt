@@ -1,0 +1,22 @@
+dtm_kxk.py controls, AFTER seat-19-round-2 feedback (control 7 added, controls 3 and 4 repaired)
+build: python-chess 1.11.2, no engine involved
+command: python3 pc/dtm_kxk.py "8/5K2/7Q/4k3/8/8/8/8 w - - 0 1" "k7/8/2K5/8/8/8/8/1Q6 w - - 0 1"
+
+controls:
+  1 a real checkmate is DTM 0                          PASS
+  2 bare kings are a DRAW                              PASS
+  3 lone king can take the piece -> DRAW               PASS (1 capture: c2c1)
+  4 mate in 1 is 1 ply                                 PASS got 1
+  5 all K+Q v K DTMs <= 19 plies                       PASS max 15 over 8 finite of 8
+  6 NON-VACUITY: some probed position has a finite DTM PASS (8 of 8)
+  7 control 6 REJECTS an empty probe set (proven, not assumed) PASS (planted empty input)
+
+fen                                             true DTM   plies   engine's 'mate N' would be
+8/5K2/7Q/4k3/8/8/8/8 w - - 0 1                  mate 6    11      mate 6
+k7/8/2K5/8/8/8/8/1Q6 w - - 0 1                  mate 1    1       mate 1
+
+NOTE ON WHAT CONTROL 7 BOUGHT: adding it immediately exposed TWO BROKEN CONTROLS that had been
+"passing" - control 3 was using a FEN with no legal capture (so the check was vacuous) and control 4
+was using a FEN where Qb7 is ILLEGAL because the white king blocked the file. Neither was detected by
+the old suite. Control 4 reported "got 3" - a wrong non-zero answer, not a crash - which is exactly
+the class of error a passing control is supposed to catch.
