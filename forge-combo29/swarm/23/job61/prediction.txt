@@ -1,0 +1,38 @@
+PREDICTION — SW-23 job 61 (is the PC's drawn-root "repair" actually CORRECT, judged against ground truth?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+Every PC-vs-base comparison in this seat has been about BEHAVIOUR (nodes, score, move). None asked whether the PC's
+answer on a drawn root is RIGHT. Now that 23-F121 gives me a working DTM oracle, that question is answerable, and it is
+the one a user cares about.
+
+FIXTURES — drawn roots where the truth is known independently:
+  R1 50-move root, won for the mover:  `1K6/8/8/3R4/8/8/8/k7 w - - 100 60`   (drawn by halfmove 100)
+  R2 same board, counter 0 (not drawn): `1K6/8/8/3R4/8/8/8/k7 w - - 0 1`      (control)
+  R3 threefold root (castling-neutral, so a genuine threefold per 23-F124): `1K6/8/8/3R4/8/8/8/k7 w` with
+     `b8c8 a1b2 c8b8 b2a1` twice
+  R4 bare kings (insufficient material): `8/8/8/8/8/8/8/K6k w`
+For each: base and PC, `go depth 12`, record score, nodes and move. Then score the RESULTING position with the DTM
+prover, and check the move against python-chess legality.
+
+Prediction (each with the range that kills it):
+  P1  ON EVERY DRAWN ROOT (R1, R3, R4) THE CORRECT SCORE IS cp 0 — that is ground truth from the rules, not from either
+      build. KILLED as a claim about the ENGINE if either build reports a nonzero score on R1/R3/R4 and its move, when
+      scored by the prover, shows the position is still won — which would mean the build correctly ignored a draw that
+      had not yet been claimed... for R4 (insufficient material) there is nothing to claim, so a nonzero score there is
+      simply WRONG.
+  P2  **R4 IS THE SHARP CASE: insufficient material is an AUTOMATIC draw with no claim available, so a build reporting
+      anything other than cp 0 on it is incorrect.** Base is expected cp 0 by 23-F97's bare-king measurement. PC's
+      behaviour on R4 is the open question — 23-F93 noted the PC searches briefly on drawn roots, but nobody has checked
+      what it SCORES on bare kings.
+                                                                              KILLED if PC reports != cp 0 on R4 —
+                                                                              which would be a correctness defect in the
+                                                                              repair, and a serious one.
+  P3  ON R1 AND R3 BOTH BUILDS REPORT cp 0 OR A WINNING SCORE, and if a build reports a winning score I will say
+      whether that is defensible (a drawn root is a CLAIM; an engine may play on) rather than calling it wrong. KILLED
+      only if a build's MOVE loses the win in a way the prover can show — i.e. the score and the move disagree.
+  P4  THE CONTROL R2 IS NOT DRAWN and both builds should score it as a win. KILLED if either reports cp 0 — that would
+      mean the fifty-move bail leaks into a non-drawn position.
+
+The distinction I am testing is between three different failures that have been conflated in this seat: reporting a draw
+where the game is drawn and claimable (defensible), reporting a draw where it is NOT drawn (a real defect), and playing
+a losing move while reporting a draw (what 23-F60 found). The prover separates them.
