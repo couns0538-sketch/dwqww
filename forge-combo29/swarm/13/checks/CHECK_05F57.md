@@ -56,11 +56,21 @@ the PV is cut short before it can demonstrate that distance. The practical rule 
 scores at a node budget: **check the PV length against 2|M| (or 2M-1), not just that a mate score appeared.**
 A harness that counts `score mate` lines alone would report these as fine.
 
-## A first attempt that measured nothing, recorded
-My initial run used 28 ordinary G positions and produced **0 mate claims at all three budgets** — there was
-nothing to truncate, so the test was vacuous. I rebuilt the set to be mate-rich and re-ran. This is the case-4
-failure mode from my traps note (a test that could not have failed), caught because I looked at the claim
-counts rather than only the truncation counts.
+## A first attempt that measured nothing, recorded — and the population rule it teaches
+My initial run used 28 ordinary G positions and produced **0 mate claims at all three budgets**. The
+truncation count was therefore 0 — which reads like a clean pass and is the same number a genuinely
+non-truncating engine would produce. **There was nothing to truncate, so the test was vacuous.**
+
+I caught it only because I looked at the **claim counts** rather than just the truncation counts: a truncation
+rate needs a population of truncatable events, and mine was empty.
+
+This is the **population rule**, stated for reuse:
+> **Before reporting a rate, assert the denominator is non-zero.** "0 truncated" is meaningful only beside
+> "N mate claims"; without N it is indistinguishable from "the feature never fired".
+
+It is also traps-note case 4 (a test that could not have failed) in a new shape: here the *check* was fine and
+the *population* was empty. The guard that catches it costs one line — print and assert the denominator — and
+`check_05f57.py` now reports `mate_claims` beside `truncated` at every budget for exactly this reason.
 
 ## Reproduce
 ```

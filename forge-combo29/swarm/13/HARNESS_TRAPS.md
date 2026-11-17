@@ -1,6 +1,6 @@
 # Harness traps: absence of output is not absence of function
 
-Five cases, three instrument lessons, one shared tell. Full note (with the cross-reference to the stale-shard fault) lives in the
+Five cases, four instrument lessons, one shared tell. Full note (with the cross-reference to the stale-shard fault) lives in the
 project store at `internal/absence-of-output-traps.md`; this file is the pointer so a reader here finds it.
 
 | # | command | looks like | actually is |
@@ -57,3 +57,8 @@ printed value `perft 1 = 17` was correct but the hand-typed annotation beside it
 wrong and the label right, so you read the label and miss the number. Here a plausible annotation lends a
 trustworthy figure an authority the annotation never earned. Either compute the expected value or keep it
 out of the output line; never hand-type an expectation next to a measurement.
+
+**D. A rate needs a non-zero denominator.** My first truncation check used 28 ordinary positions that produced
+zero mate claims at every budget, so "0 truncated" was the same number a clean engine gives — the test could
+not fail. Rebuilt mate-rich, it gave 20 claims with 1 truncated. Print the denominator beside every rate:
+"0 truncated" means nothing without "N mate claims" next to it.

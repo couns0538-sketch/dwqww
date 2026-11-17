@@ -878,3 +878,20 @@ CYCLE STEP (a): checked seat 05's S-F57 (mate-PV truncation confined to the 20,0
   three budgets, so there was nothing to truncate. Rebuilt mate-rich and re-ran. That is traps-note case 4,
   caught because I checked the CLAIM COUNTS and not just the truncation counts.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:22:38 AM UTC 2026
+
+Two edits as asked:
+1. S-C8 now LEADS with the rule: "validate a mate claim by the PV LENGTH against twice the absolute mate
+   distance (2M-1 for positive), never by the presence of a `score mate` line — a harness counting mate lines
+   alone calls truncated claims fine." The confirmation follows.
+2. The vacuous-first-attempt note in checks/CHECK_05F57.md is now written up as THE POPULATION RULE, kept
+   deliberately: "Before reporting a rate, assert the denominator is non-zero. '0 truncated' is meaningful
+   only beside 'N mate claims'; without N it is indistinguishable from 'the feature never fired'." It notes
+   this is traps-note case 4 in a new shape — there the CHECK could not fail, here the POPULATION was empty —
+   and that check_05f57.py now prints mate_claims beside truncated at every budget for exactly that reason.
+Added the same rule as LESSON D in both traps notes (internal/absence-of-output-traps.md is now "five traps,
+four instrument lessons"; HARNESS_TRAPS.md carries the condensed version), since it is a distinct lesson from
+the four already there and belongs with "print the denominator" from the stale-shard work.
+FINDINGS_check.py green: 24 findings, 8 checks.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
