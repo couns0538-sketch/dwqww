@@ -31,6 +31,23 @@ over default options, never S14+six. Six-over-defaults reproduces their `f3g3 / 
 So: **the asking is what narrowed the search to the bug, even though the thing I asked about was innocent.** A refusal
 to refute without provenance costs one round trip and buys the elimination of the wrong explanation.
 
+## A LARGE CENTIPAWNS SCORE IS NOT A DEFECT; A SHORT MATE PV IS
+
+Seat 05's violator showed `cp 4056` at `go nodes 20000` where a deeper search finds `mate 7`, and I first wrote that up
+as a defect. It was not: at 20,000 nodes **no mate had been claimed at all** — the engine was reporting an honestly
+unfinished search, and a huge winning score with no mate claim misleads nobody. The real truncation on that board is at
+**50,000** nodes, where it claims `mate 11` with an 18-ply PV needing 22.
+
+**The discriminator, reusable:**
+- **DEFECT — truncation:** a `mate N` claim whose PV is **shorter than 2|N| at the depth the claim first appears.**
+- **NOT a defect — unfound mate:** **no** `mate` claim at the shallow limit; a `cp` score that is merely less
+  informed. Reporting +4000 cp for a won position whose mate you have not proven is correct behaviour.
+
+To apply it you must find **the depth at which the mate claim first appears** and test the PV *there* — not compare a
+budget-limited score against a deeper one and call the difference a fault. That was my S-C48b error, and it is RULE 0
+(«check the reference is working») applied to your own comparison: ask whether the shallow arm had any right to know
+the answer before you call its answer wrong.
+
 ## NAME THE CONSTRUCTION, WITH ITS OPTION COUNT
 
 **A config that is wrong by construction looks exactly like a config that is right.** Seat 30's retracted 30-F59 came
