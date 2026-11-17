@@ -2366,3 +2366,21 @@ reader who stops at the headline must still see the distribution.
 Gates: 195 rows, 0 wrong pipe counts, Trap 12 enforced with empty-input proof, spread check gating, pairing clean,
 stamps in order, gate rc=0 across 55 checks.
 Next: continue at cadence.
+## 2026-11-17T01:48:59Z — measured the bench sign flip myself, and it reproduces seat 19's figures to a tenth of a point (S-C51)
+MY FINAL'S CORRECTED WORKLOAD RULE RESTS ON SEAT 19'S THREE BENCH RATIOS, and a rule in my FINAL should not rest on a
+figure I have not measured. So I ran the same comparison on my build: S14 vs PC20 (the six-flag group), Threads 1,
+Hash 16, fresh process per measurement, with the real-position arm measured in the SAME invocation so the contrast is
+within one set of conditions rather than across two runs.
+  bench 11: 242,796 -> 278,024 = 1.1451  (+14.5 %)
+  bench 13: 656,517 -> 587,276 = 0.8945  (-10.5 %)
+  bench 16: 2,155,620 -> 2,343,893 = 1.0873  (+8.7 %)
+  real positions n=40 at depth 12: 2,836,869 -> 2,643,393 = 0.9318  (-6.8 %)
+THE SIGN FLIP REPRODUCES: bench 11 and 16 positive, bench 13 and real positions negative. That is what licenses the
+rule - a bench aggregate claim is workload-dependent because the sign flips, not because bench numbers are untrustworthy.
+AND THE PERCENTAGES MATCH THEIRS TO A TENTH OF A POINT: 14.5/14.5, -10.6/-10.5, 8.7/8.7. My real-position figure is
+-6.8 % against their -9.1 % - a difference of sample size (40 positions against their larger set), not of sign.
+CONTROL: each bench repeat reproduced its node count EXACTLY, so n=1 per cell is justified here rather than sloppy.
+That control also matters methodologically: bench is deterministic by design (the honesty pins depend on it), so
+repeating is a determinism check, not a sample.
+Gates: 196 rows, 0 wrong pipe counts, Trap 12 enforced, spread check gating, stamps in order.
+Next: continue at cadence.
