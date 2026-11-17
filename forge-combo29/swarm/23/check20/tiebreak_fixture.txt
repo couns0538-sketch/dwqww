@@ -1,0 +1,16 @@
+FIXTURE AUDIT of my own tie-break test (job 28's lesson applied to 23-C17)
+=========================================================================
+23-F67 taught that a fixture is part of the control: if the correct and the broken behaviour produce the SAME
+observable output, the fixture cannot distinguish and the result is worthless.
+
+Applying that to my tie-break check (23-C17, the 3-vs-5 legal-move pair):
+- The claim was "bestmove != first legal move, and the two widths behave alike".
+- Could a BROKEN engine produce the same output? Yes trivially: any engine returning SOME legal move that is not
+  python-chess's first would match. So the test as written CANNOT distinguish "the engine has its own ordering" from
+  "the engine returns an arbitrary legal move".
+- What it DOES establish, and all I claimed: bestmove is not the first move in python-chess's order, on both widths,
+  deterministically. That is a statement about the PROTOCOL's limits, not about the engine's internal order.
+
+So the result stands as I worded it, and the limit I wrote there ("python-chess's order is a reference, not the
+engine's order") is the same point made independently. Recording it here so the fixture question is answered
+explicitly rather than left implicit.
