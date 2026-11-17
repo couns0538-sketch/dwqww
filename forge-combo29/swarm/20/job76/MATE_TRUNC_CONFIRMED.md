@@ -93,3 +93,29 @@ nodes the engine had not yet found the mate, and reporting a large centipawn sco
 This is RULE 0 again — *check the reference is working* — applied to my own comparison: I compared a budget-limited
 search against a deeper one and called the difference a defect before checking whether the shallow arm had any right to
 know the answer.
+
+## Verifying that the S-F19 board's case IS a truncation (not the violator's unfound-mate pattern)
+
+After correcting my own violator row, the same doubt applies to the case I kept — so I tested it the same way. The
+discriminator: **at the depth where the mate claim FIRST appears, is the PV long enough for the claim?**
+
+| limit | score | depth | nodes | PV plies | plies the claim needs |
+|---|---|---|---|---|---|
+| `go depth 6` | cp −2513 | 6 | 1,029 | 7 | — |
+| **`go depth 8`** | **mate −7** | **8** | **18,729** | **10** | **14** |
+| `go nodes 12000` | cp −2588 | 7 | 2,557 | 10 | — |
+| `go nodes 15000` | cp −2588 | 7 | 2,557 | 10 | — |
+| **`go nodes 18729`** | **mate −7** | **8** | 18,729 | **10** | **14** |
+| `go nodes 20000` | mate −7 | 8 | 18,729 | 10 | 14 |
+
+**At the very first depth where the mate is claimed (depth 8, 18,729 nodes) the PV is 10 plies and the claim needs
+14.** So this is a genuine **truncation at first discovery** — the engine reports `mate −7` the moment it finds a mate,
+with a PV four plies short. That is a different thing from the violator, where the shallow search made **no mate claim
+at all**.
+
+**The discriminator, stated so it can be reused:**
+- **Truncation:** a `mate N` claim whose PV is shorter than 2|N| at the depth the claim first appears.
+- **Unfound mate:** no `mate` claim at the shallow limit — a `cp` score that is simply less informed. **Not a defect.**
+
+Both boards are now classified correctly, and the one that survives ("twice as far at a match budget") passes the
+stricter test.
