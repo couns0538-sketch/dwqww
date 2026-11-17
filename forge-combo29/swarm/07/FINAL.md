@@ -78,17 +78,28 @@ false).
 
 ---
 
-## The three things I would put in front of the owner
+## The four things I would put in front of the owner
 
 1. **07-F1 is the only engine defect I found that survives on the PC build**, it is confirmed by another
    seat, and it has a ready patch that changes no node count on any published bench (07-C23, 07-C24).
    Recommendation: ship the "honest `0000`" form; if a playable move is wanted instead, that is a
-   separate decision that must print that the restriction was ignored.
+   separate decision that must print that the restriction was ignored. **Note added later (07-C54,
+   07-C55): it is not a `searchmoves` defect at all** — every path that reports without searching emits
+   a fabricated `score cp 0 nodes 0` line per depth. The shared-path patch
+   (`job55/shared_report_oneline.patch.txt`) fixes all six paths with one edit, all eight pins unchanged,
+   and **supersedes my own narrower `job2`/`job29` patches.**
 2. **`TtPruneV2` carries 85 % of PC20's node effect** on 200 positions (07-C32), while `CorrHistV2`
    costs 2.7 %. Whether that saving is strength is a games question I did not measure.
 3. **`FORGE_FIX_ROOT_DRAWN` buys one game-losing outcome in twenty** on the fifty-move sample
    (07-F4/07-C38/07-C39, settled at depth 30) — narrower than two of my earlier figures, and it is the
    number I stand behind.
+4. **DO NOT PLAY A ZERO-INCREMENT TIME CONTROL.** The clock floor that protects the engine is
+   `MoveOverhead + increment · 100/TmHardPercent` = `10 + increment · 5/3` ms (28-S-F44, reproduced
+   exactly in 07-C57). At the owner's `6 s + 0.06` that is **111 ms**, and I verified the engine's real
+   spend falls *inside* the 60 ms increment once the clock drains, so it is safe. **But at `winc 0` the
+   formula gives a floor of about 10 ms, i.e. `Move Overhead` alone — there is no margin and nothing
+   protects the engine from flagging.** Every clock control I ran with an increment had zero overruns
+   (07-C7); that safety comes *from* the increment, not from the clock path.
 
 ## Audit method: how to check a seat's scope without raising a phantom alarm
 
