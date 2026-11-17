@@ -1,0 +1,69 @@
+LOSING MATES: THE CONVENTION IS 2N PLIES FOR A LOSS AGAINST 2N-1 FOR A WIN — and my prediction was wrong about it
+=====================================================================================================================
+Job 43 asked whether the short-PV / wrong-distance hazard of 23-F88/F90 also applies to `mate -N`. It does not apply
+in the same way, and the reason is the sign convention, which I got WRONG in the prediction — this job's most useful
+output is the convention, stated correctly, plus my own error recorded.
+
+THE FIXTURES, verified with python-chess alone and no engine (see `fixture_check.out`, written before any measurement)
+-----------------------------------------------------------------------------------------------------------------------
+My first fixture pair (`1K6/8/8/3R4/8/8/8/k7 b`, `8/5K2/7Q/4k3/8/8/8/8 b`) produced **no negative mate score at any
+depth 8-16 on either build** — P1 killed on both. That is a fixture failure, not an engine finding: K+R/K+Q mates from
+those starts are 15-19 plies away, beyond the horizon. Correct response: positions where the loss is forced in TWO
+plies and provable without search.
+
+  L1 `7k/8/6K1/8/8/8/8/7Q b` — black has exactly ONE legal move (h8g8), after which white mates in one (h1a8).
+  L2 `k7/8/1K6/8/8/8/8/7Q b` — black has exactly ONE legal move (a8b8), after which white mates in one (h1h8 or h1b7).
+
+MEASUREMENTS (both builds, Threads 1, Hash 16, OwnBook false, no PC20 switches, PV replayed in python-chess)
+------------------------------------------------------------------------------------------------------------
+| board | depth (4,6,8,10,12) | score | pv plies | 2N (N=1) | replay |
+|---|---|---|---|---|---|
+| L1 back-rank | every depth | **mate -1** | 2 | 2 | **MATE** |
+| L2 corner | every depth | **mate -1** | 2 | 2 | **MATE** |
+
+Identical on base and PC r15, identical at every depth from 4 to 12 — ten cells per build, no variation at all.
+P1 HELD (both builds report a negative mate from depth 4, well inside the 6-depth kill threshold).
+P3 HELD (the PV replays to real checkmate in every cell — the losing-mate PV does end in mate, unlike the first-depth
+cells on won boards).
+P4 HELD (the distance never moves: nothing to discover, the position is decided).
+**P2 KILLED — by an arithmetic error of MINE, and the correction is the finding.**
+
+THE CONVENTION, WHICH MY PREDICTION HAD BACKWARDS
+--------------------------------------------------
+I predicted `mate -2`, reasoning "the engine counts the mater's moves, so a mate 2 plies from now is 2". That is
+self-contradictory arithmetic: if N counts the MATER's moves, then a mate delivered by the mater's FIRST move is N=1,
+however many plies of the loser's moves precede it. Measured, on both builds and both fixtures: **`mate -1` with a
+2-ply PV**, which is exactly consistent with the same rule that governs wins:
+
+  **`mate N > 0`: the side to move needs N of ITS OWN moves to mate → a complete line is 2N-1 plies.**
+  **`mate -N < 0`: the OPPONENT needs N of ITS moves to mate the side to move → a complete line is 2N plies.**
+
+Both reduce to "N counts the mating side's moves", so the asymmetry is one ply, not two, and the parity differs: winning
+lines are always odd, losing lines always even. A verifier that uses 2N-1 for a loss is wrong by one ply in the
+direction that accuses a correct engine of a truncated PV — the same false-positive shape 23-F90 warns about, entered
+from the other side. On these fixtures the distinction is sharp: `mate -1` with a 2-ply PV is CORRECT, and my
+prediction would have called it a one-ply shortfall.
+
+WHAT THIS MEANS FOR THE F88/F90 HAZARD, SCOPE STATED
+-----------------------------------------------------
+The won-mate hazard (score wrong about its own distance; PV too short to mate at the first depth) is **not reproduced
+here and cannot be, on these fixtures** — with one legal move there is nothing to truncate, and the distance has no
+room to be revised. So this job does NOT show the hazard is absent for losing mates; it shows the hazard is not
+*necessarily* present, and fixes the arithmetic a checker needs. The honest scope sentence: F88/F90 are statements
+about won mates on boards where the search has a choice; whether a losing mate's distance can be revised the way W2's
+was (mate 13 → mate 10) is **untested**, and my fixtures were deliberately built so that it could not be.
+
+PROCESS, recorded because two of three attempts failed
+------------------------------------------------------
+Three solver attempts: (1) the first asked whether the MATER was mated and returned "no position is ever lost"; its
+control caught it and it was discarded before any fixture was chosen. (2) a corrected exact solver was right on fool's
+mate and pre-mate but its CONTROLS FAILED on two expectations I had written wrong (I expected the pre-fool's-mate
+position to be "mated in 2 plies" when black simply MATES IN 1, and I gave K+R v K a 9-ply limit when it needs 15) —
+the solver was correct and my expectations were not. (3) a 15-ply brute force was too slow to complete inside the
+timeout. Escalating cost, zero fixtures selected, so I dropped the prover and used positions whose forced loss follows
+from one legal move plus a mate-in-one scan. That is the right order: prove the fixture cheaply, never pay for a proof
+of something a one-step check settles.
+
+INSTANCE 17 OF THE FAMILY: a wrong EXPECTATION, not a wrong measurement (the same shape as 23-F40/instance 6). The
+solver was right twice and my control expectations were wrong twice. The lesson is not "test the solver" but "the
+expected value in a control is itself a claim and needs deriving, not recalling".

@@ -1763,3 +1763,24 @@ What I am NOT claiming: mate 10 is not shown to be W2's shortest mate. A prover 
 seat (F49), so I used none. The narrow claim is that mate 13 at depths 14-15 is wrong because mate 10 was found later.
 
 118 findings. PC counter-89 depth 18/20 (job 40) still running in the background; reported when it lands or as not-run.
+## 2026-11-17T01:27:14Z  F91-F92: the mate convention by sign, and a fixture failure that looked like a finding
+2026-11-17T01:27:14Z
+
+F91: losing mates. Two fixtures where the loss is forced in 2 plies and provable WITHOUT search (one legal black move,
+then white mates in one; verified by python-chess alone before any engine ran). Both builds, depths 4-12, ten cells
+each, no variation: "mate -1" with a 2-ply PV that really mates.
+
+My prediction said "mate -2" and was KILLED by my own bad arithmetic. The convention is one ply asymmetric:
+  mate N>0 counts the side-to-move's own mating moves -> complete line 2N-1 plies, always ODD.
+  mate -N  counts the OPPONENT's mating moves        -> complete line 2N plies,   always EVEN.
+A checker using 2N-1 for a loss is wrong by one ply and accuses a correct engine of a truncated PV - the F90 false
+positive entered from the other side. Scope stated: this does NOT show the won-mate hazard is absent for losses; with
+one legal move there is nothing to truncate and no distance to revise.
+
+F92, mine: the FIRST fixture pair (K+R/K+Q, side to move lost) gave no negative mate at any depth 8-16 on either build.
+That reads as an engine weakness and is a horizon fact - those mates are 15-19 plies away. Output kept under the name
+base_result.out/pc_result.out so it cannot be quietly cited as the former. Three solver attempts then failed - the
+first asked whether the MATER was mated, the second was correct but my expected values were wrong twice, the third was
+too slow. Instance 17: the expected value inside a control is itself a claim and must be DERIVED, not recalled.
+
+120 findings, 16 rule instances. Real time 01:31Z.
