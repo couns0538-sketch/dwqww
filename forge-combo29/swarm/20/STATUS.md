@@ -919,3 +919,14 @@ Next: seek independent confirmation of the 18.8/19.8/20.6 % rate; then the openi
 - Also recorded what a patch would have to be (second accumulator at the other flip / batched bucket-constant part),
   with its memory cost, so a later seat does not have to rediscover that it is design work and not a one-liner.
 Next: independent confirmation of the 18.8/19.8/20.6 % (21.45 % openings) rate.
+
+## 2026-11-17T00:48:40Z S-C55: checked area 9's 29-F20 — its number reproduces, its second arm was a phantom, its stated gap now measured
+- 29-F20's 357,740 `evaluate_runtime` calls under bench13/PC20 reproduce EXACTLY (587,276 nodes). Number stands.
+- CORRECTION: their arm "NNUEArch true, no net" is not a distinct config on the build they used — that build has no
+  `-DFORGE_NNUE_V3`, so `NNUEArch` is **"unknown option"** and the setoption was silently ignored. That is WHY both
+  arms gave 357,740. On a v3 build the arm is unmeasurable: fail-loud ERROR, exit 2, zero bench lines.
+- The arm they honestly said they could not test ("the net is not shared") is reachable via file 7's test net:
+  **evaluate_runtime = 0 calls in 3,652,372 nodes** under PC20 + net. Hand-written eval leaves the path entirely.
+- 29-F21 untouched: built-in net is RESIDUAL (adds hce+nnue); file-7 v3 net is STANDALONE (eval_scale 400, and
+  nnue_v3.cpp:395 refuses a residual v3 net). Different nets, not a contradiction.
+- machine_clean caught a 3rd stray engine of mine before this commit. Gate earning its place.
