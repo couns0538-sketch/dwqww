@@ -19,3 +19,16 @@
 
 5 of 12 gained a mate label = 42 %, inside seat 05's reported range (2/5, 4/8, 6/30, 6/30).
 mate 13 = 25 plies, within KRvK's 16-move (31-ply) bound, so that row is not a truncation artefact.
+
+## The mate-13 row verified in full: PV is 25 plies and DOES end in checkmate
+fen 8/8/8/3k4/8/6Q1/8/6K1 w - - 0 1, go depth 20, PC r15/PC20/Threads 1/Hash 16
+
+- score **mate 13**, bestmove **g1f2**
+- PV length **25 plies**, and mate 13 needs 2*13-1 = **25** -> **NOT truncated, fully consistent**
+- replaying all 25 plies with python-chess reaches 8/8/8/kQ6/2K5/8/8/8 b - - 25 13,
+  which is **CHECKMATE: True**, in check: True
+- asking the engine from that end position at depth 18 returns **mate 0** (i.e. the side to move is mated)
+
+So this row is the counter-example to the short-PV pattern: when the PV is long enough, it proves the
+score, and the replay-and-ask test agrees with the length check. Both tests pass here, which is what
+makes the rule safe to state in both directions.
