@@ -568,6 +568,43 @@ found it.
 notice the boundary.** The capped-at-1.0 output looked like a legitimate "no evidence" answer, exactly as a capped
 metric looks like a real one.
 
+### The detection method — the part worth carrying
+> **A test whose failures cluster on ONE SIDE of a threshold is not a test with three bugs. It is a saturated
+> function. And the case that PASSES is the one to interrogate.**
+
+**The evidence that identified this as saturation rather than three slips:** the one correct row (56/120 = 46.7 %)
+was the **only below-half case**. Above half, every row read exactly 1.000 — **the cap**. Three independent wrong
+values that happen to sit on precisely the same number, on precisely one side of 50 %, is a mechanism, not clerical
+error.
+
+**Why the working case is the suspicious one:** a passing case is what makes a broken helper read as validated.
+**The below-half row was the evidence I should have examined** — had I asked "why is *this* one right when the
+others are all 1.000?", the reflection term would have surfaced immediately.
+
+**The general test, in two questions, whenever several results land on the same value:**
+1. **Are the wrong ones the same number, or merely both wrong?** Same number → a boundary, a cap, a floor, a clamp,
+   a silent default.
+2. **Which side of the threshold do they sit on?** If all failures are above (or all below), the function is not
+   computing what you think on that half of its domain **— and the passing case on the other half is what
+   disguised it.**
+
+### The property test that would have caught it before any number was published
+**Stated as a symmetric-in-`k` invariant:** any two-sided test must satisfy `p(k, n) == p(n − k, n)`, because
+"73 of 120 one way" and "47 of 120 the other way" are the same evidence.
+
+**Measured on the buggy function — it fails on EVERY count, including the row that looked correct:**
+
+| k | buggy `p(k)` | buggy `p(n−k)` | symmetric? |
+|---|---|---|---|
+| 73 | 1.0000 | 0.0221 | **no** |
+| 63 | 1.0000 | 0.6483 | **no** |
+| 65 | 1.0000 | 0.4114 | **no** |
+| **56** | **0.5230** | **1.0000** | **no** ← *the "correct" row fails via its mirror 64* |
+
+**So the symmetry self-test catches the bug even where the output happened to be right.** That is the strongest
+form of property test: **it needs no reference values, only the invariant, and it fails on the very case that made
+the function look validated.** Committed in `checks/sign_test.py` as `check_symmetry()`, run on every invocation.
+
 ---
 
 ## The single question that catches all eleven
