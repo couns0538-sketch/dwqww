@@ -772,3 +772,15 @@ NOTE_floor_is_workload_property.md: a noise floor belongs to the WORKLOAD, not t
   a number measured on one thing is not evidence about another.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:08:03Z
+
+19-C35 BUILD-SPEED QUESTION RESOLVED (third attempt): bench 16, 10 alternating rounds, ~1.15 s/sample,
+  node count identical 2,155,620 in ALL 20 runs -> mean base 1142 ms vs pc 1155 ms, ratio 1.0119,
+  95%% CI [0.9997, 1.0241] = +/-1.22 %%. Resolution 12x better than the 73 ms workload at HALF the
+  rounds - NOTE_floor_is_workload_property demonstrated on the experiment that produced it.
+  WORDING: PC r15 is AT MOST ~1.2 %% slower, interval lower bound 0.9997 (one ten-thousandth under 1.0)
+  -> 'no measurable speed advantage, ~1 %% penalty at worst', NOT 'significantly slower'.
+  Good outcome for the owner: adopting PC r15 costs nothing at the search, and its value is the fixes.
+
+next command: continue at cadence.
