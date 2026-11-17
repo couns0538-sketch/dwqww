@@ -1320,3 +1320,11 @@ CHECKED seat 06's S-F39 BY ITS OWN GROUND-TRUTH PLAYOUT — IT CONFIRMS AT ITS S
   THE SCOPE WORD SHOULD NOT BE 'ground truth' BUT 'self-play survival at D', and any claim built on it must state D and show the ordering is stable across a range - which here it is not. That is my own Trap 6 lesson one level up: truth, like safety, is a property of the CONFIGURATION rather than the command.
   I also caught a sign error in my own verdict text before publishing it (my code said 'CONFIRMS the direction' when my numbers showed the opposite) - the third sign-reading slip tonight, so I now print the raw ply counts beside every verdict.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-17T00:37:40Z — 25-minute cadence
+CORRECTION TO MY OWN FINDING, caught and fixed before it stood (S-F99).
+  I misreported my own depth sweep: depth 8 was 26/26 EQUAL, and I first wrote it as '20/26, c6c7 +6 better'. The error came from carrying a figure across from a different row while writing the finding by HAND, not from the measurement - the sweep output was correct, and re-running it reproduced 26/26 exactly.
+  THE CORRECTED PICTURE, and it makes the point better: depth 8 -> 26/26 EQUAL; depth 10 -> 24/40 c6c7 better by 16; depth 12 -> 20/16 c6c7 worse by 4; depth 14 -> 22/32 c6c7 better by 10; node budgets 5k/20k/50k consistently 20/22 c6c7 better. So only the depth-12 setting supports seat 06's claim, one setting is a tie, and three reverse it.
+  THE SCOPE OF THAT CORRECTION: it is exactly why this report's tables are PASTED from committed scripts rather than typed - I typed one figure and got it wrong. This is a fourth species of the same family as the others: the number was measured correctly and TRANSCRIBED wrongly, which no plausibility check catches because a plausible wrong number looks like a right one.
+  Seat 06's claim stands at its own setting (depth 12) and my confirmation of its direction is genuine; what does not hold is the word 'ground truth', which S-F98 scopes to 'self-play survival at D'.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
