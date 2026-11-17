@@ -1,0 +1,17 @@
+A. THE MECHANISM CLAIM (23-F223): recapture balance, base vs repair, on 23-F60's board
+  bail e6e5: White nets +6 (queen 9 - knight 3)                    got=6              want=6          OK
+  bail e6e5: White captures with the KNIGHT a4b6                   got=a4b6           want=a4b6       OK
+  bail e6e5: Black recaptures with a PAWN                          got=1              want=1          OK
+  repair b6b4: White nets 0 (queen 9 - queen 9, a TRADE)           got=0              want=0          OK
+  repair b6b4: Black recaptures with a BISHOP                      got=3              want=3          OK
+
+B. THIS CHECK WOULD FAIL THE WRONG STORY. If the repair 'walked the queen away', it
+   would not be capturable at all. Assert the opposite of my earlier claim:
+  after repair b6b4 the queen IS still capturable (so 'walked away' is FALSE) got=True           want=True       OK
+  ...and it is on b4, still attacked by Qd2                        got=True           want=True       OK
+
+C. KNOWN-ANSWER CONTROL: a board where a queen really IS walked away.
+  control: black queen a8 IS attacked by White before it moves     got=True           want=True       OK
+  control: after Qa8-a1 the queen is NOT capturable (a genuine walk-away) got=False          want=False      OK
+
+VERDICT: PASS

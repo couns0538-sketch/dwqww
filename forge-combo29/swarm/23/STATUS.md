@@ -2,7 +2,7 @@
 
 **Block: cold read of the FINAL's first page, then the fix, then the record. `date -u` at time of writing: 2026-11-17T03:41:47Z.**
 Window closes `2026-11-17T10:18:41Z`; **6h37m remaining**. Area 3, move generation vs python-chess. Seed 2301.
-Tip: `for-fable-and-opus/swarm-23`. **248 rows at 03:42:13Z.**
+Tip: `for-fable-and-opus/swarm-23`. **250 rows at 03:43:06Z.**
 
 ## This block
 
@@ -31,6 +31,18 @@ since they are not two estimates of one number. (2) **"both moves allow the same
 +1/+0, so the repair is *better*. **The row was right and the sentence was unfalsifiable** — a predicate with a free
 variable is not a predicate (23-F222). The FINAL now names the pair and gives both numbers.
 
+**Then my own correction was itself wrong — the third version of the same sentence.** I had said the repair "walks the
+queen away". It does not: after `b6b4` the queen is on b4, **still attacked by Qd2**, White takes it and Black recaptures
+with the **bishop** — a queen *trade*, +0. After `e6e5` White takes with the **knight** and Black recaptures with a
+**pawn** — +6. **So the cost is the recapture balance, not the queen's safety; the queen is capturable after both moves**,
+which I reached for twice because a verb demands a causal story and both stories were plausible (23-F223).
+
+**And the check I wrote for the verb would have blessed that wrong story**, because "attacked at the root" is satisfied
+by both. The mechanism is a different predicate — what the recapture takes back — so `job70/mech_check.py` now asserts the
+recapture balance directly, **10 assertions, exit 0, and verified by planting my own wrong story (it fails, exit 1)**
+(23-F224). The general form, now in the FINAL: **a check written against the sentence you just corrected is satisfied by
+the sentence you correct it to.**
+
 **A bug of mine, caught by my own correction.** My first swing measurement reported +8 against the report's +6, and I
 briefly thought the FINAL carried another error. My script had maximised WHITE's advantage and labelled it BLACK's best
 move — Black's worst. Ordered correctly, Black's recaptures give +6/+6/+8, so **the report's +6 is correct and my
@@ -57,16 +69,18 @@ The boundary in three parts, each with a different answer, now stated in the FIN
 
 ## Numbers
 
-**248 distinct rows at 2026-11-17T03:42:13Z — 220 F (this seat's findings) and 28 C (confirmations of other seats').**
+**250 distinct rows at 2026-11-17T03:43:06Z — 222 F (this seat's findings) and 28 C (confirmations of other seats').**
 
 Stated as the count script printed it, not carried in my head. `sync_counts.py` rewrites the FINAL from `FINDINGS.md`.
 
 ## Checks, all three, this block
 
 - `audit_findings.py` → 0
-- `doc_check.py` → 0 (counts agree 220/28/248; GUI table and rules verbatim; VERDICT: PASS)
+- `doc_check.py` → 0 (counts agree 222/28/250; GUI table and rules verbatim; VERDICT: PASS)
 - `rule_check.py` → 0
-- `job70/verb_check.py` → 0 (new; 13/13; planted fault → 1)
+- `job70/verb_check.py` → 0 (13/13; planted fault → 1)
+- `job70/mech_check.py` → 0 (new; 10/10; planted wrong mechanism → 1)
+- `job70/sign_check.py` → 0 (new; sign convention verified on 3 constructed boards)
 - `job69/frontpage_check.py` → PASS, `job68/final_recheck.py` → 11/11
 
 ## Next
