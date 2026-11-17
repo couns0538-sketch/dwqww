@@ -1,0 +1,14 @@
+# 10-F63 verified: go nodes vs go softnodes disagree on the move at low budgets
+# board 5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1, PC r15 068f0927, PC20 verified 22 options, Threads 1, Hash 16
+# 2026-11-17T01:11:21Z
+
+| command | depth | nodes | engine time | bestmove |
+|---|---|---|---|---|
+| go nodes 500000 | 10 | 353,472 | 88 ms | **d1d7** |
+| go softnodes 20000 | 8 | 13,495 | 5 ms | **d1d8** |
+
+Both moves match seat 10's line exactly (d1d7 and d1d8). The two command families rank the same board
+differently at these budgets, which is what they report - and it is the mechanism, not a curiosity:
+go nodes truncates the iteration it is in (10 levels here, 353,472 < 500,000), while go softnodes
+completes the iteration that crosses its budget (depth 8, 13,495 nodes for a 20,000 budget).
+Different trees searched, different moves.
