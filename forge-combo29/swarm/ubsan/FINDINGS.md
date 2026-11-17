@@ -41,13 +41,14 @@ that its code actually executed, so the zero is not a corpus that could not reac
 
 The caveats that belong beside it, and that are worth more than the headline:
 
-- coverage is **not** the whole engine — `bench` reaches 63.0% of lines, and the paths this sweep
-  does not reach are named in "What this does not cover" below;
+- coverage is **not** the whole engine — the audit's own figure is that `bench` reaches 63.0% of
+  lines (measured by another seat, not by me; I did not run a line-coverage build), and the paths
+  this sweep does not reach are named in "What this does not cover" below;
 - the *default* `-fsanitize=undefined` group in GCC 13 **silently omits the two float checks that
-  matter most for an NNUE output** (§2), and `-fsanitize=integer` **does not exist in GCC at all**
-  (§3);
-- three of my first twelve planted faults were bad plants, not sanitizer gaps (§1). Diagnosing them
-  was the most useful hour of this seat.
+  matter most for an NNUE output** (§2), and `-fsanitize=integer` **is rejected by GCC 13.3, the
+  only GCC on this image** (§3);
+- three of my first twelve planted faults were bad plants, not sanitizer gaps (§1). Diagnosing them,
+  rather than reporting them as sanitizer limits, was the most load-bearing part of this seat.
 
 ## Four pins on the sanitizer build
 
@@ -294,7 +295,8 @@ Stated because a clean sweep implies more than it should if these are left impli
 - **Data races and threading.** This is UBSan+ASan, not TSan. `Threads` was left at 1 throughout,
   deliberately, so the run is deterministic; the threaded paths are as unchecked here as they were
   before. This does **not** close any of the 27 findings attributed to the "TSan build".
-- **Coverage is a fraction of the binary.** `bench` reaches 63.0% of lines; this sweep drives much
+- **Coverage is a fraction of the binary.** The audit's figure for `bench` is 63.0% of lines (not my
+  measurement — I ran no coverage build); this sweep drives much
   more than `bench` (perft, the book, `apply_position` via the protocol phase, `parse_limits` via the
   malformed phase, clock searches), but there is no line-coverage number for this run, so the honest
   statement is "these paths ran", not "all paths ran". Named as unreached: the NNUE v3 path
