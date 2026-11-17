@@ -709,3 +709,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   move-choice one. Shape matches 05-S-F64 (wrong at 20k, right at 50k); mine is independent corroboration with a
   proved distance, not a rate.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:16:12Z S-C48a bounds the truncation severity — wrong SCORE does not become a wrong MOVE
+- Leading number (now at the top of the finding): at `go nodes 20000` the engine reports **`mate -7` = a 14-ply mate
+  where the TRUE distance is 8 plies** — **twice as far as it is**, at a match budget.
+- Severity test, `go nodes 20000` vs `go depth 20`, three boards: S-F19 board (c2b1 both; mate -7 vs mate -4);
+  **seat 05's violator (b3c2 both — but nodes 20000 reports `cp 4056` instead of `mate 7`)**; mate-in-1 control
+  (d1d8 both). **Move identical in all three.**
+- So it is a **REPORTING defect, not a playing one** — move choice at a match budget unaffected in these cases. Risk sits
+  where the score is CONSUMED (GUI display, mate-distance adjudication, eval reading). Extends seat 05: their violator
+  can present a won mate as a large centipawn advantage at that budget.
+Next: continue in the window (ends 2026-11-17T10:18Z).
