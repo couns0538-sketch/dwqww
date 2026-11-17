@@ -37,6 +37,9 @@ against itself, reports whether the move and the metric are stable, and exits no
 - **`PC_SWITCHES.md`** — the six `FORGE_FIX_*` switches: compiled state in the binary the owner plays,
   measured effect, how measured, and what is still unmeasured. Two are compiled OFF
   (`BARE_KING_ONE_THREAD`, `ABORT_PUBLISH`) so "r15 has all six fixes" is not true.
+- **`job_v3/V3_SPEED_SUMMARY.md`** — the v3 speed work in one page: where the time is (21.1 %), why
+  all three obvious micro-optimisations failed or were unnecessary, and where unclaimed time is
+  instead. **Read this before planning any speed work.**
 - **`PCR15_BUILD.md`** — how the PC build was reproduced from `FABLE_TO_swarm_5` (patch sha256 starts
   `d6bd72c531f785f4`) and its three number regimes, all matching the PC: default pins
   312866 / 862329 / 3024920 / 4865609, S14 242796 / 656517, PC20 278024 / 587276.
