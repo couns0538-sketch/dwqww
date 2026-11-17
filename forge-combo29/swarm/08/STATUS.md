@@ -368,3 +368,15 @@ next: cadence + confirmations. Continuing.
 
 next: cadence; then confirmations of other seats' unchecked findings (seat 07's 07-F1 is the only single-finding
 seat left unchecked; everything else I sampled has a C line).
+
+## 2026-11-17T00:40Z
+- **08-C10: seat 07's 07-F1 CONFIRMS on PC20.** `go depth 8 searchmoves e2e5` on startpos (20 legal moves) emits
+  **8 fabricated `info depth` lines, all `nodes 0`, then `bestmove 0000`**; garbage `a9a9` identical; **no depth
+  limit -> 64 fabricated lines** (their exact case). Engine prints the true cause in an info string. Controls pass:
+  `searchmoves e2e4` and an unrestricted search both search normally with zero `nodes 0` lines.
+- Composition framing separated into its own labelled block in NEARNESS_REFUTED.md (52 % vs 14 %), stated as a
+  property of the samples and explicitly NOT as the cause; three untested candidates left named and unadopted.
+
+Tally: 32 findings (08-F1..F32), 10 checks (08-C1..C10), 2 method lines, 1 withdrawal (08-C6W).
+
+next: cadence; next confirmation or an extension of the clock work.
