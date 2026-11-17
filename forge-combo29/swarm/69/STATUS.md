@@ -66,8 +66,28 @@ why Hash 16 and Hash 64 diverge at 1,000,000 nodes: it needs a build printing TT
 collision/overwrite counts, which is a source change this seat may only submit as a
 `.patch.txt` and has not written.
 
-## Times
+## 2026-11-17T04:35Z — four follow-ups answered
 
-`stamps.txt` files in `job1/`, `job2/`, `job3/`, `job4/`, `job5/`, `job6/` each hold a
-`date -u` line after the job's last part.
+Coordinator asked four questions raised by the first report. All answered, one produced a
+correction to my own earlier finding.
+
+| # | question | answer | evidence |
+|---|---|---|---|
+| 1 | is the piped fabrication always the same move? | **no** — 13 distinct / 60 positions, all legal, 0/60 equal to the real answer; detectable only by `info depth` == 0 | `job8/` |
+| 2 | does the Clear Hash drift move the bestmove? | **yes** — 70 / 200 at `go nodes 50000`, budget-stable | `job9/` |
+| 3 | Hash 128 vs 256 threshold? | **`go nodes 1,000,000`** (2/24), and 64 vs 256 is 0/24 at 500k — earlier 17/24 was Hash 16 too small | `job10/` |
+| 4 | does history leak across `ucinewgame`? | **no** — 4/4 sequences identical; the state comes from the `position` command, not from process state | `job11/` |
+
+**Correction issued:** finding 69-F8b claimed `position fen` and `position startpos moves`
+were interchangeable. They are not — they diverge once a threefold repetition is in the move
+list (0/4 at 0–1 repetitions, 4/4 at 2–3). Job 3c could not detect this because its random
+games had no threefold. Recorded as 69-F8c.
+
+Also answered incidentally: why job 7 stalled — my drain logic issued a second `isready`
+after already reading to `readyok`; fixed, and the job now completes in under a second.
+
+## Time
+
+`stamps.txt` files in `job1/` … `job11/` each hold a `date -u` line after that job's last
+part.
 

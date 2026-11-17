@@ -247,6 +247,44 @@ the class, 12 of 12 inside it). The sizes are large when it happens: +161,907 no
 The two builds answer a fixed-budget non-lone-king search identically, so a harness that
 compares node counts between them on ordinary positions is comparing like with like.
 
+## Four answers requested after the first report
+
+**1. The piped fabrication is per-position, not one fixed move.** 13 distinct fabricated
+moves across 60 positions; 0 of 60 equal the real answer; **all 60 are legal**, so a
+legality check accepts 60 / 60. A piped run is *not* detectable by its move. It is
+detectable only by `info depth` lines == 0 (60 / 60). The move is also budget-independent:
+the same 6 fabrications for the same 20 positions at depth 4, 8, 12 and at 50k and 500k
+nodes. **The fabrication is a function of the position alone.**
+
+**2. The `Clear Hash` drift does change the best move.** 70 / 200 positions at
+`go nodes 50000` — not a score nuisance. Score differs 195 / 200, depth 132 / 200, and 129
+differ in nodes with the move unchanged. Budget-stable: 12 / 40 at 50k, 11 / 40 at 500k on
+a 40-position prefix. `ucinewgame`: 0 / 200 on every field.
+
+**3. Hash 128 vs 256 first matters at `go nodes 1,000,000`.** 0 / 24 at 50k, 200k and 500k;
+2 / 24 at 1M; 15 / 24 at 2M; 24 / 24 at 4M. 64 vs 128 behaves identically. **The correction
+this produced: Hash 64 vs 256 is 0 / 24 at 500,000** — so the earlier 17 / 24 at 500k was
+Hash 16 being too small, not table growth. The practical floor at 500k nodes is ~64 MB, not
+~16 MB.
+
+**4. History does not leak.** A repetition-laden position followed by another search gives
+the identical cell with or without `ucinewgame` (4 / 4 sequences). The repetition state is
+rebuilt from the `position` command each time.
+
+### This produced one correction to an earlier finding of mine
+
+69-F8b said `position fen` and `position startpos moves` were interchangeable (0 / 6). They
+are not. They agree at 0 and 1 repetitions (0 / 4 cells) and **diverge at 2 and 3
+repetitions (4 / 4 cells)** — a FEN cannot carry repetition history and a move list can.
+Job 3c missed it because its 40-ply games contained no threefold. My test could not see the
+difference, so the claim was too wide; it is corrected in `FINDINGS.md` as 69-F8c.
+
+The base build's drawn-root bail is reachable this way: on a threefold root reached by move
+list, base answers `0 nodes, cp 0, a2a3` and PC answers `34,047 nodes, cp 22, e2e4`. Via
+`position fen` both answer `56,720 / e2e4 / cp 30`. A harness comparing the two builds on
+game positions delivered by move list would see a divergence that is not there in the FEN
+form.
+
 ## One table: what varies and what does not
 
 Fixed-budget answer = (nodes, bestmove, score, depth). `Threads 1` throughout.
@@ -272,5 +310,10 @@ Fixed-budget answer = (nodes, bestmove, score, depth). `Threads 1` throughout.
 | **Hash 16 vs 64, ≥ 200k nodes** | **YES** | 17 / 24 at 500k, 24 / 24 at 1M, 40 / 40 at 2M |
 | **Hash 16 vs 1, any budget** | **YES** | 11 / 24 at 50k, 24 / 24 above |
 | **PC build, lone-king root** | **YES** | 12 / 12 |
-| **piped stdin (EOF during search)** | **YES** | 0 info lines, fabricated bestmove |
+| **piped stdin (EOF during search)** | **YES** | 0 info lines, per-position fabricated bestmove (13 distinct / 60), all legal |
+| **reuse + `Clear Hash`, bestmove** | **YES** | 70 / 200 at 50k nodes |
+| **reuse + `ucinewgame`** | no | 0 / 200 on every field |
+| **Hash 128 vs 256** | **YES at ≥1M** | 0 / 24 at 500k, 2 / 24 at 1M, 15 / 24 at 2M, 24 / 24 at 4M |
+| **Hash 64 vs 256 at 500k** | **no** | 0 / 24 (the earlier 17 / 24 was Hash 16 being too small) |
+| **repetition history across `ucinewgame`** | **no leak** | 4 / 4 sequences identical |
 

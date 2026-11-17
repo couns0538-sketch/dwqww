@@ -53,6 +53,17 @@ shows it again.
 |---|---|---|---|---|
 | 69-F16 | determinism | **A second build of the identical source, in a different directory, with `-g` added (different binary, 4,869,512 vs 794,944 bytes), gives identical answers: 0/40 differing at both budgets, and it passes all three bench pins.** No build-address, allocation-order, uninitialised-read or timestamp dependence was detected. This is a proxy, not a second machine. | `job6_second_build.py`, `job6/second_build.json` | NEW |
 
+## Four follow-ups requested by the coordinator
+
+| id | area | finding | evidence | state |
+|---|---|---|---|---|
+| 69-F17 | determinism | **The piped-EOF fabrication is per-position, not one fixed move.** 13 distinct fabricated moves across 60 positions at `go depth 8`, 0 of 60 equal to the real answer, and **all 60 legal**: a legality check accepts 60 / 60 of them. A piped run is therefore NOT detectable by its move. It IS detectable by `info depth` lines == 0, which held 60 / 60. | `job8_piped_fabrication.py`, `job8/piped_fabrication.raw.txt` | NEW |
+| 69-F18 | determinism | The fabrication is also budget-independent: at `go depth 4`, `depth 8`, `depth 12`, `nodes 50000` and `nodes 500000` the same 6 distinct fabrications appear for the same 20 positions, with 20 / 20 zero-info lines every time. So the fabricated move is a function of the position only. | `job8/budget_variation.raw.txt` | NEW |
+| 69-F19 | determinism | **The `Clear Hash` drift changes the BEST MOVE, not only the score: 70 / 200 at `go nodes 50000`** (score differs 195 / 200, depth 132 / 200, nodes-only 129 / 200). It is budget-stable: 12 / 40 at 50k and 11 / 40 at 500k on a 40-position prefix. `ucinewgame` is 0 / 200 on every field. So the reuse trap corrupts exactly the quantity a strength comparison measures. | `job9_clearhash_bestmove.py`, `job9/clearhash_bestmove.raw.txt` | NEW |
+| 69-F20 | determinism | **Extending the ladder: Hash 128 vs 256 first differs at `go nodes 1,000,000` (2 / 24), then 15 / 24 at 2M and 24 / 24 at 4M.** 64 vs 128 matches that exactly (9 / 24 at 1M). **But at 500,000 nodes, Hash 64 vs 256 is 0 / 24** — so the earlier 17 / 24 at 500k was the 16 MB table being too small, not table growth in general. The safe floor is ~64 MB, not ~16 MB, at 500k. | `job10_hash_ladder.py`, `job10/hash_ladder.json` | NEW |
+| 69-F21 | determinism | **History does NOT leak across `ucinewgame`, and does not leak across searches at all.** A repetition-laden position followed by another search with or without `ucinewgame` gives the identical cell (4 / 4 sequences). The repetition state is carried by the `position startpos moves` command itself, and is rebuilt per command. | `job11_history_leak.py`, `job11/history_leak.raw.txt` | NEW |
+| 69-F22 | cross-build | The base build's drawn-root bail appears on a threefold root reached **by move list**: base answers `0 nodes, cp 0, a2a3`; PC answers `34,047 nodes, cp 22, e2e4`. Via `position fen` both builds answer `56,720 / e2e4 / cp 30`, so the divergence is reachable only through the move-list form. | `job11b_fen_vs_moves.py`, `job11/fen_vs_moves_repetition.raw.txt` | NEW |
+
 ## Not established by this seat
 
 * **A genuinely different machine was not tested.** No second CPU, no second compiler, no
