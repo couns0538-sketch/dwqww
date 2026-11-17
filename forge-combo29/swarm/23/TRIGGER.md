@@ -98,3 +98,20 @@ threefolds. That one arithmetic defect generated **four successive scope explana
 conditioner, material, halfmove — before it was found (23-F122/F123). The validator that prevents it is
 `job59/validate.py`; the rules for using it are `FIXTURE_RULES.md`; the practical test is **check the castling field
 along the LINE, not in the FEN**.
+
+## Two axes this family could not test, and why they fail for the same reason
+
+Both were attempted properly and closed honestly. Stated together because the shared reason is stronger than either
+entry alone, and because it should stop the next reader attempting either.
+
+| axis | what it needed | why it could not be built |
+|---|---|---|
+| **spacing** of the three occurrences (root at 0/4/8 vs 0/8/16 vs 0/4/12) | an anchor position reachable by **two paths of different length**, so the count can stay at three while the spacing changes | with one position anchoring both count and spacing, `A + B + A` always yields **four** occurrences, not three — for every neutral filler tried (23-F142) |
+| **a mate that needs search** at a threefold root (mate in 3+) | a position with **both** a neutral repetition cycle and a forced mate of 3–7 plies | the quiet positions that admit a clean shuttle have mates 15–23 plies away; the busy positions that give short mates rarely admit a clean shuffle (23-F174) |
+
+**The shared reason: repetition cycles live in quiet, sparse positions and short forced mates live in busy ones.** A board
+that gives you one withholds the other. That is a fact about chess positions, not about this engine, and it is the reason
+both axes are recorded as *untested with a structural reason* rather than as negative results.
+
+What is NOT withheld: the mechanism itself. The base plays the generator's first move without looking (23-F98/F172), and
+where that move forfeits a mate in 1 it did so on 4 of 4 fixtures — one back-rank structure, four variations (23-F175).
