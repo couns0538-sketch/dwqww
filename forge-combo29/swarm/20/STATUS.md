@@ -698,3 +698,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   REJECTED. That guard would have caught seat 30's bug when written, not hours later by inference.
 - Relayed as the adoptable form: other seats can drop `assert_regime(pc20_list,"PC20")` into their own harness.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:15:49Z S-C48: mate truncation lands on go nodes 20000 — a MATCH BUDGET — on a board whose distance I proved
+- Board `8/8/1p6/8/p3p3/8/2Kpk3/8 w`, TRUE distance **mate -4 = 8 plies** (proved exhaustively in job16, so "needs"
+  is not taken from the engine's claim). PC r15 068f0927…, PC20 = S14 (17 opts) + 6 extras, assert_regime passed, T1:
+  **`go nodes 20000` -> `mate -7`, 10-ply PV, TRUNCATED short by 4** (needs 14); `go nodes 50000` -> mate -4 full PV
+  (true distance); 250000 -> mate -4 full.
+- So the window sits on **one of the owner's three match budgets** and the reported distance OVERSTATES the defence
+  two-fold (claims 14 plies, needs 8). Move unchanged (c2b1) => a SCORE-reporting defect at a match budget, not a
+  move-choice one. Shape matches 05-S-F64 (wrong at 20k, right at 50k); mine is independent corroboration with a
+  proved distance, not a rate.
+Next: continue in the window (ends 2026-11-17T10:18Z).
