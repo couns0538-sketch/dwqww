@@ -1,0 +1,32 @@
+PREDICTION — SW-23 job 54 (is the HISTORY GATE general, or did 23-F109 show one coincidence?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F109 found, on ONE position, that the same board bails at 0 nodes when sent by a move list and searches 44,888 nodes
+when sent as a bare FEN. I called that a history gate and put it in the chain line. One position is not a gate; it is an
+anecdote. This job tests whether the gate holds across several independent positions and several draw types.
+
+DESIGN — for each position, three sends, same build and settings (base, Threads 1, Hash 16, OwnBook false, `go depth 10`):
+  S1 BARE FEN                          -> expect a SEARCH (no history, so no repetition is visible)
+  S2 FEN + the 8-ply cycle twice       -> expect 0 nodes and cp 0 (threefold visible)
+  S3 FEN + the cycle ONCE (2 occurrences) -> expect a SEARCH (two occurrences is not a draw)
+Positions (each must have a 4-ply or shorter non-capturing shuttle; verified in python-chess):
+  A the 23-F109 natural root `1k6/3q1p1p/rp5p/4P3/pQ3P2/7P/3R2PK/8 b` (known answer: S1 searches, S2 0 nodes)
+  B 23-F45's endgame root `1K6/8/8/3R4/8/8/8/k7 w` (the fixture every earlier finding used)
+  C `6k1/5ppp/8/8/8/8/5PPP/R5K1 w` (job 52's P1, halfmove 0 so it is NOT drawn by the counter)
+  D `7k/8/8/8/8/8/6PP/7K b` (job 52's P4, no pawn moves for the mover)
+All halfmove clocks set to 0 in the FEN so the FIFTY-MOVE rule cannot confound the repetition test — this is the
+single most important control in the job, because 23-F93 already showed the counter triggers the same bail.
+
+Prediction (each with the range that kills it):
+  P1  S2 RETURNS 0 NODES ON AT LEAST 3 OF 4 positions.  KILLED if fewer than 3, in which case the "gate" is
+      position-specific and 23-F109's sentence must be narrowed to that one position.
+  P2  S1 AND S3 BOTH SEARCH (> 1000 nodes) ON ALL 4.  KILLED if any bare FEN or two-occurrence send bails — which
+      would mean something OTHER than history can trigger the bail on these boards, and the gate would need restating.
+  P3  THE KNOWN ANSWER HOLDS ON POSITION A: S1 searches and S2 gives 0 nodes, reproducing 23-F109 exactly. KILLED if
+      not — in which case the earlier finding does not reproduce and THAT is the finding.
+  P4  ON EVERY position, S2's node count is 0 AND its move equals the independently predicted index 0 (the predictor
+      from 23-F105), or the predicted move is absent from the divide. KILLED if S2 returns a nonzero node count with
+      cp 0, a third behaviour I have not seen and would have to describe.
+
+If P1-P3 hold, the gate is a property of the mechanism rather than of one board, and the chain-line sentence stands on
+more than an anecdote.
