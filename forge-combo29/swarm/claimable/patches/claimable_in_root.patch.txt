@@ -1,0 +1,27 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2268,6 +2268,24 @@
+             }
+         }
+     }
++    // A fifty-move draw and a threefold repetition are CLAIMS, and a claim is only the
++    // position's value when the side to move cannot simply play on. If ANY legal move is a
++    // pawn move or a capture, playing it resets the fifty-move clock, so the game continues
++    // and the claim is not a draw the engine may take on the position's behalf. Claim only
++    // when no legal move resets the clock.
++    //
++    // The test is applied to the two CLAIMABLE arms only. Insufficient material is an
++    // automatic draw, not a claim: a bare-piece ending can still offer captures that reset
++    // the clock without changing the fact that nobody can mate, so that arm is never
++    // declined here.
++    if (root_draw_adjudicated && (board.is_repetition() || board.halfmove_clock() >= 100)) {
++        for (const Move move : legal) {
++            if (move.is_capture() || piece_type(board.piece_at(move.from)) == Pawn) {
++                root_draw_adjudicated = false;   // the clock can be reset: play on
++                break;
++            }
++        }
++    }
+     const bool root_drawn = root_draw_adjudicated;
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;

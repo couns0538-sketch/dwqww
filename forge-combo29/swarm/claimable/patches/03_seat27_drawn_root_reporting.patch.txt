@@ -1,0 +1,21 @@
+--- a/src/search.cpp	2026-11-16 21:24:39.771120729 +0000
++++ b/src/search.cpp	2026-11-16 21:24:39.771120729 +0000
+@@ -2256,12 +2256,12 @@
+         else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+             score = draw_leaf_score(board);
+         }
+-        for (int depth = 1; depth <= max_depth; ++depth) {
+-            result.depth = depth;
+-            result.score = score;
+-            emit(depth, score, {});
+-            if (should_stop()) break;
+-        }
++        // A drawn root is a claim, not a finished search: report one line, at depth 1,
++        // and never claim depths the search did not reach. The move played is the
++        // first legal move, as before (a drawn game cannot be improved on).
++        result.depth = std::min(1, max_depth);
++        result.score = score;
++        emit(result.depth, score, {});
+         if (!root_candidates.empty()) result.best_move = root_candidates.front();
+         result.nodes = total_nodes();
+         nodes_.store(local_nodes_, std::memory_order_relaxed);
