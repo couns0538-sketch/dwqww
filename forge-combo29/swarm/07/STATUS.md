@@ -780,3 +780,11 @@ Two more standing rules in the FINDINGS header (12 now, 65 rows in the table):
 Made the deliberate-vs-defect distinction standalone in 07-C60 so it cannot be skimmed past: **go nodes 0 IS DELIBERATE AND DOCUMENTED -- DO NOT FILE IT AS A BUG.** It is the source's own 'an explicit zero node budget is an immediate bounded answer', and answering at once with the first legal move is the intended behaviour of that command.
   The other two -- the fabricated bestmove on an aborted search (19-F12) and the per-depth fabricated report lines (07-C54) -- ARE defects. All three share the root_candidates.front() mechanism, which is why a harness inspecting only the MOVE cannot tell a deliberate bounded answer from a fabricated one; the difference is in the COMMAND and in the REPORT LINES, not in the move.
 That is also why the shared-path patch (07-C55) is safe for nodes 0: it changes how many report lines are printed, not the fallback move the command is documented to give.
+
+## 2026-11-17T00:17:34Z
+07-C61 -- PARTLY CONFIRMED 29-F50 / 29-N34, the most decision-relevant open claim (quality at depth 14, where the PC actually plays). PC r15, S14 vs PC20 at depth 14, Threads 1, Hash 16, 40 positions of THEIR R_2911 set, every disagreement judged by scoring both moves under neutral S14 at depth 17:
+  Agreement 37/40 = 92.5% (theirs 27/30 = 90.0%).
+  Of 3 disagreements: 2 FAVOUR S14 (g4e5 +96 cp, h2e2 +492 cp) and 1 FAVOURS PC20 (h3g4 +48 cp, in a lost position where the depth-17 judgement also disagrees with BOTH depth-14 scores).
+  So the DIRECTION of their signal reproduces -- S14 ahead on net at depth 14 -- but the UNANIMITY does not: they saw 3 of 3, I see 2 of 3. Their n=3 and mine are both tiny; neither establishes a rate.
+  Honest state: OPEN with a WEAK signal against PC20 at depth 14 -- weaker than '3 of 3' implies. I did not convert mate to centipawns; the near-mate case is reported by direction only.
+  This is the kind of claim the owner needs handled carefully: it points at whether to use PC20 at match depths, and a 2-of-3 with a 48 cp flipper is not a reason to change a default.
