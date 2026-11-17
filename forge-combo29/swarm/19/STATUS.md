@@ -663,3 +663,16 @@ next command: continue at cadence, adding to the tally with counter/reproduction
   scrutiny.
 
 next command: continue at cadence.
+
+## 2026-11-17T00:48:12Z
+
+19-C29 PLANTED MY OWN ZERO. After using Rule 1 on seat 08, I found 19-F54's '0 of 40' had no plant either -
+  its one mate board exercised only the 'no defect' path because the engine played the mate.
+  Built the plant on 6K1/8/1r4k1/8/8/2p5/8/8 b (18 legal, exactly 1 mates): the SAME code returns
+  False for the mating move and TRUE for a legal non-mating move (g6h6). The harness CAN see a defect,
+  so the zero survives - but only because I checked.
+HARNESS_TRAPS.md closing sentence (Rule 1 in one line): 'a planted case is the only thing that
+  distinguishes I looked and found none from I could not have found one.'
+  Twelve traps; traps 11 and 12 each carry their own failure as the specimen.
+
+next command: continue at cadence.
