@@ -451,3 +451,7 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 ## Tue Nov 17 12:23:28 AM UTC 2026
 
 **30-C62/F64 REFUTES 28-F43, and 30-C63 explains why seat 28 and I differ.** Same position and clock: **solo -> `d2d3` depth 18 / 854,603 nodes** (3/3 identical) versus **under 4 busy processes -> `e1g1` depth 15 / 205,048 nodes** (3/3 identical, wall time FALLING to ~200 ms because fewer iterations fit). So a loaded machine plays DIFFERENT CHESS, not merely slower. **The gradient is the key**: 0, 1 and 2 hogs change NOTHING (identical nodes), and only **4 hogs on a 4-core box** flips it — a threshold at full saturation. That is why seat 28's busy loop saw stability: if theirs was a single process, my 1-hog cell shows no change either. Practical rule: a light load is safe; a fully saturated box silently weakens the engine by three plies.
+
+## Tue Nov 17 12:23:48 AM UTC 2026
+
+**Both requested items applied.** 30-F64 now LEADS with **"A depth-limited engine under saturation is WEAKER, not just slower"** and carries the full hog-count ladder with BOTH runs per cell: 0 hogs -> `d2d3` d18 / 854,603 / 505.6 and 497.5 ms; 1 hog -> identical; 2 hogs -> identical; **4 hogs -> `e1g1` d15 / 205,048 / 170.1 and 244.5 ms**. 30-C63 carries the same lead sentence so the threshold and the conclusion read together.
