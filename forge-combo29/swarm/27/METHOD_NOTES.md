@@ -40,8 +40,18 @@ if not bench_lines:
     raise Missing("no 'info string bench depth' line (row aborted)")
 ```
 
-**And define the exception you raise.** Two of my files raised `Missing` without ever defining it, so the guard
-crashed with `NameError` instead of aborting cleanly — check with `grep -rl 'raise Missing' . | xargs grep -L 'class Missing'`.
+**And define the exception you raise — the check is:**
+
+```bash
+grep -rl 'raise Missing' . | xargs grep -L 'class Missing'
+```
+
+If that prints anything, those harnesses raise an exception that does not exist: the guard will crash with
+`NameError` at the moment it should abort, which is **worse than no guard**, because it looks like a harness bug
+rather than a caught row. Two of my files had exactly this (`check_15f35_clock.py`,
+`job3/f2_harness_can_fail.py`). It surfaced only when a guarded re-run finally hit a zero-info reply — **a guard
+that has never fired can hide a broken guard**, which is the single best reason to prove each guard fires with a
+fake engine that produces the failure.
 
 **Why this is first:** it is the only error class in this list that produces *plausible* numbers — a legal-looking
 move with a missing score — and it has silently affected two seats' published figures.
