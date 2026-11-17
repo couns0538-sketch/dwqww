@@ -10,7 +10,7 @@ Checks the plan formula against EVERY move of the match:
   soft = (clock - overhead)/TmSoftDivisor + increment * TmIncrementPercent/100
 with the defaults 22 / 75 / 60 / 5 and Move Overhead 10.
 
-Run:  python3 case7_analyse.py case7_partial_20_1000_100.json
+Run:  python3 case7_analyse.py case7_20_1000_100.json
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ def plan(clock, increment):
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else "case7_partial_20_1000_100.json"
+    path = sys.argv[1] if len(sys.argv) > 1 else "case7_20_1000_100.json"
     with open(path) as handle:
         data = json.load(handle)
     games = data["per_game"]

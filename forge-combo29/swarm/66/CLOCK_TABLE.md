@@ -168,30 +168,30 @@ The floor is visible in the top row: with a clock at or below 200 ms the worst m
 is `0.6 × (200 − 10)` = 114 ms — the 60% hard cap computed from `available`, to within a millisecond. The
 largest spend on the whole match is 620.9 ms, never the whole clock.
 
-### 20 games at 3000+2000 ms (3+2, the brief's control)
-
-**PARTIAL at this commit: 13 of 20 games** (1,635 plies). The remaining 12 are queued behind ~5.5 min each.
+### 20 games at 3000+2000 ms (3+2, the brief's control) — COMPLETE
 
 | measure | value |
 | --- | ---: |
-| games complete | 13 of 20 |
-| plies | 1,635 |
+| games complete | **20 of 20** |
+| plies | **2,604** |
 | forfeits / hangs / illegal / refused | **0 / 0 / 0 / 0** |
 | max (move time ÷ clock available) | **0.5997** |
-| worst overshoot of the predicted hard limit | **+1.3 ms** over 1,635 moves |
+| median of that ratio | 0.1850 |
+| worst overshoot of the predicted hard limit | **+1.7 ms** over 2,604 moves |
 | closest approach to the predicted hard limit | 1.001 |
 | lowest clock reached | **3000 ms** — never below the starting value |
-| moves at a clock ≤200 ms | **0 of 1,635** |
+| moves at a clock ≤200 ms | **0 of 2,604** |
 
-Two things this control establishes and one it cannot:
+Every one of the 2,604 moves was made at a clock above 1000 ms, so this control exercised exactly one clock
+bucket. Two things it establishes and one it cannot:
 
-1. The zero-forfeit result holds for 13 games / 1,635 plies, and every move again obeys the plan formula
-   (max 0.5997 of available, +1.3 ms worst overshoot).
-2. The clock **grows**: not one of 1,635 moves was made at a clock below 3000 ms, and the largest single
+1. The zero-forfeit result holds over **20 games / 2,604 plies** at a control 3× slower than any previously
+   tested, and every move obeys the plan formula (max 0.5997 of available, +1.7 ms worst overshoot).
+2. The clock **grows**: not one of 2,604 moves was made at a clock below 3000 ms, and the largest single
    spend in the whole set (11,107.2 ms) was made from an **18,521 ms** clock, where the formula's hard limit
-   is 11,106 ms — a 0.5997 ratio. Even the set's most expensive move is the 60% cap, not a runaway.
-3. It **cannot** confirm the floor, and the `0 of 1,635 moves at ≤200 ms` line is the measurement that says
-   so rather than an inference. That is why the 1000+100 match and the drain control exist.
+   is 11,106 ms — even the set's most expensive move is the cap, not a runaway.
+3. It **cannot** confirm the floor. `0 of 2,604 moves at ≤200 ms` is the measurement that says so rather
+   than an inference, and it is why the 1000+100 match and the drain control exist.
 
 ### Drain control (the only way to reach the floor at a 3+2 clock)
 

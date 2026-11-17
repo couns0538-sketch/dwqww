@@ -193,15 +193,16 @@ Raw: `case6.json`. Denominators: 6 repeats, 6 movetime repeats, 3 ucinewgame rep
 
 ## F7 — At 3+2 the clock GROWS, so that control cannot confirm a floor. At 1000+100 it can, and the floor is `0.6 × (clock − 10)` ms.
 
-**The 3+2 result (partial: 13 of 20 games, 1,635 plies).** **0 forfeits, 0 hangs, 0 illegal bestmoves,
-0 refused positions.** Not one of those 1,635 moves was made at a clock below **3000 ms** — the starting value
-— so the clock only ever grew. Max move-time÷clock was **0.5997** and the plan formula held to **+1.3 ms**
-across all 1,635 moves, so the low utilisation is not slack: it is the 60% cap acting on a clock that keeps
-rising. The largest single spend in the set (11,107.2 ms) was made from an 18,521 ms clock, where the
-formula's hard limit is 11,106 ms — the cap, exactly, on the most expensive move in 1,635.
+**The 3+2 result (complete: 20 games, 2,604 plies).** **0 forfeits, 0 hangs, 0 illegal bestmoves,
+0 refused positions.** Not one of those 2,604 moves was made at a clock below **3000 ms** — the starting value
+— so the clock only ever grew; every move fell in a single clock bucket (>1000 ms). Max move-time÷clock was
+**0.5997** with median 0.1850, and the plan formula held to **+1.7 ms** across all 2,604 moves. The largest
+single spend in the set (11,107.2 ms) was made from an 18,521 ms clock, where the formula's hard limit is
+11,106 ms — the cap, exactly, on the most expensive move in 2,604.
 
-This control therefore **cannot confirm the floor**, and `0 of 1,635 moves at ≤200 ms` is the measurement that
-demonstrates it rather than an argument that asserts it. The remaining 12 games change neither conclusion.
+This control therefore **cannot confirm the floor**, and `0 of 2,604 moves at ≤200 ms` is the measurement
+that demonstrates it rather than an argument that asserts it. It does confirm the zero-forfeit result at a
+time control 3× slower than anything previously tested.
 
 **The control that does reach the floor.** 20 games at 1000+100 ms:
 
@@ -239,15 +240,25 @@ and compares it with the time the engine actually spent:
 | closest approach to the predicted hard limit | 1.012 (clock 306 → 179.1 ms spent vs 177 ms predicted) |
 
 The prediction was not tuned to the data. It is the same four constants the source uses, applied per move to
-whatever clock the driver had accumulated at that point — i.e. it is evaluated on 3,071 different clocks, and
-no move exceeds it by more than a millisecond or two. That turns the floor from an observation ("the worst
-move I saw spent 114.5 ms") into a prediction ("the engine spends `0.6 × (clock − overhead)`, always").
-Anyone questioning a floor figure can recompute it for any row from that row's own clock.
+whatever clock the driver had accumulated at that point — i.e. it is evaluated on 3,071 different clocks in
+this match, and no move exceeds it by more than a millisecond or two. The **3+2 match adds 2,604 more moves
+on an entirely different clock trajectory** (every one of them above 1000 ms) and the formula holds there to
+**+1.7 ms**, with the set's most expensive single move (11,107.2 ms from an 18,521 ms clock) landing on its
+predicted 11,106 ms cap.
 
-**The drain control.** A 2× overcharge reached equilibrium at 1376 ms and drained no further — the engine's
-spend falls as its clock falls, so a mild overcharge cannot reach the floor. A 10× + 200 ms overcharge
-reaches **clock 0** and the engine still answers legally in **0.1–0.6 ms** for all 60 plies, in both the
-increment and no-increment arms.
+**Across both matches that is 5,675 moves, 5,675 independent clock values, and no move outside the plan.**
+That turns the floor from an observation ("the worst move I saw spent 114.5 ms") into a prediction ("the
+engine spends `0.6 × (clock − overhead)`, always"). Anyone questioning a floor figure can recompute it for
+any row from that row's own clock.
+
+The two matches also show the formula holding in opposite regimes — one where the clock falls towards the
+floor, one where it rises the whole time — which is a stronger test than either alone.
+
+**The drain control.** A mild 2× overcharge reached equilibrium at **1376 ms** in the standalone measurement
+and **1410 ms** in the in-driver run — two runs of the same behaviour — and drained no further, because the
+engine's spend falls as its clock falls. A mild overcharge therefore cannot reach the floor. A 10× + 200 ms
+overcharge reaches **clock 0** and the engine still answers legally in **0.1–0.6 ms** for all 60 plies, in
+both the increment and no-increment arms.
 
 ### F7b — The lesson, stated generally: a control that passes is not the same as a control that tests
 
@@ -268,23 +279,23 @@ bottom of the range", while the 1000+100 match answers "does the planner hold ac
 Re-run:
 ```bash
 python3 case7_game_driver.py /tmp/w66/build/forge 20 1000 100      # ~6 min
-python3 case7_analyse.py case7_partial_20_1000_100.json             # 9/9 checks
+python3 case7_analyse.py case7_20_1000_100.json             # 9/9 checks
 python3 case7_game_driver.py /tmp/w66/build/forge 20 3000 2000     # ~110 min; clock never falls
 ```
-Raw: `case7_partial_20_1000_100.json` (+ `_analysis.json`); the 3+2 set lands in
-`case7_partial_20_3000_2000.json`.
-Denominators: 20 games / 3,071 plies at 1000+100; 13 of 20 games / 1,635 plies at 3000+2000 at this commit;
-3,071 moves checked against the formula; 60 + 60 drain plies.
+Raw: `case7_20_1000_100.json` (+ `_analysis.json`); the 3+2 set lands in
+`case7_20_3000_2000.json`.
+Denominators: 20 games / 3,071 plies at 1000+100; 20 games / 2,604 plies at 3000+2000;
+3,071 + 2,604 = 5,675 moves checked against the formula; 60 + 60 drain plies.
 
 ---
 
 ## What this audit did NOT find
 
-- No forfeit in any case measured: 20 games / 3,071 plies at 1000+100, 60 + 60 drain plies at clock 0,
-  11 zero/negative rows, 7 increment rows, 6 huge clocks, 6 repeated goes, and the first 3+2 game.
+- No forfeit in any case measured: 20 games / 3,071 plies at 1000+100, 20 games / 2,604 plies at 3000+2000,
+  60 + 60 drain plies at clock 0, 11 zero/negative rows, 7 increment rows, 6 huge clocks, 6 repeated goes.
 - No hang in any case that had a clock. The only non-termination is F1, the one-sided clock.
 - No illegal `bestmove` and no refused position anywhere: every FEN and every move list was validated with
-  python-chess before sending, and both reply streams were scanned for `invalid FEN` (0 hits over 3,071
+  python-chess before sending, and both reply streams were scanned for `invalid FEN` (0 hits over 5,675
   match positions).
 
 ## Harness self-audit

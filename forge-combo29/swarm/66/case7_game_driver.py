@@ -232,7 +232,7 @@ def run_match(path, games, base_ms, inc_ms):
     # minutes and the whole 20-game set does not fit in one turn).
     import json as _json
 
-    partial_path = "case7_partial_%d_%d_%d.json" % (games, base_ms, inc_ms)
+    partial_path = "case7_%d_%d_%d.partial.json" % (games, base_ms, inc_ms)
 
     def write_partial():
         with open(partial_path, "w") as fh:

@@ -32,7 +32,7 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 | 5 huge clocks | **DONE 27/27** | 2e9 / 3e9 / int64-max / 36,028,797,018,963,967 / one-past / 30 digits: all accepted, none answers inside 8 s, all answer `stop` |
 | 6 repeated `go` | **DONE 15/15** | nothing accumulates: 6 goes at a fixed 1000 ms clock spent 485 ms total |
 | 7a 20 games at 1000+100 | **DONE 9/9** | **0 forfeits / 0 hangs / 0 illegal / 0 refused over 20 games and 3,071 plies**; max move-time/clock **0.5937**; floor reached: max **114.5 ms** at a ≤200 ms clock = 0.6×(200−10) |
-| 7b 20 games at 3000+2000 | **PARTIAL, 13 of 20 games** (0 forfeits / 1,635 plies; clock never fell below 3000 ms, 0 moves at ≤200 ms) | at 3+2 the clock GROWS, so this control cannot test the floor |
+| 7b 20 games at 3000+2000 | **DONE 8/9** (the 9th is the floor check, correctly FAIL — see note) | **0 forfeits / 0 hangs / 0 illegal / 0 refused over 20 games and 2,604 plies**; clock never fell below 3000 ms, **0 of 2,604 moves at ≤200 ms**, so this control cannot test the floor |
 | 7c drain control | **DONE** | 10× overcharge reaches clock 0; 60/60 moves legal in 0.1–0.6 ms, both with and without increment |
 
 ## Three measurements that correct the brief's framing
@@ -57,8 +57,8 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 - every FEN (and every move list) is validated with python-chess before it is sent.
 
 ## Next
-- Nothing is outstanding for the deliverables. The 3+2 set (7b) is still appending to
-  `case7_partial_20_3000_2000.json`; if it finishes, run
-  `python3 case7_analyse.py case7_partial_20_3000_2000.json` and update the 7b row in FINDINGS/CLOCK_TABLE.
-  No conclusion in this report depends on it — the floor claim rests on the 1000+100 match (7a) and the drain
-  control (7c), both complete.
+- Nothing outstanding. All seven cases are complete and every number in this report is regenerated from the
+  committed JSON by the script named beside it. The 3+2 match finished at 20 of 20 games; its analysis reports
+  8/9 with the floor check as the one FAIL, which is the correct verdict for a control that never reaches the
+  floor (0 of 2,604 moves at ≤200 ms) — the floor claim rests on the 1000+100 match (7a, 9/9) and the drain
+  control (7c).
