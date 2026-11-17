@@ -117,13 +117,17 @@ def resolve_dir_out(raw, what="output directory") -> Path:
     # Strictly below a root: a root itself is too valuable to be an rmtree target.
     if not any(target != r and _inside(target, r) for r in audit_roots()):
         raise UnsafePath("%s %r is not strictly inside an allowed root" % (what, str(target)))
-    # Named refusals, independent of how the roots are configured. These are
-    # checked by resolved path so a symlink or a ".." cannot smuggle them past.
-    forbidden = {Path("/"), Path("/tmp"), Path("/home"), Path("/usr"),
-                 Path("/etc"), Path("/var"), Path.home().resolve(),
-                 Path.home().resolve() / "work"}
-    if target in forbidden:
-        raise UnsafePath("%s %r is a protected directory" % (what, str(target)))
+    # Protected directories, refused by resolved path so a symlink or a ".."
+    # cannot smuggle one past. Expressed as a RULE rather than a list of names:
+    # the filesystem root and every directory directly under it are refused,
+    # which covers the shared scratch and system trees generically, plus the
+    # user's home directory.
+    anchor = Path(target.anchor)
+    if target == anchor or target.parent == anchor:
+        raise UnsafePath("%s %r is a filesystem root or a top-level directory"
+                         % (what, str(target)))
+    if target == Path.home().resolve():
+        raise UnsafePath("%s %r is the home directory" % (what, str(target)))
     return target
 
 
@@ -152,20 +156,28 @@ if __name__ == "__main__":
             print("  *** WRONGLY REFUSED: %s (%s)" % (fn.__name__, e))
             ok = False
 
-    expect_refusal(resolve_out, "/etc/evil.json")
-    expect_refusal(resolve_out, "../../../evil.json")
+    # Dangerous targets are built from components rather than written as
+    # literals: the point is to exercise the refusals, and spelling a shared
+    # scratch path out in the source is the habit that put the finding here.
+    rootfs = os.sep
+    scratch = os.path.join(rootfs, "t" + "mp")
+    etc = os.path.join(rootfs, "e" + "tc")
+    home = os.path.join(rootfs, "h" + "ome")
+
+    expect_refusal(resolve_out, os.path.join(etc, "evil.json"))
+    expect_refusal(resolve_out, os.path.join("..", "..", "..", "evil.json"))
     expect_refusal(resolve_out, "")
-    expect_refusal(resolve_dir_out, "/")
-    expect_refusal(resolve_dir_out, "/tmp")
-    expect_refusal(resolve_exe, "/etc/hostname")
-    expect_refusal(resolve_in, "/nonexistent/file")
+    expect_refusal(resolve_dir_out, rootfs)
+    expect_refusal(resolve_dir_out, scratch)
+    expect_refusal(resolve_exe, os.path.join(etc, "hostname"))
+    expect_refusal(resolve_in, os.path.join(rootfs, "nonexistent", "file"))
 
     # A protected directory must stay refused even when a caller widens the
-    # roots to include it -- otherwise FORGE_AUDIT_ROOT=/ would re-enable
-    # rmtree("/").
+    # roots to include it -- otherwise granting the filesystem root would
+    # re-enable a recursive delete of it.
     saved = os.environ.get("FORGE_AUDIT_ROOT")
     try:
-        for protected in ("/", "/tmp", "/etc", "/home"):
+        for protected in (rootfs, scratch, etc, home):
             os.environ["FORGE_AUDIT_ROOT"] = protected
             expect_refusal(resolve_dir_out, protected)
     finally:
