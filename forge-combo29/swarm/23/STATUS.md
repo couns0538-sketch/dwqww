@@ -1455,3 +1455,13 @@ needed exactly ONE addition (the 0-node check, F76): structure right, one rule s
 23-F76's scope sentence now in BOTH the page and the finding row: the 0-node check catches the BASE (0 nodes) but not
 the PC (44,269 nodes), so it is a detector for the un-repaired build rather than a general driver rule.
 105 findings, 18 confirmations, thirteen named faults. 9 h 20 m remain.
+## 2026-11-17T00:58:46Z  rule 4 on the page now carries its own measured failure mode (f1b5 @89,103 -> fabricated a2a3 @0)
+2026-11-17T00:58:46Z
+
+GUI_HAZARDS rule 4 reads: a violation does not perturb the answer, it REPLACES it - pipelining position startpos
+straight after go returns the fabricated bestmove a2a3 at 0 nodes, where the ordered run returns f1b5 at 89,103.
+"A pipelining driver is not merely slower or noisier: it gets a legal-looking move that was never searched, and
+nothing in the stream says so."
+Page is now internally consistent: each rule carries a measured failure mode, and the page states the summary -
+four original rules hold, one addition needed, structure right and one rule short.
+105 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 20 m remain.
