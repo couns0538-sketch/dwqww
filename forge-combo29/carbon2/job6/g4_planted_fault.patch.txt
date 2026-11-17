@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 16:25:08.001143771 +0000
++++ b/src/search.cpp	2026-11-17 16:25:58.941143771 +0000
+@@ -3551,7 +3551,7 @@
+         const nnue::v3::Accumulator& parent = v3_state_->stack[static_cast<std::size_t>(index - 1)];
+         const int king0 = board.king_square(White);
+         const int king1 = board.king_square(Black);
+-        if (king0 == parent.king_sq[0] && king1 == parent.king_sq[1]) {
++        if (king0 == parent.king_sq[0] /* PLANTED FAULT: omit Black king_sq[1] check */) {
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
