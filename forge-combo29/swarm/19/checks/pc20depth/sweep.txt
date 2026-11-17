@@ -1,0 +1,28 @@
+soft budget sweep: where does the PC20 depth advantage flip? (6 set-G positions, summed depth)
+  budget   S14  PC20   diff
+    2000    45    43     -2
+    3000    47    48     +1
+    5000    52    54     +2
+    8000    55    60     +5
+   12000    62    65     +3
+   20000    65    68     +3
+
+## the flip, and the mechanism
+**PC20's depth advantage flips between 2,000 and 3,000 nodes:** -2 at 2000, **+1 at 3000**, +2 at 5000, +5 at
+8000, +3 at 12000, +3 at 20000. So the self-play budget (`softnodes 2000`) sits on the wrong side by about
+**1,000 nodes**.
+
+**Which option costs the ply at 2,000?** One-option-at-a-time at softnodes 2000 (baseline S14 total depth 45):
+CuckooRep 45 (+0), HistRework 45 (+0), **TtPruneV2 44 (-1)**, CorrHistV2 45 (+0). So **TtPruneV2 is the single
+option that costs depth at the self-play budget** — its extra pruning needs more nodes than 2,000 to pay for
+itself.
+
+## what the owner can act on
+- **At `softnodes 2000` (his self-play), PC20 is mildly counterproductive: 2 plies shallower.**
+- **At 3,000 nodes or above it turns positive**, and by 8,000 it is +5.
+- **If he raises the self-play budget to ~3,000 or more, PC20's switches start paying** — that is the concrete
+  recommendation, and it costs 50 % more nodes per self-play move.
+
+## the caveat on this sweep
+Six positions, one run each. The individual deltas (-2, +1, +2) are within the per-position noise 19-C40 and
+19-C45 already documented; **the TREND is the finding, not any single row.**
