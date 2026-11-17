@@ -202,6 +202,20 @@ narrower, not wider:** it is not the bare-minor inversion (static sign is right)
 a missing horizon (depth 20 is worse than 16). What remains is the clock collapse plus a
 genuine planning failure, and separating those two needs a 4-piece table I did not build.
 
+## 5b. The defender's side of the same question: the engine also *loses* draws
+
+The conversion rate only counts won positions. The mirror question — does the engine hold a
+draw when defending? — is answered on the same games and belongs beside it, because a rate on
+one side alone flatters the engine.
+
+- **KBK and KNK: 0 failures in 80 defender games.** Every draw held, over 100+ plies, against
+  both a table oracle and the engine. That is the null §5 describes, and it is a strong one:
+  the bare-minor inversion does not cost a single draw from behind either.
+- **KPK: 123 of 640 drawn cells were LOST by the defending engine** (192 at the time of the
+  larger register; the count grows with the sample). That is a *larger* defect than the
+  71 won cells it fails to convert, and it is invisible to a conversion rate. The drawn half
+  of the KPK boundary is the worse half.
+
 ## 6. Is it a horizon effect? Yes for KQK — and the horizon needed is absurd
 
 Depth ladder on the **exact KQK FENs that failed at depth 12** (same position, four depths):
