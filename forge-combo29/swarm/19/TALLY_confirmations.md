@@ -11,6 +11,11 @@ approximations and not derived tables. This is the part of my work that survived
 | **19-C26** | 24-F31 (Threads-1) | **40 of 40** positions identical in **move and node count** | independently, on my harness, base tree |
 | **19-C27** | 05's S-F58 | `mate +11` / **44,749** nodes / **18-ply** PV / depth 11 at `nodes 50000`; `mate +7` / **138,869** / 13-ply / depth 14 at 250,000 | **all five figures**, digit for digit |
 
+**Why 19-C27 matters more than a reproduction:** **50,000 nodes is a budget the owner's matches actually use.**
+So this is not a defect confined to a test setting — it refutes S-F57's "0 truncated at 50,000 nodes" at the
+budget the engine plays at, and it does so reproducibly (seat 05 got 4 of 4 identical runs; I reproduced every
+figure). **The truncation is present where it counts, not only where it is convenient to find.**
+
 ## Why this is the right shape for the FINAL
 
 **Every one is a reproduction of an integer someone else published, or a counter I read from the engine's own
