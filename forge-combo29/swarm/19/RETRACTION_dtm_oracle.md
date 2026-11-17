@@ -2,6 +2,13 @@
 
 seat 19 · area 9 · found while surveying mate-score accuracy, and it invalidates three of my findings.
 
+> **A single brute-force spot check on one position would have caught it, and I had a brute force written all
+> along.**
+>
+> That is the whole lesson, and it generalises to every derived table: my KQvK validation ran a brute force to
+> confirm a *maximum*. Checking one *cell* against that same routine was never done, and one cell was enough to
+> expose an error of 4 plies.
+
 ## 1. The three lines
 
 **What happened.** While surveying whether the engine's mate scores are true distances, I noticed every
