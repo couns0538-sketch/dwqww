@@ -246,6 +246,23 @@ def main() -> int:
     check("§1 mixed searchmoves no diagnostic",
           all("illegal" not in s for s in mixed["info_string_lines"]), str(mixed["info_string_lines"]))
 
+    # --- §6 A1 range table ------------------------------------------------
+    # The A1 table claims each of these is ACCEPTED by the parser and then
+    # reinterpreted. Checked here so the client-side rule does not rest on prose.
+    check("A1 depth -1 -> 1 ply", cell("go depth -1")["max_depth"] == 1)
+    check("A1 depth 0 -> 1 ply", cell("go depth 0")["max_depth"] == 1)
+    check("A1 depth 2^63 -> 1 ply", cell("go depth 9223372036854775808")["max_depth"] == 1)
+    check("A1 movestogo 0 -> unbounded", cell("go movestogo 0")["terminated"] is False)
+    check("A1 mate 0 -> unbounded", cell("go mate 0")["terminated"] is False)
+    c = cell("go nodes 0")
+    check("A1 nodes 0 -> zero info lines", c["info_depth_lines"] == 0)
+    check("A1 nodes 0 still returns a move", c["bestmove"] is not None)
+    # A3: the case a `<=` depth check cannot catch.
+    shallow = cell("go depth 5 wtime abc", "combos")
+    check("A3 depth 5 wtime abc reports depth 1 (passes a <= check)", shallow["max_depth"] == 1,
+          str(shallow["max_depth"]))
+    check("A3 which means A3 must assert equality", shallow["max_depth"] != 5)
+
     # --- ladder -----------------------------------------------------------
     lad = {r["go"]: r for r in ladder}
     check("§ladder infinite ladder non-empty", lad["go infinite"]["lines_in_window"] > 0)

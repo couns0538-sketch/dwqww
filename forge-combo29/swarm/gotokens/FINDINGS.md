@@ -48,8 +48,8 @@ the same artifact. All four pins MATCH: `bench 11` 312,866 · `bench 13` 862,329
    `info depth` lines and a legal bestmove. **The book move is also random
    between processes** (2 distinct moves in 24 runs), so it must never be
    asserted as a fixed value.
-8. **The client-side rule is five assertions, and one of them is "send a limit
-   you can name".** Details in the last section.
+8. **The client-side rule is five assertions on the `go` string plus one on the
+   harness, and one of them is "send a limit you can name".** Details in §6.
 
 ---
 
@@ -58,7 +58,7 @@ the same artifact. All four pins MATCH: `bench 11` 312,866 · `bench 13` 862,329
 Every cell is a **fresh process**, `OwnBook` set explicitly, `Hash 16`,
 `Threads 1`, stdin held open until `bestmove` arrives, 20 s cap (120 s for the
 boundedness probes). Board: `r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1`
-(midgame, white to move, 35 legal moves), except the book section (startpos) and
+(midgame, white to move, 36 legal moves), except the book section (startpos) and
 the boundedness probes (K+R v K).
 
 **Three harness defects were found and fixed here, and they are the reason the
@@ -388,17 +388,36 @@ overwrite the good value with 0. "Last wins" is not a rule this parser has.
 ## 6. The client-side rule
 
 Given only what UCI promises — nothing about this engine — a harness that types
-`go` must validate its own token string before sending it. Five assertions, each
-named with the failure it prevents.
+`go` must validate its own token string before sending it. **Five assertions on
+the string (A1-A5) plus one on the harness (A6)**, each named with the failure it
+prevents. A6 is stated separately because it is not a property of the `go` line
+at all — it is the only defence for the case where the string is valid and the
+engine still does not answer (`go infinite`, `go ponder`).
 
-### A1. Every limit keyword in your string has a value, and the value is a plain decimal integer (or a flag keyword, which takes none).
+### A1. Every limit keyword in your string has a value, the value is a plain non-negative decimal integer, and it is inside the keyword's usable range.
 
-> For each token that is one of `depth nodes softnodes movetime movestogo mate wtime btime winc binc`, assert the next token exists and `re.fullmatch(r'-?\d+', next)`. For `infinite` and `ponder`, assert nothing follows that you expected to be a value.
+> For each token in `depth nodes softnodes movetime movestogo mate wtime btime winc binc`, assert the next token exists and `re.fullmatch(r'[0-9]+', next)` — **no sign, no `+`, no `0x`, no `.`** — then assert the range: `depth` in 1..64, `mate` in 1..32, `movestogo` in 1..50, `nodes`/`softnodes` in 1..2^63-1, clocks in 0..2^63-1. For `infinite` and `ponder`, assert nothing follows that you expected to be a value.
 
 **Prevents:** the whole unbounded family — `go nodes`, `go nodes abc`,
 `go mate abc`, `go softnodes abc`. Also prevents *keyword-eating* (§2a), where
 `go nodes depth 5` is unbounded with every token individually well-formed: the
 assertion catches it because the token after `nodes` is not a number.
+
+**The range half is not decoration, and the measured rows are why:**
+
+| value you might send | what the engine does | what asserting the range prevents |
+|---|---|---|
+| `depth -1` | clamped to **depth 1**, 42 nodes | a 1-ply "result" where you asked for depth |
+| `depth 0` | clamped to **depth 1** | same |
+| `depth 2^63` | `read_int` fails → 0 → **depth 1** | same |
+| `movestogo 0` | `max(1, 0)` = 1, and no clock → **unbounded** | a hang |
+| `mate 0` | `mate 0` = no mate limit → **unbounded** | a hang |
+| `nodes 0` | **returns with zero info lines** and the first legal move | a fabricated result |
+| `wtime 2^63` | clamps to a **valid** ~1.1-million-year clock | a hang that looks like a slow search |
+
+**A permissive `-?\d+` check passes six of those seven.** Malformedness is not
+the only thing to validate; **a value the engine accepts and then reinterprets
+is the same hazard with a cleaner parser.**
 
 ### A2. At least one of `depth`, `nodes`, `movetime`, `wtime`/`btime` (for the side to move), `mate`, or `searchmoves`-plus-a-limit is present and well-formed.
 
@@ -408,15 +427,20 @@ assertion catches it because the token after `nodes` is not a number.
 `go infinite` (§5). Also catches `go movestogo 20` and `go btime 1000` on a
 white-to-move board, where the keyword is **valid** and still sets no limit.
 
-### A3. If you sent a node budget, assert the reply's node count is under it; if you sent a depth, assert the last reported depth is at or under it.
+### A3. If you sent a node budget, assert the reply's node count is under it; if you sent a depth, assert the last reported depth EQUALS it.
 
-> `assert last_info_depth <= requested_depth` and `assert last_info_nodes <= requested_nodes` (for `nodes`, allow the iteration-boundary overshoot of `softnodes`).
+> `assert last_info_nodes <= requested_nodes` (for `softnodes`, allow the
+> iteration-boundary overshoot up to 4×) and
+> `assert last_info_depth == requested_depth`, unless the search was stopped
+> early by a clock, `stop`, or a mate score — in which case record it as
+> **cut short** rather than as a completed fixed-depth search.
 
-**Prevents:** silently accepting a search that ignored your limit. `go depth 5
-wtime abc` reports depth 1 — under budget, so this one passes and needs A1;
-`go depth abc nodes 50000` reports depth 1 too. This is the assertion that
-catches a **0** substituted for a value you did send, in the cases where the
-zero produces a *shallower* search rather than an unbounded one.
+**Prevents:** silently accepting a search that did not do what you asked. This is
+**the assertion that would have caught `go depth 5 wtime abc`**: it returns depth
+1, correctly, because the failed clock is a 0-ms clock. **A `<=` check passes it**
+— depth 1 really is at most 5 — so the strength has to be `==` plus an explicit
+not-cut-short condition. A `<=` depth check is a check that cannot fire on the
+exact case this table is about.
 
 ### A4. Treat zero `info depth` lines as "no search happened", and require a reason.
 
@@ -528,11 +552,11 @@ The two things a client cannot fix on its own, and which belong in the engine:
 | `evidence/movetime_zero_interleaved.json` | 30 fresh processes per arm, interleaved |
 | `evidence/build_and_run.log` | the matrix run log, build label on every line |
 | `scripts/` | `go_probe.py` (the harness), `matrix.py`, `keyword_eating.py`, `lastwins.py`, `searchmoves_pass.py`, `boundedness.py`, `huge_clock.py`, `repeatability.py`, `movetime_zero.py`, `book_randomness.py`, `find_reference_fen.py`, `search_reference_board.py` |
-| `scripts/verify_claims.py` | re-derives 171 checkable figures in this document from the evidence |
+| `scripts/verify_claims.py` | re-derives 180 checkable figures in this document from the evidence |
 
 ## How the figures here are checked
 
-`python3 scripts/verify_claims.py` re-derives **171** of this document's numbers
+`python3 scripts/verify_claims.py` re-derives **180** of this document's numbers
 from the JSON/JSONL evidence and exits non-zero on any mismatch. **It was proved
 able to fail**: planting `999` for `go depth 5` nodes gives
 `§1 go depth 5 nodes :: 999 != 818`, exit 1; restoring the file gives exit 0.

@@ -47,10 +47,12 @@ broken header path), `LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13`, default
 - [x] boundedness probes, 120 s, two boards
 - [x] 0-ms race quantified, 30 processes per arm, interleaved
 - [x] FINDINGS.md
-- [x] `scripts/verify_claims.py` — 171 figures re-derived, proved able to fail
+- [x] `scripts/verify_claims.py` — 180 figures re-derived, proved able to fail
 
-**Total measured cells: 171** (plus 24 book-randomness and 90 race runs).
-Matrix wall time: 1,193 s.
+**Matrix cells measured: 157** (75 keywords + 19 combos + 11 eating + 12
+lastwins + 14 book + 15 extra + 11 searchmoves), plus 24 book-randomness runs,
+90 race runs, 8 boundedness probes, 4 huge-clock probes and 160 repeatability
+runs. Matrix wall time: 1,193 s.
 
 ## Three harness bugs found and fixed (kept in the record)
 
