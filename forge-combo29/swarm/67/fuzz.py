@@ -188,8 +188,14 @@ class Case:
     """A scripted session.
 
     steps: list of (bytes, kind)
-        kind in {"cmd", "wait_bestmove", "wait_ready", "settle", "kill"}
+        kind in {"cmd", "wait_bestmove", "wait_nodes", "wait_ready", "settle", "kill"}
     expect_bestmove: "must" | "may" | "must_not"
+
+    Hang policy. A missing `bestmove` is NOT a hang: an unrestricted `go` is
+    supposed to run until `stop`. A hang is a FAILURE OF PROTOCOL LIVENESS --
+    the engine stops answering `isready` (wedged search thread, deadlock, or
+    dead process). Liveness is measured after every case, and the two outcomes
+    are recorded separately as `hang` and `unbounded`.
     """
 
     def __init__(self, cid, cls, steps, expect_bestmove="may",
@@ -220,8 +226,6 @@ class Case:
                         eng.write(data)
                     ok = eng.wait_for(lambda t: t.strip() == "readyok", self.ready_timeout)
                     marks["ready_seen"] = 1 if ok else 0
-                    if not ok:
-                        hang = eng.p.poll() is None
                 elif kind == "wait_bestmove":
                     if data:
                         eng.write(data)
@@ -229,22 +233,38 @@ class Case:
                     ok = eng.wait_for(lambda t: t.startswith("bestmove"), self.bestmove_timeout)
                     marks["bestmove_seen"] = 1 if ok else 0
                     marks["bestmove_at"] = before
-                    if not ok:
-                        hang = eng.p.poll() is None
                 elif kind == "wait_nodes":
                     # `go perft` answers with `nodes N`; it never emits bestmove.
                     if data:
                         eng.write(data)
                     ok = eng.wait_for(lambda t: t.startswith("nodes "), self.bestmove_timeout)
                     marks["nodes_seen"] = 1 if ok else 0
-                    if not ok:
-                        hang = eng.p.poll() is None
                 elif kind == "kill":
                     eng.kill()
+
+            # ---- liveness measurement, before quitting --------------------
+            # A missing bestmove only means the search had no limit (that is a
+            # legitimate `go`). A HANG is a protocol liveness failure: after
+            # `stop`, the engine must still answer `isready` with `readyok`.
             eng.settle(0.35)
-            rc = eng.p.poll()
-            if rc is None:
-                rc = eng.close()
+            if eng.p.poll() is not None:
+                rc = eng.p.returncode
+                marks["liveness"] = "process-exited"
+            else:
+                m = eng.mark()
+                eng.write(b"stop\n")
+                eng.settle(0.30)
+                eng.write(b"isready\n")
+                live = eng.wait_for(lambda t: t.strip() == "readyok", 10.0, scan_from=m)
+                marks["liveness"] = "responsive" if live else "unresponsive"
+                if not live:
+                    hang = True
+                stopped = eng.find(r"^bestmove", scan_from=m)
+                marks["bestmove_after_stop"] = 1 if stopped else 0
+                eng.settle(0.20)
+                rc = eng.p.poll()
+                if rc is None:
+                    rc = eng.close()
         except Exception as exc:            # harness must never mask a crash
             rc = None
             marks["harness_error"] = repr(exc)
@@ -275,6 +295,14 @@ class Case:
 
         perft_totals = [l["text"] for l in text_lines if l["text"].startswith("nodes ")]
 
+        # A search that never terminated on its own but answers `stop` and
+        # stays live is UNBOUNDED, not hung. Named so the report cannot confuse
+        # a missing limit with a wedged engine.
+        saw_bestmove_before_stop = marks.get("bestmove_seen") == 1
+        unbounded = (marks.get("liveness") == "responsive"
+                     and marks.get("bestmove_after_stop") == 1
+                     and not saw_bestmove_before_stop)
+
         return {
             "id": self.cid,
             "cls": self.cls,
@@ -283,6 +311,8 @@ class Case:
             "expect_bestmove": self.expect_bestmove,
             "exit": rc,
             "hang": hang,
+            "liveness": marks.get("liveness"),
+            "unbounded": unbounded,
             "sanitizer": san,
             "bestmoves": bestmoves,
             "perft_totals": perft_totals,
@@ -368,8 +398,9 @@ def main() -> int:
     n_san = sum(1 for r in results if r["sanitizer"])
     n_hang = sum(1 for r in results if r["hang"])
     n_bad = sum(1 for r in results if r["exit"] not in (0, None))
+    n_unb = sum(1 for r in results if r.get("unbounded"))
     print(f"\nran {len(cases)} cases in {payload['elapsed_s']}s: "
-          f"sanitizer={n_san} hang={n_hang} bad_exit={n_bad}", flush=True)
+          f"sanitizer={n_san} hang={n_hang} unbounded={n_unb} bad_exit={n_bad}", flush=True)
     return 0
 
 
