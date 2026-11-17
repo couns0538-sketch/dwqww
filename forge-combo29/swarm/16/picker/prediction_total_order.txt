@@ -1,0 +1,25 @@
+# PREDICTION — the named next step: sorting on (score, original index) to reproduce the tie order
+
+Committed BEFORE building. This tests the handover item from `REPORT_picker.md`.
+
+**The idea being tested:** the picker's full `std::sort` with the comparator `a.score > b.score` leaves the order of
+EQUAL scores unspecified. Replacing it with a total order — `score` descending, then original array index ascending —
+would make the output deterministic and, if it happened to match what libstdc++'s introsort already produces for this
+build, identity would hold AND one could then hand moves out in O(n) instead of sorting.
+
+**The question this job settles:** does a total-order comparator preserve identity?
+
+P1. It does NOT: predicted at least 1 of the 200 OG200 rows differs, and probably many. Reason: libstdc++'s
+    introsort with a two-key comparator reorders equal-score elements in an implementation-defined way, and that is
+    not index order. My own S-F11/S-F35 work shows any change of order changes this search.
+    Kills it: 0 of 200 rows differ — which would mean the current sort's tie order already IS index order, identity
+    holds, and the O(n) handout becomes a legitimate speed candidate worth timing.
+P2. If P1 holds, then the picker's sorting cost is **not removable by any comparator change**, and the lever is
+    closed for good rather than handed over. Predicted that is the outcome.
+P3. The divergence is predicted to be SMALLER than the find-max experiment's 5.0547 %, because a total order is a
+    much smaller perturbation than replacing the algorithm — the tie order under `std::sort` is "arbitrary but fixed",
+    whereas find-max produced a systematically different sequence.
+    Kills it: a divergence of 5.0547 % or more, which would mean the two perturbations are equally damaging and the
+    notion of "smaller perturbation" is not useful here.
+P4. If identity DOES hold (P1 refuted), the timing gain is predicted at 1 % to 4 % on `bench 13`: the sort is 5.03 %
+    of the time, and an O(n) handout cannot recover all of it because the find-max scan is itself O(n) per move.
