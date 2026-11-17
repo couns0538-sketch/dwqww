@@ -127,8 +127,13 @@ def main():
     depth = 12
 
     lines = [l.strip() for l in Path(fenfile).read_text().splitlines() if l.strip()]
-    stride = max(1, len(lines) // n)
-    sample = lines[::stride][:n]
+    # n == 0 means EVERY position (population run, not a sample). Otherwise stride-sample as before.
+    if n <= 0:
+        sample = lines
+        stride = 1
+    else:
+        stride = max(1, len(lines) // n)
+        sample = lines[::stride][:n]
 
     rows = []
     print("=== %d pairs, depth %d, ABBA" % (len(sample), depth), flush=True)
@@ -148,6 +153,12 @@ def main():
             continue
         if a_time <= 0:
             continue
+        _ckpt = out / "pairs.jsonl"
+        with _ckpt.open("a") as _f:
+            _f.write(json.dumps({"i": i, "fen": fen, "ratio": b_time / a_time,
+                                 "node_ratio": (b1["nodes"] / a1["nodes"]) if a1["nodes"] else None,
+                                 "s14_time": a_time, "pc20_time": b_time,
+                                 "s14_nodes": a1["nodes"], "pc20_nodes": b1["nodes"]}) + "\n")
         rows.append({"i": i, "fen": fen,
                      "s14_time": a_time, "pc20_time": b_time, "ratio": b_time / a_time,
                      "s14_nodes": a1["nodes"], "pc20_nodes": b1["nodes"],

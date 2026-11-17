@@ -3229,3 +3229,29 @@ the same error as the S-F171 branch claim and the 37-vs-38 sweep - a number asse
 checking numbers. The page now carries the itemised table so the sentence cannot drift again.
 Gates: 233 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T04:25:22Z — reproduced the perft seat's ep caveat, and it bounds my own 353 more than it threatens it (S-C62)
+THE CAVEAT IS REAL AND I REPRODUCED IT. `Board.fen()` DROPS the ep square when no LEGAL ep capture exists:
+    input  : 4r3/8/8/3pP3/8/8/8/4K3 w - d6 0 1
+    parsed : has_legal_en_passant() == False   (the capture would expose the white king)
+    .fen() : emits "-" where the input had "d6"
+So a position can reach an engine without its ep rights, and both sides of a comparison would agree while neither tested
+the square. Exactly as the seat said.
+MY RESULTS, CHECKED RATHER THAN ASSUMED:
+  1. the 353-position movegen fingerprint is UNAFFECTED - it passes the .epd LITERALS and never calls .fen() (grepped);
+  2. MORE IMPORTANT, AND THE HONEST PART: **ZERO of the 353 set_G positions carry an ep square at all.** So my
+     population never exercised ep even where the code would have preserved it. THAT IS A BOUND ON WHAT MY RESULT
+     COVERED: the 353 is a clean bill for move generation EXCLUDING ep, and I have said so rather than letting "353 of
+     353" imply full coverage.
+  3. AND THE LATENT BUG WAS LIVE IN MY SYMMETRY CHECK, which re-emits m.fen(). A mirror can have a DIFFERENT king-safety
+     situation from its original, so the two sides could disagree about whether an ep capture is legal - and one would be
+     evaluated WITHOUT the ep square. That is a false ASYMMETRY, in a check whose whole job is detecting asymmetry.
+FIXED: fen_preserving_ep() takes board/side/castling from fen() but the ep field from board.ep_square, not from fen()'s
+decision. Verified a no-op on current data (0 of 60, unchanged) - it closes the path before a corpus that has ep uses it.
+Their 5,075 comparisons across four 500-position targeted families (ep-discovers-check, ep-exposes-king,
+castling-rights-loss, underpromotion-check, each with a predicate proving the edge was live) COMPLEMENT this rather than
+duplicate it: THEY cover the edges my population does not contain. Two results, two different coverage claims, and
+neither implies the other.
+The population wall-time run is still going in tmux (2,343 pairs of 11,192 at the last check) with per-pair checkpointing
+so it survives interruption.
+Gates: 234 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: continue at cadence; the population result lands when the run finishes.

@@ -26,6 +26,27 @@ from pathlib import Path
 import chess
 
 
+def fen_preserving_ep(board):
+    """`.fen()` DROPS an ep square when no LEGAL ep capture exists (the ep-exposes-king case).
+
+    Found by the perft seat: a position with `- d6 -` whose only ep capture is illegal re-emits as `- - -`, so a
+    comparison built on `.fen()` silently compares a position WITHOUT ep rights. Reproduced here on
+    `4r3/8/8/3pP3/8/8/8/4K3 w - d6 0 1`: `has_legal_en_passant()` is False and `.fen()` gives `-`.
+
+    For a MIRROR this matters because the mirror of a position can have a different king-safety situation from its
+    original, so the two sides could disagree about whether the ep capture is legal - and one side would then be
+    evaluated without the ep square while the other was, which is a false asymmetry.
+
+    The fix: emit the four board/castling fields and carry the ep square through unchanged, rather than trusting
+    `.fen()` to decide. `set_G` has no ep positions today, so this changes no current number - it closes the latent
+    path before a corpus that does have them is used.
+    """
+    parts = board.fen().split()
+    # board, side, castling come from fen(); the ep field comes from board.ep_square, not from fen()'s decision
+    ep = "-" if board.ep_square is None else chess.square_name(board.ep_square)
+    return "%s %s %s %s %s %s" % (parts[0], parts[1], parts[2], ep, parts[4], parts[5])
+
+
 def eval_at(exe, net, fen, use_v3):
     cmd = ["uci", "setoption name Threads value 1", "setoption name Hash value 16"]
     if use_v3:
@@ -77,7 +98,7 @@ def main():
             skipped += 1
             continue
         a = eval_at(exe, net, fen, True)
-        c = eval_at(exe, net, m.fen(), True)
+        c = eval_at(exe, net, fen_preserving_ep(m), True)
         if a is None or c is None:
             skipped += 1
             continue
@@ -85,7 +106,7 @@ def main():
         asym_hce += (a.get("hce") != c.get("hce"))
         asym_nnue += (a.get("nnue") != c.get("nnue"))
         asym_total += (a.get("total") != c.get("total"))
-        rows.append({"fen": fen, "mirror": m.fen(), "a": a, "b": c,
+        rows.append({"fen": fen, "mirror": fen_preserving_ep(m), "a": a, "b": c,
                      "symmetric": a.get("total") == c.get("total")})
 
     n = len(rows)
