@@ -32,7 +32,7 @@ Deliverables in `forge-combo29/swarm/65/`:
 | `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic, and one retraction |
 | `BOOK_WIRE.md` | exact reply shapes, the deadlock proof, the `go`-form matrix, harness rules |
 | `STATUS.md` | this file: claim → command index, what is not done |
-| `scripts/` | 30 files: 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 2 pipeline runners (the main audit and the base re-verification), 1 `.gitignore`, and Python measurement scripts (several imported as helpers) |
+| `scripts/` | 31 files: 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 2 pipeline runners (the main audit and the base re-verification), 1 `.gitignore`, and Python measurement scripts (several imported as helpers) |
 | `evidence/` | 34 captured outputs: one per step of `run_all.sh`, plus the `reverify-*` set for `6b98f217` |
 
 ## Reproduce
