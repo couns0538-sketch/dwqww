@@ -1,0 +1,20 @@
+kimi5 job 22 prediction (committed before the first Step 1 run; no times, no commit ids)
+
+P1: sf / base node-sum ratio at depth 14 on G = 0.945.
+    KILLED if the measured ratio falls outside [0.905, 0.985].
+    Ground: at depth 12 the known sums give sf/base = 16,894,018 / 17,611,204 = 0.9593;
+    all three options shrink the tree and deeper searches run more singular tests, so the
+    shrink should hold or grow a little with depth.
+
+P2: under base on G at depth 12, the extra multi-cuts of MultiCutScore 1
+    (singular_beta < beta <= excluded score, not a mate score) = 28 per 1,000 tests run.
+    KILLED if the measured rate falls outside [12, 55].
+    Ground: file 22 counts 31,604 today's multi-cuts, 10,247 branch-(2) and 15,219 branch-(3)
+    takings in 176,423 verifications on G; the extras hide mostly inside the branch-(2) pool
+    (tt_score >= beta > singular_beta) where the excluded search still fails high.
+
+P3: of NegExtTt 3, NegExtCut 2, MultiCutScore 1, the one that changes the node count on the
+    most G positions at depth 12 against base is: MultiCutScore 1.
+    KILLED if any other of the three changes more positions.
+    Ground: it has the largest d12 sum move (-3.5 %) and it both cuts more subtrees and
+    returns a different score, which propagates into parent nodes.
