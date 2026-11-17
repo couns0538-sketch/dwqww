@@ -742,3 +742,17 @@ python-chess (startpos = 20, mate board = 17) and prints an explicit verdict ("A
 Re-ran: all three cases read "ACCEPTED (the new board)". No hand-typed expectation remains in that output.
 FINDINGS_check.py still green (23 S-F, 5 S-C).
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:00:21 AM UTC 2026
+
+Added the generalisation beside the settings rule, as asked, in lib/AUDIT_settings_lists.md:
+  "An expected value written inline in an output line is an unverified assertion, exactly like a settings
+  list." Same class of object — a hand-maintained claim about what the code should do, sitting beside
+  machine output and borrowing its authority — and the same fix: compute the expectation
+  (chess.Board().legal_moves.count()) rather than type it, or keep it out of the output.
+  Generalized further in the same paragraph: the family is ANY hand-maintained duplication of a fact the
+  machine already knows — settings lists, expected values, reference shard paths, option-name spellings.
+  Remedy is always: derive from one source, assert the derivation.
+Also cross-linked that reasoning from lib/settings.py itself, so a reader of the code finds it; verified the
+module still imports and PC20 is still 22.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py

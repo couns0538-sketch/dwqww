@@ -6,7 +6,9 @@ whole grid measured PC6 while labelling itself PC20. Both times the result was a
 script is what allowed that, so the list now lives here once and every script imports it.
 
 The assertions are the point: a settings list is not evidence of what was sent, only its length and
-membership are. Import this module and you cannot quietly have a short list.
+membership are. The same fault appears in other forms -- an expected value typed beside a measurement, a
+cache path built from a name instead of a content hash -- and the remedy is always the same: derive from
+one source and assert the derivation. See AUDIT_settings_lists.md next to this file. Import this module and you cannot quietly have a short list.
 
 Usage:
     from settings import PC20, S14, PC6, NO_OPTIONS, describe

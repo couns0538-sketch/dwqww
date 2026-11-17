@@ -43,7 +43,20 @@ Checked each file's quoted option names against the canonical 22:
 Scripts with 3–7 options that do **not** claim PC20 (clamp.py, control_*, drawroot.py, pcfixes.py,
 loneking.py) are not faults: they deliberately use a minimal regime, and their reports say so.
 
-## The rule
+## The rule, and its generalisation
 **A settings list is not evidence of what was sent; only its length and membership are.** Assert both
 before any grid runs, and prefer importing one definition to retyping it. Two of my three instances would
 have been caught by a single `assert len(...) == 22`.
+
+**The same fault in another form:** *an expected value written inline in an output line is an unverified
+assertion, exactly like a settings list.* In `checks/check_01f8.py` I printed a correct measurement
+(`perft 1 = 17`) beside a hand-typed annotation claiming the expected value was 38. The annotation was the
+same class of object as a retyped option list: a human-maintained claim about what the code should do,
+sitting beside machine output and borrowing its authority. The fix is the same shape too — **compute the
+expectation** (`chess.Board().legal_moves.count()`) rather than type it, or keep it out of the output
+entirely.
+
+So the family is: *any hand-maintained duplication of a fact the machine already knows.* Settings lists,
+expected values, reference shard paths, and option-name spellings are all instances. The remedy is always
+to derive from one source and assert the derivation.
+
