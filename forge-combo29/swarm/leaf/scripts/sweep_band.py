@@ -43,7 +43,8 @@ for label, tmpl, p in FIX:
         rows.append(row)
         print(f"{h:>4} {truth:>10} {'':>7} | " + " | ".join(cells))
 
-json.dump(rows, open("sweep.json","w"), indent=1)
+out = os.environ.get("OUT", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "evidence", "band_sweep.json"))
+json.dump(rows, open(out, "w"), indent=1)
 print("\n--- totals (band cells only: nodes>0 in base, i.e. not the root guard)")
 for k in builds:
     band = [r for r in rows if r[k]["nodes"] not in (None,0)]
