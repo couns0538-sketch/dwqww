@@ -71,6 +71,13 @@ Ask of every number before writing it down: **what would this look like if it we
 rather than a property of the engine?** Three of my four failures were caught by that question asked of the
 *data's shape*; the fourth was caught only by another seat, which is why the cross-checking rule exists.
 
+## 5. `NOTE_power_before_decisive.md` — compute a separator's power before calling it decisive
+
+**A discriminator is a hypothesis test.** The four-step procedure, the tie-rate tell (103 same-move cells but only
+**14 decided** → effective n is 14, not 103), and why stratifying on *the variable that differs most* is not the
+same as stratifying on *the variable that governs power*. Came from 19-C52, where I announced a separator with a
+**3-7 %** chance of answering its own question.
+
 ## Cross-references
 
 - Findings that survived these audits: `19-F55`, `19-F58`, `19-F59` (with the depth-24 calibration), `19-F44`–`49`
@@ -94,10 +101,19 @@ an oracle missing the halfmove window — each with **what it looks like, the te
 Read it before writing a new driver. Two of the seven were caught only by another seat, which is the whole
 argument for the swarm's cross-checking rule.
 
-**Note on the count:** the file has grown well past seven, and two of the later entries are worth calling out here
-because they are about *evidence*, not plumbing. **Trap 12** — a zero gets less scrutiny than a percentage — and
-**trap 12b**, its sharper sibling: **a zero needs a plant, but a *uniform* zero needs a better metric.** The plant
-only proves the harness could see something; it cannot prove the *measure* could. Trap 12b came from a test of my
-own (19-C47) that returned `0 of 8` in all four arms and looked like four null results — it was one statement
-about the instrument.
+**Note on the count:** the file has grown well past seven, and three of the later entries are worth calling out
+here because they are about *evidence*, not plumbing. **Trap 12** — a zero gets less scrutiny than a percentage —
+and **trap 12b**, its sharper sibling: **a zero needs a plant, but a *uniform* zero needs a better metric.** The
+plant only proves the harness could see something; it cannot prove the *measure* could. Trap 12b came from a test
+of my own (19-C47) that returned `0 of 8` in all four arms and looked like four null results — it was one
+statement about the instrument.
+
+**Trap 16 is the one I would keep above all the others.** In one line: **a discriminator is a hypothesis test, and
+its power must be computed before it is announced as decisive.** I proposed a cross-seat separator as "the last
+word", ran it, got 7 of 14 = 50 %, and found the exact power had been **0.033–0.069** — a 3–7 % chance of
+answering its own question (19-C52). **The tell is a tie rate:** my quiet stratum had 103 same-move cells but only
+**14 decided**, so the effective sample was 14, not 103. **Count decided cells, not rows.** Together with 12b it
+makes a pair worth stating as one idea: *12b is the metric that cannot discriminate; 16 is the sample that cannot
+discriminate; a null from either is uninformative, and neither failure is visible in the result.*
+
 

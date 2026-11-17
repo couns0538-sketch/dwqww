@@ -406,6 +406,55 @@ inputs, you have your answer and no experiment will improve it.
 
 ---
 
+## 16. A discriminator is a hypothesis test — compute its power BEFORE you call it decisive (19-C52)
+
+**The general rule, and the one worth carrying out of this whole run:**
+
+> **A discriminator is a hypothesis test. Its power must be computed before it is announced as decisive.**
+
+**The case (mine).** To settle a cross-seat disagreement about PC20's move quality, I proposed as "the last
+separator": run the *quiet* subset (|material| ≤ 4) and compare my rate to seat 27's **63.6 %**. I wrote that it
+would close the thread. Then I ran it: **7 of 14 = exactly 50 %**, CI **[0.268, 0.732]** — an interval containing
+**both** 41.4 % and 63.6 %. **The test could not have separated the two hypotheses I built it for.**
+
+**Exact power at n = 14 decided cells: 0.033 to detect 41.4 %, 0.069 to detect 63.6 %.** I had announced a
+separator with a **3–7 %** chance of answering its own question.
+
+### The tell: count DECIDED cells, not rows
+My quiet stratum had **103 same-move cells** and I quoted that as the sample size. Only **14 were decided** — the
+other 89 tied. **An 86 % tie rate.** When ties dominate, **the effective n is the decided count, not the row
+count**, and quoting the row count is the statistical form of trap 9 ("committed is not currently used"): the
+number exists and does not measure what you named it as.
+
+| what I quoted | what it actually was |
+|---|---|
+| 103 same-move quiet cells | **14 decided** — the rest are ties contributing nothing |
+| "n = 29" for my pooled claim | same error at smaller scale; **power 0.15** |
+
+**The arithmetic to do first:** required decided cells ≈ `n` such that the sign test separates your two candidate
+rates at 80 % power. For 41 % vs 64 % that is **≈ 48 decided cells**. My 200 positions yielded 14 quiet decided
+cells, so I needed **≈ 600–700 quiet positions** — which is why the other seat, with 600, could settle it and I
+could not.
+
+### The second half of the same error: balance was the wrong lever
+I chose the quiet stratum because the two position sets differed most in material balance (43.5 % vs 22.0 %
+sharp, z = 5.91). But **material balance does not control the tie rate.** What sets the decided count is how many
+positions sit near the **depth boundary**, where one extra iteration is available to one engine and not the other.
+**Stratifying on the variable that differs most is not the same as stratifying on the variable that governs power.**
+
+**The test, in order:**
+1. What are the two hypotheses as **rates**? (here 41 % vs 64 %)
+2. How many **decided** cells does separating them need at 80 % power? (≈ 48)
+3. Does my proposed sample yield that many **decided** cells — not rows? (14 — no)
+4. If not, **say "this cannot settle it"** rather than announcing it as decisive.
+
+**Why this trap earns a place next to 12b:** both are about a test that cannot see the effect it is aimed at.
+12b is *the metric cannot discriminate* (a uniform zero). 16 is *the sample cannot discriminate* (a wide interval
+containing both answers). **A null from either is uninformative, and the failure is invisible in the result — you
+must check the instrument before you run it.**
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
