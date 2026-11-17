@@ -138,6 +138,27 @@ for page, base in sorted(BASELINE.items()):
 if _any_drop:
     overall_ok = False
 
+# COUNT-SNAPSHOT CHECK (23-F208): the FINAL states F / C / total row counts in prose, and a prose number is a snapshot
+# that goes stale the moment a row is added. Recompute from FINDINGS.md and compare.
+_fin = open('FINAL_CHAIN_LINE.txt').read() if os.path.exists('FINAL_CHAIN_LINE.txt') else ''
+_find = open('FINDINGS.md').read() if os.path.exists('FINDINGS.md') else ''
+_rows = [l for l in _find.split('\n') if l.startswith('| 23-')]
+_ids = [l.split('|')[1].strip() for l in _rows]
+_nf = sum(1 for i in _ids if '-F' in i)
+_nc = sum(1 for i in _ids if '-C' in i)
+_nt = len(_ids)
+_m = re.search(r"(\d+) `F` rows are this seat's own findings; (\d+) `C` rows are confirmations of OTHER seats' findings; (\d+) rows in total", _fin)
+print()
+if _m:
+    said = tuple(int(x) for x in _m.groups())
+    live = (_nf, _nc, _nt)
+    print("FINAL's stated counts %s | live %s | %s" % (said, live, "AGREE" if said == live else "**STALE**"))
+    if said != live:
+        print("HARD FAILURE: the FINAL quotes counts that no longer match FINDINGS.md — update them from the file.")
+        overall_ok = False
+else:
+    print("FINAL's count sentence: NOT FOUND (not treated as a failure; the sentence may have been reworded)")
+
 print()
 print("VERDICT:", "PASS" if overall_ok else "FAIL \u2014 see the lines above")
 # THE SCRIPT PRINTED A VERDICT BUT NEVER EXITED NONZERO, so every caller that checks $? — including the pre-commit
