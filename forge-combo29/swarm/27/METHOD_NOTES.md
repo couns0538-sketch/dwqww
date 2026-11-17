@@ -84,3 +84,26 @@ The same principle applies to anything "does it pick the right one": a hash-coll
 collision, a pruning test needs a position where the pruned move matters, and a fallback test needs the
 fallback to be wrong. **Verify that the discriminating condition actually holds on your board before you use
 it as evidence.**
+
+## A `bestmove` with zero `info depth` lines is not a search result — abort the row
+
+The highest-severity trap in this list, because it produces numbers that look like measurements. Fed a `go`
+line and then end-of-input (or a `quit`, or a closed stdin), the engine answers immediately with a fabricated
+`bestmove` drawn from its own generator order, and **no** `info depth` line at all.
+
+What that means concretely: **zero info lines = no score, no node count, no nps.** Anything quoted from such
+a reply is invented by the reader, not measured.
+
+**The rule: every harness aborts when the info list is empty.** Not `last = infos[-1] if infos else ""` —
+that silently records `None` and looks like a normal row. `raise` instead.
+
+**Prove the guard fires** with a fake engine that answers every `go` with `bestmove a2a3` and no info line;
+the harness must raise. A guard never shown to fire is a claim about code, not behaviour.
+
+**And check the score against the material before publishing it.** The companion lesson from the same
+incident: I published `mate -25` on a king-versus-king-and-rook position, where the theoretical maximum DTM
+is 16 moves (31 plies). **A one-line material check — is 2|N| even reachable here? — would have caught a
+score that was impossible regardless of any harness question.** A deep mate score is a claim about the
+position, so test it against the position.
+
+Two seats have now been caught by the zero-info-line class. It is listed here first for that reason.
