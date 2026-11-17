@@ -73,6 +73,43 @@ Validated by experiment, not recommended on theory. Same corrupted list, intende
 The naive protocol plays a different game; detect refuses to play a wrong move; fixup recovers. **Detect is the
 minimum; fixup is what makes the engine usable.**
 
+
+## What a well-behaved driver looks like, end to end
+
+Three seats were bitten by DRIVER SHAPE rather than by engine behaviour (the FEN-vs-moves difference in 23-C20, the
+refused-FEN stale board, the illegal-token truncation). Here is the whole protocol in one block, in the order that
+avoids every hazard on this page.
+
+```
+startup      uci  ->  read until "uciok"
+             for each option you set:   setoption ...
+                                        isready  ->  read EVERY line until "readyok"
+                                        (stop on "unknown option" / "invalid value")
+             ucnewgame          ONCE, before any position        <- see 23-C1: it DISCARDS a position sent before it
+position     ALWAYS send the move list when you have one:
+                 position startpos moves e2e4 e7e5 g1f3 ...
+             only use `position fen` when there is no history
+             then:  isready  ->  read EVERY line until "readyok"
+             **count the `info string` lines you just read.**
+                 if ANY appeared  ->  the position was refused or truncated.
+                                       do not search it. `ucinewgame` and rebuild.
+search       send BOTH clocks for the current game, every time:
+                 go wtime <ms> btime <ms> winc <ms> binc <ms>
+             never one clock alone (hazard 3: no answer, no diagnostic)
+             read until "bestmove" — never send the next command first (19-F12: a pipelined `quit`
+                 makes this build answer `bestmove a2a3` with 0 nodes)
+shutdown     quit, only when no search is running
+```
+
+The four rules, which are the whole of it:
+
+1. **`ucinewgame` before the first `position`, never between a `position` and its search.**
+2. **Send the move list, not a FEN, when history exists** — the FEN form can change the answer (23-C20).
+3. **Count `info string` lines after every `position`; rebuild if any appeared.** The line is the only signal that
+   the engine is not on the board you think it is.
+4. **Send both clocks, and read to `bestmove` before the next command.**
+
+Every one of those maps to a hazard measured on the PC build on this page, and to a seat that lost time to it.
 ## Why this is safe for the owner's PC games
 
 The match program drives the engine directly and sends well-formed positions, so neither hazard arises in the PC's
