@@ -1,0 +1,44 @@
+### 30-F59 check: does PC20 choose a worse move at low depth here?
+fen rnb3nr/3kb2p/1p2p3/p1p2pP1/1PP1p1P1/P3PQ1R/1B1P1P2/RN2KB2 w Q - 0 18
+fresh process per search, Threads 1, Hash 16
+
+ depth |      PC20 unrestricted |       S14 unrestricted |  PC20 move better/worse?
+    10 | score cp 1770     f3g2 | score cp 1744     f3g2 |
+    12 | score cp 1790     f3g2 | score cp 1838     f3g2 |
+    14 | score cp 1940     f3g2 | score cp 1905     f3g2 |
+    16 | score cp 2019     f3g2 | score cp 1985     f3g2 |
+    18 | score cp 2031     f3g2 | score cp 2053     f3g2 |
+    20 | score cp 2187     f3g2 | score cp 2113     f3g2 |
+
+Isolated scores of the two candidate moves, so the comparison is like-for-like at each depth:
+ depth |    PC20 f3g3    PC20 f3g2  gap (g2-g3) |    S14 f3g3    S14 f3g2
+    12 | score cp 1548 score cp 1779         +231 | score cp 1611 score cp 1801
+    14 | score cp 1610 score cp 1849         +239 | score cp 1708 score cp 1825
+    16 | score cp 1761 score cp 1959         +198 | score cp 1729 score cp 1918
+    18 | score cp 1865 score cp 1965         +100 | score cp 1791 score cp 1978
+
+VERDICT: 30-F59's MOVE CHOICE claim does NOT reproduce on my build, though its SCORE GAP figure does.
+
+CLAIM 1 - "PC20 gives f3g3 at depths 10-16, switching to f3g2 only at depth 18": REFUTED here.
+  MY RUN: PC20 chooses **f3g2 at EVERY depth 10, 12, 14, 16, 18 AND 20** (cp 1770/1790/1940/2019/2031/2187).
+  The f3g3 move never appears at any depth I tested. S14 also chooses f3g2 throughout, so there is no PC20-vs-S14
+  divergence on the MOVE at all on this board in my run.
+
+CLAIM 2 - "f3g2 is 190-230 cp better in isolation at low depth": CONFIRMED, and slightly wider than claimed.
+  Isolated scores, PC20: f3g3 vs f3g2 -> +231 (d12), +239 (d14), +198 (d16), +100 (d18).
+  S14: +190 (d12), +117 (d14), +189 (d16), +187 (d18).
+  So the 200+ cp gap is real at depths 12-16 - but the ENGINE DOES NOT FALL FOR IT: it picks the better move
+  everywhere. That is a stronger outcome than their finding describes.
+
+WHY THE MISMATCH IS PLAUSIBLE RATHER THAN MY ERROR: they name no build hash in the finding line, and their
+`check17/out/settle_pos29.json` shows the data they collected. Two ways the difference could arise:
+  (a) a different binary (their earlier notes reference a patched build in some jobs);
+  (b) a different move-ordering tie: at +198 cp the gap is large, so a tie is unlikely, which argues for (a).
+I could not determine which, so this is recorded as NOT REPRODUCED on my build, not as proof seat 30 erred - the same
+register I used for 27-F12.
+
+WHAT SURVIVES AND IS USEFUL: the isolated-gap measurement itself is a good instrument, and my table shows the gap
+SHRIKES with depth on this board (+231/+239/+198/+100 for PC20) - which is the opposite direction from "PC20 is worse
+at low depth and self-corrects". Here a low-depth search would be MORE likely to pick the better move than a deep one,
+if the gap is what drives the choice. That is the interesting number for the owner's self-play depths: at depth 7-8 the
+isolated gap is widest, yet the engine still finds f3g2.
