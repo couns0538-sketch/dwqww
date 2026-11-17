@@ -622,3 +622,15 @@ label false); re-verified and standing = S-N1, S-N3, S-C14, S-C22, S-C12/15/16, 
 **The opposite of where this thread started:** I opened it by claiming a drain and a forfeit, and have since
 retracted the magnitude, the mechanism, the settings label and the counter inference, and closed with three
 instruments agreeing that the time management is sound. **Quote seat 28's S-F44, not my S-C11 chain.**
+
+## 2026-11-17T01:22Z S-C33: the determinism result seen as a POPULATION consequence
+Seat 03's collapsed lone-king position (8/8/8/8/8/5n2/4K1k1/4N3 b - - 11 60, K+N vs K+N) reproduces on BOTH builds
+at cp 0 / 492 nodes / f3e1 - their figure to the digit.
+The valuable half of the check is the clarification: cp 0 is the CORRECT score there (K+N vs K+N is a genuine
+draw; python-chess confirms the material rule alone does not declare it drawn, so the engine reached the right
+verdict by search). So their finding is not a scoring defect - it is a population defect: 40 depth-6 self-play
+games from one start funnel into one position, so the lone-king population is one sample wearing the word
+population.
+And that is the S-C27a determinism result seen from the other side: fixed limits are deterministic, so 40 games
+from one start give ONE line - a population consequence of determinism rather than a determinism claim itself.
+It bears on my own method: my S-C21 sparse mate sets were hand-generated for exactly this reason.
