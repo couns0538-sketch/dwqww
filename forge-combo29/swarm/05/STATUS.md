@@ -855,3 +855,14 @@ every sentence.
   raw run file (identical sets; the only difference found was unicode-minus vs ascii in my own table, not data).
 - Also fixed a wrong placeholder row (midgame 8) and, before that, the even-count median off-by-one in S-F65.
 - next command: continue at cadence.
+
+## $(date -u)
+- Item 1: the length-vs-replay distinction is now stated PLAINLY in S-F66 and REPORT_deepgain.md, and I fixed a
+  self-contradiction in my first wording ("would have counted all 4 as clean gains" vs "a length test would have flagged
+  them"). Correct version: the length test DOES catch both (28 vs 31, 25 vs 39 plies) but reports a QUANTITY defect
+  where the replay reports a FACT — a line that replays legally and does not mate cannot be a mate whatever its length,
+  whereas a short PV could still mate early. For a training label that is the whole distinction.
+- Item 2: the even-count median bug is in the method note (4th section) with the corrected formula, verified to
+  reproduce 5.5 and 52.5 from the real data. Noted that even counts are the common case in my tables, so the bias
+  recurs, and that it moved the middlegame figure a third of the way toward seat 15's 12 cp.
+- next command: continue at cadence.
