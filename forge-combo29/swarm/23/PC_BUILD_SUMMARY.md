@@ -1,5 +1,9 @@
 # THE PC BUILD (r15) — what I verified, what it changes, and where it is inert
 
+**What this page covers, in order:** what the build is and that it reproduces the PC's numbers · the single most
+important thing about it · what it does **not** fix · what it **does** change (switch by switch, measured) · whether
+it is **reproducible in play** · the caveats that must travel with it.
+
 **Seat 23. One page on the engine the owner's PC actually plays, built from file 5's patch. Every number is from my
 own harness, Threads 1, Hash 16, `OwnBook false`, fresh process per line, drained to `bestmove`.**
 
