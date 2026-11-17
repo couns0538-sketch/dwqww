@@ -1507,3 +1507,13 @@ LIMIT stated: eval is behaving as designed (static, no history) - the finding is
 not an eval defect.
 All 4 predictions held. This adds a fourth angle to the drawn-root picture. 106 findings, 18 confirmations, 13 faults.
 9 h 18 m remain.
+## 2026-11-17T01:00:38Z  F78 becomes the sixth trap on GUI_HAZARDS: never mix eval (static) with go (searched)
+2026-11-17T01:00:38Z
+
+The page now carries the eval-vs-go contradiction with the table (base eval +406 vs go cp 0 / 0 nodes; PC eval +406 vs
+go cp 507 / 44,269 nodes) and the rule: do not mix the two interfaces; if you display eval, say it is a static board
+score that ignores repetition and do not present it as the engine's opinion. Limit on the page: not an eval defect
+(a static evaluator has no history and is right), but a trap in how a front end combines the two.
+GUI_HAZARDS now: 6 traps, 5 rules, the identical-counts heuristic, the end-to-end driver protocol, claim strength.
+It is the page for a front-end author; RULE_known_answer_control is the one for anyone writing measurement code.
+106 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 18 m remain.
