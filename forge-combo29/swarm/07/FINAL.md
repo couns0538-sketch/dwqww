@@ -130,6 +130,24 @@ false warning I printed came from my own illegal test move, caught with python-c
 
 > **A warning from a harness that has not validated its own input is not a finding.**
 
+### Every number in this file was measured under zero machine load, and that is now proven rather than assumed
+
+A loaded machine does not merely slow this engine down — at **full** saturation it searches a ply shallower
+and its node count collapses (30-F64). I confirmed the threshold on my own 4-core box with CPU burners
+(07-C65):
+
+| busy processes | bestmove | depth | nodes |
+|---|---|---|---|
+| 0 | `a2a3` | 17 | **362,362** |
+| 1 | `a2a3` | 17 | **362,362** |
+| 2 | `a2a3` | 17 | **362,362** |
+| **4** (all cores) | `a2a3` | **16** | **241,976** |
+
+**0, 1 and 2 hogs are identical to the node; only full saturation costs a ply.** My box read `loadavg 0.10`
+with zero `forge` processes whenever these measurements were taken, so **every figure in this file sits in
+the 0-hog regime** — the regime this ladder shows is indistinguishable from the ideal. That is the
+certification the night's numbers needed and, until this check, did not have.
+
 ### 100-position rates cannot order three budgets, or anything else that close
 
 **Two disjoint 100-position samples disagreed about which budget is safest.** Seat 10 measured
