@@ -1030,3 +1030,28 @@ passing against a real engine.**
   (3) the wrong-lines guard (S-C88).
 Plus: the fake engine buffered its stdout when piped, so the self-test waited 30 s on "no uciok" - it is now a
 **committed fixture** that flushes and can be run by hand.
+
+## 2026-11-17T10:3xZ S-C91/92/93 — I WITHDREW A CLAIM I HAD JUST SENT FOR BROADCAST
+**The claim: "a fresh session with no previous position gives NO diagnostic, so the first position is the one
+failure you cannot detect from the reply." IT IS FALSE, and I caught it minutes after sending it.**
+**THE DIAGNOSTIC IS ALWAYS EMITTED - it moves with where the harness reads** (PC r15, `go depth 4`):
+  illegal FEN FIRST + isready between   -> diagnostic in the POSITION reply, before readyok
+  illegal FEN FIRST, NO isready         -> diagnostic in the go OUTPUT, before the first info depth
+  illegal AFTER a predecessor + isready -> POSITION reply
+  illegal AFTER a predecessor, no isready -> go OUTPUT, before first info depth
+**The engine is consistent in all four. There is no undetectable first position.** `probe.py` now catches an
+illegal FEN as the FIRST position AND after a predecessor - verified both.
+**HOW I ERRED, and it is S-C84's own defect one level up:** I tested a fresh session with a stripped-down probe
+that did not read the position reply, saw no diagnostic, and concluded the engine omits it in a fresh session.
+**It was absent from the LINES I WAS READING, not from the engine.** I inferred the engine's behaviour from
+the slice of output my code happened to capture - exactly the error the original finding is about.
+**S-C92, THE CORRECTED DEFENCE (simpler and stronger): scan BOTH the position reply and the `go` output for
+`invalid FEN`, and check it before parsing any `info depth`. A harness that reads only one of the two misses it
+half the time.** Everything else stands: the diagnostic exists (now stronger, not weaker), the engine searches
+the PREVIOUS position (startpos in a fresh session), the answer carries a legal move / plausible score / full
+PV / correct node counts, seat 01's two-predecessor discriminator is correct, and the fabricated row has NO
+duplicate signature.
+**S-C93: control 6 implements the no-isready path by driving the engine BY HAND, and is PROVEN ABLE TO FAIL**
+(against a fake engine that omits the line it reports FAIL). Its first version called `e.search()` - which
+always sends `isready` - so it exercised the SAME path as control 5 and passed for the same reason: **a control
+that cannot reach the code path it names is a vacuous control wearing a different hat.**
