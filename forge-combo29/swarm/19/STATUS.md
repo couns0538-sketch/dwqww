@@ -1074,53 +1074,72 @@ next command: continue at cadence - check whether 19-C35's bench-vs-real diverge
 
 ---
 
-# FINAL CORRECTION — SPEED NUMBERS THAT SUPERSEDE EARLIER ONES (2026-11-17T02:55Z)
+# FINAL CORRECTION — SPEED, PER-NODE AND BENCH (2026-11-17T03:05Z)
 
-**Read this before using any speed or per-node figure from this branch.** Two of my own published numbers were
-wrong and are corrected here. Both corrections came from other seats' questions.
+## RULE FIRST, because everything below depends on it
+> **Use `bench` for pins, determinism, ablation DIRECTION, structural counters, and the pooled node effect of one
+> isolated toggle. Never use `bench` for per-node cost or for the aggregate PC20 set. Always report the
+> per-position spread — a pooled ratio can hide a coin flip.**
 
-## 1. Per-node cost: `bench` is NOT a representative workload
-| claim | value | where measured |
+Why, measured: the PC20 node effect is **bench 11 +14.5 %, bench 13 −10.6 %, bench 16 +8.7 %, real positions
+−9.1 %**. **The sign flips across benches**; only bench 13 agrees with real search, and only in direction.
+
+## 1. The cleanest per-node figure — no modelling assumption
+Pairs where the two engines' node counts agree **within 2 %** (n = 16), so the time ratio *is* the per-node ratio:
+
+| | per-node ratio (PC20/S14) |
+|---|---|
+| **node-matched pairs, n=16** | **median 1.074**, IQR 0.076 |
+| time ratio, same pairs | 1.073 — identical, as it must be |
+
+**PC20 costs ~7 % more per node.** This cell needs no inference and is the one to trust.
+
+## 2. The full distribution (n = 180, fixed `go nodes 50000`)
+| | min | Q1 | **median** | Q3 | max |
+|---|---|---|---|---|---|
+| **per-node ratio** | 0.751 | **1.044** | **1.071** | **1.110** | 1.837 |
+| node ratio, same pairs | 0.336 | 0.809 | 0.997 | 1.208 | 2.731 |
+
+- per-node **IQR 0.065**, sd 0.090, **90.0 % (162/180) above 1.0**, single peak at 1.05–1.10
+- pooled 1.0643 / mean 1.077 / geometric 1.074 / **median 1.071** — all within 1.3 %
+- **removing the top 5 % of pairs by node ratio moves pooled 1.0643 → 1.0665** (the tail contributes nothing)
+- **correlation(node ratio, per-node ratio) r = 0.044** — independent quantities
+- **the bimodality is in the NODE ratio, not the per-node ratio.** Do not merge them.
+
+| claim | value | where |
 |---|---|---|
-| **19-C35 (SUPERSEDED)** | per-node **1.0119**, CI [0.9997, 1.0241] → "at most ~1.2 % slower" | `bench 16` only |
-| **19-C53/C54 (CURRENT)** | per-node **median 1.071**, IQR [1.044, 1.110], **90 % of 180 pairs above 1.0** | real positions, fixed `go nodes 50000`, n=180 |
+| **19-C35 (SUPERSEDED)** | per-node **1.0119** [0.9997, 1.0241] → "at most ~1.2 % slower" | `bench 16` only |
+| **19-C53/C54 (CURRENT)** | per-node **median 1.071** [IQR 1.044–1.110] | real positions, n=180 |
 
-**Both figures are in the record deliberately: 1.2 % on bench, 7 % on real positions.** The intervals do not
-overlap. **`bench` understates PC20's per-node cost by roughly 6×.** Any future seat inheriting the 1.2 % figure
-will understate the cost of the switches — that is why both are stated.
+**Both figures stay in the record: 1.2 % on bench, 7 % on real positions.** Bench understates ~6×.
 
-## 2. The per-node penalty is UNIFORM, not tail-driven (19-C54)
-Seat 15 asked whether my pooled 1.0693 was a mean dragged by an 18× tail. **It was pooled — the right question —
-but the tail is not the cause:**
-- per-node ratio: **IQR 0.065**, sd 0.090, single peak at 1.05–1.10 (117 of 180)
-- pooled 1.0643 / mean 1.077 / geometric 1.074 / **median 1.071** — all agree within 1.3 %
-- removing the **top 5 % of pairs by node ratio** moves pooled 1.0643 → **1.0665** (the tail contributes nothing)
-- node-matched pairs (within 2 %, n=16, no modelling assumptions): **median 1.074**, time ratio identical
-- **correlation(node ratio, per-node ratio) r = 0.044 — independent quantities**
-
-**The heavy tail is real but it is in the NODE and TIME ratios** (node ratio IQR 0.400, max 2.731; time max 3.333),
-**not in the per-node penalty.** Do not merge the two.
-
-## 3. `bench` gets the SIGN of the PC20 node effect wrong (19-C55)
-| bench | S14 nodes | PC20 nodes | ratio |
+## 3. The bench node-sign flip (19-C55)
+| bench | S14 | PC20 | ratio |
 |---|---|---|---|
 | 11 | 242,796 | 278,024 | **1.145** (MORE) |
 | 13 | 656,517 | 587,276 | **0.894** (FEWER) |
 | 16 | 2,155,620 | 2,343,893 | **1.087** (MORE) |
 
-Deterministic (identical across 3 reps), S14 values matching the brief's S14 sums. **The sign flips across
-benches.** On real positions PC20 consistently reduces nodes (0.909 at depth 12, n=119). **`bench 13` is the only
-bench that agrees with real search, and only in direction.**
+Deterministic (identical across 3 reps); S14 values match the brief's S14 sums exactly. **Qualifies 19-F34**
+("flat per-node tax, 5.75 % bench 13 / 5.77 % bench 16"): equal shares across two benches with **opposite-sign**
+node effects is not evidence of a flat real-position tax.
 
-**This qualifies 19-F34** ("flat per-node tax, 5.75 % at bench 13 / 5.77 % at bench 16"): the shares are genuinely
-equal, but those two benches have **opposite-sign node effects**, so a flat profile share is not evidence of a flat
-real-position per-node tax.
+## 4. Audit of every bench-based node claim — `checks/realnode/AUDIT_bench_claims.md`
+**Mine:** 19-C35 **SUPERSEDED**; 19-F32 **SURVIVES as magnitude** (bench 4.3 % → real **5.2 %**, n=120) but
+**QUALIFIED as meaning** — only **54.2 %** of positions favour it, IQR 0.767–1.180 (28× the effect), so it is a
+pooled property, not a per-position one; 19-F34 **QUALIFIED**; 19-F33, 19-C40, 19-F42, 19-C19, 19-F26, 19-C3,
+19-F16/F17 **SURVIVE**.
+**Others:** 29-F42/F53 **SURVIVE and are corroborated** (real positions: 10.7–11.9 % vs my 12.4 %); 29-F59
+**SURVIVES**; 29-F56 **QUALIFIED** (right conclusion, underpowered n=40); 29-F58 is a **bench-13 profile** and must
+be quoted as such; seat 27's 600-cell series **SURVIVES** (I reproduced 600/600); 07's IIR `searchmoves` pin
+**SURVIVES**. **Open action: 29's `_mm_prefetch` 9.43 % bench-13 wall-time result needs a real-position re-check
+before anyone reads it as a general speed claim.**
 
-## The rule to carry forward
-**Use `bench` for pins, determinism and ablation DIRECTION. Never use `bench` for the MAGNITUDE of a node or time
-effect, or for per-node cost. There is no single "bench figure" — bench 11, 13 and 16 disagree in sign.**
+**Note on my own rule:** my first version said "never use bench for magnitudes". **That was too broad** — 19-C56
+shows a bench magnitude transferring correctly, and the over-cautious rule would have discarded a valid result.
 
 ## What the owner should be told about PC20, in one line
 **PC20 searches ~12 % fewer nodes at matched depth but pays ~7 % more per node everywhere, so the net wall-time
 gain is ~2.8 % — and at matched NODES it spends ~7 % more time for the same count. The switches are a small,
-uniform, consistent cost, not a set of pathological positions.**
+uniform, consistent cost, not a set of pathological positions — though individual positions vary a lot
+(node ratios span 0.34 to 2.73).**
