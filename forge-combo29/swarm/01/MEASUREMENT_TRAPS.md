@@ -59,6 +59,31 @@ All four are settings whose **name** suggests they do not matter to the measurem
 in the direction opposite to the intent. That is why the rule is uniform: **never send a value meaning "unset";
 omit the field.**
 
+## Trap 5 — caller wall is only sound if the timer starts after the preamble (S-C32, S-F92)
+
+Not a setting this time, but the same species: a measurement that quietly includes the apparatus.
+
+Seat 27's clock findings were retracted after it found **1,300 ms of harness** (Python startup, subprocess spawn,
+UCI preamble) charged to the clock on a search the engine reports as `time 0`. Its own `time` field showed
+329/328/322 ms against a 433 ms hard limit — inside the plan all along.
+
+**The rule is about WHERE the timer starts, not whether the caller times at all:**
+
+> **Time from immediately before `go` on a warmed process, and verify with a `time 0` search that the residual is
+> a few milliseconds.**
+
+| harness | residual on a `time 0` search |
+|---|---|
+| mine (timer immediately before `go`, preamble already read to `readyok`) | **0.89 ms** |
+| seat 27's (startup + spawn + preamble charged) | **1,300 ms** |
+
+Cross-check against the engine's own `time` field: `go wtime 6000 …` caller 288.71 vs engine **288** (gap
+**0.71 ms**); `movetime 500` 490.65 vs 473; `nodes 20000` 11.33 vs 6. So a sound caller measurement and the
+engine's own field agree to tens of milliseconds, and the zero-time control proves it in one search.
+
+A rule phrased as "never use caller-measured wall" would forbid a method that is demonstrably fine; the control is
+what distinguishes the two cases.
+
 ## The guard
 
 1. **Assert them explicitly** at the top of every harness: `Threads 1`, `MultiPV 1`, omit `movestogo`/`depth`
