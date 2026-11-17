@@ -96,8 +96,17 @@ if _strays:
 _LEAK_PAT = ("open(", "print(", "import ", "subprocess", "PY", "python3 ", "git add", "git commit", "XEOF", "EOF")
 _leaks = []
 _in_text = open("FINDINGS.md").read().split("\n")
+_in_fence = False
 for _i, _l in enumerate(_in_text, 1):
     _t = _l.strip()
+    # FENCE-AWARE: a code sample inside ``` is documentation; a leaked line outside a fence is a defect. My first
+    # version ignored fences and would have flagged FIXTURE_RULES.md's legitimate `import sys; ...` sample — a guard that
+    # fires on documentation is worse than none, because it trains you to ignore it.
+    if _t.startswith("```"):
+        _in_fence = not _in_fence
+        continue
+    if _in_fence:
+        continue
     if not _t or _t.startswith("|") or _t.startswith("#") or _t.startswith("FINDINGS") or _t.startswith("One line per"):
         continue
     if any(_t.startswith(_p) or _t == _p.replace(" ", "") for _p in _LEAK_PAT):

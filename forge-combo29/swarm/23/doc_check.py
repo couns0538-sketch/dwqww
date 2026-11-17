@@ -91,5 +91,31 @@ for page in PAGES:
         print("     not found:", t)
     if notfound or bad_rows:
         overall_ok = False
+# SAME LEAK GUARD AS THE FINDINGS AUDIT, applied to every reference page: a heredoc that loses its terminator can dump
+# shell into ANY document, and a page whose content is prose has no table-width check to catch it (23-F161).
+LEAK = ("print(", "import ", "subprocess", "PY", "python3 ", "git add", "git commit", "git push", "XEOF")
+print()
+print("leaked shell/code outside fenced blocks, by page:")
+_any_leak = False
+for page in PAGES:
+    if not os.path.exists(page):
+        continue
+    in_fence = False
+    hits = []
+    for i, line in enumerate(open(page).read().split("\n"), 1):
+        t = line.strip()
+        if t.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence or not t:
+            continue
+        if any(t.startswith(k) or t == k for k in LEAK):
+            hits.append((i, t[:50]))
+    print("  %-34s %d %s" % (page, len(hits), hits if hits else ""))
+    if hits:
+        _any_leak = True
+if _any_leak:
+    overall_ok = False
+
 print()
 print("VERDICT:", "PASS" if overall_ok else "check the unresolved names above (may be prose)")
