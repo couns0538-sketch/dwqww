@@ -88,6 +88,7 @@ Measured over the 2,000 compared positions:
 | castling | 67 / 2,000 |
 | side to move in check | 85 / 2,000 |
 | a pinned piece present | 171 / 2,000 |
+| **no legal moves (checkmate)** | **13 / 2,000** (0 stalemate) |
 
 A green result over 19 promotions would say almost nothing about promotion
 handling. So the fuzz was extended in two ways.
@@ -206,6 +207,46 @@ been — which is why the targeted `ep-expose` set is only trustworthy now.
 This is the same class of failure as §5: a silent, plausible-looking substitution
 that turns a real edge case into a vacuous green.
 
+### 5c. `go perft` ends at a bare `nodes N`, and framing that is a trap
+
+`go perft N` does **not** print a `bestmove`. It ends at the total line:
+
+```
+g1f3: 20
+g1h3: 20
+nodes 400          <- end of reply; nothing follows
+```
+
+Measured: no `bestmove` after perft in any session, and five consecutive perfts
+on five different positions stay perfectly aligned. So treating `nodes N` as the
+terminator is correct for this build — but it is an unwritten contract, and a
+harness that gets it wrong desyncs silently rather than failing loudly. If even
+one line followed the total (or the total were read before the divide finished),
+the stray line would be attributed to the **next** command's reply, and every
+subsequent comparison would be scoring the wrong reply against the right board.
+
+Two consequences worth separating:
+
+- Any implementation that waits for `bestmove` after `go perft` will hang forever.
+  `go perft` is synchronous and never sends one.
+- Any implementation that stops at `nodes N` is trusting that nothing follows.
+
+The harness does the second, and now proves the framing rather than assuming it.
+`Divide.check_consistent()` requires the child table to sum to the printed total
+and to be non-empty, and the self-test drives it to red on a planted
+non-adding-up divide and on an empty one. A drifted stream almost always breaks
+that sum, so the invariant converts a silent desync into a loud error.
+
+**The mate edge, found by that invariant going off:** a position with no legal
+moves prints `nodes 0` and *no divide lines at all*. That is a real answer, not a
+desync. My first version of the rule rejected it, and 13 of the 2,000 fuzz
+positions are checkmate (measured, 0 stalemate) — so the "generates nothing" case was being silently
+dropped from the set. Fixed to accept `nodes 0` with no children, and pinned by a
+self-test using an actual mate (`rnbqkb1r/p1ppp2p/8/1p3ppQ/4n2P/P1N4R/1PPP1PP1/R1B1KBN1 b Qkq - 1 6`,
+verified checkmate, engine and python-chess both 0). Both extremes are now
+covered: perft 0 prints `nodes 1` with no divide, mate prints `nodes 0` with no
+divide, and everything in between must add up.
+
 ## 6. Faults found in my own scaffolding
 
 Recorded because each one, had it gone unnoticed, would have produced a
@@ -232,6 +273,19 @@ confident and wrong report:
    verifier required the lost rook's square to be empty when the correct
    predicate is "no friendly rook". Both reported failures against correct data;
    both were fixed and re-run.
+7. **A double import that silently disabled an assertion.** `from uci_perft
+   import Divide` inside `uci_perft.py`'s own self-test re-executes the module
+   under a second name when it is run as `__main__`, so the imported
+   `EngineError` was a *different class object* and the `except` clause never
+   matched. The rule was firing and the self-test was crashing instead of
+   passing. Caught because the traceback showed the raise at the call site
+   rather than the handler.
+8. **The divide invariant rejected checkmate.** Requiring a non-empty divide is
+   right for ordinary positions and wrong for mate, which prints `nodes 0` with
+   no divide. It refused 4 positions in a 300-position sample; measured properly,
+   13 of the 2,000 fuzz positions are checkmate, so the whole "generates nothing"
+   case had been dropped from the set. Caught only because the refusal count went
+   from 0 to 4 and I chased it instead of widening the rule.
 
 Every one of these was caught by a gate, which is the point: the gates are the
 finding, not just the numbers.

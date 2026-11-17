@@ -19,7 +19,7 @@ Engine source: **unmodified**. This seat adds a test harness and fixtures only.
 | FEN validated with python-chess before use | done, gate 1 in every comparison |
 | `info string invalid FEN` detected in the stream | done in both locations (position reply and `go` output) |
 | `go perft N` synchronous, Threads 1 | done |
-| Every script proven able to fail | done — all four scripts have a self-test |
+| Every script proven able to fail | done — all four scripts have a self-test (10 checks in `uci_perft.py`) |
 | Print denominators as literals | done — counts stated as integers throughout |
 
 **Headline: 0 mismatches out of 2,000 random positions.**
@@ -78,15 +78,25 @@ where every position provably contains the edge it was targeting.**
    to the engine and then passes vacuously. `fen_with_ep()` serializes it
    unconditionally; the engine accepts such a FEN and agrees with python-chess.
    If anyone else generates ep positions, this is the trap to know about.
+4. **`go perft` ends at a bare `nodes N` with no `bestmove`.** Waiting for
+   `bestmove` after `go perft` hangs forever; stopping at `nodes N` trusts that
+   nothing follows. The harness now proves the framing instead of assuming it:
+   the divide must sum to the printed total, and a self-test drives that rule to
+   red. A position with no legal moves prints `nodes 0` and no divide at all,
+   which is the edge the rule initially got wrong — 13 of the 2,000 fuzz
+   positions are checkmate, so rejecting them would have quietly removed the
+   "generates nothing" case from the set.
 3. **Build note:** `cmake` picks clang here and clang cannot link `libstdc++` on
    this image (`cannot find -lstdc++`). `-DCMAKE_CXX_COMPILER=g++` works and
    reproduces every published count. Anyone else building this repo on this
    image will hit the same wall.
-4. Four faults in my own test scaffolding were caught by the gates (a double push
-   onto an occupied square, a push by a pinned pawn, a misread `board.pin()` mask,
-   and two illegal fixture FENs). Details in `FINDINGS.md` §6. The gates caught
-   all of them, which is the strongest evidence available here that the gates
-   work.
+4. Seven faults in my own test scaffolding were caught by the gates (a double
+   push onto an occupied square, a push by a pinned pawn, a misread `board.pin()`
+   mask, two illegal fixture FENs, `Board.fen()` dropping the ep square, a
+   double-import that made an except clause never match, and a divide invariant
+   that rejected checkmate). Details in `FINDINGS.md` §6. Every one was caught by
+   a gate rather than by luck, which is the strongest evidence available here
+   that the gates work.
 
 ## Not established by this seat
 

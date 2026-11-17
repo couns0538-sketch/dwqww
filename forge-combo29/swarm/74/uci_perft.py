@@ -36,6 +36,47 @@ class Divide:
     nodes: int
     children: dict[str, int] = field(default_factory=dict)
 
+    def check_consistent(self, depth: int) -> None:
+        """The divide must add up, and a desynced stream will not.
+
+        `go perft` terminates at a bare `nodes N` with no bestmove, so the
+        harness stops reading there and trusts that no line follows. If the
+        stream ever desynced -- a stray line from a previous command, a truncated
+        divide, two replies interleaved -- the symptom would be a child table
+        that does not sum to the total, or a root child count that does not match
+        the legal move count. Both are checked here rather than assumed away.
+
+        At depth 0 the engine prints `nodes 1` and no divide, so the sum rule
+        only applies from depth 1.
+
+        A position with NO legal moves (checkmate or stalemate) legitimately
+        prints `nodes 0` and no divide lines at all. That is not a desync, and
+        rejecting it would blind the harness exactly where "generates nothing"
+        is the property under test. Measured: mate positions in the fuzz set hit
+        this, e.g. rnbqkb1r/p1ppp2p/8/1p3ppQ/4n2P/P1N4R/1PPP1PP1/R1B1KBN1 b Qkq.
+        """
+        if depth <= 0:
+            if self.nodes != 1:
+                raise EngineError(f"perft 0 should print nodes 1, got {self.nodes}")
+            return
+        if self.nodes == 0 and not self.children:
+            return  # checkmate or stalemate: no moves, which is a real answer
+        if not self.children:
+            raise EngineError(
+                f"perft {depth} printed nodes {self.nodes} with no divide lines; "
+                f"the output was not read as a divide"
+            )
+        missing = [m for m, c in self.children.items() if c < 0]
+        if missing:
+            raise EngineError(f"negative child counts: {missing}")
+        child_sum = sum(self.children.values())
+        if child_sum != self.nodes:
+            raise EngineError(
+                f"divide does not add up: children sum to {child_sum} but the "
+                f"total says {self.nodes} (gap {self.nodes - child_sum}); "
+                f"the stream is desynced or the divide was truncated"
+            )
+
 
 class Engine:
     def __init__(self, binary: str):
@@ -117,7 +158,9 @@ class Engine:
             if ": " in line:
                 move, count = line.rsplit(": ", 1)
                 children[move] = int(count)
-        return Divide(nodes=total, children=children)
+        result = Divide(nodes=total, children=children)
+        result.check_consistent(depth)
+        return result
 
     def close(self) -> None:
         try:
@@ -311,7 +354,59 @@ def self_test() -> None:
         else:
             raise AssertionError("a refused FEN in the go stream was scored as a perft")
 
-        print("SELF-TEST PASSED: the harness rejects a planted bad count, bad FEN and board swap")
+        # 6. The divide self-consistency rule: `go perft` ends at a bare
+        #    `nodes N` with no bestmove, so a desynced stream shows up as a
+        #    divide that does not add up. Prove the rule fires.
+        #    Use the Divide defined in THIS file: importing it from "uci_perft"
+        #    re-executes the module under a second name when run as __main__, and
+        #    the second copy's EngineError is a different class object, so the
+        #    except clause below would never match.
+        try:
+            Divide(nodes=400, children={"a2a3": 20, "b2b3": 20}).check_consistent(2)
+        except EngineError as exc:
+            print(f"[self-test 6] non-adding-up divide caught: {exc}")
+        else:
+            raise AssertionError("a divide that does not sum to its total was accepted")
+
+        try:
+            Divide(nodes=400, children={}).check_consistent(2)
+        except EngineError as exc:
+            print(f"[self-test 7] empty divide caught: {exc}")
+        else:
+            raise AssertionError("a divide with no children was accepted")
+
+        # 7. Two consecutive identical perfts must return the same total. If the
+        #    harness mis-framed the end of the first reply, the second would drift.
+        engine.set_position(start)
+        first = engine.perft(4).nodes
+        second = engine.perft(4).nodes
+        assert first == second == 197281, (
+            f"repeated perft drifted: {first} then {second}, expected 197281 both times"
+        )
+        print(f"[self-test 8] repeated perft 4 stable at {first} both times (stream re-framed cleanly)")
+
+        # 8. depth 0 prints `nodes 1` and no divide; the new rule must allow it.
+        engine.set_position(start)
+        zero = engine.perft(0)
+        assert zero.nodes == 1 and not zero.children, f"perft 0 misframed: {zero}"
+        print("[self-test 9] perft 0 accepted as nodes 1 with no divide")
+
+        # 9. A checkmate position prints `nodes 0` and no divide. That is a real
+        #    answer, not a desync, and the rule must not reject it -- 4 of the
+        #    2000 fuzz positions are mate, so rejecting them would silently
+        #    remove the "generates nothing" case from the set.
+        mate_fen = "rnbqkb1r/p1ppp2p/8/1p3ppQ/4n2P/P1N4R/1PPP1PP1/R1B1KBN1 b Qkq - 1 6"
+        mate_board = validate_fen(mate_fen)
+        assert mate_board.is_checkmate(), "self-test mate fixture is not mate"
+        engine.set_position(mate_fen)
+        mate_d1 = engine.perft(1)
+        assert mate_d1.nodes == 0 and not mate_d1.children, f"mate misframed: {mate_d1}"
+        print("[self-test 10] checkmate accepted as nodes 0 with no divide")
+
+        print(
+            "SELF-TEST PASSED: planted bad count, bad FEN, board swap, go-stream "
+            "diagnostic, and a desynced divide all go red"
+        )
     finally:
         engine.close()
 
