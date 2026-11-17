@@ -127,9 +127,64 @@ Nothing accumulates and nothing decays: each repeat plans from the same 1000 ms.
 wall time having told the engine the clock was 1000 ms six times. `go movetime 200` repeated six times
 spent 190.4–190.8 ms each time — the movetime path is immune to any drain by construction.
 
-## Case 7 — 20 games at 3+2
+## Case 7 — a real accumulating clock
 
-Filled in below when the match completes. See `FINDINGS.md` for the structural point that matters more
-than the count: at 3+2 the increment out-paces the engine's per-move spend, so the clock **grows** and the
-floor is never approached. A drain control is therefore included, because a floor that is never reached
-cannot be confirmed by playing at this control.
+All at Threads 1, Hash 32, OwnBook false, Move Overhead 10, seeded opening set, python-chess validating
+every position and every bestmove.
+
+### 20 games at 1000+100 ms (the control that actually reaches the floor)
+
+| measure | value |
+| --- | ---: |
+| games completed | 20 of 20 |
+| plies played | 3,071 |
+| forfeits | **0** |
+| hangs (no bestmove) | **0** |
+| illegal bestmoves | **0** |
+| refused positions (`invalid FEN`) | **0** |
+| **max move time / clock available** | **0.5937** |
+| p99 of the same ratio | 0.5895 |
+| median of the same ratio | 0.1499 |
+| lowest clock any game reached | 176 ms |
+| moves made at a clock of ≤200 ms | 63 |
+| worst overshoot of the predicted hard limit | **+2.1 ms** over 3,071 moves |
+| closest approach to the predicted hard limit | 1.012 (clock 306 → charged 179.1 ms vs hard 177 ms) |
+
+Spend by clock bucket (`case7_analyse.py`, which recomputes all of this from the committed JSON):
+
+| clock bucket | moves | max spent | median spent |
+| --- | ---: | ---: | ---: |
+| ≤200 ms | 63 | 114.5 ms | 99.5 ms |
+| 201–400 ms | 629 | 228.7 ms | 79.1 ms |
+| 401–700 ms | 1,248 | 402.2 ms | 79.3 ms |
+| 701–1000 ms | 866 | 510.6 ms | 89.7 ms |
+| >1000 ms | 265 | 620.9 ms | 87.6 ms |
+
+The floor is visible in the top row: with a clock at or below 200 ms the worst move spent 114.5 ms, which
+is `0.6 × (200 − 10)` = 114 ms — the 60% hard cap computed from `available`, to within a millisecond. The
+largest spend on the whole match is 620.9 ms, never the whole clock.
+
+### 20 games at 3000+2000 ms (3+2, the brief's control)
+
+**State at this commit: the 20-game set is still running.** What is measured so far is the first complete
+game: 91 plies, 179.4 s, outcome `1-0`, and the clock started at 3000 ms and never fell below **3000 ms**,
+ending near 3900 ms. The zero-forfeit result at this control is therefore established for 1 game, not 20;
+the 20-game figures are in `case7_partial_20_3000_2000.json` once the run finishes.
+
+At 3+2 the increment out-paces the per-move spend, so the clock **rises**. This control confirms the
+zero-forfeit result where it has run, but **cannot** confirm the 111 ms floor, because the clock never
+approaches it. That is why the 1000+100 run above and the drain control below exist.
+
+### Drain control (the only way to reach the floor at a 3+2 clock)
+
+Charge the engine 10× its own think time + 200 ms per move against a 3+2 clock.
+
+| arm | plies | lowest clock before a move | all moves legal | hangs |
+| --- | ---: | ---: | --- | --- |
+| 10× + 200 ms, increment 2000 | 60 | **0 ms** | yes (60/60) | none |
+| 10× + 200 ms, increment 0 | 60 | **0 ms** | yes (60/60) | none |
+
+At a clock of 0 the engine answered in 0.1–0.6 ms every time, legally, with no hang. A weaker 2× drain
+reached equilibrium at 1376 ms and never went lower — the engine's spend falls as its clock falls, so a
+mild overcharge cannot drain it. That is itself worth knowing: the planner is self-limiting.
+

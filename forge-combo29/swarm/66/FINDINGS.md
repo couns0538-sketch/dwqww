@@ -148,30 +148,58 @@ Raw: `case6.json`. Denominators: 6 repeats, 6 movetime repeats, 3 ucinewgame rep
 
 ---
 
-## F7 — At 3+2 the clock GROWS, so playing at that control cannot confirm a floor.
+## F7 — At 3+2 the clock GROWS, so that control cannot confirm a floor. At 1000+100 it can, and the floor is `0.6 × (clock − 10)` ms.
 
-Measured on the first 3+2 self-play game (91 plies, 179.4 s): the clock started at 3000 ms and never fell
-below **3000 ms**, reaching ~3900 ms by the end. The engine's per-move spend (~1.0–2.3 s) is smaller than
-the 2000 ms increment, so the increment out-paces the spend and the remaining time rises.
+**The 3+2 result.** One complete 3000+2000 self-play game measured (91 plies, 179.4 s, `1-0`): **0
+forfeits**; the lowest clock in the game was **3000 ms**, i.e. the clock never fell below its starting value,
+and it ended near 3900 ms. The per-move spend (~1.0–2.3 s) is smaller than the 2000 ms increment, so the
+increment out-paces the spend and the remaining time rises. The 20-game set at this control is still running
+at this commit; the single measured game is enough to establish the structural point, and the
+zero-forfeit count for that control is filled in from `case7_partial_20_3000_2000.json` when it finishes.
 
-Consequence for the brief's item 7: **20 games at 3+2 confirm the zero-forfeit result but cannot confirm
-the floor at 111 ms**, because the clock never approaches it. A floor test needs a control that actually
-drains, so this audit adds one: charge the engine 10x its think time plus 200 ms per move against a 3+2
-clock. With an increment that drain reaches **clock 0** and the engine still answers a legal move in
-**0.1–0.6 ms** for every one of 60 plies; with the increment removed it reaches 0 after a 209 ms move at
-depth 13. All 60 moves legal in both arms, no hang, no illegal move.
+**The control that does reach the floor.** 20 games at 1000+100 ms:
 
-Re-run: `python3 case7_game_driver.py /tmp/w66/build/forge 20 3000 2000`.
+| measure | value |
+| --- | ---: |
+| plies | 3,071 |
+| forfeits / hangs / illegal / refused | **0 / 0 / 0 / 0** |
+| max (move time ÷ clock available) | **0.5937** |
+| p99 / median of that ratio | 0.5895 / 0.1499 |
+| lowest clock reached | 176 ms |
+| moves made at a clock ≤200 ms | 63 |
+| worst overshoot of the predicted hard limit | **+2.1 ms** over 3,071 moves |
+
+Spend at a clock ≤200 ms: **max 114.5 ms, median 99.5 ms** over 63 moves. That maximum is
+`0.6 × (200 − 10)` = 114 ms — the 60% hard cap on `available`, matched to the millisecond. The formula
+reproduced **every one of 3,071 moves** within +2.1 ms, and the closest moves sit exactly on the limit
+(1.012 of predicted hard at clock 306).
+
+**The drain control.** A 2× overcharge reached equilibrium at 1376 ms and drained no further — the engine's
+spend falls as its clock falls, so a mild overcharge cannot reach the floor. A 10× + 200 ms overcharge
+reaches **clock 0** and the engine still answers legally in **0.1–0.6 ms** for all 60 plies, in both the
+increment and no-increment arms.
+
+Re-run:
+```bash
+python3 case7_game_driver.py /tmp/w66/build/forge 20 1000 100      # ~6 min
+python3 case7_analyse.py case7_partial_20_1000_100.json             # 9/9 checks
+python3 case7_game_driver.py /tmp/w66/build/forge 20 3000 2000     # ~60 min
+```
+Raw: `case7_partial_20_1000_100.json` (+ `_analysis.json`); the 3+2 set lands in
+`case7_partial_20_3000_2000.json`.
+Denominators: 20 games / 3,071 plies at 1000+100; 1 game / 91 plies completed at 3000+2000 at this commit;
+3,071 moves checked against the formula; 60 + 60 drain plies.
 
 ---
 
 ## What this audit did NOT find
 
-- No forfeit in any case (11 zero/negative rows, 7 increment rows, 6 huge clocks, 6 repeated goes,
-  60 drain plies, and the 3+2 match).
+- No forfeit in any case measured: 20 games / 3,071 plies at 1000+100, 60 + 60 drain plies at clock 0,
+  11 zero/negative rows, 7 increment rows, 6 huge clocks, 6 repeated goes, and the first 3+2 game.
 - No hang in any case that had a clock. The only non-termination is F1, the one-sided clock.
 - No illegal `bestmove` and no refused position anywhere: every FEN and every move list was validated with
-  python-chess before sending, and both reply streams were scanned for `invalid FEN` (0 hits).
+  python-chess before sending, and both reply streams were scanned for `invalid FEN` (0 hits over 3,071
+  match positions).
 
 ## Harness self-audit
 
@@ -183,7 +211,15 @@ proves the FEN validator rejects an empty board and an illegal move.
 It scores **11/11 against the real engine** and **10/11 with exit code 1 against a deliberately lying fake
 engine**, so it is a test that can fail.
 
-Two of my own checks were wrong on first run and are recorded rather than quietly fixed: a repeated-`go`
-check that compared the total against the clock instead of against the per-go mean (it failed at 0.5x and
-the engine was right), and a TT-warmth control that omitted `ucinewgame` (it failed because the table was
-warm, which is what produced F6's control).
+Four of my own checks were wrong on first run and are recorded rather than quietly fixed:
+
+1. A repeated-`go` check compared the total against the **clock** instead of against the per-go mean; it
+   failed at 0.5x and the engine was right (the spend is a few percent of the clock, which is the known
+   low utilisation).
+2. A TT-warmth control omitted `ucinewgame`; it failed because the table was warm, which is what produced
+   F6's `ucinewgame`-required control.
+3. Case 4 initially asserted `wtime 0` returns 0 nodes. It does not — the answer is TT-dependent (F4a).
+4. The game driver's first version read `board.san()` after `board.push()` and crashed; and its second
+   version hardcoded its JSON filename, so a 1+0.1 run overwrote the 3+2 run's output. Both fixed; the
+   analysis script (`case7_analyse.py`) exists so match numbers can be regenerated from committed JSON
+   without replaying six minutes of games.

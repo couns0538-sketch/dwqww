@@ -32,7 +32,7 @@ Run:  python3 case7_game_driver.py <engine> [games] [base_ms] [inc_ms]
 
 from __future__ import annotations
 
-import json
+import os
 import random
 import sys
 import time
@@ -66,7 +66,7 @@ OPENINGS = [
     ["c2c4", "c7c5"],
 ]
 
-MAX_PLIES = 400
+MAX_PLIES = 600
 SLACK_S = 2.0
 
 
@@ -232,8 +232,10 @@ def run_match(path, games, base_ms, inc_ms):
     # minutes and the whole 20-game set does not fit in one turn).
     import json as _json
 
+    partial_path = "case7_partial_%d_%d_%d.json" % (games, base_ms, inc_ms)
+
     def write_partial():
-        with open("case7.partial.json", "w") as fh:
+        with open(partial_path, "w") as fh:
             _json.dump(
                 {
                     "config": {"games": games, "base_ms": base_ms, "inc_ms": inc_ms},
@@ -407,6 +409,29 @@ def run_match(path, games, base_ms, inc_ms):
         % (len(drain_moves), drain_row["all_legal"], drain_stopped),
     )
 
+    # The margin measure: how close did any move come to spending more than it
+    # had left? This is the number that would have to exceed 1.0 for a forfeit
+    # to be possible, so it is reported rather than assumed.
+    margins = []
+    for game in results:
+        for move in game["moves"]:
+            if move["clock_before_ms"] > 0:
+                margins.append(move["charged_ms"] / move["clock_before_ms"])
+    margins.sort()
+    margin_row = {
+        "moves": len(margins),
+        "max_used_over_available": round(margins[-1], 4) if margins else None,
+        "p99_used_over_available": round(margins[int(len(margins) * 0.99)], 4) if margins else None,
+        "median_used_over_available": round(margins[len(margins) // 2], 4) if margins else None,
+    }
+    check.add(
+        "no single move used more than its remaining clock",
+        margin_row["max_used_over_available"] is not None
+        and margin_row["max_used_over_available"] <= 1.0,
+        "worst move used %.1f%% of the clock available to it, over %d moves"
+        % (100.0 * (margin_row["max_used_over_available"] or 0), margin_row["moves"]),
+    )
+
     summary = check.summary()
     ucilib.emit(
         {
@@ -424,47 +449,9 @@ def run_match(path, games, base_ms, inc_ms):
             "wall_seconds": round(elapsed, 1),
             "summary": summary,
         },
-        "case7.json",
+        os.path.join("case%d_%d_%d.json" % (games, base_ms, inc_ms)),
     )
     return {"summary": summary, "drain": drain_row, "per_game": results}
-    # The margin measure: how close did any move come to spending more than it had?
-    margins = []
-    for game in results:
-        for move in game["moves"]:
-            if move["clock_before_ms"] > 0:
-                margins.append(move["charged_ms"] / move["clock_before_ms"])
-    margins.sort()
-    margin_row = {
-        "moves": len(margins),
-        "max_used_over_available": round(margins[-1], 4) if margins else None,
-        "p99_used_over_available": round(margins[int(len(margins) * 0.99)], 4) if margins else None,
-        "median_used_over_available": round(margins[len(margins) // 2], 4) if margins else None,
-    }
-    check.add(
-        "no single move used more than its remaining clock",
-        margin_row["max_used_over_available"] is not None
-        and margin_row["max_used_over_available"] <= 1.0,
-        "worst move used %.1f%% of the clock available to it"
-        % (100.0 * (margin_row["max_used_over_available"] or 0)),
-    )
-
-    summary = check.summary()
-    ucilib.emit(
-        {
-            "config": {"games": games, "base_ms": base_ms, "inc_ms": inc_ms, "max_plies": MAX_PLIES},
-            "per_game": results,
-            "forfeit_games": [g["game"] for g in forfeits],
-            "hang_games": [g["game"] for g in hangs],
-            "illegal_games": [g["game"] for g in illegal],
-            "total_plies": plies,
-            "worst_low_clock_ms": worst_low,
-            "margin": margin_row,
-            "wall_seconds": round(elapsed, 1),
-            "summary": summary,
-        },
-        "case7.json",
-    )
-    return 0 if summary["passed"] == summary["total"] else 1
 
 
 if __name__ == "__main__":

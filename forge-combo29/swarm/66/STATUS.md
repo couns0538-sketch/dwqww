@@ -20,7 +20,7 @@ cmake --build /tmp/w66/build -j4
 cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 ```
 
-## STATE AT THIS PUSH: cases 1-6 measured and committed; case 7 running
+## STATE AT THIS PUSH: all seven cases measured; the 3+2 20-game set still running
 
 | case | state | headline |
 | --- | --- | --- |
@@ -30,10 +30,12 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 | 3 increment > clock | **DONE 21/21** | clock 1000 inc 2000 plans hard 594 (59.4% of clock) and soft is pulled DOWN to 594; no row plans the whole clock |
 | 4 zero/negative clocks | **DONE 26/26** | `wtime 0`, `-100`, `0 btime 0`, `0 winc 5000`, `-3000000000` all answer legally in <1.5 ms; no forfeit, no hang |
 | 5 huge clocks | **DONE 27/27** | 2e9 / 3e9 / int64-max / 36,028,797,018,963,967 / one-past / 30 digits: all accepted, none answers inside 8 s, all answer `stop` |
-| 6 repeated `go` | **DONE 15/15** | nothing accumulates: 6 goes at a fixed 1000 ms clock spent 485 ms total, each planning from the same 1000 ms |
-| 7 20 games at 3+2 | **RUNNING** | in flight at this push |
+| 6 repeated `go` | **DONE 15/15** | nothing accumulates: 6 goes at a fixed 1000 ms clock spent 485 ms total |
+| 7a 20 games at 1000+100 | **DONE 9/9** | **0 forfeits / 0 hangs / 0 illegal / 0 refused over 20 games and 3,071 plies**; max move-time/clock **0.5937**; floor reached: max **114.5 ms** at a ≤200 ms clock = 0.6×(200−10) |
+| 7b 20 games at 3000+2000 | **RUNNING** (1 game complete, 0 forfeits, clock never fell below 3000 ms) | at 3+2 the clock GROWS, so this control cannot test the floor |
+| 7c drain control | **DONE** | 10× overcharge reaches clock 0; 60/60 moves legal in 0.1–0.6 ms, both with and without increment |
 
-## Two measurements that correct the brief's framing
+## Three measurements that correct the brief's framing
 1. **"Does a 300 s one-sided clock terminate?"** — No, not by itself. It was still searching at depth 39
    after 288.7 s and required an explicit `stop`. The depth-64 ceiling would have bound eventually, but
    nothing in the engine says so and it prints no diagnostic (case 1).
@@ -41,6 +43,10 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
    `info depth 1 ... nodes 26 ... pv d2d4` line and answers in ~1 ms. The 0-node / `a2a3` answer that a
    plain `printf ... | ./forge` pipe produces is an **EOF artifact**: closing stdin aborts the search.
    Both are measured and recorded in FINDINGS.md; only the first is clock behaviour.
+3. **At 3+2 the clock grows and the floor is never tested.** The per-move spend is smaller than the
+   2000 ms increment, so the remaining time rises from 3000 ms to ~3900 ms over a game. A control that
+   actually reaches the floor is required, so this audit adds a 1000+100 match and a 10× drain. At
+   1000+100 the floor is measured: **max 114.5 ms at a clock ≤200 ms** = `0.6 × (200 − 10)`.
 
 ## Harness rules in force
 - stdout is a daemon thread over `os.read` on the fd; no `select()` + `readline()`.
