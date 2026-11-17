@@ -795,3 +795,14 @@ next command: continue at cadence.
   says, unlike FORGE_FIX_ABORT_PUBLISH (defaults 0, does not cover its own case).
 
 next command: continue at cadence.
+
+## 2026-11-17T01:08:49Z
+
+19-C37 threshold found: the fifty-move root shortcut fires at EXACTLY counter 100. Mate-in-1 board:
+  base gives 252 nodes / mate 1 / a1a8 at counters 0,50,98,99 - then 0 nodes / cp 0 / f2f3
+  at 100,101,150,9999. PC r15 unaffected at every counter including 9999.
+  The 99->100 step turns a FOUND MATE into a fabricated quiet move - the substitute move is not just
+  unscored, it is wrong (f2f3 instead of a1a8).
+  Three independent angles now agree: seat 07's 20-of-100 rate, my 19-C36 fix side, this threshold.
+
+next command: continue at cadence.
