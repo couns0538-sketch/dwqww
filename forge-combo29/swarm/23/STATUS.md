@@ -1178,3 +1178,17 @@ Reference pages complete: RULE_known_answer_control with 11 instances and 3 head
 PC_BUILD_SUMMARY, and PCBUILD. Totals: 89 findings, 18 confirmations including 2 refutations each closed with a
 deciding test where one existed, 11 named harness faults with their rules, 11 document defects caught by reading.
 10 h 9 m remain; cadence continuing with measurements.
+## 2026-11-17T00:10:51Z  23-F65: the budget lottery is LOWER on tactical positions (20 % vs 30 %) - closes the "no claim about tactical" gap
+2026-11-17T00:10:51Z
+
+30 tactical boards (in check / capture available / <20 legal moves), same protocol and budgets as 23-F24:
+  6 of 30 = 20 % change move   vs   18 of 60 = 30 % on quiet boards
+  shapes less concentrated: only-20000 2, only-250000 2, all-three 2 (quiet sample had 11 of 18 as only-250000)
+P1 was KILLED in the interesting direction: I predicted >= 40 % (worse). The explanation is 23-F26/F30's - the change
+needs a small top-two margin, and tactical positions usually have one clearly best move, so the margin is large.
+
+Better statement to use in place of "30 % of positions": the lottery is concentrated in QUIET positions, exactly
+where a changed move costs least, and is rarer where a wrong move loses material. 0 of 90 cells varied.
+
+Limit: 30 positions, one build/settings combo, "tactical" is my filter not a curated suite.
+90 findings, 18 confirmations. 10 h 9 m remain.
