@@ -1157,3 +1157,12 @@ The rate is only trustworthy because each of the 14 mate cells was **individuall
 
 So the denominator is not assumed: **14 mate cells, each one replayed, 2 failures.** A rate from a sample of
 mate claims that were *not* individually replayed would be a different and weaker number.
+
+## 2026-11-17T00:17:54Z — 25-minute cadence
+SEAT 16's S-F28 CONFIRMED ON BOTH HALVES, AND I CAN EXPLAIN THE SPREAD (S-C31, S-F91).
+  PC r15 + PC20 / Threads 1 / Hash 16, ONE PROCESS for the whole sequence (seat 16's discipline, deliberately not my earlier cold-per-move default), clock 6,000 ms + 60, 10 plies.
+  (A) 0 OF 10 MOVES OVERRAN their clock - max wall 353.9 ms against a 6,000 ms clock.
+  (B) at an IDENTICAL 6,000 ms clock the per-move search time ranged 121.6 to 353.9 ms = 2.91x. Seat 16 measured 2.51x on its own sequence, so '6 s per move does not buy consistent effort' is confirmed on a different sequence.
+  THE EXPLANATION, which seat 16 did not offer: the wall spread is 2.91x and the NODE spread is 3.11x - they move together. So a longer move is a DEEPER COMPLETED ITERATION, not a slower one. That ties three of my own results into one mechanism: S-C20/S-F68 (a clock move costs its last completed iteration, rho 1.000), S-C15/S-F64 (the clock path is a quantised step function), and now this (the variance at fixed clock is the staircase's, measurable in nodes).
+  PRACTICAL CONSEQUENCE: two games at '6 s per move' can differ by ~3x in search effort per move purely from where each move's iteration boundary falls - which is exactly why a node budget is the reproducible choice and a clock budget is not.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

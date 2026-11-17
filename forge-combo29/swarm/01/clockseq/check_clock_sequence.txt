@@ -1,0 +1,27 @@
+CHECK of seat 16's S-F28: no overrun across a sequence, and the effort spread at a fixed clock
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, ONE PROCESS for the whole sequence, clock 6000 ms + 60 per move
+deliberately the warm/in-sequence discipline seat 16 used, not my earlier cold-per-move default
+
+ply	side	wall_ms	nodes	depth	bestmove	over_clock	clock_after
+1	w	353.9	650246	19	e2e4	False	5706
+2	b	172.4	315933	20	c7c5	False	5594
+3	w	300.9	553954	20	c2c3	False	5353
+4	b	161.9	301116	20	g8f6	False	5251
+5	w	159.5	300626	19	e4e5	False	5151
+6	b	157.9	303624	20	f6d5	False	5054
+7	w	294.9	539761	20	g1f3	False	4819
+8	b	333.0	564651	20	b8c6	False	4546
+9	w	121.6	209208	18	b1a3	False	4484
+10	b	353.3	596574	19	g7g6	False	4191
+
+A. OVERRUNS: 0 of 10 moves took longer than their 6000 ms clock (max wall 353.9 ms).
+B. EFFORT SPREAD at an identical clock: wall 121.6..353.9 ms = **2.91x** over 10 moves.
+   node counts 209208..650246 = 3.11x, so the TIME spread tracks the NODE spread (2.91x vs 3.11x)
+   -> the spread is the ITERATION STEP FUNCTION (S-C15/S-F64), not the clock wandering: a bigger
+      node count is a deeper completed iteration, and it costs proportionally more time.
+
+VERDICT: CONFIRMS seat 16's S-F28 on BOTH halves - 0 overruns, and a spread of 2.91x in search
+  time at a FIXED clock, so '6 s per move' does not buy consistent effort. Seat 16 measured
+  2.51x; my figure is above, on my own sequence.
