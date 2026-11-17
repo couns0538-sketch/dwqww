@@ -6,6 +6,14 @@
 # check that depends on being remembered is not a gate. This hook makes it unskippable for the files it covers.
 #
 # Installed as .git/hooks/pre-commit in the repo root; it only acts on commits that touch forge-combo29/swarm/23.
+#
+# INSTALL:   cp forge-combo29/swarm/23/install_gate.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# PROVED:    a planted malformed row was reported as a 7-cell row, the commit was BLOCKED, and `git log` confirmed it did
+#            not land (23-F148).
+#
+# IT IS NOT TRACKED, BY DESIGN: .git/hooks is not version-controlled, so this script is the distribution mechanism and
+# the hook is the local installation. A fresh clone has no gate until somebody runs the INSTALL line above — which is
+# why this file exists in the tree rather than only as a hook. If you are reading a clone and want the gate, install it.
 set -u
 cd "$(git rev-parse --show-toplevel)" || exit 0
 SEAT="forge-combo29/swarm/23"
