@@ -27,7 +27,14 @@ to be wrong and was retracted (19-R2, trap 11).
 seat 24 asserted Threads 1 is bit-exact; and I then verified 40 of 40 identical move-and-node-count pairs on
 **an independent harness from the one that made the claim.** Two seats, two harnesses, same conclusion.
 
-## The rule these follow
+## The rule these follow — one line, with the retracted table as its evidence
 
-**Reproduce an integer, or read a counter. Do not re-derive a value and report it as fact** unless the derivation
-has been spot-checked cell by cell — which is the lesson of `RETRACTION_dtm_oracle.md`.
+> **Reproduce an integer, or read a counter. Never re-derive a value and report it as fact unless it has been
+> spot-checked cell by cell.**
+
+**The evidence for that rule is my own worst mistake:**
+`RETRACTION_dtm_oracle.md` (19-R2). I validated a distance-to-mate solver on its **maximum** — KQvK 19 plies,
+KRvK 31 plies, both exact — and then reported **individual cells** from the same table as fact. An independent
+brute force then showed one cell over-stating by 4 plies, and three of my findings had to be withdrawn, one of
+them having called another seat's correct result "arithmetically impossible". **Validating a maximum does not
+validate a table**, and the whole tally above is the discipline that mistake bought.
