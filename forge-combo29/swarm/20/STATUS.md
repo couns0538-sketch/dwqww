@@ -893,3 +893,17 @@ Next: Step 2 needs the real hot spot; and S-F70 wants an independent confirmatio
 - Consequence for Step 2: the top v3 item IS the refresh path, and it is ALREADY the optimised one (7.25 cols, not 768).
   So the remaining v3 cost is bookkeeping + incremental apply around an already-cheap cache -> target allocation/cache
   structure, NOT the vector kernels (35%, already AVX-512).
+
+## 2026-11-17T00:40:20Z S-F70 CORRECTED (my own first version was half wrong): 1 eval in 5 rebuilds the v3 accumulator
+- Stable across workloads: 18.81 % / 19.77 % / 20.58 % of replay evals on bench 11/12/13 take the FULL-rebuild branch;
+  149.7 / 159.9 / 169.1 refreshes per 1000 nodes; cols/refresh 7.263 / 7.266 / 7.246.
+- Cause: `replay_ply` pair fast path needs BOTH perspective keys unchanged; if either king key changes, that
+  perspective does `refresh_from_pieces` (7.25 cols) while the other stays incremental (1.49 cols) -> ~4.9x.
+  Only 0.08 plies undone per failure, so the undo loop is innocent; the rebuild is the cost.
+- Found by DISAGREEMENT between my own numbers: gprof said 617,427 calls from `static_evaluate_v3`, but `refresh_cached`
+  ran 8x. The call graph was right and my reading of the source was incomplete (I had missed the inlined call site in
+  the header). Same class as METHOD RULE 0b, turned on a profiler.
+- Step 2 honesty: I am NOT claiming a speed patch exists. A bucket change permutes all 768 feature indices, which is
+  exactly why the code rebuilds; a same-numbers patch would need a better rebuild, not a shortcut. Hot spot identified,
+  fix not obvious, and guessing one would waste a build cycle.
+Next: seek independent confirmation of the 18.8/19.8/20.6 % rate; then the openings workload file 7 also asks for.
