@@ -185,5 +185,12 @@ cd forge-combo29/swarm/23/job56 && python3 halfmove_probe.py      # the halfmove
 ```
 
 Related rows: 23-F93, F96, F98, F100, F101, F103, F105, F108, F110, F112, F113, F114, F115. The mechanism as it stands
-(index 0 played unsearched) is 23-F98/F100; the gate on history is 23-F109/F110; the scope limits and this handoff are
-23-F112/F114.
+(index 0 played unsearched) is 23-F98/F100; the gate on history is 23-F109/F110.
+
+**CORRECTION, added after 23-F122 — the rows named above as "the scope limits and this handoff" are WITHDRAWN.** F112's
+scope limit, F114's castling conditioner and F115's material ladder were all responses to a defect in MY fixture
+validation: the occurrence key omitted the castling field, so two boards that searched were miscounted as threefolds.
+The trigger is now exactly characterised — the base returns 0 nodes iff the root's FIDE identity has occurred at least
+three times (23-F125, tested at 2/3/4/5/6 and confirmed in both directions across nine boards, 23-F132/F133). Everything
+in this document's sections 1–6 was assembled to explain that non-existent split and should be read as superseded; the
+MEASUREMENTS in them are correct, the QUESTION was wrong. Current state: 23-F125, 23-F126, 23-F128, 23-F129/F130.
