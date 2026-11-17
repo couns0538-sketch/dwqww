@@ -1,0 +1,12 @@
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 11:08:10.345143771 +0000
++++ b/src/uci.cpp	2026-11-17 11:08:10.617143771 +0000
+@@ -337,7 +337,7 @@
+                 const std::lock_guard<std::mutex> lock(stop_mutex);
+                 worker_busy = false;
+             }
+-            done_cv.notify_all();
++            // PLANTED FAULT: done_cv.notify_all();
+         }
+     });
+ 

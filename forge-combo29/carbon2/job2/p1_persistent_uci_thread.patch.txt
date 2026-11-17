@@ -1,0 +1,148 @@
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 11:05:46.425143771 +0000
++++ b/src/uci.cpp	2026-11-17 11:08:10.345143771 +0000
+@@ -286,22 +286,96 @@
+     std::uint64_t book_rng = static_cast<std::uint64_t>(
+         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
+     bool ponder_search_active = false;
+-    std::thread worker;
++    struct SearchTask {
++        forge::Board board;
++        forge::SearchLimits limits;
++        bool ponder_enabled = false;
++    };
+     std::mutex stop_mutex;
+     std::condition_variable stop_cv;
++    std::condition_variable work_cv;
++    std::condition_variable done_cv;
+     bool stop_requested = false;
+     bool ponder_hit_received = false;
++    bool has_task = false;
++    bool worker_busy = false;
++    bool worker_quit = false;
++    SearchTask pending_task;
++
++    std::thread worker([&]() {
++        for (;;) {
++            SearchTask task;
++            {
++                std::unique_lock<std::mutex> lock(stop_mutex);
++                work_cv.wait(lock, [&] { return has_task || worker_quit; });
++                if (worker_quit && !has_task) break;
++                task = std::move(pending_task);
++                has_task = false;
++            }
++            const forge::SearchInfo result = searcher.search(
++                std::move(task.board), task.limits, true, forge::Searcher::TTAccess::Exclusive);
++            if (task.limits.infinite || task.limits.ponder) {
++                std::unique_lock<std::mutex> lock(stop_mutex);
++                stop_cv.wait(lock, [&] {
++                    return stop_requested || (task.limits.ponder && ponder_hit_received);
++                });
++            }
++            const std::string best = result.best_move.from == result.best_move.to
++                ? "0000" : forge::Board::move_to_uci(result.best_move);
++            std::string prediction;
++            if (task.ponder_enabled && result.pv.size() > 1 &&
++                result.pv.front().from == result.best_move.from &&
++                result.pv.front().to == result.best_move.to &&
++                result.pv.front().promotion == result.best_move.promotion) {
++                prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
++            }
++            {
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                std::cout << "bestmove " << best << prediction << std::endl;
++            }
++            {
++                const std::lock_guard<std::mutex> lock(stop_mutex);
++                worker_busy = false;
++            }
++            done_cv.notify_all();
++        }
++    });
++
+     auto stop_search = [&]() {
+         {
+-            const std::lock_guard<std::mutex> lock(stop_mutex);
++            std::unique_lock<std::mutex> lock(stop_mutex);
++            if (!worker_busy) {
++                ponder_search_active = false;
++                return;
++            }
+             stop_requested = true;
+         }
+         searcher.stop();
+         stop_cv.notify_all();
+-        if (worker.joinable()) worker.join();
++        {
++            std::unique_lock<std::mutex> lock(stop_mutex);
++            done_cv.wait(lock, [&] { return !worker_busy; });
++        }
+         ponder_search_active = false;
+     };
+ 
++    struct WorkerShutdownGuard {
++        decltype(stop_search)& stop_fn;
++        std::mutex& mtx;
++        std::condition_variable& cv;
++        bool& quit_flag;
++        std::thread& thr;
++        ~WorkerShutdownGuard() {
++            stop_fn();
++            {
++                const std::lock_guard<std::mutex> lock(mtx);
++                quit_flag = true;
++            }
++            cv.notify_all();
++            if (thr.joinable()) thr.join();
++        }
++    } worker_guard{stop_search, stop_mutex, work_cv, worker_quit, worker};
++
+     std::string line;
+     while (std::getline(in, line)) {
+         const auto command_start = std::chrono::steady_clock::now();
+@@ -695,36 +769,19 @@
+                         continue;
+                     }
+                 }
+-                const forge::Board search_board = board;
++                ponder_search_active = limits.ponder;
++                searcher.reset_stop();
+                 {
+                     const std::lock_guard<std::mutex> lock(stop_mutex);
+                     stop_requested = false;
+                     ponder_hit_received = false;
++                    pending_task.board = board;
++                    pending_task.limits = std::move(limits);
++                    pending_task.ponder_enabled = ponder_enabled;
++                    has_task = true;
++                    worker_busy = true;
+                 }
+-                ponder_search_active = limits.ponder;
+-                searcher.reset_stop();
+-                worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+-                                      &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+-                    const forge::SearchInfo result = searcher.search(
+-                        search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+-                    if (limits.infinite || limits.ponder) {
+-                        std::unique_lock<std::mutex> lock(stop_mutex);
+-                        stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+-                            return stop_requested || (limits.ponder && ponder_hit_received);
+-                        });
+-                    }
+-                    const std::string best = result.best_move.from == result.best_move.to
+-                        ? "0000" : forge::Board::move_to_uci(result.best_move);
+-                    std::string prediction;
+-                    if (ponder_enabled && result.pv.size() > 1 &&
+-                        result.pv.front().from == result.best_move.from &&
+-                        result.pv.front().to == result.best_move.to &&
+-                        result.pv.front().promotion == result.best_move.promotion) {
+-                        prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+-                    }
+-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-                    std::cout << "bestmove " << best << prediction << std::endl;
+-                });
++                work_cv.notify_one();
+             }
+         } else if (command == "eval") {
+ #if FORGE_NNUE_V3
