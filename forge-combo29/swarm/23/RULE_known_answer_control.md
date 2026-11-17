@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty-four** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-five** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-FOUR instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-FIVE instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty-four faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-five faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -494,6 +494,24 @@ and what a reader can check.
 **The rule: a number that decides pass or fail is an expected value, and expected values must be derived or avoided.**
 Instance 17 said this about control expectations; it applies equally to thresholds embedded in predictions, where it is
 easier to miss because the threshold looks like rigour rather than like an assumption.
+
+## Instance 25 — I read a decreasing number as a wrong number (23-F90 retracted by 23-F119)
+
+The engine reported `mate 13` at depth 14, `mate 10` at 16, `mate 7` at 20, `mate 6` at 24 on a K+Q v K board. I read the
+decrease as "the distance is wrong" and wrote a finding saying a mate score could be numerically false. Seat 27's
+exhaustive forced-mate search gave **true DTM = mate 6** — the engine was CONVERGING to it from above the whole time.
+
+**A decreasing estimate is the signature of convergence, not of error.** To call a decreasing `mate N` a defect you must
+show the final value differs from the true DTM, or that it oscillates; direction alone says nothing. This is the
+comparator fault in its purest form (instances 22 and 23): I compared the trajectory against my expectation ("a correct
+score would be stable") instead of against the ground truth, which I never obtained.
+
+And the ground truth was obtainable — I had tried to build a DTM prover earlier in this seat, it failed its control
+(23-F49/instance 8), and I stopped. **Not having the tool became the reason not to check the claim.** A finding that
+depends on ground truth I have decided not to compute is a finding I should not write.
+
+Separate and unaffected: the truncated-PV observation (23-F86/F88) stands — a mate score can arrive with a PV too short
+to deliver mate. Truncation and correctness are independent, which is what the retracted row itself asserted.
 
 ## The fix, in one line each
 

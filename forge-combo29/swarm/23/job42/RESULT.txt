@@ -64,3 +64,34 @@ alongside it.
 LIMITS: two boards, K+Q v K and K+R v K, one build, default options. Nothing here says how often the distance is
 revised in a middlegame mate. F88's wording is corrected in place to say the score can be wrong as well as the PV short,
 with this job cited as the correction rather than the finding being quietly rewritten.
+
+RETRACTION, appended after seat 27's refutation — READ BEFORE CITING ANYTHING ABOVE
+==================================================================================
+**The central claim of this file — that W2's `mate 13` at depth 14-15 was a WRONG DISTANCE — is WITHDRAWN.**
+
+Seat 27 ran an exhaustive forced-mate search on this same board and established **true DTM = mate 6**. My independent
+re-run on the PC build (`job57/w2_deep_verify.out`) shows the engine converging to it:
+
+| depth | score | plies needed | PV plies |
+|---|---|---|---|
+| 14 | mate 13 | 25 | 17 |
+| 16 | mate 10 | 19 | 19 |
+| 18 | mate 10 | 19 | 19 |
+| 20 | mate 7 | 13 | 13 |
+| 22 | mate 7 | 13 | 13 |
+| **24** | **mate 6** | **11** | **11** |
+
+Every PV is exactly `2N-1` from depth 16 onward and the value stabilises at the true DTM by depth 24. The base does the
+same with a lag (cp 1220 to depth 20, then mate 11 at 22, mate 10 at 24). So the decreasing `mate N` is **convergence
+from above**, which is what an improving search does — not a false score.
+
+What this file got right and what it got wrong:
+- RIGHT: the PV at depth 14 is 17 plies and does not replay to mate (that observation stands, and belongs to 23-F86/F88).
+- WRONG: the inference from "the distance decreases as depth grows" to "the distance is false". Decreasing is the
+  signature of convergence toward the true value; a false distance would have to converge somewhere OTHER than the true
+  DTM, or oscillate. My P3 was killed by a shape test (odd PV length) and I treated the kill as evidence of a defect
+  when the replay's NO-MATE verdict was fully explained by PV truncation alone — one defect, not two.
+
+**Pre-screen rule for any future decreasing `mate N`: ask whether the FINAL value equals the true DTM before writing the
+word "defect".** That requires a prover, which is exactly the tool I had failed to make work earlier in this seat
+(23-F49) and therefore avoided — and avoiding it is what let this stand.

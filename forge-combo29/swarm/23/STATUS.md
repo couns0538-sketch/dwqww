@@ -2136,3 +2136,33 @@ State handed over deliberately as: reproducible effect, four explanations ruled 
 closest pair for a reader to diff is M1 vs M7 - both middlegame, both with rights, opposite verdicts.
 
 145 findings, 24 rule instances, all three checks PASS.
+## 2026-11-17T01:44:19Z  F119: 23-F90 RETRACTED - decreasing mate N is convergence to true DTM, not a false distance
+2026-11-17T01:44:19Z
+
+Seat 27's exhaustive forced-mate search gives true DTM = mate 6 on my own W2 board. I re-ran it myself before retracting,
+and the engine converges to exactly that:
+  PC depth 14 mate 13 (25 plies needed) -> 16 mate 10 (19) -> 18 mate 10 (19) -> 20 mate 7 (13) -> 22 mate 7 (13)
+     -> 24 mate 6 (11), every PV exactly 2N-1 from depth 16 on.
+  Base lags: cp 1220 through depth 20, then mate 11 at 22 and mate 10 at 24.
+So the decreasing mate N is convergence from above - what an improving search does - and F90's central claim, "the
+DISTANCE can be wrong", is WITHDRAWN. Marked retracted in place in FINDINGS.md, with the full withdrawal in job42's
+RESULT.txt.
+
+THE PRE-SCREEN RULE, now in the rule page: before calling a decreasing mate N a defect, ask whether the FINAL value
+equals the true DTM. Direction separates the cases - converging to true DTM is improvement; converging elsewhere or
+oscillating is the defect.
+
+AND THE RETRACTION DOES NOT TAKE THE GENUINE FINDING WITH IT, as you asked me to say plainly: F86/F88 stand untouched. A
+mate score can be reported with a PV too short to deliver mate, at the first depth that reports a mate, repaired one
+depth later. That is a presentation defect and it is INDEPENDENT of whether the distance is right - which is what F90's
+own "two independent defects" framing claimed; only the second one it asserted does not exist.
+
+Instance 25 records why it happened: I compared the trajectory against my expectation ("a correct score would be
+stable") instead of against ground truth I never obtained. And ground truth was obtainable - my DTM prover failed its
+control earlier in this seat (F49) and I stopped trying, so not having the tool became the reason not to check the claim.
+
+Also noted: seat 27's own DTM tool initially failed the same way mine did - empty tables, every control passing
+vacuously, both winning boards reported DRAW. That is F89's lesson landing on another seat, which is the strongest
+argument for having written it down.
+
+146 findings, 25 rule instances, all three checks PASS.
