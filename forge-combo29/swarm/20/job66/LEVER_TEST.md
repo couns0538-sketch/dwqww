@@ -76,3 +76,22 @@ A real fix has to **keep the alternate lines' search quality while removing the 
 table between the lines with disjoint generation stamps, or size the alternate table adaptively rather than at a fixed
 cap. **I have not built or tested either.** The requirement is now precise: *restore main-line depth at large Hash
 without moving the alternate lines' scores*, and the measurement above is the acceptance test.
+
+## THE TWO SENTENCES TO HAND FORWARD
+
+1. **On the cap's failure mode:** *"Unpredictable is worse than uniformly worse for a feature."* A cap that is
+   uniformly a little worse is a trade-off an owner can price. A cap that improves one position by 77 cp and degrades
+   another by 775 cp is a change whose effect you cannot describe before you measure it — and for a MultiPV *analysis*
+   feature, where the user is reading the alternate lines to decide something, unpredictability is the disqualifying
+   property rather than the magnitude.
+
+2. **The acceptance test, as a stated deliverable** (this is what to hand over instead of a patch):
+
+   > **A real fix must restore main-line depth at large Hash WITHOUT moving the alternate lines' scores.**
+   > Acceptance test: at Hash 2048, MultiPV 3, `go wtime 5000`, Threads 1, on the 5 G-set positions in the table
+   > above — main-line median depth back to ~14 plies (from 1.0), **and** each alternate line's cp score within a
+   > stated tolerance of the repaired-uncapped value. Any candidate that moves an alternate line by hundreds of cp,
+   > as the fixed 64 MB cap does on position 5 (−278 → −1029), fails.
+
+   Two directions I named but did not build: **share one table between the lines with disjoint generation stamps**, or
+   **size the alternate table adaptively** rather than at a fixed cap.
