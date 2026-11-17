@@ -1,11 +1,11 @@
-# HOW THESE PROBES LIED TO ME — nine ways a probe looked like an engine defect
+# HOW THESE PROBES LIED TO ME — ten ways a probe looked like an engine defect
 
-**Contents:** Trap 1 (pawn on the king's square) · Trap 2 (the shell sent the `stop`) · Trap 2b (the harness window decided the outcome) · Trap 3 (a verdict read off a tuple) · Trap 4 (a parser keying on an optional field) · Trap 5 (a mislabelled FEN) · Trap 6 (a narrow band skipped by four sampled points) · Trap 7 (a null without its expected count) · Trap 8 (a "deterministic" metric that moves between identical runs).
+**Contents:** Trap 1 (pawn on the king's square) · Trap 2 (the shell sent the `stop`) · Trap 2b (the harness window decided the outcome) · Trap 3 (a verdict read off a tuple) · Trap 4 (a parser keying on an optional field) · Trap 5 (a mislabelled FEN) · Trap 6 (a narrow band skipped by four sampled points) · Trap 7 (a null without its expected count) · Trap 8 (a "deterministic" metric that moves between identical runs) · Trap 9 (a confidence interval that excluded 1.0 on the wrong side).
 
-Nine entries; trap 2b is a second occurrence of trap 2's root cause, which is why it carries a letter rather than a new number.
+Ten entries; trap 2b is a second occurrence of trap 2's root cause, which is why it carries a letter rather than a new number.
 
 Seat 11. Every finding of mine that was wrong was wrong because of the probe, not the engine. These
-nine are the ones general enough that anyone writing similar probes will hit them, so each is written
+ten are the ones general enough that anyone writing similar probes will hit them, so each is written
 out in full: what I saw, what was actually true, the tell I should have read first, the fix, and the
 corrected result. Every one was caught by a control, not by luck.
 
@@ -149,7 +149,7 @@ pattern, so it is recorded as a pattern.
 
 ---
 
-## Six more, shorter, from the same folder (traps 3-8, after 1, 2 and 2b above)
+## Seven more, shorter, from the same folder (traps 3-9, after 1, 2 and 2b above)
 
 **Trap 3 — reading a verdict off a tuple.** A defect-hunt loop reported 14 "defects" on a board where
 every score was `('mate', 1)`. The score WAS found; my unpacking was `score, bm = s` where `s` was already
@@ -241,6 +241,16 @@ together at all.
 
 **Never quote a clock-stop node count as a deterministic result.**
 
+**Trap 9 — a confidence interval that excludes 1.0 proves an effect exists, NOT that the effect is
+the one you hoped for.** Testing a v3 speed patch I got a ratio of **0.9954** with a bootstrap 95 % CI
+of **[0.9913, 0.9989]**. The interval excludes 1.0, so the effect is real — and it is a **0.46 %
+regression**, reliably. The sentence "CI excludes 1.0, so the patch is proven" was sitting right there
+in my own harness's output, one careless reading away from shipping a slowdown as a win. My harness now
+prints the direction explicitly: FASTER only when the LOWER bound exceeds 1.0, SLOWER and DO-NOT-SHIP
+when the UPPER bound is below 1.0, NOT PROVEN otherwise.
+**The general rule: an interval tells you the effect exists; the interval's position tells you its
+sign. Always read which side of 1.0 it is on, and make the tool say the word.** (S-F109)
+
 ## The checkers get the same treatment
 Every finding here that says "0 problems" or "all rows stable" rests on a tool, and a tool that has
 never been shown to fail is a tool whose approval is worthless. So both of my checkers carry a planted
@@ -273,6 +283,7 @@ control rather than by re-reading the code:
 | a "deterministic" metric that moves between identical runs | repeating each value 8x showed the node count varying on the same binary; only the move was stable |
 | optional-field parser | `bestmove` came back legal, so a search had plainly run despite the zero line count |
 | mislabelled FEN | re-deriving counts from the generated FEN instead of the intended label |
+| a CI that excluded 1.0 on the wrong side | the harness now prints FASTER / SLOWER / NOT PROVEN by bound position |
 
 All seven traps are recorded in my findings as process notes (S-F65, S-F26) so they are not mistaken for
 engine behaviour by anyone reading the table later.
