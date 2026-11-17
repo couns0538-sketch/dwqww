@@ -1,0 +1,32 @@
+| board | cycle | 3-fold | mate in plies | base score/move | base keeps mate? | PC score/move |
+|---|---|---|---|---|---|---|
+| `6k1/5ppp/8/8/8/8/5PPP/3Q2K1 w - - 0 1` | g1h1 g8h8 h1g1 h8g8 | yes | 1 | - | - | - |
+| `6k1/5ppp/8/8/8/8/5PPP/2Q3K1 w - - 0 1` | g1h1 g8h8 h1g1 h8g8 | yes | 1 | - | - | - |
+| `7k/7p/6K1/8/8/8/8/R7 w - - 0 1` | none | - | - | - | - | - |
+| `6k1/5p1p/6p1/8/8/8/5PPP/1Q4K1 w - - 0 1` | g1h1 g8h8 h1g1 h8g8 | yes | None | - | - | - |
+| `8/8/8/8/8/5k2/5p2/5K1Q w - - 0 1` | none | - | - | - | - | - |
+| `6k1/6pp/8/8/8/8/6PP/R5K1 w - - 0 1` | g1f2 g8h8 f2g1 h8g8 | yes | None | - | - | - |
+
+boards with a forced mate of 3+ plies at the threefold root: 0
+
+THE HARDER CASE COULD NOT BE CONSTRUCTED — and the reason is structural, not a shortage of effort
+--------------------------------------------------------------------------------------------------
+F172 tested mates visible in ONE MOVE. The harder question is whether the base forfeits a mate that needs SEARCH. Two
+searches for such a board, both defeated:
+
+1. **Six "queen and pawns" candidates** (`6k1/5ppp/…`, `6k1/5p1p/…`, etc.): two had a neutral cycle and a mate in 1, the
+   rest had a cycle but **no forced mate within 7 plies** — sparse endgames need far longer mates (K+R v K is 15-23
+   plies per the repaired prover, 23-F121), so they never land in the 3-7 ply band the test needs.
+2. **Seven bare-king-and-piece candidates** aimed at mate-in-3: four had neutral cycles, and all four returned **no forced
+   mate within 7 plies** — the same reason, since a lone rook or queen versus a bare king needs a long manoeuvre.
+
+**So the mate-in-3-at-a-threefold-root shape is hard to build for the same reason the distance axis was hard to build
+(23-F142): the positions that admit a neutral repetition cycle are quiet and sparse, and quiet sparse positions do not
+have short forced mates.** The two requirements pull against each other — a busy board gives short mates but rarely a
+clean neutral shuttle, a quiet board gives the shuttle but long mates.
+
+I am recording this as UNTESTED WITH A REASON rather than as a negative result, which is the distinction 23-F120/F142
+established for the distance axis. What IS established about the mechanism is 23-F172's four boards: the base plays the
+generator's first move without looking, and where that move forfeits a mate in 1 it does so on 4 of 4. Whether it forfeits
+a mate that requires three plies of search is a question the same mechanism predicts YES to, and that prediction is
+untested.
