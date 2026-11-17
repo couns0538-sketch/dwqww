@@ -1,0 +1,16 @@
+Step: s4_slim_movepicker_and_vpermt2d_hoist
+Stacked on: Job 4 base (r15c + E1) + S1 + S2 + S3
+
+Functions and profile share attacked:
+- forge::MovePicker::next(bool) & MovePicker::pick_best_scored(): 7.21% + 3.98% = 11.19% self in post-E1 profile
+- forge::Worker::search & forge::Worker::qsearch recursive stack frame footprint: 21.44% + 3.80% = 25.24% self (reducing sizeof(MovePicker) by -2,576 bytes/ply = -330 KB across 128 plies on Windows's 1 MB search stack!)
+
+Mechanism (100% tie-order and node-count identical):
+1. Moves temporary move-generation scratchpad `MoveList buffer_` (1,032 bytes, used only inside leaf `generate_captures`, `generate_quiets`, `generate_evasions` and never live across recursive child searches) out of stack-allocated `MovePicker` into per-worker `Worker::picker_scratch_`.
+2. Removes `E1`'s 512-byte `MovePicker::legal_to_by_from_` member by marking illegal pseudo-legal slots `moves_[i].move = Move::none()` inside `generate_evasions()` on the rare tie path (keeping `.score` unchanged so `pick_best` + `std::sort` execute identical swaps, and skipping `move.is_none()` in `case Evasions:`).
+3. Reuses `moves_[0 .. bad_count_)` for SEE-losing captures (`bad_count_ < index_` invariant, `quiet_start() = bad_count_`), eliminating `MovePicker::bad_captures_` (1,024 bytes).
+4. Hoists the 64-byte `odd_idx16` AVX-512 constant load inside `if (i + 8 <= n)` in `pick_best_scored()` so short capture lists in `qsearch` (`<= 7` moves) skip loading the unused ZMM permutation vector.
+
+Predicted bench 13 gain (stacked on S1+S2+S3, PC20 + 768 test net):
+- Predicted median of paired round bench 13 wall/CPU ratios (B / A): 1.010x to 1.045x (+1.0% to +4.5%), plus strict stack reduction >= 2,500 bytes in sizeof(MovePicker) and >= 2,000 bytes in both Worker::search and Worker::qsearch frames.
+- Kill criterion (range that kills this prediction): median of paired round bench 13 ratios < 1.005x (< +0.5%).
