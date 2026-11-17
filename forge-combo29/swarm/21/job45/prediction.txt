@@ -1,0 +1,17 @@
+# PREDICTION — job45: merge the mate-in-2 case into the acceptance spec (S6), and re-run both builds
+written before the first measuring command.
+
+job43's spec has five cases (S1 mate-in-1 at a drawn root, S2 drawn root no mate, S3 insufficient
+material, S4 threefold + mate-in-1, S5 threefold no mate). job44 proved a drawn root that is MATE IN 2,
+which the spec does not cover. Adding it as S6 makes the spec the complete statement of the design rule.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | S6 (drawn root, mate in 2) FAILS on the PC build at `go depth 12`, consistent with 21-F24's four rows | if it passes, the depth-12 search differs from depth 4/10 in a way I should report |
+| P2 | S6 FAILS on the base build (it adjudicates drawn roots) | killed if the base finds it |
+| P3 | S1/S2/S3/S4/S5 results are UNCHANGED from job43 (adding a case must not perturb the others) | killed by any difference |
+| P4 | the spec still exits non-zero on both builds, and the pins are still exact | killed if pins move or the spec passes |
+| P5 | the spec's runtime stays under ~2 minutes per build | killed if the added case makes it unusable |
+
+Direction: P3 is the one worth checking carefully — a spec whose earlier cases shift when a case is added
+is not a spec. I expect all five unchanged.

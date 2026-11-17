@@ -16,11 +16,17 @@ Exit code 0 only when all five cases pass **and** the four pins are exact.
 | **S3** | insufficient material — `4k3/8/8/8/8/8/8/4K3 w - - 0 60` | `cp 0` | **PASS** — `cp 0`, plays `e1d1` | **PASS** — `cp 0`, plays `e1d1` |
 | **S4** | threefold repetition, **with** a mate in 1 (same board reached 3× by `e1d1 g8h8 d1e1 h8g8`, twice) | a **mate** score | **FAIL** — `cp 0`, plays `f2f3` | **PASS** — `mate 1`, plays `e1e8` |
 | **S5** | threefold repetition, **no** mate (K+P cycle `e1f1 e5d5 f1e1 d5e5`, twice) | `cp 0` | **PASS** — `cp 0`, plays `e2e3` | **FAIL** — `cp 292`, plays `e2e3` |
+| **S6** | halfmove 100, **MATE IN 2** — `6k1/8/5K2/8/8/8/8/7Q w - - 100 60` | `mate 2` | **FAIL** — `cp 0`, plays `h1a1` | **FAIL** — `cp 0`, plays `h1g1` |
 
-| build | spec | four honesty pins |
+| build | six-case spec | four honesty pins |
 |---|---|---|
-| base `6b98f217` | **FAILED** (S1, S4) | 312866 / 862329 / 3024920 / 4865609 — exact |
-| PC `r15` under PC20 | **FAILED** (S2, S5) | 312866 / 862329 / 3024920 / 4865609 — exact |
+| base `6b98f217` | **FAILED** (S1, S4, **S6**) | 312866 / 862329 / 3024920 / 4865609 — exact |
+| PC `r15` under PC20 | **FAILED** (S2, S5, **S6**) | 312866 / 862329 / 3024920 / 4865609 — exact |
+
+**S6 is the only case BOTH builds fail** — a mate two moves away at a drawn root. The repair therefore
+covers exactly one ply of mate, which is the constraint a fix must beat. Generate with
+`job45/acceptance6.py` (six cases); `job43/acceptance.py` is the five-case version kept for the earlier
+numbers.
 
 ## What the table says, in one sentence each
 
