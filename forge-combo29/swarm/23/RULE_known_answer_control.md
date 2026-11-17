@@ -529,6 +529,13 @@ The sequence, from 23-F119:
 not available" and then into "a reason the check is not part of the plan".** Nothing announces the transition. The
 correct state after a control failure is `BROKEN — BLOCKS CLAIMS THAT DEPEND ON IT`, not `discarded`.
 
+**A GUARD MUST KEY ON THE IDENTITY THE SEARCH ACTUALLY USES.** The repair's instructive failure: my second attempt added
+a "seen on this path" cycle guard and STILL recursed forever, because the guard key included the move counters, so a
+position re-reached with a different halfmove clock hashed differently and looked new. The search revisits positions by
+PLACEMENT + side + rights; a guard keyed on anything more specific than that never fires. This generalises: a
+deduplication or cycle guard is only as good as its key's agreement with the thing being deduplicated — the same
+"comparator" fault as instances 22/23, applied to a data structure instead of a comparison.
+
 **UPDATE (job 58): the tool is now REPAIRED and passes five controls, reproducing seat 27's DTM 6 independently. The
 pattern's fix is therefore demonstrable rather than merely recommended — see `job58/RESULT.txt`. Repairing it took three
 attempts (unbounded recursion; a cycle guard keyed on positions that included the move counters and so never matched;

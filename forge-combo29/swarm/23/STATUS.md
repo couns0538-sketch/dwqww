@@ -2166,3 +2166,37 @@ vacuously, both winning boards reported DRAW. That is F89's lesson landing on an
 argument for having written it down.
 
 146 findings, 25 rule instances, all three checks PASS.
+## 2026-11-17T01:47:07Z  F122-F123: THE TRIGGER WAS MY OWN KEY - castling field omitted; F112 withdrawn, handoff corrected
+2026-11-17T01:47:07Z
+
+THE WHOLE SCOPE MYSTERY WAS ONE ARITHMETIC BUG IN MY FIXTURE VALIDATION.
+
+Every fixture in this seat computed its position key as placement + side + EP, silently skipping CASTLING (FEN field
+2). So "asserted root occurs 3 times" meant "placement+side occurs 3 times". Re-counting every fixture correctly:
+
+  castling-NEUTRAL fixtures (E1 E2 E3 E4 F96's W-3 M1 M4): still 3 occurrences -> ALL BAIL
+  the only two whose cycle DISTURBS castling (C1 = F112's board, and M7): correctly 1 occurrence,
+     miscounted as 3 -> the only two that SEARCHED.
+  9 of 9 correspondence.
+
+Nothing about the engine was ever anomalous. F112's board was never a threefold: its cycle moves a rook off a1, killing
+a castling right, so under FIDE identity the engine correctly saw ONE occurrence. F114's "castling conditioner" is
+position identity working as it should.
+
+CONSEQUENCES:
+  - 23-F112's scope limit is WITHDRAWN. The bail IS general to genuine threefolds.
+  - The family core stands untouched: F93 F96 F98 F100 F101 F103 F105 F108 F110 F113 all used castling-neutral
+    fixtures, which is exactly why the core reproduced everywhere while its scope kept failing to fit.
+  - The four successive scope explanations I produced tonight (sparse endgame, castling conditioner, material,
+    halfmove) were ONE defect seen four ways.
+  - HANDOFF_drawn_root_trigger.md now opens with a STOP notice: the mechanisms A-F were answers to a question that did
+    not exist. That matters because a source-reading worker already has the file.
+
+F123 records the shape: the validation gate and the thing it validated SHARED the same broken key, so no assertion
+could ever disagree with it - a check that cannot fail, at the level of the fixture gate. Fix: identity is
+placement+side+castling, and occurrence counts must be recomputed by code independent of the code that built the list.
+
+One latent over-count remains in the same key: EP should count only when a legal en-passant capture exists. Noted, not
+fixed.
+
+150 findings, 25 rule instances plus two named patterns, all three checks PASS.

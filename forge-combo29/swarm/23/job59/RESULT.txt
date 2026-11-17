@@ -1,0 +1,54 @@
+MECHANISM C IS DEAD: the engine's repetition key DOES include castling rights — and this is the cleanest cell in the family
+============================================================================================================================
+23-F117's handoff listed mechanism C — "a repetition key that ignores or mishandles the castling field" — with the
+observation that would settle it. This is that observation.
+
+THE TWO CELLS
+-------------
+Same board `r3k2r/8/8/8/8/8/8/R3K2R`, same piece placement recurring three times, same side to move at every occurrence.
+The only difference is the castling field attached to those occurrences.
+
+| cell | castling at the three occurrences | nodes | score | move | verdict |
+|---|---|---|---|---|---|
+| Q2 rights LOST mid-sequence | `KQkq`, then `-`, then `-` | **15,827** | cp 816 | h1h8 | searched |
+| Q2′ rights `-` THROUGHOUT | `-`, `-`, `-` | **0** | **cp 0** | a1b1 | **BAIL** |
+| Q1 one cycle only (control) | `KQkq` → `-` | **15,827** | cp 816 | h1h8 | searched |
+
+Sequence in both cells: `e1e2 e8e7 e2e1 e7e8` twice. Verified in python-chess before the engine ran: after ply 1 the
+castling field drops `KQkq` → `kq`, and by ply 4 it is `-`; the placement and side to move at plies 0/4/8 are identical
+in both cells.
+
+P2 HELD: **Q2 SEARCHES.** So three recurrences of a placement whose castling rights DIFFER from the first occurrence are
+NOT counted as a repetition — the engine's key includes the castling field, which is also what FIDE requires.
+P1 HELD by construction (Q1 and Q2 both reproduce the searching behaviour on this board).
+P3 HELD: the single-cycle control searches.
+P4's *spirit* failed and is recorded: my intended "rights-PRESERVED" control (`a1b1 a8b8 b1a1 b8a8`) does NOT preserve
+rights at all — moving a rook off a1 kills white's queenside right, so the field went `KQkq` → `Kk`. On a board where
+White has only a king and rooks, EVERY legal move disturbs a castling right, so no rights-preserving threefold exists
+there. The control that actually carries the argument is Q2′, which is stronger anyway: it pins the field at `-` for all
+three occurrences and bails, against Q2 which changes it and searches.
+
+WHY THIS IS THE CLEANEST CELL IN THE FAMILY
+--------------------------------------------
+Every other contrast in this seat varies more than one thing (material, piece type, board geometry). Here the PLACEMENT
+SEQUENCE IS LITERALLY IDENTICAL between the two cells — same moves, same squares, same side to move at each occurrence —
+and only the castling field attached to the FEN differs. One field, opposite verdicts, and the direction matches the
+FIDE rule.
+
+WHAT IT MEANS FOR THE TRIGGER QUESTION
+---------------------------------------
+Mechanism C is dead as an explanation of the F112/F114 anomaly: the engine does handle castling field in its key. So the
+remaining candidates from the handoff (A early return publishing the list head; B draw test after generation; E
+history-distance; F score-adjustment) are untouched, and **A/B remain the only ones consistent with the observed facts**,
+since F is dead by absence (no cell has nonzero nodes with cp 0) and E is untestable with my fixtures (23-F120).
+
+This also explains F114's confusing pattern in a way I could not before: M7 and C1 search WITH rights, M1 and M4 bail
+WITH rights. Rights are part of the key, but a board can presumably reach a rights-consistent threefold in the HISTORY
+only if the sent move list is consistent with the sent FEN's castling field. **M1's root carries `KQkq` while the
+history built from its cycle may carry different rights** — if the sent FEN's field disagrees with what the engine
+computes along the list, the occurrences the engine sees are NOT the occurrences python-chess counted, and my "root
+occurs 3 times" assertion (which counts placement + side + castling as SENT at the root) would overcount. That is a
+testable next step and the most likely explanation for the M1/M4 vs M7/C1 split.
+
+LIMITS: one board for the clean contrast, base build, `go depth 10`. Q2′ differs from Q2 in the SENT root FEN as well as
+in the derived rights, which is unavoidable — the root occurrence must be given the field you want it counted under.

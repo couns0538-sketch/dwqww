@@ -1,0 +1,17 @@
+MY POSITION KEY, as used throughout this seat:
+    f = b.fen().split(' ');  key = ' '.join(f[:2] + f[3:4])
+    FEN fields: 0=placement 1=side 2=CASTLING 3=ep 4=halfmove 5=fullmove
+    so f[:2] = placement+side, f[3:4] = EP ... CASTLING (field 2) IS EXCLUDED.
+
+=> every 'root occurs 3 times' assertion in this seat counted occurrences with castling IGNORED.
+   The ENGINE counts castling (FIDE requires it, and job59 shows its key includes it).
+
+| case | engine verdict | occ counted MY WAY (castling ignored) | occ counted CORRECTLY (castling included) |
+|---|---|---|---|
+| C1/job55T2 rights-board | SEARCHED | 3 | **1** |
+| M1 | BAILED | 3 | **3** |
+| M4 | BAILED | 3 | **3** |
+| M7 | SEARCHED | 3 | **1** |
+| E2 K+R endgame | BAILED | 3 | **3** |
+
+If the pattern is 'bail iff correctly-counted occurrences == 3', the table above is the whole story.

@@ -1,0 +1,99 @@
+THE TRIGGER IS FOUND, AND THE CAUSE WAS MY OWN POSITION KEY — it excluded the castling field
+=============================================================================================
+For a dozen findings I could not characterise which positions bail. The answer is that the bail is exactly "the root
+really did occur three times", and my own occurrence counter was over-counting, because it dropped the castling field.
+
+THE BUG, in one line
+--------------------
+Every fixture-validation in this seat computed a position key as:
+
+    f = b.fen().split(' ')      # fields: 0 placement, 1 side, 2 CASTLING, 3 ep, 4 halfmove, 5 fullmove
+    key = ' '.join(f[:2] + f[3:4])      # placement + side + EP  ... CASTLING (f[2]) IS NEVER INCLUDED
+
+The key I used in `job57`/`job59`'s audits was intended as "placement + side + castling" and was written as
+`f[:3]`. The key used throughout the FIXTURE VALIDATION was written as `f[:2] + f[3:4]`, which silently took the EP
+field and skipped castling. So "root occurs 3 times, asserted" was really "placement+side occurs 3 times, asserted".
+
+THE TABLE THAT SETTLES IT
+--------------------------
+For each case: the engine's verdict, my (wrong) occurrence count, and the correct count including castling.
+
+| case | engine verdict | occ by MY key (castling ignored) | occ CORRECT (castling included) |
+|---|---|---|---|
+| C1 / job-55 T2, `r3k2r/…/R3K2R w KQkq`, cycle `a1b1 a8b8 b1a1 b8a8`×2 | searched 17,601 | 3 | **1** |
+| M7, `rn1qkb1r/… w kq`, cycle `c4e5 h8g8 e5c4 g8h8`×2 | searched 11,390 | 3 | **1** |
+| M1, `rnbqkbnr/… b KQkq`, cycle `g8e7 d3a6 e7g8 a6d3`×2 | **BAIL** | 3 | **3** |
+| M4, `r1bqkbnr/… w Kkq`, cycle `a7c7 g8h6 c7a7 h6g8`×2 | **BAIL** | 3 | **3** |
+| E2, `1K6/8/8/3R4/8/8/8/k7 w`, cycle `b8c8 a1b2 c8b8 b2a1`×2 | **BAIL** | 3 | **3** |
+
+**PATTERN: BAIL iff the correctly-counted occurrences == 3. 5 of 5.**
+
+In C1 and M7 the first rook/king move destroys a castling right, so the three recurrences the engine sees are
+`(KQkq)`, `(-)`, `(-)` — one occurrence under FIDE identity, not three — and the engine correctly searches. In M1, M4
+and E2 the cycle never touches a king or rook, the field is constant, all three recurrences are the same position, and
+the engine correctly bails.
+
+Nothing about the engine was ever anomalous. **Every "anomaly" in 23-F112/F114/F115 — material, castling rights as a
+conditioner, halfmove, sparse endgames — was the same artefact seen from different angles: my fixtures were not testing
+the positions I labelled them with.**
+
+WHAT SURVIVES, AND IT IS THE ORIGINAL FAMILY
+---------------------------------------------
+The drawn-root bail itself is untouched and now cleanly characterised: **on a root whose true (FIDE) identity has
+occurred three times, the base returns 0 nodes with cp 0 and plays its generator's first move.** 23-F93, F96, F98, F100,
+F101, F103, F105, F108, F110, F113 all stand — every one of them used a cycle that never disturbed castling (K+R v K,
+bare kings, pawns), so their root counts were correct under either key. That is why the family's core reproduced
+everywhere while its SCOPE kept failing to fit.
+
+WHAT DIES OR IS RE-DERIVED
+---------------------------
+1. **23-F112 ("the bail does not fire on every threefold")** — the F112 board was not a threefold. Its cycle moved a
+   rook off a1, so the true occurrence count was 1. The claimed scope limit is WITHDRAWN: the bail is not narrower than
+   threefold.
+2. **23-F114 ("castling rights are a conditioner")** — castling is not a conditioner on the engine; it is part of the
+   POSITION IDENTITY, exactly as FIDE says. The one-board contrast in F114 is real and is explained by this row, not by
+   a quirk. The sentence "rights sometimes prevent the bail" becomes "rights change whether the recurrence IS a
+   repetition", which is ordinary correctness.
+3. **23-F115 (the material ladder)** — unaffected as a measurement (all seven rungs bail) but its INTERPRETATION
+   ("material is not the discriminator") is true only because the fixtures were valid there; it never needed to be
+   explained.
+4. **23-F113 (root-specific vs history-wide)** — unchanged in status but the reason is now clearer: what varies is
+   whether the SEARCHED position repeated, which is root-specific by construction.
+
+INSTANCE 26, and the worst of the family: **I validated every fixture with a key that was itself wrong, and the key's
+error was invisible because it always returned a plausible number (3).** Every "asserted == 3" in this seat passed
+because the assertion used the same broken key as the construction. The check and the thing checked shared the fault —
+instance 22's comparator problem at the level of the validation gate itself.
+
+THE FIX, applied and to be applied everywhere
+----------------------------------------------
+`chess.Board.fen()` field order is placement, side, castling, ep, halfmove, fullmove. The correct identity key is
+**placement + side + castling** (`f[:3]`) — and for a strict FIDE reading, EP only when a legal en-passant capture
+exists, which I have not implemented and now flag as a second, smaller latent over-count in the same key.
+
+LIMITS: the 5-case table is the whole evidence; a wider sweep over all this seat's fixtures for castling-disturbing
+cycles would confirm whether any other finding used one. That sweep is the immediate next step.
+
+FULL AUDIT OF THIS SEAT'S FIXTURES — the claim above, verified rather than asserted
+------------------------------------------------------------------------------------
+Every drawn-root fixture used in this seat, re-computed under both keys, with a direct check of whether the cycle
+disturbs the castling field:
+
+| case | cycle disturbs castling? | occ by MY key | occ CORRECT | engine verdict |
+|---|---|---|---|---|
+| E1 23-F109 natural root | no | 3 | 3 | **BAIL** |
+| E2 23-F45 endgame | no | 3 | 3 | **BAIL** |
+| E3 job-52 P1 | no | 3 | 3 | **BAIL** |
+| E4 job-52 P4 | no | 3 | 3 | **BAIL** |
+| F96 W-3 | no | 3 | 3 | **BAIL** |
+| M1 | no | 3 | 3 | **BAIL** |
+| M4 | no | 3 | 3 | **BAIL** |
+| **C1 (23-F112)** | **YES** | 3 | **1** | searched |
+| **M7** | **YES** | 3 | **1** | searched |
+
+**The correspondence is exact: the only two fixtures whose cycle disturbs castling are the only two that searched. Every
+castling-neutral fixture bails. 9 of 9.**
+
+So the claim in this file — that the core family is untouched because its fixtures were castling-neutral — is verified,
+not asserted. The two "anomalies" in 23-F112 and the castling story in 23-F114 are both this bug, and nothing else in the
+seat is affected.

@@ -1,5 +1,28 @@
 # HANDOFF — the 0-node drawn-root trigger, for a source-reading seat
 
+> ## STOP — THE TRIGGER IS NOW EXPLAINED. READ 23-F122 FIRST.
+>
+> **There is no engine anomaly to investigate. The "positions that bail" and "positions that search" split in this
+> document was an artefact of MY fixture-validation key, which omitted the castling field.** Every fixture here was
+> asserted to have its root occurring three times under a key of placement + side + EP; under FIDE identity
+> (placement + side + castling) the two boards that SEARCHED had only ONE occurrence, because their cycles moved a
+> rook or king and destroyed a castling right.
+>
+> Re-counted correctly, 9 of 9 correspond exactly: castling-neutral fixture → 3 occurrences → **bails**;
+> castling-disturbing cycle → 1 occurrence → **searches**.
+>
+> So the drawn-root behaviour is exactly what the family originally claimed, and the mechanisms A–F below were
+> answers to a question that did not exist. **23-F112's scope limit is withdrawn. 23-F114's "castling conditioner" is
+> position identity working correctly.** The family core (F93/F96/F98/F100/F101/F103/F105/F108/F110/F113) stands.
+>
+> What remains genuinely open for a source reader is much smaller: **why the bail publishes the generator's FIRST
+> move rather than searching** (23-F98/F100), and whether the guard that admits the bail sits before or after root
+> ordering. The two-code-path observation (a bailing cell returns the list head; a searching cell returns index 5 of
+> its divide) is still the sharpest clue, and it is now about ONE path, not two behaviours.
+>
+> The sections below are retained unedited because the measurements in them are correct — it is the QUESTION they
+> were assembled to answer that was wrong. Reading them without this note would repeat my error.
+
 Seat 23 (area 3, move generation), branch `for-fable-and-opus/swarm-23`, folder `forge-combo29/swarm/23/`.
 Everything below is from the BASE build (`~/build/forge`, sha256 `e06310ec…`), Threads 1, Hash 16, OwnBook false,
 `go depth 10`, fresh process per line, stdout drained to `bestmove`.
