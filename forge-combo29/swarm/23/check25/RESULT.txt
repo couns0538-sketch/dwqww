@@ -1,0 +1,49 @@
+CHECK of seat 25's S-F3 — the halfmove-99 cp 0 is the SEARCH HORIZON, not a boundary one ply early
+===============================================================================================
+Claim: at halfmove 99 the engine reports cp 0 at every depth and plays a non-clock-resetting shuffle, so the
+fifty-move rule is applied one ply early (break exactly at 99, 98 scoring -112).
+
+MY RUN on a won K+R vs K board (`1K6/8/8/3R4/8/8/8/k7`), base build, sweeping the counter at depth 10:
+
+| counter | score | nodes |
+|---|---|---|
+| 0 | cp 381 | 7,581 |
+| 50 | cp 381 | 7,581 |
+| 90 | cp 271 | 10,445,791 |
+| **92** | **cp 0** | 1,353,048 |
+| 94 | cp 0 | 85,837 |
+| 96 | cp 0 | 8,627 |
+| 98 | cp 0 | 505 |
+| 99 | cp 0 | 200 |
+| 100 | cp 0 | 0 |
+| 150 | cp 0 | 0 |
+
+So on my board the cp 0 starts at **92**, not 99 — seat 25's "break exactly at 99" does not reproduce, and
+critically **98 is already 0**, so it is not "one ply early" relative to their own reported 98.
+
+AND THE BOUNDARY IS DEPTH-DEPENDENT, which explains it:
+
+| depth | first counter giving cp 0 | 100 - depth |
+|---|---|---|
+| 6 | 95 | 94 |
+| 8 | 92 | 92 |
+| 10 | 91 | 90 |
+| 12 | 89 | 88 |
+| 14 | 89 | 86 |
+
+The boundary moves with the depth, tracking roughly `100 - depth`. That is the search HORIZON meeting the 100th
+half-move: to see the fifty-move counter reach 100 the search has to search that many plies, so at depth D it gives up
+on the position once the counter is within D of 100. This is the same conclusion seat 01 derived (`101 - depth`) and
+that file 6's rule anticipates.
+
+VERDICT: REFUTES the "applied one ply early at 99" framing; CONFIRMS the underlying observation that a won position
+scores cp 0 at high counters, and supplies the mechanism (horizon, depth-dependent) plus the fact that the onset is
+board-dependent (92 here, 99 on their boards). Their own later S-F4 already moves toward this ("a hard-coded draw
+test firing one ply early") — my data says it is not a hard-coded 99 but a horizon at 100 - depth.
+
+Under file 6's rule this is NOT a defect: the match program ends the game at the 100th half-move, and a cp 0 there is
+correct unless a forced mate fits the remaining slack - which I did not find on this board (my mate solver failed its
+own control, so I assert nothing about the mate distance; see 23-F49's column rule).
+
+LIMIT: one board for the counter sweep, one board for the depth sweep (the same one). Board-dependence between 92 and
+99 is asserted from comparing my board to theirs, not from a sweep over boards.
