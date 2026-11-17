@@ -1,0 +1,53 @@
+=== ROUTE 1 DIES: only 0.53 % of cont1/cont2 reads hit a never-written block ===
+29-F63 sized the opportunity at 59.6 % of cont reads returning zero and warned that was an upper bound, because a
+per-NODE "this table has never been written" flag captures strictly less. This is the per-node number, and it kills
+the route.
+
+## Method
+Scratch copy of the PC r15 tree. A flat bitset marks every `PieceToHistory` block at each `update_continuation` write
+site; at every `quiet_history_sum` read the harness checks whether that block had ever been written. No STL container
+(a first attempt that added `<unordered_set>` inside a namespace broke the build — see the note below).
+
+## Result: bench 13, PC20 + test net, Threads 1, Hash 16
+```
+BLOCKSTAT reads 41747582 on_unwritten_block 222623
+```
+
+| quantity | value |
+|---|---|
+| cont1/cont2 reads | 41,747,582 |
+| reads hitting a NEVER-WRITTEN block | **222,623** |
+| share | **0.53 %** |
+| share that return zero (29-F63, upper bound) | 59.6 % |
+
+## What this settles
+**A per-node "table is empty" flag can skip at most 0.53 % of the reads** — 222 thousand out of 41.7 million. Even if
+skipping were entirely free, the ceiling is half a percent of the picker's two hottest lines, which were 165.6 M
+instructions each. The flag would cost a branch per candidate move to save a read on one candidate in 190.
+
+So Route 1, as I framed it in 29-F62 and sized in 29-F63, is **dead by measurement**. It is not dead because the idea
+was absurd — it is dead because the gap between "59.6 % of values are zero" and "0.53 % of blocks are untouched" is
+exactly the difference between a per-move and a per-node test, which is the caveat I wrote before measuring.
+
+## Why the two numbers differ so much, which is the interesting part
+A continuation block is written the FIRST time any move from that (piece, to) pair occurs anywhere in the search, and
+after that it is never "unwritten" again — the bitset is process-global and the tables persist across the whole bench.
+So after a few million nodes essentially every reachable block has been touched at least once, while individual
+entries within it stay zero. **The zero values are mostly entries that were written and happen to be zero (or were
+written and later decayed toward zero), not untouched memory.** Any scheme that tries to exploit the zeros must
+distinguish "written zero" from "never written" per ENTRY, not per block, and must be provably equivalent to reading
+the value — a far harder test than the per-frame flag I proposed.
+
+## Handover, corrected
+Not "skip cont4" (dead, 29-F62) and not "skip an unwritten block" (dead here, 0.53 %). The remaining idea worth a seat's
+time is a **per-entry** emptiness encoding with a proof of equivalence, or accepting that the picker's hot reads are
+load-bearing and the lever is elsewhere. I would not start the per-entry scheme without first checking whether the
+10.0 % zero rate on the MAIN history (20,873,791 reads, 2,080,640 zero) is any more exploitable — same arithmetic, one
+table instead of two.
+
+## Note on a build failure I hit
+My first instrumentation put `#include <unordered_set>` at the top of the file body, which landed INSIDE a namespace
+and broke every libstdc++ header that follows (`'iterator_traits' in namespace 'forge::std'`). Replaced with a flat
+`unsigned char` bitset, which is also faster and has no allocator behaviour to perturb the measurement. Recorded
+because a namespace-scoped `#include` is a subtle way to break a build and I did it twice tonight in a different form
+(the extern-counter-in-an-anonymous-namespace mistake earlier).

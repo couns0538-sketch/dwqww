@@ -529,3 +529,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - CRITICAL CAVEAT: 59.6% is the per-MOVE zero rate and an UPPER BOUND. A per-NODE 'table never written' flag captures strictly LESS, because a table written once still costs the read for every other candidate. Next measurement is the per-NODE rate; if small, the flag is not worth its branch.
 - My cont_max counter wrapped (unsigned accumulator for a signed value) - discarded rather than reported; the zero counts are exact.
 - next: continuing at cadence with the per-NODE rate.
+
+## Tue Nov 17 01:12:55 AM UTC 2026
+- 29-F64 ROUTE 1 IS DEAD BY MEASUREMENT (not by assertion): only 0.53% of cont1/cont2 reads hit a never-written block - 222,623 of 41,747,582 - against the 59.6% that return zero. So a per-node 'table is empty' flag can skip at most half a percent of the picker's two hottest read lines (165.6M instructions each).
+- The gap between 59.6% and 0.53% IS the per-move-vs-per-node caveat I wrote BEFORE measuring. Cause: a continuation block is written the first time any (piece,to) occurs anywhere and is never 'unwritten' again, while individual ENTRIES stay zero. So the zeros are mostly written-and-zero, not untouched memory.
+- Corrected handover: not 'skip cont4' (dead, F62) and not 'skip unwritten block' (dead, 0.53%). Remaining idea: a PER-ENTRY emptiness encoding with an equivalence proof, or accept the reads are load-bearing. I would first check whether the 10.0% zero rate on the MAIN history (20.9M reads, 2.08M zero) is more exploitable - same arithmetic, one table not two.
+- 29-N47 build note: a namespace-scoped #include broke libstdc++ headers; earlier an extern counter in an anonymous namespace failed to link. Same class - insertion-point errors from string-replacement editing. Rule: compile before measuring.
+- next: continuing at cadence.
