@@ -65,3 +65,32 @@ and every per-board row is in `volatility_rate.txt.jsonl`.
 
     cd forge-combo29/swarm/08/pc20 && python3 volatility_rate.py /tmp/vr.txt 30
     # per-board rows: /tmp/vr.txt.jsonl ; skipped boards with reason: /tmp/vr.txt.skip
+
+## The PLANT for the 0-of-60 (added after a coverage gap was reported)
+
+Seat 19 grepped this harness for a planted case and found none, and it was right: `volatility_rate.py`'s only use of
+the word "control" was the phrase "owner's control". That made the **0 of 60** an UNPLANTED zero — and this harness's
+failure mode (failing to see a deep mate) would produce exactly 0 of 60, so a plant is precisely what separates
+"no board has the defect" from "the harness cannot see the defect".
+
+`plant_check.py` now supplies it, and it exercises the SAME code path rather than a different one:
+
+| step | result |
+|---|---|
+| clocked search on the plant board (`8/8/6k1/Q7/1P4PP/1K3P2/8/8 b`) | depth 16, score **cp −4161** |
+| deeper reference at depth D+4 = 20 | **mate −5**, 10-ply pv |
+| the classification `volatility_rate.py` applies | **mate_appeared** — the required hit |
+| is the mate REAL: replay the deeper pv move by move | `g6f6 a5c7 f6e6 g4g5 e6f5 b3c4 f5e6 c4d4 e6f5 c7f7` — **ends in CHECKMATE** |
+
+**So the 0 of 60 is a MEASURED zero, not an unplanted one.** The same code path that reported no mate-involved target
+among 60 full-material boards does report one when a board supplies it, and the mate it reports is playable to
+checkmate — so the zero reflects the positions, not a blind harness.
+
+Two points on the design, because they are what make the plant worth having:
+- the plant checks the **classification**, not merely the presence of the word `mate` in some output — an engine that
+  printed `mate` falsely would fail step 4;
+- step 4 replays the **PV with python-chess** and requires `is_checkmate()`, so "the engine said mate" and "there is a
+  mate" are checked separately.
+
+**The general lesson, which is seat 19's and worth repeating: zeros are the easiest claims to leave unplanted and the
+hardest to doubt.** A 0-of-N with no plant is "not shown", never "measured".
