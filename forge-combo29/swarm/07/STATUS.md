@@ -712,3 +712,9 @@ That is the most compact form of the two lessons: they are not two rules but one
   The patch (job55/shared_report_oneline.patch.txt, patch -p1 --fuzz=0, exit 0) replaces the loop with a single emit. ALL SIX cases go to 1 line: go depth 2 (2->1), go nodes 100 (64->1), empty searchmoves depth 2 (2->1), go searchmoves no depth (64->1), go nodes 100 searchmoves (64->1), go searchmoves e2e5 (64->1). All still answer 0000 with 0 nodes -- the fabricated score lines are what is removed.
   HONESTY PINS UNCHANGED, all eight: 312866 / 862329 / 3024920 / 4865609, 242796 / 656517, 278024 / 587276. Expected for a repair that removes output lines rather than changing search -- a patch that HAD moved a pin would have been a sign it reached the search.
   This supersedes my own narrower job2/job29 patches, and I say so rather than leaving the narrow one on the shelf.
+
+## 2026-11-17T00:00:48Z
+Two refinements to the shared-patch documentation, both now adjacent to the patch rather than in a report tail:
+  (1) THE CAVEAT is in the patch header under 'CAVEAT TO KEEP WITH THIS PATCH -- read before shipping': a harness that counts info-depth LINES to infer depth reached will now read 64 -> 1 on these paths. One honest line is more truthful for a position that never searched, but any consumer using the line count as a proxy sees a real change even though no node count moved.
+  (2) THE PIN READING is now stated the way the coordinator asked: read the identical pins as a POSITIVE check, not an absence of effect -- this repair removes output lines and touches nothing in the search, so unchanged pins are what a correct patch looks like, and a patch that HAD moved a pin would have meant it reached the search, which for this defect would be a sign the edit was in the wrong place.
+Verified the header does not break the patch: patch -p1 --fuzz=0 --dry-run exits 0.
