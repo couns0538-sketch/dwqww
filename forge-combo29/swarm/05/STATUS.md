@@ -961,3 +961,16 @@ every sentence.
   => the defect is the iteration that first promotes a bound into a mate score, one ply before the PV can carry it.
   This explains S-W10 (go nodes 50000 == go depth 11: both stop at that iteration) and why the clock search at d12 is clean.
 - next command: continue at cadence.
+
+## $(date -u) — S-F74 REFUTED BY MY OWN SCALE-UP
+- I scaled S-F74's mechanism claim from 4 positions to 20 (`go depth 6..22`, PC20, Threads 1, Hash 16, OwnBook false,
+  fresh process per cell). Result: **12 of 20 truncated at their first mate line (onset survives), but 11 of 20 ALSO
+  truncated at LATER depths where S-F74 predicted zero** — one position at depths 12,13,14,15,16; others at 16/17 and 22.
+- So the truncation is NOT a single-iteration effect and does not reliably clear on the next ply. S-F74 marked REFUTED,
+  claim and refutation kept together. Report section rewritten as "a mechanism I proposed and then refuted".
+- WHAT SURVIVES: onset at the first mate line (12/20), and PV completeness predicting delivery (63 of 63) — that rule is
+  per-line and independent of depth structure. No cause claimed.
+- Method note updated: this is the FOURTH tidy small-sample pattern dissolved by a bigger sample this session. Added the
+  line that matters: "a pattern needs its sample size stated beside it, every time, because '3 of 4' and '12 of 20, with
+  11 exceptions' are not the same kind of statement."
+- next command: continue at cadence.

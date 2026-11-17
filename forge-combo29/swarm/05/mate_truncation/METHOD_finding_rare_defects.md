@@ -215,8 +215,10 @@ Two lessons:
    two variables are available, the one that perfectly predicts the outcome is the finding, and the one that only mostly
    predicts it is a shadow.
 
-This is the third time in this session that sorting data by a plausible variable produced a tidy pattern that a targeted
-probe then dissolved. The pattern: a tidy split from a small pooled sample should be treated as a HYPOTHESIS to attack,
+This is the third time in this session that a tidy pattern from a small sample was dissolved by a bigger one — and the
+fourth was my own S-F74, a "mechanism" from 4 positions that 20 positions refuted (11 later-depth truncations where it
+predicted 0). A pattern needs its sample size stated beside it, every time, because "3 of 4" and "12 of 20, with 11
+exceptions" are not the same kind of statement. The pattern: a tidy split from a small pooled sample should be treated as a HYPOTHESIS to attack,
 not a result to report — which is exactly what the coordinator asked for when they called the 14/15 gap "the one number
 in your result that has no second sample".
 

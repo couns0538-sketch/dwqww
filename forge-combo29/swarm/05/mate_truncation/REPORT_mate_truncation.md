@@ -125,30 +125,35 @@ still on the owner's path because 50,000 nodes is one of their match budgets. Wh
 - **S-F30**: my own |N| ≥ 10 rule rests on 3 qualifying positions, and my independent sample has |N| ≤ 4 — it cannot
   test the rule. Stated rather than glossed.
 
-## The mechanism: the first iteration that reports a mate
+## A mechanism I proposed and then refuted
 
-Scanning `go depth 6..20` on four mate positions (PC r15 + PC20, Threads 1, Hash 16, OwnBook false, fresh process per
-depth) shows the defect is one iteration wide:
+I reported that the truncation was "exactly the first iteration that reports a mate, clearing one ply later", on the
+strength of four positions:
 
 | position | first depth reporting a mate | that line | first complete mate line | truncated at any **later** depth? |
 |---|---|---|---|---|
-| S-F58 violator | 11 | **18 of 21 — TRUNCATED** | 12 | **no** |
-| G/192 | 8 | **10 of 14 — TRUNCATED** | 9 | **no** |
-| G/59 | 6 | **6 of 7 — TRUNCATED** | 7 | **no** |
-| G/306 | 9 | 3 of 3 — already complete | 9 | **no** |
+| S-F58 violator | 11 | 18 of 21 — truncated | 12 | no |
+| G/192 | 8 | 10 of 14 — truncated | 9 | no |
+| G/59 | 6 | 6 of 7 — truncated | 7 | no |
+| G/306 | 9 | already complete | 9 | no |
 
-**3 of 4 positions truncate at their first mate line; 0 of 4 truncate at any later depth.** The defect is exactly the
-first iteration that promotes a bound into a mate score, one ply before the PV can carry it.
+**Scaling it to 20 positions refuted it.** Same protocol, `go depth 6..22`, fresh process per cell:
 
-One sentence, four observations explained:
+- **12 of 20** truncated at their first mate line — so the onset part survives;
+- **11 of 20 also truncated at LATER depths**, where the claim predicted zero. One position truncates at depths
+  **12, 13, 14, 15 and 16**; two more at 22.
 
-- why `go nodes 50000` gave the same result as `go depth 11` — both stop at that iteration (S-W10);
-- why a clock search reaching depth 12 looked clean — one ply past it;
-- why PV completeness predicts delivery 63 of 63 — the incomplete PVs *are* those lines (S-F73);
-- why mate distance looked causal — long mates have their first mate iteration at a depth where the PV cannot be
-  carried, so they meet the defect more often (S-W9).
+So the truncation is **not** a single-iteration effect and does **not** reliably clear on the next ply. Withdrawn.
 
-Neither the budget type nor the mate distance is causal.
+What survives, and is what I would rely on:
+
+- the truncation **begins** at the first mate-reporting line (12 of 20);
+- **PV completeness predicts delivery**, 63 of 63 (seat 07's 24 and my 39) — that rule is about each printed line
+  independently and does not depend on any depth structure;
+- no cause is claimed. I have not read the PV-rebuild code.
+
+This is the third tidy pattern from a small sample that a bigger one dissolved in this session, which is why the
+practical rule is stated as a per-line test rather than as a statement about depths.
 
 ## The rule, and how to use it: PV completeness predicts delivery, 39 of 39
 
