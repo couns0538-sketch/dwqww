@@ -49,3 +49,20 @@ DID THIS AFFECT MY GRID? No — checked and reproduced rather than assumed:
     straddle 27. The cell reproduces clean.
   - Consequence: the grid's ABSOLUTE milliseconds stand, and its read-across conclusion (6,000 ms increment dead at a
     6 s clock, active at a 60 s clock) is unaffected either way, since it compares cells measured the same way.
+
+REFINEMENT from seat 11 (2026-11-17): the threshold is SATURATION, not any load
+-----------------------------------------------------------------------------
+Seat 11 measured that on a 4-core box, 0, 1 or 2 competing hog processes leave the search IDENTICAL to idle (same move,
+depth 18, 854,603 nodes), while 4 hogs change the move and drop depth to 15 / 205,048 nodes. I replicated the threshold
+on my own box with the same shape: 0 and 2 hogs -> d18 / 784,328 (identical), 4 hogs -> d17 / 542,082.
+
+What this corrects in the warning above: I attributed a specific depth drop (18 -> 17, 784,328 -> 542,082 nodes) to
+"CPU contention from my own shell running two harnesses as background jobs". The mechanism was right but the amount
+matters — that exact pair of numbers is what ONE saturation's worth of load produces, so the earlier run was saturated
+rather than merely concurrent. Light background load would NOT have produced it.
+
+Practical rule, replacing "one engine process at a time":
+  * 0 to (cores - 1) busy processes: safe; results match idle. Do not reject a run for this.
+  * load >= cores (saturation): results change. Reject and re-run.
+  * So `machine_clean.sh` should be strict about saturation and permissive about light load. Its default threshold
+    (loadavg > 2.0 on 4 cores) is reasonable: 2 hogs is 2/4 cores and is measurably harmless.
