@@ -1,0 +1,52 @@
+S1  real book line via `startpos moves`, Book Depth 10 (data present)
+    LOCK    books: YES
+    NAIVE   books: YES
+    HYBRID  books: YES
+
+S2  real book line via `startpos moves`, Book Depth 6 (ply 6 is past it)
+    LOCK    books: no (correct)
+    NAIVE   books: no (correct)
+    HYBRID  books: no (correct)
+
+S3  `fen` + `moves`, counter honest (counter ply 4, history 4+2)
+    rnbqkbnr/pp1p1ppp/8/2p1p3/4P3/2P5/PP1P1PPP/RNBQKBNR w KQkq - 0 3
+    LOCK    books: YES
+    NAIVE   books: YES
+    HYBRID  books: YES
+
+S4  `fen` + `moves`, counter inflated by 40 plies (history still 6)
+    rnbqkbnr/pp1p1ppp/8/2p1p3/4P3/2P5/PP1P1PPP/RNBQKBNR w KQkq - 0 23
+    true depth is 6, so Book Depth 10 must allow the book.
+    LOCK    books: no (WRONG)
+    NAIVE   books: YES
+    HYBRID  books: YES
+
+| scenario | LOCK | NAIVE | HYBRID | correct answer |
+| --- | --- | --- | --- | --- |
+| S1 | book | book | book | book |
+| S2 | no book | no book | no book | do not book |
+| S3 | book | book | book | book |
+| S4 | no book | book | book | book |
+
+S5  bare `position fen` at true ply 14, honest counter, Book Depth 4.
+    No history exists, so the counter is the only depth information;
+    the position is past Book Depth 4 and must not book. This is the
+    scenario that separates NAIVE from HYBRID.
+    positions: 8
+    LOCK    booked 0/8 (correct)
+    NAIVE   booked 8/8 (WRONG: past Book Depth)
+    HYBRID  booked 0/8 (correct)
+
+| scenario | LOCK | NAIVE | HYBRID | correct answer |
+| --- | --- | --- | --- | --- |
+| S1 | book | book | book | book |
+| S2 | no book | no book | no book | do not book |
+| S3 | book | book | book | book |
+| S4 | no book | book | book | book |
+| S5 | no book | book | no book | do not book |
+
+LOCK    wrong on 1/5: S4
+NAIVE   wrong on 1/5: S5
+HYBRID  wrong on 0/5: none
+
+HYBRID is correct on all 5 scenarios: YES

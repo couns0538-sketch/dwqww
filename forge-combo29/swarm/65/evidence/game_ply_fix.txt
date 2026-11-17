@@ -1,0 +1,25 @@
+P1  real book lines, rebuilt by playing the moves
+    positions after at least one move: 2486
+    lock_ply == moves actually played: 2486/2486
+    positions the lock would refuse at Book Depth 30: 0/2486
+
+P2  book positions with the fullmove counter rewritten only
+    doctored positions: 180
+    lock derivation wrong about the true ply: 180/180
+    example: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 6
+      true ply 0 (from the walk), lock_ply 10
+
+P3  startpos with fullmove 21 (game_ply: lock 40, fixed 0), Book Depth 40
+    lock  build: book no , bestmove e2e4
+    fixed build: book YES, bestmove e2e4
+
+P3b  a real 22-ply game, Book Depth 40, book OFF (control for false change)
+    lock  build: book no , bestmove d1a4
+    fixed build: book no , bestmove d1a4
+
+P3c  2-ply game, Book Depth 4, book ON (should book in BOTH builds)
+    lock  build: book YES, bestmove c2c3
+    fixed build: book YES, bestmove c2c3
+
+defect reproduced on the lock and removed by the patch: YES
+real play unchanged (both builds book a 2-ply game): YES

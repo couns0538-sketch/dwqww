@@ -1,0 +1,36 @@
+binary /tmp/build65/forge
+
+| root | condition | in book | OwnBook | book fired | info depth | score | pv empty | bestmove |
+| --- | --- | --- | --- | --- | ---: | ---: | --- | --- |
+| fifty-move, book position | halfmove>=100 | yes | true | YES | 0 | none | - | e2e4 |
+| fifty-move, book position | halfmove>=100 | yes | false | no | 64 | 0 | yes | a2a3 |
+| fifty-move, non-book position | halfmove>=100 | no | true | no | 64 | 0 | yes | h1f1 |
+| fifty-move, non-book position | halfmove>=100 | no | false | no | 64 | 0 | yes | h1f1 |
+| insufficient material, non-book | insufficient | no | true | no | 64 | 0 | yes | e2d1 |
+| insufficient material, non-book | insufficient | no | false | no | 64 | 0 | yes | e2d1 |
+| insufficient + fifty-move | both | no | true | no | 64 | 0 | yes | e2d1 |
+| insufficient + fifty-move | both | no | false | no | 64 | 0 | yes | e2d1 |
+| repetition, book position | repetition | yes | true | YES | 0 | none | - | e2e4 |
+| repetition, book position | repetition | yes | false | no | 64 | 0 | yes | a2a3 |
+| repetition, non-book position | repetition | no | true | no | 64 | 0 | yes | e1d1 |
+| repetition, non-book position | repetition | no | false | no | 64 | 0 | yes | e1d1 |
+
+book OFF: drawn-root answer correct in 6/6 cases
+book ON:  book pre-empted the answer in 2/6 cases
+
+pre-emption broken out by drawn condition and by whether the book has an entry:
+| condition | in book | pre-empted |
+| --- | --- | --- |
+| halfmove>=100 | yes | YES |
+| halfmove>=100 | no | no |
+| insufficient | no | no |
+| both | no | no |
+| repetition | yes | YES |
+| repetition | no | no |
+
+Q: does pre-emption happen with the book off?          no — 0/6 book lines with OwnBook false
+Q: does pre-emption depend on the drawn condition?     see the table; it depends on the BOOK ENTRY, not the condition
+   book positions pre-empted:     2/2
+   non-book positions pre-empted: 0/4
+
+every non-book drawn root still answers correctly: YES

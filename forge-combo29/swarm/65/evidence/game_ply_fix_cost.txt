@@ -1,0 +1,19 @@
+lock build:  /tmp/build65/forge
+fixed build: /tmp/fixbuild/forge
+
+The book walk only reaches ply 16, so those are the depths available.
+Book Depth is set to the position's true ply, so the lock refuses it
+(game_ply < book_depth is false) while the naive fix allows it (0 < depth).
+
+A. bare `position fen` for book positions at a known true ply
+| true ply | Book Depth | positions | lock books | fixed books |
+| ---: | ---: | ---: | ---: | ---: |
+| 10 | 10 | 12 | 0/12 | 12/12 |
+| 14 | 14 | 12 | 0/12 | 12/12 |
+
+B. the same positions reached by playing moves (history present)
+| true ply | Book Depth | lock books | fixed books | agree |
+| ---: | ---: | ---: | ---: | --- |
+| 10 | 10 | no (refused) | no (refused) | yes |
+| 14 | 14 | no (refused) | no (refused) | yes |
+| 16 | 16 | no (refused) | no (refused) | yes |
