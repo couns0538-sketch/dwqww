@@ -54,6 +54,25 @@ Practical form: a sweep should print the value at `onset - 1`, `onset`, and `ons
 monotonicity across the remaining range; if the quantity is genuinely non-monotonic, the report must say so rather than
 quote a single crossing.
 
+## An instrument trap: a MultiPV "gap versus depth" compares DIFFERENT move pairs at different depths
+
+Measuring "how big is the margin between the best and second-best move, as a function of depth" with MultiPV looks
+natural and is misleading, because **the second line's identity changes as depth changes**. The trend then partly
+measures *which moves happened to be ranked second at each depth*, not how the margin behaves.
+
+Measured instance (S-C41): on `1r6/2k2pp1/...` the best move switches from `e5e4` to `g7g6` between depths, and on
+`8/3n2Q1/...` three different moves hold best across five depths. So a MultiPV gap series on those boards is comparing
+three-ish different pairs, and its slope means little.
+
+**The fixed-pair contrast is the trustworthy form:** choose two specific moves in advance, score EACH in isolation at
+each depth (a restricted search of that one move), and compare those two columns. The pair is then identical at every
+depth, so a trend in the difference is a trend in the margin.
+
+S-F39's original measurement did exactly that (`f3g2` vs `f3g3`, isolated, +231/+239/+198/+100) and is clean.
+Its generalisation to "the margin is widest at shallow depths" failed on 4 further boards (SHRINKS 3, GROWS 1, FLAT 1),
+which is the second reason to prefer the fixed-pair form: it is clean per board, so a cross-board claim needs the test
+run per board rather than inferred from one.
+
 ## Why this failure mode is so easy to fall into
 
 - **The story arrives first.** A mechanism feels right, and then the evidence is read in a way that supports it. Each
