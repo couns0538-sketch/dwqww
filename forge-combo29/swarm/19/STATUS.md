@@ -1236,9 +1236,19 @@ a sign-share is unavailable and why.**
 | **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — weak lean |
 | **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728), CI **[0.9014, 1.0497] includes 1.0** | **52.9 %** (63/119) | **UNRESOLVED** — no established effect either way |
 | **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %**, bootstrap 95 % CI **[0.8887, 1.0108] includes 1.0** | **54.2 %** (65/120) | **UNRESOLVED** — *correction: 19-C56 called this a real pooled effect; at n=120 its CI includes 1.0, so it is not established* |
-| **19-C60** TtPruneV2 | −4.7 %, CI **[0.8814, 1.0307] includes 1.0** | 60.8 % (73/120) | **UNRESOLVED** |
-| **19-C60** CuckooRep | −0.9 %, CI **[0.9376, 1.0487] includes 1.0** | 52.5 % (63/120) | **UNRESOLVED** |
-| **19-C60** HistRework | +3.1 %, CI **[0.9567, 1.1106] includes 1.0** | 46.7 % (56/120) | **UNRESOLVED** |
+| **19-C60** TtPruneV2 | −4.7 %, CI **[0.8814, 1.0307] includes 1.0** | 60.8 %, **73/120, sign p = 0.0221** | **SIGN SIGNIFICANT, MAGNITUDE UNRESOLVED** — a real per-position *direction*, no established *size* |
+| **19-C60** CuckooRep | −0.9 %, CI **[0.9376, 1.0487] includes 1.0** | 52.5 %, **63/120, p = 0.6483** | **UNRESOLVED** both tests |
+| **19-C60** HistRework | +3.1 %, CI **[0.9567, 1.1106] includes 1.0** | 46.7 %, **56/120, p = 0.5230** | **UNRESOLVED** both tests |
+
+> **TWO TESTS, TWO QUESTIONS.** The **sign test** asks "is the direction consistent?"; the **paired-effect test**
+> asks "is the average size distinguishable from zero?" **A row can answer yes to the first and no to the second**,
+> and TtPruneV2 does exactly that. **Report both. Neither substitutes for the other.**
+>
+> **CORRECTION 2026-11-17T03:30Z (19-C62):** this table's p-values were wrong when first published — an inline
+> binomial tail omitted the `min(k, n−k)` reflection, so **three of four rows read 1.000**. TtPruneV2's
+> **p = 0.0221 means its per-position direction IS significant**, and my earlier sentence *"no switch's
+> per-position direction clears a sign test"* was **FALSE**. The coin-flip shape is the general pattern **with one
+> real exception**. The generating code is now committed at `checks/sign_test.py` with a symmetry self-test.
 | **19-C35** bench per-node | +1.2 % | *not computable* | see caption |
 | **19-C55** bench node sign flip | +14.5 / −10.6 / +8.7 % | *not computable* | see caption |
 | **19-C44/45** PC20 +3 ply at 20k | +3 ply | *not computable from 6 positions* | **session-level** |
@@ -1267,7 +1277,9 @@ this set, individually.** Their *aggregate* effect (19-C53, −12.4 %) is a sepa
 
 **What survives the reclassification, and it is the opposite of what the earlier findings implied:** the two claims
 that hold **per position** are both **taxes** — per-node cost (90.0 %, a large pooled effect) and prefetch (93.1 %).
-**Every efficiency claim about an individual switch is UNRESOLVED; the aggregate saving is session-level at 60.5 %.**
+**On the PAIRED-EFFECT test every individual switch is UNRESOLVED; the aggregate saving is session-level at 60.5 %.
+On the SIGN test one switch (TtPruneV2, p = 0.0221) has a real per-position direction — a narrower claim than a real
+saving, and the distinction this section exists to keep.**
 
 **Requirement doing real work on the document that states it:** applying this rule caught the category error in its
 own table (see the prerequisite above). **That is the strongest evidence that the rule is worth having.**
