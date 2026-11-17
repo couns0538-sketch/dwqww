@@ -488,3 +488,15 @@ it decisive; their earlier `8/P7/...` boards fail exactly that test (`a7a8q` is 
 them while proving nothing.
 **Softnodes reason stays stated once**, as asked: it lands on an iteration boundary, so the reported score is
 always one the PV backs up, at the cost of the 2-95 % over-budget S-N1 measured.
+
+## 2026-11-17T00:25Z S-C16a: the wrong-move band is every counter >= 100, not a one-off at 100
+Same decisive board, base `e06310ec`, Threads 1, Hash 16, OwnBook false, `go depth 8`, fresh process each:
+  **hm 95 / 98 / 99 -> `b7a8q`, `mate 1`** (searches, finds it)
+  **hm 100 / 101 / 105 -> `b7b8q`, `cp 0`, 0 nodes** (the drawn-root shortcut returns the generator's first move)
+So the failure starts exactly at the fifty-move threshold and **persists at every counter above it** - a reader
+must not take S-C16 as "a bug at exactly 100". Below 100 the engine searches and mates; at 100 or above it hands
+back a move that is not a mate while the position has one.
+Also added the luck-case argument to S-C16 and its evidence file: the mate set was computed with python-chess
+BEFORE the engine ran, and the excluded failure mode is precise - a board whose first generated move happens to
+be mating cannot distinguish a fallback that picks a good move from one that picks a lucky one. Here first-in-order
+(`b7b8q`) and mating (`b7a8q`) are different moves.
