@@ -869,3 +869,22 @@ next: cadence.
 - Working folder `forge-combo29/swarm/08/v3/`; `*.fnn3` in `.gitignore` so the net is NEVER committed.
 
 next: Step 1 — profile `bench 13` + 200 openings under PC20 + test net, Threads 1.
+
+## 2026-11-17T02:43Z — v3 Steps 0 and 1 done; MY PREDICTION KILLED
+- **Step 0 PASSES COMPLETELY**: 8 bench numbers, 3 eval lines, 3 net checksums all exact; kernel **avx512** (my CPU
+  has AVX-512F, same family as the PC), so no cross-machine explanation.
+- **Step 1 profile** (gprof — `perf` absent, no root; the -pg build reproduces bench 13 = 3,652,372 exactly):
+  **all nnue::v3 = 21.46 %**, split update **8.47 %** / forward **7.34 %** / refresh **6.78 %**; search proper
+  38.41 %; movegen/legal/make/see 15.80 %.
+- **My prediction is KILLED**: I said the update would be 35-50 % (kill <20 %), measured **8.47 %**. The CALL COUNTS
+  refute the mechanism — `evaluate` runs 2,556,881 times vs `apply_changes_pair` 2,382,071, so my "fewer evals than
+  updates" premise was false.
+- Second kill did NOT fire: search 38.41 % < 50 %, so the net IS exercised.
+- **Step 1b: 200-opening identity baseline committed — node sum 27,944,084**, per-position rows.
+- **NOT starting a patch**: no v3 function exceeds 8.5 %, so no hot spot; the larger shares are search/movegen
+  (seats 19/29 territory). And per instruction, no patch is recommendable from the bench alone — the real-position
+  arm (fixed `go nodes`, ABBA, n>=120, per-position spread) would be required.
+
+Tally per the gate: **42 / 33 / 5 / 2**, plus 1 open lead.
+
+next: cadence.
