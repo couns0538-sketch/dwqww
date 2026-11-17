@@ -1,0 +1,39 @@
+--- a/src/search.cpp	2026-11-17 21:05:00.000000000 +0000
++++ b/src/search.cpp	2026-11-17 21:05:00.000000000 +0000
+@@ -121,6 +121,9 @@
+ int SingularMargin = 2;
+ int SingularNonCut = 0;
+ int TripleExtMargin = 0;
++int NegExtTt = 2;
++int NegExtCut = 1;
++int MultiCutScore = 0;
+ int IirDepth = 4;
+ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
+@@ -203,6 +206,8 @@
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"SingularNonCut", &SingularNonCut, 0, 1},       {"TripleExtMargin", &TripleExtMargin, 0, 400},
++        {"NegExtTt", &NegExtTt, 0, 3},                   {"NegExtCut", &NegExtCut, 0, 3},
++        {"MultiCutScore", &MultiCutScore, 0, 1},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+@@ -2215,12 +2220,13 @@
+                         extension = 3;
+                     }
+                 }
+-            } else if (singular_beta >= beta) {
+-                return singular_beta;
++            } else if (tune::MultiCutScore ? (singular_score >= beta && !is_mate_score(singular_score))
++                                           : (singular_beta >= beta)) {
++                return tune::MultiCutScore ? singular_score : singular_beta;
+             } else if (tt_score >= beta) {
+-                extension = -2;
++                extension = -tune::NegExtTt;
+             } else if (cut_node) {
+-                extension = -1;
++                extension = -tune::NegExtCut;
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {

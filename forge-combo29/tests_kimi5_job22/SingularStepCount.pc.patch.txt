@@ -1,0 +1,111 @@
+--- a/src/search.cpp	2026-11-17 21:08:00.000000000 +0000
++++ b/src/search.cpp	2026-11-17 21:08:00.000000000 +0000
+@@ -90,10 +90,36 @@
+ #define FORGE_ABORT_FAIL_HIGH_FALLBACK 0
+ #endif
+ 
++// FORGE_SNS_CHECK (kimi5 job 22; default 0 = the code before it): singular-step
++// counters, observe only. 1 = one SNS counter line per UCI search.
++#ifndef FORGE_SNS_CHECK
++#define FORGE_SNS_CHECK 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_SNS_CHECK
++// Singular-step counters (kimi5 job 22). Observe only: no value, control flow or
++// table entry of the search changes. All runs of this job use Threads 1, so plain
++// counters. One counter set per UCI search: reset where the search's own counters
++// reset, one SNS line printed where the search result returns.
++namespace sns {
++struct Cnt {
++    std::uint64_t tests = 0, sing = 0, mc = 0, b2 = 0, b3 = 0, none = 0;
++    std::uint64_t wtoday = 0, wnew = 0, wmate = 0;
++};
++Cnt c;
++void reset() { c = Cnt{}; }
++void print() {
++    std::cout << "info string SNS v1 tests " << c.tests << " sing " << c.sing << " mc " << c.mc << " b2 "
++              << c.b2 << " b3 " << c.b3 << " none " << c.none << " wtoday " << c.wtoday << " wnew " << c.wnew
++              << " wmate " << c.wmate << std::endl;
++}
++} // namespace sns
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -2212,8 +2238,24 @@
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;
++#if FORGE_SNS_CHECK
++            ++sns::c.tests;
++            if (singular_score >= singular_beta) {
++                // WOULD classes, computed apart from the taken branch, whatever the options.
++                const bool sns_mate = is_mate_score(singular_score);
++                if (singular_beta >= beta) {
++                    ++sns::c.wtoday;
++                    if (sns_mate) ++sns::c.wmate;
++                } else if (singular_score >= beta && !sns_mate) {
++                    ++sns::c.wnew;
++                }
++            }
++#endif
+             if (singular_score < singular_beta) {
+                 extension = 1;
++#if FORGE_SNS_CHECK
++                ++sns::c.sing;
++#endif
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                     if (tune::TripleExtMargin > 0 && !tt_capture && singular_score < singular_beta - tune::TripleExtMargin) {
+@@ -2222,12 +2264,26 @@
+                 }
+             } else if (tune::MultiCutScore ? (singular_score >= beta && !is_mate_score(singular_score))
+                                            : (singular_beta >= beta)) {
++#if FORGE_SNS_CHECK
++                ++sns::c.mc;
++#endif
+                 return tune::MultiCutScore ? singular_score : singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -tune::NegExtTt;
++#if FORGE_SNS_CHECK
++                ++sns::c.b2;
++#endif
+             } else if (cut_node) {
+                 extension = -tune::NegExtCut;
++#if FORGE_SNS_CHECK
++                ++sns::c.b3;
++#endif
+             }
++#if FORGE_SNS_CHECK
++            else {
++                ++sns::c.none;
++            }
++#endif
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+@@ -2482,6 +2538,9 @@
+     stopped_by_nodes_ = false;
+     extra_nodes_ = 0;
+     pondering_ = limits.ponder;
++#if FORGE_SNS_CHECK
++    sns::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
+@@ -3137,6 +3196,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_SNS_CHECK
++    sns::print(); // one SNS counter line per UCI search
++#endif
+     return result;
+ }
+ 
