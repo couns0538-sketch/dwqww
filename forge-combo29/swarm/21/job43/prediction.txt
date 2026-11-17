@@ -1,0 +1,26 @@
+# PREDICTION — job43: a RUNNABLE acceptance spec for DESIGN_drawn_root.md
+written before the first measuring command.
+
+The design note says: at a drawn root, search it, then take the draw score unless the search finds a
+win for the side to move. That is a SPEC, so it can be tested. This job writes the spec as an
+executable check and runs it against the TWO builds we have, to show (a) the spec is expressible and
+(b) each build fails a different half of it — which is exactly why the design note exists.
+
+Cases (all Threads 1, PC20 on the PC build):
+  S1 drawn root WITH a mate in 1   -> must report a mate score, not cp 0
+  S2 drawn root with NO mate       -> must report cp 0, not a winning cp
+  S3 insufficient material          -> must report cp 0
+  S4 threefold WITH a mate in 1     -> must report a mate score
+  S5 threefold with NO mate         -> must report cp 0
+  P  the four honesty pins must be unchanged by any fix (measured here on the current builds)
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the base build PASSES S2/S3/S5 and FAILS S1/S4 (it adjudicates, so it misses mates) | if it passes all five, the spec is not discriminating |
+| P2 | the PC build PASSES S1/S4 and FAILS S2/S5 (it searches, so it reports a win where the rules say draw) | if it passes all five, 21-F19 does not reproduce under the spec's own terms |
+| P3 | BOTH builds PASS S3 (insufficient material is 0 on both) | killed if either is non-zero |
+| P4 | the spec runs in under 30 s total and its last line is PASS or FAIL per case | a spec that cannot be run quickly will not be used |
+| P5 | the four pins are 312866 / 862329 / 3024920 / 4865609 on both builds | killed by any miss |
+
+Direction: P1 and P2 are the interesting ones. If both hold, the spec is a genuine acceptance test:
+neither current build passes it, and the design note's rule is the unique rule that would.
