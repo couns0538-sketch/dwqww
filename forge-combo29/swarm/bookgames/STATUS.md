@@ -38,7 +38,7 @@ Engine: Chess Engine Forge 6.4.24 candidate, `id author OpenAI`.
 | `depth100` | Q2 at `Book Depth` 100 (max) | 200 | **complete** |
 | `depth0` | Q2 at `Book Depth` 0 (book off) | 200 | **complete** |
 | `depth6var100` | Q2 low depth, max variety | 200 | **complete** |
-| `patched` | Q4 games on the trap-1 build | 200 | running at push |
+| `patched` | Q4 games on the trap-1 build | 320 | **complete** |
 
 Time control for every arm: `3000+50` with 3 workers. Chosen after timing one game
 at 11.5 s, so the whole set is affordable; the clock form is the one that reaches
@@ -51,7 +51,7 @@ the book.
 | script | question | result |
 |---|---|---|
 | `book_paths.py` | book graph: cycles, depth, leaf ply | **16-ply DAG**, 199 leaves all at ply 16, no cycle, planted-cycle control fires, diamond control silent |
-| `play_games.py` | two-sided games | 920 games complete across four arms: **0 illegal, 0 engine errors, 0 drawn-root book events, 0 re-entries**; exit ply follows `Book Depth` exactly (0/6/16/16) |
+| `play_games.py` | two-sided games | **1,240 games across five arms**: **0 illegal, 0 engine errors, 0 drawn-root book events, 0 re-entries**; exit ply follows `Book Depth` exactly (0/6/16/16), and the trap-1 arm matches the lock arm |
 | `analyse_games.py` | termination / repetition / exit distribution | 0 games over threefold; 3 ply-cap stops, both inspected by hand and both far past book exit |
 | `q1b_exit_quality.py` | do games leave the book into a lost position | **0 of 63 lines** ≤ −200 cp; worst exit **−50 cp** |
 | `q3_book_vs_search.py` | book vs depth-18 choice, material | 589 played book moves: 13 concede material |
