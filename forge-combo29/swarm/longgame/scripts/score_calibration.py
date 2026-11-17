@@ -9,9 +9,10 @@ Positive control: the same instrument is run on a deliberately shallow depth-1 s
 must show a larger error than depth 8. If depth 1 does not look worse, the error metric is
 not measuring accuracy.
 """
-import sys, os, json, random, statistics
+import sys, os, json, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evio import load_json, load_plies
+from sampling import sample
 from uci import Engine
 from replay import run_search, pos_cmd
 
@@ -38,11 +39,10 @@ def main():
     f = load("fresh")
     keys = sorted(f)
 
-    random.seed(424242)
-    sample = random.sample(keys, 150)
+    picked = sample(keys, 150, seed="longgame/score_calibration/424242")
     eng = Engine(ENG)
     rows = []
-    for i, k in enumerate(sample):
+    for i, k in enumerate(picked):
         g = corpus[k[0]]
         pos = pos_cmd(g, k[1])
         if i % 25 == 0:

@@ -14,7 +14,7 @@ States: nothing / ucinewgame / Clear Hash / setoption Hash same-value.
 Checks per query: does it bail, is the move the generator head, and does the session arm
 agree with the fresh arm.
 """
-import sys, os, json, subprocess
+import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from replay import run_search, perft_head
@@ -144,7 +144,6 @@ def main():
                   f"{'YES' if s['bm'] == fr['bm'] and s['nodes'] == fr['nodes'] else 'NO'}"
                   f"  bail_s={s['bail']} bail_f={fr['bail']} head={s['is_head']}")
 
-    bails = [r for r in results["session"] if r["bail"]]
     print(f"\nsession arm: {sum(1 for r in results['session'] if r['bail'])}/{len(results['session'])} bailed")
     print(f"fresh arm:   {sum(1 for r in results['fresh'] if r['bail'])}/{len(results['fresh'])} bailed")
     print("all bails play the generator head:",

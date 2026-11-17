@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Minimal UCI client: line reader thread, never sends anything before a bestmove arrives."""
-import subprocess, threading, queue, time, os, re
+import subprocess, threading, queue, time
 
 
 class Engine:
@@ -61,9 +61,6 @@ class Engine:
             self.p.wait(timeout=10)
         except Exception:
             self.p.kill()
-
-
-INFO = re.compile(r"^info\s+depth\s+(\d+)")
 
 
 def parse_info_lines(lines):

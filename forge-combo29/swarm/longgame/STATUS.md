@@ -37,8 +37,9 @@ carried clock agrees with the implied clock at **5,369/5,369 plies**.
 
 **A single-process replay changes the move 46% of the time and never changes whether the engine
 bails.** The 46% is not a strength defect: against a depth-14 oracle the in-process move is better
-78 / equal 39 / worse 83 of 200 (median 0 cp), and against depth 18 the reported score is no less
-accurate (median error 34 vs 37 cp). What it *is*: `ucinewgame` between plies matches a fresh
+85 / equal 37 / worse 78 of 200 (median 0 cp), and against depth 18 the reported score is no less
+accurate (median error 34.5 vs 36.0 cp). A second, independently drawn sample gave 78 / 39 / 83 and
+34.0 vs 37.0 — same conclusion, so this is not one draw's luck. What it *is*: `ucinewgame` between plies matches a fresh
 process 5,401/5,401; `Clear Hash` and the same-value `Hash` resend each remove only ~2% of the
 divergence; so **the history tables, not the TT, carry the state.** `ucinewgame` between *games*
 (the realistic GUI shape) still leaves 44.2% divergence.
@@ -49,6 +50,20 @@ still bailing; independently predicted 89/89 by python-chess with zero false pos
 positions; and a planted mid-game threefold bails 40/40 in-process and 40/40 fresh while the same
 fixture sent twice bails 0/40. Its predicate reads the board from the move list and never the
 table, so warm state cannot move it.
+
+## A quality-gate pass, and what it changed
+
+SonarCloud rated the new code C on reliability and C on security. Its API is not reachable from
+this environment, so the fixes came from a local lint pass: **dead code and unused imports**
+removed (a stale `terminal`, a no-op `over = [...]`, an unused `SHUTTLE`, an unused compiled
+regex, four unused imports, an f-string with no placeholders). **None of those touched a number** —
+`summary.py` output is unchanged for every figure except the two that drew a sample.
+
+The security finding was the `random` module used for sampling. The right fix was not to seed a
+PRNG harder but to **not use one**: `scripts/sampling.py` ranks items by `sha256("<seed>:<index>")`
+and takes the lowest k, which is deterministic and has no unpredictability requirement to satisfy.
+That changed which plies were sampled, so `move_quality` and `score_calibration` were **re-run and
+their evidence regenerated** — and the fact that the two samples agree is now itself a result.
 
 ## Controls that fired (proof the instruments work)
 

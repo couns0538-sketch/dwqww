@@ -13,7 +13,7 @@ Arms (all `go depth 8`):
 A bail is recorded when the reply has 0 nodes and an empty pv (the drawn-root path).
 Every bail gets a fresh-process re-check and a `go perft 1` head check, whichever game it is in.
 """
-import sys, os, json, time, argparse, subprocess, traceback
+import sys, os, json, time, argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine, parse_info_lines
@@ -86,7 +86,7 @@ def do_session(games, out_path, rss_every=100):
     glb = 0
     rss_rows = [{"plies": 0, "rss_kb": rss_kb(pid)}]
     game_times = []
-    for gi, g in enumerate(games):
+    for g in games:
         g0 = time.time()
         n = len(g["moves"])
         for k in range(1, n + 1):

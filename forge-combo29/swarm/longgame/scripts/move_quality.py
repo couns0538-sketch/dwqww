@@ -9,9 +9,10 @@ Two-sided: for each diverging ply where the session and fresh depth-8 answers di
 the depth-14 fresh search to score BOTH moves from the same root. Report the score difference
 (session move minus fresh move), so a positive number means the session's move is BETTER.
 """
-import sys, os, json, random
+import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evio import load_json, load_plies
+from sampling import sample
 from uci import Engine
 from replay import run_search, pos_cmd
 
@@ -31,11 +32,10 @@ def main():
     div = [k for k in sorted(f) if s[k]["bm"] != f[k]["bm"]]
     print(f"diverging plies in the 40-game sample: {len(div)}")
 
-    random.seed(20261117)
-    sample = random.sample(div, 200)
+    picked = sample(div, 200, seed="longgame/move_quality/20261117")
     rows = []
     eng = Engine(ENG)
-    for i, k in enumerate(sample):
+    for i, k in enumerate(picked):
         g = corpus[k[0]]
         pos = pos_cmd(g, k[1])
         if i % 20 == 0:

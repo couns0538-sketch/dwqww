@@ -8,7 +8,7 @@ Three planted faults, each of a kind perft must see:
 Plus a fourth: a halfmove-clock fault, which perft CANNOT see -- so it is checked with the
 bail probe instead, and that is the reason the identity claim is split in two.
 """
-import sys, os, json, subprocess
+import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from position_identity import perft, force_ep_fen
@@ -85,7 +85,7 @@ def main():
     fen100 = "8/8/8/8/8/1R6/8/k1K5 w - - 100 1"
     m99, n99 = search(f"position fen {fen99}")
     m100, n100 = search(f"position fen {fen100}")
-    print(f"\nhalfmove clock (perft cannot see this field):")
+    print("\nhalfmove clock (perft cannot see this field):")
     print(f"  clock 99  -> {m99} nodes {n99}")
     print(f"  clock 100 -> {m100} nodes {n100}")
     clock_visible = (n99 != n100) or (m99 != m100)

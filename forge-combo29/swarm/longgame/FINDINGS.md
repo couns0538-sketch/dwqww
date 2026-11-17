@@ -30,14 +30,20 @@ different consequences.
 | **position identity (move-list board vs FEN board)** | **5,401 / 5,401 at perft 4**, **1,852 / 1,852 at perft 5** |
 | **halfmove clock agreement, move-list vs FEN** | **5,369 / 5,369**, boundary exactly at 100 |
 | RSS, 27,788 plies | **42.2 MiB** at every one of 277 samples from ply 300 to the end (+1.6 MiB total) |
-| wall time | 78.0 s total, mean 0.39 s/game, max 1.63 s |
+| wall time | 78–85 s total, mean ~0.4 s/game, max 1.76 s |
 
 **The 46% is a difference, not a defect.** Scored against a depth-14 fresh oracle on 200 sampled
-diverging plies, the in-process move is **better in 78, equal in 39, worse in 83** (median delta
-**0 cp**, mean +2, range −64/+132). It is the same engine reaching different equally-good moves
+diverging plies, the in-process move is **better in 85, equal in 37, worse in 78** (median delta
+**0 cp**, mean +4, range −330/+405). It is the same engine reaching different equally-good moves
 because its table is warm — which is what a table is for. **No strength claim survives here in
 either direction**, and the honest reading is that depth-8 move identity is simply not a property
 this engine has across processes.
+
+**Robustness: this was measured on two independent samples and the conclusion did not move.** An
+earlier sample drawn by a different method gave better 78 / equal 39 / worse 83 with median 0 cp
+and range −64/+132. Two draws disagree on the individual tail moves — one sample's worst move costs
+330 cp, the other's 64 — and agree that the distribution is centred on zero and symmetric. **The
+tail is where a single sample is least trustworthy, which is why both are reported.**
 
 **The bail result is the important one, and it is a clean negative.** This was the most serious
 finding available — a bail in-process but not fresh would be a position-identity failure. **It
@@ -242,12 +248,15 @@ error at depth 8:
 
 | arm | mean abs err | median |
 |---|---|---|
-| in-process session | **751.2 cp** | 34.0 |
-| fresh depth 8 | 801.7 cp | 37.0 |
-| **depth 1, cold (positive control)** | **1,015.9 cp** | 59.0 |
+| in-process session | **360.5 cp** | 34.5 |
+| fresh depth 8 | 377.2 cp | 36.0 |
+| **depth 1, cold (positive control)** | **538.3 cp** | 61.5 |
 
-Paired median difference **0 cp** (trimmed mean −4.2 cp over the 140 non-outlier rows); the
-session is worse on 69 plies, better on 72, tied on 9. **The warm table does not degrade the
+The session is worse on 59 plies, better on 85, tied on 6; paired mean error difference
+**−16.7 cp**. The means are dominated by a few mate-band positions (a folded `mate` score is a
+20,000 cp residual), so the **median is the number to read** — and by median the two arms are
+within 1.5 cp of each other. **The second independent sample reproduced this exactly** (medians
+34.0 vs 37.0, session worse 69 / better 72 / tie 9), so this is not one draw's luck. **The warm table does not degrade the
 reported score at this depth.** The depth-1 control proves the metric can tell a bad score from a
 good one — and catching that control was not automatic: run inside the same process it returned
 the *depth-18* score (error 0.0 at the median) because the depth-18 search had just filled the

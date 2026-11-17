@@ -4,10 +4,9 @@
 The bail case is constructed, not from the corpus: the point is to prove the harness can
 SEE a 0-node bail when one occurs, before trusting a clean run.
 """
-import sys, time
+import sys
 sys.path.insert(0, "scripts")
 from uci import Engine, search
-import chess
 
 ENG = "forge-combo29/build/forge"
 

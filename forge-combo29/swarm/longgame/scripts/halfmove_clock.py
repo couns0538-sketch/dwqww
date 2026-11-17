@@ -29,6 +29,7 @@ Measurements:
 import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
+from sampling import sample
 import chess
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
@@ -84,15 +85,13 @@ def main():
     print(f"   boundary is exactly 100 (99 searches, 100 bails): {boundary_ok}")
 
     print("\nA. A/A control: 60 positions, identical probe twice, fresh process each")
-    import random
-    random.seed(11)
     allp = []
     for gid in ids[:4]:
         for k, b, occ in walk(corpus[gid]):
             if occ < 3 and not b.is_insufficient_material() and b.legal_moves.count():
                 allp.append((gid, k, corpus[gid]["start_fen"], list(corpus[gid]["moves"][:k]),
                              clock_fen(b)))
-    aa = random.sample(allp, 60)
+    aa = sample(allp, 60, seed="longgame/halfmove_clock/11")
     diffs = 0
     for gid, k, start, pre, fen in aa:
         cmds = [f"position fen {start} moves " + " ".join(pre), f"position fen {fen}"]
@@ -130,7 +129,6 @@ def main():
     for m in mism[:10]:
         print("    ", m)
 
-    over = [k for k in range(n)]
     json.dump({"boundary_sweep": sweep, "boundary_exactly_100": boundary_ok,
                "aa_control_disagreements": diffs, "aa_control_n": 2 * len(aa),
                "plies_probed": n, "plies_skipped": skipped,

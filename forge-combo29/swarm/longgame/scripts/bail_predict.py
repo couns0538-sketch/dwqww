@@ -45,7 +45,6 @@ def main():
         for ply, board, occ in walk(g):
             r = sess[(gid, ply)]
             observed = (r["nodes"] == 0 and r["npv"] == 0 and r["bm"] not in (None, "0000"))
-            terminal = r["bm"] == "0000"
             if board.legal_moves.count() == 0:
                 continue  # checkmate or stalemate: a terminal root, no move to choose
             pred_rep = occ >= 3

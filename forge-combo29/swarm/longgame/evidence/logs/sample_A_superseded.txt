@@ -1,0 +1,21 @@
+# Superseded sample A -- kept as a run log, not as regenerable evidence.
+#
+# These are the figures FINDINGS.md quoted BEFORE the sampling module was introduced. Sample A
+# was drawn with `random.seed(...); random.sample(...)`; when the PRNG was replaced with a
+# deterministic SHA-256 sampler (scripts/sampling.py) the same analyses drew DIFFERENT samples
+# and their evidence files were overwritten. The numbers are recorded here so the change is
+# visible rather than silent, and because sample A agreeing with sample B is the replication.
+#
+# move_quality.py (depth-14 oracle, 200 diverging plies), sample A:
+#   session move better: 78   equal: 39   worse: 83
+#   median delta +0 cp, mean +2, p10 -18, p90 +19, min -64, max +132
+#   |delta| >= 100 cp: 4 of 200
+#
+# score_calibration.py (depth-18 fresh truth, 150 plies), sample A:
+#   mean |err| session d8 751.2 cp   median 34.0
+#   mean |err| fresh   d8 801.7 cp   median 37.0
+#   mean |err| depth 1    1015.9 cp  median 59.0   (positive control)
+#   session worse 69, better 72, tie 9; paired mean err difference -50.5 cp
+#
+# CONCLUSION UNCHANGED in both samples: the in-process move is neither better nor worse
+# (median 0 cp, symmetric counts) and the in-process score is not less accurate than fresh.
