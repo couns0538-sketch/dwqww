@@ -1,0 +1,21 @@
+# `bench N` on ARGV: prints nothing, exits 0.
+# Binary: build/forge, sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+# Each row measured in a fresh process; stdout and stderr both counted in bytes.
+
+argv `bench 11` -> exit=0 stdout=0 bytes stderr=0 bytes
+argv `bench 13` -> exit=0 stdout=0 bytes stderr=0 bytes
+argv `bench 99` -> exit=0 stdout=0 bytes stderr=0 bytes
+
+# Even the OUT-OF-RANGE depth is silent: main() is
+#     int main() { return forge::uci_loop(std::cin); }        (src/uci.cpp:651-653)
+# and never looks at argv. So on argv there is no error message, no stderr, and a
+# success exit code for a command that did nothing at all.
+#
+# The same command on stdin, same binary, same process:
+#     info string bench depth 11 nodes 312866 time 173 nps 1808479
+#     info string bench depth 13 nodes 862329 time 442 nps 1951423
+# (see pins_base.json and pins_by_depth in bench_cost_by_depth.txt)
+
+# A harness that runs `./forge bench 11` and greps stdout for a number gets an empty
+# string. If it then compares that to 312866 it fails loudly. If it compares LENIENTLY,
+# or if it only checks the exit code, it records a pass for a pin it never read.
