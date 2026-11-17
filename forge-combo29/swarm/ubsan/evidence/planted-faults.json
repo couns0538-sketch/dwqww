@@ -1,0 +1,83 @@
+{
+ "harness": "workload2.py --quick --phases pins,eval,protocol,book",
+ "plants": [
+  {
+   "plant": 1,
+   "class": "signed integer overflow (add)",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p1/src/uci.cpp:579:41: runtime error: signed integer overflow: 2147483640 + 100 cannot be represented in type 'int'"
+  },
+  {
+   "plant": 2,
+   "class": "shift exponent out of range",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p2/src/uci.cpp:579:57: runtime error: shift exponent 64 is too large for 64-bit type 'long long unsigned int'"
+  },
+  {
+   "plant": 3,
+   "class": "invalid bool value",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p3/src/uci.cpp:578:38: runtime error: load of value 2, which is not a valid value for type 'bool'"
+  },
+  {
+   "plant": 4,
+   "class": "invalid enum value",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p4/src/uci.cpp:579:39: runtime error: load of value 9, which is not a valid value for type 'Probe'"
+  },
+  {
+   "plant": 5,
+   "class": "misaligned access",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p5/src/uci.cpp:149:46: runtime error: load of misaligned address 0x7fff61488bc1 for type 'unsigned int', which requires 4 byte alignment"
+  },
+  {
+   "plant": 6,
+   "class": "null dereference",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p6/src/uci.cpp:578:37: runtime error: load of null pointer of type 'volatile int'"
+  },
+  {
+   "plant": 7,
+   "class": "negation overflow",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p7/src/uci.cpp:593:37: runtime error: negation of -2147483648 cannot be represented in type 'int'; cast to an unsigned type to negate this value to itself"
+  },
+  {
+   "plant": 8,
+   "class": "division by zero",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p8/src/uci.cpp:593:41: runtime error: division by zero"
+  },
+  {
+   "plant": 9,
+   "class": "signed integer overflow (mul)",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p9/src/uci.cpp:578:41: runtime error: signed integer overflow: 100000 * 100000 cannot be represented in type 'int'"
+  },
+  {
+   "plant": 10,
+   "class": "array index out of bounds",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p10/src/uci.cpp:579:46: runtime error: index 8 out of bounds for type 'int [8]'"
+  },
+  {
+   "plant": 11,
+   "class": "signed integer overflow (sub)",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p11/src/uci.cpp:579:44: runtime error: signed integer overflow: -2147483648 - 5 cannot be represented in type 'int'"
+  },
+  {
+   "plant": 12,
+   "class": "pointer index overflow",
+   "caught": "YES",
+   "sanitizer_line": "/tmp/forge/plants2/p12/src/uci.cpp:152:19: runtime error: pointer index expression with base 0x7ffef1c4a210 overflowed to 0x80007ffef1c4a210"
+  }
+ ],
+ "control": {
+  "plant": 0,
+  "class": "control (unplanted build, same harness)",
+  "caught": "NO",
+  "sanitizer_line": ""
+ }
+}
