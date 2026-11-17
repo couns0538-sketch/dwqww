@@ -196,6 +196,26 @@ def main():
     check("C", "§6 drawn-root bestmove is withheld during the ponder",
           n5["bestmove_withheld_during_ponder"] is True, "withheld")
 
+    # ---- D. cross-references --------------------------------------------
+    # A dangling `Tn` or `§n` is invisible to every numeric check: each sentence
+    # stays true while pointing at the wrong table. This is the arrangement
+    # defect, mechanised where it actually is mechanisable.
+    defined_t = set(re.findall(r"^#### (T\d+) —", text, re.MULTILINE))
+    used_t = set(re.findall(r"`(T\d+)`", text))
+    dangling_t = used_t - defined_t
+    check("D", f"every `Tn` reference resolves ({len(defined_t)} tables defined)",
+          not dangling_t, f"dangling: {sorted(dangling_t)}" if dangling_t else
+          f"used: {sorted(used_t, key=lambda s: int(s[1:]))}")
+    check("D", "no table is defined but never referenced",
+          defined_t <= used_t, f"unreferenced: {sorted(defined_t - used_t)}")
+
+    defined_s = set(re.findall(r"^## (\d+)\. ", text, re.MULTILINE))
+    used_s = set(re.findall(r"§(\d+)", text))
+    dangling_s = used_s - defined_s
+    check("D", f"every `§n` reference resolves ({len(defined_s)} sections defined)",
+          not dangling_s, f"dangling: {sorted(dangling_s)}" if dangling_s else
+          f"used: {sorted(used_s)}")
+
     # ---- report ----------------------------------------------------------
     fails = [r for r in results if r[2] is False]
     unknowns = [r for r in results if r[0] == "UNKNOWN"]

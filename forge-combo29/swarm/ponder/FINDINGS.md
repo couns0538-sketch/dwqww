@@ -39,7 +39,7 @@ Three findings are new or sharpened relative to `forge-findings.md`:
 
 All tables below are generated from `evidence/` by `scripts/make_tables.py`;
 every figure quoted in the prose is re-checked against the same files by
-`scripts/check_claims.py` (40 checks, exit 0).
+`scripts/check_claims.py` (43 checks, exit 0).
 
 <!-- BEGIN GENERATED TABLES -->
 
@@ -223,7 +223,7 @@ from the original `go`, that budget was exhausted ~5.8 s before the hit and
 `ponderhit` would have to return in ~0 ms. Measured: **225.9 ms**, i.e. the full
 fresh hard limit.
 
-Across 16 offsets at two clocks (`T7`), **not one row stopped at ~0 ms**, and the
+Across 16 offsets at two clocks (`T2`), **not one row stopped at ~0 ms**, and the
 largest excess over the hard limit was **0.9 ms**. That is an upper bound, and it
 is the shape a rebased-and-capped budget makes:
 
@@ -240,14 +240,10 @@ counted by eye).
 
 ### Wall time from `ponderhit` to `bestmove`, three clock settings
 
-Reported at a **fixed 2 s ponder** so the clocks are comparable, then swept at
-one clock to show the time does not shrink as the ponder grows.
-
-| clock (ms) | soft | hard | ponder | **hit → bestmove** |
-|---|---|---|---|---|
-| 2 000 | 90 | 450 | 2 s | **176.2 ms** |
-| 10 000 | 454 | 2270 | 2 s | **463.0 ms** |
-| 60 000 | 2726 | 13 630 | 2 s | **1816.5 ms** |
+**176.2 ms / 463.0 ms / 1816.5 ms** at clocks 2 000 / 10 000 / 60 000, all at a
+fixed 2 s ponder — the first three rows of `T1`. The rest of `T1` sweeps the
+ponder length at one clock, and that sweep is the second line of evidence below.
+The no-ponder control at the same three clocks is `T4`.
 
 **Which: the `ponderhit` moment.** Three independent lines agree.
 
@@ -282,9 +278,9 @@ constant.
 ## 2. `go ponder` then `stop`, with no `ponderhit`
 
 **It returns a `bestmove`, and the move is the one the search had found — not
-`0000`.** 18 of 18 across 6 positions × 3 ponder lengths (`T5`); stop→best is
-0.7–1.0 ms in every case, so the reply is immediate and does not wait for the
-hard limit.
+`0000`.** 18 of 18 across 6 positions × 3 ponder lengths (`T6`); stop→best is
+0.7–1.0 ms in every case (`T5`), so the reply is immediate and does not wait for
+the hard limit.
 
 `0000` appeared in **zero** of the 18. That matches the source: the `bestmove`
 field is `result.best_move`, replaced by `0000` only when the move is unset, and
@@ -310,7 +306,7 @@ it returns `f7f6`. So it tracks the position; it is not a fixed fabrication.
 **But it is byte-identical to the piped-abort artifact** that trap 7.1/7.2d0
 warns about: closing stdin immediately after `go ponder` produces the same
 `a2a3` with the same zero info lines on position A, and `f7f6` on position B
-(`T11`). The two hypotheses — "the engine answered" and "the harness aborted the
+(`T12`). The two hypotheses — "the engine answered" and "the harness aborted the
 search and got the fabricated fallback" — make **identical predictions here**, so
 this audit does not distinguish them. What can be said:
 
@@ -327,19 +323,14 @@ which the candidate hypotheses predict different values, and here none exists.
 
 ## 3. `go ponder` with a clock — is it bounded?
 
-**No.** `go ponder wtime 10000 btime 10000`, no `ponderhit`, 20 s cap:
-
-| at | depth | nodes | CPU | bestmoves |
-|---|---|---|---|---|
-| 1 s | 19 | 720 945 | — | 0 |
-| 5 s | 20 | 1 522 587 | — | 0 |
-| 10 s | 21 | 3 024 367 | — | 0 |
-| 20 s | **28** | **24 779 930** | **99.9%** | **0** |
-
-Depth 19 → 28 and 0.7 M → 24.8 M nodes over the horizon, at a full core, with no
-`bestmove`. A 20 s cap was hit; the process was then killed. A separate run
-carried the same request to **45 s**: depth 32, 61.2 M nodes, still 99.9% CPU,
-still no `bestmove`. **`wtime`/`btime` do not bound a ponder search.**
+**No.** `go ponder wtime 10000 btime 10000`, no `ponderhit`, 20 s cap: at 1 s
+depth 19 / 720 945 nodes, and at **20 s depth 28 / 24 779 930 nodes at 99.9%
+CPU with zero `bestmove`**. Depth 19 → 28 and 0.7 M → 24.8 M nodes over the
+horizon, at a full core, with no `bestmove`. A 20 s cap was hit; the process was
+then killed. A separate run carried the same request to **45 s**: depth 32,
+61.2 M nodes, still 99.9% CPU, still no `bestmove`. **`wtime`/`btime` do not
+bound a ponder search.** Depth curve, CPU and the `stop` recovery for all four
+variants are in `T7`.
 
 **This is the mechanism the findings file already names, applied one level out.**
 Trap 3a1 says `ponder` "only *suppresses* the clock". It does — the suppression is
@@ -354,14 +345,8 @@ does not, and a runner that sends `go ponder` with clocks and then loses the
 ### There are two "unbounded" regimes and only one burns CPU
 
 "No bestmove" has two causes, and a runner sees the same silence from both. They
-differ in whether the engine is working:
-
-| go | regime | CPU at 20 s | depth still rising | `stop` returns |
-|---|---|---|---|---|
-| `go ponder wtime 10000 btime 10000` | **RUNAWAY** | 99.9% | yes | yes, 0.4 ms |
-| `go ponder` | **RUNAWAY** | 99.9% | yes | yes, 0.3 ms |
-| `go ponder depth 12` | **WITHHELD** | 0.1% | **no** | yes, 0.5 ms |
-| `go ponder nodes 500000` | **WITHHELD** | 1.5% | **no** | yes, 0.4 ms |
+differ in whether the engine is working — `T7` measures CPU, the depth curve and
+the `stop` recovery for each:
 
 In the WITHHELD case the search has finished its own limit and is sitting on the
 answer — measured directly: at 6 s a `go ponder depth 12` had reached depth 12
@@ -392,7 +377,7 @@ following `isready` with `readyok`:
 **The null is only meaningful with a control that proves the path runs**, because
 "silent at idle" and "`ponderhit` is never handled" look identical. Control: the
 same command sent to a live ponder **converts and returns a `bestmove` in 385 ms**
-(`T7`, last row). So the handler is live and the silence at idle is a real
+(`T8`, last row). So the handler is live and the silence at idle is a real
 decision to do nothing.
 
 Source agrees: `ponderhit` is gated on `ponder_search_active`, a plain `bool`
@@ -423,6 +408,9 @@ protocol switch.
 
 Same position, same depth, **identical node count to the node** — so the null on
 "does it change the search" is a measured equality, not an absence of evidence.
+`T9` carries both arms plus the two self-ponder rows and the `go ponder` token
+comparison. Three further nulls, each with the path shown to run:
+"does it change the search" is a measured equality, not an absence of evidence.
 Three further nulls, each with the path shown to run:
 
 - **It does not make the engine ponder on its own.** After a clocked `bestmove`
@@ -439,7 +427,7 @@ Three further nulls, each with the path shown to run:
    runner that reads the suffix to pre-set its next search gets nothing until it
    sends `setoption name Ponder value true`.
 2. **The suffix is `result.pv[1]` and is omitted when the PV has length 1** —
-   confirmed on a mate-in-one root, `bestmove a1a8` with no suffix (`T12`, 2 of 14
+   confirmed on a mate-in-one root, `bestmove a1a8` with no suffix (`T13`, 2 of 14
    rows absent). That is correct behaviour (there is no reply), but a runner that
    assumes a suffix is always present will index past the end on a mating line.
 3. **The suffix is legal where it appears.** 12 of 12 present suffixes were legal
@@ -460,7 +448,7 @@ iterations: **21 lines in 2000 ms (~10.5/s)** in a two-second ponder, with full
 does not want chatter during a ponder must filter it itself; the engine has no
 option to suppress it.
 
-**Exactly one `bestmove`, and nothing after it**, in every case:
+**Exactly one `bestmove`, and nothing after it**, in every case (`T10`):
 
 | case | bestmove lines | lines after the last one |
 |---|---|---|
@@ -479,7 +467,7 @@ through the same `uci_output_mutex` single `bestmove` site (`uci.cpp:565-572`).
 On a drawn root (threefold by move list) under `go ponder`, the terminal branch
 returns without searching and the driver loops over depths. Measured: **64 `info`
 lines, depths 1→64, all emitted within 0.5 ms of `go`, every one reporting
-`nodes 0` and no `pv`**, then silence, then `bestmove a2a3` on `ponderhit`.
+`nodes 0` and no `pv`** (`T15`), then silence, then `bestmove a2a3` on `ponderhit`.
 Harmless if a runner parses `depth`/`nodes`, but a runner that treats an `info`
 line as evidence of search effort will read 64 depths of "work" that cost no
 nodes at all.
@@ -489,33 +477,25 @@ nodes at all.
 This is the one output-shape defect with a user-visible consequence. The `info`
 `time` field is computed from `start_` — the `go` command — while the stop
 decision uses `elapsed_ms()`, rebased at `ponderhit` when pondering. After a
-3 s ponder:
-
-| clock | info `time` at bestmove | wall from `ponderhit` | hard limit |
-|---|---|---|---|
-| 10 000 | **4140 ms** | **1140 ms** | 2270 |
-| 10 000 | **4140 ms** | **1141 ms** | 2270 |
-| 60 000 | **4262 ms** | **1262 ms** | 13 630 |
-
-The reported `time` exceeds the wall time actually spent thinking **after the
-hit** by the full length of the ponder — here 3000 ms. It happens to stay under
-the hard limit in these rows, but it does not have to: a 6 s ponder at clock
-2000 reported `time 4174` against a 225 ms hard limit and 226 ms of post-hit
-work. **So a runner or GUI that reads `time` to judge whether the engine
-respected its budget is reading a number inflated by exactly the ponder
-duration.** The engine's own budget is correct (§1); only the label is wrong.
+3 s ponder: **`time` 4140 against 1140 ms of wall time from the hit**, with a
+2270 ms hard limit. The reported `time` exceeds the wall time actually spent
+thinking **after the hit** by the full length of the ponder — here 3000 ms. It
+happens to stay under the hard limit in these rows, but it does not have to: a
+6 s ponder at clock 2000 reported `time 4174` against a 225 ms hard limit and
+226 ms of post-hit work. **So a runner or GUI that reads `time` to judge whether
+the engine respected its budget is reading a number inflated by exactly the
+ponder duration.** The engine's own budget is correct (§1); only the label is
+wrong. Three cells in `T11`, each with the gap computed rather than eyeballed.
 
 ### A runner-side desync that is real and cheap to avoid
 
 A runner that starts the next ponder without waiting for the aborted search's
-`bestmove` sees two `bestmove` lines and nothing on the wire to tell them apart:
+`bestmove` sees two `bestmove` lines and nothing on the wire to tell them apart
+(`T14`): with `stop` first, the stale `d2d3` arrives **−201 ms** (before the
+second `go`); without it, the same stale `d2d3` arrives **+0.5 ms** after the
+second `go`, followed by the correct `e4e5` at +1360 ms.
 
-| `stop` before restart | bestmove lines | moves @ ms relative to the 2nd `go` |
-|---|---|---|
-| yes | 2 | `d2d3` @ −201 (before the 2nd `go`), `e4e5` @ +1103 |
-| **no** | 2 | **`d2d3` @ +0.5**, `e4e5` @ +1360 |
-
-In the second row the stale answer arrives **0.5 ms after** the new `go`, so a
+In the second case the stale answer arrives **0.5 ms after** the new `go`, so a
 runner that pairs "the first `bestmove` I see after `ponderhit`" with the position
 it just sent attributes `d2d3` — the previous position's move — to the new one.
 Both rows end with a correct final move, so this fails silently and only under a

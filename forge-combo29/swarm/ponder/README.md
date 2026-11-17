@@ -49,14 +49,21 @@ evidence/
 ## Verify it
 
 ```
-python3 scripts/check_claims.py     # 40 checks; exits 0 only if FINDINGS agrees
+python3 scripts/check_claims.py     # 43 checks; exits 0 only if FINDINGS agrees
 python3 scripts/make_tables.py      # reprints the tables (compare to FINDINGS.md)
 ```
 
 `check_claims.py` exits 1 on any failure **and on its own crash**, and it reports
-`UNKNOWN` rather than `PASS` for a claim it cannot evaluate. It was shown to fail
-by planting a wrong figure in the document and by corrupting an evidence count;
-both produced exit 1.
+`UNKNOWN` rather than `PASS` for a claim it cannot evaluate. It checks three
+kinds of claim: every figure quoted in the prose against its evidence row, every
+count ("18 of 18", "12 of 14") against its array, and every `Tn` / `§n`
+cross-reference against the tables and sections that actually exist — a
+dangling reference is invisible to any numeric check, since each sentence stays
+true while pointing at the wrong table.
+
+It was shown to fail each way: a wrong figure planted in the document, a
+corrupted evidence count, and a dangling `T99` reference — all exit 1, and the
+document restored byte-identical afterwards.
 
 ## Rebuild the binary
 

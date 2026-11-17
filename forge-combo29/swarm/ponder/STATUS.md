@@ -135,7 +135,7 @@ correctly, so this fails silently.
 
 ```
 cd forge-combo29/swarm/ponder
-python3 scripts/check_claims.py            # 39/39 pass, exit 0
+python3 scripts/check_claims.py            # 43/43 pass, exit 0
 python3 scripts/make_tables.py             # regenerate FINDINGS.md tables
 ```
 
