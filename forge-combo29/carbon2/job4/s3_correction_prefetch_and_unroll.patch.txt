@@ -1,0 +1,93 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 13:00:16.417143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 13:40:35.229143771 +0000
+@@ -617,6 +617,7 @@
+ #endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
++    void prefetch_correction(const Board& board, const SearchStack* child) const;
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 13:00:16.421143771 +0000
++++ b/src/search.cpp	2026-11-17 13:40:57.421143771 +0000
+@@ -1251,13 +1251,19 @@
+ }
+ 
+ // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+-[[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) {
++[[nodiscard]] inline std::uint64_t non_pawn_key(const Board& board, Color color) {
++    constexpr std::uint64_t K2 = 0x9E3779B97F4A7C15ULL + 2ULL * 0xBF58476D1CE4E5B9ULL;
++    constexpr std::uint64_t K3 = 0x9E3779B97F4A7C15ULL + 3ULL * 0xBF58476D1CE4E5B9ULL;
++    constexpr std::uint64_t K4 = 0x9E3779B97F4A7C15ULL + 4ULL * 0xBF58476D1CE4E5B9ULL;
++    constexpr std::uint64_t K5 = 0x9E3779B97F4A7C15ULL + 5ULL * 0xBF58476D1CE4E5B9ULL;
++    constexpr std::uint64_t K6 = 0x9E3779B97F4A7C15ULL + 6ULL * 0xBF58476D1CE4E5B9ULL;
++    constexpr std::uint64_t M  = 0x94D049BB133111EBULL;
+     std::uint64_t key = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
+-    for (int type = Knight; type <= King; ++type) {
+-        const Bitboard bb = board.pieces(color, static_cast<PieceType>(type));
+-        key ^= bb * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(type) * 0xBF58476D1CE4E5B9ULL);
+-        key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
+-    }
++    key ^= board.pieces(color, Knight) * K2; key = (key ^ (key >> 30U)) * M;
++    key ^= board.pieces(color, Bishop) * K3; key = (key ^ (key >> 30U)) * M;
++    key ^= board.pieces(color, Rook)   * K4; key = (key ^ (key >> 30U)) * M;
++    key ^= board.pieces(color, Queen)  * K5; key = (key ^ (key >> 30U)) * M;
++    key ^= board.pieces(color, King)   * K6; key = (key ^ (key >> 30U)) * M;
+     return key ^ (key >> 31U);
+ }
+ } // namespace
+@@ -1409,6 +1415,28 @@
+     child->runtime_psqt.valid = false;
+ }
+ 
++void Worker::prefetch_correction(const Board& board, const SearchStack* child) const {
++#if defined(__GNUC__) || defined(__clang__)
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    const std::uint64_t pkey = board.pawn_key();
++    __builtin_prefetch(&(*correction_history_)[side][pkey & (CorrectionSize - 1U)]);
++    if (tune::NonPawnCorrection) {
++        if ((child->corr_valid & 1U) != 0U) {
++            __builtin_prefetch(&(*non_pawn_white_correction_)[side][child->corr_np_idx[0]]);
++        }
++        if ((child->corr_valid & 2U) != 0U) {
++            __builtin_prefetch(&(*non_pawn_black_correction_)[side][child->corr_np_idx[1]]);
++        }
++    }
++    if (tune::HistRework != 0 && (child->corr_valid & 4U) != 0U) {
++        __builtin_prefetch(&(*joint_correction_)[side][(pkey ^ child->corr_mat_mix) & (CorrectionSize - 1U)]);
++    }
++#else
++    (void)board;
++    (void)child;
++#endif
++}
++
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+@@ -1874,6 +1902,7 @@
+ #else
+         shared_.tt.prefetch(board.key());
+ #endif
++        prefetch_correction(board, ss + 1);
+         const int score = -qsearch_child(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+@@ -2111,6 +2140,7 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
++            prefetch_correction(board, ss + 1);
+             int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -2392,6 +2422,7 @@
+ #else
+         shared_.tt.prefetch(board.key());
+ #endif
++        prefetch_correction(board, ss + 1);
+         const std::uint64_t nodes_before = local_nodes_;
+         std::size_t root_effort_index = 0;
+         if (root_node) {
