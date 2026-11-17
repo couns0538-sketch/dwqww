@@ -1452,3 +1452,23 @@ THE THREE HARNESS TRAPS ARE ONE TRAP, and the page now says so with a table of m
   AND THE SAME SHAPE RECURRED IN MY CHECKS OF MY OWN CHECKS, three times: the table checker that compared pipes against cells and flagged 115 of 117 rows; the zero-node flag that scored 220-node cells healthy; the evidence command that returned three commits while claiming none. THREE TIMES A CHECK OF MINE WAS THE THING THAT WAS WRONG.
   THE ONLY DEFENCE THAT WORKED EVERY TIME was running the thing and reading the output - not reasoning about what it should do. That is now the closing line of the section, and it is the operational form of everything the page teaches.
   Page structure: ten traps (0-9), the shared-shape section, the family table, the guard. Verified clean.
+
+## 2026-11-17T00:42:45Z — the check-is-a-claim rule, with its three instances
+
+**A check is a claim, and claims get tested.**
+
+The three instances, all mine, all found by running the thing rather than reasoning about it:
+
+| the check | what it claimed | what running it showed |
+|---|---|---|
+| `check_findings_table.py`, first version | 115 of 117 rows malformed | the checker compared **pipes** against **cells** — its own bug |
+| the zero-node flag in `check_zero_node_collapse.py` | "no collapse in any cell" | it scored 143-220-node cells **healthy**; the collapse was in the columns the flag summarised |
+| Trap 9's evidence table (first version) | `git log --grep="repair" -- FINDINGS.md` returns nothing | it returns **three commits** — the proof proved nothing |
+
+So the rule covers checks as well as measurements, and the same defence worked each time: **run it and read the
+output.**
+
+And the reason Trap 9's count is **per commit subject, not per file**, is worth keeping beside it: the trap-8 repair
+commit touched **four files at once**, so `git log -- <path>` cannot separate "this file was damaged" from "this file
+was in the same commit". **The provable unit is which file the commit message names** — and no commit message names
+`FINDINGS.md` as repaired, which is what makes "0 damages" a finding rather than an assumption.

@@ -185,7 +185,7 @@ Same shape as Trap 8: **a step that fails silently reports success.**
 Trap 0 (typing), Trap 8 (tests that cannot fire), and Trap 9 (shell writing) are not three separate lessons; they
 are one:
 
-> **A check is a claim, and claims get tested. A step that fails silently reports success.**
+> **A check is a claim, and claims get tested.** A step that fails silently reports success.
 
 Each of the three, in my own session, produced a confident output that was wrong:
 
