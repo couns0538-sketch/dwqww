@@ -3182,3 +3182,25 @@ On the split: the two earlier attribution questions were the coordinator's to ma
 mine, and it is mine in the same family as everything else tonight - I checked, and the check did not reach the data.
 Gates: 231 rows, 0 wrong pipe counts, Trap 15 added, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T04:11:10Z — extended seat 75's symmetry result to the v3 net, where nobody had tested it (S-C61)
+AFTER VERIFYING SEAT 75's SYMMETRY WORK PROPERLY, I FOUND A GAP THEY COULD NOT SEE: their 0-of-420 result is for the
+BUILT-IN net, and the owner's PC runs a LOADED FORGENN3 net through the v3 code - different code, different weights, and
+symmetry had never been tested there.
+IT IS NOT AN IDLE QUESTION. Symmetry is a property of the WEIGHT LAYOUT as much as of the code: feature_index reindexes
+by king bucket and flips squares by perspective, so a net written for one convention could be asymmetric where the two
+kings sit in different buckets. And STARTPOS CANNOT SHOW IT, because both sides are identical there - which is exactly
+why the test has to run on real positions.
+RESULT: mirrored every set_G position (colour flip + board flip, side to move preserved) and compared eval:
+    pairs evaluated: 353, skipped 0
+    ASYMMETRIC PAIRS: hce 0 / nnue 0 / total 0 of 353
+So symmetry holds on BOTH evaluation paths - a property of the engine, not of one net, which is stronger than either
+result alone.
+AND THE COMPARISON IS PROVEN ABLE TO FAIL: two different positions evaluate 968 vs 1320, so 0 of 353 is a measurement and
+not a broken equality test. That is the S-F166 rule applied here, and it is the difference between "symmetric" and "the
+comparison never fired".
+LIMIT: eval only, i.e. the static score - a symmetric static evaluation can still be USED asymmetrically by the search,
+which this does not test. And 353 positions is a population check, not exhaustive.
+This is also the first thing tonight built directly on another seat's result rather than on a claim relayed to me, and
+opening their branch properly is what made it possible - the same command that failed me an hour ago.
+Gates: 232 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
