@@ -76,7 +76,7 @@ single `rechecksummed` case are not resealed, because those are the checksum lay
 | `hdr_out_9` | header | output_buckets 8 -> 9 (in range, body not resized) | **refused** | file size 6309096 != expected 6311148 | refused (exit 2) | 0 |
 | `hdr_out_17` | header | output_buckets 8 -> 17 (> MaxOutputBuckets) | **refused** | output_buckets must be 1..16, got 17 | refused (exit 2) | 0 |
 | `hdr_out_0` | header | output_buckets 8 -> 0 | **refused** | output_buckets must be 1..16, got 0 | refused (exit 2) | 0 |
-| `hdr_flags_residual` | header | flags 2 -> 3 (residual|mirror) | loaded | — | refused (exit 2) | 0 |
+| `hdr_flags_residual` | header | flags 2 -> 3 (residual + mirror) | loaded | — | refused (exit 2) | 0 |
 | `hdr_flags_unknown` | header | flags 2 -> 4 (unknown bit 2) | **refused** | unknown flag bits | refused (exit 2) | 0 |
 | `hdr_qa_254` | header | qa 255 -> 254 | **refused** | quantisation must be qa 255 / qb 64 | refused (exit 2) | 0 |
 | `hdr_qb_32` | header | qb 64 -> 32 | **refused** | quantisation must be qa 255 / qb 64 | refused (exit 2) | 0 |
