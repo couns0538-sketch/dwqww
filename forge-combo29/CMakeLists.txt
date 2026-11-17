@@ -16,6 +16,10 @@ set(FORGE_MARCH "x86-64-v4" CACHE STRING "value for -march (lock exe uses znver5
 # FORGE_PORTABLE=ON drops the two ISA-bound speed switches (SLIDER_PEXT, NNUE_ZMM) so it
 # builds on CPUs without AVX-512/BMI2. Use -DFORGE_MARCH=x86-64-v3 or native with it.
 option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
+# Audit-only passive prune counters (swarm/pruning). Default OFF so a build
+# without it is the unmodified audit base; with it on and no ablation set the
+# search is unchanged and the four pins must still match.
+option(FORGE_PRUNE_PROBE "compile the passive prune probe (audit only)" OFF)
 set(FORGE_NNUE_HIDDEN 256 CACHE STRING "NNUE hidden units per side")
 set(FORGE_NNUE_WEIGHTS "src/nnue_weights.inc" CACHE STRING "path of the NNUE weights file")
 get_filename_component(FORGE_NNUE_WEIGHTS_FILE "${FORGE_NNUE_WEIGHTS}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -33,6 +37,9 @@ target_compile_definitions(forge PRIVATE
   FORGE_SPD_NO_ZERO_MOVELISTS=2
   FORGE_SEARCH_SPEED2=1
   FORGE_SPD_PREFETCH_EARLY=1)
+if(FORGE_PRUNE_PROBE)
+  target_compile_definitions(forge PRIVATE FORGE_PRUNE_PROBE=1)
+endif()
 if(FORGE_PORTABLE)
   target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
 else()

@@ -1,4 +1,5 @@
 #include "forge/clock_plan.hpp"
+#include "forge/pruneprobe.hpp"
 #include "forge/search.hpp"
 #include "forge/tm_finish.hpp"
 #include "forge/tm_node_share.hpp"
@@ -1561,6 +1562,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
+    FORGE_PROBE_COUNTER(nodes);
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
     ss->move_count = 0;
@@ -1680,24 +1682,34 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
         board.halfmove_clock() + depth < 100) {
         // Razoring: hopeless positions fall back to quiescence.
-        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+        if (!bare_king_mode && !FORGE_PROBE_ABLATED(razor) && depth <= tune::RazorDepth &&
+            eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+            FORGE_PROBE_COUNTER(razor_entered);
             const int razor = qsearch(board, ss, alpha - 1, alpha);
             if (aborted_) return 0;
-            if (razor < alpha) return razor;
+            if (razor < alpha) {
+                FORGE_PROBE_COUNTER(razor_cutoff);
+                return razor;
+            }
+            FORGE_PROBE_COUNTER(razor_fell_through);
         }
         // Reverse futility pruning.
-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+        if (!bare_king_mode && !FORGE_PROBE_ABLATED(rfp) && depth <= tune::RfpDepth &&
+            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
             eval < MateInMaxPly) {
+            FORGE_PROBE_COUNTER(rfp_cutoff);
             return eval;
         }
         // Null move pruning.
-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+        if (!bare_king_mode && !FORGE_PROBE_ABLATED(null_move) && depth >= tune::NullMoveMinDepth && eval >= beta &&
+            ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
             !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
             ++null_tries_;
+            FORGE_PROBE_COUNTER(null_try);
             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
             ss->current_move = Move::none();
@@ -1715,7 +1727,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             board.unmake_null_move(undo);
             if (aborted_) return 0;
             if (null_score >= beta) {
-                if (is_mate_score(null_score)) null_score = beta;
+                if (is_mate_score(null_score)) {
+                    null_score = beta;
+                    FORGE_PROBE_COUNTER(null_score_mate_clamped);
+                }
                 // Depth >= 14 always verifies, as before. Below that, a cutoff
                 // stands unless NullThreatVerify is on and a cheaper enemy piece
                 // attacks a dearer piece of the side to move. The option is read
@@ -1724,6 +1739,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
                 if (depth < 14 && !threat_gate) {
                     ++null_cutoffs_;
+                    FORGE_PROBE_COUNTER(null_cutoff);
                     return null_score;
                 }
                 // Same reduced depth as the high-depth verification. A threat
@@ -1738,6 +1754,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 if (aborted_) return 0;
                 if (verification >= beta) {
                     ++null_cutoffs_;
+                    FORGE_PROBE_COUNTER(null_cutoff);
+                    FORGE_PROBE_COUNTER(null_cutoff_verified);
                     return null_score;
                 }
             }
@@ -1838,8 +1856,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
             (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
             (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
-        if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+        if (!sound_mate_case && !FORGE_PROBE_ABLATED(futility) && mate_moves_ == 0 &&
+            board.halfmove_clock() + depth < 100 && !root_node &&
             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+            FORGE_PROBE_COUNTER(block_skips);
+            if (is_mate_score(alpha)) FORGE_PROBE_COUNTER(nodes_with_mate_alpha);
             // Trace stays off in normal play. It records which case skipped a
             // move, including a quiet check that follows an earlier quiet skip.
             auto trace_case = [&]() {
@@ -1863,7 +1884,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
                 }
             };
-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
+                skip_quiets = true;
+                FORGE_PROBE_COUNTER(lmp_skipped_moves);
+            }
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
@@ -1872,6 +1896,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 #endif
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
                     trace_case();
+                    FORGE_PROBE_COUNTER(futility_quiet_skip);
                     quiet_fail = true;
                     skip_quiets = true;
                     note_deferred_quiet_checks();
@@ -1879,11 +1904,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 }
                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
                     trace_case();
+                    FORGE_PROBE_COUNTER(hist_quiet_skip);
                     quiet_fail = true;
                     continue;
                 }
                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
                     trace_case();
+                    FORGE_PROBE_COUNTER(see_quiet_skip);
                     quiet_fail = true;
                     continue;
                 }
@@ -1898,12 +1925,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                             capture_value(board, move) + history / 8 <= alpha) {
                     trace_case();
+                    FORGE_PROBE_COUNTER(futility_capture_skip);
                     continue;
                 }
                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
                     !board.see_ge(move, see_threshold)) {
                     trace_case();
+                    FORGE_PROBE_COUNTER(see_noisy_skip);
                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
                         if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
@@ -1926,8 +1955,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         // Extensions.
         int extension = 0;
-        if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+        if (mate_moves_ == 0 && !FORGE_PROBE_ABLATED(singular) && !root_node && depth >= tune::SingularDepth &&
+            move == tt_move && excluded.is_none() &&
             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+            FORGE_PROBE_COUNTER(singular_search);
             const int singular_beta = tt_score - tune::SingularMargin * depth;
             // (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch, which
             // never reads excluded_move, so the singular search cuts off on this
@@ -1945,7 +1976,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
                     extension = 2;
                 }
+                if (extension == 2) FORGE_PROBE_COUNTER(singular_extension2);
+                else FORGE_PROBE_COUNTER(singular_extension1);
             } else if (singular_beta >= beta) {
+                FORGE_PROBE_COUNTER(singular_multicut);
                 return singular_beta;
             } else if (tt_score >= beta) {
                 extension = -2;
@@ -1988,9 +2022,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+        if (mate_moves_ == 0 && !FORGE_PROBE_ABLATED(lmr) && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
             (quiet || !ss->tt_pv || move_count > 4)) {
+            FORGE_PROBE_COUNTER(lmr_reduced);
             int r = reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
@@ -2014,6 +2049,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
             full_depth_needed = score > alpha && reduced_depth < new_depth;
             if (full_depth_needed) {
+                FORGE_PROBE_COUNTER(lmr_reescalated);
                 if (tune::LmrDeeperShallower) {
                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
                     const bool do_shallower = score < best_score + new_depth;
@@ -2073,6 +2109,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     }
 
     if (best_score >= beta) {
+        if (is_mate_score(best_score)) FORGE_PROBE_COUNTER(cutoff_with_mate_score);
         if (!best_move.is_capture() && !best_move.is_promotion()) {
             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
         }
@@ -2156,6 +2193,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     null_tries_ = 0;
     null_cutoffs_ = 0;
     null_blocked_ = false;
+    FORGE_PROBE_RESET();
     root_moves_ = limits.search_moves;
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;

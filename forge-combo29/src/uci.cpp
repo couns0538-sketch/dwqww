@@ -4,6 +4,7 @@
 #if FORGE_NNUE_V3
 #include "forge/nnue_v3.hpp"
 #endif
+#include "forge/pruneprobe.hpp"
 #include "forge/search.hpp"
 #include "forge/uci.hpp"
 #include "forge/uci_clock.hpp"
@@ -624,6 +625,65 @@ int uci_loop(std::istream& in) {
             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
                       << std::endl;
+#if defined(FORGE_PRUNE_PROBE) && FORGE_PRUNE_PROBE
+        } else if (command == "probestats") {
+            // Passive counters from the last search. Read-only: nothing here
+            // feeds back into the search, so the pins must not move.
+            const forge::probe::Counts& c = forge::probe::counts;
+            const forge::probe::Ablate& a = forge::probe::ablate;
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "probestats {"
+                      << "\"null_try\":" << c.null_try
+                      << ",\"null_cutoff\":" << c.null_cutoff
+                      << ",\"null_cutoff_verified\":" << c.null_cutoff_verified
+                      << ",\"null_score_mate_clamped\":" << c.null_score_mate_clamped
+                      << ",\"razor_entered\":" << c.razor_entered
+                      << ",\"razor_cutoff\":" << c.razor_cutoff
+                      << ",\"razor_fell_through\":" << c.razor_fell_through
+                      << ",\"rfp_cutoff\":" << c.rfp_cutoff
+                      << ",\"futility_quiet_skip\":" << c.futility_quiet_skip
+                      << ",\"futility_capture_skip\":" << c.futility_capture_skip
+                      << ",\"lmp_skipped_moves\":" << c.lmp_skipped_moves
+                      << ",\"see_quiet_skip\":" << c.see_quiet_skip
+                      << ",\"hist_quiet_skip\":" << c.hist_quiet_skip
+                      << ",\"see_noisy_skip\":" << c.see_noisy_skip
+                      << ",\"block_skips\":" << c.block_skips
+                      << ",\"lmr_reduced\":" << c.lmr_reduced
+                      << ",\"lmr_reescalated\":" << c.lmr_reescalated
+                      << ",\"lmr_mate_on_reduced\":" << c.lmr_mate_on_reduced
+                      << ",\"singular_search\":" << c.singular_search
+                      << ",\"singular_extension1\":" << c.singular_extension1
+                      << ",\"singular_extension2\":" << c.singular_extension2
+                      << ",\"singular_multicut\":" << c.singular_multicut
+                      << ",\"nodes\":" << c.nodes
+                      << ",\"nodes_with_mate_alpha\":" << c.nodes_with_mate_alpha
+                      << ",\"cutoff_with_mate_score\":" << c.cutoff_with_mate_score
+                      << ",\"ablate\":{\"null_move\":" << (a.null_move ? "true" : "false")
+                      << ",\"razor\":" << (a.razor ? "true" : "false")
+                      << ",\"rfp\":" << (a.rfp ? "true" : "false")
+                      << ",\"futility\":" << (a.futility ? "true" : "false")
+                      << ",\"lmr\":" << (a.lmr ? "true" : "false")
+                      << ",\"singular\":" << (a.singular ? "true" : "false")
+                      << "}}" << std::endl;
+        } else if (command == "ablate") {
+            // Test-only: remove one pruning class so a mate failure can be
+            // attributed to it. Every recorded row names the arm it ran under.
+            std::string which;
+            if (input >> which) {
+                forge::probe::Ablate& a = forge::probe::ablate;
+                if (which == "none") a = forge::probe::Ablate{};
+                else if (which == "null_move") a.null_move = true;
+                else if (which == "razor") a.razor = true;
+                else if (which == "rfp") a.rfp = true;
+                else if (which == "futility") a.futility = true;
+                else if (which == "lmr") a.lmr = true;
+                else if (which == "singular") a.singular = true;
+                else if (which == "all") {
+                    a.null_move = a.razor = a.rfp = a.futility = a.lmr = a.singular = true;
+                }
+                searcher.clear();
+            }
+#endif
         } else if (command == "ponderhit") {
             if (ponder_search_active) {
                 searcher.ponderhit();
