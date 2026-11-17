@@ -1482,3 +1482,15 @@ the audit is not a pass stamp:
 These are the same class as the page's own 'documents accumulate defects' section - the table grew by appending, and
 only reading it as a table found them. Audit file: forge-combo29/swarm/23/EVIDENCE_AUDIT.txt.
 105 findings, 18 confirmations (2 refutations), thirteen named faults, six reference pages. 9 h 19 m remain.
+## 2026-11-17T01:00:03Z  document check extended to the four reference pages: 3 real path defects fixed, rest checked by hand
+2026-11-17T01:00:03Z
+
+FIXED (real defects): GUI_HAZARDS had 3 ambiguous bare filenames (partial_clock.out, refused_readyok.out, s57.out
+exist in several job folders) -> now full paths. PERFT_NULL_RESULT used "nodes/side", read as a path -> rephrased.
+PC_BUILD_SUMMARY cited FABLE_TO_swarm_5.md as if in the checkout -> it is on the handoff branch; the page now says so
+with the fetch command. GUI_HAZARDS and PERFT now resolve 100 % of their path claims.
+RECORDED, NOT "FIXED" (with reasons in DOC_CHECK_REFERENCE_PAGES.txt): the RULE page's 3 hits are script NAMES in
+prose where the folder is named in the same sentence - repeating the path each time would make it unreadable; the PC
+page's 5 are depth numbers, two finding ids, the phrase "process/input termination", a branch name, and the handoff
+file. None is a failing path claim, and a reviewer can now disagree with that judgement instead of rediscovering hits.
+105 findings, 18 confirmations, thirteen named faults. 9 h 19 m remain.
