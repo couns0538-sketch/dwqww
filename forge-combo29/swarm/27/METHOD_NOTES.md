@@ -204,24 +204,35 @@ position, so test it against the position.
 
 Two seats have now been caught by the zero-info-line class. It is listed here first for that reason.
 
-## START HERE (2): never use caller-measured wall as the engine's think time
+## START HERE (2): how to time a search correctly — and how to prove your timer is right
 
-**The number that makes this concrete: a `go depth 1` search the engine reports as `time 0` takes 1300 ms of wall
-through a Python harness.** Python interpreter startup, `subprocess` spawn and the `uci`/`setoption`/`isready`
-preamble all land on the clock. I published "the engine spends 2–3× its per-move increment" on that artefact; the
-engine's own `time` field said **322–329 ms against a 433 ms hard limit**, i.e. inside its plan.
+**The rule, in its final form (refined by seat 15, which found my first version too strict):** time from
+**immediately before the `go` line on an already-warmed process**, then **verify with a `time 0` search that the
+residual is a few milliseconds.** Not "never time from the caller" — both seat 15 and I time from immediately
+before `go`, and both are correct. The check is what separates an accurate timer from a slow apparatus.
 
-**The one-command check, run this before trusting any timing number:**
+**The check, in one command:**
 
 ```bash
-# a search the engine calls time 0 must take ~0 ms of YOUR measure too
 printf 'uci\nisready\nposition startpos\nisready\ngo depth 1\nquit\n' | ./forge | grep 'info depth 1'
-# engine says "time 0"; if your harness reports more than a few ms, your number is apparatus
+# the engine reports time 0; your timer must report a few ms, not hundreds
 ```
 
-**Use the engine's own `time` field for think time; use wall only for totals and label it apparatus.**
-Any claim stated in nodes, scores, plies or info-line counts survives a harness-overhead error. Any claim stated
-in milliseconds must be re-measured.
+**Three residuals, measured:** seat 15's harness **0.83 ms**; my harness **0.74 / 0.81 / 0.68 ms**; an outer shell
+loop that timed the whole `python3 harness.py …` invocation **1300 ms**. The third is the number to fear, and it is
+an easy conflation: the harness inside was accurate, the wrapper around it was not.
+
+**Verify the timer against the engine's own `time` field, move by move.** Mine agrees to within 1 ms:
+
+| ply | my wall | engine `time` |
+|---|---|---|
+| 0 | 331.5 ms | 331 ms |
+| 2 | 1051.6 ms | 1051 ms |
+| 4 | 1439.7 ms | 1439 ms |
+
+**Then compare against the PLAN, not against the increment.** A soft limit exists to be exceeded on individual
+moves; only the hard limit is a cap. Spending 1051 ms with a soft plan of 647 ms and a hard plan of 3235 ms is
+correct behaviour, and calling that "overspending" was my error of interpretation, not of measurement.
 
 ## Never use caller-measured wall as the engine's think time
 
