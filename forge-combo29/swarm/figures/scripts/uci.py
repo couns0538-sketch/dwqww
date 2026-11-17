@@ -62,7 +62,7 @@ class Engine:
         try:
             self.send("quit")
             self.p.wait(timeout=10)
-        except Exception:
+        except (OSError, subprocess.TimeoutExpired):
             self.p.kill()
 
 

@@ -108,8 +108,6 @@ def run_uci(exe, cmds, want):
 def check_prefetch():
     path = seat("61", "evidence", "prefetch_raw_pairs.txt")
     if not os.path.exists(path):
-        for f in ("prefetch", "§1"):
-            pass
         record("prefetch pooled 1.0980 / 9.80%", "§1 table", "swarm/61/evidence/prefetch_raw_pairs.txt",
                None, "NOT-RE-DERIVABLE", "evidence file absent from the extracted trees")
         return
@@ -395,7 +393,6 @@ def check_grid():
            "MATCH" if abs(min(v) - 114.0) < .1 and abs(max(v) - 139.3) < .1 and abs(spread - .2217) < .01 else "MISMATCH",
            "so no product form can express the cost")
 
-    ident = sorted({cells[(h, 1)]["nodes_median"] for h in sorted({k[0] for k in cells})})
     same_runs = len({tuple(sorted(r["nodes"] for r in cells[(h, 1)]["runs"]))
                      for h in sorted({k[0] for k in cells})})
     ref = {r["fen_index"]: r["nodes"] for r in cells[(16, 1)]["runs"]}
@@ -807,15 +804,21 @@ def check_provenance(repo):
         reason (the bytes are not in the tree) and must not be reported as "unresolvable
         build ids", which would be a category error of the kind this audit exists to catch.
     """
-    def in_history(prefix):
-        try:
-            out = subprocess.run(["git", "rev-list", "--all"], cwd=repo, capture_output=True,
-                                 text=True, timeout=300).stdout.split()
-        except Exception:
-            return None
-        return any(c.startswith(prefix) for c in out)
 
-    ok = in_history("068f0927")
+    def git(args):
+        """Run git, returning stdout, or "" if git is unavailable.
+
+        A missing git means every provenance claim below is unverifiable, which is itself a
+        NOT-RE-DERIVABLE outcome — it must not be reported as "the id resolves to nothing".
+        """
+        try:
+            return subprocess.run(["git"] + args, cwd=repo, capture_output=True,
+                                  text=True, timeout=300).stdout
+        except (OSError, subprocess.SubprocessError):
+            return ""
+
+    history = git(["rev-list", "--all"]).split()
+    ok = any(c.startswith("068f0927") for c in history)
     record("PC r15 build id 068f0927 names a rebuildable build", "PC r15 columns throughout §2/§5",
            "git rev-list --all; no artefact in the tree", ok,
            "MATCH" if ok else "NOT-RE-DERIVABLE",
@@ -825,13 +828,7 @@ def check_provenance(repo):
     # patch + composed-file hashes: hash-of-bytes, and the bytes are absent
     for hid, what in [("d6bd72c5", "the r15 patch sha256 prefix, §2"),
                       ("24912a43", "the composed src/search.cpp sha256, §2")]:
-        present = False
-        try:
-            g = subprocess.run(["git", "grep", "-rIl", hid, "origin/for-fable-and-opus/swarm-23"],
-                               cwd=repo, capture_output=True, text=True, timeout=300).stdout.strip()
-            present = bool(g)
-        except Exception:
-            pass
+        present = bool(git(["grep", "-rIl", hid, "origin/for-fable-and-opus/swarm-23"]).strip())
         record("sha256 prefix %s (%s) is checkable" % (hid, what),
                "§2 provenance", "git grep for the hex prefix across the seat tree",
                "prefix quoted in prose only" if present else "prefix absent from the tree",
@@ -840,16 +837,11 @@ def check_provenance(repo):
                "patch text and the composed file are not committed, so the digest cannot be "
                "recomputed from the record — this is a provenance gap, and the report says so")
 
-    try:
-        out = subprocess.run(["git", "grep", "-l", "FORGE_FIX_ROOT_DRAWN",
-                              "origin/for-fable-and-opus/swarm-23",
-                              "--", "forge-combo29/src", "forge-combo29/include"],
-                             cwd=repo, capture_output=True, text=True, timeout=300).stdout.strip()
-    except Exception:
-        out = ""
+    flag = git(["grep", "-l", "FORGE_FIX_ROOT_DRAWN", "origin/for-fable-and-opus/swarm-23",
+                "--", "forge-combo29/src", "forge-combo29/include"]).strip()
     record("`FORGE_FIX_ROOT_DRAWN` exists as SOURCE", "§2 provenance block",
-           "git grep over src/ and include/", bool(out),
-           "MATCH" if out else "NOT-RE-DERIVABLE",
+           "git grep over src/ and include/", bool(flag),
+           "MATCH" if flag else "NOT-RE-DERIVABLE",
            "the flag appears only in prose and check scripts, so every 'PC r15' column is a "
            "handoff claim rather than a rebuildable artefact — which is exactly what the "
            "report's own provenance block states")
@@ -928,7 +920,7 @@ def check_corpora():
         try:
             out = subprocess.run([sys.executable, cd] + files, capture_output=True,
                                  text=True, timeout=600).stdout
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
             out = ""
         m = re.search(r"COUNT union_distinct_positions (\d+)", out)
         got = int(m.group(1)) if m else None

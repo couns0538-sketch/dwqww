@@ -68,7 +68,7 @@ class Proc:
         try:
             self.send("quit")
             self.p.wait(timeout=5)
-        except Exception:
+        except (OSError, subprocess.TimeoutExpired):
             self.p.kill()
 
 
