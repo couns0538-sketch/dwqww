@@ -32,6 +32,8 @@ ANALYSIS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "analysis.py
 # it (Hash < 8 MB changes node counts), so a smaller number paired with a line
 # count is a measurement, not a ceiling.
 HASH_FLOOR = 8
+# The engine's MultiPV maximum (uci.cpp: 'option name MultiPV ... max 8').
+MPV_MAX = 8
 
 
 def fitted_ceiling(data: dict, conservative: bool) -> dict[int, int]:
@@ -140,6 +142,10 @@ def parse_clauses(text: str) -> list[tuple[int, int, int]]:
         flat, re.I,
     ):
         lo, hi = lines(m.group(2), m.group(3))
+        # The line count is bounded by the engine's MultiPV max: "114 MB at 133
+        # lines" is a quotation of a misread, not a ceiling.
+        if not (1 <= lo <= MPV_MAX and 1 <= hi <= MPV_MAX):
+            continue
         out.append((int(m.group(1)), lo, hi))
 
     # Form B: "at 6 lines, Hash <= 256" / "Hash <= 256 at 6 lines"
@@ -159,7 +165,7 @@ def parse_clauses(text: str) -> list[tuple[int, int, int]]:
     # a bare integer table row is ambiguous with every measurement table in the
     # document. Measured failure: "| 3 | 124.7 | 259.7 | 135.0 |" (an allocation
     # table) was read as the clause "Hash <= 1 at 3 lines".
-    for m in re.finditer(r"MultiPV\s*(?:=|:)?\s*(\d+)([^0-9\n|]*?)(\d{2,4})\s*MB", flat, re.I):
+    for m in re.finditer(r"MultiPV\s*(?:=|:)?\s*(\d+)([^0-9\n|]*?)(\d{1,4})\s*MB", flat, re.I):
         gap = m.group(2).lower()
         # "MultiPV 1 at ANY Hash; otherwise 48 MB ..." is not a ceiling of 48 MB for
         # MPV 1 -- "any Hash" is unbounded. Reading it as 48 produced the bogus
@@ -172,9 +178,12 @@ def parse_clauses(text: str) -> list[tuple[int, int, int]]:
     # mate table, not a 114 MB ceiling, so 114 is below the Hash floor we accept.
     # The Hash floor is 8 MB (the grid's smallest column); below that the engine
     # changes node counts, so no recommendation would name it.
-    for m in re.finditer(r"(\d+)\s*lines?\s*[:=]\s*(\d{2,4})\s*(?:MB)?", flat, re.I):
+    # A line count is 1..8 (the engine's MultiPV max), so a pair like
+    # "133 lines: 114" is a mate-table line count, not a ceiling. Both slots are
+    # bounded: the line count by the engine's limit, the Hash by the floor.
+    for m in re.finditer(r"(\d+)\s*lines?\s*[:=]\s*(\d{1,4})\s*(?:MB)?", flat, re.I):
         hash_mb, lc = int(m.group(2)), int(m.group(1))
-        if HASH_FLOOR <= hash_mb <= 2048 and 1 <= lc <= 8:
+        if HASH_FLOOR <= hash_mb <= 2048 and 1 <= lc <= MPV_MAX:
             out.append((hash_mb, lc, lc))
     # A markdown row is only a ceiling when its table's HEADER names Hash AND a
     # line count. The header may be several lines up (separator row, blanks).
@@ -404,6 +413,48 @@ def main() -> int:
              "(`at 6 lines, Hash <= 256`), exactly how a person edits.")
     if not permissive_outside_recommendations(quote, cons):
         failures.append("selftest: the quotation was dropped silently instead of being noted")
+
+    # Check 7: the Hash floor must be SAFE, not merely convenient. A clause below
+    # the floor is skipped, so it must be provably more conservative than every
+    # ceiling -- otherwise the floor silently hides a permissive clause.
+    lowest_ceiling = min(v for m, v in cons.items() if m > 1)
+    if HASH_FLOOR > lowest_ceiling:
+        failures.append(
+            f"selftest: HASH_FLOOR={HASH_FLOOR} can skip a clause that is NOT "
+            f"conservative (lowest ceiling is {lowest_ceiling} MB)"
+        )
+    # And the floor must actually be the controlling bound, not shadowed by a
+    # digit quantifier: measured once, \\d{2,4} made an "8 MB floor" a 10 MB floor.
+    if not parse_clauses(f"6 lines: {HASH_FLOOR} MB"):
+        failures.append(
+            f"selftest: '6 lines: {HASH_FLOOR} MB' does not parse, so HASH_FLOOR "
+            f"is not the controlling bound"
+        )
+    if parse_clauses(f"6 lines: {HASH_FLOOR - 1} MB"):
+        failures.append(
+            f"selftest: '6 lines: {HASH_FLOOR - 1} MB' parsed despite being below the floor"
+        )
+    print(f"selftest            : Hash floor {HASH_FLOOR} MB is the controlling bound "
+          f"and skips only clauses <= {HASH_FLOOR - 1} MB < lowest ceiling {lowest_ceiling} MB")
+
+    # A line count above the engine's MultiPV max cannot be a recommendation, so
+    # bounding it cannot hide one. Assert that, rather than relying on it.
+    if MPV_MAX < max(data["mpvs"]):
+        failures.append(
+            f"selftest: MPV_MAX={MPV_MAX} is below the grid's largest MPV "
+            f"{max(data['mpvs'])}, so the bound could skip a real column"
+        )
+    for high_lc in (9, 133):
+        if parse_clauses(f"6 lines: 256 MB" if high_lc == 9 else f"{high_lc} lines: 114"):
+            # Above-max line counts may or may not parse, but if they do they must
+            # not produce a clause in a grid column.
+            for c, lo, hi in parse_clauses(f"{high_lc} lines: 114"):
+                if lo <= max(data["mpvs"]):
+                    failures.append(
+                        f"selftest: '{high_lc} lines' produced a clause inside a real column"
+                    )
+    print(f"selftest            : line counts bounded at MPV_MAX={MPV_MAX} "
+          f"(grid max {max(data['mpvs'])}, so the bound skips no real column)")
 
     print(f"selftest            : {len(permissive_wrong)} permissive forms rejected, "
           f"{len(correct)} correct forms accepted")

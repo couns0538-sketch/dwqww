@@ -78,6 +78,15 @@ ceiling **no more permissive** than the fitted one, and rejects a planted
     `MultiPV 1 at any Hash; otherwise 48 MB` parsed as a 48 MB ceiling for MPV 1.
     Each is now guarded by a Hash floor of 8 MB (the grid's smallest column), a
     two-column row requirement, and an explicit "any Hash means unbounded" rule.
+  - **The Hash floor was dead code that read as a guarantee, and that is the
+    subtle one.** `HASH_FLOOR = 8` was documented as the bound, but every Hash
+    quantifier was `\d{2,4}`, so a single-digit value never matched: the real
+    floor was 10 MB and the constant controlled nothing. The floor is now the
+    controlling bound, and it is asserted safe rather than assumed — it can skip
+    only clauses <= 7 MB while the lowest ceiling is 24 MB, so a skipped clause is
+    always the conservative direction. Same reasoning for the line-count bound at
+    MPV_MAX=8: asserted against the grid's own maximum, so it provably skips no
+    real column.
   - **A failure must be the RIGHT failure.** The selftest asserts each escape case
     fails specifically with "MORE permissive", not merely that it fails — otherwise
     a case that errors for an unrelated reason would count as a detection.
