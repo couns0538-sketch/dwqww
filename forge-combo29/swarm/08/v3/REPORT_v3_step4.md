@@ -233,3 +233,40 @@ arithmetic and its overlap story are withdrawn.
 | 08-N13 | the method rule: saving = old − new, never old − 0 |
 | 08-C48 | the fold is latency-bound (0.819), which is why the patch is capped |
 | 08-N11 | **annotated in place** — right about the tail's cost, wrong about how it enters the estimate |
+
+## Addendum 2 — I tested my own caveat and its direction was wrong
+
+At the end of the last turn I flagged that the microbenchmark streams 164 MB of distinct inputs while the real
+`evaluate` reuses an L1-hot accumulator buffer, and predicted the real tail would be *cheaper* and the saving
+*smaller*. I then left it untested. Tested now, with a 16-vector (1 KB) hot working set and the same 2,566,881 folds:
+
+| working set | scalar tail | fold | saving | as share of 2130 ms |
+|---|---|---|---|---|
+| streaming (164 MB, first test) | 7.07 – 9.20 ms | 5.38 – 7.33 ms | 1.50 – 1.87 ms | 0.070 – 0.088 % |
+| **L1-hot (1 KB)** | **6.42 – 6.47 ms** | **3.90 – 3.96 ms** | **2.47 – 2.57 ms** | **0.116 – 0.121 %** |
+
+The caveat was right that the tail gets cheaper with a hot buffer (7.4 → 6.4 ms) and **wrong about the saving**,
+which *grows*: the fold gains more from cache than the scalar tail does, because the scalar tail's cost was dominated
+by the store-then-reload round trip that caching helps most. 12 of 12 reps bit-identical.
+
+## And the honest conclusion is not "so it is 0.12 %"
+
+Both predictions sit inside the bench's interval:
+
+| estimate | value | inside +0.05 % (CI −0.05 % .. +0.16 %) ? |
+|---|---|---|
+| streaming | 0.070 – 0.088 % | **yes** |
+| hot | 0.116 – 0.121 % | **yes** |
+
+**The bench cannot discriminate them.** So this resolves nothing about the true value; it only removes my right to
+have asserted a direction. The correct statement is the bound: *the saving is between roughly 0.05 % and 0.12 %
+depending on cache behaviour, and every figure in that range is consistent with what the bench measured.*
+
+Which changes no decision. The patch is rejected on the bench at +0.05 % against a 0.5 % bar, and even the most
+favourable mechanism estimate — 0.12 % — is a quarter of the bar. The rejection does not depend on which number is
+true.
+
+| item | status |
+|---|---|
+| 08-F48 | the hot-set measurement and the wrong direction of my caveat |
+| 08-N14 | state a caveat as a question with two outcomes and name the discriminating measurement; if none can discriminate, report a bound |

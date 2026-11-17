@@ -1113,3 +1113,25 @@ report addendum: `v3/REPORT_v3_step4.md` §"Addendum". evidence: `v3/tail_microb
 
 ## 2026-11-17T04:38Z — TALLY (generated, not maintained)
 **47 findings, 39 checks/audits/plants/tools, 13 method lines, 7 withdrawals** (and 1 open lead).
+
+## 2026-11-17T04:47Z — closing my own caveat: the direction was wrong, and it resolves nothing
+Last turn I flagged a cache caveat on my microbench and left it untested. Tested it.
+
+- **Caveat: "hot buffer ⇒ cheaper tail ⇒ smaller saving." Measured: the tail IS cheaper (7.4 -> 6.4 ms) but the
+  saving GROWS, 2.47–2.57 ms = 0.116–0.121 %, versus streaming's 0.070–0.088 %.** The fold gains more from cache than
+  the scalar tail does — the tail's cost was dominated by the store/reload round trip that caching helps most. My
+  predicted direction was backwards. (08-F48; 12/12 reps bit-identical.)
+- **But the honest conclusion is NOT "so it is 0.12 %."** Both predictions lie inside the bench CI (−0.05 %..+0.16 %),
+  so **the bench cannot discriminate them.** The reportable thing is a BOUND — roughly 0.05–0.12 % depending on cache
+  behaviour — not a point value. (08-N14.)
+- **Changes no decision.** Rejected at +0.05 % against a 0.5 % bar; even the most favourable mechanism estimate, 0.12 %,
+  is a quarter of the bar. The rejection does not depend on which number is true.
+- **08-N14 (method): a caveat whose direction you have not tested is speculation in the costume of rigour.** State
+  caveats as a question with two named outcomes, name the measurement that could distinguish them, and if none can,
+  report a bound rather than resolving it in the convenient direction. Third case this seat of an assertion outrunning
+  its measurement (W7, N13, this) — and the first caught by deliberately testing my own doubt instead of my own claim.
+
+report addendum 2: `v3/REPORT_v3_step4.md`. evidence: `v3/tail_microbench_hot.txt`, `v3/tail_microbench_hot.cpp`.
+
+## 2026-11-17T04:47Z — TALLY (generated, not maintained)
+**48 findings, 39 checks/audits/plants/tools, 14 method lines, 7 withdrawals** (and 1 open lead).
