@@ -1,30 +1,53 @@
-PREDICTION — SW-23 job 43 (does the short-PV / wrong-distance hazard also apply to LOSING mates, mate -N?)
+PREDICTION — SW-23 job 43 (does the short-PV / wrong-distance hazard apply to LOSING mates, mate -N?)
 Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+AMENDED IN PLACE AFTER A CONTROL FAILURE, BEFORE ANY ENGINE MEASUREMENT OF THIS FIXTURE — see the note at the end.
 
-23-F88 and 23-F90 measured only WON mates (`mate N`, N > 0). A GUI that shows a user "mate in -3" carries exactly the
-same trust question, and the ply arithmetic is DIFFERENT: for `mate N > 0` the mating side moves last, so a complete
-line is 2N-1 plies; for `mate -N` the side to move is being mated, so the opponent delivers the mate on the opponent's
-Nth move and a complete line is 2N plies. If I had assumed 2N-1 for both I would have called every complete losing line
-"one ply short". That is the trap this job is designed to avoid.
+23-F88/F90 measured only WON mates (mate N > 0). A GUI showing "mate in -3" carries the same trust question and the
+ply arithmetic DIFFERS: a complete `mate N` line is 2N-1 plies (the mater moves last); a complete `mate -N` line is
+2N plies (the opponent delivers on its Nth move).
 
-Boards (side to move is LOST, verified by the same replay machinery):
-  L1 `1K6/8/8/3R4/8/8/8/k7 b - - 0 1`   (black to move, K+R v K against it)
-  L2 `8/5K2/7Q/4k3/8/8/8/8 b - - 0 1`   (black to move, K+Q v K against it)
-Depths 8, 10, 12, 14, 16, base build and PC r15, Threads 1, Hash 16, OwnBook false, no PC20 switches. For every cell
-reporting `mate -N`: full PV, replay in python-chess from the SAME fen, and whether the final position is checkmate
-(with the side to move at that point having no legal move and being in check).
+WHY THE FIXTURES CHANGED: my first pair (`1K6/8/8/3R4/8/8/8/k7 b` and `8/5K2/7Q/4k3/8/8/8/8 b`) produced NO negative
+mate score on either build at depths 8-16 (P1 killed on both), because K+R/K+Q mates need far more than 16 plies from
+those starts. That is a fixture-selection failure, not an engine finding, and the honest response is a fixture where
+the loss is certain by construction. My first attempt at a solver was itself wrong (it asked whether the MATER was
+mated) and its control caught it; a 15-ply brute force then proved too slow to run. Abandoned in favour of positions
+where python-chess can establish the forced loss in ONE step, with no search at all:
+
+  L1 `7k/8/6K1/8/8/8/8/7Q b` — black has exactly one legal move (h8g8) and after it WHITE MATES IN ONE (h1a8).
+  L2 `k7/8/1K6/8/8/8/8/7Q b` — black has exactly one legal move (a8b8) and after it white mates in one (h1h8, h1b7).
+Both verified directly: every legal black move followed by a mate-in-one scan, printed in the prediction's own job
+(`fixture_check.out`), with no engine involved. So the loss is forced and the mate distance is EXACTLY 2 plies: engine
+`mate -2`, complete PV 3 plies (black moves, white mates)... note the arithmetic: `mate -2` for the side to move means
+the side to move is mated in 2 MOVES OF ITS OWN? No — the engine's convention (as measured on won boards) counts the
+MATER's moves, so `mate -2` should correspond to a 4-ply line. THIS AMBIGUITY IS THE POINT OF THE JOB and I state both
+readings below rather than assuming one.
+
+Depths 4, 6, 8, 10, 12, both builds, Threads 1, Hash 16, OwnBook false, no PC20 switches. For each cell: score, full PV,
+replay in python-chess, PV plies.
 
 Prediction (each with the range that kills it):
-  P1  THE ENGINE REPORTS A NEGATIVE MATE at some depth on each board (it should — the position is lost). KILLED if a
-      board never reports a mate score at any depth; that would mean the engine's losing-mate reporting is absent
-      where the win is trivially forced, which would itself be the finding.
-  P2  FOR A COMPLETE LOSING LINE, PV PLIES = 2N (not 2N-1).         KILLED if a replaying cell has plies != 2N.
-  P3  THE SAME FIRST-DEPTH HAZARD APPEARS: at the first depth reporting `mate -N`, the PV is shorter than 2N plies and
-      the replay does NOT end in mate; one depth later it does.       KILLED if the first-depth PV already completes
-      — in which case the hazard is specific to won mates and F88/F90 must be scoped that way.
-  P4  THE DISTANCE IS NOT REVISED for losing mates the way it was on W2: |N| does not change by more than 1 between
-      consecutive depths.                                            KILLED if it moves by 2 or more.
+  P1  BOTH BUILDS REPORT A NEGATIVE MATE at depth >= 6 on both fixtures (the loss is forced in 2 plies; any search that
+      sees 6 plies must see it).                                            KILLED if either build reports cp at depth 6.
+  P2  THE REPORTED DISTANCE IS mate -2 on both fixtures — i.e. the engine counts the MATER's moves, so a mate that
+      occurs 2 plies from now is "2".                                       KILLED if it reports mate -1 (which would
+      mean it counts the side-to-move's own moves, giving 1).
+  P3  THE COMPLETE PV IS EXACTLY 2 PLIES (the side to move's forced move, then the mating move) — because mate -2 by
+      the mater-move convention needs 2*2-1 = 3 plies and there is only ONE legal first move, so the engine may print
+      a shortened PV of the same length either way. **This prediction is deliberately weak**: with one legal move the
+      PV cannot be truncated in an interesting way, so what it really tests is whether a LOSING mate's PV ends in
+      CHECKMATE AT ALL, which is the property F88/F90 established for won mates.
+                                                                              KILLED if a PV replays to NO-MATE at
+                                                                              the depth where the score is final.
+  P4  THE DISTANCE IS STABLE ACROSS DEPTH (no revision like W2's mate 13 -> mate 10), because there is nothing to
+      discover: the position is decided.                                    KILLED if it changes between depths.
 
-If P2-P4 hold, F88/F90 get a scope statement instead of a silent generalisation: the hazard is the same shape on both
-signs, the arithmetic differs by one ply, and a verifier must use 2N-1 for wins and 2N for losses — which is exactly
-the kind of off-by-one that makes a correct engine look broken and vice versa.
+If P2 holds as mate -2, the convention is fixed and a verifier should use 2N plies for a loss against 2N-1 for a win —
+an off-by-one that would make a correct engine look broken. If P2 is killed at mate -1, the same off-by-one exists but
+in the other direction, which is the more dangerous case for a GUI that renders "mate in 1" for a position two plies
+from mate.
+
+AMENDMENT NOTE: the fixtures and the four predictions were rewritten after the first fixture pair was refuted by its
+own measurement (no negative mate at any depth, both builds) and after two solver attempts failed their controls. The
+first pair's output is kept as `base_result.out` and `pc_result.out` and is a result in its own right: within 16 plies
+the engine does not report a losing mate in K+R v K or K+Q v K from those starts, which is why a near-mate fixture was
+needed. Nothing was measured on the new fixtures before this file was pushed.
