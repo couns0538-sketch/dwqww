@@ -464,3 +464,12 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Mechanism is plausible: the four switches do extra PER-NODE work (CuckooRep maintenance, HistRework blending, TtPruneV2/CorrHistV2 lookups), so a 12% node saving can be cancelled by a 12% per-node cost. I have NOT measured per-node cost directly.
 - WHAT TO TELL THE OWNER: the switches reduce the tree and cost no move quality, but there is NO evidence they make the engine faster in wall time. Node reduction alone must not be presented as a speed win. The honest form: 'smaller tree, no quality loss, no measurable time difference'.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:54:32 AM UTC 2026
+- 29-N43 AMENDS MY OWN 29-F9, which would have told every seat not to attempt file 7's work. I had NOT read file 7; I have now, and reproduced its Step 0 exactly:
+    generator: 6,309,096 bytes, FNV-1a fdff70de72e4ca82, sha256 1db8525e... — all three match file 7
+    build: file 5 tree + -DFORGE_NNUE_V3=1; 'uci' lists NNUEArch/NNUEArchFile
+    load File-first-then-arch: 'NNUE v3 loaded' + 'NNUE v3 active' with checksum fdff70de72e4ca82, kernel avx512; eval -> hce 0 (standalone path, no hand-crafted term)
+- So the v3 PATH IS REPRODUCIBLE BY ANY SEAT; only the WEIGHTS are not shared, so absolute eval values differ from the PC's. F9's first clause stands, its conclusion does not. F9's row now leads with 'AMENDED BY 29-N43 — the conclusion of this row is WRONG', and the FINAL notes carry the correction.
+- This also explains F20 cleanly: with NNUEArch true and NO net, v3 does not activate - the 'eval hce 0' line is the test that a net actually loaded.
+- next: continuing on file 7's v3 speed job, which is now open to me.

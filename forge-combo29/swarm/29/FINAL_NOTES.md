@@ -52,7 +52,7 @@ block must say so in these terms, so the next swarm can close them rather than r
 > than an open question.
 
 Also record the state summary from 29-N28: confirmed by another seat — 29-F3 (seats 19 and 27, independent methods,
-one of them on the PC build under PC20) and 29-F9 (seat 19). Withdrawn or refuted by me — 29-C2 and the ordering half
+one of them on the PC build under PC20), and 29-F9's FIRST CLAUSE (seat 19) — **but 29-F9's conclusion was wrong and I amended it myself: the v3 PATH is reproducible from file 7's generator (`make_v3_testnet.py` -> 6,309,096 bytes, FNV-1a `fdff70de72e4ca82`, activates as `NNUE v3 active` kernel avx512 with `eval` hce 0), so seats can and should run file 7's v3 speed job; only the WEIGHTS are unshared, so absolute eval values differ from the PC's.** Withdrawn or refuted by me — 29-C2 and the ordering half
 of 29-F7, 29-F40's and 29-F41's generalisations, 29-F43's "4 of 6", and the mechanism inside my own named rule
 (29-F31/N17).
 
@@ -115,6 +115,29 @@ by widening the sample. The match-depth saving was overstated (19.5 % -> 11.9 %,
 scatter my errors at random — they biased every number toward the more interesting claim, because a large effect is
 what makes a measurement feel worth reporting. So the sample-size rule is not merely about precision: it is what
 stops the interesting-looking result from being the published one.
+
+## LEAD WITH THIS: what the PC20 switches do, in three parts
+1. **They search a SMALLER TREE** — 10.7-11.9 % fewer nodes than S14 at match depths, on both position sets, every
+   cell at n >= 60 (29-F42/F53).
+2. **They cost NO move quality** — 85 % move agreement at depth 10 and 84.5 % at depth 14, with the disagreements
+   scoring 20-20-7 at depth 10 and 19-10-2 (PC20 ahead) at depth 14 under a neutral referee: 96 disagreements,
+   PC20 49 / S14 36 / ties 11 (29-F44/F54/F55).
+3. **They show NO MEASURABLE WALL-CLOCK DIFFERENCE** — 40 interleaved pairs at depth 12: median 41 vs 36 ms, paired
+   ratio 1.0255, 95 % CI [0.9085, 1.1647], which spans 1.0 (29-F56).
+
+**So do not present the node reduction as a speed win.** The switches are worth having for the SHAPE of the search —
+a smaller tree at equal quality — not for speed on this evidence.
+
+### The next measurement this implies (per-node cost)
+The obvious explanation for (1) not becoming (3) is that the switches do extra work PER NODE, which plausibly
+cancels a ~12 % node saving. Named suspects, each testable by toggling it alone at a FIXED NODE BUDGET (`go nodes N`,
+which is deterministic at Threads 1 per 29-F29) and comparing wall time per node:
+- **`CuckooRep`** — maintains a cuckoo table on every move;
+- **`HistRework 2`** — blends a twin butterfly history keyed by attacked-from/attacked-to on every quiet score;
+- **`TtPruneV2`** — extra transposition-table lookups before pruning;
+- **`CorrHistV2`** — a correction keyed by the last two moves, i.e. per-node table reads.
+Measure ms per 100k nodes for S14 and for each switch alone. The one (or several) that raises per-node cost while
+leaving nodes unchanged is the carrier. That would turn "no speed win" from a dead end into a specific finding.
 
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.

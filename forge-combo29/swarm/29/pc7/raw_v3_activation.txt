@@ -1,0 +1,20 @@
+=== FILE 7 STEP 0 REPRODUCED, in my own build ===
+
+1) Generator: extracted from FABLE_TO_swarm_7.md into make_v3_testnet.py, run as 'python3 make_v3_testnet.py /tmp/testnet.fnn3'
+   -> bytes 6309096  fnv1a64 fdff70de72e4ca82  sha256 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a
+   (file 7 states 6,309,096 / fdff70de72e4ca82 / 1db8525e... — all three MATCH)
+
+2) Build: file 5's tree + -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1, g++ 13.3.0, -march x86-64-v4 (host has avx512f+bmi2)
+
+3) Does it activate? 'uci' lists:
+option name NNUEArch type check default false
+option name NNUEArchFile type string default <empty>
+
+4) Load (File FIRST, then arch true) + eval:
+info string NNUE v3 loaded: v3 /tmp/testnet.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/testnet.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string eval hce 0 nnue 968 total 968
+
+CONCLUSION: the v3 PATH is reproducible by any seat from file 7's generator. Only the WEIGHTS are
+not shared, so absolute eval values differ from the owner's PC. 29-F9's conclusion ('no seat can
+reproduce the PC's search path') was WRONG and is amended in 29-N43.
