@@ -809,3 +809,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - **Four times a check I wrote caught my own work** — in each case I believed the work was clean. The identity one is
   sharpest: it caught violations of a rule I had written minutes earlier, exactly where discipline alone fails.
 Next: continue in the window (ends 2026-11-17T10:18Z); still-confirming other branches' claims.
+
+## 2026-11-17T00:21:58Z S-C53 confirms 08-F30 in direction — sparse class is the volatile one (data-quality implication, flagged)
+- PC r15 068f0927…, PC20 (S14 17 opts + 6, assert_regime passed), T1, clock 6s+0.06 vs completed `go depth clocked+4`,
+  4 boards per class: **sparse (material<=14): 1 of 4 had a MATE APPEAR (`cp 4302` -> `mate 9`)**; others moved 318/2/4
+  cp. **full (material>=24): 0 of 4**, movements **1/56/1/4 cp**. Change of KIND, not degree, in the sparse class.
+- Reported as COUNTS not rates and did NOT map mate->centipawns to average it — that is the 106x mistake seat 08
+  declined to make. Did not confirm their specific instances, only the phenomenon.
+- Flagged for routing: matches AND training data both see the clocked stop, so positions from the sparse class carry
+  noisier LABELS — a data-quality point, not a playing-strength one.
+Next: continue in the window (ends 2026-11-17T10:18Z).
