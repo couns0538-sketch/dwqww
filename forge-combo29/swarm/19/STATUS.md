@@ -686,3 +686,16 @@ next command: continue at cadence.
   Three of my zeros are now planted: 19-F54 (mate vs non-mate), 19-C26 (Threads 1 vs 4), 19-C13 (read files).
 
 next command: continue at cadence.
+
+## 2026-11-17T00:49:21Z
+
+19-C31 self-audit of my 15 zero/null findings found 19-F9's null had only a NOISE-FLOOR control, no
+  positive control. Built one: go depth 16, Threads 1 median 154 ms vs Threads 4 median 117 ms =
+  ratio 0.765 (23.5 %% faster, DETECTED). So F9's null means 'below resolution', not 'method blind'.
+  First attempt failed informatively: bench 13 at Threads 1 vs 4 gave 0.988 because bench builds its
+  own Searcher(16) so Threads never reaches it (19-F37) - a positive control must use a workload the
+  setting affects.
+  FOUR zeros now planted, each costing an extra round: F54 (mate vs non-mate), C26 (Threads 1 vs 4),
+  C13 (read the files), F9 (23.5 %% detected).
+
+next command: continue at cadence.
