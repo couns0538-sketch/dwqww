@@ -78,13 +78,37 @@ a 2000 ms clock.
 ## 1. Increment accumulation over real games
 
 Four controls, **50 games requested each**: 200+0 (sudden death at a short clock), 1000+100,
-3000+200, and 10000+1000. Self-play, book off, Threads 1, 400-ply cap. The **clock accumulates
-and is charged the engine's own `time <elapsed>` field**, not harness wall time (§6 explains why
-that distinction decides the answer). Legality is checked every move against python-chess, never
-against the engine.
+3000+200, and 10000+1000. Self-play, book off, Threads 1, 400-ply cap. Legality is checked every
+move against python-chess, never against the engine.
 
-**Controls completed: 146 games / 19,084 plies** (200+0: 50 / 7,172; 1000+100: 50 / 5,769;
-3000+200: 46 / 6,143). The 10000+1000 set was **still running** when this file was written and its
+**How the clock is charged, and why this is stated rather than glossed.** Two bases are available
+and neither is simply "the truth":
+
+- the engine's own `time <elapsed>` field, read from the **last `info` line**;
+- harness wall time, measured from just before the `go` write to the `bestmove` read.
+
+The first excludes the harness's round trip (p50 **0.8–1.0 ms** here) but **understates real spend**
+whenever the hard limit aborts an iteration, because the last completed iteration's `time` can be
+far behind the search's actual end — measured directly: at `movetime 2000` the last `info` line
+reports **453–1988 ms** while the call takes **1990–1991 ms**. The second includes the round trip and
+so overstates by ~1 ms on typical moves, with a heavy tail (p99 335 ms at 1000+100, 898 ms at
+3000+200) that is mostly *real search time in an aborted iteration*, not scheduling.
+
+**So the headline counts below are reported under BOTH bases**, and the conclusions are the same:
+
+| control | over hard (engine) | over hard (wall) | >5 ms over (wall) | **flags (engine)** | **flags (wall)** | util max (engine / wall) |
+|---|---|---|---|---|---|---|
+| 200+0 | 0 | 99 | 1 | **0** | **0** | 0.200 / 0.533 |
+| 1000+100 | 0 | 157 | 0 | **0** | **0** | 0.592 / 0.595 |
+| 3000+200 | 1 | 201 | 0 | **0** | **0** | 0.596 / 0.597 |
+
+The wall column counts more "over hard" only because a 1 ms round trip is a large fraction of a
+small plan; **not one of those overruns exceeds 5 ms** except a single 20 ms-wall/5 ms-plan move at
+200+0, and **zero moves flag under either base**. The per-move table further down uses engine time;
+the forfeit conclusion does not depend on that choice.
+
+**Controls completed: 150 games / 19,630 plies** (200+0: 50 / 7,172; 1000+100: 50 / 5,769;
+3000+200: 50 / 6,689). The 10000+1000 set was **still running** when this file was written and its
 numbers are therefore **absent, not zero** — say so rather than reading a missing row as a clean
 one.
 
@@ -92,17 +116,17 @@ one.
 |---|---|---|---|---|---|---|---|
 | 200+0 | 50 | 7,172 | **0** | 0 | 0 | 0 | 22 ms |
 | 1000+100 | 50 | 5,769 | **0** | 0 | 0 | 0 | 277 ms |
-| 3000+200 | 46 | 6,143 | **0** | 0 | 0 | **1** (see below) | 604 ms |
+| 3000+200 | 50 | 6,689 | **0** | 0 | 0 | **1** (see below) | 604 ms |
 | 10000+1000 | — | — | *not run* | — | — | — | — |
 
-**0 forfeits in 19,084 moves.** Every game ended by threefold (105), a completed game (40) or the
-fifty-move rule (1) — none by a clock. `clock_mapping_errors` is **0** in all 146 games, so the
+**0 forfeits in 19,630 moves.** Every game ended by threefold (108), a completed game (41) or the
+fifty-move rule (1) — none by a clock. `clock_mapping_errors` is **0** in all 150 games, so the
 self-check added after §6's fault confirms the mover's clock really was the clock every move was
 planned against.
 
 ### The single move that exceeded its hard plan
 
-Exactly one move in 19,084 went over its hard limit, and it is reported rather than smoothed:
+Exactly one move in 19,630 went over its hard limit, and it is reported rather than smoothed:
 
 | control | clock | charged | plan soft/hard | ratio | harness tail |
 |---|---|---|---|---|---|
@@ -123,7 +147,7 @@ result, and **it does not reproduce on any control here**:
 |---|---|---|---|
 | 200+0 | 1 / 6.9 / 16 / 29 ms | −1.0 / +4.0 / +23 ms | **6,061 of 7,172 (84.5%)** |
 | 1000+100 | 81 / 192 / 369 / 604 ms | −25.0 / +137.6 / +480 ms | **126 of 5,769 (2.2%)** |
-| 3000+200 | 172 / 398 / 802 / 1,356 ms | −61.0 / +277 / +1,062 ms | **69 of 6,143 (1.1%)** |
+| 3000+200 | 172 / 400 / 804 / 1,356 ms | −61.0 / +279 / +1,062 ms | **71 of 6,689 (1.1%)** |
 
 **So the planner formula is a bound, not a prediction, at any control above the floor.** The 200+0
 agreement is an artefact of scale, and the number that shows it is this: **the median soft plan at
@@ -142,9 +166,9 @@ Two ratios make the shape concrete, and they are the ones to quote:
 |---|---|---|---|---|---|---|
 | 200+0 | 0.080 | 0.450 | 1.000 | 0.014 | 0.077 | 0.200 |
 | 1000+100 | 0.202 | 0.634 | 1.000 | 0.118 | 0.373 | **0.592** |
-| 3000+200 | 0.178 | 0.583 | 1.001 | 0.102 | 0.343 | **0.596** |
+| 3000+200 | 0.178 | 0.587 | 1.001 | 0.102 | 0.345 | **0.596** |
 
-**Utilisation peaks at 0.592 and 0.596**, i.e. the worst move in 19,084 spent **59.6% of its
+**Utilisation peaks at 0.592 and 0.596**, i.e. the worst move in 19,630 spent **59.6% of its
 remaining clock** against a hard plan of `0.6 × available`. That matches the recorded max move-time
 ÷ clock of 0.5937 on the old 1000+100 run, and it is the single most reassuring number in this
 section: the hard limit is what actually binds, and it binds just under 60%.
@@ -330,20 +354,36 @@ Three things follow, and the third is the one a mean would have hidden:
 
 No request timed out (0 of 300).
 
+**One caveat this table cannot carry on its own, and it is worth stating here rather than only in
+§1.** These figures are **wall** time, because that is what a caller experiences. The engine's own
+`time` field on the last `info` line is *not* the same number: measured on one position at 12
+repetitions, the last `info` line reports **453–1988 ms at `movetime 2000`** while the call takes
+**1990–1991 ms**, because the final iteration is cut short and its `time` never gets printed. So the
+2000 ms row above means "the call returns at 1990 ms", **not** "the engine thinks for 1990 ms and
+reports so". Any reader comparing these numbers against an engine's self-reported time will find a
+large discrepancy that is not a defect in either.
+
 ---
 
 ## 4. Sudden death versus increment, and clocks below the floor
 
-All rows: 9 repetitions, Threads 1, book off, engine's own `time` field. `plan` is soft/hard.
+All rows: 9 repetitions, Threads 1, book off. **The med/max figures are the engine's own `time`
+field.** An earlier draft of this table printed **wall** times in the same columns as engine-derived
+over-hard counts, and that mismatch alone made one cell (500 / inc 200) read `max 295.1` against a
+294 ms hard plan while its engine maximum was **254 ms** — a scheduling tail, not an overshoot. The
+distinction matters because the wall tail on this 4-core box reaches hundreds of milliseconds
+(§6). `plan` is soft/hard.
 
 ### 4.1 Sudden death vs increment at short clocks
 
+Engine time, median / max:
+
 | clock | inc 0 (SD) | inc 50 | inc 100 | inc 200 |
 |---|---|---|---|---|
-| 200 | plan 8/40, med 11.3, max 18.8 | 45/114, 41.0, 114.8 | 83/114, 60.4, 114.9 | 114/114, 104.7, 115.1 |
-| 500 | 22/110, 19.8, 44.1 | 59/294, 58.8, 127.1 | 97/294, 83.6, 146.8 | 172/294, 148.1, 295.1 |
-| 1000 | 45/225, 60.9, 129.0 | 82/410, 70.3, 211.2 | 120/594, 106.7, 272.3 | 195/594, 129.8, 410.6 |
-| 2000 | 90/450, 72.2, 208.5 | 127/635, 110.1, 262.0 | 165/825, 138.5, 227.4 | 240/1194, 293.9, 1026.3 |
+| 200 | plan 8/40, 10 / 18 | 45/114, 40 / 68 | 83/114, 47 / 76 | 114/114, 66 / 104 |
+| 500 | 22/110, 19 / 43 | 59/294, 58 / 126 | 97/294, 83 / 146 | 172/294, 147 / 254 |
+| 1000 | 45/225, 60 / 128 | 82/410, 69 / 210 | 120/594, 106 / 271 | 195/594, 129 / 410 |
+| 2000 | 90/450, 71 / 207 | 127/635, 109 / 261 | 165/825, 138 / 226 | 240/1194, 293 / 1025 |
 
 **Not one of 144 runs exceeded its hard plan, and none exceeded the clock.** The increment changes
 the plan in exactly the way `clock_plan.hpp` says: soft rises by `inc × 0.75` until the hard limit
@@ -353,31 +393,45 @@ only until `0.6×available` binds, and past that it buys nothing.**
 
 ### 4.2 The 111 ms floor, and what happens below it
 
-| clock | plan soft/hard | reserve empty | median | max | answered | over clock |
-|---|---|---|---|---|---|---|
-| 150 | 6/30 | no | 5.07 | 18.72 | 9/9 | 0/9 |
-| **111** | 4/20 | no | 4.02 | 21.17 | 9/9 | 0/9 |
-| 110 | 4/20 | no | 3.70 | 20.68 | 9/9 | 0/9 |
-| 100 | 4/20 | no | 4.13 | 20.64 | 9/9 | 0/9 |
-| 60 | 2/10 | no | 2.64 | 9.59 | 9/9 | 0/9 |
-| 40 | 1/5 | no | 0.77 | 1.74 | 9/9 | 0/9 |
-| 20 | 1/1 | no | 0.69 | 1.51 | 9/9 | 0/9 |
-| 11 | 1/1 | no | 0.62 | 1.36 | 9/9 | 0/9 |
-| **10** | 0/0 | **yes** | 0.57 | 1.08 | 9/9 | 0/9 |
-| 5 | 0/0 | yes | 0.58 | 1.24 | 9/9 | 0/9 |
-| **1** | 0/0 | yes | 0.67 | 1.18 | 9/9 | **1/9** |
+| clock | plan soft/hard | reserve empty | engine median | engine max | wall max | answered | over clock |
+|---|---|---|---|---|---|---|---|
+| 150 | 6/30 | no | 4 | 18 | 18.7 | 9/9 | 0/9 |
+| **111** | 4/20 | no | 3 | 6 | 21.2 | 9/9 | 0/9 |
+| 110 | 4/20 | no | 3 | 6 | 20.7 | 9/9 | 0/9 |
+| 100 | 4/20 | no | 3 | 7 | 20.6 | 9/9 | 0/9 |
+| 60 | 2/10 | no | 2 | 9 | 9.6 | 9/9 | 0/9 |
+| 40 | 1/5 | no | 0 | 1 | 1.7 | 9/9 | 0/9 |
+| 20 | 1/1 | no | 0 | 1 | 1.5 | 9/9 | 0/9 |
+| 11 | 1/1 | no | 0 | 1 | 1.4 | 9/9 | 0/9 |
+| **10** | 0/0 | **yes** | 0 | 0 | 1.1 | 9/9 | 0/9 |
+| 5 | 0/0 | yes | 0 | 0 | 1.2 | 9/9 | 0/9 |
+| **1** | 0/0 | yes | 0 | — | 1.2 | 9/9 | **0/9 (see below)** |
+
+The `wall max` column is kept deliberately: at these clocks the engine's own search time is **0–9
+ms** while the round trip reaches **21 ms**, so the harness tail is the whole measurement. Charging
+wall time here would report an "overrun" on every row.
+
+**The 1 ms row needs its own note, because the first version of this table got it wrong.** It
+recorded `1/9 over clock`, from a run whose round trip was 1.18 ms against a 1 ms clock. But **8 of
+9 runs at a 1 ms clock emit no `info` line carrying a `time` field at all** (`reserve_empty` means
+the search stops before any timed iteration), so the script fell back to wall time and compared a
+*round trip* against the clock. Under engine time the count is **0 of 9**. Nothing can answer inside
+1 ms on this machine — the bare round trip is ~0.6 ms — but the engine does not overrun its own
+budget; the earlier number was the harness measuring itself. Same class as §6, caught by checking
+which quantity a fallback had substituted.
 
 **Below the floor the engine degrades to "answer with no search", and it still answers.** From
 111 ms down to 20 ms the plan shrinks smoothly and every run answers legally inside the clock. At
 **10 ms and below** `clock <= overhead` so `plan_clock_budget` returns `reserve_empty`, and
 `should_stop_with` returns true immediately (`search.cpp:1282-1285`): the engine plays depth 0–1 and
-answers in **0.6–0.7 ms**. That is the correct failure mode — it does not panic, hang, or emit a
-null move.
+answers with **0 ms of reported search time** (0–1 ms by the harness's own round trip). That is the
+correct failure mode — it does not panic, hang, or emit a null move.
 
-**The one over-clock result is honest and is a finding about the *clock*, not the search.** At a
-**1 ms clock** the engine answered in **1.18 ms** once in 9 — 0.18 ms late. Nothing can answer
-inside 1 ms on this machine (the round trip alone is ~0.6 ms), so a 1 ms clock is not a budget the
-engine can meet, and it does not pretend to. Every clock of 5 ms and above was met, 90 of 90.
+**No clock in this sweep was overrun, measured against the engine's own time.** Of the 99 runs in
+the eleven below-floor rows, **75 emitted a timed `info` line** and **0 of those 75 exceeded their
+clock**; the remaining 24 (mostly the 1 ms row) never started a timed iteration, so they have no
+search time to exceed anything. The earlier "1/9 late" figure at 1 ms is withdrawn as a wall-time
+comparison — see the table's note.
 
 ### 4.3 Where the 111 ms floor comes from — it is an equilibrium, not a constant
 
@@ -416,8 +470,8 @@ much of the plan is actually spent, which is why the observed floor of 111 corre
 
 ## 5. Threads 1 vs 4 (cheap arm only — not the main work)
 
-One midgame position, `wtime/btime` only, 9 repetitions. Only the main worker honours the clock
-(`search.cpp:1276-1278`); helpers poll the parent.
+One midgame position, `wtime/btime` only, 9 repetitions, **engine's own `time`**. Only the main
+worker honours the clock (`search.cpp:1276-1278`); helpers poll the parent.
 
 | clock | plan | T1 median | T1 max | T4 median | T4 max | over hard |
 |---|---|---|---|---|---|---|
@@ -425,10 +479,13 @@ One midgame position, `wtime/btime` only, 9 repetitions. Only the main worker ho
 | 1000 | 45/225 | 43 | 105 | 41 | 90 | 0/18 |
 | 3000 | 135/675 | 155 | 542 | **85** | 302 | 0/18 |
 
-**Nothing material differs.** T4 reaches a lower wall time for the same plan (3000 ms: 85 vs
-155 ms median) because four threads finish the same iteration sooner, and neither thread count
-exceeded the hard plan in 54 runs. This is one position and is not offered as a population result;
-it is enough to say that the accounting findings above are not a Threads 1 artefact.
+**Nothing material differs, and the one visible difference is not established.** T4's 3000 ms
+median is lower (85 vs 155 ms) but the T1 samples are `[542, 155, 81, 167, 153, 131, 70, 167, 208]`
+and T4's are `[114, 74, 71, 172, 302, 67, 149, 85, 16]` — **the ranges overlap almost entirely**, so
+n=9 on one position does not separate them and the bold median is a hint, not a result. Neither
+thread count exceeded the hard plan in 54 runs, which is the finding that matters here. This is one
+position and is not offered as a population result; it is enough to say that the accounting findings
+above are not a Threads 1 artefact.
 
 ---
 
@@ -455,11 +512,38 @@ the 3000+200 forfeits disappeared.
 withdrawal is stated here because the intermediate artefact — a flag at a real time control — is
 exactly the kind of number that gets quoted without its correction.
 
+### 6b. The engine's `time` field is not the search duration, in either direction
+
+This is the third instance of the same shape in this seat and it is the most transferable, so it is
+stated as its own finding.
+
+**`info … time <ms>` is the elapsed time at the moment that line is emitted — the end of a
+*completed* iteration — not the total the search ran.** When the hard limit cuts an iteration short,
+that iteration never emits, so the last number on the stream is the *previous* iteration's end. The
+gap is not small:
+
+| request | last `info` `time` | actual call duration | gap |
+|---|---|---|---|
+| `movetime 2000` | 453–1988 ms (12 reps) | 1990–1991 ms | up to **1538 ms** |
+| `movetime 500` | 104–469 ms | 490–491 ms | up to **387 ms** |
+| `movetime 100` | 11–88 ms | 90–91 ms | up to **80 ms** |
+
+So the field **understates** spend at the moment the clock matters most, and a harness that charges
+it will systematically under-bill the engine exactly on the moves where the hard limit fired — which
+are the moves a forfeit would occur on. The opposite error is equally available: harness wall time
+**overstates** by the round trip and by any scheduling delay, which on this box reaches hundreds of
+milliseconds at p99.
+
+**Neither quantity is "the clock".** The only defensible practice found here is to compute every
+conclusion under **both** bases and show that it does not move — §1 does this and both give 0
+forfeits, 0 flags, and utilisation maxima of 0.596 (engine) and 0.597 (wall). A single-basis claim
+about timing on a noisy box is a claim about which quantity the harness happened to read.
+
 ---
 
 ## 7. What is still not established
 
-- **The 10000+1000 control did not finish.** 146 games / 19,084 plies at 200+0, 1000+100 and
+- **The 10000+1000 control did not finish.** 150 games / 19,630 plies at 200+0, 1000+100 and
   3000+200 are reported; the long control is **absent, not zero**. At ~2 min/game it was still
   running when this file closed.
 - **Single-run wall times in §2 are not trustworthy individually** — proven, not assumed: the

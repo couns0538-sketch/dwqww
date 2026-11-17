@@ -8,7 +8,7 @@ Audit base: `6b98f217` (a divergent commit, NOT an ancestor of `main`).
 | # | Item | State |
 |---|------|-------|
 | 0 | Build + four honesty pins | **DONE** — 312,866 / 862,329 / 3,024,920 / perft 5 4,865,609; re-verified on the patched build |
-| 1 | Increment accumulation over real games, 4 controls | **DONE at 3 of 4 controls** — 146 games / 19,084 plies. 10000+1000 still running at close: **absent, not zero** |
+| 1 | Increment accumulation over real games, 4 controls | **DONE at 3 of 4 controls** — 150 games / 19,630 plies, 0 forfeits. 10000+1000 still running at close: **absent, not zero** |
 | 2 | `movestogo` + fallback clock (the recorded gap) | **DONE** — base and patched, incl. the clamp |
 | 3 | `movetime` accuracy as floor/ceiling | **DONE** — 300 requests, 0 timeouts |
 | 4 | Sudden death vs increment; clock below the floor | **DONE** — incl. the 111 ms floor derived as an equilibrium |
