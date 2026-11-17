@@ -87,3 +87,27 @@ Rules that make it work:
 
 - Does the engine's `go perft 1` total equal python-chess's legal-move count for the board I think I built?
 - If the answer is no, my case is measuring some *other* board and every number from it is void.
+
+## `readyok` is not a statement about the position (S-F94, confirming seat 21's 21-F2b)
+
+The failure signature above says the engine "keeps the previous position and answers normally" — and the part
+that makes it dangerous is *how* normally. **A refused `position fen` still returns `readyok`.**
+
+That defeats the discipline most harnesses use without thinking about it: *send `isready` and wait for `readyok`
+to know the position is set.* The handshake is satisfied; the position was rejected. Measured on PC r15 + PC20,
+one process so state carried:
+
+| step | engine's answer |
+|---|---|
+| `position fen <a FEN it refuses>` + `isready` | **`readyok`** |
+| `go depth 6` | `c2c4` — legal on the OLD board, **illegal** on the intended one |
+| `go perft 1` | **20** = the old board's exact legal count (the intended board has 51) |
+
+So a harness syncing on `readyok` proceeds believing it is on a board it never reached, and plays a move that is
+illegal there.
+
+**`readyok` means "I have finished reading your input", nothing more.** The only check that survives a lying
+handshake is asking the engine what board it is *on* — `go perft 1` against python-chess for the intended board,
+which is the guard in this page and which fired cleanly on exactly this case (51 expected, 20 reported).
+
+Written originally from a bug in my own harness; now confirmed against another seat's finding on the PC build.
