@@ -4,12 +4,32 @@
 One switch at a time, all other PC20 options held constant, PC r15, Threads 1, Hash 16, depth 12,
 120 real positions, interleaved, fresh process:
 
-| switch | pooled node ratio | median | share ON < OFF | IQR | effect | **IQR/effect** | sign test |
-|---|---|---|---|---|---|---|---|
-| **TtPruneV2** | 0.9528 | 0.928 | **60.8 %** (73/120) | 0.462 | 0.047 | **9.8** | p = 1.000 |
-| **CuckooRep** | 0.9914 | 0.999 | **52.5 %** (63/120) | 0.256 | 0.009 | **28.4** | p = 1.000 |
-| **CorrHistV2** | 0.9478 | 0.959 | **54.2 %** (65/120) | 0.413 | 0.052 | **7.9** | p = 1.000 |
-| **HistRework** | 1.0311 | 1.018 | **46.7 %** (56/120) | 0.514 | 0.031 | **16.6** | p = 0.523 |
+> **CORRECTED IN PLACE 2026-11-17T03:30Z — three sign-test p-values were wrong (not two), and the error
+> inverts one conclusion of this report.** Caught by seat 27 replicating on an independent 120-position set and
+> confirmed by me by hand.
+
+| switch | pooled node ratio | median | share ON < OFF | count | **sign p (correct)** | ~~published~~ | IQR | IQR/effect |
+|---|---|---|---|---|---|---|---|---|
+| **TtPruneV2** | 0.9528 | 0.928 | **60.8 %** | **73/120** | **0.0221** | ~~1.000~~ | 0.462 | **9.8** |
+| **CuckooRep** | 0.9914 | 0.999 | **52.5 %** | **63/120** | **0.6483** | ~~1.000~~ | 0.256 | **28.4** |
+| **CorrHistV2** | 0.9478 | 0.959 | **54.2 %** | **65/120** | **0.4114** | ~~1.000~~ | 0.413 | **7.9** |
+| **HistRework** | 1.0311 | 1.018 | **46.7 %** | **56/120** | **0.5230** | 0.5230 ✓ | 0.514 | **16.6** |
+
+**THE BUG, exactly.** My earlier cell computed `2*sum_{i=0..k} C(n,i)/2^n` and **omitted the `min(k, n-k)`
+reflection**, so for any share **above** 50 % the tail summed from 0 to k ≈ 1.0 and the result capped at 1.000.
+It was only correct for **below**-50 % shares — which is why HistRework (56/120) came out right and the other three
+did not. **A bug that is silent on exactly half its inputs is the worst kind: it looked like a validated function
+because one row agreed.**
+
+**CORRECTED CONCLUSION — this reverses a sentence I published:**
+- ~~"No switch's per-position direction clears a sign test."~~ **FALSE.**
+- **`TtPruneV2`'s per-position direction IS significant: 73/120, p = 0.0221.** A hard pruning gate does produce a
+  *consistent* direction more often than the others — **my original mechanism intuition was directionally right
+  after all; I just predicted the wrong size** (65-80 %; measured 60.8 %).
+- CuckooRep (p = 0.648) and CorrHistV2 (p = 0.411) remain indistinguishable from a coin flip on sign.
+- **BUT: TtPruneV2's POOLED MAGNITUDE is still unestablished** — its bootstrap CI [0.8814, 1.0307] includes 1.0.
+  **Significance on a sign test and significance on a paired-effect test are different questions**, and this row
+  answers yes to the first and no to the second. Both must be reported.
 
 **Every switch behaves the same way: a pooled effect of 1–5 % sitting inside a per-position spread 8–28× its
 own size, with sign agreement between 46.7 % and 60.8 %.** No switch's per-position direction clears a sign test.
@@ -37,11 +57,16 @@ own size, with sign agreement between 46.7 % and 60.8 %.** No switch's per-posit
 ## The kill condition: it fired, and how I am treating it honestly
 I wrote before measuring: *"if ALL FOUR show < 60 % sign agreement, then coin flip is the general shape."*
 **Strictly, that did not fire: TtPruneV2 is 60.8 %, 0.8 points above a threshold I chose myself.**
-**I am not going to invoke the threshold to escape the conclusion.** The threshold was arbitrary, the deviation
-is 0.8 percentage points, its sign test is p = 1.000, and **moving a line I drew before seeing data would be the
-same self-serving reasoning I have criticised elsewhere in this record.** The substantive finding is that four
-independent switches, chosen for different mechanisms (hard pruning gate, replacement policy, correction history,
-move-ordering weight), all land in 46.7–60.8 %. **The coin-flip shape is general.**
+**I am not going to invoke the threshold to escape the conclusion.** The threshold was arbitrary and the deviation
+is 0.8 percentage points, and **moving a line I drew before seeing data would be the same self-serving reasoning I
+have criticised elsewhere in this record.**
+
+**One part of my original justification for that paragraph is now void:** I wrote "its sign test is p = 1.000", and
+**that was the reflection bug — the correct value is p = 0.0221.** So TtPruneV2's sign agreement is **statistically
+real**, and the honest statement is: **three of the four switches show no established per-position direction
+(CuckooRep 0.648, CorrHistV2 0.411, HistRework 0.523), and one does (TtPruneV2, 0.022).** **The coin-flip shape is
+the general pattern with one real exception, not a universal rule** — which is a weaker claim than the one I
+published, and I am correcting downward.
 
 ## What this changes in 19-C56
 19-C56 said the 54.2 % was "a property of the switch", singular. **Corrected: it is a property of the SWITCH SET —
