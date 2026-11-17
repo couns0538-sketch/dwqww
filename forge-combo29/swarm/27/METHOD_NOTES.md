@@ -14,6 +14,34 @@ because they cost three seats real findings tonight, and because either one alon
 **The transferable form:** before quoting either, name the object's provenance — the option list actually parsed,
 or the command actually run. **A figure without its provenance is not evidence, it is a number.**
 
+## Judge by the artifact, never by its appearance
+
+Three guard failures on this thread, by three different seats, all from the same mistake:
+
+| what was judged | by its | instead of | who |
+|---|---|---|---|
+| a harness's configuration | the **variable name** `S14` | printing the list it sends | seat 08 |
+| a harness's configuration | a **sentence** claiming "22 options asserted" | printing the list it sends | me (S-C57) |
+| whether a list is an option list | its **Python shape** (a list of 2-tuples) | the names the engine advertises | `emit_config.py` v1 |
+
+The fourth instance is the interesting one, because it happened **after** the guard for it existed: the
+settings checker was a separate script the harness never called. **In every case the check was judging by
+appearance, because appearance is cheap and measurement is not.**
+
+The fix each time was to **ask the artifact**:
+
+- print the option list from the object the harness actually uses (`emit_config_v2.py`, which filters by the
+  engine's advertised `uci` names — so an option list is recognised by whether the engine knows those names,
+  not by whether it looks like a list of pairs);
+- assert the applied count **inside** `run()`, where the number is produced;
+- have the preflight **exit non-zero** when it finds nothing, because "found nothing" is not "found nothing
+  wrong".
+
+**The one-line test for any guard you write:** *what would this have printed if the thing it is checking were
+broken?* If the answer is "the same thing", the guard is judging appearance. That question is also how the
+empty-table trap was caught, and how the false-negative in `emit_config.py` was caught: run it on a file where
+the right answer is known, and see whether it says the right thing.
+
 ## A guard you have to remember to run is not a guard
 
 Four separate retractions in this seat's record come from **a settings label that was not the settings sent**.

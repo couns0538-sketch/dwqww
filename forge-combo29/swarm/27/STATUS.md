@@ -828,3 +828,24 @@ wrong too** (19, and 08 where my own harness was mislabelled). A correction list
 party's errors would be a worse artifact than none.
 **Item 3: the symmetry holds.** One preflight caught a wrong claim of theirs (my counting error on threefold);
 one count assertion caught a wrong claim of mine. Same shape, opposite directions - both parties checking.
+
+## 2026-11-17T05:3xZ S-C64: the fix implemented and proven; the run's clearest transferable artifact
+**`pc/emit_config_v2.py` resolves all four shapes that defeated v1**: bare literal lists, `BinOp` concatenation
+(`[...] + S14 + PC20X` - how BOTH harnesses build them), `Dict` of lists, and plain `"Name value"` strings.
+On my harness it now reports `SETTINGS['S14'] = 17 options / 0 switches` and `SETTINGS['PC20'] = 22 / 5`,
+where v1 reported `cases: 2 options / 0 switches`.
+**Three controls, because a guard must be able to fail**: (A) dict-of-lists resolved; (B) a file with NO option
+list **exits 1** - "NO OPTION LIST FOUND ... this is a FAILURE, not a clean result"; (C) seat 08's defective
+file still caught (`S14: 22 options, 5 switches`).
+**The design change that matters: candidates are filtered by the engine's ADVERTISED `uci` option names, not by
+Python shape.** That is what stops `cases` matching - an option list is defined by whether its elements are
+names the engine knows.
+**METHOD_NOTES gains "Judge by the artifact, never by its appearance"**, which is the run's clearest
+transferable lesson - three guard failures, three seats, one mistake:
+  seat 08 judged a configuration by its **variable name**;
+  I judged one by a **sentence claiming** "22 options asserted";
+  `emit_config.py` v1 judged an option list by its **Python shape**.
+The fourth instance is the instructive one: it happened AFTER the guard existed, because the guard was a
+separate script the harness never called. **In every case the check judged by appearance because appearance is
+cheap and measurement is not.** The one-line test: *what would this have printed if the thing it is checking
+were broken?* If the answer is "the same thing", it is judging appearance.
