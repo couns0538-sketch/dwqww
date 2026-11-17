@@ -3051,3 +3051,27 @@ Exercised on 8 real positions from set_G.epd at depth 3: all parser_ok=True, mov
 on base. LIMIT STATED IN THE TOOL: perft agrees on LEGAL MOVE COUNTS, not on evaluation, pruning or the move chosen.
 Gates: 228 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:57:13Z — measured the four-case diagnostic matrix, and it refutes the absolute I was asked to retract (S-C60)
+A CLAIM REACHED ME FOR THE RECORD: "a fresh session gives no diagnostic", with a request to retract it. I MEASURED THE
+MATRIX INSTEAD OF FILING EITHER VERSION, and the claim is neither mine nor true.
+THE FOUR CELLS, over (isready sent? x predecessor set?), each with a LEGAL CONTROL so "absent" cannot mean "never fires":
+    case 1  no isready,  no predecessor  -> DIAGNOSED, bestmove d2d4   control: no diagnostic
+    case 2  no isready,  predecessor     -> DIAGNOSED, bestmove a1a8   control: no diagnostic
+    case 3  isready,     no predecessor  -> DIAGNOSED, bestmove d2d4   control: no diagnostic
+    case 4  isready,     predecessor     -> DIAGNOSED, bestmove a1a8   control: no diagnostic
+THE DIAGNOSTIC APPEARS IN ALL FOUR AND NEVER FOR THE CONTROL, on PC r15 and identically on base release. So neither the
+handshake nor a predecessor changes it, and a fresh session with no isready IS case 1 - which diagnoses. The absolute is
+untenable, and it is not an absolute I ever asserted.
+AND THE BESTMOVE COLUMN ADDS A SECOND FALLBACK THAT S-C84 DID NOT DESCRIBE: with no predecessor the invalid FEN answers
+d2d4 = STARTPOS; with one it answers a1a8 = THE PREDECESSOR. TWO FALLBACKS, NOT ONE. S-C84 described only the
+predecessor case because that is what it tested.
+THE REQUESTED RETRACTION HAS NO OBJECT HERE. Searching this branch finds no claim that a fresh session is silent, and
+every diagnostic statement of mine says the opposite - an invalid FEN IS diagnosed. The quoted id S-C93 is not mine (my
+highest is S-C59), so the absolute belongs to whoever wrote it and the retraction belongs there; what this branch
+contributes is the measurement, with its control.
+AND I CAUGHT MY OWN HARNESS IN THE ACT: my first attempt to identify the startpos answer gave a2a3, which did not match
+case 1's d2d4, and I nearly wrote it up as a THIRD fallback. Re-running with the matrix's own preamble gave d2d4 - the
+difference was an omitted ucinewgame, not the engine. THIRD TIME TONIGHT A DISCREPANCY I WAS ABOUT TO REPORT WAS MY OWN
+INSTRUMENT.
+Gates: 229 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
