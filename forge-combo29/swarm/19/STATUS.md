@@ -745,3 +745,18 @@ trap 13 added: a zero in an output file cannot be classified without the input (
 HARNESS_TRAPS.md = fourteen traps; the three sweep failures are recorded in sequence inside trap 13.
 
 next command: continue at cadence on counter/reproduction work.
+
+## 2026-11-17T01:03:21Z
+
+19-C34 PC r15 vs base, like-for-like: WORK IS IDENTICAL (node counts equal at every position:
+  723,141 / 1,119,081 / 299,476 / 196,793) but SPEED IS UNRESOLVED - 6 positions at d18 gave 1.017,
+  then 5 positions x 12 alternating rounds = 60 runs each gave 1.0040 with 95%% CI [0.8517,1.1564]
+  = +/-15%%. Cause: 73 ms per search is too shallow for 60 runs; my +/-2.29%% floor (19-F21) was
+  measured on 8-second-per-sample sweeps (~100x more work per sample).
+  Also record: my first run printed 'note the NODE counts differ' WITHOUT CHECKING - they were identical.
+  Trap 11's shape again, caught only by reading the table I had just printed.
+
+UNRESOLVED tonight (recorded as such, not dressed up): clock class ordering (19-F51), per-search sweep
+  (19-C16/C33), 2-piece DTM (19-C17), mirror rate beyond 8 positions, and this speed comparison.
+
+next command: continue at cadence.
