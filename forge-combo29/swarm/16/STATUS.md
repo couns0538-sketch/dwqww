@@ -529,3 +529,18 @@ seed: 1601
 - Deliverables: tiebreak/REPORT_tiebreak.md, EXPERIMENT_tiebreak.patch.txt (48 lines, patch -p2, switch defaults 0,
   and with the switch on the AVX2 lane shortcut is compiled out so the scalar tie rule governs), raw_tiebreak.txt.
 - check_folder.py ALL CHECKS PASS (417 files, 43 findings rows). Cadence continues; FINAL block at 10:18:40Z.
+
+## 2026-11-17T03:20Z
+- Per the coordinator: the MECHANISM sentence now leads REPORT_tiebreak.md, as a quoted block directly under the
+  title: "order-dependent pruning — LMR, futility and SEE thresholds — consumes move order and decides which moves
+  are ever compared, long before any tie is reached, so a rule that only breaks TIES never touches the decisions
+  that actually create the asymmetry." The same sentence is in FINAL 1.4.
+- THEN I VERIFIED THE MECHANISM IN THE SOURCE rather than leaving it as an assertion, and added the four line
+  references to the report: LMR is `reduction(quiet, depth, move_count)` (search.cpp:1994, a function of list
+  POSITION); LMR exempts the first move via `move_count > 1 + ...` (1992, so order decides who is exempt);
+  late-parent relief depends on `arrival_index` and `move_count` (2010); and the SEE pruning threshold is applied
+  per move as picked (618). None of the four is a tie comparison — each fires on a move whose score DIFFERS from
+  the best so far, which is exactly why a mirror-invariant tie rule cannot reach them.
+- That closes the symmetry thread with mechanism, code citations, a diagnostic, and an explicit statement that no
+  cheap strength-preserving fix exists. Nothing further owed on it; continuing the cadence on the PC path.
+- check_folder.py ALL CHECKS PASS (417 files, 43 findings rows). FINAL block at 10:18:40Z.

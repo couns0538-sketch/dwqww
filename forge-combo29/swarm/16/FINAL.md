@@ -133,10 +133,11 @@ discards the tuned move ordering (transposition move first, then score / SEE / h
 strength; that is why node counts rise (probe pair at depth 2: 60 → 79 on one side). What a real fix would need is an
 ordering that is BOTH score-based and mirror-invariant. **I tried the obvious cheap form of that and it FAILS
 (`S-F36`): scoring every move and breaking only TIES by the canonical key reaches 7 of 15 cases against the base
-build's 3 and full canonicalisation's 15.** The reason is structural — a tie-break acts only when two moves score
-*exactly* equal, while the asymmetry also arises among *unequal* scores through order-dependent pruning (LMR,
-futility, SEE thresholds), which a tie rule never touches. So the collision is at the pruning decisions, not at the
-tie-break, and **no cheap formulation exists that I could find. S-F35's diagnostic is the deliverable.**
+build's 3 and full canonicalisation's 15.** **The mechanism in one sentence: order-dependent pruning — LMR, futility and SEE thresholds — consumes move order
+and decides which moves are ever *compared*, long before any tie is reached, so a rule that only breaks TIES never
+touches the decisions that create the asymmetry.** A tie-break can reduce it (3 → 7 of 15) but cannot remove it,
+however mirror-invariant the key is. So the collision between symmetry and strength is at the pruning decisions,
+not at the tie-break, and **no cheap formulation exists that I could find. S-F35's diagnostic is the deliverable.**
 
 **The three causes I ruled out first are as much the finding as the positive one**, and each was a separate run:
 the **transposition table** (identical mismatch at Hash 1 / 16 / 256 MB), **history and counter-move state**

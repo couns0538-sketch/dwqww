@@ -1,5 +1,10 @@
-# REPORT_tiebreak — ATTEMPT at the stated next step: score-based order with a mirror-invariant tie-break
+# REPORT_tiebreak — the cheap "score-based order + canonical tie-break" fix FAILS, and here is why
 
+> **THE MECHANISM, IN ONE SENTENCE:** order-dependent pruning — LMR, futility and SEE thresholds — consumes move
+> order and decides which moves are ever *compared*, long before any tie is reached, so a rule that only breaks
+> TIES never touches the decisions that actually create the asymmetry. A tie-break can therefore reduce the
+> asymmetry but cannot remove it, however mirror-invariant the key is.
+>
 > **THIS WAS AN ATTEMPT AT A FIX, AND IT DID NOT WORK FULLY. It is reported because the negative is what a reader
 > needs before trying the same thing.** The full canonicalisation of S-F35 achieves symmetry by DISCARDING the
 > tuned ordering, which costs strength. The obvious remedy is to keep the score-based ordering and break only TIES
@@ -34,6 +39,20 @@ Per case, against both references:
  2 |        67/42 |          43/43 |   YES |          64/64 |   YES
  3 |      140/107 |        164/163 |   no  |        143/143 |   YES
 ```
+
+## The mechanism, verified in the source (not asserted from memory)
+
+I checked that these decisions really do consume move order rather than taking it on trust:
+
+| line (`src/search.cpp`, base tree) | what it shows |
+|---|---|
+| `1994` `int r = reduction(quiet, depth, move_count)` | the LMR reduction is a function of the move's POSITION in the list |
+| `1992` `move_count > 1 + (root_node ? 1 : 0)` | LMR does not apply to the first move — order decides who is exempt |
+| `2010` `ss->arrival_index >= 7 && move_count <= 4` | late-parent relief depends on both arrival index and list position |
+| `618` `see_ge(move, -move_score_threshold(move))` | the SEE pruning threshold is applied per move as it is picked |
+
+None of those four is a tie comparison. Each fires on a move whose score is *different* from the best so far, which
+is why a mirror-invariant tie rule cannot reach them.
 
 ## Why it cannot work, and this is the useful part
 
