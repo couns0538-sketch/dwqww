@@ -34,7 +34,7 @@ number is not a derivation.
 |---|---|---|---|
 | M1 | profile `evaluate` share | 7.34% | **5.08%** (7.34% is `generate_evasions`) |
 | M2 | "163 at-or-above would be 90.6%" | 163 | **164 at-or-above = 91.1%** |
-| M3 | `go movetime 0` == `go depth 5` | identical search | **depth 3/4/5 across 10 runs** |
+| M3 | `go movetime 0` == `go depth 5` | identical search | **depth 3/4/5 across 30 runs; exact match 16 of 30** |
 | M4 | "identical node counts" across Hash 8–256 | identical | **identical 16–256; Hash 8 differs on 4/6** |
 | M5 | +6.4% row's CI | `[1.0670, 1.0876]` | pooled **1.0643**; mean-of-ln **[1.0613, 1.0861]** |
 | M6 | depth 14/13/11 at MPV 1/2/6 | 14 / 13 / 11 | **no single estimator; `max` gives 15 / 13 / 11** |

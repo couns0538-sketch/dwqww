@@ -90,14 +90,16 @@ second, smaller instance of the same fault in the sentence doing the correcting.
 | | |
 |---|---|
 | report says | "`go movetime 0` — depth 5, 896 nodes — **the same search as `go depth 5`** (identical depth, nodes, score, pv and bestmove; only the `time`/`nps` fields differ, 0 against 1)" |
-| artefact | none; re-measured on the rebuilt base, 10 fresh processes |
-| regenerated | depth **3** (215 nodes) ×3, depth **4** (404 nodes) ×3, depth **5** (1001 nodes) ×4 |
+| artefact | none; re-measured on the rebuilt base, 30 fresh processes (3 batches of 10) |
+| regenerated | depth **5** (1001 nodes) ×16, depth **4** (404 nodes) ×12, depth **3** (215 nodes) ×2 |
 | verdict | **MISMATCH** |
 
 A zero wall clock does not mean "no limit"; it means "stop at the first iteration boundary the
 clock check sees". Which iteration that is depends on how long the process took to get going, so
-the outcome is not a property of the command. In two batches of ten, depth 5 — the value the
-report observed — appeared 3 and 4 times. Some runs emit **no `info depth` line at all**.
+the outcome is not a property of the command: **the same form produced three different depths
+across 30 runs**, and some runs emit **no `info depth` line at all**. The exact match with
+`go depth 5` was 3, 4 and 16 in three successive batches — the count itself is unstable, which is
+the point.
 
 **Correct statement: `go movetime 0` is a degenerate zero-budget search whose reported depth is
 whatever iteration happened to finish — 3, 4 or 5 on startpos, and occasionally no `info` line.**

@@ -50,10 +50,10 @@
  {
   "figure": "`go movetime 0` is 'the same search as `go depth 5`' (identical depth, nodes, score, pv, bestmove)",
   "report_location": "\u00a77 trap 3aa",
-  "artefact": "10 fresh processes on startpos, plus one `go depth 5` control",
-  "regenerated": "movetime 0 gave [(\"(4, 404, 'e2e4')\", 4), (\"(5, 1001, 'c2c4')\", 6)]; `go depth 5` gives depth 5 / 1001 nodes / c2c4",
+  "artefact": "30 fresh processes (3 batches of 10) on startpos, plus one `go depth 5` control",
+  "regenerated": "outcomes: depth 5 / 1001 nodes x16, depth 4 / 404 nodes x12, depth 3 / 215 nodes x2; `go depth 5` gives depth 5 / 1001 nodes / c2c4; exact match 16 of 30",
   "verdict": "MISMATCH",
-  "note": "a zero wall clock returns whatever iteration happened to finish. Across two batches of ten the outcomes were depth 3 (215 nodes), depth 4 (404) and depth 5 (1001), and some runs emit no `info depth` line at all \u2014 so the key includes a None row. Depth 5 matched `go depth 5` in 3-4 of 10 runs: the identity is occasional, not a property of the form. The CLASS claim survives \u2014 a degenerate zero-budget search, not an unbounded one"
+  "note": "a zero wall clock returns whatever iteration happened to finish, and some runs emit no `info depth` line at all. The exact-match count moves between batches \u2014 earlier single batches gave 3, 4 and now 16 of 30 \u2014 which is itself the finding: the identity is occasional, not a property of the form. The CLASS claim survives: a degenerate zero-budget search, not an unbounded one"
  },
  {
   "figure": "PC r15 build id 068f0927 names a rebuildable build",

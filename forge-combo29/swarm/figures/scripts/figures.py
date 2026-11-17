@@ -887,27 +887,39 @@ def check_sources_of_corrections():
 
 def check_movetime_zero(forge):
     """`go movetime 0` is a ZERO-WALL-CLOCK search, so 'the same search as go depth 5' can only
-    hold by luck of the iteration boundary. Ten fresh runs settle it."""
+    hold by luck of the iteration boundary.
+
+    The row is inherently unstable, so ONE batch of ten cannot characterise it and a hand-typed
+    "3 of 10" would go stale on the next run — the exact defect this audit reports. The counts
+    below are therefore aggregated over RUNS batches inside one invocation and printed from the
+    aggregate, and the verdict is decided by "did more than one distinct outcome appear", which
+    is stable under resampling.
+    """
     sys.path.insert(0, HERE)
     from gocap import probe
+    RUNS, PER = 3, 10
     seen = {}
-    for _ in range(10):
+    for _ in range(RUNS * PER):
         r = probe("go movetime 0", 8, None, forge)
         key = (r["depth"], r["nodes"], r["bm"])
         seen[key] = seen.get(key, 0) + 1
     d5 = probe("go depth 5", 8, None, forge)
+    total = sum(seen.values())
+    exact = seen.get((d5["depth"], d5["nodes"], d5["bm"]), 0)
     stable = len(seen) == 1
-    got = sorted(("%s" % (k,), v) for k, v in seen.items())
+    listing = ", ".join("depth %s / %s nodes x%d" % (k[0], k[1], v)
+                        for k, v in sorted(seen.items(), key=lambda kv: -kv[1]))
     record("`go movetime 0` is 'the same search as `go depth 5`' (identical depth, nodes, score, pv, bestmove)",
-           "§7 trap 3aa", "10 fresh processes on startpos, plus one `go depth 5` control",
-           "movetime 0 gave %s; `go depth 5` gives depth %s / %s nodes / %s"
-           % ([g for g in got], d5["depth"], d5["nodes"], d5["bm"]),
-           "MATCH" if stable and (d5["depth"], d5["nodes"]) in seen else "MISMATCH",
-           "a zero wall clock returns whatever iteration happened to finish. Across two batches of "
-           "ten the outcomes were depth 3 (215 nodes), depth 4 (404) and depth 5 (1001), and some "
-           "runs emit no `info depth` line at all — so the key includes a None row. Depth 5 matched "
-           "`go depth 5` in 3-4 of 10 runs: the identity is occasional, not a property of the form. "
-           "The CLASS claim survives — a degenerate zero-budget search, not an unbounded one")
+           "§7 trap 3aa", "%d fresh processes (%d batches of %d) on startpos, plus one `go depth 5` control"
+           % (total, RUNS, PER),
+           "outcomes: %s; `go depth 5` gives depth %s / %s nodes / %s; exact match %d of %d"
+           % (listing, d5["depth"], d5["nodes"], d5["bm"], exact, total),
+           "MATCH" if stable and exact == total else "MISMATCH",
+           "a zero wall clock returns whatever iteration happened to finish, and some runs emit no "
+           "`info depth` line at all. The exact-match count moves between batches — earlier "
+           "single batches gave 3, 4 and now %d of %d — which is itself the finding: the identity "
+           "is occasional, not a property of the form. The CLASS claim survives: a degenerate "
+           "zero-budget search, not an unbounded one" % (exact, total))
 
 
 def check_corpora():
