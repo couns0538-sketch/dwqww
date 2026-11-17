@@ -1,0 +1,30 @@
+Job 8 Section 0 & Section 1 Raw Counts — 60-Game Self-Play Stream at `Hash 16` on `bundle3`
+===========================================================================================
+Counting build: Separate instrumented copy (`/tmp/carbon2_job8/count_src`, NOT used for any timed run) built from
+Job 7 `bundle3.patch.txt` (`InfoOnce` at default `false`).
+Workload: 60-game FEN-root stream (`select_book_fens(positions_250.txt, 60)`), `PC20` at **`Hash 16`** (`Threads 1`,
+`OwnBook false`, `net768.fnn3` checksum `30ab43b4ba5db5f3`), `go softnodes 2000`.
+Stream totals: `games=60`, `searches=7670` (`127.83` searches/game), `nodes=25641316`, `trace=ee465caeff9c0fcf`.
+Total 60-game engine CPU (`CLOCK_PROCESS_CPUTIME_ID` delta): `14,855,252,818 ns` (`14,855.25 ms` total = `247.588 ms/game`
+in the instrumented counting build; uninstrumented `bundle3` baseline is `~13,600 ms` = `~226.7 ms/game`).
+
+=== 1. Section 0 Required `Hash 16` Count for Job 7's `O1` (`ucinewgame` Table Clear) ===
+- `ucinewgame_calls`: `60`
+- `tt_clear_cpu_ns` (`shared_.tt.clear()`, `16 MB` x 60): `44,628,594 ns` = **`44.629 ms` total** = **`0.744 ms / game`** = **`0.300%`** of counting-build engine CPU (**`~0.328%`** of uninstrumented `226.7 ms/game` engine CPU; almost half of Job 7's `Hash 32` `1.477 ms/game` [`0.669%`]).
+- `worker_clear_cpu_ns` (`Worker::clear()`, unconditional clear x 60): `23,229,482 ns` = **`23.229 ms` total** = **`0.387 ms / game`** = **`0.156%`** (`~0.171%` uninstrumented).
+*(Note on `O1` timing at `Hash 16`: Job 7 did NOT implement `O1` because its Task 1 share was already `< 1.0%` at `Hash 32` [`0.541%-0.669%`], and at `Hash 16` it is `0.30%-0.33%` [`0.744 ms/game`], confirming skipping `O1` under the `>= 1%` rule.)*
+
+=== 2. Section 1 Inside-Search Wasted / Redundant Work Counts Across 60 Games (`Hash 16`) ===
+
+| Candidate Work Measured | Count Across 60 Games (`7,670` searches, `25.64M` nodes) | Per-Game Rate | Measured / Estimated Share & Action Decision |
+| :--- | :--- | :--- | :--- |
+| **`MovePicker::generate_quiets()` + `QuietScorer` loop** | `2,700,559` calls; **`64,700,448` quiet moves generated & scored**, of which `21,363,524` (`33.02%`) are yielded from `QuietMoves` and **`43,336,924` (`66.98%`) are NEVER yielded** (`127,206` calls search `0` quiets). Direct `CLOCK_THREAD_CPUTIME_ID` inside `generate_quiets()`: **`1,158,836,800 ns` (`1,158.84 ms`)** | `45,009` calls/game; `1,078,341` quiets scored/game; **`19.314 ms/game`** | **`7.80%` of total engine CPU** (`~8.5%` of uninstrumented CPU) -> **Selected (`Step W2`): fuse `generate_quiets` + AVX-512 per-piece-type `cont1+cont2+check` pre-sum + hoisted `main/rework` rows** |
+| **`MovePicker::generate_captures()`** | `8,382,756` calls; **`14,163,731` captures generated & scored** via `picker_scratch_` round-trip | `139,713` calls/game; `236,062` captures/game | **`~1.5%-2.0%` of engine CPU** -> **Selected (`Step W2`): fuse `generate_captures` directly without `picker_scratch_` / `piece_at(from)` re-loads** |
+| **Non-check `Board::is_legal` + `gives_check` on `QuietMoves`** | `6,443,182` non-check `is_legal` calls in `Worker::search`, of which **`5,893,419` (`91.47%`) are unpinned non-king, non-EP moves**; `21,363,524` `QuietMoves` yields re-check `is_legal` and `gives_check` after `generate_quiets` already computed `KingLines` | `107,386` calls/game (`98,224` trivially unpinned/game) | **`~1.0%-1.5%` of engine CPU** -> **Selected (`Step W2`): check pin/king legality and compute `gives_check` once inside `QuietMoves`** |
+| **Eager `threat_maps_[ply] = b4::lesser_threats(board)`** | `7,539,533` full threat-map builds in `Worker::search`, of which **`1,399,941` (`18.57%`) are NEVER read** before the node returns on a TT/capture cutoff | `125,659` builds/game; **`23,332` unread builds/game** | **`~0.6%-1.0%` pure thrown-away work** (+ queenless/rookless slider walks on the `6.14M` read calls) -> **Selected (`Step W1`): lazy `ensure_threat_map` + skip `by_rook`/`by_minor` when `us` lacks Queen/Rook** |
+| **Unread `v3_state_->stack[index]` `3,072 B` stores** | `4,584,067 / 6,354,993` (`72.13%`) in `search` and `2,858,860 / 3,878,775` (`73.71%`) in `qsearch` (`3,088,273` stand-pat cutoffs on `10,326,604` `qsearch` nodes) are overwritten/invalidated unread | `124,049` unread `3 KB` L1 stores/game | **Rejected by cost-model check:** skipping 48 L1 `ZMM` stores saves ~24 cycles on 73% of evals (`~17.5` cycles), whereas replaying parent columns on the 27% that descend costs `0.27 * ~250 = ~67` cycles (net loss unless `eval >= beta` were known before `raw_eval`, which `corrected_eval` prevents). |
+| **Uncached `Worker::quiet_history` before `GenerateQuiets`** | `14,158,261` calls (quiet `MainTT`, `Killer1`, `Killer2`, `CounterMove` stages) | `235,971` calls/game | Each is scored at most once before `GenerateQuiets`; **partially helped by `Step W1`** (when a quiet killer/TT move is a Pawn/Knight/Bishop, `rework_entry` only needs `by_pawn`, not enemy minor/rook slider attacks!). |
+
+=== Raw Output Line ===
+`info string count_j8_start_proc_ns 76522348`
+`info string count_j8_end_proc_ns 14931775166 ucinewgame_calls 60 tt_clear_cpu_ns 44628594 worker_clear_cpu_ns 23229482 search_nodes 0 qsearch_nodes 10326604 qsearch_standpat_cutoffs 3088273 v3_eval_calls_search 7327018 v3_eval_calls_qsearch 5845427 v3_pair_stores_search 6354993 v3_pair_stores_qsearch 3878775 v3_pair_stores_unread_search 4584067 v3_pair_stores_unread_qsearch 2858860 threat_maps_computed 7539533 threat_maps_unread 1399941 gen_quiets_calls 2700559 gen_quiets_zero_searched 127206 quiet_moves_scored 64700448 quiet_moves_yielded 21363524 quiet_moves_searched 22404203 gen_quiets_cpu_ns 1158836800 gen_captures_calls 8382756 capture_moves_scored 14163731 is_legal_calls_noncheck 6443182 is_legal_unpinned_nonking_nonep 5893419 quiet_hist_uncached_calls 14158261`
