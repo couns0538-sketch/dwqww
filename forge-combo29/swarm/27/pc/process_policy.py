@@ -86,7 +86,12 @@ class Engine:
             return {"timeout": True, "wall_ms": wall, "bestmove": None}
         bm = next(l for l in lines if l.startswith("bestmove")).split()[1]
         infos = [l for l in lines if l.startswith("info depth")]
-        last = infos[-1] if infos else ""
+        # GUARD (S-W1): a search that published NO info line has no score, no node count and no nps.
+        # Zero info lines is the end-of-input / early-close signature and has produced fabricated
+        # "plausible" numbers for two seats. Abort the row instead of recording a None-laden result.
+        if not infos:
+            raise Missing("no 'info depth' line for this search (zero-info-line signature; row aborted)")
+        last = infos[-1]
         n = re.search(r"nodes (\d+)", last)
         d = re.search(r"depth (\d+)", last)
         return {"timeout": False, "wall_ms": wall, "bestmove": bm,

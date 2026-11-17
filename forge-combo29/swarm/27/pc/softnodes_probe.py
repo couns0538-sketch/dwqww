@@ -80,6 +80,9 @@ def search(exe, settings, fen, limit, timeout=600):
         if not ok:
             raise Missing("no bestmove for %r %r" % (fen, limit))
         infos = [l for l in lines if l.startswith("info depth")]
+        # GUARD (S-W1): zero info lines means no score, no nodes, no nps. Abort rather than record.
+        if not infos:
+            raise Missing("no 'info depth' line for this search (zero-info-line signature; row aborted)")
         bm = next(l for l in lines if l.startswith("bestmove")).split()[1]
         soft = [l for l in lines if "info string softnodes" in l]
         # the softnodes report carries the FINAL node count; prefer it, else the last info line

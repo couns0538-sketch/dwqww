@@ -65,7 +65,12 @@ def bench(exe, settings, depth):
         lines, ok = until(lambda x: "info string bench depth" in x)
         if not ok:
             raise Missing("no bench line at depth %d" % depth)
-        line = next(l for l in lines if "info string bench depth" in l)
+        # GUARD (S-W1): this harness parses a BENCH line, not `info depth`, so it needs its own
+        # emptiness check: if the bench line never arrived the row must abort, not record a None.
+        bench_lines = [l for l in lines if "info string bench depth" in l]
+        if not bench_lines:
+            raise Missing("no 'info string bench depth' line (bench did not report; row aborted)")
+        line = bench_lines[-1]
         m = re.search(r"bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)", line)
         if not m:
             raise Missing("bench line did not parse: %r" % line)
