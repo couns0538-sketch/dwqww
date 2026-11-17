@@ -895,3 +895,25 @@ matcher with nothing to match.** Four checkers failed tonight by judging text in
 name / prose claim / Python list shape / raw source with docstrings) and all four were caught by known-answer
 cases, none by reading.
 **METHOD_NOTES now 859 lines.**
+
+## 2026-11-17T06:4xZ S-C72/73/74/75 — S-F8 gets its actionable number, and it is worse than the run described
+**The gap nobody closed**: S-F8/S-P6 said "a `searchmoves` restriction excluding nothing moves the score by
+4 cp" - ONE position, and it never said whether the harm is to scores or to LABELS. Three arms, 25 PC20
+positions, depth 10:
+  A unrestricted | B all legal moves named | **C only A's bestmove named (what a verifier actually does)**
+**ARM C, THE DAMAGING ONE: same bestmove 25/25 - and it is VACUOUS, the restriction made that move the only
+option - and same score 0/25. Delta mean +1.08, range -32..+31, |delta|>=10 cp in 14 of 25.**
+So a corpus built by "pin the move, record the score" has **a move check worth nothing and a score wrong in
+EVERY position tested.** That is the training-data harm S-F8 implied and never quantified.
+**S-C73 NEW AND WORSE: naming all legal moves changes the BESTMOVE in 6 of 25 - and 2 of those are SCORE-TIED
+and still pick differently** (`f3f4` vs `f1d3`, both cp 89; `e8g8` vs `h5h4`, both cp -73). The restriction
+reorders equal-scoring moves; it is not merely perturbing evaluation. **So all-20 CANNOT be a no-op control -
+which is how several harnesses in this run have used it.**
+**S-C74: worse at depth 12 than 10** - bestmove changes in 5 of 15 (33%) vs 6 of 25 (24%); score 15/15 both.
+The defect does not wash out with depth.
+**S-C75 BLAST RADIUS: my own harnesses are clean** (both use all-20 as the MEASUREMENT of S-F8, not as a control,
+so no conclusion of mine rests on it), **but `job7/f3_all20_mechanism.py`'s docstring premise "must, logically,
+equal" is refuted** and is now corrected in the file with a pointer to S-C72/73/74. The finding it supports
+(S-C5) survives; the justification for calling all-20 "like-for-like" does not.
+Honest limits: 25 and 15 positions, depths 10 and 12, one build. Direction unambiguous; exact rates elsewhere
+not established.

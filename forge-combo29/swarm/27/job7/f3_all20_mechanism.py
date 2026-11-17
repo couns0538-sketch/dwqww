@@ -4,7 +4,7 @@
 The all-20 restriction is the clean like-for-like case (it excludes nothing), and it isolates the
 mechanism of the restricted-root score defect:
 
-  startpos has 20 legal moves. `go depth 12 searchmoves <all 20>` must, logically, equal `go depth 12`.
+  startpos has 20 legal moves. `go depth 12 searchmoves <all 20>` MUST LOGICALLY equal `go depth 12` - AND IT DOES NOT. That premise is refuted by measurement (seat 27 S-C72/S-C73/S-C74, PC r15 PC20, depth 10 and 12: the score differs in 15 of 15 positions and the reported bestmove in 5 of 15 at depth 12). The all-20 restriction is therefore NOT a clean no-op baseline; it is a restricted root with its own behaviour. What this file MEASURES still stands (the gap between base and the patched builds), but the justification for calling all-20 'like-for-like' does not.
   On the base build it does not: cp 23 / 21640 nodes / d2d4 against cp 30 / 56720 / e2e4.
 
 This script takes ANY build and prints that comparison, so the mechanism can be re-checked after a
