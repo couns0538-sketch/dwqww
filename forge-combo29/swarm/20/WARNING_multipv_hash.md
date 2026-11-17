@@ -9,12 +9,12 @@
 > own: four variants were tested and all four fail, see `job71/CLOSE.md`. **MultiPV 1 at any Hash, or Hash 16 MB with
 > multiple lines** is still the answer, and it is not a workaround — it is the correct configuration.)
 
-> **Cause detail — but it is UNADOPTED and its strength effect is UNMEASURED.** The collapse is one
+> **One cause, and a patch that fixes only that much.** The collapse is one
 > redundant line: `src/search.cpp:2879 alt_shared->tt.clear();` inside the per-line loop at 2851, i.e. a full
 > transposition-table clear once per extra PV line *per depth*. A patch that deletes it restores depth 12–13 at
 > Hash 256–512 with all four honesty pins unchanged and the MultiPV 1 path byte-identical (verified on my own build,
-> `job57/CONFIRM_30C36.md`). **I did not measure whether it makes the engine stronger** — only that it stops the
-> collapse and is reproducible. Adopting it is the owner's/Opus's decision.
+> `job57/CONFIRM_30C36.md`). It is a genuine improvement worth having, but it is **not sufficient** for the large-Hash
+> case: see the closure above. Its strength effect in play is **unmeasured**.
 
 > **Until then, the short answer: if you want multiple lines, set `Hash 16 MB` — it is the least-lossy MultiPV
 > choice. If you want a big Hash, use `MultiPV 1`. Do not combine a big Hash with multiple lines.** (Measured limits
