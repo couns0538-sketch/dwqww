@@ -191,6 +191,7 @@ def main() -> int:
         clauses.append(f"{ceiling} MB at {span} lines")
     print("\n=== RECOMMENDATION, generated from the fitted ceiling ===")
     print(f"  MultiPV 1 at any Hash; otherwise " + ", ".join(clauses) + ".")
+    print(f"  (equivalently: MPV 1 <= {cons[1]} MB; full ceiling {cons})")
 
 
     if args.patch:

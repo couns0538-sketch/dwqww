@@ -66,6 +66,21 @@ ceiling **no more permissive** than the fitted one, and rejects a planted
     None and the run exits 1 with a legible message naming the absent file, because
     reporting success for work not done is the same defect class as parsing only
     the generator's form. Covered by its own selftest case.
+  - **Scoping it correctly took four measured tries, and the naive fix was
+    dangerous.** Narrowing the scan to "lines containing 'recommend'" made a
+    correct recommendation plus a permissive table row (`| 6 | 256 |`) pass
+    **entirely silently** — the fix traded a false alarm for a false pass. The
+    working scope blanks quotation lines rather than deleting them, so a table's
+    column header (on an earlier line) still reaches the parser.
+  - **Three separate misreads had to be closed for measurement tables:**
+    `| 3 | 124.7 | …` (an allocation table) parsed as "Hash <= 1 at 3 lines";
+    `133 lines: 114` (a KRK mate-line count) parsed as a 114 MB ceiling; and
+    `MultiPV 1 at any Hash; otherwise 48 MB` parsed as a 48 MB ceiling for MPV 1.
+    Each is now guarded by a Hash floor of 8 MB (the grid's smallest column), a
+    two-column row requirement, and an explicit "any Hash means unbounded" rule.
+  - **A failure must be the RIGHT failure.** The selftest asserts each escape case
+    fails specifically with "MORE permissive", not merely that it fails — otherwise
+    a case that errors for an unrelated reason would count as a detection.
   - **Known limit, stated in its output:** a spelled-out line count ("six lines")
     is not parsed. The check sees numeric clauses only, so prose must keep numbers.
 - `patches/patch-a-no-line-clear.patch.txt` — removes only

@@ -28,6 +28,11 @@ import analysis
 HERE = "FINDINGS.md"
 ANALYSIS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "analysis.py")
 
+# The grid's smallest Hash column. No recommendation would name a ceiling below
+# it (Hash < 8 MB changes node counts), so a smaller number paired with a line
+# count is a measurement, not a ceiling.
+HASH_FLOOR = 8
+
 
 def fitted_ceiling(data: dict, conservative: bool) -> dict[int, int]:
     cells = analysis.table(data)
@@ -42,34 +47,72 @@ def fitted_ceiling(data: dict, conservative: bool) -> dict[int, int]:
 
 
 def normalise(text: str) -> str:
-    """Strip markdown decoration so clause parsing sees plain prose."""
+    """Strip markdown decoration so clause parsing sees plain prose.
+
+    Line structure is PRESERVED: table rows and anchors (`^`/`$`) are meaningful,
+    and an earlier version that collapsed all whitespace made `^\\| 6 \\| 256 \\|$`
+    unmatchable, silently dropping every table-row ceiling.
+    """
     text = re.sub(r"^\s*>+\s?", "", text, flags=re.M)   # blockquote markers
     text = text.replace("`", "")                        # inline code
     text = re.sub(r"[*_]", "", text)                    # emphasis
-    text = re.sub(r"\s+", " ", text)                    # collapse newlines
+    text = re.sub(r"[ \t]+", " ", text)                 # horizontal only
     return text
 
 
-def recommendation_lines(text: str) -> str:
-    """Restrict a document to the paragraphs that actually RECOMMEND something.
+def quotation_line_numbers(lines: list[str]) -> set[int]:
+    """Lines that belong to a passage about the check rather than an assertion.
 
-    A checker cannot tell a claim from a quotation of it. This project already
-    carries that lesson: an audit row citing an unrelated file passed, and a
-    document asserting "verbatim" matched on table but not on rules. Here the
-    concrete case is a findings section that QUOTES a known-bad clause
-    (`at 6 lines, Hash <= 256`) while explaining why it is bad -- scanning the
-    whole document flags the quotation and fails a correct document.
+    A findings section routinely wraps a quotation across lines, so the cue word
+    ("checker", "missed", "defect") can sit on the line ABOVE the one carrying the
+    clause. Measured: the shipped report's
 
-    So we scan only lines that assert a recommendation: those containing
-    "Recommend", or a "otherwise"/"at most" ceiling sentence. Quoted defects in
-    prose about the checker are not recommendations and are skipped.
+        serious miss was a comparison-first clause (`at 6 lines, Hash <= 256`),
+        **exactly how a person would hand-edit a boundary**
+
+    had no cue on its own line and was scored as a live recommendation. A window
+    covering the clause line and the two lines before it is used instead.
     """
-    marks = ("recommend", "otherwise", "at most", "cap hash", "safe iff")
-    kept = []
-    for line in text.splitlines():
+    cues = (
+        "checker", "selftest", "self-test", "defect", "quotation", "quotes",
+        "quoted", "missed", "planted", "regression", "fails", "failure",
+        "bad clause", "wrong", "permissive", "lesson", "trap", "blind",
+    )
+    marked: set[int] = set()
+    for i, line in enumerate(lines):
         low = line.lower()
-        if any(mk in low for mk in marks):
-            kept.append(line)
+        if any(c in low for c in cues):
+            # A cue marks its own line and the two that follow, which is how far
+            # a wrapped sentence usually carries.
+            for j in (i, i + 1, i + 2):
+                if j < len(lines):
+                    marked.add(j)
+    return marked
+
+
+def recommendation_lines(text: str) -> str:
+    """Restrict a document to passages that assert a ceiling.
+
+    A checker cannot tell a claim from a quotation of it by grammar. Three
+    concrete failures measured while building this:
+
+      1. Scanning the whole document flagged a findings section's QUOTATION of
+         the bad clause, failing a correct document.
+      2. Narrowing to lines with a marker word ("recommend", ...) made a correct
+         recommendation plus a permissive table row pass **entirely silently**.
+      3. Dropping lines instead of blanking them breaks table parsing: a row's
+         column header lives on an earlier line, so a per-line view cannot tell a
+         `MultiPV | Hash` table from a measurement table. Measured: "| 6 | 256 |"
+         parsed to nothing under per-line scoping.
+
+    So lines are BLANKED rather than removed, preserving position and the
+    surrounding table context for the parser.
+    """
+    lines = text.splitlines()
+    marked = quotation_line_numbers(lines)
+    kept = []
+    for i, line in enumerate(lines):
+        kept.append("" if i in marked else line)
     return "\n".join(kept)
 
 
@@ -89,8 +132,12 @@ def parse_clauses(text: str) -> list[tuple[int, int, int]]:
         return int(lo), int(hi) if hi else int(lo)
 
     # Form A: "48 MB at 2 lines" / "24MB for 3-6 lines" / bare "24 at 3-6 lines"
+    # Also "256 MB works fine at 6 lines": the ceiling and the line count may be
+    # separated by a few words, so allow a short gap that contains no digits.
     for m in re.finditer(
-        r"(\d+)(?:\s*MB)?\s*(?:at|for)\s*(\d+)(?:\s*[-\u2013]\s*(\d+))?\s*lines?", flat
+        r"(\d+)(?:\s*MB)?[^0-9\n]{0,20}?(?:at|for|with|up to|when using)\s*(\d+)"
+        r"(?:\s*[-\u2013]\s*(\d+))?\s*lines?",
+        flat, re.I,
     ):
         lo, hi = lines(m.group(2), m.group(3))
         out.append((int(m.group(1)), lo, hi))
@@ -107,6 +154,47 @@ def parse_clauses(text: str) -> list[tuple[int, int, int]]:
         lo, hi = lines(m.group(2), m.group(3))
         out.append((int(m.group(1)), lo, hi))
 
+    # Form C: table rows / settings lines explicitly pairing a LINE COUNT with a
+    # Hash VALUE IN MB. The pairing must be stated, never inferred from adjacency:
+    # a bare integer table row is ambiguous with every measurement table in the
+    # document. Measured failure: "| 3 | 124.7 | 259.7 | 135.0 |" (an allocation
+    # table) was read as the clause "Hash <= 1 at 3 lines".
+    for m in re.finditer(r"MultiPV\s*(?:=|:)?\s*(\d+)([^0-9\n|]*?)(\d{2,4})\s*MB", flat, re.I):
+        gap = m.group(2).lower()
+        # "MultiPV 1 at ANY Hash; otherwise 48 MB ..." is not a ceiling of 48 MB for
+        # MPV 1 -- "any Hash" is unbounded. Reading it as 48 produced the bogus
+        # clause (48,1,1) and made the generated sentence disagree with the doc.
+        if "any" in gap:
+            continue
+        out.append((int(m.group(3)), int(m.group(1)), int(m.group(1))))
+    # Form C: settings lines explicitly pairing a LINE COUNT with a Hash VALUE.
+    # Bounded to a plausible Hash range: "133 lines: 114" is a count of lines in a
+    # mate table, not a 114 MB ceiling, so 114 is below the Hash floor we accept.
+    # The Hash floor is 8 MB (the grid's smallest column); below that the engine
+    # changes node counts, so no recommendation would name it.
+    for m in re.finditer(r"(\d+)\s*lines?\s*[:=]\s*(\d{2,4})\s*(?:MB)?", flat, re.I):
+        hash_mb, lc = int(m.group(2)), int(m.group(1))
+        if HASH_FLOOR <= hash_mb <= 2048 and 1 <= lc <= 8:
+            out.append((hash_mb, lc, lc))
+    # A markdown row is only a ceiling when its table's HEADER names Hash AND a
+    # line count. The header may be several lines up (separator row, blanks).
+    # The row must also be a two-column pairing: a wide measurement table like
+    # "| `Hash*MPV <= K` | 144 | 4/48 | 3 | 1 |" is not a ceiling, and
+    # mis-reading its last two cells produced the bogus clause "Hash <= 1 at 3".
+    for m in re.finditer(r"^\s*\|\s*(\d+)\s*\|\s*(\d{1,4})\s*(?:MB)?\s*\|\s*$",
+                         flat, re.I | re.M):
+        mpv, hash_mb = int(m.group(1)), int(m.group(2))
+        if not (1 <= mpv <= 8 and 1 <= hash_mb <= 2048):
+            continue
+        header = ""
+        for chunk in reversed(flat[: m.start()].splitlines()):
+            s = chunk.strip()
+            if not s or set(s) <= set("|-: "):
+                continue
+            header = s.lower()
+            break
+        if "hash" in header and ("line" in header or "multipv" in header or "mpv" in header):
+            out.append((hash_mb, mpv, mpv))
     return out
 
 
@@ -277,8 +365,50 @@ def main() -> int:
     for good in correct:
         if check(good, cons, "selftest"):
             failures.append(f"selftest: correct clause REJECTED -> {good}")
+
+    # Check 5: a permissive clause must not escape by surface form, and a
+    # measurement table must not be MISREAD as one. Both directions matter: an
+    # escape hides a defect, a misread fails a correct document. Every case below
+    # was a real misbehaviour measured while building this checker.
+    REC = "Recommended: 48 MB at 2 lines, 24 MB at 3-6 lines.\n"
+    escapes = [
+        ("table row", REC + "\n| MultiPV | Hash |\n|---|---|\n| 6 | 256 |\n"),
+        ("settings line", REC + "MultiPV = 6, Hash 256 MB."),
+        ("labelled row", REC + "6 lines: 256 MB"),
+        ("bare assertion", REC + "256 MB works fine at 6 lines."),
+        ("comparison-first", REC + "at 6 lines, Hash <= 256."),
+    ]
+    for name, text in escapes:
+        fails = check(text, cons, f"selftest/{name}")
+        # The failure must be the permissive-ceiling one, not merely any failure:
+        # a case that "fails" because no clause parsed is not a detection.
+        if not any("MORE permissive" in f for f in fails):
+            failures.append(
+                f"selftest: permissive clause via {name} was not DETECTED as permissive "
+                f"(got {fails or 'a clean pass'})"
+            )
+
+    not_clauses = [
+        ("allocation table", REC + "\n| MPV | alloc | total | nodes | ns |\n"
+                                      "|---|---|---|---|---|\n| 3 | 124.7 | 259.7 | 104331 | 1294 |\n"),
+        ("fitted-forms table", REC + "\n| predicate | K | wrong | false-safe | false-alarm |\n"
+                                        "|---|---|---|---|---|\n| `Hash*MPV <= K` | 144 | 4/48 | 3 | 1 |\n"),
+        ("quotation", REC + "One checker missed the clause (`at 6 lines, Hash <= 256`)."),
+    ]
+    for name, text in not_clauses:
+        if check(text, cons, f"selftest/{name}"):
+            failures.append(f"selftest: a measurement table/quotation was MISREAD as a clause ({name})")
+
+    # Check 6: a quotation must be surfaced, not dropped silently.
+    quote = (REC + "One checker missed the comparison-first clause "
+             "(`at 6 lines, Hash <= 256`), exactly how a person edits.")
+    if not permissive_outside_recommendations(quote, cons):
+        failures.append("selftest: the quotation was dropped silently instead of being noted")
+
     print(f"selftest            : {len(permissive_wrong)} permissive forms rejected, "
           f"{len(correct)} correct forms accepted")
+    print(f"selftest            : {len(escapes)} escape-by-surface-form cases rejected, "
+          f"{len(not_clauses)} non-clause tables/quotations not misread")
     # Check 5: a MISSING input must fail, never silently pass. This is the same
     # defect class as parsing only the generator's form: reporting success for
     # work not done.
