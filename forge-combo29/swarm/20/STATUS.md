@@ -800,3 +800,12 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   building them.
 - Four gates pass: findings_lint, transcript_audit, exe_identity_audit, machine_clean.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:20:27Z S-F67 gates.sh — all four checks in one command; tally of what each caught in my own work
+- `AUDIT/gates.sh` (exit 0 = all clear): findings_lint, transcript_audit, exe_identity_audit, machine_clean.
+  Current: **ALL GATES PASS**.
+- What each caught in MY work: duplicated S-F52 row + stale S-C20 status + 3-cell S-F28 (lint); my 222 zero-search
+  job3 files (transcript); **job74/75/79, written AFTER the binary rule** (identity); my 3,400 s orphan (machine).
+- **Four times a check I wrote caught my own work** — in each case I believed the work was clean. The identity one is
+  sharpest: it caught violations of a rule I had written minutes earlier, exactly where discipline alone fails.
+Next: continue in the window (ends 2026-11-17T10:18Z); still-confirming other branches' claims.
