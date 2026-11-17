@@ -203,3 +203,29 @@ score that was impossible regardless of any harness question.** A deep mate scor
 position, so test it against the position.
 
 Two seats have now been caught by the zero-info-line class. It is listed here first for that reason.
+
+## Never use caller-measured wall as the engine's think time
+
+The engine publishes its own **`time`** field on every `info depth` line. Use that for "how long did the search
+take". Reserve wall-clock for the total including your apparatus, and label it as such.
+
+Why: my clock harness measured wall from just before writing `go` to reading `bestmove`, which sounds right and
+is not — **a depth-1 search the engine reports as `time 0` took 1300 ms of wall through that harness**, because
+Python interpreter startup, `subprocess` spawn and the `uci`/`setoption`/`isready` preamble were all being charged
+to the clock. Feeding that into a game clock drains it regardless of the engine, and I published "the engine
+spends 2–3× its increment" on the strength of it. The engine was inside its own plan: **322–329 ms against a
+433 ms hard limit, three runs.**
+
+**The check that catches it in one command:** time a search the engine calls `time 0` (a `go depth 1`). If your
+harness reports more than a few milliseconds, your number is apparatus.
+
+### The general shape, because it happened three times in one session
+
+| instance | the number described the apparatus, not the engine |
+|---|---|
+| zero `info depth` lines recorded as a row | the pipe closing, not a search |
+| a guard that raised an undefined `Missing` | my harness crashing, not a caught row |
+| wall time charged as think time | my ~1300 ms per-call overhead, not the search |
+
+**Before publishing any number, ask what else could produce it.** All three of these were plausible-looking and
+two of them reached a finding.
