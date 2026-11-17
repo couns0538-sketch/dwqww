@@ -720,3 +720,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   where the score is CONSUMED (GUI display, mate-distance adjudication, eval reading). Extends seat 05: their violator
   can present a won mate as a large centipawn advantage at that budget.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:16:31Z S-C48b CORRECTS my own S-C48a — violator's cp 4056 is an unfound mate, not truncation
+- Ladder on seat 05's violator: `go nodes 20000/30000/40000` -> **cp 4056, depth 10, 10,515 nodes, no mate claimed**
+  (honest evaluation of an unfinished search — NOT a defect, nothing misleading); **`go nodes 50000` -> `mate 11` with an
+  18-ply PV, short by 4 — THAT is the truncation**; `go depth 12` -> mate 7.
+- So **the real defect there is at 50,000 nodes, not 20,000**. In S-C48a I compared a budget-limited search against a
+  deeper one and called the difference a defect **before checking whether the shallow arm could know the answer** —
+  RULE 0 again, on my own comparison.
+- SURVIVES unchanged: S-F19 board at `go nodes 20000` reports `mate -7` (14 plies) where the truth is 8 plies — that
+  IS truncation, on a board whose distance I proved. Severity conclusion also survives (same move in all three cases).
+Next: continue in the window (ends 2026-11-17T10:18Z).
