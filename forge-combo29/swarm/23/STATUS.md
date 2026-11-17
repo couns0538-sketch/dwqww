@@ -1597,3 +1597,15 @@ effect); and at counter 90 the BASE explodes to 10,445,791 nodes vs the PC's 930
 STATED IN THE TABLE: this does NOT reproduce 23-F58's 0-node answer in the claimable band (base at c92 = 1,353,048
 nodes), because 23-F58 was a REPETITION at halfmove 11 - a different mechanism; conflating them is my 23-F71 error.
 109 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 14 m remain.
+## 2026-11-17T01:05:49Z  23-F82 upgraded from anomaly to finding: the explosion peaks one or two counters BEFORE the collapse
+2026-11-17T01:05:49Z
+
+Tested the "depth-10 boundary artefact" hypothesis at depths 8/9/10/11. It FAILED, so the label changed:
+  explosion appears at EVERY depth; its PEAK COUNTER MOVES WITH DEPTH - 92 at d8, 91 at d9/d10, 89-90 at d11 - the
+  same 100-depth movement the score onset shows in 23-C26. So node explosion and score collapse share the horizon.
+  peak cells: d11 c89 = 27,176,620 | d11 c90 = 29,679,599 | d10 c90 = 10,445,791 | d9 c91 = 8,048,897
+The sentence to keep: the search spends the most nodes one or two counters BEFORE it collapses to cp 0 - it works
+hardest exactly where it is about to give up (counter 88 at d8 = 14,921 nodes vs counter 89 at d11 = 27 million).
+Still no mechanism: I have not read the search code and will not invent a cause; flagged as a concrete lead for an
+area-7 seat.
+110 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 13 m remain.
