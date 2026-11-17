@@ -1,0 +1,19 @@
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..1ee7ff6ee 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -524,7 +524,13 @@ int uci_loop(std::istream& in) {
+                 // to analysis, pondering or restricted searches.
+                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
+                                          !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
+-                if (game_search && own_book && !book.empty() && game_ply(board) < book_depth) {
++                // A drawn root is reported by the search without searching (cp 0,
++                // empty pv). That report is the caller's only in-band signal that the
++                // position is drawn, so the book must not answer it first.
++                const bool root_drawn = board.is_repetition() || board.halfmove_clock() >= 100 ||
++                                        board.is_insufficient_material();
++                if (game_search && own_book && !book.empty() && !root_drawn &&
++                    game_ply(board) < book_depth) {
+                     const forge::Move book_move = book.probe(board, book_variety, book_rng);
+                     if (!book_move.is_none()) {
+                         std::string prediction;

@@ -1,0 +1,39 @@
+binary /tmp/sw65-reverify-build-6b98f217/forge
+
+TRAP 1  `go btime` with White to move does not reach the book
+    white, only btime    book=no  info_depth=22  bestmove=e2e4
+    white, only wtime    book=YES info_depth=0   bestmove=c2c4
+    black, only btime    book=YES info_depth=0   bestmove=c7c5
+    black, only wtime    book=no  info_depth=31  bestmove=None
+  [PASS] white + only-btime does not book: the mover's clock is the only one the gate reads
+  [PASS] white + only-wtime does book: control
+  [PASS] black + only-btime does book: asymmetry, the other colour
+  [PASS] black + only-wtime does not book: mirror of the first
+  [PASS] white + only-btime is not time-limited (still searching at 3 s): 22 depth lines in 3 s before the explicit `stop`
+
+TRAP 2  the book pre-empts the drawn-root answer, by book entry
+    fifty-move, book entry           ON book=True  OFF depth=64  score=('cp', 0) pv_empty=True
+  [PASS] fifty-move, book entry: drawn-root answer correct with book OFF: no book line, cp 0, empty pv
+  [PASS] fifty-move, book entry: book pre-empts with book ON: book move, zero info depth lines
+    repetition, book entry           ON book=True  OFF depth=64  score=('cp', 0) pv_empty=True
+  [PASS] repetition, book entry: drawn-root answer correct with book OFF: no book line, cp 0, empty pv
+  [PASS] repetition, book entry: book pre-empts with book ON: book move, zero info depth lines
+    insufficient material, no entry  ON book=False OFF depth=64  score=('cp', 0) pv_empty=True
+  [PASS] insufficient material, no entry: drawn-root answer correct with book OFF: no book line, cp 0, empty pv
+  [PASS] insufficient material, no entry: no pre-emption without an entry: the bail answers
+    fifty-move, no entry             ON book=False OFF depth=64  score=('cp', 0) pv_empty=True
+  [PASS] fifty-move, no entry: drawn-root answer correct with book OFF: no book line, cp 0, empty pv
+  [PASS] fifty-move, no entry: no pre-emption without an entry: the bail answers
+
+TRAP 3  `Book Depth` reads the fullmove counter
+    startpos with fullmove=1   Depth40 book=True  Depth41 book=True 
+  [PASS] fullmove 1: Depth 40: book=True
+  [PASS] fullmove 1: Depth 41: book=True
+    startpos with fullmove=21  Depth40 book=False Depth41 book=True 
+  [PASS] fullmove 21: Depth 40: book=False
+  [PASS] fullmove 21: Depth 41: book=True
+
+  Note: this is the BEHAVIOUR, and it is correct behaviour. The earlier
+  claim that it is a defect was retracted — see FINDINGS.md 5.3.
+
+All trap checks passed on this binary.

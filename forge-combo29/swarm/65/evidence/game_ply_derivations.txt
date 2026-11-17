@@ -1,0 +1,29 @@
+builds:
+  LOCK     /tmp/build65/forge
+  NAIVE    /tmp/sw65-fixes/naive-build/forge
+  HYBRID   /tmp/sw65-fixes/hybrid-build/forge
+  BASEPLY  /tmp/sw65-fixes/baseply-build/forge
+
+| case | form | input implies ply | Book Depth | expected | LOCK | NAIVE | HYBRID | BASEPLY |
+| --- | --- | ---: | ---: | --- | --- | --- | --- | --- |
+| A1 | startpos | 6 | 7 | book | book | book | book | book |
+| A2 | startpos | 6 | 6 | no book | no book | no book | no book | no book |
+| A3 | startpos | 2 | 3 | book | book | book | book | book |
+| A4 | startpos | 2 | 2 | no book | no book | no book | no book | no book |
+| B1 | fen+moves | 6 | 7 | book | book | book | book | book |
+| B2 | fen+moves | 6 | 6 | no book | no book | book WRONG | book WRONG | no book |
+| B3 | fen+moves | 8 | 7 | no book | no book | book WRONG | book WRONG | no book |
+| B4 | fen+moves | 8 | 9 | book | book | book | book | book |
+| B5 | fen+moves | 4 | 3 | no book | no book | no book | no book | no book |
+| B6 | fen+moves | 4 | 5 | book | book | book | book | book |
+| C1 | fen | 2 | 3 | book | book | book | book | book |
+| C2 | fen | 2 | 2 | no book | no book | book WRONG | no book | no book |
+| C3 | fen | 4 | 3 | no book | no book | book WRONG | no book | no book |
+| C4 | fen | 4 | 5 | book | book | book | book | book |
+
+LOCK     wrong: 0/14
+NAIVE    wrong: 4/14
+HYBRID   wrong: 2/14
+BASEPLY  wrong: 0/14
+
+LOCK correct on every case: YES

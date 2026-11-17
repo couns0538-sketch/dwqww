@@ -1,0 +1,19 @@
+lock  /tmp/build65/forge
+naive /tmp/sw65-fixes/naive-build/forge
+
+| case | position form | input implies ply | Book Depth | expected | LOCK | NAIVE |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| A1 | startpos | 6 | 7 | book | book | book |
+| A2 | startpos | 6 | 6 | no book | no book | no book |
+| B1 | fen + moves | 6 | 7 | book | book | book |
+| B2 | fen + moves | 6 | 6 | no book | no book | book **WRONG** |
+| B3 | fen + moves | 8 | 7 | no book | no book | book **WRONG** |
+
+LOCK  wrong: 0/5
+NAIVE wrong: 2/5
+
+B1/B2 show the lock is exact when the FEN counter is honest. B3 shows it
+honours a counter the caller inflated — which is the only ply information
+the caller supplied, since a FEN carries no history. NAIVE fails A2 and
+B2 because it counts only the moves appended after the FEN and therefore
+under-reports the depth of any resumed game.

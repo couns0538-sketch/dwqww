@@ -1,0 +1,22 @@
+lock    /tmp/sw65-trap2-lock-6b98f217/forge
+patched /tmp/sw65-trap2-fix-6b98f217/forge
+
+| case | drawn | in book | lock | patched |
+| --- | --- | --- | --- | --- |
+| fifty-move, book entry | yes | yes | BOOK e2e4 | bail cp 0 pv_empty=True a2a3 |
+| repetition, book entry | yes | yes | BOOK e2e4 | bail cp 0 pv_empty=True a2a3 |
+| insufficient material, no entry | yes | no | bail cp 0 pv_empty=True e2d1 | bail cp 0 pv_empty=True e2d1 |
+| fifty-move, no entry | yes | no | bail cp 0 pv_empty=True h1f1 | bail cp 0 pv_empty=True h1f1 |
+| ordinary book position (control) | no | yes | BOOK e2e4 | BOOK e2e4 |
+| opening position, no entry (control) | no | no | bail cp 91 pv_empty=False a4c6 | bail cp 91 pv_empty=False a4c6 |
+
+  [PASS] patched build reports the drawn root: fifty-move, book entry
+  [PASS] patched build reports the drawn root: repetition, book entry
+  [PASS] patched build reports the drawn root: insufficient material, no entry
+  [PASS] patched build reports the drawn root: fifty-move, no entry
+  drawn roots with a book entry pre-empted — lock 2, patched 0
+  [PASS] pre-emption removed by the patch
+  [PASS] book still fires: ordinary book position (control)
+  [PASS] unchanged, still searches: opening position, no entry (control)
+
+Patch verified: drawn roots always reported, book still fires elsewhere.

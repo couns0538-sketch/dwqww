@@ -1,0 +1,23 @@
+binary /tmp/sw65-reverify-build-6b98f217/forge
+source /tmp/sw65-reverify-6b98f217/forge-combo29/src/uci.cpp
+
+1. emit sites in this tree
+     539: BOOK EMIT         std::cout << "info string book move " << forge::Board::move_to_uci(book_move) << std::en
+     540: search bestmove   std::cout << "bestmove " << forge::Board::move_to_uci(book_move) << prediction << std::e
+     572: search bestmove   std::cout << "bestmove " << best << prediction << std::endl;
+
+    distinct `info string book move` emit sites: 1
+  [PASS] exactly one book emit site: [539]
+    book marker at line 539, its bestmove at line 540
+  [PASS] book path `continue`s past the search: yes
+
+2. the wire, on this binary
+    | info string book move c2c4
+    | bestmove c2c4
+
+  [PASS] reply is exactly two lines
+  [PASS] first line is the book marker
+  [PASS] second line is bestmove
+  [PASS] no score-bearing field present
+
+All wire checks passed.

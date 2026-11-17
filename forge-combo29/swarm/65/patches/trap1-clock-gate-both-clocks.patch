@@ -1,0 +1,52 @@
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..993aa2fb8 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -83,6 +83,10 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+     std::vector<std::string> tokens;
+     while (input >> token) tokens.push_back(token);
+     const forge::Color side = board.side_to_move();
++    std::int64_t wtime_ms = -1;
++    std::int64_t btime_ms = -1;
++    std::int64_t winc_ms = 0;
++    std::int64_t binc_ms = 0;
+     for (std::size_t i = 0; i < tokens.size();) {
+         token = tokens[i++];
+         auto read_int = [&]() {
+@@ -118,10 +122,10 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+         else if (token == "mate") limits.mate_moves = std::clamp(read_int(), 0, 32);
+         else if (token == "infinite") limits.infinite = true;
+         else if (token == "ponder") limits.ponder = true;
+-        else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
+-        else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
+-        else if (token == "winc") { const std::int64_t value = read_clock(); if (side == forge::White) limits.increment_ms = value; }
+-        else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
++        else if (token == "wtime") { wtime_ms = read_clock(); }
++        else if (token == "btime") { btime_ms = read_clock(); }
++        else if (token == "winc") { winc_ms = read_clock(); }
++        else if (token == "binc") { binc_ms = read_clock(); }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+             while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+@@ -130,6 +134,21 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+             }
+         }
+     }
++    // A clock belongs to a side, but a search only needs a budget. Use the mover's
++    // clock when it was given and fall back to the opponent's otherwise: a caller
++    // that sends only one clock is still describing a timed game, and reading that
++    // as "no clock" leaves the search unbounded.
++    const std::int64_t own_time = (side == forge::White) ? wtime_ms : btime_ms;
++    const std::int64_t other_time = (side == forge::White) ? btime_ms : wtime_ms;
++    const std::int64_t own_inc = (side == forge::White) ? winc_ms : binc_ms;
++    const std::int64_t other_inc = (side == forge::White) ? binc_ms : winc_ms;
++    if (own_time >= 0) {
++        limits.time_ms = own_time;
++        limits.increment_ms = own_inc;
++    } else if (other_time >= 0) {
++        limits.time_ms = other_time;
++        limits.increment_ms = other_inc;
++    }
+     return limits;
+ }
+ 
