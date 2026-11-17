@@ -703,3 +703,26 @@ an empty table (`max()` of nothing is within any bound). The missing control is 
 is seat 23's own 23-F89 lesson ("a control passing for the wrong reason") landing on the seat about to use it
 against them, and it is now its own METHOD_NOTES section: **a control must be able to FAIL on the real data,
 not just on a planted case.**
+
+## 2026-11-17T03:1xZ RETRACTIONS.md ledger + the empty-table trap, and the rule proved itself
+**1. THE EMPTY-TABLE TRAP has its own METHOD_NOTES section** with the concrete tell (empty tables, every
+control passing, both of seat 23's boards reported DRAW when both were winning mates) and the requested
+formulation: **a control must be DEMONSTRATED TO FAIL when the input is wrong** - not merely observed to pass
+when it is right. Controls 1/2/5 all passed vacuously for the same reason: `max()` of nothing, `all()` of
+nothing, and a lookup falling through to a DEFAULT (mine was the third).
+**2. A RETRACTION LEDGER now exists (RETRACTIONS.md) - it did not before.** Seven substantive retractions
+listed by severity with the evidence that killed each: the S-C18 PC20-mislabelled ladder, the whole S-C11
+clock group, S-F12 clock swap, S-W1 mate -25, S-C37 stratification, S-C43's non-overlap claim, S-C38's
+before/after framing. Ordered by what could have changed a decision, not by date. **S-C43's Wilson correction
+against myself is in it** - 12/29 is [0.2551, 0.5926], the interval I used was 17/41's, and **the "CIs do not
+overlap" claim fails by 0.007**.
+**3. THE RULE PAID FOR ITSELF WITHIN MINUTES (S-C50).** Adding control 7 - "control 6 must REJECT an empty
+probe set, demonstrated not assumed" - immediately exposed **two of my own controls that had been passing
+vacuously all along**: control 3 used a FEN with **no legal capture**, and control 4 used a FEN where Qb7 is
+**illegal** because the white king blocked the file, returning `got 3` - a wrong non-zero answer, not a crash.
+Rebuilt with verified FENs; all seven controls pass; **the mate 6 result for 23-F90 is unchanged.**
+**4. QUIET SUBSET (REPLICATION_quiet_subset.md) keeps its flags.** 0.712 (2000) and 0.691 (3000) same-move,
+with the **non-significant cell carried alongside**: quiet >=28 pieces at 3000 is 29/46 = 0.630, **p=0.104**.
+Also corrected a claim in that file: I had written "no monotone trend in the threshold"; checking showed
+budget 3000 IS monotone (0.630/0.677/0.691) and 2000 is not - so the ordering carries no signal either way
+and I withdrew the assertion rather than keep a tidier story.
