@@ -2324,3 +2324,29 @@ The rule itself is now in the rule page as a named pattern: THE ONE-FIXTURE SENT
 anyone, name the second fixture that would break it and run it; if none exists, write "on this board" and nothing more.
 
 158 findings, all three checks PASS.
+## 2026-11-17T01:50:55Z  F132: the "only if" half earned on four boards; two near-misses caught on the way
+2026-11-17T01:50:55Z
+
+My headline sentence is "the base returns 0 nodes IF AND ONLY IF the root has occurred three times". The "if" half was
+tested at five occurrence counts on one board; the "only if" half rested on that same board. So I tested it across five
+boards of different material - and nearly lost it twice.
+
+First near-miss: my cycle finder forbade KING and ROOK moves. On a K+R v K board that is every legal move, so all five
+boards were excluded and the test covered NOTHING while printing a table. Fixed by checking the CASTLING FIELD rather
+than the mover's piece type - which is F122's sharpening applied to my own tooling a second time.
+
+Second near-miss: re-run, bare kings returned 0 nodes at TWO occurrences - apparently a refutation of the "only if".
+The confound check settled it: bare kings returns 0 nodes with NO MOVES AT ALL, so that zero is INSUFFICIENT MATERIAL,
+not repetition. Excluded as confounded rather than counted as a counter-example.
+
+With those two separated, the result is clean:
+  K+R v K     7,581 -> 0
+  pawns+rook    210 -> 0
+  K+Q v K    47,088 -> 0
+  pawns only  4,962 -> 0
+'only if' holds on four of four usable boards.
+
+So the iff now stands on five occurrence counts on one board plus the only-if half on four more boards of different
+material. What is still one board: the "if" half at 4, 5 and 6 occurrences.
+
+159 findings, all three checks PASS.
