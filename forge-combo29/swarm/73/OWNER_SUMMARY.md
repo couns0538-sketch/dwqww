@@ -836,7 +836,7 @@ different engine** — which is the strongest argument in this document for runn
 **What would overturn the rejection:** a timing on your build where the CI excludes 1.0 and clears 0.5 %. The measured
 headroom is 0.26–0.40 % even under ideal assumptions, so this is unlikely to be worth the attempt.
 
-### 1.22 Opening book: set `OwnBook false` only when it can fire, and know that it pre-empts draw adjudication — **ship** (as a harness rule)
+### 1.22 Opening book: apply the one-hunk `!root_drawn` patch, and set `OwnBook false` only when it can fire — **ship**
 
 The book's own soundness is clean (§7); **what it does to a harness and to a caller is three separate hazards.**
 **All three were re-verified on the base commit `6b98f217` with the pin checked (bench 11 = 312,866) on the same
@@ -857,16 +857,42 @@ The gate is `time_ms >= 0 || movetime_ms >= 0` (`uci.cpp:371`), and `time_ms` is
 **So `OwnBook false` is needed only when the moving side's clock is sent** — sending the *opponent's* clock is safe
 from the book and unsafe in a different way (§2.7: a one-sided clock is no clock at all).
 
-**2. The book pre-empts drawn-root detection, and the exact contrast proves it.** A halfmove-100 startpos with
-`OwnBook true` emits `info string book move c2c4` and `bestmove c2c4` **with no `info depth` line at all**; **the same
-position with `OwnBook false` gives `cp 0 / nodes 0 / bestmove a2a3`** — the bail's signature. **So the book decides
-before any draw adjudication runs**, and a drawn position ships a book move with **none of the warnings a caller uses
-to detect a drawn root**, defeating the one reliable caller-side check in §1.3. A front end that keys on empty-`pv`
-will not recognise this case.
-- **But bare kings escapes pre-emption, because it has no book entry** — with `OwnBook true` it still returns the
-  `cp 0 / nodes 0` bail with `bestmove e3d2`. **So the pre-emption needs the position to be in the book, and the
-  dangerous case is a drawn position the book happens to cover** — not drawn positions generally. That is a much
-  narrower exposure than "the book defeats draw detection", and it is the accurate one.
+**2. The book pre-empts drawn-root detection — and this is now a MEASURED FIX, not a diagnosis.** A halfmove-100
+startpos with `OwnBook true` emits `info string book move c2c4` and `bestmove c2c4` **with no `info depth` line at
+all**; **the same position with `OwnBook false` gives `cp 0 / nodes 0 / bestmove a2a3`** — the bail's signature. **So
+the book decides before any draw adjudication runs**, and a drawn position ships a book move with **none of the
+warnings a caller uses to detect a drawn root.**
+
+**The patch is one hunk and it is a PREDICATE, not a reordering: add `!root_drawn` to the book condition, using the
+same three tests as the bail** (repetition, halfmove ≥ 100, insufficient material). **Because it only gates the book,
+`search.cpp` is untouched and node counts cannot move** — which is why the pin check is a real test rather than a
+formality: **all 11 documented pins reproduce on both builds** — **five depths × two net settings, plus perft 5** (a
+different and larger set than the **four honesty pins** cited elsewhere in this document; both are pinned, and the
+patch moves neither).
+
+| root | lock | patched |
+|---|---|---|
+| fifty-move **with** a book entry | book move | **bail, cp 0, empty pv — FIXED** |
+| repetition **with** a book entry | book move | **bail — FIXED** |
+| insufficient material | bail | unchanged |
+| fifty-move **with no** entry | bail | unchanged |
+| ordinary book position | books | **still books** |
+| opening with no entry | searches | **still searches, cp 91** |
+
+**Pre-emption goes from 2 to 0.** **The two controls are what make it a fix rather than a removal:** a patch that
+simply disabled the book **would pass the first four rows and fail the fifth**, so the test can tell a fix from a
+lobotomy. **Traps 1 and 3 are unchanged on the patched build** — checked rather than assumed.
+- **But bare kings already escaped pre-emption, because it has no book entry** — with `OwnBook true` it still returns
+  the `cp 0 / nodes 0` bail with `bestmove e3d2`. **So the pre-emption needs the position to be in the book, and the
+  dangerous case is a drawn position the book happens to cover** — not drawn positions generally. That is the accurate
+  and much narrower exposure.
+
+**Two decisions are yours, and they are policy rather than measurement:**
+1. **Should a drawn root EVER book?** A repetition at move 8 in a forced-draw line is arguably a book situation, so
+   "always report drawn instead" is **a choice**, not a correction. The patch assumes report-drawn is right.
+2. **Should the predicate be shared with `search.cpp`?** **The same three conditions now exist in two copies that
+   agree today with nothing enforcing it** — so they can silently diverge on the next edit to either. Sharing it is
+   the maintenance answer; duplicating it is the lower-risk-now answer.
 
 **3. `Book Depth` is derived from the FEN's FULLMOVE COUNTER, not from the move count** (`game_ply()`,
 `uci.cpp:127-129`) — **and it is not merely a books-or-searches switch.** Sweeping the counter on an identical board:
@@ -1119,7 +1145,12 @@ clock, the book, and any game-vs-game comparison.**
 answers in 0.16 s. **Padding the opponent's value does not help** — a large opponent clock has zero effect. The
 engine is right to ignore the opponent's clock; it should print an `info string` instead of searching forever.
 
-### 2.8 The opening book overrides draw adjudication without a signal — **broken**
+**Status: a patch is being prepared with the same gate as §2.8's book fix** — so this is likely to move from "broken"
+to "fixed" after this document closes. **Treat it as pending rather than settled**, and the check when it lands is the
+same one: the both-clocks control must still answer, and a one-sided clock must produce the diagnostic rather than a
+hang.
+
+### 2.8 The opening book overrides draw adjudication — **broken, and the FIX IS MEASURED**
 
 **All three claims below were re-verified on the base commit `6b98f217` with the pin checked (bench 11 = 312,866) on
 the same binary** — the seat that first found them had built from a disjoint branch, so these are base-verified rather
@@ -1145,7 +1176,13 @@ Two consumers are affected and neither gets a warning:
 **Not a correctness defect in the book itself** — its moves are sound (§7). **It is a defect in what the book tells a
 caller about the position**, which is the definition §2 uses.
 
-### 2.9 Asking for a neural arch with no usable net hangs the process — **broken (reported, not yet verified here)**
+**And it is the one item in this section with a measured fix rather than a recommendation.** The `!root_drawn`
+predicate takes pre-emption from **2 roots to 0**, leaves `search.cpp` untouched so node counts cannot move, and
+reproduces **all 11 documented pins on both builds** — with two controls that would fail a patch which simply disabled
+the book. **So the owner can take this as settled rather than as work to schedule**; the two open questions in §1.22
+are **policy choices about what the patch should say**, not about whether it works.
+
+### 2.9 Asking for a neural arch with no usable net hangs the process — **broken**
 
 **Asking for the neural network architecture with no usable net prints an error and then exits — without answering
 `isready` and without sending a `bestmove`.** A GUI waiting for readiness **hangs forever**; a harness waiting for
@@ -1155,15 +1192,19 @@ caller about the position**, which is the definition §2 uses.
 one that fails loudest in the log and quietest on the wire** — there *is* an error message, and then nothing. **A
 reader with a timeout reports a hang; a reader without one never returns.**
 
-**Sourcing status, stated because it is unusual for this document:** the report carries this as a newly added
-defect, and **I could not find it in any branch's committed markdown** — I searched all 29 for the neural-arch
-wording and for `never answers` / `hangs forever` / `exits without` and found nothing. **So it is reported from the
-consolidated report only, and I have not independently corroborated it.** The mechanism is plausible and matches the
-one confirmed case in this run where a malformed request left a reader blocked for **20 minutes** on the book path
-(trap 21), which is why it is worth acting on before it is corroborated — **but treat the reproduction as owed.**
+**Sourcing status: SOURCED, and my first search for it was wrong.** An earlier version of this section said the defect
+came from the consolidated report only and that "I could not find it in any branch's committed markdown". **That was a
+search failure on my part, not an unsourced claim** — the finding is in **`swarm-71`'s `STATUS.md`**, not its
+`FINDINGS.md`, which is why a findings-file search missed it. **The seat records the exit status (`2`) and the
+fail-loud justification** — the engine never falls back to the hand-crafted eval, and the bench proves the net is
+genuinely in use (`312,866` → `965,454` nodes) — **so the mechanism is theirs and the behaviour is measured, not
+inferred.**
 
-**What would overturn it:** a net-less `NNUEArchFile` request that answers `readyok` and then a `bestmove`. None was
-looked for in the committed record.
+**The mechanism is also the right one in spirit and wrong in its execution:** failing loud beats silently evaluating
+with the hand-crafted net, **but it kills the process mid-protocol** rather than reporting a usable error.
+
+**What would overturn it:** a net-less `NNUEArchFile` request that answers `readyok` and then a `bestmove`. The seat's
+record shows exit 2 with neither.
 
 ### 2.10 What is *not* broken, and was claimed to be
 
@@ -1717,6 +1758,28 @@ These are the transferable output. Each is a rule the run paid for with a defect
 54. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
     cleared nothing; it is a third verdict, not a pass. Any finite vocabulary has a boundary, and past it the check
     reports PASS rather than UNKNOWN.
+54a. **"Reported by the other party, unverified on my side" is its own verdict, and it is what stops a tidy
+   explanation from becoming a finding.** When a collaborator offers a mechanism you cannot check, the honest label is
+   that one — **not adoption because it is persuasive, and not silence because you cannot confirm it.**
+   - **Used repeatedly in this document, and the count matters less than the shape:** `929` and the latency percentiles
+     (no committed output), the two-estimator CI row, and **— the instance that produced this rule — a mechanism the
+     coordinator offered for our own exchange**, that the prose total had selected the table's rows. **They checked
+     their side and found it unverified there too:** the table and its sentence were written in the same edit, so the
+     failure was **a collapsed row, not an ordering.** **The explanation fit the evidence and was not a mechanism
+     either of us could demonstrate.**
+   - **And one case where the label was WRONG in the other direction, which is why the category needs care:** I once
+     marked the neural-arch hang "reported, not corroborated" after failing to find it in any branch — **and it was
+     committed all along, in `swarm-71`'s `STATUS.md` rather than its `FINDINGS.md`.** **A failed search is not the
+     same verdict as an unverified claim**, and labelling my own search failure as a sourcing gap would have thrown out
+     a sourced finding. **Say which one you mean: "I looked and it is not there" or "I could not look".**
+   - **The tell is that the explanation is BETTER than the evidence.** A story that accounts for every observation is
+     the one to interrogate — "it fit" and "it was demonstrated" produce the same confident sentence.
+   - **And the thing to keep is the part that survives the mechanism being wrong.** Here the remedy — *write the prose
+     total FROM the table, never beside it* — **does not depend on the ordering claim at all**, because a total stated
+     first is a hypothesis about the table either way. **State that independence explicitly: it is why a rule outlives
+     a retracted reason.**
+   - **Turning this standard on a colleague's just-offered sentence is the hard case and the one that matters** — the
+     courtesy is not to accept a good story, it is to label it accurately and say what would settle it.
 55. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
     **Assert the exact expected count as a literal**, never computed from the list it guards.
 56. **A counting claim about a table must be COMPUTED, and a counting dispute is decidable by script in one command —

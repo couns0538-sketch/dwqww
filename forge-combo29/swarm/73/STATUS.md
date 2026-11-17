@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,460 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,523 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,31 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Twenty-second round — a diagnosis becomes a measured fix
+
+**The book pre-emption moves from "broken" to "broken, and the FIX IS MEASURED"**, which is a change of status rather
+than of wording, so §1.22 and §2.8 were both rewritten rather than annotated.
+
+- **The patch is one hunk and a PREDICATE, not a reordering:** `!root_drawn` added to the book condition, using the
+  same three tests as the bail. **`search.cpp` untouched, so node counts cannot move** — which is what makes the pin
+  check a real test: **all 11 documented pins reproduce on both builds** (five depths × two net settings, plus perft 5).
+- **Effect on six roots:** fifty-move-with-entry and repetition-with-entry both go **book move → bail cp 0, empty pv
+  (FIXED)**; insufficient material and fifty-move-with-no-entry **unchanged**; an ordinary book position **still books**;
+  an opening with no entry **still searches, cp 91**. **Pre-emption 2 → 0.**
+- **The two controls are what make it a fix rather than a removal:** a patch that simply disabled the book **would pass
+  the first four rows and fail the fifth.** Recorded because that is the difference between a patch and a lobotomy.
+- **Two owner decisions stated AS decisions, not folded into the recommendation:** whether a drawn root should *ever*
+  book (a repetition at move 8 in a forced-draw line is arguably a book situation — so "always report drawn" is
+  policy); and whether to **share the predicate** with `search.cpp`, where the same three conditions now exist in two
+  copies **that agree today with nothing enforcing it.**
+
+**Also noted: a pin-set distinction that would otherwise read as a contradiction.** This document cites **four honesty
+pins** (§1.1) and **11 documented pins** (§1.22) — different sets, 5×2+1 versus 4, both pinned, and the patch moves
+neither. Now stated explicitly so a reader does not see two pin counts and assume one is stale.
+
+**Trap 1 (one-sided clock) is flagged as PENDING rather than fixed** — a patch is being prepared with the same gate,
+so it may move after this document closes. Marked as pending with the check that will settle it.
 
 ## Final state
 
