@@ -18,6 +18,7 @@ shows it again.
 |---|---|---|---|---|
 | 69-F5 | determinism | **Nine machine-environment inputs change nothing** at a fixed budget (0/40 each, two budgets): working directory, `LANG`/`LC_ALL`/`LC_NUMERIC` + `TZ`, environment-variable order, CPU affinity (cores 0/1/2), `nice -n 19`, `ulimit -v` 2 GB, `ulimit -v` 64 MB, `ulimit -s` 8 MB, `ulimit -n` 256. A fixed-budget answer is a property of the (build, position, budget) triple, not of the process environment. | `job1_env_matrix.py`, `job1/env_matrix.json` | NEW |
 | 69-F5b | determinism | **Memory pressure never changes an answer; it kills the process.** Stepped `ulimit -v` from 1 GB down to 16 MB: every cap that let the engine run gave 0 / 12 differing cells, and below the cliff the engine died on 12 / 12. At `Hash 16` the cliff is between 56 MB (dies) and 60 MB (works); at `Hash 256` between 290 MB (dies) and 300 MB (works), i.e. roughly the table size plus ~40 MB. **The dangerous middle band does not exist here** — the failure is loud, not silent. | `job2_memory_pressure.py`, `job2/memory_pressure.json`, `job2/boundary.raw.txt` | NEW |
+| 69-F5c | determinism | The environment invariance is not a base-build artifact: locale + TZ, `taskset -c 1`, `nice -n 19` and `ulimit -v 65536` each give **0 / 20** differing cells on the **PC** build as well. | `job1/pc_env_check.raw.txt` | NEW |
 
 ## Transposition-table state (jobs 3, 3b)
 

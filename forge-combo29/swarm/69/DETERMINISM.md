@@ -103,6 +103,10 @@ any of the four moves.
 are real cells, not silent matches: every variant reported the same non-trivial node counts
 and bestmoves as the reference, and the wrapper proof above shows each wrapper was in force.
 
+The invariance is not a base-build artifact: locale + TZ, `taskset -c 1`, `nice -n 19` and
+`ulimit -v 65536` each give **0 / 20** differing cells on the **PC** build too
+(`job1/pc_env_check.raw.txt`).
+
 ## Memory pressure
 
 One cap is a point, not a boundary, so `ulimit -v` was stepped from 1 GB down to 16 MB
