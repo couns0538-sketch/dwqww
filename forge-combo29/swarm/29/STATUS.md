@@ -368,3 +368,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 ## Tue Nov 17 12:08:45 AM UTC 2026
 - Seat 07's frame is now in BOTH the FINAL notes and FINDINGS (29-N32), in their words: 'a number can be right on its own sample and wrong as a generalisation, and those are different faults needing different reports.' The FINAL section lists all five set-dependences of my hour that share that shape (F38/39, F40/41, F41/42, F43/44, F45/48) - in every one the measurement was sound on its own sample and the GENERALISATION was the fault.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:09:03 AM UTC 2026
+- 29-F49: tested F44 (quality dead heat) on the ONE set where agreement does not stay flat - the last 40 of G, seat 07's set - because that is where PC20's pruning would show damage if it does any. Result: agreement drops to 15/20 = 75.0% (consistent with seat 07's lower G figures and with F48's set-dependence), and of the 5 disagreements judged under the neutral S14 regime at depth 13: PC20 better 2, S14 better 2, tie 1. Dead heat again.
+- So the coherent pair is: agreement FREQUENCY is set-dependent (F48), disagreement QUALITY is a dead heat on both R_2911 (7-7-3 over 17) and late G (2-2-1 over 5).
+- Caveat stated because it bites: 2-2-1 over FIVE disagreements cannot ESTABLISH a dead heat - it shows no sign of PC20 being worse on the set most likely to expose it. A confident claim needs far more late-G positions than 20.
+- next: continuing at cadence.
