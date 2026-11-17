@@ -925,3 +925,20 @@ next: cadence.
 **42 findings, 34 checks/audits/plants/tools, 5 method lines, 4 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:31Z — the 389/505 attribution corrected AGAIN, and I verified it myself
+- **Correct attribution (measured all four cells, not accepted):** **389 and 412 are PC20's figures; 505 and 701 are
+  S14's.** My matrix was PC20; seat 27's harness was S14-only. The coordinator's earlier arbitration had the direction
+  inverted because it accepted my "S14" label as evidence of my configuration.
+- **08-W5 records the second consequence of the 08-W3 variable name: it misled the coordinator's arbitration, not just
+  my finding.** A wrong label does not stay in its own file.
+- **08-F43 (new, and a better answer than either of us had): the figure is set by ONE option — `HistRework`.** PC20 =
+  389; **PC20 minus TtPruneV2 = 501**; PC20 minus HistRework = 389 (unchanged). So 389 requires HistRework.
+- **Control-cell caveat confirmed and recorded:** the two-occurrence cell is **not like-for-like across settings** —
+  S14 plays `c2c3`/701, **PC20 plays `d2d4`/412** (PC20−TtPruneV2 plays `c2c3`/703). Its purpose survives (neither
+  drawn) but quoting it as an equal cell would be wrong.
+
+## 2026-11-17T02:31Z — TALLY (generated, not maintained)
+**43 findings, 34 checks/audits/plants/tools, 5 method lines, 5 withdrawals** (and 1 open lead).
+
+next: cadence.
