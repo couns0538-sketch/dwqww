@@ -1,0 +1,13 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import crypto from 'node:crypto';
+const r='/workspace/work/parity-run',raw=fs.readFileSync(r+'/softnodes-batches/paired-softnodes-asan-off-t1-n2000-d0/stdout.txt','utf8'),rows=[];let trigger;
+for(const line of raw.split('\n')){
+ if(line.startsWith('TRIGGER '))trigger=JSON.parse(line.slice(8));
+ if(!line.startsWith('CHECK '))continue;
+ const c=JSON.parse(line.slice(6));if(c.mode!=='soft'||c.x<10000)continue;
+ const nodes=c.last_exact.match(/\bnodes (\d+)\b/),depth=c.last_exact.match(/\bdepth (\d+)\b/),score=c.last_exact.match(/\bscore (cp|mate) (-?\d+)\b/);assert.ok(nodes&&depth&&score);assert.equal(c.item2,1);assert.equal(c.item3,1);
+ rows.push({pair:c.pair,ply:c.ply,fen:trigger?.fen??trigger?.context?.fen,position:trigger?.position??trigger?.context?.position,x:c.x,exactNodes:Number(nodes[1]),depth:Number(depth[1]),scoreKind:score[1],score:Number(score[2]),bestmove:c.bestmove,lastExact:c.last_exact});
+}
+assert.equal(rows.length,51);for(const x of rows){assert.ok(x.fen&&x.position);assert.ok(x.exactNodes<=x.x);}
+const describe=rs=>{const ns=rs.map(x=>x.exactNodes).sort((a,b)=>a-b),sum=rs.reduce((a,x)=>a+x.exactNodes,0),xsum=rs.reduce((a,x)=>a+x.x,0);return{count:rs.length,xSum:xsum,exactNodeSum:sum,meanExactNodes:sum/rs.length,minExactNodes:ns[0],medianExactNodes:ns[Math.floor(ns.length/2)],maxExactNodes:ns.at(-1),meanDepth:rs.reduce((a,x)=>a+x.depth,0)/rs.length,minDepth:Math.min(...rs.map(x=>x.depth)),maxDepth:Math.max(...rs.map(x=>x.depth)),meanAdditionalNodesAfterLastExact:(xsum-sum)/rs.length};};
+const summary={utc:new Date().toISOString(),rawSha256:crypto.createHash('sha256').update(raw).digest('hex'),allObservedSoftSearches:557,allObservedCapCases:describe(rows),completedPairsOnly:describe(rows.filter(x=>x.pair<2)),scope:'Original failed-contract batch; includes the partial third pair in allObservedCapCases. Pure transcript analysis, no additional engine run, strength or speed inference.'};
+fs.writeFileSync(r+'/inputs/soft-cap-observations.txt',JSON.stringify({summary,rows},null,2)+'\n',{flag:'wx'});const p=r+'/state.json',s=JSON.parse(fs.readFileSync(p));s.softCapObservations=summary;fs.writeFileSync(p,JSON.stringify(s,null,2)+'\n');console.log(JSON.stringify(summary,null,2));

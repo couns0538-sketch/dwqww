@@ -1,0 +1,74 @@
+// Root-invoked text publication and accounting. Never launches an engine or Git.
+import fs from 'node:fs';
+import path from 'node:path';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+import {derive,updatedState,totals} from './accounting.mjs';
+import {hashFile,writeImmutable,verifyPackage} from '/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs';
+const HERE=path.dirname(import.meta.filename),ROOT='/workspace/work/parity-run',PREP='/workspace/work/parity-softnodes-preparation',REPO='/workspace/work/dwqww-parity',TESTS=REPO+'/forge-combo29/tests_astra_parity',STATE=ROOT+'/state.json',PACK=ROOT+'/package-evidence.mjs',DECL=ROOT+'/softnodes-batches/declaration.txt';
+const deadline=Date.now()+420000,json=x=>JSON.stringify(x,null,2)+'\n',read=f=>JSON.parse(fs.readFileSync(f)),hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+const [indexArg,auditArg,auditSha,mode]=process.argv.slice(2),index=Number(indexArg),auditFile=path.resolve(auditArg??'');
+assert.ok(Number.isInteger(index)&&index>=0&&index<12,'Index0..11');assert.ok(mode===undefined||mode==='--check');assert.ok(auditFile.startsWith(ROOT+'/'),'Audit must be a retained root result');assert.match(auditSha??'',/^[a-f0-9]{64}$/);assert.equal(hashFile(auditFile),auditSha);
+const fixedPins={
+ [PREP+'/audit.mjs']:'83a507713395f57850f03f9b99cda312def8605d321e9660331dbdce8af5c60a',
+ [PREP+'/control.mjs']:'3f43d81054603f784b6b6106ecdc19a5db4fac828d41f8c9cd775b759e91db16',
+ [PREP+'/plan.txt']:'57dfe2d1458b2d3bc1575313d875e97b2e3b5e97f0b6e8b68d1456cf69909bcc',
+ [PACK]:'ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33',
+ ['/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs']:'33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601'
+};
+function verify(pins){for(const [f,pin]of Object.entries(pins))assert.equal(hashFile(f),pin,f);}
+verify(fixedPins);
+const ownPins=read(HERE+'/RECORDER-PINS.txt');verify(ownPins.files);
+assert.equal(ownPins.files[import.meta.filename],hashFile(import.meta.filename));assert.equal(ownPins.files[HERE+'/accounting.mjs'],hashFile(HERE+'/accounting.mjs'));
+const stateBytes=fs.readFileSync(STATE),state=JSON.parse(stateBytes),stateSha=hash(stateBytes),plan=read(PREP+'/plan.txt'),batch=plan.batches[index],d=read(DECL),driver=read(PREP+'/DRIVER-PINS-v3.txt');
+assert.equal(state.repo,REPO);assert.equal(state.branch,'for-fable-and-opus/astra-0011-pc-parity');assert.equal(d.sourceCommit,state.sameClockCommit);assert.equal(d.deadline,plan.deadline);assert.equal(batch.index,index);
+verify(d.sourcePins);verify(d.toolPins);verify(driver.inputPins);assert.equal(hashFile(driver.binary),driver.sha256);assert.equal(driver.sha256,'a01b1cdbbc38916360945afe1a35e53555929afc9ed1c3d0f83ee7dda27d9b33');
+for(const engine of Object.values(d.engines)){assert.equal(hashFile(engine.binary),engine.sha256);assert.equal(hashFile(engine.flagsFile),engine.flagsSha256);verify(engine.objectPins);}
+for(const [f,pin]of Object.entries(fixedPins))if(f.startsWith(PREP+'/'))assert.equal(d.toolPins[f],pin,'Declaration omits current frozen tool');
+assert.equal(Object.keys(d.sourcePins).length,26,'Expected all25 source/header files plus CMake');
+const raw=ROOT+'/softnodes-batches/'+batch.label,rawFiles=fs.readdirSync(raw).sort();
+assert.deepEqual(rawFiles,['command.txt','input-pins.txt','start.txt','stderr.txt','stdout.txt'],'Unexpected or incomplete raw batch');
+const rawPins=Object.fromEntries(rawFiles.map(n=>[raw+'/'+n,hashFile(raw+'/'+n)])),meta=read(raw+'/command.txt'),input=read(raw+'/input-pins.txt'),start=read(raw+'/start.txt');
+assert.equal(input.declaration,DECL);assert.equal(input.sha256,hashFile(DECL));assert.deepEqual(input.batch,batch);assert.deepEqual(input.engine,d.engines[batch.mode]);assert.deepEqual(input.driver,driver);
+assert.equal(meta.cwd,REPO);assert.equal(start.cwd,REPO);assert.deepEqual(start.batch,batch);assert.equal(meta.started,start.started);assert.deepEqual(meta.argv,['timeout','-k','2','440',...batch.argv]);assert.deepEqual(meta.argv,start.argv);assert.equal(meta.stdout,raw+'/stdout.txt');assert.equal(meta.stderr,raw+'/stderr.txt');assert.equal(meta.stdoutSha256,rawPins[meta.stdout]);assert.equal(meta.stderrSha256,rawPins[meta.stderr]);assert.ok(Date.parse(meta.ended)>=Date.parse(meta.started));
+const argv=['node',PREP+'/audit.mjs',String(index)],auditStarted=new Date().toISOString(),auditRun=cp.spawnSync(argv[0],argv.slice(1),{cwd:REPO,encoding:'utf8',timeout:60000,maxBuffer:32*1024*1024}),auditEnded=new Date().toISOString();
+assert.ok([0,1].includes(auditRun.status)&&auditRun.signal===null,'Read-only audit execution failed or timed out');
+const normalize=x=>{const y=structuredClone(x);delete y.utc;return y;};
+let audit=null,auditUnavailable=false;
+try{audit=JSON.parse(fs.readFileSync(auditFile,'utf8'));if(!audit||typeof audit!=='object'||Array.isArray(audit))auditUnavailable=true;}catch{auditUnavailable=true;}
+if(!auditUnavailable){assert.deepEqual(normalize(JSON.parse(auditRun.stdout)),normalize(audit),'Recorded audit does not reproduce');assert.equal(auditRun.status,audit.passed?0:1);assert.equal(auditRun.stderr,'');}
+else{
+ assert.equal(auditRun.status,1,'Invalid saved audit cannot substitute for passing auditor');assert.equal(auditRun.stdout,fs.readFileSync(auditFile,'utf8'),'Invalid audit output changed');
+ const stdout=fs.readFileSync(meta.stdout,'utf8'),stderr=fs.readFileSync(meta.stderr,'utf8'),lines=stdout.split('\n'),completeLines=lines.slice(0,-1),rows=prefix=>completeLines.filter(x=>x.startsWith(prefix+' ')).flatMap(x=>{try{return [JSON.parse(x.slice(prefix.length+1))];}catch{return [];}}),summaries=rows('SUMMARY'),diagnostics=[];
+ const pattern=/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|terminate called|Segmentation fault|core dumped/i;
+ for(const [stream,text]of [['stdout',stdout],['stderr',stderr]])for(const [i,line]of text.split('\n').entries())if(pattern.test(line))diagnostics.push({stream,line:i+1,text:line});
+ audit={index,label:batch.label,exit:meta.exit,signal:meta.signal,complete:false,passed:false,coverage:false,auditUnavailable:true,manualReviewRequired:true,diagnostics,faults:rows('FAULT'),summary:summaries.length===1?summaries[0]:null,shutdowns:rows('SHUTDOWN'),triggerRows:rows('TRIGGER').length,checkRows:rows('CHECK').length,stdoutSha256:meta.stdoutSha256,stderrSha256:meta.stderrSha256,reason:'Frozen auditor threw or could not produce JSON. Supplementary complete-line observations only; no passing audit or coverage credit.'};
+}
+assert.equal(audit.index,index);assert.equal(audit.label,batch.label);assert.equal(audit.exit,meta.exit);assert.equal(audit.signal,meta.signal);assert.equal(audit.stdoutSha256,meta.stdoutSha256);assert.equal(audit.stderrSha256,meta.stderrSha256);
+const derived=derive(batch,audit,fs.readFileSync(meta.stdout,'utf8'));
+if(derived.labelFault)assert.equal(derived.passed,false,'Urgent label finding cannot be accepted');
+const identity={schema:1,index,label:batch.label,sourceCommit:d.sourceCommit,declarationSha256:hashFile(DECL),auditFile,auditSha256:auditSha,rawPins,recorderPins:ownPins.files,externalPins:fixedPins};
+const evidenceIdentity=hash(json(identity)),snapshot=ROOT+'/softnodes-recording/'+batch.label+'/metadata',rawPackage=TESTS+'/final-paired-softnodes/'+batch.label,metadataPackage=TESTS+'/final-paired-softnodes-records/'+batch.label;
+const proof={...derived,...identity,evidenceIdentity,derivedSha256:hash(json(derived)),rawSource:raw,rawPackage,metadataSource:snapshot,metadataPackage};
+const next=updatedState(state,proof);
+for(const old of state.finalPairedSoftnodesRows??[]){
+ verify(old.rawPins);assert.equal(hashFile(old.auditFile),old.auditSha256);assert.equal(hashFile(DECL),old.declarationSha256);verify(old.recorderPins);verify(old.externalPins);verifyPackage(old.rawSource,old.rawPackage);verifyPackage(old.metadataSource,old.metadataPackage);assert.deepEqual(read(old.metadataSource+'/VERIFIED-RECORD.txt'),old,'Root row differs from retained immutable proof');
+}
+if(next.duplicate){assert.deepEqual(state.finalPairedSoftnodes,totals(state.finalPairedSoftnodesRows),'Existing totals differ');assert.deepEqual(state.finalPairedSoftnodesRows.find(x=>x.index===index),proof);console.log(json({alreadyRecorded:true,index,label:batch.label,evidenceIdentity,stateWrites:0,engineRuns:0}));process.exit(0);}
+if(mode==='--check'){console.log(json({verified:true,readOnly:true,proof,proposedTotals:next.state.finalPairedSoftnodes,stateWrites:0,engineRuns:0}));process.exit(0);}
+// Every write below is immutable evidence or an atomic root state transaction.
+const attempt=Date.now()+'-'+process.pid+'-'+crypto.randomBytes(4).toString('hex'),auditLog=ROOT+'/logs/paired-recorder-reaudit-'+batch.label+'-'+attempt;
+writeImmutable(auditLog+'.stdout.txt',auditRun.stdout);writeImmutable(auditLog+'.stderr.txt',auditRun.stderr);writeImmutable(auditLog+'.command.txt',json({argv,cwd:REPO,started:auditStarted,ended:auditEnded,exit:auditRun.status,signal:auditRun.signal,error:auditRun.error?.message??null,stdoutSha256:hash(auditRun.stdout),stderrSha256:hash(auditRun.stderr),engineRuns:0}));
+fs.mkdirSync(snapshot,{recursive:true});
+const sources=[DECL,auditFile,PREP+'/plan.txt',PREP+'/control.mjs',PREP+'/audit.mjs',PREP+'/DRIVER-PINS-v3.txt',...Object.keys(driver.inputPins).filter(f=>/\.(cpp|hpp)$/.test(f)),...Object.keys(d.sourcePins),...Object.values(d.engines).map(e=>e.flagsFile),...Object.keys(ownPins.files),HERE+'/RECORDER-PINS.txt',...Object.keys(fixedPins)].filter((f,i,a)=>a.indexOf(f)===i).sort(),sourceIndex=[];
+for(const [i,file]of sources.entries()){const b=fs.readFileSync(file);assert.ok(!b.includes(0),'No binary evidence copies');new TextDecoder('utf8',{fatal:true}).decode(b);const name=String(i).padStart(3,'0')+'-'+path.basename(file)+(/\.(cpp|hpp|md|txt)$/.test(file)?'':'.txt');writeImmutable(snapshot+'/'+name,b);sourceIndex.push({source:file,copy:name,sha256:hash(b),bytes:b.length});}
+writeImmutable(snapshot+'/SNAPSHOT-INDEX.txt',json(sourceIndex));writeImmutable(snapshot+'/VERIFIED-RECORD.txt',json(proof));writeImmutable(snapshot+'/REAUDIT.txt',json({argv,exit:auditRun.status,normalizedResult:normalize(audit),stdoutSha256:auditUnavailable?hash(auditRun.stdout):null,stderrSha256:hash(auditRun.stderr),auditUnavailable,engineRuns:0}));
+function publish(source,destination,kind){assert.ok(Date.now()<deadline,'Publication deadline exceeded');if(fs.existsSync(destination)){verifyPackage(source,destination);return;}const staging=TESTS+'/final-paired-publication-attempts/'+batch.label+'-'+kind+'-'+attempt,cmd=['node',PACK,source,staging],r=cp.spawnSync(cmd[0],cmd.slice(1),{encoding:'utf8',timeout:Math.min(90000,Math.max(1,deadline-Date.now())),maxBuffer:4*1024*1024});const log=ROOT+'/logs/paired-recorder-package-'+batch.label+'-'+kind+'-'+attempt;writeImmutable(log+'.stdout.txt',r.stdout??'');writeImmutable(log+'.stderr.txt',r.stderr??'');writeImmutable(log+'.command.txt',json({argv:cmd,exit:r.status,signal:r.signal,error:r.error?.message??null}));assert.equal(r.status,0,r.stderr);verifyPackage(source,staging);fs.mkdirSync(path.dirname(destination),{recursive:true});assert.ok(!fs.existsSync(destination));fs.renameSync(staging,destination);verifyPackage(source,destination);}
+publish(raw,rawPackage,'raw');publish(snapshot,metadataPackage,'metadata');verify(rawPins);verify(ownPins.files);assert.equal(hashFile(STATE),stateSha,'Root state changed; immutable packages retained, retry after current mutation completes');
+const newState=next.state;if(!newState.active)newState.phase=derived.labelFault?'STOP: final paired soft-node label finding':`Final paired sanitizer workload ${newState.finalPairedSoftnodes.passedBatches}/12 groups passed`;
+newState.progressBatch=batch.label+' seed'+batch.seed;
+newState.checkpointNote=`Final paired UCI batch ${batch.label}: accepted-clean ${derived.credit.usual.games+derived.credit.soft.games} games / ${derived.credit.usual.searches+derived.credit.soft.searches} searches; cumulative ${newState.finalPairedSoftnodes.games} games / ${newState.finalPairedSoftnodes.searches} searches. ${newState.finalPairedSoftnodes.faultBatches} batches with observed findings; ${newState.finalPairedSoftnodes.incompleteBatches} incomplete. Preliminary coverage excluded. ${derived.labelFault?'STOP and send item3/4 trigger before further engine work.':''}`;
+const transaction=ROOT+'/softnodes-recording/'+batch.label+'/STATE-TRANSACTION-'+attempt+'.txt';writeImmutable(transaction,json({stateBeforeSha256:stateSha,evidenceIdentity,rawManifestSha256:hashFile(rawPackage+'/MANIFEST.txt'),metadataManifestSha256:hashFile(metadataPackage+'/MANIFEST.txt'),preliminaryPreserved:true,sourceAndPushStatePreserved:true,engineRuns:0}));
+const temp=STATE+'.stage-'+attempt;fs.writeFileSync(temp,json(newState),{flag:'wx',mode:0o600});const fd=fs.openSync(temp,'r');fs.fsyncSync(fd);fs.closeSync(fd);assert.equal(hashFile(STATE),stateSha);fs.renameSync(temp,STATE);
+console.log(json({recorded:true,index,label:batch.label,evidenceIdentity,rawPackage,metadataPackage,complete:derived.complete,passed:derived.passed,acceptedClean:derived.credit,completedPairObservations:derived.completedPairObservations,labelFault:derived.labelFault,auditUnavailable,totals:newState.finalPairedSoftnodes,stateUpdated:true,engineRuns:0}));

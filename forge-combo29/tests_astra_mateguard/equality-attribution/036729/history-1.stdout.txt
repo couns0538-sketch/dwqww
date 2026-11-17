@@ -1,0 +1,15 @@
+commit bf4154454ddc7b226bc1734bfc84d75569cdfc07
+Author:     Cursor Agent <cursoragent@cursor.com>
+AuthorDate: Sat Nov 14 15:59:07 2026 +0000
+Commit:     Cursor Agent <cursoragent@cursor.com>
+CommitDate: Sat Nov 14 15:59:07 2026 +0000
+
+    Reject hash scores that cross the 50-move horizon.
+    
+    score_usable treated every transposition below clock 90 as usable, including a depth-16 mate stored at clock 0 and probed at clock 88. Quiescence and the main search both take cutoffs from that predicate.
+    
+    Co-authored-by: couns0538 <couns0538@gmail.com>
+
+ forge-combo29/include/forge/search.hpp     |  17 +-
+ forge-combo29/tests_r4_09/horizon_test.cpp | 368 +++++++++++++++++++++++++++++
+ 2 files changed, 382 insertions(+), 3 deletions(-)

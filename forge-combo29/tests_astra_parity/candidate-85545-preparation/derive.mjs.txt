@@ -1,0 +1,11 @@
+export function derive(cycles){
+ const result={finalized:cycles.length,bySide:{},pairedSearches:0,identicalPairs:0,differentPairs:0,incompleteOrMissingPairs:0};
+ for(const side of ['candidate','reference']){
+  const rows=cycles.filter(x=>x.side===side),first=rows.slice(0,10),measured=rows.map(x=>x.shutdown?.quit_to_exit_ms).filter(x=>x!==null&&Number.isFinite(x)),normal=x=>x.shutdown?.reaped&&x.shutdown.exit_code===0&&x.shutdown.signal===0&&!x.shutdown.timed_out&&!x.shutdown.driver_sigterm&&!x.shutdown.driver_sigkill&&!x.shutdown.error;
+  result.bySide[side]={cycles:rows.length,normalExits:rows.filter(normal).length,shutdownTimeouts:rows.filter(x=>x.shutdown?.timed_out).length,forced:rows.filter(x=>x.shutdown?.driver_sigterm||x.shutdown?.driver_sigkill).length,measured:measured.length,unavailable:rows.length-measured.length,maxQuitToExitMs:measured.length?Math.max(...measured):null,over100ms:measured.filter(x=>x>100).length,firstTen:{available:first.length,timeoutOccurrences:first.filter(x=>x.shutdown?.timed_out).length,normalExits:first.filter(normal).length,frequency:first.length?first.filter(x=>x.shutdown?.timed_out).length+'/'+first.length:'unavailable',isFullTen:first.length===10}};
+ }
+ const tuple=x=>JSON.stringify([x.depth,x.bestmove,x.score_kind,x.score,x.bound,x.nodes]);
+ const max=cycles.reduce((n,x)=>Math.max(n,x.cycle),0);
+ for(let i=1;i<=max;i+=2){const a=cycles.find(x=>x.cycle===i),b=cycles.find(x=>x.cycle===i+1);if(!a?.searched||!b?.searched){result.incompleteOrMissingPairs++;continue;}result.pairedSearches++;if(tuple(a)===tuple(b))result.identicalPairs++;else result.differentPairs++;}
+ return result;
+}

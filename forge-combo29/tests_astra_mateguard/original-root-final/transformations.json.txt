@@ -1,0 +1,47 @@
+[
+  {
+    "old": "    const bool pv_node = beta - alpha > 1;\n    const bool root_node = ss->ply == 0;\n    const int ply = ss->ply;\n\n    if (depth <= 0) return qsearch(board, ss, alpha, beta);",
+    "next": "    const bool pv_node = beta - alpha > 1;\n    const bool root_node = ss->ply == 0;\n    const int ply = ss->ply;\n\n    // Private observational trace: no probes, move generation, or search-state writes.\n    const bool mg_semantic = root_depth_ == 13 && ply == 8 && board.halfmove_clock() == 8 &&\n        board.fen() == \"8/8/8/8/8/3R4/8/k2K4 w - - 8 5\";\n    const bool mg_child = root_depth_ == 13 && ply == 9 && board.halfmove_clock() == 9 &&\n        board.fen() == \"8/8/8/8/8/3R4/8/k1K5 b - - 9 5\";\n    const auto mg_frame = local_nodes_;\n    const int mg_entry_depth = depth, mg_entry_alpha = alpha, mg_entry_beta = beta;\n    auto mg_emit = [&](const char* kind, Move observed, int value, int count, int skip, int child_depth) {\n        if (!mg_semantic && !mg_child) return;\n        std::cerr << \"MATE_GUARD_TRACE kind=\" << kind << \" frame=\" << mg_frame\n            << \" option_on=\" << tune::MateAlphaGuard << \" root_depth=\" << root_depth_\n            << \" ply=\" << ply << \" entry_depth=\" << mg_entry_depth << \" current_depth=\" << depth\n            << \" entry_alpha=\" << mg_entry_alpha << \" entry_beta=\" << mg_entry_beta\n            << \" alpha=\" << alpha << \" beta=\" << beta << \" mate_alpha=\" << is_mate_score(alpha)\n            << \" move=\" << Board::move_to_uci(observed) << \" value=\" << value << \" move_count=\" << count\n            << \" skip_quiets=\" << skip << \" child_depth=\" << child_depth << \" static_eval=\" << ss->static_eval\n            << \" fen=\\\"\" << board.fen() << \"\\\" ancestry=\";\n        for (int back = ply; back > 0; --back) {\n            if (back != ply) std::cerr << ',';\n            std::cerr << Board::move_to_uci((ss - back)->current_move);\n        }\n        std::cerr << '\\n';\n    };\n    if (mg_semantic) mg_emit(\"NODE_ENTER\", Move::none(), 0, 0, 0, -1);\n    if (mg_child) mg_emit(\"D1C1_CHILD_ENTER\", Move::none(), 0, 0, 0, -1);\n\n    if (depth <= 0) return qsearch(board, ss, alpha, beta);",
+    "count": 1
+  },
+  {
+    "old": "        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);",
+    "next": "        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);\n        mg_emit(\"BEFORE_PRUNING\", move, best_score, move_count, skip_quiets, -1);",
+    "count": 1
+  },
+  {
+    "old": "            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;",
+    "next": "            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {\n                skip_quiets = true;\n                mg_emit(\"LMP_SET_SKIP\", move, best_score, move_count, skip_quiets, -1);\n            }",
+    "count": 1
+  },
+  {
+    "old": "                    quiet_fail = true;\n                    skip_quiets = true;\n                    note_deferred_quiet_checks();",
+    "next": "                    quiet_fail = true;\n                    skip_quiets = true;\n                    mg_emit(\"QUIET_FUTILITY_SKIP\", move, best_score, move_count, skip_quiets, -1);\n                    note_deferred_quiet_checks();",
+    "count": 1
+  },
+  {
+    "old": "                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {",
+    "next": "                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {\n                    mg_emit(\"HISTORY_SKIP\", move, best_score, move_count, skip_quiets, -1);",
+    "count": 1
+  },
+  {
+    "old": "                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {",
+    "next": "                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {\n                    mg_emit(\"QUIET_SEE_SKIP\", move, best_score, move_count, skip_quiets, -1);",
+    "count": 1
+  },
+  {
+    "old": "score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);",
+    "next": "if (mg_semantic && move.from == 3 && move.to == 2)\n                mg_emit(\"D1C1_CALL_LMR\", move, best_score, move_count, skip_quiets, reduced_depth);\n            score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);\n            if (mg_semantic && move.from == 3 && move.to == 2)\n                mg_emit(\"D1C1_RESULT_LMR\", move, score, move_count, skip_quiets, reduced_depth);",
+    "count": 1
+  },
+  {
+    "old": "score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);",
+    "next": "if (mg_semantic && move.from == 3 && move.to == 2)\n                mg_emit(\"D1C1_CALL_PVS\", move, best_score, move_count, skip_quiets, new_depth);\n            score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);\n            if (mg_semantic && move.from == 3 && move.to == 2)\n                mg_emit(\"D1C1_RESULT_PVS\", move, score, move_count, skip_quiets, new_depth);",
+    "count": 2
+  },
+  {
+    "old": "score = -search(board, ss + 1, new_depth, -beta, -alpha, false);",
+    "next": "if (mg_semantic && move.from == 3 && move.to == 2)\n                mg_emit(\"D1C1_CALL_PV\", move, best_score, move_count, skip_quiets, new_depth);\n            score = -search(board, ss + 1, new_depth, -beta, -alpha, false);\n            if (mg_semantic && move.from == 3 && move.to == 2)\n                mg_emit(\"D1C1_RESULT_PV\", move, score, move_count, skip_quiets, new_depth);",
+    "count": 1
+  }
+]

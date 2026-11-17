@@ -1,0 +1,5 @@
+// Read-only aggregation of finalized diagnostics; does not create or infer missing runs.
+import fs from 'node:fs';import cp from 'node:child_process';import assert from 'node:assert/strict';import {aggregate} from './audit-core.mjs';
+const prep='/workspace/work/parity-release-timeout-0018-preparation',root='/workspace/work/parity-run/release-response-diagnostic-0018',d=JSON.parse(fs.readFileSync(prep+'/DECLARATION.txt')),rows=[],pending=[];
+for(const row of d.rows){if(!fs.existsSync(root+'/'+row.id+'/PROCESS.txt')){pending.push(row.id);continue;}const argv=['node',prep+'/audit.mjs',row.id],a=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:10000,maxBuffer:8*1024*1024});assert.equal(a.status,0,a.stderr);rows.push(JSON.parse(a.stdout));}
+console.log(JSON.stringify({utc:new Date().toISOString(),protocol:d.protocol,planned:d.rows.length,pending,...aggregate(rows),interpretation:'Node counts and reported time per finished unbounded-score info line are observations. No speed, strength or regression verdict is inferred.'},null,2));

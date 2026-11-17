@@ -1,0 +1,193 @@
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import path from 'node:path';
+const root='/workspace/work/all-run',repo='/workspace/work/dwqww-all',out=repo+'/forge-combo29/soak_all',statePath=root+'/state.json';
+let s=JSON.parse(fs.readFileSync(statePath));
+const now=()=>new Date().toISOString(),minutes=()=>((Date.now()-Date.parse(s.start))/60000).toFixed(2),save=()=>fs.writeFileSync(statePath,JSON.stringify(s,null,2)+'\n');
+const git=args=>cp.execFileSync('git',args,{cwd:repo,encoding:'utf8',timeout:60000});
+function testResults(){const dir=root+'/test-results';return fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json')).flatMap(x=>JSON.parse(fs.readFileSync(dir+'/'+x))):[];}
+function report(){
+ fs.mkdirSync(out+'/preparation',{recursive:true});const results=testResults();
+ let matrix='# Existing test-folder matrix\n\nUpdated '+now()+'. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.\n\n| Build | Group | Test/check | Exit | Sanitizer reports | Output |\n| --- | --- | --- | --- | --- | --- |\n';
+ for(const r of results){const name=r.mode+'-'+r.name+'.txt';fs.copyFileSync(r.log,out+'/preparation/'+name);matrix+='| '+r.mode+' | '+r.group+' | '+r.name+' | '+r.exit+' | '+r.sanitizer_reports+' | ['+name+'](preparation/'+name+') |\n';}
+ fs.writeFileSync(out+'/TEST_MATRIX.md',matrix);
+ let text='# Eight-hour combined Forge integration and soak\n\nStart: '+s.start+'. Scheduled end: '+s.end+'.\n\nUpdated '+now()+'; elapsed '+minutes()+' minutes; phase '+s.phase+'; completed pushes at report generation '+s.pushes+'.\n\n';
+ text+='Base `'+s.base+'`; merged source `'+(s.mergedSourceCommit||'pending')+'`; lock `'+s.lock+'`. Cloud VM only. Only `integrate/combo29-all` and `soak/combo29-all` are push destinations. The earlier soak branch is preserved.\n\n';
+ text+='Default pins: '+JSON.stringify(s.pins||{})+'.\n\n| Phase | Conditions | Completed counts | Status |\n| --- | --- | --- | --- |\n';
+ for(const [p,t] of Object.entries(s.totals||{}))text+='| '+p+' | '+t.description+' | '+JSON.stringify(t.counts)+' | '+(t.status||'Running')+' |\n';
+ text+='\nExisting test/check results recorded: '+results.length+'; nonzero exits '+results.filter(r=>r.exit!==0).length+'; sanitizer reports '+results.reduce((n,r)=>n+r.sanitizer_reports,0)+'. See the [full matrix](TEST_MATRIX.md) for classification and output.\n\n';
+ text+='Fault files: '+s.faults.length+'.\n\n';for(const f of s.faults)text+='- ['+f.file+'](faults/'+f.file+'): '+f.description+'\n';
+ if(s.notes?.length)text+='\nNotes and limitations:\n\n'+s.notes.map(x=>'- '+x).join('\n')+'\n';
+ if(s.incomplete?.length)text+='\nIncomplete attempts; partial work is excluded and any explicitly completed units retained are identified:\n\n'+s.incomplete.map(x=>'- '+x.phase+' '+x.id+' seed '+x.seed+'; '+(x.repeatedBy?'repeated as '+x.repeatedBy:'repeat pending')+(x.completedCountsRecorded?'; completed units retained '+JSON.stringify(x.completedCountsRecorded):'')+'.').join('\n')+'\n';
+ text+='\nNo Elo or speed conclusion is drawn. Raw node/time measurements and match counts are reported only under their recorded conditions. [Integration and source hashes](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [batch evidence](batches/).\n';
+ fs.writeFileSync(out+'/SOAK_ALL_REPORT.md',text);
+}
+function checkpoint(force=false){
+ if(!force&&Date.now()-Date.parse(s.lastPush)<390000)return;
+ const branch=git(['branch','--show-current']).trim();if(!['integrate/combo29-all','soak/combo29-all'].includes(branch))throw Error('forbidden branch '+branch);
+ report();fs.appendFileSync(out+'/PROGRESS.md',now()+' | '+minutes()+' min | '+s.phase+' | checkpoint | completed evidence staged for '+branch+' | '+testResults().length+' existing-test results | '+s.faults.length+' fault files\n');
+ git(['add','--','forge-combo29/INTEGRATION_ALL.md','forge-combo29/soak_all','forge-combo29/src','forge-combo29/include']);
+ const files=git(['diff','--cached','--name-only']).trim().split('\n').filter(Boolean);
+ for(const file of files){if(!file.startsWith('forge-combo29/'))throw Error('forbidden path '+file);const blob=cp.execFileSync('git',['show',':'+file],{cwd:repo,timeout:30000,maxBuffer:64*1024*1024});if(blob.includes(0))throw Error('nontext '+file);}
+ if(files.length)console.log(git(['-c','user.name=Codex','-c','user.email=codex@openai.com','commit','-m','Combined soak checkpoint '+now()+' elapsed '+minutes()+' min']));
+ console.log(git(['push','--no-follow-tags','origin','HEAD:refs/heads/'+branch]));s.pushes++;s.lastPush=now();save();console.log('CHECKPOINT '+s.lastPush+' pushes='+s.pushes);
+}
+function record(phase,id,seed,description,counts,log,status){
+ const t=s.totals[phase]||={description,counts:{},status:'Running'};
+ const skip=new Set(['seed','threads','nodes','depth','hash','seconds','first_game','max_games','next_offset','offset']);
+ for(const [k,v] of Object.entries(counts))if(typeof v==='number'&&!skip.has(k))t.counts[k]=(t.counts[k]||0)+v;
+ t.counts.batches=(t.counts.batches||0)+1;t.description=description;t.status=status||'Running';
+ const raw=fs.readFileSync(log,'utf8'),sha=crypto.createHash('sha256').update(raw).digest('hex');
+ fs.writeFileSync(out+'/batches/'+phase+'-'+String(id).padStart(4,'0')+'.txt','UTC '+now()+'\nPhase '+phase+' batch '+id+' seed '+seed+'\n'+description+'\nCounts '+JSON.stringify(counts)+'\nRaw log '+log+'\nSHA256 '+sha+'\n\n'+raw.split('\n').filter(x=>!x.startsWith('TRIGGER ')).join('\n'));
+ fs.appendFileSync(out+'/PROGRESS.md',now()+' | '+minutes()+' min | '+phase+' | '+id+' seed '+seed+' | '+description+' | '+JSON.stringify(counts)+' | '+JSON.stringify(t.counts)+' | '+s.faults.length+' fault files\n');
+ s.active=null;s.phase=phase;save();report();
+}
+// run-spec is invoked only by the root orchestrator. Inspection/node --check does
+// not execute it. It owns one bounded child, never a shell-interpreted argv.
+const playCountFields='games moves searches opening_moves faults illegal missing badscore mates stalemates repetitions fifty ply_caps insufficient'.split(' ');
+const compareCountFields='records_completed positions positions_low_clock positions_high_clock differences_low_clock differences_high_clock fault_positions excluded excluded_no_legal excluded_insufficient excluded_halfmove100 invalid_fens engine_runs illegal missing missing_info wrong_depth sanitizer_issues transport_issues reproduction_pairs reproduction_differences reproduction_fault_pairs'.split(' ');
+const groupCountFields='trials faults nodes reported_ms wall_ms at_requested_depth early_mate_termination unfinished_depth'.split(' ');
+const parameterFields=new Set('seed threads nodes depth hash Hash MultiPV seconds first_game max_games next_offset offset available_units budget_seconds elapsed_ms limit timeout_ms'.split(' '));
+const shquote=x=>"'"+String(x).replaceAll("'","'\\''")+"'";
+function collectSpecCounts(summary,countMap){
+ const counts=Object.create(null),issues=[],sources=Object.create(null);let schema='unknown';
+ const add=(name,value,source)=>{
+  if(!/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(name)||Object.hasOwn(Object.prototype,name)||parameterFields.has(name))throw Error('unsafe or reserved count name '+name);
+  if(value===undefined)return;
+  const wallMeasurement=source==='wall_ms'||source.endsWith('.wall_ms');
+  if(typeof value!=='number'||!Number.isFinite(value)||value<0||(!wallMeasurement&&!Number.isSafeInteger(value))){issues.push('not a valid nonnegative '+(wallMeasurement?'wall-time measurement':'safe integer')+': '+source);return;}
+  if(Object.hasOwn(counts,name))throw Error('duplicate mapped count '+name);
+  counts[name]=value;sources[name]=source;
+ };
+ if(summary&&typeof summary==='object'&&!Array.isArray(summary)){
+  if(Object.hasOwn(summary,'completed_units')&&summary.groups&&typeof summary.groups==='object')schema='endgame';
+  else if(Object.hasOwn(summary,'records_completed'))schema='compare';
+  else if(Object.hasOwn(summary,'games')&&Object.hasOwn(summary,'searches')&&Object.hasOwn(summary,'first_game'))schema='play';
+ }
+ if(countMap!==undefined){
+  if(!countMap||typeof countMap!=='object'||Array.isArray(countMap))throw Error('countMap must map destination names to source paths');
+  for(const [name,source]of Object.entries(countMap)){
+   const parts=Array.isArray(source)?source:typeof source==='string'?source.split('.'):null;
+   if(!parts?.length||parts.some(x=>typeof x!=='string'||Object.hasOwn(Object.prototype,x)))throw Error('invalid countMap path '+name);
+   const leaf=parts.at(-1);
+   if((parameterFields.has(leaf)&&!(leaf==='nodes'&&parts[0]==='groups'&&parts.length>=3))||leaf.startsWith('partial_')||leaf==='incomplete_units'||parts.includes('partial_evidence')||parts.includes('config')||parts.includes('options'))throw Error('configuration/partial work cannot enter completed counts: '+parts.join('.'));
+   let value=summary;for(const part of parts)value=value&&typeof value==='object'&&Object.hasOwn(value,part)?value[part]:undefined;
+   if(value===undefined)issues.push('countMap source missing: '+parts.join('.'));
+   add(name,value,parts.join('.'));
+  }
+ }else if(schema==='endgame'){
+  for(const k of ['completed_units','trials','faults','selected_generated'])add(k,summary[k],k);
+  for(const [group,values]of Object.entries(summary.groups))for(const k of groupCountFields){
+   const destination='groups.'+group.replace(/[^A-Za-z0-9_.:-]/g,'_')+'.'+(k==='nodes'?'nodes_reported':k);
+   add(destination,values?.[k],'groups.'+group+'.'+k);
+  }
+ }else if(schema==='compare')for(const k of compareCountFields)add(k,summary[k],k);
+ else if(schema==='play')for(const k of playCountFields)add(k,summary[k],k);
+ else issues.push('unrecognized SUMMARY schema: provide an explicit countMap');
+ const exclusions=Object.fromEntries(Object.entries(summary||{}).filter(([k])=>k==='incomplete_units'||k.startsWith('partial_')||k==='partial'));
+ let explicitCompletedWithExclusions=false;
+ if(schema==='endgame'){
+  explicitCompletedWithExclusions=Number.isSafeInteger(summary.completed_units)&&Object.hasOwn(summary,'incomplete_units')&&['partial_trials_excluded','partial_faults_excluded','partial_nodes_excluded','partial_reported_ms_excluded'].every(k=>Number.isSafeInteger(summary[k])&&summary[k]>=0)&&Number.isFinite(summary.partial_wall_ms_excluded)&&summary.partial_wall_ms_excluded>=0;
+  if(Number.isSafeInteger(summary.offset)&&Number.isSafeInteger(summary.next_offset)&&summary.next_offset!==summary.offset+summary.completed_units)issues.push('endgame cursor/completed_units mismatch');
+ }
+ if(schema==='compare'){
+  explicitCompletedWithExclusions=Number.isSafeInteger(summary.records_completed)&&typeof summary.partial==='boolean'&&(!summary.partial||summary.partial_evidence?.counted===false);
+  if(summary.records_completed!==summary.positions+summary.excluded+summary.invalid_fens)issues.push('compare committed record count mismatch');
+  if(summary.next_offset!==summary.offset+summary.records_completed)issues.push('compare cursor mismatch');
+ }
+ const completedUnits=schema==='endgame'?summary.completed_units:schema==='compare'?summary.records_completed:schema==='play'?summary.games:null;
+ return {counts,sources,issues,schema,exclusions,explicitCompletedWithExclusions,completedUnits};
+}
+function specEvidence(spec,metadataPath){
+ const stem=spec.phase+'-'+String(spec.id).padStart(4,'0'),destination=out+'/batches/'+stem+'.evidence';
+ fs.mkdirSync(destination,{recursive:true});
+ const requested=[spec.log,metadataPath],seen=new Set(),manifest=[];
+ for(let i=0;i<spec.argv.length-1;i++)if(spec.argv[i]==='--out'){
+  const p=path.resolve(spec.cwd,spec.argv[i+1]);requested.push(p);
+  if(fs.existsSync(p)&&fs.lstatSync(p).isFile())for(const name of fs.readdirSync(path.dirname(p)))if(name.startsWith(path.basename(p)+'.'))requested.push(path.join(path.dirname(p),name));
+ }
+ if(spec.rawFiles!==undefined){if(!Array.isArray(spec.rawFiles)||spec.rawFiles.some(x=>typeof x!=='string'))throw Error('rawFiles must be paths');requested.push(...spec.rawFiles.map(x=>path.resolve(spec.cwd,x)));}
+ const visit=p=>{
+  p=path.resolve(p);if(seen.has(p))return;seen.add(p);
+  if(!p.startsWith(root+'/')){manifest.push({source:p,copied:false,reason:'outside VM run directory or root directory itself'});return;}
+  if(!fs.existsSync(p)){manifest.push({source:p,copied:false,reason:'missing'});return;}
+  const st=fs.lstatSync(p);
+  if(st.isSymbolicLink()){manifest.push({source:p,copied:false,reason:'symlink not followed'});return;}
+  if(st.isDirectory()){for(const name of fs.readdirSync(p).sort())visit(path.join(p,name));return;}
+  if(!st.isFile()){manifest.push({source:p,copied:false,reason:'not a regular file'});return;}
+  const raw=fs.readFileSync(p),sha256=crypto.createHash('sha256').update(raw).digest('hex');
+  let text=true;try{new TextDecoder('utf-8',{fatal:true}).decode(raw);}catch{text=false;}
+  if(raw.includes(0)||!text){manifest.push({source:p,copied:false,reason:'nontext',bytes:raw.length,sha256});return;}
+  let relative=path.relative(root,p);if(!/\.(txt|md|cpp|hpp)$/.test(relative))relative+='.txt';
+  const target=path.join(destination,'raw',relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,raw,{flag:'wx'});
+  manifest.push({source:p,copied:true,path:path.relative(out,target),bytes:raw.length,sha256});
+ };
+ for(const p of requested)visit(p);
+ fs.writeFileSync(destination+'/manifest.txt',JSON.stringify({utc:now(),phase:spec.phase,id:spec.id,seed:spec.seed,files:manifest},null,2)+'\n',{flag:'wx'});
+ return {directory:path.relative(out,destination),manifest:path.relative(out,destination+'/manifest.txt'),files:manifest};
+}
+async function runSpec(specFile){
+ const spec=JSON.parse(fs.readFileSync(specFile,'utf8'));
+ for(const key of ['phase','id','seed','description','argv','cwd','log'])if(spec[key]===undefined)throw Error('run-spec missing '+key);
+ if(typeof spec.phase!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_. -]*$/.test(spec.phase)||!/^[A-Za-z0-9_.-]+$/.test(String(spec.id)))throw Error('unsafe phase/id');
+ if(typeof spec.description!=='string'||!Array.isArray(spec.argv)||!spec.argv.length||spec.argv.some(x=>typeof x!=='string'))throw Error('invalid description/argv');
+ if(typeof spec.seed==='number'&&!Number.isSafeInteger(spec.seed))throw Error('use a string for a seed larger than a safe JSON integer');
+ if(spec.env!==undefined&&(!spec.env||typeof spec.env!=='object'||Array.isArray(spec.env)))throw Error('env must be an object');
+ const overrides=spec.env||{},env={...process.env};for(const [k,v]of Object.entries(overrides)){if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)||(v!==null&&typeof v!=='string'))throw Error('invalid environment override '+k);if(v===null)delete env[k];else env[k]=v;}
+ spec.cwd=path.resolve(spec.cwd);spec.log=path.resolve(spec.log);spec.summaryPrefix??='SUMMARY ';
+ if(typeof spec.summaryPrefix!=='string'||!spec.summaryPrefix||spec.summaryPrefix.includes('\n'))throw Error('invalid summaryPrefix');
+ if(!spec.log.startsWith(root+'/'))throw Error('run-spec log must be under '+root);
+ if(s.active)throw Error('another batch remains active; root must reconcile it before run-spec');
+ const stem=spec.phase+'-'+String(spec.id).padStart(4,'0'),metadataPath=spec.log+'.run-spec.json';
+ if(fs.existsSync(spec.log)||fs.existsSync(metadataPath)||fs.existsSync(out+'/batches/'+stem+'.txt')||fs.existsSync(out+'/batches/'+stem+'.evidence'))throw Error('run-spec requires a unique log and phase/id');
+ if(Date.now()-Date.parse(s.lastPush)>60000)checkpoint(true);
+ fs.mkdirSync(path.dirname(spec.log),{recursive:true});fs.mkdirSync(out+'/batches',{recursive:true});
+ const command=['/usr/bin/timeout','-k','5s','450s',...spec.argv],started=now(),logfd=fs.openSync(spec.log,'wx');
+ const metadata={schema:1,specFile:path.resolve(specFile),spec,startedUTC:started,command,commandShell:command.map(shquote).join(' '),environmentOverrides:overrides,timeoutSeconds:450,killAfterSeconds:5};
+ fs.writeFileSync(metadataPath,JSON.stringify(metadata,null,2)+'\n',{flag:'wx'});
+ fs.writeSync(logfd,'RUN_SPEC_START '+started+'\nCWD '+spec.cwd+'\nENV_OVERRIDES '+JSON.stringify(overrides)+'\nCOMMAND '+metadata.commandShell+'\n');
+ s.active={phase:spec.phase,id:spec.id,seed:spec.seed,description:spec.description,log:spec.log,metadata:metadataPath,started};s.phase=spec.phase;save();
+ console.log('RUN_SPEC_START '+JSON.stringify(s.active));
+ const child=cp.spawn(command[0],command.slice(1),{cwd:spec.cwd,env,stdio:['ignore','pipe','pipe'],detached:true});
+ let interruption=null,spawnError=null,killTimer=null;const ioErrors=[];
+ const stop=signal=>{interruption??=signal;try{if(child.pid)process.kill(-child.pid,'SIGTERM');}catch{};killTimer??=setTimeout(()=>{try{if(child.pid)process.kill(-child.pid,'SIGKILL');}catch{}},5000);};
+ const accept=chunk=>{try{fs.writeSync(logfd,chunk);}catch(e){ioErrors.push(e.message);stop('log_write_error');}};
+ child.stdout.on('data',accept);child.stderr.on('data',accept);
+ const onInt=()=>stop('SIGINT'),onTerm=()=>stop('SIGTERM');process.on('SIGINT',onInt);process.on('SIGTERM',onTerm);
+ const timer=setInterval(()=>console.log('RUN_SPEC_PROGRESS '+JSON.stringify({phase:spec.phase,id:spec.id,seed:spec.seed,elapsed_ms:Date.now()-Date.parse(started),log:spec.log})),30000);
+ const result=await new Promise(resolve=>{child.on('error',e=>{spawnError=e.message;});child.on('close',(exit,signal)=>resolve({exit,signal}));});
+ clearInterval(timer);if(killTimer)clearTimeout(killTimer);process.off('SIGINT',onInt);process.off('SIGTERM',onTerm);
+ const finished=now();Object.assign(metadata,{finishedUTC:finished,elapsed_ms:Date.parse(finished)-Date.parse(started),...result,spawnError,interruption,ioErrors});
+ try{fs.writeSync(logfd,'\nRUN_SPEC_END '+JSON.stringify({finishedUTC:finished,...result,spawnError,interruption,ioErrors})+'\n');}catch(e){ioErrors.push('final log append: '+e.message);}finally{try{fs.closeSync(logfd);}catch(e){ioErrors.push('log close: '+e.message);}}
+ const raw=fs.readFileSync(spec.log,'utf8'),summaryLine=raw.split(/\r?\n/).filter(x=>x.startsWith(spec.summaryPrefix)).at(-1);
+ let summary=null,parseError=null;try{if(summaryLine)summary=JSON.parse(summaryLine.slice(spec.summaryPrefix.length));else parseError='no SUMMARY line';}catch(e){parseError=e.message;}
+ if(summary!==null&&(typeof summary!=='object'||Array.isArray(summary))){parseError='SUMMARY must be an object';summary=null;}
+ let accounting;try{accounting=summary?collectSpecCounts(summary,spec.countMap):{counts:{},sources:{},issues:[],schema:'missing',exclusions:{},explicitCompletedWithExclusions:false,completedUnits:null};}
+ catch(e){accounting={counts:{},sources:{},issues:[e.message],schema:'invalid',exclusions:{},explicitCompletedWithExclusions:false,completedUnits:null};}
+ const hardIncomplete=result.exit===124||result.exit===137||!!result.signal||!!spawnError||!!interruption||!!ioErrors.length;
+ const driverPartial=summary?.partial===true||(Number.isSafeInteger(summary?.incomplete_units)&&summary.incomplete_units>0);
+ const incomplete=hardIncomplete||!summary||!!parseError||driverPartial||!!summary?.driver_error||!!accounting.issues.length;
+ const validAccounting=summary&&!summary.driver_error&&!parseError&&!accounting.issues.length;
+ const recordable=!!validAccounting&&(!(hardIncomplete||driverPartial)||accounting.explicitCompletedWithExclusions)&&(accounting.completedUnits===null||accounting.completedUnits>0)&&Object.keys(accounting.counts).length>0;
+ Object.assign(metadata,{summaryRaw:summaryLine?summaryLine.slice(spec.summaryPrefix.length):null,summary,parseError,accounting,hardIncomplete,driverPartial,incomplete,completedCountsRecorded:recordable?accounting.counts:{},uncommittedReason:recordable?null:parseError||summary?.driver_error||accounting.issues.join('; ')||'incomplete without explicit complete-unit/exclusion contract'});
+ fs.writeFileSync(metadataPath,JSON.stringify(metadata,null,2)+'\n');
+ let evidence;try{evidence=specEvidence(spec,metadataPath);}catch(e){evidence={error:e.stack};metadata.evidenceError=e.stack;fs.writeFileSync(metadataPath,JSON.stringify(metadata,null,2)+'\n');}
+ const resultEntry={phase:spec.phase,id:spec.id,seed:spec.seed,description:spec.description,startedUTC:started,finishedUTC:finished,...result,log:spec.log,metadata:metadataPath,evidence,summaryRaw:metadata.summaryRaw,summary,completedCountsRecorded:metadata.completedCountsRecorded,incomplete};
+ (s.runSpecResults||=[]).push(resultEntry);
+ if(incomplete||!recordable)(s.incomplete||=[]).push({phase:spec.phase,id:spec.id,seed:spec.seed,log:spec.log,metadata:metadataPath,reason:metadata.uncommittedReason||'driver retained partial work separately',next_offset:summary?.next_offset,partialExcluded:accounting.exclusions,completedCountsRecorded:recordable?accounting.counts:undefined});
+ if(recordable)record(spec.phase,spec.id,spec.seed,spec.description,accounting.counts,spec.log,spec.status);
+ else{s.active=null;s.phase=spec.phase;save();report();fs.appendFileSync(out+'/PROGRESS.md',now()+' | '+minutes()+' min | '+spec.phase+' | '+spec.id+' seed '+spec.seed+' | incomplete/uncommitted | '+JSON.stringify({exit:result.exit,reason:metadata.uncommittedReason,log:spec.log})+'\n');}
+ checkpoint();
+ console.log('RUN_SPEC_RESULT '+JSON.stringify({phase:spec.phase,id:spec.id,seed:spec.seed,...result,incomplete,recordable,counts:metadata.completedCountsRecorded,schema:accounting.schema,summary,summaryRaw:metadata.summaryRaw,metadata:metadataPath,evidence}));
+ process.exitCode=hardIncomplete||!recordable?3:result.exit===0&&!evidence.error?0:2;
+}
+const [action,...args]=process.argv.slice(2);
+if(action==='status')console.log(JSON.stringify({...s,now:now(),elapsed:minutes()},null,2));
+else if(action==='checkpoint')checkpoint(args[0]==='force');
+else if(action==='report'){report();save();}
+else if(action==='note'){(s.notes||=[]).push(args.join(' '));save();report();}
+else if(action==='finish'){if(s.totals[args[0]])s.totals[args[0]].status=args.slice(1).join(' ')||'Complete';save();report();checkpoint();}
+else if(action==='record'){const m=JSON.parse(fs.readFileSync(args[0]));record(m.phase,m.id,m.seed,m.description,m.counts,m.log,m.status);checkpoint();}
+else if(action==='run-spec'){if(args.length!==1)throw Error('run-spec requires one JSON spec path');await runSpec(args[0]);}
+else throw Error('unknown action '+action);

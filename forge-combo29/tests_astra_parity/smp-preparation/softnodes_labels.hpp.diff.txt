@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "diff",
+    "-u",
+    "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_labels.hpp",
+    "/workspace/work/parity-softnodes-smp-preparation/softnodes_labels.hpp"
+  ],
+  "exit": 1,
+  "stdout": "--- /workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_labels.hpp\t2026-11-14 17:15:15.422660875 -0800\n+++ /workspace/work/parity-softnodes-smp-preparation/softnodes_labels.hpp\t2026-11-14 18:37:35.561316363 -0800\n@@ -16,13 +16,14 @@\n     int last_score_value = 0;\n     std::string last_score_line;\n     bool item2 = true, item3 = true, item4 = true;\n+    bool smp_sampling_exception = false;\n };\n inline bool decimal_nodes(const std::string& text, std::uint64_t& value) {\n     if (text.empty() || text.find_first_not_of(\"0123456789\") != std::string::npos) return false;\n     const auto parsed = std::from_chars(text.data(), text.data()+text.size(), value);\n     return parsed.ec == std::errc{} && parsed.ptr == text.data()+text.size();\n }\n-inline LabelCheck check_labels(const std::vector<std::string>& lines, bool soft) {\n+inline LabelCheck check_labels(const std::vector<std::string>& lines, bool soft, int threads = 1) {\n     LabelCheck r;\n     bool best_seen = false;\n     for (const auto& line : lines) {\n@@ -90,6 +91,9 @@\n         r.item2 = r.item2 && r.soft_lines == 1 && r.x_valid;\n         r.item3 = r.exact && !r.pv_first.empty() && r.bestmove == r.pv_first;\n         r.item4 = r.exact && r.has_nodes && (r.nodes >= 2500 || r.kind == \"mate\" || (r.has_depth && r.depth == 64) || (r.x_valid && r.x >= 10000));\n+        r.smp_sampling_exception = threads > 1 && !r.item4 && r.exact && r.has_nodes\n+            && r.nodes < 2500 && r.x_valid && r.x >= 2500;\n+        r.item4 = r.item4 || r.smp_sampling_exception;\n     } else if (r.soft_lines != 0) r.error = \"softnodes_line_on_usual_search\";\n     return r;\n }\n",
+  "stderr": ""
+}

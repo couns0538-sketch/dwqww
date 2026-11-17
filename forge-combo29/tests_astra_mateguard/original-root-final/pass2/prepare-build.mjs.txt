@@ -1,0 +1,113 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+const dir='/workspace/work/r4-guard-peer/original-root-trace/pass2';
+const repo='/workspace/work/dwqww-r4-guard/forge-combo29';
+const build='/workspace/work/r4-run/builds/guard-enabled';
+const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+const original=fs.readFileSync(repo+'/src/search.cpp','utf8');
+let source=original;
+const edits=[];
+function replace(old,next,expected=1){
+  const count=source.split(old).length-1;
+  if(count!==expected)throw Error('Nonunique anchor: expected '+expected+', got '+count+': '+old.slice(0,100));
+  source=source.split(old).join(next); edits.push({old,next,count});
+}
+const entry=`    const bool pv_node = beta - alpha > 1;
+    const bool root_node = ss->ply == 0;
+    const int ply = ss->ply;
+
+    if (depth <= 0) return qsearch(board, ss, alpha, beta);`;
+replace(entry,`    const bool pv_node = beta - alpha > 1;
+    const bool root_node = ss->ply == 0;
+    const int ply = ss->ply;
+
+    // Private observational trace: no probes, move generation, or search-state writes.
+    const bool mg_semantic = root_depth_ == 13 && ply == 8 && board.halfmove_clock() == 8 &&
+        board.fen() == "8/8/8/8/8/3R4/8/k2K4 w - - 8 5";
+    const bool mg_child = root_depth_ == 13 && ply == 9 && board.halfmove_clock() == 9 &&
+        board.fen() == "8/8/8/8/8/3R4/8/k1K5 b - - 9 5";
+    const auto mg_frame = local_nodes_;
+    const int mg_entry_depth = depth, mg_entry_alpha = alpha, mg_entry_beta = beta;
+    auto mg_emit = [&](const char* kind, Move observed, int value, int count, int skip, int child_depth) {
+        if (!mg_semantic && !mg_child) return;
+        std::cerr << "MATE_GUARD_TRACE kind=" << kind << " frame=" << mg_frame
+            << " option_on=" << tune::MateAlphaGuard << " root_depth=" << root_depth_
+            << " ply=" << ply << " entry_depth=" << mg_entry_depth << " current_depth=" << depth
+            << " entry_alpha=" << mg_entry_alpha << " entry_beta=" << mg_entry_beta
+            << " alpha=" << alpha << " beta=" << beta << " mate_alpha=" << is_mate_score(alpha)
+            << " move=" << Board::move_to_uci(observed) << " value=" << value << " move_count=" << count
+            << " skip_quiets=" << skip << " child_depth=" << child_depth << " static_eval=" << ss->static_eval
+            << " fen=\\\"" << board.fen() << "\\\" ancestry=";
+        for (int back = ply; back > 0; --back) {
+            if (back != ply) std::cerr << ',';
+            std::cerr << Board::move_to_uci((ss - back)->current_move);
+        }
+        std::cerr << '\\n';
+    };
+    if (mg_semantic) mg_emit("NODE_ENTER", Move::none(), 0, 0, 0, -1);
+    if (mg_child) mg_emit("D1C1_CHILD_ENTER", Move::none(), 0, 0, 0, -1);
+
+    if (depth <= 0) return qsearch(board, ss, alpha, beta);`);
+const picked='        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);';
+replace(picked,picked+'\n        mg_emit("BEFORE_PRUNING", move, best_score, move_count, skip_quiets, -1);');
+const lmp='            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;';
+replace(lmp,`            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
+                skip_quiets = true;
+                mg_emit("LMP_SET_SKIP", move, best_score, move_count, skip_quiets, -1);
+            }`);
+const quietSkip=`                    quiet_fail = true;
+                    skip_quiets = true;
+                    note_deferred_quiet_checks();`;
+replace(quietSkip,`                    quiet_fail = true;
+                    skip_quiets = true;
+                    mg_emit("QUIET_FUTILITY_SKIP", move, best_score, move_count, skip_quiets, -1);
+                    note_deferred_quiet_checks();`);
+for(const [anchor,kind] of [
+ ['                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {','HISTORY_SKIP'],
+ ['                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {','QUIET_SEE_SKIP']])
+ replace(anchor,anchor+'\n                    mg_emit("'+kind+'", move, best_score, move_count, skip_quiets, -1);');
+for(const [statement,kind,childDepth,count] of [
+ ['score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);','LMR','reduced_depth',1],
+ ['score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);','PVS','new_depth',2],
+ ['score = -search(board, ss + 1, new_depth, -beta, -alpha, false);','PV','new_depth',1]]) {
+ replace(statement,`if (mg_semantic && move.from == 3 && move.to == 2)
+                mg_emit("D1C1_CALL_${kind}", move, best_score, move_count, skip_quiets, ${childDepth});
+            ${statement}
+            if (mg_semantic && move.from == 3 && move.to == 2)
+                mg_emit("D1C1_RESULT_${kind}", move, score, move_count, skip_quiets, ${childDepth});`,count);
+}
+
+replace('int value, int count, int skip, int child_depth) {',
+        'int value, int count, int skip, int child_depth, int lmr_depth = -1) {');
+replace('<< " skip_quiets=" << skip << " child_depth=" << child_depth << " static_eval=" << ss->static_eval',
+        '<< " skip_quiets=" << skip << " child_depth=" << child_depth << " static_eval=" << ss->static_eval\n' +
+        '            << " lmr_depth=" << lmr_depth << " futility_depth=" << tune::FutilityDepth\n' +
+        '            << " futility_base=" << tune::FutilityBase << " futility_multiplier=" << tune::FutilityMultiplier\n' +
+        '            << " in_check=" << ss->in_check << " quiet_noncheck_branch=" << (lmr_depth >= 0)\n' +
+        '            << " ungated_quiet_futility=" << (lmr_depth >= 0 && !ss->in_check && lmr_depth <= tune::FutilityDepth &&\n' +
+        '                ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha)');
+replace('            if (quiet && !gives_check) {\n                if (!in_check && lmr_depth <= tune::FutilityDepth &&',
+        '            if (quiet && !gives_check) {\n                mg_emit("QUIET_FUTILITY_TEST", move, best_score, move_count, skip_quiets, -1, lmr_depth);\n                if (!in_check && lmr_depth <= tune::FutilityDepth &&');
+
+fs.writeFileSync(dir+'/search.original.cpp',original,{flag:'wx'});
+fs.writeFileSync(dir+'/search.observed.cpp',source,{flag:'wx'});
+fs.writeFileSync(dir+'/transformations.json',JSON.stringify(edits,null,2)+'\n',{flag:'wx'});
+const flagText=fs.readFileSync(build+'/CMakeFiles/forge.dir/flags.make','utf8');
+const field=k=>{const line=flagText.split('\n').find(l=>l.startsWith(k+' = '));if(!line)throw Error(k);return line.slice((k+' = ').length).trim().split(/\s+/).map(s=>s.replaceAll('\\"','"'));};
+const flags=[...field('CXX_DEFINES'),...field('CXX_INCLUDES'),...field('CXX_FLAGS')];
+if(!flags.includes('-DFORGE_MATE_ALPHA_GUARD=1'))throw Error('Gate=1 required');
+const objectDir=build+'/CMakeFiles/forge.dir/src';
+const objects=fs.readdirSync(objectDir).filter(n=>n.endsWith('.cpp.o')&&n!=='search.cpp.o').sort().map(n=>path.join(objectDir,n));
+const inputs=[repo+'/src/search.cpp',repo+'/include/forge/search.hpp',build+'/CMakeFiles/forge.dir/flags.make',build+'/forge',...objects];
+fs.writeFileSync(dir+'/inputs.json',JSON.stringify({originalSha256:sha(original),observedSha256:sha(source),files:Object.fromEntries(inputs.map(p=>[p,sha(fs.readFileSync(p))]))},null,2)+'\n',{flag:'wx'});
+const stages=[['compile',180,['/usr/bin/c++',...flags,'-c',dir+'/search.observed.cpp','-o',dir+'/search.observed.o']],['link',30,['/usr/bin/c++',...objects,dir+'/search.observed.o','-pthread','-o',dir+'/forge-observed']]];
+for(const [label,limit,args] of stages){
+ const argv=['timeout','-k','2',String(limit),...args],started=new Date().toISOString();
+ const r=spawnSync(argv[0],argv.slice(1),{cwd:dir,encoding:'utf8',timeout:(limit+5)*1000,maxBuffer:8*1024*1024});
+ fs.writeFileSync(dir+'/'+label+'.stdout.txt',r.stdout??'',{flag:'wx'});fs.writeFileSync(dir+'/'+label+'.stderr.txt',r.stderr??'',{flag:'wx'});
+ const meta={argv,cwd:dir,started,ended:new Date().toISOString(),exit:r.status,signal:r.signal,error:r.error?.message};
+ fs.writeFileSync(dir+'/'+label+'.json',JSON.stringify(meta,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(meta));
+ if(r.status!==0){console.log(r.stdout,r.stderr);process.exit(r.status??1);}
+}

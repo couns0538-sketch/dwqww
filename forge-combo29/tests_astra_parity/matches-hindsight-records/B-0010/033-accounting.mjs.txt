@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+const integer=n=>assert.ok(Number.isSafeInteger(n)&&n>=0,'Nonnegative integer count required');
+export function derive(summary){
+ assert.equal(summary.countsOnly,true);assert.equal(typeof summary.completed,'boolean');assert.equal(typeof summary.passed,'boolean');assert.ok(!summary.passed||summary.completed);
+ const c=summary.counts,b=summary.pairBins;for(const k of ['finished','wins','losses','draws'])integer(c[k]);assert.equal(c.wins+c.losses+c.draws,c.finished);
+ assert.equal(b.counts.length,5);b.counts.forEach(integer);integer(b.completePairs);assert.equal(b.counts.reduce((a,n)=>a+n,0),b.completePairs);assert.ok(2*b.completePairs<=c.finished);
+ const games=summary.completed?c.finished:0,pairs=summary.completed?b.completePairs:0;
+ assert.equal(summary.creditedCompletedGames,games);assert.equal(summary.creditedCompletedPairs,pairs);assert.equal(summary.rawIncompleteExcluded,!summary.completed);
+ if(summary.completed){assert.equal(games,summary.requestedGames);assert.equal(2*pairs,games);assert.deepEqual(summary.errors,[]);}
+ const credit={games,pairs,wins:summary.completed?c.wins:0,losses:summary.completed?c.losses:0,draws:summary.completed?c.draws:0,pentanomial:summary.completed?b.counts:[0,0,0,0,0]};
+ return {completed:summary.completed,passed:summary.passed,credit,rawCounts:structuredClone(c),rawPairBins:structuredClone(b),failureCounts:structuredClone(summary.failureCounts),sideAccounting:structuredClone(summary.sideAccounting),errors:structuredClone(summary.errors),process:structuredClone(summary.process),rawExcludedFinishedGames:summary.completed?0:c.finished};
+}
+export function totals(rows){
+ const t={games:0,pairs:0,wins:0,losses:0,draws:0,pentanomial:[0,0,0,0,0],batches:rows.length,passedBatches:0,failedOrIncompleteBatches:0,incompleteBatches:0,rawExcludedFinishedGames:0,rawObservedFinishedGames:0,rawFailureCounts:{},rawSideAccounting:{},countsOnly:true};
+ for(const r of rows){for(const k of ['games','pairs','wins','losses','draws'])t[k]+=r.credit[k];r.credit.pentanomial.forEach((n,i)=>t.pentanomial[i]+=n);t.passedBatches+=Number(r.passed);t.failedOrIncompleteBatches+=Number(!r.passed);t.incompleteBatches+=Number(!r.completed);t.rawExcludedFinishedGames+=r.rawExcludedFinishedGames;t.rawObservedFinishedGames+=r.rawCounts.finished;
+  for(const [k,n]of Object.entries(r.failureCounts)){integer(n);t.rawFailureCounts[k]=(t.rawFailureCounts[k]??0)+n;}
+  for(const [side,values]of Object.entries(r.sideAccounting.bySide)){const dest=t.rawSideAccounting[side]??={};for(const [k,n]of Object.entries(values)){integer(n);dest[k]=(dest[k]??0)+n;}}
+ }
+ assert.equal(t.games,t.wins+t.losses+t.draws);assert.equal(t.games,2*t.pairs);assert.equal(t.pairs,t.pentanomial.reduce((a,n)=>a+n,0));
+ t.status=t.failedOrIncompleteBatches?'BLOCKED: retained incomplete or faulted batch':t.games===6000?'Target completed':'Running; completed batches only';return t;
+}
+export function updatedState(state,proof){
+ const rows=state.matchRows??[],existing=rows.find(r=>r.id===proof.id);
+ if(existing){assert.deepEqual(existing,proof);return {duplicate:true,state};}
+ assert.equal(proof.id,'B-'+String(rows.length+1).padStart(4,'0'),'Match rows must be appended in order');
+ for(const old of rows)assert.ok(old.passed&&old.completed,'Prior blocked batch requires separate reviewed recovery');
+ if(state.active)assert.equal(state.active.batch,proof.id,'Do not replace another active workload');
+ const next=structuredClone(state);next.matchRows=[...rows,proof];next.matchTotals=totals(next.matchRows);next.active=null;
+ if(!proof.passed)next.blockFurtherEngineWork=true;
+ return {duplicate:false,state:next};
+}

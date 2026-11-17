@@ -1,0 +1,599 @@
+app/src/matchmaking/tournament/schedule/base_scheduler.hpp:14-78
+  14 class TournamentSchedulerBase : public Scheduler {
+  15    public:
+  16     TournamentSchedulerBase(book::OpeningBook* opening_book, std::size_t players, std::size_t rounds, std::size_t games,
+  17                             std::size_t played_games)
+  18         : opening_book_(opening_book),
+  19           n_players(players),
+  20           n_rounds(rounds),
+  21           n_games_per_round(games),
+  22           current_round(1),
+  23           game_counter(played_games),
+  24           player1(0),
+  25           player2(1),
+  26           games_per_pair(0),
+  27           pair_counter(played_games / games) {
+  28         current_round = (played_games / games) + 1;
+  29 
+  30         if (n_players < 2 || n_rounds < 1 || n_games_per_round < 1) {
+  31             throw fastchess_exception("Invalid number of players, rounds, or games per round");
+  32         }
+  33     }
+  34 
+  35     // Function to generate the next game pairing
+  36     std::optional<Pairing> next() override {
+  37         // Check if the current round is beyond the number of rounds
+  38         if (current_round > n_rounds) {
+  39             // No more rounds left
+  40             return std::nullopt;
+  41         }
+  42 
+  43         if (games_per_pair == 0) {
+  44             opening = opening_book_->fetchId();
+  45         }
+  46 
+  47         Pairing next_game;
+  48         next_game.round_id   = current_round;
+  49         next_game.game_id    = ++game_counter;
+  50         next_game.player1    = player1;
+  51         next_game.player2    = player2;
+  52         next_game.pairing_id = pair_counter;
+  53         next_game.opening_id = opening;
+  54 
+  55         // Increment the games between the current player1 and player2
+  56         games_per_pair++;
+  57 
+  58         // If we've exhausted the games between the current player pair, move to the next pair
+  59         if (games_per_pair >= n_games_per_round) {
+  60             games_per_pair = 0;
+  61             player2++;
+  62             pair_counter++;
+  63 
+  64             if (player2 >= n_players) {
+  65                 player1++;
+  66                 player2 = player1 + 1;
+  67             }
+  68 
+  69             // If we've exhausted all pairs for this round, move to the next round
+  70             if (player1 >= getPlayer1Limit()) {
+  71                 current_round++;
+  72                 player1 = 0;
+  73                 player2 = 1;
+  74             }
+  75         }
+  76 
+  77         return next_game;
+  78     }
+
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:20-32
+  20 
+  21 RoundRobin::RoundRobin(const stats_map& results) : BaseTournament(results) {
+  22     sprt_ = SPRT(config::TournamentConfig->sprt.alpha, config::TournamentConfig->sprt.beta,
+  23                  config::TournamentConfig->sprt.elo0, config::TournamentConfig->sprt.elo1,
+  24                  config::TournamentConfig->sprt.model, config::TournamentConfig->sprt.enabled);
+  25 
+  26     const auto& config     = *config::TournamentConfig;
+  27     const auto num_players = config::EngineConfigs->size();
+  28 
+  29     generator_ =
+  30         std::make_unique<RoundRobinScheduler>(book_.get(), num_players, config.rounds, config.games, match_count_);
+  31 }
+  32 
+
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:79-92
+  79 void RoundRobin::createMatch(const Scheduler::Pairing& pairing) {
+  80     const auto opening = (*book_)[pairing.opening_id];
+  81     const auto first   = (*config::EngineConfigs)[pairing.player1];
+  82     const auto second  = (*config::EngineConfigs)[pairing.player2];
+  83 
+  84     GamePair<EngineConfiguration, EngineConfiguration> configs = {first, second};
+  85 
+  86     if (pairing.game_id % 2 == 0 && !config::TournamentConfig->noswap) {
+  87         std::swap(configs.white, configs.black);
+  88     }
+  89 
+  90     if (config::TournamentConfig->reverse) {
+  91         std::swap(configs.white, configs.black);
+  92     }
+
+app/src/matchmaking/tournament/roundrobin/scheduler.hpp:13-26
+  13 class RoundRobinScheduler : public TournamentSchedulerBase {
+  14    public:
+  15     RoundRobinScheduler(book::OpeningBook* opening_book, std::size_t players, std::size_t rounds, std::size_t games,
+  16                         std::size_t played_games = 0)
+  17         : TournamentSchedulerBase(opening_book, players, rounds, games, played_games) {}
+  18 
+  19     std::size_t total() const override {
+  20         std::size_t n_pairings = n_players * (n_players - 1) / 2;
+  21         return n_pairings * n_rounds * n_games_per_round;
+  22     }
+  23 
+  24    protected:
+  25     std::size_t getPlayer1Limit() const override { return n_players - 1; }
+  26 };
+
+app/src/cli/cli.cpp:185-245
+ 185 
+ 186 bool isEngineSettableOption(std::string_view stringFormat) { return str_utils::startsWith(stringFormat, "option."); }
+ 187 
+ 188 void parseEngineKeyValues(EngineConfiguration& engineConfig, const std::string& key, const std::string& value) {
+ 189     if (key == "cmd") {
+ 190         engineConfig.cmd = value;
+ 191     } else if (key == "name")
+ 192         engineConfig.name = value;
+ 193     else if (key == "tc")
+ 194         engineConfig.limit.tc = parseTc(value);
+ 195     else if (key == "st")
+ 196         engineConfig.limit.tc.fixed_time = parseDuration(value, 1000);
+ 197     else if (key == "timemargin") {
+ 198         engineConfig.limit.tc.timemargin = parseScalar<int64_t>(value);
+ 199         if (engineConfig.limit.tc.timemargin < 0) {
+ 200             throw fastchess_exception("The value for timemargin cannot be a negative number.");
+ 201         }
+ 202     } else if (key == "nodes")
+ 203         engineConfig.limit.nodes = parseScalar<int64_t>(value);
+ 204     else if (key == "plies" || key == "depth")
+ 205         engineConfig.limit.plies = parseScalar<int64_t>(value);
+ 206     else if (key == "dir")
+ 207         engineConfig.dir = value;
+ 208     else if (key == "args")
+ 209         engineConfig.args = value;
+ 210     else if (key == "restart") {
+ 211         if (value != "on" && value != "off") {
+ 212             throw fastchess_exception::format("Invalid parameter (must be either \"on\" or \"off\"): {}", value);
+ 213         }
+ 214         engineConfig.restart = value == "on";
+ 215     } else if (isEngineSettableOption(key)) {
+ 216         // Strip option.Name of the option. Part
+ 217         const std::size_t pos         = key.find('.');
+ 218         const std::string strippedKey = key.substr(pos + 1);
+ 219         engineConfig.options.emplace_back(strippedKey, value);
+ 220     } else if (key == "proto") {
+ 221         if (value != "uci") {
+ 222             throw fastchess_exception("Unsupported protocol.");
+ 223         }
+ 224     } else
+ 225         OptionsParser::throwMissing("engine", key, value);
+ 226 }
+ 227 
+ 228 void parseEngine(const KeyValuePairs& params, ArgumentData& argument_data) {
+ 229     argument_data.configs.emplace_back();
+ 230 
+ 231     for (const auto& [key, value] : params) {
+ 232         engine::parseEngineKeyValues(argument_data.configs.back(), key, value);
+ 233     }
+ 234 }
+ 235 
+ 236 }  // namespace engine
+ 237 
+ 238 void parseEach(const KeyValuePairs& params, ArgumentData& argument_data) {
+ 239     for (const auto& [key, value] : params) {
+ 240         for (auto& config : argument_data.configs) {
+ 241             engine::parseEngineKeyValues(config, key, value);
+ 242         }
+ 243     }
+ 244 }
+ 245 
+
+app/src/cli/cli.cpp:535-547
+ 535 }
+ 536 
+ 537 void parseConfig(const KeyValuePairs& params, ArgumentData& argument_data) {
+ 538     bool drop_stats = false;
+ 539 
+ 540     for (const auto& [key, value] : params) {
+ 541         if (key == "file") {
+ 542             loadJson(argument_data, value);
+ 543         } else if (key == "outname") {
+ 544             argument_data.tournament_config.config_name = value;
+ 545         } else if (key == "discard" && value == "true") {
+ 546             Logger::print<Logger::Level::INFO>("Discarding config file");
+ 547             argument_data.tournament_config = argument_data.old_tournament_config;
+
+app/src/cli/cli.cpp:614-625
+ 614     argument_data.tournament_config.games = parseScalar<int>(value);
+ 615 }
+ 616 
+ 617 void parseRounds(std::string_view value, ArgumentData& argument_data) {
+ 618     argument_data.tournament_config.rounds = parseScalar<int>(value);
+ 619 }
+ 620 
+ 621 void parseWait(std::string_view value, ArgumentData& argument_data) {
+ 622     argument_data.tournament_config.wait = parseScalar<int>(value);
+ 623 }
+ 624 
+ 625 void parseNoswap(ArgumentData& argument_data) { argument_data.tournament_config.noswap = true; }
+
+app/src/cli/cli.cpp:650-662
+ 650 void parseHelp(ArgumentData&) { OptionsParser::printHelp(); }
+ 651 
+ 652 void parseRecover(ArgumentData& argument_data) { argument_data.tournament_config.recover = true; }
+ 653 
+ 654 void parseRepeat(const std::vector<std::string>& params, ArgumentData& argument_data) {
+ 655     if (params.size() == 1 && is_number(params[0])) {
+ 656         argument_data.tournament_config.games = parseScalar<int>(params[0]);
+ 657     } else {
+ 658         argument_data.tournament_config.games = 2;
+ 659     }
+ 660 }
+ 661 
+ 662 void parseVariant(std::string_view value, ArgumentData& argument_data) {
+
+app/src/cli/cli.cpp:798-806
+ 798 
+ 799     cli::sanitize(argument_data_.configs);
+ 800 }
+ 801 
+ 802 void OptionsParser::registerOptions() {
+ 803     addOption<ParamStyle::KeyValue>("engine", engine::parseEngine);
+ 804     addOption<ParamStyle::KeyValue, Dispatch::Deferred>("each", parseEach);
+ 805     addOption<ParamStyle::KeyValueOptional>("pgnout", parsePgnOut);
+ 806     addOption<ParamStyle::KeyValueOptional>("epdout", parseEpdOut);
+
+app/src/types/tournament.hpp:24-76
+  24 
+  25 struct Tournament {
+  26     Opening opening = {};
+  27     Pgn pgn         = {};
+  28     Epd epd         = {};
+  29 
+  30     Sprt sprt = {};
+  31 
+  32     std::string config_name = "config.json";
+  33 
+  34     DrawAdjudication draw          = {};
+  35     ResignAdjudication resign      = {};
+  36     MaxMovesAdjudication maxmoves  = {};
+  37     TbAdjudication tb_adjudication = {};
+  38 
+  39     VariantType variant = VariantType::STANDARD;
+  40     TournamentType type = TournamentType::ROUNDROBIN;
+  41     int gauntlet_seeds  = 1;
+  42 
+  43 #ifdef USE_CUTE
+  44     // output format, fastchess or cutechess
+  45     OutputType output    = OutputType::CUTECHESS;
+  46     int autosaveinterval = 0;
+  47     int ratinginterval   = 0;
+  48     int games            = 1;
+  49     int rounds           = 1;
+  50     bool report_penta    = false;
+  51 #else
+  52     // output format, fastchess or cutechess
+  53     OutputType output    = OutputType::FASTCHESS;
+  54     int autosaveinterval = 20;
+  55     int ratinginterval   = 10;
+  56     std::size_t games    = 2;
+  57     std::size_t rounds   = 2;
+  58     bool report_penta    = true;
+  59 #endif
+  60 
+  61     uint64_t seed = random::random_uint64();
+  62 
+  63     int scoreinterval = 1;
+  64 
+  65     int concurrency        = 1;
+  66     uint32_t wait          = 0;
+  67     bool force_concurrency = false;
+  68 
+  69     bool noswap         = false;
+  70     bool reverse        = false;
+  71     bool recover        = false;
+  72     bool affinity       = false;
+  73     bool check_mate_pvs = false;
+  74     bool show_latency   = false;
+  75     bool test_env       = false;
+  76     bool strict         = false;
+
+app/src/types/engine_config.hpp:15-49
+  15 namespace fastchess {
+  16 
+  17 struct Limit {
+  18     TimeControl::Limits tc;
+  19 
+  20     uint64_t nodes = 0;
+  21     uint64_t plies = 0;
+  22 };
+  23 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Limit, tc, nodes, plies)
+  24 
+  25 struct EngineConfiguration {
+  26     // the limit for the engines "go" command
+  27     Limit limit;
+  28 
+  29     // engine name
+  30     std::string name;
+  31 
+  32     // Path to engine
+  33     std::string dir;
+  34 
+  35     // Engine binary name
+  36     std::string cmd;
+  37 
+  38     // Custom args that should be sent
+  39     std::string args;
+  40 
+  41     // Should process be restarted after every game
+  42     bool restart = false;
+  43 
+  44     // UCI options
+  45     std::vector<std::pair<std::string, std::string>> options;
+  46 
+  47     // Chess variant
+  48     VariantType variant = VariantType::STANDARD;
+  49 
+
+app/src/game/timecontrol/timecontrol.hpp:15-35
+  15 class TimeControl {
+  16    public:
+  17     struct Limits {
+  18         // go winc/binc, in milliseconds
+  19         int64_t increment = 0;
+  20         // go movetime, in milliseconds
+  21         int64_t fixed_time = 0;
+  22         // go wtime/btime, in milliseconds
+  23         int64_t time = 0;
+  24         // go movestogo
+  25         int64_t moves = 0;
+  26 
+  27         int64_t timemargin = 0;
+  28 
+  29         bool operator==(const Limits& rhs) const {
+  30             return std::tie(increment, fixed_time, time, moves, timemargin) ==
+  31                    std::tie(rhs.increment, rhs.fixed_time, rhs.time, rhs.moves, rhs.timemargin);
+  32         }
+  33 
+  34         NLOHMANN_DEFINE_TYPE_INTRUSIVE(Limits, increment, fixed_time, time, moves, timemargin)
+  35     };
+
+app/src/engine/uci_engine.cpp:122-165
+ 122 bool UciEngine::go(const TimeControl& our_tc, const TimeControl& enemy_tc, chess::Color stm) {
+ 123     std::string input = "go";
+ 124 
+ 125     if (config_.limit.nodes) {
+ 126         fmt::format_to(std::back_inserter(input), " nodes {}", config_.limit.nodes);
+ 127     }
+ 128 
+ 129     if (config_.limit.plies) {
+ 130         fmt::format_to(std::back_inserter(input), " depth {}", config_.limit.plies);
+ 131     }
+ 132 
+ 133     // We cannot use st and tc together
+ 134     if (our_tc.isFixedTime()) {
+ 135         fmt::format_to(std::back_inserter(input), " movetime {}", our_tc.getFixedTime());
+ 136         return writeEngine(input);
+ 137     }
+ 138 
+ 139     const auto& white = stm == chess::Color::WHITE ? our_tc : enemy_tc;
+ 140     const auto& black = stm == chess::Color::WHITE ? enemy_tc : our_tc;
+ 141 
+ 142     if (our_tc.isTimed() || our_tc.isIncrement()) {
+ 143         if (white.isTimed() || white.isIncrement()) {
+ 144             fmt::format_to(std::back_inserter(input), " wtime {}", white.getTimeLeft());
+ 145         }
+ 146 
+ 147         if (black.isTimed() || black.isIncrement()) {
+ 148             fmt::format_to(std::back_inserter(input), " btime {}", black.getTimeLeft());
+ 149         }
+ 150 
+ 151         if (white.isIncrement()) {
+ 152             fmt::format_to(std::back_inserter(input), " winc {}", white.getIncrement());
+ 153         }
+ 154 
+ 155         if (black.isIncrement()) {
+ 156             fmt::format_to(std::back_inserter(input), " binc {}", black.getIncrement());
+ 157         }
+ 158     }
+ 159 
+ 160     if (our_tc.isMoves()) {
+ 161         fmt::format_to(std::back_inserter(input), " movestogo {}", our_tc.getMovesLeft());
+ 162     }
+ 163 
+ 164     return writeEngine(input);
+ 165 }
+
+app/src/game/book/opening_book.cpp:15-51
+  15 OpeningBook::OpeningBook(const config::Tournament& config, std::size_t initial_matchcount) {
+  16     start_  = config.opening.start;
+  17     games_  = config.games;
+  18     rounds_ = config.rounds;
+  19     order_  = config.opening.order;
+  20     plies_  = config.opening.plies;
+  21 
+  22     // - 1 because start starts at 1 in the opening options
+  23     offset_ = start_ - 1 + initial_matchcount / games_;
+  24     setup(config.opening.file, config.opening.format, config.variant);
+  25 }
+  26 
+  27 void OpeningBook::setup(const std::string& file, FormatType type, VariantType vt) {
+  28     if (file.empty()) {
+  29         return;
+  30     }
+  31 
+  32     if (type == FormatType::PGN) {
+  33         openings_.emplace<PgnReader>(file, plies_, vt == VariantType::FRC);
+  34     } else if (type == FormatType::EPD) {
+  35         openings_.emplace<EpdReader>(file);
+  36     }
+  37 
+  38     if (type == FormatType::NONE) return;
+  39 
+  40     if (order_ == OrderType::RANDOM) {
+  41         Logger::print("Indexing opening suite...");
+  42         std::visit([](auto& arg) { Openings::shuffle(arg.get()); }, openings_);
+  43     }
+  44 
+  45     if (offset_ > 0) {
+  46         LOG_INFO("Offsetting the opening book by {} openings...", offset_);
+  47         std::visit([offset = offset_](auto& arg) { Openings::rotate(arg.get(), offset); }, openings_);
+  48     }
+  49 
+  50     std::visit([rounds = rounds_](auto& arg) { Openings::truncate(arg.get(), rounds); }, openings_);
+  51     std::visit([](auto& arg) { Openings::shrink(arg.get()); }, openings_);
+
+app/src/game/book/opening_book.hpp:17-42
+  17 
+  18 struct Openings {
+  19     // Fisher-Yates / Knuth shuffle
+  20     template <typename T>
+  21     static void shuffle(T& vec) {
+  22         for (std::size_t i = 0; i + 2 <= vec.size(); i++) {
+  23             auto rand     = random::mersenne_rand();
+  24             std::size_t j = i + (rand % (vec.size() - i));
+  25             std::swap(vec[i], vec[j]);
+  26         }
+  27     }
+  28 
+  29     // Rotates the book vector based on the starting offset
+  30     template <typename T>
+  31     static void rotate(T& vec, std::size_t offset) {
+  32         std::rotate(vec.begin(), vec.begin() + (offset % vec.size()), vec.end());
+  33     }
+  34 
+  35     // Gets rid of unused openings within the book vector to reduce memory usage
+  36     template <typename T>
+  37     static void truncate(T& vec, std::size_t rounds) {
+  38         if (vec.size() > rounds) {
+  39             vec.resize(rounds);
+  40         }
+  41     }
+  42 
+
+app/src/matchmaking/tournament/tournament_manager.cpp:29-56
+  29 void TournamentManager::start(const cli::Args& args) {
+  30     const auto options = cli::OptionsParser(args);
+  31 
+  32     config::TournamentConfig = std::make_unique<config::Tournament>(options.getTournamentConfig());
+  33 
+  34     config::EngineConfigs = std::make_unique<std::vector<EngineConfiguration>>(options.getEngineConfigs());
+  35 
+  36     Logger::setLevel(config::TournamentConfig->log.level);
+  37     Logger::setStrict(config::TournamentConfig->strict);
+  38     Logger::setCompress(config::TournamentConfig->log.compress);
+  39     Logger::openFile(config::TournamentConfig->log.file, config::TournamentConfig->log.append_file);
+  40     Logger::setEngineComs(config::TournamentConfig->log.engine_coms);
+  41 
+  42     LOG_INFO("{}", cli::OptionsParser::Version);
+  43 
+  44     random::seed(config::TournamentConfig->seed);
+  45 
+  46     if (config::TournamentConfig->tb_adjudication.enabled) {
+  47         LOG_INFO("Loading Syzygy tablebases...");
+  48         const int tbPieces = initSyzygy(config::TournamentConfig->tb_adjudication.syzygy_dirs);
+  49         if (tbPieces == 0) {
+  50             throw fastchess_exception::format(
+  51                 "Error: Failed to load Syzygy tablebases from the following directories: {}",
+  52                 config::TournamentConfig->tb_adjudication.syzygy_dirs);
+  53         }
+  54         LOG_INFO("Loaded {}-piece Syzygy tablebases.", tbPieces);
+  55     }
+  56 
+
+app/src/types/draw_adjudication.hpp:1-25
+   1 #pragma once
+   2 
+   3 #include <core/helper.hpp>
+   4 #include <types/enums.hpp>
+   5 
+   6 namespace fastchess::config {
+   7 
+   8 struct DrawAdjudication {
+   9     uint32_t move_number = 0;
+  10     int move_count       = 1;
+  11     int score            = 0;
+  12 
+  13     bool enabled = false;
+  14 };
+  15 
+  16 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DrawAdjudication, move_number, move_count, score, enabled)
+  17 
+  18 }  // namespace fastchess::config
+  19 
+
+app/src/types/resign_adjudication.hpp:1-25
+   1 #pragma once
+   2 
+   3 #include <string>
+   4 
+   5 #include <core/helper.hpp>
+   6 #include <types/enums.hpp>
+   7 
+   8 namespace fastchess::config {
+   9 
+  10 struct ResignAdjudication {
+  11     int move_count = 1;
+  12     int score      = 0;
+  13     bool twosided  = false;
+  14 
+  15     bool enabled = false;
+  16 };
+  17 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ResignAdjudication, move_count, score, twosided, enabled)
+  18 
+  19 }  // namespace fastchess::config
+
+app/src/types/max_moves_adjudication.hpp:1-25
+   1 #pragma once
+   2 
+   3 #include <string>
+   4 
+   5 #include <core/helper.hpp>
+   6 #include <types/enums.hpp>
+   7 
+   8 namespace fastchess::config {
+   9 
+  10 struct MaxMovesAdjudication {
+  11     int move_count = 1;
+  12 
+  13     bool enabled = false;
+  14 };
+  15 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MaxMovesAdjudication, move_count, enabled)
+  16 
+  17 }  // namespace fastchess::config
+
+app/src/types/tb_adjudication.hpp:1-30
+   1 #pragma once
+   2 
+   3 #include <json.hpp>
+   4 
+   5 #include <string>
+   6 
+   7 namespace fastchess::config {
+   8 
+   9 struct TbAdjudication {
+  10     enum ResultType { WIN_LOSS = 1, DRAW = 2, BOTH = WIN_LOSS | DRAW };
+  11 
+  12     std::string syzygy_dirs;
+  13     int max_pieces           = 0;
+  14     ResultType result_type   = ResultType::BOTH;
+  15     bool ignore_50_move_rule = false;
+  16 
+  17     bool enabled = false;
+  18 };
+  19 
+  20 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TbAdjudication, syzygy_dirs, max_pieces, ignore_50_move_rule, enabled)
+  21 
+  22 }  // namespace fastchess::config
+  23 
+
+app/src/types/sprt.hpp:1-26
+   1 #pragma once
+   2 
+   3 #include <string>
+   4 
+   5 #include <core/helper.hpp>
+   6 #include <types/enums.hpp>
+   7 
+   8 namespace fastchess::config {
+   9 
+  10 struct Sprt {
+  11     bool enabled = false;
+  12     double alpha = 0.0;
+  13     double beta  = 0.0;
+  14     double elo0  = 0.0;
+  15     double elo1  = 0.0;
+  16     // available as 3 models: "normalized", "bayesian", and "logistic"
+  17     // bayesian model only available when -penta report=false
+  18     std::string model = "normalized";
+  19 };
+  20 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Sprt, alpha, beta, elo0, elo1, model, enabled)
+  21 
+  22 }  // namespace fastchess::config

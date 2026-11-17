@@ -1,0 +1,46 @@
++ cat /workspace/work/all-run/part4-review/instrument-command.txt
+node <<'NODE'
+const fs = require('fs');
+const sourcePath = '/workspace/work/dwqww-all/forge-combo29/src/search.cpp';
+const outputPath = '/workspace/work/all-run/part4-review/search-instrumented.cpp';
+const source = fs.readFileSync(sourcePath, 'utf8');
+const start = source.indexOf('int Worker::qsearch(');
+const end = source.indexOf('// Main alpha-beta search', start);
+if (start < 0 || end < 0) throw new Error('qsearch boundaries missing');
+let qsearch = source.slice(start, end);
+function replaceOnce(from, to) {
+  if (qsearch.split(from).length !== 2) throw new Error('instrumentation anchor must occur once: ' + from);
+  qsearch = qsearch.replace(from, to);
+}
+const details = ' << " root_depth=" << root_depth_ << " ply=" << ply << " alpha=" << alpha << " beta=" << beta << " score=" << best_score << " pv_length=" << ss->pv_length << " tt_score=" << tt_score << " tt_raw=" << tte.score << " tt_bound=" << static_cast<int>(tt_bound) << " tt_depth=" << static_cast<int>(tte.depth) << " fen=" << board.fen() << std::endl;';
+replaceOnce('            return best_score;\n', '            if (pv_node && is_mate_score(best_score)) std::cerr << "TRACE_QPV_STANDPAT"' + details + '\n            return best_score;\n');
+replaceOnce('    return best_score;\n}', '    if (pv_node && is_mate_score(best_score) && ss->pv_length == 0) std::cerr << "TRACE_QPV_FINAL"' + details + '\n    return best_score;\n}');
+fs.writeFileSync(outputPath, source.slice(0, start) + qsearch + source.slice(end));
+console.log('WROTE scratch-only instrumented source: ' + outputPath);
+NODE
++ bash /workspace/work/all-run/part4-review/instrument-command.txt
+WROTE scratch-only instrumented source: /workspace/work/all-run/part4-review/search-instrumented.cpp
++ git diff --no-index -- forge-combo29/src/search.cpp /workspace/work/all-run/part4-review/search-instrumented.cpp
+diff --git a/forge-combo29/src/search.cpp b/workspace/work/all-run/part4-review/search-instrumented.cpp
+index 80dd69a..ecdcb83 100644
+--- a/forge-combo29/src/search.cpp
++++ b/workspace/work/all-run/part4-review/search-instrumented.cpp
+@@ -1101,6 +1101,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ #else
+             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #endif
++            if (pv_node && is_mate_score(best_score)) std::cerr << "TRACE_QPV_STANDPAT" << " root_depth=" << root_depth_ << " ply=" << ply << " alpha=" << alpha << " beta=" << beta << " score=" << best_score << " pv_length=" << ss->pv_length << " tt_score=" << tt_score << " tt_raw=" << tte.score << " tt_bound=" << static_cast<int>(tt_bound) << " tt_depth=" << static_cast<int>(tte.depth) << " fen=" << board.fen() << std::endl;
+             return best_score;
+         }
+         if (best_score > alpha) alpha = best_score;
+@@ -1166,6 +1167,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ #else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #endif
++    if (pv_node && is_mate_score(best_score) && ss->pv_length == 0) std::cerr << "TRACE_QPV_FINAL" << " root_depth=" << root_depth_ << " ply=" << ply << " alpha=" << alpha << " beta=" << beta << " score=" << best_score << " pv_length=" << ss->pv_length << " tt_score=" << tt_score << " tt_raw=" << tte.score << " tt_bound=" << static_cast<int>(tt_bound) << " tt_depth=" << static_cast<int>(tte.depth) << " fen=" << board.fen() << std::endl;
+     return best_score;
+ }
+ 
++ printf 'Expected diff exit status (1 means differences): %s\n' 1
+Expected diff exit status (1 means differences): 1
++ g++ -std=c++20 -O3 -DNDEBUG -ffp-contract=off -fno-fast-math -march=x86-64-v4 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -I forge-combo29/include -c /workspace/work/all-run/part4-review/search-instrumented.cpp -o /workspace/work/all-run/part4-review/search-instrumented.o

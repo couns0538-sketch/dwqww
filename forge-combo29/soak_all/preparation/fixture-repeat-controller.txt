@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import cp from 'node:child_process';
+const root='/workspace/work/all-run',repo='/workspace/work/dwqww-all',src=repo+'/forge-combo29';
+const allowed=['option name MultiPV ','option name NnueFile ','option name ContHist4PlyRead ','option name NonPawnCorrection ','option name LmrDeeperShallower '];
+const log=root+'/logs/fixture-repeat.txt',fd=fs.openSync(log,'w');
+const counts={runs:0,nonzero_engine_exits:0,exact_fixture_mismatches:0,advertisement_only_mismatches:0,unexpected_differences:0,sanitizer_reports:0};
+for(const mode of ['release','asan'])for(const fixture of ['options','clamp'])for(let trial=1;trial<=10;trial++){
+ const exe=root+'/builds/'+mode+'/forge',input=fs.readFileSync(src+'/tests_t16/'+fixture+'.in.txt','utf8'),expected=fs.readFileSync(src+'/tests_t16/'+fixture+'.expected.txt','utf8');
+ fs.writeSync(fd,'UTC '+new Date().toISOString()+' MODE '+mode+' FIXTURE '+fixture+' TRIAL '+trial+'\nARGV '+JSON.stringify([exe])+'\nENV ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1\nSTDIN\n'+input+'\n');
+ const r=cp.spawnSync('timeout',['-k','2','15',exe],{cwd:repo,input,encoding:'utf8',timeout:18000,maxBuffer:4*1024*1024,env:{...process.env,ASAN_OPTIONS:'detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS:'halt_on_error=1:print_stacktrace=1'}});
+ const out=r.stdout||'',err=r.stderr||'',filtered=out.split('\n').filter(x=>!allowed.some(a=>x.startsWith(a))).join('\n');
+ const exact=out===expected,only=filtered===expected,san=(err.match(/ERROR: (?:AddressSanitizer|LeakSanitizer)|runtime error:|WARNING: ThreadSanitizer/g)||[]).length;
+ counts.runs++;counts.nonzero_engine_exits+=r.status!==0;counts.exact_fixture_mismatches+=!exact;counts.advertisement_only_mismatches+=!exact&&only;counts.unexpected_differences+=!exact&&!only;counts.sanitizer_reports+=san;
+ fs.writeSync(fd,'STDOUT\n'+out+'\nSTDERR\n'+err+'\nEXIT '+r.status+' SIGNAL '+r.signal+' EXACT_MATCH '+exact+' MATCH_EXCLUDING_FIVE_ADVERTISEMENTS '+only+'\n\n');
+ console.log(JSON.stringify({mode,fixture,trial,exit:r.status,exact,only,san}));
+}
+fs.writeSync(fd,'SUMMARY '+JSON.stringify(counts)+'\n');fs.closeSync(fd);fs.writeFileSync(root+'/fixture-repeat-summary.json',JSON.stringify(counts,null,2)+'\n');
+console.log('SUMMARY '+JSON.stringify(counts));

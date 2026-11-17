@@ -1,0 +1,56 @@
+// Read-only aggregate. Both legacy clock groups require attribution.
+// Usage: node audit-all-differences.mjs SUMMARY1 SUMMARY2 ... > FRESH.txt
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import readline from 'node:readline';
+import path from 'node:path';
+import {COUNT_FIELDS} from './compare4.mjs';
+const files=process.argv.slice(2);if(!files.length)throw Error('at least one completed batch summary required');
+const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const expected=JSON.parse(fs.readFileSync(new URL('./original-selection.json.txt',import.meta.url)));
+const reference='/workspace/work/all-run/builds/release/forge',candidate='/workspace/work/r4-run/builds/guard-enabled/forge';
+const pins={[reference]:'e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e',[candidate]:'710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc'};
+const workers=[0,1,2,3].map(worker=>({worker,cursor:0,positions:0,digest:crypto.createHash('sha256')}));
+const totals=Object.fromEntries(COUNT_FIELDS.map(k=>[k,0])),differences=[],partials=[],errors=[],seen=new Set(),batches=[];
+function require(ok,message){if(!ok)throw Error(message);}
+for(const file of files){
+ const s=JSON.parse(fs.readFileSync(file));require(s.type==='comparison_sharded_summary','summary type');
+ for(const [binary,pin]of Object.entries(pins))require(s.inputHashes?.[binary]===pin,'wrong binary in '+file);
+ require(s.sourceSha256===expected.sourceSha256,'wrong corpus');
+ const local=Object.fromEntries(COUNT_FIELDS.map(k=>[k,0]));
+ const artifactHashes=JSON.parse(fs.readFileSync(s.artifactEvidence.manifest));
+ require(artifactHashes['summary.txt']?.sha256===sha(file),'summary artifact hash mismatch');
+ for(const w of s.workers){
+  const st=workers[w.worker];require(!!st&&w.offset===st.cursor,'cursor discontinuity');
+  require(w.remainingEligibleBefore===25000-st.positions,'remaining target discontinuity');
+  if(!w.accepted){if(!w.skipped)partials.push({batch:file,worker:w.worker,accepted:false,reason:w.uncommittedReason,process:w.process});continue;}
+  require(!w.validationErrors.length,'accepted validation error');
+  let positions=0,lowDiff=0,highDiff=0;
+  const jsonl=w.outputPrefix+'.jsonl';require(artifactHashes[path.basename(jsonl)]?.sha256===sha(jsonl),'JSONL artifact hash mismatch');
+  for await(const line of readline.createInterface({input:fs.createReadStream(w.outputPrefix+'.jsonl'),crlfDelay:Infinity})){
+   if(!line.trim())continue;const r=JSON.parse(line);if(r.type!=='position')continue;
+   const i=r.context.index,key=w.worker+':'+i;require(!seen.has(key),'duplicate committed position');seen.add(key);
+   st.digest.update(i+'\t'+r.context.fen+'\n');positions++;
+   if(r.initial.different){if(r.context.halfmove<80)lowDiff++;else highDiff++;}
+   if(r.initial.different||r.reproduction_difference_frequency>0){
+    differences.push({globalRecordIndex:4*i+w.worker,worker:w.worker,localIndex:i,fen:r.context.fen,halfmove:r.context.halfmove,requiresAttribution:true,legacyRequiredEquality:r.context.required_equality,initial:r.initial,reproductionsCompleted:r.reproductions_completed,reproductionDifferenceFrequency:r.reproduction_difference_frequency,reproductionOriginalSignatureFrequency:r.reproduction_original_signature_frequency,evidence:w.outputPrefix+'.jsonl.evidence.txt',pendingFile:r.pending_file,batch:file});
+   }
+  }
+  require(positions===w.counts.positions&&lowDiff===w.counts.differences_low_clock&&highDiff===w.counts.differences_high_clock,'independent difference/count mismatch');
+  for(const k of COUNT_FIELDS)local[k]+=w.counts[k];
+  st.positions+=positions;st.cursor=w.next_offset;
+  if(w.summary.partial)partials.push({batch:file,worker:w.worker,acceptedCompletedRecords:w.counts.records_completed,partial:w.summary.partial_evidence});
+ }
+ for(const k of COUNT_FIELDS){require(local[k]===s.counts[k],'aggregate mismatch '+k);totals[k]+=local[k];}
+ if(s.validationFailed||s.changedInputs?.length)errors.push({batch:file,validationFailed:s.validationFailed,changedInputs:s.changedInputs});
+ batches.push({file,sha256:sha(file),legacyHasCompletedFaults:s.hasCompletedFaults,legacyCountsDoNotGateHighClockDifferences:true});
+}
+const targetMet=workers.every(w=>w.positions===25000);
+const selection=workers.map(w=>{const hash=w.digest.digest('hex'),e=expected.workers.find(x=>x.worker===w.worker);return {worker:w.worker,positions:w.positions,cursor:w.cursor,selectedIndexFenSha256:hash,sameOriginalSelection:targetMet?hash===e.selectedIndexFenSha256&&w.cursor===e.finalCursor:null};});
+require(!targetMet||selection.every(w=>w.sameOriginalSelection),'final selected positions differ from original100k');
+const initialDifferencePositions=differences.filter(d=>d.initial.different).length;
+require(initialDifferencePositions===totals.differences_low_clock+totals.differences_high_clock,'all initial difference count');
+const operationalFields=['invalid_fens','illegal','missing','missing_info','wrong_depth','sanitizer_issues','transport_issues','crashes','nonzero_exits','shutdown_timeouts'];
+const operationalFaults=operationalFields.reduce((n,k)=>n+totals[k],0);
+console.log(JSON.stringify({utc:new Date().toISOString(),reference,candidate,batches,counts:totals,totalDifferences:differences.length,initialDifferencePositions,reproductionOnlyDifferencePositions:differences.length-initialDifferencePositions,allDifferencesRequireAttribution:true,unattributedDifferences: differences.length,targetMet,selection,operationalFaults,partialEvidence:partials,validationErrors:errors,differences,equalityAcceptedWithoutAttribution:targetMet&&differences.length===0&&operationalFaults===0&&errors.length===0,note:'Legacy fault_positions and exit0 do not waive high-clock differences. Every entry in differences must be independently explained. Partial attempts are retained but excluded; earlier valid partial boundaries do not prevent a later complete corpus.'},null,2));
+process.exitCode=errors.length||operationalFaults?3:(!targetMet||differences.length)?1:0;
