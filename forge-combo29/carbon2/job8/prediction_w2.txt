@@ -1,0 +1,16 @@
+Step W2 / Bundle 4 Prediction (committed ALONE before any Step W2 / Bundle 4 timed run)
+=======================================================================================
+Step name: `W2` (`w2_direct_row_scorer_and_noinline_movegen.patch.txt`, stacked on `bundle3 + W1`; combined against the Job 4 base as `bundle4.patch.txt`)
+
+What Step W2 removes and its measured count from `forge-combo29/carbon2/job8/wasted_work_counts_hash16.txt`:
+- In `wasted_work_counts_hash16.txt`, `MovePicker::generate_quiets()` ran `2,700,559` times (`45,009`/game) and scored **`64,700,448` quiet moves = `23.96` quiet moves per call** (`1,158.84 ms` = `7.80%` of counting-build engine CPU).
+- Step `W1`'s `build_base_to(pt)` pre-summed all `64` destination squares for every present piece type (`up to 6 * 64 = 384` squares per call) to read only `23.96` target squares (`~93%` = `~350` pre-summed squares per call = `~945M` square loads/stores across 60 games thrown away unread), and inlining `generate_quiets` + `generate_captures` enlarged `MovePicker::next` (`22.54M` calls).
+- Step `W2` removes `build_base_to` and `Worker::quiet_base_to_` completely, hoisting only branchless 1D row pointers (`c1_row`, `c2_row` defaulting to static zero row `kZeroContRow[64]`, plus optional `c4_row` and `chk = check_squares_[pt]`) once per piece type `pt` so ONLY the `23.96` actual target squares `to` are loaded, and marks `generate_quiets()` and `generate_captures()` `[[gnu::noinline]]` to keep `MovePicker::next()` hot in L1i while retaining all of `W1`'s work removals (lazy/selective `lesser_threats`, zero `picker_scratch_` round-trips, hoisted `main`/`rework` rows, and single-pass `QuietMoves` pin-legality + `gives_check`).
+
+Predicted self-play gain at `Hash 16` (`A = Job 7 bundle3`, `B = bundle3 + W1 + W2 = bundle4`, default `InfoOnce false`, 12 rounds x 60 games ABBA on Intel Xeon @ 2.60GHz):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+1.2%` to `+3.5%` (`1.012x` to `1.035x`)** over `bundle3`, with `>= 9 / 12` paired rounds faster.
+- End-to-end self-play wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+1.0%` to `+3.5%` (`1.010x` to `1.035x`)** over `bundle3`.
+
+Kill range:
+- Any mismatch on the `2,010`-sequence all-stages `MovePicker` oracle, the `55,868`-sequence evasion oracle, the full identity pins (`bench 11/13/16` on `net512` & `net768`, 250 depth-9 rows, 1000 evals, 6-game traces), or the 48-run FNV trace (`ee465caeff9c0fcf`) kills `W2` immediately.
+- If the 12-round x 60-game `Hash 16` `median_of_paired_round_ratios` (`bundle4 / bundle3`) is `<= 1.008x` (`<= +0.8%`) on engine `getrusage` CPU OR fewer than `9 / 12` paired rounds are faster on engine `getrusage` CPU, the `W2` speed prediction is killed.
