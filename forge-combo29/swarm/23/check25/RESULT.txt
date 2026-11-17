@@ -47,3 +47,27 @@ own control, so I assert nothing about the mate distance; see 23-F49's column ru
 
 LIMIT: one board for the counter sweep, one board for the depth sweep (the same one). Board-dependence between 92 and
 99 is asserted from comparing my board to theirs, not from a sweep over boards.
+
+FILE 6's TEST APPLIED TO THIS BOARD — and the cp 0 is NOT a defect under it
+==========================================================================
+File 6: "A cp 0 at a high counter is a defect ONLY when a forced mate ends no later than the 100th half-move: test
+the same board with counter 0 at `go depth 20` or more, read `mate N`; it is a defect only if 2N-1 <= 100-counter AND
+the board at the real counter still scores cp 0."
+
+Measurement on the board at counter 92 (the counter where cp 0 began in my sweep), PC r15 + PC20:
+
+| board | depth 20 | depth 24 |
+|---|---|---|
+| counter 0 | **mate 8** | mate 8 |
+| counter 92 | cp 0 | cp 0 |
+
+Arithmetic: `mate 8` means 2*8-1 = **15 plies** are needed. At counter 92 the remaining slack is 100-92 = **8 plies**.
+15 > 8, so **the mate does NOT fit before the 100th half-move** — and by file 6's rule the cp 0 is therefore CORRECT,
+not a defect. The board cannot be mated within the window the rule allows, so scoring it as a draw is right.
+
+So seat 25's S-F3, run through file 6's own test, is not a defect on this board: the counter-92 cp 0 is a horizon
+effect that reports a draw the rules agree with. (For it to BE a defect the mate would need 2N-1 <= 8, i.e. N <= 4.)
+
+This completes the check properly: the earlier refutation of "one ply early at 99" (23-C26) plus this file-6 test
+together mean the phenomenon seat 25 measured is neither mis-timed nor a defect on my board — it is the horizon
+reporting a draw the fifty-move rule would also produce.
