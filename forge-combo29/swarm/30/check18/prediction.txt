@@ -1,0 +1,26 @@
+PREDICTION — settle_disagreements (are the 10 % disagreements near-ties or genuine differences?)
+Committed BEFORE the first measuring command.
+
+Question: check16 found S14 and PC20 agreeing on 36 of 40 positions. Position 29 (one of the 4) was
+adjudicated as a genuine 190-230 cp difference in favour of f3g2 (30-C56). Is that case typical of
+these disagreements, or an outlier?
+
+Method: for each of the 4 disagreeing positions, score BOTH candidate moves in ISOLATION
+(`go depth D searchmoves M`) at depths 12/14/16/18 on BOTH option sets. Classification:
+  ONE MOVE CLEARLY BETTER if the same move leads by >100 cp at every depth;
+  NEAR-TIE if the two moves are within 50 cp at every depth;
+  MIXED otherwise (reported unresolved, not forced into a box).
+
+P1. Position 29 will reproduce as ONE MOVE CLEARLY BETTER (f3g2) — it is already measured (30-C56),
+    so this is a harness-consistency check on my own method.
+    Killed if it classifies differently here.
+P2. The other three (13, 24, 35) will classify as NEAR-TIE, because their two arms' scores at
+    depth 10 were close (87, 19 and 15 cp apart). If so, position 29 is the OUTLIER and the honest
+    summary is "most disagreements are near-ties, with occasional genuine ones".
+    Killed if two or more of the other three classify as ONE MOVE CLEARLY BETTER.
+P3. No position will be MIXED (I predict the isolated scores are stable across depth).
+    Killed by any MIXED classification.
+P4. Where a position is a NEAR-TIE, both arms will agree on the LEADER at every depth even when they
+    disagree on which move to play — i.e. the disagreement is about an equally-good move, not about
+    an evaluation error.
+    Killed if, in a NEAR-TIE position, the two arms disagree on which move leads.
