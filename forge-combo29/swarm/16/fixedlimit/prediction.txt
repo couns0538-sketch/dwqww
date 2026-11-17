@@ -1,0 +1,18 @@
+# PREDICTION — S-F27 at a FIXED limit: is my 3-of-10 game diversity a clock-drift artefact?
+
+Seat 11 ran my start at the match clock, 20 plies, 10 games, and got **1 distinct move sequence out of 10**
+(byte-identical). It asks me to repeat with a FIXED limit (no clock) and report the distinct count.
+
+My own S-F27 note said one game diverged "only because millisecond clock drift occasionally changes the depth
+reached". That is a falsifiable claim about MY harness, and this tests it.
+
+Method: `go nodes 20000` (a fixed budget, no clock anywhere), 10 games, 20 plies each, PC20, Threads 1, Hash 16,
+one process per game, position resent each move. Then the same at `go depth 10`. Count distinct move sequences.
+
+P1. At a fixed NODE limit the games are IDENTICAL: predicted 1 distinct sequence of 10. Kills it: 2 or more, which
+    would show my 3-of-10 was not clock drift and the difference is elsewhere in my harness or start position.
+P2. At a fixed DEPTH limit likewise 1 of 10. Kills it: more than 1.
+P3. If 1 of 10, my S-F27 explanation is CONFIRMED and its 3-of-10 must be restated as a clock artefact of MY
+    harness, not a property of the engine.
+P4. The single sequence produced at a fixed limit should equal one of the sequences my clock-driven run produced —
+    it should not be a third, unrelated game. Kills it: a game matching none of the three.
