@@ -830,3 +830,9 @@ Grouped the sixteen standing rules in FINAL.md by the QUESTION they answer, beca
   3. 'Is my comparison right?' -- believe the data over the summary; the two-direction sweep; run it on their own sample; mirror invariant is equality; damage tables exclude incomparable pairs.
   4. 'Can anyone re-check what I claimed?' -- regime plus binary; a convenient listing is not the tool; a warning from an unvalidated harness is not a finding.
 Each bullet keeps its concrete example so the rule is usable rather than abstract.
+
+## 2026-11-17T00:30:18Z
+07-C68 -- CONFIRMED 16-S-F27 and S-F29, and the fixed-start arm is STRONGER than theirs. PC r15/PC20, Threads 1, Hash 16, go NODES 20000 per move (a node stop, which 07-C49 proved exactly reproducible -- not a clock), 40 plies, 10 games per arm:
+  FIXED (startpos x10): 1 distinct final position, 1 distinct move sequence -- ALL TEN GAMES IDENTICAL. Seat 16 saw 3 distinct finals with 7 of 10 identical on a clock, and attributed the single divergence to millisecond clock drift changing the depth reached. Removing the clock removes the divergence, so their attribution is supported exactly.
+  VARIED (ten different G starts): 10 distinct finals, 10 distinct sequences, 0 illegal -- their S-F29 reproduced.
+  The training-data point is stronger than the original framing: 'vary the openings' is not merely good advice, it is the ONLY thing preventing a self-play set from being ten copies of one game. With a node budget the duplication is total.
