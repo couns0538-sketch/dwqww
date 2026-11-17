@@ -1043,3 +1043,26 @@ SEAT 05's S-F63 CONFIRMED EXACTLY, AND ITS INFERENCE TURNED INTO A MEASUREMENT (
   THE PART SEAT 05 COULD ONLY INFER: it deduced truncation by comparing PV length to the plies a mate needs. I SLICED each PV from the info line and REPLAYED it with python-chess. The 50,000-node PV does NOT reach mate - it ends after 18 plies without checkmate - while the 80,000 and 250,000 PVs DO, checkmate at pv ply 13. So the truncation is real by replay, and the later mate scores are honest.
   WHY IT SURVIVED SO LONG (S-F88): the answer is CORRECT either side of a narrow band and OVER-CLAIMED inside it. Any spot-check at a different budget shows a healthy mate - 80,000 and 250,000 both give mate 7 with a PV that mates. 50,000 nodes is one of the OWNER'S MATCH BUDGETS, so this is on his path.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### THIRTEENTH UPDATE — a defect on the owner's path, confirmed and explained
+
+**S-C29 / S-F88.** Seat 05's S-F63 reproduced **exactly**, and I could upgrade its inference into a measurement.
+
+Board `r2r4/pB2kpp1/n1p4p/1p5p/2n5/1q1bP2P/2PBN3/4K2R b`, PC r15 + PC20 / Threads 1 / Hash 16:
+
+| budget | score | depth | nodes | PV plies | plies a mate needs | PV reaches mate? |
+|---|---|---|---|---|---|---|
+| 15,000 / 20,000 / 30,000 | `cp 4056` | 10 | **10,515 (all three identical)** | 10 | — | — |
+| **50,000** | **`mate 11`** | 11 | 44,749 | **18** | **21** | **NO** |
+| 80,000 | `mate 7` | 13 | 74,525 | 13 | 13 | **YES** |
+| 250,000 | `mate 7` | 14 | 138,869 | 13 | 13 | **YES** |
+
+Seat 05 deduced the truncation from PV length. I **sliced the PV from the info line and replayed it**: the
+50,000-node PV ends after 18 plies **without checkmate**, while the 80,000 and 250,000 PVs reach mate at ply 13.
+So the truncation is real by replay and the later mate scores are honest.
+
+**Why it survived so long:** the answer is **correct either side of a narrow band and over-claimed inside it**. A
+spot-check at any other budget shows a healthy mate — only a ladder finds it.
+
+**And 50,000 nodes is one of the owner's three match budgets**, so this is the most consequential confirmation I
+made tonight: a mate distance his engine cannot justify at a budget he actually uses.
