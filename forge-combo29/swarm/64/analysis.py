@@ -177,6 +177,22 @@ def main() -> int:
         for h, m in sorted(fa):
             print(f"      false-alarm Hash {h:>3} MPV {m} ratio {cls[(h,m)][1]:.2f}")
 
+    # Emit the recommendation FROM the fitted ceiling, so the prose cannot drift
+    # away from the rule it claims to follow.
+    cons = {m: (hmax[m] if m == 1 else (48 if m == 2 else 24)) for m in mpvs}
+    multi = [m for m in mpvs if m > 1]
+    grouped: dict[int, list[int]] = {}
+    for m in multi:
+        grouped.setdefault(cons[m], []).append(m)
+    clauses = []
+    for ceiling in sorted(grouped, reverse=True):
+        lines = grouped[ceiling]
+        span = f"{lines[0]}" if len(lines) == 1 else f"{lines[0]}-{lines[-1]}"
+        clauses.append(f"{ceiling} MB at {span} lines")
+    print("\n=== RECOMMENDATION, generated from the fitted ceiling ===")
+    print(f"  MultiPV 1 at any Hash; otherwise " + ", ".join(clauses) + ".")
+
+
     if args.patch:
         pdata = load(args.patch)
         pcells = table(pdata)
