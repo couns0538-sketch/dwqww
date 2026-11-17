@@ -1,0 +1,12 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 14:20:20.021143771 +0000
++++ b/src/board.cpp	2026-11-17 14:21:54.113143771 +0000
+@@ -1284,7 +1284,7 @@
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+-    else king_lines_.valid = false;
++    /* PLANTED FAULT: leak child king_lines_ when parent had valid == false */
+ #endif
+ }
+ 

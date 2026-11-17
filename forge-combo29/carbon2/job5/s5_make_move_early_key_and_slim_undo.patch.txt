@@ -1,0 +1,171 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 14:07:26.885143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 14:20:09.941143771 +0000
+@@ -208,7 +208,7 @@
+     // double push next to an enemy pawn): then the caller prefetches after make_move.
+     [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
+ #endif
+-    [[nodiscard]] bool make_move(const Move& move, Undo& undo);
++    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+     void unmake_null_move(const NullUndo& undo);
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 14:07:26.885143771 +0000
++++ b/src/board.cpp	2026-11-17 14:20:20.021143771 +0000
+@@ -1156,7 +1156,7 @@
+ }
+ #endif
+ 
+-bool Board::make_move(const Move& move, Undo& undo) {
++bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key) {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const Piece moving = squares_[move.from];
+@@ -1170,10 +1170,11 @@
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
+ #if FORGE_SPD_KING_LINES
+-    undo.king_lines = king_lines_;
++    if (king_lines_.valid) undo.king_lines = king_lines_;
++    else undo.king_lines.valid = false;
+ #endif
+ 
+-    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++    if (precomputed_key == nullptr && ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+     ep_square_ = -1;
+@@ -1182,26 +1183,26 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
+-        key_ ^= piece_key(captured_square, undo.captured);
++        if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
+-        key_ ^= piece_key(move.to, undo.captured);
++        if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+-    key_ ^= piece_key(move.from, moving);
++    if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+     if (move.is_promotion()) {
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+-        key_ ^= piece_key(move.to, promoted);
++        if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
+-        key_ ^= piece_key(move.to, moving);
++        if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+     }
+     if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
+@@ -1211,20 +1212,28 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+-        key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++        if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
+-    key_ ^= Z.castling[castling_];
+-    castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+-    key_ ^= Z.castling[castling_];
+-
+-    if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
+-    if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+-    side_ = them;
+-    key_ ^= Z.side;
+-    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+-        key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++    if (precomputed_key != nullptr) {
++        castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
++        if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
++        if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
++        side_ = them;
++        key_ = *precomputed_key;
++    } else {
++        key_ ^= Z.castling[castling_];
++        castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
++        key_ ^= Z.castling[castling_];
++
++        if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
++        if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
++        side_ = them;
++        key_ ^= Z.side;
++        if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++            key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++        }
+     }
+     // Checkers are the mover's attacks on the opponent king. One side only:
+     // the other colour cannot be the checker, so it is not consulted.
+@@ -1274,7 +1283,8 @@
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+-    king_lines_ = undo.king_lines;
++    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
++    else king_lines_.valid = false;
+ #endif
+ }
+ 
+@@ -1285,7 +1295,8 @@
+     undo.plies_from_null = plies_from_null_;
+     undo.checkers = checkers_;
+ #if FORGE_SPD_KING_LINES
+-    undo.king_lines = king_lines_;
++    if (king_lines_.valid) undo.king_lines = king_lines_;
++    else undo.king_lines.valid = false;
+ #endif
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -1311,7 +1322,8 @@
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
+ #if FORGE_SPD_KING_LINES
+-    king_lines_ = undo.king_lines;
++    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
++    else king_lines_.valid = false;
+ #endif
+ }
+ 
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 14:09:11.677143771 +0000
++++ b/src/search.cpp	2026-11-17 14:20:45.061143771 +0000
+@@ -1950,11 +1950,12 @@
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;
+-        (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
++        (void)board.make_move(move, undo);
+         shared_.tt.prefetch(board.key());
+ #endif
+         prefetch_correction(board, ss + 1);
+@@ -2474,11 +2475,12 @@
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
+-        (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
++        (void)board.make_move(move, undo);
+         shared_.tt.prefetch(board.key());
+ #endif
+         prefetch_correction(board, ss + 1);
