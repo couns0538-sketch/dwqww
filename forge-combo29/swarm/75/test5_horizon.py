@@ -21,7 +21,7 @@ import sys
 
 import chess
 
-from harness import Forge, parse_fen
+from harness import Forge, cold_search, parse_fen
 
 DEPTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -64,7 +64,10 @@ def main() -> int:
             reference = balance if board.turn == chess.WHITE else -balance
             scores: list[dict] = []
             for depth in DEPTHS:
-                res = f.search(board, depth=depth)
+                # Cold per depth: a TT carried between depths changes the score
+                # at fixed nominal depth, so the ladder would measure the TT
+                # rather than the horizon.
+                res = cold_search(board, depth)
                 score = res["score"]
                 scores.append({"depth": depth, "type": score["type"],
                                "value": score["value"], "nodes": res["nodes"],

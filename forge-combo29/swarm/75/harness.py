@@ -268,6 +268,26 @@ class Forge:
 
 # -- mirroring -------------------------------------------------------------
 
+def cold_search(board: chess.Board, depth: int, options: dict[str, str] | None = None) -> dict:
+    """Search in a FRESH engine process.
+
+    Measured defect: search scores move when several positions are searched in
+    one process, because the transposition table carried from the previous
+    search changes move ordering and therefore which prunings fire at a fixed
+    depth. The same KBN-vs-K board returned 274 / 285 / 293 warm against 272
+    cold, three times identically. Any score used as data here is therefore
+    taken cold, one process per measurement.
+    """
+    with Forge(options=options) as f:
+        return f.search(board, depth=depth)
+
+
+def cold_eval(board: chess.Board, options: dict[str, str] | None = None) -> dict:
+    """Static evaluation in a fresh engine process."""
+    with Forge(options=options) as f:
+        return f.evaluate(board)
+
+
 def mirror_board(board: chess.Board) -> chess.Board:
     """Colour-mirror: swap colours and reflect ranks. Side to move is preserved."""
     fen = board.fen()

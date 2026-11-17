@@ -25,7 +25,7 @@ import sys
 
 import chess
 
-from harness import Forge, parse_fen
+from harness import Forge, cold_search, parse_fen
 
 DEPTH = 6
 
@@ -76,7 +76,8 @@ def main() -> int:
         for label, white, black, verdict, expected in CASES:
             board = build(white, black)
             static = f.evaluate(board)
-            searched = f.search(board, depth=DEPTH)
+            # Cold: a warm TT shifts fixed-depth scores (see harness.cold_search).
+            searched = cold_search(board, DEPTH)
 
             score_type = searched["score"]["type"]
             score_value = searched["score"]["value"]
