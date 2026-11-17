@@ -1,0 +1,30 @@
+| position | command | info lines | deepest | bestmove | elapsed s |
+|---|---|---|---|---|---|
+| startpos | `go infinite` | 30 | (30, 'cp', 7, 93981191) | after stop: d2d4 | 75.0 |
+| startpos | `go` | 30 | (30, 'cp', 7, 93981191) | after stop: d2d4 | 75.0 |
+| drawn threefold | `go infinite` | 64 | (64, 'cp', 0, 0) | after stop: d5d1 | 75.0 |
+| drawn threefold | `go` | 64 | (64, 'cp', 0, 0) | d5d1 | 0.0 |
+
+RESULT — and it REFUTES the generalisation in 23-F189
+------------------------------------------------------
+| position | command | info lines | deepest reached | bestmove | elapsed |
+|---|---|---|---|---|---|
+| **startpos** | `go infinite` | 30 | **depth 30** (cp 7, 93,981,191 nodes) | only after `stop`: d2d4 | **75 s (my cap)** |
+| **startpos** | `go` | 30 | depth 30 | only after `stop`: d2d4 | 75 s (my cap) |
+| drawn threefold | `go infinite` | 64 | depth 64 (cp 0, 0 nodes) | d5d1 | **0.0 s** |
+| drawn threefold | `go` | 64 | depth 64 | d5d1 | 0.0 s |
+
+**On startpos, `go infinite` did NOT terminate at depth 64 — it ran for my full 75-second cap and had reached only
+depth 30, and needed `stop` to return a move.** So 23-F189's sentence "go infinite stops at the depth ceiling in this
+build, immediately on a drawn root and after ~19 s on a normal position" is TRUE for the sparse K+R v K twin it was
+measured on and FALSE for a dense position.
+
+The correct statement:
+- the `max_depth <= 64` clamp is real (23-F187) and BINDS on sparse positions, where 64 is reachable in seconds;
+- on a dense position 64 is far out of reach, so `go infinite` behaves as one expects — it runs until `stop`, and the
+  clamp never comes into play;
+- **the ~19 s figure was the K+R v K bare twin exhausting depth 64, NOT "a normal position"** — I described a sparse
+  endgame as if it were representative, which is the same error as every other one-fixture generalisation in this seat.
+
+For a harness author the load-bearing fact is therefore: `go infinite` is bounded by `stop` (or 64, whichever comes
+first), and on a real position it is `stop` that matters.

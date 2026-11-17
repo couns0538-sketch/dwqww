@@ -2510,3 +2510,17 @@ the one place I had not applied my own rule, which is worth noting: I wrote the 
 rows from where the policy claim sat.
 
 211 findings, 28 instances plus eleven named patterns, all three checks PASS, gate live.
+
+### CORRECTION at 03:28Z — F191 refutes F189's `go infinite` generalisation (the owner-facing claim changed)
+
+F189 said `go infinite` "stops at the depth ceiling in this build, immediately on a drawn root and after ~19 s on a
+normal position". **The second half is FALSE.** On startpos, `go infinite` ran 75 seconds and reached only depth 30,
+needing `stop` to return a move. The depth-64 clamp is real but only binds where 64 is reachable — sparse endgames — and
+on a dense position it never comes into play.
+
+The ~19 s figure was the K+R v K **bare twin** exhausting depth 64, which I described as "a normal position". That is the
+one-fixture generalisation in its most familiar form, and it matters because a harness author reading F189 would have
+concluded `go infinite` is safe to run without a stop path.
+
+Correct statement for a harness author: **`go infinite` is bounded by `stop` or 64, whichever comes first; on a real
+position it is `stop` that matters.** F189 is corrected in place and the trap entry should carry this form.
