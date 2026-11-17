@@ -1,0 +1,15 @@
+19-C60: is the per-position coin flip specific to CorrHistV2 or general to the switches?
+PC r15 sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4 ; depth 12 ; Threads 1 ; Hash 16 ; 120 real positions
+
+switch         pooled   median share ON<OFF        IQR    effect   IQR/eff
+TtPruneV2      0.9528    0.928     60.8 %      0.462     0.047       9.8
+             n=120  min 0.341 Q1 0.745 Q3 1.207 max 5.435
+CuckooRep      0.9914    0.999     52.5 %      0.256     0.009      29.8
+             n=120  min 0.434 Q1 0.887 Q3 1.142 max 2.008
+CorrHistV2     0.9478    0.959     54.2 %      0.413     0.052       7.9
+             n=120  min 0.483 Q1 0.767 Q3 1.180 max 2.582
+HistRework     1.0311    1.018     46.7 %      0.514     0.031      16.5
+             n=120  min 0.295 Q1 0.828 Q3 1.341 max 2.223
+
+PREDICTED: all four IQR/effect > 5 ; TtPruneV2 share 65-80 %% ; CuckooRep/HistRework 50-60 %%
+KILL: if all four share < 60 %, the coin flip is general and C56 must say so for the whole set.

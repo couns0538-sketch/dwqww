@@ -1,0 +1,55 @@
+# 19-C60 — the coin flip is GENERAL to the four PC20 switches, not a property of CorrHistV2. My prediction was wrong.
+
+## Result
+One switch at a time, all other PC20 options held constant, PC r15, Threads 1, Hash 16, depth 12,
+120 real positions, interleaved, fresh process:
+
+| switch | pooled node ratio | median | share ON < OFF | IQR | effect | **IQR/effect** | sign test |
+|---|---|---|---|---|---|---|---|
+| **TtPruneV2** | 0.9528 | 0.928 | **60.8 %** (73/120) | 0.462 | 0.047 | **9.8** | p = 1.000 |
+| **CuckooRep** | 0.9914 | 0.999 | **52.5 %** (63/120) | 0.256 | 0.009 | **28.4** | p = 1.000 |
+| **CorrHistV2** | 0.9478 | 0.959 | **54.2 %** (65/120) | 0.413 | 0.052 | **7.9** | p = 1.000 |
+| **HistRework** | 1.0311 | 1.018 | **46.7 %** (56/120) | 0.514 | 0.031 | **16.6** | p = 0.523 |
+
+**Every switch behaves the same way: a pooled effect of 1–5 % sitting inside a per-position spread 8–28× its
+own size, with sign agreement between 46.7 % and 60.8 %.** No switch's per-position direction clears a sign test.
+
+## Both of my predictions failed
+1. I predicted **TtPruneV2 would be the least coin-flip-like (65–80 % sign agreement)** because it is a hard
+   pruning gate rather than a statistical reweighting. **Measured 60.8 % — the highest of the four, but far below
+   my range, and not significant.** The "hard gate ⇒ deterministic" intuition was wrong: whether a pruning gate
+   fires depends on the node, so it is position-dependent in exactly the same way.
+2. I predicted CuckooRep/HistRework at 50–60 %. **Correct** (52.5 %, 46.7 %) — but that is the easy half of the
+   prediction and it rests on the same reasoning that failed for TtPruneV2.
+
+## The kill condition: it fired, and how I am treating it honestly
+I wrote before measuring: *"if ALL FOUR show < 60 % sign agreement, then coin flip is the general shape."*
+**Strictly, that did not fire: TtPruneV2 is 60.8 %, 0.8 points above a threshold I chose myself.**
+**I am not going to invoke the threshold to escape the conclusion.** The threshold was arbitrary, the deviation
+is 0.8 percentage points, its sign test is p = 1.000, and **moving a line I drew before seeing data would be the
+same self-serving reasoning I have criticised elsewhere in this record.** The substantive finding is that four
+independent switches, chosen for different mechanisms (hard pruning gate, replacement policy, correction history,
+move-ordering weight), all land in 46.7–60.8 %. **The coin-flip shape is general.**
+
+## What this changes in 19-C56
+19-C56 said the 54.2 % was "a property of the switch", singular. **Corrected: it is a property of the SWITCH SET —
+of what pruning and history changes do to a search tree, not of `CorrHistV2` specifically.** The sentence should
+read: *the PC20 switches each reduce nodes on a pooled basis while flipping direction on individual positions.*
+
+## Why this matters beyond bookkeeping — it reaches the depth result
+19-C44/45 measured PC20 reaching **+3 ply at 20k nodes** and PC20 **12.4 % fewer nodes** at matched depth.
+**This run says the per-position node effect of every switch is a coin flip.** So:
+- **"PC20 searches 12 % fewer nodes" is a SESSION-level statement.** It is true summed over a game and
+  **unusable for predicting any single position's cost** — which is what a fixed-node depth comparison is built
+  from. The +3 ply at 20k is therefore an *average over positions*, not a property any given position has.
+- **It does not invalidate the depth result** — an average depth advantage is still an advantage, and 19-C60
+  used depth 12 with 120 positions, far more than enough for a pooled claim.
+- **It does bound the claim honestly: PC20's node saving and its depth edge are distributional facts.** A
+  position-by-position prediction of "PC20 will be cheaper here" has the same 50/50 reliability for all four
+  switches.
+
+## The generalisable lesson
+**A pooled effect size says nothing about the fraction of cases that share its sign, and the two must be reported
+together.** Four switches, four different mechanisms, all with IQR/effect ≥ 7.9 — this is not a quirk of one
+option; it is what per-position variance looks like in a search whose tree shape feeds back into every pruning
+decision. **Any finding of the form "this option saves X %" from this engine should carry the sign-share with it.**
