@@ -1,0 +1,32 @@
+PREDICTION — SW-23 job 55 (does the bail require THIS root to repeat three times, or ANY position in the history?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F110 established the history gate: the root bails only when its repetition is in the move list. But "its repetition"
+is ambiguous between two mechanisms that a tool author needs to distinguish:
+  M1 ROOT-SPECIFIC: the engine asks "has the position I am searching occurred 3 times?"
+  M2 ANY-REPETITION: the engine asks "does the history contain any position 3 times?" and bails on that alone.
+Under M1 a game that repeated some OTHER position three times and then moved on is searched normally. Under M2 it bails
+on a position that has never repeated — a much broader and worse defect.
+
+DESIGN — three sends on one base board (`1K6/8/8/3R4/8/8/8/k7 w`, halfmove 0), base build, Threads 1, Hash 16, depth 10:
+  T0 CONTROL root only, no moves                                    -> expect a SEARCH
+  T1 a shuffle that repeats an INTERMEDIATE position 3x, then LEAVES it, ending on the root
+        -> the ROOT has occurred ONCE; some other position occurred 3x
+  T2 a shuffle where the ROOT itself occurs 3x                       -> expect 0 nodes (23-F110)
+Both move lists constructed by search over legal non-capturing non-checking moves and validated in python-chess:
+for T1 I assert the root's occurrence count is exactly 1 and the most-repeated position is exactly 3; for T2 I assert
+the root's count is exactly 3. Those assertions are printed BEFORE the engine is called.
+
+Prediction (each with the range that kills it):
+  P1  T0 SEARCHES (nodes > 0). KILLED if it bails — the harness would be wrong, since halfmove 0 with no history.
+  P2  **T1 SEARCHES** — the bail is ROOT-SPECIFIC (M1), not triggered by an unrelated threefold elsewhere in the
+      history. KILLED if T1 returns 0 nodes, which would establish M2 and make the defect far broader: any game that
+      ever repeated anything would poison subsequent searches.
+  P3  T2 RETURNS 0 NODES, reproducing 23-F110 on this board. KILLED if it searches — then the fixture is wrong and T1
+      proves nothing, so P2's verdict is void.
+  P4  If T1 bails AND T2 bails, print the node counts of both so a reader can see whether they differ at all; under M2
+      I would expect identical behaviour, and identical node counts would be consistent with the engine bailing before
+      looking at the root — which would be the code-level hint an area-7 seat needs.
+
+Order matters: P3 is the gate on the whole job. If T2 fails, I report the fixture as broken and draw NO conclusion about
+T1, because a null result from a harness I have already shown is misconfigured would be worthless.
