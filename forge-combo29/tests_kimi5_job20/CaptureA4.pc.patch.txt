@@ -1,0 +1,84 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -117,6 +117,8 @@
+ int HistoryPruneMultiplier = 2048;
+ int SeeQuietMultiplier = 24;
+ int SeeNoisyMultiplier = 150;
++int SeeNoisyHistDiv = 0;
++int GoodCaptureHistDiv = 0;
+ int SingularDepth = 7;
+ int SingularMargin = 2;
+ int IirDepth = 4;
+@@ -199,6 +201,8 @@
+         {"HistoryPruneMultiplier", &HistoryPruneMultiplier, 0, 20000},
+         {"SeeQuietMultiplier", &SeeQuietMultiplier, 0, 200},
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
++        {"SeeNoisyHistDiv", &SeeNoisyHistDiv, 0, 1024},
++        {"GoodCaptureHistDiv", &GoodCaptureHistDiv, 0, 1024},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+@@ -696,7 +700,8 @@
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+-                    if (!board_.see_ge(move, -move_score_threshold(move))) {
++                    const int t = move_score_threshold(move);
++                    if (!board_.see_ge(move, -t)) {
+ #if FORGE_SDK_BADCAP_PREFIX
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+                         moves_[bad_count_++].move = move;
+@@ -705,6 +710,8 @@
+ #endif
+                         continue;
+                     }
++                    // A pass with t <= 0 proves SEE >= 0; with t > 0 it does not.
++                    last_t_nonpositive_ = (t <= 0);
+                     return move;
+                 }
+                 stage_ = Killer1;
+@@ -777,7 +784,7 @@
+ 
+     // Valid for the move just returned by next(), until the next next() call.
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+-    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
++    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures && last_t_nonpositive_; }
+ 
+     // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
+     void close_quiet_tail() { quiet_tail_closed_ = true; }
+@@ -800,6 +807,10 @@
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
++    // Written by every return from the GoodCaptures loop: whether that move's t
++    // was at most 0, so its see_ge(move, -t) pass proves SEE >= 0. Read only
++    // while stage_ == GoodCaptures, which holds exactly after such a return.
++    bool last_t_nonpositive_ = false;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Every slot read is written first (moves_[index_ < count_], bad_captures_
+     // [bad_index_ < bad_count_], check_squares_[1..6] after init_check_squares):
+@@ -891,7 +902,13 @@
+     };
+ #endif
+ 
+-    [[nodiscard]] static int move_score_threshold(Move) { return 0; }
++    // t for the good/bad capture SEE test: 0 at the default (the historical
++    // SEE >= 0 split); with GoodCaptureHistDiv > 0 the move's capture history
++    // divided by the option (C++ integer division).
++    [[nodiscard]] int move_score_threshold(Move move) const {
++        return tune::GoodCaptureHistDiv > 0 ? searcher_.capture_history_value(board_, move) / tune::GoodCaptureHistDiv
++                                            : 0;
++    }
+ 
+     [[nodiscard]] bool is_valid_quiet(Move move) const {
+         return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&
+@@ -2163,7 +2180,8 @@
+                     trace_case();
+                     continue;
+                 }
+-                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                const int see_threshold = -tune::SeeNoisyMultiplier * depth -
++                                          (tune::SeeNoisyHistDiv > 0 && !quiet ? history / tune::SeeNoisyHistDiv : 0);
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();

@@ -1,0 +1,167 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -90,10 +90,63 @@
+ #define FORGE_ABORT_FAIL_HIGH_FALLBACK 0
+ #endif
+ 
++// FORGE_A4_CHECK (kimi5 job 20; default 0 = the code before it): A4 capture-history
++// counters, observe only. 1 = one A4C counter line per UCI search.
++#ifndef FORGE_A4_CHECK
++#define FORGE_A4_CHECK 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_A4_CHECK
++// A4 counters (kimi5 job 20). Observe only: no value, control flow or table entry of
++// the search changes. All runs of this job use Threads 1, so plain counters. One
++// counter set per UCI search: reset where the search's own counters reset, one A4C
++// line printed where the search result returns.
++namespace a4c {
++// (a) Noisy SEE test, non-quiet moves only, split by the sign of the capture
++// history: class 0 = below 0, 1 = 0, 2 = above 0. moved_pruned = pruned with the
++// history term but not without it (threshold compared observe-only against
++// -SeeNoisyMultiplier * depth); moved_saved = not pruned with it but pruned without.
++std::uint64_t sn_tested[3] = {}, sn_pruned[3] = {}, sn_moved_pruned[3] = {}, sn_moved_saved[3] = {};
++std::uint64_t seeq = 0; // quiet (checking) moves reaching the same test, for scale
++// (b) Picker good/bad split: captures SEE-tested, sent to the bad list, changed
++// sides because of t (against t = 0), handed out as good, of those with flag false.
++std::uint64_t cap_tested = 0, cap_bad = 0, cap_changed = 0, good_out = 0, good_flagfalse = 0;
++// (c) SEE tests the search ran only because the remembered flag was false.
++std::uint64_t see2167_flagfalse = 0, see2219_flagfalse = 0;
++int cls_of(int h) { return h < 0 ? 0 : (h > 0 ? 2 : 1); }
++void see_count(int history, bool pruned, bool pruned_without_term) {
++    const int k = cls_of(history);
++    ++sn_tested[k];
++    if (pruned) ++sn_pruned[k];
++    if (pruned && !pruned_without_term) ++sn_moved_pruned[k];
++    if (!pruned && pruned_without_term) ++sn_moved_saved[k];
++}
++void pick_count(bool pass, bool pass_t0) {
++    ++cap_tested;
++    if (!pass) ++cap_bad;
++    if (pass != pass_t0) ++cap_changed;
++}
++void reset() {
++    for (int k = 0; k < 3; ++k) sn_tested[k] = sn_pruned[k] = sn_moved_pruned[k] = sn_moved_saved[k] = 0;
++    seeq = cap_tested = cap_bad = cap_changed = good_out = good_flagfalse = 0;
++    see2167_flagfalse = see2219_flagfalse = 0;
++}
++void print() {
++    std::cout << "info string A4C v1 sn ";
++    for (int k = 0; k < 3; ++k) std::cout << sn_tested[k] << (k < 2 ? "," : " ");
++    for (int k = 0; k < 3; ++k) std::cout << sn_pruned[k] << (k < 2 ? "," : " ");
++    for (int k = 0; k < 3; ++k) std::cout << sn_moved_pruned[k] << (k < 2 ? "," : " ");
++    for (int k = 0; k < 3; ++k) std::cout << sn_moved_saved[k] << (k < 2 ? "," : " ");
++    std::cout << "seeq " << seeq << " pick " << cap_tested << "," << cap_bad << "," << cap_changed << "," << good_out
++              << "," << good_flagfalse << " flg " << see2167_flagfalse << "," << see2219_flagfalse << std::endl;
++}
++} // namespace a4c
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -701,7 +754,14 @@
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+                     const int t = move_score_threshold(move);
++#if FORGE_A4_CHECK
++                    const bool a4_pass = board_.see_ge(move, -t);
++                    const bool a4_pass_t0 = (t == 0) ? a4_pass : board_.see_ge(move, 0);
++                    a4c::pick_count(a4_pass, a4_pass_t0);
++                    if (!a4_pass) {
++#else
+                     if (!board_.see_ge(move, -t)) {
++#endif
+ #if FORGE_SDK_BADCAP_PREFIX
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+                         moves_[bad_count_++].move = move;
+@@ -712,6 +772,10 @@
+                     }
+                     // A pass with t <= 0 proves SEE >= 0; with t > 0 it does not.
+                     last_t_nonpositive_ = (t <= 0);
++#if FORGE_A4_CHECK
++                    ++a4c::good_out;
++                    if (t > 0) ++a4c::good_flagfalse;
++#endif
+                     return move;
+                 }
+                 stage_ = Killer1;
+@@ -785,6 +849,11 @@
+     // Valid for the move just returned by next(), until the next next() call.
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures && last_t_nonpositive_; }
++#if FORGE_A4_CHECK
++    // Counter eyes only (kimi5 job 20): the pre-A4 predicate and the new flag.
++    [[nodiscard]] bool last_move_from_good_captures() const { return stage_ == GoodCaptures; }
++    [[nodiscard]] bool last_t_nonpositive() const { return last_t_nonpositive_; }
++#endif
+ 
+     // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
+     void close_quiet_tail() { quiet_tail_closed_ = true; }
+@@ -2182,8 +2251,24 @@
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth -
+                                           (tune::SeeNoisyHistDiv > 0 && !quiet ? history / tune::SeeNoisyHistDiv : 0);
++#if FORGE_A4_CHECK
++                const bool a4_skip = picker.last_move_see_nonnegative() && see_threshold <= 0;
++                const bool a4_pruned = !a4_skip && !board.see_ge(move, see_threshold);
++                if (picker.last_move_from_good_captures() && !picker.last_t_nonpositive() && see_threshold <= 0)
++                    ++a4c::see2167_flagfalse;
++                if (quiet) {
++                    ++a4c::seeq;
++                } else {
++                    const int a4_noterm = -tune::SeeNoisyMultiplier * depth;
++                    const bool a4_pruned_wo =
++                        !(picker.last_move_see_nonnegative() && a4_noterm <= 0) && !board.see_ge(move, a4_noterm);
++                    a4c::see_count(history, a4_pruned, a4_pruned_wo);
++                }
++                if (a4_pruned) {
++#else
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
++#endif
+                     trace_case();
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+@@ -2233,10 +2318,17 @@
+             } else if (cut_node) {
+                 extension = -1;
+             }
++#if FORGE_A4_CHECK
++        } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node) {
++            if (picker.last_move_from_good_captures() && !picker.last_t_nonpositive()) ++a4c::see2219_flagfalse;
++            if (picker.last_move_see_nonnegative() || board.see_ge(move, 0)) extension = 1;
++        }
++#else
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+         }
++#endif
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
+ 
+@@ -2487,6 +2579,9 @@
+     stopped_by_nodes_ = false;
+     extra_nodes_ = 0;
+     pondering_ = limits.ponder;
++#if FORGE_A4_CHECK
++    a4c::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
+@@ -3142,6 +3237,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_A4_CHECK
++    a4c::print(); // one A4C counter line per UCI search
++#endif
+     return result;
+ }
+ 
