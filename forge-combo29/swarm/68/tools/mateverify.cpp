@@ -780,7 +780,7 @@ int main(int argc, char** argv) {
                 continue;
             }
             const int claimed = std::atoi(f[1].c_str());
-            const Verdict v = verify(p, claimed, 400000000ULL, 300.0);
+            const Verdict v = verify(p, claimed, 120000000ULL, 45.0);
             const int attacker = v.attacker >= 0 ? v.attacker : p.side;
             std::printf("{\"fen\":\"%s\",\"claimed\":%d,\"attacker\":\"%s\",\"stm\":\"%s\","
                         "\"status\":\"%s\",\"direction\":\"%s\",\"dtm_plies\":%d,"

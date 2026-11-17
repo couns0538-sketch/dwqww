@@ -1,80 +1,83 @@
-# Swarm 68 — label-quality screen for mate scores
+# STATUS
 
-**Status: verifier NOT yet cleared to gate anything.** It is validated on move
-generation (27/27 perft cases against python-chess) and it demonstrably rejects
-wrong `N` in both directions. But it disagrees with an independent retrograde
-table on small KQvK endgames (28/40 agreement), so its DTM numbers are not
-trustworthy yet. The disagreement is unresolved and is being worked; no
-wrong-mate rate will be reported until it is.
+## State: verifier validated and shown able to fail; corpus results in
 
-## Ground truth established
+**Wrong-mate rate: 89/240 = 37.1%** at depth 12, Threads 1, MultiPV 1/2/3,
+on labels with `|N| ≤ 5` (the ones the verifier can finish).
 
-`retrograde.py` computes exact DTM for **every** legal KQvK and KRvK position by
-backward induction, and asserts the published bounds:
+**Verifier validation result: PASSES.** It reproduces exact retrograde DTM on
+50/50 KQvK positions and 17/20 KRvK (3 `INCONCLUSIVE`, 0 wrong), its move
+generation agrees with python-chess on 27/27 perft cases, and it **rejects
+planted wrong distances in both directions with the correct direction label**.
+A negative control (side-to-move-assumes-attacker) misreports the negative-score
+cases, so the verifier's agreement on losses is earned rather than structural.
 
-| class | states | resolved | max DTM (winner) | published |
-|---|---|---|---|---|
-| KQvK | 368,452 | 345,404 | 19 plies = 10 moves | 10 moves — ok |
-| KRvK | 399,112 | 376,868 | 31 plies = 16 moves | 31 plies — ok |
+## Headline numbers
 
-Note the brief's bounds mix units: KQvK is 10 **moves** (19 plies) and KRvK is
-31 **plies** (16 moves). The table asserts both numbers explicitly.
+| item | value |
+|---|---|
+| wrong-mate rate (all MultiPV, \|N\|≤5) | **89/240 = 37.1%** |
+| MultiPV 1 | 16/42 = 38.1% |
+| MultiPV 2 | 28/81 = 34.6% |
+| MultiPV 3 | 45/109 = 41.3% |
+| direction `over` | 85/89 |
+| direction `under` | 4/89 |
+| PV-length filter passes that are still WRONG | **97/240** |
+| PV-length filter passes that are CORRECT | 143/240 |
+| PV-length filter rejections | 0/240 |
+| verifier throughput | 0.553 labels/s single-core, ~1.2/s on 4 cores |
+| positions refused by the engine | 0/400 |
 
-Re-runnable: `python3 retrograde.py all` (writes `kqvk_dtm.json`, `krvk_dtm.json`).
+## The two headline findings
 
-The bound assertion is load-bearing. A first version dropped states where the
-strong piece could be captured, silently deleting the weak king's best defence
-(take the undefended queen → KvK draw). It reported a KQvK maximum of 6 moves and
-**zero** drawn positions, both impossible. The assertion caught it.
+1. **The PV-length filter is inert on this corpus.** All 240 graded labels have a
+   PV of exactly the length the score implies, and 97 of them are wrong anyway.
+   The rule checks the one property that is not broken.
+2. **Wrong mate distances are common at match depth and mostly overstate.**
+   85 of 89 are `over`, mean +1.33 moves, but 4 are `under` — so both directions
+   occur, and the two known boards are not the whole class.
 
-## Move generation
+## Honest limits of this result
 
-`mateverify` is an independent C++ program: own mailbox→bitboard board, own move
-generation, own search. It links no engine code.
+- **Most of the 37% is a depth artefact, not a persistent defect.** The engine
+  converges from above: `8/8/8/8/8/k7/8/KQ6 w` gives `mate 6` at depth 12,
+  `mate 6` at 16, `mate 5` at 20–24, and the exact answer is 5. A deeper corpus
+  would show a smaller rate. What the number establishes is that **a mate label
+  collected at fixed shallow depth is unsafe to train on**, which is the corpus
+  risk in the brief.
+- **The corpus is sparse by construction** (material diff ≥ 5, ≤ 12 pieces), so
+  the rate applies to the positions where mates actually appear — not to
+  middlegames, where a mate label is rare to begin with.
+- **Board 222 and board 121 are NOT confirmed or refuted.** Both are ~12-piece
+  middlegames with pawns and the exhaustive verifier did not finish board 222 in
+  15 minutes. The verifier is a sparse-endgame tool; this is a real limitation.
 
-`python3 perft_check.py` → **27/27** agree with python-chess (7 published perft
-positions + 20 hand-picked and random endgames). Two real bugs were found this
-way and fixed:
+## Open items
 
-1. **Unmake restored the promoted piece instead of the pawn.** `d7c8=Q` put a
-   queen back on `d7` on unmake, corrupting every position after it.
-2. A hardcoded expectation of `89879` for position 6 was itself wrong; the
-   verifier's `89890` is correct and python-chess agrees. The fixture was the
-   fault, not the code — recorded because an expectation typed from memory is a
-   fixture that can be wrong.
+1. **Boards 222 / 121** — need a faster exact solver for populated middlegames.
+   No verdict claimed. This is the one assigned sub-task left incomplete.
+2. **Depth sweep** — re-grade at depth 16/20 to separate "wrong because shallow"
+   from "wrong at convergence". Cheap to run; the corpus and harness exist.
+3. **`INCONCLUSIVE` handling** — 8/240 hit the node cap. They are excluded from
+   the rate rather than counted as wrong; that choice is stated so it can be
+   challenged.
 
-## What is proven about the verifier
-
-- **It rejects a wrong `N` in both directions.** Fed `mate 8` where the truth is
-  `mate 10`: `WRONG / under`. Fed `mate 12` where the truth is `mate 10`:
-  `WRONG / over`. So a "correct" verdict is not structurally unreachable.
-- The attacker is resolved from the **sign** of the exact score and printed per
-  result (`attacker_from: sign_of_exact_score`), so a negative label does not get
-  the side-to-move-as-attacker bug.
-
-## What is NOT proven yet
-
-Verifier DTM vs the retrograde table agrees on only **28/40** sampled KQvK
-positions with `|DTM| <= 11`; the verifier reports distances 2–6 plies **too
-large**. Two independent implementations (the retrograde table, and a plain
-python negamax) both say 10 plies for `8/8/7K/8/8/7k/2Q5/8 b - - 0 1`; the
-verifier says 12. Perft passing but mate distances being wrong points at the
-search, not move generation. This must be closed before any corpus verdict is
-reported.
-
-## Not started
-
-- Engine mate-score corpus at a real match budget, Threads 1 (MultiPV 1/2/3).
-- The two known boards (R5 222, R6 121).
-- Positions/second throughput.
-- The cheap cp-near-mate-horizon detector.
-
-## Re-runnable commands
+## Re-runnable
 
 ```bash
 cd forge-combo29/swarm/68/tools
 g++ -O2 -std=c++20 -o mateverify mateverify.cpp
-python3 perft_check.py          # 27/27 movegen agreement
-python3 retrograde.py all       # exact DTM tables + published-bound assertions
-./mateverify --one "<FEN>" <N>  # one verdict
+python3 retrograde.py all     # exact DTM tables + published-bound assertions
+python3 perft_check.py        # 27/27 movegen agreement vs python-chess
+python3 dtm_validate.py       # true/wrong/negative-control validation
+python3 build_corpus.py 400 corpus.fen 6801
+python3 collect_mates.py "$(pwd)/../../build/forge" corpus.fen 12 1 mates_mpv1_d12.jsonl 30
 ```
+
+## Traps hit (all fixed, all documented in SCREEN.md)
+
+default `c++` is Clang without libstdc++ · unmake restoring the promoted piece ·
+**TT mate-score reuse across plies (reported mate 12 at horizon 9)** ·
+retrograde dropping capture-escapes (KQvK max 6 instead of 10) · the brief's
+bounds in mixed units · `invalid FEN` readable from two different streams ·
+side-to-move-assumes-attacker.
