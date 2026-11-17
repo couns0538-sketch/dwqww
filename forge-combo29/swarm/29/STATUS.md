@@ -508,3 +508,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Patch tried: convert move.to once in quiet_history_sum() for all three subscripts (identical semantics, node counts unchanged on all four benches). Result: 22,702,232,214 vs 22,702,232,228 - a 14-instruction difference on 22.7 BILLION (6e-10) = jitter. The compiler had already done it. NOT kept.
 - Conclusion for Step 2: NO bit-exact picker patch here. Cutting those reads means fewer tables per move or a layout change, both of which alter score values and so become SEARCH changes under file 7's identity rule. The attribution is the useful artefact; the patch does not exist yet.
 - next: continuing at cadence.
+
+## Tue Nov 17 01:09:38 AM UTC 2026
+- 29-F61: I checked my OWN handover route with arithmetic before anyone spends hours on it, and it does not survive. PieceToHistory = 13x64x2 = 1,664 bytes = 26 cache lines, so one [piece][to] read touches 1 of ~26 lines; the three reads live in three DIFFERENT ContinuationHistory objects so no two can share a line; and candidates in a node share a 'from' (same piece) but have DISTINCT 'to', and the table is indexed by 'to' - so one read cannot serve several candidates, by construction.
+- Withdrawn from the handover. Realistic routes instead: (1) skip cont4 when provably all-zero - bit-exact if the flag is equivalent to the read, needs a per-frame flag and a test; (2) prefetch, bit-exact by definition but my F10/seat 19's 19-F10 found extra prefetch requests made this loop SLOWER; (3) shrink the entry, changes values, out of scope.
+- Arithmetic only, not measured - but it stops the next seat wasting an hour on a route that cannot work.
+- next: continuing at cadence.

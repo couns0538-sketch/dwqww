@@ -1,0 +1,44 @@
+=== IS THE "ONE READ SERVES SEVERAL CANDIDATES" ROUTE EVEN PLAUSIBLE? Sizes measured, not assumed ===
+The handover said the route for a bit-exact picker patch is "a layout that makes one read serve several candidates".
+Before anyone spends hours on it, here is the arithmetic from the actual type definitions.
+
+From `include/forge/search.hpp` (PC r15 tree):
+```
+using ButterflyHistory    = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;   // [side][from][to]
+using PieceToHistory      = std::array<std::array<std::int16_t, 64>, 13>;                    // [piece][to]
+using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+```
+
+## Sizes
+- `PieceToHistory` = 13 x 64 x 2 bytes = **1,664 bytes** = **26 cache lines** (64 B each).
+- A candidate move reads `(*cont)[piece][to]` -> one `int16_t` inside that 1,664-byte block, i.e. **1 of ~26 lines**.
+- Three such reads per candidate (cont1, cont2, cont4) -> up to **3 distinct cache lines per candidate move**, and
+  they live in three DIFFERENT `ContinuationHistory` objects (different stack frames), so **no two of them can share a
+  line** — the objects are megabytes apart in the table arena.
+- Within one `PieceToHistory`, two candidates that share the `piece` but differ in `to` touch the same 1664-byte block,
+  but `to` differs, so they hit DIFFERENT lines unless the two `to` squares happen to fall in the same 16-entry line
+  (2 bytes each, 32 `to` values per line). For a piece on one square with 8-30 candidate destinations, that is
+  typically **2-4 distinct lines**, not 1.
+
+## Verdict on the route: not plausible as stated
+"One read serves several candidates" requires several candidates to read the SAME `(piece, to)` slot. They do not:
+candidate moves in one node share a `from` square (same piece) but have DISTINCT `to` squares, and the table is
+indexed by `to`. Two candidates collide only if they are different pieces landing on the same square (rare within one
+node: a quiet move list of one piece type has distinct destinations).
+
+So the layout route cannot reduce the number of distinct cache lines touched per node by any large factor, and cannot
+be bit-exact-preserving in a way that also removes the reads. **The realistic remaining routes are:**
+1. **Reduce the NUMBER of tables read per candidate** (drop cont4's read when it is provably all-zero for this node —
+   but file 7's identity rule forbids changing any score, and a zero read contributes exactly 0, so dropping it is
+   bit-exact ONLY if it is provably zero, which needs a flag that costs a branch — testable).
+2. **Prefetch the three blocks** before the scoring loop — bit-exact by definition (prefetching changes no value),
+   but my own 29-F10 confirmed seat 19's result that extra prefetch requests made things SLOWER on this class of loop.
+3. **Shrink the entry to widen the line** — changes the type, hence the values, hence not bit-exact.
+
+## What I am NOT claiming
+I have not run these. This file is an ARITHMETIC argument that rules the stated route out on size grounds, which is
+cheap and stops the next seat wasting an hour. The three alternatives above are where the work actually is, and (1) is
+the only one that could plausibly be bit-exact — it needs a "this continuation table is still empty" flag maintained
+per frame, and a test that the flag is exactly equivalent to reading the table.
+
+That is a better handover than "try a layout change".
