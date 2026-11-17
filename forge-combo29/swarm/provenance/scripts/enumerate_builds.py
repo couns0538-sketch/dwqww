@@ -23,6 +23,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pathsafe
+
 # ---------------------------------------------------------------- git plumbing
 
 
@@ -90,7 +93,7 @@ def build_corpus(repo, cache_dir):
             kinds[f[0]] = (f[1], int(f[2]))
     blobs = [i for i in ids if kinds.get(i, ("", 0))[0] == "blob"]
 
-    os.makedirs(cache_dir, exist_ok=True)
+    pathsafe.checked_path(cache_dir, os.getcwd(), create=True, allow_outside=True)
     texts = {}
     chunk = 400
     for s in range(0, len(blobs), chunk):
@@ -222,14 +225,20 @@ def main():
     ap.add_argument("--repo", default="/agent/repos/dwqww")
     ap.add_argument("--base", default="6b98f2170a3210e71beed04bbd2553972c253ed7")
     ap.add_argument("--out", default="evidence")
-    ap.add_argument("--cache", default="/tmp/prov/corpus")
+    ap.add_argument(
+        "--cache",
+        default=None,
+        help="scratch dir for extracted blobs; created owner-only if absent "
+             "(default: a fresh private temp dir)",
+    )
     args = ap.parse_args()
 
     commits, refs, by_kind = enumerate_commits(args.repo)
     print(f"refs enumerated: {len(refs)}  {dict(by_kind)}", file=sys.stderr)
     print(f"commits reachable from all refs: {len(commits)}", file=sys.stderr)
 
-    pairs, texts, n_obj, n_blob = build_corpus(args.repo, args.cache)
+    cache = args.cache or pathsafe.private_dir("forge-prov-corpus-")
+    pairs, texts, n_obj, n_blob = build_corpus(args.repo, cache)
     print(f"swarm objects: {n_obj}  text blobs read: {len(texts)}", file=sys.stderr)
 
     occ = classify_occurrences(pairs, texts)
@@ -270,21 +279,20 @@ def main():
             }
         )
 
-    os.makedirs(args.out, exist_ok=True)
-    with open(os.path.join(args.out, "identifiers.json"), "w") as fh:
-        json.dump(
-            {
-                "refs_enumerated": len(refs),
-                "refs_by_kind": dict(by_kind),
-                "commits_reachable": len(commits),
-                "base": args.base,
-                "swarm_objects": n_obj,
-                "text_blobs": len(texts),
-                "rows": rows,
-            },
-            fh,
-            indent=1,
-        )
+    out_path = pathsafe.checked_path(args.out, os.getcwd(), create=True)
+    pathsafe.dump_json(
+        {
+            "refs_enumerated": len(refs),
+            "refs_by_kind": dict(by_kind),
+            "commits_reachable": len(commits),
+            "base": args.base,
+            "swarm_objects": n_obj,
+            "text_blobs": len(texts),
+            "rows": rows,
+        },
+        "identifiers.json",
+        out_path,
+    )
     print(f"wrote {len(rows)} identifier rows to {args.out}/identifiers.json", file=sys.stderr)
 
 

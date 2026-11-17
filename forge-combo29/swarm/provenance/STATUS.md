@@ -3,8 +3,8 @@
 **State: COMPLETE.** No finding re-measured (not the assignment). Every claim below is
 backed by a script in `scripts/` and a transcript in `evidence/`.
 
-Audit base `6b98f2170a3210e71beed04bbd2553972c253ed7` · census **8,898 commits / 616 refs**
-(611 `origin/*`, 3 tags, 2 heads) · `evidence/refs_census.txt`.
+Audit base `6b98f2170a3210e71beed04bbd2553972c253ed7` · census **8,899 commits / 617 refs**
+(612 `origin/*`, 3 tags, 2 heads — the audit branch is itself a ref) · `evidence/refs_census.txt`.
 
 ## The brief's premise, checked
 
@@ -66,6 +66,30 @@ finding rides on them: `b109a0a5`, `7c4e1aee`, `6e0e9522`, `81c52608`, `1a9460d6
    check was wrong — the exact wrong-span trap the corpus documents.
 6. **"the owner's PC" matched 31 findings on a bare mention.** Only net-dependent rows
    count → **3**.
+7. **The hash→path map was produced by an unrecorded shell one-liner**, and it
+   undercounted: it enumerated blobs but reported the *first* path per blob, so a hash
+   appearing in 30 files was reported as 22. A provenance audit must not depend on an
+   unrecorded command, so it is now `scripts/find_unresolved_paths.py` and the counts are
+   per path (`b109a0a5` 22 → **30**). No finding count changed — that map only feeds the
+   transitive-dependency pass.
+8. **I rewrote a regex to silence a lint warning, and it changed the audit's answer.**
+   The super-linear-backtracking warning was legitimate, so I replaced
+   `owner'?s?[^.\n]{0,30}\bnet\b` with a hand-rolled "linear" predicate and checked
+   equivalence. They disagreed, and the disagreement was real: the regex consumes
+   through the first "net" after an "owner", so a second "net" in one phrase is not a
+   separate match. The rewrite reported **874 -> 871 findings and 45 -> 42 unresolved**.
+   **A linter warning is not worth changing the product for**, so the regex is back and
+   CI's warning-level annotation is accepted. This is the sharpest instance in the run of
+   a check whose fix is not evidence for its replacement: the counts are the deliverable,
+   and the tidy version was quietly a different audit.
+9. **Two static-analysis rules were genuinely worth fixing**, not just satisfying:
+   `open()`/`makedirs()` were called on raw CLI arguments (a path-traversal shape) and
+   scratch dirs defaulted to a hardcoded `/tmp` path. Both are now routed through
+   `scripts/pathsafe.py`, which resolves the target and refuses anything outside the
+   audit directory — verified by passing `--out /etc/evil.json` and `--out
+   ../../../evil.json`, both of which now raise instead of writing. The one exception is
+   the corpus cache, which the program creates itself with `mkdtemp` (owner-only,
+   unpredictable name) and passes `allow_outside`; output paths never can.
 
 ## Limits, stated
 

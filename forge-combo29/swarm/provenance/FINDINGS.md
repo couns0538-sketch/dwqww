@@ -1,8 +1,8 @@
 # Build provenance audit — every build identifier in the seat reports
 
 Audit base: `6b98f2170a3210e71beed04bbd2553972c253ed7`, folder `forge-combo29/`.
-Measured against: **8,898 commits reachable from 616 refs** (611 `refs/remotes/origin/*`,
-3 `refs/tags/*`, 2 `refs/heads/*`). Command that enumerates them, and the full census:
+Measured against: **8,899 commits reachable from 617 refs** (612 `refs/remotes/origin/*`,
+3 `refs/tags/*`, 2 `refs/heads/*`, including this audit's own branch). Command that enumerates them, and the full census:
 `evidence/refs_census.txt`.
 
 > **The negative claim in the brief had to name its command, and so does this one.**
@@ -178,9 +178,10 @@ their build from scratch to prove it.
 python3 scripts/enumerate_builds.py     # census + role classification -> evidence/identifiers.json
 python3 scripts/map_finding_rows.py     # finding row -> build refs     -> evidence/finding_rows.json
 python3 scripts/build_table.py          # canonical identities + ranks  -> evidence/build_table.json
-python3 scripts/transitive_deps.py      # findings whose evidence files carry a dead hash
-sh      scripts/reproduce_builds.sh     # rebuilds BOTH binaries; verifies patch + pins
-sh      scripts/reproduce_net.sh        # rebuilds the v3 net; verifies all three hashes
+python3 scripts/find_unresolved_paths.py  # hash -> swarm paths  -> evidence/unresolved_hash_paths.json
+python3 scripts/transitive_deps.py        # findings whose evidence files carry a dead hash
+sh      scripts/reproduce_builds.sh       # rebuilds BOTH binaries; verifies patch + pins
+sh      scripts/reproduce_net.sh          # rebuilds the v3 net; verifies all three hashes
 ```
 
 Every script is mechanical and re-runnable; none reads the worktree, so a stale checkout

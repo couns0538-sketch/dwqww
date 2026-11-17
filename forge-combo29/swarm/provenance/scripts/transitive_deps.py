@@ -16,10 +16,14 @@ import collections
 import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pathsafe
 
 UNRESOLVED_HASHES = {
     "b109a0a5": "base ASan/UBSan build (no recipe recorded)",
-    "7c4e1aee": "/tmp/build-base variant (no recipe recorded)",
+    "7c4e1aee": "an unrecorded variant of the base tree (no recipe recorded)",
     "6e0e9522": "seat 12 build (no recipe recorded)",
     "81c52608": "seat 01 'mine' build (no recipe recorded)",
     "1a9460d6": "seat 28 planted control (no recipe recorded)",
@@ -34,12 +38,16 @@ PATH_RE = re.compile(r"forge-combo29/swarm/\d+/[A-Za-z0-9_./-]+")
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rows", default="evidence/finding_rows.json")
-    ap.add_argument("--hits", default="/tmp/prov/unres_paths.json")
+    ap.add_argument(
+        "--hits",
+        default="evidence/unresolved_hash_paths.json",
+        help="hash -> swarm paths map (default: this audit's own evidence file)",
+    )
     ap.add_argument("--out", default="evidence/transitive_deps.json")
     args = ap.parse_args()
 
-    rows = json.load(open(args.rows))
-    hits = json.load(open(args.hits))
+    rows = pathsafe.load_json(args.rows, os.getcwd())
+    hits = pathsafe.load_json(args.hits, os.getcwd())
 
     # hash -> set of directories it appears under, so a row naming a sibling file counts
     hash_dirs = collections.defaultdict(set)
@@ -72,7 +80,7 @@ def main():
                     }
                 )
 
-    json.dump(out, open(args.out, "w"), indent=1)
+    pathsafe.dump_json(out, args.out, os.getcwd())
     byh = collections.Counter(o["hash"] for o in out)
     fnd = {(o["seat"], o["finding"]) for o in out}
     print(f"findings transitively dependent on an unresolvable build hash: {len(fnd)}")

@@ -12,6 +12,10 @@ import argparse
 import collections
 import json
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pathsafe
 
 # Canonicalise the many spellings of the same artefact down to one identity.
 CANON = [
@@ -69,8 +73,12 @@ def main():
     ap.add_argument("--out", default="evidence/build_table.json")
     args = ap.parse_args()
 
-    rows = json.load(open(args.rows))
-    verdicts = json.load(open(args.verdicts)) if os.path.exists(args.verdicts) else {}
+    rows = pathsafe.load_json(args.rows, os.getcwd())
+    verdicts = (
+        pathsafe.load_json(args.verdicts, os.getcwd())
+        if os.path.exists(pathsafe.checked_path(args.verdicts, os.getcwd()))
+        else {}
+    )
 
     findings = collections.defaultdict(set)   # build -> {(seat, finding)}
     rowcount = collections.Counter()
@@ -109,7 +117,7 @@ def main():
     # sort: unresolved first, then by how many findings ride on it
     order = {"UNRESOLVED": 0, "PARTIAL": 1, "RESOLVED": 2, "NOT-A-BUILD": 3, "SETTINGS": 4, "UNCLASSIFIED": 5}
     table.sort(key=lambda t: (order.get(t["verdict"], 9), -t["findings"]))
-    json.dump(table, open(args.out, "w"), indent=1)
+    pathsafe.dump_json(table, args.out, os.getcwd())
 
     for t in table:
         print(f"{t['verdict']:14s} findings={t['findings']:4d} seats={len(t['seats']):2d}  {t['build']}")

@@ -20,6 +20,10 @@ import json
 import os
 import re
 import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pathsafe
 
 SWARM_PATH = re.compile(r"^forge-combo29/swarm/(\d+)/")
 
@@ -41,6 +45,11 @@ STATIC_REFS = [
     # its own net. A bare mention of the owner (in a sentence about policy, or a
     # sentence like "the owner's PC plays this") is not a build reference and made 31
     # findings look net-dependent when they were not. So require the NET.
+    # Kept as a regex. A rewrite to a "linear" predicate was measured and DID change
+    # the result (874 -> 871 findings), because the regex consumes through the first
+    # "net" after an "owner" and the hand-rolled version matched a second one. A
+    # warning-level lint is not worth changing the audit's answer for, so this stays
+    # and CI's warning is accepted -- see STATUS.md.
     ("owner_label", re.compile(r"owner'?s?[^.\n]{0,30}\bnet\b", re.I)),
     # Prose build DESCRIPTORS. These are build identifiers in the weak sense: they
     # say which engine was measured without naming an artefact anyone can check.
@@ -61,7 +70,7 @@ def load_hash_refs(identifiers_path):
 
     if not os.path.exists(identifiers_path):
         return []
-    data = _json.load(open(identifiers_path))
+    data = pathsafe.load_json(identifiers_path, os.getcwd())
     seen, refs = set(), []
     for row in data["rows"]:
         tok = row["identifier"]
@@ -94,22 +103,6 @@ BUILDISH_LINE = re.compile(
 
 def git(*a, repo):
     return subprocess.run(["git", *a], cwd=repo, capture_output=True, text=True, errors="replace")
-
-
-def load_reports(repo, cache):
-    """Return [(seat, path, text)] for the seat reports that carry findings."""
-    ids = set()
-    out = []
-    for root, _, files in os.walk(cache):
-        for f in files:
-            fp = os.path.join(root, f)
-            try:
-                t = open(fp, encoding="utf-8", errors="replace").read()
-            except OSError:
-                continue
-            if FINDING_ID.search(t) or "| id |" in t:
-                ids.add(root)
-    return out
 
 
 def split_rows(text):
@@ -159,7 +152,11 @@ def refs_in(text, refs=BUILD_REFS):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default="/agent/repos/dwqww")
-    ap.add_argument("--cache", default="/tmp/prov/corpus")
+    ap.add_argument(
+        "--cache",
+        default=None,
+        help="scratch dir for extracted blobs (default: a fresh private temp dir)",
+    )
     ap.add_argument("--out", default="evidence")
     ap.add_argument("--identifiers", default="evidence/identifiers.json")
     args = ap.parse_args()
@@ -234,9 +231,8 @@ def main():
                 }
             )
 
-    os.makedirs(args.out, exist_ok=True)
-    with open(os.path.join(args.out, "finding_rows.json"), "w") as fh:
-        json.dump(row_records, fh, indent=1)
+    out_path = pathsafe.checked_path(args.out, os.getcwd(), create=True)
+    pathsafe.dump_json(row_records, "finding_rows.json", out_path)
 
     by_build = collections.Counter()
     for r in row_records:
