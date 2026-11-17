@@ -134,6 +134,31 @@ def set_engine(path):
     return ENGINE
 
 
+def checked_json_target(path):
+    """Validate the `--json` output path before anything is written to it.
+
+    The caller supplies this, so it is a trust boundary like the engine path. Refuse a
+    path that is not absolute, or that contains `..`; require the parent directory to
+    exist. A refused path raises with a message naming it rather than creating a file
+    somewhere the caller did not intend.
+    """
+    ap = os.path.abspath(path)
+    if ".." in str(path).split(os.sep):
+        raise ValueError("refusing an --json path containing '..': %r" % (path,))
+    parent = os.path.dirname(ap) or "."
+    if not os.path.isdir(parent):
+        raise FileNotFoundError("--json parent directory does not exist: %r" % (parent,))
+    return ap
+
+
+def write_json(target):
+    """Serialise the ledger to an already-validated absolute path."""
+    rows = [{k: (str(v) if not isinstance(v, (str, int, float, bool, type(None), list)) else v)
+             for k, v in r.items()} for r in RESULTS]
+    with open(target, "w", encoding="utf-8") as fh:
+        json.dump(rows, fh, indent=1)
+
+
 def engine():
     if ENGINE is None:
         raise RuntimeError("engine path not set — call set_engine() first")
@@ -548,13 +573,15 @@ def check_profile():
         return
     rows = []
     for ln in open(checked_read(path)):
-        # `[ \t]+` rather than `\s+`: a whitespace class that can match a newline makes the
-        # field boundaries ambiguous, which is the shape Sonar flags for super-linear
-        # backtracking. Bounded to the line, each separator is unambiguous and the scan is
-        # linear. Verified against the real profile lines, not just the adversarial ones.
-        m = re.match(r"[ \t]*([\d.]+)[ \t]+[\d.]+[ \t]+[\d.]+[ \t]+(\d+)[ \t]+\S+[ \t]+\S+[ \t]+(.+)$", ln)
-        if m:
-            rows.append((float(m.group(1)), int(m.group(2)), m.group(3).strip()))
+        # No regex at all. A gprof flat-profile row is fixed-field whitespace then a symbol
+        # name that MAY itself contain spaces (template arguments), so `split` with a bounded
+        # field count is both simpler and unambiguous where a pattern has to guess where the
+        # name starts. This also removes the nested-quantifier shape flagged as backtracking:
+        # measured at 0.0 ms on 8000-token adversarial lines, so that warning was false, but
+        # the split form is easier to read and cannot be misread by the next person.
+        f = ln.split(None, 6)
+        if len(f) == 7 and f[0].replace(".", "", 1).isdigit() and f[3].isdigit():
+            rows.append((float(f[0]), int(f[3]), f[6].strip()))
     def share(*subs):
         return sum(p for p, c, n in rows if any(s in n for s in subs))
 
@@ -604,11 +631,14 @@ def check_picker():
         return
     base = []
     for ln in open(checked_read(base_p)):
-        # `[^|]*` rather than `[^|]+?`: a lazy quantifier inside an alternation is the
-        # backtracking shape Sonar flags, and these fields cannot contain a pipe anyway.
-        m = re.match(r"\|[ \t]*(\d+)[ \t]*\|[ \t]*([^|]*)[ \t]*\|[ \t]*([\d,]+)[ \t]*\|[ \t]*([^|]*)[ \t]*\|", ln)
-        if m:
-            base.append(int(m.group(3).replace(",", "")))
+        # Pipe-split rather than a pattern with a lazy quantifier inside alternation, which is
+        # the backtracking shape flagged on the previous revision. A markdown cell cannot
+        # contain a pipe, so splitting is exact here.
+        cells = ln.split("|")
+        if len(cells) >= 6:
+            head, nodes = cells[1].strip(), cells[3].strip()
+            if head.isdigit() and nodes.replace(",", "").isdigit():
+                base.append(int(nodes.replace(",", "")))
     pick = {}
     for ln in open(pick_p):
         if ln.startswith("#") or not ln.strip():
@@ -850,7 +880,8 @@ def check_citations(base):
             record(label, where, "%s:%d" % (rel, line), None, "NOT-RE-DERIVABLE",
                    "file not present at 6b98f217")
             continue
-        lines = open(checked_read(path), encoding="utf-8", errors="replace").read().splitlines()
+        with open(checked_read(path), encoding="utf-8", errors="replace") as fh:
+            lines = fh.read().splitlines()
         got = lines[line - 1].strip() if line <= len(lines) else "<past EOF>"
         record(label, where, "%s:%d" % (rel, line), got,
                "MATCH" if got.startswith(expect.strip()) else "MISMATCH",
@@ -980,14 +1011,14 @@ def check_movetime_zero():
     record("`go movetime 0` is 'the same search as `go depth 5`' (identical depth, nodes, score, pv, bestmove)",
            "§7 trap 3aa", "%d fresh processes (%d batches of %d) on startpos, plus one `go depth 5` control"
            % (total, RUNS, PER),
-           "outcomes: %s; `go depth 5` gives depth %s / %s nodes / %s; exact match %d of %d"
-           % (listing, d5["depth"], d5["nodes"], d5["bm"], exact, total),
+           "outcomes: %s; `go depth 5` gives depth %s / %s nodes / %s; exact match %d of %d = %.0f%%"
+           % (listing, d5["depth"], d5["nodes"], d5["bm"], exact, total, 100.0 * exact / total),
            "MATCH" if stable and exact == total else "MISMATCH",
            "a zero wall clock returns whatever iteration happened to finish, and some runs emit no "
-           "`info depth` line at all. The exact-match count moves between batches — earlier "
-           "single batches gave 3, 4 and now %d of %d — which is itself the finding: the identity "
-           "is occasional, not a property of the form. The CLASS claim survives: a degenerate "
-           "zero-budget search, not an unbounded one" % (exact, total))
+           "`info depth` line at all. The exact-match share is not reproducible between runs — the "
+           "same probe has produced 30%%, 40%% and 87%% of 30 — which is why the verdict is decided "
+           "on 'did more than one distinct outcome appear' and not on any single count. The CLASS "
+           "claim survives: a degenerate zero-budget search, not an unbounded one")
 
 
 def check_corpora():
@@ -1082,10 +1113,7 @@ def main():
             print("                  regenerated: %s" % (r["regenerated"],))
             print("                  %s" % r["note"])
     if a.json:
-        out_path = resolve_exe(a.json)
-        json.dump([{k: (str(v) if not isinstance(v, (str, int, float, bool, type(None), list)) else v)
-                    for k, v in r.items()} for r in RESULTS],
-                  open(out_path, "w"), indent=1)
+        write_json(checked_json_target(a.json))
     return 1 if counts.get("MISMATCH") else 0
 
 

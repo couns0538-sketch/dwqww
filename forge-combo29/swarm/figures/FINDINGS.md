@@ -90,16 +90,17 @@ second, smaller instance of the same fault in the sentence doing the correcting.
 | | |
 |---|---|
 | report says | "`go movetime 0` — depth 5, 896 nodes — **the same search as `go depth 5`** (identical depth, nodes, score, pv and bestmove; only the `time`/`nps` fields differ, 0 against 1)" |
-| artefact | none; re-measured on the rebuilt base, 30 fresh processes (3 batches of 10) |
-| regenerated | depth **5** (1001 nodes) ×16, depth **4** (404 nodes) ×12, depth **3** (215 nodes) ×2 |
+| artefact | none; re-measured on the rebuilt base, 30 fresh processes per run (3 batches of 10) |
+| regenerated | **all three of depth 5 (1001 nodes), depth 4 (404) and depth 3 (215) appear**; the share of each moves between runs |
 | verdict | **MISMATCH** |
 
 A zero wall clock does not mean "no limit"; it means "stop at the first iteration boundary the
 clock check sees". Which iteration that is depends on how long the process took to get going, so
-the outcome is not a property of the command: **the same form produced three different depths
-across 30 runs**, and some runs emit **no `info depth` line at all**. The exact match with
-`go depth 5` was 3, 4 and 16 in three successive batches — the count itself is unstable, which is
-the point.
+the outcome is not a property of the command: **the same form produced all three of depth 3, 4 and
+5 across 30 runs**, and some runs emit **no `info depth` line at all**. Even the *share* is not
+stable — successive 30-run batches put the exact match with `go depth 5` at 30%, 40% and 87% —
+which is why the ledger decides the verdict on "more than one distinct outcome appeared" rather
+than on any one count.
 
 **Correct statement: `go movetime 0` is a degenerate zero-budget search whose reported depth is
 whatever iteration happened to finish — 3, 4 or 5 on startpos, and occasionally no `info` line.**
