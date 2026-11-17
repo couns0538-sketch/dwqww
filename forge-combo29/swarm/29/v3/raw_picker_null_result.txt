@@ -1,0 +1,42 @@
+=== PICKER PATCH ATTEMPT ON THE v3 PATH: a NULL RESULT, reported as such ===
+29-F58's function-level profile said `pick_best` 10.24 % + `next` 6.71 % + introsort 3.80 % = 20.75 % on the v3 path,
+so the picker was the obvious target. This is the line-level attribution and one patch attempt.
+
+## Line-level attribution (portable -g build, bench 13, PC20+net, callgrind, 22,702,232,228 instructions)
+
+| instructions | picker line |
+|---|---|
+| 210,992,328 | `switch (stage_)` |
+| **165,603,995** | `if (cont2 != nullptr) score += (*cont2)[p][move.to];` |
+| **165,603,995** | `if (cont1 != nullptr) score += (*cont1)[p][move.to];` |
+| 145,569,253 | `moves_[count_++] = Scored{move, score};` |
+| 130,404,450 | `int score = main[move.from][move.to];` |
+| 105,703,930 | `if (!seeded_ || score > seeded_score_) {` |
+| 86,914,845 + 43,909,815 + 20,329,552 + 17,550,667 | the four introsort lines |
+| 41,747,582 | `if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;` |
+
+So the cost is overwhelmingly **table reads** — the two continuation-history lookups at 165.6 M instructions each —
+not branch logic. That is a cache-bound pattern, and the obvious local "optimisation" is to hoist the loop-invariant
+null checks and the `move.to` conversion out of the per-move path.
+
+## The patch I tried
+`quiet_history_sum()`: convert `move.to` to `std::size_t` once and use the cast value for all three subscripts
+(identical semantics — the index is the same number, just converted once).
+
+## Result: NO EFFECT, and the compiler had already done it
+| build | instructions (bench 13, PC20+net) |
+|---|---|
+| base | 22,702,232,214 |
+| patched | 22,702,232,228 |
+
+A **14-instruction** difference on 22.7 **billion** is 6e-10 — callgrind jitter, not an improvement. Node counts were
+identical on all four benches I checked (plain 312,866 / 862,329; net 965,454 / 4,151,906), so the patch was safe; it
+was simply already what the compiler emits. **Not kept as a patch.**
+
+## Why this is the honest outcome and what it implies
+The picker's cost is **memory traffic through three history tables per candidate move**, not the arithmetic around it.
+Squeezing it needs a structural change — fewer tables read per move, or a layout that makes one read serve more
+candidates — and every such change alters the score values, which makes it a search change rather than a speed patch
+under file 7's identity rule (every bench number AND every per-position node row AND every G eval must stay identical).
+So the honest report for Step 2 is: **no bit-exact picker patch found on the v3 path in this session.** The
+attribution stands as the useful artefact; the patch does not exist yet.

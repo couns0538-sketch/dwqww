@@ -502,3 +502,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - So the 6.2-6.8x cost of the net is NODE COUNT, not per-node cost. Consequence, agreeing with seat 15's arithmetic: making the whole v3 family free gains only ~19% of bench 13 (2,125 -> 1,720 ms) against a 6.8x cost. Consistent with my F58 (v3 family 19.75%).
 - BOTH my v3 speed predictions were wrong in the same direction: I assumed a net-driven path must be much dearer per node (P4: 4-25x; P3: nps 15-60% of built-in). It is not. That assumption is worth recording as a bias.
 - next: continuing at cadence.
+
+## Tue Nov 17 01:09:14 AM UTC 2026
+- 29-F60 line-level picker attribution on the v3 path + a NULL patch result. Attribution: the two CONTINUATION-HISTORY reads dominate at 165,603,995 instructions EACH; then stage switch 210,992,328, Scored store 145,569,253, main history 130,404,450, seeded test 105,703,930, and 168.7M across four introsort lines. So the picker's cost is MEMORY TRAFFIC through three history tables per move, not branch logic.
+- Patch tried: convert move.to once in quiet_history_sum() for all three subscripts (identical semantics, node counts unchanged on all four benches). Result: 22,702,232,214 vs 22,702,232,228 - a 14-instruction difference on 22.7 BILLION (6e-10) = jitter. The compiler had already done it. NOT kept.
+- Conclusion for Step 2: NO bit-exact picker patch here. Cutting those reads means fewer tables per move or a layout change, both of which alter score values and so become SEARCH changes under file 7's identity rule. The attribution is the useful artefact; the patch does not exist yet.
+- next: continuing at cadence.
