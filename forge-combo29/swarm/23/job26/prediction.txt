@@ -1,0 +1,25 @@
+PREDICTION — SW-23 job 26 (is the node-budget lottery WORSE on tactical positions?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F24's ~30 % figure comes ONLY from quiet middlegames (no check, no capture available, 20+ legal moves). Every
+limitation statement I wrote says "no claim about tactical positions". This closes that gap, because tactical
+positions are where a changed move costs most.
+
+Method: 30 TACTICAL positions from my seed-2401 stream, selected for the OPPOSITE properties — the side to move is In
+CHECK, or a capture IS available, or there are fewer than 20 legal moves (forcing/sharp). PC r15 + PC20, Threads 1,
+Hash 16, OwnBook false, fresh process per (position, budget), budgets 20000 / 50000 / 250000, and the same
+move-change test as 23-F24.
+
+Prediction (each number with the range that kills it):
+  P1  the move-change rate on tactical positions will be HIGHER than the 30 % quiet rate: >= 40 % of positions.
+                                                                        KILLED if <= 30 %.
+      Reasoning: 23-F26/F30 showed the change concentrates where the top-two margin is small and the position is
+      QUIET. Tactical positions often have one clearly best move (a capture or a check), which would make them MORE
+      stable, not less — so my prediction could be wrong in the interesting direction. I record it as a genuine
+      either-way test.
+  P2  I will report which of the three shapes dominates (only-250000, only-20000, all-three) as in 23-F24.
+  P3  the rate will be reported with the same per-row board labels and the same fresh-process protocol, so the two
+      samples (quiet vs tactical) are directly comparable. This is a method promise, not a number.
+
+If P1 is killed (tactical MORE stable), then the lottery is confined to quiet positions, which is exactly where it
+matters least for move quality — and that would be a reassuring result worth stating plainly.
