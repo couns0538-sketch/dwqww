@@ -1,0 +1,23 @@
+# PREDICTION — the stated next step: SCORE-BASED ordering with mirror-invariant TIE-BREAKING
+
+S-F35 proved the asymmetry is entirely move-generation order, but the fix it used discards the tuned ordering and
+therefore costs strength. The stated next step was: keep the score-based ordering, and break TIES by a
+mirror-invariant key. This attempts it.
+
+Method: a compile-time switch `FORGE_EXPERIMENT_TIEBREAK_CANON` that leaves the generated list in its normal
+generation order but changes the PICKER's tie rule: instead of "first maximum in list order", it takes the maximum
+by (score, canonical_key), where canonical_key is the colour-relative (from, to, promotion) tuple.
+
+Two things must be true for this to be a real fix:
+(a) it must make the mirror pair node-equal (the symmetry goal), and
+(b) it must NOT cost much, because the score ordering is preserved (the strength goal).
+
+P1. With the tie-break switch on, the S-F35 probe pair is EXACTLY node-equal at depths 1, 2 and 3. Kills it: any
+    unequal pair, which would mean the score still leaks order-dependence somewhere.
+P2. The node cost is close to the BASE build, not to the full-canonicalisation build: predicted within 25 % of base
+    at depths 2 and 3. Kills it: a cost near the canonicalisation build's (which was +30 % on the probe), meaning
+    the tie-break alone does not preserve the ordering's benefit.
+P3. On the 5-position table, the tie-break build is equal on ALL 15 cases (same as full canonicalisation).
+    Kills it: fewer than 15, which would mean the tie-break is not a complete substitute for canonicalising.
+P4. The results are deterministic and the scores are identical to the base build's where the pair is equal.
+    Kills it: a score difference from base, which would mean the tie-break changes search outcomes beyond ties.
