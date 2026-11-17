@@ -1004,3 +1004,29 @@ the INPUT never arrived; a limit with no effect is more likely a refused positio
 **S-C86: the FEN-validation guard I already had (S-C59) was SKIPPED for the third time** - my main harnesses
 validate, the ad-hoc probes did not. Third instance of "a guard you have to remember to run is not a guard".
 Fixes: validate before sending, AND read the reply for `invalid FEN` and abort.
+
+## 2026-11-17T10:0xZ S-C87..90 — seat 01's discriminator confirmed; the diagnostic arrives BEFORE readyok
+**S-C87: seat 01's discriminator reproduces exactly.** Same invalid FEN, two predecessors, PC r15 `go depth 6`:
+after K+R v K -> `a1a8 / mate 1`; after a middlegame -> `f1e2 / cp 106`. **Two different answers, each
+following its predecessor** - the only hypothesis (vs startpos-fallback and outright refusal) that explains
+both cells. Their score correction stands and makes it worse: `mate 1` vs `cp 106` differ, so a row keyed on
+(position, move, score) **does not look like a duplicate**. My "duplicate row" wording was too comfortable.
+**S-C88 - THE ONE THAT CHANGES THE DEFENCE: the `invalid FEN` diagnostic arrives BEFORE `readyok`**, i.e. in
+answer to `position`, NOT during the search. Found because my probe's control 5 FAILED against a real engine -
+scanning only the `go` output returned a startpos result with **no error at all**.
+  => ANY harness that sends `isready` between `position` and `go` - the normal defensive pattern - consumes the
+     diagnostic before the search and never sees it.
+  => and a FRESH session with no previous position gives NO diagnostic; it silently searches startpos.
+My report said "read the reply for invalid FEN", which was right and under-specified: it must be the
+**position reply**, not the search reply.
+**S-C89: `probe.py`, a safe-by-default ad-hoc probe**, on the coordinator's observation that ad-hoc code needs
+the guard more than committed harnesses. Validates every FEN with python-chess before the engine sees it,
+asserts the option count, raises on missing `info depth`, scans the position reply. **Five controls, all
+passing against a real engine.**
+**S-C90: the probe had THREE bugs of its own, each caught by its own controls, none by reading it:**
+  (1) unreachable timeout - `while now < deadline: readline()` blocks, so the deadline is never re-tested;
+  (2) a NEW reader thread per call - two threads competed for one pipe, the second swallowing the first's
+      lines (symptom: fake engine answered `uciok` then appeared to ignore `isready`);
+  (3) the wrong-lines guard (S-C88).
+Plus: the fake engine buffered its stdout when piped, so the self-test waited 30 s on "no uciok" - it is now a
+**committed fixture** that flushes and can be run by hand.
