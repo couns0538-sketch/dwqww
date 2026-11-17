@@ -52,7 +52,7 @@ base there. Four of the six reach the threshold (depths 22/22/23/20) and one mat
 
 | switch (file 5) | what I measured |
 |---|---|
-| drawn-root repair | a won K+R v K at halfmove 150: base **0 nodes**, PC **160**; and on a **threefold-repetition** root (claimable, not forced) base **cp 0 / 0 nodes**, PC **cp 399 / 6,941 nodes**, different move — so the repair is a real cost avoided, not cosmetics (23-F43/F44) |
+| drawn-root repair | a won K+R v K at halfmove 150: base **0 nodes**, PC **160**; and on a **threefold-repetition** root (claimable, not forced) base **cp 0 / 0 nodes**, PC **cp 399 / 6,941 nodes**, different move — so the repair is a real cost avoided, not cosmetics (23-F43/F44). **Cost when it is missing:** in 5 of 5 naturally reached repetitions the base played a worse move, from −31 cp to **mate in 5 against itself**, while reporting cp 0 (23-F72); and **8 of 10 self-play games (49–94 % Wilson) reach such a position** (23-F75) — so the defect fires at the end of most games. In a MATCH the program ends the game at the third occurrence, so the move is never played there |
 | lone-king repair | mates surface at ~depth 20 on the PC, never at 12; base also mates at 24-32 on the clock, so the practical difference is confined to two shapes (23-F45/F46/F47) |
 | `FORGE_FIX_GO_PARSE` | malformed `go` lines where `go` sits where a number belongs: base truncates to **1 info line**, PC returns **64** and a normal bestmove (23-F48). Robustness only — matches never send `go` as a value |
 
