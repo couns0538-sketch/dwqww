@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty-five** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-eight** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-FIVE instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-EIGHT instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty-five faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-eight faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -612,6 +612,50 @@ both ways and both happen at the same instant:
 
 So the check is one pass over the corrected passage asking two questions: **is every number produced by something I could
 re-run, and does every sentence still describe what the number now says?**
+
+## Instance 26 — the gate and the thing it gated shared the same broken key (23-F123)
+
+Every fixture in the drawn-root family was BUILT by a function that counted position occurrences, and the same function
+ASSERTED that the count was right. Both used a key of placement + side + en-passant, silently omitting **castling**. So no
+assertion could ever disagree with the construction, every count came back a plausible 3, and four successive scope
+explanations were generated from one arithmetic defect (23-F112/F114/F115/F116) before it was found.
+
+This is instance 1 of this page (a checker silent for a bad reason) at the level of the FIXTURE GATE, and it is the most
+expensive single fault of the seat: not wrong data, but a validation step that could not fail.
+
+**MECHANICAL CONSEQUENCE: the code that ASSERTS a fixture is valid must not be the code that BUILT it.** Count
+occurrences twice, from two implementations, and treat disagreement as a hard failure — which is what `job59/validate.py`
+now does, with python-chess's `is_repetition` as the second opinion.
+
+## Instance 27 — a hard cap inside the checker rejected a valid fixture (23-F127)
+
+`validate.py`'s independent counter looped over `(5,4,3,2)` only. A legitimate SIX-occurrence fixture then reported as
+five, disagreed with the honest counter, and was **rejected as invalid** — minutes after the validator was written to fix
+instance 26. The tool could not represent the input and reported its own incapacity as a property of the fixture.
+
+**MECHANICAL CONSEQUENCE: every constant bound inside a checker is printed beside the verdict, and the self-test carries
+a case AT that bound and one beyond it.** The six-occurrence case exists for that reason; the original four-case
+self-test passed while the cap was in place.
+
+## Instance 28 — a presumption written into a results file, in the sentence that mattered most (23-F140)
+
+The fourth member of the invented-example family, and the worst, because of where it sat.
+
+Checking whether a repetition in the HISTORY (not at the root) makes the engine bail, I measured one continuation, wrote
+"the bail is strictly root-only", and added: *a longer continuation would presumably behave the same way, since the
+mechanism is the same.* That sentence sat in a RESULTS file. I then tested it — and it was wrong: 1 ply past a
+repetition searches, **3 plies past bails**, 5 plies searches, because the verdict follows the SEARCHED position's own
+occurrence count. The headline sentence of the whole seat had to be rewritten from "the root's identity" to "the position
+at the end of the sent move list".
+
+Why this is worse than the fabricated illustrations in 23-F139: an illustration is visibly decoration, while a
+presumption inside a results file **reads like a measurement** — it is in the place evidence lives, in the sentence a
+reader is most likely to quote. And this one was not idle: it was the sentence the write-up leads with.
+
+**MECHANICAL CONSEQUENCE: a results file contains only sentences that a command produced. Any sentence of the form
+"would presumably", "should behave the same", "expected to" is either DELETED or moved into a numbered prediction with its
+kill condition.** The presumption is not banned — it is a fine way to decide what to test — but it may not stand where
+the tested sentences stand.
 
 ## The fix, in one line each
 
