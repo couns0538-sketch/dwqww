@@ -90,9 +90,13 @@ mirror-invariant canonical order.** That is the answer to the question this whol
   build sequence in the table above.
 - **The engine should not adopt the fix** (see the box at the top): the tuned ordering is where its strength comes
   from, so this is understanding rather than improvement.
-- **What a real fix would require**: an ordering that is both score-based and mirror-invariant — for example
-  scoring every move and then breaking ties by the canonical key, instead of sorting by the key alone. That keeps
-  the strength and removes the asymmetry, and it is NOT attempted here.
+- **What a real fix would require — and the cheap version of it FAILS.** `S-F36` tested exactly the obvious
+  formulation (score every move, break only TIES by the canonical key). It reaches **7 of 15** cases against the
+  base build's 3 and this report's 15. The reason is structural: a tie-break acts only when two moves score
+  *exactly* equal, while the asymmetry also arises among *unequal* scores through order-dependent pruning (LMR,
+  futility, SEE thresholds), which a tie rule never touches. **So the collision is at the pruning decisions, not at
+  the tie-break**, and I found no cheap formulation that satisfies both goals. The diagnostic below is the
+  deliverable.
 
 ## Honesty numbers
 

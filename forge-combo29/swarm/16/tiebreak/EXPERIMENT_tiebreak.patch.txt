@@ -1,0 +1,48 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -92,6 +92,22 @@
+ 
+ namespace forge {
+ 
++#if FORGE_EXPERIMENT_TIEBREAK_CANON
++// Mirror-invariant key for TIE-BREAKING only: score ordering is untouched, so the tuned ordering is preserved.
++// Colour-relative square = sq ^ 56 for Black, sq for White.
++inline std::uint64_t canon_key(const Board& board, Move m) {
++    const int flip = board.side_to_move() == Black ? 56 : 0;
++    const unsigned from = static_cast<unsigned>(m.from ^ flip);
++    const unsigned to = static_cast<unsigned>(m.to ^ flip);
++    const unsigned promo = static_cast<unsigned>(m.promotion);
++    return (static_cast<std::uint64_t>(from) << 16) | (to << 8) | promo;
++}
++#endif
++
++#ifndef FORGE_EXPERIMENT_TIEBREAK_CANON
++#define FORGE_EXPERIMENT_TIEBREAK_CANON 0
++#endif
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -915,7 +931,7 @@
+                 int best_score = moves_[best].score;
+                 std::size_t i = index_ + 1;
+                 const std::size_t n = count_;
+-#if defined(__AVX2__)
++#if defined(__AVX2__) && !FORGE_EXPERIMENT_TIEBREAK_CANON
+                 static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
+                 while (i + 4 <= n) {
+                     const __m256i packed = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&moves_[i]));
+@@ -940,6 +956,13 @@
+                         best_score = score;
+                         best = i;
+                     }
++#if FORGE_EXPERIMENT_TIEBREAK_CANON
++                    else if (score == best_score && score == moves_[index_].score) {
++                        // equal score: prefer the mirror-invariant smaller key, so a tie resolves the same way
++                        // in a position and its colour mirror
++                        if (canon_key(board_, moves_[i].move) < canon_key(board_, moves_[best].move)) best = i;
++                    }
++#endif
+                 }
+                 if (best != index_) std::swap(moves_[index_], moves_[best]);
+             } else {

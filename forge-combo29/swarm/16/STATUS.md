@@ -512,3 +512,20 @@ seed: 1601
      position, points at a code path reached only in some nodes — which is what the evasion generator is.
 - The same framing and the same three negatives are now in FINAL 1.4, since that is what Opus reads.
 - check_folder.py ALL CHECKS PASS (411 files, 42 findings rows). Cadence continues; FINAL block at 10:18:40Z.
+
+## 2026-11-17T03:05Z
+- S-F36: I ATTEMPTED the "stated next step" rather than leaving it as a note, and it FAILS — which is worth more
+  than the note. The cheap fix (keep the score-based ordering, break only TIES by a mirror-invariant key) reaches
+     base PC r15                          3 of 15
+    score order + canonical tie-break     7 of 15
+    full canonicalisation (S-F35)        15 of 15
+  The reason is structural, and it corrects my own formulation: a tie-break acts only when two moves score EXACTLY
+  equal, but the asymmetry also arises among UNEQUAL scores through order-dependent pruning (LMR, futility, SEE
+  thresholds), which a tie rule never touches. So the collision between symmetry and strength is at the PRUNING
+  DECISIONS, not at the tie-break, and no cheap formulation exists that I could find.
+- I therefore CORRECTED the "both score-based and mirror-invariant" sentence in FINAL 1.4 and in
+  REPORT_mirror_order.md: it no longer reads as a promising next step, it reads as attempted-and-failed with the
+  mechanism. S-F35's diagnostic is the deliverable; a strength-preserving fix is not something I can produce.
+- Deliverables: tiebreak/REPORT_tiebreak.md, EXPERIMENT_tiebreak.patch.txt (48 lines, patch -p2, switch defaults 0,
+  and with the switch on the AVX2 lane shortcut is compiled out so the scalar tie rule governs), raw_tiebreak.txt.
+- check_folder.py ALL CHECKS PASS (417 files, 43 findings rows). Cadence continues; FINAL block at 10:18:40Z.
