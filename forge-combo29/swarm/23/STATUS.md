@@ -1541,3 +1541,13 @@ Limits: one board per case, one depth, both builds. Detail not smoothed: the PC'
 240 nodes rather than 0 - it searched briefly then reported the draw (repaired behaviour), unlike the base's instant
 answer.
 107 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 17 m remain.
+## 2026-11-17T01:01:33Z  F79 led by its boundary sentence; the 240-node repaired-behaviour contrast kept
+2026-11-17T01:01:33Z
+
+Lead: "The gap tracks exactly what a static evaluator is blind to: 406 centipawns where the draw arises from HISTORY,
+which it cannot know, and 20 where it arises from MATERIAL, which it can see." Then the three measurements, the
+eval-identical-to-twin point, the control and the limit.
+Repaired-behaviour contrast kept: on the fifty-move root the PC answers cp 0 after 240 nodes, the base 0 nodes
+instantly - the PC searched briefly and then reported the draw, which shows the repair is a search rather than a
+bypass. A distinction I would have missed without measuring both builds.
+107 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 17 m remain.
