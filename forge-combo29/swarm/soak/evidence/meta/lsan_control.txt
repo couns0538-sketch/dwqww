@@ -1,0 +1,6 @@
+LSan control: a 1,234-byte malloc with no free, built -fsanitize=address.
+$ gcc -fsanitize=address -g -o leaktest leaktest.c && ASAN_OPTIONS=detect_leaks=1 ./leaktest
+==10564==ERROR: LeakSanitizer: detected memory leaks
+Direct leak of 1234 byte(s) in 1 object(s) allocated from:
+    #0 0x7feb97afd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0x5599f945e19e in main /tmp/leaktest.c:2
