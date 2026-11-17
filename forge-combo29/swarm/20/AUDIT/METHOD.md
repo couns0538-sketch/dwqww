@@ -16,7 +16,8 @@
 
 ## THE BINARY RULE (found while failing to re-check another seat)
 
-**A behavioural claim needs the EXECUTABLE'S IDENTITY in the file — sha256 and `id name` — not just its settings.**
+**A behavioural claim needs the EXECUTABLE'S IDENTITY in the file — sha256 and `id name` — not just its settings.
+Regime plus binary is a complete citation; either alone is half.**
 
 Why: I could not reproduce seat 30's 30-F59 (PC20 playing a 200 cp worse move). I ruled out the option list and the
 Hash, but their `check17/` files record **no exe hash and no `id name`**, so I cannot show their binary is mine. That
