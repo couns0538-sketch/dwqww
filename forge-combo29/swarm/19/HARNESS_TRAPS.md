@@ -272,6 +272,32 @@ found one".
 **Practical form:** when you find yourself more confident about a zero than about a percentage, that is the moment
 to check whether the zero has a plant. The confidence is coming from the shape of the number, not the evidence.
 
+### 12b. A zero in EVERY arm means the metric, not the engine (19-C47)
+
+**The plant answers "could the harness have seen one?" It does not answer "could the METRIC have shown one?"**
+Those are two different questions, and 12 covers only the first.
+
+**The case (mine, 19-C47).** To test whether raising the self-play budget 2,000 -> 3,000 improves *decision
+quality*, I compared each arm's score against a depth-18 reference and counted agreements. Result: **`0 of 8` in
+all four arms** — 2k S14, 2k PC20, 3k S14, 3k PC20. I nearly wrote it up as "no budget improves quality".
+
+**Why that reading is empty.** A 2,000-node search *legitimately* disagrees with a depth-18 score. The comparison
+could never have returned anything but zero, for any engine, at any setting. **`0 of 8` four times is not four
+null results — it is one statement about the instrument: this metric does not discriminate at this budget.**
+The engine was never under test.
+
+**The tell is uniformity, and it is the same tell as trap 15.** One arm at `0 of 8` is a candidate null. **Every
+arm at the same zero is the metric hitting its floor.** Trap 15 says a uniform *result* means read the code;
+12b says a uniform *zero* means replace the measure. A test that returns its floor in every condition is
+reporting on its own floor.
+
+**The distinction in one line:** a zero needs a **plant**; a **uniform** zero needs a **better metric**. Applying
+Rule 1 to a broken metric just proves the metric is reliably broken.
+
+**The fix that worked:** swap to *move agreement against a depth-16 reference* — a measure with actual headroom —
+and it discriminated immediately (5/8, 4/8, 6/8, 4/8). Still too small to settle anything, which is a separate and
+honest limit; but no longer vacuous.
+
 ### Soft nulls hide better than hard zeros (19-C32)
 
 **A systematic pass over my own 15 null-shaped findings found that the ones phrased as *conclusions* are the ones

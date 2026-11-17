@@ -48,3 +48,13 @@ and eight positions is too few to find out.
 
 **What that means for the recommendation:** "raise self-play to ~3,000" is supported by **depth**, and by
 nothing else yet. A decision-quality claim would need a proper sample (and ideally games), not eight positions.
+
+## The general rule this produced (the part worth keeping)
+**A zero needs a plant. A UNIFORM zero needs a better metric.**
+The plant answers "could the harness have seen one?" It does NOT answer "could the METRIC have shown one?"
+- `0 of 8` in ONE arm = a candidate null; plant it.
+- `0 of 8` in EVERY arm = the metric hitting its floor. Planting it would only prove it is *reliably* broken.
+- My score-equality-vs-depth-18 test was the second kind: a 2,000-node search legitimately disagrees with a
+  depth-18 score, so no engine at any setting could have scored above zero. **The engine was never under test.**
+- Detector: uniformity across arms - the same tell as trap 15, applied to zeros instead of results.
+Recorded as trap 12b in HARNESS_TRAPS.md.

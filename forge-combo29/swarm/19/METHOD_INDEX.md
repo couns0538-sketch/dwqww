@@ -93,3 +93,11 @@ an oracle missing the halfmove window — each with **what it looks like, the te
 
 Read it before writing a new driver. Two of the seven were caught only by another seat, which is the whole
 argument for the swarm's cross-checking rule.
+
+**Note on the count:** the file has grown well past seven, and two of the later entries are worth calling out here
+because they are about *evidence*, not plumbing. **Trap 12** — a zero gets less scrutiny than a percentage — and
+**trap 12b**, its sharper sibling: **a zero needs a plant, but a *uniform* zero needs a better metric.** The plant
+only proves the harness could see something; it cannot prove the *measure* could. Trap 12b came from a test of my
+own (19-C47) that returned `0 of 8` in all four arms and looked like four null results — it was one statement
+about the instrument.
+

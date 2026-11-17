@@ -926,3 +926,18 @@ next command: continue at cadence.
   CAVEAT: 6 positions, 1 run each - the TREND is the finding, not any single row.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:26Z
+
+19-C47 sharpened on review: the vacuous test now leads the FINDING, not just my message.
+  The rule, generalised: **A zero needs a plant. A UNIFORM zero needs a better metric.**
+  - plant answers "could the harness have seen one?"; it does NOT answer "could the METRIC have shown one?"
+  - `0 of 8` in one arm = candidate null, plant it. `0 of 8` in EVERY arm = the metric's floor.
+  - my score-vs-depth-18 test was the second kind: a 2k search legitimately disagrees with a depth-18 score,
+    so no engine at any setting could have scored above zero. The engine was never under test.
+  - detector is uniformity across arms - trap 15's tell applied to zeros.
+  Written up as **trap 12b** in HARNESS_TRAPS.md; METHOD_INDEX companion note updated (the file has outgrown
+  its "seven traps" wording, which was already stale).
+  Budget sweep itself: nothing further owed - 19-C46 depth result stands, quality claim stays open.
+
+next command: continue at cadence - pick the next area-9 job (speed), or cross-check a seat's new finding.
