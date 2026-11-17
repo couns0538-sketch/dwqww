@@ -1386,3 +1386,19 @@ depth 29 / 17,628,236 nodes / 10.3 s, both unbounded, vs both-clocks answering d
 UNVERIFIED ASIDE in seat 02's S-F4 that I restated in 23-C25 - instance 14, a restatement inheriting an untested claim.
 Rule taken: mark every clause as measured-by-me or asserted-untested-by-other.
 101 findings, 18 confirmations. 9 h 57 m remain.
+## 2026-11-17T00:56:49Z  23-F75 FREQUENCY: 8 of 10 self-play games reach a genuine third occurrence (49-94 % Wilson) - chain complete
+2026-11-17T00:56:49Z
+
+Criterion per 23-F71 (3 actual occurrences by my own key, is_insufficient_material() FALSE, halfmove < 100),
+PC r15 + PC20, 6s+0.06, 250-ply cap, ten distinct openings:
+  8 of 10 GENUINE (80 %), occurrences at plies 31-120, 13-30 pieces, halfmove 8-16; the 2 misses hit the cap.
+  95 % Wilson interval 49 % to 94 % -> I quote the interval, not the point estimate.
+CHAIN, now complete with a frequency:
+  defect exists (F44) -> on the clock path (F57) -> reached naturally (F58) -> move is losing, worst case mate -5
+  against itself (F60/F61/F72, 5 of 5) -> and ~80 % of self-play games reach such a position (F75).
+So the defect fires at the END OF MOST SELF-PLAY GAMES. Match-play counterweight unchanged: the program ends the game
+at the third occurrence, so the move is never played there; the cost lands on analysis tools and anything that keeps
+searching past the repetition.
+Limits: ten games, one settings combination, self-play of this build, my openings not a match distribution, wide interval.
+Also: 23-F74 answered seat 21 - ONE_THREAD carries the bare-king explosion (C=D byte-identical); LMR cap does nothing
+once it is on. 102 findings, 18 confirmations. 9 h 22 m remain.
