@@ -1402,9 +1402,14 @@ These are the transferable output. Each is a rule the run paid for with a defect
    **A corrupted move list TRUNCATES at the bad token, and the warning is real.** `position startpos moves e2e4 zzzz
    e7e5` reports `illegal move zzzz` **and searches the legal prefix before it** — not the intended position, and not a
    splice past the error. **Confirmed at perft 3, where every prefix has a distinct count:**
-   **8902 / 13160 / 24825 / 23193 / 24079** (startpos + `e2e4` + `e7e5` + `g1f3` + `b8c6`). **An illegal token
-   inserted at index 0, 1, 2, 3 or 4 returns exactly the prefix value for that index, five for five.** So **read the
-   warning as "the position stopped at the bad token"** — the moves before the error applied, the ones after did not.
+   **8902 / 13160 / 24825 / 23193 / 24079** (startpos, then after `e2e4`, `e7e5`, `g1f3`, `b8c6`). **An illegal token
+   inserted at index 0, 1, 2, 3 or 4 returns exactly the prefix value for that index, five for five.**
+
+   **So the practical consequence REVERSES the earlier advice: the warning is TRUTHFUL, and a harness can trust it.**
+   `illegal move zzzz` means *the position is the legal prefix* — **not the intended position, and not a splice.** That
+   makes it **a usable signal rather than a hazard**: fail the row, or record the prefix knowingly, but do not treat the
+   reply as untrustworthy. **An earlier version of this document called it a hazard and told you to distrust the
+   position; that was the splice reading, and it was wrong.**
    - **A SPLICE reading of this was published twice and withdrawn twice, and the reason is a perft-2 collision.**
      `e2e4 e7e5` and `e2e4 e7e5 g1f3 b8c6` **both give perft 2 = 835** — two different boards, one count. **So at
      perft 2 a spliced four-move line and a two-move prefix are indistinguishable**, and the fingerprint confirmed
@@ -1412,6 +1417,9 @@ These are the transferable output. Each is a rule the run paid for with a defect
      - **The general rule: a fingerprint test needs a depth at which the candidate hypotheses make DIFFERENT
        predictions** — otherwise its agreement is evidence for nothing. **Check that the test can distinguish the two
        answers before you run it**, which here meant checking that the five prefixes had five distinct counts.
+     - **And a claim that reverses twice deserves a note in the document, not a silent edit.** The version above is the
+       third; the reason it took three is that the first two tests could not separate the answers. **A reversal count
+       is information about the test, not only about the claim.**
 
    **And junk BEFORE the `moves` keyword behaves differently: it is skipped and the moves still apply.** On the base
    build, `position fen <K6k> moves a1a2` gives **perft 2 = 15**, and **`position fen <K6k> bogus moves a1a2` also
@@ -1643,14 +1651,33 @@ These are the transferable output. Each is a rule the run paid for with a defect
 48. **A correction that adds without removing is not a correction.** Adding is an authoring act; removing is a search
     act, and the search only works if you look for what you wrote. **Write both in one edit**, then grep for the
     phrase you contradicted.
-49. **When a claim is corrected, re-run every number inside the corrected passage in the same edit.** Revising a
+49. **After correcting an entry, READ IT TOP TO BOTTOM AS A STRANGER — the editor's eye skips the sentence it did not
+   touch.** This is the failure mode that survives rule 48, because the grep finds the phrase you *wrote* and not the
+   sentence you *left standing*.
+   - **The measured instance, in a defect entry about parser behaviour:** the heading and the new perft-3 evidence both
+     said TRUNCATES, while the old sentence three lines above still read "**and then applies `e7e5` anyway**" — the
+     withdrawn splice claim. **A reader who stopped at the first sentence got the opposite answer from a reader who
+     continued**, and every individual sentence was true of *some* version of the claim.
+   - **Why the tell is specifically "as a stranger":** the author reads what they intended in that slot, so the stale
+     sentence is filled in from memory and never actually parsed. **The only reliable read is one where you do not know
+     what the paragraph is going to say.**
+   - **Three instances of the same shape in this document alone**, which is why it is a rule and not a note: a false
+     cross-reference that survived several rounds, two stale count paragraphs asserting different totals in the same
+     header, and a §3 sentence still claiming a section "ships one and holds the other" after it had been changed to
+     hold both. **None was caught by any check; all three were caught by reading the passage cold.**
+50. **A claim that reverses twice is evidence about the TEST, not only about the claim — and the reversal count
+   belongs in the document.** The corrupted-move-list behaviour reversed three times (splice → truncate → splice →
+   truncate); **the first two tests could not separate the hypotheses**, which is why the answer kept following the
+   experimenter's belief. **Record the withdrawal path and its cause**, so the next reader knows the third version was
+   reached by a test that could distinguish, not by a further guess.
+51. **When a claim is corrected, re-run every number inside the corrected passage in the same edit.** Revising a
     figure feels like changing evidence; revising the sentence feels like editing — so the prose moves and the number
     stays. **The correction is exactly the moment a figure is least likely to be looked at again.**
-50. **A decomposition is only as good as the pairing of each term to its column, and that pairing needs a LABEL
+52. **A decomposition is only as good as the pairing of each term to its column, and that pairing needs a LABEL
     check, not an arithmetic one.** A fabricated node ratio (`0.9090`) closed the identity to 0.1 % and appeared in
     *neither* of the source's columns. **A number that makes the identity work is the most dangerous kind, because
     the identity's own closure is what it was manufactured to satisfy.**
-51. **A point estimate and an interval from two DIFFERENT ESTIMATORS cannot be quoted as one row.** The result is a
+53. **A point estimate and an interval from two DIFFERENT ESTIMATORS cannot be quoted as one row.** The result is a
    row whose **point estimate sits outside its own confidence interval** — which is arithmetically impossible for a
    correct pairing and therefore a *readable* defect once you look for it.
    - **The case:** the PC20 per-node row paired a **pooled ratio (1.0643)** with a **mean-of-log interval
@@ -1663,22 +1690,22 @@ These are the transferable output. Each is a rule the run paid for with a defect
      interval.**
      If it is not, you have two estimators in one row, not a surprising measurement. **Name the estimator in the row** —
      and bootstrap the estimate you actually quote.
-52. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
+54. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
     cleared nothing; it is a third verdict, not a pass. Any finite vocabulary has a boundary, and past it the check
     reports PASS rather than UNKNOWN.
-53. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
+55. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
     **Assert the exact expected count as a literal**, never computed from the list it guards.
-54. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
+56. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
     checker failure in this run that was caught, was caught that way; none was caught by reading the checker.
-55. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
+57. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
     a reader to run printed `FAIL` and exited 0. **Prove a gate once per checker it invokes, not once per gate.**
-56. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
+58. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
     compared an empty string to an empty string and reported verbatim agreement. **Anchor to `__file__` and run each
     script twice — from its own directory and from `/tmp`.**
-57. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
+59. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
     containing the five PC20 switches. **Have a tool print the option list at run time and paste that output into the
     finding.**
-58. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
+60. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
     failure modes: per-node cost ~1.2 % on bench vs **~6.4 %** on real positions (6× optimistic); aggregate node-count
     sign **+14.5 / −10.6 / +8.7** across benches 11/13/16 against **−8.7 %** on real positions; a profile self-time
     share 2.71 % on bench vs **0.66 %** real. **A self-time percentage is not a transferable cost unless someone
@@ -1686,11 +1713,11 @@ These are the transferable output. Each is a rule the run paid for with a defect
     - **Bench IS valid for** pins, determinism, ablation direction, structural counters, and the pooled effect of one
       isolated toggle. **Not valid for** per-node cost or the aggregate PC20 set. **Always report the per-position
       spread.**
-59. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
+61. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
     — a joining phrase doing the work of three results, ordinals running backwards, a table row implying a control
     that never existed — **all invisible to every automated check, all found by reading.** Not a substitute for the
     checks; it covers what they structurally cannot.
-60. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
+62. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
     provenance check.** The most dangerous form of a false pass, because it returns **FOUND** and ends the search.
     - **Three measured instances in one audit, all caught only by reading the context:**
       `0.024` matched `"seconds": 0.024` in unrelated search JSON; `0.44` matched `loadavg 0.44 on 4 cores`; `442`
@@ -1712,7 +1739,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
       such figures that landed minutes later and were all genuine. **Record the COMMIT each branch was audited at, not
       the clock** — a timestamp is unverifiable after the fact and invites the reading that the document is at fault
       when the snapshot is. **The count is a property of the tips named in the header, and nothing else.**
-61. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
+63. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
     this run's method record.** **Every other claim here is one comparison against one threshold and has one number to
     check; a decomposition has three numbers, two samples and one subtraction — and it is the derived part that gets
     quoted to three significant figures.**

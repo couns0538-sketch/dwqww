@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,378 lines, 61 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,405 lines, 63 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,32 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Eighteenth round — the practical consequence, and the tell that catches my own class of error
+
+The coordinator fixed entry 3ac and it now **reverses the advice** rather than only correcting the mechanism: **the
+warning is truthful, so a harness CAN trust it.** `illegal move zzzz` means the position is **the legal prefix** — not
+the intended position, not a splice — so it is **a usable signal rather than a hazard**: fail the row or record the
+prefix knowingly, but do not distrust the reply. My §4 rule 12 now carries that consequence and names the reversal,
+because the earlier version told the reader the opposite.
+
+**Added rule 49 — "read the corrected entry as a stranger", which is the tell I earned three times in this document:**
+
+| instance | what survived | caught by |
+|---|---|---|
+| false cross-reference | `§45` after the rule became §47 | the mechanical pointer form |
+| two stale count paragraphs | header asserting 2,353 **and** 2,328 | re-deriving totals from artefacts |
+| §3 sentence | "§1.18 ships one and holds the other" after it held both | dumping pointer targets |
+
+**None was caught by any check; all three by reading the passage cold.** The reason the tell is specifically *as a
+stranger*: the author reads what they intended in that slot, so the stale sentence is filled in from memory and never
+actually parsed. **Rule 48's grep finds the phrase you WROTE, not the sentence you LEFT STANDING** — which is why this
+is a separate rule and not a corollary.
+
+**Added rule 50 — a claim that reverses twice is evidence about the TEST.** The move-list behaviour went splice →
+truncate → splice → truncate; **the first two tests could not separate the hypotheses**, which is why the answer kept
+following the experimenter's belief. The reversal count and its cause are now in the document, so a reader knows the
+third version was reached by a test that could distinguish rather than by another guess.
 
 ## Seventeenth round — third reversal on one claim, verified independently
 
