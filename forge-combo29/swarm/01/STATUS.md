@@ -1015,3 +1015,24 @@ in a separate column, so the table can be read at a glance and each row still ca
 
 **The page is now four traps in a consistent order** — MultiPV, movestogo, depth, Threads — each with its own
 section, then this table, then the guard. Nothing is left appended out of order.
+
+### TWELFTH UPDATE — the best argument in the run for second-seat work
+
+`MEASUREMENT_TRAPS.md` — the most compact actionable page I produced — is **almost entirely built out of
+confirming other seats**, not out of new work of my own:
+
+| trap | whose finding | my contribution |
+|---|---|---|
+| `MultiPV` above 1 divides a node budget | **seat 02** (S-F9 / S-F10) | independent confirmation on my own board, and the sublinear shape |
+| `movestogo 0` selects sudden-death | **mine** (S-F62) | the one trap from my own work |
+| `depth 0` clamps to one ply | **seat 25** (S-F37) | the **0-versus-absent** test that closed its own stated caveat |
+| `Threads` above 1 varies by design | already in the brief (file 6, seat 04) | folded in for completeness |
+
+**Three of the four rows are another seat's finding that became actionable only after a second seat tested it.**
+Seat 25's row is the clearest case: it reported the clamp but said honestly that its probe was a scope result,
+not a 0-versus-absent one — and the 0-versus-absent test showed the gap is **worse** than its scope reading
+(`depth 1` against `depth 21`).
+
+That is the argument for the confirmation rule, and it is stronger than any number of confirmations that merely
+agree: **a second seat does not just check a claim, it can find the claim is under-stated.** A rule that only
+policed for errors would have passed seat 25's finding through unchanged and left the sharper version unwritten.
