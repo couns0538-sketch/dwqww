@@ -1441,3 +1441,17 @@ HONEST LIMIT on the page: it catches the BASE (0 nodes) but not the PC (44,269 n
 is a real search of a drawn position and correct - so it is a detector for the unrepaired build, not a general rule.
 Does not weaken 23-F67 (both those hazards emit a diagnostic); it bounds that rule's scope.
 103 findings, 18 confirmations, thirteen named faults. 9 h 21 m remain.
+## 2026-11-17T00:58:32Z  23-F77: audited the other two driver rules - all four hold, and pipelining gives a FABRICATED a2a3 at 0 nodes
+2026-11-17T00:58:32Z
+
+Audit after finding the hole in rule 3 (23-F76):
+  RULE 1 (ucinewgame ordering) HOLDS: position-then-ucinewgame at depth 10 gives d2d4, IDENTICAL to the bare-startpos
+    answer; ucinewgame-then-position gives the position's own b1c3.
+  RULE 4 (read to bestmove first) HOLDS, and its violation is worse than a perturbation: sending position startpos
+    straight after go with no drain yields the FABRICATED bestmove a2a3 at 0 nodes, against the ordered run's f1b5
+    at 89,103 nodes - seat 19's 19-F12 from the driver's side.
+So of the four original rules all four hold on measurement (1 and 4 here, 2 and 3 in 23-C20/23-F67), and the page
+needed exactly ONE addition (the 0-node check, F76): structure right, one rule short, not wrong.
+23-F76's scope sentence now in BOTH the page and the finding row: the 0-node check catches the BASE (0 nodes) but not
+the PC (44,269 nodes), so it is a detector for the un-repaired build rather than a general driver rule.
+105 findings, 18 confirmations, thirteen named faults. 9 h 20 m remain.
