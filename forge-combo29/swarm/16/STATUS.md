@@ -819,3 +819,20 @@ seed: 1601
   I have retyped a number instead of pasting it, minutes after writing the rule against it — which says the habit is
   stronger than the note, and only a mechanical check will fix it.
 - check_folder.py ALL CHECKS PASS (486 files, 55 findings rows). Continuing to the close at 10:18:40Z.
+
+## 2026-11-17T05:05Z
+- I TESTED THE HANDOVER ITEM rather than leaving it for someone else: does a total-order comparator (score desc,
+  then ORIGINAL INDEX asc) preserve the picker's identity?
+  NO. 198 of 200 OG200 rows differ; total 27,944,084 -> 28,387,423 (+1.5865 %); median row change 31.81 %;
+  101 up / 97 down.
+  So the current `std::sort` tie order is NEITHER index order NOR find-max order. The only faithful reproduction is
+  the existing code.
+- All four predictions confirmed, including P3 which was a calibration: fixing only the TIE order costs 1.5865 %,
+  while replacing the whole algorithm output cost 5.0547 %. So the ordering is worth at least 1.6 points of total
+  nodes on tie order alone — a useful scale for anyone who later wants to change the ordering for STRENGTH.
+- THE PICKER IS NOW CLOSED FROM BOTH DIRECTIONS. Its 5.03 % is the price of an ordering the search depends on, not
+  algorithmic overhead. Do not spend time on the picker's sorting; if the ordering is ever worth changing it is a
+  search experiment needing games, not an identity-preserving speed patch.
+- Discipline note: the figures in that report were COMPUTED and printed by the script, not typed by hand — the
+  deliberate fix for the retyping habit that failed twice today.
+- check_folder.py ALL CHECKS PASS (490 files, 57 findings rows). Continuing to the close at 10:18:40Z.

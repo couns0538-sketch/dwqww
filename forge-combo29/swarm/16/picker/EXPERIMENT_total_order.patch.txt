@@ -1,0 +1,30 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -943,9 +943,24 @@
+                 }
+                 if (best != index_) std::swap(moves_[index_], moves_[best]);
+             } else {
+-                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+-                          moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+-                          [](const Scored& a, const Scored& b) { return a.score > b.score; });
++                // [swarm-16 EXPERIMENT] TOTAL order: score descending, then ORIGINAL INDEX ascending, so the
++                // result is deterministic and does not depend on introsort's unspecified tie order.
++                {
++                    const std::ptrdiff_t first = static_cast<std::ptrdiff_t>(index_);
++                    const std::ptrdiff_t last = static_cast<std::ptrdiff_t>(count_);
++                    std::vector<std::size_t> order(static_cast<std::size_t>(last - first));
++                    for (std::size_t k = 0; k < order.size(); ++k) order[k] = static_cast<std::size_t>(first) + k;
++                    std::sort(order.begin(), order.end(),
++                              [this](std::size_t a, std::size_t b) {
++                                  const int sa = moves_[a].score;
++                                  const int sb = moves_[b].score;
++                                  if (sa != sb) return sa > sb;
++                                  return a < b;          // original index, ascending
++                              });
++                    Scored tmp[MoveList::Capacity];
++                    for (std::size_t k = 0; k < order.size(); ++k) tmp[k] = moves_[order[k]];
++                    for (std::size_t k = 0; k < order.size(); ++k) moves_[static_cast<std::size_t>(first) + k] = tmp[k];
++                }
+                 sorted_ = true;
+             }
+         }
