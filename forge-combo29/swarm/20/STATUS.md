@@ -930,3 +930,13 @@ Next: independent confirmation of the 18.8/19.8/20.6 % (21.45 % openings) rate.
 - 29-F21 untouched: built-in net is RESIDUAL (adds hce+nnue); file-7 v3 net is STANDALONE (eval_scale 400, and
   nnue_v3.cpp:395 refuses a residual v3 net). Different nets, not a contradiction.
 - machine_clean caught a 3rd stray engine of mine before this commit. Gate earning its place.
+
+## 2026-11-17T00:50:15Z S-F71: the loaded v3 net is +11.1 % per node but 6.2x the nodes (and my first timing was confounded)
+- bench13/PC20/Threads 1, 8 runs/arm: built-in 535.5 ns/node (587,276 nodes) vs file-7 v3 net 594.8 ns/node
+  (3,652,372 nodes) -> ratio 1.1107. Node counts EXACTLY stable across runs. Combined wall 6.9x.
+- DISCLOSED CONFOUND: my first attempt used `go nodes 2000000` on one position and showed v3 "9.0 % FASTER". Neither arm
+  reached the budget (1,509,063 vs 1,249,906 nodes), so that ratio mixed per-node cost with search shape and pointed the
+  OPPOSITE way from the truth. Only the node counts exposed it. Kept in the finding rather than deleted.
+- Machine is a 4-core Intel Xeon, NOT the owner's Zen 5; file 7 requires PC timing before belief. Two builds of the same
+  source were byte-identical, so no build-to-build spread exists to quote (19-F7's 4.2 % cannot be reproduced that way).
+Next: the 200-opening timing arm of file 7 Step 3; and S-F70 still wants independent confirmation.
