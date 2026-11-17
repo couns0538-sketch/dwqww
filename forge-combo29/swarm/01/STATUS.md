@@ -1224,3 +1224,11 @@ apparatus into it. The rule should therefore not be "never time from the caller"
 
 My residual: **0.89 ms**. Seat 27's: **1,300 ms**. One search distinguishes them, and the rule as originally
 stated would forbid a method that is demonstrably sound.
+
+## 2026-11-17T00:27:50Z — 25-minute cadence
+THE CHECKER NOW DOCUMENTS ITS OWN BOUNDARY, in the docstring AND in its output (S-F93).
+  WHAT IT SAID IT COVERED vs WHAT IT ACTUALLY DOES: it checks ROW SHAPE and ID UNIQUENESS only. It does NOT check section order, which column content sits in, whether a claim is true, whether a number is stale, or anything in the prose pages (no rows to count there).
+  WHY THIS MATTERS CONCRETELY: the checker reported FINDINGS.md CLEAN through every pass in which I had appended two sections out of order, and once duplicated a heading while fixing them. A tool whose coverage is undocumented invites the assumption that a clean run means a correct document - and I made exactly that assumption twice, which is what led me to append the section out of order a third time.
+  The output now ends with: 'SCOPE: this checks ROW SHAPE and ID UNIQUENESS only... A clean run is not a correct document. For section order: grep -E ^## <file> and read the sequence.' So a reader of the result sees the boundary, not just the verdict.
+  This is the same lesson as the two-guards page applied to a tool rather than a measurement: a passing check tells you what it checked and nothing more, and the honest tool says which of those it is.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

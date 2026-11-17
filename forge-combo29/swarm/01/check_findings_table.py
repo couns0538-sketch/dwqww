@@ -16,8 +16,26 @@ IMPORTANT, twice over, because it happened to me and to seat 13:
   * the FIRST version asserted 7 pipes for F rows and 6 for C rows and flagged 115 of 117 rows;
   * the SECOND compared a PIPE count (k+1) against a CELL count (k), and so flagged a perfectly good row.
 Both times the instrument was wrong and the data was fine — seat 13's "companion lesson" exactly: when a
-checker flags everything, or flags one thing persistently, suspect the checker''s own assumption before the
+checker flags everything, or flags one thing persistently, suspect the checker's own assumption before the
 file. The row's cell count is `pipes - 1` for a row that begins and ends with a pipe.
+
+## WHAT THIS CHECKER DOES NOT COVER (state it, or a clean run will be over-read)
+
+A clean run means **every table row has the right cell count and no id is duplicated.** It does NOT mean the
+document is correct. Specifically it cannot see:
+
+  * **out-of-order or duplicated sections** — I appended sections after a page's closing headings twice in one
+    session, and once duplicated a heading in the fix, and this checker reported the file clean each time;
+  * **content in the wrong column** — a sentence in the evidence cell passes every count;
+  * **a claim that is false** — this is a shape check, not a truth check;
+  * **stale numbers** — a figure that no longer matches its raw file passes;
+  * **anything in the prose files** (the rule pages, the reports), which have no rows to count.
+
+For section order the guard is one command, and it is in MEASUREMENT_TRAPS.md's closing note:
+
+    grep -E "^## " <file>
+
+If the sequence is not what you intended, the page is not finished, whatever this checker said.
 
 Usage: check_findings_table.py [path]
 """
@@ -69,6 +87,11 @@ def main():
     out.append("VERDICT: %s" % ("every row has the right cell count and no duplicate ids"
                                 if not problems and not dupes else
                                 "STRUCTURAL PROBLEMS ABOVE - a literal pipe inside a cell splits it when rendered"))
+    out.append("")
+    out.append("SCOPE: this checks ROW SHAPE and ID UNIQUENESS only. It does NOT check section order,")
+    out.append("       which column content sits in, whether a claim is true, whether a number is stale, or")
+    out.append("       anything in the prose pages (no rows there). A clean run is not a correct document.")
+    out.append("       For section order: grep -E '^## ' <file> and read the sequence.")
     text = "\n".join(out) + "\n"
     pathlib.Path("check_findings_table.txt").write_text(text)
     print(text)
