@@ -32,11 +32,12 @@ all against `Hash 64`:
   baseline.
 
 `Hash 32` (23/24) and `Hash 16` (23/24) are indistinguishable, and `Hash 96`
-(15/24) and `Hash 256` (14/24) are indistinguishable from each other — the
-sequence is not monotone in size, which is what a pressure-only account predicts
-and what the data do not show. **The practical consequence is real and narrow:
-the best move rarely changes — 1 of 40 ordinary game positions at 750k nodes, 3 of
-40 at 1.5M — while the reported score changes constantly above ~750k nodes.**
+(15/24) and `Hash 256` (14/24) are indistinguishable from each other. **The
+sequence is not monotone in size, and a pressure-only account predicts that it
+would be** — less table should mean steadily fewer disagreements. **The practical
+consequence is real and narrow: the best move rarely changes — 1 of 40 ordinary
+game positions at 750k nodes, 3 of 40 at 1.5M — while the reported score changes
+constantly above ~750k nodes.**
 
 ---
 
@@ -91,14 +92,15 @@ the search.
 
 ### 3. Not caused by TT cutoffs, and not by TT move ordering (established)
 
-Three arms on the instrumented build, `go nodes 1000000`, 24 positions, Threads 1:
+Three arms on the instrumented build, `go nodes 1000000`, Threads 1 — the three
+engine arms over 24 positions, the null control over 16:
 
-| arm | Hash 1 | Hash 16 | Hash 256 |
-|---|---|---|---|
-| shipped search | 19/24 | 16/24 | 1/24 |
-| no TT cutoff (stores and ordering kept) | 19/24 | 10/24 | 1/24 |
-| no `tt_move` supplied (stores and cutoffs kept) | 20/24 | 17/24 | 0/24 |
-| **null control: no probe result read at all** | **0/16** | **0/16** | **0/16** |
+| arm | n | Hash 1 | Hash 16 | Hash 256 |
+|---|---|---|---|---|
+| shipped search | 24 | 19/24 | 16/24 | 1/24 |
+| no TT cutoff (stores and ordering kept) | 24 | 19/24 | 10/24 | 1/24 |
+| no `tt_move` supplied (stores and cutoffs kept) | 24 | 20/24 | 17/24 | 0/24 |
+| **null control: no probe result read at all** | 16 | **0/16** | **0/16** | **0/16** |
 
 The null control is the important row. With every probe result discarded, the
 answer is identical at all four sizes — **0/16 at 500k, 1M and 2M**. That proves
@@ -110,7 +112,8 @@ table's reads perturb the tree through several channels at once.
 ### 4. Not an artifact of stopping mid-iteration (established)
 
 An obvious alternative was that equal-node searches simply stop at different
-points in the tree. Refuted by repeating at equal *depth*:
+points in the tree. Refuted by repeating at equal *depth* (16 positions, so the
+denominator here is 16, not 24):
 
 | stopping rule | Hash 1 | Hash 16 | Hash 256 |
 |---|---|---|---|
@@ -128,10 +131,12 @@ The entry stores only **32 bits** of a 64-bit key (`verification_key` is
 accepted as a hit, which would be a correctness defect. The instrument carries a
 parallel full-key shadow array and compares on every hit:
 
-**0 false hits in 480 grid cells**, across four sizes and five budgets. At
-4×10¹⁴ probes' worth of exposure this is the expected birthday behaviour, not a
-lucky sample. The truncation is safe *at these table sizes*; the bound is that a
-collision needs two keys in one 4-slot cluster with equal low-32 bits.
+**0 false hits in 480 grid cells**, across four sizes and five budgets, over
+**330,895,390** probes in total. That is a clean bill for these sizes, and it is
+also a bounded one: a false hit needs two keys landing in the same 4-slot cluster
+with identical low 32 bits, so the exposure that would find one is far larger than
+3.3×10⁸. **"No false hit observed" is the claim; "no false hit is possible" is
+not.**
 
 ### 6. `hashfull` is a sample, and my first reading of it was wrong (corrected)
 
@@ -210,7 +215,7 @@ Registered in `PREDICTIONS.md` before the instrument existed.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| 1 | Evictions at `Hash 1`/50k are non-zero | **CONFIRMED.** 10,803 displacements over 24 cells (median 489, max 907) |
+| 1 | Evictions at `Hash 1`/50k are non-zero | **CONFIRMED.** 10,803 displacements over 24 cells (median 488.5, max 907) |
 | 2 | False hits zero or near-zero everywhere | **CONFIRMED.** 0 in 480 grid cells and 0 in all 144 two-effects cells |
 | 3 | `hit_shallower` does not track divergence | **CONFIRMED.** Separates in only 4 of 10 comparable rows |
 | 4 | `Hash 16` at 500k loses no real (depth ≥ 1) entries | **PARTLY REFUTED.** 792 depth≥1 evictions over 24 cells — small but not zero. My "no real entries lost at 500k" reasoning was too strong; the count is small, which is why only 2/24 cells differ |
