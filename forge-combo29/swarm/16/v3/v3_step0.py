@@ -11,7 +11,7 @@ missing active line stops the run rather than producing a number.
 Rows, in file 7's order:
   no net, no setoption      bench 11 312866   bench 13 862329
   PC20, no net              bench 11 278024   bench 13 587276
-  test net only             bench 11 965454   bench 13 4191906
+  test net only             bench 11 965454   bench 13 4151906
   PC20, then the test net   bench 11 625258   bench 13 3652372
 Eval lines under PC20 + test net (each must read `info string eval hce 0 nnue X total X`):
   startpos                                                        968
@@ -41,7 +41,7 @@ BENCH = [
     ("pc20_no_net", "bench 11", 278024, "pc20"),
     ("pc20_no_net", "bench 13", 587276, "pc20"),
     ("net_only", "bench 11", 965454, "net"),
-    ("net_only", "bench 13", 4191906, "net"),
+    ("net_only", "bench 13", 4151906, "net"),
     ("pc20_net", "bench 11", 625258, "pc20net"),
     ("pc20_net", "bench 13", 3652372, "pc20net"),
 ]

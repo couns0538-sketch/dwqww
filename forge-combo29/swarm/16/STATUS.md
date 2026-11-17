@@ -641,3 +641,19 @@ seed: 1601
 - addf.sh earned its keep twice: it refused to write when invoked from the wrong directory, and it refused a
   `| v3` row until I widened its guard to file 7's tagging convention — a refusal, never a stray.
 - check_folder.py ALL CHECKS PASS (440 files, 47 findings rows). Cadence continues to 10:18:40Z.
+
+## 2026-11-17T06:30Z
+- STEP 0 IS SETTLED AND IT PASSES: 8 of 8 bench numbers and 3 of 3 eval lines match file 7. My earlier "40,000-node
+  hardware discrepancy" was MY OWN TRANSCRIPTION ERROR — file 7 says net_only bench 13 = 4,151,906 and I had typed
+  4,191,906 into my harness's expected-value table. Verified byte-for-byte with `od -c` on the published row:
+  `4 1 5 1 9 0 6`. My build matched on the very first run.
+- THE WORST PART IS THE ORDER OF MY REASONING, and it is worth recording plainly: three other seats (11, 29, 15) on
+  the SAME hardware and compiler reported that pair as matching. I had three independent measurements against my one
+  reading, and instead of re-reading the digit I constructed a plausible hardware explanation on top of my error and
+  offered to hand the job over. A digit is cheaper to check than a hypothesis. That is habit 3 of my own caution
+  (a single case dressed as a property) applied to an ERROR rather than a result, and it is the seventh
+  self-correction on the branch and the most avoidable. The check that would have caught it: quote the published
+  figure byte-for-byte instead of retyping it.
+- The job is UN-STOPPED and Step 1 begins: prediction committed alone first, then perf on bench 13 under PC20 + the
+  test net and on 200 openings at depth 12.
+- check_folder.py ALL CHECKS PASS (441 files, 48 findings rows). Cadence continues to 10:18:40Z.
