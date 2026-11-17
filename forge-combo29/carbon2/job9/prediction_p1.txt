@@ -1,0 +1,21 @@
+Step P1 Prediction (committed ALONE before any Step P1 timed run)
+=================================================================
+Step name: `P1` (`p1_inline_node_stop_tt_miss_fastpath_and_king_islegal.patch.txt`, stacked on `base_j9` = Job 8 `bundle4` minus unused `O2` `InfoOnce`)
+
+What Step P1 removes and its measured counts from `forge-combo29/carbon2/job9/counts_hash16.txt` (60 games at `Hash 16`, `7,670` searches, `25,641,316` nodes):
+1. Inline PGO-proof single-worker node-cap stop check (`Worker::check_node_or_periodic_stop`):
+   - In `counts_hash16.txt`, `Worker::should_stop()` ran **`32,930,134` times** (`548,836`/game; `22,539,233` in `search` + `10,326,949` in `qsearch` + `63,952` root), and **`100.00%` (`32,930,134 / 32,930,134`)** were single-worker node-bounded calls (`multipv == 1`, `Threads == 1`, no clock). Because `bench 11/13/16` (the PC's PGO profile) runs with `node_limit_specified_ == false` (`should_stop()` taken `0.097%` of nodes), PGO lays out `should_stop() -> should_stop_with() -> total_nodes()` as cold code that `go softnodes 2000` and `go nodes 50000` then enter on every node (`~98.8M` nested calls + `32.9M` atomic `nodes_.store` + `32.9M` heap `all_workers_` vector loops per 60 games).
+   - `[[gnu::always_inline]]` `check_node_or_periodic_stop()` checks `local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0` in registers (reading `shared_.stop` relaxed) and calls `should_stop()` only every 1,024 nodes or when `local_nodes_ >= node_limit_`, eliminating **`99.90%` (`32,897,975`)** of `should_stop()` chains.
+2. `TranspositionTable::probe_body` miss fast-path & packed `TTProbe`:
+   - In `counts_hash16.txt`, `probe_owned` ran **`31,963,180` times** (`532,720`/game) with **`14,942,337` (`46.75%`) misses**.
+   - Packs `TTProbe` (`64 -> 56 B`), elides `!TakeLock` `std::unique_lock` construction, skips copying the unread 16-byte `*replace` `TTEntry` on all `14.94M` misses, and returns slot `0` immediately when `!entries[0].occupied()` before scanning `entries[1..3]`.
+3. Lookup-free `King` test in `Board::is_legal`:
+   - In `counts_hash16.txt`, **`16,525,641`** `is_legal` calls (`275,427`/game; `75.73%` unpinned non-king non-EP) remain outside `QuietMoves`. Replaces `piece_type(moving) != King` table loads in `Board::is_legal` / `is_legal_complete` with `(moving != WK && moving != BK)`.
+
+Predicted self-play gain at `Hash 16` (`A = Job 8 bundle4`, `B = base_j9 + P1`, 12 rounds x 60 games ABBA on Intel Xeon @ 2.60GHz):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+0.8%` to `+2.5%` (`1.008x` to `1.025x`)**, with `>= 9 / 12` paired rounds faster.
+- End-to-end self-play wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+0.6%` to `+2.5%` (`1.006x` to `1.025x`)**.
+
+Kill range:
+- Any mismatch on the 500,000-op TT probe/store/hashfull oracle, the `2,010`-sequence all-stages `MovePicker` oracle, the `55,868`-sequence evasion oracle, the engine identity pins, or the 48-run FNV trace (`ee465caeff9c0fcf`) kills `P1` immediately.
+- If the 12-round x 60-game `Hash 16` `median_of_paired_round_ratios` (`(base_j9 + P1) / bundle4`) is `<= 1.006x` (`<= +0.6%`) on engine `getrusage` CPU OR fewer than `9 / 12` paired rounds are faster on engine `getrusage` CPU, the `P1` standalone cloud speed prediction is killed (while testing the full post-`r15e` production bundle `bundle_r15f.patch.txt` directly against `r15e`).
