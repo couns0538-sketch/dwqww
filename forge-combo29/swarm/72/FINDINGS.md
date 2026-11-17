@@ -297,9 +297,25 @@ positions, 1–24 executions each, still zero verdict changes — and its losing
 scores were confirmed as genuine losses by a depth trend rather than a missed
 draw.
 
-The general rule both teach: **an absence needs the same proof as a defect, and
-a null needs a footprint.** To show a code path does *not* matter, show that it
-ran and that nothing followed.
+The general rule both teach: **an absence needs the same proof as a defect.**
+Specifically, two proofs, in order:
+
+1. **Show the code path ran and nothing followed.** Instrument it and report a
+   counter that the path would *move*, not the outcome it would change. A null
+   from a corpus that cannot reach the code is vacuous — that was the
+   199-position scan, where zero node-count differences proved the branch never
+   executed.
+2. **Show that what it did not change was not the thing you would have needed
+   it to change.** A position scoring badly while the branch fires could be a
+   real loss *or* a missed draw, and those separate under deeper search: a
+   missed draw trends toward zero, a real loss goes further negative. Without
+   this step the null would only mean "the engine scores these badly and I
+   cannot tell you why".
+
+The first proof alone shows you looked somewhere the code could have shown
+something. The second shows that what it showed was not the absence you
+needed. Both are recorded here because either one alone is a null that reads
+like a finding.
 
 
 ## Recommendation

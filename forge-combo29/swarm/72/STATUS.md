@@ -65,11 +65,12 @@ as an automatic draw — the same modelling error in both places.
 - **In-tree repetition detection executes and leaves a footprint** — 8 hits at
   depth 6 and 158 at depth 10 below the root; with the repeating move forced
   the ablated build visits 4187 nodes where the stock build visits 4186. It is
-  not shown to be *load-bearing*: a first 199-position scan was vacuous (zero
-  node-count differences prove the branch never ran), so candidates were
-  re-selected *by footprint* — 31 positions with 1–24 executions each, still
-  zero verdict changes, with a depth trend confirming those are genuine losses
-  rather than missed draws.
+  not shown to be *load-bearing*, and that qualifier rests on two proofs:
+  (1) the branch demonstrably ran — 31 footprinted positions with 1–24
+  executions each, zero verdict changes, after a first 199-position scan was
+  discarded as vacuous because zero node-count differences proved the branch
+  never executed there; (2) the scores it did not change are real losses, not
+  missed draws — they deepen under search (−550 → −564 → −571 → −1010).
 
 ## Fixture integrity
 

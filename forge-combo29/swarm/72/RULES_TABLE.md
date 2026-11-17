@@ -137,17 +137,22 @@ strength loss in any game that reaches such a position while still won.
 - **L1.** The audit exercises the engine through UCI plus two purpose-built
   C++ probes that link the real `Board`/`Searcher`, not the shipped binary's
   internals. Behaviour is the same code path.
-- **L2.** Row 16 is stated as "no measurable effect" rather than "defect",
-  and the qualifier is now earned rather than assumed. A first scan of 199
-  opening positions returned zero differences **with zero node-count
-  differences**, which proves the repetition branch never executed there; that
-  null was vacuous and is not counted. Selecting candidates by footprint
-  instead (keep only roots where the branch fires) produced 31 positions with
-  1–24 branch executions each, still with **zero** verdict changes, and a depth
-  trend confirming the losing scores there are real losses rather than missed
-  draws. So: the mechanism is present and live, but I found no fixture where
-  removing it changes a score, i.e. in-tree detection is not shown to be
-  load-bearing.
+- **L2.** Row 16 is stated as "no measurable effect" rather than "defect", and
+  the qualifier is earned by two separate proofs.
+  *Proof 1 — the branch ran.* A first scan of 199 opening positions returned
+  zero differences **with zero node-count differences**, which proves the
+  repetition branch never executed there; that null was vacuous and is not
+  counted. Selecting candidates by footprint instead (instrument first, keep
+  only roots where the branch fires) produced 31 positions with 1–24 branch
+  executions each and still **zero** verdict changes.
+  *Proof 2 — the unchanged thing was not a missed draw.* The losing scores in
+  those positions deepen with search (−550 → −564 → −571 → −1010 for
+  `3r3k/8/8/q7/4Q3/8/8/K7 w`; −536 → −560 and −546 → −559 for the other two),
+  which is the signature of a confirmed loss rather than a draw the engine
+  failed to find.
+  So: the mechanism is present and live, but removing it changes no score on
+  any position where it demonstrably executed, i.e. in-tree detection is not
+  shown to be load-bearing.
 - **L3.** All 26 rows are for the six cases the brief named plus the
   combinations those imply. This is not a proof of correctness for arbitrary
   material (e.g. KBB vs KN).
