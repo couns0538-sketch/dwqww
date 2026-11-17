@@ -1036,3 +1036,20 @@ Tally per the gate: **43 / 36 / 8 / 6** (findings / checks / method lines / with
 next command:
 
     cd /agent/repos/dwqww/forge-combo29/swarm/08/v3 && grep -n "apply_changes_pair\|refresh_from_pieces" ~/repos/pcbase/forge-combo29/src/nnue_v3.cpp | head -20
+
+## 2026-11-17T03:56Z — Step 2 DONE: the v3 count-dispatch patch
+- **Identity EXACT on a build from a CLEAN 6b98f217+file5 tree**: 8/8 bench numbers, 3/3 evals, and the **200-opening
+  node sum 27,944,084**. Patch applies `patch -p1 --fuzz=0`, 67 lines, no rejects.
+- **A real win: +1.2 % paired median / +1.6 % bench.** Real-position arm n=120, ABBA, `go nodes 200000`:
+  median ratio **0.9878**, **107 of 120 faster, sign test p = 1.5e-19**, nodes matched 120/120.
+- **08-W7: my first verdict ("NOT MEASURABLE") was WRONG and would have discarded a true finding.** I compared a
+  within-pair effect against a between-position spread — a category error, because a paired ABBA design cancels the
+  latter. Seventh label-or-reasoning failure, and the first in the *conservative* direction, which is why it would
+  have survived review.
+- **08-N9 (method): in a paired design, between-subject spread is context and the sign test is the test.**
+- PC should time it itself (clang/znver5/PGO): this is evidence it is worth that measurement, not a substitute.
+
+## 2026-11-17T03:56Z — TALLY (generated, not maintained)
+**44 findings, 38 checks/audits/plants/tools, 9 method lines, 7 withdrawals** (and 1 open lead).
+
+next: cadence.
