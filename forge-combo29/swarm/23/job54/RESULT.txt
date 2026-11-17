@@ -1,0 +1,50 @@
+THE HISTORY GATE IS GENERAL: 4 of 4 positions bail at 0 nodes ONLY when the repetition is in the move list
+==========================================================================================================
+23-F109 showed the gate on one position. One position is an anecdote; this tests four, with the fifty-move rule
+neutralised so the counter cannot confound the result.
+
+THE DESIGN, and the control that matters most
+---------------------------------------------
+Every FEN is rewritten with **halfmove 0** before use, because 23-F93 showed the fifty-move counter triggers the same
+0-node bail — leaving a high counter in would make every threefold cell uninformative. Each cycle is FOUND by search over
+legal non-capturing non-checking moves and validated, never typed (the job-44 lesson). Three sends per position, base
+build, Threads 1, Hash 16, `go depth 10`:
+
+  S1 bare FEN (no history)     S2 FEN + cycle twice (threefold visible)     S3 FEN + cycle once (two occurrences)
+
+| pos | cycle | S1 bare | S2 (x2) | S3 (x1) | S2 score | S2 move | predicted | S2 = predicted? |
+|---|---|---|---|---|---|---|---|---|
+| A 23-F109 natural root | b8c8 b4e7 c8b8 e7b4 | **44,888** | **0** | **44,888** | cp 0 | a4a3 | a4a3 | **yes** |
+| B 23-F45 endgame | b8c8 a1b2 c8b8 b2a1 | **7,581** | **0** | **7,581** | cp 0 | d5d1 | d5d1 | **yes** |
+| C job-52 P1 | g1h1 g8h8 h1g1 h8g8 | **210** | **0** | **210** | cp 0 | f2f3 | f2f3 | **yes** |
+| D job-52 P4 | h8g8 h1g1 g8h8 g1h1 | **8,522** | **0** | **8,522** | cp 0 | h8g7 | h8g7 | **yes** |
+
+P1 HELD: **S2 returned exactly 0 nodes on 4 of 4 positions.**
+P3 HELD: the known answer reproduces on position A — 44,888 nodes bare, 0 nodes with the history, which is 23-F109
+exactly.
+P4 HELD: **S2's move equalled the independently predicted index 0 on 4 of 4**, and the returned score was cp 0 in every
+cell — no third behaviour appeared.
+P2 PASSED ON THE MERITS, FAILED ON MY THRESHOLD: I wrote "S1 and S3 both search with > 1000 nodes" and it scored 3 of 4,
+because position C's bare FEN searches only **210** nodes. 210 is a real search, not a bail — the cell is a pass and my
+number was arbitrary. Recording it as a threshold error rather than adjusting the threshold after seeing the data: the
+honest statement is "S1 and S3 both returned nonzero node counts on 4 of 4, minimum 210".
+
+WHAT THIS ESTABLISHES, and its boundary
+----------------------------------------
+The 0-node bail is triggered by the REPETITION BEING IN THE MOVE LIST, on four independent positions of different
+character (a middlegame position from self-play, a K+R endgame, a rook-and-pawns position, a pawnless ending). The same
+boards sent without that history search normally, from 210 to 44,888 nodes. And wherever the bail occurs, the move
+returned is the generator's index 0 as predicted — which ties the history gate to the generator-order mechanism in one
+measurement rather than by juxtaposition.
+
+NOT established: that two occurrences never bail (S3 says not on these four, but I only tested 2 vs 3); that the
+threshold is exactly "third occurrence" rather than some other history feature such as the number of reversible moves;
+and nothing about why the code does this — the three candidate paths in 23-F100 remain unranked.
+
+LIMITS: four positions, one build, `go depth 10`, cycles of exactly 4 plies. Position C's cycle involves only king moves
+(`g1h1 g8h8 h1g1 h8g8`), so on that board the threefold is built from a king shuttle rather than a rook/pawn shuffle —
+a variation in cycle TYPE that the result covers deliberately.
+
+INSTANCE 24 (small): I wrote a numeric threshold (> 1000 nodes) into a prediction without deriving it, and the data
+landed one cell below it on a value (210) that was plainly a pass. A threshold that decides pass/fail is a claim and
+needs the same treatment as any other expected value — derive it, or state the comparison qualitatively.

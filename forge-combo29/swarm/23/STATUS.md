@@ -2038,3 +2038,27 @@ test - it is a test of something else, and it answers confidently and wrongly. W
 the mechanism depends on: 44,888 nodes became 0.
 
 137 findings, 23 rule instances, both audits PASS.
+## 2026-11-17T01:40:31Z  F110: the history gate is general (4 of 4), and it is the SAME measurement as the generator mechanism
+2026-11-17T01:40:31Z
+
+F109 showed the gate on one position, which is an anecdote. Job 54 tested four, with one control that mattered more than
+the rest: every FEN rewritten to halfmove 0, because F93 showed the fifty-move counter triggers the same 0-node bail and
+would have made every cell uninformative. Cycles were FOUND by search and validated, never typed.
+
+  A F109 natural root   44,888 -> 0 -> 44,888  move a4a3 = predicted
+  B F45 endgame          7,581 -> 0 ->  7,581  move d5d1 = predicted
+  C job52 P1 (king cycle)  210 -> 0 ->    210  move f2f3 = predicted
+  D job52 P4             8,522 -> 0 ->  8,522  move h8g7 = predicted
+
+S2 (threefold in the move list) = 0 nodes on 4 of 4; the move returned is the predicted generator index 0 on 4 of 4;
+score cp 0 in every bailed cell, so no third behaviour exists. And the known answer reproduces 23-F109 exactly on A.
+
+That ties two things that were previously adjacent: the HISTORY GATE and the GENERATOR-ORDER mechanism are the same
+measurement. The board bails only when its repetition is in the move list, and when it bails it returns index 0.
+
+P2 is the honest blemish: I wrote "> 1000 nodes" as the search threshold and scored 3 of 4, because C's bare FEN
+searches 210. 210 is a real search, the cell is a pass, and the threshold was a number I wrote without deriving it.
+Recorded as instance 24, and the claim is restated qualitatively ("nonzero on 4 of 4, minimum 210") rather than by
+moving the threshold after seeing the data.
+
+139 findings, 24 rule instances, both audits PASS.
