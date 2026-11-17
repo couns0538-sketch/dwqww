@@ -1,0 +1,86 @@
+## Is NEARNESS TO MATE the explanation for 37 %% vs 10 %%? PC r15, PC20, Threads 1
+
+Nearness is measured independently: a deep `go depth 18` from the same board, before any clocked search.
+
+| sample | boards | deep search finds a mate | of those, mate-appearing targets | no mate at depth 18 | of those, mate-appearing |
+|---|---|---|---|---|---|
+| seed 801 | 27 | **14** | **2** | 13 | **8** |
+| seed 902 | 29 | **4** | **1** | 25 | **2** |
+
+| sample | share of boards that are NEAR mate (deep search finds one) |
+|---|---|
+| seed 801 | **14 of 27 (52 %)** |
+| seed 902 | **4 of 29 (14 %)** |
+
+## The test: does nearness predict the mate-appearing target?
+
+| group | mate-appearing targets | boards |
+|---|---|---|
+| boards NEAR mate (deep search finds a mate) | **3** | **18** |
+| boards NOT near mate | **10** | **38** |
+
+| question | answer |
+|---|---|
+| near-mate rate | 17 % |
+| not-near-mate rate | 26 % |
+| does nearness explain the mate-appearing cases? | **PARTLY — nearness does not separate them cleanly** |
+
+### the boards in detail (sample, fen, deep score, near?, target mate-appeared?)
+| sample | fen | deep score | near mate? | target mate-appeared? |
+|---|---|---|---|---|
+| seed 801 | 8/4k3/4B3/4pP2/2Q1P3/P3P1rR/8/5K2  | mate -6 | YES | no |
+| seed 801 | 2Q5/3B4/3k4/4pP2/4P1r1/P3P2R/5K2/8 | mate 3 | YES | no |
+| seed 801 | 2Q5/3B4/3k2r1/4pP2/4P3/P3P2R/4K3/8 | mate -5 | YES | no |
+| seed 801 | 8/3Bk3/8/4pP2/4P3/P3P1rR/8/1Q1K4 w | mate 4 | YES | no |
+| seed 801 | 5k2/8/5P2/4p3/B3P3/P3P2R/1Q2K3/6r1 | cp -2014 | no | no |
+| seed 801 | 8/5kP1/8/4p3/B3P3/P3P1R1/1Q6/5K2 w | mate 3 | YES | no |
+| seed 801 | 8/6P1/2B1k3/8/3PP3/P2R4/8/5K2 b -  | mate -5 | YES | no |
+| seed 801 | 5k2/8/8/3B4/3PP3/P7/4K3/7R w - - 1 | mate 6 | YES | **YES** |
+| seed 801 | 7R/6k1/8/8/3PP3/P7/4K3/8 b - - 3 1 | cp -2374 | no | **YES** |
+| seed 801 | 8/8/2k5/4P3/3P4/P7/4K3/7R w - - 1  | cp 3056 | no | **YES** |
+| seed 801 | 8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0  | mate -7 | YES | no |
+| seed 801 | 8/8/4P3/8/3k4/P5R1/4K3/8 w - - 0 1 | mate 6 | YES | no |
+| seed 801 | 8/4k3/8/6R1/8/P7/3K4/8 b - - 1 116 | cp -1348 | no | **YES** |
+| seed 801 | 8/3k4/8/6R1/8/P3K3/8/8 w - - 8 120 | cp 1491 | no | no |
+| seed 801 | 8/8/8/4R3/2k5/P7/8/2K5 w - - 22 12 | mate 15 | YES | no |
+| seed 801 | 8/8/8/8/6R1/P3k3/1K6/8 b - - 29 13 | cp -1517 | no | no |
+| seed 801 | 8/6R1/8/8/4k3/P7/1K6/8 w - - 36 13 | cp 1493 | no | no |
+| seed 801 | 5R2/8/8/8/K7/P7/8/3k4 b - - 43 137 | mate -30 | YES | **YES** |
+| seed 801 | 1R6/8/8/8/1K6/P3k3/8/8 w - - 50 14 | mate 10 | YES | no |
+| seed 801 | 8/8/8/1R6/1K6/P7/3k4/8 b - - 57 14 | mate -10 | YES | no |
+| seed 801 | 2R5/8/8/8/1K3k2/P7/8/8 w - - 64 14 | mate 11 | YES | no |
+| seed 801 | R7/8/2K5/8/8/P7/5k2/8 b - - 71 151 | cp -1708 | no | **YES** |
+| seed 801 | 8/3K3R/8/6k1/P7/8/8/8 b - - 0 158 | cp -1809 | no | **YES** |
+| seed 801 | 1K6/5k2/8/P7/8/8/8/8 w - - 3 162 | cp 1288 | no | **YES** |
+| seed 801 | 8/2K3k1/8/P7/8/8/8/8 b - - 10 165 | cp -1231 | no | **YES** |
+| seed 801 | 8/3K4/8/P6k/8/8/8/8 w - - 17 169 | cp 1219 | no | **YES** |
+| seed 801 | 5K2/8/6k1/P7/8/8/8/8 b - - 24 172 | cp -1107 | no | no |
+| seed 902 | 1n6/k7/1n1B4/4P3/ppPK4/Q4N2/8/5N2  | cp -611 | no | no |
+| seed 902 | 1n6/k7/3B4/4P3/p7/Qp1nKN2/8/5N2 w  | cp 2861 | no | **YES** |
+| seed 902 | 1nk5/8/8/4P3/pB6/Qp2K3/5n2/4NN2 b  | cp -1567 | no | no |
+| seed 902 | 1n6/8/k7/2n1P3/pB6/1p2K1N1/8/Q3N3  | cp 2848 | no | **YES** |
+| seed 902 | 8/8/k7/2n1n3/5K2/ppB5/4N3/Q3N3 b - | cp -1319 | no | no |
+| seed 902 | 8/8/5Q2/1kn5/5K2/ppB2n2/4N3/4N3 w  | mate 6 | YES | **YES** |
+| seed 902 | 8/8/3Q4/2n2K2/2k5/ppB2n2/4N1N1/8 b | cp -1552 | no | no |
+| seed 902 | 7B/8/Qn6/2k2K2/8/pp6/6Nn/2N5 w - - | mate 6 | YES | no |
+| seed 902 | 7B/8/Q5n1/2k5/4K3/pp6/6Nn/2N5 b -  | mate -2 | YES | no |
+| seed 902 | 7n/8/3Q3n/8/2k1KN2/pp6/8/2N5 w - - | mate 3 | YES | no |
+| seed 902 | 7n/3n4/6N1/8/2k2K2/pp6/3Q4/2N5 b - | cp -849 | no | no |
+| seed 902 | 8/8/6Nn/8/2k5/pp1nK3/5Q2/2N5 w - - | cp 1465 | no | no |
+| seed 902 | 7Q/5n2/6N1/2k1n3/8/pp6/3K4/2N5 b - | cp 0 | no | no |
+| seed 902 | 4Q3/5n2/6N1/2k5/4K1n1/pp6/8/2N5 w  | cp 1567 | no | no |
+| seed 902 | 8/5n2/6N1/2k2K2/6Q1/pp6/7n/2N5 b - | cp 434 | no | no |
+| seed 902 | 7n/8/3k2NQ/8/6K1/1p3n2/p7/2N5 w -  | cp 1397 | no | no |
+| seed 902 | 7n/8/2k3N1/8/3Q4/1p3n1K/8/2N5 b -  | cp -60 | no | no |
+| seed 902 | 7n/2k5/8/8/3n4/1N5K/1p2N3/8 w - -  | cp -561 | no | no |
+| seed 902 | 8/2k5/2n3n1/8/8/7K/4N3/1N6 b - - 2 | cp -72 | no | no |
+| seed 902 | 8/2k5/8/4n3/7n/7K/3NN3/8 w - - 9 1 | cp 44 | no | no |
+| seed 902 | 1k1n4/8/8/6N1/7n/7K/4N3/8 b - - 16 | cp -77 | no | no |
+| seed 902 | k2n4/8/8/8/8/5N1K/2n1N3/8 w - - 23 | cp 54 | no | no |
+| seed 902 | k7/5n2/2n5/6N1/8/8/7K/1N6 b - - 30 | cp 31 | no | no |
+| seed 902 | 8/k4n2/2n5/8/8/8/3N2K1/8 w - - 0 1 | cp 0 | no | no |
+| seed 902 | 4n3/8/k1n5/1N6/8/8/8/6K1 b - - 7 1 | cp 182 | no | no |
+| seed 902 | 1n1n4/8/k7/8/8/2N5/8/6K1 w - - 14  | cp 17 | no | no |
+| seed 902 | 1n1n4/1k6/8/8/8/8/3N4/5K2 b - - 21 | cp -36 | no | no |
+| seed 902 | 1n6/8/k4N2/n7/8/8/8/4K3 w - - 28 1 | cp 31 | no | no |
+| seed 902 | 1n3N2/1n6/1k6/8/8/8/8/3K4 b - - 35 | cp -24 | no | no |
