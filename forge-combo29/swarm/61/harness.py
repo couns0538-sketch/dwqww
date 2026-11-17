@@ -119,11 +119,22 @@ class Engine:
 
     def perft(self, board, depth, moves=()):
         self.set_position(board, moves)
-        self._send("isready")
-        self._read_until(lambda ln: ln.strip() == "readyok", DEFAULT_TIMEOUT, "readyok")
+        # NOTE: set_position already drains its own `readyok`.  An extra `isready` here would
+        # have no outstanding reply and would block until the wall timeout -- which is how this
+        # method first hung.
+        #
+        # The summary line is `nodes <N>`; it is NOT `Nodes searched: <N>`.  Waiting for the
+        # latter blocked forever on a line the engine never emits, so the summary predicate and
+        # the parse below are written against the string the engine actually prints.
         self._send("go perft %d" % depth)
-        lines = self._read_until(lambda ln: ln.startswith("Nodes searched"), DEFAULT_TIMEOUT,
-                                 "perft summary")
+        lines = self._read_until(lambda ln: ln.startswith("nodes "), DEFAULT_TIMEOUT,
+                                 "perft summary ('nodes <N>')")
+        self._scan_fen(lines, "perft output")
+        total = None
+        for ln in lines:
+            if ln.startswith("nodes "):
+                total = int(ln.split()[-1])
+        return total, lines
         self._scan_fen(lines, "perft output")
         total = None
         for ln in lines:
