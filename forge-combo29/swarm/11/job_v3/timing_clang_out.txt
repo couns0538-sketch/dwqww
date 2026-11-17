@@ -1,0 +1,17 @@
+CLANG build: base vs count-2 patch, bench 13 under PC20 + test net
+(one build per side -- INDICATIVE only; the g++ two-build result is primary)
+
+  after 5 rounds: base mean 1700573, patch mean 1689791
+  after 10 rounds: base mean 1709354, patch mean 1699375
+  after 15 rounds: base mean 1716911, patch mean 1698760
+  after 20 rounds: base mean 1720434, patch mean 1700439
+
+  base  median 1722008 nps (n=20)
+  patch median 1702738 nps (n=20)
+  RATIO 0.9888  (-1.12%)
+  verdict: PATCH IS SLOWER (CI upper bound 0.9942 < 1.0) -- DO NOT SHIP
+
+  Compare with the g++ measurement (job_v3/timing_p3.txt): ratio 0.9954, CI [0.9913, 0.9989].
+  My environment table predicted the patch might behave DIFFERENTLY under clang -- not that
+  it would win. Either outcome confirms 'different'; neither is a ship recommendation.
+EXIT=0
