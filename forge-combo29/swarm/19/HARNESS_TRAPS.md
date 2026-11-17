@@ -305,6 +305,32 @@ the positions replayed or the driver's own command stream.
 
 ---
 
+## 14. Identical answers from unrelated inputs mean the INPUT is wrong (19-C39)
+
+**The trap:** comparing three different boards and getting the same move from all three.
+
+**What happened:** building FENs by appending `- 0 1` to a string that already contained a counter produced an
+**invalid FEN** for all three cases. The engine refused each one, kept its previous position (startpos), and
+answered `e2e4` every time.
+
+**The tell, and it is decisive:** the third board was a **K+P versus K** ending. `e2e4` is not even a legal move
+there. **Three unrelated positions answering identically is not a coincidence — it is a property of the input.**
+
+**Why this matters beyond FENs:** the same shape appears in several other traps:
+- trap 1 — *no* `info` lines at all (the search never ran);
+- trap 1b — `info` lines with `nodes 0` and an empty PV (a drawn-root shortcut);
+- a refused `position fen` leaving the **previous** board in place (19-C21's neighbour, 21-F2);
+- **this** — the refused FEN's *previous board* producing a plausible-looking move.
+
+**All four are "the engine answered a question you did not ask."** The shared defence: **when results across
+independent inputs agree more than they should, suspect the input before the engine.** A per-input sanity check
+(the move must be legal on *that* board) catches every one of them in a line.
+
+**The test:** for each row of a multi-board comparison, assert the engine's move is legal in that row's position.
+My severity script now does exactly that.
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
