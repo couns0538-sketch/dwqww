@@ -1,0 +1,22 @@
+{
+ "exe": "/tmp/forge/build-p13/forge",
+ "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=0:report_error_type=1",
+ "arms": [
+  {
+   "harness": "bestmove-then-kill",
+   "drained_to_eof": false,
+   "san_lines": [],
+   "verdict": "CLEAN"
+  },
+  {
+   "harness": "drain-to-eof",
+   "drained_to_eof": true,
+   "exit_code": 1,
+   "san_lines": [
+    "/tmp/forge/plants/p13/src/uci.cpp:155:29: runtime error: signed integer overflow: 2147483640 + 100 cannot be represented in type 'int'"
+   ],
+   "verdict": "REPORT"
+  }
+ ],
+ "conclusion": "the bestmove-only harness misses an exit-time UB report that the drain-to-EOF harness catches"
+}

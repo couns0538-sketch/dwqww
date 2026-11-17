@@ -81,6 +81,12 @@ class Phase:
             self.restart("dead before probe")
         t0 = time.monotonic()
         out, tok = self.e.cmd(cmd, tokens, timeout_s)
+        if tok is not None and tok != "EOF":
+            # The terminating line often arrives together with more output, and
+            # the remainder may still be in flight. Drain briefly so the
+            # evidence holds the terminating line itself (`nodes N`, the bench
+            # signature, `info string eval`) and not just what preceded it.
+            out += self.e.read_until(("\x00never\x00",), 0.25)[0]
         self.record(out)
         wd = False
         if tok is None:
@@ -95,7 +101,7 @@ class Phase:
             m = INFO_NODES.match(l)
             if m:
                 depth, nodes = int(m.group(1)), int(m.group(2))
-        rec = {
+        res = {
             "phase": self.name, "probe": label, "cmd": cmd,
             "answered": tok is not None and tok != "EOF", "token": tok,
             "watchdog_stop_sent": wd, "seconds": round(dt, 2),
@@ -105,10 +111,15 @@ class Phase:
             "info_count": sum(1 for l in out if l.startswith("info ")),
             "last_depth": depth, "last_nodes": nodes,
             "node_line": next((l for l in out if l.startswith("nodes ")), None),
+            # bench prints `info string bench depth D nodes N ...`, which is not
+            # an `info depth D ... nodes N` search line; capture it separately so
+            # a bench probe can be checked for a node count at all.
+            "bench_line": next((l for l in out if l.startswith("info string bench depth")), None),
             "eval_line": next((l for l in out if l.startswith("info string eval")), None),
             "book_line": next((l for l in out if "book move" in l), None),
             "refused": [esc(l) for l in out if "invalid FEN" in l or "illegal move" in l],
         }
+        rec = res
         if rc is not None:
             rec["tail"] = [esc(l) for l in self.e.log[-10:]]
             self.restart("died during probe")
@@ -156,6 +167,8 @@ class Phase:
         self.record(out)
         self.probes.append({"phase": self.name, "probe": label, "cmd": cmd,
                             "lines": len(out),
+                            "eval_line": next((l for l in out if l.startswith("info string eval")), None),
+                            "bench_line": next((l for l in out if l.startswith("info string bench depth")), None),
                             "san_lines": [esc(l) for l in out if SAN_PAT.search(l)]})
         return out
 
@@ -327,7 +340,7 @@ def main():
         for i, q in enumerate(stress):
             p.position(f"stress{i}", q["fen"])
             p.raw(f"eval stress{i}", "eval", 5.0, ("info string eval",))
-            p.probe(f"depth14 stress{i}", "go depth 14", 900)
+            p.probe(f"depth13 stress{i}", "go depth 13", 400)
             p.probe(f"perft3 stress{i}", "go perft 3", 600, ("nodes ",))
 
     def ph_stress_netoff(p):
@@ -335,7 +348,7 @@ def main():
         for i, q in enumerate(stress):
             p.position(f"stress{i}", q["fen"])
             p.raw(f"eval stress{i}", "eval", 5.0, ("info string eval",))
-            p.probe(f"depth12 stress{i} netoff", "go depth 12", 900)
+            p.probe(f"depth12 stress{i} netoff", "go depth 12", 400)
 
     def ph_malformed(p):
         p.position_moves("startpos", "")

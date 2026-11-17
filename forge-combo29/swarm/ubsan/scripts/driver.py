@@ -56,8 +56,18 @@ class Engine:
         return self.flush_lines(), tok
 
     def line_ready(self, tok):
+        """True only for a COMPLETE line starting with tok.
+
+        The buffer's final element is the not-yet-terminated tail. Matching it
+        would declare the token present while the line is still arriving, and
+        the line would then stay in the buffer (and out of the evidence) after
+        flush_lines puts it back. That made `nodes 4865609` and every
+        `info string eval` line disappear from an otherwise complete run.
+        """
         b = tok.encode()
-        for ln in self.buf.split(b"\n"):
+        parts = self.buf.split(b"\n")
+        complete = parts[:-1] if not self.buf.endswith(b"\n") else parts[:-1]
+        for ln in complete:
             if ln.startswith(b):
                 return True
         return False

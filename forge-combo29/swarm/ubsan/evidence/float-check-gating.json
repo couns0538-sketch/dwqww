@@ -1,0 +1,15 @@
+{
+ "question": "does plain -fsanitize=undefined check float->int?",
+ "plant": "volatile float huge=1e30F; volatile int sink=static_cast<int>(huge); on the eval path",
+ "plain_undefined": {
+  "build_sha256": "(planted)",
+  "sanitizer_lines": 0,
+  "verdict": "NOT CAUGHT"
+ },
+ "named_float_checks": {
+  "flags": "-fsanitize=undefined,address,float-cast-overflow,float-divide-by-zero",
+  "sanitizer_lines": 10,
+  "example": "/tmp/forge/plants/pf/src/uci.cpp:578:54: runtime error: 1e+30 is outside the range of representable values of type 'int'"
+ },
+ "note": "GCC 13.3 rejects -fsanitize=integer (clang-only group); unsigned-integer-overflow, implicit-conversion and implicit-integer-truncation are all rejected too."
+}
