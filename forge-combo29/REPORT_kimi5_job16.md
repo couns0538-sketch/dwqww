@@ -91,8 +91,8 @@ main-history and threat-quiet writes (1391-1392 region) are outside the question
 
 ## The patch, its sha256, how to apply, dry-runs
 
-- `tests_kimi5_job16/MalusE.patch.txt`, sha256 **fe4e0de7bdc15668e90c7c156566b156466196c2ac4fca7c6d2aa583d479d7a2a**...
-  (full value in `exe_sha256.txt`), a unified diff against plain 6b98f217 made with `diff -u`.
+- `tests_kimi5_job16/MalusE.patch.txt`, sha256 **fe4e0de7bdc15668e90c7c156566b156466196c2ac4fca7c6d2aa583d479d7a2**
+  (also in `exe_sha256.txt`), a unified diff against plain 6b98f217 made with `diff -u`.
   Apply: `patch -p1 -F0 < MalusE.patch.txt` from the directory above `forge-combo29` (zero fuzz).
 - `tests_kimi5_job16/MalusECount.patch.txt` (on top of MalusE; counters live only with
   `-DFORGE_MALUS_COUNT=1`; default 0 = the MalusE build bit-for-bit in behavior).
