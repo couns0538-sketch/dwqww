@@ -1381,3 +1381,68 @@ MEASUREMENT PROGRAMME STATUS: the speed thread is CLOSED.
 
 next command: hold for the 10:20Z close; stamp the FINAL block with date -u at or before then, and respond to
   any incoming cross-seat check in the meantime.
+
+---
+
+# FINAL — seat 19, area 9 (SPEED), stamped 2026-11-17T03:35Z
+
+**Branch** `for-fable-and-opus/swarm-19`, base `6b98f217`. **Files:** `FINDINGS.md` (one row per finding),
+`STATUS.md` (this), `HARNESS_TRAPS.md` (20 traps), `METHOD_INDEX.md` (6 method notes + index),
+`NOTE_bench_bias_is_patch_specific.md`, `NOTE_power_before_decisive.md`, `checks/sign_test.py`,
+and `checks/<job>/RESULT.md` + `PREDICTION.md` for every job.
+
+## THE SENTENCE FOR THE OWNER
+> **PC20 searches ~9 % fewer nodes (real, but only ~60 % of positions share the sign) and pays ~6.4 % more per node
+> (real and uniform, on 90 % of positions). Those two nearly cancel: the net wall-time difference is −2.9 % with a
+> confidence interval that includes zero, so it is NOT established. Quote the node saving and the per-node cost
+> separately; do not quote a "PC20 speedup".**
+
+## Verified numbers, with the control that makes each one valid
+| quantity | value | control | class |
+|---|---|---|---|
+| **per-node cost** | **1.0640 implied (n=464)** and **1.0693 direct (n=180)** | two independent methods, 0.5 % apart | **REAL, uniform (90 % sign-share)** |
+| **node saving** | **0.9131 pooled, CI [0.8752, 0.9528]** | fixed depth 12, 464 pairs | **REAL pooled, session-level (59.9 %)** |
+| **net wall time** | **0.9715, CI [0.9273, 1.0151]** | same run | **NOT ESTABLISHED** |
+| **depth at fixed nodes** | **+0.062 ply/position; deeper-or-equal on ~84 %** | 130 positions; 50 % exact ties | **"rarely shallower", not "deeper"** |
+| **NNUE prefetch** | **9.80 % slower, 93.1 % of positions** | identical pins on both builds | **DO NOT SHIP** |
+| **material-key cache** | **0.66 % faster, CI includes 1.0** | identical pins on both builds | **not worth shipping** |
+
+## The three bench failure modes — measured, not suspected
+1. **per-node cost** — bench 6× optimistic (1.2 % vs 7 %; 19-C35 → 19-C53)
+2. **aggregate node sign** — flips across benches 11/13/16 (+14.5 / −10.6 / +8.7 % vs −9.1 % real; 19-C55)
+3. **profile self-time share** — 2.71 % of bench 13 is 0.7 % of real search (19-F6 → 19-C64)
+
+**Rule:** a self-time percentage is not a transferable cost unless someone removes the code and measures.
+**Rule:** bench is valid for pins, determinism, ablation direction and structural counters — and its bias is
+**patch-specific**, not directional (`NOTE_bench_bias_is_patch_specific.md`).
+
+## Corrections and retractions in this record
+- **19-R1** (warm-state artefact), **19-R2** (DTM oracle wrong for black-as-strong — 19-F55/F58/19-C24 withdrawn).
+- **19-C46's attribution WITHDRAWN** — the 2000→3000 "flip" was the budget, not PC20's switches.
+- **19-C35 SUPERSEDED** by the per-node figures above.
+- **19-C56's "real pooled effect" for CorrHistV2 was wrong** — its CI includes 1.0.
+- **19-C60's sign test was BUGGY** (missing `min(k,n−k)`), so TtPruneV2's direction **is** significant (p = 0.0221);
+  my published "no switch clears a sign test" was **false**.
+- **19-C44's magnitude 8× overstated** per position.
+- **19-C47/C52:** the quality half of the 3000-node recommendation was never established.
+
+## Method contributions (the part that transfers)
+- **Trap 16 / `NOTE_power_before_decisive.md`** — a discriminator is a hypothesis test; compute its power before
+  calling it decisive. **Count DECIDED cells, not rows.**
+- **Trap 18** — mechanism intuition about the mean does not transfer to variance.
+- **Trap 19** — a helper silent on half its inputs; **when failures cluster on one side of a threshold, the passing
+  case is the one to interrogate.**
+- **Trap 20** — **a sign-share from a timer is a share of the timer's resolution**; report wins/ties/losses and
+  lengthen the measurement rather than redefine the share.
+- **The meta-rule:** a rule that sorts claims is itself an unclassified claim until applied — **so sort the sentence
+  you just wrote with it.** This caught five of my own summaries, including the owner sentence twice.
+
+## Honesty check (all pass)
+bench 11 = 312,866 · bench 13 = 862,329 · bench 16 = 3,024,920 · perft 5 = 4,865,609 — verified on every build used.
+
+## What I did not do
+No PR opened, no force-push, no engine source or binary committed, `git add` only inside
+`forge-combo29/swarm/19/`. Toolchain incident recorded in `toolchain/VIOLATION.md`.
+
+**MEASUREMENT PROGRAMME: CLOSED.** The speed thread is complete; every remaining open item is named above with the
+reason it is open rather than left as a silent gap.
