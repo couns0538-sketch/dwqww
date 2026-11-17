@@ -1036,3 +1036,10 @@ not a 0-versus-absent one — and the 0-versus-absent test showed the gap is **w
 That is the argument for the confirmation rule, and it is stronger than any number of confirmations that merely
 agree: **a second seat does not just check a claim, it can find the claim is under-stated.** A rule that only
 policed for errors would have passed seat 25's finding through unchanged and left the sharper version unwritten.
+
+## 2026-11-17T00:12:06Z — 25-minute cadence
+SEAT 05's S-F63 CONFIRMED EXACTLY, AND ITS INFERENCE TURNED INTO A MEASUREMENT (S-C29, S-F88).
+  Every number reproduces on PC r15 + PC20 / Threads 1 / Hash 16 / OwnBook false, fresh process per row: 5,000 -> cp 3725 d8; 10,000 -> cp 3935 d9; 15,000/20,000/30,000 -> cp 4056 d10, ALL THREE IDENTICAL at 10,515 nodes; 50,000 -> mate 11 d11, 44,749 nodes, 18-ply PV needing 21; 80,000 -> mate 7 d13, 13/13; 250,000 -> mate 7 d14, 13/13.
+  THE PART SEAT 05 COULD ONLY INFER: it deduced truncation by comparing PV length to the plies a mate needs. I SLICED each PV from the info line and REPLAYED it with python-chess. The 50,000-node PV does NOT reach mate - it ends after 18 plies without checkmate - while the 80,000 and 250,000 PVs DO, checkmate at pv ply 13. So the truncation is real by replay, and the later mate scores are honest.
+  WHY IT SURVIVED SO LONG (S-F88): the answer is CORRECT either side of a narrow band and OVER-CLAIMED inside it. Any spot-check at a different budget shows a healthy mate - 80,000 and 250,000 both give mate 7 with a PV that mates. 50,000 nodes is one of the OWNER'S MATCH BUDGETS, so this is on his path.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
