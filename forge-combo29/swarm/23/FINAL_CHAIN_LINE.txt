@@ -175,3 +175,25 @@ earlier observation — PC reporting a win on 2 of 2 claimable roots — was the
 correct sentence is: **the repaired build finds the win where one exists and reports the draw where none does.** That is
 correct behaviour, and it is a better result for the repair than the "policy" framing was.
 
+
+---
+
+## 10. What the structural checks are, and how far the claim goes
+
+**Do not say "the gate is proved". Say this instead:**
+
+> Three structural checks guard this seat's documents — the findings table (`audit_findings.py`), the reference pages
+> (`doc_check.py`) and the rule catalogue (`rule_check.py`). **All three exit nonzero on failure, each verified by
+> planting a fault and watching the commit be refused**; a clean commit passes all three. The hook is tracked in the
+> repository and activated with one `git config` line, so a fresh clone has the mechanism but not the enforcement
+> until that line is run.
+
+Why the scope matters more than the claim: **a gate claim is only as broad as the number of its members individually
+shown to fail.** For several hours this seat reported "gate live and proved" while **two of the three checkers printed a
+failure and exited 0** — `doc_check.py` never called `sys.exit` at all — so a gate testing `$?` read them as passes. It
+survived its own earlier proof because that proof exercised the one checker that did exit nonzero. The general form:
+**proving a gate on one of its members proves only that member.**
+
+A second, smaller instance from the same hour: the count checker silently skipped a number word outside its vocabulary,
+so a test intended to prove it *could* fail passed by accident. "I could not evaluate this" must never be reported as
+"this is fine".
