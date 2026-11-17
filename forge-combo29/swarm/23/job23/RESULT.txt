@@ -38,3 +38,20 @@ on a board the match program would otherwise have ended the game at.
 THE HONEST COUNTERWEIGHT, which I will not drop: in a real match the game ENDS at the third occurrence, so this
 position is never searched and this losing move is never played. The cost lands on analysis, other GUIs and human
 play — where it is a losing move rather than a cosmetic difference.
+
+IS THE -805 ROBUST ACROSS DEPTHS? — yes, at every depth tested
+=============================================================
+Same position, each candidate scored ALONE, on the PC build:
+
+| depth | only e6e5 (the base's unsearched move) | only b6b4 (the PC's move) | gap |
+|---|---|---|---|
+| 8 | cp -751 | cp 0 | 751 |
+| 12 | cp -832 | cp 0 | 832 |
+| 16 | cp -805 | cp 0 | 805 |
+| 20 | cp -853 | cp 0 | 853 |
+
+So the move is losing by 7.5 to 8.5 pawns at every depth from 8 to 20, while the alternative is exactly cp 0 at every
+depth. This is not a depth artefact or a single-point anomaly: the engine's unsearched choice is a blunder, and the
+alternative holds the position level at any depth you look.
+
+That strengthens 23-F60 from "worse" to "a blunder of roughly a minor piece, stable across depths 8-20".
