@@ -533,3 +533,16 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Still NOT a proposal: 5 positions/one clock/MPV 3; 47 cp outlier shows invariance is not exact; **tolerance is an
   owner decision**; MPV 2/8 and 8 MB saturation untested. Next step = wider sample at a stated tolerance.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:05:22Z 20-position sample PASSES (S-C43); tolerance stated as the owner's question; RULE 0 in METHOD
+- Own-8MB candidate vs HEALTHY reference, 20 G-set positions, MPV 3, `go wtime 5000`, Threads 1, tolerance pre-stated:
+  **60 comparisons — median |diff| 0 cp, p90 18 cp, max 73 cp, 52/60 within 10 cp; depth reference 14 vs candidate 14.
+  PASSES comfortably** (rejected variants moved lines 775-988 cp).
+- **Question for the owner** (stated as a question, not my call): *is 0 cp median / 18 cp p90 / 73 cp max acceptable, or
+  do you require bit-identical alternate scores?* If bit-identical, this candidate FAILS (8 of 60 moved) and the
+  requirement gets much harder.
+- **RULE 0 now at the top of AUDIT/METHOD.md**: before calling a candidate worse, check that the REFERENCE is working —
+  with both cases named (S-C20's unchecked UCI definition; job-67's comparison against a build collapsed to depth 1).
+  General form: **a difference is evidence only if both sides are trustworthy.**
+- Still untested and likeliest to break: MultiPV 2/8, longer clocks, 8 MB alt-table saturation in long games.
+Next: continue in the window (ends 2026-11-17T10:18Z).
