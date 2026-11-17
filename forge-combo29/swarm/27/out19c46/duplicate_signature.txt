@@ -1,0 +1,18 @@
+IS THE FABRICATED ROW A DUPLICATE OF ITS PREDECESSOR? 2026-11-17T03:50:42Z
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, S14, go depth 8
+invalid FEN: 8/8/8/8/8/8/1k6/K7 w - - 0 1 (adjacent kings)
+
+predecessor      its answer             invalid-FEN answer      verdict
+K+R v K mate     a1a8 (mate 1)          a1a8 (mate 1)           DUPLICATE
+middlegame A     f1e2 (cp 95)           f1e2 (cp 100)           differs -> looks fresh
+middlegame B     e1g1 (cp 28)           e1g1 (cp 28)            DUPLICATE
+endgame K+P      e1f2 (cp 200)          e1f2 (cp 209)           differs -> looks fresh
+startpos         d2d4 (cp 14)           d2d4 (cp 24)            differs -> looks fresh
+
+2 of 5 predecessors produce an EXACT duplicate (same move AND same score);
+3 of 5 differ in score, so the row looks like a fresh measurement.
+
+CONSEQUENCE: 'no duplicate signature' is DIRECTIONALLY right but not absolute.
+A harness could catch ~40% of these by noticing the row duplicates its predecessor -
+but 60% carry no signature at all, so it is an unreliable detector and confirming
+FEN acceptance remains the ONLY reliable one.
