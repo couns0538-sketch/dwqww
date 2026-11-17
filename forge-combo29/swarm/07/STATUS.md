@@ -705,3 +705,10 @@ That is the most compact form of the two lessons: they are not two rules but one
   So the rule is exactly as seat 20 states: one info-depth line per depth, capped at 64 when no depth is given -- and it makes no difference whether the reason for not searching is a terminal root or an empty restriction.
   CONSEQUENCE I state rather than defend my own work: 07-F1 is ONE INSTANCE of a shared reporting habit, not a searchmoves defect. My patch removes the lines for the empty-restriction case only, which is NARROWER THAN THE DEFECT. A repair aimed at the shared report path -- so all of these emit one honest line -- is the better shape. My patch is not wrong; it is too narrow.
   Why it matters: three separate findings (terminal root, empty restriction, bare searchmoves) could have produced three separate patches. They are one loop's worth of lines from one path, and the shared diagnosis lets the owner fix them once.
+
+## 2026-11-17T00:00:17Z
+07-C55 -- BUILT THE SHARED-PATH REPAIR that 07-C54 showed was needed, and it works on all six paths with every pin unchanged.
+  The defect is ONE loop: src/search.cpp:2589-2594 emits an info-depth line per depth, and max_depth is 64 when no depth is given, so every 'report without searching' path emits 2 or 64 fabricated 'score cp 0 nodes 0' lines for a search that never ran. That is one line of code, not three defects.
+  The patch (job55/shared_report_oneline.patch.txt, patch -p1 --fuzz=0, exit 0) replaces the loop with a single emit. ALL SIX cases go to 1 line: go depth 2 (2->1), go nodes 100 (64->1), empty searchmoves depth 2 (2->1), go searchmoves no depth (64->1), go nodes 100 searchmoves (64->1), go searchmoves e2e5 (64->1). All still answer 0000 with 0 nodes -- the fabricated score lines are what is removed.
+  HONESTY PINS UNCHANGED, all eight: 312866 / 862329 / 3024920 / 4865609, 242796 / 656517, 278024 / 587276. Expected for a repair that removes output lines rather than changing search -- a patch that HAD moved a pin would have been a sign it reached the search.
+  This supersedes my own narrower job2/job29 patches, and I say so rather than leaving the narrow one on the shelf.

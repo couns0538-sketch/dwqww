@@ -1,0 +1,23 @@
+--- sharedpatch_a/src/search.cpp	2026-11-16 23:57:52.140602054 +0000
++++ sharedpatch_b/src/search.cpp	2026-11-16 23:57:52.152602054 +0000
+@@ -2586,12 +2586,14 @@
+             score = draw_leaf_score(board);
+         }
+ #endif
+-        for (int depth = 1; depth <= max_depth; ++depth) {
+-            result.depth = depth;
+-            result.score = score;
+-            emit(depth, score, {});
+-            if (should_stop()) break;
+-        }
++        // ONE honest line, not one per depth. Every path that reports without searching
++        // (terminal root, empty searchmoves restriction, bare `go searchmoves`) arrives here,
++        // and a loop here emits 2 or 64 fabricated score lines for a search that never ran,
++        // which any GUI or harness parsing `info depth` reads as a real evaluation (07-F1,
++        // 20-S-F53, 07-C54). A single line states the position's verdict once.
++        result.depth = max_depth;
++        result.score = score;
++        emit(max_depth, score, {});
+         if (!root_candidates.empty()) result.best_move = root_candidates.front();
+         result.nodes = total_nodes();
+         nodes_.store(local_nodes_, std::memory_order_relaxed);
