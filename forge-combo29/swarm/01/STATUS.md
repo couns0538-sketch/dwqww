@@ -897,3 +897,11 @@ the sentence would be a suggestion; with it, a harness can trust one number inst
 
 That is the shape most of tonight's useful results ended in — a measurement first, then the sentence that makes
 it usable — which is why the rule pages and the evidence files are kept together on the branch.
+
+## 2026-11-17T00:08:13Z — 25-minute cadence
+SEAT 20's S-F50 PARTIALLY CONFIRMED, AND THE SHAPE OF IT CORRECTED (S-C27, S-F84).
+  The grid, PC r15 + PC20, Threads 1, go wtime 5000 btime 5000, idle, 5 fresh processes per cell: MultiPV 1/Hash 16 -> 0/5 zero (170k-289k nodes, g7g6); MultiPV 1/Hash 2048 -> 0/5 (170k, g7g6); MultiPV 4/Hash 16 -> 0/5 (165k, g7g6); MultiPV 4/Hash 2048 -> 220 NODES, moves b8a8/d5d4; MultiPV 8/Hash 16 -> 0/5 (211k, g7g6); MultiPV 8/Hash 2048 -> 143-220 NODES, move b8a8.
+  So on an idle machine the collapse needs BOTH a high MultiPV (>=4) AND a large Hash (2048) - which matches seat 20's S-F50 combination and its S-C30 narrowing. Single-parameter changes are clean.
+  BUT THE SHAPE IS DIFFERENT FROM '0-node': what I observe is 143-220 nodes with a DIFFERENT MOVE, and only one run had no readable node line at all. So the pathological cell returns a move with essentially no search behind it - the same hazard whether it prints 0 or 220. My checker counted only exact zeros and would have said 'no collapse in any cell', which would have been a wrong reading of my own data until I looked at the node counts.
+  THE USEFUL SIGNAL FOR THE OWNER (S-F84): healthy cells print 165k-289k nodes and always g7g6; pathological cells print 143-220 nodes and a different move. A user does not need to wait for a printed 0 - a THREE-DIGIT NODE COUNT on a 5-second search is the signature, and the move has already changed. Action unchanged: MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
