@@ -86,6 +86,8 @@ print(f"  distinct games with a bail == bail count (one each): "
       f"{len({k[0] for k in sess if is_bail(sess[k])}) == n_bail}")
 
 bp = load_json("bail_predict")
+# tolerate either the filtered file or a full dump
+bp = [r for r in bp if r.get("pred") or r.get("observed")]
 pred = sorted((r["game"], r["ply"]) for r in bp)
 obs = sorted(k for k in sess if is_bail(sess[k]))
 print(f"  independent predictor (python-chess): predicted {len(pred)}, observed {len(obs)}, "

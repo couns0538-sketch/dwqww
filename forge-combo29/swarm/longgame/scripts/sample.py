@@ -4,14 +4,18 @@
 Deterministic stride over the 200-game corpus: every 5th game, starting at index 1.
 No dependence on any engine output, so the sample cannot be steered by what it finds.
 """
-import json, sys
+import json, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import input_path, output_path
 from checks import require
 
-corpus = json.load(open(sys.argv[1] if len(sys.argv) > 1 else "evidence/games.json", encoding="utf-8"))["games"]
+src = sys.argv[1] if len(sys.argv) > 1 else os.path.join("evidence", "games.json")
+dst = sys.argv[2] if len(sys.argv) > 2 else os.path.join("evidence", "divergence_sample.json")
+corpus = json.load(open(input_path(src, "corpus"), encoding="utf-8"))["games"]
 ids = [g["id"] for g in corpus[1::5]][:40]
 require(len(ids) == 40, f"sample has {len(ids)} games, expected 40")
 plies = sum(len(g["moves"]) for g in corpus if g["id"] in ids)
 json.dump({"rule": "corpus[1::5] -> first 40", "games": ids, "plies": plies},
-          open(sys.argv[2] if len(sys.argv) > 2 else "evidence/divergence_sample.json", "w", encoding="utf-8"), indent=0)
+          open(output_path(dst, "sample"), "w", encoding="utf-8"), indent=0)
 print(len(ids), "games,", plies, "plies")
 print(ids)

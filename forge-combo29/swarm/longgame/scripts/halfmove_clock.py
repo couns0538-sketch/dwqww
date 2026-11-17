@@ -27,6 +27,7 @@ Measurements:
   B. clock agreement at every eligible ply of the 40-game sample.
 """
 import sys, os, json
+from chesskeys import repetition_key
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from sampling import sample
@@ -62,10 +63,10 @@ def clock_fen(b):
 def walk(g):
     """(ply, board_after, occurrence_count) for each ply, matching the engine's own history."""
     b = chess.Board(g["start_fen"])
-    counts = {b._transposition_key(): 1}
+    counts = {repetition_key(b): 1}
     for i, mv in enumerate(g["moves"], 1):
         b.push(chess.Move.from_uci(mv))
-        k = b._transposition_key()
+        k = repetition_key(b)
         counts[k] = counts.get(k, 0) + 1
         yield i, b.copy(), counts[k]
 

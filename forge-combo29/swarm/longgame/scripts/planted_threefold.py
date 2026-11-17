@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from replay import run_search, perft_head
 from checks import require
+from chesskeys import repetition_key
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
 corpus = {g["id"]: g for g in json.load(open("evidence/games.json", encoding="utf-8"))["games"]}
@@ -35,7 +36,7 @@ def find_cycle(board, limit=400):
     spliced onto them. Instead we search the game's own position for a pair of moves by
     each side whose reverse pair restores it. Deterministic: first cycle in move order.
     """
-    key0 = board._transposition_key()
+    key0 = repetition_key(board)
     n = 0
     for a in board.legal_moves:
         b1 = board.copy(); b1.push(a)
@@ -45,7 +46,7 @@ def find_cycle(board, limit=400):
                 b3 = b2.copy(); b3.push(c)
                 for d in b3.legal_moves:
                     b4 = b3.copy(); b4.push(d)
-                    if b4._transposition_key() == key0:
+                    if repetition_key(b4) == key0:
                         return [a.uci(), b.uci(), c.uci(), d.uci()]
                     n += 1
                     if n > limit:
@@ -96,14 +97,13 @@ def main():
     import chess
     for f in fx:
         b = chess.Board(f["start_fen"])
-        counts = {b._transposition_key(): 1}
+        counts = {repetition_key(b): 1}
         for mv in f["prefix"]:
             b.push(chess.Move.from_uci(mv))
-            counts[b._transposition_key()] = counts.get(b._transposition_key(), 0) + 1
-        f["occ"] = counts[b._transposition_key()]
-        # 4 is fine and is itself informative: the prefix may already have visited the
-        # position once. Record the real count rather than forcing 3.
-        f["occ"] = f["occ"]
+            counts[repetition_key(b)] = counts.get(repetition_key(b), 0) + 1
+        f["occ"] = counts[repetition_key(b)]
+        # occ may be 4 rather than 3: the prefix can already have visited the position
+        # once. That is fine and is recorded as measured rather than forced to 3.
         # and it must not already be terminal: a checkmate root is not a bail
         require(b.legal_moves.count() > 0, f"{f['id']} has no legal move")
         require(not b.is_insufficient_material(),

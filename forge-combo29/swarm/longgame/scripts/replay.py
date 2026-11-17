@@ -17,6 +17,7 @@ import sys, os, json, time, argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine, parse_info_lines
+from paths import input_path, output_path
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
 GO = "go depth 8"
@@ -82,7 +83,7 @@ def do_session(games, out_path, rss_every=100):
     eng = Engine(ENG)
     eng.uci(); eng.sync()
     pid = eng.p.pid
-    f = open(out_path, "w", encoding="utf-8")
+    f = open(output_path(out_path, "--out"), "w", encoding="utf-8")
     glb = 0
     rss_rows = [{"plies": 0, "rss_kb": rss_kb(pid)}]
     game_times = []
@@ -111,7 +112,7 @@ def do_reset_arm(games, out_path, mode):
     eng.uci(); eng.sync()
     if mode == "hashresend":
         eng.send("setoption name Hash value 32")
-    f = open(out_path, "w", encoding="utf-8")
+    f = open(output_path(out_path, "--out"), "w", encoding="utf-8")
     glb = 0
     for g in games:
         for k in range(1, len(g["moves"]) + 1):
@@ -137,7 +138,7 @@ def do_uncgame(games, out_path):
     eng = Engine(ENG)
     eng.uci(); eng.sync()
     pid = eng.p.pid
-    f = open(out_path, "w", encoding="utf-8")
+    f = open(output_path(out_path, "--out"), "w", encoding="utf-8")
     glb = 0
     rss_rows = [{"plies": 0, "rss_kb": rss_kb(pid)}]
     for g in games:
@@ -157,7 +158,7 @@ def do_uncgame(games, out_path):
 
 def do_fresh(games, out_path):
     """New process per ply. The state-free ground truth."""
-    f = open(out_path, "w", encoding="utf-8")
+    f = open(output_path(out_path, "--out"), "w", encoding="utf-8")
     glb = 0
     for g in games:
         for k in range(1, len(g["moves"]) + 1):
@@ -192,22 +193,22 @@ def main():
     ap.add_argument("--bails", default="evidence/session.jsonl")
     args = ap.parse_args()
 
-    corpus = json.load(open(args.games, encoding="utf-8"))["games"]
+    corpus = json.load(open(input_path(args.games, "--games"), encoding="utf-8"))["games"]
     if args.arm in ("session",):
         meta = do_session(corpus, args.out)
-        json.dump(meta, open(args.out + ".meta.json", "w", encoding="utf-8"))
+        json.dump(meta, open(output_path(args.out, "--out") + ".meta.json", "w", encoding="utf-8"))
         print("session plies:", meta["plies"])
     elif args.arm == "fresh":
-        ids = set(json.load(open(args.sample, encoding="utf-8"))["games"])
+        ids = set(json.load(open(input_path(args.sample, "--sample"), encoding="utf-8"))["games"])
         games = [g for g in corpus if g["id"] in ids]
         print("fresh games:", len(games), "plies:", sum(len(g["moves"]) for g in games))
         print(do_fresh(games, args.out))
     elif args.arm == "uncgame":
         meta = do_uncgame(corpus, args.out)
-        json.dump(meta, open(args.out + ".meta.json", "w", encoding="utf-8"))
+        json.dump(meta, open(output_path(args.out, "--out") + ".meta.json", "w", encoding="utf-8"))
         print("uncgame plies:", meta["plies"])
     elif args.arm in ("unc", "clearhash", "hashresend"):
-        ids = set(json.load(open(args.sample, encoding="utf-8"))["games"])
+        ids = set(json.load(open(input_path(args.sample, "--sample"), encoding="utf-8"))["games"])
         games = [g for g in corpus if g["id"] in ids]
         print(args.arm, "games:", len(games), "plies:", sum(len(g["moves"]) for g in games))
         print(do_reset_arm(games, args.out, args.arm))
@@ -230,7 +231,7 @@ def main():
                         "same_move": r["bm"] == fr["bm"],
                         "same_bail": r["bail"] == fr["bail"]})
             print(out[-1])
-        json.dump(out, open(args.out, "w", encoding="utf-8"), indent=0)
+        json.dump(out, open(output_path(args.out, "--out"), "w", encoding="utf-8"), indent=0)
 
 
 if __name__ == "__main__":

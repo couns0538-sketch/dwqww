@@ -309,6 +309,22 @@ said +2.3" a reproducible, explainable disagreement rather than a bug in either.
   brief's literal command form had to be exercised on generated self-play (3,420 plies) instead of
   on real games. Both give the same answer, but they are different populations.
 
+## Harness defects found by the quality gate
+
+**Path traversal from CLI arguments (13 findings).** `--out`, `--games` and `--sample` reached
+`open()` unchecked, so a caller chose where these scripts wrote. `scripts/paths.py` now requires
+every such path to resolve inside `evidence/`, symlinks resolved first; an `evidence/` path passes,
+`/tmp/evil.jsonl` and a `../..` escape are both refused. This is the Security C.
+
+**A private API in ten places.** python-chess has no public repetition key, so occurrence counting
+called `Board._transposition_key()` at ten sites. Confined to `scripts/chesskeys.py::repetition_key`
+— one documented call site, so a library change breaks in one place instead of ten. The value is
+used only as a dictionary key, so a change to the hash itself changes nothing here.
+
+Verified after all of it: `summary.py` byte-identical to the pre-refactor baseline,
+`reproduction_check.py` 232/232, `bail_predict.py` still 89/89 with zero false positives, and a
+full guarded `session` re-run reproduced 27,788/27,788 committed plies exactly.
+
 ## A harness defect found by the quality gate
 
 Every guard in these scripts — the control that the RSS instrument can see a 1 GB allocation, the

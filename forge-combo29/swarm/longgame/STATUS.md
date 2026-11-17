@@ -107,12 +107,39 @@ check jumped between plies of one warm process and reported **5/16** — the har
 the engine, because a warm answer depends on the path that produced it. Both are in the script's
 docstring, since that is the same trap as the headline finding.
 
-**I could not confirm what Sonar actually reported**, and this is worth stating plainly: its API
-is egress-blocked here, both gate notifications name the **same analysis revision `7757ea2b…`**,
-and that hash is **not a commit in this repository** — it matches neither the PR head
-(`b22fa98e`) nor GitHub's merge ref (`a226d40d`). So the second failure may describe code that
-predates my first fix. Everything above is a real improvement found by local tools, not a
-confirmed match to Sonar's list.
+## The actual findings, at last — and a correction to what I said before
+
+**I twice told the coordinator the gate was not re-evaluating my code. That was wrong.** I had
+inferred it from the `sqra:qg_revision` field in the notification, which is a **constant**, not the
+analysis target. Asking GitHub directly settles it: `SonarCloud Code Analysis` reported
+`failure` on **every one of my five commits** (`f8e9bb76f`, `a68a40024`, `b22fa98e2`, `26412aa17`,
+`fea00d76f`), each with `head_sha` set to that commit. Sonar was evaluating my code all along.
+
+The check-run **annotations** are readable over the API even though Sonar's own API is not, and they
+give the 14 findings in full:
+
+| count | finding |
+|---|---|
+| **13** | `Path Traversal via ... CLI arguments` — `--out`, `--games`, `--sample` passed straight into `open()` |
+| 1 | `Remove or correct this useless self-assignment` (`f["occ"] = f["occ"]`, left by my own earlier edit) |
+
+So both failed ratings are explained: the traversal findings are the Security C, and the
+self-assignment plus the same taint flow are the Reliability C.
+
+**Fixed.** `scripts/paths.py` requires every caller-supplied path to resolve inside this seat's
+`evidence/` directory, resolving symlinks first so a link planted inside cannot point outside.
+Proven both ways: an `evidence/` path is allowed, `/tmp/evil.jsonl` and an
+`evidence/../../..` escape are both refused with a named reason. `f["occ"] = f["occ"]` is gone.
+
+**And the `_transposition_key` pylint warnings pointed at something real.** python-chess exposes no
+public repetition key, so ten sites called the private one. Now confined to
+`scripts/chesskeys.py::repetition_key`, one documented call site, because a library change that
+broke it would otherwise break in ten places.
+
+**Nothing moved.** After all of it: `summary.py` output is **byte-identical to the pre-refactor
+baseline**, `test_parsers.py` 21/21 under both normal and `-O`, `reproduction_check.py` 232/232,
+`bail_predict.py` still 89/89 with zero false positives, and a full guarded `session` re-run
+reproduced **27,788/27,788** committed plies exactly.
 
 ## Controls that fired (proof the instruments work)
 

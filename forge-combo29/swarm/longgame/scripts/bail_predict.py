@@ -12,6 +12,7 @@ import json, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evio import load_json, load_plies
 import chess
+from chesskeys import repetition_key
 
 corpus = {g["id"]: g for g in load_json("games")["games"]}
 
@@ -30,10 +31,10 @@ def walk(g):
     """
     board = chess.Board(g["start_fen"])
     counts = {}
-    counts[board._transposition_key()] = 1
+    counts[repetition_key(board)] = 1
     for i, mv in enumerate(g["moves"], 1):
         board.push(chess.Move.from_uci(mv))
-        k = board._transposition_key()
+        k = repetition_key(board)
         counts[k] = counts.get(k, 0) + 1
         yield i, board.copy(), counts[k]
 
@@ -56,7 +57,11 @@ def main():
                          "pred": pred, "pred_rep": pred_rep, "pred_hm": pred_hm,
                          "pred_ins": pred_ins, "observed": observed,
                          "eng_bm": r["bm"], "eng_score": r["score"]})
-    json.dump(rows, open("evidence/bail_predict.json", "w", encoding="utf-8"))
+    # Keep only the rows that matter: every predicted position and every observed bail. The
+    # full 27,692-row dump is 5 MB of agree-with-me and is not worth committing; summary.py
+    # filters on the same predicate, so either shape works.
+    kept = [r for r in rows if r["pred"] or r["observed"]]
+    json.dump(kept, open("evidence/bail_predict.json", "w", encoding="utf-8"))
 
     n = len(rows)
     obs = [r for r in rows if r["observed"]]
