@@ -693,3 +693,22 @@ seed: 1601
       under-report, which would have produced a completely wrong profile.
 - check_folder.py ALL CHECKS PASS (467 files, 0 non-text, 51 findings rows); the perf.data binaries are ignored.
 - next: Step 2 — one speed patch to the shared v3 accumulator walk, .patch.txt, keeping every identity row.
+
+## 2026-11-17T08:20Z
+- TOOLING_NOTES.md written, with the perf defect FIRST as asked, and every entry states the symptom, how it
+  presents in data, and the fix. Entries: (1) `perf report --stdio` redirected drops all user symbols — 4 kernel
+  symbols vs 58 in a terminal — fix is `--sort symbol`, plus the rule that a redirected perf report must be
+  sanity-checked against a terminal run and against a known user symbol; (2) perf absent/refused by the version
+  wrapper on kernel 6.12.113+ while the 6.8 BINARY works, then zero-sized data until perf_event_paranoid=-1;
+  (3) pipelined `go` scripts produce a fabricated `bestmove a2a3`; (4) `ucinewgame` after `position` resets to
+  startpos; (5) never retype a number into an expectation; (6) `git add <dir>` stages a stray; (7) `-march`/CPU
+  does NOT affect these node counts (clang/znver5 vs g++/x86-64-v4 both reproduce file 7); (8) `script -q -c`
+  hangs on a pager.
+- I VERIFIED EACH CLAIM rather than writing from memory, and two needed correcting: the a2a3 count is not a fixed
+  "eight out of forty" — on my 60-position script it is 8 on the first run and 3 on three later runs, so the notes
+  now say it varies with how much of the script is drained and cite the actual file; and the "three positions all
+  gave 968" claim is narrowed to the two positions whose values (1176, 31) were replaced by the startpos 968, citing
+  run2.log. A tooling note that overstates is worse than none, since the next seat trusts it instead of re-checking.
+- check_folder.py ALL CHECKS PASS (467 files, 51 findings rows). Next: Step 2, the patch aimed at the shared
+  accumulator walk, validated against the REAL-POSITION profile (per the coordinator's instruction that the
+  real-position profile wins if the bench disagrees).
