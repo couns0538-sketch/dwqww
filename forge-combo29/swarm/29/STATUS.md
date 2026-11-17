@@ -354,3 +354,13 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F47 re-tested my own 29-F45 on the mate-heavy set (a deliberately different distribution): agreement 82.5/85.0/85.0/90.0 % at depths 8/10/12/14 - again FLAT, and close to the random-game 87.5/87.5/85.0/92.5 %. So the flatness is not an accident of one set.
 - Stated honestly in the row: this STRENGTHENS F45 but does NOT confirm it (same harness, same binary, my sets). A second seat is still needed, which is why N28 keeps F42/F44/F45 OPEN and REPRODUCE_pc20_quality.md exists. It also does not touch F44, which is about the QUALITY of disagreements rather than their frequency.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:08:26 AM UTC 2026
+- 29-F48 THE THREE-SET PICTURE (I checked seat 07's file rather than relaying second-hand, and it is richer than reported):
+    R_2911        : 87.5 / 87.5 / 85.0 / 92.5 %  (spread 7.5, FLAT) - mine, reproduced BY SEAT 07 TO THE DIGIT
+    mate-heavy 40 : 82.5 / 85.0 / 85.0 / 90.0 %  (spread 7.5, FLAT) - my F47
+    last 40 of G  : 55.0 / 60.0 / 77.5 / 70.0 %  (spread 22.5, +15 pt UPWARD) - seat 07's 07-C56
+- So agreement is SET-DEPENDENT: on my two sets the disagreements are genuine preference differences at every depth; on late G a substantial share are shallow-horizon artefacts that dissipate with depth. My F45 is CONFIRMED ON ITS SET and its GENERALISATION IS REFUTED by the same check.
+- 29-N31 state update: F45 now has a SECOND SEAT (confirmed to the digit) and is scoped; only F42 and F44 remain open. FINAL_NOTES corrected accordingly - it previously listed all three as open, which would have been out of date at the deadline.
+- Seat 07's method note preserved in the finding: they ran my ORIGINAL sample before judging, so their report is 'confirmed on its set, set-dependent' rather than a bare REFUTES. A number can be right on its own sample and wrong as a generalisation - different faults, different reports.
+- next: continuing at cadence.

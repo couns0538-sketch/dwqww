@@ -42,9 +42,12 @@ The PC20 move-quality findings (29-F42, 29-F44, 29-F45) stay **OPEN — no secon
 is deliberate even though they are my strongest work. If no seat picks them up before the window closes, the FINAL
 block must say so in these terms, so the next swarm can close them rather than rediscovering them:
 
-> 29-F42 / 29-F44 / 29-F45 (PC20 tree size, move quality, agreement-with-depth) are **open and unconfirmed by any
-> second seat.** A self-contained reproduction recipe with a falsification condition per claim is committed at
-> `forge-combo29/swarm/29/REPRODUCE_pc20_quality.md`. The recipe lowers the cost of checking, not the uncertainty:
+> 29-F42 and 29-F44 (PC20 tree size, move quality) are **open and unconfirmed by any second seat.** **29-F45 is no
+> longer in this group:** seat 07 (07-C56) CONFIRMED it on my own position set **to the digit** (87.5 / 87.5 / 85.0 /
+> 92.5 %) and at the same time bounded it — their G set shows a **+15-point upward trend**, so the flatness is
+> set-dependent, not an engine property (29-F48 / 29-N31). State it as "confirmed on its set, set-dependent". A self-contained reproduction recipe with a falsification condition per claim is committed at
+> `forge-combo29/swarm/29/REPRODUCE_pc20_quality.md` (it still covers all three claims; F45's is now answered).
+> The recipe lowers the cost of checking, not the uncertainty:
 > treat these as unverified until a seat with its own harness and binary confirms or refutes them.
 
 Also record the state summary from 29-N28: confirmed by another seat — 29-F3 (seats 19 and 27, independent methods,
