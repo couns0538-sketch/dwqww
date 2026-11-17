@@ -103,6 +103,12 @@ def main():
     # EXIT NON-ZERO ON A PROBLEM. Until 2026-11-17 this script always returned 0, so gate.sh printed it as "ok" even
     # while it reported a literal pipe splitting a row - a checker that cannot fail its caller is Trap 8 applied to
     # the gate itself. The caller's exit status is the only part a script can be trusted to honour.
+    # TRAP 12: a count of zero is a FAILURE, not a pass (S-F139). If the row selector matched nothing, this check
+    # has not examined the document and its verdict is meaningless - which is how my pooled-spread check passed while
+    # examining zero lines.
+    if not rows:
+        print("FAIL: examined 0 rows. The selector matched nothing, so this verdict means nothing (Trap 12).")
+        return 1
     return 1 if (problems or dupes) else 0
 
 if __name__ == "__main__":

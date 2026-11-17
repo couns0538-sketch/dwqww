@@ -264,6 +264,32 @@ per-node ratio into a raw **time** ratio under a per-node label. See `NODE_COUNT
 S-F125). Trap 11 is "you did not receive the output"; that page is "you received it and divided by the wrong number".
 
 
+## Trap 12 — a check that examined nothing passes (S-F139)
+
+> **Every check must print how many rows it examined, and a count of zero must be impossible.**
+
+My pooled-spread check passed its first run with the message *"every pooled ratio examined is accompanied by a spread
+marker"*. It had examined **zero** lines: the regex matched the literal word `pooled`, and my result files never use
+that word — they say `median node ratio 0.926`. **Nothing was wrong with the logic of the check. It never ran.**
+
+This is Trap 8 (a test that cannot fire) reaching the verification layer, and it is the cheapest instance of it,
+because the evidence is one integer printed beside the verdict. `pooled-ratio lines examined: 3` would have shown the
+problem on the first run; it took one widening to expose it, and only because the count was added at the same time.
+
+**The rule: a check's output begins with a count, and a count of zero is a FAILURE, not a pass.** A checker whose
+selector matches nothing is indistinguishable from a checker whose subject is clean, and the second is the one people
+assume.
+
+| count | means |
+|---|---|
+| 0 | the selector is wrong, or the subject is absent — **fail loudly** |
+| >0 | the check actually looked at something |
+| >0 and 0 problems | a real clean result |
+
+This is why `gate.sh` also self-tests its checkers with synthetic bad input: a count proves the selector matched, and a
+fabricated failing case proves the comparison works. **Both are needed** — a selector that matches the wrong thing
+gives a non-zero count and a meaningless verdict.
+
 ## The shape the harness traps share
 
 Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), Trap 10 (a profile that never looked at

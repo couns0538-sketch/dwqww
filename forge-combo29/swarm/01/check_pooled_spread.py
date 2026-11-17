@@ -54,6 +54,12 @@ def main():
             if not SPREAD.search(window):
                 problems.append("%s:%d: pooled ratio with no spread nearby -> %s" % (f, n, line.strip()[:100]))
     print("pooled-ratio lines examined: %d" % checked)
+    # TRAP 12 (S-F139): THE COUNT IS THE CHEAPEST SELF-TEST, and this check is the one that needed it. Its first
+    # version examined ZERO lines and printed "every pooled ratio examined is accompanied by a spread marker" -
+    # a pass over an empty set. Zero is now a failure.
+    if checked == 0:
+        print("\nFAIL: examined 0 rows. The selector matched nothing, so this verdict means nothing (Trap 12).")
+        return 1
     if problems:
         print("FAILURES (%d):" % len(problems))
         for p in problems[:8]:

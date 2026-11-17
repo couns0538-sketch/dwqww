@@ -261,6 +261,17 @@ selftest() {
   python3 check_status_stamps.py "$tmpd/past.md" > "$tmpd/out4" 2>&1
   [ $? -eq 0 ] || { echo "  a valid past stamp was REJECTED"; rc=1; }
 
+  # TRAP 12 (S-F139): a checker that examines NOTHING must fail, not pass. Every check in this gate gets an
+  # empty-input case here, because the failure mode is invisible in the output - a pass over an empty set reads
+  # exactly like a pass over a clean one, and that is how my pooled-spread check passed having examined zero lines.
+  mkdir -p "$tmpd/empty"
+  python3 check_pooled_spread.py "$tmpd/empty" >/dev/null 2>&1
+  [ $? -ne 0 ] || { echo "  check_pooled_spread PASSED on an empty directory (Trap 12)"; rc=1; }
+
+  printf '' > "$tmpd/empty_findings.md"
+  FINDINGS_ARTIFACT="$tmpd/art3.txt" python3 check_findings_table.py "$tmpd/empty_findings.md" >/dev/null 2>&1
+  [ $? -ne 0 ] || { echo "  check_findings_table PASSED on zero rows (Trap 12)"; rc=1; }
+
   rm -rf "$tmpd"
   return $rc
 }

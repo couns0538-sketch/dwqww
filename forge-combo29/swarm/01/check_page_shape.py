@@ -81,9 +81,15 @@ def main():
     else:
         lines_out.append("")
         lines_out.append("no duplicate headings, no empty sections, nothing stranded after closing material")
+    # TRAP 12 (S-F139): report how many files were examined, and treat zero as a failure. A checker that looked at
+    # nothing is indistinguishable from one whose subject is clean, and only the count tells them apart.
+    lines_out.append("files examined: %d" % len(files))
     text = "\n".join(lines_out) + "\n"
     (here / "check_page_shape.txt").write_text(text)
     print(text)
+    if not files:
+        print("FAIL: examined 0 files (Trap 12).")
+        return 1
     return 1 if problems else 0
 
 

@@ -2338,3 +2338,31 @@ then correctly FAILED my own file on three pooled ratios, which is the right out
 captured on the same line: spreads stripped -> rc=1, restored -> rc=0. Now a gate step.
 Gates: 193 rows, 0 wrong pipe counts, spread check gating, pairing check clean, stamps in order, gate rc=0.
 Next: continue at cadence.
+## 2026-11-17T01:47:54Z — Trap 12: a check that examined nothing passes, and the count is now enforced (S-F140, S-F141)
+YOUR POINT 2 IS THE CLEANEST INSTANCE OF THE TRAP IN MY WHOLE RECORD, and it is now a trap page plus an enforcement.
+MY POOLED-SPREAD CHECK passed its first run with the message "every pooled ratio examined is accompanied by a spread
+marker" - having examined ZERO lines, because its regex matched the literal word `pooled` and my files say "median node
+ratio 0.926". NOTHING WAS WRONG WITH ITS LOGIC. IT NEVER RAN. That is Trap 8 reaching the verification layer, and its
+evidence is one integer.
+TRAP 12 written into MEASUREMENT_TRAPS.md: every check prints how many rows it examined, and a count of zero is
+impossible. The reason it matters: a checker whose selector matches nothing is INDISTINGUISHABLE from one whose subject
+is clean, and the second is what readers assume.
+ENFORCED RATHER THAN WRITTEN (which is the whole lesson of this session):
+  check_findings_table.py  - fails on 0 rows
+  check_pooled_spread.py   - fails on 0 examined (proven: empty directory -> rc=1)
+  check_page_shape.py      - reports files examined, fails on 0
+  gate.sh self-test        - runs EMPTY-INPUT cases against the pooled and table checkers, so a checker that starts
+                             passing on nothing fails the gate. Proven by regressing the zero-guard: the self-test
+                             reports "check_pooled_spread PASSED on an empty directory (Trap 12)" and the gate exits 1;
+                             restored, 0.
+  And the nuance worth keeping: a count proves the SELECTOR matched; a synthetic failing case proves the COMPARISON
+  works; both are needed, because a selector matching the wrong thing gives a non-zero count and a meaningless verdict.
+YOUR POINT 3 RECORDED EXPLICITLY (S-F141): the escape check has now caught me THREE TIMES tonight, every time before the
+push - (1) the two rows that motivated building it, (2) my own % in S-F133 minutes after it existed, (3) the % in the
+rows documenting S-C50/S-F139. Three catches, all pre-push, on the author of the check. That is a check earning its
+keep rather than a coincidence, and I have written the count down rather than letting it pass as routine.
+YOUR POINT 1 was already the implemented fix: the spread sits ON the headline line, not in a block below, because a
+reader who stops at the headline must still see the distribution.
+Gates: 195 rows, 0 wrong pipe counts, Trap 12 enforced with empty-input proof, spread check gating, pairing clean,
+stamps in order, gate rc=0 across 55 checks.
+Next: continue at cadence.
