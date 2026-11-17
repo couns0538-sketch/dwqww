@@ -17,12 +17,14 @@ its clean run.
 import json
 import subprocess
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/tmp/fw/oracle")
-import pysolve
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths
+import pysolve_independent as pysolve
 
-GOOD = "/tmp/fw/oracle/oracle"
-BROKEN = "/tmp/fw/oracle/oracle_broken"
+GOOD = paths.oracle_binary()
+BROKEN = paths.work_file("oracle_broken")
 
 # Candidate fixtures. The EXPECTED distance is computed by pysolve, not written.
 FIXTURES = [
@@ -106,7 +108,7 @@ def main():
     print(f"planted-wrong oracle: {'DETECTED (correctly fails)' if detected else 'NOT DETECTED — suite is blind'}")
     print("SUITE VALID" if ok else "SUITE INVALID")
 
-    with open("/tmp/fw/oracle/selftest.json", "w") as f:
+    with open(paths.work_file("selftest.json"), "w") as f:
         json.dump({"expectations": expectations, "good": good, "broken": bad,
                    "good_all_pass": good_pass, "broken_detected": detected,
                    "suite_valid": ok}, f, indent=1)

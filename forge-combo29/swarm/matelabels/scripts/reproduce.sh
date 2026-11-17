@@ -7,7 +7,10 @@ set -euo pipefail
 
 ENGINE_DIR=${ENGINE_DIR:-.}
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-WORK=${WORK:-/tmp/matelabels-work}
+# Private, randomly-named work dir unless the caller names one. mkdtemp uses
+# mode 0700, so nothing here is placed in a world-writable directory.
+WORK=${MATELABELS_WORK:-$(mktemp -d -t matelabels-XXXXXX)}
+export MATELABELS_WORK="$WORK"
 mkdir -p "$WORK"
 
 echo "== 1. build engine =="

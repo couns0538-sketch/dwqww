@@ -23,13 +23,14 @@ the same shape as the S4 lesson that a refused fixture manufactures a pass.
 """
 import json
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/tmp/fw")
-sys.path.insert(0, "/tmp/fw/oracle")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import chess
-import pysolve
-import verify
+import paths
+import pysolve_independent as pysolve
+import verify_two_halves as verify
 
 BASE = [
     ("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", "back-rank"),
@@ -128,7 +129,7 @@ def main():
     else:
         print(f"END-TO-END INVALID: {failures}/{total} misclassified")
 
-    with open("/tmp/fw/oracle/e2e_labels.json", "w") as f:
+    with open(paths.work_file("e2e_labels.json"), "w") as f:
         json.dump({"rows": results, "failures": failures, "total": total,
                    "valid": failures == 0}, f, indent=1)
     return 0 if failures == 0 else 1

@@ -6,14 +6,15 @@ pins at once. If these numbers do not match, the oracle's mate answers mean
 nothing.
 """
 import json
-import sys
-
-sys.path.insert(0, "/tmp/fw")
-
-import chess
 import subprocess
+import sys
+from pathlib import Path
 
-ORACLE = "/tmp/fw/oracle/oracle"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import chess
+import paths
+
+ORACLE = paths.oracle_binary()
 
 # Published perft values (CPW / standard positions).
 CASES = [
@@ -77,7 +78,7 @@ def main():
 
     print()
     print("ALL PERFT MATCH" if ok_all else "PERFT FAILURE — oracle is not trustworthy")
-    with open("/tmp/fw/oracle/perft.json", "w") as f:
+    with open(paths.work_file("perft.json"), "w") as f:
         json.dump({"all_match": ok_all, "rows": rows}, f, indent=1)
     return 0 if ok_all else 1
 

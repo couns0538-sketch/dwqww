@@ -16,8 +16,10 @@ import os
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
-sys.path.insert(0, "/tmp/fw")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths
 
 # Per-claim deadlines. S4 measured |N|<=3 safe at 27/27, |N|=4 the ceiling,
 # |N|>=5 never confirmed. The deadlines below are generous relative to the
@@ -72,8 +74,10 @@ def one_row(row, global_deadline_epoch):
 
 
 def main():
-    in_path = sys.argv[1] if len(sys.argv) > 1 else "/tmp/fw/harvest.jsonl"
-    out_path = sys.argv[2] if len(sys.argv) > 2 else "/tmp/fw/verdicts.jsonl"
+    in_path = (paths.checked_input(sys.argv[1]) if len(sys.argv) > 1
+               else paths.work_file("harvest_seldepth.jsonl"))
+    out_path = (paths.checked_output(sys.argv[2]) if len(sys.argv) > 2
+                else paths.work_file("verdicts.jsonl"))
     budget_s = int(sys.argv[3]) if len(sys.argv) > 3 else 5400
     workers = int(sys.argv[4]) if len(sys.argv) > 4 else 4
 

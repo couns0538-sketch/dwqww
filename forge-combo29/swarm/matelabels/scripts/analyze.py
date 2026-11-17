@@ -15,9 +15,13 @@ import collections
 import json
 import statistics
 import sys
+from pathlib import Path
 
-HARVEST = "/tmp/fw/harvest_seldepth.jsonl"
-VERDICTS = "/tmp/fw/verdicts.jsonl"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths
+
+HARVEST = paths.work_file("harvest_seldepth.jsonl")
+VERDICTS = paths.work_file("verdicts.jsonl")
 
 
 def main():
@@ -174,10 +178,10 @@ def main():
         summary["by_abs_n"][k] = dict(c)
     if wrong_rows:
         summary["filter_would_catch"] = sum(1 for r in wrong_rows if r.get("pv_len_would_reject"))
-    with open("/tmp/fw/summary.json", "w") as f:
+    with open(paths.work_file("summary.json"), "w") as f:
         json.dump(summary, f, indent=1, default=str)
     print()
-    print("wrote /tmp/fw/summary.json")
+    print(f"wrote {paths.work_file('summary.json')}")
 
 
 if __name__ == "__main__":

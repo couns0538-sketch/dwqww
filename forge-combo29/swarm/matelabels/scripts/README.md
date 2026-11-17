@@ -15,6 +15,25 @@ Run order is not optional; each step depends on the one before it.
 | 9 | `run_verify_parallel.py` | Runs step 8 over the corpus, 4 workers, one fresh process per query, global deadline. |
 | 10 | `e2e_label_test.py` | End-to-end test of the **verifier**: plants honest, overstated, and understated labels and requires correct classification in both directions. |
 | 11 | `analyze.py` | Produces the reported rates, every one with its denominator, and quotes `seldepth` beside every wrong label. |
+| — | `paths.py` | Path handling. Every script reads and writes through it, so no script hard-codes a world-writable directory and no caller-supplied path is opened without being confined to the work directory. |
+
+## Where files go
+
+Nothing writes to a fixed absolute path. The work directory is, in order of
+precedence:
+
+1. `$MATELABELS_WORK`, if set;
+2. otherwise `tempfile.mkdtemp(prefix="matelabels-")` — a private `0700`
+   directory with a random name.
+
+`paths.checked_input()` / `paths.checked_output()` resolve any path given on the
+command line and refuse it unless it lies inside the work directory. The guard is
+tested: `/etc/passwd`, `../../etc/shadow`, a `..`-laden variant, and
+`../escape` are all refused, while a legitimate name is accepted.
+
+Inputs the pipeline needs from the repo are overridable by environment variable:
+`$FORGE_ENGINE` (the engine binary) and `$FORGE_CORPUS` (the sampling frame);
+both default to the paths inside `forge-combo29/`.
 
 ## Build
 

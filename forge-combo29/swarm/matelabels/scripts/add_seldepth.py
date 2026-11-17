@@ -13,11 +13,13 @@ is flagged rather than silently kept.
 """
 import json
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/tmp/fw")
-import uci
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths
+import uci_driver as uci
 
-ENGINE = "/tmp/fw/base/forge-combo29/build/forge"
+ENGINE = paths.engine_binary()
 
 
 def parse_seldepth(info_line):
@@ -29,7 +31,8 @@ def parse_seldepth(info_line):
 
 
 def main():
-    rows = [json.loads(l) for l in open("/tmp/fw/harvest.jsonl")]
+    src = paths.work_file("harvest.jsonl")
+    rows = [json.loads(l) for l in open(src)]
     out = []
     mismatch = 0
     for i, row in enumerate(rows):
@@ -69,7 +72,8 @@ def main():
         if (i + 1) % 50 == 0:
             print(f"  {i+1}/{len(rows)}  mismatches so far {mismatch}", flush=True)
 
-    with open("/tmp/fw/harvest_seldepth.jsonl", "w") as f:
+    out_path = paths.work_file("harvest_seldepth.jsonl")
+    with open(out_path, "w") as f:
         for r in out:
             f.write(json.dumps(r) + "\n")
     print(f"\nwrote {len(out)} rows, {mismatch} did not reproduce")

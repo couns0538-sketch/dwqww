@@ -13,13 +13,15 @@ import os
 import random
 import sys
 import time
+from pathlib import Path
 
-sys.path.insert(0, "/tmp/fw")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chess
-import uci
+import paths
+import uci_driver as uci
 
-ENGINE = "/tmp/fw/base/forge-combo29/build/forge"
-CORPUS = "/tmp/fw/base/forge-combo29/soak_all/search_corpus.txt"
+ENGINE = paths.engine_binary()
+CORPUS = paths.corpus_path()
 TARGET = 300
 
 # The configuration under test. Identical to the depth-12 boards in findings S4.
@@ -58,7 +60,7 @@ def main():
     rng.shuffle(fens)
     print(f"corpus {len(fens)} positions, target {TARGET} mate labels", flush=True)
 
-    out_path = "/tmp/fw/harvest.jsonl"
+    out_path = paths.work_file("harvest.jsonl")
     done = 0
     if os.path.exists(out_path):
         with open(out_path) as f:

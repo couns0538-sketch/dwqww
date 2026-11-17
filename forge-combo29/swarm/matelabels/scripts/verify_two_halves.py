@@ -35,11 +35,13 @@ import json
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-sys.path.insert(0, "/tmp/fw")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chess
+import paths
 
-ORACLE = "/tmp/fw/oracle/oracle"
+ORACLE = paths.oracle_binary()
 
 # Deadline policy from the S4 ceiling evidence:
 #   |N| <= 3 -> 60 s per half   (S4: 27/27 safe)
@@ -205,8 +207,10 @@ def verify_row(row):
 
 
 def main():
-    in_path = sys.argv[1] if len(sys.argv) > 1 else "/tmp/fw/harvest.jsonl"
-    out_path = sys.argv[2] if len(sys.argv) > 2 else "/tmp/fw/verdicts.jsonl"
+    in_path = (paths.checked_input(sys.argv[1]) if len(sys.argv) > 1
+               else paths.work_file("harvest.jsonl"))
+    out_path = (paths.checked_output(sys.argv[2]) if len(sys.argv) > 2
+                else paths.work_file("verdicts.jsonl"))
     rows = [json.loads(l) for l in open(in_path)]
     # Smallest claims first: the cheap cells fill early, so a deadline cut still
     # leaves a usable partial result.
