@@ -655,6 +655,9 @@ int uci_loop(std::istream& in) {
                       << ",\"singular_extension1\":" << c.singular_extension1
                       << ",\"singular_extension2\":" << c.singular_extension2
                       << ",\"singular_multicut\":" << c.singular_multicut
+                      << ",\"quiet_tail_closed\":" << c.quiet_tail_closed
+                      << ",\"futility_tight_set\":" << c.futility_tight_set
+                      << ",\"extinguish_futility_skip\":" << c.extinguish_futility_skip
                       << ",\"nodes\":" << c.nodes
                       << ",\"nodes_with_mate_alpha\":" << c.nodes_with_mate_alpha
                       << ",\"cutoff_with_mate_score\":" << c.cutoff_with_mate_score

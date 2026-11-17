@@ -1949,7 +1949,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
             if (tight_depth <= tune::FutilityDepth) {
                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
-                if (ss->static_eval + tight_margin <= alpha) continue;
+                if (ss->static_eval + tight_margin <= alpha) {
+                    FORGE_PROBE_COUNTER(extinguish_futility_skip);
+                    continue;
+                }
             }
         }
 
@@ -2095,8 +2098,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
         if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
             ++wide_quiet_misses;
-            if (wide_quiet_misses == 1) futility_tight = true;
-            if (wide_quiet_misses >= 2) picker.close_quiet_tail();
+            if (wide_quiet_misses == 1) {
+                futility_tight = true;
+                FORGE_PROBE_COUNTER(futility_tight_set);
+            }
+            if (wide_quiet_misses >= 2) {
+                picker.close_quiet_tail();
+                FORGE_PROBE_COUNTER(quiet_tail_closed);
+            }
         }
         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;

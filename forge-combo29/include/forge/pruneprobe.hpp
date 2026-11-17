@@ -52,6 +52,11 @@ struct Counts {
     std::uint64_t singular_extension2 = 0;
     std::uint64_t singular_multicut = 0;    // singular_beta >= beta, returned
 
+    // --- QuietExtinction ---
+    std::uint64_t quiet_tail_closed = 0;    // close_quiet_tail() fired: remaining quiets skipped
+    std::uint64_t futility_tight_set = 0;   // one wide quiet miss halved the futility slack
+    std::uint64_t extinguish_futility_skip = 0; // the tightened futility arm skipped a quiet
+
     // --- mate bookkeeping ---
     std::uint64_t nodes = 0;
     std::uint64_t nodes_with_mate_alpha = 0;
@@ -80,6 +85,11 @@ struct Ablate {
     bool futility = false;
     bool lmr = false;
     bool singular = false;
+    // QuietExtinction is off by default like SoundMatePruning, so it is tested
+    // by ENABLING it rather than ablating it. This field is unused by the
+    // search; it records intent for the UCI `ablate` handler, which rejects
+    // `quiet_extinction` with a message pointing at `setoption`.
+    bool quiet_extinction = false;
 };
 inline Ablate ablate{};
 
