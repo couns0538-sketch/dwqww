@@ -1287,3 +1287,27 @@ TWO ADDITIONS: the page-shape checker (S-F96) and Trap 6 with the board-dependen
   TRAP 6, with your mechanism as the body: a fixed-depth command needs a WALL CAP AND A NODE CAP, because safety is a property of the POSITION. go depth 20 untimed finished in 0.0 s on mate boards and did not finish in 90 s on a KQ board at halfmove 80 (depth 15, 250,077,687 nodes). A short forced mate BREAKS THE ITERATIVE LOOP EARLY; a high-halfmove bare-queen endgame has no short mate plus the fifty-move horizon active and grinds through hundreds of millions of nodes per depth. A harness without a cap cannot tell slow from hung.
   The traps page is now six traps, the family table, and the guard, with the intro and headline rule updated to match - and this time the section order was right on the FIRST attempt, because I ran the checker before declaring it done.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### TWENTIETH UPDATE — two tools, and the rule moved out of prose into scripts
+
+**`check_page_shape.py`** (S-F96) exists because the row checker has a boundary. It prints each rule page's
+heading sequence and flags **duplicate headings, empty sections, and anything stranded after closing material** —
+the exact reflex that made me append sections out of order three times. **Its first run found a real instance**
+(`MEASUREMENT_TRAPS.md`'s history note after "The guard"), which I folded into the intro; re-ran clean.
+
+**Trap 6** (S-F97) added to the traps page: **a fixed-depth command needs a wall cap AND a node cap, because
+safety is a property of the POSITION** — `go depth 20` untimed finished in 0.0 s on mate boards and did not finish
+in 90 s on a KQ board at halfmove 80 (depth 15, 250,077,687 nodes), because a short forced mate breaks the
+iterative loop early while a high-halfmove bare-queen endgame has no short mate plus the fifty-move horizon
+active.
+
+**The thread connecting them, which is the real result:** I wrote a rule, then failed to apply it to the next
+artifact — three times. Writing it down was not enough. Putting it in a **script that runs before the claim** was.
+Both new tools therefore document their own boundaries in their docstring, and both are committed beside their
+output rather than kept as habits:
+
+| tool | what it checks | what it does NOT |
+|---|---|---|
+| `check_findings_table.py` | table row shape, id uniqueness | section order, column content, truth, staleness |
+| `check_page_shape.py` | heading sequence, duplicates, empty sections, stranded sections | whether the order is the *intended* one |
+| `honesty.py` | the four node pins | anything about correctness beyond those pins |
