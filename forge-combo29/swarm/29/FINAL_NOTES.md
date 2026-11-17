@@ -80,6 +80,12 @@ than the number — 29-F31 (the refuted inlining mechanism), 29-F44 ("4 of 6" re
 The mechanical fix, worth carrying forward: **let the weak sample keep the weaker word** ("no sign of X", never "X"),
 and put any generalisation in its own sentence that names its scope.
 
+### The sample-size rule and its worked example (29-F51 / 29-N35)
+**Any tally under about twenty outcomes is a hint at most.** Four samples of the same measurement gave four directions:
+17 outcomes -> 7-7-3 (dead heat); 5 -> 2-2-1 (dead heat); **3 -> 0-3 against PC20 (published as 29-F50, withdrawn
+twenty minutes later)**; 13 -> 8-4 mildly pro-PC20. The three-outcome sample produced a confident-looking 3-0 the wrong
+way and the 13-outcome sample of the same configuration reversed it.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation

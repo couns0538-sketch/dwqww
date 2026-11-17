@@ -397,3 +397,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N35: withdraws F50's signal-against-PC20 and RESTORES F44's 'no sign of damage' for depths 10-12 AND 14. Across all my samples the tally has swung 7-7 (n=17), 2-2 (n=5), 0-3 (n=3) and 8-4 (n=13) - that is what noise looks like, and no sample shows PC20 systematically worse.
 - FOURTH time tonight a small tally pointed the wrong way (with the 4-of-6 in F43 and the two single-cell percentages). Rule now heavily evidenced: widen the sample before reporting a sign; treat any tally under ~20 outcomes as a hint at most.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:23:09 AM UTC 2026
+- Installed the four-sample tally as the worked example beside the sweep rule in FINDINGS, and in FINAL_NOTES: 17 outcomes -> 7-7-3 (dead heat); 5 -> 2-2-1 (dead heat); 3 -> 0-3 AGAINST PC20 (published as F50, withdrawn 20 min later); 13 -> 8-4 mildly pro-PC20. The same configuration produced opposite signs at n=3 and n=13.
+- Operational form kept verbatim: 'any tally under about twenty outcomes is a hint at most' - treat a small one-sided tally as a reason to collect more, never as a finding.
+- next: continuing at cadence.

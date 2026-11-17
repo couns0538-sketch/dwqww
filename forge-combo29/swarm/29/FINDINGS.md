@@ -64,6 +64,22 @@ Practice: before a figure enters a finding, a rule or a summary, measure it at a
 plausibly depends on (depth, hash, position set, settings regime, sample size). If the answer moves, report the TABLE,
 not the number. A single figure may stand only when the sweep shows it is flat — and then the flatness is the finding.
 
+
+### The sample-size worked example (29-F51 / 29-N35), beside the sweep rule
+**Any tally under about twenty outcomes is a hint at most.** Four samples of the SAME measurement — S14-vs-PC20
+disagreements judged under a neutral regime — gave four different directions:
+
+| sample | outcomes | PC20 | S14 | tie | apparent story |
+|---|---|---|---|---|---|
+| R_2911 depth 12 | 17 | 7 | 7 | 3 | dead heat |
+| late G depth 10 | 5 | 2 | 2 | 1 | dead heat |
+| R_2911 depth 14 (30 pos) | 3 | **0** | **3** | 0 | "PC20 is worse at depth 14" — published as 29-F50, then WITHDRAWN |
+| R_2911 depth 14 (80 pos) | 13 | **8** | **4** | 1 | mildly in PC20's favour |
+
+The 3-outcome sample produced a confident-looking 3-0 the wrong way; the 13-outcome sample of the same configuration
+reversed it. That is the argument for the threshold, and it is why 29-F50 lasted twenty minutes before 29-F51
+overturned it. Treat a small one-sided tally as a reason to collect more, never as a finding.
+
 ## NAMED RULE (29-N16): an instruction-count saving on one build is NOT evidence about another build
 Worked example, my own TT patch, same two source changes:
 - base tree 6b98f217:            -18,708,563 instructions  (-0.414 %)
