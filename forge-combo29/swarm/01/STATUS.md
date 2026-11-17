@@ -3363,3 +3363,30 @@ six came from building the instrument that then disagreed with me.
 The run is at 4,718 of 11,192 and will finish inside the window.
 Gates: 237 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
 Next: let it finish; then the full-population figures replace the partial ones and the FINAL gets the six-correction paragraph.
+## 2026-11-17T05:21:58Z — POPULATION RUN COMPLETE: n=10,774, PC20 is 5.1 % slower, CI EXCLUDES 1.0 (S-C66)
+THE RUN SURVIVED BOTH TURN BOUNDARIES (tmux + per-pair checkpoint) AND FINISHED: EXIT=0, n=10,774 of 11,192.
+FINAL TABLE:
+    n                      10,774
+    node median            0.9618      mean 1.0943   Q1 0.7475  Q3 1.2445  max 18.37
+    wall median            1.0370      GEOMETRIC MEAN 1.0513   95 per cent CI [1.0422, 1.0604]  <- EXCLUDES 1.0
+    per-node median        1.0712      Q1 1.0471  Q3 1.0968   min 0.500  max 2.02
+    tail >2x               641 = 5.95 per cent      >5x 29 = 0.27 per cent      >10x 3 = 0.03 per cent
+    fewer nodes on         56.2 per cent           faster on 44.4 per cent
+    identity               0.9618 x 1.0712 = 1.0302 vs wall 1.0370
+THE CI IS ROBUST TO THE SEQUENCE STRUCTURE, which I checked because these are consecutive game positions: lag-1
+autocorrelation of log(wall ratio) is 0.0344, and a block bootstrap is flat from B=1 to B=200 ([1.0423,1.0605] ->
+[1.0429,1.0607]). So excluding 1.0 does NOT depend on pretending the positions are independent.
+THE ~3.5 per cent SLOWER READING SURVIVES AND STRENGTHENS TO 5.1 per cent: the point estimate moved further from 1.0 as n grew
+(1.035 at n=2,643 -> 1.051 at n=10,774).
+THE SENTENCE IN THE OWNER REPORT THAT HAS TO CHANGE:
+    OLD: "2,643 pairs and climbing"
+    NEW: "10,774 of 11,192 pairs (final). PC20's net wall time is 5.1 per cent slower by geometric mean, 95 per cent CI [1.0422,
+          1.0604] excluding 1.0; median ratio 1.0370. The components: 4 per cent fewer nodes, 7 per cent more per node."
+  Both the median (1.0370) and the geometric mean (1.0513) are published because they differ by 1.4 points, and the
+  honest headline depends on which is quoted.
+THE CHECKPOINT RULE IS IN METHOD_NOTES with the 2,643 / 2,794 / 4,718 sequence as its case: a growing run's intermediate
+figure must carry the word "checkpoint" AND its denominator IN THE SAME SENTENCE, because an intermediate number and a
+final one look identical. "and climbing" is not enough - a reader skimming a table takes the number and drops the hedge.
+Gates: 238 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks. The 10,774-pair checkpoint is committed
+as an artifact so every figure above is re-derivable.
+Next: continue at cadence to the 10:20Z close.

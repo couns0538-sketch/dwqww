@@ -67,6 +67,34 @@ across the pages. Proven by restoring the fabricated pair into `DECOMPOSITION.md
 **The lesson is not "prose cannot be checked". It is "prose can be checked where the grammar states the relation".** My
 first attempt inferred the relation from proximity; the second read it from the punctuation.
 
+## A growing run's intermediate figure must say so in its own sentence
+
+> **A figure from a run that is still going must carry the word "checkpoint" and its denominator in the SAME SENTENCE as
+> the number. Otherwise it is read as final — because an intermediate number and a final number look identical.**
+
+The owner report cited **"2,643 pairs and climbing"**. That was not wrong: it was my report at one moment of a run that
+reached **10,774**. But the artifact behind it said **2,794**, and by the time anyone checked, the checkpoint held
+**4,718** and then **10,774** — so three different numbers were all "the n" within a few hours, and only one of them was
+the run's n.
+
+**"and climbing" is not enough.** It is a hedge in the same sentence, but a reader skimming a table takes the number and
+drops the qualifier. The rule asks for the two things that survive skimming: **the word checkpoint** (which says the value
+is provisional) and **the denominator** (which says how provisional — 2,643 of 11,192 is a fifth of the way, 4,718 is
+forty per cent).
+
+| the figure | what it was | how a reader would take it |
+|---|---|---|
+| "2,643 pairs and climbing" | a snapshot, 24 % of the run | **a measurement** |
+| "checkpoint: 2,643 of 11,192 pairs (24 %)" | the same number, labelled | a progress figure |
+
+**The mechanism is the same one Trap 0 names** — a hand-typed number and a measured one look alike — with the difference
+that here the number *was* measured and is simply **not final**. Nothing about the figure is false; what is missing is
+its status.
+
+**Practical form:** print the checkpoint with its denominator in every intermediate artifact, and when quoting one in
+prose, carry the denominator too. A run that finished says `n = 10,774`; a run in progress says
+`checkpoint 4,718 of 11,192`.
+
 ## What is NOT mechanisable, with three attempts as evidence
 
 Two checks were built tonight and deleted, and the second one is instructive because it failed **three times in a row
