@@ -19,7 +19,7 @@ played there and the cost lands on analysis tools.**
 SECOND LINE, added later and kept separate because the first was ordered as written:
 
 **Mechanism: the 0-node move is generator index 0 (23-F98, with a same-board non-draw control serving index 5) → confirmed
-on a middlegame board where a piece was hung (23-F100, e6e5 = index 0 of 42) → priced at a median of roughly 600–1,000 cp across TWO DISJOINT 12-position samples, nine or ten of twelve ≥ 300 cp
+on a middlegame board where a piece was hung (23-F100, e6e5 = index 0 of 42) → priced at a median of roughly 600-1,000 cp across TWO DISJOINT 12-position samples, nine or ten of twelve ≥ 300 cp
 each (23-F101/F144 — quote it as a range, never 625 alone) → the generation order is fully specified,
 P→N→B→R→Q→K with pawns single→double→capture and ascending from-square within class, 13/13 on a holdout (23-F103/F106)
 → and a predictor written from that rule, committed before the engine was asked, named the move 5 of 5 on constructed
@@ -53,8 +53,16 @@ Calibration to keep beside it: `cp 0` is defensible ONLY as "drawn if the draw i
 claims — so it is right about the RULE and wrong about the POSITION, and a tool showing it tells a user a game is drawn
 that is won in one.
 
-Breadth, stated honestly: the forfeit reproduces on 6 of 6 fixtures across TWO mate types; four other structures had no
-mate in one and could not test it (F175), and all six share Black's king on g8/h8 with pawns intact.
+**THE GENERAL COST, not just the mate case: playing generator index 0 costs a median of roughly 600-1,000 cp across TWO
+DISJOINT 12-position samples** (~625 and ~1,004; nine or ten of twelve at or above 300 cp in each), on middlegame
+positions sampled deterministically rather than chosen (23-F101/F144). **That figure is a cost of the MOVE, not of the
+score** — a reader who re-attributes it to the score will re-inflate the whole family (23-F128). On one real self-play
+board the unsearched move lost **6 pawns of material** by allowing a queen capture (23-F60, re-verified under the
+corrected validator in 23-F129). And on 23-F60's SECOND board the repaired build is **material-neutral** — both moves
+allow the same +1 — so the repair's material safety is NOT reliable, only its removal of the 0-node path (23-F130).
+
+Breadth, stated honestly: the mate forfeit reproduces on 6 of 6 fixtures across TWO mate types; four other structures had
+no mate in one and could not test it (F175), and all six share Black's king on g8/h8 with pawns intact.
 
 ---
 
