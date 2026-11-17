@@ -29,20 +29,31 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def rule_a_equal_branches(text):
-    """`X if COND else X` — both arms identical, so the condition does nothing."""
+    """`X if COND else X` — both arms identical, so the condition does nothing.
+
+    Parsed by splitting on the keywords rather than by regex: the natural regex for this
+    (`([^#]+?)\\s+if\\s+...\\s+else\\s+...`) has nested quantifiers that backtrack super-linearly,
+    which a static checker flagged.  Splitting is linear, and easier to argue about.
+    """
     out = []
-    pat = re.compile(r"^\s*(\S+)\s*=\s*([^\n#]+?)\s+if\s+[^,\n]+?\s+else\s+([^\n#]+?)\s*$")
     for i, line in enumerate(text.split("\n"), 1):
-        m = pat.match(line)
-        if m and m.group(2).strip() == m.group(3).strip():
-            out.append((i, "both branches of the conditional are %r" % m.group(2).strip()))
-    # also catch the augmented-assignment form `i += A if c else A`
-    pat2 = re.compile(r"^\s*(\S+)\s*([-+*/]=)\s*([^\n#]+?)\s+if\s+[^,\n]+?\s+else\s+([^\n#]+?)\s*$")
-    for i, line in enumerate(text.split("\n"), 1):
-        m = pat2.match(line)
-        if m and m.group(3).strip() == m.group(4).strip():
-            out.append((i, "both branches of an augmented assignment are %r"
-                        % m.group(3).strip()))
+        code = line.split("#", 1)[0]
+        if " if " not in code or " else " not in code:
+            continue
+        lhs, _, rest = code.partition(" if ")
+        cond, _, branches = rest.partition(" else ")
+        if not cond.strip() or not branches.strip():
+            continue
+        # the two candidate arms are "what follows = (or +=) and the trailing `if` expression"
+        for op in ("+=", "-=", "*=", "/=", "%=", "="):
+            if op in lhs:
+                target, _, left_arm = lhs.partition(op)
+                if not target.strip():
+                    continue
+                if left_arm.strip() and left_arm.strip() == branches.strip():
+                    what = "an augmented assignment" if op != "=" else "a conditional expression"
+                    out.append((i, "both branches of %s are %r" % (what, left_arm.strip())))
+                break
     return out
 
 
@@ -93,10 +104,19 @@ RULES = [
 
 
 def scan(root):
+    """Scan `root` for the four rule classes, reading only regular files it can open.
+
+    `root` comes from argv (`--dir`), so it is checked rather than trusted: it must be an existing
+    directory.  Each entry is opened only if it is a regular file, which also means a symlink to a
+    device or a FIFO in the tree cannot make the scanner hang.
+    """
+    resolved = os.path.realpath(os.path.abspath(root))
+    if not os.path.isdir(resolved):
+        raise SystemExit("lint: not a directory: %s" % resolved)
     findings = []
-    for name in sorted(os.listdir(root)):
-        path = os.path.join(root, name)
-        if not os.path.isfile(path):
+    for name in sorted(os.listdir(resolved)):
+        path = os.path.join(resolved, name)
+        if not os.path.isfile(path) or os.path.islink(path):
             continue
         for label, fn, exts in RULES:
             if not any(name.endswith(e) for e in exts):

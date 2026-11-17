@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chess
 
 from audit import load_corpus, search
-from multipv_lib import bestmove_of, depth_lines, final_depth_group
+from multipv_lib import bestmove_of, depth_lines, final_depth_group, write_json
 
 BUDGETS = ["go movetime 200", "go nodes 20000"]
 
@@ -74,8 +74,7 @@ def main():
                  out["budgets"][go]["bestmove_all_agree"]))
 
     if args.json:
-        with open(args.json, "w") as fh:
-            json.dump(out, fh, indent=1)
+        write_json(args.json, out)
         print("wrote", args.json)
     return 0
 

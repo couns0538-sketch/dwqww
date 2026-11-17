@@ -90,6 +90,25 @@ LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13 cmake --build build -j4
 Pins on this build: bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 —
 **4/4**. Binary md5 `ecf97f8c071a91149c38dc1a193433f9`.
 
+## Hardening from the CI gate
+
+SonarCloud failed this PR on first push with 15 annotations, all on this seat's scripts. What was
+real and what was policy:
+
+| finding | verdict | change |
+|---|---|---|
+| `i += 2 if k == "cp" else 2`, both arms equal | **real**, harmless | made unconditional with a comment |
+| five `[ ... ]` shell tests | **real**, style | `[[ ... ]]` |
+| argv path straight into `open(..., "w")`, 7 sites | **real**, a traversal sink | one `write_json` validator; non-`.json` and missing directories are refused |
+| argv path straight into `Popen` | **real**, an exec sink | `_validated_exe` resolves it and requires a regular executable |
+| two regexes with nested quantifiers | **real**, super-linear | replaced with linear string parsing |
+| md5sum flagged as a weak hash, 2 sites | **policy** — it labels a build, nothing authenticates against it | documented at the site, sha256 recorded beside it |
+
+Reliability rating moved **R → A** after the first round. All seven sinks now validate input.
+
+`lint_scripts.py` re-checks these classes locally: four rules, each with a planted fault and a clean
+form that must not fire, wired into `run_all.sh` so a finding raised once by CI fails here first.
+
 ## What is deliberately NOT done
 
 - **No patch.** The PV-length and promotion behaviours are the engine working as written; changing

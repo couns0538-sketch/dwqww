@@ -23,7 +23,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from multipv_lib import Engine, bestmove_of, depth_lines
+from multipv_lib import Engine, bestmove_of, depth_lines, write_json
 
 STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 DRAWN = {
@@ -134,8 +134,7 @@ def main():
     out["summary"] = s
     print(json.dumps(s, indent=1))
     if args.json:
-        with open(args.json, "w") as fh:
-            json.dump(out, fh, indent=1)
+        write_json(args.json, out)
         print("wrote", args.json)
     return 0
 

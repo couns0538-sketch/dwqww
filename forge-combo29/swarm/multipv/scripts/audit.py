@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import chess
 
-from multipv_lib import (Engine, bestmove_of, depth_lines, final_depth_group, score_cp)
+from multipv_lib import (Engine, bestmove_of, depth_lines, final_depth_group, score_cp, write_json)
 from check_multipv import (check_bestmove, check_completeness, check_distinct_first_moves,
                            check_emission_order, check_index_order, check_pv_lengths,
                            check_pv_legal, check_pv_vs_seldepth)
@@ -629,8 +629,7 @@ def main():
 
     out = {k: (v.as_dict() if isinstance(v, Tally) else v) for k, v in res.items()}
     if args.json:
-        with open(args.json, "w") as fh:
-            json.dump(out, fh, indent=1, default=str)
+        write_json(args.json, out)
         print("wrote", args.json)
     else:
         print(json.dumps({k: v for k, v in out.items() if k != "examples"},

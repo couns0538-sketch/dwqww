@@ -15,6 +15,7 @@ Every rule encoded here is a measured failure mode from forge-findings.md, not a
   6. Do not pipe into `quit`: `quit` calls stop_search() and the search thread can be killed before
      it prints.  One search per process, read to `bestmove`, then `quit` and wait.
 """
+import json
 import os
 import subprocess
 import time
@@ -45,6 +46,27 @@ def _validated_exe(candidate):
     if not os.access(path, os.X_OK):
         raise EngineFault("engine is not executable: %s" % path)
     return path
+
+
+def write_json(path, payload):
+    """Write evidence JSON to a path taken from argv, refusing anything that is not a .json file.
+
+    Every script in this seat takes `--json out.json`.  A static analyser rightly treats an argv
+    path handed to `open(..., "w")` as a traversal sink, and it is one: `--json /etc/passwd` would
+    truncate that file.  This is the single writer, so the policy lives in one place rather than in
+    twelve `# nosonar` comments: the destination must be an absolute or relative path whose final
+    component ends in `.json`, and its directory must already exist (this never creates a tree, so
+    a typo'd directory fails loudly instead of scattering files).
+    """
+    resolved = os.path.realpath(os.path.abspath(path))
+    if not resolved.endswith(".json"):
+        raise EngineFault("refusing to write evidence to a non-.json path: %s" % resolved)
+    parent = os.path.dirname(resolved)
+    if not os.path.isdir(parent):
+        raise EngineFault("evidence directory does not exist: %s" % parent)
+    with open(resolved, "w") as fh:
+        json.dump(payload, fh, indent=1, default=str)
+    return resolved
 
 
 class Engine:

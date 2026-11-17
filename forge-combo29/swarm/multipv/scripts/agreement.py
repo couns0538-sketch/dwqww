@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chess
 
 from audit import Tally, load_corpus, search
-from multipv_lib import bestmove_of, depth_lines, final_depth_group, score_cp
+from multipv_lib import bestmove_of, depth_lines, final_depth_group, score_cp, write_json
 
 
 def final(exe, fen, multipv, go):
@@ -147,11 +147,10 @@ def main():
 
     print(json.dumps({"tally": t.as_dict(), "noise_floor": noise}, indent=1))
     if args.json:
-        with open(args.json, "w") as fh:
-            json.dump({"tally": t.as_dict(), "rows": rows, "corpus": corpus,
+        write_json(args.json, {"tally": t.as_dict(), "rows": rows, "corpus": corpus,
                        "noise_floor": noise,
                        "depth": args.depth, "judge_depth": args.judge_depth,
-                       "mpv": args.mpv}, fh, indent=1)
+                       "mpv": args.mpv})
         print("wrote", args.json)
     return 0
 
