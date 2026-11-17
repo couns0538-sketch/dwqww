@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 29 (is the drawn-root blunder GENERAL, or one board?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F60/61 found the base's unsearched move on a naturally reached third occurrence was worth cp -805, stable across
+depths 8-20. That is ONE board. A claim that the defect "blunders" needs more than one, so this plays several more
+clock-driven games until each reaches an actual third occurrence, and scores each build's chosen move alone.
+
+Method: play clock self-play games with the PC build (6 s+0.06, every move a fresh `go`), each until the position has
+ACTUALLY occurred 3 times by my own key (board+side+castling+ep) — not python-chess's claimable predicate, which was
+the 23-F59 error. Then for each game compare base vs PC on that exact game, and score both moves alone at fixed
+depth 16.
+
+Prediction (each number with the range that kills it):
+  P1  at least 3 further games will reach an actual third occurrence within 200 plies. KILLED if fewer.
+  P2  the BASE will answer 0 nodes in every one (the defect is the same mechanism). KILLED if any game has it searching.
+  P3  in at least 2 of the games the base's unsearched move will be worth WORSE than cp -100 at fixed depth 16.
+      KILLED if fewer than 2 (which would mean the -805 was board-specific and the defect is usually harmless).
+  P4  the base and PC moves will DIFFER in at least 2 games. KILLED if fewer.
+
+If P3 is killed, the honest conclusion is that the drawn-root blunder is occasional rather than characteristic, and I
+will say that plainly - 23-F60's single -805 would then be an extreme case, not the norm.
