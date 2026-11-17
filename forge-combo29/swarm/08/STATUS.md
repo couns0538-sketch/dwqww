@@ -605,3 +605,13 @@ next: cadence.
 Tally: 35 findings, 24 checks/audits/plants, 4 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:44Z
+- **08-F36: the book gating now covers ALL FIVE `go` forms** — closing the boundary I had named as unmeasured in
+  08-C24. PC r15 PC20, OwnBook true, three openings: `go depth 12` **0/3**, `go nodes 5000` **0/3**,
+  `go infinite` **0/3** (all three with real info lines), `go wtime 6000` **3/3**, `go movetime 100` **3/3**.
+  So a depth/nodes/infinite harness can never hit the book hazard; only clock/movetime harnesses need OwnBook false.
+
+Tally: 36 findings, 24 checks/audits/plants, 4 method lines, 1 withdrawal.
+
+next: cadence.
