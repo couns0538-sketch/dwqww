@@ -194,13 +194,15 @@ def build_cases() -> list[Case]:
 
     # FEN field-count sweep: 1..9 fields. Six is the only legal count.
     base_fields = [b"8/8/8/8/8/8/8/K6k", b"w", b"-", b"-", b"0", b"1", b"extra", b"more", b"nine"]
-    for n in list(range(1, 6)) + [7, 8, 9]:
+    for n in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
         fen = b" ".join(base_fields[:n])
+        note = ("6 fields: the legal control for this sweep" if n == 6
+                else f"{n} fields; only 6 is legal")
         cases.append(Case(cid=f"fen:field-count-{n}", cls="position_fen", pattern="P_direct",
                           steps=[(b"position fen " + fen + b"\n", "cmd"),
                                  (b"isready\n", "wait_ready"),
                                  (b"go perft 1\n", "wait_nodes")],
-                          note=f"{n} fields; only 6 is legal"))
+                          note=note))
 
     # a legal move string that is not legal in this position
     for pat in PATTERNS:
