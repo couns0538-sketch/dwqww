@@ -117,6 +117,11 @@ NEEDS ATTENTION:
   - 1 changed/untracked files outside the folder
 ```
 
+**And a doc edit to a check deserves the same re-test as a code edit.** The header is the part another seat reads
+*instead of* the code, so if the header drifts from what the code does, the tool gets trusted for the wrong reason —
+a subtler version of the same fault. After rewriting this header I re-ran the tool both ways (clean on my folder,
+still failing on the planted stray) rather than assuming a prose change was inert.
+
 Two scans are needed because each has a blind spot: `--diff-filter=A` catches a stray that was committed and later
 deleted; `git status --porcelain` catches a stray that exists now but was never committed. The second is the more
 likely state at the moment you run the check, and it was the one missing.
