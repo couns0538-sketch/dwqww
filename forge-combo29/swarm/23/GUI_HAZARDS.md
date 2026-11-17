@@ -188,7 +188,13 @@ repetition root is short-circuited to cp 0 with 0 nodes. On the same position th
 | build | `eval` total | `go depth 12` |
 |---|---|---|
 | base | **+406** | **cp 0, 0 nodes** |
-| PC r15 + PC20 | +406 | cp 507, 44,269 nodes |
+| PC r15 (no PC20 switches) | +406 | cp 425, 40,801 nodes |
+
+**NUMBERS RE-VERIFIED (23-F135).** An earlier version of this table read "PC r15 + PC20, cp 507, 44,269 nodes". The
+fixture is sound — validated as a genuine threefold (`counted=3 python-chess=3`) — but the PC row had drifted from the
+current builds/options; re-measured on PC r15 with default options it is **cp 425 / 40,801 nodes**. The CONCLUSION is
+unchanged (the two interfaces still disagree by 406 cp, and the PC still searches where the base returns 0 nodes), which
+is exactly why a stale number in a summary is dangerous: it survives because nobody re-runs a claim they already believe.
 
 So a GUI that shows `eval`'s number for the position while taking its move from `go` displays a winning score (+406)
 next to a move chosen from a draw with no search at all — a 406 cp contradiction, with no diagnostic anywhere.
@@ -206,10 +212,18 @@ a front end combines the two answers (23-F78).
 |---|---|---|---|
 | threefold repetition | +406 | cp 0 | 406 cp |
 | fifty-move rule | +406 | cp 0 | 406 cp |
-| insufficient material (bare K v K) | +20 | cp 0 | 20 cp |
+| insufficient material, `8/8/8/8/8/8/8/K6k w` | **+76** | cp 0 | **76 cp** |
+| insufficient material, `k7/8/8/8/8/8/8/7K w` | +17 | cp 0 | 17 cp |
+
+**RE-MEASURED (23-F135/F136).** The insufficient-material row previously read `+20`; re-measuring it against the board it
+names gives **+76**, and a second bare-king board gives **+17**. The old `+20` reproduces on NONE of five bare-king
+positions tried (76, −5, 17, −50, 9), so it was a number from a board the row does not name. **The CONCLUSION is
+unchanged and is what the table is for: for insufficient material the eval/go gap is small (tens of cp) while for
+history draws it is the whole eval total (406) — but the specific figure a reader might quote was wrong, and quoting it
+would have been quoting an unattributable number.**
 
 So the contradiction you must guard against is repetition and the fifty-move rule — the two a static evaluator
-cannot see. For insufficient material the two interfaces nearly agree (23-F79).
+cannot see. For insufficient material the two interfaces nearly agree in ABSOLUTE terms (tens of cp against 406), though the exact figure is board-dependent — 76 on one bare-king board, 17 on another (23-F136).
 
 **Where the contradiction appears, as a curve.** Sweeping the fifty-move counter on a won K+R v K board (base build,
 `go depth 10`), the gap between `eval` and `go` is not constant — it opens at the search horizon:
