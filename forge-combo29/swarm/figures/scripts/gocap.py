@@ -4,17 +4,20 @@
 Exists because the obvious version is wrong twice over:
 
   * `subprocess` + blocking `readline()` ignores the cap. A form that never answers
-    (here: `go nodes abc`) blocks the reader past any `timeout=` you wrap around the
+    (here: `go nodes abc`) blocks the reader past any `timeout=` wrapped around the
     process, because the process is alive and just not talking.
-  * so the cap is enforced by a READER THREAD pushing lines into a queue, and the
-    caller waits on the queue. `go nodes abc` is then reported as "no bestmove within
-    N s", which is the measurement, rather than as a hang.
+  * so the cap is enforced by a READER THREAD pushing lines into a queue, and the caller
+    waits on the queue. `go nodes abc` is then reported as "no bestmove within N s", which
+    is the measurement, rather than as a hang.
 
-A form that never answers is a RESULT. The cap is printed beside every row so the
-row cannot be read as an unbounded observation.
+A form that never answers is a RESULT. The cap is printed beside every row so the row cannot
+be read as an unbounded observation.
+
+The engine path is module state set once by `use_engine()`, never a per-call argument.
 
 Usage:
-    python3 gocap.py <cap_seconds> [FEN] [go form...]
+    python3 gocap.py <cap_seconds> [FEN|-] [go form...]
+    FORGE_BIN=/path/to/forge python3 gocap.py 6
 
 Measured on 6b98f217 (g++ 13.3.0, FORGE_PORTABLE, startpos, cap 6 s):
     go depth 5        depth 5, 1001 nodes          -- the well-formed reference
@@ -28,12 +31,34 @@ import subprocess
 import threading
 import time
 
-EXE_DEFAULT = os.environ.get("FORGE_BIN", "./forge")
+_ENGINE = None
+
+
+def use_engine(path):
+    """Set and validate the engine executable once; see uci.use_engine for the rationale."""
+    if not path:
+        raise ValueError("empty engine path")
+    if ".." in str(path).split(os.sep):
+        raise ValueError("refusing an engine path containing '..': %r" % (path,))
+    ap = os.path.abspath(path)
+    if not os.path.isfile(ap):
+        raise FileNotFoundError("engine executable not found: %r" % (ap,))
+    global _ENGINE
+    _ENGINE = ap
+    return _ENGINE
+
+
+def _engine():
+    if _ENGINE is None:
+        raise RuntimeError("engine path not set — call gocap.use_engine(path) first")
+    return _ENGINE
 
 
 class Proc:
-    def __init__(self, exe):
-        self.p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    """One engine process with a reader thread, so a blocked read cannot outlive the cap."""
+
+    def __init__(self):
+        self.p = subprocess.Popen([_engine()], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.DEVNULL, text=True, bufsize=1)
         self.q = queue.Queue()
         threading.Thread(target=self._pump, daemon=True).start()
@@ -72,8 +97,8 @@ class Proc:
             self.p.kill()
 
 
-def probe(go, cap, fen=None, exe=EXE_DEFAULT):
-    e = Proc(exe)
+def probe(go, cap, fen=None):
+    e = Proc()
     e.send("uci")
     e.drain("uciok", 10)
     e.send("setoption name Hash value 16")
@@ -106,6 +131,7 @@ if __name__ == "__main__":
         "go wtime abc", "go wtime 0", "go movetime abc", "go movetime 0",
         "go nodes abc", "go nodes", "go nodes 0", "go mate abc", "go infinite",
     ]
+    use_engine(os.environ.get("FORGE_BIN", "./forge"))
     print("cap %.0fs   position %s" % (cap, fen or "startpos"))
     for g in forms:
         r = probe(g, cap, fen)

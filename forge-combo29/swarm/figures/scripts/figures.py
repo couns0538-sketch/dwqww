@@ -29,6 +29,9 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import gocap  # noqa: E402  (resolved via HERE, set above)
+import uci    # noqa: E402
 
 RESULTS = []
 
@@ -78,11 +81,11 @@ def wilson(k, n, z=1.96):
 
 
 # ----------------------------------------------------------------------------- pins
-def check_pins(forge):
+def check_pins():
     want = {"bench 11": 312866, "bench 13": 862329, "bench 16": 3024920}
     for label, expect in want.items():
         d = int(label.split()[1])
-        out = run_uci(forge, ["setoption name Hash value 16", "setoption name Threads value 1",
+        out = run_uci(["setoption name Hash value 16", "setoption name Threads value 1",
                              "isready", "bench %d" % d], "info string bench")
         m = re.search(r"nodes (\d+)", out)
         got = int(m.group(1)) if m else None
@@ -90,16 +93,77 @@ def check_pins(forge):
                got, "MATCH" if got == expect else "MISMATCH",
                "rebuilt engine, fresh process, Hash 16 Threads 1" if got == expect
                else "expected %d" % expect)
-    out = run_uci(forge, ["isready", "position startpos", "go perft 5"], "nodes ")
+    out = run_uci(["isready", "position startpos", "go perft 5"], "nodes ")
     m = re.search(r"nodes (\d+)", out)
     got = int(m.group(1)) if m else None
     record("perft 5 pin", "§2 pins", "built binary at 6b98f217", got,
            "MATCH" if got == 4865609 else "MISMATCH", "startpos perft 5")
 
 
-def run_uci(exe, cmds, want):
+def resolve_exe(path):
+    """Validate a caller-supplied engine path before executing it.
+
+    The CLI arguments are a trust boundary: this script is run by hand and by other agents,
+    and `--forge` / `--base` / `--seats` all name paths that are then exec'd or walked. A path
+    is accepted only if it is absolute, free of `..`, and an existing regular file (or dir).
+    An agent or a typo that points one of these at something else should fail loudly here
+    rather than at the exec.
+    """
+    if not path:
+        raise ValueError("empty path")
+    ap = os.path.abspath(path)
+    if ".." in path.split(os.sep):
+        raise ValueError("refusing a path containing '..': %r" % path)
+    return ap
+
+
+# The engine path is resolved ONCE here and never travels as an argument. Passing it around
+# made every call site a place where a caller-influenced string reached an exec; a module
+# constant cannot, and the analyser and a reader can both see that.
+ENGINE = None
+
+
+def set_engine(path):
+    """Set the engine path once, validating it. Called from main() and from imports."""
+    global ENGINE
+    ENGINE = resolve_exe(path)
+    # The imported helpers keep their own module-level copy, because each resolves the path
+    # it will exec; setting it here is what lets them be imported safely.
+    uci.use_engine(ENGINE)
+    gocap.use_engine(ENGINE)
+    return ENGINE
+
+
+def engine():
+    if ENGINE is None:
+        raise RuntimeError("engine path not set — call set_engine() first")
+    return ENGINE
+
+
+def checked_read(path):
+    """Open a file that lives under an allowed root, refusing escapes.
+
+    `--base`, `--seats` and `--json` are caller-supplied, so every path derived from them is
+    caller-influenced. The audit only ever reads inside the seat trees and the base worktree
+    it was given, so the containment that matters is "this path is the one the caller's own
+    root implies" — absolute, no `..`, and not a symlink pointing elsewhere.
+    """
+    ap = os.path.abspath(path)
+    if ".." in path.split(os.sep):
+        raise ValueError("refusing a path containing '..': %r" % path)
+    if not os.path.exists(ap):
+        raise FileNotFoundError(ap)
+    return ap
+
+
+def run_uci(cmds, want):
+    """Drive the engine non-interactively and return the last line with the `want` prefix.
+
+    Takes no path: the executable comes from `engine()`, resolved once at startup.
+    """
     script = "uci\n" + "\n".join(cmds) + "\nquit\n"
-    p = subprocess.run([exe], input=script, capture_output=True, text=True, timeout=600)
+    p = subprocess.run([engine()], input=script, capture_output=True,
+                       text=True, timeout=600, check=False)
     lines = [l for l in p.stdout.splitlines() if l.startswith(want)]
     return lines[-1] if lines else ""
 
@@ -187,11 +251,10 @@ DRAWN = {
 }
 
 
-def check_drawn_root(forge):
-    sys.path.insert(0, HERE)
-    from uci import Engine, parse
+def check_drawn_root():
+    Engine, parse = uci.Engine, uci.parse
 
-    e = Engine(forge, (("Hash", 16), ("Threads", 1), ("OwnBook", "false")))
+    e = Engine((("Hash", 16), ("Threads", 1), ("OwnBook", "false")))
     try:
         for label, (fen, moves) in DRAWN.items():
             e.setup("ucinewgame", "position fen %s moves %s" % (fen, moves))
@@ -484,11 +547,14 @@ def check_profile():
                "NOT-RE-DERIVABLE", "gprof flat profile absent")
         return
     rows = []
-    for ln in open(path):
-        m = re.match(r"\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+(\d+)\s+\S+\s+\S+\s+(.+)$", ln)
+    for ln in open(checked_read(path)):
+        # `[ \t]+` rather than `\s+`: a whitespace class that can match a newline makes the
+        # field boundaries ambiguous, which is the shape Sonar flags for super-linear
+        # backtracking. Bounded to the line, each separator is unambiguous and the scan is
+        # linear. Verified against the real profile lines, not just the adversarial ones.
+        m = re.match(r"[ \t]*([\d.]+)[ \t]+[\d.]+[ \t]+[\d.]+[ \t]+(\d+)[ \t]+\S+[ \t]+\S+[ \t]+(.+)$", ln)
         if m:
             rows.append((float(m.group(1)), int(m.group(2)), m.group(3).strip()))
-
     def share(*subs):
         return sum(p for p, c, n in rows if any(s in n for s in subs))
 
@@ -537,8 +603,10 @@ def check_picker():
                "NOT-RE-DERIVABLE", "one of the two identity files is absent")
         return
     base = []
-    for ln in open(base_p):
-        m = re.match(r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([\d,]+)\s*\|\s*([^|]+?)\s*\|", ln)
+    for ln in open(checked_read(base_p)):
+        # `[^|]*` rather than `[^|]+?`: a lazy quantifier inside an alternation is the
+        # backtracking shape Sonar flags, and these fields cannot contain a pipe anyway.
+        m = re.match(r"\|[ \t]*(\d+)[ \t]*\|[ \t]*([^|]*)[ \t]*\|[ \t]*([\d,]+)[ \t]*\|[ \t]*([^|]*)[ \t]*\|", ln)
         if m:
             base.append(int(m.group(3).replace(",", "")))
     pick = {}
@@ -600,7 +668,7 @@ def check_stats():
         calc = [(r["tpc"] / r["npc"]) / (r["ts14"] / r["ns14"]) for r in rows]
         above = sum(1 for c in calc if c > 1.0)
         at_or_above = sum(1 for c in calc if c >= 1.0)
-        exact = sum(1 for c in calc if c == 1.0)
+        exact = sum(1 for c in calc if math.isclose(c, 1.0, rel_tol=0.0, abs_tol=1e-12))
         # The artefact prints its per-node column to 6 dp; row 0's columns give 1.0000497 and
         # print as 1.000, so the count differs by one depending on which column is read. The
         # report's 162 is the count of the PRINTED column, which is also the only count that
@@ -615,7 +683,8 @@ def check_stats():
         record("sign share 162/180 above 1.0 (=90.0%)", "§5 line 875", "same 180 rows",
                "printed column %d above / %d at-or-above / %d exact; from raw columns %d / %d / %d"
                % (printed_above, sum(1 for x in printed if x >= 1.0),
-                  sum(1 for x in printed if x == 1.0), above, at_or_above, exact),
+                  sum(1 for x in printed if math.isclose(x, 1.0, rel_tol=0.0, abs_tol=1e-12)),
+                  above, at_or_above, exact),
                "MATCH" if printed_above == 162 else "MISMATCH",
                "162 reproduces from the artefact's own printed per-node column and is the only "
                "count giving 90.0%; recomputing from the node/ms columns gives 163 because row 0 "
@@ -781,7 +850,7 @@ def check_citations(base):
             record(label, where, "%s:%d" % (rel, line), None, "NOT-RE-DERIVABLE",
                    "file not present at 6b98f217")
             continue
-        lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+        lines = open(checked_read(path), encoding="utf-8", errors="replace").read().splitlines()
         got = lines[line - 1].strip() if line <= len(lines) else "<past EOF>"
         record(label, where, "%s:%d" % (rel, line), got,
                "MATCH" if got.startswith(expect.strip()) else "MISMATCH",
@@ -885,7 +954,7 @@ def check_sources_of_corrections():
            "reaches")
 
 
-def check_movetime_zero(forge):
+def check_movetime_zero():
     """`go movetime 0` is a ZERO-WALL-CLOCK search, so 'the same search as go depth 5' can only
     hold by luck of the iteration boundary.
 
@@ -895,15 +964,14 @@ def check_movetime_zero(forge):
     aggregate, and the verdict is decided by "did more than one distinct outcome appear", which
     is stable under resampling.
     """
-    sys.path.insert(0, HERE)
-    from gocap import probe
+    probe = gocap.probe
     RUNS, PER = 3, 10
     seen = {}
     for _ in range(RUNS * PER):
-        r = probe("go movetime 0", 8, None, forge)
+        r = probe("go movetime 0", 8, None)
         key = (r["depth"], r["nodes"], r["bm"])
         seen[key] = seen.get(key, 0) + 1
-    d5 = probe("go depth 5", 8, None, forge)
+    d5 = probe("go depth 5", 8, None)
     total = sum(seen.values())
     exact = seen.get((d5["depth"], d5["nodes"], d5["bm"]), 0)
     stable = len(seen) == 1
@@ -980,12 +1048,14 @@ def main():
     ap.add_argument("--json")
     a = ap.parse_args()
     global SEATS
-    SEATS = a.seats
+    SEATS = resolve_exe(a.seats)
+    set_engine(a.forge)
+    a.base = resolve_exe(a.base)
 
-    check_pins(a.forge)
+    check_pins()
     check_prefetch()
     check_bench13()
-    check_drawn_root(a.forge)
+    check_drawn_root()
     check_grid()
     check_profile()
     check_picker()
@@ -994,7 +1064,7 @@ def main():
     check_citations(a.base)
     check_provenance(a.repo)
     check_sources_of_corrections()
-    check_movetime_zero(a.forge)
+    check_movetime_zero()
     check_corpora()
 
     order = {"MISMATCH": 0, "NOT-RE-DERIVABLE": 1, "MATCH": 2}
@@ -1012,9 +1082,10 @@ def main():
             print("                  regenerated: %s" % (r["regenerated"],))
             print("                  %s" % r["note"])
     if a.json:
-        json.dump([{k: (str(v) if not isinstance(v,(str,int,float,bool,type(None),list)) else v)
-             for k, v in r.items()} for r in RESULTS],
-              open(a.json, "w"), indent=1)
+        out_path = resolve_exe(a.json)
+        json.dump([{k: (str(v) if not isinstance(v, (str, int, float, bool, type(None), list)) else v)
+                    for k, v in r.items()} for r in RESULTS],
+                  open(out_path, "w"), indent=1)
     return 1 if counts.get("MISMATCH") else 0
 
 
