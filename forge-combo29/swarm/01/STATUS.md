@@ -1577,3 +1577,29 @@ STATUS OF THE PATCH: applies clean (patch -p1 --dry-run, three files, no rejects
 and no .fnn3 net is committed (gitignored; verified absent from the folder).
 Gates: 157 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on all three v3 pages.
 Next: Step 2 aims at the cache key, with the node-identity rule checked per position, not just per bench total.
+## 2026-11-17T00:59:30Z — the refresh path has two causes; 99.97 % is one of them, and my hypothesis was wrong (S-F116)
+I SPLIT THE COUNTER AND THE SPLIT KILLED MY OWN STEP 2 STORY. refresh_from_pieces has exactly two call sites, so I
+tagged them: cold = refresh_cached (no valid ancestor), king = replay_ply (king-bucket change). Identity held in all
+four configurations again (862329 / 587276 / 4151906 / 3652372).
+  PC20 + test net: 6,485 refreshes = 2 COLD + 6,483 KING. Test net alone: 6,087 = 2 COLD + 6,085 KING.
+  So 99.97 % of refreshes are king-bucket changes, and the "no valid ancestor" path fires TWICE in a whole bench -
+  effectively dead in this workload. The king path fires once per 563 nodes.
+THE TAGGING IS VALIDATED BY ITS OWN NUMBERS, which is why I trust it: cold costs 29.5 columns per refresh (a full
+rebuild; the bench set's mean is 24.9 pieces) and king costs 6.99 (a cached diff). Two different amounts in the
+direction the code predicts. If both call sites measured the same thing they would coincide.
+MY HYPOTHESIS WAS WRONG AND THE CODE SAYS SO IN ONE LINE: in REFRESH_RATIO.md I wrote that the cache key was at
+fault and that keying on moved pieces would give "1-2 columns away". feature_index (nnue_v3.cpp:518) begins with
+key.bucket * InputsPerBucket, so a bucket change reindexes EVERY feature's weights, not just the king's. The
+rebuild is a CORRECTNESS REQUIREMENT of the weight layout, not a lazy cache. I had read the function where the
+cost appears and not the function that decides its size - and the story I built from half the code was wrong in
+the direction of "someone was careless". The page carries the correction inline, not just in a footnote.
+CONSEQUENCES FOR STEP 2, stated before any patch:
+  ceiling on this path = refresh_from_pieces's 4.79 % of bench 13 (v3 19.05 % -> at best 14.26 %)
+  the cold path (2 occurrences) is not worth patching - that would be Trap 8's "test that cannot fire" shape
+  the king path cannot be removed, only made cheaper: target the ~7-column pass plus the fixed 1 KB std::copy_n at
+  nnue_v3.cpp:711, NOT the cache key.
+ALSO CORRECTED: REFRESH_CAUSES.md first cited the king call site as nnue_v3.hpp:262; it is :268 (262 is a loop).
+stats.patch.txt regenerated with the source split, DO NOT APPLY header retained, applies clean (3 files, no rejects).
+Gates: 158 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on both refresh pages.
+Next: look at whether the 1 KB copy-out can be avoided - the accumulator could be built into its final slot rather
+than into the cache entry and copied. That is a question, not yet a claim.

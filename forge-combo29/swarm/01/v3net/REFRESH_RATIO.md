@@ -60,10 +60,18 @@ types and column-add/subs every square that differs — then `std::copy_n` the w
   `bench 13`. That is why a "backup path" costs 39.3 % as much as the incremental update it exists to avoid.
 
 The interesting quantity is not 6.99 by itself, it is **why it is that high**. Seven differing pieces between
-consecutive positions cached under one king bucket is a lot, and it points at the cache key: a key that only
-distinguishes *king bucket* will hand back a stale placement and force a large diff, whereas a key that also
-tracked which pieces moved would hand back something one or two columns away. **That is the Step 2 question, now
-with numbers attached instead of a guess.**
+consecutive positions cached under one king bucket is a lot.
+
+> **CORRECTION, see `REFRESH_CAUSES.md` (S-F116).** I first wrote here that the cache key was at fault, and that a key
+> tracking which pieces moved would hand back "1–2 columns away". **That was wrong.** `feature_index`
+> (`nnue_v3.cpp:518`) begins with `key.bucket * InputsPerBucket`, so a king-bucket change invalidates **every**
+> feature's weight index, not just the king's — a rebuild is a **correctness requirement of the weight layout**, not
+> a lazy-cache artefact. Measured by call site, **99.97 % of refreshes are king-bucket changes** (6,483 of 6,485),
+> and the "no valid ancestor" path fires **twice in a whole bench**. The cache key is not the problem.
+
+What *is* open is the cost of the required rebuild: 6.99 columns plus a fixed 1 KB `std::copy_n` at
+`nnue_v3.cpp:711`, 6,485 times per `bench 13`. That is where Step 2 should look — with the ceiling in view, which is
+`refresh_from_pieces`'s own **4.79 %** of the benchmark.
 
 ## What I am not claiming
 

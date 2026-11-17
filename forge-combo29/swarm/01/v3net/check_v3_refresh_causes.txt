@@ -1,0 +1,37 @@
+S-F116: the refresh path has two causes; 99.97 % of refreshes are king-bucket changes
+
+Build: /tmp/v3stat (PC r15 tree + stats patch extended with a `source` tag on refresh_from_pieces)
+       -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1, g++ 13.3.0, generic x86-64, AVX-512 kernel
+Net:   /tmp/testnet.fnn3 sha256 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a
+Settings: Threads 1, Hash 16, bench 13. PC20 where named.
+
+Identity precondition (fresh process per row):
+row        nodes      published   verdict
+none       862329     862329      PASS
+pc20       587276     587276      PASS
+net        4151906    4151906     PASS
+pc20net    3652372    3652372     PASS
+
+Split by call site (source 0 = refresh_cached, no valid ancestor; source 1 = king bucket changed in replay_ply):
+row        refreshes  columns   cold(ref/cols)  king(ref/cols)   cold share  king share
+net        6087       44898     2 / 58          6085 / 44840     0.03 %      99.97 %
+pc20net    6485       45353     2 / 59          6483 / 45294     0.03 %      99.97 %
+
+Internal consistency check (this is what validates the tagging):
+  cold : 59 columns / 2 refreshes  = 29.5 columns per refresh  -> a FULL rebuild (bench mean 24.9 pieces, max 32)
+  king : 45294 / 6483              = 6.99 columns per refresh  -> a cached diff (~7 of ~25 pieces differ)
+  These differ by 4.2x in the direction the code predicts. If both call sites measured the same thing they would
+  coincide.
+
+Rate: the king path fires once per 563 nodes (3652372 / 6483).
+
+Why a king-bucket change REQUIRES a rebuild (refutes MY OWN earlier hypothesis in REFRESH_RATIO.md):
+  src/nnue_v3.cpp:518  feature_index begins `static_cast<int>(key.bucket) * InputsPerBucket`
+  -> when the king changes bucket, EVERY feature's weight index changes, not just the king's.
+  A rebuild is a correctness requirement of the weight layout, not a lazy-cache artefact.
+
+Consequence for Step 2, stated before any patch:
+  upper bound on this path = refresh_from_pieces's 4.79 % of bench 13 (v3 total 19.05 % -> at best 14.26 %)
+  the cold path is 2 occurrences; patching it would be unmeasurable (Trap 8 shape)
+  the king path cannot be removed, only made cheaper; the target is the 1 KB copy_n at nnue_v3.cpp:711 plus the
+  ~7-column pass, NOT the cache key.
