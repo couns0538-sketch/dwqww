@@ -20,5 +20,14 @@ s = re.sub(r"\*\*\d+ `F` rows are this seat's own findings; \d+ `C` rows are con
            "**%d `F` rows are this seat's own findings; %d `C` rows are confirmations of OTHER seats' findings; %d rows in total.**" % (nf, nc, nt), s)
 s = re.sub(r'\*\*\d+ distinct rows at [0-9TZ:\-]+\*\* — \d+ `F`', "**%d distinct rows at %s** — %d `F`" % (nt, stamp, nf), s)
 s = re.sub(r'So "\d+ rows, 0 duplicates" is a claim', 'So "%d rows, 0 duplicates" is a claim' % nt, s)
+# THE THIRD OCCURRENCE, missed by the first version of this script and found by a cold read: the section-8 sentence
+# "not a claim that N separate claims are each correct". Two of three occurrences were being synced, which is the
+# partial-update fault this seat documented at 23-F197 — so the script now rewrites EVERY count it can find and the
+# doc_check guard compares the tracked ones.
+s = re.sub(r'not a claim that \d+ separate claims are each correct', 'not a claim that %d separate claims are each correct' % nt, s)
+# and report any remaining bare row-count figure so a fourth occurrence cannot hide silently
+import re as _re
+_leftover = _re.findall(r'\b(\d{3})\b', s)
+print('bare 3-digit figures still in the FINAL (for review, not automatic):', sorted(set(_leftover)))
 io.open(p, 'w', encoding='utf-8').write(s)
 print("synced: %d F + %d C = %d rows at %s" % (nf, nc, nt, stamp))
