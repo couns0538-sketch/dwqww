@@ -74,6 +74,24 @@ The naive protocol plays a different game; detect refuses to play a wrong move; 
 minimum; fixup is what makes the engine usable.**
 
 
+## A detection heuristic for a refused position: identical counts from different boards
+
+Two independent incidents gave the same tell. When a position is REFUSED, the engine keeps the previous board, so:
+
+> **If two DIFFERENT boards report the SAME node count, suspect a refused position.** Different positions essentially
+> never share a node count; the same count means the same board was searched twice.
+
+Both times this fired it was mine:
+
+| incident | what happened |
+|---|---|
+| 23-C14/C23 | a refused FEN left the previous game on the board; the "new" position's numbers were the old one's |
+| 23-F69 | two endgame boards with a pawn on the back rank are INVALID, were refused, and both reported **56,720** and **72,062** — identical, because both searches ran on the same previous board |
+
+So this heuristic is worth adding to a driver's own checks even though it is not a substitute for counting the
+`info string` lines: it catches the cases where the diagnostic was not read, and it is cheap — compare the node count
+of consecutive positions and flag an exact match.
+
 ## What a well-behaved driver looks like, end to end
 
 Three seats were bitten by DRIVER SHAPE rather than by engine behaviour (the FEN-vs-moves difference in 23-C20, the
