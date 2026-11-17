@@ -26,6 +26,23 @@ python3 check_settings.py <exe> --expect 25  # FAIL (exit 1): "sent 22 options, 
 A PC20 run must send **22** options: Hash, Threads, OwnBook, the 14 S14 settings, and the 5 PC20 switches. **Run
 this before every labelled measurement.** A count assertion is what turns a settings label into a fact.
 
+**And the count is only half of it. Two assertions, two different questions:**
+
+| assertion | the question it answers | tool |
+|---|---|---|
+| **count** = 22 options | **were they sent?** | `check_settings.py` |
+| **values** match the canonical list | **were they the right ones?** | `check_settings_values.py` |
+
+The count cannot see that `LmrHistoryDivisor 5643` was typed `5634` in one file; the value check can, and it is
+proven to (a planted transposition exits 1, with `canon 5643` named). **A count assertion alone would have passed
+all six of the harnesses that were silently 21 options.**
+
+**And the fifth instance of a guard failing on good input: my value checker's own first version.** It understood only
+the `"Name X"` spelling and reported **six healthy harnesses as malformed**, because the lists exist in two spellings.
+**A checker with an unstated format assumption reports healthy code as broken** — the same class as a guard that
+throws on correct input, and it happened inside the tool built to prevent that class. Accept both formats explicitly
+and say so in the docstring.
+
 ## START HERE: the three-line pattern that has caught two seats
 
 **The failure:** fed end-of-input, or a `quit`, or a closed stdin while searching, the engine answers immediately
