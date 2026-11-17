@@ -1357,3 +1357,21 @@ new board.**
 iteration that passes N, hard-stops at 4N). **A corpus mixing `nodes` and `softnodes` budgets at the same N is
 mixing two experiments.** Extends S-C12 to a different board and budget - the second place tonight where "same
 N" turned out not to name the same search.
+
+## 2026-11-17T18:1xZ S-C133 — the three provenance checks packaged as a runnable tool
+**`audit_corpus_provenance.py` - audits an EXISTING corpus (CSV or JSON) for the three separable problems
+established tonight:**
+  1. **mate-suspect rows** by node count against depth peers (threshold 20x; measured 163x and 9.4x)
+  2. **mixed `nodes`/`softnodes` budgets** at the same stated N - rows below 0.95x of budget are nodes-style,
+     at/above 0.98x are softnodes-style, and BOTH PRESENT IN ONE CORPUS IS THE FINDING
+  3. **and it states what it CANNOT classify** - a row with no budget column is reported unclassifiable,
+     not assumed clean
+**Three in-process controls run first** (163x row flagged; 0.47x row nodes-style; 1.04x row softnodes-style) and
+the tool **REFUSES to audit if they fail**. Three corpora exercised: mate-contaminated -> flagged exit 1;
+mixed budgets -> flagged exit 1; clean softnodes -> pass exit 0 with the bound stated.
+**THE DESIGN CHOICE WORTH NOTING: IT REFUSES TO GUESS.** A tool that inferred a provenance it could not
+establish would be the same defect class as the whole night's findings - a confident answer from insufficient
+evidence. It reports what is separable and names the gap.
+**Two of my own bugs found while testing it: an uninterpolated `%d` in a format string, and I mis-read the exit
+code because `echo "exit=$?"` was capturing a PIPELINE's status - the pipeline trap from METHOD_NOTES, caught by
+testing rather than reading.**
