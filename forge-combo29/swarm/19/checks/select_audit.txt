@@ -1,0 +1,18 @@
+audit of seats using select(), 2026-11-17T00:22:42Z
+
+THE TRAP (08-N2): select() on a TEXT-MODE buffered pipe followed by readline().
+  readline() reads ahead into Python's buffer; select then sees the OS pipe empty and reports
+  'not ready' while complete lines sit in the buffer -> false timeout.
+
+SAFE PATTERN: select() on a RAW fd followed by os.read() - no Python buffer, nothing read ahead.
+
+=== verdicts:
+  seat 01  checks/*.py   select([fd]) + os.read(fd, 65536)          -> SAFE (raw fd, no buffer)
+  seat 28  job1/timing.py select([fd]) + os.read(fd, 65536)         -> SAFE (raw fd, no buffer)
+  seat 10  audit/*.py     interactive read_until with select+readline -> needs inspection; its
+                          forge_io.py documents the EOF trap and reads to a token, but uses select
+  seat 17  job1/job2/unbounded_check.py
+           select([proc.stdout]) + proc.stdout.readline()          -> **EXPOSED: this is 08-N2 exactly**
+
+The decisive distinction is the SECOND argument's type: os.read(fd) bypasses Python's buffer,
+readline() on a text pipe does not. Same select() call, opposite correctness.
