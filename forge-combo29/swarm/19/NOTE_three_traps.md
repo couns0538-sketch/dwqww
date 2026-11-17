@@ -63,3 +63,27 @@ was right by its own definition and nothing in my own sample exercised the diffe
 *plausible* one — 2 of 40, 55–79 %, mate in 23. The defence is not vigilance in the abstract but a specific
 question asked of every number before it is written down: **what would this look like if it were an artifact of
 my method rather than a property of the engine?**
+
+## 4. Splitting output on `bestmove` alone cannot work (19-C16)
+
+**Trap.** To find a single aborted search inside an otherwise-good log, I split the engine's output into blocks
+delimited by `bestmove` and called a block "aborted" if it contained no `info depth` line.
+
+**Why it cannot work:** a UCI session interleaves **`readyok`** with everything — one after every `setoption` and
+after every search. So a `bestmove`-delimited block spans several rounds, and two `bestmove`s separated only by
+`readyok` make the second look like it had no search, when its `info` lines fell before the previous search's
+`readyok`.
+
+**Number it produced:** 16 "aborted" in seat 24's `pc_inf16.raw`, where seat 24's own committed summary says
+`rounds 150, missing 0, zero 0` and the file has exactly 150 `bestmove` lines. **728 for seat 27, 620 for me —
+all retracted.**
+
+**What caught it:** another seat's committed summary disagreeing with my count. Not my own review.
+
+**The general rule: any per-search audit needs the COMMAND stream, not just the output.** Output alone cannot
+tell you where one search ends and the next begins, because `readyok` and `info string` lines are interspersed
+and carry no round identity. A correct detector needs either the driver's own sends, or a rule like "an
+`info`-less `bestmove` must be preceded by a `go` with no intervening `bestmove`" — which also needs the commands.
+
+**This is trap 3 again in a different form: the oracle (here, the block splitter) was missing a rule.** The
+counts looked plausible, which is exactly why they survived as long as they did.
