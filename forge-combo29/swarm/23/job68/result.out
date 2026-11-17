@@ -1,0 +1,15 @@
+fixture: PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+generator order (first 6): ['d5d1', 'd5d2', 'd5d3', 'd5d4', 'd5a5', 'd5b5']
+
+| case | restriction | info lines | last nodes | bestmove | inside restriction? |
+|---|---|---|---|---|---|
+| U | (none) | 10 | 0 | d5d1 | n/a |
+| R1 | d5d8 | 10 | 0 | d5d8 | True |
+| R2 | b8a8 d5d8 | 10 | 0 | d5d8 | True |
+| R3 | e2e4 | 10 | 0 | 0000 | False |
+      info strings: ['info string searchmoves restriction has no legal root moves']
+
+P1 U publishes generator head: True | U = d5d1 head = d5d1
+P2 R1 publishes d5d8: True | R1 = d5d8
+P3 R2 publishes the earlier of b8a8/d5d8 in generator order (d5d8): True | R2 = d5d8
+P4 R3 (illegal restriction) reported, not predicted: bestmove = 0000

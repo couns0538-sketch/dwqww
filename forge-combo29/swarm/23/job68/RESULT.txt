@@ -1,0 +1,43 @@
+THE BAIL PUBLISHES THE FILTERED HEAD — and an empty `searchmoves` restriction produces `bestmove 0000`
+=====================================================================================================
+A protocol-level test of the source reading's ordering, without reading further. If `searchmoves` filters
+`root_candidates` before the terminal branch, a drawn root with a restriction should publish the first GENERATED move
+that passes the filter, not the unrestricted head.
+
+Fixture: the validated threefold `1K6/8/8/3R4/8/8/8/k7 w` + `b8c8 a1b2 c8b8 b2a1` ×2 (`check_fixture(expect=3)` PASS).
+Generator order from `go perft 1` on that position begins `d5d1, d5d2, d5d3, d5d4, d5a5, d5b5`.
+
+| case | restriction | info lines | last nodes | bestmove | inside restriction |
+|---|---|---|---|---|---|
+| U | (none) | 10 | 0 | `d5d1` | n/a — generator head |
+| R1 | `d5d8` | 10 | 0 | **`d5d8`** | yes |
+| R2 | `b8a8 d5d8` | 10 | 0 | **`d5d8`** | yes |
+| **R3** | `e2e4` (illegal here) | 10 | 0 | **`0000`** | — |
+
+**P1–P3 all HELD.** The bail publishes the first generated move that passes the `searchmoves` filter, which is exactly
+what `result.best_move = root_candidates.front()` predicts once `root_candidates` is the filtered generator-order copy
+(`search.cpp:2203-2209`). So the mechanism is confirmed from the protocol as well as from the source: **the bail's move
+is "first generated move passing the restriction"**, a precise statement a tool author can act on.
+
+**P4 — the open question, answered and it is a finding: an empty restriction yields `bestmove 0000`.** With
+`go depth 10 searchmoves e2e4` on a position where `e2e4` is not legal, the engine emits ten `info depth` lines
+(`cp 0`, `nodes 0`, empty PV) and then
+
+    info string searchmoves restriction has no legal root moves
+    bestmove 0000
+
+That is the `restricted_root_empty` flag the source reading described (`search.cpp:2210`, the only field in `SearchInfo`
+that distinguishes this case), surfacing on the wire as a **null move**. `0000` is not a legal move in UCI and a naive
+front end will either crash or silently drop the turn. I did not predict this and am recording it as measured.
+
+WHY THIS IS WORTH A LINE FOR ANY FRONT END
+-------------------------------------------
+The drawn-root bail is normally diagnosable by the empty PV (23-F151). This case is the exception worth knowing: the PV is
+ALSO empty and the score is ALSO `cp 0`, but the move is `0000` rather than a legal first move. So a front end should
+treat `bestmove 0000` as its own condition — `info string searchmoves restriction has no legal root moves` is the only
+signal that says which of the two it is, and it is an `info string` line, which brings it squarely into the driver page's
+first rule (count the `info string` lines).
+
+LIMITS: one board, one depth, base build; the restriction cases use a drawn root, so whether `0000` also occurs on a
+NON-drawn root with an empty restriction is untested — the source suggests `restricted_root_empty` is independent of the
+bail, but I have not measured it.

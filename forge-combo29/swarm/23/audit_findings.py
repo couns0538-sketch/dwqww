@@ -79,6 +79,17 @@ for rid, cells in rows:
     else:
         unresolved.append((rid, cands[:3]))
 
+# STRAY-FILE GUARD, added after I created an untracked FINDINGS.md one directory above this seat TWICE in twenty minutes
+# (appending with a `../` path from inside a job folder). A duplicate findings file outside the seat is worse than a
+# missing one: it can be read as authoritative and it is not updated by the audit.
+import glob as _glob
+_strays = [q for q in _glob.glob(os.path.join(ROOT, "forge-combo29", "swarm", "**", "FINDINGS.md"), recursive=True)
+           if os.path.normpath(os.path.dirname(q)) != os.path.normpath(HERE)]
+print()
+print("stray FINDINGS.md outside this seat: %d %s" % (len(_strays), _strays if _strays else ""))
+if _strays:
+    print("HARD FAILURE: a findings file exists outside the seat — move its rows here and delete it.")
+
 print()
 print("finding rows: %d" % len(rows))
 print("rows with a file path: %d" % (len(rows) - len(nopath)))
@@ -87,7 +98,7 @@ print("rows with NO path in the evidence cell: %d %s" % (len(nopath), nopath))
 print("rows whose paths do NOT resolve: %d %s" % (len(unresolved), unresolved))
 print("rows with a malformed column count: %d %s" % (len(shape_bad), shape_bad))
 print()
-ok = not nopath and not unresolved and not shape_bad
+ok = not nopath and not unresolved and not shape_bad and not _strays
 print("VERDICT:", "PASS — %d of %d rows parse and point at a file present in this checkout." % (len(resolved), len(rows))
       if ok else "FAIL — see the lines above.")
 sys.exit(0 if ok else 1)
