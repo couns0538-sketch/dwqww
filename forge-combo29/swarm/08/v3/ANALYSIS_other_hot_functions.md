@@ -50,3 +50,17 @@ was already doing it and I report a rejection.
 Identity first on a clean-tree build (all eight benches, three evals, the 200-opening sum 27,944,084), then speed by
 the same two-build-each protocol as Step 3. **If identity fails or the bench gain is under 0.5 %, it is a rejection
 with numbers, not a win** — the same standard the last patch had to meet.
+
+---
+
+## Outcome (added after measuring — the predictions above are left unedited)
+
+| function | prediction | measured | verdict |
+|---|---|---|---|
+| `output_sum_avx512` | ~1.2 %, reject if under 0.5 % | **+0.05 %**, identity exact | **REJECTED** — bar met, prediction killed |
+| `refresh_from_pieces` | no removable test | not patched (see above) | no patch attempted |
+
+**The kill condition fired, but not for the reason I stated.** I claimed a sub-0.5 % move would mean the compiler
+was already vectorising the sum loop. Disassembly says otherwise: **0 `vpaddd`** in the base sum tail. The tail is
+just genuinely tiny once costed by port throughput instead of per-add latency (08-N11). Full account, including the
+first patch attempt that was *not* bit-identical: `REPORT_v3_step4.md`.

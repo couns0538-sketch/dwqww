@@ -1,0 +1,81 @@
+## Seat 08 Step 4 — output_sum in-register reduction, two builds per side, 20 alternating runs each
+
+Order per round is B1 P1 B2 P2, so machine drift hits both sides equally.
+
+| round | B1 ms | P1 ms | B2 ms | P2 ms | nodes all equal? |
+|---|---|---|---|---|---|
+| 1 | 2191 | 2125 | 2117 | 2117 | yes |
+| 2 | 2117 | 2130 | 2127 | 2122 | yes |
+| 3 | 2117 | 2129 | 2133 | 2130 | yes |
+| 4 | 2138 | 2127 | 2127 | 2123 | yes |
+| 5 | 2136 | 2126 | 2128 | 2121 | yes |
+| 6 | 2128 | 2128 | 2128 | 2125 | yes |
+| 7 | 2133 | 2133 | 2135 | 2129 | yes |
+| 8 | 2143 | 2130 | 2131 | 2129 | yes |
+| 9 | 2129 | 2127 | 2133 | 2129 | yes |
+| 10 | 2122 | 2130 | 2151 | 2128 | yes |
+| 11 | 2170 | 2128 | 2207 | 2201 | yes |
+| 12 | 2132 | 2137 | 2131 | 2168 | yes |
+| 13 | 2132 | 2136 | 2129 | 2143 | yes |
+| 14 | 2122 | 2127 | 2130 | 2120 | yes |
+| 15 | 2130 | 2126 | 2130 | 2131 | yes |
+| 16 | 2129 | 2129 | 2130 | 2121 | yes |
+| 17 | 2130 | 2124 | 2126 | 2127 | yes |
+| 18 | 2126 | 2130 | 2127 | 2122 | yes |
+| 19 | 2130 | 2143 | 2121 | 2136 | yes |
+| 20 | 2123 | 2131 | 2141 | 2134 | yes |
+
+## The four builds
+
+| build | median ms | min | max | runs |
+|---|---|---|---|---|
+| B1 | **2130** | 2117 | 2191 | 20 |
+| B2 | **2130** | 2117 | 2207 | 20 |
+| P1 | **2129** | 2124 | 2143 | 20 |
+| P2 | **2128** | 2117 | 2201 | 20 |
+
+## Build-to-build spread (the confound the brief warns about)
+
+| comparison | ratio | meaning |
+|---|---|---|
+| B2 / B1 (same source, two builds) | **1.0000** | 0.00 % apart |
+| P2 / P1 (same source, two builds) | **0.9998** | 0.02 % apart |
+
+## The effect, pooled over both builds per side
+
+| quantity | value |
+|---|---|
+| base median ms (40 runs) | 2130 |
+| patch median ms (40 runs) | 2129 |
+| **ratio patch/base** | **0.9995** |
+| speed change | **+0.05 %** |
+| bootstrap 95 % interval of the ratio | **0.9984 .. 1.0005** |
+| as a speed gain | -0.05 % .. +0.16 % |
+
+| question | answer |
+|---|---|
+| is the interval entirely below 1.0 (patch faster)? | **NO** |
+| is the effect larger than the build-to-build spread? | **YES** (effect 0.05 %, spread 0.02 %) |
+| does it clear the pre-registered 0.5 % bar? | **NO** |
+
+**Step 4 verdict: REJECTED on the pre-registered kill condition** — the bench moved %.2f %%, under the
+0.5 %% bar, which was stated in advance to mean the compiler was already vectorising the sum loop.
+
+## Correction to the verdict line above (format bug, then a wrong stated reason)
+
+The verdict line printed as `%.2f %%` literally: a `%%` escaped inside a string that was not being
+%-formatted. The number it should carry is **+0.05 %** (base 2130 ms, patch 2129 ms). The table rows above
+are unedited measured output; only that one summary line was malformed.
+
+**The bar itself still applies: +0.05 % is under 0.5 %, so the patch is REJECTED.**
+
+But the reason I gave for the bar in advance — "under 0.5 % means the compiler was already vectorising the
+sum loop" — is **wrong**, and I am not leaving a wrong reason attached to a right verdict:
+
+| check | result |
+|---|---|
+| `vpaddd` in the base build's sum tail | **0** |
+| scalar `add` in the same region | 53 |
+
+The compiler was not vectorising it. The tail is simply too small to see, and my predicted 1.2 % was wrong
+for a reason I can name: see `REPORT_v3_step4.md`.

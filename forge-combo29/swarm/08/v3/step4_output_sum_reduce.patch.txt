@@ -1,0 +1,91 @@
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -161,12 +161,15 @@
+         sum0 = _mm512_add_epi32(sum0, _mm512_madd_epi16(_mm512_mullo_epi16(a, wa), a));
+         sum1 = _mm512_add_epi32(sum1, _mm512_madd_epi16(_mm512_mullo_epi16(b, wb), b));
+     }
+-    alignas(64) std::int32_t lanes[32];
+-    _mm512_store_si512(reinterpret_cast<__m512i*>(lanes), sum0);
+-    _mm512_store_si512(reinterpret_cast<__m512i*>(lanes + 16), sum1);
+-    std::int64_t sum = 0;
+-    for (const std::int32_t lane : lanes) sum += lane;
+-    return sum;
++    // Horizontally reduce in-register instead of storing 32 lanes and summing them scalar.
++    // Each step adds disjoint lanes, and integer addition is exact, so the total is bit-identical
++    // to the scalar tail it replaces.
++    const __m512i total = _mm512_add_epi32(sum0, sum1);
++    __m256i v = _mm256_add_epi32(_mm512_castsi512_si256(total), _mm512_extracti64x4_epi64(total, 1));
++    v = _mm256_add_epi32(v, _mm256_permute2x128_si256(v, v, 0x01));
++    v = _mm256_add_epi32(v, _mm256_shuffle_epi32(v, _MM_SHUFFLE(1, 0, 3, 2)));
++    v = _mm256_add_epi32(v, _mm256_shuffle_epi32(v, _MM_SHUFFLE(2, 3, 0, 1)));
++    return static_cast<std::int64_t>(_mm256_cvtsi256_si32(v));
+ }
+ #endif
+ 
+@@ -305,53 +308,21 @@
+     }
+ }
+ 
+-// One column applied in a fixed slot: keeps the "is this slot live / add or sub" test out of the
+-// per-element loop. A dead slot (count <= slot) is a no-op, exactly as the `if (count > k)` in the
+-// reference loop.
+-template <int Slot>
+-inline __m512i apply_slot(__m512i v, const Changes& c, int h) {
+-    if (c.count <= Slot) return v;
+-    const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c.columns[Slot] + h));
+-    return c.adds[Slot] ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
+-}
+-
+ void apply_changes_pair_avx512(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+                                const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
+-    // SPECIALISED BY COUNT (pure refactor): the reference loop re-tests `i < count` for every h step.
+-    // Dispatching once on the four possible counts lets each slot's liveness be decided outside the
+-    // h loop; the arithmetic per element and its order are unchanged, so results are bit-identical.
+-    const auto body = [&](auto k0, auto k1) {
+-        constexpr int K0 = decltype(k0)::value;
+-        constexpr int K1 = decltype(k1)::value;
+-        for (int h = 0; h < hidden; h += 32) {
+-            __m512i v0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h));
+-            __m512i v1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h));
+-            if constexpr (K0 > 0) v0 = apply_slot<0>(v0, c0, h);
+-            if constexpr (K0 > 1) v0 = apply_slot<1>(v0, c0, h);
+-            if constexpr (K0 > 2) v0 = apply_slot<2>(v0, c0, h);
+-            if constexpr (K0 > 3) v0 = apply_slot<3>(v0, c0, h);
+-            if constexpr (K1 > 0) v1 = apply_slot<0>(v1, c1, h);
+-            if constexpr (K1 > 1) v1 = apply_slot<1>(v1, c1, h);
+-            if constexpr (K1 > 2) v1 = apply_slot<2>(v1, c1, h);
+-            if constexpr (K1 > 3) v1 = apply_slot<3>(v1, c1, h);
+-            _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
+-            _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
+-        }
+-    };
+-    const auto dispatch1 = [&](auto k0) {
+-        constexpr int K0 = decltype(k0)::value;
+-        switch (c1.count) {
+-        case 1: body(std::integral_constant<int, K0>{}, std::integral_constant<int, 1>{}); return;
+-        case 2: body(std::integral_constant<int, K0>{}, std::integral_constant<int, 2>{}); return;
+-        case 3: body(std::integral_constant<int, K0>{}, std::integral_constant<int, 3>{}); return;
+-        default: body(std::integral_constant<int, K0>{}, std::integral_constant<int, 4>{}); return;
+-        }
+-    };
+-    switch (c0.count) {
+-    case 1: dispatch1(std::integral_constant<int, 1>{}); return;
+-    case 2: dispatch1(std::integral_constant<int, 2>{}); return;
+-    case 3: dispatch1(std::integral_constant<int, 3>{}); return;
+-    default: dispatch1(std::integral_constant<int, 4>{}); return;
++    for (int h = 0; h < hidden; h += 32) {
++        __m512i v0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h));
++        for (int i = 0; i < c0.count; ++i) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[i] + h));
++            v0 = c0.adds[i] ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
++        __m512i v1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h));
++        for (int i = 0; i < c1.count; ++i) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[i] + h));
++            v1 = c1.adds[i] ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
+     }
+ }
+ #endif

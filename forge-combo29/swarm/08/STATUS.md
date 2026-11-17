@@ -1053,3 +1053,33 @@ next command:
 **44 findings, 38 checks/audits/plants/tools, 9 method lines, 7 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T04:24Z — Step 4 DONE: the third v3 hot function is checked, and it is a REJECTION
+The coordinator asked whether `refresh_from_pieces` and `evaluate` carry the same removable per-lane test that made
+Step 2 pay +1.2 %. **Answer: `evaluate` has the shape and not the size; `refresh_from_pieces` has neither.**
+
+- **`output_sum_avx512` (7.34 %): a removable 32-lane scalar tail, correctly removed, worth +0.05 %.** Bit-identical
+  once fixed — 8/8 bench, 3/3 evals, **200-opening sum 27,944,084 exact**. Speed two builds per side, 20 ABBA rounds:
+  ratio **0.9995**, CI **0.9984–1.0005** (includes 1.0), under the pre-registered 0.5 % bar. **REJECTED.**
+- **My first attempt at that patch was NOT bit-identical** (bench 965,454 -> 201,580) because I folded with
+  `_mm512_shuffle_i32x4` and selected the wrong 128-bit quarters. Only the identity gate caught it — a timing run
+  alone would have reported a speedup for a different engine. (08-N12.)
+- **08-N11: my +1.2 % prediction was costed wrong.** 32 adds on INDEPENDENT lanes are limited by ALU port throughput
+  (~4/cycle), not per-add latency: the ceiling was 0.26–0.40 %, not 1.2 %, and measured came in under even that.
+- **The kill condition I wrote was right and its stated reason was wrong** — I claimed sub-0.5 % would mean the
+  compiler already vectorised the sum; disassembly shows **0 `vpaddd`** there. Corrected in place rather than left
+  attached to a correct verdict.
+- **`refresh_from_pieces` (6.78 %): no removable test, not patched.** Its loop bounds are data-dependent bit counts,
+  which is exactly the property whose absence made Step 2 work. One opportunity recorded and not taken (batching *k*
+  load/store passes over `entry.values`), on the reasoning that a rewrite moving one node costs more than it saves.
+
+**This does not weaken the Step 2 recommendation — it bounds it.** A per-lane *branch* is worth orders of magnitude
+more than a per-lane *add*; "removable per-lane work" is not one category. Step 2 remains the run's recommendation
+for PC to time on clang/znver5/PGO.
+
+report: `v3/REPORT_v3_step4.md`. patch (kept as a rejection, not carried): `v3/step4_output_sum_reduce.patch.txt`.
+
+## 2026-11-17T04:24Z — TALLY (generated, not maintained)
+**46 findings, 38 checks/audits/plants/tools, 12 method lines, 7 withdrawals** (and 1 open lead).
+
+next: cadence until 10:19Z, then the FINAL block.
