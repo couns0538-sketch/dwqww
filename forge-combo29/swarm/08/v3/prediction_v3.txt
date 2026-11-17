@@ -1,0 +1,47 @@
+# PREDICTION — FABLE file 7, the v3 path — seat 08. Committed BEFORE Step 1 (the profile).
+
+## Step 0 result, for the record (this is the harness proof, not the prediction)
+| settings | bench 11 | bench 13 | file 7 says | match |
+|---|---|---|---|---|
+| no net, no setoption | **312866** | **862329** | 312866 / 862329 | exact |
+| PC20, no net | **278024** | **587276** | 278024 / 587276 | exact |
+| test net only | **965454** | **4151906** | 965454 / 4151906 | exact |
+| PC20 + test net | **625258** | **3652372** | 625258 / 3652372 | exact |
+
+Eval lines under PC20 + test net: **startpos nnue 968 / position 2 nnue 1176 / endgame nnue 31** — all three exact.
+Net file: **6,309,096 bytes, fnv1a64 fdff70de72e4ca82, sha256 1db8525e…** — all three exact.
+Load line checksum `fdff70de72e4ca82`, `max|w1| 64 max|b1| 96 max|w2| 16`, **kernel avx512** — matching the file's
+values; my CPU is an AVX-512 machine so the AVX-512 kernel is the one running, as on the PC.
+Build: `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, g++ 13.3.0, Release, no `-march` (the file's own default).
+
+## My guess at the hottest v3 function, and what would kill it
+
+The v3 path has three candidate hot spots, and I predict the ranking below for **`bench 13` under PC20 + the test
+net, Threads 1**:
+
+| rank | function | predicted share of bench-13 samples | kill range |
+|---|---|---|---|
+| 1 | **`nnue::v3` incremental UPDATE** (refresh/applied-delta through the cache) | **35–50 %** | under 20 % or over 65 % |
+| 2 | `nnue::v3` forward pass / evaluate | 15–30 % | under 5 % or over 45 % |
+| 3 | `nnue::v3` refresh (full recompute) | 5–20 % | over 40 % |
+
+**Why I predict the update dominates:** it runs at every node, while the forward pass runs at every EVAL leaf (fewer
+nodes than updates in an alpha-beta tree), and a refresh runs only when the accumulator cannot be incrementally
+updated. If the profile shows refresh above 40 %, the incremental path is failing too often — which would be the
+finding rather than a speed opportunity.
+
+**Kill for the whole prediction:** if any single v3 function is over 70 % of the samples, my ranking idea is
+irrelevant and the path is dominated by one routine; I would say so plainly rather than fitting the ranking.
+
+## What I expect NOT to be the hot spot
+The search itself (`search`/`qsearch`/`movepicker`) should be a MINORITY of bench-13 time once the v3 net is loaded,
+because file 7 says the v3 path replaces the built-in evaluation entirely and evaluation typically dominates a
+net-driven bench. If search is still over 50 %, then the net is not actually being exercised by the bench, which
+would be a harness problem worth reporting before any speed patch.
+
+## Second prediction: the identity rows will be trivially stable
+For Step 2 I expect any patch I write to keep node counts identical *by construction* if it is a pure refactor
+(caching, hoisting, avoiding a recompute), so the risk is not the identity check but writing a patch that accidentally
+changes evaluation order. **Prediction: I will produce at most one patch, and I expect it to be either a
+no-node-change win of under 5 % or a rejection.** A large speed win on the v3 path from a cache-side change would
+surprise me, because the incremental update is already a cache.
