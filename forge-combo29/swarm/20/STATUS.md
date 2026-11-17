@@ -494,3 +494,16 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   degrade the ALTERNATE PV lines (smaller table for them), and I measured only the MAIN line's depth — not line
   quality. For a MultiPV analysis feature that is the wrong thing to ship untested.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:00:35Z line quality MEASURED — the cap is NOT a fix (S-F56); open requirement stated with an acceptance test
+- Per-line scores, Hash 2048, MultiPV 3, 5 positions, repaired-uncapped vs capped: pos 3 improves **201->278** /
+  **188->262**; pos 4 degrades **-528->-660** / **-536->-733**; pos 5 degrades **-241->-573** / **-278->-1029**.
+  **Large differences in BOTH directions** — the cap changes exactly the output MultiPV exists to provide.
+- **Honest counter-case recorded**: on pos 1 the UNCAPPED build published NO lines at all (depth 1) while capped reported
+  three. So the cap is not uniformly worse — it is **unpredictable**, which is worse for a feature.
+- **Open requirement, now precise with an acceptance test**: a real fix must restore main-line depth at large Hash
+  **without moving the alternate lines' scores** (share one table with disjoint generations, or size the alt table
+  adaptively). I have built and tested neither — handing over a requirement + its test, not a patch.
+- Caveat is now a **column in the table row** (`⚠ is this a fix? | NO — diagnostic only`) plus a callout, so the flat
+  14.0 cannot be skimmed as a fix.
+Next: continue in the window (ends 2026-11-17T10:18Z).
