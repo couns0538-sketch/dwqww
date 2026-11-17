@@ -55,6 +55,17 @@ ceiling **no more permissive** than the fitted one, and rejects a planted
   silent pass — its own selftest rejects 6 permissive phrasings and accepts 2
   correct ones. Proved by replanting the `48 MB at 2-3 lines` defect: FAIL, exit 1;
   restored, PASS.
+  - **Scoped to recommendation lines, with quotations surfaced not suppressed.**
+    A checker cannot tell a claim from a quotation of it (this run's own lesson).
+    The shipped report legitimately quotes the bad clause `at 6 lines, Hash <= 256`
+    while explaining why it is bad; scanning everything failed a correct document.
+    Only lines asserting a recommendation are scored, and permissive clauses found
+    elsewhere are **printed as "noted (not a failure)"** rather than silently
+    skipped — an undocumented hole is a claim of coverage.
+  - **A missing or unreadable input fails, it never skips.** `read_or_fail` returns
+    None and the run exits 1 with a legible message naming the absent file, because
+    reporting success for work not done is the same defect class as parsing only
+    the generator's form. Covered by its own selftest case.
   - **Known limit, stated in its output:** a spelled-out line count ("six lines")
     is not parsed. The check sees numeric clauses only, so prose must keep numbers.
 - `patches/patch-a-no-line-clear.patch.txt` — removes only
