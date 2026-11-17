@@ -1,0 +1,43 @@
+== M1: one position, 30 fresh processes, Threads 1 ==
+T1 depth12 g00p30          distinct_scores=1 range=0 scores=[['cp', 183]] bm=['c3b5'] depth=[12] nodes=121459..121459 bail=0
+T1 depth12 g00p14          distinct_scores=1 range=0 scores=[['cp', 44]] bm=['c4d5'] depth=[12] nodes=41726..41726 bail=0
+T1 depth12 g00p70          distinct_scores=1 range=0 scores=[['cp', 503]] bm=['a4a5'] depth=[12] nodes=67854..67854 bail=0
+T1 depth12 g00p100         distinct_scores=1 range=0 scores=[['cp', 897]] bm=['c4d4'] depth=[12] nodes=77946..77946 bail=0
+T1 depth16 g00p30          distinct_scores=1 range=0 scores=[['cp', 195]] bm=['c3b5'] depth=[16] nodes=1233038..1233038 bail=0
+
+== M2: same position set, Threads 4, 30 fresh processes ==
+T4 depth12 g00p30          distinct_scores=25/30 cp 132..201 range=69 n_bestmoves=3 bm=['a2a3', 'c3b5', 'd1c2'] nodes=162573..447563 node_ratio=2.75
+T4 depth12 g00p14          distinct_scores=19/30 cp 43..65 range=22 n_bestmoves=6 bm=['b1c3', 'b1d2', 'b2b3', 'c1d2', 'c4d5', 'e1g1'] nodes=91401..187874 node_ratio=2.06
+T4 depth12 g00p70          distinct_scores=24/30 cp 500..575 range=75 n_bestmoves=2 bm=['a4a5', 'a7b8'] nodes=96867..196616 node_ratio=2.03
+T4 depth12 g00p100         distinct_scores=27/30 cp 836..920 range=84 n_bestmoves=1 bm=['c4d4'] nodes=72753..202593 node_ratio=2.78
+
+== M3: 200 corpus positions, twice, fresh process per run ==
+Threads 1: n=200 pairs=400 any=0 score=0 depth=0 bestmove=0 nodes=0 combos={'none': 200} cp_gap_max=0 cp_gap_mean=0 bail=0 refused=0
+   by phase {'endgame': 0, 'middlegame': 0, 'opening': 0} of {'opening': 35, 'middlegame': 140, 'endgame': 25}
+Threads 4: n=200 pairs=400 any=191 score=189 depth=0 bestmove=58 nodes=200 combos={'score': 133, 'score,bestmove': 56, 'none': 9, 'bestmove': 2} cp_gap_max=170 cp_gap_mean=19.8 bail=0 refused=0
+   by phase {'endgame': 23, 'middlegame': 135, 'opening': 33} of {'opening': 35, 'middlegame': 140, 'endgame': 25}
+
+== M4: order dependence, one process per arm ==
+A vs A2 (same order, fresh process = reproducibility control)    any=0 score=0 depth=0 bm=0 {'none': 200}
+A vs B (corpus order vs shuffled = ORDER DEPENDENCE)             any=194 score=194 depth=0 bm=66 {'score,bestmove': 66, 'score': 128, 'none': 6}
+A vs fresh (batch vs one-process-per-position = warm state)      any=197 score=195 depth=0 bm=61 {'none': 3, 'score': 136, 'score,bestmove': 59, 'bestmove': 2}
+B vs fresh (shuffled batch vs fresh)                             any=194 score=193 depth=0 bm=56 {'score,bestmove': 55, 'score': 138, 'none': 6, 'bestmove': 1}
+
+NO reset: corpus order vs shuffled (order dependence)            any=194 score=194 bm=66 cp_gap_max=433 cp_gap_mean=25.2
+ucinewgame per position: corpus order vs shuffled                any=0 score=0 bm=0 cp_gap_max=0 cp_gap_mean=0.0
+corpus order: no reset vs ucinewgame                             any=197 score=195 bm=61 cp_gap_max=209 cp_gap_mean=23.1
+
+== M5: resets, batch vs the fresh-process reference ==
+fresh vs batch-no-reset (the leak)                               any=197 score=195 bm=61 {'none': 3, 'score': 136, 'score,bestmove': 59, 'bestmove': 2}
+fresh vs batch with ucinewgame per position                      any=0 score=0 bm=0 {'none': 200}
+fresh vs batch with ucinewgame + Clear Hash per position         any=0 score=0 bm=0 {'none': 200}
+fresh vs batch with ucinewgame + Hash resend per position        any=0 score=0 bm=0 {'none': 200}
+A vs A2 (same order twice: reproducibility control)              any=0 score=0 bm=0 {'none': 200}
+
+== M6: book RNG and depth reachability ==
+q1_default_variety         distinct_moves=2 hist={'e2e4': 22, 'c2c4': 18} book_replies=40/40
+q1_variety_0               distinct_moves=1 hist={'e2e4': 40} book_replies=40/40
+q1_ownbook_off             distinct_moves=1 hist={'e2e4': 40} book_replies=0/40
+q1_default_variety_T4      distinct_moves=2 hist={'e2e4': 25, 'c2c4': 15} book_replies=40/40
+go depth with OwnBook true -> book replies: 0 / 20
+clock control with OwnBook true -> book replies: 20 / 20
