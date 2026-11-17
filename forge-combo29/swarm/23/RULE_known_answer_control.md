@@ -549,6 +549,27 @@ Two mechanical consequences worth installing:
   I wrote "the distance can be wrong" rather than "mate 10 is true DTM", which felt appropriately modest and was still
   unsupported. Softening a claim hides the missing oracle; deferring it exposes the gap.
 
+## Named pattern — A HARD CAP IN THE TOOL SILENTLY CONVERTS A VALID INPUT INTO AN IMPOSSIBLE ONE
+
+Distinct from a wrong comparator. `validate.py`'s independent counter looped over `(5,4,3,2)` — a constant where the
+range should have scaled with the line length. A legitimate SIX-occurrence fixture then reported as five, disagreed with
+the honest counter, and was **rejected as invalid**. The tool did not miscalculate; it could not represent the input, and
+it reported that incapacity as a property of the fixture.
+
+**A validator with an internal limit becomes a filter that rejects truth.** The failure is worse than a wrong answer
+because it looks like rigour: the rejection message is confident, and the fixture — not the tool — takes the blame.
+
+Three mechanical consequences:
+- **any constant bound inside a checker must be derived from the input**, or printed beside the verdict so a reader can
+  see the ceiling being applied;
+- **the self-test must include a case AT the previous ceiling**, which is why a six-occurrence case now exists — the
+  original four-case self-test passed while the cap was in place;
+- **a rejection is a claim to audit, not a verdict to trust**: when a table cell behaves unlike its neighbours, suspect
+  the gate as readily as the cell.
+
+The general form: this is instance 1 of this page (a checker silent for a bad reason) wearing the opposite mask — a
+checker LOUD for a bad reason. Both produce a confident report about something the checker never examined.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if

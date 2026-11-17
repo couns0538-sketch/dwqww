@@ -1,0 +1,44 @@
+PREDICTION — SW-23 job 62 (re-verify 23-F60's hung-piece move under the corrected validator and the DTM oracle)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F128 narrowed the family's real cost to exactly one thing: 23-F60's finding that the unsearched move HANGS A PIECE.
+That finding now carries almost the entire practical weight of the family, and it was measured while the flawed
+position key was in use (23-F122). So it must be re-verified before the FINAL quotes it.
+
+WHAT F60 CLAIMED: at the 23-F58 third occurrence (`rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16`),
+the base chose `e6e5` in 0 nodes and each candidate scored ALONE at fixed depth 16 on the PC gave **cp -805 for e6e5**
+against **cp 0 for b6b4** (the PC's move after 1,376,300 nodes) — "the unsearched move hangs a piece".
+
+WHAT COULD BE WRONG, and why re-verification is not a formality
+-----------------------------------------------------------------
+1. The position was sent as a BARE FEN with no move history. 23-F109 showed that a bare FEN cannot trigger the drawn-root
+   path at all — the engine searches. So F60's "the base chose e6e5 in 0 nodes" must have come from a MOVE-LIST send
+   (its own text says "the 23-F58 third occurrence"), and I need to confirm the list is still reproducible and, critically,
+   that its root is a GENUINE threefold under FIDE identity.
+2. The cp -805 was measured on the PC at fixed depth, which is a search score, not ground truth. A material-loss claim
+   should be checked against MATERIAL, which needs no engine.
+
+DESIGN
+1. Re-establish the threefold: take F60's quoted FEN and find a 4-ply castling-neutral cycle from it; validate with
+   `job59/validate.py` (both counters, expect=3). If a castling-disturbing cycle is the only one available, record that
+   and treat the finding as needing the F58 move list, which I should then seek out.
+2. Ask the base for its move on the validated root; record nodes and move.
+3. Ask the PC at depth 16 for the position after the base's move AND after the PC's own move.
+4. **CHECK THE MATERIAL DIRECTLY with python-chess**: count white's and black's material after each move. A "hangs a
+   piece" claim is settled by material, not by a score — if the base's move loses a piece, the material table will show
+   it, and if it does not, F60's language is too strong whatever the score says.
+
+Prediction (each with the range that kills it):
+  P1  A castling-neutral 4-ply cycle exists from F60's FEN and the root validates at exactly 3 occurrences. KILLED if no
+      such cycle exists — in which case I report that F60's fixture cannot be rebuilt this way and say what is needed.
+  P2  **THE BASE RETURNS 0 NODES** on the validated root (reproducing F60's mechanism), and its move is the generator's
+      index 0, consistent with 23-F98.
+  P3  **MATERIAL: the base's move DOES lose material relative to the position after the PC's move — i.e. the material
+      count after `e6e5` shows white gaining a piece or the black piece becoming capturable for free.** KILLED if the
+      material is EQUAL after both moves — in which case "hangs a piece" is wrong as a MATERIAL claim and F60 must be
+      restated as a positional/score claim only.
+  P4  The PC's score for the position after the base's move is clearly worse than after the PC's own move (a large gap),
+      which is what F60 reported; I will report the actual numbers rather than "cp -805 vs cp 0" in case they differ.
+
+P3 is the load-bearing prediction and it is deliberately NOT the one F60 used. If material is equal, the honest outcome
+is that F60 overstated and I will say so in the retraction style used for F90.
