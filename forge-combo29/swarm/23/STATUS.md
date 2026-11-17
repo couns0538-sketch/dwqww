@@ -1250,3 +1250,16 @@ the intended board reachable from startpos, which I did not build.
 
 So the driver page's recommendation is validated for ONE hazard and honestly untested for another - not asserted
 for all three. 93 findings, 18 confirmations. 10 h 5 m remain.
+## 2026-11-17T00:13:57Z  23-F67 complete: protocol validated for BOTH discriminating hazards; H2 is worse for a naive driver
+2026-11-17T00:13:57Z
+
+  H1 refused FEN   NAIVE g1f3 = illegal on the intended board, legal on stale -> WRONG BOARD
+                   COMPLIANT f7g7 = legal on intended, illegal on stale -> correct
+  H2 illegal token NAIVE e2e4 = legal on NEITHER board, because a MID-LIST token truncates to a 2-ply prefix
+                   -> it searched a THIRD board, neither stale nor intended. COMPLIANT d7d5 -> correct.
+So H2 is worse than H1: not "the wrong board" but "a board nobody is looking at".
+TWO CONSTRUCTION ERRORS caught by checking the legal sets were disjoint first: an illegal token at the END makes the
+prefix equal the intended board; and comparing against the truncated board makes both drivers look right. Same class
+as the control-that-cannot-fail, now in the choice of fixture.
+Claim strength is ON the page: validated for two of three hazards; the third covered by its own measurement (23-C25).
+93 findings, 18 confirmations. 10 h 5 m remain.
