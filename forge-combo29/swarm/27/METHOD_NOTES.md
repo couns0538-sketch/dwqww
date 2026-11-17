@@ -54,6 +54,63 @@ broken?* If the answer is "the same thing", the guard is judging appearance. Tha
 empty-table trap was caught, and how the false-negative in `emit_config.py` was caught: run it on a file where
 the right answer is known, and see whether it says the right thing.
 
+## The inverse trap: the check that CRASHES when it should DETECT
+
+Every other trap in this file is a check that **passes** when it should fail. This one is the opposite, and it
+is the most dangerous bug found in this seat's work all night.
+
+`job3/f2_harness_can_fail.py` exists to prove that a harness **can** fail. It raised `Missing` **four times**
+and never defined `Missing`. Any run reaching one of those raises would have died with
+
+```
+NameError: name 'Missing' is not defined
+```
+
+**and that crash is indistinguishable from a detection in the output.** A harness built to demonstrate failure
+would have failed — loudly, with a traceback — and every reader would have taken the traceback as the
+demonstration working. The file would have certified itself while testing nothing.
+
+Why this is worse than a check that passes vacuously:
+
+| | a vacuous pass | a crash in a detection harness |
+|---|---|---|
+| looks like | a clean result | **a detection** |
+| reader's conclusion | "no problem found" | "the harness found the problem" |
+| what was actually measured | nothing | nothing |
+
+The vacuous pass at least leaves the *possibility* of "no problem found" as the honest reading. A crash in a
+detection harness **manufactures positive evidence**, which is the worst thing a broken check can do.
+
+**Why it survived:** the file sat **uncommitted for hours**. It was found by `git status` on an otherwise clean
+branch, not by any check — because the one-liner that catches it was already in this file:
+
+```
+grep -rl 'raise Missing' . | xargs grep -L 'class Missing'
+```
+
+**and it had never been run over the author's own folder.** The rule was written for other seats' harnesses and
+applied to my own only by accident.
+
+**That is the same shape as the guard-beside-the-pipeline failure**: the check existed, was documented, and was
+not reachable from the thing it was supposed to police. Two instances now, in two media — a script nobody calls,
+and a grep nobody runs on themselves. Both are cured the same way: **make it part of the routine rather than a
+thing to remember.** `check_custom_exceptions.py` now runs at the folder root and exits non-zero, with three
+controls plus a planted case, so "0 undefined exceptions" is a result rather than a silence.
+
+**The one-line version:** *a check that cannot fail is useless; a check that fails for the wrong reason is
+worse, because it looks like the answer.*
+
+**And the run's most transferable sentence, which belongs beside it:**
+
+> **A checker is tested by giving it a case you already know the answer to, never by reviewing its logic.**
+
+Four checkers failed tonight by judging the *text* of a thing rather than the thing — a variable's name, a
+prose claim, a list's Python shape, raw source including docstrings — and **all four were caught the same way:
+by running them against a case whose answer was already known** (a file with `class Missing` on line 25, a
+planted `RealProblem`, four measured engine cells, a file with no option list). Not one was caught by reading.
+That is the mechanical reason the rule holds: **reviewing logic cannot find a matcher that silently matches
+nothing**, because a matcher that matches nothing looks like a matcher with nothing to match.
+
 ## A guard you have to remember to run is not a guard
 
 Four separate retractions in this seat's record come from **a settings label that was not the settings sent**.

@@ -869,3 +869,29 @@ has now failed in FOUR media** - a variable name (seat 08), a prose claim (my S-
 (`emit_config.py` v1), and raw source text with docstrings (my v1/v2). Fix every time: **ask the artifact.**
 **And every one was caught by running the checker on a case whose answer was already known** - `class Missing`
 on line 25, a planted `RealProblem`, four measured engine cells. **None was caught by reading the checker.**
+
+## 2026-11-17T06:1xZ the inverse trap is now its own section, and the run's best sentence sits with it
+**Item 1 - `f2_harness_can_fail.py` raising an undefined name four times is now written up as THE INVERSE TRAP,
+and it is the most dangerous bug of the night because it manufactures POSITIVE evidence.** The file exists to
+prove a harness CAN fail; it raised `Missing` 4x and never defined it, so any run reaching those raises died
+with `NameError` - **and a crash in a detection harness is indistinguishable from a detection in the output.**
+The comparison that makes it land:
+  vacuous pass: looks like "a clean result"; reader concludes "no problem found"; measured nothing.
+  crash in a detection harness: **looks like "a detection"; reader concludes "the harness found the problem";
+    measured nothing.**
+The vacuous pass at least leaves "no problem found" as the honest reading. **A crash in a detection harness
+manufactures positive evidence, which is the worst thing a broken check can do.**
+**Item 2 - WHY IT SURVIVED, and this is the same shape as the guard-beside-the-pipeline failure:** the grep
+that catches it was ALREADY IN THIS FILE (`grep -rl 'raise Missing' . | xargs grep -L 'class Missing'`) and
+**had never been run over the author's own folder.** The rule was written for other seats' harnesses and applied
+to mine only by accident - found by `git status` on an otherwise clean branch, after HOURS uncommitted. Two
+instances now, two media: a script nobody calls, and a grep nobody runs on themselves. Cured the same way -
+make it part of the routine: `check_custom_exceptions.py` runs at the folder root, exits non-zero, three
+controls plus a planted case.
+**The run's most transferable sentence now sits beside it: "A checker is tested by giving it a case you already
+know the answer to, never by reviewing its logic."** With the mechanical reason it holds: **reviewing logic
+cannot find a matcher that silently matches nothing, because a matcher that matches nothing looks like a
+matcher with nothing to match.** Four checkers failed tonight by judging text instead of the thing (variable
+name / prose claim / Python list shape / raw source with docstrings) and all four were caught by known-answer
+cases, none by reading.
+**METHOD_NOTES now 859 lines.**
