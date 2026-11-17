@@ -684,3 +684,19 @@ next: cadence.
 Tally: 39 findings, 28 checks/audits/plants, 4 method lines, 2 withdrawals.
 
 next: cadence.
+
+## 2026-11-17T01:56Z
+- **08-O1 / pc20/HANDOFF_second_mechanism.md: the second mechanism is a complete UNRUN handoff**, as instructed.
+  Contents: what is established (with evidence files), the precise shape of the open question (not WHETHER the cap
+  fires but HOW its clamped reductions propagate through which nodes are visited, hence TT/killers/histories/
+  aspiration — direction can be board-specific), the instrument that would settle it (a build printing per-depth
+  total and clamped reduction counts), and that it needs a source patch to search.cpp and is OUTSIDE my instrument
+  set. Plus: the 11 boards' location, the exact variant flags, pins at 312,866, the measurement to make, and a
+  warning not to treat the hypothesis as confirmed.
+- Honest end state, quoted in the file: cause of the move changes identified; direction of effect a strong tendency
+  with two named exceptions; cause of those exceptions not known.
+- Not chasing it further, per instruction.
+
+Tally: 39 findings, 28 checks/audits/plants, 4 method lines, 2 withdrawals, 1 open lead.
+
+next: cadence.
