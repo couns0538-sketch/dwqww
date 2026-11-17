@@ -1428,3 +1428,16 @@ carries it verbatim instead of being reconstructed from five findings late:
 3.7 s; depth 13 165,410,810 nodes 19.9 s; base 721M/834M) and the four compile-time variants answer the ask -
 ONE_THREAD carries it (C and D byte-identical at 265,319,796), the LMR cap does nothing once it is on.
 103 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 21 m remain.
+## 2026-11-17T00:58:01Z  23-F76: my driver page's info-string rule CANNOT catch the drawn root - fifth check added
+2026-11-17T00:58:01Z
+
+Hole found in my own page. The primary rule ("count info-string lines, rebuild if any") catches a refused FEN and a
+truncated move list, but NOT a drawn root: a threefold root sent as a MOVE LIST gives **zero diagnostics on both
+builds**, and the BASE answers with **0 nodes** - so the base passes my rule having searched nothing at all.
+FIFTH CHECK added: a search returning bestmove with 0 nodes is suspicious - the root is drawn (repetition /
+fifty-move / insufficient material) or the position was refused; either way nothing was analysed and any score is not
+a search result.
+HONEST LIMIT on the page: it catches the BASE (0 nodes) but not the PC (44,269 nodes on the same input), whose answer
+is a real search of a drawn position and correct - so it is a detector for the unrepaired build, not a general rule.
+Does not weaken 23-F67 (both those hazards emit a diagnostic); it bounds that rule's scope.
+103 findings, 18 confirmations, thirteen named faults. 9 h 21 m remain.
