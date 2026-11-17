@@ -154,11 +154,14 @@ positive**. Here it was a `go wtime` search; elsewhere it is a fake engine, a pl
 
 **The evidence is the casualty count, and it is checkable in git history** rather than recalled:
 
-| file / block | how it was written | times damaged | evidence |
+| file | written with | commits naming a repair of IT | the command that proves it |
 |---|---|---|---|
-| `FINDINGS.md` (145 finding lines) | **quoted heredoc** | **0** | no repair commit exists |
-| `STATUS.md` | shell `echo`, double-quoted | **2** | commits `b833d1c09` and `ef553762e` are both *"repair the damaged STATUS block…"* |
-| one `MEASUREMENT_TRAPS.md` section | shell `echo` | **1** | repaired in the Trap 5 / Trap 3 ordering fixes |
+| `FINDINGS.md` | **quoted heredoc** | **0** | `git log --format="%s" \| grep -i "repair.*FINDINGS"` → **no output** |
+| `STATUS.md` | shell `echo`, double-quoted | **2** | `git log --oneline --grep="damaged"` → `b833d1c09` and `ef553762e`, whose subjects both say *"repair the damaged STATUS block"* |
+
+A note on why the count is per-COMMIT-SUBJECT and not per-file: the trap-8 repair commit touched four files at
+once, so `git log -- <path>` cannot separate "this file was damaged" from "this file was in the same commit". **The
+provable unit is which file the commit message names** — and no commit message names `FINDINGS.md` as repaired.
 
 That is a mechanism, not a coincidence, and it held all session: **`git log --grep="backtick"` returns the STATUS
 repairs; it returns nothing for `FINDINGS.md`, because the file written by heredoc never lost a character.**
