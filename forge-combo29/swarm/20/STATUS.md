@@ -754,3 +754,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   that budget (`mate 11`, 18 of 22 plies). Thread now: truncation real, lands on match budgets, corrupts score not move,
   established twice.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:17:52Z S-C50: confirmed 25-S-F39 exactly (8/8 scores) — the correct-arm counterpoint to retracted 30-F59
+- Isolated gap `f3g2 - f3g3` on position 29, PC20 = S14 (17 opts) + 6 extras, assert_regime passed, Threads 1:
+  **PC20 +231 (d12), +239 (d14), +198 (d16), +100 (d18)** — shrinking; **S14 +190, +117, +189, +187** — not.
+  All eight raw scores match seat 25 to the centipawn.
+- So the convergence is a property of the **PC20 option set**, not of depth alone. With job72 (engine picks f3g2 at
+  every depth both arms), a 200+ cp ISOLATED gap is **headroom, not failure**.
+- **Counterpoint to the retraction**: 30-F59 claimed PC20 picks a 200+ cp WORSE move shallow; on the correct arm PC20
+  picks the BETTER move at every depth with the margin narrowing 200->100. The retraction left this standing and it
+  points the opposite way — PC20 does the decision right on this board.
+Next: continue in the window (ends 2026-11-17T10:18Z).
