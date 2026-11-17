@@ -26,3 +26,22 @@ that the boards' legal sets were actually disjoint before believing the result.
 
 PREDICTIONS: P1 held (compliant plays 0 wrong moves in both scenarios); P2 held (it rebuilt on both); P3 held (the
 naive driver failed BOTH, not just one); P4 held (no hangs).
+
+HAZARD 3 VALIDATED TOO — both clocks answers, one clock never does
+==================================================================
+Black to move (so the clock that matters is `btime`), same build/settings, bounded 3 s wait:
+
+| driver | `go` sent | outcome | diagnostics |
+|---|---|---|---|
+| NAIVE | `go wtime 1000` | **NO BESTMOVE in 3 s** | 0 |
+| COMPLIANT | `go wtime 1000 btime 1000 winc 10 binc 10` | **answered 0.03 s (e7e5)** | 0 |
+
+So the third rule in the driver block is validated the same way as the other two: the one-clock `go` never answers and
+says nothing, the both-clocks `go` answers in 30 ms. The control is the compliant row — without it, "no bestmove"
+could have meant a broken harness.
+
+ALL THREE HAZARDS ARE NOW VALIDATED AGAINST THE RECOMMENDED DRIVER, each with a control that shows what the naive
+driver does instead:
+  H1 refused FEN   -> naive searches the STALE board; compliant rebuilds and plays on the intended board
+  H2 illegal token -> naive searches a THIRD board (the truncated prefix); compliant rebuilds
+  H3 partial clock -> naive never gets a move; compliant sends both clocks and gets one in 30 ms

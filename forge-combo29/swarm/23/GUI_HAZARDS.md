@@ -110,9 +110,9 @@ The four rules, which are the whole of it:
 4. **Send both clocks, and read to `bestmove` before the next command.**
 
 Every one of those maps to a hazard measured on the PC build on this page, and to a seat that lost time to it.
-**Claim strength, stated plainly:** this driver shape is **validated for two of the three hazards** — the
-refused-FEN case and the illegal-token case, each with a control showing what a naive driver does instead —
-and the third (partial clock) is covered by its own measurement rather than by this test.
+**Claim strength, stated plainly:** this driver shape is **validated for all three hazards**, each with a control
+showing what a naive driver does instead — H1: the naive driver searches the *stale* board; H2: it searches a *third*
+board (the truncated prefix); H3: it never gets a move at all, while the compliant driver gets one in 30 ms.
 
 ## Why this is safe for the owner's PC games
 
