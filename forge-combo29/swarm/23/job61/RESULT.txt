@@ -1,0 +1,55 @@
+THE PC'S DRAWN-ROOT BEHAVIOUR IS CORRECT WHERE CORRECTNESS IS DEFINED — and it plays on only where playing on is legal
+=========================================================================================================================
+Every earlier base-vs-PC comparison in this seat measured BEHAVIOUR. With 23-F121's DTM oracle and 23-F124's validator,
+this asks whether either build is RIGHT, separating three failures that had been conflated.
+
+FIXTURES, each with its ground truth named independently of either build
+-------------------------------------------------------------------------
+| case | position | truth |
+|---|---|---|
+| R1 | `1K6/8/8/3R4/8/8/8/k7 w - - 100 60` | **DRAWN** — halfmove 100 is past 9.3 (claimable at 50) and past 9.6.2 (automatic at 75) |
+| R2 | same board, counter 0 | **WON for White** — control, nothing drawn |
+| R3 | R1's board reached by `b8c8 a1b2 c8b8 b2a1`×2 | **DRAWN by repetition** — validated `counted=3 python-chess=3`, and a repetition draw is a CLAIM |
+| R4 | `8/8/8/8/8/8/8/K6k w` | **DRAWN automatically** — insufficient material, no claim exists |
+
+RESULTS (Threads 1, Hash 16, OwnBook false, `go depth 12`)
+-----------------------------------------------------------
+| case | build | score | nodes | move | legal | truth |
+|---|---|---|---|---|---|---|
+| R1 halfmove 100 | base | **cp 0** | **0** | d5d1 | yes | DRAWN |
+| R1 halfmove 100 | PC r15 | **cp 0** | 240 | d5d1 | yes | DRAWN |
+| R2 counter 0 (control) | base | cp 348 | 22,108 | d5b5 | yes | WON |
+| R2 counter 0 (control) | PC r15 | cp 391 | 61,605 | d5b5 | yes | WON |
+| R3 threefold | base | **cp 0** | **0** | d5d1 | yes | DRAWN (claimable) |
+| R3 threefold | PC r15 | **cp 425** | 40,801 | d5b5 | yes | DRAWN (claimable) |
+| R4 bare kings | base | **cp 0** | **0** | a1b1 | yes | DRAWN (automatic) |
+| R4 bare kings | PC r15 | **cp 0** | **0** | a1b1 | yes | DRAWN (automatic) |
+
+**P2 HELD, and it is the sharp case: on R4 — insufficient material, where no claim exists and the draw is automatic —
+the PC reports cp 0 with 0 nodes, exactly as the base does.** So the repair is CORRECT where correctness is unambiguous.
+P1 HELD (R1, R3, R4 are all cp 0 on the base, which is the right score for all three).
+P4 HELD: the control R2 is not drawn and neither build reports cp 0 there — the fifty-move bail does not leak.
+P3 is the interesting one, and it is not a defect: **on R3 the PC reports cp 425 and searches 40,801 nodes.** A
+repetition draw at three occurrences is a CLAIM, and the side to move in R3 is White — WINNING. A winning side need not
+claim. So cp 425 is defensible, not wrong, and the base's cp 0 is also defensible. This is 23-F94's asymmetry arriving
+from the other direction, and judged against ground truth it is a difference in POLICY (whether to claim), not in
+correctness.
+
+THREE FAILURES, NOW SEPARATED
+------------------------------
+1. **Reporting a draw where the draw is real and automatic** (R4): both builds correct.
+2. **Reporting a draw where the draw is real but claimable** (R1, R3): both defensible; they differ in policy.
+3. **Reporting a draw where NO draw exists** (the F112 board, which was never a threefold): that was my fixture, not the
+   engine — 23-F122.
+And the fourth, which 23-F60 found and this job does not test: **playing a move that loses the win while reporting a
+draw.** That remains the only genuinely bad outcome in the family, and it is about the MOVE, not the score.
+
+WHAT THIS ADDS TO THE FAMILY'S WORTH
+-------------------------------------
+The drawn-root work now has a clean tri-partition: the base's 0-node move is generator index 0 (23-F98), the bail is a
+monotone threshold at three true occurrences (23-F125) extended to halfmove 100 (23-F126), and the SCORE is right
+whenever the draw is unambiguous. The cost that remains real is 23-F60's: on a middlegame board the unsearched move hung
+a piece. So the family's practical weight rests on the MOVE, and the score is largely sound.
+
+LIMITS: one board for R1/R2/R3 (K+R v K), bare kings for R4; `go depth 12`; base and PC at default options. R3's PC
+score is defensible but the choice of whether to claim is a policy question this job does not settle for either build.

@@ -2223,3 +2223,27 @@ verified this time by two agreeing independent counters, and the two anomalies t
 were never threefolds at all.
 
 151 findings, all three checks PASS.
+## 2026-11-17T01:48:47Z  F128: the PC's repair is CORRECT on automatic draws; the family's real cost is the MOVE
+2026-11-17T01:48:47Z
+
+With the DTM oracle (F121) and the validator (F124) I could finally ask whether either build is RIGHT, rather than what
+it does. Ground truth named independently of both builds.
+
+  R4 bare kings (AUTOMATIC draw, no claim exists): base cp 0 / 0 nodes, PC cp 0 / 0 nodes. THE SHARP CASE, and the
+     repaired build is correct there.
+  R1 halfmove 100 (drawn by count): both cp 0 (PC searches 240 nodes first).
+  R2 counter 0 control (NOT drawn): both winning (cp 348 / cp 391) - the fifty-move bail does not leak.
+  R3 threefold root (validated 3=3; a claim, not automatic): base cp 0, PC cp 425 with 40,801 nodes.
+
+R3 is the one I want to be precise about: the side to move is White and WINNING, and a winning side need not claim a
+repetition draw. So cp 425 is DEFENSIBLE, not a defect; the base's cp 0 is equally defensible. It is a difference in
+policy about whether to claim, judged against ground truth it is not a correctness difference.
+
+So the family separates into three, and only the third was ever an engine matter:
+  1. a real automatic draw -> both builds correct;
+  2. a real claimable draw -> both defensible, differing in policy;
+  3. a draw that does not exist -> that was MY fixture, not the engine (F122, castling key).
+And the genuine remaining cost is F60's: the unsearched MOVE can hang a piece. The score is largely sound; the move is
+where the damage is, which is also what F101 priced at a median ~625 cp.
+
+155 findings, all three checks PASS.

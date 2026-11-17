@@ -1,0 +1,24 @@
+== fixture validation (job59 validator; both counters must agree) ==
+  R1 50-move root (halfmove 100)     (no move list; truth: DRAWN (automatic at 75+, and 100))
+  R2 CONTROL counter 0 (not drawn)   (no move list; truth: WON for white)
+  R3 threefold root                  PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+  R4 bare kings                      (no move list; truth: DRAWN (automatic, insufficient material))
+
+| case | build | score | nodes | move | move legal? | ground truth |
+|---|---|---|---|---|---|---|
+| R1 50-move root (halfmove 100) | base | cp 0 | 0 | d5d1 | yes | DRAWN (automatic at 75+, and 100) |
+| R1 50-move root (halfmove 100) | PC r15 | cp 0 | 240 | d5d1 | yes | DRAWN (automatic at 75+, and 100) |
+| R2 CONTROL counter 0 (not drawn) | base | cp 348 | 22108 | d5b5 | yes | WON for white |
+| R2 CONTROL counter 0 (not drawn) | PC r15 | cp 391 | 61605 | d5b5 | yes | WON for white |
+| R3 threefold root | base | cp 0 | 0 | d5d1 | yes | DRAWN (claimable, 3 occurrences) |
+| R3 threefold root | PC r15 | cp 425 | 40801 | d5b5 | yes | DRAWN (claimable, 3 occurrences) |
+| R4 bare kings | base | cp 0 | 0 | a1b1 | yes | DRAWN (automatic, insufficient material) |
+| R4 bare kings | PC r15 | cp 0 | 0 | a1b1 | yes | DRAWN (automatic, insufficient material) |
+
+P2 (sharp case, insufficient material = automatic draw, no claim possible):
+  base  : cp 0
+  PC    : cp 0
+  PC reports cp 0 on an automatic draw: True
+
+P4 control (R2 is NOT drawn): base cp 348 | PC cp 391
+  neither reports cp 0: True
