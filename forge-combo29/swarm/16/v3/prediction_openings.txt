@@ -1,0 +1,18 @@
+# PREDICTION — the 200-opening arm: does the bench-13 profile hold at depth 12 on real positions?
+
+Committed BEFORE the second profile runs. File 7 Step 1 asks for both arms: `bench 13`, and my 200 openings at
+`go depth 12` with `ucinewgame` + `isready` before each. The bench-13 arm gave nnue:: at 20.85 % and the picker at
+~37 %. This tests whether that split is a property of the ENGINE or of the BENCH POSITION SET.
+
+Build: bld-v3 (Step 0 passed 8/8 and 3/3). Settings: PC20 + the test net, Threads 1, Hash 16.
+
+P1. In the openings arm, `nnue::` is HIGHER than in bench 13 but still under 40 %. Predicted **25 % to 39 %**.
+    Reason: real openings reach deeper, so more leaves per node-population and less repeated search — the
+    evaluation is hit relatively more often. Kills it: under 20 % (then bench 13 overstated it) or over 50 %
+    (then the opening workload is net-dominated and the 26 % ceiling is too pessimistic for the PC's real use).
+P2. `apply_changes_pair` remains the hottest single v3 symbol in the openings arm too. Kills it: `evaluate` or
+    `refresh_from_pieces` overtaking it, which would mean the incremental update is a bench artefact.
+P3. Move generation and the picker stay ABOVE 25 % in the openings arm, i.e. the picker is still the larger lever.
+    Kills it: under 20 %, which would reverse my recommendation and make the kernel the right target after all.
+P4. The two arms agree within 10 percentage points on the `nnue::` total. Kills it: a gap above 15 points, which
+    would mean the bench positions are unrepresentative and the ceiling must be quoted per-workload, not overall.

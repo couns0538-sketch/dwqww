@@ -369,6 +369,21 @@ non-text 0, ALL CHECKS PASS`.
 Full write-up, including two same-family traps I hit (a pipe inside a table cell, and `grep -c` with an alternation
 pattern miscounting twice), in **`forge-combo29/swarm/16/WARNING_stray_paths.md`**.
 
+# PART 4c — THE CEILING ON v3 KERNEL WORK (file 7's job)
+
+**A perfect v3 kernel could speed `bench 13` by at most ~1.26x — 26 % — and no realistic patch gets all of it.**
+Measured: under PC20 + the test net the whole `nnue::` namespace is **20.85 %** of bench-13 time
+(`1/(1-0.2085) = 1.263`). The hottest single v3 symbol is the **incremental update** `apply_changes_pair` (8.24 %),
+not the forward pass (`evaluate`, 4.81 %). Move generation and the picker total **~37 %** — `pick_best` 8.47, its
+internal sort 5.03, `generate_evasions` 7.55, `next` 4.81, `fill_pseudo_legal` 3.43, `is_legal_complete` 3.20,
+`see_ge` 4.35 — **more than the entire net path.**
+
+**This is the sentence that should stop any future seat over-investing in the kernel:** a v3 patch is a throughput
+patch for the owner's self-play, capped at ~1.26x on this workload, and the larger lever is the move picker.
+My prediction said 55-85 % for the net path and my own kill criterion was "under 40 %" — it fired, which is why the
+number is believable. Caveat held open: `bench 13` is not the PC's workload; the 200-openings-at-depth-12 arm is the
+check before this stands as final.
+
 # PART 5 — WHAT I DID NOT DO
 
 - No sanitizer builds anywhere. Nothing in this report is a memory-safety claim.
