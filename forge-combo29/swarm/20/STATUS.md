@@ -871,3 +871,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Placed in FINDINGS, job81/CONFIRM_21F12.md, and the OWNER PAGE (new section "two different searchmoves answers"),
   because a page reader is the one most likely to act on half of it.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:38:55Z FABLE file 7 (v3 net job) — Step 0 PASSED, S-F70 found; my own prediction refuted 5/6
+- File 7 read: the owner's PC evaluates with a LOADED v3 net, not the built-in one; the 19-F2/10/11 profiles do not cover it.
+- Step 0, ALL TWELVE PINS MATCH: benches 312866/862329, 278024/587276, 965454/4151906, 625258/3652372; evals 968/1176/31;
+  net 6,309,096 bytes, fnv1a64 `fdff70de72e4ca82`, sha256 `1db8525e…3ffd4a`, kernel avx512, max|w1|64 max|b1|96 max|w2|16.
+- Two of my OWN errors caught by the pins and fixed: bare `Threads/Hash` mislabelled as S14 (the S-F65 trap, again), and
+  the "test net only" row that must carry NO tunables.
+- S-F70: 617,443 refreshes for 3,652,372 nodes (169/1000), **7.25 columns per refresh**. The RefreshCache IS working, so
+  the v3 cost is not "slow refresh". Planted controls: 0 with NNUEArch off, 682,678 with it on.
+- Prediction (committed alone first): P1..P5 REFUTED, P6 not measured. `perf` absent -> gprof -pg, shares distorted, said so.
+- Gates: machine_clean caught a zombie engine from the hung job; findings_lint caught my 3-cell row. Both fixed.
+Next: Step 2 needs the real hot spot; and S-F70 wants an independent confirmation.
