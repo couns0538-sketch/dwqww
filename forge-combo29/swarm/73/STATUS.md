@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,443 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,460 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,38 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Final state
+
+**Cross-checked against the coordinator's own verification: both tables are now 4-branch-complete on the two
+self-disagreeing surfaces and their prose totals are computed from the rows.** Their eight-row version and my nine-row
+version differ only in whether `position fen`'s short and illegal cases share a row — **both are internally consistent,
+which is the property that matters.**
+
+**One thing I recorded as plausible-but-unverified rather than asserting:** the coordinator's mechanism for the
+exchange — **that the prose total selected the row rather than the rows producing the total.** It is consistent with
+both tables, and **I could not confirm it on mine: the `searchmoves` row and the "8 rows, 4 report, 4 do not" total
+landed in the same commit**, so the ordering is not recoverable from the history. **A mechanism claim I cannot check is
+recorded as such**, which is the same standard I applied to the report's `929` and to the latency percentiles.
+
+**The remedy holds either way and is the actionable half: write the prose total FROM the table, never beside it.** A
+total stated first is a hypothesis about the table, not a report of it — and a hypothesis is precisely what will quietly
+select the rows that confirm it.
+
+## Final counts, all computed
+
+| quantity | value | how |
+|---|---|---|
+| lines | **2,460** | `wc -l` |
+| rules | **64** | grep of numbered bold items in §4 |
+| recommendations | **22** | grep of `### 1.N`, verdicts 14 ship / 5 do-not-ship / 4 needs-more-evidence (23 markers, §1.7 split) |
+| findings synthesised | **2,380** | 2,371 distinct table-row ids + 9 prose ids, re-derived at the named tips |
+| branches with a `FINDINGS.md` | **31** of 63 `swarm-NN` | per-branch file check |
+| unsourced figures | **9** of 284 tokens | token audit + context reads, at the named tips |
+| parser-surface table | **9 rows, 5 report, 4 silent** | grouped by surface, both self-disagreeing surfaces split |
+| section refs / rule refs unresolved | **0 / 0** | printed with targets, not resolution-only |
+
+**All eight re-derived from artefacts at the tips named in the summary's header, not carried forward.**
 
 ## Twenty-first round — the collapsed row, found in my own table
 

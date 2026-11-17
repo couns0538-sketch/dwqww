@@ -1727,9 +1727,26 @@ These are the transferable output. Each is a rule the run paid for with a defect
      "three report, two improvise, and `position fen` counts in both"). **The other was correct — and I called it
      inverted, having compared its sentence against MY table's row count rather than its own.** Two errors, both
      arithmetic, both in the same exchange, **and one command settled it.**
-   - **The check is: parse the table, count the rows by the verdict column, parse the prose total, compare.** It takes a
-     second and it cannot be argued with. **A dispute about a number is evidence that the number was never computed** —
-     if either party had run the count, there would have been nothing to dispute.
+   - **The check is: parse the table, group the rows BY SUBJECT, count the verdicts, parse the prose total, compare.**
+     It takes a second and it cannot be argued with. **A dispute about a number is evidence that the number was never
+     computed** — if either party had run the count, there would have been nothing to dispute.
+   - **TWO failures look identical in prose, and summing answers only one of them.** A total that disagrees with its
+     table can come from a **mistyped number** or from a **missing row** — and **adding the rows up detects only the
+     first**, because a collapsed row makes the sum agree with the prose while both are wrong. **Grouping detects the
+     second:** group by subject and **flag any surface that appears once when it is known to have disagreeing
+     branches.**
+     - **Both failures occurred in this run, in the same table, in opposite directions.** One document's total came
+       from **double-counting** `position fen`; the other **collapsed `searchmoves` to a single row**, losing the
+       branch that reports. **The first over-counted the reporting side by one; the second under-counted it by one.**
+     - **The mechanism the coordinator reports from their own side, and I cannot verify it on mine: the prose total
+       SELECTED the row rather than the rows producing the total.** Each table kept the branch that happened to match a
+       number already written — **so the disagreement may not have been carelessness on either side, but a written
+       total acting as a filter on which branches got a row.** **That explanation is consistent with both tables and my
+       own commit history cannot confirm or refute it** — in my case the row and the total landed in the same commit,
+       so the ordering is not recoverable. **Recorded as a plausible mechanism, not a measured one.**
+     - **The remedy holds either way, and it is the actionable half: write the prose total FROM the table, never beside
+       it.** If a total must be stated first, it is **a hypothesis about the table, not a report of it** — and a
+       hypothesis is exactly the thing that will quietly select the rows which confirm it.
    - **And the dispute itself is a defect signal one level up:** I was confident, the coordinator was confident, and
      **the disagreement was decidable by script the whole time.** Confidence on both sides of an arithmetic question is
      a reason to compute, not a reason to press the argument politely.
