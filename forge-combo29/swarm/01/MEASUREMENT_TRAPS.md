@@ -1,4 +1,4 @@
-# The seven traps that silently change what a harness measures — plus the one that does it by hand
+# The nine traps that silently change what a harness measures — including two about the harness itself
 
 **Seat 01, 2026-11-17. One page, ready for the brief. Every trap below is confirmed by me on PC r15 + PC20,
 Threads 1, Hash 16. Four are settings, one is a timer, one is a command whose safety depends on the position,
@@ -130,6 +130,22 @@ Measured on one board with two candidate first moves (`c6d6` / `c6c7` plies surv
 > is stable across a range — or do not call it ground truth.**
 
 **Truth, like safety, is a property of the configuration.**
+
+## Trap 8 — a test that cannot fire returns the same answer as a test that found nothing
+
+The subtlest one, and the only one in this page that is about the HARNESS rather than the engine.
+
+I tested whether the built-in book answers `position startpos` using `go depth 12`. It reported **0 of 3** — a
+clean negative. But the book is probed only when `game_search` holds, i.e. for **clock or movetime** searches
+(`uci.cpp:681`); a depth search **can never** produce a book answer. The instrument was structurally incapable of
+firing, and its empty result read exactly like a measurement that found nothing. Re-run with a clock search: **3
+of 3**.
+
+> **Before trusting a negative, show that the test CAN return a positive.** A test that cannot fire and a test that
+> found nothing report identically.
+
+The cheapest form of that proof is the same one used for the sanitizer zero and the mirror check: **plant the
+positive**. Here it was a `go wtime` search; elsewhere it is a fake engine, a planted fault, or a second position.
 
 ## The family of four settings, and why one rule covers all of them
 

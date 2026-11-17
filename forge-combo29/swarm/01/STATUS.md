@@ -1407,9 +1407,28 @@ THE DIAGNOSIS IS IN THE FINAL VERBATIM (S-F101), with its FIVE-INSTANCE TABLE an
   The traps page is now eight, in order 0-7, family table, guard - verified clean.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
 
-## 2026-11-17T00:40:33Z — 25-minute cadence
+## 2026-11-17T00:40:41Z — 25-minute cadence
+
 SEAT 08's 08-F12 CONFIRMED — AND I PRODUCED A FALSE NEGATIVE FIRST, WHICH IS THE MORE USEFUL HALF (S-C36, S-F102).
-  CONFIRMED:  IS answered from the built-in book at defaults - 3 of 3 runs, 0 info depth lines, moves ['c2c4','e2e4'], so the move VARIES because Book Variety defaults to 30. Control : 0 of 3, 18 info lines, stable e2e4. Real middlegame at defaults: 0 of 3, so the book fires on OPENINGS only. Ruy_2 fired 3/3 with ['b1c3','g1f3'].
-  MY FALSE NEGATIVE: my first run of this same test reported 0/3 book fires because I used go depth 12. The book is probed ONLY when game_search holds - clock or movetime (uci.cpp:681) - so a DEPTH search can never produce a book answer and my test was structurally incapable of finding one. The same harness re-run with a clock search reported 3/3.
-  WHY THAT IS THE USEFUL HALF: the check I had just written - 'the trigger is the configuration, not the command' (Trap 6 and 7) - applied directly to my own instrument, and I did not notice until the numbers came back empty. The failure mode is silent and looks exactly like a clean result: A TEST THAT CANNOT FIRE RETURNS THE SAME ANSWER AS A TEST THAT FOUND NOTHING. That deserves to be in the traps page beside the others.
-Next: add that trap and continue confirming while the window runs to 2026-11-17T10:18Z.
+
+(Previous block was damaged by shell backtick substitution; rewritten with the text escaped properly.)
+
+CONFIRMED: `position startpos` IS answered from the built-in book at defaults — 3 of 3 runs, 0 `info depth` lines,
+moves `['c2c4','e2e4']`, so the move VARIES because Book Variety defaults to 30. Control `OwnBook false`: 0 of 3,
+18 info lines, stable `e2e4`. Real middlegame at defaults: 0 of 3, so the book fires on OPENINGS only. `Ruy_2`
+fired 3/3 with `['b1c3','g1f3']`.
+
+MY FALSE NEGATIVE: my first run of this same test reported 0 of 3 book fires because I used `go depth 12`. The book
+is probed ONLY when `game_search` holds — clock or movetime (`uci.cpp:681`) — so a DEPTH search can never produce a
+book answer and my test was structurally incapable of finding one. The same harness, re-run with a clock search,
+reported 3 of 3.
+
+WHY THAT IS THE USEFUL HALF: the check I had just written — "the trigger is the configuration, not the command"
+(Trap 6 and Trap 7) — applied directly to my own instrument, and I did not notice until the numbers came back
+empty. The failure mode is silent and looks exactly like a clean result: **a test that cannot fire returns the same
+answer as a test that found nothing.**
+
+Next: add that as a trap, then continue confirming to 2026-11-17T10:18Z.
+## 2026-11-17T00:40:46Z — trap 8 added
+TRAP 8: 'A test that cannot fire returns the same answer as a test that found nothing' — the only trap on the page about the HARNESS rather than the engine, and I earned it by producing the false negative myself (S-F103). The rule: BEFORE TRUSTING A NEGATIVE, SHOW THE TEST CAN RETURN A POSITIVE, the cheapest proof being to plant the positive — a clock search here, a fake engine or planted fault elsewhere. It is the same family as the two sanitizer proofs and the mirror sanity control, and it is now the ninth trap (0-8) on the page.
+ALSO RE-PUSHED the repaired STATUS block from the previous cadence, which shell backtick substitution had damaged - FINDINGS was unaffected because it is written by heredoc.
