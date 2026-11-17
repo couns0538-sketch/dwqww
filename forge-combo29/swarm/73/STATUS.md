@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,405 lines, 63 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,418 lines, 63 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,31 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Nineteenth round — the correction propagated, and the parser table now adds up
+
+**Applying rule 12's own consequence to the rest of the document found two more instances of the same class**, both
+created by my own earlier partial edits:
+
+1. **The parser-surface table's heading claimed "two of five refuse safely, three improvise silently, and one surface
+   does both"** — which does not add up, because the third clause makes six of five. The move list was also **missing
+   from the table entirely**, because I had classified it as a hazard when it is now a **truthful** surface. The table
+   now has seven rows over five surfaces with an explicit **verdict column**, and the arithmetic is stated so it can be
+   checked: **three surfaces report the fault, two improvise, and `position fen` counts in both** because its
+   surplus-fields branch is silent.
+2. **§7b repeated the same stale "two of five / three improvise" sentence and pointed at rule 11 instead of 12.** Both
+   fixed by the same rewrite.
+
+**A judgement I had over-asserted, and have retreated from:** my text called the junk-before-`moves` behaviour a defect
+("a malformed position silently becomes a real one"). **Discarding an unrecognised token before a keyword is ordinary
+leniency**, and the measurement supports "the command is honoured with the junk dropped" — not a verdict on whether that
+is wrong. **The section now records the behaviour and says explicitly that the report's "defect" framing is a judgement
+the measurement does not settle.** What a consumer actually needs is that the moves still apply.
+
+**The general lesson, which is rule 12 applied to itself:** a correction to one claim has **dependent sentences** in
+other sections, and the ones that break are the summaries — a table heading, a §7b restatement, a pointer. **Every
+time I corrected the move-list claim I should have grepped for the parser-surface count, and I did not do it until the
+claim's own consequence told me to.**
 
 ## Eighteenth round — the practical consequence, and the tell that catches my own class of error
 

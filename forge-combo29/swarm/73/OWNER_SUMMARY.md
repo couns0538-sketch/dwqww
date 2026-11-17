@@ -1374,17 +1374,25 @@ These are the transferable output. Each is a rule the run paid for with a defect
      supplied.**
    - **The harm is two experiment arms silently becoming one**, with no error and no after-the-fact detection —
      the same mechanism as `go depth 16 multipv 3` meaning MultiPV 1 (rule 8).
-12. **The parser surfaces are NOT uniform — two of five refuse safely, three improvise silently, and one surface does
-   both depending on the direction of the error.** Know which one you are talking to before you trust a refusal:
+12. **The parser surfaces are NOT uniform — and after the move-list correction the split is three that report
+   truthfully and two that improvise silently, with `position fen` doing both depending on the direction of the
+   error.** Know which one you are talking to before you trust a refusal:
 
-   | surface | malformed input | what happens |
-   |---|---|---|
-   | `setoption` | bad value, out of range, no `value`, unknown name | **reports it, keeps the old value** |
-   | `position fen` — **too few fields** (5, 4, 3, 2) | short FEN | **reports `invalid FEN: FEN must contain six fields`, keeps the previous board** |
-   | `position fen` — **too many fields** (7, 8) | surplus tokens | **nothing printed; surplus DROPPED, board loaded — the position you meant** |
-   | `position fen` — illegal position | adjacent kings | **reports it, keeps the previous board** |
-   | `go` limits | unparseable value | **nothing printed; substitutes a default** |
-   | `position` TYPE | unrecognised keyword | **nothing printed; re-searches the previous board** |
+   | surface | malformed input | what happens | verdict |
+   |---|---|---|---|
+   | `setoption` | bad value, out of range, no `value`, unknown name | **reports it, keeps the old value** | **truthful** |
+   | `position fen` — **too few fields** (5, 4, 3, 2) | short FEN | **reports `invalid FEN: FEN must contain six fields`**, but the previous board is then searched | **truthful, then dangerous** |
+   | `position fen` — **too many fields** (7, 8) | surplus tokens | **nothing printed; surplus DROPPED, board loaded — the position you meant** | **silent, harmless** |
+   | `position fen` — illegal position | adjacent kings | **reports it**, previous board searched | **truthful, then dangerous** |
+   | `position TYPE` | unrecognised keyword | **nothing printed; re-searches the previous board** | **improvises** |
+   | `go` limits | unparseable value | **nothing printed; substitutes a default** | **improvises** |
+   | **`moves` list** | illegal token | **reports `illegal move …` and truncates at that token** | **truthful — trust it** |
+
+   **The arithmetic, stated so it can be checked: five surfaces, of which three report the fault (`setoption`,
+   `position fen`, the move list) and two improvise silently (`position TYPE`, `go` limits) — and `position fen` is
+   counted in both because its surplus-fields branch is silent while its other two branches report.** An earlier
+   heading here said "two of five … and one does both", which did not add up; the move list was also missing from the
+   table entirely, because it was classified as a hazard when it is actually a truthful signal.
 
    **Field count splits in two directions and the halves must not be merged** — this row was wrong in an earlier
    draft of this document, which is why it is spelled out: **a 5-field FEN is refused loudly and then the previous
@@ -1423,8 +1431,12 @@ These are the transferable output. Each is a rule the run paid for with a defect
 
    **And junk BEFORE the `moves` keyword behaves differently: it is skipped and the moves still apply.** On the base
    build, `position fen <K6k> moves a1a2` gives **perft 2 = 15**, and **`position fen <K6k> bogus moves a1a2` also
-   gives 15** — the moves were applied. The board-only form gives **9**. **So a malformed position silently becomes a
-   real one** — a different defect from the truncation above, and the two must not be merged.
+   gives 15** — the moves were applied. The board-only form gives **9.** **So the junk token is discarded and the list
+   applies** — a different behaviour from the truncation above, and **the two must not be merged.**
+   - **Whether that is a defect is a judgement, and I am recording the behaviour rather than the verdict.** Discarding
+     an unrecognised token before a keyword is ordinary leniency; what a consumer needs to know is that **the moves
+     still apply**, so a harness cannot rely on a junk token invalidating the command. **The report calls it a defect;
+     the measurement supports "the command is honoured with the junk dropped", which is the part that changes behaviour.**
    - **A `perft 1` fingerprint cannot see this:** bare K6k has **3** moves, and after `a1a2` it is Black to move with a
      lone king, which also has **3** — **identical by construction.** **Perft 2 separates them (9 vs 15).**
    - **And on the older tree the behaviour is the opposite** — the whole command is dropped and the engine stays on
@@ -2185,10 +2197,11 @@ measured separately; collected, they are one property of the protocol surface ra
 **In four of the five the protocol says nothing that a consumer will act on. In three the output looks exactly like a
 success, and in the fifth the process simply stops answering.**
 
-**And the surfaces are not uniform, which is the part that makes "handle it" hard to write as a checklist:** two of
-five parser surfaces **refuse safely** (`setoption`, and `position fen` for short or illegal input) and three
-**improvise silently** (`go` limits, `position` TYPE, oversized FEN). **A harness that has verified one surface's
-refusal behaviour has learned nothing about the other four** — rule 11.
+**And the surfaces are not uniform, which is the part that makes "handle it" hard to write as a checklist:** of five
+parser surfaces, **three report the fault** (`setoption`, `position fen`, and the `moves` list — the last one truncated
+at the bad token and said so) and **two improvise silently** (`position` TYPE, `go` limits), with `position fen`
+counting in both because its surplus-fields branch is silent. **A harness that has verified one surface's refusal
+behaviour has learned nothing about the other four** — §4 rule 12.
 
 **And `position fen` refuses in one direction while improvising in the other**, which is the case that breaks the
 checklist most cleanly: **too few fields is refused loudly and then the previous board is searched; too many fields is
