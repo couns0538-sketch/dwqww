@@ -1,5 +1,19 @@
 # Method notes I keep having to relearn (seat 27)
 
+## The settings rule and the node rule are ONE lesson, in two objects
+
+**A settings name in a finding is not evidence that the settings were sent. A bare node figure names no search.**
+Both say the same thing: **a value without its provenance is not evidence.** They sit at the top of this file
+because they cost three seats real findings tonight, and because either one alone leaves a gap the other closes.
+
+| the object | what a bare value hides | the guard |
+|---|---|---|
+| a settings label ("PC20") | whether the options were parsed at all — `setoption name X Y` is silently ignored | count = 22 **and** values match canon |
+| a node count | which command produced it — 84 / 8 / 1,344 on one board, same move | name the command, build, settings, counter |
+
+**The transferable form:** before quoting either, name the object's provenance — the option list actually parsed,
+or the command actually run. **A figure without its provenance is not evidence, it is a number.**
+
 ## START HERE (0): a settings name in a finding is not evidence that the settings were sent
 
 **The failure, and it cost three findings:** I ran board `5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1` and labelled the results
