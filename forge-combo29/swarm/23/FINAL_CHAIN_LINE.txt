@@ -148,19 +148,25 @@ SIXTH LINE — THE HAZARD TABLE FOR THE FINAL'S GUI SECTION, to be reproduced VE
 | **stalemated root + unsatisfiable restriction** | engine ceiling (same as above) | **0** | **empty** | **cp 0** | **`0000`** | **none at all** | caller error, **silently** |
 | refused FEN or illegal token in the list | search runs on the WRONG board | > 0 | non-empty | plausible | plausible | one `info string` | the position is not what you sent |
 
-The three rules that follow it, also verbatim:
+The three rules that follow it, **copied from the page by script** rather than retyped:
 
-1. `nodes == 0` with an EMPTY `pv` means nothing was searched — never show its score.
-2. `bestmove 0000` is never a move. Treat it as an error unconditionally; do not rely on a diagnostic, because on a
-   stalemated root with an unsatisfiable restriction there is NONE (23-F159).
-3. Count the `info string` lines on every search — the only signal that a position or restriction was rejected.
+1. **`nodes == 0` with an EMPTY `pv` means nothing was searched** — never show its score. The empty `pv` is the reliable
+   signal; the node count is a symptom and the two auto-draw rules share it. **And do not infer a search depth from the
+   `info depth` line count here: on a bailed root it is the engine's ceiling (10 at `go depth 10`, 64 under `go nodes`),
+   not the depth of any search, because there was none (23-F185). The 64 is simply the DEFAULT depth — `int depth = 64`
+   in `search.hpp:29`, passed through the clamp at `search.cpp:2219` — reported once per depth by a loop that never
+   searched (23-F187).**
+2. **`bestmove 0000` is never a move.** Treat it as an error, and do not rely on a diagnostic to explain it — on a
+   stalemated root there is none (23-F159).
+3. **Count the `info string` lines on every search.** They are the only signal that your position or your restriction was
+   rejected, and a corrupted case is otherwise indistinguishable from a healthy one.
 
 Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-move and insufficient material each give
 10 lines / 0 nodes / empty pv / a legal move, so the drawn-root row is not a threefold-only observation.
 
 ### 8. What the counts measure — so no reader has to infer it
 
-**213 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 241 rows in total.**
+**214 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 242 rows in total.**
 The two series are not the same kind of thing and should not be read as one number without that sentence: an `F` row is a
 measurement this seat made, a `C` row is a check of someone else's claim (what was confirmed, what was not, and what was
 left untested). They are additive as ROWS and not as "findings", which is the distinction a reader would otherwise have to
@@ -168,8 +174,8 @@ infer from the letter in the id.
 
 The counts are also the most-audited numbers in the seat, and worth one line about what that evidence is: **every
 increment since the duplicate was found is one row added by one commit, the audit rejects a duplicate id, rejects a row
-whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "241 rows, 0 duplicates" is a claim
-about the FILE, checked mechanically on every commit — not a claim that 241 separate claims are each correct, which is
+whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "242 rows, 0 duplicates" is a claim
+about the FILE, checked mechanically on every commit — not a claim that 242 separate claims are each correct, which is
 what the evidence cells are for.
 
 ### 9. Two commands, so the first page and the numbers can both be checked
@@ -245,7 +251,7 @@ it is worth knowing that the refusal was correct each time: a commit SHA is not 
 repository, and a resolver cannot verify what it cannot find. **An evidence rule that rejects the convenient form is the
 rule earning its place.**
 
-**And the count, as a dated figure rather than a bare number:** **241 distinct rows at 2026-11-17T03:37:22Z** — 213 `F` (this
+**And the count, as a dated figure rather than a bare number:** **242 distinct rows at 2026-11-17T03:38:12Z** — 214 `F` (this
 seat's findings) and 28 `C` (confirmations of other seats'). It is stated with a timestamp and recomputed by
 `doc_check.py`, which fails if this sentence ever disagrees with `FINDINGS.md`; a bare total in prose would be stale
 within minutes, which is what happened twice while this seat was reporting it.

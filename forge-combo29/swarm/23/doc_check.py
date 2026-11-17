@@ -159,6 +159,30 @@ if _m:
 else:
     print("FINAL's count sentence: NOT FOUND (not treated as a failure; the sentence may have been reworded)")
 
+# VERBATIM-CLAIM CHECK (23-F216): the FINAL says it reproduces GUI_HAZARDS' table and rules "verbatim". A verbatim claim
+# that is not compared is a paraphrase with a label on it. Compare the two blocks directly.
+print()
+try:
+    _fin = open('FINAL_CHAIN_LINE.txt').read()
+    _gh = open('GUI_HAZARDS.md').read()
+    _i = _gh.index("| situation | `#info depth` lines")
+    _j = _gh.index("\n\n", _i)
+    _table = _gh[_i:_j].strip()
+    _table_ok = _table in _fin
+    # the rules: rules 1..3 as written on the page
+    _lines = _gh.split("\n")
+    _r1 = next(n for n, l in enumerate(_lines) if l.startswith("1. **`nodes == 0`"))
+    _rend = next(n for n, l in enumerate(_lines) if l.startswith("The sections below explain"))
+    _rules = "\n".join(_lines[_r1:_rend]).rstrip()
+    _rules_ok = _rules in _fin
+    print("FINAL reproduces GUI_HAZARDS table verbatim: %s" % ("YES" if _table_ok else "**NO**"))
+    print("FINAL reproduces GUI_HAZARDS rules verbatim: %s" % ("YES" if _rules_ok else "**NO**"))
+    if not (_table_ok and _rules_ok):
+        print("HARD FAILURE: the FINAL claims verbatim reproduction and does not match the source page.")
+        overall_ok = False
+except (FileNotFoundError, ValueError, StopIteration):
+    print("verbatim check: SKIPPED (source page or anchor missing)")
+
 print()
 print("VERDICT:", "PASS" if overall_ok else "FAIL \u2014 see the lines above")
 # THE SCRIPT PRINTED A VERDICT BUT NEVER EXITED NONZERO, so every caller that checks $? — including the pre-commit
