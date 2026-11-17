@@ -528,3 +528,14 @@ next command: continue at cadence on area 9 (speed) - the picker/TT lines are ex
 
 next command: continue at cadence; area 9's remaining levers are all measured and the picker/TT/king-lines
   lines are closed. Next is another seat's open finding where my counters or oracle add something.
+
+## 2026-11-17T00:23:05Z
+
+HARNESS_TRAPS.md: one list of all seven harness defects from this run, each with what it looks like,
+  the tell, the test and the fix (terminator-fabricates-move, select-on-buffered-pipe, warm state,
+  malformed setoption, bench's hardcoded 16MB, play-out-as-solver, oracle-missing-halfmove-window).
+  Linked from METHOD_INDEX.md as the companion. Two of the seven were caught only by another seat.
+19-C20: audited 08-N2 across seats - 17 and 10 exposed (select+readline), 01 and 28 safe (select+os.read);
+  latent not exercised (10's timeout is 1800 s); my own drivers have the opposite gap (no timeout at all).
+
+next command: continue at cadence.

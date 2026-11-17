@@ -78,3 +78,14 @@ rather than a property of the engine?** Three of my four failures were caught by
 - Retracted or corrected: `19-R1` (19-F18/F19, warm state), `19-C8` (defect-enum ordering), `19-C9` (two failed
   solvers + ply convention), `19-C16` (per-search counts).
 - Reports carrying the full evidence for each: `REPORT_*.md` in this folder.
+
+---
+
+## Companion: `HARNESS_TRAPS.md`
+
+A single list of every harness defect found in this run — the terminator-fabricates-a-move trap, `select()` on a
+buffered pipe, warm state, malformed `setoption`, `bench`'s hardcoded 16 MB table, play-outs read as solvers, and
+an oracle missing the halfmove window — each with **what it looks like, the tell, the test, and the fix**.
+
+Read it before writing a new driver. Two of the seven were caught only by another seat, which is the whole
+argument for the swarm's cross-checking rule.
