@@ -1,0 +1,26 @@
+Job 7 Bundle 3 Prediction (committed ALONE before any Bundle 3 timed run)
+=========================================================================
+Target: `forge-combo29/carbon2/job7/bundle3.patch.txt` — ONE unified diff against the Job 4 base
+(`6b98f217 + pc_r15.patch + carbon2/a_speed_pc20_v3.patch.txt + carbon2/job3/e1_legal_check_evasions.patch.txt`)
+holding every identity-proven step of Jobs 4 to 7:
+- `S1` (cache-tiled refresh + single-add/sub AVX-512 forward fusion)
+- `S2` (AVX-512 `VPERMT2D` quiet history scoring + cached picker quiet history + unboxed `is_pseudo_legal`)
+- `S3` (correction-table L1 prefetches + 4-way unrolled `non_pawn_key`)
+- `S4` (slim `MovePicker` `-2,552 B` struct + `qsearch` `odd_idx16` load guard)
+- `S5` (`Board::make_move` precomputed `early_key` reuse **WITH restored `#ifndef NDEBUG` `assert(key_ == dbg_key)` recomputation check** + conditional 72B `KingLines` save/restore on `Undo`)
+- `S6` (`Board::see_ge` unpinned enemy-pawn recapture fast-exit)
+- `S7` Parts 1 & 2 ONLY (zero-allocation `std::string_view` UCI `position`/`go` parsing + persistent `SearchTask` `Board` capacity handoff; **WITHOUT `S7` Part 3 dirty-tracked `Worker::clear()`**)
+- `G1` (cached `corr_mat_idx` `material_key` index on `SearchStack` + inline `has_dead_material_candidates` guard)
+- `G2` (`Board::see_ge` no-recapture fast-exits + unified `FORGE_SDK_SEE_HOIST` king-line cache)
+- `G3` (`known_gives_check` reuse in `Board::make_move` with `assert(compute_checkers() == 0)` + `MovePicker::init_check_squares` `ensure_king_lines` deduplication + ray-free pawn stalemate fast-exit + branchless king-evasion taboo pre-mask)
+- `G4` (per-search `v3_active_net_` / `nnue_active_` snapshot + hoisted `nnue::v3::prepare` `6,464 B -> 112 B` + direct `board.king_square` & parent `KingKey` reuse on non-king moves in `Worker::static_evaluate_v3`)
+- `O2` (UCI option `InfoOnce`, `type check default false`; `B` timed runs execute with `InfoOnce true`)
+
+Predicted performance of `B = bundle3 (with InfoOnce true)` against `A = Job 5 bundle1` at **`Hash 32`** (12 rounds x 60 games ABBA, `PC20 + net768`, Intel Xeon @ 2.60GHz):
+- **Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`):** `+1.2%` to `+3.5%` (`1.012x` to `1.035x`) faster than Job 5 `bundle1`, with `>= 9/12` paired rounds faster (`G1..G4` search work removals + `O2` `-89.16%` `info` line formatting/write syscalls, minus ~`0.15%` from restoring unconditional `Worker::clear()`).
+- **Single-worker idle-VM wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`):** `0.975x` to `1.005x` (`-2.5%` to `+0.5%`), because on an otherwise-idle 4-vCPU VM running 1 engine + 1 Python client, `InfoOnce true` keeps the stdout pipe silent during the 1.8 ms search so the client vCPU enters kernel sleep (`~+55 us/search` cross-core wakeup latency in serial wall time, while saving real engine + Python CPU seconds).
+- **4-round ABBA `bench 13` (`A = Job 5 bundle1`, `B = bundle3` at default `InfoOnce false`, `PC20 + net768`):** `+1.0%` to `+3.5%` (`1.010x` to `1.035x`) in `median_of_paired_round_ratios`.
+
+Kill range:
+- Any identity, Debug-build `assert`, `InfoOnce` stream-oracle, or 48-run FNV trace (`afc8237d71719c40`) divergence kills `bundle3` immediately.
+- If the 12-round x 60-game `Hash 32` **engine `getrusage` CPU** `median_of_paired_round_ratios` (`bundle3 / bundle1`) is `<= 1.008x` (`<= +0.8%`) OR fewer than `9 / 12` paired rounds are faster on engine `getrusage` CPU, the `bundle3` engine-CPU speedup prediction is killed.
