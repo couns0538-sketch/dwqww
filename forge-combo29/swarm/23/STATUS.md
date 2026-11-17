@@ -1670,3 +1670,22 @@ variants). Their results stand as measurements with raw files but are NOT pre-re
 existing line of enquiry - an explanation, not a defence, since the rule has no size exemption.
 Every other job (33 of 37) has its prediction committed alone and pushed before the first measuring command.
 111 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 6 m remain.
+## 2026-11-17T01:13:37Z  F84: F80's cited sentence is now measured - the step moves with depth, exactly onto C26's onsets
+2026-11-17T01:13:37Z
+
+Job 38, prediction committed and pushed at 01:12:45Z before the first command. Four predictions, four held.
+Depth 6: gap steps to 406 at counter 95 (go is a win at 80 = cp 400, at 90 = cp 401). Depth 12: steps at 89 (go a win
+at 78 = cp 410, at 84 = cp 364). Six counters apart; the kill range was "within three".
+
+The onsets land EXACTLY on 23-C26's independently measured 95 and 89 for those depths. C26 read the search's own
+score; job 38 read the disagreement between the static evaluator and the searched answer. No shared code, exact
+agreement twice. So F80's weakest sentence ("the step would move too", cited from C26) is now a measurement, and
+the same mechanism is seen through three instruments rather than two.
+
+One refinement that cuts against my own shorthand and is now in the finding: below the horizon the gap is NOT
+reliably positive - depth 12 counter 78 gives gap -4 (eval 406, go cp 410). "eval overstates by 406" holds only at
+and past the horizon. The sentence a tool author should carry is "the interfaces agree below the horizon and diverge
+by the whole eval total at it".
+
+Cost at the onset: 12.0M nodes at 88, 176M at 89, 34M at 90 (depth 12). Recorded, NOT offered as a performance claim.
+112 findings. Real time 01:14Z.

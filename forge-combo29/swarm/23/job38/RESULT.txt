@@ -1,0 +1,57 @@
+THE GAP'S STEP MOVES WITH DEPTH — F80's one cited sentence is now measured
+==========================================================================
+23-F80 located the eval/go step at counter 92 (depth 10) and ended with a LIMIT that said the step "would move with
+depth too" — taken from 23-C26's onset sweep, not re-measured. That cited sentence was the weakest thing in F80. This
+job measures it. Board `1K6/8/8/3R4/8/8/8/k7 w` (the F80 / C26 board), base build, Threads 1, Hash 16, OwnBook false,
+`eval` and `go depth N` per counter.
+
+| depth | counter | eval total | go score | go nodes | gap (cp) | bestmove |
+|---|---|---|---|---|---|---|
+| 6 | 80 | 406 | cp 400 | 1,334 | 6 | b8a8 |
+| 6 | 90 | 406 | cp 401 | 1,841 | 5 | b8a8 |
+| 6 | 93 | 406 | cp 327 | 13,485 | 79 | d5a5 |
+| 6 | 94 | 406 | cp 392 | 10,639 | 14 | d5b5 |
+| **6** | **95** | 406 | **cp 0** | 26,546 | **406** | d5b5 |
+| 6 | 96 | 406 | cp 0 | 3,253 | 406 | b8a8 |
+| 6 | 98 | 406 | cp 0 | 233 | 406 | b8b7 |
+| 12 | 78 | 406 | cp 410 | 48,032 | **-4** | d5b5 |
+| 12 | 84 | 406 | cp 364 | 107,598 | 42 | d5b5 |
+| 12 | 86 | 406 | cp 347 | 209,049 | 59 | d5b5 |
+| 12 | 87 | 406 | cp 386 | 2,815,341 | 20 | d5b5 |
+| 12 | 88 | 406 | cp 334 | 11,905,980 | 72 | d5b5 |
+| **12** | **89** | 406 | **cp 0** | 176,499,882 | **406** | d5b5 |
+| 12 | 90 | 406 | cp 0 | 34,328,608 | 406 | d5b5 |
+
+depth 6  : eval spread 0 cp; permanent cp-0 onset = **95**
+depth 12 : eval spread 0 cp; permanent cp-0 onset = **89**
+
+ALL FOUR PREDICTIONS HELD, each against its stated kill range:
+  P1 eval constant at 406 across all fourteen cells, spread 0 cp at BOTH depths (kill was > 5). Holds.
+  P2 depth 6: onset 95, inside the predicted 93-97, and go is a WIN at both 80 (cp 400) and 90 (cp 401) — so the
+     sweep really did have a winning side to contrast. Holds.
+  P3 depth 12: onset 89, inside 87-91, and go is a WIN at 78 (cp 410) and 84 (cp 364). Holds.
+  P4 the onsets are 95 and 89 — SIX counters apart, where the kill was "within 3". Holds.
+
+WHY THIS IS BETTER THAN A REPEAT: the onsets land EXACTLY on 23-C26's independently measured values for the same
+depths on the same board — C26 got 95 at depth 6 and 89 at depth 12 by sweeping the counter and reading the search's
+own score; this got 95 and 89 by watching the disagreement between a static evaluator and a searched answer. Two
+instruments, no shared code, exact agreement at two depths. F80 could previously claim that agreement at ONE depth
+(92 vs 91, within ±4); it now holds exactly at two, and the depth-dependence that F80 only cited is measured here.
+
+ONE REFINEMENT F80 DID NOT HAVE, and it cuts against the shorthand: BELOW the horizon far from it, the gap is not
+reliably positive — depth 12 counter 78 gives gap **-4** (eval 406, go cp 410). So "eval overstates by 406" is true
+only at and past the horizon; below it the two interfaces essentially agree, with the search sometimes slightly
+ABOVE the static number. The right sentence for a tool author is "the two interfaces agree below the horizon and
+diverge by the whole eval total at it", not "eval overstates".
+
+THE ONSET REGION IS ALSO WHERE THE COST EXPLODES: 11.9M nodes at counter 88, 176M at 89, 34M at 90 (depth 12).
+Deliberately NOT used as an argument about performance — per 23-F82, a node count is not a defect and this is one
+cell on one board. It is recorded because a tool that searches across the horizon should not be surprised by the
+cost, and because it is the only place in this job where the node count is not small.
+
+LIMIT: one board, two depths, base build only. The step was not measured on the PC r15 build, so nothing here says
+the repair moves the step (23-C26 measured the PC's behaviour at counters 0-91, not at the onset). Onset defined as
+the first counter at which go is cp 0 AND every higher counter tested is also cp 0 — depth 6 counter 93 (cp 327) is
+below 94 (cp 392), a non-monotonic wobble recorded rather than smoothed, and the highest counter tested per depth
+(6: 98; 12: 90) is cp 0 so the permanence claim is not contradicted within the tested range, but neither is it
+extended beyond it.
