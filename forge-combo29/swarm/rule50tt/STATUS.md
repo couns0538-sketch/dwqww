@@ -32,10 +32,14 @@
 
 ## Gaps, stated rather than hidden
 
-- The eval-channel path at clock ≥ 90 through an **in-check evasion near 99** was not
-  reached by my corpora. This is the named place to look and I could not get there.
-- The clock-97 false draw (truth −620, engine cp 0) is **not diagnosed**; my trace does not
-  separate the leaf rule from the TT for that board.
+- **The eval-channel path at clock ≥ 90 through an in-check evasion near 99.** The SHAPE is
+  now confirmed reachable — three roots put a node at clock 100 on the PV via a quiet king
+  move (§6) — but all three returned `cp 0`, so the warm/cold differential there is a
+  **weak null**: a drawn score has nowhere to show a stale one. Still not demonstrated.
+- **The clock-97 false draw is now ATTRIBUTED**: it is the rule-50 **leaf** rule, not the TT.
+  `always_true` (TT guard removed entirely) returns the same `cp 0` at clock 97, and
+  `rule50_damped_static` scales eval by 0.03 there. The report's open question is answered
+  in the negative for the TT — see FINDINGS.md §6.
 - Threads 1, fixed depth only. No self-play corpus.
 
 ## Evidence index
@@ -52,12 +56,14 @@
 | `evidence/mate_first.json` | pre-`d9a8587df` ordering vs shipped, 48 cells, 0 differences |
 | `evidence/bail.json` | 5 bails (0 stores) + 4 search controls |
 | `evidence/poison_probe.txt` | a planted clock-100 zero, accepted only at clock 100 |
+| `evidence/evasion.json` | 5 in-check roots; 3 reach a clock-100 node on the PV |
+| `evidence/evasion_diff.json` | warm/cold on those boards (weak null) + the clock-97 sweep |
 
 ## Scripts
 
 `pins.sh` · `make_plan.py` · `tt_probe_harness.cpp` · `score_usable_table.cpp` ·
 `analyse_table.py` · `branch_power.py` · `make_variants.py` · `make_mate_first.py` ·
-`fresh_diff.py` · `report_stale.py` · `aa_control.py` · `sweep_branches_final.py` ·
+`fresh_diff.py` · `report_stale.py` · `aa_control.py` · `sweep_branches_final.py` · `exp_evasion.py` · `exp_evasion_diff.py` ·
 `threshold_sweep.py` · `exp_bail.py` · `poison_probe.cpp` · `uci_driver.py` ·
 `make_fixtures.py` · `guard_power.py` · `sweep_branches.py` · `sweep_threshold.py`
 (the two shared-process sweeps, retained as the withdrawn designs their successors fixed)

@@ -234,14 +234,75 @@ store, the hazard is latent, not live.
 - **Whether a stale-clock entry can change a score through the eval channel at clock ≥ 90.**
   My boards and clocks did not produce one; that is a bound on 7 boards, not on the engine.
   The place to look is the one the coordinator named: **in-check evasions near clock 99**,
-  which is the only quiet path to clock 100. `evasion` nodes are not broken out by clock in
-  my trace, so I cannot say the corpus reached that condition.
-- **The clock-97 false draw** (`6k1/5ppp/8/8/8/8/8/R5NK b - - 97 40` → cp 0 in 1,061 nodes,
-  truth −620). Not diagnosed. It is one ply from the band and my trace does not separate the
-  leaf rule from the TT for it, so I will not guess which.
+  which is the only quiet path to clock 100. See the next section — the shape *is* reachable
+  and I measured it; it still did not produce a stale reuse.
 - **Threads > 1.** Everything here is Threads 1.
 - **`go nodes` / `go movetime`.** Fixed depth only.
 - **A game-play corpus.** No self-play games were generated; the boards are constructed.
+
+---
+
+## 6. The evasion path, and the clock-97 false draw — attributed
+
+The coordinator flagged two things this seat had left open. Both are now measured.
+
+### The shape is reachable (so the previous null is not a corpus limitation)
+
+Five roots with the side to move in check, where the only evasions are quiet king moves.
+Three of them put a node at **clock 100** on the principal variation, which is the condition
+the band needs (`scripts/exp_evasion.py`):
+
+| case | root clock | bestmove | resets the clock? | child clock |
+|---|---|---|---|---|
+| kq_check_99 | 99 | `h1g1` | no | **100** |
+| kr_check_99 | 99 | `h8g7` | no | **100** |
+| rook_check_99 | 99 | `g8f8` | no | **100** |
+| kq_check_98 | 98 | `h1g1` | no | 99 |
+| rook_check_97 | 97 | `g8f8` | no | 98 |
+
+So the earlier negative in §2 is **not** explained by "we never reached the condition".
+
+### Warm-then-probe on exactly those boards: still no clock-specific change
+
+Same design as §2 (fresh process per measurement, 3 repeats, same-clock warm control),
+run at clocks 98↔99 and 97↔99 on the three boards above: **every cold cell returned
+`cp 0` with the same move, every warm pair returned the same, and every cell was stable
+across 3 repeats.** A cp-0 position has nowhere for a stale score to show, so this is a
+**weak null** and I am labelling it as one: the boards reached the shape but their scores
+were degenerate. `evidence/evasion_diff.json`.
+
+### The clock-97 false draw is the LEAF RULE, not the TT — and that settles an open question
+
+The report lists `6k1/5ppp/8/8/8/8/8/R5NK b - - 97 40` returning `cp 0` where the truth is
+−620, and says "whether that comes from the TT or from the leaf rule is not established".
+Measured across clocks 94–99, depth 14, 3 repeats, **every cell stable**:
+
+| clock | score | nodes | pv length |
+|---|---|---|---|
+| 94 | cp −580 | 524,162 | — |
+| 95 | cp −524 | 185,994 | — |
+| 96 | cp **−552** | 207,911 | 17 |
+| 97 | cp **0** | 901 | 3 |
+| 98 | cp 0 | 383 | 2 |
+| 99 | cp 0 | 313 | 2 |
+
+A **552 cp discontinuity between clock 96 and clock 97**, and the pv collapses from 17 plies
+to 3. The discriminating control: the **`always_true` build** — `score_usable` returning
+`true` unconditionally, i.e. the TT guard entirely removed — gives **cp 0 at clock 97 too**
+(901 → 1,097 nodes, same move, same score). If the zero came from a reused TT entry, removing
+the guard would have changed it. It does not.
+
+**So the clock-97 zero is not a transposition-table defect at all.** It is the leaf rule:
+`rule50_damped_static` scales a static eval by `(100 − clock)/100`, which is **0.03** at
+clock 97, turning a large negative eval into a small one; and `is_draw` at clock ≥ 100 with a
+legal move returns a draw. The boundary is at `100 − p` exactly, which is the band already
+documented in §2 of the findings. Checked in python-chess: after Black's quiet `Kg8-f8`,
+White has **no** move that resets the clock (`resets: NONE`), so the draw is real and the
+engine is not wrong to see one — it is wrong about the *evaluation*, not about the rule.
+
+This is a **narrowing** of the report's open question rather than a new defect: the
+clock-97 anomaly is rule-50 leaf arithmetic, and anyone looking for it in the TT will not
+find it there. The TT's own clock field is not implicated anywhere in this seat.
 
 ---
 
