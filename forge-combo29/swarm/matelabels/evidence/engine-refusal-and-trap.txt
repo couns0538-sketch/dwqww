@@ -1,0 +1,64 @@
+# Evidence — the `quit`-into-live-search trap, reproduced
+
+The brief lists this as trap 1 and says five separate seats hit it. It was
+reproduced here deliberately, on the build under test, before any measurement,
+so the driver's design is justified by observation rather than by citation.
+
+## The failing form
+
+```bash
+printf 'uci\nisready\nsetoption name MultiPV value 3\nposition fen 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1\ngo depth 10\nquit\n' | ./forge
+```
+
+Output:
+
+```
+bestmove b3b1
+```
+
+**Zero `info` lines, and a `bestmove`.** The engine exited 0. A harness that
+scraped this would record a move with no score, no depth and no PV — and would
+have no way to tell that from a legitimate search that happened not to print.
+
+## The working form
+
+The same position through a driver that writes `go depth 10`, then reads stdout
+until `bestmove` before sending anything else:
+
+```
+info depth 9 multipv 3 score cp 450 seldepth 12 nodes 15977 nps 234955 hashfull 0 time 68 pv b3b8 c2d2 f1g2 d2d3 b8b5 d3e2 b5a5 e2d3
+info depth 10 multipv 1 score cp 493 seldepth 14 nodes 7127 nps 87987 hashfull 0 time 81 pv b3b8 c2c3 b8b5 c3c4 b5h5 c4c3 f1g2 c3b2 h5b5 b2a2
+info depth 10 multipv 2 score cp 482 seldepth 14 nodes 17751 nps 219148 hashfull 0 time 81 pv b3b5 c2d3 f1g2 d3e3 b5a5 e3d3 g2h3 d3e2 h3h2 e2f2
+info depth 10 multipv 3 score cp 471 seldepth 12 nodes 23964 nps 295851 hashfull 0 time 81 pv b3h3 c2d2 f1g2 d2e2 h3h5 e2d1 g2h3 d1d2 h5b5
+bestmove b3b8
+```
+
+30 `info` lines. **The same `bestmove` value (`b3b8` vs the fabricated `b3b1`)
+differs between the two forms** — the fabricated move is not even the searched
+move, which is the sharpest demonstration that trap 1 manufactures data rather
+than truncating it.
+
+Every query in this corpus went through the second form
+(`scripts/uci_driver.py`).
+
+## Engine refusal check
+
+Every fixture was validated with python-chess **and** checked for engine
+refusal on the `position` command, per brief rule 4. `invalid FEN` is reported
+on the `position` command, not in search output, so the driver inspects that
+channel specifically.
+
+Observed on the harvest pass: **0 refusals in 5,473 positions scanned**
+(`harvest_labels.py` counters `skipped_refused` / `skipped_invalid`, both 0).
+That is the expected result on this corpus (the FENs come from the repo's own
+soak corpus, which was itself already screened), and it is recorded rather than
+assumed: the counter exists so a refusal would have been counted, not swallowed.
+
+## The drawn-root bail, checked for contamination
+
+The brief records a drawn root returning 0 nodes, an empty `pv`, and playing the
+generator's first move unsearched (1 per 114 plies of self-play, 47% of games).
+A `pv_len == 0` mate label would be that shape. **No harvested label has
+`pv_len == 0`** — all 300 carry a non-empty PV, and the source at
+`src/search.cpp:2255` (`root_drawn`) reports `MateValue`-free scores, so a drawn
+root cannot emit a mate label at all. Recorded as a checked non-issue.
