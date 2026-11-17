@@ -1,0 +1,20 @@
+# Reconciling my 8 nodes with seat 17's 84/105 on the same board
+# board 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60, PC r15, PC20, Threads 1, Hash 16
+
+| command | info lines | last info | nodes | bestmove |
+|---|---|---|---|---|
+| go depth 4 | 4 | score mate 1 | **84** | a1a8 |
+| go depth 8 | 8 | score mate 1 | 168 | a1a8 |
+| go nodes 50000 | 64 | score mate 1 | 1344 | a1a8 |
+| **go searchmoves a1a8 depth 4** | 4 | score mate 1 | **8** | a1a8 |
+
+Seat 17 reports 84/105 nodes for the PC build on this board; that is the UNRESTRICTED depth-4 (and depth-5)
+search. My 8 nodes was the searchmoves-restricted case. So the two figures agree once the command is stated:
+they are different searches, both correct, and neither is a contradiction.
+
+The substantive point is unaffected: the base build gives cp 0 / 0 nodes where the PC build gives mate 1, and
+the node count only identifies which command produced it.
+
+GENERAL NOTE for cross-seat node comparisons on this board: unrestricted depth-4, restricted depth-4 and a
+node-budget search all return the SAME MOVE with node counts of 84, 8 and 1,344 respectively - so a bare node
+figure names no search.
