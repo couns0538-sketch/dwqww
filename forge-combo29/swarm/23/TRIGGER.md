@@ -63,9 +63,12 @@ from the two automatic draw rules, which persist.
 
 - **The score is largely SOUND.** On an **automatic** draw (insufficient material, where no claim exists) **both builds
   report `cp 0` — neither build is wrong** (23-F128's R4). On a **claimable** draw the two builds differ in whether to
-  claim (base `cp 0`, PC `cp 425` on the R3 root): **both are defensible, and this is a POLICY difference about claiming,
-  not a correctness defect in either build.** R3 is documented here in that form deliberately, and a later reader who
-  turns it into a defect has changed the finding into something the evidence does not support.
+  claim (base `cp 0`, PC `cp 425` on the R3 root): **both are defensible, and it is not a correctness defect in either
+  build.** R3 is documented here in that form deliberately, and a later reader who turns it into a defect has changed the
+  finding into something the evidence does not support. **BUT IT IS NOT A "POLICY" EITHER — 23-F169 refutes that reading:
+  on a drawn root with NO forced win available the PC reports `cp 0`, i.e. it does claim. The `cp 425` on R3 was the
+  MATE talking, not a rule against claiming. So the accurate contrast is "the PC finds the win where one exists and
+  reports the draw where none does", which is correct behaviour, not a different policy.**
 - **The MOVE is where the base's damage is** — and the cost figure belongs to the MOVE, not to the score. Two DISJOINT
   12-position samples give medians of **~625 cp** and **~1,004 cp** with nine or ten of twelve at ≥ 300 cp (23-F101,
   23-F144), so the honest form is "roughly 600 to 1,000 cp, sample-dependent" rather than a single number. On a real
