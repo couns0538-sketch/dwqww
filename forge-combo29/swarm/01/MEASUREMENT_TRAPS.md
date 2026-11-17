@@ -480,6 +480,37 @@ whether it was ever *built*.
 are copied from a previous list, or written from a plan, is one claim wearing four hats — and it will pass review exactly
 as easily as a true one.
 
+### A generated list has its own failure mode, and it closes the loop with Trap 12 (S-F151)
+
+Generating the list from the work fixes the fiction problem and introduces a new one: **a generator can silently omit an
+item, and the omission is invisible because there is no row to look wrong.** I proved this against my own tool by deleting
+a whole mutation class from its list — it ran three tests, printed **"every mutation derived from a real instance was
+detected"**, and exited **0**.
+
+> **So a generated list needs the same count guard as a checker: if the generator's count is lower than the number of
+> things you believe you implemented, that is a finding, not a rounding.**
+
+`mutation_selftest.py` now asserts `len(results) == EXPECTED_CLASSES` and prints the count every run:
+
+```
+classes run: 4 (expected 4)
+```
+
+Deleting a class now gives **`classes run: 3 (expected 4)`** and exit 1, with the message saying why the absence could
+not otherwise show up.
+
+**This is Trap 12 in a different costume, and the symmetry is the point: both are "the artefact examined fewer things
+than you thought."** Trap 12's version is a *selector* that matched nothing; Trap 14's is a *list* that lost a member.
+In both, the output reads as success and the only evidence is a number the report has to state about itself.
+
+| | what is short | the symptom | the fix |
+|---|---|---|---|
+| Trap 12 | the selector matched 0 of N | "every row examined is fine" | state the count; 0 is a failure |
+| Trap 14 | the list holds < N items | "every mutation was detected" | state the count; a short count is a finding |
+
+**Both fixes are one integer printed beside the verdict.** That is the cheapest verification there is, and it works
+because it makes the report answer a question about itself rather than about the subject.
+
 ## The shape the harness traps share
 
 Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), Trap 10 (a profile that never looked at

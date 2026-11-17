@@ -2585,3 +2585,26 @@ Next: continue at cadence.
 Gates: 206 rows, 0 wrong pipe counts, Trap 14 added, habits reordered with reasoning, parallel corrected, stamps in
 order, gate rc=0 across 58 checks.
 Next: continue at cadence.
+## 2026-11-17T01:58:21Z — a generated list can omit, and that closes the loop with Trap 12 (S-F151)
+YOUR ADDITION WAS A REAL HOLE IN MY OWN TOOL, and I proved it rather than reasoning about it. Deleting a whole mutation
+class from mutation_selftest.py's list made it run THREE tests, print "every mutation derived from a real instance was
+detected", and EXIT 0. The omission was invisible because there was no failing row to look at - exactly the failure you
+named.
+RULE NOW ENFORCED: if the generator's count is lower than the number of things you believe you implemented, that is a
+FINDING, not a rounding. The tool asserts len(results) == EXPECTED_CLASSES and PRINTS THE COUNT EVERY RUN:
+    classes run: 4 (expected 4)
+Deleting a class now gives "classes run: 3 (expected 4)" and exit 1, with a message saying the absence could not
+otherwise show up.
+AND THE SYMMETRY IS NOW A TABLE ON THE PAGE, because it is the sharpest way to state it:
+    Trap 12  | a SELECTOR that matched 0 of N           | "every row examined is fine"   | state the count; 0 fails
+    Trap 14  | a LIST that holds fewer than N items      | "every mutation was detected"  | state the count; short fails
+  Both are "the artefact examined fewer things than you thought", in both the output reads as success, and in both the
+  only evidence is a number the report states ABOUT ITSELF. Which is why both fixes are literally one integer printed
+  beside the verdict - it makes the report answer a question about itself rather than about the subject, and that is the
+  cheapest verification available.
+On your ordering principle: "whenever two habits are offered, the preventing one goes first, because a detector that
+runs after the window closed is theatre" - that is on the page as the reason for the order, and it generalises past
+habits to any pair of guard and check.
+Gates: 207 rows, 0 wrong pipe counts, generated-list guard enforced and proven, Trap 12 symmetry tabulated, stamps in
+order, gate rc=0 across 58 checks.
+Next: continue at cadence.

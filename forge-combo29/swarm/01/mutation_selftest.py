@@ -140,7 +140,18 @@ def main():
         ("pooled ratios carry spread", test_pooled_spread(tmp)),
         ("status stamps bounded", test_status_stamps(tmp)),
     ]
-    print("MUTATION SELF-TEST - bad inputs derived from the files' own shape, not from my imagination\n")
+    print("MUTATION SELF-TEST - bad inputs derived from the files' own shape, not from my imagination")
+    print("classes run: %d (expected %d)\n" % (len(results), 4))
+    # TRAP 14's GENERATED-LIST GUARD (S-F151): a generated list can silently OMIT an item, and the omission is invisible
+    # because there is no row to look wrong. So the count is asserted against what I believe I implemented. Proven by
+    # deleting a class from the list above and watching the tool report success on three tests instead of four - which
+    # is exactly the failure this constant prevents.
+    EXPECTED_CLASSES = 4
+    if len(results) != EXPECTED_CLASSES:
+        print("FAIL: %d mutation classes ran, expected %d. A class is missing from the list, and its absence cannot"
+              % (len(results), EXPECTED_CLASSES))
+        print("      show up as a failing row - that is the generated-list failure mode (Trap 14 / Trap 12).")
+        return 1
     bad = 0
     for name, (status, detail) in results:
         print("  %-4s %-28s %s" % (status, name, detail))
