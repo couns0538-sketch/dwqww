@@ -241,6 +241,22 @@ found one".
 **Practical form:** when you find yourself more confident about a zero than about a percentage, that is the moment
 to check whether the zero has a plant. The confidence is coming from the shape of the number, not the evidence.
 
+### Soft nulls hide better than hard zeros (19-C32)
+
+**A systematic pass over my own 15 null-shaped findings found that the ones phrased as *conclusions* are the ones
+that escape scrutiny.**
+
+- **"0 of 40"** announces itself as an absence. It got the Rule 1 question immediately, and I planted it (19-C29).
+- **"not measurably faster"** reads like a *finding*. It escaped the question entirely — and when I finally
+  audited it, it had no positive control proving the timing could detect a real speedup (19-C31).
+
+**So the shape of the sentence decides whether you ask the question.** A number that looks like zero invites "did
+you prove you could see one?"; a phrase that looks like a result invites "what was the effect?" and nobody asks
+about the instrument.
+
+**Practical form:** when a null is written as a *conclusion* — "not faster", "no effect", "unchanged", "neutral" —
+treat it as a zero and ask for the planted case. **The softer the wording, the more likely it is unplanted.**
+
 **I then applied this to my own worst zero** (19-C29). 19-F54 reported "0 of 40" with no plant — its one
 mate-bearing board exercised only the "no defect" path, because the engine *played* the mate. So I built one: on
 `6K1/8/1r4k1/8/8/2p5/8/8 b - - 13 186` (18 legal moves, exactly **1** mates), the same scoring code returns
