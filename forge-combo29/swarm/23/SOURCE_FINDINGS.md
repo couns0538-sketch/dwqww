@@ -350,3 +350,239 @@ cd forge-combo29 && cmake -S . -B /tmp/bld -DCMAKE_BUILD_TYPE=Release -DFORGE_PO
 # r15: git show origin/handoff/fable-opus-combo29-all-20261114:forge-combo29/soak_all/FABLE_TO_swarm_5.md \
 #        | sed -n '56,2374p' > /tmp/pc_r15.patch && patch -p1 < /tmp/pc_r15.patch   (sha256 d6bd72c531f785f4…)
 ```
+
+---
+
+# ADDENDUM — the API gap, the two tests, and the halfmove path
+
+Three follow-ups requested in the same session. Everything here is measured on the same three builds and the same
+harness discipline as §0-§7, except §A2 which is a **compilation** result: I built the two tests in question against
+both sources and ran them, rather than reasoning about what they would do.
+
+---
+
+## A1. The `SearchInfo` gap is an API finding — what a caller can check, and whether it is documented
+
+**The gap, stated exactly.** `SearchInfo` (`include/forge/search.hpp:58-69`) has eight fields and one flag:
+
+```58:69:include/forge/search.hpp
+struct SearchInfo {
+    Move best_move{};
+    Move ponder_move{};
+    int score = 0;
+    int depth = 0;
+    int seldepth = 0;
+    std::uint64_t nodes = 0;
+    std::uint64_t elapsed_ms = 0;
+    std::vector<Move> pv;
+    // A searchmoves intersection with no legal moves is not checkmate or stalemate.
+    bool restricted_root_empty = false;
+};
+```
+
+The flag that exists is for the `searchmoves` case only (`:68`), and it is set at `search.cpp:2210`. **There is no
+`bool searched`, no `bool root_adjudicated`, no sentinel on `best_move`.** So on the terminal branch
+(`search.cpp:2253-2271`) the returned struct is populated with a *legal* move (`:2265`), a *plausible* score
+(`:2254`, the literal `0`), a *depth* that equals the requested limit (`:2259-2260`), and `nodes = 0`
+(`:2266`). Four of those five fields describe a search that did not happen, and the fifth is the only one that says
+so.
+
+**What a caller CAN check, and how well each works.** I measured both candidates on the UCI wire, base build,
+`go depth 10`, three cases that differ only in whether the branch fires:
+
+| case | #`info depth` lines | last info line | `pv` empty? | `nodes == 0`? | `bestmove` |
+|---|---|---|---|---|---|
+| E2 threefold (**BAIL**) | 10 | `… score cp 0 nodes 0 nps 0 …` | **yes** | **yes** | `d5d1` |
+| E2 bare (**SEARCHES**) | 10 | `… score cp 381 nodes 7581 nps 2527000 …` | no | no | `d5b5` |
+| E2 halfmove 100 (**BAIL**) | 10 | `… score cp 0 nodes 0 nps 0 …` | **yes** | **yes** | `d5d1` |
+
+- **`pv` being empty is the reliable one, and it is reliable because of a guarantee, not a convention.** The branch
+  never assigns `result.pv` — I grepped the whole span `2250-2271` and there is no `pv` write in it, so `pv` keeps its
+  default-constructed empty state from `search.hpp:66` — and every *searching* path publishes a non-empty PV because
+  the ID loop copies `ss->pv` at `search.cpp:2458` and a completed iteration always has `pv_length >= 1`. The
+  emission itself carries the evidence: `emit(depth, score, {})` at `:2262` passes an empty vector, so the wire line
+  ends in a bare `pv` token with nothing after it.
+  **I tested the guarantee against the case most likely to break it** — a search that is *stopped* mid-iteration,
+  which is where a truncated PV would naturally appear. Fine sweep of the stop delay on startpos: at 0.8/1.0/1.2/1.5/
+  1.8 ms the engine emits 4/5/5/6/6 info lines with 404/1,001/1,001/1,703/1,703 nodes and **`pv` non-empty in every
+  one**. At 0.5 ms it emits **no info line at all** (`bestmove a2a3`, 0 lines). So on this build there is no state in
+  which an info line carries `nodes > 0` and an empty `pv` — the dichotomy is clean: **info line present ⇒ `pv`
+  non-empty; `pv` empty ⇒ nothing was searched.**
+- **`nodes == 0` also works on these cells, but it is the weaker test and I would not rely on it alone.** It is
+  correct here, and it is correct by construction (`total_nodes()` at `:2266` before the tree is entered). But zero
+  nodes is also what a *searched* root can legitimately report under three other conditions in the same function:
+  `go nodes 0` (`:2275`), an empty clock reserve whose TT hit answers unsearched (`:2301-2308`), and the
+  hard-limit-passed path (`:2321`). All of those set `nodes = 0` and publish a head, and none of them is the drawn
+  branch. So `nodes == 0` says "nothing was searched" — which is true — but it does not say *why*, and a caller that
+  treats it as "this position is drawn" will be wrong on a clock-exhausted answer.
+- **`depth` is worse than useless as a discriminator — it is actively misleading.** The loop at `:2259` emits once per
+  depth up to `max_depth`, so the reported depth is whatever the caller asked for:
+
+| `go depth` | info lines | last depth reported | nodes | bestmove |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 0 | `d5d1` |
+| 4 | 4 | 4 | 0 | `d5d1` |
+| 10 | 10 | 10 | 0 | `d5d1` |
+| 30 | 30 | 30 | 0 | `d5d1` |
+| 64 | 64 | 64 | 0 | `d5d1` |
+
+  A `go depth 64` on a threefold root reports **`depth 64`, `seldepth 64`, `nodes 0`, `cp 0`**. A GUI that displays
+  "depth 64, score 0.00" is showing the user a fully-searched drawn position. That is the sentence the owner needs:
+  **the engine reports the maximum depth it was asked for, on a search that visited no nodes, and there is no field
+  that says so.**
+
+**Is either documented? No.** `grep` over `README.md`, `LOCK.md` and every file under `docs/` finds no mention of
+`info depth`, of PV semantics, or of `SearchInfo` at all. The only place the empty-PV behaviour is written down is
+inside this engine's own source comment at `:2250` ("Terminal or adjudicated roots: report without searching"), which
+is not visible to a caller. So a consumer of this engine has **no documented way** to distinguish the two cases, and
+the two things it might try are (a) an undocumented invariant that happens to hold, and (b) a heuristic that is true
+here but false for three other unsearched paths.
+
+**A third case a caller must not confuse with the bail, found by the same control.** `go nodes 0` and `go nodes 1`
+emit **zero** info lines and answer `bestmove a2a3`; `go nodes 42` emits one line with 26 nodes and a non-empty PV.
+So there are three distinct wire shapes for "little or nothing was searched", and only one of them means *drawn*:
+
+| wire shape | what it is | site |
+|---|---|---|
+| info lines present, `pv` empty, `nodes 0`, `cp 0` | **the drawn-root branch** — a real adjudication | `search.cpp:2253-2271` |
+| **no** info lines, `bestmove` `a2a3` | nothing searched: `go nodes 0/1`, or `go`+`quit` (19-F12) | `:2275`; `uci.cpp:553-572` |
+| info lines present, `pv` non-empty | genuinely searched | `:2458` |
+
+The empty-PV invariant is what separates row 1 from row 3, and nothing separates row 1 from row 2 *except* the
+presence of the info lines — which is why §4's correction ("0 info lines" is the wrong description of the bail) is
+not pedantry: it is the one field that distinguishes an adjudicated draw from a search that never started.
+
+**The API change that would close it** is one field — something like `bool searched` or an enum
+`RootDisposition { Searched, Terminal, Emergency }` — set at `:2253` alongside `best_move`, and one extra token on
+the `info` line when the disposition is not `Searched`. I am not proposing to write it here; the point is that this
+is a one-field fix and that **without it the protocol cannot express the difference**, which is why 23-F72's
+"`cp 0`, `0` nodes, and a move that walks into mate in 5" was invisible to every harness in this project for hours.
+Note the cost of *not* changing it, measured elsewhere in this folder: the 23-F122 fixture bug and my own §6 FEN bug
+are both instances of a caller inferring engine state from fields that do not mean what they look like.
+
+---
+
+## A2. The two tests encode the contract — quoted, and what a repair must keep true
+
+I built both test files against **both** sources (base and the `FORGE_FIX_ROOT_DRAWN=1` predicate change) with the
+same flags, and ran them. This is a compilation result, not an inference.
+
+### `tests_r3fu_17/reused_searcher.cpp:71-76` — **BREAKS under the repair**
+
+```71:76:forge-combo29/tests_r3fu_17/reused_searcher.cpp
+    const forge::Board drawn = board_from(Drawn);
+    expect(!drawn.legal_moves().empty() && drawn.halfmove_clock() >= 100, "drawn root is a fifty-move position");
+    const forge::SearchInfo drawn_info = searcher.search(drawn, limits, false);
+    std::cout << "drawn nodes " << drawn_info.nodes << " score " << drawn_info.score << '\n';
+    expect(drawn_info.nodes == 0, "drawn root does not count old helper nodes");
+    expect(drawn_info.score == 0, "drawn root scores a draw");
+```
+
+with `Drawn = "8/8/8/8/4k3/8/3R4/4K3 w - - 100 1"` (`:37`). Note the position: halfmove 100, **no repetition**, so
+this is the other arm of the same disjunction.
+
+| source | result | output |
+|---|---|---|
+| BASE | **PASS**, exit 0 | `drawn nodes 0 score 0` — all 13 assertions ok |
+| FIX (`FORGE_FIX_ROOT_DRAWN=1`) | **FAIL, exit 1** | `drawn nodes 380 score 0` → `FAIL drawn root does not count old helper nodes` |
+
+The `score == 0` half **still passes** under the repair — the fifty-move position really is drawn, so the search
+returns 0 anyway (as §3 showed: `cp 0` at every budget on a halfmove-100 root). **What fails is `nodes == 0`.** So the
+assertion that actually encodes the contract is `drawn_info.nodes == 0`, and its stated *purpose* is narrower than
+its effect: the name says "does not count old helper nodes", i.e. it is guarding against a stale node count leaking
+from the earlier Threads-4 searches in the same `Searcher`, but the only way to satisfy it is to not search at all.
+**A repair that searches a halfmove-100 root cannot pass this test as written**, even though the repair is correct
+and the score is unchanged. Someone should know that before writing the patch: the test is protecting a
+resource-counting invariant with a mechanism (do not search) that is stronger than the invariant needs, so the fix is
+to re-point it at the real invariant — e.g. assert `drawn_info.nodes < <the previous search's node count>` or assert
+`nodes == 0 || nodes < stale_count`, i.e. "no *stale* nodes", which is what the name claims.
+
+### `tests_r3_13/quiet_extinction.cpp:99-114` — **does NOT break, and it is a latent guard, not a live one**
+
+```99:114:forge-combo29/tests_r3_13/quiet_extinction.cpp
+        const forge::MoveList legal = board.legal_moves();
+        const bool ruled_draw = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+                                                    board.is_insufficient_material());
+        ...
+        bool ok = info.depth == 10;
+        if (legal.empty()) ok = ok && info.best_move.is_none();
+        else {
+            ok = ok && listed(legal, info.best_move);
+            forge::Undo undo;
+            ok = ok && board.make_move(info.best_move, undo);
+            if (!ruled_draw) ok = ok && info.nodes > 0;
+        }
+```
+
+| source | result | output |
+|---|---|---|
+| BASE | **PASS**, exit 0 | `searches 200 illegal 0 nodes 3744188` |
+| FIX | **PASS**, exit 0 | byte-identical output (`diff` empty) |
+
+**It passes because it never reaches the branch.** This test re-derives `ruled_draw` with *the same predicate the
+engine uses* and then only requires `nodes > 0` when the predicate is false — so it agrees with whatever the engine
+does by construction. I instrumented the 200 positions it actually walks and counted:
+
+| over the 197 `walked(...)` positions + 3 hand-picked | count |
+|---|---|
+| with legal moves | 197 |
+| `is_repetition()` true | **0** |
+| `halfmove_clock() >= 100` | **0** |
+| `is_insufficient_material()` | **0** |
+| terminal (no legal move) | 0 |
+
+Zero of 200 satisfy any disjunct, so `ruled_draw` is false everywhere, `nodes > 0` is required everywhere, and the
+assertion is never exercised in the state it was written to permit. **This is the 23-F123 pattern again, in a test**:
+a check that shares the definition of the thing it checks cannot disagree with it, and here it also never reaches the
+case that would make the shared definition matter. The three hand-picked positions (`4k3/8/8/3p4/3P4/8/8/4K3`,
+`4k3/8/8/8/8/8/8/4QK2`, startpos) are equally clean.
+
+**So the answer to "what must a repair keep true":** of the two tests, only `reused_searcher.cpp:71-76` constrains a
+repair, and what it constrains is `nodes == 0` on a **halfmove-100** root — not the repetition arm at all. The
+repetition arm is untested by both. A patch that fixes only the repetition case (as r15 does for repetition) and
+leaves the fifty-move case alone would pass both tests; r15 removes *both* arms, which is why it fails the first.
+That is a design decision, not a bug, but it is invisible from the tests and should be stated in the patch.
+
+---
+
+## A3. Is the branch reachable from the halfmove counter alone? — confirmed on the same site, not inferred
+
+**Yes, and it is the same statement, same line, same disjunction.** The counter is the second operand of the
+`||` at `search.cpp:2251`, so there is no second code path to find: the branch is entered by whatever makes that
+disjunction true. I confirmed reachability three ways rather than by reading the line.
+
+1. **By construction:** at `:2251` the three operands are `||`-joined inside one `root_drawn` expression, and the
+   `if` at `:2253` tests that one variable. Every other `halfmove_clock()` use in `search.cpp` is inside the tree,
+   not at the root — the full list above line 2251 is `:1302` (`is_draw`'s fifty-move leaf rule), `:1317`
+   (`draw_leaf_score`), `:1426`/`:1570` (MaxPly), `:1444-1447` and `:1594-1597` (the `near50` TT guards),
+   `:1640` (TT cutoff blocked near 50), `:1467`/`:1656` (eval damping), `:1681`, `:1806`, `:1841`, `:1991` (the
+   `halfmove + depth < 100` pruning guards) and the TT stores. The root-level tests are exactly `:2251` and `:2256`,
+   both the same disjunction.
+2. **On the wire, with no history at all** — so repetition cannot be the trigger: bare FEN
+   `1K6/8/8/3R4/8/8/8/k7 w - - 100 1`, no move list, `go depth 10` → `10` `info depth` lines, `nodes 0`,
+   `score cp 0`, `bestmove d5d1`. The same FEN at halfmove 0 searches 7,581 nodes. The only field that differs is the
+   counter, so the counter alone reaches the branch. (This also reproduces 23-F43's halfmove-150 case and 23-C26's
+   onset, from the source side.)
+3. **By the repair's own behaviour on it:** the FIX build on that root gives `nodes 380, score cp 0` at depth 10 and
+   `2,432` nodes at `go nodes 200000` — non-zero nodes with the same `cp 0` score, i.e. the branch stopped firing and
+   the search ran and reached the same (correct) conclusion. That is only possible if the counter was what had been
+   firing.
+
+**One consequence worth flagging, because it cuts against a natural assumption.** §3 reported that a halfmove-100
+root can still show `cp 0` after the repair, and I said that was correct. It is — but the *reason* is the fifty-move
+**leaf** rule at `:1302` (`if (board.halfmove_clock() >= 100) { return !board.in_check() || board.has_legal_move(); }`),
+not the root branch. So after the repair, the same `cp 0` arrives by a different route with `nodes > 0` and a real
+PV. **That is precisely the case where a caller using `nodes == 0` as its discriminator would be correct and a caller
+using `score == 0` would be wrong**, which is the concrete argument for A1's one-field fix.
+
+---
+
+## A4. Summary of the three answers
+
+| # | question | answer |
+|---|---|---|
+| 1 | Can a caller tell an unsearched root from a searched one? | **`pv` empty** is the reliable signal (guaranteed: no `pv` write in `:2250-2271`, non-empty on every searching path via `:2458`, and I confirmed it stays non-empty even for a search stopped after 0.8 ms); **`nodes == 0`** works here but is also true for three other unsearched paths (`:2275`, `:2301-2308`, `:2321`); **`depth` is actively misleading** and reports the requested limit up to 64. Neither signal is documented anywhere in the repo. And the bail is distinguishable from `go nodes 0/1` (no info lines at all) **only** by the info lines being present, which is why the §4 correction matters. |
+| 2 | What do the two tests require of a repair? | `reused_searcher.cpp:71-76` requires `nodes == 0` on a **halfmove-100** root and **fails** under r15 (380 nodes); its `score == 0` half still passes. `quiet_extinction.cpp:99-114` passes unchanged and never reaches the branch (0 of 200 positions are drawn, measured), so it is a latent guard that agrees with the engine by construction. The repetition arm is untested by both. |
+| 3 | Reachable from the counter alone? | **Yes** — same `\|\|` at `:2251`, same `if` at `:2253`; confirmed by bare FEN at halfmove 100 giving `nodes 0 / cp 0` with no history at all, and by the repaired build searching that same root (380 nodes, same `cp 0`, which arrives via the leaf rule at `:1302`). |
+
+No new files; this addendum is appended to `forge-combo29/swarm/23/SOURCE_FINDINGS.md`.
