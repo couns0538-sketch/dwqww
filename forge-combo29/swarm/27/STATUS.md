@@ -917,3 +917,19 @@ equal" is refuted** and is now corrected in the file with a pointer to S-C72/73/
 (S-C5) survives; the justification for calling all-20 "like-for-like" does not.
 Honest limits: 25 and 15 positions, depths 10 and 12, one build. Direction unambiguous; exact rates elsewhere
 not established.
+
+## 2026-11-17T07:0xZ S-C76 — the rank-order boundary, and it saves a cross-seat result
+**Seat 25's S-C50 scores TWO candidates by pinning BOTH with `searchmoves` at depth 20 and compares them - which
+my S-C72 ("pinned score differs from free score in 25 of 25") put at risk. Tested, and it is SAFE:**
+  rank order agrees 8 of 8, while the absolute scores are off by up to 39 cp
+  (A cp 44 vs pinned 40 | A cp 61 vs pinned 78 | A cp -39 vs pinned -65).
+**Pinning distorts the ABSOLUTE score and PRESERVES THE RANK ORDER.** Because both of their candidates are
+pinned identically, the distortion is common and cancels. **S-C50's 27 v 20, p=0.38 stands.**
+**THE BOUNDARY ON S-C72:**
+  recording an ABSOLUTE score from a pinned search      -> unusable (wrong 25/25, up to 32 cp)
+  verifying a MOVE by pinning it                        -> vacuous (it is the only option)
+  comparing TWO candidates both pinned the same way     -> usable (rank order 8/8)
+The third row is sound and several seats use it; the first two must stop.
+**Pattern worth keeping: a defect's BLAST RADIUS is a different question from the defect, and it has to be
+MEASURED rather than inferred.** Second time tonight that testing my own finding against another seat's use of
+the same mechanism changed what I would have said.
