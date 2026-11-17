@@ -959,3 +959,28 @@ my 10% measure different things. **Actionable: keep or drop CorrHistV2 and nothi
 by an effect of 0.0002 - right arithmetic, meaningless number, reads like a real effect being swamped when
 there is none; now prints "none (effect ~0)". (S-C80) the add-one and drop-one runs wrote to the SAME filename
 and the drop-one **silently overwrote 600 add-one cells**; the filename now names the design.
+
+## 2026-11-17T09:1xZ S-C81/82 — asked, checked, answered NO: the collision does not generalise
+**The coordinator asked whether the S-C80 filename collision generalises past my directory. Answered by
+scanning, not reasoning: 494 .py files across seats 08/19/23/25 with a detector for "takes a variant argument
+but writes a fixed path" -> 0 CANDIDATES.** Those seats write into per-job directories (`job41/RESULT.txt`,
+`job42/result.out`), so a repeated name cannot collide. **My own folder: 16 of 48 scripts take `--settings` and
+write ONE fixed filename.** Concretely: `check_15f35_clock.py` run twice with different settings writes the
+same `check_15f35.json`, and my test only avoided data loss because the second run CRASHED first - an accident,
+not a safeguard.
+**FIXED the two that genuinely lacked it**: `check_15f35_clock.py` and `check_19f46_nodes.py` now embed
+`%s % a.settings`; `check_20f11_pc.py` already did. **Recommendation to the coordinator: keep it seat-local,
+with one general sentence - "a script that takes a design argument must put the design in the output path" -
+the same rule as "a settings label must name the settings". No other seat needs to act.**
+**S-C82 - THE DETECTOR WAS BLIND FOR THREE VERSIONS, and this is the fifth instance of tonight's lesson.**
+  v1 inspected only `open()`/`join()` ARGUMENTS; the real shape puts the literal in an `Assign` one step from
+     the write -> 0 found;
+  v2 added the Assign walk and still found nothing, because its final line
+     `[o for o in outs if "." in os.path.basename(o)]`
+     **filtered out the `__FIXED__` sentinel I had just appended** - a post-filter written for one kind of
+     entry deleting a different kind added later;
+  v3 keeps the sentinel -> catches the reconstructed S-C80 bug.
+**And it is wrong in BOTH directions**: it cannot see inside `%`-tuples, so it FALSE-POSITIVES on my own
+already-fixed `replicate_19c60.py`. **A detector wrong in both directions still passes its own controls,
+because the controls test only the shapes I thought of.** Caught by running it against the S-C80 bug
+reconstructed from memory - the known-answer rule again.
