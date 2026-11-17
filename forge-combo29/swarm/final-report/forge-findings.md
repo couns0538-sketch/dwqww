@@ -4734,6 +4734,23 @@ come close, and the pattern is not random:
 - **The fix indicated is the §2 band repair, not more depth and not the bail patch** — for KQK because the
   depth needed is 4× the mate, for KBNK because more depth makes it worse, and for both because **the node
   counts at clock 90 (101 million on a three-piece board) show depth is not a practical answer anyway.**
+- **And I reproduced the KRK case end to end on my own build, which is worth more than the rate**: from
+  `8/8/8/8/8/5k2/8/K3R3 w - - 0 1` (KR vs K, white winning) the engine plays **both sides** at
+  `go depth 12` and **draws in 21 plies with zero 0-node replies** — it shuffles the rook **a5 ↔ a3 for ten
+  plies** and never makes a mating attempt:
+
+  ```
+  ply 1 e1e5 · 7 f5a5 · 9 a5a3 · 14 e4f3 · 16 f3g2 · 19 a5a3 · 21 a3a5 → draw at halfmove 21
+  ```
+
+  **So the draw is adjudication, not a search that failed to run**, and the shuffle is the concrete form of
+  "it decides the position is drawn and then plays correctly for a drawn position". **A rate is a number; a
+  move list is the mechanism.**
+  - **And a trap worth recording from building that fixture**: two of my first KRK positions had **adjacent
+    kings** — illegal — and the engine **silently refused the FEN and searched startpos instead**, returning
+    `d2d4`, which looks exactly like a catastrophic "engine emits illegal moves" bug. It is trap 3ab, and
+    **python-chess `status()` catches it while "python-chess accepted the FEN" does not.** I had written that
+    rule into this audit's own brief and still skipped it on my own fixture.
 
 ## 10. What is not established
 
