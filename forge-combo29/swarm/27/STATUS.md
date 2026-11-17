@@ -768,3 +768,22 @@ you the final number is right but MISLABELS a move-choice drop as genuine distan
 23-F90's error.** Correct procedure: **pin the move, then check the pinned number against the true DTM.**
 **This correction was needed before the pre-screen relay went out with only the DTM half**, because a seat
 applying just that half could make seat 23's mistake in the opposite direction.
+
+## 2026-11-17T04:2xZ S-C54 — MATE 4 ON BOARD 103 IS OPTIMAL. PC20 IS NOT OVERCLAIMING.
+**The question was worth the window and the answer is clean: `h3h4` FORCES mate in <=4 against EVERY defence
+(7-ply minimax over the full legal move list, 1,829,749 positions memoised, stalemate returns False), and
+there is NO forced mate in 3 (5-ply search, 118,780 positions, False). So the exact DTM of board 103 is 4
+moves and PC20 reports it EXACTLY.**
+**The premise conflated two boards and that is my fault for putting both numbers in one reply**: `mate 6` is
+the true DTM of SEAT 23's W2 K+QvK board, a different position. Board 103's DTM was never computed until now.
+**All three engine reports are truthful**: PC20 `mate 4` = the true DTM (exact, from depth 12); base+S14
+`mate 6`/g4h5 = real but slower; base+S14 at depth 14+ converges to 4. **PC20 reaches the optimal mate two
+plies earlier and never reports the 6 — a genuine ordering improvement, the opposite of a defect.**
+**S-C55 SCOPE, as requested**: the DTM check is a statement about a BUILD AND SETTINGS, not about the engine.
+"base+S14 reports X at depth D" is a claim about base+S14. "The distance falls toward truth" is TRUE of
+base+S14 and FALSE of PC20 on the same board. Every mate-distance finding from this run must name its build.
+**METHOD_NOTES carries the qualification** in the two-test section, and the forced_mate.py control suite
+**caught a real bug in my own understanding**: at a checkmated root the side to move has LOST, so "does the
+root side force mate" is correctly False - my first control asserted True and the suite refused to report.
+**Unfinished and stated as such**: whether `g4h5` specifically forces mate in 6 (needs 11 plies, exceeded the
+270 s budget at 1.8M nodes). It does not affect any conclusion - mate 4 being forced and optimal is sufficient.

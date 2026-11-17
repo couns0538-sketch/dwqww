@@ -368,7 +368,11 @@ completely different explanations, and they demand different tests:
   final number is right. You can pin a move, watch it report `mate 4` forever, and still not know whether
   mate-in-4 exists.
 - **True-DTM alone** correctly shows the final number is right — but **mislabels a move-choice drop as genuine
-  distance revision.** This is exactly the error 23-F90 made: they saw `mate 13 → mate 10` on an unpinned free
+  distance revision.** Note also that a true DTM is a **property of the position**, while the number the engine
+  reports is a property of **the position AND the configuration**: on board 103 the exact DTM is 4, PC20 reports
+  `mate 4` from depth 12, and base+S14 reports `mate 6` at depth 12 before converging to 4. So "the distance
+  falls toward truth" is true of base+S14 and false of PC20 on the same board, and any mate-distance finding
+  must name its build. This is exactly the error 23-F90 made: they saw `mate 13 → mate 10` on an unpinned free
   search, assumed one move's distance was being revised, and concluded "the DISTANCE can be wrong". On their
   board the engine was converging to the true DTM (mate 6), so the accusation was wrong in a way that a DTM
   check alone would have confirmed-as-improvement *without revealing that the same shape also occurs for a
