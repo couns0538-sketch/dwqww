@@ -1,0 +1,31 @@
+PREDICTION — SW-23 job 57 (does the ROOT'S DISTANCE in the history decide the bail?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F117's handoff names this as the cheapest untested axis: every cell in the whole seat has the root occurring at
+plies 0, 4 and 8 (a 4-ply shuttle sent twice). If the bail depends on WHERE the repetitions sit rather than on the
+position, that is a distinct and checkable mechanism (e.g. a repetition search that only looks back N plies).
+
+DESIGN — on ONE board (M7's, chosen because it SEARCHES at distance 0/4/8, so it has room to move in either direction)
+and on one that BAILS (M1), construct move lists with the root at three different distance patterns:
+  D-A  root at plies 0, 4, 8      (the pattern used everywhere so far)
+  D-B  root at plies 0, 8, 16     (same cycle, but with a filler loop between repeats)
+  D-C  root at plies 0, 4, 12     (uneven spacing)
+Filler = a second, DIFFERENT 4-ply shuttle that does not return to the root, so occurrences of the root stay at exactly
+three while the spacing changes. Every list is built by search and validated: root occurrence count asserted == 3, and
+the position at the END asserted to be the root (so the engine is asked about the root, not about a filler position).
+
+Prediction (each with the range that kills it):
+  P1  EVERY list validates (root count exactly 3, ends at root). KILLED if any list cannot be built on a board — then
+      that pattern is reported as not constructible rather than silently dropped.
+  P2  **ON M7 THE VERDICT IS UNCHANGED (SEARCHES) AT ALL THREE SPACINGS.** If spacing mattered, a searching board would
+      be the place to see it. KILLED if any spacing makes M7 bail — which would identify distance as the conditioner
+      and give the source reader a concrete rule.
+  P3  **ON M1 THE VERDICT IS UNCHANGED (BAILS) AT ALL THREE SPACINGS.** KILLED if any spacing makes M1 search — same
+      consequence in the other direction, and equally useful.
+  P4  A CONTROL ON THE FILLER: the same filler list WITHOUT the final return to the root (so the engine is asked about
+      a filler position that has occurred once) must SEARCH on both boards. KILLED if it bails, which would mean the
+      filler itself creates a drawn condition and every spacing result would be confounded.
+
+If P2/P3 both hold, distance is ruled out too and the handoff's cheapest axis is answered negatively — which narrows the
+source reader's search space and is worth the measurement. If either fails, that is the characterisation the whole
+family has been missing.
