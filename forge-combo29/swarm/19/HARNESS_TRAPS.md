@@ -533,6 +533,43 @@ that does not exist.** Check that the comparison can vary before demanding its s
 
 ---
 
+## 19. A statistical helper that is silent on half its inputs (19-C60/19-C62)
+
+> **A sign test must satisfy `p(k, n) == p(n − k, n)`. If it does not, it is wrong.**
+
+**The bug.** My C60 cell computed the binomial tail as `2 * sum_{i=0..k} C(n,i) / 2^n` and **omitted the
+reflection at `min(k, n−k)`**. For any share **above** 50 % the tail sums to ≈1.0 and the result caps at **1.000**.
+
+**Why it survived review: it was correct for exactly half its inputs.** The one below-half row (56/120 → 0.5230)
+came out right, so the function looked validated. **Three of four above-half rows were silently 1.000.**
+
+| switch | count | correct p | published |
+|---|---|---|---|
+| TtPruneV2 | 73/120 | **0.0221** | ~~1.000~~ |
+| CuckooRep | 63/120 | **0.6483** | ~~1.000~~ |
+| CorrHistV2 | 65/120 | **0.4114** | ~~1.000~~ |
+| HistRework | 56/120 | 0.5230 | 0.5230 ✓ |
+
+**And it inverted a published conclusion**: "no switch's per-position direction clears a sign test" became
+"three do not and **one does** (TtPruneV2, p = 0.022)".
+
+**THE DEEPER FAILURE — the number had no committed source.** The p-values came from **inline shell arithmetic that
+is not in the record**, so no reader could recompute them. **A table of statistics whose generating code is not
+committed is not reproducible, whatever the values are.** That is why seat 27's replication, not my own review,
+found it.
+
+**The fix, now in `checks/sign_test.py`:**
+- a **symmetry self-test** (`p(k,n) == p(n−k,n)` over all k for several n) — the buggy form violates it everywhere
+  above half;
+- a **floor assertion** (`p(73,120) < 0.05`), so a capped-at-1.0 implementation fails loudly;
+- **count and p printed in the same row**, so a reader can recompute either.
+
+**Generalisable form:** **any helper whose failure mode is "returns the boundary value" needs a test that would
+notice the boundary.** The capped-at-1.0 output looked like a legitimate "no evidence" answer, exactly as a capped
+metric looks like a real one.
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
