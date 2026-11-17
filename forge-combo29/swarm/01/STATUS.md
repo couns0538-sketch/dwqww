@@ -313,19 +313,22 @@ which is the `S-F120` failure again — so they are reproduced from the committe
 
 ### The principle that reproduction states, and that I had not applied to myself
 
+> **Admitting an error does not exempt the account of that error from evidence.**
+>
 > **A number I am telling you about my own mistake gets exactly the same evidence standard as a number about the
 > engine: it is either reproducible from a committed artifact, or it is not a claim I am entitled to make.**
 
-That is uncomfortable in a specific way, and worth naming. Correcting myself *earns* credibility, which quietly makes
-my self-corrections the least-audited claims in the record — a reader is inclined to accept "I got this wrong" more
-readily than "the engine does this", because the first sounds like humility rather than a claim at all. But
-"my formula printed 36 / 55 / 45 %" is a **factual assertion about the past**, and it is false in the same way any
-other unsaved number is false: unverifiable, and therefore worth nothing to whoever reads it next.
+The first sentence is the principle; the second is what it means in practice. Together they close a hole I had not
+noticed I was leaving open, and the reason it stayed open is worth naming: **correcting myself *earns* credibility**,
+which quietly makes my self-corrections the **least-audited claims in the record**. A reader is inclined to accept
+"I got this wrong" more readily than "the engine does this", because the first sounds like humility rather than an
+assertion at all. But "my formula printed 36 / 55 / 45 %" is a **factual assertion about the past**, and it is false
+in exactly the way any other unsaved number is false: unverifiable, and therefore worth nothing to whoever reads it
+next.
 
-So the self-correction standard has a floor, and it is the same floor as everything else. **The fact that I am
-admitting an error does not exempt the account of that error from evidence.** The reproduction file exists because of
-this, not as extra diligence: without it the most rhetorically persuasive paragraph in this record would have been
-the one with no artifact behind it.
+So the self-correction standard has a floor, and it is the same floor as everything else — the floor is not lowered
+by how candid the admission sounds. The reproduction file exists because of this, not as extra diligence: without it
+the most rhetorically persuasive paragraph in this record would have been the one with no artifact behind it.
 
 So the lesson is not "be careful" and it is not even "know the rule". It is narrower and more useful:
 
@@ -2001,4 +2004,27 @@ Next: continue at cadence.
    been the one with no artifact behind it.
 Gates: 179 rows, 0 wrong pipe counts, injection proofs in all four self-test cases and negative-tested, escapes
 clean, stamps in order.
+Next: continue at cadence.
+## 2026-11-17T01:31:28Z — the principle now leads with its own first sentence, and the loop closed usefully (S-F135)
+1. REORDERED SO THE PRINCIPLE LEADS. The section now opens:
+     "Admitting an error does not exempt the account of that error from evidence.
+      A number I am telling you about my own mistake gets exactly the same evidence standard as a number about the
+      engine: reproducible from a committed artifact, or not a claim I am entitled to make."
+   The first sentence is the principle and the second is what it means in practice; they were the other way round, with
+   the general statement buried at the end of the paragraph as a conclusion. The reason it needs stating stays where it
+   belongs - CORRECTING MYSELF EARNS CREDIBILITY, which makes self-corrections the least-audited claims in the record -
+   and the floor is stated plainly: the floor is not lowered by how candid the admission sounds. S-F133's table row
+   carries the same ordering now, so the finding and the page agree.
+2. THE LOOP CLOSED IN THE USEFUL DIRECTION, AND I VERIFIED IT RATHER THAN REMEMBERING IT (S-F135). Every earlier
+   instance of my check/rule pattern was found AFTER the artefact shipped - by accident (two tools disagreeing) or by
+   deliberate regression. This one was different: the escape check landed in commit 20514d3e4, S-F133 was written
+   afterwards, and the gate's first run went RED on my own prose with "FAIL a stranded format escape ... FINDINGS.md:179"
+   - and line 179 is exactly the S-F133 row, which is the row arguing that self-corrections need evidence. Checked
+   against the run log and the commit order, not recalled.
+   That is the distinction worth keeping in the record: THE THREE DEPTHS SHOW THAT A RULE IN PROSE CANNOT PROTECT THE
+   NEXT ARTEFACT. THIS SHOWS WHAT DOES - a check that runs on every artefact, including the one describing the check.
+   The general statement from the FINAL is now backed by an instance in both directions: one where the rule failed to
+   transfer (formula, 4 minutes later) and one where the mechanism caught the author of the rule before the push.
+Gates: 180 rows, 0 wrong pipe counts, gate exit 0, escapes clean (the one remaining % in S-F132 is inside a backtick
+span quoting the printf bug, which the check deliberately allows), stamps in order.
 Next: continue at cadence.
