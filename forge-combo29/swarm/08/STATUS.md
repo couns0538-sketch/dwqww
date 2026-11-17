@@ -700,3 +700,19 @@ next: cadence.
 Tally: 39 findings, 28 checks/audits/plants, 4 method lines, 2 withdrawals, 1 open lead.
 
 next: cadence.
+
+## 2026-11-17T02:10Z
+- **08-C26: seat 13 S-F16 PARTIALLY CONFIRMS.** 16 plies, book vs engine (depth 18): the CHARACTERISATION holds
+  (where the book differs the engine's own gap is -36..+26 cp, median +2, worst inside their "none >=50 worse"
+  bound), but my differing count is **5 of 16 against their 12 of 16** — the one variable that differs is depth
+  (theirs 12, mine 18), and deeper search converges on opening moves. Stated as an inference, NOT a measurement, and
+  I do NOT say their count is wrong.
+- **08-N5 METHOD: a reader that works on a search WITH info lines can HANG on one WITHOUT them.** My depth-sweep
+  script deadlocked and held an engine 20 minutes; the book answers instantly with zero info lines. Engine verified
+  fine (book answers in ms via a plain pipe, 3/3). So the depth comparison is NOT reported — that harness was broken.
+  Fifth harness trap tonight, all the same shape: the harness's model of the engine's output is wrong on an unusual
+  path.
+
+Tally: 39 findings, 29 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead.
+
+next: cadence.
