@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, FIFTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, SIXTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Four sentences to carry into any measurement of this engine
 
@@ -312,6 +312,18 @@ Two additions to the rule, both now live in `job41/mate_window.py`:
   - a control whose expected output is a ZERO must be shown to produce a non-zero on a planted case in the same run —
     for a "no mate found" control that means the same parser reading a mate cell successfully, which the 13 mate cells
     in the same table now provide.
+
+## Instance 16 — the time I typed instead of stamping, twice (repeat offence)
+
+I wrote "Real time 01:29Z" into a STATUS entry that `date -u` had stamped `01:20:22Z` — nine minutes wrong, in the
+direction that flatters my cadence. I had already corrected this exact fault earlier in the seat and recorded the rule
+(stamp from `date -u`, never type a time), then repeated it. The same heredoc also executed a backticked engine line as
+a command substitution and silently substituted an empty string, so a quoted output lost its content.
+
+Two mechanical fixes, because a remembered rule did not survive contact:
+  - heredocs that carry backticks or `$` are quoted (`<<'EOF'`), so nothing in my prose can be executed;
+  - every time in a document is copied from the `date -u` line printed in the same shell call, and the stamp line is
+    stated to be authoritative over any time written in prose.
 
 ## The fix, in one line each
 

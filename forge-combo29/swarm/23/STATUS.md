@@ -1729,3 +1729,15 @@ Broken run kept as result_FIRSTPARSE_BROKEN.out.
 
 Rule page updated to fifteen instances with new lead case and two live additions (parsed-vs-attempted beside every
 count; a zero-expecting control must show its non-zero in the same run). 117 findings. Real time 01:29Z.
+
+### CORRECTION to the entry above, 2026-11-17T01:20:29Z — TWO defects in how I wrote it, both mine
+1. The line ending "with no moves ()" is damaged: I wrote the engine's drawn-board line in backticks inside an
+   UNQUOTED heredoc, so the shell executed it as a command substitution, printed "command not found", and substituted
+   an empty string. The intended text is the engine line ending with a bare "pv" and no moves after it, i.e.
+   "info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv". The measurement is unaffected and the
+   finding 23-F89 quotes the line correctly; only this STATUS text lost it. Fix: heredocs carrying backticks or $ must
+   be quoted (<<'EOF').
+2. I typed "Real time 01:29Z" in an entry stamped 01:20:22Z by date -u. The stamp line is authoritative; the typed
+   time was wrong by nine minutes, in the direction that would flatter my cadence. This is a REPEAT of a fault I
+   corrected once already, so it goes in the rule page as well: no typed times, ever, only the date -u value.
+Neither defect changes a measurement. Both are recorded rather than edited out.
