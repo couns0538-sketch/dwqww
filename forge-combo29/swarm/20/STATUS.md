@@ -830,3 +830,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Counts not rates; did not average mate into centipawns (the 106x mistake). Reproduced the PHENOMENON, not seat 08's
   specific instance pairs.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:23:35Z repaired a structural defect in my own METHOD (duplicate MEASURING heading, two items numbered 3)
+- Cause: one rule insertion landed on the wrong anchor, overwriting the "Writing a finding" heading and restarting
+  numbering at 6. A reader following the numbered rules would have hit a jump and a duplicated heading.
+- Now: **11 distinct sections, numbering 1-6 (writing) / 7-10 (measuring)**, 200 lines, gates PASS.
+- **Fifth time my own output caught my work — and the cheapest kind: I noticed only by reading the heading list, not
+  from any tool.** Reinforces extending findings_lint to cover METHOD if time allows.
+- METHOD now holds 8 rules, each derived from a specific failure tonight: provenance-before-refuting,
+  big-cp-is-not-a-defect, name-the-construction, binary rule, driver rule, bounds-beat-measurement, counts-not-rates,
+  plus the writing and measuring lists.
+Next: continue in the window (ends 2026-11-17T10:18Z).
