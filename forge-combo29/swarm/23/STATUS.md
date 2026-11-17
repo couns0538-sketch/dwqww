@@ -1517,3 +1517,14 @@ score that ignores repetition and do not present it as the engine's opinion. Lim
 GUI_HAZARDS now: 6 traps, 5 rules, the identical-counts heuristic, the end-to-end driver protocol, claim strength.
 It is the page for a front-end author; RULE_known_answer_control is the one for anyone writing measurement code.
 106 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 18 m remain.
+## 2026-11-17T01:00:49Z  F78 exposure named as its own line: the only finding where NEITHER interface misbehaves
+2026-11-17T01:00:49Z
+
+"The exposure is a different audience from anything else in my chain: a tool that DISPLAYS eval and PLAYS go will show
+a winning score beside a move chosen from a draw - a 406 cp contradiction with no diagnostic and no way for the user to
+know which number to believe. Every other drawn-root finding is about the search being wrong; this one is about two
+correct interfaces disagreeing when combined."
+That is a genuinely distinct failure mode: F44..F75 are "the base's search is short-circuited"; F78 is "both answers
+are right for what they were asked, and combining them misleads". Worth keeping apart rather than filed as more of the
+same.
+106 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 18 m remain.
