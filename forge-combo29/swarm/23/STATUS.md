@@ -2419,3 +2419,33 @@ is a spot check, and the honest conclusion is that summarising sentences need re
 known words. Recorded in the stale-claim audit's own LIMIT section where it belongs.
 
 167 findings, all three checks PASS.
+## 2026-11-17T01:58:19Z  F145-F146: shallow-only claim is FALSE and was never mine; "0 info lines" was wrong and is fixed
+2026-11-17T01:58:19Z
+
+You asked me to re-run the shallow-only claim with fixture validation as the whole question. I did the validation, and
+then the re-run, and both point the same way - but I have to correct one premise first.
+
+**THE CLAIM IS NOT IN MY BRANCH.** Before testing anything I searched: no depth-related use of "shallow" in any document,
+no mention of ROOT_DRAWN or root_drawn anywhere, and the only "mate 2" material is job9, which is a different board and a
+different question. So this is not a withdrawal of mine to make; I am reporting that the attribution is wrong, and then
+testing the FACT, which settles it either way.
+
+THE TEST: 8 boards, each validated as a genuine threefold by the two-counter validator, base vs PC at depths 4/10/20.
+  base: 0 nodes at ALL THREE depths on all eight boards.
+  PC  : SEARCHES at depth 4 on all eight, minimum 38 nodes; three report mate 1 at depth 4.
+So the repair is not depth-limited - it re-enters the ordinary search path immediately, which is exactly what the source
+reader says the code does (guard at search.cpp:2253, before the ID loop).
+
+The one cell that looked like a second bail - PC cp 0 with 38 nodes - is a real search: 11, 20, 29, 38 ... 544 nodes
+through depth 20, correct cp 0 for a drawn shuffle in a lost-material position. I checked rather than assumed.
+
+**F146: "0 info lines" was mine and it was wrong.** The bail emits one info depth line per depth - 10 at go depth 10,
+64 at go nodes - each with score cp 0, nodes 0 and an empty pv. "0 info lines" is the signature of 19-F12, the abort
+path, so my phrase would have sent a reader to the wrong branch. Corrected in the handoff, annotated on F98, verified
+live before I changed the text.
+
+Incidental: while appending those rows I wrote to a path one level up and created a stray untracked FINDINGS.md in
+swarm/. It was untracked, I moved its content into the seat's file and deleted it. Worth naming because a stray file in a
+directory I do not own is the kind of mess that survives a session.
+
+173 findings, 28 instances plus six named patterns, all three checks PASS.

@@ -1,0 +1,48 @@
+THE "SHALLOW-ONLY REPAIR" CLAIM IS WITHDRAWN — and it was not mine to withdraw, because I never made it
+=========================================================================================================
+The coordinator reported that "the PC repair is shallow-only" had been in the record and in the owner's document for
+hours, and asked me to re-run it. I searched my branch first:
+
+```
+grep -rn "shallow" --include=*.md --include=*.txt .      -> no depth-related use
+grep -rn "ROOT_DRAWN\|root_drawn" ...                    -> nothing
+grep -rn "mate 2\|mate-in-2" ...                         -> only job9 (a DIFFERENT board, a different question)
+```
+
+**No such claim exists anywhere in my branch.** So the attribution is wrong, and I say that plainly rather than
+"withdrawing" something I never wrote. What I did instead was test the FACT, which settles it either way.
+
+THE TEST — 8 boards, each validated as a genuine threefold (`check_fixture(expect=3)`, two counters agreeing), base vs PC
+at depths 4, 10 and 20:
+----------------------------------------------------------------------------------------------------------------------
+| board | base d4 / d10 / d20 | PC d4 / d10 / d20 | info lines at d10 |
+|---|---|---|---|
+| `6k1/5ppp/8/8/8/8/5PPP/R5K1 w` | 0 nodes at all three | **mate 1 / 84 nodes** · mate 1 / 210 · mate 1 / 420 | 10 |
+| `r5k1/5ppp/8/8/8/8/5PPP/6K1 w` | 0 / 0 / 0 | cp 0 / **38 nodes** · 94 · 544 | 10 |
+| `6k1/5ppp/8/8/8/8/5PPP/1R4K1 w` | 0 / 0 / 0 | **mate 1 / 84** · 210 · 420 | 10 |
+| `8/8/8/5k2/8/8/5PPP/1R4K1 w` | 0 / 0 / 0 | cp 1511 / 825 · 1722 / 31,917 · 2935 / 4,826,712 | 10 |
+| `3qk3/8/8/8/8/8/5PPP/3QK3 w` | 0 / 0 / 0 | cp 736 / 261 · 729 / 5,947 · 2075 / 986,753 | 10 |
+| `1r4k1/5ppp/8/8/8/8/5PPP/1R4K1 w` | 0 / 0 / 0 | **mate 1 / 84** · 210 · 420 | 10 |
+| `6k1/6pp/8/8/8/8/6PP/1R4K1 w` | 0 / 0 / 0 | cp 810 / 580 · 934 / 21,973 · 1432 / 2,169,790 | 10 |
+| `6k1/5p1p/6p1/8/8/8/1R4PP/6K1 w` | 0 / 0 / 0 | cp 618 / 476 · 679 / 13,254 · 1305 / 4,919,574 | 10 |
+
+**The PC SEARCHES at depth 4 on 8 of 8 boards, with a minimum of 38 nodes, where the base returns 0 nodes at every depth.**
+So the repair is not depth-limited in the sense alleged: it re-enters the ordinary search path immediately. Three of the
+eight even report `mate 1` at depth 4 — the mate found at the shallowest depth tested.
+
+The one row worth checking, and I did: `r5k1/...` gives PC `cp 0` with only 38 nodes, which looks like a second bail.
+It is not — the depth-by-depth trace shows a real search (11, 20, 29, 38, 47 … 544 nodes through depth 20) that returns
+`bestmove g1h1` and a correct `cp 0` for a drawn shuffle in a lost-material but non-losing position.
+
+SO: THE SOURCE READER IS RIGHT AND THE ALLEGED CLAIM WAS WRONG
+---------------------------------------------------------------
+`FORGE_FIX_ROOT_DRAWN` disarms the guard at `search.cpp:2253`, before the ID loop, so the root is ordinary at every depth
+(per SOURCE_FINDINGS.md §1/§3). My measurement agrees with the code and with the source reader's 14 roots. There is no
+disagreement between "their 14 roots" and "my boards" because I had no contrary boards: the claim attributed to me is not
+in my branch.
+
+WHAT I WOULD HAVE EXPECTED TO SEE IF THE CLAIM WERE TRUE, for the record: a PC cell reporting 0 nodes at depth 4 and a
+mate at depth 20 — i.e. a depth threshold. Nothing of that shape appears in any of the eight rows; the shallowest depth
+already searches.
+
+LIMITS: 8 boards, `go depth 4/10/20`, one build pair, Threads 1, Hash 16, OwnBook false; all boards have castling `-`.

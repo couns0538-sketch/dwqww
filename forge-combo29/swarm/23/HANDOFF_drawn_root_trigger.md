@@ -31,7 +31,7 @@ Everything below is from the BASE build (`~/build/forge`, sha256 `e06310ec…`),
 this paragraph; it is kept so the original framing is visible):
 
 ORIGINAL: on some positions whose root had occurred three times in the move list, the engine returns `bestmove` with
-**0 `info depth` lines and 0 nodes**, scoring **cp 0**, and the move is the first of its own generated list (23-F98); on
+**0 nodes**, scoring **cp 0** at every depth, and the move is the first of its own generated list (23-F98); on
 other positions with "the same threefold root" it searched normally, and the state was recorded as *reproducible effect,
 four explanations ruled out, no clean characterisation*.
 
