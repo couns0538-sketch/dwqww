@@ -1,0 +1,32 @@
+=== JOB 13: does fill explain the Hash-size divergence? ===
+positions 16, Hashes [8, 16, 24, 32, 48, 64], budgets 3, fresh process per cell
+
+cells compared: 240   agree: 120   differ: 120
+
+hashfull of the smaller table, AGREEING cells: max 195, median 70
+hashfull of the smaller table, DIFFERING cells: min 89, median 254
+
+GLOBAL-FILL as a sharp rule is refuted if either of these is non-zero:
+  AGREEING cells at or above the lowest differing hashfull: 44
+  DIFFERING cells at or below the highest agreeing hashfull: 37
+     agree at hashfull 168 (Hash 8, go nodes 200000, pos 1)
+     agree at hashfull 195 (Hash 8, go nodes 200000, pos 2)
+     agree at hashfull 102 (Hash 16, go nodes 200000, pos 2)
+     agree at hashfull 103 (Hash 16, go nodes 200000, pos 3)
+     agree at hashfull 93 (Hash 16, go nodes 200000, pos 4)
+     DIFFER at hashfull 146 (Hash 8, go nodes 200000, pos 0)
+     DIFFER at hashfull 188 (Hash 8, go nodes 200000, pos 4)
+     DIFFER at hashfull 177 (Hash 8, go nodes 200000, pos 7)
+     DIFFER at hashfull 89 (Hash 16, go nodes 200000, pos 7)
+     DIFFER at hashfull 179 (Hash 8, go nodes 200000, pos 14)
+
+practical envelope: every agreeing cell had hashfull <= 195
+
+-- summary by smaller table size --
+   Hash 8   vs 64: agree  7 / 48   hashfull range 105-805
+   Hash 16  vs 64: agree 19 / 48   hashfull range 53-503
+   Hash 24  vs 64: agree 26 / 48   hashfull range 38-330
+   Hash 32  vs 64: agree 31 / 48   hashfull range 26-259
+   Hash 48  vs 64: agree 37 / 48   hashfull range 17-170
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job13/fill_mechanism.json

@@ -63,11 +63,14 @@ shows it again.
 | 69-F20 | determinism | **Extending the ladder: Hash 128 vs 256 first differs at `go nodes 1,000,000` (2 / 24), then 15 / 24 at 2M and 24 / 24 at 4M.** 64 vs 128 matches that exactly (9 / 24 at 1M). **But at 500,000 nodes, Hash 64 vs 256 is 0 / 24** — so the earlier 17 / 24 at 500k was the 16 MB table being too small, not table growth in general. The safe floor is ~64 MB, not ~16 MB, at 500k. | `job10_hash_ladder.py`, `job10/hash_ladder.json` | NEW |
 | 69-F21 | determinism | **History does NOT leak across `ucinewgame`, and does not leak across searches at all.** A repetition-laden position followed by another search with or without `ucinewgame` gives the identical cell (4 / 4 sequences). The repetition state is carried by the `position startpos moves` command itself, and is rebuilt per command. | `job11_history_leak.py`, `job11/history_leak.raw.txt` | NEW |
 | 69-F22 | cross-build | The base build's drawn-root bail appears on a threefold root reached **by move list**: base answers `0 nodes, cp 0, a2a3`; PC answers `34,047 nodes, cp 22, e2e4`. Via `position fen` both builds answer `56,720 / e2e4 / cp 30`, so the divergence is reachable only through the move-list form. | `job11b_fen_vs_moves.py`, `job11/fen_vs_moves_repetition.raw.txt` | NEW |
-| 69-F23 | determinism | **The threshold is THREE occurrences, not two.** With exactly 2 prior occurrences of the final position the two command forms agree on both builds; at 3 they diverge. So the trigger is a genuine threefold, not any repetition. A 2-fold is common in play (14.5% of 200-ply random games contain one) and is harmless here. | `job12_repetition_threshold.py`, `job12/repetition_threshold.raw.txt` | NEW |
+| 69-F23 | determinism | **The threshold is THREE occurrences, not two.** With exactly 2 prior occurrences of the final position the two command forms agree on both builds; at 3 they diverge. So the trigger is a genuine threefold, not any repetition. A 2-fold is common in play — **29 of 200 random games of 200 plies contain one** — and is harmless here. | `job12_repetition_threshold.py`, `job12/repetition_threshold.raw.txt`, `job12/threshold_rate.raw.txt` | NEW |
 | 69-F24 | cross-build | **The bail is not an endgame artifact: it fires on a 32-piece middlegame threefold.** Real opening (`e2e4 … e8g8`) plus a legal knight/queen cycle, 32 pieces on the board, 24 plies: base answers `0 nodes, cp 0, a2a3` at every budget tested (`go depth 8/12/14`, `go nodes 50000`, `go nodes 500000`); PC answers `b3e6` with a real search every time. The FEN form of the same board gives `b3e6 cp 32` on both builds. **The base's answer is off by 32 cp and is the wrong move.** | `job12/middlegame_threefold.raw.txt`, `job12/middlegame_repeat_check.raw.txt` | NEW |
 | 69-F25 | determinism | The bailing cell is fully deterministic — 3 runs on each build give 1 distinct result. It is not noise; it is a stable wrong answer. | `job12/middlegame_repeat_check.raw.txt` | NEW |
 | 69-F25b | determinism | **The bail has a loud signature a harness can filter on:** the base emits **64 info lines** each `score cp 0 nodes 0 nps 0 hashfull 0 time 0` with an **empty `pv`**, climbing to `depth 64` — while a real search emits 11 lines with populated nodes/pv. A cell with `nodes 0` and an empty PV is the bail, not a search. | `job12/bail_signature.raw.txt` | NEW |
 | 69-F26 | determinism | **Exposure bound: a random-position harness is essentially never affected** — 0 threefolds in 600 random games of 60/120/200 plies, and 0 in 4,000 further 160-ply seeds. A harness that replays **real games** to a threefold is affected and gets a silently wrong move, not an error. | `job12/threshold_rate.raw.txt`, `job12/real_game_threefold.raw.txt` | NEW |
+
+| 69-F27 | determinism | **The mechanism behind the Hash-size divergence is per-collision, not global fill.** Across 240 cells (6 table sizes × 3 budgets × 16 positions): 44 cells **agree** while the smaller table's `hashfull` is at or above the lowest differing fill, and 37 cells **differ** at or below the highest agreeing fill. So fill raises the probability of divergence but decides no individual cell — the boundary is statistical, and no sharp `hashfull` threshold exists. Agreement rate falls monotonically with table size: Hash 8 agrees 7/48, 16: 19/48, 24: 26/48, 32: 31/48, 48: 37/48. | `job13_fill_mechanism.py`, `job13/fill_mechanism.raw.txt` | NEW |
+| 69-F28 | determinism | Measured without any source change, using the engine's own `hashfull` field: at a diverging cell the smaller table sits at 155–438‰ while Hash 64 is at 39–123‰. This replaces the earlier guess in 69-F11's neighbour line ("fewer collisions in a bigger table") with a measurement — fill is the right *variable* and the wrong *rule*. | `job10/hashfull_probe.raw.txt`, `job10/hashfull_mechanism.raw.txt` | NEW |
 
 ## Not established by this seat
 
@@ -79,6 +82,10 @@ shows it again.
   reproducible; this seat did not re-measure them and no number here should be read as
   applying to a `movetime` search.
 * **Threads > 1 is outside this file.** Every cell is `Threads 1`.
-* **Why Hash 16 and Hash 64 diverge at 1,000,000 nodes is not explained.** The count moves
-  and the mechanism was not instrumented; "fewer collisions in a bigger table" is a guess,
-  not a measurement.
+* **Why Hash 16 and Hash 64 diverge is now measured as far as behaviour goes** (69-F27/28:
+  per-collision, not global fill; `hashfull` is the right variable and not a usable rule).
+  **What is still not shown is the code-level route** — which overwrite at which node
+  changes which move, which would need a patched build printing overwritten keys. The
+  statistical account is a measurement; the per-node account is not.
+* **The exact `hashfull` at which any given cell diverges is unpredictable** by construction
+  in the per-collision account, and is not a property a harness can budget against.

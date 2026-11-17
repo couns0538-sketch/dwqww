@@ -157,6 +157,23 @@ Of 178 differing cells in the sweep, **15 also moved the bestmove** and **13 dif
 exactly one node**. A one-node difference matters because the count is what a harness
 divides by or compares, and the bestmove changes are what a strength comparison sees.
 
+### Why the table size matters (measured, not guessed)
+
+The engine reports `hashfull` on every info line, so the mechanism is observable without a
+source change. At a diverging cell the smaller table sits at **155–438‰** while Hash 64 is
+at **39–123‰**.
+
+But fill is **not a rule a harness can budget against**. Over 240 cells (6 table sizes × 3
+budgets × 16 positions):
+
+* **44 cells agree** while the smaller table's fill is at or above the lowest *differing* fill;
+* **37 cells differ** at or below the highest *agreeing* fill.
+
+So fill raises the probability of divergence and decides no individual cell — the boundary is
+statistical. That is why the answer to "is Hash 16 vs 64 identical" is a rate, not a yes/no.
+Agreement falls monotonically with table size: Hash 8 agrees 7/48, 16: 19/48, 24: 26/48,
+32: 31/48, 48: 37/48.
+
 A warm process differs from a fresh process at **every** Hash size (40 / 40, both
 budgets), so table size does not rescue the reuse trap: warm-16 vs fresh-16 is 40 / 40
 apart. The two traps are separate and both have to be avoided.

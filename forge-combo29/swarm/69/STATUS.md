@@ -114,3 +114,27 @@ Files: `job12_repetition_threshold.py`, `job12/repetition_threshold.raw.txt`,
 `job12/middlegame_threefold.raw.txt`, `job12/middlegame_repeat_check.raw.txt`,
 `job12/bail_signature.raw.txt`, `job12/threshold_rate.raw.txt`,
 `job12/real_game_threefold.raw.txt`, `job12/stamps.txt`.
+
+## 2026-11-17T05:05Z — the Hash-divergence mechanism, and an estimator audit
+
+Answered the "why" I had twice filed as a guess, without a source change: the engine already
+reports `hashfull` on every info line.
+
+* At a diverging cell the smaller table sits at **155–438‰** while Hash 64 is **39–123‰**.
+* But fill does **not** decide any cell: over 240 cells, **44 agree** at or above the lowest
+  differing fill and **37 differ** at or below the highest agreeing fill. The boundary is
+  statistical.
+* Agreement falls monotonically with table size: Hash 8: 7/48, 16: 19/48, 24: 26/48,
+  32: 31/48, 48: 37/48.
+
+So "fewer collisions in a bigger table" was the right *variable* and the wrong *rule*. Still
+unshown: the code-level route (which overwrite changes which move), which needs a patched
+build printing overwritten keys.
+
+Estimator audit prompted by the coordinator's spread-estimator lesson: audited all four of
+my documents for derived figures. **One** existed — "14.5% of 200-ply random games" in
+FINDINGS 69-F23. Replaced with the literal count (**29 of 200**) so no estimator is implied.
+Every other figure in my documents is already a literal count with its denominator.
+
+Files: `job13_fill_mechanism.py`, `job13/fill_mechanism.raw.txt`, `job13/stamps.txt`,
+`job10/hashfull_probe.raw.txt`, `job10/hashfull_mechanism.raw.txt`.
