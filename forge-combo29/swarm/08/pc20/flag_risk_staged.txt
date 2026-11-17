@@ -1,0 +1,42 @@
+## Staged flag risk: bare endgames at falling clocks — PC r15, PC20, Threads 1
+
+These are the WORST boards from the shape sweep, not a random sample — deliberately.
+
+| board | clock | wall ms | wall > clock (FLAG)? | depth |
+|---|---|---|---|---|
+| 7-piece, 33 moves, took 1585 ms at | 6000 | 1585.5 | no | 16 |
+| 7-piece, 33 moves, took 1585 ms at | 3000 | 900.7 | no | 16 |
+| 7-piece, 33 moves, took 1585 ms at | 1600 | 218.3 | no | 15 |
+| 7-piece, 33 moves, took 1585 ms at | 1200 | 62.6 | no | 13 |
+| 7-piece, 33 moves, took 1585 ms at | 800 | 63.4 | no | 13 |
+| 7-piece, 33 moves, took 1585 ms at | 400 | 63.0 | no | 13 |
+| 7-piece, 33 moves, took 1585 ms at | 200 | 62.3 | no | 13 |
+| | | | | |
+| 6-piece, 4 moves, took 1225 ms at  | 6000 | 719.2 | no | 19 |
+| 6-piece, 4 moves, took 1225 ms at  | 3000 | 196.3 | no | 18 |
+| 6-piece, 4 moves, took 1225 ms at  | 1600 | 157.4 | no | 16 |
+| 6-piece, 4 moves, took 1225 ms at  | 1200 | 158.8 | no | 16 |
+| 6-piece, 4 moves, took 1225 ms at  | 800 | 159.8 | no | 16 |
+| 6-piece, 4 moves, took 1225 ms at  | 400 | 78.6 | no | 13 |
+| 6-piece, 4 moves, took 1225 ms at  | 200 | 66.3 | no | 15 |
+| | | | | |
+| 4-piece, 22 moves, took 1164 ms at | 6000 | 357.3 | no | 19 |
+| 4-piece, 22 moves, took 1164 ms at | 3000 | 361.1 | no | 19 |
+| 4-piece, 22 moves, took 1164 ms at | 1600 | 88.8 | no | 17 |
+| 4-piece, 22 moves, took 1164 ms at | 1200 | 56.3 | no | 16 |
+| 4-piece, 22 moves, took 1164 ms at | 800 | 43.3 | no | 15 |
+| 4-piece, 22 moves, took 1164 ms at | 400 | 42.3 | no | 15 |
+| 4-piece, 22 moves, took 1164 ms at | 200 | 42.7 | no | 15 |
+| | | | | |
+
+## Verdict
+
+| quantity | value |
+|---|---|
+| (board, clock) pairs tested | 21 |
+| FLAGS (wall > remaining clock) | **0** |
+
+**No flag even on the worst boards at 200 ms.** The time manager handles the bare-endgame case across the
+whole clock range, because the plan shrinks with the clock: at 200 ms the `available` is 190 and the plan
+(soft 8 / hard 40 ms) is small enough that even an expensive iteration fits. So the residual risk I flagged
+in 08-F34 does NOT materialise on these boards.

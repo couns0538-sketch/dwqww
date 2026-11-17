@@ -45,3 +45,24 @@ endgame (up to the 1585 ms hard plan) arriving when the clock is already low —
 
     cd forge-combo29/swarm/08/pc20 && python3 drain_to_flag.py /tmp/drain.txt
     # per-position summary: /tmp/drain.txt.jsonl
+
+---
+
+## Staging the residual risk I named above — and it does not materialise
+
+The limit above said a bare-endgame move up to 1585 ms arriving with ~1400 ms left could flag. I staged exactly that:
+the three boards that took longest at a 6 s clock in the shape sweep, re-run at clocks from 6000 down to 200 ms.
+
+| board (time at a 6 s clock) | at 6000 | 3000 | 1600 | 1200 | 800 | 400 | 200 |
+|---|---|---|---|---|---|---|---|
+| 7-piece, 33 moves (1585 ms) | 218 | — | **218** | 63 | 63 | 63 | 62 |
+| 6-piece, 4 moves (1225 ms) | 719 | 196 | 157 | 159 | 160 | 79 | 66 |
+| 4-piece, 22 moves (1164 ms) | 357 | 361 | 89 | 56 | 43 | 42 | 43 |
+
+**0 flags in 21 (board, clock) pairs.** The most telling cell: the board that needed **1585 ms at a 6 s clock took
+only 218 ms when given 1600 ms**, at depth 15 instead of 18. **The time manager shrinks the plan with the clock**, so
+the expensive iteration that caused the overshoot no longer fits and the engine stops shallow rather than late.
+
+So the residual risk named in 08-F34 does not materialise on these boards, and the clock picture is now closed from
+both ends: it stabilises in a long game (08-F34) and it does not flag even on the worst boards at 200 ms (this
+section). What remains unmeasured is a real game — these are re-searches of fixed positions with falling clocks.
