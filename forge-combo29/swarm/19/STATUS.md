@@ -1273,14 +1273,21 @@ that hold **per position** are both **taxes** — per-node cost (90.0 %, a large
 own table (see the prerequisite above). **That is the strongest evidence that the rule is worth having.**
 
 ## What the owner should be told about PC20, in one line
-**PC20 pays ~7 % more per node on 90 % of positions — that is a real, uniform tax — and saves ~12 % of nodes on
-only about 60 % of them, so the node saving is a session-level average and the per-node cost is a per-position
-fact. Net wall-time gain is ~2.8 %; at matched NODES it spends ~7 % more time for the same count.**
 
-**Note the ordering, which is the whole point of this section: the TAX is the reliable number and the SAVING is the
-fragile one.** The earlier version of this sentence led with the 12 % saving and called the switches "a small,
-uniform, consistent cost" — **both wrong under this table**: the saving is not uniform (60.5 %), and the cost is
-neither small nor merely consistent, it is the one per-position fact in the set.
+**Three statements, each classified by its own CI, in the order the rules require:**
+
+1. **PC20 costs ~7 % more per node, on 90 % of positions — REAL, and per-position.** (median 1.071,
+   IQR [1.044, 1.110], 162/180 pairs; the pooled CI excludes 1.0.)
+2. **PC20 searches fewer nodes — REAL at the pooled level** (0.8761, bootstrap CI **[0.8196, 0.9364]**, excludes
+   1.0), **but only ~60 % of positions share the sign**, so it is a **session-level** fact, not a per-position one.
+3. **The net WALL-TIME gain is NOT ESTABLISHED.** Pooled time ratio 0.9343, bootstrap CI **[0.8676, 1.0082]**,
+   **includes 1.0.** So "PC20 is ~2.8 % faster" is **not a claim I can support** at n=119.
+
+**Note what the classification order did to this sentence — for the third time.** The previous version asserted
+"net wall-time gain is ~2.8 %", which its own CI does not support; and before that it led with the fragile 12 %
+saving and called the per-node tax "consistent". **A summary written before the rule was applied to it was wrong on
+the two figures most likely to be quoted.** The reliable numbers are the two taxes and the pooled node reduction;
+**the wall-time gain is the one the owner should not act on.**
 
 ## 2026-11-17T02:25Z — cadence
 
