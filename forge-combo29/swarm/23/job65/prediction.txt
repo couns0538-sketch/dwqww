@@ -1,0 +1,26 @@
+PREDICTION — SW-23 job 65 (does the threshold hold for a repeated position at the END of a LONG list, not just at the root?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F140 refined the trigger: the bail follows the position at the END of the sent move list. Every threshold fixture in
+23-F125/F132/F133 tested that at the ROOT of a short list (the repeated position was the starting position). This tests
+whether the same threshold holds when the repeated position is deep in a long list — the shape a real GUI or analysis
+tool actually sends.
+
+DESIGN — on a validated castling-neutral board, build lists LONGER than the fixtures have ever used:
+  a 12-ply preamble (a shuttle that returns to the start), then a cycle that makes the END position repeat n times.
+For n = 2, 3, 4, 5, verify with `job59/validate.py` that the SEARCHED position (the end of the list) occurs exactly n
+times, and that it is NOT the game's starting position — so the case is genuinely "deep in a list", not "at the root".
+
+Prediction (each with the range that kills it):
+  P1  ALL FOUR FIXTURES VALIDATE with the searched position's own count equal to n and the searched position DIFFERENT
+      from the starting position. KILLED if any cannot be constructed — reported, not worked around.
+  P2  **n = 2 SEARCHES and n = 3, 4, 5 ALL BAIL** — the same threshold as 23-F125, holding at the end of a long list.
+      KILLED if any bail/search pattern differs from the root-anchored result, which would mean the threshold depends on
+      POSITION IN THE LIST (a different and more complicated rule than 23-F140 states).
+  P3  A CONTROL that proves the preamble matters: the SAME final repeated position reached by the SHORTEST list (just
+      the cycle repeated) must give the same verdict as the long list. KILLED if the two disagree, which would mean list
+      LENGTH affects the bail independently of the occurrence count — worth knowing and not what I predict.
+
+If P1-P3 hold, the sentence "the base returns 0 nodes iff the position at the end of the sent move list has occurred at
+least three times in that list" survives a test in the shape real tools use, rather than only in the shape my fixtures
+happened to take.
