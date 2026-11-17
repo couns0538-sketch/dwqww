@@ -71,7 +71,15 @@ written (list-form argv, no `shell=True`, no `eval`/`exec`/`pickle`, absolute pa
 harness). I removed the two patterns I could justify on merit: a nested-lazy-quantifier regex
 (replaced with `str.split`, output byte-identical) and global `random` state (replaced with a local
 `random.Random(seed)`, sequence verified identical before switching). Recorded as a repo-level
-decision, not a per-seat defect. As of the final tip the gate no longer reports on this branch.
+decision, not a per-seat defect.
+
+**Correction to an earlier claim of mine, recorded because I made it and it was wrong:** at one
+point I checked `gh pr checks` and saw only CodeRabbit, and reported that "the gate no longer
+reports on this branch." That was a **transient empty rollup read as a resolution** — the
+SonarCloud check reappeared on the same commit minutes later with the same four annotations. A
+check that is absent from one poll is not a check that passed; absence of a result is not a
+result. This is the same class as the report's rule that "a check that declines to evaluate must
+never be read as a pass," and I applied the wrong reading to my own CI status.
 
 ## Known, deliberate leftover
 
