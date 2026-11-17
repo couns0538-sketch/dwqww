@@ -14,6 +14,37 @@ because they cost three seats real findings tonight, and because either one alon
 **The transferable form:** before quoting either, name the object's provenance — the option list actually parsed,
 or the command actually run. **A figure without its provenance is not evidence, it is a number.**
 
+## A defect's blast radius is a different question from the defect
+
+Finding a defect is half the work. The other half is asking **who is downstream of it**, and that has to be
+measured, not inferred — twice tonight the answer changed what I would have said.
+
+**Case 1 — S-F8 (`searchmoves` changes the reported score).** The obvious inference is "any seat using
+`searchmoves` is affected". Measured, the truth has three rows:
+
+| use | verdict |
+|---|---|
+| recording an **absolute** score from a pinned search | **unusable** — differs from free in 25 of 25, up to 32 cp |
+| verifying that a **move** is best by pinning it | **vacuous** — the restriction makes it the only option |
+| comparing **two candidates, both pinned the same way** | **usable** — rank order preserved 8 of 8 |
+
+**A cross-seat result (seat 25's S-C50) lives in the third row and its conclusion stands**, which I would have
+wrongly impugned by applying the first row to it.
+
+**Case 2 — the settings label.** The base build does not advertise the PC20 options, so base cells cannot differ
+because of those switches *by construction*. That makes them a perfect control for that axis and **silent about
+every other** — so "the base cells agree" is a complete argument about PC20 and an incomplete one about the
+harnesses.
+
+**The pattern: a bug's severity is a property of its consumers, not of the bug.** Two questions, asked
+separately and answered by measurement:
+
+1. **what does it corrupt?** (here: absolute scores and move-verification, not rank order)
+2. **who consumes exactly that?** (here: nobody's conclusion — but my own docstring premise)
+
+Inferring (2) from (1) produces either false alarm (impugning seat 25) or false comfort (clearing the `f3`
+premise that really was wrong). It produced both tonight, in the same family of findings.
+
 ## Judge by the artifact, never by its appearance
 
 Three guard failures on this thread, by three different seats, all from the same mistake:
