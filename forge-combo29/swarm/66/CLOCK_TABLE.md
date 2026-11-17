@@ -170,27 +170,27 @@ largest spend on the whole match is 620.9 ms, never the whole clock.
 
 ### 20 games at 3000+2000 ms (3+2, the brief's control)
 
-**PARTIAL at this commit: 8 of 20 games** (903 plies). The remaining 12 are queued behind ~5.5 min each.
+**PARTIAL at this commit: 13 of 20 games** (1,635 plies). The remaining 12 are queued behind ~5.5 min each.
 
 | measure | value |
 | --- | ---: |
-| games complete | 8 of 20 |
-| plies | 903 |
+| games complete | 13 of 20 |
+| plies | 1,635 |
 | forfeits / hangs / illegal / refused | **0 / 0 / 0 / 0** |
 | max (move time ÷ clock available) | **0.5997** |
-| worst overshoot of the predicted hard limit | **+1.3 ms** over 903 moves |
+| worst overshoot of the predicted hard limit | **+1.3 ms** over 1,635 moves |
 | closest approach to the predicted hard limit | 1.001 |
 | lowest clock reached | **3000 ms** — never below the starting value |
-| moves at a clock ≤200 ms | **0 of 903** |
+| moves at a clock ≤200 ms | **0 of 1,635** |
 
 Two things this control establishes and one it cannot:
 
-1. The zero-forfeit result holds for 8 games / 903 plies, and every move again obeys the plan formula
+1. The zero-forfeit result holds for 13 games / 1,635 plies, and every move again obeys the plan formula
    (max 0.5997 of available, +1.3 ms worst overshoot).
-2. The clock **grows**: not one of 903 moves was made at a clock below 3000 ms, and the largest single
-   spend (11,107 ms at ply 35 of game 1) was made from an 11,929 ms clock — well inside the 60% cap for
-   that clock value.
-3. It **cannot** confirm the floor, and the `0 of 903 moves at ≤200 ms` line is the measurement that says
+2. The clock **grows**: not one of 1,635 moves was made at a clock below 3000 ms, and the largest single
+   spend in the whole set (11,107.2 ms) was made from an **18,521 ms** clock, where the formula's hard limit
+   is 11,106 ms — a 0.5997 ratio. Even the set's most expensive move is the 60% cap, not a runaway.
+3. It **cannot** confirm the floor, and the `0 of 1,635 moves at ≤200 ms` line is the measurement that says
    so rather than an inference. That is why the 1000+100 match and the drain control exist.
 
 ### Drain control (the only way to reach the floor at a 3+2 clock)
