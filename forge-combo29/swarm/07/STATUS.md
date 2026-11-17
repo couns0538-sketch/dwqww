@@ -865,3 +865,11 @@ On a control that strengthens rather than merely confirms: that is the pattern I
 Added the double-counting fault to the FINDINGS header (18 rules) and to FINAL's 'Is my comparison right?' group, because it is genuinely distinct from a miscount:
   > BEFORE QUOTING A COUNT, CHECK THAT EACH ITEM IS A DISTINCT INSTANCE. I wrote 'three occurrences' of a refused FEN and the number was ONE: the illustrative example I had put in the rule itself was already one of the three, so quoting it again counted the same incident twice, and the other two I remembered were not refusals at all. This is a different fault from mis-counting a list -- every item I named was real; two of them were the same item. When an example and a tally live near each other, check whether the example is IN the tally (07-C71).
 That distinction is the useful part: a miscount means the list was wrong, double-counting means the list was right and the arithmetic over it was wrong. The second is harder to notice because every item you look at checks out.
+
+## 2026-11-17T00:38:54Z
+07-C72 -- SETTLED the seat-10 vs seat-27 node discrepancy (30-F66), and the cause is NEITHER of the two seat 30 proposed. Same board 5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1, Hash 16, Threads 1, go depth 16, every info-depth line recorded verbatim:
+  BASE build:      d14 185,234,407 | d15 187,120,588 | d16 196,650,272  (23 s, completed)
+  PC r15/PC20:     d14  23,174,968 | d15 250,077,687 | d16 1,051,447,191 (161 s, completed)
+  Seat 10's figures (23,174,968 and 250,077,687) match the PC arm TO THE DIGIT. Seat 27's 599,407,784 matches NEITHER build -- and on my runs depths 15 AND 16 completed, where seat 27 reported never reaching 15 in ~62 s.
+  SO: the ~26x gap is a BUILD/SETTINGS difference, not 'node accounting or sampling' as 30-F66 concluded. Seat 10 was on the PC build under PC20; seat 27 was not on any configuration I can reproduce.
+  The general caution is the useful part: a node count is only comparable when the build AND the option set are named -- which is exactly the rule from 07-C67. Three seats compared numbers without pinning the binary, and the discrepancy looked like a mystery rather than a citation gap.
