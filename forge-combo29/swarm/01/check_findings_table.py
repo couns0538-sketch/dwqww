@@ -39,6 +39,7 @@ If the sequence is not what you intended, the page is not finished, whatever thi
 
 Usage: check_findings_table.py [path]
 """
+import os
 import re
 import sys
 import pathlib
@@ -93,7 +94,11 @@ def main():
     out.append("       anything in the prose pages (no rows there). A clean run is not a correct document.")
     out.append("       For section order: grep -E '^## ' <file> and read the sequence.")
     text = "\n".join(out) + "\n"
-    pathlib.Path("check_findings_table.txt").write_text(text)
+    # The artifact path is settable so a SELF-TEST can run this checker on synthetic input without overwriting the
+    # real artifact. Learned the hard way: the first self-test I put in gate.sh clobbered check_findings_table.txt
+    # with its own bad-row output, i.e. the test of the checker destroyed the evidence the checker exists to keep.
+    artifact = pathlib.Path(os.environ.get("FINDINGS_ARTIFACT", "check_findings_table.txt"))
+    artifact.write_text(text)
     print(text)
     # EXIT NON-ZERO ON A PROBLEM. Until 2026-11-17 this script always returned 0, so gate.sh printed it as "ok" even
     # while it reported a literal pipe splitting a row - a checker that cannot fail its caller is Trap 8 applied to

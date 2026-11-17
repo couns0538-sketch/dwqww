@@ -223,14 +223,49 @@ L2; "should" is not a counter.
 **The rule, stated so it transfers: a tool that measures must be asked what it measured.** Profilers, like
 benchmarks, return a success status and a plausible table whether or not they looked at the thing you named.
 
+## Trap 11 — the count is a property of the READER, not the engine (S-F121)
+
+> **Sending `quit` in the same breath as `go` closes the pipe while the search is still running, and every info line
+> and the bestmove are lost. The engine behaves identically; the output does not exist for you.**
+
+I measured the same quantity three times in one hour and got three answers:
+
+| how I read it | answer | why |
+|---|---|---|
+| `printf "…go nodes 100…quit" \| forge` | **1 line** | pipe closed under the search |
+| S-C18's own script (waits for `bestmove`, then quits) | **64 lines** | correct |
+| a protocol that waits for `bestmove`, on the clock command too | **64 lines for all four commands** | correct |
+
+The engine was doing the same thing every time: on a terminal root it emits 64 `info depth` lines, depths 1→64,
+at 0 nodes. **My first form could not see them, and it looked self-consistent** — it said "1 line" for every one of
+five commands, and that agreement felt like evidence. It was evidence of a broken reader.
+
+`grep -c '^info depth'` on the piped form returns **0**. The same defect silently emptied a whole ABBA run later that
+hour: 8 of 8 positions returned `None`, and the script went on to print a comparison table with no data in it.
+
+Why this is its own trap and not just Trap 5: Trap 5 is about a timer that includes work it should not. This is
+about output that **never arrives**, so the failure mode is not a wrong number — it is a **plausible small number**,
+or a clean zero, or a table of MISSING rows that a writer may report as "no result". The count looks like a property
+of the engine and is a property of the reader.
+
+**The rule: wait for `bestmove` before `quit`, and treat any harness that writes `go` and `quit` together as broken.**
+Two corollaries:
+
+1. **A zero is a claim.** Before reporting "no info lines", "no output" or "0 of N", check that the reader could see
+   output at all — the same discipline Trap 8 asks for on tests, applied to the pipe.
+2. **Do not let a script print a verdict it cannot support.** Mine emitted a comparison block over empty data; it now
+   refuses and says *"NOTHING WAS MEASURED … none is claimed"*. If a result is absent, the honest output says so in
+   the same words as a failure, never in the shape of a result.
+
+
 ## The shape the harness traps share
 
-Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), and Trap 10 (a profile that never looked
-at the program) are not four separate lessons; they are one:
+Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), Trap 10 (a profile that never looked at
+the program) and Trap 11 (a reader that never received the output) are not five separate lessons; they are one:
 
 > **A check is a claim, and claims get tested.** A step that fails silently reports success.
 
-Each of the three, in my own session, produced a confident output that was wrong:
+Each of them, in my own session, produced a confident output that was wrong:
 
 | trap | the confident output | what was actually true |
 |---|---|---|
@@ -238,10 +273,12 @@ Each of the three, in my own session, produced a confident output that was wrong
 | 8 — cannot-fire test | a clean "0 of 3" | the test was incapable of a positive |
 | 9 — shell writing | an exit code of 0 | the block had holes in it |
 | 10 — profiler | a table sorted by percentage | 22 samples, of the shell wrapper |
+| 11 — reader | "1 line" for all five commands | 64 lines, swallowed by the pipe |
 
 And the same shape recurred in my **checks of my own checks**: a table checker that compared pipes against cells, a
 zero-node flag that scored 220-node cells "healthy", and an evidence command that returned three commits while
-claiming none. **Three times a check of mine turned out to be the thing that was wrong.**
+claiming none. **Three times a check of mine turned out to be the thing that was wrong** — and a fourth when the gate
+turned out to be unable to fail its caller at all (S-F122).
 
 The fourth instance is Trap 10, and it is the purest: the tool did not merely fail to check the right thing, it
 **checked a different program entirely** and reported the result under my program's name. Its 22 samples disagreed

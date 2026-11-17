@@ -1,0 +1,52 @@
+Reproduction of seat 29's 29-F59 method (fixed node budget) on seat 01's build - a third independent route
+exe sha256: 227aae56ef1678479cf08d0fc3e3c73683753e89d61f12b252f0fec9e388471e
+net sha256: 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a
+Threads 1, Hash 16, node budget 200000, ABBA interleaving per position, PC20 where named.
+Control: each configuration must reproduce its OWN node count across the ABBA repeats (then the per-100k
+normalisation is exact). The two configurations need NOT match each other - with a fixed node budget the
+loop exits at an iteration boundary, so different tree shapes cross the budget at different points.
+
+--- pc20 (budget 200000) ---
+position	no-net nodes	no-net ms	net nodes	net ms	ms per 100k (no-net -> net)
+startpos	[166281]	85	[105432]	55	51.4 -> 52.6
+italian	[194091]	112	[135264]	72	57.7 -> 53.6
+ruylopez	[71286]	41	[113816]	52	58.2 -> 46.1
+sicilian	[78313]	43	[67477]	31	54.9 -> 45.9
+kid	[177062]	94	[189975]	89	53.1 -> 47.1
+openmid	[187270]	108	[161158]	82	57.9 -> 51.2
+rookend	[163329]	57	[178013]	70	34.9 -> 39.3
+pawnend	[179754]	74	[146188]	61	41.4 -> 41.7
+  pc20: 8 comparable positions, median ms/100k 54.0 -> 46.6 = **0.91x**
+
+--- plain (budget 200000) ---
+position	no-net nodes	no-net ms	net nodes	net ms	ms per 100k (no-net -> net)
+startpos	[101640]	50	[112852]	52	49.2 -> 46.5
+italian	[111587]	59	[121633]	56	52.9 -> 46.0
+ruylopez	[199101]	108	[184799]	79	54.2 -> 43.0
+sicilian	[149295]	78	[69744]	29	52.2 -> 41.6
+kid	[145885]	73	[72361]	31	50.4 -> 42.8
+openmid	[166725]	91	[128462]	63	54.6 -> 49.0
+rookend	[184176]	58	[91125]	31	31.5 -> 34.0
+pawnend	[138786]	54	[163229]	61	38.9 -> 37.4
+  plain: 8 comparable positions, median ms/100k 51.3 -> 42.9 = **0.88x**
+
+COMPARISON with the published figures
+  seat 29 (29-F59): PC20 0.96x, plain 1.16x   [their build, their box]
+  seat 01 (S-F118): 1.09x from bench-13 wall medians, 4 file-backed runs   [this build, this box]
+  seat 01, THEIR method, this build: pc20 **0.91x** (8 positions)
+  seat 01, THEIR method, this build: plain **0.88x** (8 positions)
+
+VERDICT: the v3 net costs roughly the SAME per node as the built-in evaluation on this build
+(0.91x on PC20, 0.88x plain, against 1.09x from my bench-13 medians). The 6.2-6.8x wall cost of
+the net is therefore NODE COUNT, not per-node work, so the ceiling on v3 kernel optimisation is
+the v3 family's share of the benchmark (~19 %).
+
+Honest range, not a point: 0.88-0.91x, i.e. on THIS workload the net is 9-12 % CHEAPER
+per node than the built-in evaluation. I am not claiming the net is faster in general - the
+claim is that the per-node difference is small, and here it happens to fall on the cheaper side.
+Every figure is far from the 2.5x that would keep seat 29's P4 alive, and far from its 4-25x
+prediction - that is the part which is not close to any threshold.
+
+A NOTE ON MY OWN NUMBER: this method gives 0.88x where my bench-13 medians gave 1.09x - the two
+disagree in SIGN of the v3 penalty (cheaper vs dearer per node). Both say ~1x, which is the claim,
+but the point value is method-dependent, so the honest statement is "about the same, within ~11 percent" rather than either figure alone.

@@ -1717,3 +1717,38 @@ negative-tested BOTH directions: bad row -> exit 1 -> gate exit 1 with FAIL; cle
 immediately caught a literal pipe in the very row describing the bug.
 Gates: 164 rows, 0 wrong pipe counts, exit 0 verified, page shape OK, stamps in order.
 Next: continue at cadence.
+## 2026-11-17T01:22:34Z — the self-test is in the gate now, and it was decorative too until I regressed a checker (S-F124)
+BOTH THINGS YOU ASKED FOR ARE DONE, and the first one taught me something.
+1. THE NEGATIVE TEST IS NOW PART OF gate.sh, NOT A ONE-OFF. Every run proves its own teeth against synthetic input it
+   creates and deletes: a bad pipe in a row must be REJECTED, a well-formed row must be ACCEPTED (so the rejection is
+   for the right reason), a future STATUS stamp must be REJECTED, a possible stamp must be ACCEPTED.
+   AND MY FIRST VERSION OF THAT SELF-TEST WAS DECORATIVE IN EXACTLY THE WAY S-F122 WAS (S-F124). I wrote
+    for cleanup. A RETURN trap's own last command sets the FUNCTION's exit status, and
+    succeeds - so selftest() ALWAYS returned 0 and every assertion inside it was overwritten. I found it only
+   because I regressed check_findings_table.py to  and the gate still printed "passed". A self-test that has
+   only ever passed is indistinguishable from one that does nothing: the same defect one level up, which is the whole
+   lesson of this session applied to the fix for the lesson.
+   FIXED and negative-tested against BOTH checkers: regress the table checker -> "a bad pipe in a row was ACCEPTED",
+   gate exit 1; regress the stamp checker -> "a future stamp was ACCEPTED", gate exit 1; healthy -> exit 0.
+   ALSO: the self-test was overwriting the REAL check_findings_table.txt with its synthetic output, i.e. the test of
+   the checker destroyed the evidence the checker exists to keep. The artifact path is now configurable
+   (FINDINGS_ARTIFACT) and the real file is verified unchanged after a gate run.
+2. TRAP 11 RECORDED (S-F121), as the same lesson as the zero-info-line work: THE COUNT IS A PROPERTY OF THE READER,
+   NOT THE ENGINE. Sending quit in the same breath as go closes the pipe under the search, so every info line and the
+   bestmove are lost; grep -c '^info depth' on that form returns 0. That is how I got 1 line, then 64, then
+   64-for-all-four from one unchanged engine in one hour. Trap 11 is now in MEASUREMENT_TRAPS.md, the shared-shape
+   section counts five traps, and both corollaries are written down: a zero is a claim (check the reader could see
+   output before reporting "no output"), and a script must not print a verdict it cannot support - mine now says
+   "NOTHING WAS MEASURED ... none is claimed" instead of emitting a comparison table over empty data.
+AND THE WORK THAT PRODUCED THESE: I reproduced seat 29's own method on my build (S-C40) - 0.91/0.91/0.92x PC20 and
+0.88/0.89/0.89x plain, three runs each. Their 0.96x and 1.16x, my 0.88-0.92x, and my earlier 1.09x all say ~1x. My
+two figures DISAGREE IN SIGN and I am not averaging that away: bench 13 is 8 fixed tactical positions while the ABBA
+set weights quiet ones, and a ratio near 1 moves with workload choice. The defensible statement is "about the same,
+within ~12 percent"; the direction is method-dependent. Chasing it produced S-F123: a "go nodes N" command never
+spends N - it
+stops inside an iteration and reports the last COMPLETED total, so 200,000 gives 101,640 (50.8 %) and 400,000 gives
+267,839 (67.0 %), non-monotonically, because the budget only picks which rung of a per-position ladder you land
+between. A harness normalising by the REQUESTED budget is wrong by up to 2x and the error does not cancel.
+Gates: 168 rows, 0 wrong pipe counts, self-test proves both checkers in both directions, artifact preserved, stamps
+in order, page shape OK.
+Next: continue at cadence.
