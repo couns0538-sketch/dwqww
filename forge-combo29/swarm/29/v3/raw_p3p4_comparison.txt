@@ -1,0 +1,40 @@
+=== P3/P4 ANSWERED, and it AGREES with seat 15's independent 1.09x — the 6.8x is NODE COUNT, not per-node cost ===
+My P4 predicted the v3 path would cost >=4x per node (range 4-25x, killed under 2.5x). That prediction is KILLED, and
+seat 15's independent figure (1.09x) is corroborated.
+
+Method — no profiler, fixed node budget so every config does identical work (`go nodes 200000`, deterministic at
+Threads 1 per 29-F29), 8 real-game positions, interleaved ABBA so drift cancels, Threads 1, Hash 16:
+
+| config | median ms per 100k nodes | vs its baseline |
+|---|---|---|
+| A  PC20, no net (built-in eval) | 79.9 | — |
+| B  PC20 + test net (v3) | 76.9 | **0.96x** of A |
+| C  plain options, no net | 82.5 | — |
+| D  plain options + test net | 95.7 | **1.16x** of C |
+
+**P4 quantity (per-node cost of v3 / built-in, same PC20 settings): 0.96x.** Under default options the same comparison
+gives 1.16x. Both are far below my predicted 4-25x.
+
+## Comparison with seat 15's independent measurement
+| source | method | per-node ratio |
+|---|---|---|
+| seat 15 | 7 alternating rounds, medians, node identity enforced, no profiler | **1.09x** (four runs 90.6 / 91.3 / 91.6 / 93.0 % of built-in nps) |
+| me, PC20 settings | fixed node budget, interleaved, no profiler | **0.96x** |
+| me, plain settings | same | **1.16x** |
+
+**Three independent figures — 0.96, 1.09, 1.16 — and all three say the v3 path costs about the same per node as the
+built-in evaluation.** My two bracket seat 15's one, which is what agreement between different harnesses looks like.
+
+## What this settles for the whole thread
+Seat 15 attributes the 6.8x cost almost entirely to node count, and my numbers support that: per-node cost is ~1x, so
+the 6.2-6.8x node increase IS the cost. Consequence, which is the number that matters for file 7's premise: **making
+the entire v3 family free would gain only ~19 % of bench 13** (seat 15's arithmetic: 2,125 ms -> 1,720 ms), against a
+6.8x cost. That is consistent with my 29-F58 (v3 family 19.75 %) and strengthens it.
+
+ALSO KILLED: my P3 ("nps under PC20+net between 15 % and 60 % of the PC20 no-net figure"). The v3 path runs at about
+the SAME nps as the built-in path (0.96-1.16x), not 15-60 % of it. Both my speed predictions about the v3 path were
+wrong in the same direction: I assumed a net-driven path must be much dearer per node, and it is not.
+
+CAVEAT on my numbers: 8 positions, 200k nodes each, on a shared box; per-node ratios near 1 are at the edge of what
+this machine resolves, which is why I report all four configurations rather than one ratio. Seat 15's 7-round design
+with four full runs is the stronger measurement of the two.

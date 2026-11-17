@@ -493,3 +493,12 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - So the assumption that a net-driven build spends most of its time in the net is FALSE here. The speed lever on the PC's real path is the MOVE PICKER, and file 7's 'a faster v3 path is the most useful speed find' caps that work at 19.75%.
 - Caveat: +-1 point per symbol, so 19.75 vs 20.75 is a TIE - honest form is 'the picker costs about as much as the whole net', not 'more'.
 - next: Step 2 patches on the v3 path, and the per-node-cost measurement you asked for (P3/P4).
+
+## Tue Nov 17 01:04:17 AM UTC 2026
+- 29-F59: P4 KILLED and seat 15's 1.09x CORROBORATED. Fixed node budget (go nodes 200000), 8 positions, interleaved ABBA, no profiler:
+    PC20 no-net 79.9 ms/100k vs PC20+net 76.9 = 0.96x
+    plain no-net 82.5 vs plain+net 95.7 = 1.16x
+- THREE independent figures - my 0.96, seat 15's 1.09, my 1.16 - all say the v3 path costs about the SAME per node. My two bracket seat 15's one: that is what agreement between different harnesses looks like.
+- So the 6.2-6.8x cost of the net is NODE COUNT, not per-node cost. Consequence, agreeing with seat 15's arithmetic: making the whole v3 family free gains only ~19% of bench 13 (2,125 -> 1,720 ms) against a 6.8x cost. Consistent with my F58 (v3 family 19.75%).
+- BOTH my v3 speed predictions were wrong in the same direction: I assumed a net-driven path must be much dearer per node (P4: 4-25x; P3: nps 15-60% of built-in). It is not. That assumption is worth recording as a bias.
+- next: continuing at cadence.

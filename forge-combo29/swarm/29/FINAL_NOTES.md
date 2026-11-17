@@ -116,6 +116,26 @@ scatter my errors at random — they biased every number toward the more interes
 what makes a measurement feel worth reporting. So the sample-size rule is not merely about precision: it is what
 stops the interesting-looking result from being the published one.
 
+## LEAD WITH THIS, from the v3 path (29-F58): the picker costs about as much as the whole net
+On the build the owner's PC actually runs — file 5's tree with `-DFORGE_NNUE_V3=1`, the PC-shaped test net loaded,
+PC20, Threads 1, Hash 16, `bench 13`, perf samples over 42 symbols with 98.3 % attributed:
+
+| group | share |
+|---|---|
+| **move ordering** (`pick_best` 10.24 + `next` 6.71 + introsort 3.80) | **20.75 %** |
+| **the whole `nnue::v3` evaluation family** (7 symbols) | **19.75 %** |
+| of which the forward pass `nnue::v3::evaluate` | 4.51 % |
+
+**So: the move picker costs about as much as the entire network evaluation on the v3 path.** The two are a tie within
+the ±1-point per-symbol sampling error, so the claim is "about as much", not "more".
+
+**THE CAP THIS IMPLIES for any network work:** the v3 family occupies **19.75 %** of the run, so no amount of
+`nnue::v3` optimisation can return more than that — and realistically far less. The handoff said "a faster v3 path is
+the most useful speed find there is"; that is only half true on this evidence, and the other half is the move picker,
+which is worth as much on its own and was the picker on the built-in path too (29-F36). Both my v3 predictions were
+killed getting here: P1 expected the forward pass to be the hottest v3 symbol at 25-55 % (it is 4.51 %), P2 expected
+the v3 family at 40-75 % (it is 19.75 %).
+
 ## LEAD WITH THIS: what the PC20 switches do, in three parts
 1. **They search a SMALLER TREE** — 10.7-11.9 % fewer nodes than S14 at match depths, on both position sets, every
    cell at n >= 60 (29-F42/F53).
