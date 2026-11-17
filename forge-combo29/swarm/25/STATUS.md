@@ -264,6 +264,35 @@ rather than weaken the guard, and note that the guard over-reports on ordinary E
 **Guards at 03:15Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
 `audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> re-run at the close below.
 
+## 2026-11-17T03:17Z - CYCLE (d) CLOSE: all three guards green, 99 findings
+
+`compliance_check.sh` -> **PASS**: tracked binaries 0 | files outside my folder 0 | non-text files 0 | engine source
+committed 0 | uncommitted changes none.
+`audit_final.py` -> **0 mismatches**.
+`final_selfcheck.py` -> **4/4 PASS** (S-F29 depth-16 cp 1359 / depth-20 mate 8; S-C26 terminal ladder; S-C27 64-line
+burst, answer unchanged; S-C22 MPV3 clock Hash16 depth 13 vs Hash256 depth 4). It names what it does not cover:
+S-F30/S-F31 full games, S-F25/S-F32 regime sweeps, S-C12/S-C25 variant build, S-C18..20 seat 27's binary.
+
+**99 findings** in FINDINGS.md. Working tree clean; local = remote.
+
+**The two findings worth carrying forward from this cycle:**
+1. **S-C51** - the MultiPV disagreement rate is **conditional**: 53.3% on boards where the search is still changing
+   its mind (d12 move != d16 move) against 14.1% on boards where it is not, with non-overlapping 95% intervals, and
+   the flat rate replicated on a fresh seed (17.6% vs 18.8%). The actionable form is "distrust near-horizon
+   positions", not "distrust MultiPV".
+2. **S-C52** - a mate distance **wrong by one move** whose 12-ply PV passed every structural check (legal,
+   right-length, ends in checkmate); exhaustive search proved the true distance is 5 while MultiPV 3 claimed 6. This
+   is S-C31's declared blind spot, now demonstrated. **Which setting failed: the one with more lines.**
+
+**Three more control errors, all mine (16th-18th), all caught by exhaustive checking rather than reading:** the
+attacker assumed to be the side to move in `matesolve2.checkpv` (inverted for every negative mate score, and it
+produced a completely false "both claims are false" reading that I nearly reported); the defender assumed to make the
+first move in `solve_after_incremental`; and `audit_final.py`'s false MISMATCH on the innocent word "settled".
+
+**Next at cadence:** seed 2551. The question I would carry into it: the unstable-board stratum is only 30 boards, so
+its 53.3% has a wide interval - a larger deliberately-selected unstable set would firm it up, and that is now a
+measurable target rather than a guess.
+
 ## 2026-11-17T02:27Z - CYCLE (c) CLOSE: all three guards green, 97 findings
 
 `compliance_check.sh` -> **PASS**: tracked binaries 0 | files outside my folder 0 | non-text files 0 | engine source
