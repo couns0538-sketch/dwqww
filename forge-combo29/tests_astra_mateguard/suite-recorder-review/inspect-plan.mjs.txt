@@ -1,0 +1,10 @@
+import fs from 'node:fs';import crypto from 'node:crypto';
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const modes=['enabled','asan'].map(mode=>{
+ const file='/workspace/work/r4-krk-validation/test-plan/plan-'+mode+'.json.txt',p=JSON.parse(fs.readFileSync(file));
+ const builds=p.builds.map(b=>{const f=b.stdoutFile+'.metadata.txt',m=JSON.parse(fs.readFileSync(f));return {id:b.id,passed:m.passed,ended:!!m.ended,exit:m.exit,incomplete:m.incomplete,stdoutHashMatches:hash(b.stdoutFile)===m.stdoutSha256,stderrHashMatches:hash(b.stderrFile)===m.stderrSha256};});
+ return {mode,planSha256:hash(file),buildCount:p.builds.length,buildsPassed:builds.filter(x=>x.passed&&x.ended&&x.exit===0&&!x.incomplete&&x.stdoutHashMatches&&x.stderrHashMatches).length,runtimeCount:p.runs.length,outerTimeoutMs:[...new Set(p.runs.map(x=>x.outerTimeoutMs))],allRuntimeInner440KillAfter2:p.runs.every(x=>JSON.stringify(x.argv.slice(0,4))===JSON.stringify(['timeout','-k','2','440'])),uniqueIds:new Set(p.runs.map(x=>x.id)).size,uniqueOutputBasenames:new Set(p.runs.flatMap(x=>[x.stdoutFile,x.stderrFile,x.stdoutFile+'.metadata.txt']).map(x=>x.split('/').at(-1))).size,stdinTests:p.runs.filter(x=>x.stdinFile).map(x=>x.id),envs:[...new Set(p.runs.map(x=>JSON.stringify(x.env)))],runtimeMetadataAlreadyPresent:p.runs.filter(x=>fs.existsSync(x.stdoutFile+'.metadata.txt')).length};
+});
+const tools=['run-suite-batch.mjs','record-suite-batch.mjs','execute-suite-step.mjs'].map(name=>({name,sha256:hash('/workspace/work/r4-run/'+name)}));
+const timeoutExample=[{passed:false,incomplete:true,reviewRequired:false,sanitizer:[]}];
+console.log(JSON.stringify({utc:new Date().toISOString(),modes,tools,nominalControllerMilliseconds:15000+450000+3000,currentCountingFormulaForOneTimedOutAttempt:{completed:timeoutExample.length,incomplete:timeoutExample.filter(x=>x.incomplete).length,remaining:59-timeoutExample.length},note:'Read-only inspection; no runtime test commands launched.'},null,2));

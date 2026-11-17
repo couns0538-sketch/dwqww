@@ -1,0 +1,25 @@
+{
+  "source": "/workspace/work/soak-run/compare-fens.txt",
+  "sha256": "571fd73cf5ec3ddad78d6afc1dd65c57d7f4c3f8eaa424cbfbabe94a4a8b06c1",
+  "records": 199020,
+  "source_opening_lines": 2632036,
+  "source_playout_seed": "recorded in prior corpus-generation evidence",
+  "shuffle_seed": 4754000,
+  "composition": "Interleaved reservoir sample of100000 UHO book positions and99020 unique fixed-seed playout FENs; exact existing corpus reused, no engine-result filtering. Comparator skips terminal/insufficient/rule50 roots explicitly and counts actual eligible comparisons. All completed low-clock comparisons are subject to exact equality.",
+  "target_eligible_comparisons": 100000
+}
+
+Original VM corpus-generator source (read-only reuse):
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import readline from 'node:readline';
+const root='/workspace/work/soak-run';
+const initialSeed=Number(process.argv[2]||4754000);let seed=initialSeed;
+const next=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return seed>>>0;};
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=next()%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
+const sample=async p=>{const a=[];let total=0;const lines=readline.createInterface({input:fs.createReadStream(p),crlfDelay:Infinity});for await(const line of lines){if(!line)continue;++total;if(a.length<100000)a.push(line);else{const j=next()%total;if(j<a.length)a[j]=line;}}return {a:shuffle(a),total};};
+const b=await sample(root+'/openings/UHO_Lichess_4852_v1.epd'),p=await sample(root+'/playout-fens.txt');
+const book=b.a,play=[...new Set(p.a)];
+const combined=[];for(let i=0;i<Math.max(book.length,play.length);i++){if(i<book.length)combined.push(book[i]);if(i<play.length)combined.push(play[i]);}
+const text=combined.join('\n')+'\n';fs.writeFileSync(root+'/compare-fens.txt',text);
+console.log(JSON.stringify({shuffle_seed:initialSeed,opening_source_lines:b.total,playout_source_lines:p.total,opening_positions:book.length,unique_playout_fens:play.length,combined:combined.length,sha256:crypto.createHash('sha256').update(text).digest('hex')}));

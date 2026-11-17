@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';import {utc,merge,metrics} from './review.mjs';
+for(const invalid of ['2026-11-15T02:00:00Z','2026-11-15T02:00:00.000+00:00','2026-02-30T02:00:00.000Z',null])assert.throws(()=>utc(invalid));
+assert.equal(utc('2026-11-15T02:00:00.000Z'),1794708000000);
+assert.deepEqual(merge([{start:20,end:30},{start:0,end:10},{start:5,end:25}]),[{start:0,end:30}]);
+const rows=[{start:0,end:10,intervalValid:true,status:'accepted'},{start:5,end:15,intervalValid:true,status:'failed'},{start:20,end:30,intervalValid:true,status:'accepted'},{start:31,intervalValid:false,status:'invalid-or-missing'}],m=metrics(rows,40);assert.equal(m.sumBatchMilliseconds,30);assert.equal(m.unionBatchMilliseconds,25);assert.equal(m.overlapMilliseconds,5);assert.equal(m.elapsedWindowMilliseconds,40);assert.equal(m.unaccountedMilliseconds,15);assert.equal(m.byStatus.accepted.unionMilliseconds,20);assert.equal(m.byStatus.failed.unionMilliseconds,10);assert.equal(m.excludedIntervals,1);assert.deepEqual(m.gaps.map(x=>x.milliseconds),[5,10]);assert.equal(metrics([],40).elapsedWindowMilliseconds,null);
+console.log(JSON.stringify({utcInvalidCases:4,overlapGapMissingEndChecks:'passed',engineRuns:0,stateWrites:0}));

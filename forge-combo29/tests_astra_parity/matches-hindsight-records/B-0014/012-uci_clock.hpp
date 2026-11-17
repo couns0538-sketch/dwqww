@@ -1,0 +1,43 @@
+#pragma once
+
+#include <charconv>
+#include <cstdint>
+#include <limits>
+#include <string_view>
+#include <system_error>
+
+namespace forge {
+
+// Ceiling for a parsed clock. Time allocation multiplies a clock by a small
+// tunable (at most 150), so the product has to stay inside a signed 64-bit
+// integer. 3000000000, the value that overflows a 32-bit int, is below this.
+inline constexpr std::int64_t kMaxClockMs = std::numeric_limits<std::int64_t>::max() / 256;
+
+// One UCI clock token, in milliseconds, clamped to [0, kMaxClockMs].
+// A single leading '+' is accepted. A leading '-' clamps to 0. A second sign
+// is not a number. Anything that is not a complete integer, including a
+// missing token or digits with trailing junk, is 0. A magnitude that does not
+// fit in 64 bits clamps to the ceiling only when every character was a digit.
+[[nodiscard]] inline std::int64_t parse_clock_ms(std::string_view text) {
+    if (text.empty()) return 0;
+    bool negative = false;
+    if (text.front() == '+' || text.front() == '-') {
+        negative = text.front() == '-';
+        text.remove_prefix(1);
+        if (text.empty() || text.front() == '+' || text.front() == '-') return 0;
+    }
+    std::uint64_t magnitude = 0;
+    const char* const first = text.data();
+    const char* const last = text.data() + text.size();
+    const std::from_chars_result parsed = std::from_chars(first, last, magnitude);
+    // Overflow still reports how far the digit run went. Trailing junk is 0.
+    if (parsed.ptr != last) return 0;
+    if (parsed.ec == std::errc::result_out_of_range) return negative ? 0 : kMaxClockMs;
+    if (parsed.ec != std::errc{}) return 0;
+    if (negative || magnitude > static_cast<std::uint64_t>(kMaxClockMs)) {
+        return negative ? 0 : kMaxClockMs;
+    }
+    return static_cast<std::int64_t>(magnitude);
+}
+
+} // namespace forge

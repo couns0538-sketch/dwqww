@@ -1,0 +1,39 @@
+#define main t12_original_test_main
+#include "/workspace/work/dwqww-all/forge-combo29/tests_t12/krk_mate_test.cpp"
+#undef main
+
+int main() {
+    const KrkTablebase tb;
+    forge::Board board;
+    const std::string fen = "8/8/8/8/8/1R6/2k5/5K2 w - - 0 1";
+    if (!board.set_fen(fen)) return 2;
+    auto distance = [&](const forge::Board& b) {
+        const auto rooks = b.pieces(forge::White, forge::Rook);
+        if (rooks == 0) return -1;
+        return tb.dtm(b.king_square(forge::White), forge::lsb(rooks),
+                      b.king_square(forge::Black), b.side_to_move() == forge::White ? 0 : 1);
+    };
+    std::cout << "ROOT " << fen << " dtm_plies=" << distance(board) << '\n';
+    for (const auto move : board.legal_moves()) {
+        std::cout << "ROOT_MOVE " << forge::Board::move_to_uci(move)
+                  << " exact_mate_plies=" << tb.move_mate_plies(board, move) << '\n';
+    }
+    const std::string pv = "b3f3 c2d2 f1f2 d2d1 f2e3 d1c2 e3e2 c2c1 f3c3 c1b2 e2d3 b2b1 d3d2 b1b2 c3f3";
+    std::istringstream moves(pv);
+    std::string text;
+    int ply = 0;
+    while (moves >> text) {
+        forge::Move selected = forge::Move::none();
+        for (const auto move : board.legal_moves()) {
+            if (forge::Board::move_to_uci(move) == text) selected = move;
+        }
+        if (selected.is_none()) { std::cout << "ILLEGAL " << text << '\n'; return 1; }
+        forge::Undo undo;
+        if (!board.make_move(selected, undo)) return 2;
+        ++ply;
+        std::cout << "PV_PLY " << ply << " move=" << text << " dtm_remaining=" << distance(board)
+                  << " in_check=" << board.in_check() << " legal_moves=" << board.legal_moves().size()
+                  << " fen=" << board.fen() << '\n';
+    }
+    std::cout << "PV_END ply=" << ply << " checkmate=" << (board.in_check() && !board.has_legal_move()) << '\n';
+}

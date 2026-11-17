@@ -1,0 +1,40 @@
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+const id=process.argv[2],r='/workspace/work/r4-run',stateFile=r+'/state.json';
+if(!/^E-\d{4}$/.test(id??''))throw Error('batch id');
+const s=JSON.parse(fs.readFileSync(stateFile)),prior=s.equalityBatches??[];
+if(prior.some(x=>x.id===id)||id!=='E-'+String(prior.length+1).padStart(4,'0'))throw Error('unique sequential batch required');
+const summary=r+'/equality-batches/'+id+'/summary.txt',b=JSON.parse(fs.readFileSync(summary));
+const files=[...prior.map(x=>x.summary),summary],auditPrefix=r+'/equality-batches/'+id+'/all-differences-audit';
+if(fs.existsSync(auditPrefix+'.txt'))throw Error('audit already exists');
+const argv=['node',r+'/equality-tools/audit-all-differences.mjs',...files],started=new Date().toISOString();
+const a=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:64*1024*1024});
+fs.writeFileSync(auditPrefix+'.txt',a.stdout??'',{flag:'wx'});
+fs.writeFileSync(auditPrefix+'.stderr.txt',a.stderr??'',{flag:'wx'});
+fs.writeFileSync(auditPrefix+'.command.txt',JSON.stringify({argv,started,ended:new Date().toISOString(),exit:a.status,signal:a.signal,error:a.error?.message},null,2)+'\n',{flag:'wx'});
+if(![0,1,3].includes(a.status)||!a.stdout)throw Error('aggregate failed; inspect retained output');
+const audit=JSON.parse(a.stdout),tests=s.repo+'/forge-combo29/tests_astra_mateguard',faults=tests+'/faults';
+fs.mkdirSync(faults,{recursive:true});
+for(const d of audit.differences){
+ const dest=faults+'/equality-'+String(d.globalRecordIndex).padStart(6,'0')+'.txt';
+ if(fs.existsSync(dest))continue;
+ const raw=fs.readFileSync(d.evidence,'utf8'),blocks=raw.split(/(?=^CASE \{)/m),selected=[];
+ for(const block of blocks){const m=block.match(/^CASE (\{[^\n]*\})/);if(m&&JSON.parse(m[1]).index===d.localIndex)selected.push(block);}
+ if(selected.length!==d.reproductionsCompleted+1)throw Error('exact transcript blocks missing for '+d.globalRecordIndex);
+ const text='Observed depth-9 difference; attribution pending. Legacy clock gate does not waive this record.\n'+JSON.stringify({reference:audit.reference,candidate:audit.candidate,...d},null,2)+'\n\nFULL ORIGINAL AND REPEAT TRANSCRIPTS\n'+selected.join('');
+ fs.writeFileSync(dest,text,{flag:'wx'});
+}
+const destination=tests+'/equality/'+id,packArgv=['node',r+'/package-evidence.mjs',r+'/equality-batches/'+id,destination];
+const p=cp.spawnSync(packArgv[0],packArgv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:1024*1024});
+fs.writeFileSync(r+'/logs/package-equality-'+id+'.txt',JSON.stringify({argv:packArgv,exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr},null,2)+'\n');
+if(p.status!==0)throw Error('package failed; preserve state for review');
+const hash=x=>crypto.createHash('sha256').update(fs.readFileSync(x)).digest('hex');
+prior.push({id,summary,summarySha256:hash(summary),counts:b.counts,partial:b.partial,validationFailed:b.validationFailed,allTargetsMet:b.allTargetsMet,audit:auditPrefix+'.txt',auditSha256:hash(auditPrefix+'.txt'),auditExit:a.status});
+s.equalityBatches=prior;s.equalityTotals={...audit.counts,totalDifferencePositions:audit.totalDifferences,unattributedDifferences:audit.unattributedDifferences,targetMet:audit.targetMet,selection:audit.selection,operationalFaults:audit.operationalFaults,validationErrors:audit.validationErrors.length,equalityAcceptedWithoutAttribution:audit.equalityAcceptedWithoutAttribution};
+s.phase='Successor soak: depth-9 equality against e04556dd';s.progressBatch=id+'; seed '+b.seed;
+s.checkpointNote='Batch '+id+' counts '+JSON.stringify(b.counts)+'. Cumulative '+audit.counts.positions+' positions; '+audit.totalDifferences+' low/high-clock differences require attribution; operational faults '+audit.operationalFaults+'. Full inputs, output, partial boundaries and every difference retained. Original100k selection verified only when targetMet.';
+s.commitMessage='Checkpoint successor equality batch '+id;
+fs.writeFileSync(stateFile,JSON.stringify(s,null,2)+'\n');
+console.log(JSON.stringify({id,auditExit:a.status,counts:s.equalityTotals,published:destination}));
+process.exitCode=audit.operationalFaults||audit.validationErrors.length?3:0;

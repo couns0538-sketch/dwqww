@@ -1,0 +1,35 @@
+No-regression match. First engine is this branch. Second engine is integrate/combo29-all at e04556dd.
+Both binaries are the CMake default (owner) build: Release, -march=x86-64-v4, PEXT and ZMM on.
+No CMakeLists.txt edit and no -DFORGE_* override. CPU has AVX-512F and BMI2.
+Compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0.
+fastchess alpha 1.8.3, source commit 3d7a4db2493fc85a05ef010fd7e13a3884667aa2.
+Book: UHO_Lichess_4852_v1.epd from official-stockfish/books master (zip UHO_Lichess_4852_v1.epd.zip), order sequential.
+Four chunks of 500 rounds x 2 games = 1000 games, openings start 1, 501, 1001, 1501.
+Options set: nodes=50000, Threads=1, Hash=16, OwnBook=false. Every other engine option stays at its default.
+W-L-D is r3-21 (this branch) first.
+
+sha256
+r3-21 binary e12981d3667fc4319920388621a591763a2ebc58c5da1c7552ed5f8f211bb197
+base binary  4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984
+book epd     7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a
+
+Branch pins on the r3-21 owner binary, Threads 1, Hash 16, OwnBook false:
+perft 5 = 4865609
+bench 11 = 312866
+bench 13 = 862329
+
+Versions: both engines answer "id name Chess Engine Forge 6.4.24 candidate".
+r3-21 commit at build: 1d7440c1f860be9c21e190c862d5920b241dd927
+implementation commit: af1c998304dbfbcb997b757a7ce43af7cdf6e933
+base commit: e04556ddc3a430b2e751159b0d46111ef56c8b89
+
+Chunk command (start=1, then 501, 1001, 1501):
+
+/tmp/fastchess-src/fastchess \
+  -engine cmd=/tmp/owner-branch/forge name=r3-21 \
+  -engine cmd=/tmp/owner-base/forge name=base \
+  -each nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false \
+  -openings file=/tmp/UHO_Lichess_4852_v1.epd format=epd order=sequential start=START \
+  -rounds 500 -games 2 -recover -concurrency 4 \
+  -ratinginterval 100 -report penta=true \
+  -pgnout file=forge-combo29/tests_r3fu_21/chunkN.pgn notation=san nodes=true

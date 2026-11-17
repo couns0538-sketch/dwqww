@@ -1,0 +1,16 @@
+ASAN/UBSAN KRK retry assessment, 2026-11-14
+
+Original invocation: /workspace/work/all-run/tests-asan/krk_mate_test 40 10 2 16 14 1
+The original 40-root, ten-trial invocation timed out after 440 seconds, exit 124, during concurrent fuzzing. Its output was buffered and contained no completed-test counts. It remains incomplete, not a pass. Evidence: asan-krk_mate_test.txt and /workspace/work/all-run/test-results/asan-krk.json.
+
+Retry invocation, unchanged existing test executable:
+timeout --signal=TERM --kill-after=5s 440s env ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 /workspace/work/all-run/tests-asan/krk_mate_test 40 1 2 16 14 1
+It ran under util-linux script with a pseudoterminal to preserve line-flushed output. No test or engine source was changed.
+
+Start 2026-11-14T11:47:03Z; end 2026-11-14T11:48:18Z; exit 0.
+Raw output:
+config positions=40 runs_per_pos=1 threads=2 hash_mb=16 depth=14 use_nnue=true
+threads_1_check: 0 / 100 misses
+SUMMARY: misses=0 / 40 (no_mate_score=0, non_mating_move=0)
+
+All forty selected roots completed one Threads-2 trial each, plus the test's mandatory one hundred Threads-1 reference checks. No ASAN/UBSAN report appeared. This does not replace ten-trial sanitizer coverage. CLI arguments and test inspection confirm the final argument requests full clear before each search. Full command and actual output: asan-krk-40x1-retry.txt.

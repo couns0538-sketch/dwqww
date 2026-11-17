@@ -1,0 +1,38 @@
+# Focused MateAlphaGuard source review
+
+Read-only review of Git objects and retained traces; no native build/search, source/ref/state mutation, or push. Base: `8e805fb482a97b7182f3fa4c12f26ce7e1d88c19`. Fable instructions read from the supplied `FABLE_RESPONSE.md`.
+
+## Audit integration
+
+Each exact source patch's complete old hunk occurs once in the requested base, including its context. Apply the changes, not replacement files from the older branch tips.
+
+| Tip | Source site | Base context starts |
+|---|---|---:|
+| e349e3e85 | search.cpp, singular verification depth floor | 1755 |
+| bf4154454 | search.hpp, TTEntry::score_usable | 97 |
+| 1ebc9b480 | eval_params.cpp, params::name bounds | 20 |
+| efb3eaa37 | board.cpp, empty move to UCI | 1154 |
+
+These changes are disjoint. The r4-09 hunk preserves r3-21's `score_from_tt` mate-band rejection and both r3-24 stale-slot/duplicate-safe store paths. Its horizon calculation uses the stored, ply-normalized mate distance; there is no need to change score conversion, eval substitution, TT entry shape, or store admission. Runtime pins remain unverified by this reviewer.
+
+## Minimal guard implementation map
+
+- Base `search.cpp:98`: existing `tune::SoundMatePruning = false` provides the adjacent definition site. Base `search.hpp:294` provides the adjacent declaration site (r4-09 shifts subsequent header lines by 11).
+- Quiet futility is base `search.cpp:1701-1707`; capture futility is `1722-1727`. Gate only these two `if` predicates with the negation of option-enabled AND `is_mate_score(alpha)`.
+- Re-evaluate alpha at the current move. Do not calculate the predicate once before the move loop: retained frame 24358 enters with alpha 441 and raises it to 31979 before pruning d1c1.
+- Keep LMP at 1698, history at 1709, quiet SEE at 1714, noisy SEE at 1730, the outer SoundMatePruning block, and QuietExtinction unchanged. Do not reset `skip_quiets` after LMP.
+- Base `uci.cpp:218` is the advertisement site; `380-390` is the matching SoundMatePruning parser pattern. Default false, accept only true/false, clear through `searcher.clear()` only when the value changes, in both directions.
+- Use one `#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD` style gate around all new declaration/definition/UCI/behavior pieces. Undefined and explicit 0 omit the option and the guard entirely; explicit 1 exposes an initially false UCI option. No CMake edit is needed. This fits comfortably within the requested 60 engine-line limit without a production tracing hook.
+
+## Regression access and non-vacuous checks
+
+1. First trace the new integrated base with the option off. Reuse observational scratch instrumentation, anchored to semantic locations; the old augment script and frame-number filter are tied to the old source and cannot be reused unchanged. Match internal FEN `8/8/8/8/8/3R4/8/k2K4 w - - 8 5`, ply 8, depth 5, root iteration 13, and the live move/alpha. Count both entry and d1c1 eligibility/search events; absence of a skip alone is not a passing witness.
+2. The old original-root trace gives frame 24349 window [31982,31983], and frame 24358 [441,31983] with alpha later 31979. In each, d3d2 is first, then d1c1 is move 2, static eval 521, and `FUTILITY_SKIP_TAIL` sets skip_quiets. Original-root ancestry is `b3f3 c2b2 f1e2 b2c2 f3d3 c2b2 e2d1 b2a1`. Preserve board history when replaying this path.
+3. A root `go depth 5` on the internal FEN is insufficient: the problematic block excludes root nodes and also depends on prior move ordering, histories, and TT state. Existing `friend struct SearcherTestProbe` in Worker permits a dedicated private-entry test without an engine-source hook; initialize non-root ply 8, stack/continuations/time state, and the relevant move-order/TT context. Treat an artificial seeded test as supplemental, not a substitute for the original-root ten repeats.
+4. Keep SoundMatePruning false and all three SoundArm values at FollowOption/ForceOff for version A. A test accidentally enabling the broad arm does not validate the narrow guard. Version B forces only SoundArmMateAlpha on.
+5. CaptureFutilityBase defaults to 0 and KRK supplies no useful capture-futility witness. Exercise that arm separately with CaptureFutilityBase positive and an eligible non-checking capture after a searched move. Verify that ordinary-alpha futility and the LMP/history/SEE decisions still operate.
+6. Verify compiled-undefined, compiled-0, and compiled-1/default-false behavior; option-on then false restores the default pins. The compile-1 UCI toggling check must cover hash invalidation, not just parse success.
+
+Known oracle interpretation: root exact DTM 15 plies means UCI mate 8; chosen b3f3 DTM 17 plies means mate 9. The old printed mate 17 is a conservative reported deadline. The internal five-ply line `d1c1 a1a2 c1c2 a2a1 d3a3#` establishes the missed continuation; it does not require every selective depth-5 search to find every mate. If the narrow guard still does not reach d1c1, report that and stop without widening it.
+
+Evidence read: `part4-origin-pass9/runs/fault092-repeat-01/stderr.txt` sequences 3652/3693/3703/3785; `part4-origin-independent-review/PASS9_AND_COUNTERFACTUALS.md`; base source and all four exact Git diffs. Counts only; no Elo or speed conclusions.

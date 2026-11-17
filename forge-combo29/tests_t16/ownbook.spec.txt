@@ -1,0 +1,76 @@
+# Embedded book, variety 0: heaviest start move.
+find info string book move e2e4
+find bestmove e2e4
+# OwnBook false: the search answer must not be labelled a book move.
+forbid-next book move
+find-prefix bestmove
+# Book Depth -1 clamps to 0, so OwnBook true still does not play.
+find info string invalid value for option Book Depth
+forbid-next book move
+find-prefix bestmove
+# Book Depth 1 plays again.
+find info string book move e2e4
+find bestmove e2e4
+# Book Depth 101 clamps to 100 and still plays.
+find info string invalid value for option Book Depth
+find info string book move e2e4
+find bestmove e2e4
+# Book Variety -1 clamps to 0. Eight probes stay on the heaviest move.
+find info string invalid value for option Book Variety
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+find info string book move e2e4
+find bestmove e2e4
+# File loaded while OwnBook is false.
+find info string loaded book forge-combo29/tests_t16/start h2h4.book with 1 entries
+forbid-next book move
+find-prefix bestmove
+# OwnBook true uses that file.
+find info string book move h2h4
+find bestmove h2h4
+# OwnBook false again, file still loaded.
+forbid-next book move
+find-prefix bestmove
+# Empty path restores the embedded book.
+find info string book move e2e4
+find bestmove e2e4
+# Same file loaded while OwnBook is already true.
+find info string loaded book forge-combo29/tests_t16/start h2h4.book with 1 entries
+find info string book move h2h4
+find bestmove h2h4
+# Then switched off.
+forbid-next book move
+find-prefix bestmove
+# Missing file does not replace the loaded book.
+find info string cannot load book forge-combo29/tests_t16/no-such-book
+find info string book move h2h4
+find bestmove h2h4
+# <empty> reloads the embedded book.
+find info string book move e2e4
+find bestmove e2e4
+# Ponder on, bad ponder value leaves it on, then ponder off.
+find info string book move e2e4
+find bestmove e2e4 ponder c7c5
+find info string invalid value for option Ponder
+find info string book move e2e4
+find bestmove e2e4 ponder c7c5
+find info string book move e2e4
+find bestmove e2e4
+# Bad OwnBook value leaves the book on; false switches it off.
+find info string invalid value for option OwnBook
+find info string book move e2e4
+find bestmove e2e4
+forbid-next book move
+find-prefix bestmove

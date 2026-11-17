@@ -1,0 +1,104 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+export const sha256 = data => crypto.createHash('sha256').update(data).digest('hex');
+export const hashFile = file => sha256(fs.readFileSync(file));
+export function check(ok, message) { if (!ok) throw Error(message); }
+export function verifyArtifact(file, manifest) {
+  const data = fs.readFileSync(file), pin = manifest[path.basename(file)];
+  check(pin && pin.sha256 === sha256(data) && pin.bytes === data.length, 'artifact hash/size mismatch: ' + file);
+  return data;
+}
+export function parseAttempts(raw) {
+  const blocks = raw.split(/(?=^CASE \{)/m).filter(block => block.startsWith('CASE '));
+  return blocks.map(block => {
+    const header = block.match(/^CASE (\{[^\n]*\})\nATTEMPT (\d+) (\{[^\n]*\})\n/);
+    check(header, 'malformed CASE/ATTEMPT header');
+    const merged = '\n=== MERGED FULL TRANSCRIPT ===\n', lock = '\n=== LOCK FULL TRANSCRIPT ===\n', end = '\n=== END ATTEMPT ===\n';
+    const m = block.indexOf(merged), l = block.indexOf(lock), e = block.indexOf(end);
+    check(m === header[0].length - 1 && l > m && e > l, 'missing or reordered transcript sections/END ATTEMPT');
+    check(block.indexOf(merged, m + 1) < 0 && block.indexOf(lock, l + 1) < 0 && block.indexOf(end, e + 1) < 0, 'duplicate transcript markers');
+    return {context: JSON.parse(header[1]), attempt: Number(header[2]), pair: JSON.parse(header[3]),
+      mergedTrace: block.slice(m + merged.length, l), lockTrace: block.slice(l + lock.length, e), raw: block.slice(0, e + end.length)};
+  });
+}
+export function differenceTranscripts(d, manifest) {
+  const raw = verifyArtifact(d.evidence, manifest);
+  if (d.evidenceSha256) check(sha256(raw) === d.evidenceSha256, 'audit evidence pin mismatch');
+  const selected = parseAttempts(raw.toString('utf8')).filter(a => a.context.index === d.localIndex);
+  check(d.reproductionsCompleted === 10 && selected.length === 11, 'difference needs exactly eleven attempts');
+  selected.forEach((a, i) => {
+    check(a.attempt === i, 'attempt sequence must be exactly 0..10');
+    check(JSON.stringify(a.context) === JSON.stringify(selected[0].context), 'CASE contexts differ across attempts');
+    check(a.context.fen === d.fen && a.context.halfmove === d.halfmove && a.context.depth === 9, 'CASE context mismatch');
+    check(a.pair.complete && a.pair.merged.attempted && a.pair.lock.attempted && !a.pair.merged.budget_interrupted && !a.pair.lock.budget_interrupted, 'incomplete difference attempt');
+    check(a.mergedTrace.trim() && a.lockTrace.trim(), 'empty full transcript');
+  });
+  check(JSON.stringify(selected[0].pair) === JSON.stringify(d.initial), 'initial pair differs from position record');
+  check(selected.slice(1).filter(a => a.pair.different).length === d.reproductionDifferenceFrequency, 'reproduction difference frequency mismatch');
+  return selected.map(a => a.raw).join('');
+}
+export function writeImmutable(file, bytes) {
+  bytes = Buffer.from(bytes);
+  if (fs.existsSync(file)) { check(fs.readFileSync(file).equals(bytes), 'existing immutable file differs: ' + file); return false; }
+  const stage = file + '.stage-' + process.pid + '-' + crypto.randomBytes(8).toString('hex');
+  fs.writeFileSync(stage, bytes, {flag: 'wx'});
+  try {
+    try { fs.linkSync(stage, file); }
+    catch (error) { if (error.code !== 'EEXIST') throw error; check(fs.readFileSync(file).equals(bytes), 'existing immutable file differs: ' + file); return false; }
+    return true;
+  } finally { fs.unlinkSync(stage); }
+}
+export function partialOperationalFindings(attempts) {
+  const findings = [];
+  for (const a of attempts) for (const engine of ['merged', 'lock']) {
+    const r = a.pair[engine]; if (!r?.attempted) continue;
+    const faults = {};
+    // Explicit diagnostics/illegal results survive a later deadline interruption.
+    for (const k of ['illegal', 'missing', 'missing_info', 'wrong_depth', 'sanitizer_issues', 'transport_issues', 'crashes', 'nonzero_exits', 'shutdown_timeouts'])
+      if (r[k] > 0) faults[k] = r[k];
+    const shutdown = r.shutdown ?? {};
+    const forced = shutdown.signal === 15 && shutdown.driver_sigterm || shutdown.signal === 9 && shutdown.driver_sigkill;
+    if (shutdown.signal > 0 && !forced) faults.crashes = Math.max(faults.crashes ?? 0, 1);
+    if (shutdown.exit_code > 0) faults.nonzero_exits = Math.max(faults.nonzero_exits ?? 0, 1);
+    const trace = a[engine + 'Trace'] ?? '';
+    if (/AddressSanitizer|UndefinedBehaviorSanitizer|LeakSanitizer|ThreadSanitizer|MemorySanitizer|runtime error:/.test(trace)) faults.sanitizer_issues = Math.max(faults.sanitizer_issues ?? 0, 1);
+    // Budget cleanup signals/timeouts alone are expected and do not become faults.
+    if (!r.budget_interrupted && shutdown.observed) {
+      if (shutdown.timed_out) faults.shutdown_timeouts = Math.max(faults.shutdown_timeouts ?? 0, 1);
+      if (!shutdown.reaped || shutdown.error) faults.transport_issues = Math.max(faults.transport_issues ?? 0, 1);
+    }
+    if (Object.keys(faults).length) findings.push({localIndex: a.context.index, fen: a.context.fen, attempt: a.attempt, engine, budgetInterrupted: !!r.budget_interrupted, faults});
+  }
+  return findings;
+}
+export function verifyPackage(source, destination) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(destination, 'MANIFEST.txt')));
+  check(path.resolve(manifest.source) === path.resolve(source), 'package source mismatch');
+  const expected = [];
+  function walk(dir) { for (const e of fs.readdirSync(dir, {withFileTypes: true})) {
+    const file = path.join(dir, e.name);
+    if (e.isDirectory()) walk(file);
+    else if (/\.(cpp|hpp|md|txt|json|jsonl|mjs|pgn|log|ndjson|reserved)$/.test(e.name)) {
+      if (e.name.endsWith('.mjs') && fs.existsSync(file + '.txt')) { check(fs.readFileSync(file).equals(fs.readFileSync(file + '.txt')), 'inert twin differs'); continue; }
+      expected.push(file);
+    }
+  }}
+  walk(source);
+  check(manifest.files.length === expected.length && new Set(manifest.files.map(e => e.source)).size === expected.length, 'package file count mismatch');
+  for (const entry of manifest.files) {
+    check(expected.includes(entry.source), 'unexpected package source');
+    check(Array.isArray(entry.chunks) && entry.chunks.length > 0, 'missing package chunks');
+    const original = fs.readFileSync(entry.source), pieces = [];
+    let offset = 0;
+    for (const chunk of entry.chunks) {
+      const file = path.resolve(destination, chunk.path);
+      check(file.startsWith(path.resolve(destination) + '/'), 'package chunk escapes destination');
+      const bytes = fs.readFileSync(file);
+      check(chunk.offset === offset && chunk.bytes === bytes.length && chunk.sha256 === sha256(bytes), 'package chunk mismatch');
+      pieces.push(bytes); offset += bytes.length;
+    }
+    check(original.length === entry.bytes && sha256(original) === entry.sha256 && Buffer.concat(pieces).equals(original), 'package source/reconstruction mismatch');
+  }
+  return manifest;
+}

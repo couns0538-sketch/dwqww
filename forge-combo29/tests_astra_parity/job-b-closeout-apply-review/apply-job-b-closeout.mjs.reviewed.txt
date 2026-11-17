@@ -1,0 +1,28 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const run='/workspace/work/parity-run',sf=run+'/state.json',base=process.argv[2];
+assert.ok(base?.startsWith(run+'/match-closure/'));
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex'),beforeHash=hash(sf),s=JSON.parse(fs.readFileSync(sf));
+const patch=JSON.parse(fs.readFileSync(base+'/PROPOSED-STATE-PATCH.txt'));assert.deepEqual(Object.keys(patch),['jobBClosure']);
+const c=patch.jobBClosure;assert.equal(c.closed,true);assert.equal(c.gate.eligible,true);assert.equal(c.verification.stateSha256,beforeHash);
+assert.equal(c.evidenceFile,base+'/CLOSURE.txt');assert.equal(c.reportFile,base+'/REPORT.md');
+const closureBody={...c};for(const key of ['evidenceFile','evidenceSha256','reportFile','reportSha256'])delete closureBody[key];
+assert.deepEqual(closureBody,JSON.parse(fs.readFileSync(c.evidenceFile)));
+assert.equal(s.jobBClosure,undefined);assert.deepEqual(c.totals,s.matchTotals);assert.equal(c.source.commit,s.sameClockCommit);
+assert.equal(hash(c.evidenceFile),c.evidenceSha256);assert.equal(hash(c.reportFile),c.reportSha256);
+assert.equal(c.clock.declaredDeadlineUTC,s.jobBDeclaration.deadlineUTC);assert.ok(Date.now()>=Date.parse(c.clock.closureUTC));
+const target=s.repo+'/forge-combo29/tests_astra_parity/job-b-closeout-final';
+assert.equal(hash(target+'/CLOSURE.txt'),c.evidenceSha256);assert.equal(hash(target+'/REPORT.md'),c.reportSha256);
+s.jobBClosure=c;
+const context=s.repo+'/forge-combo29/tests_astra_parity/job-b-closeout-context.md';
+const lines=['# Job B closeout context','',
+ `Closure evidence recorded ${c.clock.closureUTC}. [Frozen match closeout](job-b-closeout-final/REPORT.md).`,
+ '', `Job B closed with ${c.totals.games} credited games of the declared 6,000-game target. Actual last native finish: ${c.clock.lastNativeBatchFinishedUTC}. Sum of native batch intervals: ${c.clock.sumNativeBatchWallSeconds} seconds. The declaration deadline remained ${c.clock.declaredDeadlineUTC}. Elapsed declaration time is not continuous play.`,
+ '', 'The frozen closure preserves the original ASan finding metadata separately from match faults. The original finding remains unresolved, but its recorded repeat count describes the initial fault record. A later authorized full replay matched all 8,291 searches and exited naturally in 38.103431 ms, with no stderr, signals or reports. That replay receives zero soak credit and does not change the failed batch.',
+ '', '[Replay result and limitations](asan-shutdown-0020-replay-report.md)',
+ '[Independent replay review](asan-shutdown-result-review-0020/REVIEW.md)',
+ '', `Current global engine stop: ${s.blockFurtherEngineWork}. Scoped release continuation came from Fable0020. This closure changes no engine source, match receipt, old audit, Job A count or deadline.`,
+ '', 'Job C starts only after both A and B are reported, under its existing separate contract. The persistent-run timing question is pending in question0021; the owner\'s eight-minute command limit remains in force.',''];
+const contextBytes=Buffer.from(lines.join('\n'));if(fs.existsSync(context))assert.ok(fs.readFileSync(context).equals(contextBytes),'Existing context differs; preserve and inspect');else fs.writeFileSync(context,contextBytes,{flag:'wx'});
+s.jobBClosurePublication={recordedUTC:new Date().toISOString(),report:'tests_astra_parity/job-b-closeout-final/REPORT.md',reportSha256:c.reportSha256,context:'tests_astra_parity/job-b-closeout-context.md',contextSha256:hash(context)};
+assert.equal(hash(sf),beforeHash);const temporary=sf+'.job-b-closeout-stage-'+process.pid;fs.writeFileSync(temporary,JSON.stringify(s,null,2)+'\n',{flag:'wx'});const fd=fs.openSync(temporary,'r');fs.fsyncSync(fd);fs.closeSync(fd);assert.equal(hash(sf),beforeHash);fs.renameSync(temporary,sf);
+console.log(JSON.stringify({jobBClosurePublication:s.jobBClosurePublication,games:c.totals.games,sourceUnchanged:true,jobAUnchanged:true,globalStopUnchanged:s.blockFurtherEngineWork,engineRuns:0},null,2));

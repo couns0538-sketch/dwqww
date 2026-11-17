@@ -1,0 +1,66 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import cp from 'node:child_process';
+import readline from 'node:readline';
+const run='/workspace/work/r4-run',out=run+'/release-validation';
+fs.mkdirSync(out); // immutable run directory
+const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const normalize=x=>x.replace(/\btime \d+/g,'time <elapsed>').replace(/\bnps \d+/g,'nps <rate>');
+const faults=[];const results=[];
+function check(ok,msg){if(!ok)faults.push(msg);}
+const baseline=fs.readFileSync(run+'/logs/base-release-pins.txt','utf8').split('\nSTDOUT\n')[1].split('\nSTDERR\n')[0].trim();
+for(const mode of ['undefined','zero','enabled']){
+  const binary=run+'/builds/guard-'+mode+'/forge';
+  const input=fs.readFileSync(run+'/inputs/base-pins.uci.txt','utf8');
+  const r=cp.spawnSync('timeout',['-k','2','30',binary],{input,encoding:'utf8'});
+  fs.writeFileSync(out+'/'+mode+'-pins.txt',JSON.stringify({argv:['timeout','-k','2','30',binary],binarySha256:hash(fs.readFileSync(binary)),input,exit:r.status,signal:r.signal})+'\nSTDOUT\n'+r.stdout+'\nSTDERR\n'+r.stderr);
+  const advertised=r.stdout.includes('option name MateAlphaGuard type check default false');
+  check(r.status===0&&r.stderr==='',mode+' pin process');check(advertised===(mode==='enabled'),mode+' compile gate advertisement');
+  for(const [d,n] of [[11,312866],[13,862329]])check(r.stdout.includes('bench depth '+d+' nodes '+n+' '),mode+' bench '+d);
+  check(/^nodes 4865609$/m.test(r.stdout),mode+' perft');
+  const stripped=r.stdout.replace(/^option name MateAlphaGuard .*\n/gm,'').trim();
+  check(normalize(stripped)===normalize(baseline),mode+' complete normalized pins stdout identity');
+  results.push({mode,pins:[312866,862329,4865609],advertised,normalizedOutputIdentical:normalize(stripped)===normalize(baseline)});
+}
+const fen='8/8/8/8/8/1R6/2k5/5K2 w - - 0 1';
+async function session(label,binary,actions){
+  const started=new Date().toISOString(),child=cp.spawn(binary,[],{stdio:['pipe','pipe','pipe']});
+  const traffic=[],lines=[],stderr=[];let waiter=null,closed=false;
+  child.stderr.on('data',x=>stderr.push(x));
+  readline.createInterface({input:child.stdout}).on('line',line=>{lines.push(line);if(waiter&&waiter.predicate(line)){const w=waiter;waiter=null;w.resolve(line);}});
+  const close=new Promise(resolve=>child.once('close',(code,signal)=>{closed=true;if(waiter){waiter.reject(Error('closed before expected output'));waiter=null;}resolve({code,signal});}));
+  function send(cmd){traffic.push(new Date().toISOString()+' > '+cmd);child.stdin.write(cmd+'\n');}
+  function wait(predicate){return new Promise((resolve,reject)=>{waiter={predicate,resolve,reject};});}
+  const timer=setTimeout(()=>child.kill('SIGKILL'),60000);
+  const searches=[];
+  try{
+    let pending=wait(x=>x==='readyok');['uci','setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','setoption name UseNNUE value false','isready'].forEach(send);await pending;
+    for(const action of actions){
+      if(typeof action==='string'){send(action);continue;}
+      const start=lines.length;pending=wait(x=>x.startsWith('bestmove '));send('position fen '+fen);send('go depth 13');await pending;
+      const output=lines.slice(start).join('\n');const final=lines.slice(start).filter(x=>/^info depth 13 /.test(x)).at(-1);
+      searches.push({label:action.label,output,final,bestmove:lines.at(-1),mate:final?.match(/score mate (-?\d+)/)?.[1],nodes:final?.match(/nodes (\d+)/)?.[1]});
+    }
+    send('quit');child.stdin.end();
+  }catch(error){faults.push(label+': '+String(error));if(!closed)child.kill('SIGKILL');}
+  const exit=await close;clearTimeout(timer);
+  const data={label,started,ended:new Date().toISOString(),argv:[binary],binarySha256:hash(fs.readFileSync(binary)),exit,searches,stderr:Buffer.concat(stderr).toString()};
+  fs.writeFileSync(out+'/'+label+'.traffic.txt',traffic.join('\n')+'\n');fs.writeFileSync(out+'/'+label+'.stdout.txt',lines.join('\n')+'\n');fs.writeFileSync(out+'/'+label+'.stderr.txt',data.stderr);fs.writeFileSync(out+'/'+label+'.json.txt',JSON.stringify(data,null,2)+'\n');
+  check(exit.code===0&&data.stderr==='',label+' process status');return data;
+}
+const base=await session('original-base',run+'/builds/base-release/forge',['ucinewgame',{label:'cold'}]);
+const enabled=run+'/builds/guard-enabled/forge';
+const toggle=await session('toggle',enabled,['ucinewgame',{label:'cold-off'},{label:'warm-off'},'setoption name MateAlphaGuard value true',{label:'cold-on'},'setoption name MateAlphaGuard value false',{label:'restored-off'},'bench 13']);
+check(normalize(toggle.searches[0].output)===normalize(base.searches[0].output),'default original search equals audited baseline');
+check(normalize(toggle.searches[0].output)!==normalize(toggle.searches[1].output),'warm hash witness must differ from cold');
+check(normalize(toggle.searches[0].output)===normalize(toggle.searches[3].output),'false toggle clears warm state and restores cold search');
+check(fs.readFileSync(out+'/toggle.stdout.txt','utf8').includes('bench depth 13 nodes 862329 '),'true false toggle bench13');
+const repeats=[];
+for(let i=1;i<=10;i++){
+  const r=await session('original-on-'+String(i).padStart(2,'0'),enabled,['setoption name MateAlphaGuard value true','ucinewgame',{label:'cold-on'}]);
+  repeats.push(r.searches[0]);
+  check(Number(r.searches[0]?.mate)>=8&&Number(r.searches[0]?.mate)<=17,'original-on-'+i+' mate distance range');
+  if(i>1)check(normalize(repeats[0].output)===normalize(repeats.at(-1).output),'original-on-'+i+' repeat identity');
+}
+const summary={utc:new Date().toISOString(),results,base:base.searches,toggle:toggle.searches,repeats:repeats.map(({output,...x})=>x),faults,passed:faults.length===0};
+fs.writeFileSync(out+'/summary.json.txt',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify({...summary,base:summary.base.map(({output,...x})=>x),toggle:summary.toggle.map(({output,...x})=>x)},null,2));process.exitCode=faults.length?1:0;
