@@ -1,0 +1,31 @@
+# PREDICTION — job41: the bare-king depth explosion (found while running job40)
+written before the first measuring command of THIS job (the observation that prompted it is recorded
+below, because it was made while testing job40's harness, not as a planned measurement).
+
+**The observation.** While diagnosing a 200 s timeout in job40's harness I ran depth-limited searches
+on a bare-king ending and found:
+
+| build | settings | `go depth 12` | `go depth 13` | `go depth 16` |
+|---|---|---|---|---|
+| base | default | 0.28 s | **27.8 s, 306,799,010 nodes** | >30 s |
+| pc | PC20 | 0.84 s | – | >30 s |
+| pc | no options | 0.43 s | – | >30 s |
+
+on `4K3/8/8/8/r7/2k5/8/8 b - - 87 60` (bare king vs rook, halfmove 87). So the cost jumps by two
+orders of magnitude between depth 12 (0.28 s) and depth 13 (27.8 s, 306M nodes), on **both** builds.
+
+**This is NOT a PC-build regression** — the base build does it too, so it is pre-existing in the
+shared search. This job characterises it.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the explosion reproduces on the base build at depth 13 (>= 100M nodes) | if not, my one observation was noise and the job reports that |
+| P2 | it is specific to bare-king / near-terminal endgames, not general: a normal middlegame at depth 13 costs far less than 10M nodes | killed if a middlegame also explodes |
+| P3 | the node count grows super-exponentially with depth in this family: depth 12 vs 13 differ by >= 100x | killed if the ratio is under 20x |
+| P4 | a CLOCK-limited search on the same position does not explode (the clock stops it) | killed if a 6 s clock search also runs long — that WOULD be a match defect |
+| P5 | the PC build with its bare-king switches (LMR_CAP + ONE_THREAD, which seat 03 showed change 155) is no worse than base on this position at depth 13 | a large PC-only regression would be a new finding on the patch |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+P4 is the one that decides whether the owner should care: a fixed-depth search is not what matches use,
+but a *self-play* job that sends `go depth` would hit it, and 300M nodes is real time.
+EOF

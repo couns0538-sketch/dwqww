@@ -1,0 +1,19 @@
+# PREDICTION — job40: extend the exact drawn-root scan to a WIDER counter window (85-94)
+written before the first measuring command.
+
+job39's exact scan used counters 95-99, where the window is 1-5 half-moves and minimax is trivial.
+DESIGN_drawn_root.md names the remaining window as the open question. This job pushes to counters
+85-94, where the window is 6-15 half-moves. A plain minimax there explodes, so the solver is a
+window-bounded alpha-beta with a transposition table and a node cap; any position the cap stops is
+recorded UNDECIDED and never counted as a hit.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the solver decides at least 60 % of the (position, move) pairs within the cap | if fewer, the wider window is beyond this solver and I must say so rather than report a count |
+| P2 | among decided positions, the engine (go depth 16 and go nodes 20000) saves the draw on at least 90 % | a hit rate above 10 % would be a real and important finding |
+| P3 | any hits found are reproducible on a re-run of the same position | a non-reproducible hit is a solver or timing artefact, not an engine finding |
+| P4 | both colours as the strong side appear among the decided positions | if one colour dominates by construction, the colour question is not covered |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Direction: I expect P1 to hold at the low end (85-90) and fail towards 94 (15 half-moves is deep).
+Whatever fraction I can decide, the report states it and the count is only over decided positions.
