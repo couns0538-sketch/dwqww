@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,549 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,569 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,28 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Twenty-fourth round — the form of a rule, tested against the rules section
+
+**Added the meta-rule at the head of §4, where it governs the rest: state the failure as the reader's conclusion, not
+the author's omission.** A reader-inference rule is checkable by **reading your own document as that reader**; an
+obligation has to be **remembered**, and nothing in the document tells you whether you did. The test: *can you check
+compliance by reading, or must you remember?*
+
+**Then I tested the claim against the section it heads, and the first reading of it was too strict.** A keyword pass
+over the headlines classified **12 as obligations against 4 as reader-inference** — which looked like the rule
+indicting its own section. **Counting the bodies instead: 66 of 67 rules cite a concrete case or figure**, and the one
+that does not points at §1.5 where the instance lives.
+
+**So the rule as written was wrong about where the form lives.** It is **not in the grammar of the headline**; it is in
+**the evidence attached to the rule**. A headline may be an imperative — "Never use a zero increment" — and still be
+checkable, provided the body names the measurement that produced it. **A headline-only test measures the wrong object,
+which is this document's most-repeated mistake applied to its own rules section.** The rule now says that explicitly,
+with both counts beside it.
+
+**Recorded rather than quietly fixed, because the near-miss is the useful part:** I nearly added a rule that would have
+condemned two-thirds of my own section on a measurement of the wrong layer. **The rule survived; its stated mechanism
+did not.**
 
 ## Twenty-third round — both rules stated, not just applied
 

@@ -1326,6 +1326,26 @@ Each item with the reason it could not be settled. **Do not read a closed behavi
 
 These are the transferable output. Each is a rule the run paid for with a defect it caught in its own work.
 
+**Before the rules, how to WRITE one — because it decides whether any of the rest get used.** **State the failure as the
+reader's conclusion, not as the author's omission.** *"A reader had two numbers, no explanation, and a document full of
+rules about stale totals, so the reasonable inference was that one was out of date"* is actionable; *"label your
+counts"* is not, and the difference is not length.
+- **A rule phrased as what a reader INFERS is checkable: you can read your own document as that reader and see what it
+  says.** A rule phrased as an obligation — *be careful, double-check, remember to* — **has to be remembered**, and
+  nothing in the document will tell you whether you did.
+- **The measured instance: two of these rules landed within one round of being written**, the fastest in this run, and
+  both were stated in the reader-inference form. The rules stated as obligations were the ones that kept needing a
+  second and third correction.
+- **So the test for a rule you are writing: can you check compliance by READING, or must you REMEMBER?** If the answer
+  is "remember", **rewrite it as the wrong conclusion a reader would reach** — the conclusion is visible in the
+  document; the omission is not.
+- **What the rule does NOT require, checked because the first reading of it was too strict: a headline may be an
+  imperative as long as the BODY names the concrete case.** A keyword pass over this section's headlines classified
+  **12 as obligations against 4 as reader-inference** — which looked like a failure until the bodies were counted:
+  **66 of 67 rules cite a concrete case or figure**, and the one that does not points at §1.5 where the instance lives.
+  **The form lives in the evidence attached to the rule, not in the grammar of its title.** A headline-only test
+  measures the wrong object, which is this document's most-repeated mistake applied to its own rules section.
+
 **Before you measure**
 1. **`Threads 1` for anything reproducible.** Above it, the score is not reproducible even when the move is (§1.5).
 2. **Every number carries its build, settings, and workload.** "PC20 saves 7.4 % of nodes" is true of depth 12 on one
