@@ -1,0 +1,241 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -95,6 +95,9 @@
+ int DrawJitter = 0;
+ 
+ namespace tune {
++int QuietMalusBase = 64;
++int QuietMalusPerMove = 0;
++int ResearchMalus = 0;
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+ int LmrNoisyBase = 10;
+@@ -143,9 +146,16 @@
+ int TmFallingEvalPercent = 100;
+ int TmMinFactorPercent = 45;
+ int CaptureFutilityBase = 0;
++int AlphaRaiseReduce = 0;
++int AlphaRaiseMaxDepth = 12;
++int QsLateMoves = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int FailHighBlend = 0;
++int RfpNoTtPv = 0;
++int RfpTtGuard = 0;
++int RfpCorrMul = 0;
+ // packc28 (ported into forge/r12 on 2026-11-15, see forge/tools/make_r12_e.py): three ideas, all 0 = off.
+ int AspFailHighReduce = 0;      // 1: after a root fail-high the re-search is one ply shallower per fail-high in a row
+ int AspFailHighMaxReduce = 3;   //    ... by at most this many plies
+@@ -164,6 +174,16 @@
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++int LmrFine = 0;
++int LmrFineHistory = 0;
++int LmrRoundF = 512;
++int LmrTtPvF = 1024;
++int LmrNotImprovingF = 1024;
++int LmrCutNodeF = 2048;
++int LmrTtCaptureF = 1024;
++int LmrGiveCheckF = 1024;
++int LmrInCheckF = 1024;
++int LmrCutoffAddF = 1024;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -185,7 +205,15 @@
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
++        {"LmrFine", &LmrFine, 0, 1},                   {"LmrFineHistory", &LmrFineHistory, 0, 1},
++        {"LmrRoundF", &LmrRoundF, 0, 1023},
++        {"LmrTtPvF", &LmrTtPvF, 0, 4096},            {"LmrNotImprovingF", &LmrNotImprovingF, 0, 4096},
++        {"LmrCutNodeF", &LmrCutNodeF, 0, 4096},      {"LmrTtCaptureF", &LmrTtCaptureF, 0, 4096},
++        {"LmrGiveCheckF", &LmrGiveCheckF, 0, 4096},  {"LmrInCheckF", &LmrInCheckF, 0, 4096},
++        {"LmrCutoffAddF", &LmrCutoffAddF, 0, 4096},
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
++        {"QuietMalusBase", &QuietMalusBase, 0, 128},     {"QuietMalusPerMove", &QuietMalusPerMove, -8, 8},
++        {"ResearchMalus", &ResearchMalus, 0, 1},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+@@ -215,8 +243,13 @@
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"AlphaRaiseReduce", &AlphaRaiseReduce, 0, 2},   {"AlphaRaiseMaxDepth", &AlphaRaiseMaxDepth, 0, 64},
++        {"QsLateMoves", &QsLateMoves, 0, 32},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"FailHighBlend", &FailHighBlend, 0, 7},
++        {"RfpNoTtPv", &RfpNoTtPv, 0, 1},         {"RfpTtGuard", &RfpTtGuard, 0, 1},
++        {"RfpCorrMul", &RfpCorrMul, 0, 64},
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+@@ -1579,15 +1612,21 @@
+     update_pawn_history(board, piece, move, bonus);
+ #endif
+     update_continuation(ss, piece, move.to, bonus);
++    int not_move_count = 0;
++    for (int i = 0; i < quiet_count; ++i) {
++        if (quiets[i] != move) ++not_move_count;
++    }
++    const int malus =
++        bonus * std::max(0, tune::QuietMalusBase + tune::QuietMalusPerMove * std::min(not_move_count, 16)) / 64;
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+-        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+-        update_threat_quiet(board, quiet, -bonus);
++        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -malus);
++        update_threat_quiet(board, quiet, -malus);
+ #if FORGE_PAWN_HISTORY
+         update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);
+ #endif
+-        update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
++        update_continuation(ss, board.moved_piece(quiet), quiet.to, -malus);
+     }
+     // B4 HistRework: the threat-keyed twin learns the same bonus and maluses.
+     if (tune::HistRework != 0) [[unlikely]] update_rework_history(board, ss, move, bonus, quiets, quiet_count);
+@@ -1674,6 +1713,7 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++            if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+@@ -1698,6 +1738,8 @@
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            if (tune::QsLateMoves > 0 && move_count > tune::QsLateMoves && !gives_check && !move.is_promotion()
++                && ((ss - 1)->current_move.is_none() || move.to != (ss - 1)->current_move.to)) continue;
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+@@ -1742,6 +1784,8 @@
+     }
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
++    if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+@@ -1934,10 +1978,12 @@
+         const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+                                           ss->static_eval + (ss - 1)->static_eval > 2
+                                       ? tune::RfpMargin / 3 : 0;
+-        if (!bare_king_mode && depth <= tune::RfpDepth &&
+-            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
++        const bool rfp_ok = !(tune::RfpNoTtPv && ss->tt_pv) && !(tune::RfpTtGuard && !tt_move.is_none() && !tt_capture);
++        const int rfp_corr = tune::RfpCorrMul ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16 : 0;
++        if (rfp_ok && !bare_king_mode && depth <= tune::RfpDepth &&
++            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return (tune::FailHighBlend & 1) ? beta + (eval - beta) / 3 : eval;
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -2251,18 +2297,37 @@
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
++        bool researched = false;
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+-            int r = reduction(quiet, depth, move_count);
+-            if (ss->tt_pv) r -= 1;
+-            if (!improving) r += 1;
+-            if (cut_node) r += 2;
+-            if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            int r;
++            if (tune::LmrFine == 0) {
++                r = reduction(quiet, depth, move_count);
++                if (ss->tt_pv) r -= 1;
++                if (!improving) r += 1;
++                if (cut_node) r += 2;
++                if (tt_capture && quiet) r += 1;
++                if (gives_check) r -= 1;
++                if (in_check) r -= 1;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++                if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            } else {
++                int f = 1024 * reduction(quiet, depth, move_count);
++                if (ss->tt_pv)           f -= tune::LmrTtPvF;
++                if (!improving)          f += tune::LmrNotImprovingF;
++                if (cut_node)            f += tune::LmrCutNodeF;
++                if (tt_capture && quiet) f += tune::LmrTtCaptureF;
++                if (gives_check)         f -= tune::LmrGiveCheckF;
++                if (in_check)            f -= tune::LmrInCheckF;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold)
++                    f += tune::LmrCutoffAddF;
++                if (quiet)
++                    f -= tune::LmrFineHistory
++                             ? std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048)
++                             : 1024 * std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++                r = (f + tune::LmrRoundF) >> 10;   // arithmetic shift: rounds down, also for negative f
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2285,12 +2350,15 @@
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+                     score = -search_child(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                    researched = true;
+                 }
+                 full_depth_needed = false;
+             }
+             if (!aborted_ && quiet && score > alpha) {
+                 // A late quiet move that beat expectations deserves a history boost.
+                 update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
++            } else if (tune::ResearchMalus && !aborted_ && quiet && researched) {
++                update_continuation(ss, moved, move.to, -(history_bonus(depth) / 2));
+             }
+         }
+         if (full_depth_needed && !aborted_) {
+@@ -2321,6 +2389,8 @@
+                     break;
+                 }
+                 alpha = score;
++                if (tune::AlphaRaiseReduce > 0 && !root_node && depth > 2 && depth < tune::AlphaRaiseMaxDepth && !is_mate_score(score))
++                    depth = std::max(1, depth - tune::AlphaRaiseReduce);
+             }
+         }
+         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
+@@ -2363,6 +2433,9 @@
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+     }
+ 
++    const int raw_best = best_score;
++    if ((tune::FailHighBlend & 4) && !pv_node && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score * depth + beta) / (depth + 1);
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+@@ -2373,11 +2446,11 @@
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+-    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
++    if (!in_check && excluded.is_none() && !is_mate_score(raw_best) &&
+         (best_move.is_none() || !best_move.is_capture()) &&
+-        !(bound == BoundLower && best_score <= ss->static_eval) &&
+-        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+-        update_correction(board, depth, best_score, ss->static_eval, ss);
++        !(bound == BoundLower && raw_best <= ss->static_eval) &&
++        !(bound == BoundUpper && raw_best >= ss->static_eval)) {
++        update_correction(board, depth, raw_best, ss->static_eval, ss);
+     }
+     return best_score;
+ }

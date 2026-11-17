@@ -1,0 +1,34 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -146,6 +146,9 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int RfpNoTtPv = 0;
++int RfpTtGuard = 0;
++int RfpCorrMul = 0;
+ // packc28 (ported into forge/r12 on 2026-11-15, see forge/tools/make_r12_e.py): three ideas, all 0 = off.
+ int AspFailHighReduce = 0;      // 1: after a root fail-high the re-search is one ply shallower per fail-high in a row
+ int AspFailHighMaxReduce = 3;   //    ... by at most this many plies
+@@ -217,6 +220,8 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"RfpNoTtPv", &RfpNoTtPv, 0, 1},         {"RfpTtGuard", &RfpTtGuard, 0, 1},
++        {"RfpCorrMul", &RfpCorrMul, 0, 64},
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+@@ -1934,8 +1939,10 @@
+         const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+                                           ss->static_eval + (ss - 1)->static_eval > 2
+                                       ? tune::RfpMargin / 3 : 0;
+-        if (!bare_king_mode && depth <= tune::RfpDepth &&
+-            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
++        const bool rfp_ok = !(tune::RfpNoTtPv && ss->tt_pv) && !(tune::RfpTtGuard && !tt_move.is_none() && !tt_capture);
++        const int rfp_corr = tune::RfpCorrMul ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16 : 0;
++        if (rfp_ok && !bare_king_mode && depth <= tune::RfpDepth &&
++            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }

@@ -1,0 +1,70 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -146,6 +146,7 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int FailHighBlend = 0;
+ // packc28 (ported into forge/r12 on 2026-11-15, see forge/tools/make_r12_e.py): three ideas, all 0 = off.
+ int AspFailHighReduce = 0;      // 1: after a root fail-high the re-search is one ply shallower per fail-high in a row
+ int AspFailHighMaxReduce = 3;   //    ... by at most this many plies
+@@ -217,6 +218,7 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"FailHighBlend", &FailHighBlend, 0, 7},
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+@@ -1674,6 +1676,7 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++            if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+@@ -1742,6 +1745,8 @@
+     }
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
++    if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+@@ -1937,7 +1942,7 @@
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return (tune::FailHighBlend & 1) ? beta + (eval - beta) / 3 : eval;
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -2363,6 +2368,9 @@
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+     }
+ 
++    const int raw_best = best_score;
++    if ((tune::FailHighBlend & 4) && !pv_node && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score * depth + beta) / (depth + 1);
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+@@ -2373,11 +2381,11 @@
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+-    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
++    if (!in_check && excluded.is_none() && !is_mate_score(raw_best) &&
+         (best_move.is_none() || !best_move.is_capture()) &&
+-        !(bound == BoundLower && best_score <= ss->static_eval) &&
+-        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+-        update_correction(board, depth, best_score, ss->static_eval, ss);
++        !(bound == BoundLower && raw_best <= ss->static_eval) &&
++        !(bound == BoundUpper && raw_best >= ss->static_eval)) {
++        update_correction(board, depth, raw_best, ss->static_eval, ss);
+     }
+     return best_score;
+ }

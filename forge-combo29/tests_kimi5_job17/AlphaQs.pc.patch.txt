@@ -1,0 +1,39 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -143,6 +143,9 @@
+ int TmFallingEvalPercent = 100;
+ int TmMinFactorPercent = 45;
+ int CaptureFutilityBase = 0;
++int AlphaRaiseReduce = 0;
++int AlphaRaiseMaxDepth = 12;
++int QsLateMoves = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+@@ -215,6 +218,8 @@
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"AlphaRaiseReduce", &AlphaRaiseReduce, 0, 2},   {"AlphaRaiseMaxDepth", &AlphaRaiseMaxDepth, 0, 64},
++        {"QsLateMoves", &QsLateMoves, 0, 32},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+@@ -1698,6 +1703,8 @@
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            if (tune::QsLateMoves > 0 && move_count > tune::QsLateMoves && !gives_check && !move.is_promotion()
++                && ((ss - 1)->current_move.is_none() || move.to != (ss - 1)->current_move.to)) continue;
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+@@ -2321,6 +2328,8 @@
+                     break;
+                 }
+                 alpha = score;
++                if (tune::AlphaRaiseReduce > 0 && !root_node && depth > 2 && depth < tune::AlphaRaiseMaxDepth && !is_mate_score(score))
++                    depth = std::max(1, depth - tune::AlphaRaiseReduce);
+             }
+         }
+         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.

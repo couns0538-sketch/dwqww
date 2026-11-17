@@ -1,0 +1,23 @@
+kimi5 job 17 prediction (committed before Step 1, never edited). UTC 2026-11-17 06:1x.
+
+1. Ports finished: 5 of the 6 named: RfpGuards, FailHighBlend, LmrFine, AlphaQs, MalusE.
+   QsSteps NOT finished (predicted): it is a 666-line observe-only counters patch keyed to the
+   plain tree's qsearch call sites; r15 restructured quiescence (qsearch_child / CuckooRep /
+   HistRework maps). Porting it right costs more than the remaining budget and it has no UCI
+   option (compile-time only); the four behavioral ports plus AlphaQs (which job 18 builds on)
+   come first. If it is delivered it will be counters-only with every call site re-pinned.
+
+2. Step 1 (a0): plain PC build, S14, depth 12 = my job-15 I2 rows on 200 of 200 O positions
+   and on 341 of 353 G positions (the 12 exceptions have 3-7 pieces, r15's lone-king and
+   endgame repairs). Kill: any other count.
+
+3. Step 1 (a)/(b), per port ON, on the positions where (a0) was equal:
+   - LmrFine (i4): 0 differ of 200 O and of the equal-G (it is an exact identity by
+     construction; any difference kills it).
+   - RfpGuards (tallf), FailHighBlend (fhb7), AlphaQs (a1, a2), MalusE (m4): 0 differ on O;
+     at most 4 differ on G each (r15's endgame repairs can interact with the ports at the
+     3-7-piece positions). Kill: more than 10 differ on G for any port.
+
+4. Step 2: all-five-ON vs plain PC20 on G, node ratio 0.60-0.72 (AlphaQs dominates; job-15's
+   S14 aq ratio on G was 0.6749; RfpGuards and FailHighBlend add a few percent of tree).
+   Killed outside [0.50, 0.85].

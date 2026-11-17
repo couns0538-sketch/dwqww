@@ -1,0 +1,70 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -95,6 +95,9 @@
+ int DrawJitter = 0;
+ 
+ namespace tune {
++int QuietMalusBase = 64;
++int QuietMalusPerMove = 0;
++int ResearchMalus = 0;
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+ int LmrNoisyBase = 10;
+@@ -186,6 +189,8 @@
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
++        {"QuietMalusBase", &QuietMalusBase, 0, 128},     {"QuietMalusPerMove", &QuietMalusPerMove, -8, 8},
++        {"ResearchMalus", &ResearchMalus, 0, 1},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+@@ -1579,15 +1584,21 @@
+     update_pawn_history(board, piece, move, bonus);
+ #endif
+     update_continuation(ss, piece, move.to, bonus);
++    int not_move_count = 0;
++    for (int i = 0; i < quiet_count; ++i) {
++        if (quiets[i] != move) ++not_move_count;
++    }
++    const int malus =
++        bonus * std::max(0, tune::QuietMalusBase + tune::QuietMalusPerMove * std::min(not_move_count, 16)) / 64;
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+-        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+-        update_threat_quiet(board, quiet, -bonus);
++        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -malus);
++        update_threat_quiet(board, quiet, -malus);
+ #if FORGE_PAWN_HISTORY
+         update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);
+ #endif
+-        update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
++        update_continuation(ss, board.moved_piece(quiet), quiet.to, -malus);
+     }
+     // B4 HistRework: the threat-keyed twin learns the same bonus and maluses.
+     if (tune::HistRework != 0) [[unlikely]] update_rework_history(board, ss, move, bonus, quiets, quiet_count);
+@@ -2251,6 +2262,7 @@
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
++        bool researched = false;
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+@@ -2285,12 +2297,15 @@
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+                     score = -search_child(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                    researched = true;
+                 }
+                 full_depth_needed = false;
+             }
+             if (!aborted_ && quiet && score > alpha) {
+                 // A late quiet move that beat expectations deserves a history boost.
+                 update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
++            } else if (tune::ResearchMalus && !aborted_ && quiet && researched) {
++                update_continuation(ss, moved, move.to, -(history_bonus(depth) / 2));
+             }
+         }
+         if (full_depth_needed && !aborted_) {
