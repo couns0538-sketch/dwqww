@@ -31,7 +31,7 @@ residual term (−163) overwhelms the handcrafted term (+16); `scale_factor()`
 almost annihilates the handcrafted term for bare minors.
 
 **Dead-material error that reaches search:** KNN vs K is a draw but scores
-**+189 static / +251 at depth 6**, because `is_insufficient_material()`
+**+187 static / +251 at depth 6**, because `is_insufficient_material()`
 returns false for two knights. The other wrong bare-minor statics are masked
 at search time by the insufficient-material adjudication.
 
