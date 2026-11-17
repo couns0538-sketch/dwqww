@@ -460,6 +460,14 @@ the medians barely moved, and why i=16's later convergence is a node-count story
 real positions it is **1.0773** CI [1.0670, 1.0876] — **the intervals do not overlap**, so bench is not a representative
 workload for per-node cost. That is the measurement behind the workload rule above.
 
+> **What protects this decomposition, stated precisely.** `check_identities.py` and `check_table_identities.py` carry it
+> between them — and **neither has yet fired on a real defect** (S-F166). Both were proven to fire on an *injected* one.
+> So the decomposition's protection is currently **a proof of function, not a proof of need**: the checks demonstrably
+> work, and nothing yet shows they were necessary. **That does not weaken them** — the identity was already caught wrong
+> once, by a different instrument (`check_ratio_percent.py`, which found the fabricated `0.9090`). The honest description
+> is *three instruments pointed at this result, one of which has fired*, and a reader should weigh it by that rather than
+> by how many checks stand behind it.
+
 ### THE POSITIVE RESULT FOR THE PC BUILD — do not lose this among the retirements
 
 **The counter-resetting mate is CORRECT on PC r15 and WRONG on base 6b98f217.** Board
@@ -2934,4 +2942,20 @@ output is a list of passes, and passes are not evidence of equal strength.
 This is the same discipline as the spread rule and the zero-count rule: the output that matters is the one that tells you
 what the check has DONE, not the one that tells you it found nothing.
 Gates: 223 rows, 0 wrong pipe counts, all 12 catches verified in FINDINGS, gate rc=0 across 64 checks.
+Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:37:42Z — the decomposition's protection is a proof of function, not a proof of need
+APPLIED YOUR DISTINCTION WHERE IT MATTERS MOST: to the FINAL's own presentation of the decomposition.
+What is now stated beside the result: check_identities.py and check_table_identities.py carry the decomposition between
+them, AND NEITHER HAS YET FIRED ON A REAL DEFECT. Both were proven to fire on an INJECTED one. So the protection is
+currently A PROOF OF FUNCTION, NOT A PROOF OF NEED - the checks demonstrably work, and nothing yet shows they were
+necessary.
+THAT DOES NOT WEAKEN THEM, and the FINAL says why: the identity WAS already caught wrong once, by a different instrument
+- check_ratio_percent.py, which found the fabricated 0.9090. So the honest count is THREE INSTRUMENTS POINTED AT THIS
+RESULT, ONE OF WHICH HAS FIRED, and a reader should weigh the decomposition by that rather than by how many checks stand
+behind it. I verified the count rather than asserting it: identities (no catch), table products (no catch), ratio-percent
+(the 0.9090 catch) - three and one.
+This is the same rule as S-F166 applied to a single finding rather than to the gate: THE NUMBER OF CHECKS IS NOT THE
+EVIDENCE, WHAT THEY HAVE DONE IS. A result surrounded by three verified-but-unfired checks is protected by one real
+instrument and two proofs of function, and saying so is more useful than implying three.
+Gates: 223 rows, 0 wrong pipe counts, decomposition section states the distinction, gate rc=0 across 64 checks.
 Next: continue at cadence to the 10:20Z close.
