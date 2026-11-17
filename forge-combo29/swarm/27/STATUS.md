@@ -1293,3 +1293,24 @@ merge-base was the one never exercised until a real disjoint history was constru
 **FOURTH time tonight a checker of mine reproduced its own defect class, and the first where the bug lived in the
 branch written to handle the very condition the control creates.** Controls: real build 0; orphan repo 1 with the
 DISJOINT message; same orphan with the correct commit 0.
+
+## 2026-11-17T16:4xZ S-C125/126/127 — `go mate N` is a 2N-1 depth cap; a control too easy to show the mechanism
+**PARSER SURFACE NOW FULLY SWEPT: `go`, `setoption`, `position` - plus the last three `go` branches.**
+**S-C125: `go mate N` IS A DEPTH CAP OF 2N-1, NOT A MATE SEARCH.** startpos, last depth reached:
+  N=1 -> 1 | N=2 -> 3 | N=3 -> 5 | N=4 -> 7 | N=5 -> 9   (exactly 2N-1 every time)
+Source: `limits.mate_moves = clamp(read_int(),0,32)`, converted to depth 2N-1. **So a caller expecting "search
+until you find a mate in N" gets a TRUNCATED SEARCH** - `go mate 1` on startpos returns `d2d4` at depth 1, a
+non-mate move. A semantic mismatch a tablebase-style harness hits immediately.
+**S-C126: THE CONTROL I BUILT FOR IT WAS TOO EASY TO SHOW THE MECHANISM.** On a mate-in-1 board
+`go mate 1/2/5/10` ALL stop at depth 1 with `a1a8`, because the mate is found immediately regardless of the cap.
+**Had I run only that control I would have concluded `go mate N` ignores N entirely - the opposite of the
+truth.** A control board on which the parameter cannot bind cannot distinguish "the parameter works" from "the
+parameter is ignored". The startpos ladder, not the control, is what revealed the rule.
+**S-C127: `movestogo` AND `ponder` WITHOUT A CLOCK ARE UNBOUNDED** - 20 s cap, NO BESTMOVE, depth 28 and still
+climbing. `go wtime 5000 movestogo 20` returns normally, so the clock is what bounds it. Source: `movestogo`
+only sets a field the CLOCK PLANNER consumes (no `time_ms` -> nothing to plan against -> no limit installed);
+`ponder` only SUPPRESSES the clock. **Neither token is a limit on its own and neither says so** - same family as
+S-C26 (absent `btime` = no clock). **A match harness sending `go ponder` or a clockless `movestogo` gets a
+search that never returns.**
+NEXT: take the mate-as-depth-cap result into the mate-label work - it may explain a class of labels produced at
+the wrong depth.
