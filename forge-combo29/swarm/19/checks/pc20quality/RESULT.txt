@@ -1,0 +1,50 @@
+does raising self-play to 3000 IMPROVE THE DECISIONS, not just depth? (vs a deep reference)
+pos  ref d18   2k S14  2k PC20   3k S14  3k PC20
+  0 ('cp', -312) ('cp', -294) ('cp', -306) ('cp', -294) ('cp', -306)
+  1 ('cp', -267) ('cp', -288) ('cp', -288) ('cp', -288) ('cp', -288)
+  2 ('cp', 308) ('cp', 223) ('cp', 223) ('cp', 223) ('cp', 246)
+  3 ('cp', -667) ('cp', -583) ('cp', -557) ('cp', -583) ('cp', -595)
+  4 ('cp', -666) ('cp', -382) ('cp', -384) ('cp', -428) ('cp', -325)
+  5 ('cp', 3960) ('cp', 2124) ('cp', 2235) ('cp', 2189) ('cp', 2297)
+  6 ('cp', 13) ('cp', 20) ('cp', 34) ('cp', 59) ('cp', 68)
+  7 ('cp', -1602) ('cp', -249) ('cp', -227) ('cp', -222) ('cp', -240)
+
+  2k_s14: matched the depth-18 reference score on 0 of 8
+  2k_pc: matched the depth-18 reference score on 0 of 8
+  3k_s14: matched the depth-18 reference score on 0 of 8
+  3k_pc: matched the depth-18 reference score on 0 of 8
+
+MOVE agreement with a deeper reference (depth 16), which is the meaningful test at shallow budgets
+  pos 0: ref e5e4 | 2k e5e4/g7g6 | 3k e5e4/g7g6
+  pos 1: ref b6b5 | 2k b6b5/b6b5 | 3k b6b5/b6b5
+  pos 2: ref g1g6 | 2k g1g6/g1g6 | 3k g1g6/g1g6
+  pos 3: ref f6e7 | 2k g7g5/f6e7 | 3k g7g5/f6e7
+  pos 4: ref f6g5 | 2k f6g5/f6g5 | 3k f6g5/f6g5
+  pos 5: ref e4f5 | 2k e4f5/f4f5 | 3k e4f5/f4f5
+  pos 6: ref f5h6 | 2k a7a6/h8f8 | 3k f5h6/d6e6
+  pos 7: ref g5h6 | 2k g5h5/g5h5 | 3k g5h5/g5h5
+
+  2k_s14: agrees with the depth-16 move on 5 of 8
+  2k_pc: agrees with the depth-16 move on 4 of 8
+  3k_s14: agrees with the depth-16 move on 6 of 8
+  3k_pc: agrees with the depth-16 move on 4 of 8
+
+NOTE: this replaces my previous score-equality test, which returned 0 of 8 for ALL FOUR arms —
+a vacuous result (trap 12: a zero with no plant), because shallow budgets legitimately disagree
+with a depth-18 score. Move agreement is the meaningful comparison at these budgets.
+
+## CONCLUSION: the quality half is NOT RESOLVED, and my first test of it was vacuous
+- **Score-equality against depth 18: 0 of 8 for ALL FOUR arms.** That is a **vacuous** test — shallow budgets
+  legitimately disagree with a deep score, so a zero across every arm measures the metric, not the engine.
+  (Trap 12 exactly: a zero with no plant. I caught it because a zero in *all four* arms is the "too clean" tell.)
+- **Move-agreement against depth 16: 2k S14 5/8, 2k PC20 4/8, 3k S14 6/8, 3k PC20 4/8.** Overlapping, and
+  **PC20 does not improve** while S14 visibly does (5 → 6). Eight positions cannot separate these.
+
+## So the honest state of 19-C46's recommendation
+**19-C46's DEPTH result stands** (the sign flips between 2,000 and 3,000 nodes, `TtPruneV2` the culprit). **But
+the follow-on claim — that raising the budget makes PC20's switches "pay" in decision quality — is NOT
+established.** The depth gain is real; whether it converts into better moves at 3,000 nodes is unmeasured here,
+and eight positions is too few to find out.
+
+**What that means for the recommendation:** "raise self-play to ~3,000" is supported by **depth**, and by
+nothing else yet. A decision-quality claim would need a proper sample (and ideally games), not eight positions.
