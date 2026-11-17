@@ -370,6 +370,18 @@ def main() -> int:
     if args.only:
         cases = [c for c in cases if args.only in c.cls or args.only in c.cid]
 
+    # A duplicate id silently makes two cases indistinguishable in the artifacts
+    # and corrupts every cross-run lookup. Refuse rather than run.
+    seen = {}
+    dupes = []
+    for c in cases:
+        if c.cid in seen:
+            dupes.append(c.cid)
+        seen[c.cid] = True
+    if dupes:
+        print(f"FATAL: duplicate case ids: {sorted(set(dupes))}", file=sys.stderr)
+        return 2
+
     results = []
     t_start = time.time()
     for i, case in enumerate(cases, 1):

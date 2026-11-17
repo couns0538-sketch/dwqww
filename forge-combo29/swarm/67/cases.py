@@ -147,18 +147,64 @@ def build_cases() -> list[Case]:
                                          (b"go perft 1\n", "wait_nodes")],
                                   note="moves separated by runs of whitespace"))
 
-    # illegal move in the list -> legal prefix searched (known defect)
-    for pat in PATTERNS:
-        cases.append(Case(cid=f"fen:illegal-move-in-list[{pat}]", cls="position_fen", pattern=pat,
-                          steps=[(b"position startpos moves e2e4 e7e5 zzzz d2d4\n", "cmd"),
+    # illegal move in the list -> what the engine does with the rest of the list.
+    # This is the truncate-vs-splice question, and it needs a discriminator: the
+    # positions either side of an insertion must have DIFFERENT node counts at
+    # the depth used, or the test cannot tell the hypotheses apart.
+    SEQ = ["e2e4", "e7e5", "g1f3", "b8c6"]
+    for i in range(len(SEQ) + 1):
+        toks = SEQ[:i] + ["zzzz"] + SEQ[i:]
+        cases.append(Case(cid=f"fen:insert-at-{i}", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position startpos moves " + " ".join(toks).encode() + b"\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 3\n", "wait_nodes")],
+                          note=f"illegal token at index {i} of 4"))
+    for i in range(len(SEQ) + 1):
+        mv = " ".join(SEQ[:i])
+        cases.append(Case(cid=f"fen:prefix-{i}", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position startpos" + (b" moves " + mv.encode() if mv else b"") + b"\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 3\n", "wait_nodes")],
+                          note=f"reference: {i} legal moves applied"))
+    for i in range(len(SEQ) + 1):
+        cases.append(Case(cid=f"fen:prefix-2ply-{i}", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position startpos" + (b" moves " + " ".join(SEQ[:i]).encode() if i else b"") + b"\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 2\n", "wait_nodes")],
+                          note=f"perft-2 reference for {i} moves; shows where perft 2 collides"))
+
+    # junk between the sixth FEN field and the `moves` keyword.
+    # perft 1 CANNOT answer this: a bare-kings board and the same board after one
+    # move both have 3 moves. perft 2 separates them (9 vs 15).
+    for nm, junk in (("plain", b""), ("num", b" 0"), ("nums", b" 0 1"),
+                     ("bogus", b" bogus"), ("bogus-more", b" bogus more")):
+        cases.append(Case(cid=f"fen:junkbefore-{nm}-p1", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position fen " + FENS["bare"].encode() + junk + b" moves a1a2\n", "cmd"),
                                  (b"isready\n", "wait_ready"),
                                  (b"go perft 1\n", "wait_nodes")],
-                          note="illegal token ends the prefix silently apart from one info line"))
+                          note="perft 1: ambiguous for this question"))
+        cases.append(Case(cid=f"fen:junkbefore-{nm}-p2", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position fen " + FENS["bare"].encode() + junk + b" moves a1a2\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 2\n", "wait_nodes")],
+                          note="perft 2: 9 = moves dropped, 15 = moves applied"))
+    for nm in ("plain", "bogus"):
+        cases.append(Case(cid=f"fen:junkonly-{nm}-p2", cls="position_fen", pattern="P_direct",
+                          steps=[(b"position fen " + FENS["bare"].encode()
+                                  + (b"" if nm == "plain" else b" bogus") + b"\n", "cmd"),
+                                 (b"isready\n", "wait_ready"),
+                                 (b"go perft 2\n", "wait_nodes")],
+                          note="board only, no moves keyword"))
+
+    # tokens after the sixth FEN field reach the moves loader
+    for pat in PATTERNS:
         cases.append(Case(cid=f"fen:injection-after-junk[{pat}]", cls="position_fen", pattern=pat,
                           steps=[(b"position fen 8/8/8/8/8/8/8/K6k w - - 0 1 bogus moves a1a2\n", "cmd"),
                                  (b"isready\n", "wait_ready"),
                                  (b"go perft 2\n", "wait_nodes")],
                           note="tokens after the 6th FEN field reach the moves loader"))
+
+    # ---------------- class: go --------------------------------------------
 
     # empty / absent position arguments
     for nm, cmd in (("bare-position", b"position\n"), ("unknown-token", b"position foo\n"),

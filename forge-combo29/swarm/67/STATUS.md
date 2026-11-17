@@ -7,7 +7,7 @@ computed by `report.py` from the two evidence files in this directory.
 
 | | base `6b98f217` | `integrate/combo29-all` |
 |---|---|---|
-| cases | 142 | 142 |
+| cases | 167 | 167 |
 | crashes (sanitizer / non-zero exit) | **0** | **0** |
 | hangs (protocol liveness) | **0** | **0** |
 | sanitizer lines | **0** | **0** |
@@ -17,6 +17,29 @@ computed by `report.py` from the two evidence files in this directory.
 No crash, no hang, no sanitizer line, in any class, on either build. The engine
 answered `readyok` after `stop` in every case and was usable at the end of each
 run (`nodes 400` from a fresh `go perft 2`).
+
+**The crash hazard at this boundary is protocol-level, not memory-safety.**
+
+## Read this before trusting any row
+
+Two measurements in this area — one mine, one the coordinator's — were made at
+depths where the fingerprint was identical under both competing hypotheses, and
+each confirmed whichever hypothesis its author already held. Both were reversed
+by a discriminating depth. `FUZZ.md` opens with this, and the two traps are
+reproduced as computed cases with the ambiguous and the discriminating
+measurement side by side.
+
+1. **Perft-2 collision.** `e2e4 e7e5` and `e2e4 e7e5 g1f3 b8c6` are both 835.
+   A perft-2 test of truncate-vs-splice cannot separate them. At perft 3 all
+   five prefixes are distinct (8902 / 13160 / 24825 / 23193 / 24079) and the
+   answer is unambiguous.
+2. **Fingerprint equal by construction.** A lone-king board has 3 legal moves
+   and so does the same board after one king move. `perft 1 = 3` therefore
+   cannot tell "moves applied" from "moves dropped". `perft 2` gives 9 vs 15.
+
+Rule carried forward: before a measurement can confirm a hypothesis, state what
+it would have returned if the hypothesis were false. If that value is the same,
+the measurement is not evidence.
 
 ## Build
 
@@ -29,8 +52,7 @@ LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13 cmake --build /tmp/asan -j
 ```
 
 Clang 18 cannot link sanitized binaries on this VM (`libclang_rt.asan*` and
-`-lstdc++` are absent). GCC 13 needs the explicit `LIBRARY_PATH` above. This
-matches what `REPORT_r3_01.md` already records.
+`-lstdc++` are absent). GCC 13 needs the explicit `LIBRARY_PATH`.
 
 ## Method
 
@@ -42,7 +64,10 @@ matches what `REPORT_r3_01.md` already records.
   so refusal placement is measured, not inferred from text order.
 - **A hang is a liveness failure, not a missing `bestmove`.** An unrestricted
   `go` must run until `stop`. The first harness version conflated the two and
-  produced 7 false hangs; the definition in `FUZZ.md` supersedes that.
+  produced 7 false hangs.
+- The harness refuses to run if two cases share an id — a duplicate silently
+  makes two cases indistinguishable in the artifacts and corrupts every
+  cross-run lookup. One was introduced and removed during this work.
 
 ## Self-test (proves the harness can fail)
 
@@ -56,33 +81,30 @@ matches what `REPORT_r3_01.md` already records.
 
 ## Findings
 
-1. No memory-safety or liveness defect found. The crash hazard at this boundary
-   is a protocol one.
-2. `bestmove 0000` covers checkmate, stalemate, and an empty `searchmoves`
-   restriction. Only the last carries an `info string`. Checkmate and stalemate
-   are indistinguishable on the wire.
-3. **Malformed FENs above six fields are refused in silence** — no reply at all,
-   on either build. Reply-scanning cannot cover this class. `6` is the legal
-   control in the sweep.
-4. A refused `position` searches the previous board (`go perft 2` fingerprint
-   proves it).
-5. Mid-search `setoption` truncates the search at the `setoption` write.
-6. Book moves use a clock-seeded RNG, so `bestmove` is not reproducible across
-   runs in game-search conditions; board identity is fingerprinted with
-   `go perft` instead.
+1. No memory-safety or liveness defect found.
+2. `bestmove 0000` covers checkmate, stalemate and an empty `searchmoves`
+   restriction; only the last carries an `info string`, so checkmate and
+   stalemate are indistinguishable on the wire.
+3. An illegal move in the list **truncates**: legal prefix applied, remainder
+   dropped, one `info string`, no refusal. Junk *before* `moves` is worse — it is
+   skipped and the moves are applied anyway, silently.
+4. **Malformed FENs above six fields are refused in silence** — no reply at all.
+   Reply-scanning cannot cover this class.
+5. A refused `position` searches the previous board.
+6. Mid-search `setoption` truncates the search at the `setoption` write.
+7. Book moves use a clock-seeded RNG; board identity is fingerprinted with
+   `go perft` instead of comparing `bestmove`.
 
 ## Correction carried forward
 
 The `info string invalid FEN` diagnostic is emitted **on the `position`
-command**, in every harness pattern measured (with `isready`, without, both
-commands in one write, and after a predecessor). It never appears in the `go`
-output. The "location moves with the pattern" model is refuted by these
-measurements.
+command**, in every harness pattern measured. It never appears in the `go`
+output. 49 refusals across both patterns all attribute to `position`.
 
 ## Files
 
 - `fuzz.py` — harness
-- `cases.py` — 142-case corpus, fixtures verified with python-chess
+- `cases.py` — 167-case corpus, fixtures verified with python-chess
 - `selftest.py` — planted-bad-input controls
 - `report.py` — generates `FUZZ.md` from evidence
 - `FUZZ.md` — the report

@@ -49,6 +49,188 @@ def summarize(results):
     }
 
 
+def analyze_truncation(results):
+    """Decide truncate-vs-splice from node counts, and say when a test cannot.
+
+    For each insertion index i, the two hypotheses predict different positions:
+      TRUNCATE: only the i legal moves before the bad token are applied
+      SPLICE:   the bad token is skipped and the later moves are applied too
+    A verdict is only reported where the two predictions differ numerically at
+    the depth used. Where they coincide, the case is reported as ambiguous
+    rather than being counted for either side.
+    """
+    def nodes(cid):
+        match = [r for r in results if r["id"] == cid]
+        if not match or not match[0]["perft_totals"]:
+            return None
+        return match[0]["perft_totals"][-1].replace("nodes ", "")
+
+    rows = []
+    for i in range(5):
+        ins = nodes(f"fen:insert-at-{i}")
+        trunc = nodes(f"fen:prefix-{i}")
+        full = nodes("fen:prefix-4")
+        rows.append({"i": i, "inserted": ins, "truncate": trunc, "splice": full})
+    return rows
+
+
+def render_truncation(results, w, san):
+    rows = analyze_truncation(results)
+    if not any(r["inserted"] for r in rows):
+        return
+    w("### Does an illegal move truncate the list or get skipped?")
+    w("")
+    w("An illegal token is followed by more legal moves. Two hypotheses: the "
+      "parser stops at the bad token (**truncate**), or it skips it and applies "
+      "the rest (**splice**). They predict different boards, so the test is "
+      "which recorded position the result equals.")
+    w("")
+    w("`perft 3` is used because every legal prefix of the 4-move sequence has a "
+      "distinct node count at that depth. `perft 2` does not: `e2e4 e7e5` and "
+      "`e2e4 e7e5 g1f3 b8c6` are both 835, so a perft-2 test reports a false tie.")
+    w("")
+    w("| illegal token at index | result | truncate predicts | splice predicts | verdict |")
+    w("|---|---|---|---|---|")
+    for r in rows:
+        if r["inserted"] is None:
+            continue
+        verdict = []
+        distinct = r["truncate"] != r["splice"]
+        if r["inserted"] == r["truncate"]:
+            verdict.append("truncate")
+        if r["inserted"] == r["splice"]:
+            verdict.append("splice")
+        if not distinct:
+            label = "**ambiguous** (predictions coincide)"
+        elif verdict:
+            label = " / ".join(verdict)
+        else:
+            label = "**neither**"
+        w(f"| {r['i']} | {r['inserted']} | {r['truncate']} | {r['splice']} | {label} |")
+    w("")
+    rows_p2 = [r for r in results if r["id"].startswith("fen:prefix-2ply-")]
+    if rows_p2:
+        w("Perft-2 reference values for the same prefixes, which is why the "
+          "shallower depth cannot settle it:")
+        w("")
+        w("| moves applied | perft 2 | perft 3 |")
+        w("|---|---|---|")
+        for k in range(5):
+            m2 = [r for r in results if r["id"] == f"fen:prefix-2ply-{k}"]
+            m3 = [r for r in results if r["id"] == f"fen:prefix-{k}"]
+            v2 = m2[0]["perft_totals"][-1].replace("nodes ", "") if m2 and m2[0]["perft_totals"] else "—"
+            v3 = m3[0]["perft_totals"][-1].replace("nodes ", "") if m3 and m3[0]["perft_totals"] else "—"
+            w(f"| {k} | {v2} | {v3} |")
+        w("")
+
+
+def render_junkbefore(results, w):
+    def nodes(cid):
+        match = [r for r in results if r["id"] == cid]
+        if not match or not match[0]["perft_totals"]:
+            return None
+        return match[0]["perft_totals"][-1].replace("nodes ", "")
+
+    if nodes("fen:junkbefore-plain-p2") is None:
+        return
+    w("### Junk between the sixth FEN field and the `moves` keyword")
+    w("")
+    w("A bare-kings board has **3** legal moves, and the same board after `a1a2` "
+      "also has **3** — because it is then Black to move with one king. So "
+      "`perft 1` returns 3 whether the move was applied or dropped, and a "
+      "perft-1 test cannot answer this question at all. `perft 2` can: 9 for the "
+      "board alone, 15 after the move.")
+    w("")
+    w("| position argument | perft 1 | perft 2 | moves applied? |")
+    w("|---|---|---|---|")
+    for nm in ("plain", "num", "nums", "bogus", "bogus-more"):
+        p1 = nodes(f"fen:junkbefore-{nm}-p1")
+        p2 = nodes(f"fen:junkbefore-{nm}-p2")
+        label = {"plain": "`moves a1a2`", "num": "`0 moves a1a2`",
+                 "nums": "`0 1 moves a1a2`", "bogus": "`bogus moves a1a2`",
+                 "bogus-more": "`bogus more moves a1a2`"}[nm]
+        applied = "—"
+        if p2 == "15":
+            applied = "**yes**"
+        elif p2 == "9":
+            applied = "no"
+        w(f"| {label} | {p1} | {p2} | {applied} |")
+    w("")
+    w("The `perft 1` column is identical for every row, which is exactly the "
+      "ambiguity. The `perft 2` column is what decides it.")
+    w("")
+
+
+def render_traps(results, w):
+    """Name the two fingerprints that could not fail, from the data itself."""
+    def nodes(cid, depth_suffix=""):
+        match = [r for r in results if r["id"] == cid]
+        if not match or not match[0]["perft_totals"]:
+            return None
+        return match[0]["perft_totals"][-1].replace("nodes ", "")
+
+    p2 = {k: nodes(f"fen:prefix-2ply-{k}") for k in range(5)}
+    p3 = {k: nodes(f"fen:prefix-{k}") for k in range(5)}
+    if not all(p2.values()) or not all(p3.values()):
+        return
+
+    w("## Two fingerprints that could not fail")
+    w("")
+    w("Both of these produced a confident, wrong conclusion before being caught. "
+      "They are recorded because the defect is in the **test**, not the engine, "
+      "and it is invisible unless the measurement is repeated where the "
+      "hypotheses diverge.")
+    w("")
+    w("### Trap 1 — a perft depth that collides with itself")
+    w("")
+    w("Question: does an illegal move truncate the move list or get skipped?")
+    w("")
+    collide = [k for k in range(3) if p2[k] == p2[k + 2]]
+    collide_set = set(collide) | {k + 2 for k in collide}
+    w("| moves applied | perft 2 | perft 3 |")
+    w("|---|---|---|")
+    for k in range(5):
+        mark = " ← collides" if k in collide_set else ""
+        w(f"| {k} | {p2[k]}{mark} | {p3[k]} |")
+    w("")
+    if collide:
+        w(f"At perft 2, `{collide[0]} moves` and `{collide[0] + 2} moves` are both "
+          f"**{p2[collide[0]]}**. A four-move spliced line therefore lands on the "
+          "same number as the two-move truncated prefix, so the shallower depth "
+          "cannot separate truncate from splice — and it silently agrees with "
+          "whichever of the two the author assumed.")
+    w("")
+    w("At perft 3 every prefix is distinct "
+      f"({', '.join(p3[k] for k in range(5))}), so the same experiment "
+      "discriminates. The rule this yields: **a fingerprint must be checked to "
+      "differ between the competing hypotheses before it is used to choose "
+      "between them.**")
+    w("")
+    w("### Trap 2 — a fingerprint that is equal by construction")
+    w("")
+    w("Question: does junk between the FEN and `moves` drop the moves?")
+    w("")
+    base_p1 = nodes("fen:junkbefore-plain-p1")
+    moved_p1 = nodes("fen:junkbefore-bogus-p1")
+    board_p2 = nodes("fen:junkonly-plain-p2")
+    moved_p2 = nodes("fen:junkbefore-bogus-p2")
+    w(f"A lone-king board has **{base_p1}** legal moves, and so does the same "
+      f"board after one king move, because it is then the other side to move "
+      f"with one king. So `perft 1` returns **{base_p1}** in both cases "
+      f"(measured: {base_p1} for the board alone and {moved_p1} after the move) "
+      "and the test cannot distinguish \"moves applied\" from \"moves dropped\".")
+    w("")
+    w(f"At `perft 2` the same two positions are **{board_p2}** (board only) and "
+      f"**{moved_p2}** (after the move), which settles it. This is the purer form "
+      "of the defect: the fingerprint was equal by the construction of the "
+      "position, so no amount of care in running the test would have helped.")
+    w("")
+    w("The rule: **before a measurement can confirm a hypothesis, state what it "
+      "would have returned if the hypothesis were false.** If that value is the "
+      "same, the measurement is not evidence.")
+    w("")
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print("usage: report.py BASE.json [OTHER.json ...]", file=sys.stderr)
@@ -67,6 +249,16 @@ def main() -> int:
     w = out.append
 
     w("# FUZZ.md — protocol-boundary fuzz, ASan + UBSan")
+    w("")
+    w("> **This run's own evidence first came from tests that could not falsify "
+      "themselves.** Two measurements in this area — one mine, one the "
+      "coordinator's — were made at depths where the fingerprint was identical "
+      "under both hypotheses, and confirmed whichever hypothesis the author "
+      "already held. Both were reversed by a discriminating depth. See "
+      "*Two fingerprints that could not fail* before trusting any row below, and "
+      "note that the rule is now enforced in the corpus rather than in prose: "
+      "the ambiguous and the discriminating measurement are reported side by "
+      "side, so the trap teaches itself.")
     w("")
     w("Generated by `report.py` from the run artifacts listed at the bottom. Every "
       "count below is computed from those files; none is typed by hand.")
@@ -198,6 +390,12 @@ def main() -> int:
       "be the primary defence, not a supplement.")
     w("")
 
+    w("## Illegal moves in the `position ... moves` list")
+    w("")
+    render_truncation(res, w, san)
+    render_junkbefore(res, w)
+    render_traps(res, w)
+
     # ---- terminal positions ----------------------------------------------
     term = by_cls.get("terminal", [])
     if term:
@@ -307,7 +505,23 @@ def main() -> int:
       "also, by convention, what a crashed or confused engine is reported as, so "
       "a naive front end cannot separate \"game over\" from \"engine failed\".")
     w("")
-    w("### 3. Malformed FENs are refused in silence above six fields")
+    w("### 3. An illegal move in the list truncates; the rest is dropped")
+    w("")
+    w("A bad token in `position ... moves` stops the list: the legal moves before "
+      "it are applied and everything after it is dropped, with one `info string` "
+      "and no refusal. Verified at `perft 3` where all five legal prefixes have "
+      "distinct counts — an illegal token at index 0, 1, 2 and 3 returns exactly "
+      "the prefix value for that index. Index 4 is the one position where the "
+      "truncate and splice predictions coincide, and it is reported as ambiguous "
+      "rather than counted.")
+    w("")
+    w("Junk between the FEN and the `moves` keyword behaves differently and is "
+      "worse: the engine skips it and **applies the moves anyway**, silently. "
+      "`position fen <board> bogus moves a1a2` reaches the same position as "
+      "`position fen <board> moves a1a2`. So a malformed command can quietly "
+      "become a real one.")
+    w("")
+    w("### 4. Malformed FENs are refused in silence above six fields")
     w("")
     w("Below six fields the engine refuses loudly, on the `position` command. "
       "**Above six fields it refuses — or accepts — in complete silence.** There "
@@ -320,7 +534,7 @@ def main() -> int:
       "`integrate/combo29-all` searches the previous one. Both are wrong in a way "
       "the client cannot see.")
     w("")
-    w("### 4. A refused `position` leaves the previous board in place")
+    w("### 5. A refused `position` leaves the previous board in place")
     w("")
     w("On both builds an `info string invalid FEN` is followed by a search of the "
       "**predecessor** position. The `refused-after-good` cases fingerprint this "
@@ -328,7 +542,7 @@ def main() -> int:
       "error. A caller that validates nothing will therefore get a legal, "
       "well-formed `bestmove` for the wrong game.")
     w("")
-    w("### 5. Mid-search `setoption` truncates the search")
+    w("### 6. Mid-search `setoption` truncates the search")
     w("")
     w("`setoption` calls `stop_search()` before applying the value, so a "
       "`setoption` sent during a search ends that search. Measured: 16 `info "
@@ -338,7 +552,7 @@ def main() -> int:
       "by timing. A GUI that adjusts an option mid-game silently loses the "
       "search it was waiting for.")
     w("")
-    w("### 6. Book moves make `bestmove` non-deterministic across runs")
+    w("### 7. Book moves make `bestmove` non-deterministic across runs")
     w("")
     w("`OwnBook` defaults to true and the book RNG is seeded from "
       "`steady_clock`, so in game-search conditions two runs of the same position "
