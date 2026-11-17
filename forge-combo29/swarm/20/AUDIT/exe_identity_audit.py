@@ -63,5 +63,9 @@ print()
 if missing_new:
     print(f"FAIL: {len(missing_new)} post-rule job folder(s) carry no executable identity.")
     sys.exit(1)
+if not jobs:
+    # S-F68 lesson: zero inputs is not a pass.
+    print("FAIL: found ZERO job folders — nothing was checked, so this is not a clean result.")
+    sys.exit(1)
 print("CLEAN: every post-rule job folder records which binary produced its numbers.")
 sys.exit(0)

@@ -73,5 +73,9 @@ print()
 if violations:
     print(f"FAIL: {len(violations)} transcript(s) show a bestmove with no search — the driver piped quit into a search.")
     sys.exit(1)
-print("CLEAN: no engine transcript has a bestmove without a search.")
+if transcripts == 0:
+    # S-F68 lesson: a check that found nothing to inspect must NOT report CLEAN — that is a silent pass.
+    print("FAIL: scanned ZERO engine transcripts — nothing was actually checked, so this is not a clean result.")
+    sys.exit(1)
+print(f"CLEAN: no engine transcript has a bestmove without a search ({transcripts} transcripts inspected).")
 sys.exit(0)
