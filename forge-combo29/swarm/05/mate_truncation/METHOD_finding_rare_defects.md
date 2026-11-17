@@ -266,3 +266,34 @@ visible rather than letting the number stand alone.
 
 This note is the one I would most want the next swarm to read, because it is the error I made twice and it cost the
 coordinator a relayed correction both times.
+
+---
+
+# Seventh note: run the assertion before the commit, not after
+
+**A small ordering lesson that caught a real error in the FINAL summary, ten seconds too late.**
+
+I wrote the 133-line support table into `FINAL_SUMMARY.md`, committed and pushed it, and *then* ran a script to re-derive
+the numbers from the raw files. The script asserted `(complete, short) == (35, 4)` for the first row and failed:
+
+```
+raw re-derivation of my S-F73 arm: complete+mated=26, short+not=2, total=28 (FINAL claims 35 and 4)
+AssertionError
+```
+
+The arithmetic was not wrong — the 39 was the 28-line depth-12 corpus **plus** an 11-line probe, and I had labelled the
+row as the depth-12 work alone. So the table's numbers were right and its *description* was misleading. The correction
+took one more commit.
+
+## The rule
+
+**Every table in a deliverable should be regenerable by a committed script, and that script should run before the
+commit, not after.** In this session that ordering was right for the raw-output reports (every table in
+`REPORT_*.md` is a pasted script output) and wrong for the hand-written summary — which is exactly where the error was.
+
+Two corollaries:
+
+1. **A hand-written summary table is the least-checked artefact in a deliverable**, because it feels like prose rather
+   than data. Mine was wrong twice: four transcription errors in the depth table, and this labelling error.
+2. **The cost of checking late is a wrong document on the remote for however long it takes to notice.** It was ten
+   seconds here; it could have been overnight if I had stopped after the push.

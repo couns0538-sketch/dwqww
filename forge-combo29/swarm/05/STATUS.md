@@ -993,3 +993,11 @@ every sentence.
 - Total support for the rule now: my 39 + seat 07's 24 + these 37 = 100 lines, no exception (63 and 37 overlap in
   method but the 37 covers depths no earlier run reached — said so in the finding).
 - next command: continue at cadence.
+
+## $(date -u)
+- Method note gains a SEVENTH section: "run the assertion before the commit, not after" — with the actual failure output
+  and the rule that every table in a deliverable should be regenerable by a committed script that runs BEFORE the commit.
+  Corollaries: a hand-written summary table is the least-checked artefact (mine was wrong twice — four transcription
+  errors, then this labelling error), and the cost of checking late is a wrong document on the remote.
+- next command: test the PV-completeness rule at MultiPV > 1, a gap I have not covered (seat 07 showed MultiPV affects
+  node budgets).
