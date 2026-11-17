@@ -1,0 +1,17 @@
+# 08-C14 verified: the real engine is never over a tiny clock
+# PC r15 068f0927, PC20 verified 22 options, Threads 1, Hash 16, own in-process timer (0.7 ms residual on time-0)
+# 2026-11-17T01:17:14Z
+
+| wtime | wall ms | info lines | answered |
+|---|---|---|---|
+| 100 | 4.12 | 8 | yes |
+| 30 | 1.23 | 5 | yes |
+| 10 | 0.84 | 1 | yes |
+| 1 | 0.66 | 1 | yes |
+| 0 | 0.70 | 1 | yes |
+
+Seat 08 reports 0.7-5.9 ms with 1-9 info lines; mine is 0.66-4.12 ms with 1-8, the same picture.
+The real engine answers inside every clock size > 0, and at wtime 0 it answers in one emergency ply.
+Their stated limit is right and worth keeping: catching a 300 ms overrun proves the comparator fires,
+NOT that a 1-2 ms overrun at wtime 1 would be caught - the round-trip floor is ~0.1-0.2 ms, so
+anything smaller stays below what any wall-clock harness can resolve.
