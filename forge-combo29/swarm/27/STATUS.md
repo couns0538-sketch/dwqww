@@ -431,3 +431,12 @@ variants.** PC r15/PC20/Threads 1/Hash 16/OwnBook false, `ucinewgame`+`isready` 
 NOT claimed: the label is not thereby *good* (that is S-C12's 74 % undershoot), and none of this holds at
 Threads > 1 (not reproducible by design) or for a clock-driven search (seat 25's S-C15: move stable,
 score/nodes/depth variable). It holds specifically for budget-limited searches at Threads 1.
+
+## 2026-11-17T00:14Z the budget-label sentence is in the finding; labelling side closed
+**S-N3 now carries the sentence to keep: a node-budget label is HONEST ABOUT REPETITION AND MISLEADING ABOUT
+EFFORT.** Repetition because 48 of 48 cells return identical four fields on a second and third run; effort because
+the same label spends a median 74 % of the budget and reaches a ply less than `go softnodes` at the same number.
+Anyone reading "node 50000" in a dataset should read it as "a repeatable search of about 37,000 nodes".
+**Labelling side closed** - reproducibility (48/48), cross-mode structure (18/18 one ply deeper), the undershoot
+magnitude (median 74 %), and the limit-crossing rule are all measured. Nothing further owed there.
+Next: another unconfirmed cross-seat finding on the PC path.
