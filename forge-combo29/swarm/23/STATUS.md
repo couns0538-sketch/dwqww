@@ -2,7 +2,7 @@
 
 **Block: cold read of the FINAL's first page, then the fix, then the record. `date -u` at time of writing: 2026-11-17T03:41:47Z.**
 Window closes `2026-11-17T10:18:41Z`; **6h37m remaining**. Area 3, move generation vs python-chess. Seed 2301.
-Tip: `for-fable-and-opus/swarm-23`. **254 rows at 03:45:05Z.**
+Tip: `for-fable-and-opus/swarm-23`. **256 rows at 03:46:36Z.**
 
 ## This block
 
@@ -64,6 +64,19 @@ The comparator's sibling: `job11/margins.py` credited a **tie** to one candidate
 evidence. It never fired (17 rows, 0 ties) but was live; fixed to a three-way branch and tested against the old line
 (23-F225).
 
+**Then the audit the coordinator asked for at the end: the scripts that produced the FINAL's NUMBERS, not just the ones
+it tells a reader to run.** Tracing every `.py` named in the evidence of the 38 findings the FINAL cites gives **42
+scripts, 25 with no exit path**. Most are harmless (they only print measurements). **The dangerous subset is the three
+that print a VERDICT token — `correctness.py`, `first_legal_move.py`, `holdout.py` — and none could exit nonzero.** No
+captured output contained a failure, so **nothing was wrong**; the defect was latent. Each now exits 0/1, each shown
+failing on a planted fault. `mutation_suite.sh` covers **12 scripts, 12 of 12 shown able to fail**.
+
+Two errors of mine on the way, both recorded: `holdout.py`'s T3 denominator counted `n/a` cases as misses, so my first
+verdict line said FAIL on a **correct** run; and in `job48` I asserted P2 should be "index 0 on every drawn root" when
+**the measurement is 0 of 5 and that IS the finding** — the engine's order differs from python-chess's (23-F98). **Adding
+an exit code is not a mechanical edit: writing the verdict from the print statement rather than from the finding can
+invert the finding.**
+
 ## The class, extended
 
 The coordinator's rule: a claim relating two texts is mechanisable when the relation is equality, but what actually holds
@@ -85,20 +98,21 @@ The boundary in three parts, each with a different answer, now stated in the FIN
 
 ## Numbers
 
-**254 distinct rows at 2026-11-17T03:45:05Z — 226 F (this seat's findings) and 28 C (confirmations of other seats').**
+**256 distinct rows at 2026-11-17T03:46:36Z — 228 F (this seat's findings) and 28 C (confirmations of other seats').**
 
 Stated as the count script printed it, not carried in my head. `sync_counts.py` rewrites the FINAL from `FINDINGS.md`.
 
 ## Checks, all three, this block
 
 - `audit_findings.py` → 0
-- `doc_check.py` → 0 (counts agree 226/28/254; GUI table and rules verbatim; VERDICT: PASS)
+- `doc_check.py` → 0 (counts agree 228/28/256; GUI table and rules verbatim; VERDICT: PASS)
 - `rule_check.py` → 0
 - `job70/verb_check.py` → 0 (13/13; planted fault → 1)
 - `job70/mech_check.py` → 0 (new; 10/10; planted wrong mechanism → 1)
 - `job70/sign_check.py` → 0 (sign convention verified on 3 constructed boards)
 - `job11/tie_test.py` → 0 (new; tie branch tested from the real source; old line → exit 1)
-- `run_all_checks.sh` → 0 (new; all 9 scripts agree from own-dir and /tmp)
+- `run_all_checks.sh` → 0 (all 9 scripts agree from own-dir and /tmp)
+- `mutation_suite.sh` → 0 (new; 12 of 12 scripts shown able to fail)
 - `job69/frontpage_check.py` → PASS, `job68/final_recheck.py` → 11/11
 
 ## Next

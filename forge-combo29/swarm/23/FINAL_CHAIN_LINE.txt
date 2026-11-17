@@ -195,7 +195,7 @@ Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-mo
 
 ### 8. What the counts measure — so no reader has to infer it
 
-**226 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 254 rows in total.**
+**228 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 256 rows in total.**
 The two series are not the same kind of thing and should not be read as one number without that sentence: an `F` row is a
 measurement this seat made, a `C` row is a check of someone else's claim (what was confirmed, what was not, and what was
 left untested). They are additive as ROWS and not as "findings", which is the distinction a reader would otherwise have to
@@ -203,8 +203,8 @@ infer from the letter in the id.
 
 The counts are also the most-audited numbers in the seat, and worth one line about what that evidence is: **every
 increment since the duplicate was found is one row added by one commit, the audit rejects a duplicate id, rejects a row
-whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "254 rows, 0 duplicates" is a claim
-about the FILE, checked mechanically on every commit — not a claim that 254 separate claims are each correct, which is
+whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "256 rows, 0 duplicates" is a claim
+about the FILE, checked mechanically on every commit — not a claim that 256 separate claims are each correct, which is
 what the evidence cells are for.
 
 ### 9. Two commands, so the first page and the numbers can both be checked
@@ -264,9 +264,16 @@ correct behaviour, and it is a better result for the repair than the "policy" fr
 > (`doc_check.py`) and the rule catalogue (`rule_check.py`). **All three checks exit nonzero on failure, verified by deletion** — each
 > one shown refusing a commit with a planted fault, and the clean tree passing all three. The hook is tracked in the
 > repository and activated with one `git config` line, so a fresh clone has the mechanism but not the enforcement
-> until that line is run. **Two further evidence scripts cited in §9, `frontpage_check.py` and `final_recheck.py`, were
-> found to print their failure and exit 0 and now also exit 1 on a planted fault (23-F226), so five scripts in this seat
-> have been individually shown able to fail — and the two that could not were the two the report told a reader to run.**
+> until that line is run. **Six further evidence scripts cited in this report are held to the same standard: `mutation_suite.sh`
+> plants a fault in each of NINE scripts in total, confirms a nonzero exit, and restores — 9 of 9 shown able to fail.**
+> **Two of the nine could not fail when the suite was first written and printed their failure while exiting 0 (23-F226);
+> five of the nine had a verdict that depended on the directory they were run from (23-F227/F228); and the suite's own
+> first mutation for `rule_check.py` changed nothing at all and read as a checker failure (23-F229).** Each of those three
+> levels was found by asking one question of the level above: can this fail? **Three of the scripts that produced this
+> report's NUMBERS — `correctness.py`, `first_legal_move.py`, `holdout.py` — printed a failure token or a bare `False` and
+> could not exit nonzero; no captured output contained a failure, so nothing was wrong, but none of the three was
+> asserting its own result. Each now exits 0/1 and `mutation_suite.sh` covers 12 scripts, all shown failing on a planted
+> fault (23-F230).**
 >
 > **And a verdict that depends on where you stand is not a verdict.** Five of these scripts resolved their data
 > files against the caller's working directory — all three gate checkers among them, via a `HERE = os.getcwd()` line
@@ -298,7 +305,7 @@ it is worth knowing that the refusal was correct each time: a commit SHA is not 
 repository, and a resolver cannot verify what it cannot find. **An evidence rule that rejects the convenient form is the
 rule earning its place.**
 
-**And the count, as a dated figure rather than a bare number:** **254 distinct rows at 2026-11-17T03:45:05Z** — 226 `F` (this
+**And the count, as a dated figure rather than a bare number:** **256 distinct rows at 2026-11-17T03:46:36Z** — 228 `F` (this
 seat's findings) and 28 `C` (confirmations of other seats'). It is stated with a timestamp and recomputed by
 `doc_check.py`, which fails if this sentence ever disagrees with `FINDINGS.md`; a bare total in prose would be stale
 within minutes, which is what happened twice while this seat was reporting it.

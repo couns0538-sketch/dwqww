@@ -9,7 +9,7 @@ IMPORTANT CAVEAT PRINTED WITH THE RESULT: python-chess's legal-move ITERATION OR
 order. So "index 0 in python-chess" is evidence about the move being a plausible first entry, NOT proof about the
 engine's generator. P2 is phrased accordingly and the write-up must not upgrade it.
 """
-import re, subprocess, sys, os
+import sys, re, subprocess, os
 import chess
 
 INFO = re.compile(r"^info depth (\d+) .*?score (cp|mate) (-?\d+).*?nodes (\d+)")
@@ -121,3 +121,20 @@ print("P1 every 0-node move legal:", all(r[3] for r in rows if r[1] == 0))
 print("P2 index-0 in python-chess order on how many of the five drawn:", sum(1 for r in rows if r[1] == 0 and r[4] == 0))
 print("   indices among drawn roots:", [(r[0], r[4]) for r in rows if r[1] == 0])
 print("P4 control searched (nodes > 1000):", rows[-1][1] > 1000, "nodes =", rows[-1][1])
+
+# 23-F230: every line above reports a claim as a bare Python bool or a "**NO**" cell, and the
+# script never exited nonzero - so a False would have printed and read as a result.
+_p1 = all(r[3] for r in rows if r[1] == 0)
+# P2 is a MEASUREMENT, not a requirement: the base's index-0 move is index 0 in the ENGINE'S
+# own `go perft 1` order, and it is NOT expected to be index 0 in python-chess's order - that
+# the two orders differ is the finding (23-F98). Asserting "all indices are 0" would invert a
+# result into a requirement and fail on a correct run (23-F230).
+_p2 = any(r[1] == 0 for r in rows)  # drawn roots exist and were measured
+_p4 = rows[-1][1] > 1000
+print()
+if _p1 and _p2 and _p4:
+    print("VERDICT: PASS (P1 every 0-node move legal; P2 measured on %d drawn roots; P4 control searched)"
+          % sum(1 for r in rows if r[1] == 0))
+    sys.exit(0)
+print("VERDICT: FAIL (P1 %s, P2 %s, P4 %s)" % (_p1, _p2, _p4))
+sys.exit(1)

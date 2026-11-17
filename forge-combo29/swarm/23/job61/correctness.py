@@ -4,7 +4,7 @@
 Fixtures validated by job59/validate.py. Scores and moves from both builds; each move's consequence scored by the DTM
 prover from job58 where the position is small enough for it.
 """
-import re, subprocess, os, sys
+import sys, re, subprocess, os
 sys.path.insert(0, '../job59')
 import chess
 from validate import check_fixture
@@ -107,3 +107,16 @@ r2b = res.get(("R2 CONTROL counter 0 (not drawn)", "base"))
 r2p = res.get(("R2 CONTROL counter 0 (not drawn)", "PC r15"))
 print("P4 control (R2 is NOT drawn): base %s %d | PC %s %d" % (r2b[0], r2b[1], r2p[0], r2p[1]))
 print("  neither reports cp 0:", (r2b[1] != 0) and (r2p[1] != 0))
+
+# 23-F230: the table above prints "**NO**" for an illegal bestmove and the P2/P4 lines print
+# a bare True/False, and the script never exited nonzero - so an illegal move or a wrong P2
+# would have printed and been read as a result. Assert the three claims instead.
+_illegal = [k for k, v in res.items() if not v[4]]
+_p2 = (r4_pc[1] == 0 and r4_pc[0] == "cp")
+_p4 = (r2b[1] != 0) and (r2p[1] != 0)
+print()
+if not _illegal and _p2 and _p4:
+    print("VERDICT: PASS (every bestmove legal; P2 holds; P4 control holds, %d positions)" % len(res))
+    sys.exit(0)
+print("VERDICT: FAIL (illegal bestmoves: %s; P2 %s; P4 %s)" % (_illegal or "none", _p2, _p4))
+sys.exit(1)

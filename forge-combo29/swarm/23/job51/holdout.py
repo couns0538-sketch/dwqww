@@ -6,7 +6,7 @@ T2: within the pawn block the class order is non-decreasing: single <= double <=
 T3: index 0 is a pawn move whenever pawn moves exist
 Holdout = odd multiples of 400 lines (200, 600, 1000, ...), which were not in the 12-position sample.
 """
-import re, subprocess, os, sys
+import sys, re, subprocess, os
 import chess
 
 MOVELINE = re.compile(r"^([a-h][1-8][a-h][1-8][qrbn]?): (\d+)$")
@@ -62,7 +62,8 @@ def div(p, fen):
     return o, tot
 
 
-fens = [l.strip() for l in open('../job1/R_2301.fens') if l.strip()]
+HERE = os.path.dirname(os.path.abspath(__file__))  # 23-F230/F227
+fens = [l.strip() for l in open(os.path.join(HERE,'..','job1','R_2301.fens')) if l.strip()]
 idxs = [i for i in range(199, len(fens), 400)][:15]
 hold = [fens[i] for i in idxs]
 print("holdout: %d positions at lines %s (never used to form the hypotheses)" % (len(hold), [i + 1 for i in idxs]))
@@ -70,7 +71,7 @@ print()
 print("| # | #mv | priority | pawn classes | T1 | T2 | T3 |")
 print("|---|---|---|---|---|---|---|")
 p = conn()
-ok1 = ok2 = ok3 = tot = 0
+ok1 = ok2 = ok3 = tot = t3_tot = 0
 fails = []
 for n, fen in enumerate(hold, 1):
     o, t = div(p, fen)
@@ -105,6 +106,8 @@ for n, fen in enumerate(hold, 1):
     expected = "".join(x for x in "PNBRQK" if x in present)
     t1 = ("".join(prio) == expected)
     t3 = (idx0 == chess.PAWN) if seq else None
+    if t3 is not None:
+        t3_tot += 1
     tot += 1
     ok1 += t1
     ok2 += t2
@@ -117,6 +120,22 @@ for n, fen in enumerate(hold, 1):
                                                    "pass" if t3 else ("n/a" if t3 is None else "**FAIL**")))
 p.stdin.write("quit\n"); p.stdin.flush()
 print()
-print("HOLDOUT: T1 %d/%d   T2 %d/%d   T3 %d/%d" % (ok1, tot, ok2, tot, ok3, tot))
+print("HOLDOUT: T1 %d/%d   T2 %d/%d   T3 %d/%d" % (ok1, tot, ok2, tot, ok3, t3_tot))
 if fails:
     print("failures:", fails[:6])
+print()
+# 23-F230: this script printed **FAIL** cells and never exited nonzero, so a holdout that
+# failed would have looked identical to one that passed. The count was already computed above;
+# it just was never asserted.
+# T3 is None ("n/a") where the case has no third test, and `ok3 += 1 if t3 else 0`
+# counts that as a miss. Comparing ok3 to `tot` therefore reports a failure that is not
+# one: the denominator for T3 is the number of cases where t3 is not None (23-F230).
+# T3 is None ("n/a") where a case has no pawn, and `ok3 += 1 if t3 else 0` counts that
+# as a miss, so comparing ok3 against `tot` reports a failure that is not one: the
+# denominator is the number of cases where t3 is not None (23-F230).
+if tot and ok1 == tot and ok2 == tot and ok3 == t3_tot:
+    print("VERDICT: PASS (T1 %d/%d, T2 %d/%d, T3 %d/%d; T3 not applicable on %d case)"
+          % (ok1, tot, ok2, tot, ok3, t3_tot, tot - t3_tot))
+    sys.exit(0)
+print("VERDICT: FAIL (T1 %d/%d, T2 %d/%d, T3 %d/%d)" % (ok1, tot, ok2, tot, ok3, t3_tot))
+sys.exit(1)
