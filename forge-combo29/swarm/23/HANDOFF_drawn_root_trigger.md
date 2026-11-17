@@ -123,6 +123,41 @@ move-selection rules.
 
 ---
 
+## 5. SUPERSEDED — the six candidate mechanisms below answered a question that does not exist
+
+**Read this instead of §5's original content, which is retained further down only so the error is visible.**
+
+Mechanisms A–F were written to explain why SOME threefold roots bail and others search. 23-F122 showed there was no such
+split: the boards that searched were miscounted by my own validator, because its position key omitted the castling field.
+Every one of A–F was a hypothesis about a non-existent distinction.
+
+What is actually open is ONE question, and it is much smaller:
+
+> **On a genuine threefold root — where the FIDE identity has truly occurred three times — why does the engine publish
+> its generator's first move with 0 nodes, instead of searching?**
+
+The two facts that constrain the answer:
+- the bail's move is `go perft 1`'s first move on every bailing cell tested (23-F98), and on a searching cell the move is
+  an ordinary search result (M7: `d5e6`, index 5 of a divide headed by `b2b3`, `job56/m7_index.out`);
+- the bail is conditional on HISTORY only: the same position as a bare FEN searches (23-F109/F110).
+
+So the shapes still worth looking for, and I do NOT claim this list is exhaustive:
+
+1. **A draw test that returns before any root ordering runs**, publishing the generated head. This is the shape most
+   consistent with everything measured, and mechanism A/B in the original text is a version of it.
+2. **A draw test after generation whose failure path never applies ordering** — behaviourally identical from outside,
+   distinguishable only in source.
+3. **Anything else** — and this caveat is not decoration: mechanism C's premise (that the castling field is part of the
+   repetition key) turned out to be TRUE (23-F122 via job 59), even though C as written was answering the wrong
+   question. A list of eliminated mechanisms is only as good as the questions they were asked, and these were asked the
+   wrong one.
+
+The discriminating observation from outside, if a reader gets one cheap cell: a drawn root whose returned move is NOT
+the generator's first generated move would rule out shape 1 as a complete account. None of the nine bailing cells
+measured does that, which is why shape 1 survives.
+
+### Original §5, retained unedited as the record of what was tried and why it was wrong
+
 ## 5. Candidate mechanisms, and the cell that would kill each
 
 I have not read the source. These are listed so you can look for the one that matches, not because I can rank them. For
@@ -162,6 +197,7 @@ where the root occurs 3 times but at DIFFERENT distances (e.g. plies 0/8/16 vs 0
 nothing to add.**
 Predicts a nonzero node count with cp 0. **No cell shows that** — every bailing cell has exactly 0 nodes — so F is
 unlikely, and its absence is one of the firmer facts here.
+
 
 ## 6. What I would measure next, if measuring were the tool
 
