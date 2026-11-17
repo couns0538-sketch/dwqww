@@ -488,3 +488,18 @@ next: cadence.
 Tally: 33 findings, 20 checks/plants (C1..C20), 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:14Z
+- **08-C21: seat 12 S-F14 CONFIRMS — the one-ply-down draw short-circuit is still open on PC r15.** Board
+  `6k1/8/5PPP/8/8/8/8/R6K b - - H 40`: a clean cliff at hm 99 — 0/96/97/98 all `mate -1`, **99 gives cp 0
+  (18 nodes)**, 100 cp 0. Plant: hm 0 scores mate -1, so the harness sees the win. Discriminator: 96/97/98 do not
+  give cp 0. Their 36 nodes vs my 18 is a depth difference; the claim is the cliff.
+- **This bounds my own 08-W1 retraction from the other side:** there 15 plies needed with 9 half-moves left
+  (correct draw, I withdrew the defect claim); here 1 ply needed with 1 left, so the mate IS available and is
+  missed. Both sides of the fifty-move boundary now measured.
+- Also fixed the findings numbering: C6W -> **08-W1** (a withdrawal, not a check), and a NUMBERING NOTE explains
+  the absent 08-C7 (superseded by C8).
+
+Tally: 33 findings, 21 checks/plants, 3 method lines, 1 withdrawal.
+
+next: cadence.
