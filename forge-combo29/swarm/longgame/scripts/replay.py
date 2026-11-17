@@ -13,7 +13,7 @@ Arms (all `go depth 8`):
 A bail is recorded when the reply has 0 nodes and an empty pv (the drawn-root path).
 Every bail gets a fresh-process re-check and a `go perft 1` head check, whichever game it is in.
 """
-import sys, os, json, time, argparse
+import sys, os, json, time, argparse, gzip
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine, parse_info_lines
@@ -175,11 +175,23 @@ def do_fresh(games, out_path):
 
 
 def load_jsonl(path):
+    """Read a per-ply JSONL file. `path` comes from --bails, so it is contained like every
+    other caller-supplied path (see paths.py) rather than opened as given."""
     out = {}
-    with open(path, encoding="utf-8") as f:
+    resolved = input_path(path, "--bails")
+    opener = gzip.open if resolved.endswith(".gz") else open
+    with opener(resolved, "rt", encoding="utf-8") as f:
         for line in f:
             r = json.loads(line)
-            out[(r["game"], r["ply"])] = r
+            # the committed evidence uses short keys; restore them for the caller
+            game, ply = r.get("game", r.get("g")), r.get("ply", r.get("p"))
+            r.setdefault("game", game)
+            r.setdefault("ply", ply)
+            r.setdefault("bm", r.get("m"))
+            r.setdefault("score", r.get("s"))
+            r.setdefault("nodes", r.get("n"))
+            r.setdefault("bail", bool(r.get("b")))
+            out[(game, ply)] = r
     return out
 
 

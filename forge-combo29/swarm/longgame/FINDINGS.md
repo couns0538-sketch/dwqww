@@ -368,7 +368,7 @@ python3 scripts/replay.py uncgame      --out evidence/uncgame.jsonl
 python3 scripts/replay.py clearhash    --out evidence/clearhash.jsonl
 python3 scripts/replay.py hashresend   --out evidence/hashresend.jsonl
 python3 scripts/bail_predict.py
-python3 scripts/replay.py bailcheck --bails evidence/session.jsonl --out evidence/bailcheck.json
+python3 scripts/replay.py bailcheck --bails evidence/session.jsonl.gz --out evidence/bailcheck.json
 python3 scripts/planted_threefold.py
 python3 scripts/startpos_arm.py
 python3 scripts/move_quality.py
