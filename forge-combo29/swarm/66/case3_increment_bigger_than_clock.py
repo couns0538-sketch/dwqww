@@ -86,12 +86,12 @@ def main():
             "position_invalid_fen": position["invalid_fen"],
             "go_invalid_fen": result["invalid_fen"],
             "terminated": not result["timed_out"],
-            "wall_ms": round(result["elapsed_ms"], 1),
+            "wall_ms": round(result["wall_ms"], 1),
             "engine_time_ms": info.get("time"),
             "depth": info.get("depth"),
             "nodes": info.get("nodes"),
             "bestmove": result["bestmove"],
-            "over_clock": result["elapsed_ms"] > CLOCK,
+            "over_clock": result["wall_ms"] > CLOCK,
         }
         rows.append(row)
 
@@ -151,7 +151,7 @@ def main():
                 "go": go,
                 "plan_soft_ms": expected["soft"],
                 "plan_hard_ms": expected["hard"],
-                "wall_ms": round(result["elapsed_ms"], 1),
+                "wall_ms": round(result["wall_ms"], 1),
                 "depth": info.get("depth"),
                 "terminated": not result["timed_out"],
                 "position_invalid_fen": position["invalid_fen"],

@@ -123,7 +123,7 @@ def play_game(engine, opening, base_ms, inc_ms, game_index, rng):
         timeout = max(clock[side], 0) / 1000.0 + SLACK_S
         started = time.monotonic()
         search = engine.go(go_args, timeout=timeout)
-        wall_ms = search["elapsed_ms"]
+        wall_ms = search["wall_ms"]
 
         # 5. the go output's own diagnostic scan
         if search["invalid_fen"]:
@@ -359,7 +359,7 @@ def run_match(path, games, base_ms, inc_ms):
             drain_engine.isready()
             drain_stopped = "no bestmove at clock %d ms" % white
             break
-        charged = search["elapsed_ms"] * 2.0  # the simulated overcharge
+        charged = search["wall_ms"] * 2.0  # the simulated overcharge
         drain_clock = drain_clock - charged + inc_ms
         best = search["bestmove"]
         parsed = None
@@ -373,7 +373,7 @@ def run_match(path, games, base_ms, inc_ms):
         drain_moves.append(
             {
                 "clock_before_ms": white,
-                "engine_ms": round(search["elapsed_ms"], 1),
+                "engine_ms": round(search["wall_ms"], 1),
                 "charged_ms": round(charged, 1),
                 "clock_after_ms": round(drain_clock, 1),
                 "bestmove": best,

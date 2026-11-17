@@ -166,24 +166,46 @@ class Engine:
     def go(self, arguments, timeout, since=None):
         """Run one search and wait for bestmove.
 
-        Returns a dict with elapsed_ms measured from the write of `go` to the
-        arrival of `bestmove`, the whole reply, and the parsed last info line.
+        Returns a dict with wall_ms measured from the write of `go` to the
+        arrival of `bestmove` (or, for a search that did not answer, the time
+        this call blocked), the whole reply, and the parsed last info line.
         Never blocks past `timeout`.
         """
         start = self.mark() if since is None else since
         sent = self.send("go " + arguments)
-        line, seen, _ = self.wait_for(lambda t: t.startswith("bestmove"), timeout, since=start)
-        received = seen[-1][0] if seen else time.monotonic()
+        line, seen, waited = self.wait_for(lambda t: t.startswith("bestmove"), timeout, since=start)
+        # Two different numbers, and they must not be conflated:
+        #   bestmove_ms - go write to the arrival of the bestmove line. Only
+        #                 meaningful when the search ENDED (timed_out False).
+        #   wait_ms     - how long this call actually blocked. On a timeout the
+        #                 engine is still searching at this point and the last
+        #                 info line arrived EARLIER than this, because one deep
+        #                 iteration can run for minutes without printing.
+        # Reporting bestmove_ms for a timed-out search understates the wall
+        # time; that mistake was caught in case 1 and is why both exist.
+        matched = None
+        if line is not None and seen:
+            matched = seen[-1][0]
         texts = [t for _, t in seen]
         best = None
         if line is not None:
             parts = line.split()
             best = parts[1] if len(parts) > 1 else ""
+        last_output = seen[-1][0] if seen else sent
+        bestmove_ms = ((matched - sent) * 1000.0) if matched else None
+        wait_ms = waited * 1000.0
         return {
             "go": "go " + arguments,
             "timed_out": line is None,
             "bestmove": best,
-            "elapsed_ms": (received - sent) * 1000.0,
+            # The number to use for "how long did this search take to answer".
+            # For a search that ended it is the bestmove arrival; for one that
+            # timed out there is no bestmove, and the only honest wall time is
+            # how long this call blocked.
+            "wall_ms": bestmove_ms if bestmove_ms is not None else wait_ms,
+            "bestmove_ms": bestmove_ms,
+            "wait_ms": wait_ms,
+            "last_output_ms": (last_output - sent) * 1000.0,
             "invalid_fen": any("invalid FEN" in t for t in texts),
             "info": [t for t in texts if t.startswith("info depth")],
             "strings": [t for t in texts if "info string" in t],

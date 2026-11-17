@@ -34,14 +34,17 @@ Measured both ways in F4b. The `a2a3`/no-info answer appears only with the pipe 
 
 ---
 
-## F1 — A one-sided clock is a hang, not a poor move: 288.7 s, depth 39, 416 M nodes, zero diagnostics.
+## F1 — A one-sided clock is a hang, not a poor move: the full 330 s allowed, depth 39, 416 M nodes, zero diagnostics.
 
-`go wtime 300000` with **Black to move** (so `wtime` is the opponent's clock) ran for **288.7 s**, reached
-**depth 39 / seldepth 56** and **416,554,567 nodes**, and was still searching when the harness stopped it.
-It emitted **zero `info string` lines** — nothing in the output tells a GUI that a clock was ignored.
+`go wtime 300000` with **Black to move** (so `wtime` is the opponent's clock) never printed `bestmove`. It
+ran for the **entire 330 s the harness allowed** (the 300 s budget plus a 30 s grace), reached **depth 39 /
+seldepth 56** with **416,554,567 nodes**, and was still searching when the harness stopped it. Its own last
+*completed* iteration was stamped at **238.8 s** by the engine — the gap to 330 s is an unfinished iteration
+inside the search, which is why the honest wall time is the wait, not the last output line. It emitted
+**zero `info string` lines** — nothing in the output tells a GUI that a clock was ignored.
 
 **This is a hang, not a slow move or a lost game on time.** The engine has no bound it can reach inside any
-plausible game: it was still 25 depths from `SearchLimits::depth = 64` after nearly five minutes, and the
+plausible game: it was still 25 depths from `SearchLimits::depth = 64` after five and a half minutes, and the
 only event that ends it is a `stop` from outside. A GUI that sends a `go` naming only the opponent's clock
 receives no `bestmove` and no diagnostic, indefinitely.
 
@@ -70,18 +73,24 @@ Raw: `case1.json`. Denominators: 1 case, 2 mirror/own-clock controls, 8 checks.
 
 | movetime | wall | depth | wall/budget |
 | ---: | ---: | ---: | ---: |
-| 10 s | 9,990.6 ms | 27 | 1.000 |
-| 30 s | 29,990.8 ms | 29 | 1.000 |
-| 60 s | 59,990.9 ms | 30 | 1.000 |
+| 10 s | 9,990.2 ms | 27 | 1.000 |
+| 30 s | 29,991.0 ms | 30 | 1.000 |
+| 60 s | 59,991.0 ms | 32 | 1.000 |
 
-All three stop on time, at depth 27–30, well short of 64 — so the two limits do not collide in the way the
+All three stop on time, at depth 27–32, well short of 64 — so the two limits do not collide in the way the
 brief anticipated: the depth clamp is not reached, and the time limit is what fires. On this path
 `soft = hard = movetime - overhead`, so there is no 60% relationship to be preserved; the 60%
 (`TmHardPercent`) rule lives in `plan_clock_budget`, which `movetime` does not call.
 
-The control that proves the 60% rule exists on the other path: `go wtime 60000` stopped in **1.7–3.0 s**,
-i.e. at the *soft* limit (`available/22` = 2727 ms), far below the 35,994 ms hard limit. That is the
+The control that proves the 60% rule exists on the other path: `go wtime 60000` stopped in **1,671 ms**,
+i.e. at the *soft* limit (`available/22` = 2726.8 ms), far below the 35,994 ms hard limit. That is the
 2.5–13.7% utilisation in the brief, reproduced.
+
+A detail worth recording, because it affects how anyone reads these numbers: the engine's own `time` field on
+the last info line is the time of the last **completed iteration**, not the search's wall time. For the 60 s
+row the last completed iteration printed at 32,043 ms while the wall time was 59,991 ms — an unfinished final
+iteration absorbed the other 28 s silently. Both numbers are in `case2.json`; the wall time is the one that
+answers "how long did the search take".
 
 Re-run: `python3 case2_movetime.py /tmp/w66/build/forge 10000 30000 60000` — 11/11 checks, ~100 s.
 Raw: `case2.json`. Denominators: 3 movetimes, 1 clock control, 11 checks.
@@ -104,11 +113,11 @@ Raw: `case3.json`. Denominators: 7 increments, 4 movestogo values, 21 checks.
 
 | go | wall | bestmove | legal |
 | --- | ---: | --- | --- |
-| `wtime 0` | 1.20 ms | d2d4 | yes |
-| `wtime -100` | 0.37 ms | d2d4 | yes |
-| `btime 0` (Black to move) | 0.56 ms | g8f6 | yes |
-| `wtime 0 btime 0` | 0.14 ms | d2d4 | yes |
-| `wtime 0 winc 5000` | 0.09 ms | d2d4 | yes |
+| `wtime 0` | 0.59 ms | d2d4 | yes |
+| `wtime -100` | 0.07 ms | d2d4 | yes |
+| `btime 0` (Black to move) | 0.12 ms | g8f6 | yes |
+| `wtime 0 btime 0` | 0.07 ms | d2d4 | yes |
+| `wtime 0 winc 5000` | 0.06 ms | d2d4 | yes |
 | `wtime -3000000000` | 0.15 ms | d2d4 | yes |
 
 Every position was accepted first (no `invalid FEN` in the position reply **or** the go output, and
@@ -154,8 +163,9 @@ behaviour unless the harness that produced it held stdin open and waited for `be
 `kMaxClockMs = int64_max / 256 = 36028797018963967`. Six tokens — 2000000000, 3000000000, int64-max,
 the ceiling, one past the ceiling, and a 30-digit number — are all accepted. None answers inside an 8 s
 probe (they are genuinely huge budgets), all answer an explicit `stop` with a legal move, and no row prints
-an overflow or invalid diagnostic. On the same clocks `go ... depth 20` returns in 19–27 ms at depth 20, so
-the depth ceiling still bounds the search.
+an overflow or invalid diagnostic. On the same clocks `go ... depth 20` returns at depth 20 in 26–224 ms
+(the spread is CPU contention on this 4-core host, not a clock effect), so the depth ceiling still bounds the
+search.
 
 Re-run: `python3 case5_huge_clock.py /tmp/w66/build/forge` — 27/27 checks, ~48 s (8 s probe per token).
 Raw: `case5.json`. Denominators: 6 clock tokens, 2 depth-probes, 1 control, 27 checks.

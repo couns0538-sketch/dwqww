@@ -90,7 +90,7 @@ def main():
             "position_reply": position["lines"],
             "terminated": not result["timed_out"],
             "timed_out": result["timed_out"],
-            "wall_ms": round(result["elapsed_ms"], 2),
+            "wall_ms": round(result["wall_ms"], 2),
             "stop_bestmove": stop_bestmove,
             "depth": info["depth"] if info else None,
             "nodes": info["nodes"] if info else None,

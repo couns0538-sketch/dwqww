@@ -51,7 +51,7 @@ def main():
             "position_invalid_fen": position["invalid_fen"],
             "go_invalid_fen": result["invalid_fen"],
             "terminated": not result["timed_out"],
-            "wall_ms": round(result["elapsed_ms"], 1),
+            "wall_ms": round(result["wall_ms"], 1),
             "depth": info.get("depth"),
             "seldepth": info.get("seldepth"),
             "nodes": info.get("nodes"),
@@ -118,19 +118,19 @@ def main():
     expected_hard = 0.60 * available
     control_row = {
         "go": control_result["go"],
-        "wall_ms": round(control_result["elapsed_ms"], 1),
+        "wall_ms": round(control_result["wall_ms"], 1),
         "engine_time_ms": control_info.get("time"),
         "depth": control_info.get("depth"),
         "expected_soft_ms": round(expected_soft, 1),
         "expected_hard_ms": round(expected_hard, 1),
-        "soft_binds_before_hard": control_result["elapsed_ms"] < expected_hard,
+        "soft_binds_before_hard": control_result["wall_ms"] < expected_hard,
         "position_invalid_fen": control["invalid_fen"],
     }
     check.add(
         "control: a 60 s CLOCK stops near its SOFT limit (%.0f ms), far under the hard %.0f ms"
         % (expected_soft, expected_hard),
-        control_result["elapsed_ms"] <= expected_hard,
-        "wall %.0f ms, depth %s" % (control_result["elapsed_ms"], control_info.get("depth")),
+        control_result["wall_ms"] <= expected_hard,
+        "wall %.0f ms, depth %s" % (control_result["wall_ms"], control_info.get("depth")),
     )
     check.add(
         "control: that clock search was NOT stopped by movetime (no movetime was sent)",

@@ -54,7 +54,7 @@ def main():
         position_flags.append(position["invalid_fen"])
         result = engine.go("wtime %d" % CLOCK, timeout=30)
         info = result["last_info"] or {}
-        wall.append(round(result["elapsed_ms"], 1))
+        wall.append(round(result["wall_ms"], 1))
         depths.append(info.get("depth"))
         nodes.append(info.get("nodes"))
         if result["timed_out"]:
@@ -115,14 +115,14 @@ def main():
     baseline_info = baseline["last_info"] or {}
     baseline_row = {
         "go": baseline["go"],
-        "wall_ms": round(baseline["elapsed_ms"], 1),
+        "wall_ms": round(baseline["wall_ms"], 1),
         "depth": baseline_info.get("depth"),
         "position_invalid_fen": baseline_position["invalid_fen"],
     }
     check.add(
         "baseline: ONE go with %d x the clock matches the repeat total" % repeats,
-        abs(baseline["elapsed_ms"] - total_ms) < CLOCK * repeats * 0.5,
-        "one go %.0f ms vs %d goes %.0f ms" % (baseline["elapsed_ms"], repeats, total_ms),
+        abs(baseline["wall_ms"] - total_ms) < CLOCK * repeats * 0.5,
+        "one go %.0f ms vs %d goes %.0f ms" % (baseline["wall_ms"], repeats, total_ms),
     )
 
     # --- repeated `go movetime`, where no clock is involved at all ----------
@@ -131,7 +131,7 @@ def main():
     for _ in range(repeats):
         engine.set_position(None)
         result = engine.go("movetime %d" % movetime, timeout=30)
-        fixed_wall.append(round(result["elapsed_ms"], 1))
+        fixed_wall.append(round(result["wall_ms"], 1))
         if result["timed_out"]:
             engine.stop(timeout=30)
             engine.isready()
@@ -153,7 +153,7 @@ def main():
         engine.newgame()
         engine.set_position(None)
         result = engine.go("wtime %d" % CLOCK, timeout=30)
-        newgame_wall.append(round(result["elapsed_ms"], 1))
+        newgame_wall.append(round(result["wall_ms"], 1))
         if result["timed_out"]:
             engine.stop(timeout=30)
             engine.isready()

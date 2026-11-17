@@ -63,7 +63,7 @@ def main():
         "fen": AFTER_E4,
         "go": unmanaged["go"],
         "terminated": not unmanaged["timed_out"],
-        "wall_ms_at_budget": unmanaged["elapsed_ms"],
+        "wall_ms_at_budget": unmanaged["wall_ms"],
         "depth_at_budget": unmanaged["last_info"]["depth"] if unmanaged["last_info"] else None,
         "seldepth_at_budget": unmanaged["last_info"]["seldepth"] if unmanaged["last_info"] else None,
         "nodes_at_budget": unmanaged["last_info"]["nodes"] if unmanaged["last_info"] else None,
@@ -76,13 +76,13 @@ def main():
         "opponent-clock `go` does NOT terminate inside the budget",
         unmanaged["timed_out"],
         "budget %.0fs, bestmove=%r after %.1fs"
-        % (budget, unmanaged["bestmove"], unmanaged["elapsed_ms"] / 1000.0),
+        % (budget, unmanaged["bestmove"], unmanaged["wall_ms"] / 1000.0),
     )
     check.add(
         "opponent-clock `go` reaches a depth no clock search reaches",
         (unmanaged["last_info"] or {}).get("depth", 0) >= 20,
         "depth %s in %.1fs"
-        % ((unmanaged["last_info"] or {}).get("depth"), unmanaged["elapsed_ms"] / 1000.0),
+        % ((unmanaged["last_info"] or {}).get("depth"), unmanaged["wall_ms"] / 1000.0),
     )
     check.add(
         "opponent-clock `go` prints no diagnostic at all",
@@ -96,7 +96,8 @@ def main():
         "stop -> %r" % unmanaged.get("stop_bestmove"),
     )
     legal = ucilib.chess.Board(AFTER_E4)
-    stop_move = (unmanaged.get("stop_bestmove") or "").split()[0] if unmanaged.get("stop_bestmove") else None
+    stop_line = unmanaged.get("stop_bestmove") or ""
+    stop_move = stop_line.split()[1] if stop_line.startswith("bestmove") and len(stop_line.split()) > 1 else None
     legal_ok = False
     if stop_move:
         try:
@@ -118,7 +119,7 @@ def main():
     check.add(
         "the mirror (White to move, btime only) also never answers in 3 s",
         mirror["timed_out"],
-        "timed_out=%s after %.2fs" % (mirror["timed_out"], mirror["elapsed_ms"] / 1000.0),
+        "timed_out=%s after %.2fs" % (mirror["timed_out"], mirror["wall_ms"] / 1000.0),
     )
 
     # --- control 2: the SAME position but with its own clock ----------------
@@ -128,14 +129,14 @@ def main():
     out["own_clock_control_1000"] = {
         "go": managed["go"],
         "terminated": not managed["timed_out"],
-        "elapsed_ms": managed["elapsed_ms"],
+        "wall_ms": managed["wall_ms"],
         "depth": managed["last_info"]["depth"] if managed["last_info"] else None,
     }
     check.add(
         "control: the same position with its OWN clock terminates and stops early",
-        not managed["timed_out"] and managed["elapsed_ms"] < 1000,
+        not managed["timed_out"] and managed["wall_ms"] < 1000,
         "%.0f ms depth %s"
-        % (managed["elapsed_ms"], (managed["last_info"] or {}).get("depth")),
+        % (managed["wall_ms"], (managed["last_info"] or {}).get("depth")),
     )
 
     # --- control 3: the budget-sized own clock, to show a managed 300 s run --
@@ -146,14 +147,14 @@ def main():
     out["own_clock_control_budget"] = {
         "go": managed_big["go"],
         "terminated": not managed_big["timed_out"],
-        "elapsed_ms": managed_big["elapsed_ms"],
+        "wall_ms": managed_big["wall_ms"],
         "depth": managed_big["last_info"]["depth"] if managed_big["last_info"] else None,
     }
     check.add(
         "control: a managed budget-sized clock terminates by itself (soft ~ budget/22)",
         not managed_big["timed_out"],
         "%.1f s at depth %s"
-        % (managed_big["elapsed_ms"] / 1000.0, (managed_big["last_info"] or {}).get("depth")),
+        % (managed_big["wall_ms"] / 1000.0, (managed_big["last_info"] or {}).get("depth")),
     )
 
     engine.quit()

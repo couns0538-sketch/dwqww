@@ -15,10 +15,10 @@ Columns:
 
 | go | side to move | wall | depth | nodes | terminated by itself | diagnostics |
 | --- | --- | ---: | ---: | ---: | --- | --- |
-| `go wtime 300000` | Black | **288.7 s** | **39** | 416,554,567 | **NO** — needed `stop` | **none** |
+| `go wtime 300000` | Black | **330.0 s (the whole allowance; no `bestmove`)** | **39** | 416,554,567 | **NO** — needed `stop` | **none** |
 | `go btime 300000` | White | >3 s (probe cap) | — | — | NO | none |
-| `go btime 1000` (own clock) | Black | 0.031 s | 14 | — | yes | none |
-| `go btime 300000` (own clock) | Black | 13.1 s | 31 | — | yes | none |
+| `go btime 1000` (own clock) | Black | 0.022 s | 18 | — | yes | none |
+| `go btime 300000` (own clock) | Black | 8.1 s | 31 | — | yes | none |
 
 The two control rows are the same position and the same budget, with the clock belonging to the side to
 move. They terminate; the top row does not. That contrast is what makes the top row a measurement of the
@@ -30,14 +30,14 @@ engine and not of the harness.
 
 | go | wall | depth | seldepth | nodes | wall/budget |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `go movetime 10000` | 9,990.6 ms | 27 | 38 | 13,206,934 | 1.000 |
-| `go movetime 30000` | 29,990.8 ms | 29 | 50 | 44,942,225 | 1.000 |
-| `go movetime 60000` | 59,990.9 ms | 30 | 45 | 20,819,104 | 1.000 |
-| `go wtime 60000` (clock control) | 1,679–3,004 ms | 26–27 | — | — | 0.05–0.08 of the 35,994 ms hard |
+| `go movetime 10000` | 9,990.2 ms | 27 | 38 | 13,206,934 | 1.000 |
+| `go movetime 30000` | 29,991.0 ms | 30 | 50 | 44,942,225 | 1.000 |
+| `go movetime 60000` | 59,991.0 ms | 32 | 45 | 20,819,104 | 1.000 |
+| `go wtime 60000` (clock control) | 1,671 ms | 26 | — | — | 0.05 of the 35,994 ms hard |
 
-The depth-64 clamp is never reached at these budgets: all three stop on time, at depth 27–30. The clock
-control shows the 60% hard limit exists but is not what binds — the soft budget (`available/22` = 2727 ms)
-is.
+The depth-64 clamp is never reached at these budgets: all three stop on time, at depth 27–32. The clock
+control shows the 60% hard limit exists but is not what binds — the soft budget (`available/22` = 2726.8 ms)
+is, and it fired at 1,671 ms.
 
 ## Case 3 — increment larger than the clock
 
@@ -45,13 +45,17 @@ Clock 1000 ms, overhead 10, so `available` = 990 ms.
 
 | increment | plan soft | plan hard | hard as % of clock | wall | depth |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 0 | 225 | 225 | 22.5% | 62 ms | 14 |
-| 500 | 594 | 594 | 59.4% | 571 ms | 19 |
-| 1000 | 594 | 594 | 59.4% | 394 ms | 20 |
-| 2000 | 594 | 594 | 59.4% | 595 ms | 19 |
-| 5000 | 594 | 594 | 59.4% | 595 ms | 19 |
-| 60000 | 594 | 594 | 59.4% | 594 ms | 20 |
-| 3000000000 | 594 | 594 | 59.4% | 306 ms | 20 |
+| 0 | 45 | 225 | 22.5% | 60.5 ms | 14 |
+| 500 | 420 | 594 | 59.4% | 538.9 ms | 19 |
+| 1000 | 594 | 594 | 59.4% | 401.0 ms | 20 |
+| 2000 | 594 | 594 | 59.4% | 594.3 ms | 19 |
+| 5000 | 594 | 594 | 59.4% | 392.7 ms | 19 |
+| 60000 | 594 | 594 | 59.4% | 589.3 ms | 20 |
+| 3000000000 | 594 | 594 | 59.4% | 542.3 ms | 20 |
+
+At increment 0 the soft limit (45 ms) binds long before the hard one (225 ms), which is why that row spent
+60 ms rather than 225. From increment 500 upward the hard limit is the binding one and every row sits at
+594 ms.
 
 Uncapped sudden-death soft for increment 2000 is `990/22 + 2000*0.75` = 1545 ms, which exceeds both the
 990 ms available and the 594 ms hard limit. The plan clamps soft to `available` and then pulls it down to
@@ -65,16 +69,16 @@ python-chess accepts the same FEN), so a missing search cannot be a refused posi
 
 | go | side to move | wall | info lines | depth | nodes | bestmove | legal |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| `wtime 0` | White | 1.20 ms | 1 | 1 | 26 | d2d4 | yes |
-| `wtime -100` | White | 0.37 ms | 0 | — | — | d2d4 | yes |
-| `btime 0` | Black | 0.56 ms | 1 | 1 | 29 | g8f6 | yes |
-| `wtime 0 btime 0` | White | 0.14 ms | 0 | — | — | d2d4 | yes |
-| `wtime 0 winc 5000` | White | 0.09 ms | 0 | — | — | d2d4 | yes |
-| `wtime 5` | White | 0.08 ms | 0 | — | — | d2d4 | yes |
-| `wtime 10` (== overhead) | White | 0.07 ms | 0 | — | — | d2d4 | yes |
-| `wtime 11` (one past) | White | 1.43 ms | 6 | 6 | 1,902 | d2d4 | yes |
-| `wtime 1000 winc -500` | White | 89.68 ms | 15 | 15 | 159,518 | d2d4 | yes |
-| `btime -100` (opponent clock) | White | >1.36 s, `stop` | 22 | 22 | 2,479,831 | d2d4 | yes |
+| `wtime 0` | White | 0.59 ms | 1 | 1 | 26 | d2d4 | yes |
+| `wtime -100` | White | 0.07 ms | 0 | — | — | d2d4 | yes |
+| `btime 0` | Black | 0.12 ms | 1 | 1 | 29 | g8f6 | yes |
+| `wtime 0 btime 0` | White | 0.07 ms | 0 | — | — | d2d4 | yes |
+| `wtime 0 winc 5000` | White | 0.06 ms | 0 | — | — | d2d4 | yes |
+| `wtime 5` | White | 0.06 ms | 0 | — | — | d2d4 | yes |
+| `wtime 10` (== overhead) | White | 0.06 ms | 0 | — | — | d2d4 | yes |
+| `wtime 11` (one past) | White | 1.15 ms | 6 | 6 | 1,902 | d2d4 | yes |
+| `wtime 1000 winc -500` | White | 95.88 ms | 15 | 15 | 159,518 | d2d4 | yes |
+| `btime -100` (opponent clock) | White | 3,000 ms, `stop` | 22 | 22 | 2,479,831 | d2d4 | yes |
 | `wtime -3000000000` | White | 0.15 ms | 0 | — | — | d2d4 | yes |
 
 No forfeit, no hang, no illegal move, in any row. The `btime -100` row is the one that does not stop by
@@ -98,12 +102,12 @@ because the table differs.
 
 | clock token | parsed as | plan hard | answers in 8 s | answers `stop` | `depth 20` on the same clock |
 | --- | ---: | ---: | --- | --- | --- |
-| 2000000000 | 2000000000 | 1,199,999,994 | no | yes, d2d4 | 27.1 ms, depth 20 |
-| 3000000000 | 3000000000 | 1,799,999,994 | no | yes, d2d4 | — |
-| 9223372036854775807 | 36028797018963967 | 21,617,278,211,378,380 | no | yes, d2d4 | 18.8 ms, depth 20 |
-| 36028797018963967 | 36028797018963967 | 21,617,278,211,378,380 | no | yes, d2d4 | — |
-| 36028797018963968 | 36028797018963967 | 21,617,278,211,378,380 | no | yes, d2d4 | — |
-| 999999999999999999999999999999 | 36028797018963967 | 21,617,278,211,378,380 | no | yes, c2c4 | — |
+| 2000000000 | 2000000000 | 1,199,999,994 | no (depth 26 when probed) | yes, legal | depth 20 |
+| 3000000000 | 3000000000 | 1,799,999,994 | no (depth 27) | yes, legal | — |
+| 9223372036854775807 | 36028797018963967 | 21,617,278,211,378,380 | no (depth 26) | yes, legal | depth 20 |
+| 36028797018963967 | 36028797018963967 | 21,617,278,211,378,380 | no (depth 28) | yes, legal | — |
+| 36028797018963968 | 36028797018963967 | 21,617,278,211,378,380 | no (depth 28) | yes, legal | — |
+| 999999999999999999999999999999 | 36028797018963967 | 21,617,278,211,378,380 | no (depth 27) | yes, legal | — |
 
 `kMaxClockMs = int64_max/256 = 36028797018963967` (`include/forge/uci_clock.hpp`). Nothing overflows,
 nothing answers instantly, and an explicit `stop` always produces a legal move. A huge clock does not make

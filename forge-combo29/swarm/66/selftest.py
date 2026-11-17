@@ -74,6 +74,25 @@ for line in sys.stdin:
         print("bestmove a2a3", flush=True)
 """
 
+# Prints one info line immediately, then nothing for ever. This is the shape of
+# a real engine inside a long iteration: the last output is far earlier than
+# the wall time. A harness that measures "time to answer" from the last output
+# line reports the info line's time and calls a 0.9 s wait a 0.05 s wait.
+FAKE_SILENT_AFTER_INFO = r"""#!/usr/bin/env python3
+import sys, time
+for line in sys.stdin:
+    line = line.strip()
+    if line == "uci":
+        print("uciok", flush=True)
+    elif line == "isready":
+        print("readyok", flush=True)
+    elif line.startswith("position"):
+        pass
+    elif line.startswith("go"):
+        print("info depth 1 score cp 1 nodes 10 time 1 pv a2a3", flush=True)
+        time.sleep(0.9)
+"""
+
 
 def write_fake(script, workdir, name):
     path = os.path.join(workdir, name)
@@ -97,7 +116,7 @@ def main():
         "planted hang -> timed_out",
         result["timed_out"] and result["bestmove"] is None,
         "timed_out=%s bestmove=%r elapsed=%.0fms"
-        % (result["timed_out"], result["bestmove"], result["elapsed_ms"]),
+        % (result["timed_out"], result["bestmove"], result["wall_ms"]),
     )
     engine.kill()
 
@@ -127,8 +146,8 @@ def main():
     result = engine.go("movetime 350", timeout=5)
     check.add(
         "planted 350 ms delay -> elapsed >= 300",
-        result["elapsed_ms"] >= 300,
-        "elapsed=%.0fms" % result["elapsed_ms"],
+        result["wall_ms"] >= 300,
+        "elapsed=%.0fms" % result["wall_ms"],
     )
     engine.quit()
 
@@ -145,7 +164,22 @@ def main():
     )
     engine.quit()
 
-    # 5. FEN validation must reject what the engine silently rewrites.
+    # 5. Silence after an info line: the wait must be reported as the WAIT, not
+    # as the age of the last output line. This is the bug that made case 1
+    # report the last output time for a 330 s wait.
+    engine = ucilib.Engine(write_fake(FAKE_SILENT_AFTER_INFO, workdir, "fake_silent.py"))
+    engine.uci()
+    engine.set_position(None)
+    result = engine.go("depth 99", timeout=0.5)
+    check.add(
+        "silence after one info line -> wall_ms is the WAIT, not the last output",
+        result["timed_out"] and result["wall_ms"] >= 400 and result["last_output_ms"] < 200,
+        "wall=%.0fms last_output=%.0fms (a last-output measure would report %.0fms)"
+        % (result["wall_ms"], result["last_output_ms"], result["last_output_ms"]),
+    )
+    engine.kill()
+
+    # 6. FEN validation must reject what the engine silently rewrites.
     ok_empty, why_empty = ucilib.check_fen("8/8/8/8/8/8/8/8 w - - 0 1")
     check.add("check_fen rejects an empty board", not ok_empty, why_empty)
     ok_legal, why_legal = ucilib.check_fen(ucilib.chess.STARTING_FEN)
@@ -153,7 +187,7 @@ def main():
     ok_move, why_move = ucilib.check_line(ucilib.chess.STARTING_FEN, ["e7e5"])
     check.add("check_line rejects an illegal move", not ok_move, why_move)
 
-    # 6. Control on the real engine: the same harness must produce a real answer.
+    # 7. Control on the real engine: the same harness must produce a real answer.
     engine = ucilib.engine_ready(real)
     position = engine.set_position(None)
     result = engine.go("depth 4", timeout=20)
@@ -161,7 +195,7 @@ def main():
         "real engine answers depth 4",
         not result["timed_out"] and result["bestmove"] not in (None, ""),
         "bestmove=%r depth=%r elapsed=%.0fms"
-        % (result["bestmove"], result["last_info"]["depth"] if result["last_info"] else None, result["elapsed_ms"]),
+        % (result["bestmove"], result["last_info"]["depth"] if result["last_info"] else None, result["wall_ms"]),
     )
     check.add(
         "real engine emits no invalid-FEN line",
@@ -169,7 +203,7 @@ def main():
         "position invalid_fen=%s go invalid_fen=%s" % (position["invalid_fen"], result["invalid_fen"]),
     )
 
-    # 7. Planted illegal FEN through the REAL engine must be caught by the scan.
+    # 8. Planted illegal FEN through the REAL engine must be caught by the scan.
     position = engine.set_position("8/8/8/8/8/8/8/8 w - - 0 1")
     check.add(
         "real engine flags the empty board in the position reply",

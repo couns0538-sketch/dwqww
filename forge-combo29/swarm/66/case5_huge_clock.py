@@ -113,7 +113,7 @@ def main():
                 "clock_token": token,
                 "go": result["go"],
                 "terminated": not result["timed_out"],
-                "wall_ms": round(result["elapsed_ms"], 1),
+                "wall_ms": round(result["wall_ms"], 1),
                 "depth": info.get("depth"),
                 "bestmove": result["bestmove"],
                 "position_invalid_fen": position["invalid_fen"],
@@ -159,9 +159,9 @@ def main():
     small_result = engine.go("wtime 2000", timeout=30)
     check.add(
         "control: wtime 2000 terminates promptly (the harness sees a managed search)",
-        not small_result["timed_out"] and small_result["elapsed_ms"] < 2000,
+        not small_result["timed_out"] and small_result["wall_ms"] < 2000,
         "%.0f ms at depth %s"
-        % (small_result["elapsed_ms"], (small_result["last_info"] or {}).get("depth")),
+        % (small_result["wall_ms"], (small_result["last_info"] or {}).get("depth")),
     )
 
     engine.quit()

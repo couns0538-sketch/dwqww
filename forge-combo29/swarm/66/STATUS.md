@@ -25,7 +25,7 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 | case | state | headline |
 | --- | --- | --- |
 | 0 harness self-test | **DONE 11/11**, exits 1 against a lying engine | planted hang / invalid-FEN / slow / multi-info all caught |
-| 1 opponent's clock, 300 s | **DONE 8/8** | does NOT terminate: ran 288.7 s, depth **39**, 416,554,567 nodes, **zero** diagnostics; only `stop` ended it |
+| 1 opponent's clock, 300 s | **DONE 8/8** | never answers: ran the **full 330 s allowance**, depth **39**, 416,554,567 nodes, **zero** diagnostics; only `stop` ended it |
 | 2 movetime 10/30/60 s | **DONE 11/11** | all three terminate on the CLOCK at depth 27/29/30, never reaching the depth-64 clamp; soft==hard on this path, no 60% rule |
 | 3 increment > clock | **DONE 21/21** | clock 1000 inc 2000 plans hard 594 (59.4% of clock) and soft is pulled DOWN to 594; no row plans the whole clock |
 | 4 zero/negative clocks | **DONE 26/26** | `wtime 0`, `-100`, `0 btime 0`, `0 winc 5000`, `-3000000000` all answer legally in <1.5 ms; no forfeit, no hang |
@@ -36,9 +36,9 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 | 7c drain control | **DONE** | 10× overcharge reaches clock 0; 60/60 moves legal in 0.1–0.6 ms, both with and without increment |
 
 ## Three measurements that correct the brief's framing
-1. **"Does a 300 s one-sided clock terminate?"** — No. It is a **hang**, not a slow move: still searching at
-   depth 39 after 288.7 s, 25 depths short of the ceiling, ended only by an explicit `stop`, with no
-   diagnostic at all (case 1).
+1. **"Does a 300 s one-sided clock terminate?"** — No. It is a **hang**, not a slow move: it never printed
+   `bestmove` in the full 330 s allowance, was still at depth 39 (25 depths short of the ceiling), and was
+   ended only by an explicit `stop`, with no diagnostic at all (case 1).
 2. **`wtime 0` is not a 0-node reply.** Holding stdin open, the engine prints one
    `info depth 1 ... nodes 26 ... pv d2d4` line and answers in ~1 ms. The 0-node / `a2a3` answer that a
    plain `printf ... | ./forge` pipe produces is an **EOF artifact**: closing stdin aborts the search.
