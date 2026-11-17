@@ -941,3 +941,24 @@ next command: continue at cadence.
   Budget sweep itself: nothing further owed - 19-C46 depth result stands, quality claim stays open.
 
 next command: continue at cadence - pick the next area-9 job (speed), or cross-check a seat's new finding.
+
+## 2026-11-17T01:52Z
+
+19-C48: independent check of seat 29's 29-F55 (their file says no second seat had checked it).
+  My slice: odd lines of R_2911.fens (200 positions, NOT theirs), PC r15 vs base, depth 14, Threads 1, Hash 16,
+  every search guarded on nodes>0 and pvlen>0, disagreements judged under NEUTRAL S14 at depth 17.
+  RESULT: agreement 169/200 = 84.5 %, 31 disagreements -> PC20 16, S14 13, tie 2. Sign test **p = 0.711**.
+  Pooled with theirs (19-10-2): 35-23 over 58, p = 0.148. **Neither reaches significance.**
+  => CONFIRMS "no disadvantage for PC20 at depth 14". Does NOT confirm "possibly a small advantage".
+  Prediction had said 80-90 % agreement and 45-65 % for PC20 - both hit.
+
+  Two things worth carrying:
+  1. **My totals were IDENTICAL to theirs (169/200, 31) from a different position set.** Only 5 of 31
+     disagreement positions coincide. Headline-matching looked like replication and was a coincidence;
+     the per-position rows are what distinguish the two.
+  2. **Trap 1 caught me on my first command of this job** - piped stdin, EOF mid-search, fabricated bestmove
+     at 95 ms with score=None/pv=0. Knowing the trap did not prevent it; an executable guard did. Recorded in
+     NOTE_trap_caught_me_first.md.
+
+next command: continue at cadence - next cross-check or area-9 job; candidates are seats 07/21's fifty-move
+lines or a fresh speed measurement on the v3 path (seat 29's file 7 work).
