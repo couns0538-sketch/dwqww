@@ -876,3 +876,16 @@ THIRD time tonight reading source turned a zero into a mechanism (19-F37 hardcod
   19-F23 self-clearing bench, this). A uniform result is a reason to read the code, not to sample more.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:12:58Z
+
+trap 15 added: a uniform result is a reason to read the code, not to run a bigger sample.
+  Three of my own instances: MateAlphaGuard exactly 1.000 (unexecuted branch - only fires when alpha
+  is a mate score), bench's Hash never applying (hardcoded Searcher(16)), bench self-clearing
+  (five lines all 862,329). Sharpest form: an unexecuted branch and a sub-resolution effect look
+  IDENTICAL in data and are OPPOSITE in meaning.
+HARNESS_TRAPS.md = fifteen traps in FIVE families (A no-search four disguises / B number not evidence /
+  C auditing wrong thing / D harness mechanics / E the code says why). Family E is the one I would
+  put first on a rewrite - its instances are all cases where more data would have made it worse.
+
+next command: continue at cadence.
