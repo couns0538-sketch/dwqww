@@ -22,24 +22,30 @@ run (`nodes 400` from a fresh `go perft 2`).
 
 ## Read this before trusting any row
 
-Two measurements in this area — one mine, one the coordinator's — were made at
-depths where the fingerprint was identical under both competing hypotheses, and
-each confirmed whichever hypothesis its author already held. Both were reversed
-by a discriminating depth. `FUZZ.md` opens with this, and the two traps are
-reproduced as computed cases with the ambiguous and the discriminating
-measurement side by side.
+`FUZZ.md` opens with a **corrections record**: nine items, enumerated rather
+than estimated — five wrong claims about the engine (four from the coordinator,
+one from this seat) and four defects in this harness (all this seat).
 
-1. **Perft-2 collision.** `e2e4 e7e5` and `e2e4 e7e5 g1f3 b8c6` are both 835.
-   A perft-2 test of truncate-vs-splice cannot separate them. At perft 3 all
-   five prefixes are distinct (8902 / 13160 / 24825 / 23193 / 24079) and the
-   answer is unambiguous.
-2. **Fingerprint equal by construction.** A lone-king board has 3 legal moves
-   and so does the same board after one king move. `perft 1 = 3` therefore
-   cannot tell "moves applied" from "moves dropped". `perft 2` gives 9 vs 15.
+Two of those are the same error twice: a fingerprint used without first asking
+what it would return if the hypothesis were false.
+
+1. **Perft-2 collision.** `e2e4 e7e5` and `e2e4 e7e5 g1f3 b8c6` are both 835, so
+   a perft-2 test of truncate-vs-splice cannot separate them. At perft 3 all five
+   prefixes are distinct (8902 / 13160 / 24825 / 23193 / 24079) and the answer is
+   unambiguous. Index 4 is reported as **ambiguous** rather than counted: there
+   is nothing after the bad token for the two hypotheses to disagree about, so
+   four of five indices discriminate.
+2. **Fingerprint equal by construction.** A lone-king board has 3 legal moves and
+   so does the same board after one king move, so `perft 1 = 3` cannot tell
+   "moves applied" from "moves dropped". `perft 2` gives 9 vs 15.
 
 Rule carried forward: before a measurement can confirm a hypothesis, state what
 it would have returned if the hypothesis were false. If that value is the same,
 the measurement is not evidence.
+
+The second of those traps was made by this seat too, in the same turn as
+diagnosing it in the coordinator's work — so the record names the inheritance
+rather than implying the errors were all someone else's.
 
 ## Build
 
