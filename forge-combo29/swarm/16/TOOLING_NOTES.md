@@ -36,6 +36,41 @@ result; each says what the trap is, how it presents, and the fix.
   ```
   Zero hits plus a small `perf.data` means the recording failed, not that the engine is fast in the kernel.
 
+## 1b. A STALE SUMMARY FILE RECORDED THE NET AT 0.00 % AND WAS THE MOST PERSUASIVE WRONG ANSWER IN MY FOLDER
+
+**This deserves its own entry because it is the failure mode that looks like a clean result.**
+
+- **What it was:** `v3/prof_open/summary.txt` recorded `nnue_pct 0.00` and `accounted_pct 0.96`. Both came from my
+  FIRST profile run, whose `perf.data` was **empty** because recording was blocked by `perf_event_paranoid = 2`
+  (entry 1/2). The file sat in my folder for hours after I had diagnosed and fixed that cause — in the folder of the
+  seat that had *documented* the empty-profile trap.
+- **Why it is worse than an error:** a zero that agrees with a comfortable prior needs no defending. "The net path
+  costs 0.00 %" would have read as a clean measurement, supported a conclusion already in the air ("the kernel is not
+  where the time is"), and nobody would have re-derived it. A number that *contradicted* the prior would have been
+  challenged within a minute.
+- **How it was caught:** I replaced hand-typed figures with a generator script, and the generator read the *stale*
+  file and printed "0.00 %" into a FINAL block next to a 20.85 % from the other arm. The disagreement between two
+  numbers from the same folder is what exposed it.
+- **The disposition:** renamed to **`summary_BROKEN_emptyperfdata.txt`** rather than deleted, so the failure is
+  visible in the filename. Deleting it would have removed the evidence that the trap had fired in my own folder.
+- **The rule:** when a metric file is produced by a run you later diagnose as broken, do not leave it at its original
+  path. Rename it so the breakage is in the name, and make ONE script the only producer of that metric
+  (`v3/perf_shares.py`) so a second format or a stale read cannot creep back.
+
+## 1c. PERF'S DEMANGLED NAMES WRAP ONTO FOLLOWING LINES — ONE PARSER OR NONE
+
+The same `perf report` output gave me three different totals from three parses:
+
+```
+naive "percent then a complete symbol on one line"   0.96 %   (most symbols skipped: names wrap)
+a slightly better regex                             2.06 %
+the parser that matches the name PREFIX only        20.85 %   correct, 100.05 % accounted
+```
+
+A demangled C++ name is long enough that perf wraps it; the share belongs to the line carrying the percentage and the
+name may continue below. So there is no "roughly right" parse — either the accounted total is ~100 % or the parse is
+wrong. **Check `accounted_pct ≈ 100` before believing any share**, and keep one parser as the only source.
+
 ## 2. `perf` ON THESE MACHINES: ABSENT, THEN REFUSED BY TWO DIFFERENT LAYERS
 
 - `perf` is **not installed** (`which perf` empty; `apt-get install linux-tools-generic linux-tools-common` works).

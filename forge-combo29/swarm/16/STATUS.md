@@ -852,3 +852,18 @@ seed: 1601
   reads it, and wrote v3/perf_shares.py as the one correct parser (perf's demangled names wrap onto following lines,
   so naive parses gave me 0.96 % and 2.06 % before this).
 - check_folder.py ALL CHECKS PASS (494 files, 57 findings rows). Continuing to the close at 10:18:40Z.
+
+## 2026-11-17T05:45Z
+- TOOLING_NOTES gains two entries the coordinator asked for, as their own traps:
+  1b. THE STALE ZERO (the most persuasive wrong answer in my folder): v3/prof_open/summary.txt recorded nnue 0.00 %
+      from the FIRST profile, whose perf.data was EMPTY from the paranoid block — and it sat in the folder of the
+      seat that had DOCUMENTED that trap. It was caught only because a generator script read it and printed 0.00 %
+      beside the other arm's 20.85 %, and the disagreement between two numbers from one folder exposed it. Renamed
+      to summary_BROKEN_emptyperfdata.txt so the breakage is visible in the filename rather than deleted, and
+      v3/perf_shares.py is now the ONE producer of that metric.
+  1c. PERF'S DEMANGLED NAMES WRAP: the same report gave 0.96 %, 2.06 % and 20.85 % from three parses. There is no
+      "roughly right" parse — either accounted_pct is ~100 or the parse is wrong. Check that before believing a share.
+- PICKER FIGURES CORRECTED IN FINDINGS too, not just FINAL: the hand-typed "~37 %" is now 40.27 % on bench 13 and
+  34.17 % on real positions, stated separately, with a CORRECTED line recording that the arm which governs is the
+  smaller one. The cause is named: I averaged two numbers by hand instead of generating them.
+- check_folder.py ALL CHECKS PASS (494 files, 58 findings rows). Continuing to the close at 10:18:40Z.
