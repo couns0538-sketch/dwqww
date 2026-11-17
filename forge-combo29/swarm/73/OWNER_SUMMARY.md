@@ -1387,12 +1387,18 @@ These are the transferable output. Each is a rule the run paid for with a defect
    | `position TYPE` | unrecognised keyword | **nothing printed; re-searches the previous board** | **improvises** |
    | `go` limits | unparseable value | **nothing printed; substitutes a default** | **improvises** |
    | **`moves` list** | illegal token | **reports `illegal move …` and truncates at that token** | **truthful — trust it** |
+   | **`searchmoves`, mixed list** | one legal + one illegal move | **byte-identical to pinning the legal move alone; NO diagnostic on either stream** | **improvises — and undetectable after the fact** |
 
-   **The arithmetic, stated so it can be checked: five surfaces, of which three report the fault (`setoption`,
-   `position fen`, the move list) and two improvise silently (`position TYPE`, `go` limits) — and `position fen` is
-   counted in both because its surplus-fields branch is silent while its other two branches report.** An earlier
-   heading here said "two of five … and one does both", which did not add up; the move list was also missing from the
-   table entirely, because it was classified as a hazard when it is actually a truthful signal.
+   **The arithmetic, counted from the rows rather than asserted: 8 rows, of which 4 report the fault and 4 do not.**
+   `position fen` appears on **both sides** — its short-field and illegal-position branches report, its surplus-fields
+   branch is silent — which is why the row count exceeds the surface count.
+   - **The `searchmoves` mixed row is the worst of the silent ones**, because it is **byte-identical** to a valid
+     command: same bestmove, same score, same node count, nothing on either stream. **So the check has to live in the
+     client** — intersect your own token list against the legal move set before sending, because the reply cannot tell
+     you.
+   - **An earlier version of this paragraph said "three report and two improvise", which double-counted `position fen`
+     to reach a total the rows never supported**; the heading before that said "two of five … and one does both", which
+     did not add up either. **Both were arithmetic asserted in prose instead of computed from the table.**
 
    **Field count splits in two directions and the halves must not be merged** — this row was wrong in an earlier
    draft of this document, which is why it is spelled out: **a 5-field FEN is refused loudly and then the previous
@@ -1707,17 +1713,31 @@ These are the transferable output. Each is a rule the run paid for with a defect
     reports PASS rather than UNKNOWN.
 55. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
     **Assert the exact expected count as a literal**, never computed from the list it guards.
-56. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
+56. **A counting claim about a table must be COMPUTED, and a counting dispute is decidable by script in one command —
+   so neither party to one should settle it by reading.** This is the rule the run ended on, and it is narrower and
+   more useful than "count carefully".
+   - **The measured case:** two documents each carried a parser-surface table with a prose total. **One prose total was
+     wrong because it reached its figure by double-counting a surface that appears on both sides** (7 rows became
+     "three report, two improvise, and `position fen` counts in both"). **The other was correct — and I called it
+     inverted, having compared its sentence against MY table's row count rather than its own.** Two errors, both
+     arithmetic, both in the same exchange, **and one command settled it.**
+   - **The check is: parse the table, count the rows by the verdict column, parse the prose total, compare.** It takes a
+     second and it cannot be argued with. **A dispute about a number is evidence that the number was never computed** —
+     if either party had run the count, there would have been nothing to dispute.
+   - **And the dispute itself is a defect signal one level up:** I was confident, the coordinator was confident, and
+     **the disagreement was decidable by script the whole time.** Confidence on both sides of an arithmetic question is
+     a reason to compute, not a reason to press the argument politely.
+57. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
     checker failure in this run that was caught, was caught that way; none was caught by reading the checker.
-57. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
+58. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
     a reader to run printed `FAIL` and exited 0. **Prove a gate once per checker it invokes, not once per gate.**
-58. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
+59. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
     compared an empty string to an empty string and reported verbatim agreement. **Anchor to `__file__` and run each
     script twice — from its own directory and from `/tmp`.**
-59. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
+60. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
     containing the five PC20 switches. **Have a tool print the option list at run time and paste that output into the
     finding.**
-60. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
+61. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
     failure modes: per-node cost ~1.2 % on bench vs **~6.4 %** on real positions (6× optimistic); aggregate node-count
     sign **+14.5 / −10.6 / +8.7** across benches 11/13/16 against **−8.7 %** on real positions; a profile self-time
     share 2.71 % on bench vs **0.66 %** real. **A self-time percentage is not a transferable cost unless someone
@@ -1725,11 +1745,11 @@ These are the transferable output. Each is a rule the run paid for with a defect
     - **Bench IS valid for** pins, determinism, ablation direction, structural counters, and the pooled effect of one
       isolated toggle. **Not valid for** per-node cost or the aggregate PC20 set. **Always report the per-position
       spread.**
-61. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
+62. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
     — a joining phrase doing the work of three results, ordinals running backwards, a table row implying a control
     that never existed — **all invisible to every automated check, all found by reading.** Not a substitute for the
     checks; it covers what they structurally cannot.
-62. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
+63. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
     provenance check.** The most dangerous form of a false pass, because it returns **FOUND** and ends the search.
     - **Three measured instances in one audit, all caught only by reading the context:**
       `0.024` matched `"seconds": 0.024` in unrelated search JSON; `0.44` matched `loadavg 0.44 on 4 cores`; `442`
@@ -1751,7 +1771,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
       such figures that landed minutes later and were all genuine. **Record the COMMIT each branch was audited at, not
       the clock** — a timestamp is unverifiable after the fact and invites the reading that the document is at fault
       when the snapshot is. **The count is a property of the tips named in the header, and nothing else.**
-63. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
+64. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
     this run's method record.** **Every other claim here is one comparison against one threshold and has one number to
     check; a decomposition has three numbers, two samples and one subtraction — and it is the derived part that gets
     quoted to three significant figures.**
@@ -2197,11 +2217,10 @@ measured separately; collected, they are one property of the protocol surface ra
 **In four of the five the protocol says nothing that a consumer will act on. In three the output looks exactly like a
 success, and in the fifth the process simply stops answering.**
 
-**And the surfaces are not uniform, which is the part that makes "handle it" hard to write as a checklist:** of five
-parser surfaces, **three report the fault** (`setoption`, `position fen`, and the `moves` list — the last one truncated
-at the bad token and said so) and **two improvise silently** (`position` TYPE, `go` limits), with `position fen`
-counting in both because its surplus-fields branch is silent. **A harness that has verified one surface's refusal
-behaviour has learned nothing about the other four** — §4 rule 12.
+**And the surfaces are not uniform, which is the part that makes "handle it" hard to write as a checklist:** counting
+the rows of the table in §4 rule 12, **8 rows — 4 report the fault and 4 do not**, with `position fen` appearing on
+**both sides** because its short-field and illegal-position branches report while its surplus-fields branch is silent.
+**A harness that has verified one surface's refusal behaviour has learned nothing about the others** — §4 rule 12.
 
 **And `position fen` refuses in one direction while improvising in the other**, which is the case that breaks the
 checklist most cleanly: **too few fields is refused loudly and then the previous board is searched; too many fields is

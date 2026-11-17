@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,418 lines, 63 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,437 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,36 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Twentieth round — I was wrong in a counting dispute, and the fix is to compute it
+
+**The coordinator's sentence was correct and mine was wrong.** They ran the count; I compared their sentence against
+**my** table's row count and called it inverted. Their table: **7 rows, 3 YES, 4 no** — matching "three report the fault
+and four do not". Verified by script in a second, which is the point.
+
+**My own table was also wrong, differently, and the script found that too:**
+
+| | before | after |
+|---|---|---|
+| rows | 7 | **8** |
+| truthful | 4 | **4** |
+| silent | 3 | **4** |
+| prose said | "7 rows, 4 report, 3 do not" | "8 rows, 4 report, 4 do not" |
+
+**The missing row was the `searchmoves` mixed list** — one legal plus one illegal move, **byte-identical to pinning the
+legal move alone, no diagnostic on either stream.** That is the worst of the silent surfaces because there is **nothing
+to filter on after the fact**: the check has to live in the client. It was in the report's table and absent from mine,
+so my table under-counted the silent side by one.
+
+**Added rule 56, which is the coordinator's and is narrower than anything I had:** a counting claim about a table must
+be **computed**, and **a counting dispute is decidable by script in one command — so neither party should settle one by
+reading.** The dispute is itself the defect signal: **if either of us had run the count there would have been nothing to
+dispute**, and confidence on both sides of an arithmetic question is a reason to compute, not to argue politely.
+
+**And the checker I wrote to enforce this immediately false-positived** on §7b, because that passage *cites* a count
+from rule 12's table rather than carrying its own. **A check that cannot tell a local claim from a citation of one is
+the same class as a checker that judges text instead of the thing** — recorded rather than papered over, and the
+passage now says explicitly that it is counting another section's rows.
 
 ## Nineteenth round — the correction propagated, and the parser table now adds up
 
