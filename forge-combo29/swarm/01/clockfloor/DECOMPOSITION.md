@@ -14,6 +14,13 @@ separately**:
 | product | **0.9720** |
 | observed wall ratio | **0.9728** |
 
+**Stated inline so it can be checked rather than only tabulated: `0.9090 x 1.0693 = 0.9720`.**
+
+*Why the inline form matters (S-F157).* An identity split across table rows is unverifiable by any automated check — the
+checker sees one term per line and no operator — so `check_identities.py` skipped this page entirely while checking the
+same figures where they appeared inline elsewhere. **Stating a load-bearing identity in a form a machine can recompute
+costs one line and makes the page's central claim checkable.**
+
 **Agreement to 0.1 %.** That is not a correlation — it is the arithmetic closing, which means each term is measured well
 enough that their product is the third.
 

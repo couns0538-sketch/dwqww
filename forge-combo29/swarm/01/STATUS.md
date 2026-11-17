@@ -2753,3 +2753,23 @@ per-position sign-share at all. Corrected with the distinction stated. Borrowing
 class as borrowing a number across runs (S-F155).
 Gates: 213 rows, 0 wrong pipe counts, cell verified arithmetically, attribution corrected, gate rc=0 across 59 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:26:09Z — "check cells" found the cells were unchecked: the identity forms had no checker (S-F157)
+ACTING ON YOUR INSTRUCTION RATHER THAN FILING IT. "Check cells rather than point estimates" made me ask what CHECKS the
+cells - and the answer was nothing. The divides-rule (S-F126) scans one form, `A -> B = Rx`, in v3net/*.txt. But the
+decomposition that now carries the per-node result is published in TWO OTHER forms, in clockfloor/:
+    product   A x B = C   0.9090 x 1.0693 = 0.9720   <- this IS the claim that the arithmetic closes
+    quotient  A / B = C   0.9715 / 0.9131 = 1.0640   <- this IS the cell that was verified
+So the two most load-bearing figures in the thread were the two with no automatic check. check_identities.py now
+recomputes both forms across all result files to 0.002, examines 10 identities, and is a gate step - proven by
+corrupting the product to 0.9820 (reported once with the recomputation, exit 1; restored, exit 0).
+TWO DEFECTS IN THE CHECKER WHILE BUILDING IT, both the same species as everything else tonight:
+  1. A DOUBLED GLOB (. plus each subdirectory) examined every identity TWICE and printed each defect twice. A doubled
+     count is the same class as a zero count - A NUMBER THAT DOES NOT MEAN WHAT IT SAYS - I had built the zero-guard and
+     not the double-guard. Fixed to a single root.
+  2. THE DECOMPOSITION'S CENTRAL IDENTITY WAS SPLIT ACROSS TABLE ROWS, so no checker could see it while the same figures
+     inline elsewhere WERE checked. The page's central claim was its least verifiable form. Now stated inline, with the
+     reason written beside it: an identity a machine can recompute costs one line.
+LIMIT IN THE TOOL, where the silence will be read: a correct product of WRONG inputs passes. This checks that the
+arithmetic closes, not that the terms are the right terms - attribution stays the writer's job.
+Gates: 214 rows, 0 wrong pipe counts, identities gating, gate rc=0 across 60 checks.
+Next: continue at cadence to the 10:20Z close.

@@ -260,6 +260,13 @@ fi
 #     demonstrated S-F142's cost.
 run "path substitution (coverage)" python3 check_path_substitution.py
 
+# 3m. PUBLISHED ARITHMETIC IDENTITIES MUST CLOSE (S-F157). The divides-rule checks `A -> B = Rx`; the decomposition that
+#     now carries the per-node result is published as `A x B = C` and `A / B = C`, which nothing checked. That gap was
+#     load-bearing: the product IS the claim that the arithmetic closes, and the quotient is the cell the coordinator
+#     asked to be verified. Proven by corrupting `0.9090 x 1.0693 = 0.9720` to `= 0.9820` - reported once, with the
+#     recomputation, exit 1; restored, exit 0.
+run "published identities close" python3 check_identities.py
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then
