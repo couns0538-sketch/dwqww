@@ -2917,3 +2917,21 @@ abandonment of form 4 was also wrong, so the distinction is: delete when the sam
 keep when the true positive is real and the false ones are separable by grammar.
 Gates: 222 rows, 0 wrong pipe counts, FINAL audited and current, gate rc=0 across 64 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:36:18Z — applied my own deletion rule to the whole gate: 12 checkers with a real catch, 2 without (S-F166)
+YOUR POINT THAT THE DISTINCTION IS A DECISION RULE made me apply it to the tool it came from. The rule: DELETE WHEN THE
+SAMPLE IS MOSTLY THE CHECKER'S OWN ERROR; KEEP WHEN THE TRUE POSITIVE IS REAL AND THE FALSE ONES ARE SEPARABLE BY
+GRAMMAR. I audited all 14 checks in the gate against it, and verified each catch in FINDINGS rather than counting from
+memory - which is the error this session keeps catching.
+12 HAVE CAUGHT SOMETHING REAL: a literal pipe in my own row; two fabricated future stamps; three stranded sections; six
+escape catches; a heredoc that ate text; the "54.0 -> 46.6 = 0.91x" line; the "2,657 vs 10,075" fabrication; the 0.9090
+ratio error; my own wall-time artifact missing a spread; a reverted glob; a pooled vocabulary gap; an empty-set pass.
+TWO HAVE NO CATCH YET: check_identities.py and check_table_identities.py - both guard the decomposition, both proven to
+fire on an INJECTED defect, neither has yet fired on a real one.
+THAT IS NOT GROUNDS FOR DELETION, and the reason is worth stating: AN UNPROVEN CHECKER AND A PROVEN-CLEAN SUBJECT LOOK
+IDENTICAL FROM THE OUTSIDE. The difference is whether the check has ever fired on something it did not plant. So I have
+recorded the split rather than letting the gate's uniform "ok" imply fourteen equally-evidenced checks - the gate's
+output is a list of passes, and passes are not evidence of equal strength.
+This is the same discipline as the spread rule and the zero-count rule: the output that matters is the one that tells you
+what the check has DONE, not the one that tells you it found nothing.
+Gates: 223 rows, 0 wrong pipe counts, all 12 catches verified in FINDINGS, gate rc=0 across 64 checks.
+Next: continue at cadence to the 10:20Z close.
