@@ -1,5 +1,12 @@
 # METHOD — the rules I hold myself to, and the tools that enforce the mechanical ones
 
+> **RULE 0 (put first because I got it wrong twice): before calling a candidate worse, check that the REFERENCE is
+> working.** Two findings died of this. S-C20 confirmed a "defect" against a UCI definition I never looked up. My job-67
+> verdict rejected a working patch because I compared it to a build that had **collapsed to depth 1 with no usable
+> lines** — so the candidate "differed" by hundreds of centipawns from garbage. In both cases the comparison was fine
+> and the yardstick was broken. **A difference is evidence only if both sides are trustworthy**; check the reference
+> behaves sensibly (produces output, does not collapse, reproduces a known value) *before* you read the delta.
+
 ## Writing a finding
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
