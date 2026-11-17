@@ -1083,3 +1083,19 @@ unsure about; a grep finds the ones I was CONFIDENT about, which are the dangero
 because it ACCUMULATES the stream before parsing. "Read until the line I expect, discard the rest" is
 placement-sensitive; "accumulate the raw stream, then parse the buffer" removes the entire class without
 knowing where the engine puts its message.
+
+## 2026-11-17T11:2xZ S-C101/102 — scoped the softnodes floor BEFORE it could be over-applied
+**Ran the scoping measurement before the floor ships, because stating it unscoped would repeat S-N1's error with
+the sign flipped.**
+**S-C101: ON 60 REAL-GAME POSITIONS AT THE SELF-PLAY BUDGET THE FLOOR NEVER BITES.** `go softnodes 2000`,
+PC20, Threads 1, 60 positions from `tests_r3fu_12`:
+  ratio min **1.022** | p10 1.097 | median 1.567 | p90 2.417 | max 3.987
+  undershoot (ratio<0.95): **0 of 60**   reaching depth-64 clamp: **0 of 60**
+So the 14.9x under-shoot is **confined to sparse/mating positions**, where the tree is small enough that depth
+64 arrives before the budget is spent. **For the owner's use - self-play on real game positions - `softnodes
+2000` always buys AT LEAST 2,000 nodes.**
+**S-C102: THE OWNER-FACING SENTENCE MUST CARRY THAT SCOPE.** "A soft budget can do nothing on a mating
+position" is true; **"a soft budget is unreliable" would be FALSE on this evidence.** This is S-N1's error in
+the other direction - a band generalised from 4 boards that could never reach depth 64, versus a floor that
+would be generalised from one mating board. **A quantity that is a property of the TREE described as if it were
+a property of the SWITCH is the mistake both times; 60 positions is a real sample in a way 4 were not.**
