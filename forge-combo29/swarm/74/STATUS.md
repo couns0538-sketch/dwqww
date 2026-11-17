@@ -97,13 +97,15 @@ where every position provably contains the edge it was targeting.**
    this image (`cannot find -lstdc++`). `-DCMAKE_CXX_COMPILER=g++` works and
    reproduces every published count. Anyone else building this repo on this
    image will hit the same wall.
-4. Seven faults in my own test scaffolding were caught by the gates (a double
-   push onto an occupied square, a push by a pinned pawn, a misread `board.pin()`
-   mask, two illegal fixture FENs, `Board.fen()` dropping the ep square, a
-   double-import that made an except clause never match, and a divide invariant
-   that rejected checkmate). Details in `FINDINGS.md` §6. Every one was caught by
-   a gate rather than by luck, which is the strongest evidence available here
-   that the gates work.
+4. Nine numbered faults in my own test scaffolding were caught by the gates (a
+   double push onto an occupied square, a push by a pinned pawn, a misread
+   `board.pin()` mask, two illegal fixture FENs, `Board.fen()` dropping the ep
+   square, two wrong verification scripts, a double-import that made an except
+   clause never match, a divide invariant that rejected checkmate, and an
+   underclaimed move-identity total). Details in `FINDINGS.md` §6. Every one was
+   caught by a gate rather than by luck, which is the strongest evidence
+   available here that the gates work — though the last needed a gate built for
+   it: re-deriving a total from its inputs rather than quoting the prose.
 
 ## Not established by this seat
 

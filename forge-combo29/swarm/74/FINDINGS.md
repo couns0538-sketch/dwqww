@@ -332,6 +332,20 @@ confident and wrong report:
    13 of the 2,000 fuzz positions are checkmate, so the whole "generates nothing"
    case had been dropped from the set. Caught only because the refusal count went
    from 0 to 4 and I chased it instead of widening the rule.
+9. **An underclaim in my own headline.** The move-identity total was reported as
+   225,856 nodes when the three runs sum to 290,623 — the 400-position targeted
+   walk had been left out while its row sat in the table directly above. This one
+   is different in kind from the eight above: it **understated** the work, and
+   every guard here is built to catch overclaims, so nothing tripped. It surfaced
+   only by adding the three saved JSON files up instead of trusting the figure
+   carried forward in my own prose. The general rule: the number that drifts is
+   the one in the prose, and re-deriving it from the artefacts is the only check
+   that catches drift in either direction.
+
+That is nine numbered entries covering eleven distinct faults (entries 4 and 6
+each describe a pair). Every one was caught by a gate rather than by luck, and
+the last was caught by a gate I had to build — re-deriving a total from its
+inputs.
 
 Every one of these was caught by a gate, which is the point: the gates are the
 finding, not just the numbers.
