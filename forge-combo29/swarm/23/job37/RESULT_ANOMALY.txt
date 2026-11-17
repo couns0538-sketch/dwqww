@@ -28,3 +28,30 @@ PC, and (c) it happens in the two counters immediately below the fifty-move boun
 CONTEXT FROM 23-C26/F80: those swept the same board and saw 90 -> cp 271, 91 -> cp 0 at depth 10 without recording node
 counts, so the earlier findings are unaffected — this is about COST, not about the score curve, and the curve is
 unchanged (cp 364 at 89, cp 271 at 90, cp 0 at 91).
+
+IS IT A DEPTH-10 BOUNDARY ARTEFACT? — no: the explosion's peak MOVES with depth, tracking the horizon
+=================================================================================================
+Base build, depths 8/9/10/11, node counts:
+
+| counter | d8 | d9 | d10 | d11 |
+|---|---|---|---|---|
+| 88 | 9,873 | 23,334 | 97,384 | 833,635 |
+| 89 | 14,412 | 107,923 | 501,621 | **27,176,620** |
+| 90 | 14,921 | 185,076 | **10,445,791** | 29,679,599 |
+| 91 | 120,990 | **8,048,897** | **16,370,887** | 19,463,555 |
+| 92 | **811,668** | 1,079,081 | 1,353,048 | 1,705,627 |
+
+THE EXPLOSION IS NOT A DEPTH-10 ARTEFACT: it appears at EVERY depth tested, and its PEAK COUNTER MOVES with depth —
+counter 92 at d8, 91 at d9 and d10, 89–90 at d11. That is the same 100-minus-depth movement the score onset shows
+(23-C26: 95/92/91/89/89 at depths 6-14), so the node explosion and the score collapse share the horizon as their
+driver.
+
+WHAT IT MEANS, stated without reading code: as the counter comes within the search's reach of 100, the search spends
+enormously more nodes in the counters just below the horizon (27M at counter 89, depth 11) than it does at the horizon
+itself (1.7M at counter 92) or far from it (14k at counter 88, depth 8). The peak sits one or two counters BEFORE the
+score collapses to cp 0 — the search appears to be working hardest exactly where it is about to give up.
+
+STILL NOT A MECHANISM: I can say it is deterministic, depth-dependent in the same way the score onset is, and peaks
+just below the horizon; I cannot say why without reading the search code, and I am not going to invent a cause. If a
+seat with area 7 (reading the code) wants a concrete lead, this table is it: the peak is at the largest counter the
+search still tries to win.
