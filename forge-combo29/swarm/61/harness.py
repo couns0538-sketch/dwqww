@@ -135,12 +135,6 @@ class Engine:
             if ln.startswith("nodes "):
                 total = int(ln.split()[-1])
         return total, lines
-        self._scan_fen(lines, "perft output")
-        total = None
-        for ln in lines:
-            if ln.startswith("Nodes searched"):
-                total = int(ln.split()[-1])
-        return total, lines
 
     def first_generated_move(self, board, moves=()):
         """`go perft 1`'s first divide line is the head of the generated list."""

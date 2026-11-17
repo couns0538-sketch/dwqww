@@ -30,7 +30,8 @@ report = {
 
 random.seed(20261117)
 rows = []
-for ln in open(PATH):
+with open(PATH, encoding="utf-8") as handle:
+  for ln in handle:
     ln = ln.strip()
     if not ln:
         continue

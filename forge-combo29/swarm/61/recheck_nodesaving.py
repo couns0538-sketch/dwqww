@@ -31,7 +31,8 @@ random.seed(20261117)
 def load():
     rows = []
     pat = re.compile(r"\s*(\d+) S14\s+(\d+) ms/\s*(\d+) n \| PC20\s+(\d+) ms/\s*(\d+) n \| ratio (\S+)")
-    for ln in open(PATH):
+    with open(PATH, encoding="utf-8") as handle:
+      for ln in handle:
         m = pat.match(ln)
         if m:
             rows.append({"s14n": int(m.group(3)), "pcn": int(m.group(5))})

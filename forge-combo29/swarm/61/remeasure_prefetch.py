@@ -36,13 +36,16 @@ random.seed(20261117)
 
 
 def sha(path):
-    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+    with open(path, "rb") as handle:
+        return hashlib.sha256(handle.read()).hexdigest()
 
 
 def load_fens(path, n):
     """Validate EVERY FEN with python-chess before it can enter the run."""
     good, rejected = [], []
-    for i, ln in enumerate(open(path)):
+    with open(path, encoding="utf-8") as handle:
+      lines = handle.readlines()
+    for i, ln in enumerate(lines):
         fen = ln.strip()
         if not fen or fen.startswith("#"):
             continue

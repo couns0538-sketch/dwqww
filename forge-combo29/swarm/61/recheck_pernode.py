@@ -36,7 +36,8 @@ REPORT_SHARE = (162, 180)
 def load():
     rows = []
     pat = re.compile(r"\s*(\d+)/\s*(\d+) n (\S+) \|\s*(\d+)/\s*(\d+) ms (\S+) \| pernode (\S+)")
-    for ln in open(PATH):
+    with open(PATH, encoding="utf-8") as handle:
+      for ln in handle:
         m = pat.match(ln)
         if m:
             rows.append({

@@ -45,10 +45,12 @@ CASES = [
 
 def _sub(d, rel, old, new):
     path = os.path.join(d, rel)
-    s = open(path).read()
+    with open(path, encoding="utf-8") as handle:
+        s = handle.read()
     if old not in s:
         raise RuntimeError("plant target not found in %s: %r" % (rel, old[:60]))
-    open(path, "w").write(s.replace(old, new, 1))
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(s.replace(old, new, 1))
 
 
 results = []

@@ -15,7 +15,8 @@ import re
 import sys
 
 PATH = "RECHECK.md"
-text = open(PATH).read()
+with open(PATH, encoding="utf-8") as handle:
+    text = handle.read()
 
 # Numbered table rows look like: | 23 | claim | report | derived | verdict |
 row_re = re.compile(r"^\|\s*(\d+)\s*\|(.+?)\|(.+?)\|\s*$", re.MULTILINE)

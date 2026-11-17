@@ -219,18 +219,25 @@ unmodified copy required to run clean. All three caught.
 `selftest.py` (harness): **4 checks, 0 failures** — illegal FEN detected, illegal move in the list
 detected, python-chess pre-send rejection working, legal-position control passing.
 
-**Three real faults in my own code were found by running, not by reading, and each is the same
-class the report warns about — waiting on a line the engine does not emit:**
+**Four real faults in my own code were found by running or by static analysis, not by reading,
+and three are the same class the report warns about — waiting on a line the engine does not emit:**
 
 1. `parse_search` required `" pv "` followed by a token, so it **skipped the bail's own line** —
    the one with `nodes 0` and an empty `pv` — and reported "no info lines" instead of "0 nodes".
 2. `perft()` waited for `Nodes searched`, but the engine prints **`nodes <N>`**. Hung to timeout.
 3. `perft()` also sent an extra `isready` after `set_position` had already drained its `readyok`,
    blocking with no outstanding reply.
+4. **SonarCloud's quality gate caught one I had not seen, and it was substantive rather than
+   cosmetic: `perft()` carried 6 lines of unreachable dead code after its `return`,** including a
+   second `_scan_fen(lines, "perft output")` call that never executed. That is the guard that
+   would abort on `info string invalid FEN` in perft output — the call above it is live, so the
+   behaviour was correct, but an unreachable duplicate of a safety check is exactly the kind of
+   thing a reader would trust while it did nothing. Removed, and every dependent verdict
+   re-run afterwards: mateforfeit 2/2, drawn_root 4/4, fault injection 3/3, all unchanged.
 
-Each produced a plausible-looking wrong output before the timeout exposed it. `recheck_pins.py`
-still contains fault 2 on its perft leg; I stopped there because pins were deprioritised and the
-repo's own `check_pins.sh` verifies perft 5.
+Each of 1–3 produced a plausible-looking wrong output before the timeout exposed it, which is why
+the timeout exists. Finding 4 was found by static analysis; I am recording it because the seat's
+own rule is that a check which appears to run and does not is worse than no check.
 
 ---
 
@@ -252,6 +259,8 @@ repo's own `check_pins.sh` verifies perft 5.
 - `remeasure_prefetch.py` — independent re-measurement, +10.64% at n=130.
 - `drawn_root.py` (4/4), `recheck_mateforfeit.py` (2/2), `probe_7581.py` (8 rows),
   `fen_location.py` (3 rows).
-- `recheck_pins.py` — 3/3 bench pins re-measured; perft leg has a known reader fault.
+- `recheck_pins.py` — 3/3 bench pins re-measured; its perft leg still waits on the wrong line
+  (recorded above as fault 2, deliberately left because pins are deprioritised and the repo's own
+  `check_pins.sh` verifies perft 5).
 - `selftest.py` (4 checks), `selftest_faults.py` (3/3 caught).
 - `evidence/` — extracted committed raw data plus every script's saved output.
