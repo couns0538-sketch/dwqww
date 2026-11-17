@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 31 (FREQUENCY: how often does a clock game reach a genuine third occurrence?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+The one number I have explicitly refused to give: how often a self-play game reaches a genuine third occurrence.
+23-F72 says "frequency is unmeasured" and that limit should be removable with one more sample.
+
+Method: TEN clock games from ten DISTINCT openings, each played up to 250 plies at 6 s+0.06 with the PC build,
+counting a GENUINE occurrence only if the position has occurred 3 times by my own key AND `is_insufficient_material()`
+is FALSE AND halfmove < 100. Report the count, the ply at which each occurred, and the piece counts.
+
+Prediction (each number with the range that kills it):
+  P1  games reaching a genuine third occurrence: between 2 and 8 of 10. KILLED outside that range.
+      Reasoning: in my two prior samples 4 of 6 and 5 of 6 reached SOME occurrence, but the genuine subset was
+      3 of 6 and 5 of 6 respectively; 20-80 % is the honest interval around those small samples.
+  P2  at least one game will reach the 250-ply cap without an occurrence.        KILLED if none does.
+  P3  the ply of occurrence will be between 30 and 130 in every qualifying game.   KILLED if any is outside.
+  P4  the piece count at occurrence will be >= 10 in every qualifying game (so none is a bare-king shuffle).
+                                                                                 KILLED if any is below 10.
+
+If P1 lands at the extremes I will report the interval rather than the point estimate, and say ten games cannot
+support a rate to better than about +/- 15 percentage points.
