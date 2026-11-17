@@ -159,3 +159,77 @@ category**; the Step 2 result does not license the assumption that the next lane
 | `FINDINGS.md` | 08-F46 (result), 08-N11 (cost model), 08-N12 (intrinsic bit-identity) |
 
 **Not carried forward.** The patch stays in the folder as evidence, with its numbers, as a rejection.
+
+---
+
+# Addendum — the cost model in §4 is wrong, and the microbenchmark shows by how much
+
+§4 above is left unedited. It is wrong in one specific way, found by auditing it after publishing.
+
+## What I claimed
+
+That the port bound was 0.26–0.40 %, that measured came in *below* even that at 0.05 %, and that the gap was
+explained by the tail "overlapping surrounding work". Two mechanisms to reconcile one number — which should have
+been my warning.
+
+## What a direct measurement says
+
+A standalone harness reproducing the exact tail shape (two 512-bit accumulators reduced to one sum, 2,566,881
+iterations, distinct inputs so nothing hoists or gets CSE'd, result fed to an observable sink):
+
+| | ms over 2.57 M calls | as share of 2130 ms |
+|---|---|---|
+| scalar tail (the code as shipped) | **7.07 – 9.20** | 0.33 – 0.43 % |
+| in-register fold (the patch) | **5.38 – 7.33** | 0.25 – 0.34 % |
+| **saving** | **1.50 – 1.87** | **0.070 – 0.088 %** |
+
+Bit-identical on **15 of 15** reps.
+
+## The error, named
+
+**The port model was right about the tail's cost and I applied it to the wrong quantity.**
+
+0.26–0.40 % is what the *existing scalar tail costs*, and the microbenchmark confirms that prediction closely
+(7.4 ms measured against 6.8–8.5 ms predicted). But a patch's saving is
+
+```
+saving = (cost of the old tail) - (cost of the replacement)
+```
+
+not `(cost of the old tail) - 0`. My replacement still performs a four-step shuffle-and-add; it is not free, and it
+costs ~5.7 ms of the ~7.4 ms it removes. So the real saving is ~1.7 ms.
+
+**And 0.08 % predicted against +0.05 % measured, with a CI of −0.05 % to +0.16 %, means there was never a
+discrepancy to explain.** I invented the overlap story to reconcile a gap that did not exist, and the "measured
+below even the bound" sentence — which I wrote as if it were a striking observation — was an artefact of comparing
+a saving against a cost.
+
+## Why the patch is capped, structurally
+
+Same harness, running N folds as one dependency chain versus N/2 independent pairs:
+
+| arrangement | ms | ratio |
+|---|---|---|
+| N folds, single chain | 17.55 | — |
+| N folds, as N/2 independent pairs | 14.37 | **0.819** |
+
+A ratio near 1.0 would mean independent chains are nearly free (latency-bound); near 2.0 would mean the work is
+port-limited (throughput-bound). At **0.82**, the fold's four dependent steps are mostly paying *latency*. The scalar
+tail is port-bound and the replacement is latency-bound: they are limited by different things, and the replacement's
+floor sits only ~20 % under the original's.
+
+**That is the reason not to attempt a third version.** No rearrangement inside this single reduction will move the
+bench, because the chain depth, not the instruction count, sets the floor.
+
+## What still stands
+
+Everything in §1–3, §5–7: identity exact (including the 200-opening sum), speed +0.05 % with a CI including 1.0,
+**rejected**, `refresh_from_pieces` unpatched for the stated reason, and the Step 2 recommendation intact. Only §4's
+arithmetic and its overlap story are withdrawn.
+
+| item | status |
+|---|---|
+| 08-F47 | the measurement and the corrected arithmetic |
+| 08-N13 | the method rule: saving = old − new, never old − 0 |
+| 08-C48 | the fold is latency-bound (0.819), which is why the patch is capped |
+| 08-N11 | **annotated in place** — right about the tail's cost, wrong about how it enters the estimate |

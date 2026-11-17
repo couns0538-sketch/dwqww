@@ -1083,3 +1083,33 @@ report: `v3/REPORT_v3_step4.md`. patch (kept as a rejection, not carried): `v3/s
 **46 findings, 38 checks/audits/plants/tools, 12 method lines, 7 withdrawals** (and 1 open lead).
 
 next: cadence until 10:19Z, then the FINAL block.
+
+## 2026-11-17T04:38Z — auditing my own Step 4 diagnosis: §4 was wrong, and the error is instructive
+The coordinator called N11 the most transferable part of Step 4. So I attacked it instead of enjoying it, and it
+broke. **The rejection stands; the reason I gave for it does not.**
+
+- **Microbenchmark of the exact tail** (2 x 512-bit -> 32-lane sum, 2,566,881 iters, distinct inputs so nothing
+  hoists): scalar **7.07–9.20 ms**, fold **5.38–7.33 ms**, saving **1.50–1.87 ms = 0.070–0.088 %**. Bench said
+  **+0.05 %** with CI **−0.05 % .. +0.16 %**. **The two agree — there was never a gap.**
+- **The error (08-N13): saving = old − new, never old − 0.** My 0.26–0.40 % port bound was the *cost of the existing
+  tail* (and it is CORRECT — microbench 7.4 ms vs 6.8–8.5 ms predicted). I then used it as the *saving*, and had to
+  invent an "overlap" story when measurement came in smaller. A correct model on the wrong quantity yields a number
+  that looks rigorous and is off by the size of the term I forgot; **the tell was needing a second mechanism.**
+- **08-C48 — why the patch is structurally capped:** N folds chained 17.55 ms vs as N/2 independent pairs 14.37 ms,
+  ratio **0.819**. Near 1.0 = latency-bound, near 2.0 = port-bound. At 0.82 the fold's four dependent steps pay
+  *latency*. The scalar tail is port-bound, the replacement is latency-bound: **different limits, and the floor sits
+  only ~20 % under the original.** That is why I am NOT attempting a third version — chain depth, not instruction
+  count, sets the floor.
+- **08-N11 annotated in place** rather than silently edited: it is right that independent lanes are port-bound rather
+  than latency-bound, and wrong about how that number enters the estimate. Both halves now say so.
+- A harness trap on the way: my first microbench reported **0.00 ms** for both arms, because constant inputs let the
+  compiler hoist the whole loop. Fixed with per-iteration distinct inputs read through a volatile sink. (Same family
+  as 08-N2/08-N4: the harness lies before the code does.)
+
+What stands unchanged: identity exact incl. 200-opening sum 27,944,084, +0.05 % with CI including 1.0, REJECTED,
+`refresh_from_pieces` unpatched, and the Step 2 recommendation intact.
+
+report addendum: `v3/REPORT_v3_step4.md` §"Addendum". evidence: `v3/tail_microbench.txt` (15 reps), `v3/tail_microbench.cpp`.
+
+## 2026-11-17T04:38Z — TALLY (generated, not maintained)
+**47 findings, 39 checks/audits/plants/tools, 13 method lines, 7 withdrawals** (and 1 open lead).
