@@ -241,6 +241,12 @@ found one".
 **Practical form:** when you find yourself more confident about a zero than about a percentage, that is the moment
 to check whether the zero has a plant. The confidence is coming from the shape of the number, not the evidence.
 
+**I then applied this to my own worst zero** (19-C29). 19-F54 reported "0 of 40" with no plant — its one
+mate-bearing board exercised only the "no defect" path, because the engine *played* the mate. So I built one: on
+`6K1/8/1r4k1/8/8/2p5/8/8 b - - 13 186` (18 legal moves, exactly **1** mates), the same scoring code returns
+**`False`** for the mating move and **`True`** for a legal non-mating one. **The zero survives — but only because
+I checked, and it would have been unshown had I not.**
+
 ---
 
 ## The single question that catches all eleven
@@ -253,6 +259,10 @@ uniform 2-ply offset and suspecting my own instrument rather than the engine** (
 another seat's correction** (traps 8 and 9 from seat 17; trap 10 from seat 25; and the *shape* of trap 11 first
 came from seat 05's finding I was trying to check). **That distribution is the argument for the cross-checking
 rule, quantified: four of the eleven defects here would not have been found by the seat that made them.**
+
+**The closing sentence, which is the whole of Rule 1 in one line:**
+> **A planted case is the only thing that distinguishes "I looked and found none" from "I could not have found
+> one".**
 
 **And the one check that belongs in every harness, from traps 1 and 1b together:** a search happened only if
 **`nodes > 0` and the PV is non-empty**. Neither "an `info` line appeared" nor "a `bestmove` arrived" is

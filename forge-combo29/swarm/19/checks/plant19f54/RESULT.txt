@@ -1,0 +1,21 @@
+# the plant for 19-F54's zero
+
+board: `6K1/8/1r4k1/8/8/2p5/8/8 b - - 13 186`
+
+- legal moves: 18 ; of which MATE AT ONCE: 1 (['b6b8']) ; NON-mating: 17
+
+## REAL path — the engine's own move (`b6b8`, which mates)
+
+- move b6b8 -> status 2
+- **defect reported: False** (expected: False, because it plays the mate)
+
+## PLANT — a legal non-mating move, which the harness MUST flag
+
+- move g6h6 -> status 0
+- **defect reported: True** (expected: True — this is the plant)
+
+## verdict
+
+**The scoring harness distinguishes the two: YES.**
+
+So 19-F54's zero is a measurement that **can** detect a defect: the same code reported True for a bad move and False for the right one on the same board. The zero is therefore 'not shown to be wrong' in the Rule 1 sense — the harness is proven able to see a defect.
