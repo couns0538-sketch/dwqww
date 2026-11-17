@@ -1,0 +1,23 @@
+## Every `go` form vs the book — closing the 08-F12 gap (OwnBook true, PC r15 PC20, Threads 1)
+
+| `go` form | startpos | 1.e4 | 1.e4 e5 | book lines | gating rule says |
+|---|---|---|---|---|---|
+| go depth 12 | no search-book | no search-book | no search-book | **0 of 3** | no book |
+| go nodes 5000 | no search-book | no search-book | no search-book | **0 of 3** | no book |
+| go infinite | no search-book | no search-book | no search-book | **0 of 3** | no book |
+| go wtime 6000 btime 6000 | BOOK | BOOK | BOOK | **3 of 3** | BOOK |
+| go movetime 100 | BOOK | BOOK | BOOK | **3 of 3** | BOOK |
+
+## Verdict
+
+| form | book lines | as the gating rule predicts? |
+|---|---|---|
+| depth | 0 of 3 | **YES** |
+| nodes | 0 of 3 | **YES** |
+| infinite | 0 of 3 | **YES** |
+| wtime | 3 of 3 | **YES** |
+| movetime | 3 of 3 | **YES** |
+
+**The book fires on exactly the two `game_search` forms and on none of the other three** — so 08-F12's
+warning covers all five forms the engine accepts, and a `go depth`/`nodes`/`infinite` harness can never
+hit the book hazard. That closes the gap I named in 08-C24.
