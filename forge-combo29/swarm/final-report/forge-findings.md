@@ -12,12 +12,12 @@ invisible to this instrument", never "this change is safe"**, and the two are on
 probe proves the change was live. The measurement is in §6, the blind-spot list in §10.
 
 **A companion file enumerates the whole run as a matrix rather than an argument**:
-[`test-matrix.md`](test-matrix.md) — **132 rows**: 30 areas tested and correct, 30 tested and wrong, 16
+[`test-matrix.md`](test-matrix.md) — **134 rows**: 31 areas tested and correct, 31 tested and wrong, 16
 tested with a conditional answer, 21 never tested (each with the reason), and **35 instruments in this
 audit that reported something false**, with what caught each one. Start there if you want the checklist;
 start here if you want the reasoning.
 
-**Start here — the ten decisions, in the order they cost you if you get them wrong.**
+**Start here — the eleven decisions, in the order they cost you if you get them wrong.**
 
 | # | decision | verdict | section |
 |---|---|---|---|
@@ -31,6 +31,7 @@ start here if you want the reasoning.
 | 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it on the evidence so far** — it costs **2–3 plies of effective depth** on forced mates and is **the only thing on this engine measured to lose a mate the default finds**. On 30 verified fixtures it changes 9 verdicts, helps 4, **harms 5**. **It does converge**: every harm recovers by depth 9 or 10, so the cost is depth-efficiency, not soundness | §3 |
 | 9 | **Mate distances on sparse endgames** | **do not trust a `mate N` distance on a bare KQ-vs-K type position — but this is a base-engine reporting imprecision, NOT a switch defect, and an earlier version of this row was WRONG.** On `3k4/8/6K1/1Q6/8/8/8/8 w` the true distance is **mate in 3 moves (5 plies)**; the baseline reports **`cp 1203` with no mate at all**, while `ContHist4PlyRead` reports **`mate 12`** — an over-long distance on a real mate. **The switches move the number in both directions and on one position the switch is MORE accurate than the baseline.** **The earlier claim that `ContHist4PlyRead` "reports a false mate" is retracted**: a depth-12 PV cannot exceed 12 moves, so a short PV proves nothing, and I used exactly that unsound inference (§9c) | §1b |
 | 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 569 of 640 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Only 7 of 193 KPK failures contain a bail at all, while the bail fires 56,768 times and 80.9% of won cells still convert** — so patching the bail fixes none of them. **More depth is not the answer either**: KQK needs ~4× the mate's own depth, and KBNK converts **less** at depth 20 than at 16 | §9c |
+| 11 | **Any mate label from this engine** | **verify it independently — 26.1% of verifiable labels are WRONG and every single error over-states.** 300 labels by uniform random sample: 238 verified, **62 wrong**, **0 under-statements, 0 move-wrong**, 35 of 48 confirmed errors off by exactly one move. **The PV-length filter catches only 9 of the 62 (14.5%)** — it removes unverifiable claims, not wrong ones. A label is only safe after an independent mate search | §4 |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
 question that was not asked, in **five** distinct ways, and three of the five are indistinguishable from
@@ -43,8 +44,8 @@ defence is to validate your own tokens before sending.**
 is present-and-empty, never absent, at every terminal and drawn root measured. **A client still has to
 tolerate absence, since the spec allows it, but against this engine it will only ever meet the empty form.**
 
-**Everything still open is listed in §10, with a name on each gap** — **six areas remain open at close**,
-each with the reason it is open rather than a silent omission, and **six more were dispatched late and
+**Everything still open is listed in §10, with a name on each gap** — **four areas remain open at close**,
+each with the reason it is open rather than a silent omission, and **eight more were dispatched late and
 closed** with their numbers in the same table.
 
 **And a field-by-field audit of the `info` line found FOUR fields wrong, two unfalsifiable and three
@@ -1577,6 +1578,39 @@ nodes on Kiwipete and 0% on four other positions**, with full-game cost unmeasur
   In both, **the PVs replay legal, are exactly the length the score implies, and end in checkmate**;
   exhaustive engine-independent search settled each true distance. So a PV that passes the length
   filter is **"not rejected", never "verified"**.
+  - **AND NOW THAT IS A RATE RATHER THAN TWO ANECDOTES, and the rate is large.** Over **300 `mate N` labels
+    drawn by uniform random sample** from the repo's own 199,020-FEN soak corpus (5,473 positions scanned to
+    harvest 300, a 5.48% harvest rate), at one recorded configuration (`go depth 12`, Hash 32, Threads 1,
+    binary `e06310ec…`, four pins matched):
+
+    | | count |
+    |---|---|
+    | labels harvested | **300** |
+    | verified (both halves decided) | **238** |
+    | exact | **176** |
+    | **wrong** | **62** |
+    | **wrong in the UNDER direction** | **0** |
+    | move wrong, distance plausible | **0** |
+    | unverifiable, reason recorded per row | 62 |
+
+    **Wrong rate among verified labels: 62/238 = 26.1%.** **Every single error over-states** — not one
+    claimed a mate shorter than the truth, and not one claimed a distance it could not reach. **35 of the 48
+    independently confirmed errors are off by exactly one move**, and **the PV-length filter catches only
+    9 of the 62 (14.5%), passing 53 wrong labels untouched.**
+  - **This is a rate and not an anecdote for the reason §4 already gives**: the two boards above were found
+    by **searching for disagreements**, so they cannot supply a base rate. This corpus was selected on
+    **being a mate label**, uniformly at random, which is the only selection that makes the percentage mean
+    something. **All 300 labels also reproduced bit-for-bit on a second pass**, so they are deterministic
+    outputs of a stated build rather than noise.
+  - **I verified one end to end myself**, and it is typical: `8/2q5/3P1r2/p1k4p/3q2NP/6P1/3nK3/8 b` claims
+    **`mate 4`** with a 7-ply PV that is legal, exactly the implied length, and **does end in checkmate** —
+    and an exhaustive AND/OR search says black mates in **3 moves**. **So the label is wrong by one move, the
+    PV is impeccable, and the filter passes it.**
+  - **What to do with this**: for any mate-label pipeline, **the length filter is not a correctness filter.**
+    It removes claims that cannot be verified; it does not remove claims that are wrong. **A mate label from
+    this engine needs an independent mate search, at 26% wrong among verifiable labels and every error
+    over-stating** — which, as a partial mitigation, means a filter that *rejects over-statements* would
+    remove errors rather than good labels.
   - **And "settled by exhaustive search" needed its own audit, which found the verifier was asking the
     expensive question.** A `mate N` claim in UCI means the shortest forced mate is **exactly** N, so it
     splits into two halves: **(A)** some legal first move forces mate within N — cheap, because the engine
@@ -4869,7 +4903,7 @@ questions were answered and which were only asked.** Open rows are untested-with
 an open question, not a clean bill** — the same discipline that makes the vacuous nulls elsewhere in this
 section honest applies here: **an area nobody reached is not an area that was cleared.**
 
-**CLOSED — the six that reported, with their numbers:**
+**CLOSED — the eight that reported, with their numbers:**
 
 | area | result |
 |---|---|
@@ -4879,6 +4913,8 @@ section honest applies here: **an area nobody reached is not an area that was cl
 | **Mate scores through the transposition table** | **Correct, and verified against the exact failure modes.** `score_to_tt` adds `ply` on store and `score_from_tt` subtracts it on probe (`search.cpp:179-199`), applied at **all 10 store sites and both score-bearing probes** — checked by enumeration, with a grep for a store lacking the wrapper returning **nothing**. The probe-side clamp **discards** a score that would decode into the centipawn band (returns `ValueNone`) rather than clamping it, which is the right direction: clamping would report a mate at a distance that does not exist. **The named experiment passes**: a DTM stored at ply 4 and re-probed at ply 8 keeps the distance BELOW the node unchanged (1→1, 3→3, 5→5, 7→7, 9→9). **Exhaustive sweep: 118,332 cells, 0 failures**, and two planted-wrong pairs — no adjustment, and an inverted one — produce **234,608 failures**, so the checker demonstrably fires |
 | **Endgame conversion at game level — CLOSED, and the answer is NO** | KRK **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK **569 of 640** won cells, against an **exact-table oracle at 20/20, 20/20 and 192/192**. **All 193 KPK failures are fifty-move claims, only 7 contain a bail, and the bail fires 56,768 times while 80.9% of won cells still convert**; the mechanism is the §2 clock band (`cp 0` at halfmove 90 on a won board). **Decision 10 in the opening table.** **KBNK is a measurement without a mechanism** — the seat built no 4-piece table and refused to borrow the KQK explanation |
 | **`bestmove 0000` consistency across mate roots — CLOSED, and it is consistent** | **6 of 6 mate roots answer `bestmove 0000`**, never a move. That was the specific sweep that mattered, because an inconsistency would break every client's mate detection. The three protocol shapes (`0000` with `mate 0`, with `cp 0`, and with a restriction) all reproduce, and `info string` appears only on the restriction form |
+| **ThreadSanitizer with recorded flags — CLOSED, and the seat I had recorded as lost had in fact pushed.** | **147 driven searches at `Threads 4`: zero ThreadSanitizer reports of any kind, in processes whose exit was observed.** The provenance is the deliverable and it is complete: `g++ 13.3.0`, the exact `-fsanitize=thread` line, `libtsan.so.2` resolved, **21 `__tsan_*` symbols**, and binary `sha256 889a9b46…`. **And it found a reproducibility trap worth keeping**: a bare `-g` build hashes differently per checkout path and build directory (`21189c77…`, `bbe13ccc…`, `df59381e…` from the same source), **so the two `-ffile-prefix-map` flags are part of the flag line rather than a convenience** — with them the build is byte-reproducible across paths. **It also caught the exit-report trap in its own driver**: its first driver sent `quit` and called `wait()` without draining, so a planted-race build's `ThreadSanitizer: reported 25 warnings` and `exit 66` were never seen; **the first clean run was discarded rather than relabelled**, and the fixed driver records `drained_to_eof` and the real exit code. **Every clean row reports `exit_code 0` with `post_quit_lines 0`, and both planted builds exit 66**, so exit status is an independent second signal agreeing with the empty race count |
+| **A full undefined-behaviour sweep — CLOSED, UBSan clean and the zero is instrumented** | **2,408 bounded probes across 12 phases: 0 UBSan reports, 0 ASan reports, 0 leak reports at exit, 0 crashed processes**, and the four honesty pins reproduce exactly on the sanitizer build (plus an unchanged net-off signature, so instrumentation did not move the arithmetic). **Every phase carries positive evidence its code executed**, so the zero is not a corpus that could not reach the condition, and the sanitizer is proven **linked** (`nm | grep -c __ubsan_` = 15 against 0). **And the finding worth keeping is about the TOOL, not the engine**: GCC's `-fsanitize=undefined` **silently omits `float-cast-overflow` and `float-divide-by-zero`**, demonstrated on a planted fault that goes **0 lines under the default group and 10 under the named flags** — and `src/nnue.cpp:274` is exactly a `static_cast<int>` of a float, safe only because a `std::clamp` precedes it. **So the audit's specified sanitizer configuration was never checking the one float-to-int conversion in the evaluation path**, and a future edit that moved that clamp would be invisible. **The seat explicitly does NOT report this as a defect**, which is the correct call
 
 **STILL OPEN — these are the rows that are genuinely unreached:**
 
@@ -4887,8 +4923,6 @@ section honest applies here: **an area nobody reached is not an area that was cl
 | **Quiescence TT store depth guard** | The defect is measured (a depth-0 store overwrites a depth-24 entry), **the fix is not**: a guard on `store_body` is a design change with unmeasured strength impact, deliberately left to the owner rather than shipped |
 | **The qsearch false-draw repair** | ~20 lines, closes both wrong cells, costs zero pins — but it changes `Worker::is_draw`, shared with the main search and the drawn-root work. **Needs the owner's decision plus the full 14-cell sweep** |
 | **Pruning features against forced mates, at feature level** | Only the switch-level screen exists: `Lmr+FutilityPrune` change 55 of 148 answers and **lose mates**, and **`SoundMatePruning` costs 2–3 plies** (§3). **Which of the individual features does it, and under what conditions, is not established** — the corpus-level null for null-move, razor, RFP, move-loop, LMR and singular is a null about those paths *as configured*, not a proof they cannot interact with a forced sequence beyond the horizon |
-| **ThreadSanitizer with recorded flags** | The prior TSan work is this audit's worst provenance gap — **27 findings across 8 seats with no flag set, compiler line or hash recorded**, and its most-quoted row is a ~1,000× wall-clock outlier measured inside that process. **A proper run needs the flags written down before the numbers mean anything.** The seat dispatched for it **was lost before pushing anything** — it is no longer reachable — so this area is **untouched**, not merely unfinished |
-| **A full undefined-behaviour sweep — CLOSED, UBSan clean and the zero is instrumented** | **2,408 bounded probes across 12 phases: 0 UBSan reports, 0 ASan reports, 0 leak reports at exit, 0 crashed processes**, and the four honesty pins reproduce exactly on the sanitizer build (plus an unchanged net-off signature, so instrumentation did not move the arithmetic). **Every phase carries positive evidence its code executed**, so the zero is not a corpus that could not reach the condition, and the sanitizer is proven **linked** (`nm | grep -c __ubsan_` = 15 against 0). **And the finding worth keeping is about the TOOL, not the engine**: GCC's `-fsanitize=undefined` **silently omits `float-cast-overflow` and `float-divide-by-zero`**, demonstrated on a planted fault that goes **0 lines under the default group and 10 under the named flags** — and `src/nnue.cpp:274` is exactly a `static_cast<int>` of a float, safe only because a `std::clamp` precedes it. **So the audit's specified sanitizer configuration was never checking the one float-to-int conversion in the evaluation path**, and a future edit that moved that clamp would be invisible. **The seat explicitly does NOT report this as a defect**, which is the correct call
 | ~~**Long-game replay position identity**~~ **— CLOSED, and it is clean where it matters** | **200 games, 27,788 plies** replayed in one process at `go depth 8`, with a 40-game / 5,401-ply fresh-process arm drawn before measuring. **Position identity: 5,401/5,401 at perft 4 and 1,852/1,852 at perft 5** — the move-list board IS the FEN board. **Halfmove clock agreement 5,369/5,369, boundary exactly at 100.** **RSS 42.2 MiB at all 277 samples from ply 300 to the end, +1.6 MiB total.** **But in-process vs fresh-process bestmove differs on 46.0% of plies (2,486/5,401)** — and scored against a depth-14 fresh oracle that is **better 85 / equal 37 / worse 78, median 0 cp**, so it is **the same engine making equally good moves off a warm table, not a defect and not a strength claim.** **`ucinewgame` between plies makes it byte-identical, 5,401 of 5,401.** **Bails: 0 differences out of 5,401, and all 89 bails predicted independently 89/89.** **So the thing that would have been a defect — accumulating state or a diverging board — is absent, and the 46% is a property of depth-8 move identity across processes, which the report now says plainly because it is the number most likely to be quoted wrongly** |
 | **Mate labels over a corpus** | Two labelling errors are recorded (eight by-eye fixtures all one ply short; ten "false" mates that were merely unverifiable). **A corpus-level rate with an oracle's provenance does not exist**, and a handful of examples is not a rate |
 | ~~**The 51 tunables behind `FORGE_EXPOSE_TUNABLES`**~~ **— CLOSED, and it is the cleanest row in the audit** | **All 51, five values each, 255 cells, every one correct.** Each tunable was sent its advertised `min` and `max` (accepted silently), `min−1` and `max+1` (reported **and clamped**), and `abc` (refused, old value kept) — **and then a search was run**, so "accepted" is behaviour rather than a `setoption` reply. **0 crashes, 0 hangs, 0 non-conforming rows.** **And all 51 moved the probe search at some value**, so none is a dead option — which is the field a clamp-only check would have missed entirely. The count is sourced: `tune::parameters()` at `search.cpp:114-148` lists 51 entries, and 51 + the four non-tunable spins (`Hash`, `Threads`, `MultiPV`, `Move Overhead`) = the 55 advertised |
