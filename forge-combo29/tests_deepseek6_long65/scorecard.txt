@@ -1,0 +1,27 @@
+# deepseek6 long 65 — prediction scorecard (PREDICTION.md committed before the first PV run, never edited)
+
+P1 every PV fully legal, 553 of 553. MEASURED 553 of 553 (200 O + 353 G, 0 illegal plies).
+   -> **HELD.**
+
+P2 between 1 and 40 mate scores. MEASURED **10** (0 on O, 10 on G). -> **HELD.**
+
+P3 every mate score's PV ends in checkmate at exactly the stated length.
+   MEASURED **9 of 10**. Position 193 of G: `mate -12` (needs 24 plies), PV has 18, does not end in mate.
+   -> **KILLED** — and the deeper search (depth 20) shows the depth-12 answer was wrong: `mate -4`, 8 plies,
+   that PV really does checkmate, and the best move is `c2b1` not `c2c3`.
+
+P4 no PV ends in checkmate with a non-mate score. MEASURED **0 of 553**. -> **HELD.**
+
+P5 at least 90 % of PVs have >= 4 plies and none over 64. MEASURED 3 of 553 under 4 plies (0.8 %), max 25.
+   -> **HELD.**
+
+P6 budget 6-10 minutes. ACTUAL about 8 minutes for both sets. -> **HELD.**
+
+Score: 4 held (P1, P2, P4, P5), 1 killed (P3), 1 held (P6). The killed one is the item's finding.
+
+## The result that matters
+553 of 553 principal variations are fully legal on both position sets, so the move generator and PV
+bookkeeping are sound. But ONE mate score (position 193 of G, a K+P ending) contradicts its own PV at depth 12,
+and a depth-20 search of the same position gives a different mate length AND a different best move whose PV does
+checkmate. That is a real search-quality defect in a pawn ending, found only because the item asks for the mate
+length and the PV length to be checked against each other.
