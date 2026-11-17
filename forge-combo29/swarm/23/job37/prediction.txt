@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 37 (does the eval/go gap SCALE with counter, as the blindness account implies?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F79 says the gap between `eval` and `go` is large exactly where a static evaluator is blind — history. That account
+makes a testable prediction: on a WON board, `go` reports the draw only once the counter is within the search horizon
+of 100 (my 23-C26 sweep: ~91 at depth 10 on one board). Below that, `go` reports a WIN while `eval` reports the same
+static number, so the gap should be SMALL. So sweeping the counter should show the gap OPENING at the horizon.
+
+Method: won K+R v K board, base build, `eval` once per counter (it should be constant) and `go depth 10` at counters
+40, 60, 80, 88, 90, 92, 95, 99, 100. Report both and the gap.
+
+Prediction (each number with the range that kills it):
+  P1  `eval` total will be CONSTANT across all counters (0 cp spread).        KILLED if any spread > 5 cp.
+  P2  `go` will report a WINNING score (>= +100 cp or mate) at counters 40-80. KILLED if it reports cp 0 there.
+  P3  the gap will be small (< 100 cp) at counters 40-80 and large (>= 300 cp) at 92-100. KILLED if the ordering
+      reverses or the magnitudes overlap.
+  P4  the counter at which the gap opens will be within +/- 4 of the horizon onset I measured at depth 10 (91).
+                                                                              KILLED if outside that window.
+
+If P3/P4 hold, the eval/go gap is not a fixed property but a function of the counter, opening exactly at the search
+horizon — which strengthens F79's mechanism from "evaluator blindness" to "horizon meets evaluator blindness".
