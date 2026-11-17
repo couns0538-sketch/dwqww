@@ -800,3 +800,22 @@ seed: 1601
 - next: the picker is the remaining lever at 34-37 %. Looking for a part of it that can be sped up WITHOUT changing
   the order it produces — because any change to move ordering changes node counts and is then a search change, not a
   speed patch, and would need strength testing rather than identity.
+
+## 2026-11-17T04:50Z
+- THE PICKER EXAMINED AND CLOSED AS A SPEED TARGET, by my own prediction's rule. I replaced its full `std::sort`
+  (5.03 % of bench time) with repeated find-max-and-swap and tested identity:
+      total 27,944,084 -> 26,531,587   (-5.0547 %)
+      200 of 200 OG200 rows differ; median per-row change 32.9 %; max 224 %; 94 rows up, 106 down
+  So it is a SEARCH CHANGE, not a speed patch — the sort's exact tie order IS part of the search's definition, which
+  is what my S-F11/S-F35 work already implied (the colour asymmetry itself is entirely move-generation order). All
+  four predictions confirmed except P3, which I wrote as "under 5 %" and the answer is 5.0547 % — a miss by 0.05
+  points that I am recording as a miss rather than rounding into a hit.
+- CONCLUSION, and it narrows rather than opens: the picker's 5.03 % is NOT algorithmic overhead, it is the price of
+  ordering the engine depends on. A legitimate patch would have to reproduce std::sort's tie order exactly (sort on
+  (score, original index)) — a harder, separate experiment I did not attempt, and I say so.
+- FOURTH LIMIT on Step 2 recorded as documented-not-load-bearing, per the coordinator.
+- AND I CAUGHT MYSELF RETYPING A COMPUTED FIGURE: I first wrote the change as 5.05 % then as "5.0508 %", both typed
+  by hand beside a real computation of 5.0547 %. Corrected against the computed value. That is the second time today
+  I have retyped a number instead of pasting it, minutes after writing the rule against it — which says the habit is
+  stronger than the note, and only a mechanical check will fix it.
+- check_folder.py ALL CHECKS PASS (486 files, 55 findings rows). Continuing to the close at 10:18:40Z.

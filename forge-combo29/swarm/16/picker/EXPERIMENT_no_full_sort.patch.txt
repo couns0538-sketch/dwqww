@@ -1,0 +1,17 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -943,10 +943,10 @@
+                 }
+                 if (best != index_) std::swap(moves_[index_], moves_[best]);
+             } else {
+-                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+-                          moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+-                          [](const Scored& a, const Scored& b) { return a.score > b.score; });
+-                sorted_ = true;
++                // [swarm-16 EXPERIMENT] selective-sort-on-demand instead of a full std::sort: leave the list
++                // unsorted and let pick_best's existing find-max path take the next best each call.
++                // NOT an identity claim: ties come out in a different order than a full sort produces.
++                sorted_ = false;
+             }
+         }
+         return moves_[index_++].move;
