@@ -1147,6 +1147,8 @@ there.** In the owner's matches that means **endgames**.
 
 The rate is only trustworthy because each of the 14 mate cells was **individually** checked, not sampled:
 
+**The acquittals are what tell you the convictions are real.**
+
 - every mate score's PV was **sliced from the engine's `info` line** and **replayed with python-chess**;
 - **12 of 14 replayed to real checkmate** (including the pawn-reset board at all three budgets, and `KQ_mate3`
   at all three);
