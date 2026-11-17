@@ -716,3 +716,17 @@ next: cadence.
 Tally: 39 findings, 29 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead.
 
 next: cadence.
+
+## 2026-11-17T02:12Z
+- **Rule 5 extended with its mechanical half:** "every reader must be exercised against a FAST path that emits no
+  `info depth` lines — the book, a drawn-root bail, or `go nodes 0` — because those are where a reader waits forever.
+  One test, and it covers three of this seat's five harness traps. The fix for such a hang is a timeout PER READ, not
+  a faster reader: a 20-minute hang becomes an immediate diagnosis at five seconds."
+- **08-C27: audited my own harnesses against that rule.** 66 harnesses scanned, **60 wait for `bestmove`** (safe),
+  6 listed for review; and the LIVE test: the main timing harness on a book position completed in **0.2 s, exit 0,
+  recorded the answer** (15 stdout lines, bestmove e2e4). So the 08-N5 deadlock did **not** touch any published
+  timing number — only the throwaway depth-sweep script hung, which is why I declined to report that sweep.
+
+Tally: 39 findings, 30 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead.
+
+next: cadence.
