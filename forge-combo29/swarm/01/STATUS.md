@@ -996,3 +996,22 @@ SEAT 25's S-F37 CONFIRMED AND ITS OWN CAVEAT CLOSED (S-C28) — and the answer i
   Also confirmed: go movetime 0 -> depth 6, 993 nodes, 1.3 ms (a floor, not zero time); go nodes 0 -> answered with f5f4 and no depth/nodes line at all, against the control go nodes 20000 -> depth 10, b6b5. So three of the four limit fields clamp 0 upward and the fourth declines to search.
   THIS COMPLETES A FAMILY of three settings a harness sends to mean 'unset', each doing the opposite: movestogo 0 (sudden-death branch, 8.4x the plan of omitting it), depth 0 (one ply vs depth 21), and MultiPV above 1 (divides the node budget, depth 10 -> 7). All three now sit in MEASUREMENT_TRAPS.md with the same rule: to mean 'no limit', OMIT THE TOKEN — never send 0.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### ELEVENTH UPDATE — the traps page reduced to its two-column shape
+
+`MEASUREMENT_TRAPS.md` now ends in the form that made it usable:
+
+> **To mean no limit, omit the token.**
+
+| what a harness sends to mean "unset" | what it actually does |
+|---|---|
+| `movestogo 0` | selects the **sudden-death** branch: **482 ms** per move instead of **57 ms** — 8.4x the plan of omitting the token |
+| `depth 0` | clamps to **one ply**: depth 1 in 155 nodes, against **depth 21** with the field absent — a 21-fold loss |
+| `MultiPV` above 1 | **divides the node budget**: depth 10 → 7 at 20,000 nodes, depth 8 → 2 on `softnodes 2000` |
+| `Threads` above 1 | **varies by design**: score, node count and sometimes the move differ run to run |
+
+Two columns, no third: *what you might send* and *what it does instead*. The measurements live in the row, not
+in a separate column, so the table can be read at a glance and each row still carries its number.
+
+**The page is now four traps in a consistent order** — MultiPV, movestogo, depth, Threads — each with its own
+section, then this table, then the guard. Nothing is left appended out of order.
