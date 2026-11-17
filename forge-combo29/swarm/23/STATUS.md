@@ -2492,3 +2492,21 @@ cited guard, discriminating confound test, source reading agreeing with two inde
 declared untestable with a precise structural reason.
 
 175 findings, 28 instances plus six named patterns, all three checks PASS, gate installed and proved blocking.
+## 2026-11-17T03:16:15Z  resumed after a gap; adjacency applied to the findings table (F184)
+2026-11-17T03:16:15Z
+
+Branch had been idle since 02:10Z. Resumed and closed a gap I had left:
+
+**F184 - four superseded rows were citing nothing in their own row.** Audited every corrected row against the row that
+supersedes it and found F112 (scope withdrawn by F122), F114 (castling-conditioner reading by F122), F60 (re-verified by
+F129) and F96 (qualified by F130) carrying their original claims with no inline pointer. A reader of those rows alone
+would have taken away a withdrawn scope limit, a superseded interpretation, and two unqualified generalisations.
+
+Each now carries its correction sentence INSIDE its own prose cell, and the audit re-run shows 11 checked, 0 gaps. F175
+cites F177 by marker wording rather than id, and is recorded that way rather than counted as a citation.
+
+That is F183's rule - a claim and its correction adjacent - applied to the table that holds every other finding. It was
+the one place I had not applied my own rule, which is worth noting: I wrote the pattern and then found it violated 38
+rows from where the policy claim sat.
+
+211 findings, 28 instances plus eleven named patterns, all three checks PASS, gate live.
