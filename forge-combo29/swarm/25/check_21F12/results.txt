@@ -1,0 +1,38 @@
+### 21-F12 check: does the PC drawn-root repair reach `searchmoves`?
+PC   /home/ubuntu/build/pc/forge
+BASE /home/ubuntu/build/release/forge
+
+case                                                       build   nodes  bestmove        score  infos
+A halfmove 100, searchmoves e1e8 (a legal mate-in-1? check    PC       0      0000   score cp 0      5
+A halfmove 100, searchmoves e1e8 (a legal mate-in-1? check  base       0      0000   score cp 0      5
+
+B halfmove 100, searchmoves a7a8 (not legal for white here    PC       0      0000   score cp 0      5
+B halfmove 100, searchmoves a7a8 (not legal for white here  base       0      0000   score cp 0      5
+
+C halfmove 100, unrestricted                                  PC      84      a1a8 score mate 1      4
+C halfmove 100, unrestricted                                base       0      f2f3   score cp 0      4
+
+D halfmove 0, searchmoves a1a8 (the mate, no draw)            PC       8      a1a8 score mate 1      4
+D halfmove 0, searchmoves a1a8 (the mate, no draw)          base       8      a1a8 score mate 1      4
+
+
+VERDICT: CONFIRMS 21-F12 exactly, on the decisive case.
+  halfmove 100 + `go searchmoves a1a8 depth 4` (a1a8 IS the mate):
+     PC   build: 8 nodes, bestmove a1a8, **score mate 1**
+     base build: 0 nodes, bestmove a1a8, score cp 0
+  So the PC's drawn-root repair DOES reach the `searchmoves` restriction path: it searches the named move and finds
+  the mate at a counter where the base build adjudicates a draw without searching. Their 8-nodes figure reproduces
+  exactly.
+
+ALSO CONFIRMED, the "no legal named move" half:
+  halfmove 100 + `go searchmoves a7a8` (not legal for white here): BOTH builds answer 0000 with a cp 0 info line and
+  0 nodes. Unchanged on the PC build, as they say.
+
+AND THE CONTEXT CASE, which is worth recording because it shows the repair's scope:
+  halfmove 100, UNRESTRICTED: PC 84 nodes / a1a8 / mate 1; base 0 nodes / f2f3 / cp 0. So the repair reaches the
+  unrestricted root too - my own earlier drawn-root work (S-F3 family, and 21-F1's finding) is consistent with this.
+
+MY OWN MISTAKE IN THE FIRST RUN, recorded: my case A used `searchmoves e1e8` on a board where the white king is on
+g1, so e1e8 is not a legal move - both builds answered 0000 for the "no legal named move" reason, and that row tested
+nothing about the repair. The decisive case needed the move that is actually the mate (a1a8). Fixed by running the
+correct case; the wrong row is kept above rather than deleted.
