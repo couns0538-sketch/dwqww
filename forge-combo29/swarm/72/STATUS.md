@@ -38,6 +38,11 @@ draw claim suppresses a deliverable mate:
 | mate-in-1 at halfmove 100 | `cp 0`, plays `a1a2` |
 | threefold root with mate-in-1 | `cp 0`, plays `a1a2` |
 
+At game level the same position is lost outright: from halfmove 100 the
+engine plays `a1a2`, `a2a3`, … `a6a7`, `g6f7`, then `a7a8` when it is no
+longer mate, and never converts. From halfmove 99 it mates immediately. Only
+the clock differs between the two runs.
+
 FIDE 9.2/9.3 are claims belonging to the mover, and 5.1.1 ends the game at
 mate. python-chess agrees these boards are not terminal (`outcome() == None`)
 while `can_claim_fifty_moves()` is `True`. The engine treats a waivable claim

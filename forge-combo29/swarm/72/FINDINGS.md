@@ -51,6 +51,22 @@ Measured, with a mate in one (`Ra1-a8`) legally on the board in every row:
 The break is exactly at the documented threshold (99 → 100), which shows the
 trigger itself is right and only the *consequence* is wrong.
 
+### At game level it loses a won position
+
+The static score is not the whole story. Letting the engine play the winning
+side against a defender that only moves its king shows the consequence
+(`tools/audit72/t_mate_game.py`):
+
+| start halfmove | result |
+|---|---|
+| 99 (control) | plays `a1a8`, **mate in 1 move** |
+| 100 (treatment) | `a1a2`, `a2a3`, `a3a4`, `a4a5`, `a5a6`, `a6a7`, `g6f7`, then `a7a8` **when it is no longer mate** — never converts |
+
+Both starts are the identical position; only the clock differs, so nothing but
+the threshold can explain the divergence. The engine walks its rook up the
+board for eight moves, plays the mating square *after* the mate has gone, and
+finishes with the halfmove clock at 116.
+
 python-chess independently confirms these are claims and not terminal states:
 
 ```
@@ -67,7 +83,8 @@ generating moves, or check for an immediate mate first.
 
 Impact: in any won position that reaches halfmove 100 or a threefold, the
 engine stops converting and starts shuffling. This is a genuine strength
-loss, not a bookkeeping nit.
+loss, not a bookkeeping nit — the game-level run above shows a mate in one
+thrown away and never recovered.
 
 ## Refuted: the two-knights "defect"
 
