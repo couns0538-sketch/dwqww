@@ -40,6 +40,14 @@ Send `position startpos moves <list>` with one illegal token in it.
 The engine keeps the legal prefix, answers `readyok`, and searches that. This is the **more exposed** of the two,
 because a GUI sends a move list on every move, whereas hazard 1 needs a malformed FEN.
 
+**And it does not merely keep going — it produces a FULL, NORMAL SEARCH of the wrong board (23-F95).** On a K+R v K
+position, a list with an illegal ply 7 gives one `info string illegal move a1b1`, then 8 `info depth` lines, a score of
+`cp -424` and **4,416 nodes** — against a legal 7-ply control list giving 8 info lines, `cp 391` and **4,957 nodes** on
+the same harness. So the corrupted case is indistinguishable from a healthy one by any check that looks at the shape of
+the output (info lines present, plausible node count, plausible score). The only reliable defence is what this page
+already says: count the `info string` lines, and validate your own move list against an independent implementation
+(python-chess rejected the same list instantly) rather than against the engine's willingness to answer.
+
 ## Hazard 3 — a `go` with only the opponent's clock never answers
 
 Send `go wtime N` while it is **Black** to move (or `go btime N` while White is to move). The clock that was sent does
@@ -227,4 +235,5 @@ own self-play or matches. These matter for **anyone else writing a front end**, 
 | illegal token -> truncated game | `forge-combo29/swarm/23/check11/RESULT_SF57.txt`, `forge-combo29/swarm/23/check11/s57.out` |
 | the defence, three protocols | `forge-combo29/swarm/23/check11/gui_defence.out` |
 | partial clock -> no answer, no diagnostic | `forge-combo29/swarm/23/check02/RESULT.txt`, `forge-combo29/swarm/23/check02/partial_clock.out` |
-| related, same family | 23-C23 (refused FEN keeps previous board), 23-C24 (illegal token truncates), 23-C25 (partial clock hangs), 23-F53 (the defence) |
+| illegal move in a move list -> full normal search of the wrong board | `forge-combo29/swarm/23/job45/RESULT.txt`, `forge-combo29/swarm/23/job45/illegal_move_repro.out` |
+| related, same family | 23-C23 (refused FEN keeps previous board), 23-C24 (illegal token truncates), 23-C25 (partial clock hangs), 23-F53 (the defence), 23-F95 (the same hazard with its search numbers) |
