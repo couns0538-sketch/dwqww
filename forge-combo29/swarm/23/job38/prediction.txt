@@ -1,0 +1,29 @@
+PREDICTION — SW-23 job 38 (does the eval/go gap's STEP move with depth, or is it fixed at counter 92?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F80 measured the gap curve at ONE depth (10) and ended with a LIMIT that says the step "would move with depth
+too", taking that from 23-C26's onset sweep at five depths (95/92/91/89/89 at depths 6/8/10/12/14 on this board).
+That is a CITED, NOT RE-MEASURED claim and it is the weakest sentence in F80. This job tests it directly: if the gap
+steps where the search's own onset is, the step must move with depth the same way the onset did.
+
+Board: `1K6/8/8/3R4/8/8/8/k7 w` (the F80/C26 board), base build, Threads 1, Hash 16, OwnBook false.
+
+Method: at depth 6 sweep counters 80, 90, 93, 94, 95, 96, 98; at depth 12 sweep counters 78, 84, 86, 87, 88, 89, 90.
+At each counter take `eval` total and `go depth N`. Report eval, go, gap. Onset defined as the FIRST counter at which
+go reports cp 0 with every higher counter also cp 0 (a permanent onset, per 23-C26's own correction: a non-monotonic
+single cp 0 does not count).
+
+Prediction (each number with the range that kills it):
+  P1  `eval` total is 406 at EVERY counter and BOTH depths (spread 0 cp).      KILLED if any value differs by > 5 cp.
+  P2  depth 6: the gap opens (go cp 0) at counter 95, and go is a WIN at 80 and 90.   KILLED if onset outside 93-97,
+      or if go is cp 0 at 80 or 90 (which would mean the sweep never had a winning side to contrast).
+  P3  depth 12: the gap opens at counter 89, and go is a WIN at 78 and 84.      KILLED if onset outside 87-91, or if
+      go is cp 0 at 78 or 84.
+  P4  THE STEP IS DEPTH-DEPENDENT: the depth-6 onset is at least 4 counters HIGHER than the depth-12 onset.
+      KILLED if the two onsets are within 3 counters of each other — in which case the curve's step is a property of
+      the counter alone, F80's "would move with depth too" is refuted, and the curve should be stated as a fixed
+      boundary at ~92 rather than a horizon effect.
+
+If P1-P4 hold, F80's cited sentence becomes a measured one: the same step, located twice, moving with depth exactly
+as the search's onset moves — one mechanism seen through three instruments (search output, static/searched
+disagreement, and now depth-dependence of the disagreement).
