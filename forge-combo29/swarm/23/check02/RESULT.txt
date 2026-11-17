@@ -1,0 +1,28 @@
+CHECK of seat 02's S-F4 — a `go` naming only the OPPONENT's clock searches unbounded, silently
+============================================================================================
+Claim: `go wtime N` with Black to move, and `go btime N` with White to move, set NO limit and print NO diagnostic —
+the GUI sees a hang, not an error.
+
+Method: each probe sends the clock command and waits up to 3 s for `bestmove`; a hang is measured (process killed) not
+waited on. Controls: the matching clock (the side to move's own) must stop promptly, or the harness cannot tell
+"unbounded" from "slow".
+
+| probe | PC r15 + PC20 | base 6b98f217 |
+|---|---|---|
+| Black to move, `go wtime 1000` (only White's clock) | **UNBOUNDED >3 s**, 0 info-string lines | **UNBOUNDED >3 s**, 0 |
+| Black to move, `go btime 1000` (Black's OWN clock) | answered 0.02 s | answered 0.04 s |
+| White to move, `go btime 1000` (only Black's clock) | **UNBOUNDED >3 s**, 0 info-string lines | **UNBOUNDED >3 s**, 0 |
+| White to move, `go wtime 1000` (White's OWN clock) | answered 0.03 s | answered 0.05 s |
+
+VERDICT: CONFIRMS S-F4 on BOTH builds, with the controls proving the harness can see the difference (0.02-0.05 s when
+the clock belongs to the side to move, versus no bestmove at all within 3 s when it does not). And the silence is
+confirmed: **zero `info string` lines** in the unbounded cases, so a GUI reading the engine's output has no signal at
+all that its `go` was incomplete.
+
+WHY IT IS THE THIRD FRONT-END HAZARD (joining 23-C23's refused FEN and 23-C24's truncated move list): those two give
+a WRONG BOARD with a diagnostic available; this one gives NO ANSWER and no diagnostic. A GUI that sends a partial
+clock simply stops receiving moves, and nothing in the engine's output says why.
+
+Seat 02's proposed remedy — print an `info string` and fall back to a bounded default when neither clock belongs to
+the side to move — is a design recommendation, not a measurement, and I am not testing it; but the measurement above
+is exactly the evidence that recommendation rests on.
