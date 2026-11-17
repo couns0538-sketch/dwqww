@@ -14,25 +14,31 @@ import time
 exe, outdir, first, last, tag = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
 import shlex
 ARGV = shlex.split(exe)
+PAIRS_FILE = sys.argv[6] if len(sys.argv) > 6 else "/tmp/uci56_seqs.txt"
 GRACE_STOP = 1.0
 GRACE_BANANA = 0.6
 
-seqs, cur = [], None
-for line in open("/tmp/uci56_seqs.txt"):
-    line = line.rstrip("\n")
-    if line.startswith("### seq "):
-        cur = [line]; seqs.append(cur)
-    elif cur is not None:
-        cur.append(line)
-
 pairs = []
-for si, lines in enumerate(seqs):
-    pos = None
-    for l in lines[1:]:
-        if l.startswith("position"):
-            pos = l
-        elif l.startswith("go") and l.strip() != "go":
-            pairs.append((si, pos if pos is not None else "position startpos", l))
+if PAIRS_FILE.endswith(".pairs"):
+    for n, line in enumerate(open(PAIRS_FILE)):
+        if line.strip():
+            pos, _, go = line.strip().partition(" | ")
+            pairs.append((n, pos, go))
+else:
+    seqs, cur = [], None
+    for line in open(PAIRS_FILE):
+        line = line.rstrip("\n")
+        if line.startswith("### seq "):
+            cur = [line]; seqs.append(cur)
+        elif cur is not None:
+            cur.append(line)
+    for si, lines in enumerate(seqs):
+        pos = None
+        for l in lines[1:]:
+            if l.startswith("position"):
+                pos = l
+            elif l.startswith("go") and l.strip() != "go":
+                pairs.append((si, pos if pos is not None else "position startpos", l))
 
 def kept_board(posline):
     """python-chess board the engine keeps after `posline`, with the refusal text."""
@@ -67,15 +73,23 @@ def kept_board(posline):
 def run_pair(i):
     si, pos, go = pairs[i]
     p = subprocess.Popen(ARGV, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                         stderr=subprocess.DEVNULL, text=True, bufsize=1)
+                         stderr=subprocess.PIPE, text=True, bufsize=1)
     out = []
+    errout = []
     def rdo():
         try:
             for l in p.stdout:
                 out.append(l)
         except Exception:
             pass
+    def rde():
+        try:
+            for l in p.stderr:
+                errout.append(l)
+        except Exception:
+            pass
     threading.Thread(target=rdo, daemon=True).start()
+    threading.Thread(target=rde, daemon=True).start()
     try:
         p.stdin.write("uci\n" + "isready\n"); p.stdin.flush()
         t0 = time.monotonic()
@@ -127,8 +141,13 @@ def run_pair(i):
             legal = "unparseable"
     kind = go.split()[1] if len(go.split()) > 1 else "?"
     real = kind in ("depth", "nodes", "movetime")
+    allout = out + errout
+    san_lines = [l.strip()[:160] for l in allout
+                 if "AddressSanitizer" in l or "runtime error:" in l
+                 or "UndefinedBehaviorSanitizer" in l]
     return (i, si, pos, go, best if best else "(none)", legal, refusal,
-            " ; ".join(refuse[:2]), "real" if real else "other")
+            " ; ".join(refuse[:2]), "real" if real else "other",
+            len(san_lines), " ; ".join(san_lines[:2]))
 
 if __name__ == "__main__":
     rows = []
@@ -140,7 +159,7 @@ if __name__ == "__main__":
         if (i - first) % 25 == 0:
             sys.stderr.write(f"[{tag}] {i - first}/{last - first}\n")
     with open(f"{outdir}/records_{tag}.tsv", "w") as f:
-        f.write("pair\tseq\tposition\tgo\tbestmove\tlegal\trefusal\tengine_refusal_lines\tclass\n")
+        f.write("pair\tseq\tposition\tgo\tbestmove\tlegal\trefusal\tengine_refusal_lines\tclass\tsan_count\tsan_lines\n")
         for r in rows:
             f.write("\t".join(str(x) for x in r) + "\n")
     print(f"{tag}: {len(rows)} rows")
