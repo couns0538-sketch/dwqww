@@ -19,6 +19,11 @@ timing in this file is provisional.
    `mate N` to 30000 cp produced a meaningless "106x more volatile", and an earlier reading turned a mate score into
    "the one-ply move loses 9 pawns". Report such events as counts of the event, never as a magnitude. (08-F30, F31.)
 
+4. **A static analyser of your own code is a heuristic; its verdict needs the same scepticism as prose.** My harness
+   ordering audit produced two false positives — one from counting a `setoption` that precedes the `go`, one from a
+   "bestmove wait" pattern that matched a reader helper and stretched the window into the next function. Both would
+   have been published as defects in my own harness. Open the flagged file before believing the tool. (08-N4.)
+
 | id | area | finding | evidence file with the command that shows it again | status |
 |---|---|---|---|---|
 | 08-F1 | 8 | On a clock the tail is ~4x the median: 10 s clock, median 345 ms but p99 1335 ms and max 2426 ms, and 46 of 200 searches run past the engine's own soft limit (529 ms, up to 4.6x); none pass its hard limit (2645 ms). 1 s clock: median 40 ms, p99 153 ms, max 199 ms, 63 of 200 past soft. | job1/raw2/limits_table.txt, from `cd forge-combo29/swarm/08/job1 && python3 limits_vs_wall.py raw2`; raw searches job1/raw2/tc10000.jsonl | NEW |
