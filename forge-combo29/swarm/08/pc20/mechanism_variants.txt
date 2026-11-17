@@ -1,0 +1,35 @@
+## Mechanism variants — does the both-waiting pattern survive toggling the bare-king switches?
+
+Depth %d, Threads 1, Hash 16. V0 shipped, V1 = LMR_CAP off, V2 = ONE_THREAD on, B = base.
+
+| fen | B | V0 (shipped) | V1 (cap off) | V2 (1-thread on) | V0 class | V1 class | V2 class |
+|---|---|---|---|---|---|---|---|
+| 8/8/2B1k3/8/3PP3/P7/4K3/7R b - - 1 | e6d6 | e6e7 | e6d6 | e6d6 | WAITING | PROBING | PROBING |
+| 8/8/2k5/4P3/3P4/P7/4K3/7R w - - 1  | e2d3 | h1c1 | e2d3 | e2d3 | PROBING | WAITING | WAITING |
+| 8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0  | c7d8 | c7c6 | c7d8 | c7d6 | WAITING | WAITING | PROBING |
+| 8/4k3/8/6R1/8/P7/3K4/8 b - - 1 116 | e7d7 | e7d6 | e7d7 | e7d6 | WAITING | WAITING | WAITING |
+| 1R6/8/k7/8/8/P7/8/2K5 b - - 15 123 | a6a7 | a6a5 | a6a7 | a6a5 | WAITING | PROBING | WAITING |
+| 8/8/8/4R3/2k5/P7/8/2K5 w - - 22 12 | a3a4 | c1c2 | a3a4 | a3a4 | WAITING | WAITING | WAITING |
+| 8/8/8/1R6/1K6/P7/3k4/8 b - - 57 14 | d2e3 | d2e1 | d2e3 | d2e1 | WAITING | WAITING | WAITING |
+| 8/8/P7/8/8/4K3/1k6/8 b - - 18 186 | b2b3 | b2c2 | b2b3 | b2c2 | WAITING | WAITING | WAITING |
+| 6K1/2b5/p1k5/8/8/8/8/b7 b - - 5 13 | a6a5 | a1d4 | a6a5 | a6a5 | WAITING | WAITING | WAITING |
+| 8/2k5/p7/8/8/7K/1b6/b7 w - - 26 14 | h3g4 | h3g2 | h3g4 | h3g4 | WAITING | WAITING | WAITING |
+| 2k5/8/p7/6b1/8/2b4K/8/8 b - - 47 1 | a6a5 | g5f6 | a6a5 | a6a5 | WAITING | WAITING | WAITING |
+
+## Pattern counts per build
+
+| build | both WAITING | base-PROBING -> it-WAITING | other |
+|---|---|---|---|
+| V0 shipped | **8** | 2 | 1 |
+| V1 cap off | **9** | 0 | 2 |
+| V2 1-thread on | **8** | 1 | 2 |
+
+## Verdict
+
+| question | answer |
+|---|---|
+| V1 (cap off) plays the SAME move as V0 | 0 of 11 |
+| V2 (1-thread on) plays the SAME move as V0 | 4 of 11 |
+
+**At least one switch does change moves here** (V1 differs on 11 boards, V2 on 7), so the ordering
+hypothesis is not eliminated by this test — see the table for which boards.
