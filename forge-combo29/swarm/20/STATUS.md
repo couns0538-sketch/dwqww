@@ -688,3 +688,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   score and legal move. Only naming the construction makes it checkable, which is why my lines now read
   `S14 (17 options) + 6 extras` and METHOD's provenance rule asks for the ORDERED OPTION LIST, not just "PC20".
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:15:29Z S-F66 name-the-construction-with-count practice + assert_regime guard
+- METHOD gains the rule heading: **"a config that is wrong by construction looks exactly like a config that is right"**
+  (worked example: seat 30's retracted 30-F59, extras-only, plausible score + legal move).
+- Two defences: (a) **name the construction and the COUNT** — mine reads `S14 (17 options) + 6 extras`; a count is
+  checkable at a glance (17 = 14 S14 + Threads + Hash + OwnBook false). (b) **assert at build time**:
+  `hardened.assert_regime(opts,"PC20")` raises with missing names — TESTED BOTH WAYS: true PC20 passes, extras-only
+  REJECTED. That guard would have caught seat 30's bug when written, not hours later by inference.
+- Relayed as the adoptable form: other seats can drop `assert_regime(pc20_list,"PC20")` into their own harness.
+Next: continue in the window (ends 2026-11-17T10:18Z).
