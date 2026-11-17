@@ -566,8 +566,8 @@ The two things a client cannot fix on its own, and which belong in the engine:
 | `evidence/movetime_zero_interleaved.json` | 30 fresh processes per arm, interleaved |
 | `evidence/build_and_run.log` | the matrix run log, build label on every line |
 | `scripts/` | `go_probe.py` (the harness), `matrix.py`, `keyword_eating.py`, `lastwins.py`, `searchmoves_pass.py`, `boundedness.py`, `huge_clock.py`, `repeatability.py`, `movetime_zero.py`, `book_randomness.py`, `find_reference_fen.py`, `search_reference_board.py` |
-| `scripts/verify_claims.py` | re-derives 293 checkable claims (numeric + table shape) from the evidence |
-| `scripts/verify_anchors.py` | re-reads all 19 cited `path:line` source anchors from `6b98f217` |
+| `scripts/verify_claims.py` | re-derives 295 checkable claims (numeric + table shape) from the evidence |
+| `scripts/verify_anchors.py` | re-reads all 22 cited `path:line` source anchors from `6b98f217` |
 | `scripts/check_all.sh` | runs both verifiers; non-zero if either fails |
 
 ## How the figures here are checked
@@ -575,11 +575,11 @@ The two things a client cannot fix on its own, and which belong in the engine:
 `./scripts/check_all.sh` runs two independent verifiers and exits non-zero if
 either fails.
 
-**`scripts/verify_claims.py` — 293 claims**, two kinds: numeric (figures against
+**`scripts/verify_claims.py` — 295 claims**, two kinds: numeric (figures against
 the JSON/JSONL evidence) and structural (every markdown table row against its
 header's cell count).
 
-**`scripts/verify_anchors.py` — 19 source anchors**: each `path:line` this
+**`scripts/verify_anchors.py` — 22 source anchors**: each `path:line` this
 document cites is re-read from `6b98f217` and must still contain the construct
 the document says it does.
 

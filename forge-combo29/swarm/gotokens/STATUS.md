@@ -47,8 +47,8 @@ broken header path), `LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13`, default
 - [x] boundedness probes, 120 s, two boards
 - [x] 0-ms race quantified, 30 processes per arm, interleaved
 - [x] FINDINGS.md
-- [x] `scripts/verify_claims.py` — 293 claims re-derived (numeric + table shape), proved able to fail
-- [x] `scripts/verify_anchors.py` — 19 source anchors re-read, proved able to fail
+- [x] `scripts/verify_claims.py` — 295 claims re-derived (numeric + table shape), proved able to fail
+- [x] `scripts/verify_anchors.py` — 22 source anchors re-read, proved able to fail
 - [x] `scripts/check_all.sh` — runs both
 
 **Matrix cells measured: 157** (75 keywords + 19 combos + 11 eating + 12
