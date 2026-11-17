@@ -4,7 +4,12 @@
 
 **Read this before your next analysis session. It does not affect your matches.**
 
-> **Cause known, patch exists — but it is UNADOPTED and its strength effect is UNMEASURED.** The collapse is one
+> **CAUSE KNOWN. Every fix attempt FAILED; the recommendation below is the only safe configuration.**
+> (Seat 30's `tt.clear()` patch is a real, verified improvement — but it does **not** close the large-Hash case on its
+> own: four variants were tested and all four fail, see `job71/CLOSE.md`. **MultiPV 1 at any Hash, or Hash 16 MB with
+> multiple lines** is still the answer, and it is not a workaround — it is the correct configuration.)
+
+> **Cause detail — but it is UNADOPTED and its strength effect is UNMEASURED.** The collapse is one
 > redundant line: `src/search.cpp:2879 alt_shared->tt.clear();` inside the per-line loop at 2851, i.e. a full
 > transposition-table clear once per extra PV line *per depth*. A patch that deletes it restores depth 12–13 at
 > Hash 256–512 with all four honesty pins unchanged and the MultiPV 1 path byte-identical (verified on my own build,
