@@ -52,10 +52,13 @@ across two independent implementations and six position sets** (my 39 and seat 0
 Seat 07's contribution: 24 of 24 on its own mate-rich pool — eight mate-reporting positions at all three owner budgets
 (`go nodes` 20000 / 50000 / 250000) — 23 complete-and-delivered, 1 short-and-not.
 
-Seat 19's validated DTM oracle escalated two of these from "unbacked" to **arithmetically impossible**: on
-`8/8/8/3k4/8/8/8/KR6 w` my `mate +20` promises 39 plies against a KRvK maximum of 31. Complete versus impossible is a
-distinction worth keeping: a short PV says the line was cut off, an impossible score says the number cannot be right
-whatever the line says.
+**On material bounds, a caution.** A material bound is a valid check in principle — a KRvK mate score above 16 moves
+cannot be a true distance — but it must be computed from a verified table or brute force, not from an unvalidated solver.
+I reported an oracle-based "arithmetically impossible" escalation of two of these scores and have **withdrawn it**:
+the solver used was later found wrong (on `8/8/4k3/6q1/8/8/8/1K6 b` a fresh brute force gives mate in 5 while that
+solver said 9), and every oracle-derived finding from that source was withdrawn by its own author. So the claim here is
+**PV-replay only**: the printed line does not mate. Whether the score is achievable is not established by my data, and
+the two scores in question may well be closer to the truth than the oracle said.
 
 ### 3. The earlier mate-truncation instances
 

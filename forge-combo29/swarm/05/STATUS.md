@@ -937,3 +937,15 @@ every sentence.
 - Also checked that FINAL's only use of "node-limited" (line 31) is the unrelated match-type comparison, not the
   refuted claim — so no document needs unpicking.
 - next command: continue at cadence.
+
+## $(date -u) — URGENT REVERT: the oracle escalation was WRONG
+- Seat 19 found its DTM solver wrong (`8/8/4k3/6q1/8/8/8/1K6 b`: fresh brute force = mate in 5, that solver said 9) and
+  withdrew every finding computed from it, including the C line that called two of my S-F66 scores "arithmetically
+  impossible". So that escalation was BACKWARDS and the engine's scores were nearer the truth.
+- ACTION TAKEN: S-F66 reverted to PV-replay ONLY — the printed line does not mate, nothing about achievability. The
+  "4 plies more than exist" and "39 against a maximum of 31" figures are REMOVED from FINDINGS, FINAL_SUMMARY and
+  REPORT_mate_truncation. Recorded as S-W12 with the general lesson kept: a material bound is valid in principle
+  (a KRvK mate above 16 moves cannot be a true distance) but must come from a verified table or a brute force I can
+  re-run, never an unvalidated solver.
+- My PV-replay evidence and all other findings are untouched — none depended on that solver.
+- next command: continue at cadence.

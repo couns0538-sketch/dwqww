@@ -140,9 +140,13 @@ deliberate probe immediately dissolved (|N| = 15 delivered 4 of 6; |N| = 16 deli
 
 So for anyone consuming these labels, the cheap test is sufficient: **if the printed PV is shorter than 2|N|−1, treat the
 mate score as a label that was not delivered** — you do not need to replay it, and you do not need a DTM oracle. Replaying
-is still the stronger statement when you want to say "this line does not mate" rather than "this line is short"
-(the distinction seat 19's escalation made vivid: on two of these boards the score is not merely unbacked but
-**arithmetically impossible**, since a KRvK mate cannot need 39 plies when the maximum is 31).
+is still the stronger statement when you want to say "this line does not mate" rather than "this line is short".
+
+**Caution on material bounds.** A bound is a valid check in principle — a KRvK mate score above 16 moves cannot be a
+true distance — but it must be computed from a verified table or brute force. I had reported an oracle-based
+"arithmetically impossible" escalation of two scores and have **withdrawn it**: that solver was later found wrong on a
+test position (fresh brute force: mate in 5; that solver: 9) and its author withdrew every finding drawn from it. The
+claim that survives is PV-replay only: **the printed line does not mate.**
 
 ## Honest summary
 
