@@ -1,0 +1,18 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 12:29:22.141143771 +0000
++++ b/src/search.cpp	2026-11-17 12:30:24.981143771 +0000
+@@ -1147,12 +1147,13 @@
+         for (std::size_t i = 0; i < n; ++i) {
+             Scored cur{non_tt[i], score_evasion(non_tt[i])};
+             std::size_t j = i;
+-            while (j > 0 && cur.score > moves_[j - 1].score) {
++            while (j > 0 && cur.score >= moves_[j - 1].score) { /* PLANTED FAULT: reverse equal-scored pair */
+                 moves_[j] = moves_[j - 1];
+                 --j;
+             }
+             moves_[j] = cur;
+         }
++        if (true) { count_ = n; sorted_ = true; return; }
+         bool has_tie = false;
+         for (std::size_t i = 1; i < n; ++i) {
+             if (moves_[i].score == moves_[i - 1].score) {
