@@ -190,3 +190,32 @@ which is a third of the way to the value a reader might then compare against ano
 The general lesson is the same one as the vacuity trap: **a helper that returns a plausible number for the wrong reason
 is worse than one that raises.** A median function given an even list should either take the mean or refuse — never
 silently pick one of the middle two.
+
+---
+
+# Fifth note: a clean-looking split can be a sampling artefact — test the discriminator, not the correlate
+
+**S-F70 reported "every gained mate with |N| <= 14 delivered, every one with |N| >= 15 did not — 12 labels, no overlap."
+A deliberate probe refuted it in one run.**
+
+The probe hunted 600 sparse KR/KQ positions for gained labels with |N| in {13,14,15,16} and found 11. The result:
+
+- |N| = 13: 1 of 1 delivered; |N| = 14: 2 of 2; **|N| = 15: 4 of 6**; |N| = 16: 2 of 2.
+
+So |N| does not separate at all — |N| = 15 straddles. What DOES separate, exactly, is **whether the printed PV is
+complete relative to 2|N|-1**: 9 complete PVs, 9 delivered mates; 2 short PVs, 0 delivered. 11 of 11.
+
+Two lessons:
+
+1. **A gap at 14/15 in pooled data is not a boundary.** I had written "not a proven threshold" — which was the right
+   hedge — but I still let the shape of the data suggest a mechanism (mate distance) when the actual mechanism was one
+   variable further back (PV completeness). The mate distance correlates with the defect only because long mates are
+   likelier to be truncated.
+2. **Test the discriminator directly.** |N| was a correlate I could sort by; PV completeness was the thing itself. When
+   two variables are available, the one that perfectly predicts the outcome is the finding, and the one that only mostly
+   predicts it is a shadow.
+
+This is the third time in this session that sorting data by a plausible variable produced a tidy pattern that a targeted
+probe then dissolved. The pattern: a tidy split from a small pooled sample should be treated as a HYPOTHESIS to attack,
+not a result to report — which is exactly what the coordinator asked for when they called the 14/15 gap "the one number
+in your result that has no second sample".
