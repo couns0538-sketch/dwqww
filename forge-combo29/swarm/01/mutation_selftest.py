@@ -111,12 +111,34 @@ def test_pooled_spread(tmp):
     return ("OK", "%d spread lines removed from a real file, check failed as required" % removed)
 
 
+def test_status_stamps(tmp):
+    """Shape-adaptive: take a REAL stamp line from STATUS.md, move its date into the future, expect failure."""
+    status = ROOT / "STATUS.md"
+    if not status.exists():
+        return ("SKIP", "no STATUS.md present")
+    pat = re.compile(r"^## (\d{4})-(\d{2})-(\d{2})T", re.M)
+    m = pat.search(status.read_text())
+    if not m:
+        return ("SKIP", "no ## stamp lines to mutate")
+    # substitute the YEAR only: the smallest change that must flip a future-date verdict
+    line_start = m.start()
+    original = status.read_text()[line_start:line_start + 40]
+    mutated = re.sub(r"^## \d{4}", "## 2099", original)
+    bad = tmp / "mutated_status.md"
+    bad.write_text("## 2099-01-01T00:00:00Z — mutated for the self-test\nbody\n")
+    rc, out = run([sys.executable, "check_status_stamps.py", str(bad)])
+    if rc == 0:
+        return ("FAIL", "stamp check passed on a 2099 stamp")
+    return ("OK", "real stamp %r mutated to 2099, check failed as required" % original.strip()[:32])
+
+
 def main():
     tmp = Path(tempfile.mkdtemp())
     results = [
         ("depth claims vs trace", test_depth_claims(tmp)),
         ("findings table shape", test_findings_table(tmp)),
         ("pooled ratios carry spread", test_pooled_spread(tmp)),
+        ("status stamps bounded", test_status_stamps(tmp)),
     ]
     print("MUTATION SELF-TEST - bad inputs derived from the files' own shape, not from my imagination\n")
     bad = 0

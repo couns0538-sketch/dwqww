@@ -372,11 +372,44 @@ That asymmetry is the whole content of Trap 13, and it explains why the two fami
 * **Family B is PARTLY automatable, and the trick is to take the bad input from the subject itself.** A file that a check tests already contains correctly-shaped instances of what it looks for. So lift a real instance out of the file, mutate it in a way that must change the verdict, and require the check to fail — **the test input then comes from the file's shape, not from my imagination**, which was the missing ingredient. On its first run this found a genuine gap: the pooled-spread check's vocabulary listed `percent`, so an unrelated line ("adequate for 12 percent") satisfied it, and a file with every spread stripped still passed.
 * **What remains imagination-only is COVERAGE, not content.** A mutation cannot reveal a file the check never opened — the `*.md`-only glob would pass every mutation test. So the honest position is narrower than either of my first two: **mutation testing automates family B for content; file and directory coverage stay imagination-only.**
 
-**Family B's residual is not automatable, and that is a property of the problem rather than a gap in my tooling.** To test whether
-  a selector looks in the right place, the bad input must be written **in the shape the subject is actually written
-  in** — which is precisely the knowledge the check's author lacked. A self-test written by me would use my mental model
-  of the file, which is the same model that produced the wrong selector. **The test cannot supply the imagination its
-  author does not have.**
+**The residual is a property of the problem, not a gap in my tooling.** A self-test written from my own mental model of
+a file uses the same model that produced the wrong selector — so for the *coverage* half, the test cannot supply the
+imagination its author lacks. That half is now carried by a different device: the **stated exclusion list**, which lets
+another person check the exclusions instead of the author imagining them.
+
+**Quote both halves together, because either alone is misleading:**
+
+> **Mutation testing automates family B for content; file and directory coverage stay imagination-only.**
+
+The first half alone suggests a check can be fully validated by machinery — which is how the markdown-only glob survived
+every earlier pass. The second alone suggests nothing can be — which is what I wrongly concluded before writing the tool.
+
+### The mutation recipe, for whoever writes the next check
+
+Four steps, and the third is the one that matters:
+
+1. **Take a real line** out of a file the check already passes on. Not a synthetic one — the point is that its shape is
+   correct by construction.
+2. **Apply the smallest change that must flip the verdict.** Smallest, because a large change can trip any selector for
+   the wrong reason. Change one node count by 1; add one cell to a row; delete only the spread markers.
+3. **Assert the check FAILS.** If it passes, the selector does not cover the shape its own file uses — which is the
+   family-B failure, found without needing to imagine anything.
+4. **Restore and confirm it passes again**, so the step proves the mutation was the cause rather than a broken run.
+
+**All four classes below are implemented in `mutation_selftest.py` and run as a gate step**, so the next author can
+extend rather than reinvent:
+
+| class | example | which check it tests |
+|---|---|---|
+| numeric off-by-one | `12,657` → `12,658` in a depth claim | a check that compares counts |
+| cell added | real row + `extra cell \|` | a check that counts fields |
+| marker stripped | the four spread lines removed | a check that requires an accompaniment |
+| token substituted | a stamp's year moved to `2099` | a check that bounds a value |
+
+**A fifth class is missing and I know it**: **path substitution** — pointing a check at a copy of the subject in a
+directory it does not glob. That class would have caught S-F142 automatically. It is not implemented because it needs a
+harness that knows where each check looks, and I have run out of justification for building one tonight — so it is
+recorded here as the next thing to do rather than claimed as done.
 
 So family B keeps recurring not because I keep forgetting a rule, but because **the only defence is to imagine a
 different author reading the file** — and that is a habit, not a mechanism. The three questions earlier on this page are

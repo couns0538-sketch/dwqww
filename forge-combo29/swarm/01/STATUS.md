@@ -2509,3 +2509,27 @@ thing I am worst at - writing a percent sign into prose while thinking about som
 Gates: 202 rows, 0 wrong pipe counts, mutation self-test now a gate step, all five checkers state scope, Trap 12
 enforced, stamps in order, gate rc=0 across 58 checks.
 Next: continue at cadence.
+## 2026-11-17T01:55:34Z — the mutation recipe is copyable, and enumerating its classes caught me listing one I had not built (S-F147)
+1. THE NARROWED CLAIM IS NOW A QUOTABLE PAIR, in one place with an instruction beside it:
+     "Mutation testing automates family B for content; file and directory coverage stay imagination-only."
+   with the reason either half alone misleads: the first alone suggests a check can be fully validated by machinery -
+   which is how the markdown-only glob survived every earlier pass; the second alone suggests nothing can be - which is
+   what I wrongly concluded before writing the tool. Both halves are in one blockquote so nobody can quote one without
+   the other, and the page says so explicitly.
+   I also removed a stale paragraph that still said family B's residual "cannot be automated" without the
+   content/coverage distinction - it contradicted the correction sitting three lines above it. A correction that leaves
+   the original claim standing elsewhere in the same section is not a correction.
+2. THE RECIPE IS WRITTEN TO BE COPIED (S-F147): take a REAL line from a file the check already passes; apply the
+   SMALLEST change that must flip the verdict (smallest, because a large change can trip any selector for the wrong
+   reason); assert the check FAILS; restore and confirm it passes again, so the step proves the mutation was the cause
+   rather than a broken run.
+   FOUR CLASSES, ALL IMPLEMENTED AND GATING: numeric off-by-one, cell added, marker stripped, token substituted.
+   AND ENUMERATING THEM CAUGHT ME. I first published a four-row table where only THREE were built - the stamp class was
+   listed from memory - which is Trap 0 inside a table about verification. It is now implemented and proven
+   (a real stamp's year mutated to 2099, check fails as required).
+   A FIFTH CLASS IS NAMED AS A KNOWN GAP, NOT CLAIMED: PATH SUBSTITUTION - pointing a check at a copy of the subject in
+   a directory it does not glob. That is the class that would have caught S-F142 automatically. Not implemented, because
+   it needs a harness that knows where each check looks. RECORDING A GAP IS WORTH MORE THAN ROUNDING THE LIST UP TO FIVE.
+Gates: 203 rows, 0 wrong pipe counts, four mutation classes implemented and gating, coverage gap stated, stamps in
+order, gate rc=0 across 58 checks.
+Next: continue at cadence.
