@@ -1,0 +1,21 @@
+# Attempt to test 05-F71's sparse/middlegame deepgain claim on an independent set - INCONCLUSIVE on my side
+# PC r15/PC20/Threads 1/Hash 16, shallow go depth 10 vs deep go depth 20
+# 2026-11-17T00:40:35Z
+
+## Attempt 1: sparse set of K+N/K+P endings
+8/7K/8/8/3k1N2/8/8/8, k2K4/..., 8/2R5/4k3/..., 8/8/8/4k3/7K/4N3/..., 8/8/3Q4/..., 8/8/8/8/5k2/5N2/...
+-> gained a mate label on 0 of 6, BUT these positions are mostly INSUFFICIENT MATERIAL (K+N vs K is a
+   draw by material), so no depth can produce a mate label. The set cannot test the claim.
+
+## Attempt 2: sparse set WITH mating material (KR/KQ vs K, king on the edge)
+8/8/8/8/8/8/2K1Q3/k7, 8/8/8/4R3/8/5K2/8/7k, 8/8/8/8/8/7K/5Q2/7k,
+1k1K4/8/8/8/8/8/8/R7, k1K5/6Q1/8/8/8/8/8/8, 4K1k1/8/8/8/Q7/8/8/8
+-> **every position already reports  at depth 10**, so there is no shallow-to-deep TRANSITION to
+   measure: gained = 0 of 6 again, but for the opposite reason - the label is already present.
+
+## Verdict: INCONCLUSIVE, and the reason is my set design, not seat 05's claim
+To test 'sparse endgames gain a mate label at deeper search' the set needs positions whose mate exists but
+is BEYOND depth 10 - i.e. mate in 6+ moves at sparse material. Both of my sets miss that window: one has no
+mate available at all, the other has mates shallow enough to be found immediately. **I am not reporting
+either as a refutation.** Constructing positions in that window requires a mate-distance oracle per position,
+(e.g. a KQ-vs-K DTM table) which I have not built.
