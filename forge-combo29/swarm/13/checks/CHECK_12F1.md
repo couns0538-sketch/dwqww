@@ -37,10 +37,15 @@ claim. Both builds behave the same.
 `ucinewgame` also **clears the transposition table**, so it is a *cold reset*, not merely a board reset. Three
 identical depth-12 searches of the same position in one process:
 
-| discipline | node counts |
-|---|---|
-| `ucinewgame` before each | **52,591 / 52,591 / 52,591** (identical every time) |
-| no `ucinewgame` (warm table) | **52,591 / 27,239 / 21,407** (collapses) |
+| discipline | three consecutive runs, node counts | bestmoves |
+|---|---|---|
+| `ucinewgame` before each | **52,591 / 52,591 / 52,591** | `g7g6` three times |
+| no `ucinewgame` (warm table) | **52,591 / 27,239 / 21,407** | `g7g6` three times |
+
+Both rows are shown in full rather than summarised, because the three warm values ARE the evidence: the
+first search pays full price, then the second and third reuse what the first learned and cost 52 % and 41 %
+of it. Note that the **bestmove did not change** across all six searches — the warm table changes the COST,
+not the choice, on this position. Identical on the base build (`out_12f1_base/ucinewgame.json`).
 
 **This invalidates the framing of my own job 16.** That job ran a "cold" arm (fresh process per position) and
 a "warm" arm (one process, `ucinewgame` between positions). Because `ucinewgame` is a cold reset, **my warm

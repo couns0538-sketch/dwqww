@@ -807,3 +807,18 @@ CYCLE STEP (a): checked seat 12's 12-F1 -> S-C7 CONFIRMS it, and the check CORRE
   AUDIT: all three of my scripts that send ucinewgame send `position` AFTER it, so none is affected by the
     board-reset trap (checks/check_27f2.py, job10/underreport.py, job16/loneking.py).
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:03:26 AM UTC 2026
+
+CHECK_12F1.md now states ALL THREE warm runs explicitly rather than summarising them, since the three
+values are the evidence:
+  with ucinewgame between : 52,591 / 52,591 / 52,591  (bestmove g7g6 each time)
+  without (warm table)    : 52,591 / 27,239 / 21,407  (bestmove g7g6 each time)
+  i.e. the second and third searches cost 51.8 % and 40.7 % of the first — the reuse is visible in the
+  numbers. Both builds identical (out_12f1/ and out_12f1_base/).
+  Worth noting for interpretation: the BESTMOVE did not change across all six searches, so the warm table
+  changes the COST, not the choice, on this position — which is exactly why a warm/cold harness difference
+  can silently corrupt node-count comparisons while leaving moves looking fine.
+Scope audit from the same pass stands: all three of my scripts that send ucinewgame send `position` AFTER it,
+so none is exposed to the board-reset trap.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
