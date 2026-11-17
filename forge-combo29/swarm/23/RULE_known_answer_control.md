@@ -570,6 +570,26 @@ Three mechanical consequences:
 The general form: this is instance 1 of this page (a checker silent for a bad reason) wearing the opposite mask — a
 checker LOUD for a bad reason. Both produce a confident report about something the checker never examined.
 
+## Named pattern — THE ONE-FIXTURE SENTENCE, THREE TIMES IN ONE SEAT
+
+Not one fault but the seat's most repeated failure, and the reason each instance is worth naming is the framing, not the
+arithmetic. In every case the measurement was right, the sentence built on it was careful, and the sentence was still
+one fixture wide:
+
+1. **23-F112** — "the bail does not fire on every threefold", from ONE board that turned out not to be a threefold.
+2. **23-F105** — the predictor "names the move", from five CONSTRUCTED fixtures; it needed a self-play-reached root
+   (23-F108) before it was a claim about the engine rather than about my own fixtures.
+3. **23-F129** — "the repair fixes the move", from ONE board. A second board (23-F130) showed the repair is
+   material-NEUTRAL there. The correct statement is "removes the 0-node path; improves the move on one of two boards".
+
+**The pattern in my own language: any sentence beginning "the build does X" or "the repair fixes X" is a HYPOTHESIS
+until a second, differently-shaped fixture has been run.** Careful framing does not substitute — every one of these three
+was framed carefully, with explicit limits, and every one was still too wide. The limits sections did not help because a
+reader takes the headline, and so does the FINAL.
+
+Mechanical consequence: **before a general sentence reaches anyone, name the second fixture that would break it and run
+it.** If no second fixture exists, the sentence is written as "on this board" and nothing more.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if

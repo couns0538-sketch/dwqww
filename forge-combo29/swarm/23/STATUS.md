@@ -2301,3 +2301,26 @@ consistent enough that I should treat any sentence of mine beginning "the repair
 a second board before it reaches you.
 
 157 findings, all three checks PASS.
+## 2026-11-17T01:50:35Z  F131: the one-fixture rule applied and the claim HELD - PC policy is consistent across two boards
+2026-11-17T01:50:35Z
+
+After correcting myself on the repair claim, I applied the same rule to the other general sentence I had sent: F128's
+"policy difference" between base cp 0 and PC cp 425 on a claimable threefold. That was one board, so it needed a second
+before the word "policy" was safe.
+
+  K+R v K root  : base cp 0 / 0 nodes  | PC cp 425 / 40,801 nodes  -> PC reports a win, does not claim
+  pawns+rook    : base cp 0 / 0 nodes  | PC mate 1 / 252 nodes     -> PC reports a win, does not claim
+  K+Q v K       : no castling-neutral cycle exists -> EXCLUDED and printed, not dropped
+
+PC claims on 0 of 2 usable claimable roots - a CONSISTENT policy. So F128's framing survives a second fixture, and the
+word "policy" is now earned rather than inferred. The mate-1 cell is the strongest form: a threefold root does not stop
+the PC reporting a mate in one.
+
+That is the rule working in the right direction for once - I named the second fixture that could break the claim, ran
+it, and the claim held. Worth saying because the last three applications of that rule all refuted me.
+
+The rule itself is now in the rule page as a named pattern: THE ONE-FIXTURE SENTENCE, with the three times it bit
+(F112's scope, F105's predictor, F129's repair claim), and the mechanical consequence - before a general sentence reaches
+anyone, name the second fixture that would break it and run it; if none exists, write "on this board" and nothing more.
+
+158 findings, all three checks PASS.
