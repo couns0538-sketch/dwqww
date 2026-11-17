@@ -285,6 +285,27 @@ list, base answers `0 nodes, cp 0, a2a3` and PC answers `34,047 nodes, cp 22, e2
 game positions delivered by move list would see a divergence that is not there in the FEN
 form.
 
+### How far this reaches
+
+**The threshold is three occurrences, not two.** At exactly 2 prior occurrences of the final
+position the two command forms agree on both builds; at 3 they diverge. So the trigger is a
+genuine threefold, and an ordinary 2-fold is harmless.
+
+**It is not an endgame artifact.** A real opening plus a legal knight/queen cycle gives a
+**32-piece middlegame** threefold at ply 24. There the base answers `0 nodes, cp 0, a2a3` at
+every budget tested — `go depth 8`, `12`, `14`, `go nodes 50000`, `go nodes 500000` — while
+the same board as a FEN answers `b3e6 cp 32` on both builds and PC answers `b3e6` from the
+move list too. **The base's answer is the wrong move and is 32 cp out.**
+
+The bailing cell is fully deterministic: 3 runs on each build give 1 distinct result. It is
+a stable wrong answer, not noise. The base also reports `nodes 0` together with `depth 64`
+under a `go nodes` budget, which is internally inconsistent and is itself a detector.
+
+**Exposure bound.** A harness that samples random positions is essentially never affected:
+0 threefolds in 600 random games of 60 / 120 / 200 plies, and 0 in 4,000 further 160-ply
+seeds. A harness that replays **real games** to a threefold is affected, and it gets a
+silently wrong move rather than an error.
+
 ## One table: what varies and what does not
 
 Fixed-budget answer = (nodes, bestmove, score, depth). `Threads 1` throughout.
@@ -316,4 +337,6 @@ Fixed-budget answer = (nodes, bestmove, score, depth). `Threads 1` throughout.
 | **Hash 128 vs 256** | **YES at ≥1M** | 0 / 24 at 500k, 2 / 24 at 1M, 15 / 24 at 2M, 24 / 24 at 4M |
 | **Hash 64 vs 256 at 500k** | **no** | 0 / 24 (the earlier 17 / 24 was Hash 16 being too small) |
 | **repetition history across `ucinewgame`** | **no leak** | 4 / 4 sequences identical |
+| **`position fen` vs `moves`, 2 occurrences** | no | 0 / 2 builds |
+| **`position fen` vs `moves`, 3 occurrences** | **YES** | 2 / 2 builds, 32 cp and the wrong move on base |
 
