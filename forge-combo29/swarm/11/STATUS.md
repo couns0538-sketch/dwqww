@@ -509,6 +509,15 @@ else I had measured the same way, confirmed S-F47, S-F70 and S-F94's underlying 
 That is a better advertisement for cross-checking than a clean record would be — six of my claims were
 corrected tonight, three of them by other seats, and every correction improved the record rather than
 damaging it. A seat that only ever reports wins is not being checked.
+
+**And one more, from the v3 job: my prediction about where time goes was wrong by more than
+2x.** I predicted the loaded v3 net would be 45-70 % of `bench 13`; the instrumented measurement
+(S-F106, 21.1 % at two depths agreeing to 0.0 pt) says 21 %. The lesson is the same as the switch
+table's: **an assumption about where time goes is worth less than the instrument.** I had a plausible
+story — a 512-wide net with 8x8 buckets loaded on every evaluation — and it was the wrong story,
+because search-side bookkeeping dominates instead. The first attempt at measuring it (`-pg`, S-F104)
+also failed, by 28 % distortion, and only instrumenting the source directly with a measured clock
+rate gave an answer worth reporting.
 S-F88 (40 games in one process, no slowdown) and S-F89, which CLOSES the memory gap S-F88 admitted:
 reading VmRSS from /proc directly, memory is flat at 26.4 MB from game 1 to game 120 with 0 illegal
 moves, so a long-lived process is stable in memory as well as in speed.
