@@ -103,3 +103,12 @@ rather than a reason to think they would win.
 `job_v3/step0_out.txt` (all eleven Step 0 numbers), `job_v3/rdtsc_diag_out.txt` (21.1 %),
 `job_v3/cache_hitrate_out.txt` (99.5 %), `job_v3/identity_*.txt` and `job_v3/timing_*.txt` (both
 candidates, identity and speed), `job_v3/gprof_flat.txt` (the distorted but correctly-ordered profile).
+
+---
+
+**If identity moves, the patch is not a speed patch — however fast it looks.**
+
+That is the single rule this whole document reduces to. Everything else here is measurement in
+service of it: the identity harness exists to enforce it, the two-build and CI machinery exists so a
+change that passes identity still has to prove a speed effect in the right direction, and the three
+failed attempts are what it looks like when the rule is applied honestly.
