@@ -80,6 +80,7 @@ false).
 | 07-C76 | **Fifty-move fault is mechanical and 20 of 20: every counter-100 root declared drawn with 0 nodes, and python-chess says none is a fifty-move draw** — vs the 80 counter-0 roots, which all search | base, depth 12, 100 rows |
 | 07-C77 | **The two faults separate on the ship build: 07-F1's fabricated lines live on ALL SIX arms; 07-F3's fifty-move fault is BASE-ONLY and the PC build fixes it in all three regimes** | base + PC, 3 regimes × 2 faults |
 | 07-C78 | **My own live patch had the defect it was written to fix, in reduced form: v1 cut 64 fabricated lines to 1 but emitted that line at `depth 64` with `nodes 0`; v2 reports `depth 0`** (job73/raw_v2) | PC r15, 3 regimes, 7 zero-node paths |
+| 07-C79 | **v2 of my patch could not apply to a pristine tree (diffed against my working copy); v3 applies clean, and a from-scratch rebuild in a clean checkout is byte-identical** (job73/raw_v3) | clean PC r15 checkout, g++-13, 3 regimes |
 
 ---
 
@@ -99,11 +100,13 @@ Item 2 is a tuning observation whose strength question I did not measure.
    instead, that is a separate decision that must print that the restriction was ignored. **Note added
    later (07-C54, 07-C55): it is not a `searchmoves` defect at all** — every path that reports without
    searching emits a fabricated `score cp 0 nodes 0` line per depth. The shared-path patch
-   (`job73/07f1_shared_report_v2.patch.txt`) fixes all seven paths with one edit, all eight pins
-   unchanged, and **supersedes my own narrower `job2`/`job29` patches AND the job55 v1 patch it
-   replaces** — v1 cut 64 fabricated lines to 1 but printed that line at `depth 64` for a
-   `go searchmoves` with no depth, repeating the same lie once instead of 64 times (07-C78). v2
-   reports `depth 0` and `seldepth 0`: no iteration ran.
+   (`job73/07f1_shared_report_v3.patch.txt`) fixes all seven paths with one edit, all eight pins
+   unchanged, and **supersedes my own narrower `job2`/`job29` patches AND both earlier versions of
+   this one** — v1 cut 64 fabricated lines to 1 but printed that line at `depth 64` for a bare
+   `go searchmoves`, repeating the same lie once instead of 64 times (07-C78); v2 had the right
+   content but was diffed against the already-patched tree, so it could not apply to a pristine one
+   (07-C79). **v3 is diffed against pristine PC r15 and a from-scratch rebuild in a clean checkout
+   gives a byte-identical binary** (`2db028fa…`), so the patch alone determines the build.
 2. **`TtPruneV2` carries 85 % of PC20's node effect** on 200 positions (07-C32), while `CorrHistV2`
    costs 2.7 %. Whether that saving is strength is a games question I did not measure.
 3. **`FORGE_FIX_ROOT_DRAWN` earns its place on one undeniable board — AND IT IS ALREADY FIXED ON THE PC
@@ -172,7 +175,7 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
-## The twenty-one standing rules, grouped by the question they answer
+## The twenty-two standing rules, grouped by the question they answer
 
 The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
 the wrong order to read them in. Grouped by what they are for:
@@ -227,6 +230,13 @@ the wrong order to read them in. Grouped by what they are for:
 
 ### Can anyone re-check what I claimed?
 
+- **A change is not verified until it is verified where the next person will apply it.** Both of my
+  near-misses were "it worked where I built it": a patch whose switch defaulted to 0 (07-C74), and a
+  patch diffed against my own already-patched tree so it could not apply to a pristine one
+  (07-C79). Generating a deliverable from a working copy is how that gap is created, and only a
+  clean-tree application plus a from-scratch rebuild catches it. The proof of a good patch is not
+  that it works for you — it is that the **binary is byte-identical when built anywhere from the
+  patch alone.**
 - **An exact match to someone's baseline is the fingerprint of having changed nothing.** Replicating
   16-S-F35, my first run reproduced their baseline **to the digit (34/120)** while my treatment arm was
   **identical, case for case** — which felt like two seats measuring the same thing and was the proof the

@@ -1,0 +1,71 @@
+# 07-F1 SHARED-PATH REPAIR, REVISION 3 (final) -- supersedes job55 v1 AND job73 v2
+#
+# Apply to a PRISTINE PC r15 tree (6b98f217 + pc_r15 changes), from forge-combo29/:
+#   patch -p1 --fuzz=0 < 07f1_shared_report_v3.patch.txt
+#   Verified: exit 0, one file, no fuzz, on a clean checkout with the PC r15 changes applied.
+#
+# Build: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13 \
+#               -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+#   (the box's default `c++` cannot link -- "cannot find -lstdc++" -- so g++-13 must be named)
+#
+# Binary: 2db028fa9ade74d7c80110d6ab23c73bd06e43333305a10ec32615682b345939
+#   Reproduced from a clean tree with a from-scratch rebuild: BYTE-IDENTICAL to the build that
+#   produced the pin evidence. That is the reviewer's check -- the patch alone determines the
+#   binary, with no dependence on my working copy.
+#
+# WHY THERE IS A v3 -- and it is the same class of mistake the patch itself was fixing
+#   v2 was generated as a diff against the ALREADY-v1-PATCHED tree, so it could not apply to a
+#   pristine one (Hunk #1 FAILED). It worked only in my /tmp working copy, which is exactly the
+#   situation a reviewer's clean-tree check exists to catch. v2 was therefore not a deliverable,
+#   even though its content was right. v3 is diffed against pristine PC r15 and replaces the loop.
+#   Both near-misses tonight were "it worked where I built it": the inert-macro build (07-C74) and
+#   this. The lesson generalises -- a change is not verified until it is verified where the next
+#   person will apply it.
+#
+# WHAT IT DOES
+#   src/search.cpp: every path that reports without searching emitted one `info depth` line PER
+#   DEPTH (2 or 64 fabricated `score cp 0 nodes 0` lines). This replaces the loop with ONE emit,
+#   at depth 0.
+#
+#   Depth 0, not max_depth: v1 emitted at max_depth, so a bare `go searchmoves` printed
+#   `info depth 64 ... nodes 0` -- the same self-contradiction (a completed depth claimed by a
+#   search that never ran), once instead of 64 times (07-C78). A fix for "this number is a lie"
+#   has to make the number true, not merely rarer.
+#
+# PIN EVIDENCE (positive check, not absence of effect)
+#   All eight published PC r15 numbers unchanged: none 312866 / 862329 / 3024920 / 4865609;
+#   S14 242796 / 656517; PC20 278024 / 587276.
+#   Identical pins are what a CORRECT patch looks like: the edit is on the reporting path and
+#   touches nothing in the search. A patch that moved a pin would have reached the search, which
+#   for this defect would mean the edit landed in the wrong place.
+#
+# SEVEN ZERO-NODE PATHS, ALL VERIFIED (job73/raw_clean/zero_paths.txt, 0 failures)
+#   searchmoves with no legal root move, empty `go searchmoves`, `go nodes 100 searchmoves <none>`,
+#   an illegal move name, a mate root, a stalemate root, and `go searchmoves` with no depth limit --
+#   each prints exactly ONE `info depth 0 seldepth 0 ... nodes 0` line and `bestmove 0000`.
+#
+--- a/src/search.cpp	2026-11-16 22:19:33.980602054 +0000
++++ b/src/search.cpp	2026-11-17 01:01:37.676602054 +0000
+@@ -2586,12 +2586,16 @@
+             score = draw_leaf_score(board);
+         }
+ #endif
+-        for (int depth = 1; depth <= max_depth; ++depth) {
+-            result.depth = depth;
+-            result.score = score;
+-            emit(depth, score, {});
+-            if (should_stop()) break;
+-        }
++        // ONE honest line, not one per depth. Every path that reports without searching
++        // (terminal root, empty searchmoves restriction, bare `go searchmoves`) arrives here, and a
++        // loop emits 2 or 64 fabricated score lines for a search that never ran, which any GUI or
++        // harness parsing `info depth` reads as a real evaluation (07-F1, 20-S-F53, 07-C54).
++        // Depth is reported as 0, NOT max_depth: no iteration completed, so claiming depth 12 (or 64
++        // when no depth was given) alongside `nodes 0` repeats the same contradiction this repair
++        // exists to remove, merely once instead of 64 times (07-C78).
++        result.depth = 0;
++        result.score = score;
++        emit(0, score, {});
+         if (!root_candidates.empty()) result.best_move = root_candidates.front();
+         result.nodes = total_nodes();
+         nodes_.store(local_nodes_, std::memory_order_relaxed);

@@ -1015,3 +1015,37 @@ pc_pins.json
 v1_vs_v2.txt
 zero_paths.txt
 ```
+
+## 2026-11-17T01:08:36Z — job73 v3: clean-tree verification, and v2 was not shippable
+
+**Reviewer's check done properly, and it failed on the first attempt.** v2 applied cleanly *for me* because I diffed it against my already-v1-patched tree; on a pristine PC r15 it gave `Hunk #1 FAILED`. Content was right, deliverable was not.
+
+**v3 (`job73/07f1_shared_report_v3.patch.txt`) is diffed against pristine PC r15:** clean checkout → `patch -p1 --fuzz=0` exit 0, one file, no fuzz → `cmake` from scratch → **byte-identical binary `2db028fa…`**, the same one that produced the pin evidence. All eight pins OK in all three regimes; all seven zero-node paths one line + `bestmove 0000`, 0 failures. Confirmed it edits the *reporting* loop and leaves the normal search loop (~line 2739, `root_depth_`) untouched, so identical pins are structural rather than lucky.
+
+v1 (job55) and v2 are both marked **SUPERSEDED, DO NOT USE** in their headers so nobody ships the wrong file.
+
+New header rule (22): a change is not verified until it is verified where the next person will apply it. Both of tonight's near-misses were 'it worked where I built it' — the inert macro (07-C74) and this (07-C79). The test that catches both: apply from a clean checkout of the stated base, rebuild from scratch, and check the binary is byte-identical to the one the evidence came from.
+
+```
+$ git status --short
+ M FINAL.md
+ M FINDINGS.md
+ M STATUS.md
+ M job55/shared_report_oneline.patch.txt
+ M job73/07f1_shared_report_v2.patch.txt
+ M job73/stamps.txt
+?? job73/07f1_shared_report_v3.patch.txt
+?? job73/raw_clean/
+?? job73/raw_v3/
+```
+
+```
+$ ls job73
+07f1_shared_report_v2.patch.txt
+07f1_shared_report_v3.patch.txt
+raw
+raw_clean
+raw_v2
+raw_v3
+stamps.txt
+```
