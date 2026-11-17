@@ -32,6 +32,11 @@ position that already occurred. I reached the state and the engine reproduced
 trap 19a's signature there (§9). It is reachable, not automatic — 720 games did
 not produce it — and it is a policy question already on the list, not a new defect.
 
+**And the trap-2 patch closes it, measured on identical positions** (§9): at the
+threefold the lock books with zero depth lines, while the trap-2 build returns the
+drawn-root bail and still books a non-drawn position. So the route §9 found is
+covered by the patch that already exists.
+
 ---
 
 ## 2. The book is a 16-ply DAG, and that fact answers three questions at once
@@ -590,6 +595,34 @@ decision" items already raise — *should a drawn root ever book?* — and the a
 may legitimately be yes (a repetition at move 12 in a forced-draw line is arguably
 a book situation). **What is new is that the state is reachable in play, so that
 decision now has a reachability fact behind it rather than a hypothetical.**
+
+### The existing trap-2 patch closes it, and that is measured
+
+`scripts/q5_trap2_closes_route.py` asks **both builds at the same frozen positions**
+(the three occurrence positions, built once with python-chess, so neither column can
+drift). `evidence/q5-trap2-closes-route.json`:
+
+| build | cycle 1 (ply 19, not drawn) | cycle 2 (ply 23, **threefold**) | cycle 3 (ply 27, **threefold**) |
+|---|---|---|---|
+| lock | book `f8e7`, 0 depth lines | **book `f8e7`, 0 depth lines** | **book `f8e7`, 0 depth lines** |
+| trap 2 | book `f8e7`, 0 depth lines | **no book; drawn-root bail** | **no book; drawn-root bail** |
+
+The trap-2 build returns the search's own drawn-root report at the threefold —
+`best a7a6`, 64 depth lines, and the **`cp 0 / nodes 0 / empty pv` bail signature**
+detected programmatically — instead of a book move. Cycle 1, which is *not* drawn,
+still books on both builds, and an ordinary book position still books on both. So
+the fix removes the pre-emption **without removing the book**, which is the
+distinction that separates a fix from a disable.
+
+**This is the useful deliverable of §9: the route is real, it is reachable, and the
+patch that is already written closes it.** No new patch is proposed; `uci.cpp` is
+untouched.
+
+**One honest note on the control design.** My first version of this test let each
+build drive its own continuation, so the trap-2 column diverged at the first
+non-book reply and the script crashed on an illegal move — the two columns were no
+longer comparing the same position. Freezing the positions and asking both builds
+at identical move lists is what makes the comparison mean anything.
 
 ---
 
