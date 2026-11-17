@@ -1170,10 +1170,24 @@ never a result.**
 >
 > **A summary is a compression, and compression removes exactly the qualifiers that made the claim true.**
 
-**This happened three times in this record, and the third was the owner one-liner at the bottom of this section** —
-the sentence that summarised the sign-share table violated the sign-share rule, by leading with the fragile 12 %
-saving and calling the per-node tax "consistent" instead of "the one per-position fact." **The rule caught its own
-summary.** Read any summary below, including the one written for the owner, with that in mind.
+**This happened five times in this record, and the sharpest form is not about hedging:**
+
+> **A rule that sorts claims into categories is itself an unclassified claim until someone applies it.**
+>
+> **So: when you write a rule that sorts claims into categories, immediately sort the sentence you just wrote with
+> it.**
+
+**The compression framing explains why summaries lose qualifiers. This second form explains why the RULES
+themselves are unreliable on arrival** — a classification rule has to be run before it means anything, including on
+its own statement. In this record the reordering rule and the ambiguity rule **each caught the other's summary
+inside one section**, and the CI-first rule then reclassified **five rows** in the table that stated it.
+
+**Concretely, the five:** the owner one-liner (led with the fragile saving); the wall-time row labelled COIN FLIP
+(no established effect — UNRESOLVED); CorrHistV2's row called a real pooled effect (CI includes 1.0); the
+"opposite worlds" claim (52.9 % is not the opposite of 50.6 %, it is a third case); and three C60 rows labelled by
+share instead of by interval.
+
+**Read any rule below — including this one — as unclassified until it has been applied to its own sentence.**
 
 ## PREREQUISITE (read this first): a 50 % sign-share is ambiguous, and that is why the sign-share needs a prior question
 > **A 50 % sign-share cannot distinguish "a real effect that is per-position random" from "no effect, and this is
