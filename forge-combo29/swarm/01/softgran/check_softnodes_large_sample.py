@@ -162,12 +162,12 @@ def main():
              % (N, 100.0 * k / N, statistics.mean(spend2000) if spend2000 else 0))
     L.append("")
     if 0.465 <= k / N <= 0.47:
-        L.append("VERDICT: the large sample lands ON seat 19's figure (46.5-47.0 %), so MY 50 %% from 12 positions was")
-        L.append("  a small-sample overestimate and theirs is the better number. My 50 %% was never in conflict with it -")
+        L.append("VERDICT: the large sample lands ON seat 19's figure (46.5-47.0 %), so MY 50 % from 12 positions was")
+        L.append("  a small-sample overestimate and theirs is the better number. My 50 % was never in conflict with it -")
         L.append("  the Wilson interval on n=12 covers both - but agreement is not the same as being right, and the")
         L.append("  larger sample should replace mine in the record.")
     elif lo <= 0.465 <= hi:
-        L.append("VERDICT: consistent with seat 19's 46.5-47.0 %% - the two intervals overlap, so the samples do not")
+        L.append("VERDICT: consistent with seat 19's 46.5-47.0 % - the two intervals overlap, so the samples do not")
         L.append("  disagree. This run's point estimate is %.1f %%; theirs is stronger at n=%d vs my 12." % (100.0 * k / N, N))
     else:
         L.append("VERDICT: this run (%.1f %%) does NOT overlap seat 19's 46.5-47.0 %% interval - reported as a genuine"

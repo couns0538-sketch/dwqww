@@ -64,7 +64,7 @@ damaged=$(python3 - <<'PYEOF'
 import glob, re, sys
 pat = re.compile(r"return: can only .return. from a function|^go nodes: unknown command|command not found$|unexpected EOF while looking for")
 hits = []
-for f in sorted(set(glob.glob("*.md") + glob.glob("v3net/*.md") + glob.glob("*/*.md"))):
+for f in sorted(set(glob.glob("*.md") + glob.glob("*/*.md") + glob.glob("*/*.txt"))):
     fenced = False
     for n, line in enumerate(open(f, encoding="utf-8", errors="replace"), 1):
         s = line.rstrip("\n")
@@ -135,7 +135,7 @@ fi
 escapes=$(python3 - <<'PYEOF'
 import glob, re
 bad = []
-for f in sorted(set(glob.glob("*.md") + glob.glob("*/*.md"))):
+for f in sorted(set(glob.glob("*.md") + glob.glob("*/*.md") + glob.glob("*/*.txt"))):
     fenced = False
     for n, line in enumerate(open(f, encoding="utf-8", errors="replace"), 1):
         s = line.rstrip("\n")

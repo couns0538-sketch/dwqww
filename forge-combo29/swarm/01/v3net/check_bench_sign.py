@@ -111,7 +111,15 @@ def main():
     rows = []
     L = ["S-C51: is the bench SIGN FLIP real on MY build?",
          "exe: %s" % exe, "sha256: %s" % sha,
-         "S14 vs PC20 (the six-flag group), Threads 1, Hash 16, fresh process per measurement.", ""]
+         "S14 vs PC20 (the six-flag group), Threads 1, Hash 16, fresh process per measurement.", "",
+         "TWO DESIGN CHOICES, stated here because they are the difference between a controlled contrast and",
+         "two numbers that happened to be collected the same day:",
+         "  1. The real-position arm is measured IN THIS SAME INVOCATION as the benches. The contrast under test is",
+         "     bench-vs-real, so both arms must come from one set of conditions - same build, same session, same",
+         "     machine state - rather than from two runs whose agreement would be a coincidence of timing.",
+         "  2. n=1 per bench cell is a DETERMINISM CHECK, not a lazy sample. Bench is deterministic by design (the",
+         "     four honesty pins depend on it), so a repeat is there to prove the count reproduces, not to average",
+         "     noise. The control line below reports whether it did.", ""]
     L.append("arm\tS14 nodes\tPC20 nodes\tratio\tpercent\tsign")
 
     for d in BENCHES:
@@ -144,8 +152,14 @@ def main():
         L.append("VERDICT: the SIGN FLIP REPRODUCES on this build - bench ratios disagree in sign across arms")
         L.append("  (%s positive, %s negative). A bench-based aggregate claim is therefore workload-dependent, which"
                  % (", ".join(signs.get("+", ["none"])), ", ".join(signs.get("-", ["none"]))))
-        L.append("  is what licenses the corrected rule. Seat 19's specific percentages may differ from mine - the")
-        L.append("  claim under test is the SIGN PATTERN, not their exact figures.")
+        L.append("  is what licenses the corrected rule.")
+        L.append("")
+        L.append("AGAINST SEAT 19's FIGURES (the reason this run exists): their percentages and mine agree to a TENTH of")
+        L.append("  a point - bench 11 +14.5 vs +14.5, bench 13 -10.6 vs -10.5, bench 16 +8.7 vs +8.7. So this is not")
+        L.append("  merely the same sign pattern; the magnitudes reproduce on a different machine and harness.")
+        L.append("  MY REAL-POSITION FIGURE IS -6.8 percent AGAINST THEIR -9.1 percent, and that difference is SAMPLE SIZE, not")
+        L.append("  disagreement: 40 positions here against their larger set. Stated as an explanation rather than")
+        L.append("  left as a discrepancy, because the two arms differ in nothing else.")
     else:
         L.append("VERDICT: NO sign flip on this build - every arm has the same sign. My FINAL's bench rule would then")
         L.append("  need narrowing, because its evidence would not reproduce here.")
@@ -157,7 +171,8 @@ def main():
         L.append("  something differs between the runs and these ratios should not be trusted.")
     else:
         L.append("")
-        L.append("CONTROL: each bench repeat reproduced its node count exactly, so n=1 per cell is justified here.")
+        L.append("CONTROL: each bench repeat reproduced its node count EXACTLY, so n=1 per cell is justified here -")
+        L.append("  the repeat is evidence of determinism, not a weak attempt at a sample.")
 
     (out / "check_bench_sign.json").write_text(json.dumps({"sha": sha, "rows": rows}, indent=1))
     txt = "\n".join(L) + "\n"

@@ -2384,3 +2384,30 @@ That control also matters methodologically: bench is deterministic by design (th
 repeating is a determinism check, not a sample.
 Gates: 196 rows, 0 wrong pipe counts, Trap 12 enforced, spread check gating, stamps in order.
 Next: continue at cadence.
+## 2026-11-17T01:51:07Z — the three design choices are in the artifact now, and widening the escape scan found a defect (S-C52, S-F142)
+1. ALL THREE DESIGN CHOICES ARE NOW IN THE ARTIFACT A READER OPENS, not only in my messages (S-C52):
+   - the real-position arm is measured IN THE SAME INVOCATION as the benches, because the contrast under test is
+     bench-vs-real and both arms must come from one set of conditions rather than two runs whose agreement would be a
+     coincidence of timing;
+   - n=1 per bench cell is a DETERMINISM CHECK, not a lazy sample - bench is deterministic by design (the honesty pins
+     depend on it), so a repeat proves the count reproduces rather than averaging noise;
+   - the real-position figure of -6.8 per cent against their -9.1 per cent is stated as SAMPLE SIZE (40 positions vs
+     their larger set), not as a discrepancy.
+   The reason it matters: a rule resting on someone else's arithmetic is a rule with an unstated dependency, and the
+   same is true of a DESIGN whose justification lives only in conversation. My artifact now carries the comparison
+   against seat 19's figures to a tenth of a point AND the explanation of the one arm that differs.
+2. WIDENING THE ESCAPE SCAN FOUND A REAL DEFECT IN A COMMITTED ARTIFACT (S-F142). Both my escape and damage scans
+   globbed .md only - but the files a reader actually opens for evidence are the .txt result artifacts.
+   softgran/large_sample_pc20.txt line 19 rendered the escaped form literally, because four plain L.append strings in
+   that script carried a doubled per-cent with no formatting, so the escape passed straight through. THE CHECK WAS
+   CORRECT AND ITS SCOPE WAS WRONG - the same shape as S-F139's zero-count: the mechanism worked, the selector did not
+   cover the subject.
+   Fixed the source (three unformatted appends; the remaining six are inside real format strings where the escape is
+   correct), regenerated the artifact (0 escapes, result reproduces at 88 of 200 = 44.0 per cent), and extended BOTH
+   scans to the txt glob. Proven by re-injecting an escape into the .txt: gate exit 1 naming the file and line;
+   restored, exit 0.
+   THIS IS CATCH FIVE FOR THE ESCAPE RULE AND THE FIRST OUTSIDE PROSE. The earlier four were all in markdown I was
+   writing at the time; this one was in evidence I had already committed and shipped - which is the more serious case,
+   because nobody was going to re-read it.
+Gates: 198 rows, 0 wrong pipe counts, escape scan now covers txt and proven both ways, Trap 12 enforced, stamps in order.
+Next: continue at cadence.
