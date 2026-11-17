@@ -1,0 +1,79 @@
+### does the best-vs-second gap shrink with depth? (MultiPV 2, same depth both lines)
+exe /home/ubuntu/build/pc/forge | PC20, Threads 1, Hash 16 | fresh process per search
+
+--- S-F39 board
+    rnb3nr/3kb2p/1p2p3/p1p2pP1/1PP1p1P1/P3PQ1R/1B1P1P2/RN2KB2 w Q - 0 18
+    depth 10: best  f3g2    1770 | second  f3e2    1638 | gap   132
+    depth 12: best  f3g2    1790 | second  f3e2    1571 | gap   219
+    depth 14: best  f3g2    1940 | second  f3e2    1669 | gap   271
+    depth 16: best  f3g2    2019 | second  f3e2    1812 | gap   207
+    depth 18: best  f3g2    2031 | second  f3e2    1927 | gap   104
+    -> SHRINKS: gap 132 at depth 10 -> 104 at depth 18
+
+--- G/1 middlegame
+    1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+    depth 10: best  e5e4    -271 | second  g7g6    -304 | gap    33
+    depth 12: best  g7g6    -293 | second  e5e4    -312 | gap    19
+    depth 14: best  g7g6    -292 | second  e5e4    -307 | gap    15
+    depth 16: best  g7g6    -273 | second  e5e4    -311 | gap    38
+    depth 18: best  e5e4    -284 | second  g7g6    -294 | gap    10
+    -> SHRINKS: gap 33 at depth 10 -> 10 at depth 18
+
+--- G/2 middlegame
+    r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1
+    depth 10: best  b6b5    -265 | second  a7a6    -357 | gap    92
+    depth 12: best  b6b5    -258 | second  a7a6    -282 | gap    24
+    depth 14: best  b6b5    -262 | second  a7a6    -292 | gap    30
+    depth 16: best  b6b5    -262 | second  a7a6    -346 | gap    84
+    depth 18: best  b6b5    -256 | second  a7a6    -340 | gap    84
+    -> FLAT: gap 92 at depth 10 -> 84 at depth 18
+
+--- G/5 endgame
+    8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2b5/8 w - - 0 1
+    depth 10: best  f6g5    -450 | second  g7e6    -782 | gap   332
+    depth 12: best  f6g5    -519 | second  g7e6    -917 | gap   398
+    depth 14: best  f6g5    -605 | second  g7e6   -1160 | gap   555
+    depth 16: best  f6g5    -671 | second  g7e6   -1274 | gap   603
+    depth 18: best  f6g5    -742 | second  g7e6   -1368 | gap   626
+    -> GROWS: gap 332 at depth 10 -> 626 at depth 18
+
+--- G/16 endgame
+    8/3n2Q1/2k4p/8/1P6/5P1P/1K4P1/8 b - - 0 1
+    depth 10: best  h6h5   -2003 | second  c6b5   -2069 | gap    66
+    depth 12: best  c6b5   -2120 | second  h6h5   -2201 | gap    81
+    depth 14: best  c6b5   -2170 | second  h6h5   -2202 | gap    32
+    depth 16: best  h6h5   -2284 | second  c6c7   -2299 | gap    15
+    depth 18: best  c6d6   -2394 | second  h6h5   -2411 | gap    17
+    -> SHRINKS: gap 66 at depth 10 -> 17 at depth 18
+
+======================================================================
+SHRINKS 3 | GROWS 1 | FLAT 1  (of 5 boards with >=3 depths)
+  SHRINKS  S-F39 board             132 ->   104
+  SHRINKS  G/1 middlegame           33 ->    10
+  FLAT     G/2 middlegame           92 ->    84
+  GROWS    G/5 endgame             332 ->   626
+  SHRINKS  G/16 endgame             66 ->    17
+
+VERDICT: the "gap shrinks with depth" observation does NOT generalise - and the second-board test was the right way
+to find that out. Five boards, MultiPV 2, depths 10..18, PC20/Threads 1/Hash 16:
+  S-F39 board   : gap 132 -> 104   SHRINKS
+  G/1 middlegame: gap  33 ->  10   SHRINKS
+  G/2 middlegame: gap  92 ->  84   FLAT
+  G/5 endgame   : gap 332 -> 626   **GROWS**
+  G/16 endgame  : gap  66 ->  17   SHRINKS
+So SHRINKS 3 | GROWS 1 | FLAT 1. The direction is a property of the POSITION, not of depth.
+
+WHY THE ONE-DEPTH OBSERVATION LOOKED GENERAL: on the S-F39 board I had compared a specific alternative move (f3g3)
+rather than the engine's own second line, and I had four depths. On a board where the second line's identity CHANGES
+between depths (G/1 switches from e5e4 to g7g6 as best; G/16 shows three different best moves h6h5/c6b5/c6d6 across
+five depths) the "gap" is comparing different pairs at different depths, so its trend is partly an artefact of WHICH
+moves are being compared. That is a real limitation of the MultiPV-gap instrument, not of the boards.
+
+WHAT SURVIVES FROM S-F39: the specific measurement on the correct arm - isolated f3g2 vs f3g3 on that board gives
++231/+239/+198/+100 at depths 12/14/16/18, with the SAME two moves throughout. That is clean because the pair is
+fixed. What does NOT survive: the generalisation "the margin is widest at shallow depths". It holds on that board and
+on 3 of 5 sampled here, but G/5 endgame grows by 294 cp over the same range.
+
+RECOMMENDED STATEMENT: on a given board, the margin between the engine's choice and a FIXED alternative move may
+shrink, grow or stay flat with depth; it is not a depth law. Any claim of the form "shallow searches have less/more
+margin" needs per-board measurement, not an assumption.
