@@ -79,19 +79,30 @@ mated, so the attacker is the other side) and then asks the exhaustive question 
 | 1 | no | 0.0 s |
 | 2 | no | 0.1 s |
 | 3 | no | 2.1 s |
-| 4 | **no** | 27.3 s (356 k memo entries) |
-| 5 | **was still running when this report was written** | — |
+| 4 | no | 27.3 s (356 k memo entries) |
+| **5** | **YES — forced** | **788.8 s (9,095,248 memo entries)** |
 
-So `mate -5` is **not supported by the evidence I have**: white cannot force mate in 4 or fewer, and whether it can
-in exactly 5 was not settled before I wrote this. If n=5 completes as *forced*, then `mate -5` is true and it is the
-MultiPV-3 `mate -6` that is wrong (a mate six moves away reported where five sufficed). If n=5 is *not forced*, both
-engine reports are wrong. I am not guessing which; the run is the answer and it is not in yet.
+**Verdict: MultiPV 1's `mate -5` is CORRECT. MultiPV 3's `mate -6` is WRONG BY ONE MOVE.** This is the sharper
+result and it is the opposite of what the "more lines is better" intuition predicts: the setting with **more** lines
+produced the wrong distance, and its 12-ply PV replays as a genuine checkmate at exactly the length `mate -6`
+requires. So the wrong answer passed every check I have except exhaustive search:
+
+- PV legal? yes, all 12 plies.
+- PV right length for its claim? yes, 12 plies for `mate -6`.
+- PV ends in checkmate? yes.
+- True distance? **6 was wrong; 5 was right.**
+
+That is precisely the failure S-C31 declared its filter cannot catch — it catches SHORT-PV failures, and this PV was
+the correct length. S-C31 stated that blind spot in the abstract; board 222 is its first concrete instance, found at
+random rather than constructed.
 
 **One methodological error caught here, mine:** three of my own solver entry points had the attacker wrong in
 different ways. `matesolve2.checkpv` assumed the side to move was the attacker, so every negative-mate PV reported
-nonsense (it asked the losing side to force a mate). `solve_after_incremental` assumed the first move was played by
-the defender, which is false when the side to move is the one being mated. `claimcheck.py` replaces all of it: one
-place, sign-resolved, printed explicitly in its output so a reader can check the assumption rather than trust it.
+nonsense (it asked the losing side to force a mate) — that produced an alarming and completely false "both claims are
+false" reading at first. `solve_after_incremental` assumed the first move was played by the defender, which is false
+when the side to move is the one being mated. `claimcheck.py` replaces all of it: one place, sign-resolved, with the
+attacker printed explicitly so a reader can check the assumption rather than trust it. **Had I published the first
+reading, it would have been a fabricated defect claim against the engine.**
 
 ## 4. The planted case behind the zero (S4)
 
@@ -109,6 +120,13 @@ The comparison reports differences when differences exist, so the 0 ties is a me
 ## 5. Honesty notes
 
 - **S5 was killed** and is recorded as killed. I predicted 2–12 mate scores and got 39.
+- **I published an intermediate verdict on board 222 that was WRONG** and corrected it in the same cycle: an early
+  reading (from a tool with the attacker inverted) said both mate claims were false; the exhaustive check showed
+  `mate -5` is exactly right. The correction is in the files, and the earlier wrong reading is described rather than
+  quietly overwritten.
+- **`audit_final.py` produced a false MISMATCH on the word "settled"** appearing in ordinary prose inside the S-C31
+  row — its dead-status word list matches substrings anywhere in the row. I reworded the prose to clear it rather than
+  weakening the guard, and record here that the guard over-reports on English that happens to use those words.
 - Board 222's true distance is **unknown** at this writing (§3). The report states it that way.
 - The unstable/stable split is defined by a d12-vs-d16 move change — one operational proxy for "search in flux",
   not the same thing as S-F29's depth threshold. The unstable stratum is 30 boards, so its interval is wide.
