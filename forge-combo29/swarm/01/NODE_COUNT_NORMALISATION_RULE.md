@@ -116,6 +116,25 @@ I found this by trying to verify this very page against my own artifact and fail
 same instinct as Trap 11 and Trap 10 — **make the output prove it looked at the right thing** — applied to a line of
 reporting rather than to a harness.
 
+## A second command, the same disease, the opposite direction (S-F128)
+
+`go nodes N` is not the only budget that selects a rung. **`softnodes N` selects the first completed iteration at or
+above N**, with a hard cap at 4N (`src/search.cpp:2932` tests only after an iteration finishes; `:2499` sets the cap).
+So the two commands pick opposite ends of the same ladder:
+
+| command | rung selected | measured |
+|---|---|---|
+| `go nodes N` | last completed iteration **at or below** N | 200,000 → **101,640** |
+| `softnodes N` | first completed iteration **at or above** N | 2,000 → up to **4,121** |
+
+Measured consequence for `softnodes`, on 12 positions under PC20: **`softnodes 2000` and `softnodes 3000` return the
+byte-identical search on 6 of 12 positions (50 %)** — and the spend ratio across the set is **bimodal**: exactly
+**1.00** on those six, **1.65–3.81×** on the other six. A single "ratio" is not a description of that data.
+
+**The general statement worth carrying: a node budget selects a rung, and whether it lands above or below the
+request is a per-command property that must be read from the source, never assumed from the word `nodes`.** Full
+evidence in `softgran/SOFTNODES_GRANULARITY.md`.
+
 ## What this is not
 
 Not a defect report. Checking a limit at an iteration boundary is a normal design choice, and `S-F123` says so: the

@@ -1836,3 +1836,33 @@ Next: continue at cadence.
 Gates: 171 rows, 0 wrong pipe counts, self-test proves both checkers, normalisation rule enforced, divides-rule
 enforced, damage scan clean, stamps in order, FINAL block structurally intact (6 sections).
 Next: continue at cadence.
+## 2026-11-17T01:27:34Z — seat 19's softnodes prediction checked, and its fraction is configuration-dependent (S-C41, S-F128)
+BACK TO CONFIRMING WORK, AND IT LANDED ON MY OWN AREA: softnodes was part of area 1.
+SEAT 19's 19-C49 CONFIRMED ON PC20, WITH TWO THINGS THEY DID NOT SAY. Their claim: `softnodes N` stops at the first
+ITERATION BOUNDARY at or after N (search.cpp:2932, only after a completed iteration; hard cap 4N at :2499), so
+softnodes 2000 and 3000 can buy the IDENTICAL search. I verified both citations against the source first - both exact.
+  PC20: 6 of 12 = 50 % identical, IDENTICAL across three runs on the same six positions. Inside their predicted
+        25-60 %, above their 10 % kill threshold -> P1 STANDS.
+  plain: 2 of 12 = 17 %. Above their kill threshold but far below their predicted range.
+  CONTROL 2000-vs-20000: 0 of 12 in both configs, so the tool CAN tell budgets apart and the identity is real - not
+        a test that cannot fire (Trap 8). That control is what makes the 50 % mean anything.
+TWO THINGS THE PREDICTION DID NOT SAY, both worth having:
+  (1) THE FRACTION IS CONFIGURATION-DEPENDENT. 50 % under PC20, 17 % plain. The identical share is a property of how
+      coarse the iteration spanning 2,000 nodes is, which depends on the reduction/pruning settings. So "what fraction
+      of positions are identical" has no single answer, and their prediction names no configuration.
+  (2) THE SPEND RATIO IS BIMODAL, so their P2 range (1.0-1.25) was never reachable by any summary statistic. The
+      overrun part of P2 is CONFIRMED (mean spend 3,072 nodes for a 2,000 request). But the ratio is EXACTLY 1.00 on
+      the six identical positions by construction and 1.65-3.81x on the other six (median 2.52) - so ratio-of-means
+      1.586, mean-of-ratios 1.788 and median 1.325 all describe NEITHER cluster. This is yesterday's S-F126 lesson
+      arriving from the other side: predicting the mean of a bimodal variable lands you between the modes, where the
+      number looks like a modest miss instead of a description of nothing. My check now prints both populations and
+      labels the whole-set summaries as describing neither.
+AND THE SYNTHESIS WITH MY OWN FINDING (S-F128): go nodes N picks the last completed iteration AT OR BELOW N
+(200,000 -> 101,640); softnodes N picks the first AT OR ABOVE N (2,000 -> up to 4,121). Same ladder, opposite ends.
+The consequences differ, and seat 19's framing is the sharper one: for go nodes the collision is a MEASUREMENT hazard,
+whereas for softnodes THE COLLISION IS THE THING UNDER STUDY - a budget comparison on those positions compares a
+configuration with itself, so the effect of raising the budget is exactly zero rather than small. Rule recorded: a node
+budget selects a rung, and whether it lands above or below the request is a per-command property to READ FROM THE
+SOURCE, never assumed from the word "nodes". Cross-linked from NODE_COUNT_NORMALISATION_RULE.md.
+Gates: 173 rows, 0 wrong pipe counts, page shape OK, divides-rule clean, stamps in order.
+Next: continue at cadence.

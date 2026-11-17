@@ -1,0 +1,45 @@
+CHECK of seat 19's 19-C49: does `softnodes` buy distinct searches, or the same one twice?
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20=False, Threads 1, Hash 16, fresh process per row, read to bestmove before quit (Trap 11).
+Mechanism (verified in source): src/search.cpp:2932 breaks only AFTER a completed iteration, and
+src/search.cpp:2499 sets the hard cap to 4N. So spend OVERRUNS N by up to one iteration.
+
+pos	2000 (bm,depth,nodes)	3000 (bm,depth,nodes)	identical?	control 20000 identical?
+startpos	d2d4,d7,n2574	d2d4,d8,n4099	False	False
+italian	b1c3,d7,n3190	b1c3,d7,n3190	True	False
+ruylopez	c2c3,d7,n3207	c2c3,d7,n3207	True	False
+sicilian	f1e2,d6,n2567	a2a3,d7,n4080	False	False
+kid	h2h3,d6,n2311	e1g1,d7,n3628	False	False
+openmid	h2h3,d6,n2611	h2h3,d7,n4038	False	False
+rookend	d4d1,d7,n2108	d4d1,d8,n4926	False	False
+pawnend	b4f4,d8,n2466	b4f4,d9,n8684	False	False
+mateish	f6h5,d7,n2318	f6h5,d8,n4028	False	False
+quiet	d4c5,d7,n2732	d4c5,d8,n5771	False	False
+complex	e2a6,d6,n2279	d5e6,d7,n10277	False	False
+sparse	b4f4,d8,n2466	b4f4,d9,n8684	False	False
+
+IDENTICAL 2000-vs-3000: 2 of 12 = **17 %**
+CONTROL identical 2000-vs-20000: 0 of 12 = 0 %  (this must be ~0, or the tool cannot tell budgets apart and the fraction above is meaningless)
+
+MEAN SPEND at softnodes 2000: 2569 nodes (request was 2000, so overrun +569)
+MEAN SPEND at softnodes 3000: 5384 nodes
+
+THE SPEND RATIO IS BIMODAL - two populations, not one distribution:
+  identical budgets (2 positions): ratio is EXACTLY 1.00 by construction - italian, ruylopez
+  differing budgets (10 positions): median 1.93x, range 1.55-4.51x - startpos 1.59x, sicilian 1.59x, kid 1.57x, openmid 1.55x, rookend 2.34x, pawnend 3.52x, mateish 1.74x, quiet 2.11x, complex 4.51x, sparse 3.52x
+  whole-set summaries, LABELLED because they describe neither cluster:
+    ratio of means  2.096   |   mean of ratios  2.170   |   median of ratios  1.665
+  (a literal node budget would give a uniform 1.5 on every position)
+
+SCORED AGAINST SEAT 19's OWN KILL CONDITIONS
+  P1 predicted 25-60 % identical, killed if under 10 %. Measured 17 % -> PREDICTION STANDS
+  P2 predicted mean spend > 2000 (overrun) and ratio 1.0-1.25. Measured overrun=yes; ratio of means 2.096, median of ratios 1.665 -> OUTSIDE their range on BOTH
+    (seat 19 did not say WHICH ratio statistic; both are shown, and neither lands in 1.0-1.25 - the
+     reason is that half the positions have ratio exactly 1.00 and the other half 1.6-3.8)
+
+WHY THIS IS THE SAME PHENOMENON AS MY S-F123, FROM THE OTHER DIRECTION: `go nodes N` picks a rung of a
+per-position ladder BELOW N; `softnodes N` picks the first rung AT OR AFTER N. Both mean the budget is
+not a quantity, and in both cases two budgets can select the SAME search - which makes any measured
+"effect of the budget" exactly zero on those positions rather than small. An identical fraction of
+17 % would mean the 2000-vs-3000 comparison is ill-posed on that share of positions.
