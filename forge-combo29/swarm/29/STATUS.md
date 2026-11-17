@@ -473,3 +473,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - So the v3 PATH IS REPRODUCIBLE BY ANY SEAT; only the WEIGHTS are not shared, so absolute eval values differ from the PC's. F9's first clause stands, its conclusion does not. F9's row now leads with 'AMENDED BY 29-N43 — the conclusion of this row is WRONG', and the FINAL notes carry the correction.
 - This also explains F20 cleanly: with NNUEArch true and NO net, v3 does not activate - the 'eval hce 0' line is the test that a net actually loaded.
 - next: continuing on file 7's v3 speed job, which is now open to me.
+
+## Tue Nov 17 12:54:49 AM UTC 2026
+- 29-N44 METHOD NOTE (transferable): 'absent from the repository' is not 'impossible'. My F9 reasoned from no .nnue/.bin file to no seat can reproduce the v3 path - missing the step that a deterministically GENERATED file is available to everyone. General form: before declaring work impossible, ask whether the missing input is absent or merely NOT COMMITTED (generated, derivable, fetchable, or constructible from a spec).
+- 29-N45: the per-node-cost measurement is SUPERSEDED, not abandoned - it answers a real question (which PC20 switch carries per-node cost at fixed node budget) and slots/per_node_cost.py stands ready; but file 7 shows the PC evaluates through the v3 path, so built-in-net per-node cost is not where the PC's time goes.
+- next: starting file 7's v3 speed job (profile the v3 path on the PC build).
