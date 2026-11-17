@@ -437,3 +437,15 @@ next: cadence.
 Tally: 33 findings, 16 checks/plants, 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:02Z
+- **08-C17: seat 12's S-F12 CONFIRMS on both builds — a mid-search `setoption` silently STOPS the search.**
+  `go depth 24`, probe at 150 ms: all four probes (Hash 32, MultiPV 2, LmrQuietBase 94, OwnBook true) stop it at
+  **depth 17 in ~1 ms**; `isready` and no-probe reach **depth 24 in ~875 ms**. Same on PC r15/PC20 and base/S14.
+  **Integrity consequence stated for the whole swarm:** any harness sending a setoption mid-search records a
+  truncated search as a completed one, with no error. My own harnesses verified unaffected (every setoption is
+  before `go`, with a `sync()` after it).
+
+Tally: 33 findings, 17 checks/plants (C1..C17), 3 method lines, 1 withdrawal.
+
+next: cadence.
