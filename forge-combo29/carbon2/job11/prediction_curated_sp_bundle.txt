@@ -1,0 +1,21 @@
+Job 11 Curated SP-Profile Bundle Prediction (committed ALONE before creating `curated_sp_bundle` or running its build/timing)
+=============================================================================================================================
+Step / Bundle name: `curated_sp_bundle` (`forge-combo29/carbon2/job11/curated_sp_bundle.patch.txt`, single unified diff directly against `r15d`).
+
+What `curated_sp_bundle` holds and why (from `forge-combo29/carbon2/job11/ablation_loo_sp_6x60_hash16_raw.txt` lines 69–74, applying the pre-committed `>= 1.0035x` & `>= 4/6` carrier gate of `prediction_ablation_loo_sp.txt`):
+- **KEPT (all 4 subsets that slowed `bundle 5` when removed):**
+  1. `G1..G4`: marginal `b5 / L_g14 = 1.0171x` (`+1.71%`, `6/6` rounds `b5 > LOO` in `ablation_loo_sp_6x60_hash16_raw.txt` line 72) — cached `material_corr_key`, `see_ge` fast no-recapture, `known_gives_check` + off-ray `has_legal_move`, `v3_active_net_` + `king_sq_`.
+  2. `S7` (parts 1 & 2): marginal `b5 / L_s7 = 1.0113x` (`+1.13%`, `4/6` rounds in `ablation_loo_sp_6x60_hash16_raw.txt` line 71) — zero-allocation `std::string_view` `position` parser + `Worker::clear()` `memset`.
+  3. `W1 + W2`: marginal `b5 / L_w12 = 1.0077x` (`+0.77%`, `5/6` rounds in `ablation_loo_sp_6x60_hash16_raw.txt` line 73) — fused `MovePicker` generation without `picker_scratch_`, single-pass `QuietMoves` pin-legality (`5,893,419` unpinned non-king quiets/60 games in `job8/wasted_work_counts_hash16.txt`), lazy/selective `b4::lesser_threats` (`1,399,941` unread threat maps skipped/60 games), direct 1D row pointers.
+  4. `S4 + S5` (+ `#ifndef NDEBUG` `S5` key assert): marginal `b5 / L_s45 = 1.0061x` (`+0.61%`, `6/6` rounds in `ablation_loo_sp_6x60_hash16_raw.txt` line 70) — `-2.56 KB/ply` `MovePicker` stack reduction + `Board::make_move` `precomputed_key` & lazy `king_lines_` `Undo`.
+- **DROPPED (both subsets below the `>= 1.0035x` & `>= 4/6` gate):**
+  1. `S1_nnue + S2 + S3 + S6`: marginal `b5 / L_s1236 = 0.9873x` (`-1.27%`, `0/6` rounds in `ablation_loo_sp_6x60_hash16_raw.txt` line 69 — removing it lifted `L_s1236 / r15d` to `1.0396x`!).
+  2. `P1`: marginal `b5 / L_p1 = 0.9996x` (`-0.04%`, `3/6` rounds in `ablation_loo_sp_6x60_hash16_raw.txt` line 74 — once the SP profile gives LLVM real `node_limit_specified_ == true` counts, `P1` adds zero further speed).
+
+Predicted self-play gain on SP-profiled Clang 18 ThinLTO + PGO at `Hash 16` (`A = r15d` SP-profile, `B = r15d + curated_sp_bundle` SP-profile, 12 rounds x 60 games ABBA, two independent SP-profile builds each):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+2.5%` to `+5.0%` (`1.025x` to `1.050x`)**, with **`>= 10 / 12`** paired rounds faster (matching or exceeding `bundle 5`'s `1.0259x` from `timing2_sp_r15d_vs_bundle5_12x60_hash16_raw.txt` line 66 after dropping `S1_nnue + S2 + S3 + S6`'s `-1.27%` drag and `P1`'s `-0.04%` dead weight).
+- Wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+2.0%` to `+5.0%` (`1.020x` to `1.050x`)**, with **`>= 10 / 12`** paired rounds faster.
+
+Kill range:
+- Any mismatch on the identity suite (`bench 11/13/16` both nets, `250/250` depth-9 rows, `1,000` evals, both 6-game traces), the 48-run `Hash 16` FNV trace (`ee465caeff9c0fcf`), the `2,010`-sequence all-stages `MovePicker` oracle, the `55,868`-sequence evasion oracle, the `-UNDEBUG` `S5` assert check, or failure to catch `curated_planted_fault.patch.txt` kills `curated_sp_bundle` immediately.
+- If `curated_sp_bundle / r15d` (both SP-profiled) `median_of_paired_round_ratios` on `getrusage` engine CPU is `< 1.0250x` (`< +2.50%`) OR fewer than `10 / 12` paired rounds are faster on `getrusage` engine CPU, `prediction_curated_sp_bundle` is graded **KILLED**.
