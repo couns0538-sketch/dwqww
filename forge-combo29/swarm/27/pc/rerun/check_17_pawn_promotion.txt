@@ -1,0 +1,16 @@
+# Seat 17's decisive pawn-promotion board: base vs PC r15
+# exe base=/agent/repos/base/build-release/forge (e06310ec), PC=/agent/repos/base/build-pc/forge (068f0927)
+# Threads 1, Hash 16, OwnBook false, go depth 8, fresh process per row
+# python-chess first: 11 legal moves, ONLY b7a8q and b7a8r are mate; b7b8q is NOT mate
+# 2026-11-17T00:03:28Z
+
+| build | halfmove | bestmove | score | nodes |
+|---|---|---|---|---|
+| base e06310ec | 100 | **b7b8q (NOT a mate)** | cp 0 | 0 |
+| base e06310ec | 99 | b7a8q | mate 1 | 96 |
+| PC r15 068f0927 | 100 | **b7a8q** | mate 1 | 96 |
+| PC r15 068f0927 | 99 | b7a8q | mate 1 | 96 |
+
+The base build's drawn-root fallback plays the FIRST generated promotion, which on this board is
+not the mating move. The PC's root repair finds the mate. This is the case where the fallback costs
+the game rather than merely mis-reporting a score.
