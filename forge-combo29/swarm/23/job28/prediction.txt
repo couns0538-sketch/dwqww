@@ -1,0 +1,25 @@
+PREDICTION — SW-23 job 28 (does the recommended driver protocol actually prevent all three hazards?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+GUI_HAZARDS.md now recommends a protocol. A recommendation is not a measurement, so this tests it end to end: build a
+driver that follows the four rules, throw the three hazard inputs at it, and check it never plays a wrong move.
+
+The three hazards, all confirmed on the PC build: (1) a refused FEN silently keeps the previous board; (2) one illegal
+token truncates a move list; (3) a `go` with only the opponent's clock never answers.
+
+Method: a driver following the protocol — ucinewgame once before any position, prefer the move list, count
+`info string` lines and rebuild if any appeared, send BOTH clocks, read to bestmove. Feed it:
+  H1 a well-formed game, then a REFUSED FEN for the next game
+  H2 a move list with one illegal token
+  H3 a `go` attempt with only one clock (the driver must never send this; I check it refuses to)
+and verify the driver's per-move answers against python-chess on the board it BELIEVES it is on.
+
+Prediction (each number with the range that kills it):
+  P1  the compliant driver plays 0 wrong moves across all three hazard scenarios. KILLED if >= 1.
+  P2  it detects and rebuilds on H1 and H2 (a diagnostic-count increase it acts on). KILLED if it misses either.
+  P3  a NAIVE driver (same code minus the info-string check) plays at least 1 wrong move on H1 or H2 — i.e. the
+      control shows the protocol is what prevents it. KILLED if the naive driver is also correct.
+  P4  no hangs: every search in every scenario returns bestmove within 10 s. KILLED if any times out.
+
+If P3 is killed, the hazards do not actually bite a naive driver in these shapes and I will say the protocol's value
+is unproven on this evidence.
