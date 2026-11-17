@@ -1105,3 +1105,17 @@ Under file 6 this is NOT a defect; whether a forced mate fits the remaining slac
 mate solver failed its own control, so I assert nothing about the distance - see 23-F49).
 Limit: one board for the counter sweep, the same board for the depth sweep.
 87 findings, 18 confirmations (two refutations). 10 h 16 m remain.
+## 2026-11-17T00:08:17Z  23-F63: file 6's own test CLEARS the halfmove cp-0 (mate needs 15 plies, 8 remain)
+2026-11-17T00:08:17Z
+
+Applied file 6's deciding test rather than stopping at the C26 refutation:
+  counter 0, depth 20 and 24 on PC r15+PC20 -> mate 8  (needs 2*8-1 = 15 plies)
+  counter 92 (where my sweep's cp 0 began)   -> cp 0 at both depths (slack 100-92 = 8 plies)
+  15 > 8, so the mate does NOT fit before the 100th half-move -> by file 6's rule the cp 0 is CORRECT.
+For it to be a defect the mate would need N <= 4 on that board.
+
+So with 23-C26 (boundary = 100-depth, not a hard-coded 99) plus this test, the halfmove phenomenon is neither
+mistimed nor a defect on my board - it is the horizon reporting the draw the fifty-move rule would also report.
+Method note worth keeping: refute the framing, THEN run the deciding test - do not stop at the refutation.
+
+88 findings, 18 confirmations (two refutations). 10 h 16 m remain.
