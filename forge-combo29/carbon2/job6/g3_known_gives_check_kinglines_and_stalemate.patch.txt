@@ -1,0 +1,165 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 15:54:40.561143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 16:02:14.461143771 +0000
+@@ -208,7 +208,8 @@
+     // double push next to an enemy pawn): then the caller prefetches after make_move.
+     [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
+ #endif
+-    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr);
++    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr,
++                                 int known_gives_check = -1);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+     void unmake_null_move(const NullUndo& undo);
+@@ -221,6 +222,10 @@
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
+ #if FORGE_SPD_KING_LINES
+     [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
++    const KingLines& ensure_king_lines() const {
++        if (!king_lines_.valid) refresh_king_lines();
++        return king_lines_;
++    }
+ #endif
+ 
+     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 15:55:48.505143771 +0000
++++ b/src/board.cpp	2026-11-17 16:02:34.157143771 +0000
+@@ -833,7 +833,8 @@
+     }
+ 
+     const Bitboard occ_no_king = occ & ~square_bb(king);
+-    for (Bitboard b = attacks::king(king) & ~own; b != 0;) {
++    const Bitboard taboo = pawn_attacks_bb(them, pieces(them, Pawn)) | attacks::king(king_square(them));
++    for (Bitboard b = attacks::king(king) & ~own & ~taboo; b != 0;) {
+         const int to = pop_lsb(b);
+         const Bitboard to_bb = square_bb(to);
+         if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & enemy)) {
+@@ -850,14 +851,21 @@
+         const Bitboard us_occ = occupied(us);
+         const Bitboard them_occ = occupied(them);
+         const int ksq = king_square(us);
++        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
++        const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
++        if (((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
++            return true;
++        }
++        const Bitboard enemy_rq = pieces(them, Rook) | pieces(them, Queen);
++        const Bitboard enemy_bq = pieces(them, Bishop) | pieces(them, Queen);
+ #if FORGE_SPD_KING_LINES
+         const Bitboard pinned = king_lines_.valid
+             ? king_lines_.pinned
+-            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
+-                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++            : ((((attacks::rook_ray(ksq) & enemy_rq) | (attacks::bishop_ray(ksq) & enemy_bq)) == 0)
++                   ? Bitboard{0}
++                   : (single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ));
+ #else
+-        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
+-                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++        const Bitboard pinned = single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ;
+ #endif
+         const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
+         if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
+@@ -1156,7 +1164,7 @@
+ }
+ #endif
+ 
+-bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key) {
++bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key, int known_gives_check) {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const Piece moving = squares_[move.from];
+@@ -1237,14 +1245,18 @@
+     }
+     // Checkers are the mover's attacks on the opponent king. One side only:
+     // the other colour cannot be the checker, so it is not consulted.
+-    const int their_king = king_square(them);
+-    const Bitboard occ_now = occupied();
+-    const Bitboard our_queens = pieces(us, Queen);
+-    checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
+-                (attacks::knight(their_king) & pieces(us, Knight)) |
+-                (attacks::king(their_king) & pieces(us, King)) |
+-                (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
+-                (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
++    if (known_gives_check == 0) {
++        checkers_ = 0;
++    } else {
++        const int their_king = king_square(them);
++        const Bitboard occ_now = occupied();
++        const Bitboard our_queens = pieces(us, Queen);
++        checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
++                    (attacks::knight(their_king) & pieces(us, Knight)) |
++                    (attacks::king(their_king) & pieces(us, King)) |
++                    (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
++                    (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
++    }
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 15:54:40.565143771 +0000
++++ b/src/search.cpp	2026-11-17 16:02:49.009143771 +0000
+@@ -875,11 +875,8 @@
+     // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+     void init_check_squares() {
+ #if FORGE_SPD_KING_LINES
+-        if (board_.cached_king_lines().valid) {
+-            check_squares_ = board_.cached_king_lines().check_squares;
+-            return;
+-        }
+-#endif
++        check_squares_ = board_.ensure_king_lines().check_squares;
++#else
+         const Color them = opposite(board_.side_to_move());
+         const int enemy_king = board_.king_square(them);
+         const Bitboard occupancy = board_.occupied();
+@@ -889,6 +886,7 @@
+         check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+         check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+         check_squares_[King] = 0;
++#endif
+     }
+ 
+     [[nodiscard]] bool direct_check(Move move) const {
+@@ -1995,8 +1993,10 @@
+     while (!(move = picker.next(false)).is_none()) {
+         if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
++        int known_gives_check = -1;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            known_gives_check = gives_check ? 1 : 0;
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+@@ -2016,11 +2016,11 @@
+         record_move(ss, board, move);
+         Undo undo;
+ #if FORGE_SPD_PREFETCH_EARLY
+-        (void)board.make_move(move, undo, early_key ? &child_key : nullptr);
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gives_check);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
+-        (void)board.make_move(move, undo);
++        (void)board.make_move(move, undo, nullptr, known_gives_check);
+         shared_.tt.prefetch(board.key());
+ #endif
+         prefetch_correction(board, ss + 1);
+@@ -2540,12 +2540,13 @@
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
++        const int known_gc = gives_check ? 1 : 0;
+ #if FORGE_SPD_PREFETCH_EARLY
+-        (void)board.make_move(move, undo, early_key ? &child_key : nullptr);
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gc);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
+-        (void)board.make_move(move, undo);
++        (void)board.make_move(move, undo, nullptr, known_gc);
+         shared_.tt.prefetch(board.key());
+ #endif
+         prefetch_correction(board, ss + 1);
