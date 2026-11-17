@@ -130,6 +130,10 @@ changed as intended". Exit status reports that a process finished, not that the 
 Prefer writing a small `.py` file and running it over an inline heredoc, for the same reason: the file is inspectable
 and re-runnable, where a heredoc is neither.
 
+**Count, stated plainly: three silent non-writes tonight, all caught by content greps, none by exit codes.** Two in
+heredocs (a shell variable that went unexpanded, an unterminated string literal) and one in an ordinary patch script
+whose anchor did not match a trailing newline - the third while writing this very paragraph. Every one of them exited 0.
+
 **Why no mechanical guard catches this.** All three checkers built tonight (`compliance_check.sh`, `audit_final.py`,
 `final_selfcheck.py`) pass happily on a file whose intended edit never happened, because none of them knows what I
 *meant* to write. They check properties of the file as it stands - no binaries, no stale withdrawals, claims still
