@@ -862,3 +862,19 @@ FINAL_NOTES.md now carries the double-own-goal note (two "likely safe" guesses c
 tests tonight) as the strongest argument for the guard replacing the guess, plus the current corrected state
 of S-F24 / S-F11 / S-F12 / S-F19 / S-F21 / S-F22 so the close cannot get them wrong.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py && python3 lib/freshguard.py
+
+## Tue Nov 17 12:21:49 AM UTC 2026
+
+CYCLE STEP (a): checked seat 05's S-F57 (mate-PV truncation confined to the 20,000-node budget). S-C8 CONFIRMS.
+  THEIR NAMED BOARD reproduces exactly: go nodes 20000 -> mate -7 with a 10-ply PV needing 14 (TRUNCATED, PV
+  ends in no mate); go nodes 50000 and 250000 -> mate -4 with an 8-ply PV that DELIVERS mate at ply 8.
+  THE RATE reproduces on a mate-rich set of 22 (my 21 verified mate boards + their board): 20 mate claims with
+  EXACTLY 1 truncated at 20,000, and 0 truncated at 50,000 and 0 at 250,000.
+  Every search a fresh process, enforced by lib/freshguard.py (90 searches, all single-use) — the discipline
+  the S-F24 correction requires. Settings from lib/settings.py (asserted).
+  RULE IT PRODUCES: validate a mate claim by PV length against 2|M| (or 2M-1 for positive), never by the
+  presence of a mate score — a harness counting `score mate` lines alone would call these fine.
+  MY FIRST ATTEMPT MEASURED NOTHING and is recorded: 28 ordinary G positions produced ZERO mate claims at all
+  three budgets, so there was nothing to truncate. Rebuilt mate-rich and re-ran. That is traps-note case 4,
+  caught because I checked the CLAIM COUNTS and not just the truncation counts.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
