@@ -1244,3 +1244,27 @@ CORRECT permissive choice rather than a defect.
 DEFENCE** - that stands regardless of which field counts speak. And "a session with no position command has
 nothing to refuse" is the right reason my "fresh session is silent" observation was wrong: a missing command,
 not a missing diagnostic.
+
+## 2026-11-17T15:4xZ S-C119/120/121 — the moves-keyword splice confirmed both sides; a provenance tool that was wrong once
+**S-C119: the coordinator's new case reproduces and EXTENDS seat 25's splice to BOTH SIDES of the `moves` keyword.**
+Board `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 60 1` (a1a8 mates):
+  position fen <board>                   -> a1a8  (mate found)
+  position fen <board> moves a1a8        -> 0000  (already won)
+  position fen <board> bogus moves a1a8  -> 0000  **diag NONE**  <- junk BEFORE `moves` dropped silently
+  position fen <board> zzzz moves a1a8   -> 0000  **diag NONE**
+**Reading note worth keeping: `0000` here is CORRECT** (root already won), which is why a reference row is
+needed - in this family `0000` is a legitimate answer, not a failure.
+**S-C120: `verify_build_provenance.py` built directly from the coordinator's error** - checks worktree HEAD
+against an expected commit (equal OR ancestor), flags a binary older than its newest ENGINE source, prints the
+sha256 to quote. Exit codes 0 verified / 1 mismatch / 2 undeterminable, all three exercised.
+**MY BUILDS VERIFY: HEAD `6b98f217`, binary newer than source, sha256 `e06310eca3...` - the same hash quoted all
+run.**
+**S-C121: AND THE TOOL WAS CONFIDENTLY WRONG ON ITS FIRST RUN, in exactly the class it exists to prevent.** It
+reported **STALE BUILD** against a good binary: the build-dir exclusion listed five names and walked into
+`build-s12only/`, where CMake's generated `CMakeCXXCompilerId.cpp` (written at configure time, LATER than the
+binary) was the newest `.cpp`. Fixed to exclude by PREFIX. **The mtime of a generated probe file is not evidence
+about the engine's source - and a staleness check that fires on a build artefact would have trained me to ignore
+it.**
+**Third time tonight a checker of mine reproduced the defect it was written to detect** (DTM solver's empty
+tables, output-collision detector's own filter, now this). Strongest available argument for testing a tool on a
+known-answer case rather than by reading it.
