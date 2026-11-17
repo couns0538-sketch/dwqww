@@ -1351,3 +1351,33 @@ can lengthen — so the honest completion of C53 is to quadruple n rather than l
   say that rather than keep widening.
 
 next command: read run_n470.log, report the pooled time CI at n~470, and stamp the FINAL.
+
+## 2026-11-17T03:30Z — cadence
+
+19-C64 closes the last bench-only speed claim in my record, and it produced the THIRD distinct bench failure mode.
+  Material-key cache (19-F9's patch), real positions, fixed 50k, n=130, both builds passing all four pins with
+  IDENTICAL node counts (pure per-node control):
+    pooled 0.9934 (0.66 % faster) ; bootstrap CI [0.9845, 1.0023] INCLUDES 1.0 ; sign-share only 27.7 %
+    confirmed at 500k nodes (median 240 ms): median 0.9961, sign-share 52.5 %
+  BOTH predictions failed (1.5-3.5 %; >=80 % share) and MY OWN KILL CONDITION fired: near-50 % share meant
+  19-F6's 2.71 % was wrong, not the cache ineffective. So **19-F6's self-time share is BENCH-SPECIFIC.**
+
+  The three bench failure modes, now measured:
+    per-node cost        - bench 6x optimistic          (19-C35 vs 19-C53)
+    aggregate node sign  - flips across benches 11/13/16 (19-C55)
+    profile self-time    - 2.71 % on bench, 0.7 % real   (19-F6 vs 19-C64)
+  **A self-time percentage is not a transferable cost unless someone removes the code and measures.**
+
+  19-F9 STANDS: an underpowered null that happens to be correct is still correct.
+
+MEASUREMENT PROGRAMME STATUS: the speed thread is CLOSED.
+  - per-node tax: REAL, 90 % sign-share, two independent methods 0.5 % apart
+  - node saving: REAL pooled but session-level (60 % sign-share) and it shrank with n (12.4 -> 8.7 %)
+  - net wall time: NOT ESTABLISHED at n=464, and I stopped rather than widen further
+  - each PC20 switch: paired-effect UNRESOLVED; TtPruneV2's DIRECTION significant (p=0.022) but not its size
+  - bench: three failure modes documented, bench rule in NOTE_bench_bias_is_patch_specific.md
+  - prefetch: 9.80 % slower, 93 % of positions - DO NOT SHIP
+  - material key: 0.7 %, do not ship as a speed optimisation
+
+next command: hold for the 10:20Z close; stamp the FINAL block with date -u at or before then, and respond to
+  any incoming cross-seat check in the meantime.
