@@ -1,0 +1,15 @@
+# 19-F59 depth claim on the PC build - my numbers
+# exe /agent/repos/base/build-pc/forge sha256 068f0927..., PC20, Threads 1, Hash 16, OwnBook false
+# fen 6k1/8/5K2/8/6r1/8/8/8 w - - 0 1  (verified legal; white moves f6e7 f6e6 f6f5 f6e5)
+# 2026-11-17T00:05:04Z
+
+| depth | bestmove | score | nodes | wall |  (their figure) |
+|---|---|---|---|---|---|
+| 16 | f6e5 | cp -391 | 129,346 | 1.3 s | f6e7, cp -490 |
+| 20 | f6e5 | cp -509 | 1,915,526 | 1.8 s | f6e7, cp -490 |
+| 24 | f6f5 | **mate -25** | 4,224,962 | 2.3 s | f6f5, mate -15 |
+
+STRUCTURE CONFIRMED: below depth 24 a centipawn-scored king move, at depth 24 the longest-defence
+f6f5 with a losing mate score. So 'depth limit, not a preference for dying quickly' holds.
+NUMBERS DIFFER: move at 16/20 (f6e5 vs f6e7), cp (-391/-509 vs -490/-490), and the depth-24 mate
+(-25 vs -15, i.e. 49 plies vs 29). Not smoothed over; the runs above are the first ones, unpicked.
