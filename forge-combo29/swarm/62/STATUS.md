@@ -27,3 +27,24 @@ Done since last block:
   and it is the FOUND cell. 0 EXPOSED. job4/REAL_PLAY.md.
 Running: scan_pgn_wide.py over all 13 PGNs firing on H > 100-p for p=2,4,6 (tmux swarm62-wide).
 Next: record wide-band funnel, then FINDINGS.md + final report.
+
+## 2026-11-17T05:55Z -- DONE
+All four assigned questions answered. Deliverables: FINDINGS.md (16 findings + the four answers),
+job2/CODE_PATH.md, job2/PATCH_TEST.md, job2/S14_AND_JITTER.md, job3/BAND_TABLE.md,
+job3/CONTROL_CLASS.md, job4/REAL_PLAY.md, job4/WIDE_BAND.md.
+
+Headline: the root guard is NOT the cause (measured, root_drawn=0 at H=98 and H=99); the leaf rule at
+search.cpp:1302-1304 is, one ply down. The band is H > 100-p, not "98-99" (80/80 cells matched).
+Neither named patch changes a single node (18/18 cells identical to base). Real play: 0 exposed in
+792,081 plies, 1,220 FENs tested.
+
+Two of my own errors, found by measuring rather than by reasoning, are recorded as findings 62-F15
+(a H=100 "hit" that was already checkmate) and in CONTROL_CLASS.md (a bare-king "control" that was the
+root guard, not this defect). Both were filter bugs that would have inflated the result.
+
+Honesty: base and both patched builds pass all four pins (312866 / 862329 / 3024920 / 4865609).
+Binaries removed from git (.gitignore added). No engine source committed; no patch authored by me.
+
+Not done / open: no repair patch was written by me (not assigned -- the assignment was to characterise
+and to test the existing two). The p=6 row of the band table is DERIVED, not measured; measuring it
+would need a 6-ply forced mate at H=95 which the generators did not produce in the time available.
