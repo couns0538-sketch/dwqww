@@ -2094,3 +2094,28 @@ Also relocated the new section ahead of the checklist after the page-shape check
 closing material - the tool was right and the fix was to move the section, not to add an exception.
 Gates: 182 rows, 0 wrong pipe counts, page shape OK on the edited page, stamps in order.
 Next: continue at cadence.
+## 2026-11-17T01:37:33Z — the forfeit claim tested where it could fail, and a dramatic error caught by its own arithmetic (S-C44)
+I TESTED MY OWN UNIVERSALITY CLAIM WHERE IT IS MOST LIKELY TO FAIL. S-C43's sweep started every game at startpos and
+ran 60 plies - still OPENING THEORY, where moves are cheap. A forfeit needs an EXPENSIVE move relative to a SMALL
+clock, so that sweep tested the claim where it could not fail. This one: 5 expensive positions x 5 clocks (1, 5, 10,
+25, 50 ms), per-move clock_before and spent recorded with an overrun flag.
+  RESULT: 0 forfeits in 25 runs, 0 overruns on any move. Largest single spend 98 ms (busy-midgame, which faced 234 ms);
+  tightest case a 1 ms start whose clock climbs 1 -> 61 -> 104 -> 131 -> 161 ms with spends tracking a fraction of it.
+  So the mechanism is visible PER MOVE rather than inferred from a count of non-events: the time manager allocates a
+  fraction of the clock it holds, so spend cannot exceed it plus the increment. That, not the sample size, is what
+  licenses "any" - and it is now seen rather than asserted.
+AND I NEARLY PUBLISHED A DRAMATIC WRONG FINDING (the error is recorded in S-C44). My first summary read: "a move spent
+70 ms from a clock holding 1 ms (+60 increment = 61 available) - spend exceeded the whole clock and the increment,
+and the clock still did not go negative." That would have been a real defect. IT WAS NOT TRUE:
+  (1) THE ARITHMETIC DID NOT CLOSE. 1 - 70 + 60 = -9 is negative, so "no forfeit" contradicted my own sentence - a
+      one-line check I nearly skipped because the sentence sounded like a finding.
+  (2) THE TRACE, added to settle it, showed the 71 ms move happened at PLY 11 with 161 ms on the clock.
+  THE MECHANISM OF THE ERROR: I compared max(spend) ACROSS THE WHOLE GAME against the STARTING clock - an extremum
+  paired with a reference value from a different row. Generalised: whenever a summary pairs an extremum with a single
+  reference value, THE REFERENCE MUST BELONG TO THE SAME ROW. That is S-F126 ("if two numbers appear beside a third, a
+  reader will assume it derives from them") applied to my own analysis rather than to a published line.
+TWO LIMITS THE TRACE REVEALED, both stated on the page: plies 0-1 spent 0 ms (at a 1 ms clock the engine returns a
+move having spent nothing, so that region tests only that a search which does not happen cannot overrun), and five
+positions is a HARDER sample, not a larger one. It adds coverage of the expensive region, not statistical weight.
+Gates: 183 rows, 0 wrong pipe counts, page shape OK, stamps in order.
+Next: continue at cadence.
