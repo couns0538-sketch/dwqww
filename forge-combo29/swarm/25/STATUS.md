@@ -16,6 +16,15 @@ forge-combo29/swarm/25/. Build used for everything PC: PC r15 from FABLE_TO_swar
 d6bd72c531f785f4... matches), PC20, Threads 1, Hash 16 unless a line says otherwise. Base-tree findings used
 build 6b98f217, S14. All four honesty pins hold on every build I used: 312866 / 862329 / 3024920 / 4865609.
 
+### A GENERAL WARNING WORTH READING BEFORE ANY CROSS-SEAT COMPARISON
+
+**Matching another seat's node count is evidence of a shared build. Mismatching it is NOT evidence of a different answer.**
+
+Measured on one board (S-C43): halfmove counter 0 and counter 1 give the *identical* answer - `mate -16`, move `f6f5` -
+at **7,608,471** and **15,702,225** nodes. A 2.1x swing in work for the same conclusion, because the fifty-move horizon
+changes which lines are explored and pruned. So no result should be accepted or rejected on a node count alone; a node
+count is a build fingerprint, not a result fingerprint.
+
 ### REASSURANCE FIRST: the owner's real match setting is clean end-to-end (S-F30)
 
 A full **90-ply self-play game** at the owner's exact match configuration - PC r15, PC20, Threads 1, Hash 16,
