@@ -163,6 +163,25 @@ def check(docs: dict[str, str], facts: dict) -> list[str]:
                 f"{fmt(facts['identity_nodes'])})"
             )
 
+    # 8. The fault register count must match the number of entries that section
+    #     actually contains. This bit twice: the count disagreed across three
+    #     documents, and an itemised list carried fewer items than its own total.
+    section_6 = findings.split("## 6.")[1].split("## 7.")[0] if "## 6." in findings else ""
+    entry_count = len(re.findall(r"^\d+\. \*\*", section_6, re.M))
+    for where, text in docs.items():
+        claimed = re.search(r"\b(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|"
+                            r"Eleven|Twelve|Thirteen|Fourteen|Fifteen)\s+faults",
+                            text)
+        if claimed:
+            words = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6,
+                     "Seven": 7, "Eight": 8, "Nine": 9, "Ten": 10, "Eleven": 11,
+                     "Twelve": 12, "Thirteen": 13, "Fourteen": 14, "Fifteen": 15}
+            if words[claimed.group(1)] != entry_count:
+                problems.append(
+                    f"{where}: claims {claimed.group(1)} faults but FINDINGS §6 has "
+                    f"{entry_count} entries"
+                )
+
     return problems
 
 
@@ -243,8 +262,21 @@ def main() -> int:
         assert any("superseded" in p for p in problems), "a stale total was not detected"
         print("[self-test 6] planted stale 225,856 in PERFT_TABLE caught")
 
+        # Plant a fault-count mismatch: the documents claiming a number that
+        # FINDINGS section 6 does not contain. This bit twice in practice.
+        mismatched = dict(docs)
+        mismatched["STATUS.md"] = re.sub(
+            r"Fourteen faults", "Nine faults", docs["STATUS.md"]
+        )
+        problems = check(mismatched, facts)
+        assert any("claims Nine faults" in p for p in problems), (
+            "a fault-count mismatch against the register was not detected"
+        )
+        print("[self-test 7] planted fault-count mismatch (Nine vs the register) caught")
+
         print("SELF-TEST PASSED: underclaim, overclaim, dangling pointer (explicit "
-              "and bare), and stale total all go red; documents match artefacts")
+              "and bare), stale total and fault-count mismatch all go red; "
+              "documents match artefacts")
         return 0
 
     problems = check(docs, facts)
