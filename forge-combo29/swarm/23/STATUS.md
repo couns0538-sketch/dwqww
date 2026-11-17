@@ -1621,3 +1621,17 @@ onset. Better lead for area 7 than a build comparison: it points at SHARED searc
 NOT separated, and named as such: whether the base's ~2x-larger peak is the drawn-root repair or the PC20 switches.
 FOURTH self-correction this window (C7, F29, F70, F82) - all four the same shape: a comparison a second measurement
 narrowed rather than overturned. 110 findings, 18 confirmations, thirteen named faults. 9 h 13 m remain.
+## 2026-11-17T01:09:05Z  F82 open question ANSWERED: the 2x peak is the PC20 RUNTIME SWITCHES, not the repair - like-for-like the PC is 9 % HIGHER
+2026-11-17T01:09:05Z
+
+Counter 91, depth 10, four configurations:
+  base no-options 16,370,887 | base + PC20 switches 13,791,896
+  PC variant A NO options 17,798,973 | PC + PC20 switches 7,251,835
+So like-for-like (both builds, no options) the PC is 9 % HIGHER than the base (17.8M vs 16.4M): the drawn-root repair
+does NOT reduce this peak and may slightly raise it. The whole apparent "base 2x PC" difference was the PC20 OPTION
+SET, which reduces both builds (base 16.4M->13.8M, PC 17.8M->7.25M).
+THIRD LAYER of correction on one number, each from separating a variable left confounded: (1) "base vs PC" wrong - same
+shape; (2) "the repair" wrong - it is the switches; (3) like-for-like now. Final statement: this peak is a search
+property near the horizon, both builds exhibit it, the PC build's own value is slightly higher, and the reduction
+observed on the PC comes from PC20's search options, not from anything the patch repairs.
+110 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 11 m remain.
