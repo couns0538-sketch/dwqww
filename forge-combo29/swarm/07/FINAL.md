@@ -78,7 +78,7 @@ false).
 
 ---
 
-## The four things I would put in front of the owner
+## The five things I would put in front of the owner
 
 1. **07-F1 is the only engine defect I found that survives on the PC build**, it is confirmed by another
    seat, and it has a ready patch that changes no node count on any published bench (07-C23, 07-C24).
@@ -100,6 +100,13 @@ false).
    formula gives a floor of about 10 ms, i.e. `Move Overhead` alone — there is no margin and nothing
    protects the engine from flagging.** Every clock control I ran with an increment had zero overruns
    (07-C7); that safety comes *from* the increment, not from the clock path.
+5. **VARY THE OPENINGS IN SELF-PLAY, OR THE SET IS TEN COPIES OF ONE GAME.** With a node budget (which
+   is exactly reproducible — 07-C49) ten games from startpos gave **one** distinct final position and
+   **one** distinct move sequence: all ten identical. Ten games from ten different positions gave ten
+   distinct finals and ten distinct sequences (07-C68). So with fixed starts the **effective sample size
+   is one per start**, not ten — and varying the opening is the only thing that makes a self-play set
+   non-degenerate. Seat 16 measured 7-of-10 identical on a clock and blamed millisecond drift; removing
+   the clock made the duplication total, which confirms their explanation.
 
 ## Audit method: how to check a seat's scope without raising a phantom alarm
 

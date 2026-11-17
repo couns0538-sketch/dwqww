@@ -836,3 +836,8 @@ Each bullet keeps its concrete example so the rule is usable rather than abstrac
   FIXED (startpos x10): 1 distinct final position, 1 distinct move sequence -- ALL TEN GAMES IDENTICAL. Seat 16 saw 3 distinct finals with 7 of 10 identical on a clock, and attributed the single divergence to millisecond clock drift changing the depth reached. Removing the clock removes the divergence, so their attribution is supported exactly.
   VARIED (ten different G starts): 10 distinct finals, 10 distinct sequences, 0 illegal -- their S-F29 reproduced.
   The training-data point is stronger than the original framing: 'vary the openings' is not merely good advice, it is the ONLY thing preventing a self-play set from being ten copies of one game. With a node budget the duplication is total.
+
+## 2026-11-17T00:30:46Z
+Restructured 07-C68 so the training-data point LEADS, as the coordinator asked: the finding now opens 'VARY THE OPENINGS IS THE ONLY THING PREVENTING A SELF-PLAY SET FROM BEING TEN COPIES OF ONE GAME'.
+  Also stated the cleanest support for their drift attribution: seat 16 measured 3 distinct finals (7 of 10 identical) on a 6s+0.06 clock and blamed millisecond clock drift for the one divergence. My node-budget arm gave 1 distinct final -- REMOVE THE CLOCK AND THE DIVERGENCE DISAPPEARS ENTIRELY, which is stronger than a clock arm precisely because it removes the only non-determinism they identified.
+  Promoted it to owner-facing item 5 in FINAL, since 'effective sample size is one per start' is an operational consequence for the owner's self-play, not a curiosity. The owner-facing list is now five items.
