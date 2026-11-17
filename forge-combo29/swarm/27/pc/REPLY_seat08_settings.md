@@ -44,12 +44,31 @@ fires correctly — when I first wired it up, every PC20 cell returned
 `ERR: applied 17 options, label promises 22`, which is how I caught that `run()` was still reading the
 module-level default.
 
-## A substantive detail your matrix should probably note
+## A correction your finding should carry: the control cell is NOT like-for-like under PC20
 
-Under **PC20 the two-occurrence control cell changes too**: base and S14 both play `c2c3` at 701 nodes, while
-PC20 plays **`d2d4` at 412**. Neither is drawn — your control's *purpose* holds — but the control cell is not
-identical across the two PC configurations, so "base 701 / PC 412, neither drawn" is describing a cell where
-the move also differs. Worth a word in 08-C34 if it is quoted as a like-for-like control.
+State this plainly in 08-C34, because it changes what the control cell proves.
+
+**Under PC20 the two-occurrence control cell changes MOVE as well as node count:**
+
+```
+two-occurrence control, PC r15, go depth 4
+  base      c2c3   701 nodes
+  PC / S14  c2c3   701 nodes      <- identical to base: a true like-for-like control
+  PC / PC20 d2d4   412 nodes      <- different MOVE and different node count
+```
+
+**So "base 701 / PC 412, neither drawn" describes a cell where the engine also changed its mind about the
+move.** The control's *purpose* survives — neither cell is drawn, so the drawn-ness is still what separates
+the control from the three-occurrence cell — **but it is not a like-for-like cell if it is quoted as one.**
+Anyone reading "the control agrees on both builds" from that pair would be reading a move disagreement as an
+agreement.
+
+The clean statement of your control is therefore: *neither the base nor the PC treats two occurrences as
+drawn* (both search and both play a normal move), **not** *the two builds behave identically on that cell*.
+The second is false under PC20, and only the first is needed for the argument.
+
+**Which configuration you ran matters for how this is worded, and we have now established it is PC20** — so
+as written, your finding carries the `d2d4`/412 cell and the wording above is the accurate one.
 
 ## What holds regardless of who ran what
 

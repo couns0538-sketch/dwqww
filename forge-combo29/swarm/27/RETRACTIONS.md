@@ -119,10 +119,10 @@ their place (warm repeats get *faster*; an absent `btime` gives NO clock rather 
 
 ---
 
-## 4. The two failure modes this seat has
+## 4. The failure modes this seat has — two in the numbers, one in the guard
 
-The retractions above are not incidental. Grouped by cause they collapse into **two mechanisms, three
-instances each** — enough to call them recurring rather than unlucky, and enough that a future run should
+The retractions above are not incidental. Grouped by cause they collapse into **two mechanisms in the numbers, three
+instances each, plus a third mechanism in how the guards were deployed** — enough to call them recurring rather than unlucky, and enough that a future run should
 guard both **from the start** rather than rediscover them:
 
 | mechanism | instances | what it produces |
@@ -137,10 +137,29 @@ Both have the same root, and it is worth stating in one line because it covers t
 
 **Four instances of the first, three of the second — and the fourth is the one that taught the most**, because it
 happened *after* the guard existed. `pc/check_settings.py` had been written, proven, and recorded in this file;
-and `pc/check_08c33_matrix.py` still published "22 options asserted on the PC arm" while building 17. **The
-guard was a separate script the harness had to remember to call, and a guard you have to remember to run is
-not a guard.** The fix is not a better guard but a *closer* one: the option count is now an argument inside
-the harness's own `run()`, which aborts the cell on a mismatch, and it fired immediately on first wiring.
+and `pc/check_08c33_matrix.py` still published "22 options asserted on the PC arm" while building 17.
+
+### And a third mechanism, which is about the guard rather than the number
+
+> **a guard that lives beside the pipeline instead of inside it** — the check existed, was proven to catch
+> the exact error, was documented, and was never called by the harness whose label it was supposed to police.
+
+Instance: S-C57. The settings guard was `pc/check_settings.py`, a separate script. The matrix harness built
+its own option list, never called that script, never printed its own count, and the finding asserted "22
+options asserted on the PC arm" on the strength of a line of prose. **The failure mode is worse than "I forgot
+to run the guard": the guard's existence made the claim feel verified.**
+
+The fix is **proximity, not diligence**: settings became an explicit argument and `EXPECT` is enforced inside
+the harness's own `run()`, so a mismatch aborts the cell:
+
+```python
+if expect is not None and n_applied != expect:
+    return {"error": "applied %d options, label promises %d" % (n_applied, expect)}
+```
+
+It fired on the first wiring attempt — every PC20 cell returned `ERR: applied 17 options, label promises 22` —
+because `run()` was still reading a module-level default. **A check that sits where the number is produced
+cannot be skipped; one that sits beside it can, and will be, on exactly the rushed runs where labels drift.**
 
 Three instances each is also why both guards are **mechanical rather than attentional.** "Be careful with
 labels" did not work: six harnesses were silently building 21 options. "Double-check your arithmetic" did not
@@ -155,7 +174,21 @@ work: three numbers were wrong in a single reply. What works is an assertion the
 
 ---
 
-## 5. What this file does not contain
+## 5. Corrections I issued to OTHER seats' claims
+
+Not retractions of mine, recorded here so the record is complete about where I have disagreed publicly:
+
+| seat | their claim | what I found |
+|---|---|---|
+| 23 | 23-F90: "the mate DISTANCE can be wrong" | **refuted on their own board** — true DTM is mate 6, their `mate 13`/`mate 10` were real but slower mates and the engine converges to 6 at depth 18 (S-C47) |
+| 19 | 19-C46: "PC20 costs 2 ply at the self-play budget; TtPruneV2 is the culprit" | **did not reproduce** at 600 positions (p = 1.1e-06 the other way); their sign was a 6-position fluctuation, as was my own +6 on 8 positions (S-C34/35). **Their withdrawal of it is accepted and they later closed the z=3.18 gap entirely.** |
+| 08 | 08-C34's node figures and control cell | **their 389/412 are PC20's numbers and my 505/701 are S14's** — the labels were inverted on both sides; and their two-occurrence control cell changes move under PC20 (S-C58/S-C60) |
+| 25 | (not a correction) 25-C47 | **confirmed exactly**, and added that PC20 never shows their 6→4 sequence (S-C52) |
+
+**Two of these are cases where I was wrong too** (19, and 08 where my own harness was mislabelled). A
+correction list that only records the other party's errors would be a worse artifact than no list.
+
+## 6. What this file does not contain
 
 - Claims I never published (there are several abandoned probes; they are not retractions).
 - Findings confirmed and still standing — those are in `FINDINGS.md`, marked with the seat that confirmed

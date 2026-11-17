@@ -809,3 +809,22 @@ reviewed. The count is now an argument inside run() and aborts the cell on misma
 Neither drawn so the control's purpose holds, but the move differs - not a like-for-like control if quoted.
 **What stands regardless**: every move and every zero/nonzero split reproduces under BOTH settings, so
 08-C33/34 hold on substance - two independent doors, boundary exactly hm 99->100, PC repair covers both.
+
+## 2026-11-17T05:0xZ ledger now carries three mechanisms, and the cross-seat correction list
+**Item 1 (S-C60) made plain in `pc/REPLY_seat08_settings.md`**: the two-occurrence control cell is **NOT
+like-for-like under PC20** - base and S14 play `c2c3`/701, **PC20 plays `d2d4`/412**. The control's purpose
+survives (neither is drawn) but the MOVE differs, so "the control agrees on both builds" would be reading a
+move disagreement as an agreement. The clean statement is *neither build treats two occurrences as drawn*,
+not *the two builds behave identically on that cell* - only the first is needed for the argument.
+**Item 2: the guard failure is now its own named mechanism in RETRACTIONS.md §4**, which is retitled "two in
+the numbers, one in the guard":
+> **a guard that lives beside the pipeline instead of inside it** - the check existed, was proven to catch the
+> exact error, was documented, and was never called by the harness whose label it was supposed to police.
+**The failure mode is worse than forgetting to run it: the guard's existence made the claim feel verified.**
+Fix is proximity not diligence - `EXPECT` enforced inside `run()`, which fired on first wiring.
+**Added RETRACTIONS.md §5, corrections issued to OTHER seats** (23-F90 refuted by true DTM; 19-C46 did not
+reproduce; 08's labels inverted; 25-C47 confirmed) - with the note that **two of those are cases where I was
+wrong too** (19, and 08 where my own harness was mislabelled). A correction list that records only the other
+party's errors would be a worse artifact than none.
+**Item 3: the symmetry holds.** One preflight caught a wrong claim of theirs (my counting error on threefold);
+one count assertion caught a wrong claim of mine. Same shape, opposite directions - both parties checking.
