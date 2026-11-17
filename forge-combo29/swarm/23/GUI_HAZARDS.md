@@ -57,7 +57,7 @@ available; this one gives you **no move at all** and **no diagnostic**. A GUI th
 receiving moves with nothing in the engine's output to say why. Remedy (seat 02's design suggestion, not my
 measurement): print an `info string` and fall back to a bounded default when neither clock belongs to the side to move.
 
-## The one rule that covers both
+## The rules that cover all three
 
 > **After every `position` command, count the `info string` lines the engine emits. If any appeared, do not trust
 > the position — rebuild it from scratch (`ucinewgame`, then a well-formed `position`).**
@@ -85,4 +85,5 @@ own self-play or matches. These matter for **anyone else writing a front end**, 
 | refused FEN -> previous game's move | `forge-combo29/swarm/23/check21/RESULT.txt`, `refused_readyok.out` |
 | illegal token -> truncated game | `forge-combo29/swarm/23/check11/RESULT_SF57.txt`, `s57.out` |
 | the defence, three protocols | `forge-combo29/swarm/23/check11/gui_defence.out` |
-| related, same family | 23-C23 (refused FEN keeps previous board), 23-C24 (illegal token truncates), 23-F53 (the defence) |
+| partial clock -> no answer, no diagnostic | `forge-combo29/swarm/23/check02/RESULT.txt`, `partial_clock.out` |
+| related, same family | 23-C23 (refused FEN keeps previous board), 23-C24 (illegal token truncates), 23-C25 (partial clock hangs), 23-F53 (the defence) |
