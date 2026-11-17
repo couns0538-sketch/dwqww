@@ -81,9 +81,21 @@ python3 "$SCRIPTS/q4b_gates_and_rng.py" --binary "$FORGE" | tee "$EV/gates_rng.t
 echo "== 14. book boundary walk =="
 python3 "$SCRIPTS/q5_boundary.py" --binary "$FORGE" --plies 24 | tee "$EV/boundary.txt"
 
-echo "== 15. determinism across ten fresh processes =="
+echo "== 16. determinism across ten fresh processes =="
 python3 "$SCRIPTS/q6_determinism.py" --binary "$FORGE" --variety 0 --runs 10 | tee "$EV/determinism_v0.txt"
 python3 "$SCRIPTS/q6_determinism.py" --binary "$FORGE" --variety 30 --runs 10 | tee "$EV/determinism_v30.txt"
+
+echo "== 17. score absence on the book path, with an off-book control =="
+python3 "$SCRIPTS/q3_score_absence.py" "$FORGE" | tee "$EV/score_absence.txt" || { echo "SCORE-ABSENCE CHECK FAILED"; exit 1; }
+
+echo "== 18. book pre-empts drawn-root detection =="
+python3 "$SCRIPTS/q4c_drawn_root.py" "$FORGE" | tee "$EV/drawn_root.txt" || { echo "DRAWN-ROOT CHECK FAILED"; exit 1; }
+
+echo "== 19. castle wire form round trip =="
+python3 "$SCRIPTS/q1b_castles.py" /tmp/book_full.txt "$FORGE" | tee "$EV/castles.txt"
+
+echo "== 20. book path latency distribution =="
+python3 "$SCRIPTS/q2b_latency.py" --binary "$FORGE" --runs 200 | tee "$EV/latency.txt"
 
 echo
 echo "done. evidence in $EV/"
