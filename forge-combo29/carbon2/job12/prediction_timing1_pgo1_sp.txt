@@ -1,0 +1,20 @@
+Job 12 Timing (1) Prediction — SP-Profiled `r15d` vs SP-Profiled `r15d + PGO1` (committed ALONE before any Job 12 build or timed run)
+=====================================================================================================================================
+Comparison: `A = r15d` built twice with the SP profile (`bench 11 / 13 / 16` + `60` disjoint self-play games at `go softnodes 2000`, `PC20`, `net768.fnn3`, `Hash 16`, `Threads 1`; `2` `.profraw` files merged per build, `games=60`, `searches=5531`, `nodes=18059934` in `forge-combo29/carbon2/job11/build_pgo_raw.txt` line 272) vs `B = r15d + PGO1` (`forge-combo29/carbon2/job10/pgo1_curated_pgo_winners_and_hot_stop_tt_stalemate.patch.txt`, `1,060` lines) built twice with the exact same SP profile, compiled with `clang++-18` (`18.1.3`) + GCC 13 `libstdc++` + ThinLTO (`lld-18`) + `-march=sapphirerapids` + all six `FORGE_SPD_*` / `FORGE_SEARCH_SPEED2` switches of File 10 fact `(c)`.
+
+What `PGO1` removes or changes relative to SP-profiled `r15d`, with numbers copied from committed raw files:
+1. On bench-profiled Clang 18 ThinLTO + PGO (`forge-combo29/carbon2/job10/pgo_r15d_vs_pgo1_12x60_hash16_raw.txt` lines 66 and 60), `PGO1` measured **`1.0266x` (`+2.66%`, `12/12` faster)** paired engine CPU and **`1.0177x` (`+1.77%`, `11/12` faster)** wall.
+2. Once BOTH `r15d` and `r15d + PGO1` have the SP profile (which lifted `r15d` alone by **`1.0323x` [`+3.23%`, `11/12`]** in `forge-combo29/carbon2/job11/timing1_r15d_bench_vs_sp_12x60_hash16_raw.txt` line 66), `PGO1`'s `[[gnu::always_inline]]` `check_node_or_periodic_stop()` and `[[gnu::hot]]` `apply_position_sv` hints lose most of their bench-profile cold-code advantage (`P1` marginal inside `bundle 5` measured **`0.9996x` [`-0.04%`, `3/6`]** in `forge-combo29/carbon2/job11/ablation_loo_sp_6x60_hash16_raw.txt` line 74).
+3. However, `PGO1` still holds four genuine algorithmic/memory work reductions that SP-profiled PGO cannot synthesize on `r15d`:
+   - `S4`: `MovePicker` stack shrinkage (`4,792 -> 2,224 B`, `-2,568 B/ply` in `forge-combo29/carbon2/job10/pgo1_identity_and_bench13_raw.txt` line 2).
+   - `S5` (+ `#ifndef NDEBUG` `compute_key()` assert): `precomputed_key` reuse in `Board::make_move` + lazy `king_lines_` `Undo` (`S4 + S5` marginal inside SP-profiled `bundle 5` = **`1.0061x` [`+0.61%`, `6/6`]** in `forge-combo29/carbon2/job11/ablation_loo_sp_6x60_hash16_raw.txt` line 70).
+   - `S7` (parts 1 & 2): zero-allocation `std::string_view` `position` move replay + `Worker::clear()` `memset` (marginal inside SP-profiled `bundle 5` = **`1.0113x` [`+1.13%`, `4/6`]** in `forge-combo29/carbon2/job11/ablation_loo_sp_6x60_hash16_raw.txt` line 71).
+   - `G3` + `P1` legal-move part: off-king-ray pawn push/capture fast-return in `Board::has_legal_move()` + `known_gives_check == 0` checker-scan skip in `Board::make_move` + `(moving != WK && moving != BK)` in `Board::is_legal`.
+
+Predicted self-play gain at `Hash 16` (`A = r15d` SP-profile, `B = r15d + PGO1` SP-profile, 12 rounds x 60 games ABBA, two independent SP-profile builds each):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+1.2%` to `+3.0%` (`1.012x` to `1.030x`)**, with **`>= 9 / 12`** paired rounds faster (clearing File 12's `>= 1.0%` gate).
+- Wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+0.8%` to `+3.0%` (`1.008x` to `1.030x`)**.
+
+Kill range (aligned with File 12's `1%` decision gate):
+- Any Step 0 mismatch or divergence from `ee465caeff9c0fcf` (`7,670` searches, `25,641,316` nodes) across the 48 runs kills immediately.
+- If `(r15d + PGO1)_sp / r15d_sp` `median_of_paired_round_ratios` on `getrusage` engine CPU is `< 1.0100x` (`< +1.00%`) OR fewer than `9 / 12` paired rounds are faster on `getrusage` engine CPU, `PGO1` does NOT keep `>= 1%` (and if `< 1.0120x`, `prediction_timing1_pgo1_sp` is graded **KILLED**).
