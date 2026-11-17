@@ -121,8 +121,9 @@ widens (depth 2: 336/334 gap 2 → 320/357 gap 37). A reverse is the wrong trans
 
 **`S-F35` — THE THREAD IS CLOSED, AND THE ANSWER IS COMPLETE.** Canonicalising **all five** move-generation sites
 (captures, quiets, **evasions**, and two others) plus the separately-built root candidate list by a
-mirror-invariant key makes **15 of 15** position × depth cases **EXACTLY equal**, including the two that resisted
-every earlier fix. My intermediate result (10 of 15) was correct for the two sites I had canonicalised then; the
+mirror-invariant key makes **120 of 120** position × depth cases **EXACTLY equal** — 60 G positions at depths 1
+and 2, against **34 of 120** on the base build, with zero residue and zero cases the fix broke (`S-F37` tested the
+generality of my original 15-case result, because my own habit 3 says a small sample is not a property). My intermediate result (10 of 15) was correct for the two sites I had canonicalised then; the
 missing five were the **evasion generator** (`search.cpp:1078`), which fires only inside subtrees and so was
 invisible at the root. The residue was not the transposition table (identical at Hash 1/16/256), not history state
 (unchanged across 7 history configurations), and not root order — I ruled each out by measurement before finding it.

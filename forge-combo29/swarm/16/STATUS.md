@@ -544,3 +544,17 @@ seed: 1601
 - That closes the symmetry thread with mechanism, code citations, a diagnostic, and an explicit statement that no
   cheap strength-preserving fix exists. Nothing further owed on it; continuing the cadence on the PC path.
 - check_folder.py ALL CHECKS PASS (417 files, 43 findings rows). FINAL block at 10:18:40Z.
+
+## 2026-11-17T03:52Z
+- S-F37: I TESTED MY OWN "COMPLETELY" against my own habit 3. S-F35's claim rested on 15 cases; habit 3 says a
+  small sample is not a property, and "completely" is exactly the word that needs a larger N.
+    depth 1: base equal 25/60  ->  canonical 60/60
+    depth 2: base equal  9/60  ->  canonical 60/60
+    ALL    : base equal 34/120 ->  canonical 120/120
+  ZERO residue. ZERO cases the fix broke. So S-F35 generalises on 120 cases and the sample-size caveat I would
+  otherwise have owed is withdrawn; FINAL now states 120 of 120 against the base build's 34 of 120.
+- P4 of that job was REFUTED (I predicted depth 1 would be equal more often than depth 2 IF a residue existed;
+  there is no residue, so the premise never arose) and I recorded the refutation rather than dropping it.
+- Framing unchanged: still a DIAGNOSTIC, still not something the owner should adopt (S-F36's cheap variant failed
+  with a source-verified reason).
+- check_folder.py ALL CHECKS PASS (424 files, 44 findings rows). Cadence continues; FINAL block at 10:18:40Z.
