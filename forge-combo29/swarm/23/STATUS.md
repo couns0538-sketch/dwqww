@@ -1645,3 +1645,14 @@ raise it; the whole apparent "base 2x PC" difference was the PC20 OPTION SET (ba
 Order for a multiply-corrected finding: conclusion first, path second, so a reader who reads one line gets the right
 statement.
 110 findings + 1 method finding (F83), 18 confirmations, thirteen named faults, six reference pages. 9 h 9 m remain.
+## 2026-11-17T01:11:47Z  F82 BOUNDED: a node effect, not a wall-clock problem - worst cell 3.6 s, most under 0.2 s
+2026-11-17T01:11:47Z
+
+Wall time counters 88-91 at depths 8-11, base build: worst 3.6 s (c90 d11, ~30M nodes), most cells < 0.2 s; at
+~8M nodes/s, 27M nodes = 3.4 s. So "27 million nodes" must NOT be read as a performance defect - the interesting part
+is the SHAPE (peak one or two counters before the collapse, both builds), not the magnitude.
+Caveat kept: a slower machine or a deeper search where the peak grows could make it matter in wall time - measured
+depths 8-11 only on a machine at ~8M nodes/s, no extrapolation.
+This is the FOURTH layer on that single number and the one that stops over-reaction: three corrections narrowed what
+the difference MEANS, this one bounds what it COSTS.
+111 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 9 m remain.
