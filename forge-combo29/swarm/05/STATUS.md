@@ -1001,3 +1001,11 @@ every sentence.
   errors, then this labelling error), and the cost of checking late is a wrong document on the remote.
 - next command: test the PV-completeness rule at MultiPV > 1, a gap I have not covered (seat 07 showed MultiPV affects
   node budgets).
+
+## $(date -u) — CADENCE PUSH (remote verified in step with local at 01:15Z)
+- Verified pushes are landing: remote tip 76a25b2 == local, last commit 4 min old. The 52-minute flag did not reflect a
+  failed push; my commits were going through, the STATUS blocks were the thing not being written between them.
+- S-F79: S-F73's rule holds per-line under **MultiPV 3** — 9 of 9 multipv mate lines, 0 violations, including one
+  `mate +8` line with 14 of 15 plies that correctly did NOT mate. This closes a gap I noticed: the rule had only ever
+  been tested at MultiPV 1, and seat 07 showed MultiPV changes how a fixed budget is spent.
+- next command: continue at cadence, STATUS every block.
