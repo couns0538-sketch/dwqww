@@ -1194,3 +1194,27 @@ those were MY 8-SECOND CAP.** With a longer cap the same command reaches depth 2
 **A depth column measured under a timeout is a column of my patience.** The table now separates RETURNED from
 CAPPED, which is why no legitimate row says 26.
 NEXT: the `setoption` parser is the adjacent surface and nobody has swept it.
+
+## 2026-11-17T14:2xZ S-C114/115/116 — SIXTH SHAPE: an unknown `position` TYPE is silent, and nothing prints at all
+**Swept `position`, the last parser surface. Found the sixth shape, and it is the only one with NO DIAGNOSTIC PATH.**
+**S-C114: an unrecognised `position` TYPE is silently ignored and the previous position is re-searched - `position
+nonsense` emits NOTHING, unlike every `fen` error, because the type keyword is never validated so the FEN
+validator never runs.** Fresh session each:
+  valid K+RvK (a1a8/mate 1/126 nodes) -> `position nonsense` -> a1a8/mate 1/126 nodes, **diag NONE**
+  valid middlegame (f1e2/cp 97)       -> `position nonsense` -> f1e2/cp 106,          **diag NONE**
+The answer follows the PREDECESSOR (the S-C84 signature) but **there is not even the one `info string` line to
+grep for - so my own corrected defence, "scan the position reply for `invalid FEN`", WOULD NOT CATCH THIS ONE.**
+**S-C115: the `position` surface is NOT uniform - three behaviours.**
+  (a) REFUSED WITH DIAGNOSTIC, previous kept: bad side-to-move, bad castling, FEN truncated, `position fen` with
+      no FEN -> all say `invalid FEN: ...`
+  (b) ILLEGAL MOVE MID-LIST: warns AND CONTINUES (S-C116)
+  (c) SILENT: `position nonsense` (unknown type); junk after the sixth FEN field dropped (confirms S-C1)
+**So the FEN validator is thorough and the TYPE validator does not exist.** That asymmetry is the finding.
+**S-C116: `position startpos moves e2e4 zzzz e7e5` APPLIES e7e5 ANYWAY** - it reports `illegal move zzzz` then
+keeps parsing and applies every later legal move. **A corrupted move list does not truncate; it SKIPS the bad
+token and continues, producing a position that is neither the intended one nor the prefix up to the error.** A
+harness that checks "did it warn" sees a warning and assumes abandonment; what it searches is a splice.
+**IMPLICATION FOR THE REPORT: the S-C84 defence needs a second clause** - scanning for `invalid FEN` catches the
+fen errors but NOT an unknown position type, which prints nothing - so the only complete defence remains the one
+already stated: **confirm every FEN was accepted by YOUR OWN validator before sending**, plus matching the exact
+`position` forms you emit.
