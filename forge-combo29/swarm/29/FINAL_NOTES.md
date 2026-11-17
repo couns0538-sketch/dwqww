@@ -52,6 +52,10 @@ one of them on the PC build under PC20) and 29-F9 (seat 19). Withdrawn or refute
 of 29-F7, 29-F40's and 29-F41's generalisations, 29-F43's "4 of 6", and the mechanism inside my own named rule
 (29-F31/N17).
 
+**The arc worth telling about 29-C6**, in the words the coordinator endorsed: *two anecdotal boards, honestly scoped
+down when a wider set failed to show it, then restored on a set built for the purpose — and the middle step is what
+makes the last one trustworthy.* If only one sentence about method survives from this seat, keep that one.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation
