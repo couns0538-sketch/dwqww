@@ -439,10 +439,25 @@ extend rather than reinvent:
 | marker stripped | the four spread lines removed | a check that requires an accompaniment |
 | token substituted | a stamp's year moved to `2099` | a check that bounds a value |
 
-**A fifth class is missing and I know it**: **path substitution** — pointing a check at a copy of the subject in a
-directory it does not glob. That class would have caught S-F142 automatically. It is not implemented because it needs a
-harness that knows where each check looks, and I have run out of justification for building one tonight — so it is
-recorded here as the next thing to do rather than claimed as done.
+**A fifth class was missing when this page was first written, and it is now built (`S-F156`).** **Path substitution** —
+placing a defect at a path a check is asked to scan but in a format it might not glob, then requiring the check to find
+it. It was recorded as a gap with a demonstrated cost (S-F149); `check_path_substitution.py` now closes the automatable
+half:
+
+| case | result |
+|---|---|
+| a `.txt` defect in a scanned directory | **found** — the widened glob reaches it |
+| a defect two levels deep | **KNOWN LIMIT** — a one-level glob cannot see it, and the scope says so |
+| an `.md`-only directory against the pooled check | **fails via the zero-count guard**, as its scope states |
+| a check that takes its file as an argument | **N/A by shape** — coverage is the caller's choice |
+
+Proven by reverting the probe to the pre-S-F142 selector (`*.md` only), which reports **`the glob lost *.txt again
+(found: [])`** — the same empty list that demonstrated S-F142's cost. **The class fires when the coverage is wrong, which
+is the only proof that matters.**
+
+**And the residual is stated rather than hidden:** this tests whether a check reaches a given format in a given
+directory. It cannot tell whether a check *ought* to scan a directory I have not thought of. So Trap 13's split survives
+in a sharper form — **format-and-directory reach is now testable; which directories should exist is still imagination.**
 
 So family B keeps recurring not because I keep forgetting a rule, but because **the only defence is to imagine a
 different author reading the file** — and that is a habit, not a mechanism. The three questions earlier on this page are

@@ -2710,3 +2710,23 @@ Next: continue at cadence to the window close.
    medians 0.9261 and 0.9698. Arithmetic checked, not transcribed.
 Gates: 211 rows, 0 wrong pipe counts, FINAL arithmetic verified, same-run rule stated, stamps in order, gate rc=0.
 Next: continue at cadence to the window close.
+## 2026-11-17T03:17:28Z — resumed; Trap 13's named gap closed for its automatable half (S-F156)
+RESUMED AFTER THE 02:01 TURN ENDED. Nothing was lost: tree clean at 6cb218ade, gate 58 checks green. The measurement
+programme is NOT finished - I have the named gap from S-F149 to close and time to close it, so this is work, not a
+status-only block.
+CLOSED THE GAP THAT HAD A DEMONSTRATED COST. Path substitution - place a defect at a path a check is asked to scan but in
+a format it might not glob, then require the check to find it - is now implemented and gating.
+  PROVEN TO FIRE: reverting the probe to the pre-S-F142 selector (md only) gives "the glob lost *.txt again (found: [])",
+  which is the same empty list that demonstrated S-F142's cost in the first place.
+  FOUR CASES, each stating its own verdict KIND rather than a bare pass:
+    .txt defect in a scanned directory            -> FOUND (the widened glob reaches it)
+    defect two levels deep                       -> KNOWN LIMIT (one-level glob cannot see it; scope says so)
+    .md-only directory vs the pooled check       -> fails via the zero-count guard, as its scope states
+    check that takes its file as an argument     -> N/A BY SHAPE (coverage is the caller's choice)
+  Carries a literal EXPECTED_CASES = 4 per Trap 14, so a dropped case fails rather than passing quietly.
+AND THE RESIDUAL IS STATED RATHER THAN HIDDEN: this tests whether a check reaches a given FORMAT in a given DIRECTORY.
+It cannot tell whether a check OUGHT to scan a directory I have not thought of. Trap 13's split survives in sharper form:
+FORMAT-AND-DIRECTORY REACH IS NOW TESTABLE; WHICH DIRECTORIES SHOULD EXIST IS STILL IMAGINATION.
+Gates: 212 rows, 0 wrong pipe counts, path substitution gating, gate rc=0 across 59 checks.
+Next: continue at cadence; seat 19 has 19-C61 running at NPOS=470 on the wall question, which is my decomposition's
+territory, so I will check it when it lands.

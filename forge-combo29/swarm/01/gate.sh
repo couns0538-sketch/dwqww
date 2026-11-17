@@ -254,6 +254,12 @@ else
   echo "ok    generated-list guard uses a literal expectation"
 fi
 
+# 3l. PATH SUBSTITUTION - Trap 13's named gap, closed for the automatable half (S-F156). Places a defect at a path a check
+#     is asked to scan but in a format it might not glob, and requires the check to find it. Proven by reverting the probe
+#     to the pre-S-F142 selector (md-only), which gives "the glob lost *.txt again (found: [])" - the same empty list that
+#     demonstrated S-F142's cost.
+run "path substitution (coverage)" python3 check_path_substitution.py
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then
