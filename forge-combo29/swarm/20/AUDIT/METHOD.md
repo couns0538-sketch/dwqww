@@ -7,6 +7,13 @@
 > and the yardstick was broken. **A difference is evidence only if both sides are trustworthy**; check the reference
 > behaves sensibly (produces output, does not collapse, reproduces a known value) *before* you read the delta.
 
+> **RULE 0b: a declared gap must be MEASURED before a candidate is called ready.** I could have declared the 8 MB
+> alternate table a success after S-C43/S-C44 — median 0 cp, tolerance passed, MultiPV 8 best-case, no saturation at
+> 4x clock. Every number was true and the conclusion would have been wrong: the one regime I kept naming as "the
+> honest boundary" (deep endgames, depth 23) is where it fails (p90 112 cp against a 100 cp limit, S-C45). **The gap
+> you keep declaring is usually the answer.** This is RULE 0's sibling: check the reference is working, *and* check
+> the regime you did not test.
+
 ## Writing a finding
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
