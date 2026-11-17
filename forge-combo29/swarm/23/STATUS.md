@@ -1494,3 +1494,16 @@ prose where the folder is named in the same sentence - repeating the path each t
 page's 5 are depth numbers, two finding ids, the phrase "process/input termination", a branch name, and the handoff
 file. None is a failing path claim, and a reviewer can now disagree with that judgement instead of rediscovering hits.
 105 findings, 18 confirmations, thirteen named faults. 9 h 19 m remain.
+## 2026-11-17T01:00:27Z  23-F78: eval is BLIND to the repetition - eval +406 vs go cp0/0nodes on the base (a 406 cp contradiction)
+2026-11-17T01:00:27Z
+
+On the 23-F58 threefold root (as a move list), Threads 1, Hash 16:
+  eval          hce 502 / nnue -96 / total 406  <- BYTE-IDENTICAL to the counter-0 twin (correct for a static eval)
+  go depth 12   base: cp 0, 0 nodes | PC: cp 507, 44,269 nodes
+So a tool scoring with eval sees +406 where a tool searching sees a draw, and on the BASE the two interfaces differ by
+406 cp on the same board with no diagnostic anywhere. Matters to a different audience: any harness or GUI mixing
+eval (display) with go (moves) will show a contradiction.
+LIMIT stated: eval is behaving as designed (static, no history) - the finding is the ASYMMETRY of the interface pair,
+not an eval defect.
+All 4 predictions held. This adds a fourth angle to the drawn-root picture. 106 findings, 18 confirmations, 13 faults.
+9 h 18 m remain.
