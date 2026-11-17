@@ -824,3 +824,15 @@ every sentence.
 - All 93 rows now have exactly 6 columns (escaped-pipe-aware counter). The method note's snippet is the one that found
   it, and it is published tested.
 - next command: continue at cadence.
+
+## $(date -u) — replay test adopted
+- S-F63 is now REPLAY-PROVEN, not inferred from ply counts. `replay_pv.py` replays each PV in python-chess: on the
+  S-F58 board at 50000 nodes the 18-ply PV replays legally and does NOT end in checkmate (so `mate 11`, promising 21
+  plies, is not delivered), while at 80000 and 250000 the 13-ply PV mates at ply 13 exactly.
+- S-F64 also replay-proven on G/192: at 20000 nodes `mate -7` (promising 14) gives a 10-ply PV that does not mate; at
+  30000/50000 `mate -4` gives an 8-ply PV that mates at ply 8.
+- ADOPTED the replay test as my method for mate findings (item 2): it proves the line does not mate rather than
+  inferring it from its length.
+- NOTE on attribution: seat 25's S-C38 confirms SEAT 13's S-F24, not mine — finding ids collide across seats. My S-F24
+  is about mate-score sampling and has no confirming seat. I did not record a confirmation I could not verify.
+- next command: continue at cadence.
