@@ -1,0 +1,36 @@
+the truncation RATE on positions that actually have forced mates (set_G has almost none at these budgets)
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, OwnBook false, fresh process per cell
+
+position	budget	score	pv_plies	needed	pv_mates	verdict
+known_violator	20000	cp 4056	-	-	-	no mate score
+known_violator	50000	mate 11	18	21	False	TRUNCATED
+known_violator	250000	mate 7	13	13	True	ok
+G192_pawn_endgame	20000	mate -7	10	14	False	TRUNCATED
+G192_pawn_endgame	50000	mate -4	8	8	True	ok
+G192_pawn_endgame	250000	mate -4	8	8	True	ok
+KR_mate	20000	mate 1	1	1	True	ok
+KR_mate	50000	mate 1	1	1	True	ok
+KR_mate	250000	mate 1	1	1	True	ok
+KQ_mate3	20000	mate 2	3	3	True	ok
+KQ_mate3	50000	mate 2	3	3	True	ok
+KQ_mate3	250000	mate 2	3	3	True	ok
+pawn_reset_mate	20000	mate 2	3	3	True	ok
+pawn_reset_mate	50000	mate 2	3	3	True	ok
+pawn_reset_mate	250000	mate 2	3	3	True	ok
+KQK_win	20000	cp 1007	-	-	-	no mate score
+KQK_win	50000	cp 1039	-	-	-	no mate score
+KQK_win	250000	cp 1146	-	-	-	no mate score
+
+Mate scores found: 14 of 18 cells. TRUNCATED: 2 of 14 mate cells (14 %).
+Truncated cells:
+  known_violator at budget 50000: mate 11, pv 18 of 21 needed
+  G192_pawn_endgame at budget 20000: mate -7, pv 10 of 14 needed
+
+THE TWO RATES, separated because they answer different questions:
+  ON MATE POSITIONS: 2 of 14 mate cells truncated (14 %) - this is the defect's incidence where
+    it can occur at all.
+  IN ORDINARY PLAY: 0 of 120 set_G cells carried ANY mate score at these three budgets, so the
+    defect has no opportunity there. That is a statement about set_G at 20k/50k/250k, not a claim
+    that it is harmless everywhere: an endgame with a forced mate is where it lives.
