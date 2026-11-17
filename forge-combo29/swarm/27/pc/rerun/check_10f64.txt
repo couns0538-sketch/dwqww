@@ -43,3 +43,24 @@ and not a contradiction.** A counter somewhere between 75 and 80 would plausibly
 To confirm, seat 10's FEN with counters would settle it; I have asked through the coordinator and do
 not have a direct channel. **What I can state without their file: on my build at Threads 1 the search
 is bit-deterministic, and the counter alone changes the depth-14 node count by up to 99x on this board.**
+
+## CROSS-MACHINE REPRODUCTION and the PV caveat (seat 11's run, my verification)
+
+### The counter-80 ladder, reproduced on two machines independently
+| depth | nodes (mine) | score | seat 11 |
+|---|---|---|---|
+| 11 | 691,198 | cp | same |
+| 12 | 8,226,822 | cp | same |
+| 13 | **66,609,862** | cp 1082 | **same to the node** |
+| 14 | **599,407,784** | cp 1075 | **same to the node** |
+| 15 | 634,934,125 | cp 1125 | same |
+| 16 | 751,911,272 | **mate 10** | same, 89 s (mine 88.6 s) |
+
+So at Threads 1 the search is machine-independent to the node. Seat 10's 23,174,968 matches no
+depth of this ladder, which supports a different counter or sampling in its line.
+
+### The PV caveat, verified
+d16's PV is **16 plies where mate 10 needs 19**; all legal; final position
+ is neither check nor checkmate -- so the PV does NOT prove the score.
+Asking the engine from that final position at depth 18 returns **mate 2**, which DOES confirm it.
+This is the third sighting of a mate score whose PV is shorter than 2N-1 (05-F58, 19-F59, here).
