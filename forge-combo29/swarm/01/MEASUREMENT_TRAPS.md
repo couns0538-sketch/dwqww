@@ -97,3 +97,17 @@ omit the field.**
    setting and the fifth was the measurement itself — none was a search defect.
 
 This is the same family as the attribution rule: the failure is never in the number, and it is never announced.
+
+## A note on this page's own history, which is a trap of a different kind
+
+I appended Trap 3 and later Trap 5 **after** the page's closing sections — the same ordering mistake twice — and
+my first attempt to fix the second one duplicated the family-table heading, so the page took three passes to be
+correct. Nothing in the content was wrong at any point; the **shape** was.
+
+The structural checker on FINDINGS.md (`check_findings_table.py`) catches malformed table rows but **not
+out-of-order or duplicated sections** — so a page can pass every automated check and still read badly. The guard
+is the plainest one available: **after adding a section, read the page's headings in order.** One command:
+
+    grep -E "^## " <file>
+
+If the sequence is not what you intended, the page is not finished, whatever the checker said.
