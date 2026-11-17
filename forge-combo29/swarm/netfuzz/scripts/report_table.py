@@ -76,7 +76,7 @@ def main():
     asan = {r["name"]: r for r in json.load(open(sys.argv[3]))["results"]}
     loud = {r["name"]: r for r in json.load(open(sys.argv[4]))}
 
-    print("| mutant | class | field changed | refused | loader message | engine | ASan+UBSan lines |")
+    print("| mutant | class | field changed | verdict | loader message | engine | ASan+UBSan lines |")
     print("|---|---|---|---|---|---|---|")
     for case in manifest["cases"]:
         name = case["name"]
@@ -84,12 +84,20 @@ def main():
         a = asan[name]
         l = loud[name]
         verdict = r["probe_rel"]["verdict"]
-        refused = "**yes**" if verdict == "refuse" else ("**NO — loaded**" if verdict == "accept" else verdict)
+        if verdict == "accept":
+            shown = "loaded"
+        elif verdict == "refuse":
+            shown = "**refused**"
+        else:
+            shown = verdict
         msg = short_message(r["probe_rel"]["detail"]) if verdict != "accept" else "—"
         eng = "refused (exit 2)" if l and not any("loaded v3" in x for x in l.get("load_reply", [])) else "loaded"
         san = len(a["probe_asan"]["sanitizer_lines"])
+        agree = "yes" if (verdict == "accept") == (case["expect"] == "accept") else "**NO**"
+        if agree != "yes":
+            print("!! expectation miss: %s expected %s got %s" % (name, case["expect"], verdict), file=sys.stderr)
         print("| `%s` | %s | %s | %s | %s | %s | %d |"
-              % (name, case["class"], case["field"], refused, msg, eng, san))
+              % (name, case["class"], case["field"], shown, msg, eng, san))
 
     print()
     classes = {}

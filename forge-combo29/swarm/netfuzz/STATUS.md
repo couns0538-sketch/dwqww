@@ -9,7 +9,7 @@
 | 60 hand-built mutants, release arm | **done** — 53 refused, 7 loaded, all 7 by design |
 | 60 hand-built mutants, ASan+UBSan arm | **done** — 0 sanitizer lines, 0 verdict disagreements |
 | Sanitizer planted-fault proof | **done** — ASan heap-use-after-free and UBSan signed overflow both fire |
-| Engine-level loudness (both streams, `isready`, search blocked) | **done** — every refusal loud, `readynow` never starved |
+| Engine-level loudness (both streams, `isready`, search blocked) | **done** — every refusal loud on stdout/stderr, `isready` still answers `readyok`, no `bestmove` follows |
 | Allocation accounting (`operator new` counter) | **done** — bombs allocate 0 for the claim |
 | Amplification (2.00×–3.66×, linear in file length) | **done** |
 | Slurp-before-check / unbounded read | **done** — 8 GB file = 8.4 GB RSS; `/dev/zero` aborts on `bad_alloc` |

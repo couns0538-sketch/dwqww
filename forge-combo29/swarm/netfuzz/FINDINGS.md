@@ -50,7 +50,82 @@ Header mutants are **re-checksummed**, so the FNV layer cannot be what refuses t
 whatever refuses them is the field guard itself. Only the `ck_*` family and the
 single `rechecksummed` case are not resealed, because those are the checksum layer.
 
-REPORT_TABLE
+| mutant | class | field changed | verdict | loader message | engine | ASan+UBSan lines |
+|---|---|---|---|---|---|---|
+| `ctrl_pristine` | control | none (pristine file) | loaded | — | loaded | 0 |
+| `ctrl_kingmap_permuted` | control | king_bucket_map (in-range permutation) | loaded | — | loaded | 0 |
+| `ctrl_outputmap_rotated` | control | output_bucket_map (in-range rotation) | loaded | — | loaded | 0 |
+| `ctrl_flags_residual_cleared` | control | flags 2 -> 0 (mirror off) | loaded | — | loaded | 0 |
+| `ctrl_weight_inrange` | control | w1[0] 1 -> 2 (checksum resealed) | loaded | — | loaded | 0 |
+| `hdr_magic` | header | magic[0] 'F' -> 'X' | **refused** | bad magic (expected FORGENN3) | refused (exit 2) | 0 |
+| `hdr_version_4` | header | version 3 -> 4 | **refused** | unsupported version 4 | refused (exit 2) | 0 |
+| `hdr_version_0` | header | version 3 -> 0 | **refused** | unsupported version 0 | refused (exit 2) | 0 |
+| `hdr_header_bytes_191` | header | header_bytes 192 -> 191 | **refused** | header_bytes must be 192 | refused (exit 2) | 0 |
+| `hdr_header_bytes_256` | header | header_bytes 192 -> 256 | **refused** | header_bytes must be 192 | refused (exit 2) | 0 |
+| `hdr_inputs_767` | header | inputs 768 -> 767 | **refused** | inputs must be 768 | refused (exit 2) | 0 |
+| `hdr_inputs_1536` | header | inputs 768 -> 1536 | **refused** | inputs must be 768 | refused (exit 2) | 0 |
+| `hdr_hidden_544` | header | hidden 512 -> 544 (in range, x32, body not resized) | **refused** | file size 6309096 != expected 6703400 | refused (exit 2) | 0 |
+| `hdr_hidden_480` | header | hidden 512 -> 480 (in range, x32, body not resized) | **refused** | file size 6309096 != expected 5914792 | refused (exit 2) | 0 |
+| `hdr_hidden_1056` | header | hidden 512 -> 1056 (> MaxHidden) | **refused** | hidden must be a multiple of 32 in 32..1024, got 1056 | refused (exit 2) | 0 |
+| `hdr_hidden_0` | header | hidden 512 -> 0 (< MinHidden) | **refused** | hidden must be a multiple of 32 in 32..1024, got 0 | refused (exit 2) | 0 |
+| `hdr_hidden_500` | header | hidden 512 -> 500 (not a multiple of 32) | **refused** | hidden must be a multiple of 32 in 32..1024, got 500 | refused (exit 2) | 0 |
+| `hdr_king_9` | header | king_buckets 8 -> 9 (in range, body not resized) | **refused** | file size 6309096 != expected 7095528 | refused (exit 2) | 0 |
+| `hdr_king_1` | header | king_buckets 8 -> 1 (in range, body not resized) | **refused** | file size 6309096 != expected 804072 | refused (exit 2) | 0 |
+| `hdr_king_33` | header | king_buckets 8 -> 33 (> MaxKingBuckets) | **refused** | king_buckets must be 1..32, got 33 | refused (exit 2) | 0 |
+| `hdr_king_0` | header | king_buckets 8 -> 0 | **refused** | king_buckets must be 1..32, got 0 | refused (exit 2) | 0 |
+| `hdr_out_9` | header | output_buckets 8 -> 9 (in range, body not resized) | **refused** | file size 6309096 != expected 6311148 | refused (exit 2) | 0 |
+| `hdr_out_17` | header | output_buckets 8 -> 17 (> MaxOutputBuckets) | **refused** | output_buckets must be 1..16, got 17 | refused (exit 2) | 0 |
+| `hdr_out_0` | header | output_buckets 8 -> 0 | **refused** | output_buckets must be 1..16, got 0 | refused (exit 2) | 0 |
+| `hdr_flags_residual` | header | flags 2 -> 3 (residual|mirror) | loaded | — | refused (exit 2) | 0 |
+| `hdr_flags_unknown` | header | flags 2 -> 4 (unknown bit 2) | **refused** | unknown flag bits | refused (exit 2) | 0 |
+| `hdr_qa_254` | header | qa 255 -> 254 | **refused** | quantisation must be qa 255 / qb 64 | refused (exit 2) | 0 |
+| `hdr_qb_32` | header | qb 64 -> 32 | **refused** | quantisation must be qa 255 / qb 64 | refused (exit 2) | 0 |
+| `hdr_scale_0` | header | eval_scale 400 -> 0 | **refused** | eval_scale must be 1..10000 | refused (exit 2) | 0 |
+| `hdr_scale_10001` | header | eval_scale 400 -> 10001 (> MaxEvalScale) | **refused** | eval_scale must be 1..10000 | refused (exit 2) | 0 |
+| `hdr_reserved_1` | header | reserved[15] 0 -> 1 | **refused** | reserved header bytes must be zero | refused (exit 2) | 0 |
+| `hdr_kingmap_oob` | header | king_bucket_map[0] 0 -> 8 (== king_buckets) | **refused** | king_bucket_map entry out of range | refused (exit 2) | 0 |
+| `hdr_kingmap_255` | header | king_bucket_map[0] 0 -> 255 | **refused** | king_bucket_map entry out of range | refused (exit 2) | 0 |
+| `hdr_outmap_oob` | header | output_bucket_map[0] 0 -> 8 (== output_buckets) | **refused** | output_bucket_map entry out of range | refused (exit 2) | 0 |
+| `hdr_outmap_255` | header | output_bucket_map[32] 7 -> 255 | **refused** | output_bucket_map entry out of range | refused (exit 2) | 0 |
+| `bomb_max_dims` | bomb | hidden 1024 / king 32 / out 16, body unchanged | **refused** | file size 6309096 != expected 50399496 | refused (exit 2) | 0 |
+| `bomb_hidden_max_only` | bomb | hidden 512 -> 1024, king/out unchanged | **refused** | file size 6309096 != expected 12617960 | refused (exit 2) | 0 |
+| `bomb_king_max_only` | bomb | king_buckets 8 -> 32, hidden/out unchanged | **refused** | file size 6309096 != expected 25183464 | refused (exit 2) | 0 |
+| `bomb_out_max_only` | bomb | output_buckets 8 -> 16, hidden/king unchanged | **refused** | file size 6309096 != expected 6325512 | refused (exit 2) | 0 |
+| `ck_flip_w1` | checksum | w1 byte XOR 1 at file/3 | **refused** | checksum mismatch | refused (exit 2) | 0 |
+| `ck_flip_b1` | checksum | b1 byte XOR 1 | **refused** | checksum mismatch | refused (exit 2) | 0 |
+| `ck_flip_w2` | checksum | w2 byte XOR 1 | **refused** | checksum mismatch | refused (exit 2) | 0 |
+| `ck_flip_b2` | checksum | b2 byte XOR 1 | **refused** | checksum mismatch | refused (exit 2) | 0 |
+| `ck_flip_scale` | checksum | eval_scale low byte XOR 1 (in range: 400 -> 401) | **refused** | checksum mismatch | refused (exit 2) | 0 |
+| `ck_flip_stored` | checksum | stored checksum byte XOR 1 | **refused** | checksum mismatch | refused (exit 2) | 0 |
+| `rechecksummed` | adversarial | w1 byte XOR 0xFF at file/3, checksum recomputed | loaded | — | loaded | 0 |
+| `tr_zero` | truncation | cut to 0 bytes | **refused** | file too small for a v3 header | refused (exit 2) | 0 |
+| `tr_8` | truncation | cut to 8 bytes (magic only) | **refused** | file too small for a v3 header | refused (exit 2) | 0 |
+| `tr_191` | truncation | cut to 191 bytes (one short of the header) | **refused** | file too small for a v3 header | refused (exit 2) | 0 |
+| `tr_header_192` | truncation | cut at exactly the header length | **refused** | file too small for a v3 header | refused (exit 2) | 0 |
+| `tr_200` | truncation | cut at header + 8 bytes | **refused** | file size 200 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_w1_start` | truncation | cut at exactly the first weight block (header+w1) | **refused** | file size 6291648 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_w1_mid` | truncation | cut mid-w1 (header + w1/2) | **refused** | file size 3145920 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_w1_mid_block` | truncation | cut mid-block: b1 cut in half | **refused** | file size 6292160 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_w2_mid` | truncation | cut mid-w2 | **refused** | file size 6300864 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_b2_mid` | truncation | cut mid-b2 | **refused** | file size 6309064 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_drop_checksum` | truncation | cut the last 8 bytes (all weights intact) | **refused** | file size 6309088 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_1_short` | truncation | one byte short of complete | **refused** | file size 6309095 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_extend_1` | truncation | one byte past complete (appended 0x00) | **refused** | file size 6309097 != expected 6309096 | refused (exit 2) | 0 |
+| `tr_extra_block` | truncation | an extra b1 block appended, checksum resealed | **refused** | file size 6310120 != expected 6309096 | refused (exit 2) | 0 |
+
+### Counts by class
+
+| class | mutants | refused | loaded |
+|---|---|---|---|
+| control | 5 | 0 | 5 |
+| header | 30 | 29 | 1 |
+| bomb | 4 | 4 | 0 |
+| checksum | 6 | 6 | 0 |
+| adversarial | 1 | 0 | 1 |
+| truncation | 14 | 14 | 0 |
+| **total** | **60** | **53** | **7** |
+
+Sanitizer lines across the sanitizer arm on these 60: **0**.
 
 ## Class-by-class answer to the four questions
 
@@ -280,7 +355,8 @@ Every accept in that space is legal by design and none is a missing guard:
 
 **No out-of-range bucket entry was accepted** (`8..255` refused for every one of the 97
 entries), and **no non-zero reserved byte was accepted** (47 entries × 11 non-zero
-values, all refused). `SWEEP_ASAN`
+values, all refused). Every case also ran through the ASan+UBSan probe: **0 sanitizer
+lines and 0 release/sanitizer verdict disagreements** across the 1,819.
 
 ## What I did not test, and why
 
