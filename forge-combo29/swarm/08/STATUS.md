@@ -1002,3 +1002,20 @@ next: cadence.
 **43 findings, 36 checks/audits/plants/tools, 7 method lines, 5 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:47Z — 08-W6: I read my own table backwards; seat 27 is right
+- **08-F43 CORRECTED: it is `TtPruneV2`, not HistRework, and it takes 93 % of the change.** My own row said
+  "PC20 − HistRework = 389 (unchanged)", which REFUTES necessity — I read it as confirmation.
+- Measured the OTHER direction (add-one from S14, which I had not done): **S14 505 -> +TtPruneV2 alone 397 (108
+  fewer)**; +HistRework alone **505 (no effect)**; +CuckooRep alone 501; +CorrHistV2 505; +MateAlphaGuard 505.
+  Drop-one for comparison: PC20 389 -> −HistRework 389 (no effect), −TtPruneV2 501. **HistRework alone at levels
+  0/1/2/3 = 505/505/505/504 — inert.**
+- **08-N8 (method): before looking at the numbers, state for each row whether "unchanged" supports or refutes.**
+  Plus: a drop-one design tests necessity in the bundle; an add-one tests sufficiency from the baseline — a redundant
+  option is invisible if you only ever remove things.
+- **Fifth label-or-reading failure in this seat (W1..W6), none a measurement.** Withdrawal count is now 6.
+
+## 2026-11-17T02:47Z — TALLY (generated, not maintained)
+**43 findings, 36 checks/audits/plants/tools, 8 method lines, 6 withdrawals** (and 1 open lead).
+
+next: cadence.
