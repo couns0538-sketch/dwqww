@@ -1,0 +1,17 @@
+== A. malformed depth, both positions ==
+  midgame   go depth 1       -> bestmove e1g1  depth=1 nodes=41 pv='e1g1' n_info=1
+  midgame   go depth 5       -> bestmove d2d4  depth=5 nodes=896 pv='d2d4 e5d4 e1g1 g8f6 f3' n_info=5
+  midgame   go depth abc     -> bestmove e1g1  depth=1 nodes=41 pv='e1g1' n_info=1
+  midgame   go depth         -> bestmove e1g1  depth=1 nodes=41 pv='e1g1' n_info=1
+  startpos  go depth 1       -> bestmove d2d4  depth=1 nodes=26 pv='d2d4' n_info=1
+  startpos  go depth 5       -> bestmove c2c4  depth=5 nodes=1001 pv='c2c4 e7e5 e2e3 g8f6 d2' n_info=5
+  startpos  go depth abc     -> bestmove d2d4  depth=1 nodes=26 pv='d2d4' n_info=1
+  startpos  go depth         -> bestmove d2d4  depth=1 nodes=26 pv='d2d4' n_info=1
+
+== B. unbounded `go` forms: progress at 8 s, then `stop` ==
+  go nodes abc       depth=26 nodes=15451850 n_info=26 stop->bestmove e1g1 stop_latency=1.647
+  go nodes           depth=26 nodes=15451850 n_info=26 stop->bestmove e1g1 stop_latency=1.604
+  go frobnicate      depth=26 nodes=15451850 n_info=26 stop->bestmove e1g1 stop_latency=1.434
+  go                 depth=26 nodes=15451850 n_info=26 stop->bestmove e1g1 stop_latency=1.589
+  go movestogo 20    depth=26 nodes=15451850 n_info=26 stop->bestmove e1g1 stop_latency=1.605
+  go ponder          depth=26 nodes=15451850 n_info=26 stop->bestmove e1g1 stop_latency=1.54
