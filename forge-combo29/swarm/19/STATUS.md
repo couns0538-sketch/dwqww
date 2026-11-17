@@ -567,3 +567,17 @@ next command: continue at cadence.
 HARNESS_TRAPS.md is now TEN traps; scoreline: three of ten caught only by another seat.
 
 next command: continue at cadence.
+
+## 2026-11-17T00:36:49Z
+
+19-C24: seat 05's S-F66 boards (both KRvK) give oracle best DTM **27 plies for BOTH**, so
+  'mate +20' (39 plies) EXCEEDS KRvK's theoretical max of 31 = IMPOSSIBLE outright, and
+  'mate +16' (31) claims 4 plies more than the 27 available. Stronger than a PV-length failure:
+  the SCORE cannot be right on that material, not just the line.
+  Could not reproduce its engine runs - both a truncated search and a bad driver produce this,
+  and I attribute neither.
+
+trap 10 now carries 'the counter is inert until the search can reach the horizon' as the
+  reconciling sentence; HARNESS_TRAPS.md is ten traps, three caught only by another seat.
+
+next command: continue at cadence.
