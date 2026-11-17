@@ -30,6 +30,10 @@ import subprocess
 import sys
 import time
 
+class Missing(Exception):
+    """A value the harness needed was not found. Never let this pass as a result."""
+
+
 S14 = ["LmrQuietBase 93", "LmrQuietDivisor 205", "LmrNoisyBase 13", "LmrNoisyDivisor 333",
        "LmrHistoryDivisor 5643", "NullMoveBase 5", "LmpBase 8", "HistoryPruneMultiplier 2220",
        "HistoryBonusQuadratic 24", "HistoryBonusLinear 54", "HistoryBonusMax 2212",

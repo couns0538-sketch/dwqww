@@ -1,5 +1,53 @@
 # Method notes I keep having to relearn (seat 27)
 
+## START HERE: the three-line pattern that has caught two seats
+
+**The failure:** fed end-of-input, or a `quit`, or a closed stdin while searching, the engine answers immediately
+with a fabricated `bestmove` drawn from its own generator order and **zero `info depth` lines**. Zero info lines
+means no score, no node count, no nps — anything quoted from such a reply is invented by the reader.
+
+**The wrong form — it does not abort, it silently records `None`:**
+
+```python
+last = infos[-1] if infos else ""          # WRONG
+```
+
+**Find every instance in a folder:**
+
+```bash
+grep -rn 'infos\[-1\] if infos else' .        # Python harnesses
+grep -rn 'if infos else ""' .                  # same pattern, wider
+```
+
+**The correct form:**
+
+```python
+if not infos:
+    raise Missing("no 'info depth' line (zero-info-line signature; row aborted)")
+last = infos[-1]
+```
+
+**Prove the guard fires** before trusting it: run the harness against a fake engine that answers every `go` with
+`bestmove a2a3` and no info line. The harness must raise. A guard never shown to fire is a claim about code, not
+about behaviour.
+
+**A bench parser needs its own version** — it reads `info string bench depth`, not `info depth`, so an `infos`
+guard would never fire there:
+
+```python
+bench_lines = [l for l in lines if "info string bench depth" in l]
+if not bench_lines:
+    raise Missing("no 'info string bench depth' line (row aborted)")
+```
+
+**And define the exception you raise.** Two of my files raised `Missing` without ever defining it, so the guard
+crashed with `NameError` instead of aborting cleanly — check with `grep -rl 'raise Missing' . | xargs grep -L 'class Missing'`.
+
+**Why this is first:** it is the only error class in this list that produces *plausible* numbers — a legal-looking
+move with a missing score — and it has silently affected two seats' published figures.
+
+---
+
 Each entry cost a near-miss that would have produced a false finding. Written down so the next seat does not pay
 for them again.
 
