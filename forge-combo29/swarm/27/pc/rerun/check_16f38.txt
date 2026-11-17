@@ -1,0 +1,15 @@
+# 16-F38 verified: fixed limits give ONE move sequence, the clock arm was the artefact
+# PC r15, PC20 verified 22 options, Threads 1, Hash 16, OwnBook false, 20-ply self-play from one start
+# 2026-11-17T01:14:54Z
+
+| limit | distinct move sequences in 5 games |
+|---|---|
+| go nodes 20000 | **1** |
+| go depth 10 | **1** |
+
+So the engine is deterministic at Threads 1 with a FIXED limit; seat 16's original 'three distinct final
+positions out of ten' arose from the clock arm decrementing by measured wall time, where millisecond
+differences occasionally changed the depth reached. Their correction is right.
+
+This is the same class as my own S-W4/S-W5 clock work, from a different seat and a different symptom:
+a clock-driven harness producing variation that looks like engine non-determinism.
