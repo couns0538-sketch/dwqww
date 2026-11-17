@@ -94,6 +94,10 @@ def main():
         print(line, flush=True)
         out.append("             n=%d  min %.3f Q1 %.3f Q3 %.3f max %.3f" % (
             len(ratios), min(ratios), q(ratios, .25), q(ratios, .75), max(ratios)))
+        pp = os.path.join(HERE, "perposition_%s.txt" % label)
+        open(pp, "w").write("\n".join("%.6f" % x for x in ratios) + "\n")
+        pn = os.path.join(HERE, "perposition_np_%s.txt" % label)
+        open(pn, "w").write("\n".join("%d %d" % x for x in rows) + "\n")
     out.append("")
     out.append("PREDICTED: all four IQR/effect > 5 ; TtPruneV2 share 65-80 %% ; CuckooRep/HistRework 50-60 %%")
     out.append("KILL: if all four share < 60 %, the coin flip is general and C56 must say so for the whole set.")
