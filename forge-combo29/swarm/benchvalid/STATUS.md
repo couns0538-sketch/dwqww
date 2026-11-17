@@ -32,7 +32,7 @@ directly comparable. Gate: **PASS 4/4**. `evidence/pins_base.json`.
 | argv trap | `bench 11/13/99` on argv: **exit 0, 0 bytes stdout, 0 bytes stderr** | `argv_trap.txt` |
 | **what bench is** | 8 FENs printed, all validated with python-chess, 7/8 White, **8/8 halfmove clock 0**, none refused | `fen_check.txt`, `bench_positions_d13.txt` |
 | **independence** | `clear()` really does make the 8 positions independent: forward = reverse = **fresh searcher** = 862,329; the no-clear control gives **956,783** | `order_independence.txt` |
-| **sensitivity (must move)** | 5/5 behavioural mutants move the pin — eval weights, 3 search constants, a SEE constant. Range 4.5 %–64 % | `sensitivity.json` |
+| **sensitivity (must move)** | 5/5 behavioural mutants move the pin — eval weights, 3 search constants, a SEE constant. Range **2.2 %–30.3 %** on `bench 13` | `sensitivity.json` |
 | **sensitivity (must not)** | 5/5 source-noise mutants leave every pin bit-identical — comment, struct reorder, rename, dead function, whitespace | `sensitivity.json` |
 | **coverage** | `bench 13` = **63.0 % of lines / 59.6 % of functions**; four pins 64.1 / 61.1; pins + behavioural 70.1 / 70.7 | `coverage_*.json` |
 | **blind functions** | **22** functions the pin cannot reach: 4 book, 8 uci, 7 search, 3 board | `blind_functions.json` |
@@ -45,18 +45,25 @@ directly comparable. Gate: **PASS 4/4**. `evidence/pins_base.json`.
 
 ### Headline results
 
-1. **The pins are a real instrument.** 5 of 5 should-move mutants moved them; 5 of 5
-   should-not-move mutants did not. The audit had been treating them as unvalidated.
+1. **The pins are a real instrument.** 5 of 5 should-move mutants moved them, by **2.2 % to
+   30.3 %** on `bench 13`; 5 of 5 should-not-move mutants did not move them at all. The
+   audit had been treating them as unvalidated in either direction.
 2. **The pins are not a certificate.** 6 of 9 real behaviour changes pass a green 4/4 —
-   including **`Threads` (findings decision #3)** and **the drawn-root bail (decision #2)**.
+   **`OwnBook` off, `Book Variety` 30→0, `Threads` default 1→2, `Move Overhead` 10→200 ms,
+   the fifty-move leaf rule moved one ply, and the drawn-root last-move** — including
+   **`Threads` (findings decision #3)** and **the drawn-root bail (decision #2)**.
 3. **`clear()` is the load-bearing call.** Reverse order and a fresh `Searcher` per
    position give the identical total; removing `clear()` gives 956,783 and leaks a mate
    score between positions. Any replacement built on `go depth N` **does not inherit this**:
-   a bare `go` returns four different node counts for one position in one session.
+   a bare `go` returns four different node counts for one position in one session —
+   **6.19× max/min, or 4.32× for the repeated-search case a harness actually meets**.
 4. **Coverage is 63 % and that number is misleading**, because the missing 37 % is *sorted*
    — book, clock parsing, UCI surface, drawn root, MultiPV, Hash. 22 named functions.
 5. **A 2.4 s gate covers what 1.9 s of pins cannot**, and every check is proven able to
    fail and (for G2) proven able to pass.
+6. **The document's own figures are machine-checked.** `verify_figures.py` derives every
+   quoted number from `evidence/`, and `plant_check.sh` plants each of the 7 faults the
+   checks exist to catch and requires a firing on each — 7 of 7.
 
 ### Withdrawn
 

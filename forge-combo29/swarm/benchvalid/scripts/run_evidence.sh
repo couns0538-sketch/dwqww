@@ -55,4 +55,8 @@ $PY "$HERE/gate.py" > "$EV/gate_base.txt" || true
 $PY "$HERE/gate_selfcheck.py" > "$EV/gate_selfcheck.json"
 $PY "$HERE/g2_can_move.py" > "$EV/g2_can_move.json"
 
+echo "[10/10] the document's own figures, and the plants that prove the checks fire"
+$PY "$HERE/verify_figures.py" | tee "$EV/verify_figures.txt"
+bash "$HERE/plant_check.sh" | tee "$EV/plant_check.txt"
+
 echo "evidence written to $EV"

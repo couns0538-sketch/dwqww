@@ -13,16 +13,31 @@ no conclusion here rests on a timing difference under 1.5 %.
 
 **The four honesty pins are a valid instrument and an invalid certificate.** They are
 exactly reproducible (they moved to the digit on 5 mutants that should move them and on 0
-that should not), and they are blind to four of the five things this audit has shipped
-findings about.
+that should not), and **not one of the report's six shipping decisions falls inside what
+they measure.**
+
+| the report's decision | can a pin see it? | how that is established |
+|---|---|---|
+| 1. NNUE prefetch patch — do not ship | **no** | it is a *speed* change; the report records node counts **identical**, so the pins pass it by construction |
+| 2. Drawn-root bail — ship both patches | **no** | **B9**: a mutant that returns the wrong move on every drawn root leaves all four pins bit-identical |
+| 3. `Threads` > 1 — keep 1 | **no** | **B5**: a mutant that builds the searcher with 2 workers leaves all four pins bit-identical |
+| 4. `MultiPV` / Hash ceiling | **no** | bench reads neither (§4): the pin is 862,329 at Hash 1 through 1024 |
+| 5. Malformed `go` tokens are unbounded | **no** | bench never enters the `go` branch; `parse_limits` is one of the 22 unreachable functions (§3.1) |
+| 6. Re-sending `Hash` clears the table | **no** | bench drives its own `Searcher`, never the UCI one (§4) |
+
+**Two of these are proved by a mutant that a green gate passed; the other four by
+coverage or by structure.** **One caveat that goes against my own table**: decision 1 is the
+one entry where blindness is *by design* rather than a defect — a node-count pin cannot see a
+speed change, and that is a fair thing for a node-count pin to be. The other five are
+behavioural changes the pins were supposed to be guarding and are not.
 
 | question | answer | evidence |
 |---|---|---|
 | **What does bench measure?** | 8 fixed FENs, one fixed depth, **one `Searcher(16)` reused across all 8 with a full `clear()` between each**. The clear makes the positions genuinely independent — proven three ways (below), not inferred from the source line. | `bench_positions_d13.txt`, `order_independence.txt` |
-| **Is a pin sensitive?** | **Yes.** 5 of 5 behavioural mutants moved it (one by 4.5 % to 64 %); 5 of 5 source-noise mutants did not move it at all. **The gate can move.** | `sensitivity.json` |
+| **Is a pin sensitive?** | **Yes.** 5 of 5 behavioural mutants moved it, by **2.2 % to 30.3 %** on `bench 13` (2.0 % to 30.3 % across all three bench pins); 5 of 5 source-noise mutants did not move it at all. **The gate can move.** | `sensitivity.json` |
 | **How much does it cover?** | **63.0 % of lines, 59.6 % of functions** for `bench 13` (64.1 % / 61.1 % for all four pins). **22 functions are reachable by a routine client workload and unreachable by the pins.** | `coverage_*.json`, `blind_functions.json` |
 | **The Hash trap** | **Confirmed, and the option is live.** Pin is `862329` at Hash 1, 16, 64, 256 and 1024 — while a real `go depth 14` moves from **109,247 to 101,640 nodes** across the same range. So `setoption` reaches the engine and `bench` does not hear it. | `hash_trap.txt` |
-| **Can it see the audit's own findings?** | **No.** 5 of 9 behavioural mutants were passed by a green 4/4 gate: **book, Threads, Move Overhead (clock), Book Variety, and the drawn-root move.** | `blindspots.json` |
+| **Can it see the audit's own findings?** | **No.** **6 of 9** behavioural mutants were passed by a green 4/4 gate: **`OwnBook` off, `Book Variety` 30→0, `Threads` default 1→2, `Move Overhead` 10→200 ms, the fifty-move leaf rule moved one ply, and the drawn-root last-move.** The three the pins did catch are `DrawJitter`, `EvalRule50Damp` and `QsFutilityMargin`. | `blindspots.json` |
 | **A better gate** | `forge gate`: **7 checks, 2.4 s wall**, every one proven to fire on its own planted fault and on nothing else. | `gate_selfcheck.txt`, `gate_cost.txt` |
 
 **The one-line version:** *a green pin means "the eval and search constants still
@@ -108,15 +123,41 @@ same recipe, each re-read against all four pins.
 | mutant | change | bench 11 | bench 13 | bench 16 | perft 5 | moved |
 |---|---|---|---|---|---|---|
 | base | — | 312,866 | 862,329 | 3,024,920 | 4,865,609 | — |
-| `M1_eval_pawn_psqt` | all 64 `PawnPsqt` midgame weights **+40** | 306,660 | 1,003,472 | 3,386,079 | 4,865,609 | **yes** |
+| `M1_eval_pawn_psqt` | the **middlegame** half of all 64 `PawnPsqt` weights **+40** (endgame half untouched) | 306,660 | 1,003,472 | 3,386,079 | 4,865,609 | **yes** |
 | `M2_lmr_quiet_base` | `LmrQuietBase` 85 → 125 | 263,851 | 881,235 | 2,758,866 | 4,865,609 | **yes** |
 | `M3_rfp_margin` | `RfpMargin` 72 → 40 | 226,823 | 601,295 | 2,275,803 | 4,865,609 | **yes** |
 | `M4_null_move_off` | `NullMoveMinDepth` 3 → 99 | 330,705 | 815,534 | 3,183,377 | 4,865,609 | **yes** |
 | `M5_see_pawn_value` | `SeePieceValue[Pawn]` 100 → 260 | 276,397 | 901,998 | 2,947,795 | 4,865,609 | **yes** |
 
-M1 is a **pure evaluation** change and moves the pin by up to **16.4 %**. M3 is the
-sharpest: a 45 % cut in a futility margin moves bench 13 by **30 %**. **Every one of the
-five is a change a reviewer would call "behavioural".**
+M1 is a **pure evaluation** change and moves `bench 13` by **+16.4 %**. M3 is the
+sharpest: a 45 % cut in a futility margin moves `bench 13` by **−30.3 %**.
+
+**The shift per mutant, so the range is auditable rather than asserted** — this is the
+figure §0 quotes, and it is derived from the columns above:
+
+| mutant | `bench 11` | `bench 13` | `bench 16` |
+|---|---|---|---|
+| `M1_eval_pawn_psqt` | −2.0 % | **+16.4 %** | +11.9 % |
+| `M2_lmr_quiet_base` | −15.7 % | +2.2 % | −8.8 % |
+| `M3_rfp_margin` | −27.5 % | **−30.3 %** | −24.8 % |
+| `M4_null_move_off` | +5.7 % | −5.4 % | +5.2 % |
+| `M5_see_pawn_value` | −11.7 % | +4.6 % | −2.5 % |
+
+**Range on `bench 13`: 2.2 % to 30.3 %. Across all three bench pins: 2.0 % to 30.3 %**
+(the smallest is M1 on `bench 11`, −2.0 %). **Every one of the five is a change a reviewer
+would call "behavioural".**
+
+**The smallest shift in the table is the one to be careful about.** M2's +2.2 % sits close
+to this audit's ~1.5 % bias floor for timing ratios — but a *node count* has no noise floor:
+T1 repeats are bit-identical here, so a 2.2 % node shift is a real difference and not a
+measurement of one. That is why a node pin is a strong instrument on the axis it covers,
+even though it covers few axes.
+
+**An earlier draft of §0 said "one by 4.5 % to 64 %". That was wrong and I could not
+reconstruct it** — no pair of base-to-mutant values in `sensitivity.json` gives 4.5 % or
+64 % on any pin, and neither do pairwise differences between mutants on `bench 13`. The
+figures are withdrawn; the range above is derived, and `verify_figures.py` now computes it
+from the JSON and fails if the prose disagrees.
 
 **perft 5 did not move for any of the five, and that is correct** — perft counts legal
 move trees and none of these touches move generation. That is a useful property to have
@@ -325,9 +366,24 @@ stable in a session.** Same FEN, same depth, same process:
 | fresh process + `ucinewgame` + `Clear Hash` | **50,541** |
 | target first, then others, then target again | 50,541 → **13,235** |
 
-`go_repeatability.json`. **Four distinct node counts for one fixed-depth search on one
-position.** `bench` is pinnable *only* because it clears between positions (§1.2); a `go`
-harness that skips the clear inherits up to a **6.4×** swing from search order alone. G6
+`go_repeatability.json`, all five rows. **Four distinct node counts for one fixed-depth
+search on one position, and the ratio depends entirely on which pair you divide** — so the
+figure is stated three ways rather than as one headline:
+
+| comparison | ratio | what it is |
+|---|---|---|
+| **72,365 / 11,696 = 6.19×** | the full spread | max/min across all seven measurements — the top of the range, not a typical swing |
+| **50,541 / 11,696 = 4.32×** | row B | the *same* search repeated with nothing else in between |
+| **50,541 / 13,235 = 3.82×** | row E | target, three other searches, target again |
+| **72,365 / 50,541 = 1.43×** | rows C vs A | order effect alone, both fresh processes with no prior search of the target |
+
+**An earlier draft of this file said "up to 6.4×", which was wrong**: no pair in the
+evidence gives 6.4. The correct maximum is **6.19×** (`72365/11696`), and quoting it as the
+swing overstates the *repeated-search* case, which is the one a harness actually meets —
+that is **4.32×**. `verify_figures.py` now derives all four ratios from the JSON.
+
+`bench` is pinnable *only* because it clears between positions (§1.2). A `go` harness that
+skips the clear inherits **at least 3.82× and at most 6.19×** from search order alone. G6
 asserts the dependence deliberately: if a future change removes it, the gate says so, and
 until then nobody pins a `go` node count believing it is stable.
 
@@ -372,7 +428,10 @@ ever needed. It should not be: it is the pin that caught M2.
 
 ## 8. What I had to withdraw, and what is left untested
 
-**Withdrawn / repaired during this seat, all three recorded in §3.3:**
+**Withdrawn / repaired during this seat. Items 1–3 are instrument faults recorded in §3.3;
+items 4–7 are figure faults, found by the coordinator checking `evidence/` against this
+document rather than by me:**
+
 1. "Book Variety does not affect anything the gate sees" — my n = 5 probe said the mutant
    was inert; at n = 20 it is a live gate-passing change. **The instrument, not the engine.**
 2. "A clocked search differs across these mutants" — my probe was on `startpos`, which the
@@ -382,6 +441,38 @@ ever needed. It should not be: it is the pin that caught M2.
    (1,000 ms) was larger than the fault (390 ms). **At 100 ms it separates 2,789 nodes from
    60.** The blind-spot finding survived; the probe that was supposed to demonstrate it did
    not, and had to be rebuilt.
+4. **"5 of 9 behavioural mutants were passed by a green gate"** — wrong count and an
+   incomplete list. The evidence says **6 of 9**, and the omitted one is **B8, the
+   fifty-move leaf rule moved one ply** — the strongest single case, because it is the same
+   band defect the leaf seat found independently. The list in §0 now names all six.
+5. **"one by 4.5 % to 64 %"** as the sensitivity range — **both figures are unconstructible.**
+   No base-to-mutant shift on any pin gives 4.5 % or 64 %, and neither does any pairwise
+   difference between mutants on `bench 13`. The range is **2.2 % to 30.3 %**, now derived
+   in §2.1 from a per-mutant shift table.
+6. **"up to 6.4×"** for the order-dependence swing — no pair in `go_repeatability.json`
+   gives 6.4. The maximum is **6.19×** (`72365/11696`); the repeated-search case a harness
+   actually meets is **4.32×**. All four ratios are now derived in §6.1.
+7. **"all 64 `PawnPsqt` weights +40"** — the mutation touches the **middlegame half only**
+   (`S(mg, eg)` packs mg in the low 16 bits, and the rewrite matches only the first field).
+   §2.1 now says so.
+
+**And one summary field disagreed with the rows it summarised.** An intermediate copy of
+`go_repeatability.json` carried `distinct_values: [11696, 13235, 50541]` while its rows
+contained 72,365 — a row whose search returned `None` dropped out of the set
+comprehension, so the field was silently computed over six of seven measurements. The
+committed file is correct and three re-runs reproduce it, but the class is the one this
+audit wrote a trap about: **a summary that disagrees with the data it summarises.**
+`go_repeatability.py` now refuses to emit a summary when any row is null or when
+`distinct_values` disagrees with the rows, and `verify_figures.py` checks every committed
+JSON for the same internal consistency.
+
+**All seven faults above are now machine-checked.** `scripts/plant_check.sh` plants each
+one and requires the check to fail with a message naming it — 7 of 7 fire, and the clean
+tree passes first so the plants mean something. Two of the guards written for this run
+were themselves too weak on the first try and had to be fixed: the count guard accepted
+**any** correct sentence rather than every one, and the coverage guard tested for the
+presence of a percentage rather than its value. Both are recorded because a guard that
+passes for the wrong reason is the defect this document is about.
 
 **Not tested, and why:**
 - **No `go movetime` arm in the gate.** Depth and clocks are covered; `movetime` shares

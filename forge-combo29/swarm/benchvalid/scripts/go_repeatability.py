@@ -83,7 +83,33 @@ with Engine(EXE) as e:
     r1 = e.search(f"position fen {TARGET}", f"go depth {DEPTH}")
     rows["E_target_first_then_again"] = [r0["nodes"], r1["nodes"]]
 
+# A summary field that silently omits a row is the defect this audit wrote a trap about.
+# Measured cause of the one that appeared in an intermediate copy of this file: a row whose
+# search returned None dropped out of the set comprehension, so `distinct_values` read
+# [11696, 13235, 50541] while the rows still contained 72,365. The guard below refuses to
+# emit a summary that disagrees with the rows, and refuses to emit a row with a null node
+# count at all -- a null means the search did not report, which is a failed measurement and
+# must not be summarised as if it were a value.
+EXPECTED_ROWS = {"A_fresh_process", "B_same_process_twice", "C_after_three_others",
+                 "D_fresh_plus_clearhash", "E_target_first_then_again"}
+missing = EXPECTED_ROWS - rows.keys()
+if missing:
+    raise SystemExit(f"rows missing from the measurement: {sorted(missing)}")
+
+nulls = {k: vs for k, vs in rows.items() if any(v is None for v in vs)}
+if nulls:
+    raise SystemExit(f"a search did not report a node count, so this run is void: {nulls}")
+
 flat = [v for vs in rows.values() for v in vs]
-print(json.dumps({"exe": EXE, "fen": TARGET, "depth": DEPTH, "rows": rows,
-                  "distinct_values": sorted({v for v in flat if v is not None}),
-                  "repeatable": len({v for v in flat if v is not None}) == 1}, indent=2))
+distinct = sorted({v for v in flat})
+if distinct != sorted(set(v for vs in rows.values() for v in vs)):
+    raise SystemExit("distinct_values disagrees with rows -- refusing to emit")
+if len(distinct) < 2 and not all(len(vs) == 1 for vs in rows.values()):
+    raise SystemExit("impossible summary")
+
+summary = {"exe": EXE, "fen": TARGET, "depth": DEPTH, "rows": rows,
+           "distinct_values": distinct,
+           "repeatable": len(distinct) == 1,
+           "measurement_count": len(flat),
+           "ratio_max_over_min": round(max(flat) / min(flat), 3) if min(flat) else None}
+print(json.dumps(summary, indent=2))
