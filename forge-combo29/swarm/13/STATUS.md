@@ -822,3 +822,26 @@ values are the evidence:
 Scope audit from the same pass stands: all three of my scripts that send ucinewgame send `position` AFTER it,
 so none is exposed to the board-reset trap.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:17:13 AM UTC 2026
+
+FULL PROCESS-REUSE AUDIT written: lib/AUDIT_process_reuse.md. And I TESTED my own guess instead of publishing it.
+  I first wrote that job17/18/19 were "likely safe because a systematic shift would cancel". WRONG in part:
+    job17's OWN cell at go wtime 6000 gives depth 18 / 314,239 nodes single-fresh, but depth 24 / 331,560
+    after 10 earlier searches in one process — identical request, different answer. So job17's non-plateau
+    depth column is NOT comparable across rows.
+  BUT THE HEADLINE SURVIVES: sweeping clocks fresh-per-search, 10,000 / 15,000 / 20,000 ms ALL give
+    depth 23 / 1,520,334 nodes identically — the plateau is exactly as S-F19/S-F21 described, verified
+    under the strict discipline. So S-F19/S-F21 STAND with a caveat on individual non-plateau cells.
+  S-F11 SURVIVES: re-ran mates_run.py fresh-per-search -> 57 positive claims, 0 not delivered, 0 distance
+    disagreements, identical to the original. Only incidental bestmoves/cp values differed.
+  S-F12 UNAFFECTED: negative_mates.py already spawned a process per call; re-ran -> 4/4 correct, 8 negative
+    cp, reproduces exactly.
+  S-F24: WITHDRAWN and corrected (1 of 16, +17 cp).
+  S-F22: likely safe (bestmoves matched fresh vs warm on the spot check) but NOT re-run -> treat percentages
+    as provisional; that re-run is the outstanding item.
+GUARD ADDED: lib/freshguard.py — SearchCounter asserts one search per process at result-writing time, refuses
+  allow_reuse without a reason, and fails when NOTHING was recorded so a harness cannot pass vacuously.
+  Self-test (python3 lib/freshguard.py) covers all five cases; it passes.
+  mates_run.py and clockgain.py now use a fresh process per search, structurally.
+Next command: cd forge-combo29/swarm/13 && python3 lib/freshguard.py && python3 FINDINGS_check.py

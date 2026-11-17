@@ -253,12 +253,15 @@ def main():
     with open(os.path.join(OUTDIR, "positions.json"), "w") as f:
         json.dump(pos, f, indent=1)
 
-    e = Eng()
     rows = []
     for p in pos:
         legal = {m.uci() for m in chess.Board(p["fen"]).legal_moves}
         for N in NS:
+            # FRESH PROCESS PER SEARCH. One shared process shifted moves and scores (see the S-F24
+            # correction); a docstring was not enough, so this is now structural.
+            e = Eng()
             r = e.search(p["fen"], N)
+            e.close()
             mv = None
             if r["bestmove"] and r["bestmove"].startswith("bestmove "):
                 mv = r["bestmove"].split()[1]
@@ -289,7 +292,6 @@ def main():
             print("N %-7d %-7s true %-5s mate %-5s depth %-3s pv_mates_at %-4s legal %s"
                   % (N, p.get("kind", p.get("note", "")), p["true_mate_plies"], claim, r["depth"],
                      delivered, (mv in legal) if mv else False), flush=True)
-    e.close()
 
     found = [r for r in rows if r["mate"] is not None]
     pos_claims = [r for r in found if r["mate"] > 0]
