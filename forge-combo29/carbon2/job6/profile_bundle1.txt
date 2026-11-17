@@ -1,0 +1,206 @@
+Job 6 Task 1 — Fresh 24-Game FEN-Root Self-Play Profile of Job 5 `bundle.patch.txt` (`bundle1`)
+===============================================================================================
+Driver: `forge-combo29/carbon2/job2/selfplay_driver_v2.py --mode fen --fen-file positions_250.txt --games 24`
+Settings: `PC20` + `net768.fnn3` (`checksum 30ab43b4ba5db5f3`, `kernel avx512`), `Threads 1`, `Hash 16`, `go softnodes 2000`
+Build: `6b98f217 + pc_r15.patch + a_speed_pc20_v3.patch.txt + job3/e1_legal_check_evasions.patch.txt + job5/bundle.patch.txt`
+       compiled with `g++ 13.3.0 -O3 -DNDEBUG -march=x86-64-v4 -ffp-contract=off -fno-fast-math -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -pg -fno-omit-frame-pointer -g`
+Run totals: `games=24`, `searches=3391`, `total_nodes=11320109`, `trace_fnv1a64=22e72db9682af7ef` (identical to Jobs 3 & 4)
+Total gprof self-time samples: `5.27 s` in Job 4 post-E1 (`job4/base_r15c_e1_profile.txt`) -> `4.71 s` in Job 5 `bundle1` (`-0.56 s`, `-10.63%` total CPU samples on the identical 11,320,109-node workload).
+
+=== 1. Groups Attacked in Jobs 3 to 5: Before (Job 4 Post-E1 `5.27 s`) vs After (Job 5 `bundle1` `4.71 s`) ===
+
+| Attacked Subsystem / Group (Steps) | Before (`job4/base_r15c_e1_profile.txt`, total `5.27 s`) | After (`bundle1`, total `4.71 s`) | Call-Count / Work Removed Verification |
+| :--- | :--- | :--- | :--- |
+| **In-Check Evasions (`Job 3 E1`)** *(for context: Job 3 pre-E1 was `5.38%` evasions + `1.24%` GenMode 0 + `1.86%` `is_legal_complete` [`14.25M` calls] = `8.48%`)* | `generate_evasions` `0.11s` (`2.09%`, `1,189,213`) + `generate_legal_evasions` `0.02s` (`0.38%`, `1,189,213`) + `is_legal_complete` `0.07s` (`1.33%`, `4,189,267`) = **`0.20s` (`3.80%`)** | `generate_evasions` `0.06s` (`1.27%`, `1,189,213`) + `generate_legal_evasions` `0.02s` (`0.42%`, `1,189,213`) + `is_legal_complete` `0.05s` (`1.06%`, `4,189,267`) = **`0.13s` (`2.76%`)** | `E1` cut `is_legal_complete` calls `14.25M -> 4.19M` (`-70.6%`); `S4` eliminated `512 B` `legal_to_by_from_[64]` zeroing per evasion node. |
+| **NNUE v3 Refresh + Accumulator Update + Forward (`Job 4/5 S1`)** (`refresh_from_pieces`, `refresh_one_and_evaluate`, `apply_pair_and_evaluate`, `apply_changes*`, `output_sum_avx512`, `evaluate`, `static_evaluate_v3`) | `0.40 + 0.00 + 0.38 + 0.15 + 0.04 + 0.01 + 0.10 + 0.03 + 0.10` = **`1.21s` (`22.96%`)** | `0.14 + 0.20 + 0.32 + 0.11 + 0.02 + 0.02 + 0.01 + 0.00 + 0.18` = **`1.00s` (`21.23%`, `-17.4%` self time)** | Standalone `nnue::v3::evaluate` / `output_sum_avx512` calls dropped **`2,320,555 -> 1,295,546` (`-44.2%`)** via single-king `refresh_one_and_evaluate` (`1,025,009` fused calls) + cache-tiled refresh. |
+| **Quiet History Scoring, Deduplication & `MovePicker` (`Job 4 S2 + Job 5 S4`)** (`Worker::search` self, `MovePicker::next`, `pick_best*`, `Worker::quiet_history`, `b4::lesser_threats`, `is_pseudo_legal`) | `1.13 + 0.38 + 0.21 + 0.07 + 0.02 + 0.04` = **`1.85s` (`35.10%`)** | `0.87 + 0.38 + 0.21 + 0.09 + 0.00 + 0.05` = **`1.60s` (`33.97%`, `-13.5%` self time)** | **`Worker::quiet_history` calls cut `12,276,628 -> 6,378,939` (`-48.0%`)**; **`b4::lesser_threats` calls cut `3,915,688 -> 547,696` (`-86.0%`)**; `Worker::search` frame cut `7,104 -> 4,496 B` (`-2,608 B/ply`). |
+| **Static-Eval Correction History + Prefetch (`Job 4 S3`)** (`corrected_eval`, `update_correction`, `record_move`) | `0.36 + 0.04 + 0.04` = **`0.44s` (`8.35%`)** | `0.38 + 0.05 + 0.05` = **`0.48s` (`10.19%`)** | 4-way unrolled `non_pawn_key` + L1 prefetches folded into `record_move` (`+1.24%` paired / `+2.38%` pooled `bench 13`). |
+| **Board Move Transition & Key (`Job 5 S5`)** (`make_move`, `unmake_move`, `key_after`, `has_legal_en_passant_capture`) | `0.15 + 0.10 + 0.07 + 0.00` = **`0.32s` (`6.07%`)** | `0.16 + 0.08 + 0.02 + 0.00` = **`0.26s` (`5.52%`, `-18.8%` self time)** | **`has_legal_en_passant_capture` calls cut `301,858 -> 173,848` (`-42.4%`)** via `precomputed_key` reuse; 72B `KingLines` copy skipped when `valid == false`. |
+| **Static Exchange Evaluation (`Job 5 S6`)** (`Board::see_ge`, `attackers_to`) | `0.24 + 0.00` = **`0.24s` (`4.55%`, `12,300,134` calls)** | `0.28 + 0.00` = **`0.28s` (`5.94%`, `12,300,134` calls)** | `S6` fast-exits unpinned pawn recapture after initial swap; `12.30M` `see_ge` calls remain a top Job 6 target. |
+| **UCI Dispatch & `ucinewgame` Clear (`Job 5 S7`)** (`apply_position_sv`, `parse_limits_sv`, `Worker::clear`) | `0.00s` sampled in `gprof` (amortized across process wall/CPU) | `0.00s` sampled (`Evaluator::clear` calls cut **`26 -> 1`** across 24 games!) | Eliminated `~6,800` `istringstream` + `vector<string>(256)` allocs and `25/26` unused HCE/v1/threat table clears. |
+
+=== 2. Top 25 Functions by Self Time on `bundle1` (with Call Counts) ===
+
+| Rank | Self % | Self (s) | Cumul (s) | Calls | Function |
+| ---: | ---: | ---: | ---: | ---: | :--- |
+| 1 | 18.47% | 0.87 | 0.87 | 51,943 (root) | `forge::Worker::search(Board&, SearchStack*, int, int, int, bool)` |
+| 2 | 8.07% | 0.38 | 1.25 | 22,535,078 | `forge::MovePicker::next(bool)` |
+| 3 | 8.07% | 0.38 | 1.63 | 9,784,391 | `forge::Worker::corrected_eval(Board const&, int, SearchStack const*) const` |
+| 4 | 6.79% | 0.32 | 1.95 | 3,522,289 | `forge::nnue::v3::apply_pair_and_evaluate(...)` |
+| 5 | 5.94% | 0.28 | 2.23 | 12,300,134 | `forge::Board::see_ge(Move const&, int) const` |
+| 6 | 4.46% | 0.21 | 2.44 | 18,355,043 | `forge::MovePicker::pick_best_scored()` |
+| 7 | 4.25% | 0.20 | 2.64 | 1,025,009 | `forge::nnue::v3::refresh_one_and_evaluate(...)` |
+| 8 | 3.82% | 0.18 | 2.82 | 5,842,844 | `forge::Worker::static_evaluate_v3(Board const&, SearchStack*)` |
+| 9 | 3.82% | 0.18 | 3.00 | 2,758,511 | `forge::Worker::qsearch(Board&, SearchStack*, int, int)` |
+| 10 | 3.40% | 0.16 | 3.16 | 14,130,074 | `forge::Board::make_move(Move const&, Undo&, unsigned long const*)` |
+| 11 | 2.97% | 0.14 | 3.30 | 811,273 | `forge::nnue::v3::refresh_from_pieces(...)` |
+| 12 | 2.76% | 0.13 | 3.43 | 14,198,903 | `forge::TranspositionTable::probe_body<false>(unsigned long) const` |
+| 13 | 2.34% | 0.11 | 3.54 | 2,171,791 | `forge::nnue::v3::apply_changes_pair_avx512(...)` |
+| 14 | 1.91% | 0.09 | 3.63 | 6,378,939 | `forge::Worker::quiet_history(Board const&, SearchStack const*, Move) const` |
+| 15 | 1.91% | 0.09 | 3.72 | 4,969,680 | `forge::Board::upcoming_repetition(unsigned long) const` |
+| 16 | 1.70% | 0.08 | 3.80 | 14,126,707 | `forge::Board::unmake_move(Move const&, Undo const&)` |
+| 17 | 1.27% | 0.06 | 3.86 | 11,423,087 | `forge::Board::square_attacked_with_occupancy(int, Color, unsigned long, unsigned long) const` |
+| 18 | 1.27% | 0.06 | 3.92 | 6,417,927 | `forge::TranspositionTable::store_body<false>(...)` |
+| 19 | 1.27% | 0.06 | 3.98 | 3,717,276 | `forge::fill_pseudo_legal<(Board::GenMode)1>(Board const&, MoveList&)` (Captures) |
+| 20 | 1.27% | 0.06 | 4.04 | 1,189,213 | `forge::MovePicker::generate_evasions()` |
+| 21 | 1.06% | 0.05 | 4.09 | 14,126,707 | `forge::Worker::record_move(SearchStack*, Board const&, Move const&)` |
+| 22 | 1.06% | 0.05 | 4.14 | 4,189,267 | `forge::Board::is_legal_complete(Move const&) const` |
+| 23 | 1.06% | 0.05 | 4.19 | 3,758,250 | `forge::Board::is_pseudo_legal(Move const&) const` |
+| 24 | 1.06% | 0.05 | 4.24 | 1,097,435 | `forge::Worker::update_correction(Board const&, int, int, int, SearchStack const*)` |
+| 25 | 0.85% | 0.04 | 4.28 | 1,230,400 | `forge::fill_pseudo_legal<(Board::GenMode)2>(Board const&, MoveList&)` (Quiets) |
+
+=== 3. Raw `gprof` Flat Profile (`bundle1`, 24 FEN-Root Self-Play Games) ===
+
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 18.47      0.87     0.87    51943     0.02     0.09  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+  8.07      1.25     0.38 22535078     0.00     0.00  forge::MovePicker::next(bool)
+  8.07      1.63     0.38  9784391     0.00     0.00  forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+  6.79      1.95     0.32  3522289     0.00     0.00  forge::nnue::v3::apply_pair_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+  5.94      2.23     0.28 12300134     0.00     0.00  forge::Board::see_ge(forge::Move const&, int) const
+  4.46      2.44     0.21 18355043     0.00     0.00  forge::MovePicker::pick_best_scored()
+  4.25      2.64     0.20  1025009     0.00     0.00  forge::nnue::v3::refresh_one_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::Color, forge::nnue::DirtyPieces const&, forge::Board const&)
+  3.82      2.82     0.18  5842844     0.00     0.00  forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+  3.82      3.00     0.18  2758511     0.00     0.00  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+  3.40      3.16     0.16 14130074     0.00     0.00  forge::Board::make_move(forge::Move const&, forge::Undo&, unsigned long const*)
+  2.97      3.30     0.14   811273     0.00     0.00  forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+  2.76      3.43     0.13 14198903     0.00     0.00  forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const
+  2.34      3.54     0.11  2171791     0.00     0.00  forge::nnue::v3::(anonymous namespace)::apply_changes_pair_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+  1.91      3.63     0.09  6378939     0.00     0.00  forge::Worker::quiet_history(forge::Board const&, forge::SearchStack const*, forge::Move) const
+  1.91      3.72     0.09  4969680     0.00     0.00  forge::Board::upcoming_repetition(unsigned long) const
+  1.70      3.80     0.08 14126707     0.00     0.00  forge::Board::unmake_move(forge::Move const&, forge::Undo const&)
+  1.27      3.86     0.06 11423087     0.00     0.00  forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+  1.27      3.92     0.06  6417927     0.00     0.00  void forge::TranspositionTable::store_body<false>(forge::TTProbe const&, unsigned long, int, int, forge::Move, int, forge::Bound, bool, unsigned short)
+  1.27      3.98     0.06  3717276     0.00     0.00  void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&)
+  1.27      4.04     0.06  1189213     0.00     0.00  forge::MovePicker::generate_evasions()
+  1.06      4.09     0.05 14126707     0.00     0.00  forge::Worker::record_move(forge::SearchStack*, forge::Board const&, forge::Move const&)
+  1.06      4.14     0.05  4189267     0.00     0.00  forge::Board::is_legal_complete(forge::Move const&) const
+  1.06      4.19     0.05  3758250     0.00     0.00  forge::Board::is_pseudo_legal(forge::Move const&) const
+  1.06      4.24     0.05  1097435     0.00     0.00  forge::Worker::update_correction(forge::Board const&, int, int, int, forge::SearchStack const*)
+  0.85      4.28     0.04  1230400     0.00     0.00  void forge::fill_pseudo_legal<(forge::Board::GenMode)2>(forge::Board const&, forge::MoveList&)
+  0.85      4.32     0.04   949370     0.00     0.00  std::vector<forge::tune::Parameter, std::allocator<forge::tune::Parameter> >::~vector()
+  0.85      4.36     0.04        1    40.00    40.00  forge::nnue::v3::load(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*)
+  0.64      4.39     0.03 25928470     0.00     0.00  forge::nnue::v3::loaded()
+  0.64      4.42     0.03 14255451     0.00     0.00  forge::Board::is_repetition(unsigned long) const
+  0.64      4.45     0.03 12947899     0.00     0.00  forge::Worker::search_child(forge::Board&, forge::SearchStack*, int, int, int, bool)
+  0.64      4.48     0.03  4034858     0.00     0.00  forge::Board::refresh_king_lines() const
+  0.42      4.50     0.02 14255531     0.00     0.00  forge::Board::is_insufficient_material() const
+  0.42      4.52     0.02 14085794     0.00     0.00  forge::Board::key_after(forge::Move const&, unsigned long&) const
+  0.42      4.54     0.02 12020086     0.00     0.00  forge::Board::has_legal_move() const
+  0.42      4.56     0.02  5839471     0.00     0.00  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)
+  0.42      4.58     0.02  2145568     0.00     0.00  forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)
+  0.42      4.60     0.02  1189213     0.00     0.00  forge::Board::generate_legal_evasions(forge::MoveList&) const
+  0.42      4.62     0.02   804527     0.00     0.00  forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)
+  0.21      4.63     0.01 14994786     0.00     0.00  forge::nnue::v3::king_key(forge::nnue::v3::Net const&, forge::Color, int)
+  0.21      4.64     0.01 10211281     0.00     0.00  forge::Worker::should_stop()
+  0.21      4.65     0.01 10133702     0.00     0.00  forge::Worker::is_draw(forge::Board const&, int) const
+  0.21      4.66     0.01  5842844     0.00     0.00  forge::nnue::v3::prepare(forge::nnue::v3::Net const&, forge::nnue::v3::WorkerState&, int)
+  0.21      4.67     0.01  2197073     0.00     0.00  forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int)
+  0.21      4.68     0.01  1340133     0.00     0.00  forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int)
+  0.21      4.69     0.01  1321769     0.00     0.00  forge::nnue::v3::(anonymous namespace)::output_sum_avx512(forge::nnue::v3::Net const&, short const*, short const*, int)
+  0.21      4.70     0.01   331534     0.00     0.00  forge::Board::gives_check_complete(forge::Move const&) const
+  0.21      4.71     0.01   125203     0.00     0.00  void forge::fill_pseudo_legal<(forge::Board::GenMode)0>(forge::Board const&, forge::MoveList&)
+  0.00      4.71     0.00 19969553     0.00     0.00  forge::nnue::available()
+  0.00      4.71     0.00 14721866     0.00     0.00  forge::Worker::should_stop_with(unsigned long)
+  0.00      4.71     0.00  7445097     0.00     0.00  forge::nnue::dirty_from_move(forge::Move, forge::Piece, forge::Piece, forge::Color)
+  0.00      4.71     0.00  4989977     0.00     0.00  forge::Board::generate_pseudo_legal(forge::MoveList&, forge::Board::GenMode) const
+  0.00      4.71     0.00  4593467     0.00     0.00  forge::Worker::qsearch_child(forge::Board&, forge::SearchStack*, int, int)
+  0.00      4.71     0.00  3558046     0.00     0.00  forge::Board::has_non_pawn_material(forge::Color) const
+  0.00      4.71     0.00  2172250     0.00     0.00  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)::{lambda()#1}::operator()() const
+  0.00      4.71     0.00  1937649     0.00     0.00  forge::Worker::update_capture_stats(forge::Board const&, forge::Move, int, forge::Move const*, int)
+  0.00      4.71     0.00  1340133     0.00     0.00  forge::Worker::update_rework_history(forge::Board const&, forge::SearchStack const*, forge::Move, int, forge::Move const*, int)
+  0.00      4.71     0.00  1295546     0.00     0.00  forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)
+  0.00      4.71     0.00   547696     0.00     0.00  forge::b4::lesser_threats(forge::Board const&)
+  0.00      4.71     0.00   173848     0.00     0.00  forge::Board::has_legal_en_passant_capture() const
+  0.00      4.71     0.00   147797     0.00     0.00  forge::Worker::update_threat_quiet(forge::Board const&, forge::Move, int)
+  0.00      4.71     0.00   116070     0.00     0.00  forge::Board::make_null_move(forge::NullUndo&)
+  0.00      4.71     0.00   116070     0.00     0.00  forge::Board::unmake_null_move(forge::NullUndo const&)
+  0.00      4.71     0.00   116070     0.00     0.00  forge::Worker::record_null_move(forge::SearchStack*)
+  0.00      4.71     0.00    63303     0.00     0.00  forge::Worker::total_nodes() const
+  0.00      4.71     0.00    30573     0.00     0.00  forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)::{lambda(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&)#1}::operator()(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&) const
+  0.00      4.71     0.00    14732     0.00     0.00  forge::Board::attackers_to(int, unsigned long) const
+  0.00      4.71     0.00     3419     0.00     0.00  forge::nnue::v3::problem[abi:cxx11]()
+  0.00      4.71     0.00     3394     0.00     0.00  (anonymous namespace)::apply_position_sv(forge::Board&, std::basic_string_view<char, std::char_traits<char> >, (anonymous namespace)::PositionCache&)
+  0.00      4.71     0.00     3392     0.00     0.00  (anonymous namespace)::is_go_keyword(std::basic_string_view<char, std::char_traits<char> >)
+  0.00      4.71     0.00     3392     0.00     0.00  (anonymous namespace)::parse_limits_sv(std::basic_string_view<char, std::char_traits<char> >, forge::Board&)
+  0.00      4.71     0.00     3392     0.00     0.00  forge::TranspositionTable::ExclusiveLease::ExclusiveLease(forge::TranspositionTable&)
+  0.00      4.71     0.00     3392     0.00     1.38  forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+  0.00      4.71     0.00     3392     0.00     1.38  forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)
+  0.00      4.71     0.00     3392     0.00     0.00  forge::Board::legal_moves(bool) const
+  0.00      4.71     0.00     3374     0.00     0.00  forge::Board::move_to_uci[abi:cxx11](forge::Move const&)
+  0.00      4.71     0.00     3373     0.00     0.00  forge::nnue::v3::refresh_cached(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::Board const&, forge::nnue::v3::Accumulator&)
+  0.00      4.71     0.00     3373     0.00     0.00  std::enable_if<std::__or_<std::__or_<std::is_same<std::remove_cv<unsigned long>::type, signed char>, std::is_same<std::remove_cv<unsigned long>::type, short>, std::is_same<std::remove_cv<unsigned long>::type, int>, std::is_same<std::remove_cv<unsigned long>::type, long>, std::is_same<std::remove_cv<unsigned long>::type, long long> >, std::__or_<std::is_same<std::remove_cv<unsigned long>::type, unsigned char>, std::is_same<std::remove_cv<unsigned long>::type, unsigned short>, std::is_same<std::remove_cv<unsigned long>::type, unsigned int>, std::is_same<std::remove_cv<unsigned long>::type, unsigned long>, std::is_same<std::remove_cv<unsigned long>::type, unsigned long long> >, std::is_same<unsigned long, __int128>, std::is_same<unsigned long, unsigned __int128>, std::is_same<char, std::remove_cv<unsigned long>::type> >::value, std::to_chars_result>::type std::__detail::__to_chars_10<unsigned long>(char*, char*, unsigned long)
+  0.00      4.71     0.00     3367     0.00     0.00  forge::Board::parse_uci(std::basic_string_view<char, std::char_traits<char> >)
+  0.00      4.71     0.00     3367     0.00     0.00  forge::Board::is_legal(forge::Move const&) const
+  0.00      4.71     0.00      471     0.00     0.00  bool std::operator==<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*)
+  0.00      4.71     0.00       78     0.00     0.00  forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*)
+  0.00      4.71     0.00       78     0.00     0.00  forge::Board::compute_key() const
+  0.00      4.71     0.00       78     0.00     0.00  forge::Board::compute_checkers() const
+  0.00      4.71     0.00       78     0.00     0.00  std::vector<unsigned long, std::allocator<unsigned long> >::push_back(unsigned long const&)
+  0.00      4.71     0.00       78     0.00     0.00  std::vector<unsigned long, std::allocator<unsigned long> >::~vector()
+  0.00      4.71     0.00       28     0.00     0.00  forge::Board::Board()
+  0.00      4.71     0.00       28     0.00     0.00  forge::attacks::init()
+  0.00      4.71     0.00       27     0.00     0.00  forge::Worker::clear()
+  0.00      4.71     0.00       26     0.00     0.00  forge::nnue::v3::pending()
+  0.00      4.71     0.00       26     0.00     0.00  forge::Searcher::clear()
+  0.00      4.71     0.00       25     0.00     0.00  forge::tune::parameters()
+  0.00      4.71     0.00       16     0.00     0.00  std::enable_if<std::__or_<std::__or_<std::is_same<std::remove_cv<int>::type, signed char>, std::is_same<std::remove_cv<int>::type, short>, std::is_same<std::remove_cv<int>::type, int>, std::is_same<std::remove_cv<int>::type, long>, std::is_same<std::remove_cv<int>::type, long long> >, std::__or_<std::is_same<std::remove_cv<int>::type, unsigned char>, std::is_same<std::remove_cv<int>::type, unsigned short>, std::is_same<std::remove_cv<int>::type, unsigned int>, std::is_same<std::remove_cv<int>::type, unsigned long>, std::is_same<std::remove_cv<int>::type, unsigned long long> >, std::is_same<char, std::remove_cv<int>::type> >::value, std::from_chars_result>::type std::from_chars<int>(char const*, char const*, int&, int) [clone .constprop.0]
+  0.00      4.71     0.00       13     0.00     0.00  forge::tune::refresh()
+  0.00      4.71     0.00       10     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()
+  0.00      4.71     0.00        5     0.00     0.00  std::mutex::lock() [clone .constprop.0]
+  0.00      4.71     0.00        5     0.00     0.00  forge::uci_loop(std::istream&)::{lambda()#2}::operator()() const
+  0.00      4.71     0.00        3     0.00     0.00  forge::nnue::v3::AlignedInt16::allocate(unsigned long)
+  0.00      4.71     0.00        2     0.00     0.00  forge::TranspositionTable::resize(unsigned long)
+  0.00      4.71     0.00        2     0.00     0.00  forge::book::embedded_available()
+  0.00      4.71     0.00        2     0.00     0.00  forge::nnue::v3::refresh_perspective(forge::nnue::v3::Net const&, forge::Board const&, forge::Color, forge::nnue::v3::Accumulator&)
+  0.00      4.71     0.00        2     0.00     0.00  forge::nnue::v3::describe[abi:cxx11](forge::nnue::v3::Net const&)
+  0.00      4.71     0.00        2     0.00     0.00  forge::attacks::(anonymous namespace)::init_magics(bool, unsigned long*, std::array<forge::attacks::Magic, 64ul>&)
+  0.00      4.71     0.00        2     0.00     0.00  forge::Searcher::clear_hash()
+  0.00      4.71     0.00        2     0.00     0.00  forge::Searcher::set_threads(int)
+  0.00      4.71     0.00        1     0.00     0.00  forge::book::Book::set_entries(std::vector<forge::book::Entry, std::allocator<forge::book::Entry> >)
+  0.00      4.71     0.00        1     0.00     0.00  forge::book::Book::load_embedded()
+  0.00      4.71     0.00        1     0.00     0.00  forge::nnue::v3::set_problem(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00      4.71     0.00        1     0.00     0.00  forge::nnue::v3::output_sum_scalar(forge::nnue::v3::Net const&, short const*, short const*, int)
+  0.00      4.71     0.00        1     0.00     0.00  forge::nnue::v3::evaluate_reference(forge::nnue::v3::Net const&, forge::Board const&)
+  0.00      4.71     0.00        1     0.00     0.00  forge::Worker::Worker(forge::SharedSearchState&, int)
+  0.00      4.71     0.00        1     0.00     0.00  forge::Worker::~Worker()
+  0.00      4.71     0.00        1     0.00     0.00  forge::Searcher::resize_hash(unsigned long)
+  0.00      4.71     0.00        1     0.00     0.00  forge::Searcher::Searcher(unsigned long, int)
+  0.00      4.71     0.00        1     0.00     0.00  forge::Searcher::~Searcher()
+  0.00      4.71     0.00        1     0.00     0.00  forge::Evaluator::clear()
+  0.00      4.71     0.00        1     0.00     0.00  forge::Evaluator::Evaluator()
+  0.00      4.71     0.00        1     0.00     0.00  std::unique_ptr<forge::nnue::v3::Net, std::default_delete<forge::nnue::v3::Net> >::~unique_ptr()
+  0.00      4.71     0.00        1     0.00     0.00  std::__uniq_ptr_impl<forge::nnue::v3::Net, std::default_delete<forge::nnue::v3::Net> >::reset(forge::nnue::v3::Net*)
+  0.00      4.71     0.00        1     0.00     0.00  std::vector<int, std::allocator<int> >::_M_fill_assign(unsigned long, int const&)
+  0.00      4.71     0.00        1     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_assign(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00      4.71     0.00        1     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(char const*, std::allocator<char> const&)
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
