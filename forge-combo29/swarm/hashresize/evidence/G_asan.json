@@ -1,0 +1,122 @@
+{
+  "engine": "/tmp/work/base/forge-combo29/build-asan/forge",
+  "blocks": [
+    {
+      "block": "same_value_cold",
+      "log": [
+        "same-value resize, cold table"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "same_value_warm",
+      "log": [
+        "same-value resize, 8 warm cycles"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "up_down_cycles",
+      "log": [
+        "16 <-> 256, 10 cycles"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "extremes",
+      "log": [
+        "1 MB and 2048 MB extremes"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "during_search",
+      "log": [
+        "resize DURING a search",
+        "bestmove line: bestmove a2a3",
+        "bestmove line: bestmove a2a3",
+        "bestmove line: bestmove a2a3",
+        "bestmove line: bestmove a2a3",
+        "bestmove line: bestmove a2a3"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "between_positions",
+      "log": [
+        "resize between position commands"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "around_newgame",
+      "log": [
+        "resize before and after ucinewgame"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "multipv_resize",
+      "log": [
+        "resize with MultiPV > 1"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    },
+    {
+      "block": "quit_during_search",
+      "log": [
+        "resize then immediate quit (destructor path)"
+      ],
+      "alive_at_end": true,
+      "error": null,
+      "sanitizer_clean": true,
+      "diagnostic_lines": 0,
+      "diagnostics_head": []
+    }
+  ],
+  "control_can_fail": true,
+  "canary": {
+    "built": true,
+    "detected": true,
+    "head": [
+      "/agent/repos/dwqww/forge-combo29/swarm/hashresize/scripts/asan_canary.cpp:32:67: runtime error: store to address 0x50c0000000c0 with insufficient space for an object of type 'volatile char'",
+      "0x50c0000000c0: note: pointer points here",
+      " 3d 3e 3f 40  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00",
+      "              ^ ",
+      "=================================================================",
+      "==9123==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50c0000000c0 at pc 0x56086bfcfd72 bp 0x7fff4924e1f0 sp 0x7fff4924e1e0"
+    ]
+  }
+}
