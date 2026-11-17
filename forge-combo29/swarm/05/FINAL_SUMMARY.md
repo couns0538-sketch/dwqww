@@ -39,18 +39,27 @@ matching sparse-endgame arm, same four sets, same protocol, gained labels every 
 positions** (2/5, 4/8, 6/30, 6/30). So it is 0/73 against 18/73 on identical protocols — the strongest single arm of my
 run, and the one I would lead with.
 
-And where a mate label IS gained, the printed line often does not deliver it. The rule, **63 of 63 with no exception
-across two independent implementations and six position sets** (my 39 and seat 07's independent 24):
+And where a mate label IS gained, the printed line often does not deliver it. The rule, **133 lines with no exception**:
 
 > **a printed PV shorter than 2|N|-1 means the mate label was not delivered — no replay and no DTM oracle needed.**
 
-| the last PV line | count | did the line mate? |
-|---|---|---|
-| length = 2\|N\|-1 (complete) | 58 | **yes, 58 of 58** |
-| length shorter (incomplete) | 5 | **no, 0 of 5** |
+| source | complete PV -> mated | short PV -> not mated | lines |
+|---|---|---|---|
+| my depth-12 work on O+G and R | 35/35 | 4/4 | 39 |
+| **seat 07, independent implementation** | 23/23 | 1/1 | 24 |
+| my depth ladder 6-20, winning positions | 27/27 | 10/10 | 37 |
+| **my depth ladder 6-20, losing positions** | 29/29 | 4/4 | 33 |
+| **total** | **114/114** | **19/19** | **133** |
 
-Seat 07's contribution: 24 of 24 on its own mate-rich pool — eight mate-reporting positions at all three owner budgets
-(`go nodes` 20000 / 50000 / 250000) — 23 complete-and-delivered, 1 short-and-not.
+Two independent implementations, and within mine the test crosses position sets, both mate signs (`mate +N` and
+`mate -N` — a pipeline labels those differently) and depths 6 to 20.
+
+**Method caveat, stated so the total is not over-read:** all four sources replay PVs with python-chess, so they share a
+*method*; what varies is position set, sign, depth range and — for seat 07 — the implementation. The rule has not been
+tested by a different *kind* of check, because for "does this line mate" replaying is the direct test.
+
+This rule matters more than the mechanism claim I withdrew (S-F74): it is per-line, so it does not depend on any theory
+of which depths truncate, and it is what a label pipeline can apply cheaply.
 
 **On material bounds, a caution.** A material bound is a valid check in principle — a KRvK mate score above 16 moves
 cannot be a true distance — but it must be computed from a verified table or brute force, not from an unvalidated solver.
