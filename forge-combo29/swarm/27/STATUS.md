@@ -684,3 +684,22 @@ plausibility check (100% imbalance is impossible); the other two needed someone 
 METHOD_NOTES: **every interval/share/sum is printed by a script that reads the result file.** `strata_19c46.py`
 is the first converted file. `METHOD_NOTES.md` now also carries "do not stratify a treatment effect on a
 variable the treatment moves" and the mate-cell/depth-counter lesson as its own section.
+
+## 2026-11-17T02:4xZ S-C47/48/49 — 23-F90 distance claim refuted; a control-suite failure of my own
+**S-C47 REFUTES seat 23's "the mate DISTANCE can be wrong".** On their own W2 board (`8/5K2/7Q/4k3/8/8/8/8 w`)
+the **true DTM is MATE 6**, computed by exhaustive forced-mate search independent of the engine (9 plies
+False, 11 plies True). So `mate 13` at depth 14-15 and `mate 10` at 16-18 are **real but SLOWER** mates, not
+false scores. And the engine **converges**: depth 16 `mate 8` (pv 15 = 2N-1), depth 18 `mate 6` (pv 11), then
+`mate 6` unchanged through depth 24. **Every PV exactly 2N-1, including the pre-convergence cell.** A score
+that converges to ground truth and stays is a search that was not deep enough, not a defect.
+They read a DECREASING distance as evidence of a FALSE distance; the direction of the decrease (toward true
+DTM) is exactly what separates the two.
+**S-C48** the pre-screen for any seat: does the FINAL value equal the true DTM? Converges to truth ->
+improvement. Converges elsewhere or oscillates -> real defect. Their truncated-PV half (F86/F88) is untouched
+and genuine.
+**S-C49 AGAINST MYSELF**: my first DTM tool's tables came back **empty**, every control passed **vacuously**,
+and it reported DRAW for both of seat 23's boards — both winning mates. Control 1 and control 5 both pass on
+an empty table (`max()` of nothing is within any bound). The missing control is a **NON-VACUITY** check. That
+is seat 23's own 23-F89 lesson ("a control passing for the wrong reason") landing on the seat about to use it
+against them, and it is now its own METHOD_NOTES section: **a control must be able to FAIL on the real data,
+not just on a planted case.**

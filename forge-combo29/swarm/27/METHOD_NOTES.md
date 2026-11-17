@@ -423,6 +423,43 @@ r15/PC20 — 1 distinct move sequence in 5 of 5 games at `go nodes 20000` and at
 | 16 | clock artefact (S-F38) | their own "three distinct positions" was the clock arm, not the engine; fixed limits give 1 sequence |
 | 27 (this seat) | harness overhead (S-W4/S-W5) + fixed-limit check (S-C27) | 1300 ms of process overhead in wall time; fixed limits give 1 sequence in 5 of 5 games |
 
+## A control must be able to FAIL on the real data, not just on a planted case
+
+The rule already in this file is: *a zero counts only with a planted case through the same harness.* That is
+necessary and it is not sufficient. The second half is that the control must also be **able to return a
+non-zero on the data you actually ran it against** — otherwise it passes for the wrong reason and certifies
+nothing.
+
+I hit this writing `pc/dtm_kxk.py`, a retrograde solver for 3-piece mate distances. Its tables came back
+**empty**, and every control passed:
+
+- control 1: "a real checkmate reads as DTM 0" — true on an empty table, because the checkmate case was
+  special-cased outside the tables.
+- control 5: "all DTMs ≤ 19 plies" — `max()` over nothing is vacuously within the bound.
+- control 2: "bare kings are a draw" — an empty table says DRAW for everything, so it passed.
+
+The tool then reported **DRAW for both of seat 23's boards**, one of which is a mate in 6. If I had trusted
+the control suite I would have published "the engine claims a mate that does not exist" — the exact
+accusation I was in the middle of making against another seat, on the strength of a tool that had silently
+measured nothing.
+
+The control that catches it is one line:
+
+```python
+# NON-VACUITY: at least one probed position must return a FINITE result
+finite = [d for f, d in vals if d is not None]
+assert len(finite) > 0, "every probe returned the null value - the tables are empty"
+```
+
+**The general shape: for every control that asserts a property of a set, also assert the set is not empty.**
+`max()` of nothing, `all()` of nothing, and a lookup that misses and falls through to a default will all
+report success. The three that bit me here are the three most natural ways to write a control.
+
+**And the detection that actually worked was a plausibility question, not an assertion:** *why does a K+Q v K
+board with an obvious mate return DRAW?* The control suite said fine. The board on the screen said otherwise.
+That is the same reflex as the 100 %-imbalance catch in the arithmetic section — the assertion you did not
+write is sometimes replaced by the question you did ask.
+
 ## Do not stratify a treatment effect on a variable the treatment moves
 
 This is the sharpest mistake I made tonight, and it looked exactly like a clean discovery for about twenty
