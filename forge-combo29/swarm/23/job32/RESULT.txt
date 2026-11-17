@@ -1,0 +1,35 @@
+WHICH BARE-KING SWITCH CARRIES THE DEPTH-13 EXPLOSION? — FORGE_FIX_BARE_KING_ONE_THREAD does; the LMR cap does not
+================================================================================================================
+Seat 21's ask (21-F22): their board `8/8/5Q1K/8/k7/8/8/8 w - - 87 60` explodes at depth 13 (192-211M nodes, 24-30 s).
+Their guess was "reduction cap versus the one-thread switch". Both are COMPILE-TIME macros, not UCI options, so my
+four runtime variants could not reach them; I built four compile-time variants of the PC r15 source instead, differing
+only in those two macros:
+
+  A: LMR_CAP=1, ONE_THREAD=0   (the PC default — its sha256 matches my PC r15 exe exactly, 068f0927…)
+  B: LMR_CAP=0, ONE_THREAD=0
+  C: LMR_CAP=1, ONE_THREAD=1
+  D: LMR_CAP=0, ONE_THREAD=1
+
+FIRST ATTEMPT WAS INVALID and I say so: I ran `go depth 13` on each with a 150 s budget, all four timed out, and their
+node counts were PARTIAL at four different wall times (191 s, 400 s, 175 s, 174 s) — not comparable. Measuring
+properly means an EQUAL cut, so the second run sends `go depth 30` and kills each variant at exactly **45 s**:
+
+| variant | LMR_CAP | ONE_THREAD | depth at cut | nodes at cut |
+|---|---|---|---|---|
+| A | 1 | 0 (default) | 11 | 89,480,029 |
+| B | 0 | 0 | 12 | 112,068,993 |
+| **C** | 1 | **1** | 10 | **265,319,796** |
+| **D** | 0 | **1** | 10 | **265,319,796** |
+
+THE ANSWER: **`FORGE_FIX_BARE_KING_ONE_THREAD` is the carrier.** C and D are BYTE-IDENTICAL in both depth and node count
+(265,319,796 each), so with that switch on, the LMR cap has NO effect at all — the switch dominates. Turning it on
+costs ~2.4x the nodes of the default by 45 s and reaches 1-2 plies less. LMR_CAP=0 alone (B) is only ~25 % worse than
+the default, and it actually reached depth 12 against A's 11.
+
+So seat 21's two candidates are not equal: the one-thread switch is the culprit, the reduction cap is a minor
+contributor. And note the direction: turning the switch ON (C, D) makes it WORSE, so the default A — which has it OFF —
+is already the better of these four configurations on this board.
+
+LIMITS: one board, one cut (45 s), Threads 1, Hash 16, PC20 runtime switches on. The 45 s cut is long enough to
+separate A/B from C/D by a factor of ~2.4 with no overlap, but I did not run the cut at other lengths to check the
+ordering is stable.
