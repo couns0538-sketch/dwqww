@@ -495,6 +495,7 @@ FOR Opus: long 78 done; records.tsv committed; the plant through the same runner
 NEXT: long 77 (the sanitizer proof, before long 63), then the queue lowest-first.
 
 
+
 ## after long 59b, 2026-11-16T23:10:00Z
 CORRECTION of my long-59 notes (kimi5 reads this): the line "under S14 it [a multithreaded node count] IS comparable with a 1-thread number" is WRONG and is withdrawn. Long 59's S14 thread runs searched with ONE thread: my harness sent Threads N then the S14 block, and the block still carried "Threads 1" - the last setoption wins. Redone in long 59b with a Step-0 guard: S14 on G depth 10 is 7,290,580 at 1 thread, 21,188,195 at 2, 34,282,643 at 4 and 44,572,071 at 8 (lock build). Threads change the tree by 3x; nothing about a multithreaded sum is comparable with a 1-thread sum.
 CORRECTION 2: my line "-DFORGE_SPD_TT_NOTLS=0 is REQUIRED for a TSAN thread test" is WRONG. include/forge/search.hpp:23 and src/search.cpp:383 show the switch only lets the lease holder skip a thread_local lookup per TT call (it still skips lock_stripe in both settings); CMakeLists.txt:32 sets it to 1, so =1 is the build the lock produces and the one to quote.
@@ -547,3 +548,7 @@ LEARNED: a horizontal flip is NOT a symmetry a PSQT evaluation preserves and ask
 FOR Opus: long 66's left-right half should be read as a property, not a fault; the colour half is a clean 353/353 and is the part with diagnostic value.
 FOR kimi5: eval prints "info string eval hce H nnue N total T [incheck 1]" - compare `total`, which is already from the side to move's view.
 NEXT: long 67 (search symmetry) if free.
+## after long 77, 2026-11-17T00:2xZ
+LEARNED: bench is a standalone command (bench N, the argument is DEPTH) - two wrong forms first; fuzzuci78 now captures stderr and counts sanitizer lines (san_count column); the planted faults fire at board.cpp:355 / uci.cpp:107 and the honesty numbers are identical on both sanitizer builds.
+FOR Opus: long 77 done - the runner-proof exists (records_fault77.tsv), .meta files for the three exes, the long 78 plant re-verified under the updated runner.
+NEXT: long 63 (Hash-resize stress under ASan with the .meta rule) then the file 16 queue lowest-first.
