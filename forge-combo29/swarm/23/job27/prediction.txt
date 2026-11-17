@@ -1,0 +1,22 @@
+PREDICTION — SW-23 job 27 (do the four PC20 search switches change any MOVE?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+File 5 gives four search switches (CuckooRep, HistRework 2, TtPruneV2, CorrHistV2) that the owner's PC sets to true.
+Nobody appears to have asked whether they change a MOVE, as opposed to a node count. If they are inert on moves, the
+owner knows his PC20 choice is cosmetic on move choice; if they matter, that is worth knowing too.
+
+Method: 20 fresh quiet positions, PC r15, Threads 1, Hash 16, OwnBook false, fresh process per search, drained.
+Three settings, same build, `go depth 14`:
+  A) S14 only (the 14 tuning options, no search switches)
+  B) PC20 (S14 + the six, i.e. the owner's setting)
+  C) S14 + ONLY CorrHistV2 (to see whether the most "corrective" switch is the one that matters)
+Compare bestmoves and scores.
+
+Prediction (each number with the range that kills it):
+  P1  B will choose a different move from A on at least 1 of 20 positions. KILLED if 0.
+  P2  B vs A will differ on NO MORE than 8 of 20 (the switches are refinements, not rewrites). KILLED if > 12.
+  P3  C will agree with B more often than A does on at least half the positions where A and B differ. KILLED if never.
+  P4  every setting will be deterministic across two fresh processes (0 disagreements). KILLED if any varies.
+
+If P1 is killed (0 of 20), the honest conclusion is that these switches do not change move choice on quiet
+middlegames at depth 14, and I will say that plainly rather than dressing up a node-count difference as impact.
