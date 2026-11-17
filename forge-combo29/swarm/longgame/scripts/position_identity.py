@@ -45,8 +45,8 @@ def perft(eng, pos, depth=3):
 
 
 def main():
-    corpus = {g["id"]: g for g in json.load(open("evidence/games.json"))["games"]}
-    ids = json.load(open("evidence/divergence_sample.json"))["games"]
+    corpus = {g["id"]: g for g in json.load(open("evidence/games.json", encoding="utf-8"))["games"]}
+    ids = json.load(open("evidence/divergence_sample.json", encoding="utf-8"))["games"]
     depth = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 
     eng = Engine(ENG)
@@ -75,7 +75,7 @@ def main():
     eng.quit()
 
     json.dump({"depth": depth, "plies": n, "identical": same, "first_mismatch": first_bad,
-               "rows": rows}, open("evidence/position_identity.json", "w"), indent=0)
+               "rows": rows}, open("evidence/position_identity.json", "w", encoding="utf-8"), indent=0)
     print(f"\nperft depth {depth}: {same}/{n} plies where the move-list board and the FEN "
           f"board produce a byte-identical perft breakdown")
     if first_bad:

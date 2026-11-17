@@ -13,8 +13,8 @@ MAP = [("game", "g"), ("ply", "p"), ("bm", "m"), ("score", "s"), ("nodes", "n"),
 def compact(src):
     n = 0
     tmp = src + ".tmp"
-    with open(src) as f, open(tmp, "w") as o:
-        for line in f:
+    with open(src, encoding="utf-8") as fh, open(tmp, "w", encoding="utf-8") as o:
+        for line in fh:
             r = json.loads(line)
             if "g" in r and "game" not in r:
                 o.write(line)
@@ -43,5 +43,5 @@ for f in ["session", "fresh", "unc", "clearhash", "hashresend", "uncgame", "sess
         compact(p)
 
 json.dump({s: l for l, s in MAP} | {"b": "bail(1=true)"},
-          open("evidence/keys.json", "w"), indent=0)
-print(open("evidence/keys.json").read())
+          open("evidence/keys.json", "w", encoding="utf-8"), indent=0)
+print(open("evidence/keys.json", encoding="utf-8").read())

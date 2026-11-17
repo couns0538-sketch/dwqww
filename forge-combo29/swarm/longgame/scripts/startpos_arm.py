@@ -47,11 +47,11 @@ def selfplay(n, maxplies, go):
 def main():
     cache = "evidence/selfplay_games.json"
     if os.path.exists(cache):
-        games = json.load(open(cache))
+        games = json.load(open(cache, encoding="utf-8"))
         print(f"loaded {len(games)} self-play games from cache")
     else:
         games = selfplay(NGAMES, MAXPLIES, GEN_GO)
-        json.dump(games, open(cache, "w"), indent=0)
+        json.dump(games, open(cache, "w", encoding="utf-8"), indent=0)
         print(f"generated {len(games)} self-play games")
 
     total = sum(len(g["moves"]) for g in games)
@@ -68,7 +68,7 @@ def main():
             r.update(game=g["id"], ply=k, glb=glb)
             rows.append(r)
     eng.quit()
-    with open("evidence/startpos_session.jsonl", "w") as f:
+    with open("evidence/startpos_session.jsonl", "w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
     print("startpos session plies:", glb)
@@ -82,7 +82,7 @@ def main():
             r = run_search(e, pos); e.quit()
             r.update(game=g["id"], ply=k)
             frows.append(r)
-    with open("evidence/startpos_fresh.jsonl", "w") as f:
+    with open("evidence/startpos_fresh.jsonl", "w", encoding="utf-8") as f:
         for r in frows:
             f.write(json.dumps(r) + "\n")
     print("startpos fresh plies:", len(frows))
@@ -100,7 +100,7 @@ def main():
     print("bail games session:", len({k[0] for k in bail_s}), "of", len(games))
     json.dump({"plies": len(ks), "bm_diff": bm,
                "bails_session": sorted(bail_s), "bails_fresh": sorted(bail_f)},
-              open("evidence/startpos_summary.json", "w"), indent=0)
+              open("evidence/startpos_summary.json", "w", encoding="utf-8"), indent=0)
 
 
 if __name__ == "__main__":

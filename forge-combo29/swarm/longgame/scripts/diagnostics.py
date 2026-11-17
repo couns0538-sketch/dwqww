@@ -27,5 +27,5 @@ for arm in ARMS:
 
 out = {"files": ARMS, "searches_scanned": n, "diagnostics_total": len(diags),
        "examples": diags[:20]}
-json.dump(out, open(os.path.join(EVID, "diagnostics.json"), "w"), indent=0)
+json.dump(out, open(os.path.join(EVID, "diagnostics.json"), "w", encoding="utf-8"), indent=0)
 print(f"scanned {n} stored plies across {len(ARMS)} arms; diagnostics found: {len(diags)}")

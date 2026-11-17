@@ -12,6 +12,7 @@ import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from position_identity import perft, force_ep_fen
+from checks import require
 import chess
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
@@ -23,7 +24,7 @@ def main():
     for mv in ("e2e4", "c7c5", "e4e5", "d7d5"):
         b.push(chess.Move.from_uci(mv))
     good = force_ep_fen(b)
-    assert b.ep_square is not None, "fixture has no ep square"
+    require(b.ep_square is not None, "fixture has no ep square")
     # python-chess's own fen() drops the ep square here only when no ep capture is legal;
     # make the point explicitly with a board where it does drop it.
     b2 = chess.Board()
@@ -97,7 +98,7 @@ def main():
     json.dump({"faults": faults, "fired": fired, "clock_visible": clock_visible,
                "python_chess_dropped_ep": {"forced": real, "board_fen": dropped,
                                            "perft_identical": p_real == p_drop}},
-              open("evidence/position_identity_control.json", "w"), indent=0)
+              open("evidence/position_identity_control.json", "w", encoding="utf-8"), indent=0)
     print(f"\nCONTROL {'FIRES on all planted faults' if all(fired.values()) else 'IS BLIND on at least one fault'}")
     sys.exit(0 if ok else 1)
 

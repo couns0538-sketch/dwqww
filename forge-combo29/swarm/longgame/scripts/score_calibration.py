@@ -15,6 +15,7 @@ from evio import load_json, load_plies
 from sampling import sample
 from uci import Engine
 from replay import run_search, pos_cmd
+from checks import require
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
 
@@ -62,7 +63,7 @@ def main():
                      "err_session": abs(vs - truth), "err_fresh": abs(vf - truth),
                      "err_d1": abs(d1 - truth)})
     eng.quit()
-    json.dump(rows, open("evidence/score_calibration.json", "w"), indent=0)
+    json.dump(rows, open("evidence/score_calibration.json", "w", encoding="utf-8"), indent=0)
 
     es = [r["err_session"] for r in rows]
     ef = [r["err_fresh"] for r in rows]
@@ -71,7 +72,8 @@ def main():
     print(f"  mean |err| session d8 : {sum(es)/len(es):7.1f} cp   median {statistics.median(es):6.1f}")
     print(f"  mean |err| fresh   d8 : {sum(ef)/len(ef):7.1f} cp   median {statistics.median(ef):6.1f}")
     print(f"  mean |err| depth   1  : {sum(e1)/len(e1):7.1f} cp   median {statistics.median(e1):6.1f}   <- positive control")
-    assert statistics.median(e1) > statistics.median(ef), "error metric cannot tell depth 1 from depth 8"
+    require(statistics.median(e1) > statistics.median(ef),
+            "error metric cannot tell depth 1 from depth 8")
     w = sum(1 for r in rows if r["err_session"] > r["err_fresh"])
     t = sum(1 for r in rows if r["err_session"] < r["err_fresh"])
     print(f"  session worse than fresh: {w}   session better: {t}   tie: {len(rows)-w-t}")

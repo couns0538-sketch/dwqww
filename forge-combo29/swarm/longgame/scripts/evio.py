@@ -15,7 +15,7 @@ def open_jsonl(name):
     for ext in (".jsonl.gz", ".jsonl"):
         path = os.path.join(EVID, name + ext)
         if os.path.exists(path):
-            return gzip.open(path, "rt") if path.endswith(".gz") else open(path)
+            return gzip.open(path, "rt") if path.endswith(".gz") else open(path, encoding="utf-8")
     raise FileNotFoundError(f"no evidence file for {name!r} in {EVID}")
 
 
@@ -34,7 +34,7 @@ def load_plies(name):
 
 
 def load_json(name):
-    return json.load(open(os.path.join(EVID, name + ".json")))
+    return json.load(open(os.path.join(EVID, name + ".json"), encoding="utf-8"))
 
 
 def is_bail(r):

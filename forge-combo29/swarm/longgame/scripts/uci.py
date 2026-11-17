@@ -47,7 +47,7 @@ class Engine:
 
     def rss_kb(self):
         try:
-            with open(f"/proc/{self.p.pid}/status") as f:
+            with open(f"/proc/{self.p.pid}/status", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("VmRSS:"):
                         return int(line.split()[1])

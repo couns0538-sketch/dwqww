@@ -11,6 +11,7 @@ import sys, os, json, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from replay import run_search, rss_kb
+from checks import require
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
 
@@ -25,10 +26,10 @@ print(f"   after setoption Hash 1024:      {r1/1024:8.1f} MiB   delta {(r1-r0)/1
 e.send("setoption name Hash value 32"); e.sync()
 r2 = rss_kb(e.p.pid)
 print(f"   after setoption Hash 32:        {r2/1024:8.1f} MiB   delta {(r2-r0)/1024:+.1f} MiB")
-assert r1 - r0 > 500 * 1024, "RSS instrument cannot see a 1 GB allocation"
+require(r1 - r0 > 500 * 1024, "RSS instrument cannot see a 1 GB allocation")
 
 print("\nB. hashfull under real search pressure (Hash 32)")
-corpus = json.load(open("evidence/games.json"))["games"]
+corpus = json.load(open("evidence/games.json", encoding="utf-8"))["games"]
 e2 = Engine(ENG); e2.uci(); e2.sync()
 rows = []
 glb = 0
@@ -46,12 +47,12 @@ for row in rows:
           f"rss {row['rss_kb']/1024:7.1f} MiB  nodes {row['nodes']}")
 print(f"   peak hashfull: {max(r['hashfull'] for r in rows)} of 1000")
 json.dump({"positive_control": {"rss_baseline_kb": r0, "rss_hash1024_kb": r1, "rss_back_kb": r2},
-           "hashfull_rows": rows}, open("evidence/rss_control.json", "w"), indent=0)
+           "hashfull_rows": rows}, open("evidence/rss_control.json", "w", encoding="utf-8"), indent=0)
 
 print("\nC. drift over the replay: nodes and wall time by 2,000-ply block")
 def load(p):
     out = []
-    for line in open(p):
+    for line in open(p, encoding="utf-8"):
         out.append(json.loads(line))
     return out
 sess = load("evidence/session.jsonl")

@@ -56,7 +56,7 @@ def main():
                      "delta": None if (v1 is None or v2 is None) else v1 - v2,
                      "d8_session": s[k]["score"], "d8_fresh": f[k]["score"]})
     eng.quit()
-    json.dump(rows, open("evidence/move_quality.json", "w"), indent=0)
+    json.dump(rows, open("evidence/move_quality.json", "w", encoding="utf-8"), indent=0)
 
     d = [r["delta"] for r in rows if r["delta"] is not None]
     d.sort()

@@ -18,9 +18,10 @@ import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from uci import Engine
 from replay import run_search, perft_head
+from checks import require
 
 ENG = os.environ.get("FORGE_BIN", "forge-combo29/build/forge")
-corpus = {g["id"]: g for g in json.load(open("evidence/games.json"))["games"]}
+corpus = {g["id"]: g for g in json.load(open("evidence/games.json", encoding="utf-8"))["games"]}
 
 # A legal 8-ply shuttle from the start position that returns to the start position 3 times
 # in total: start, after 4 plies, after 8 plies.
@@ -86,7 +87,7 @@ def fixtures():
 
 def main():
     fx = fixtures()
-    assert fx, "no fixture found a legal cycle"
+    require(fx, "no fixture found a legal cycle")
     for f in fx:
         f["pos"] = f"position fen {f['start_fen']} moves " + " ".join(f["prefix"])
     print(f"fixtures: {len(fx)}")
@@ -104,8 +105,9 @@ def main():
         # position once. Record the real count rather than forcing 3.
         f["occ"] = f["occ"]
         # and it must not already be terminal: a checkmate root is not a bail
-        assert b.legal_moves.count() > 0, f["id"]
-        assert not b.is_insufficient_material(), f["id"]
+        require(b.legal_moves.count() > 0, f"{f['id']} has no legal move")
+        require(not b.is_insufficient_material(),
+                f"{f['id']} is insufficient material, so a bail there is not the repetition arm")
 
     results = {"session": [], "fresh": []}
     for arm in ("session", "fresh"):
@@ -131,7 +133,7 @@ def main():
         if arm == "session":
             eng.quit()
 
-    json.dump(results, open("evidence/planted_threefold.json", "w"), indent=0)
+    json.dump(results, open("evidence/planted_threefold.json", "w", encoding="utf-8"), indent=0)
 
     print(f"\n{'fixture':12s} {'state':12s} {'session':>22s} {'fresh':>22s}  agree")
     for i, f in enumerate(fx):

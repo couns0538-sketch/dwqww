@@ -153,7 +153,7 @@ for f, nm in [("err_session", "session d8"), ("err_fresh", "fresh   d8"),
     print(f"  mean |err| {nm:18s} {sum(v)/len(v):7.1f} cp   median {statistics.median(v):6.1f}")
 
 out("13. MEMORY AND TIME")
-meta = json.load(open(os.path.join(EVID, "session.jsonl.meta.json")))
+meta = json.load(open(os.path.join(EVID, "session.jsonl.meta.json"), encoding="utf-8"))
 r = meta["rss"]
 vals = sorted({(x["plies"], x["rss_kb"]) for x in r})
 print(f"  RSS start {r[0]['rss_kb']/1024:.1f} MiB, end {r[-1]['rss_kb']/1024:.1f} MiB, "

@@ -7,6 +7,7 @@ SEE a 0-node bail when one occurs, before trusting a clean run.
 import sys
 sys.path.insert(0, "scripts")
 from uci import Engine, search
+from checks import require
 
 ENG = "forge-combo29/build/forge"
 
@@ -46,7 +47,7 @@ def main():
     seq = "g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8"
     b = fresh("position startpos moves " + seq)
     show("planted threefold", b)
-    assert b["bestmove"] is not None, "no bestmove"
+    require(b["bestmove"] is not None, "no bestmove")
     print("  bailed (0 nodes, empty pv):", b["nodes"] in (0, None) and not b["pv"])
 
     # control 3: two occurrences must NOT bail

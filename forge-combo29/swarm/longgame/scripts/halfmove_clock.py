@@ -71,8 +71,8 @@ def walk(g):
 
 
 def main():
-    corpus = {g["id"]: g for g in json.load(open("evidence/games.json"))["games"]}
-    ids = json.load(open("evidence/divergence_sample.json"))["games"]
+    corpus = {g["id"]: g for g in json.load(open("evidence/games.json", encoding="utf-8"))["games"]}
+    ids = json.load(open("evidence/divergence_sample.json", encoding="utf-8"))["games"]
 
     print("C. planted clock fault: one board, clock swept, fresh process each")
     board = "8/8/8/8/8/1R6/8/k1K5 w - - %d 1"
@@ -133,7 +133,7 @@ def main():
                "aa_control_disagreements": diffs, "aa_control_n": 2 * len(aa),
                "plies_probed": n, "plies_skipped": skipped,
                "clock_mismatches": len(mism), "examples": mism[:20]},
-              open("evidence/halfmove_clock.json", "w"), indent=0)
+              open("evidence/halfmove_clock.json", "w", encoding="utf-8"), indent=0)
 
 
 if __name__ == "__main__":

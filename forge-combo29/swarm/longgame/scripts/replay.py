@@ -24,7 +24,7 @@ GO = "go depth 8"
 
 def rss_kb(pid):
     try:
-        with open(f"/proc/{pid}/status") as f:
+        with open(f"/proc/{pid}/status", encoding="utf-8") as f:
             for line in f:
                 if line.startswith("VmRSS:"):
                     return int(line.split()[1])
@@ -33,10 +33,10 @@ def rss_kb(pid):
     return None
 
 
-def run_search(eng, pos_cmd, go=GO, timeout=900.0):
+def run_search(eng, position, go=GO, timeout=900.0):
     """Send position + go, read to bestmove. Returns a per-ply record."""
     t0 = time.time()
-    eng.send(pos_cmd)
+    eng.send(position)
     eng.send(go)
     lines = eng.read_until(lambda l: l.startswith("bestmove"), timeout=timeout)
     wall_ms = (time.time() - t0) * 1000.0
@@ -82,7 +82,7 @@ def do_session(games, out_path, rss_every=100):
     eng = Engine(ENG)
     eng.uci(); eng.sync()
     pid = eng.p.pid
-    f = open(out_path, "w")
+    f = open(out_path, "w", encoding="utf-8")
     glb = 0
     rss_rows = [{"plies": 0, "rss_kb": rss_kb(pid)}]
     game_times = []
@@ -111,7 +111,7 @@ def do_reset_arm(games, out_path, mode):
     eng.uci(); eng.sync()
     if mode == "hashresend":
         eng.send("setoption name Hash value 32")
-    f = open(out_path, "w")
+    f = open(out_path, "w", encoding="utf-8")
     glb = 0
     for g in games:
         for k in range(1, len(g["moves"]) + 1):
@@ -137,7 +137,7 @@ def do_uncgame(games, out_path):
     eng = Engine(ENG)
     eng.uci(); eng.sync()
     pid = eng.p.pid
-    f = open(out_path, "w")
+    f = open(out_path, "w", encoding="utf-8")
     glb = 0
     rss_rows = [{"plies": 0, "rss_kb": rss_kb(pid)}]
     for g in games:
@@ -157,7 +157,7 @@ def do_uncgame(games, out_path):
 
 def do_fresh(games, out_path):
     """New process per ply. The state-free ground truth."""
-    f = open(out_path, "w")
+    f = open(out_path, "w", encoding="utf-8")
     glb = 0
     for g in games:
         for k in range(1, len(g["moves"]) + 1):
@@ -175,7 +175,7 @@ def do_fresh(games, out_path):
 
 def load_jsonl(path):
     out = {}
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             r = json.loads(line)
             out[(r["game"], r["ply"])] = r
@@ -192,22 +192,22 @@ def main():
     ap.add_argument("--bails", default="evidence/session.jsonl")
     args = ap.parse_args()
 
-    corpus = json.load(open(args.games))["games"]
+    corpus = json.load(open(args.games, encoding="utf-8"))["games"]
     if args.arm in ("session",):
         meta = do_session(corpus, args.out)
-        json.dump(meta, open(args.out + ".meta.json", "w"))
+        json.dump(meta, open(args.out + ".meta.json", "w", encoding="utf-8"))
         print("session plies:", meta["plies"])
     elif args.arm == "fresh":
-        ids = set(json.load(open(args.sample))["games"])
+        ids = set(json.load(open(args.sample, encoding="utf-8"))["games"])
         games = [g for g in corpus if g["id"] in ids]
         print("fresh games:", len(games), "plies:", sum(len(g["moves"]) for g in games))
         print(do_fresh(games, args.out))
     elif args.arm == "uncgame":
         meta = do_uncgame(corpus, args.out)
-        json.dump(meta, open(args.out + ".meta.json", "w"))
+        json.dump(meta, open(args.out + ".meta.json", "w", encoding="utf-8"))
         print("uncgame plies:", meta["plies"])
     elif args.arm in ("unc", "clearhash", "hashresend"):
-        ids = set(json.load(open(args.sample))["games"])
+        ids = set(json.load(open(args.sample, encoding="utf-8"))["games"])
         games = [g for g in corpus if g["id"] in ids]
         print(args.arm, "games:", len(games), "plies:", sum(len(g["moves"]) for g in games))
         print(do_reset_arm(games, args.out, args.arm))
@@ -230,7 +230,7 @@ def main():
                         "same_move": r["bm"] == fr["bm"],
                         "same_bail": r["bail"] == fr["bail"]})
             print(out[-1])
-        json.dump(out, open(args.out, "w"), indent=0)
+        json.dump(out, open(args.out, "w", encoding="utf-8"), indent=0)
 
 
 if __name__ == "__main__":

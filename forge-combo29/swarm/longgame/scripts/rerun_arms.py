@@ -33,8 +33,8 @@ def short(r):
 
 
 def main():
-    corpus = json.load(open("evidence/games.json"))["games"]
-    sample_ids = set(json.load(open("evidence/divergence_sample.json"))["games"])
+    corpus = json.load(open("evidence/games.json", encoding="utf-8"))["games"]
+    sample_ids = set(json.load(open("evidence/divergence_sample.json", encoding="utf-8"))["games"])
 
     arms = [
         ("session", corpus, None, "none"),
@@ -52,7 +52,7 @@ def main():
         path = f"evidence/{name}.jsonl.gz"
         rows, glb, ndiag = 0, 0, 0
         if mode == "fresh":
-            out = gzip.open(path, "wt")
+            out = gzip.open(path, "wt", encoding="utf-8")
             for g in games:
                 for k in range(1, len(g["moves"]) + 1):
                     e = Engine(ENG); e.uci(); e.sync()
@@ -67,7 +67,7 @@ def main():
             e = Engine(ENG); e.uci(); e.sync()
             if reset == "ply_hash":
                 e.send("setoption name Hash value 32")
-            out = gzip.open(path, "wt")
+            out = gzip.open(path, "wt", encoding="utf-8")
             rss_rows = [{"plies": 0, "rss_kb": rss_kb(e.p.pid)}]
             game_times = []
             for g in games:
@@ -96,14 +96,14 @@ def main():
             e.quit()
             if reset in ("none", "game"):
                 json.dump({"plies": rows, "rss": rss_rows, "game_rss_end": game_times},
-                          open(path.replace(".jsonl.gz", ".jsonl.meta.json"), "w"))
+                          open(path.replace(".jsonl.gz", ".jsonl.meta.json"), "w", encoding="utf-8"))
         per_arm[name] = {"plies": rows, "diagnostics": ndiag}
         scanned += rows
         diag_total += ndiag
         print(f"  {name:12s} plies {rows:6d}  diagnostics {ndiag}")
 
     json.dump({"searches_scanned": scanned, "diagnostics_total": diag_total, "per_arm": per_arm},
-              open("evidence/diagnostics.json", "w"), indent=0)
+              open("evidence/diagnostics.json", "w", encoding="utf-8"), indent=0)
     print(f"\nTOTAL searches {scanned}, diagnostics {diag_total}")
 
 

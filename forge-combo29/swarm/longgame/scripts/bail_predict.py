@@ -56,7 +56,7 @@ def main():
                          "pred": pred, "pred_rep": pred_rep, "pred_hm": pred_hm,
                          "pred_ins": pred_ins, "observed": observed,
                          "eng_bm": r["bm"], "eng_score": r["score"]})
-    json.dump(rows, open("evidence/bail_predict.json", "w"))
+    json.dump(rows, open("evidence/bail_predict.json", "w", encoding="utf-8"))
 
     n = len(rows)
     obs = [r for r in rows if r["observed"]]

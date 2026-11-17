@@ -65,6 +65,33 @@ and takes the lowest k, which is deterministic and has no unpredictability requi
 That changed which plies were sampled, so `move_quality` and `score_calibration` were **re-run and
 their evidence regenerated** — and the fact that the two samples agree is now itself a result.
 
+## Second pass: the guards were the real defect
+
+The gate failed again on the next revision, so a second pass used **bandit** and **pylint** rather
+than pyflakes alone. The finding that matters is not stylistic:
+
+> **Every guard in this seat was written as `assert`, and `assert` is deleted by `python -O`.**
+
+A guard that vanishes is the same failure mode as a control that silently does nothing. Demonstrated
+rather than asserted: `python3 -O` on `assert False` prints "ASSERT WAS STRIPPED", while the
+replacement `scripts/checks.py::require` still blocks. **`summary.py` output is byte-identical
+under `-O` and under normal execution**, which is the check that no guard was load-bearing and
+silently off.
+
+Also fixed in this pass: `open()` without an encoding everywhere (16 sites), two
+redefined-outer-name shadows (`replay.run_search`'s `pos_cmd` parameter vs the module function,
+and `compact.py`'s `f`), and the `subprocess` calls in `extract_games.py` now resolve `git` by
+absolute path once and validate the path taken from `ls-tree` before using it.
+**`extract_games.py` reproduces the committed corpus byte-identically after the change** — 200
+games, 27,788 plies, `identical: True`.
+
+**I could not confirm what Sonar actually reported**, and this is worth stating plainly: its API
+is egress-blocked here, both gate notifications name the **same analysis revision `7757ea2b…`**,
+and that hash is **not a commit in this repository** — it matches neither the PR head
+(`b22fa98e`) nor GitHub's merge ref (`a226d40d`). So the second failure may describe code that
+predates my first fix. Everything above is a real improvement found by local tools, not a
+confirmed match to Sonar's list.
+
 ## Controls that fired (proof the instruments work)
 
 - RSS instrument: `Hash 32 → 1024 → 32` reads **40.6 → 1,032.6 → 40.6 MiB**.

@@ -12,8 +12,11 @@ NOTE ON THE START POSITION. Every one of the 5,689 games in the repo's PGN files
 Consequence for the drawn-root bail: the pre-start history is invisible to the engine, so
 bail counts from this corpus are a lower bound against a from-move-1 startpos replay.
 """
-import io, json, subprocess, sys, os
+import io, json, shutil, subprocess, sys, os
 import chess, chess.pgn
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from checks import require
 
 REPO = "/agent/repos/dwqww"
 COMMIT = "6b98f217"
@@ -23,14 +26,24 @@ PER_FILE_CAP = 16
 MIN_PLIES, MAX_PLIES = 20, 400
 
 
+# Resolved once, so the child process is named by an absolute path and no shell is involved.
+# Every argv below is a fixed literal or a path taken from `git ls-tree`, never a value from
+# outside this repository, and `shell=True` is never used.
+GIT = shutil.which("git")
+require(GIT is not None, "git not found on PATH")
+
+
 def pgn_paths():
-    out = subprocess.run(["git", "-C", REPO, "ls-tree", "-r", "--name-only", COMMIT],
+    out = subprocess.run([GIT, "-C", REPO, "ls-tree", "-r", "--name-only", COMMIT],
                          capture_output=True, text=True, check=True).stdout.split("\n")
     return sorted(p for p in out if p.endswith(".pgn"))
 
 
 def pgn_text(path):
-    return subprocess.run(["git", "-C", REPO, "show", f"{COMMIT}:{path}"],
+    # `path` comes from pgn_paths() above, i.e. from this repo's own tree listing.
+    require(path.endswith(".pgn") and ".." not in path and not path.startswith("/"),
+            f"refusing unexpected path from git ls-tree: {path!r}")
+    return subprocess.run([GIT, "-C", REPO, "show", f"{COMMIT}:{path}"],
                           capture_output=True, text=True, check=True).stdout
 
 
@@ -100,7 +113,7 @@ def main():
             break
 
     os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
-    with open(OUT, "w") as f:
+    with open(OUT, "w", encoding="utf-8") as f:
         json.dump({"commit": COMMIT, "files": files, "rejected": rejected,
                    "per_file": per_file, "games": accepted}, f)
     plies = sum(g["plies"] for g in accepted)

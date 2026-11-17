@@ -309,6 +309,19 @@ said +2.3" a reproducible, explainable disagreement rather than a bug in either.
   brief's literal command form had to be exercised on generated self-play (3,420 plies) instead of
   on real games. Both give the same answer, but they are different populations.
 
+## A harness defect found by the quality gate
+
+Every guard in these scripts — the control that the RSS instrument can see a 1 GB allocation, the
+check that a fixture set is non-empty, the check that the sample is the size it claims — was written
+as a Python `assert`. **`assert` is removed when Python runs with `-O`.** A guard that disappears is
+the same failure as a control that silently does nothing, and it is the worse version, because it
+looks like protection in the source.
+
+Replaced with `scripts/checks.py::require`, which raises and therefore survives `-O`. Demonstrated
+both ways: `python3 -O` on `assert False` prints "ASSERT WAS STRIPPED", while `require(False, ...)`
+still blocks. **`summary.py` produces byte-identical output under `-O` and normal execution**, so
+no guard was load-bearing and silently off in the runs already reported.
+
 ## Reproduce
 
 ```bash
