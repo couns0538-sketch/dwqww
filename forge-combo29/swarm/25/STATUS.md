@@ -286,7 +286,8 @@ and must NOT be compared with the ~18% population figure**; the valid comparison
 
 **The rate did not move when the stratum nearly doubled** (53.3% on 30 boards, 53.4% on 58) and the interval tightened
 from 33.7 points wide to 24.9. **The interval is still 25 points wide** and I am not implying otherwise: tightening it
-to ±5 points would need roughly 350 unstable boards, about 2,400 random positions at the 14.5% incidence. The
+to ±5 points needs **n = 3.8415 x 0.534 x 0.466 / 0.0025 = 382.8** unstable boards, i.e. **about 2,640 positions** at
+the 14.5% incidence. **My first figure here, "~350 boards, ~2,400 positions", was 8-9% low and is corrected.** The
 instability fraction itself is consistent across draws (R4 12.0%, R6 14.5%), so "unstable is ~1 in 7" is a usable
 planning number. **0 score ties among 66 disagreements**, planted-case control repeated and passing (self-vs-self 0/40;
 three plants all caught).
@@ -313,6 +314,13 @@ length and ending in checkmate.** Two independent demonstrations now, not one.
 rule (same best move at both depths) yet its mate number moved by 3. "Search still changing its mind" as I
 operationalised it (a bestmove change) does not capture a search that keeps the move while still revising its
 evaluation. A better enrichment criterion for a later run is a material **score** change between depths.
+
+**S-C55, a nineteenth control error of mine, caught by the owner:** the sample-size estimate I published ("~350 unstable
+boards, ~2,400 positions") was **8-9% low** - the arithmetic gives **382.8 boards and ~2,640 positions** for a ±5-point
+half-width at p=0.534, incidence 14.5%. Corrected in the report, the FINAL block and a FINDINGS row, with the wrong
+figure left visible. **Why this one slipped:** every other number in these findings came from a command whose output is
+committed; this came from a mental estimate typed straight into prose. A cost estimate is a result and needs the same
+treatment as a measurement.
 
 **S7 was missed and S8 was a hit on the wrong axis:** S8 predicted at most 3 mate-number disagreements *between
 MultiPV settings* (found 0) while the class I was hunting turned up on a *depth* ladder. Both recorded as such.

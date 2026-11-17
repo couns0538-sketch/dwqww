@@ -53,8 +53,11 @@ and its interval tightened from 33.7 points wide to 24.9. Two independent draws,
 form, the same answer. The conditional structure of S-C51 is not a small-sample artifact.
 
 Not settled: the interval is still **[40.8%, 65.7%]** — 25 points wide. The point estimate is stable; the precision
-is not high. Getting it below ±5 points would need roughly 350 unstable boards, which at a 14.5% incidence means
-drawing about 2,400 positions. That is a real cost and I am not implying the current figure is sharper than it is.
+is not high. Getting the half-width down to ±5 points requires **n = z²p(1−p)/d² = 3.8415 × 0.534 × 0.466 / 0.0025 =
+382.8** unstable boards, which at the 14.5% incidence means drawing **about 2,640 positions**. **I first published
+"~350 boards, ~2,400 positions" and that was 8% and 9% too low** — corrected here rather than left standing, because a
+planning number that understates the work by a tenth is exactly the kind of figure that gets quoted onward unchanged.
+That is a real cost and I am not implying the current figure is sharper than it is.
 
 Also worth noting for anyone reusing this: the unstable fraction is itself consistent across draws (R4 12.0%,
 R6 14.5%), which is why "unstable boards are ~1 in 7 of random middlegame positions" is a usable planning number if
