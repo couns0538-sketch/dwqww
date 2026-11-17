@@ -739,3 +739,10 @@ every sentence.
   distribution: enough to say "did not change here", not "never changes".
 - Kept the phrasing "I have established no budget where it is absent" as instructed.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F60: in a full match-clock self-play game (6000+60, PC20, Threads 1, Hash 16, OwnBook false, one warm process per
+  side) ZERO mate-score truncations in 39 plies. Recorded as "not observed in 39 plies", NOT "absent from play" — one
+  game, ~depth 19 searches, and most game positions carry no mate score, so the opportunity may not have arisen.
+- Hygiene: machine_clean.sh run immediately before the game (CLEAN, exit 0).
+- next command: continue at cadence.
