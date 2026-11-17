@@ -1,0 +1,26 @@
+Step G3 Prediction (committed BEFORE any Step G3 timed run)
+===========================================================
+Step name: `G3` (`g3_known_gives_check_kinglines_and_stalemate.patch.txt`, stacked on `bundle.patch.txt + G1 + G2`)
+
+Functions and `profile_bundle1.txt` self-time share attacked:
+- `forge::Board::make_move` (`3.40%` self, `14,130,074` calls — Rank #10 in `profile_bundle1.txt`)
+- `forge::Board::square_attacked_with_occupancy` (`1.27%` self, `11,423,087` calls — Rank #17, of which `7,394,326` come from `generate_legal_evasions`)
+- `forge::Board::refresh_king_lines` (`0.64%` self, `4,034,858` calls — Rank #31)
+- `forge::Board::has_legal_move` (`0.42%` self, `12,020,086` calls — Rank #34)
+- `forge::Board::generate_legal_evasions` (`0.42%` self, `1,189,213` calls — Rank #37) + `MovePicker::init_check_squares` (`1,230,400` quiet nodes)
+- Total direct Board share attacked: `6.15%` self samples (+ `MovePicker` / `Worker::search` caller work).
+- Why not already done in Jobs 1-5: Job 3 `E1` added `generate_legal_evasions`, and Job 5 `S5` added `precomputed_key` to `make_move` + skipped copying invalid `KingLines` on `Undo`, but `make_move` still recomputed `checkers_` from scratch on all `14.13M` moves even when the parent already computed `gives_check == false` (~93% of moves), `MovePicker::init_check_squares()` still computed `check_squares_` locally without populating `king_lines_`, `has_legal_move()` still computed `single_blockers` on all `12.02M` non-check nodes before checking ray-free pawns, and `generate_legal_evasions` still ran `square_attacked_with_occupancy` on king targets controlled by enemy pawns or king.
+
+Work removed:
+1. Pass `int known_gives_check = -1` from `Worker::search` (`gives_check ? 1 : 0`) and `Worker::qsearch` (when already computed) into `Board::make_move`: when `known_gives_check == 0` (~93% of moves), set `checkers_ = 0` directly without running 3 contact + 2 PEXT slider attack queries on `their_king`.
+2. In `MovePicker::init_check_squares()`, call `board_.ensure_king_lines(); check_squares_ = board_.cached_king_lines().check_squares;` so `check_squares_` is computed once per quiet-generating node instead of twice.
+3. In `Board::has_legal_move()` (`checkers_ == 0`), fast-exit `return true` whenever a pawn off `ksq`'s empty-board rays (`~(attacks::rook_ray(ksq) | attacks::bishop_ray(ksq))`) has a push or capture (~94% predictable), and otherwise populate `ensure_king_lines()` so `pinned` is shared with the rest of the node instead of recomputed.
+4. In `Board::generate_legal_evasions()`, branchlessly pre-mask king step targets with `~(pawn_attacks_bb(them, pieces(them, Pawn)) | attacks::king(king_square(them)))` before the `square_attacked_with_occupancy` loop.
+
+Predicted `bench 13` gain on this cloud CPU (Intel Xeon @ 2.60GHz, g++ 13.3 AVX-512, `PC20 + net768`):
+- Predicted `bench 13` `median_of_paired_round_ratios`: `+1.0%` to `+3.0%` (`1.010x` to `1.030x`) on both `getrusage` CPU NPS and wall NPS.
+- Stack sizes (`G2 -> G3`): `sizeof(MovePicker) = 2240 -> 2240 B (+0 B)`, `Worker::search` unchanged (`~4496 B`), `Worker::qsearch` unchanged (`~2704 B`).
+
+Kill range:
+- Any mismatch on the 55,868-sequence evasion oracle, 21,823-transition `make_move`/`has_legal_move` oracle, or engine identity pins kills the step immediately.
+- If `bench 13` `median_of_paired_round_ratios` is `<= 1.006x` (`<= +0.6%`) OR does not exceed the A/A build-noise spread (`not measured`), the standalone `bench 13` speed prediction is killed (while keeping the proven-identical step in `bundle2.patch.txt`).
