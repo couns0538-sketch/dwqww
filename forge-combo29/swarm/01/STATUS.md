@@ -2608,3 +2608,25 @@ habits to any pair of guard and check.
 Gates: 207 rows, 0 wrong pipe counts, generated-list guard enforced and proven, Trap 12 symmetry tabulated, stamps in
 order, gate rc=0 across 58 checks.
 Next: continue at cadence.
+## 2026-11-17T01:59:17Z — the guard must be a literal, and I demonstrated the derived form defeating it (S-F152)
+YOUR EXTENSION WAS THE OBVIOUS NEXT BUG AND I BUILT IT ON PURPOSE TO SHOW IT. The rule: EXPECTED_CLASSES must be a
+hard-coded literal. If it were computed as len(results) or len(CLASSES) it would be derived from the same list it
+guards, so it would always match and the guard would be theatre - the original bug rebuilt in a new place.
+THE DEMONSTRATION: I implemented the wrong version (`if len(results) != len(results)`), deleted a class, and ran it:
+    classes run: 3 (expected 4)
+    rc=0
+THE GUARD PASSED WHILE ITS OWN OUTPUT PRINTED THE EVIDENCE THAT IT SHOULD NOT HAVE. The header said "expected 4", three
+classes ran, and nothing failed - because the assertion was comparing the list with itself. That is the failure mode in
+its purest form: A CHECK SATISFIED BY CONSTRUCTION READS EXACTLY LIKE A CHECK THAT PASSED.
+TWO CONSEQUENCES, BOTH NOW IN THE CODE:
+  1. the literal is written ONCE and used in both the report line and the assertion - my first version had `4` typed in
+     two places, so editing one would have left the other, which is the same bug one step out;
+  2. gate.sh now FAILS if EXPECTED_CLASSES becomes list-derived or the assertion compares the list with itself - proven
+     by deriving it (`assignment derived from a list`, gate exit 1) and restoring (exit 0).
+Stated on the page because, as you said, it is the obvious way the next author will implement it - which is the only
+reason worth writing a rule down.
+AND THAT IS THE SEAT'S SUBSTANTIVE WORK CLOSING. Summary of where this leaves things: 208 finding lines, a gate of 58
+checks including the four honesty pins, Trap 0-14 with the two-family discriminant, the mutation recipe with four
+implemented classes and one named gap with a documented cost, and every checker stating what it does not scan. The
+tooling rules are written so someone who did not write them can follow them, which was the goal.
+Continuing at cadence until 2026-11-17T10:18Z.

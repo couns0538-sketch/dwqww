@@ -511,6 +511,31 @@ In both, the output reads as success and the only evidence is a number the repor
 **Both fixes are one integer printed beside the verdict.** That is the cheapest verification there is, and it works
 because it makes the report answer a question about itself rather than about the subject.
 
+### And the count must be a literal, not derived from the list it guards
+
+> **`EXPECTED_CLASSES` must be a hard-coded number. If it were computed as `len(results)` or `len(CLASSES)` it would be
+> derived from the same list it guards, so it would always match and the guard would be theatre — the original bug rebuilt
+> in a new place.**
+
+This is the obvious way the next author will implement it, so it is worth demonstrating rather than asserting. I built the
+wrong version — `if len(results) != len(results)` — deleted a class, and ran it:
+
+```
+classes run: 3 (expected 4)
+rc=0
+```
+
+**The guard passed, and its own output printed the evidence that it should not have.** The header said "expected 4" while
+three classes ran, and nothing failed, because the assertion was comparing the list with itself. That is the failure mode
+in its purest form: **a check that is satisfied by construction reads exactly like a check that passed.**
+
+Two consequences, both now in the code:
+
+1. **The literal is written once and used in both the report line and the assertion.** My first version had `4` typed in
+   two places, so editing one would have left the other — the same bug one step out.
+2. **A short count is reported as a finding even when the assertion is what failed.** The message says the absence
+   "couldn't otherwise show up", so the next reader knows why the guard exists rather than deleting it as noise.
+
 ## The shape the harness traps share
 
 Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), Trap 10 (a profile that never looked at

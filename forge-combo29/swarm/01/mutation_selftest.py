@@ -24,6 +24,14 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+
+# TRAP 14's GENERATED-LIST GUARD, and the one thing that makes it work: THIS MUST BE A LITERAL.
+# If it were computed as len(results) or len(CLASSES) it would be derived from the same list it guards, so it
+# would always match and the guard would be theatre - which is the original bug rebuilt in a new place. That is
+# the obvious way the next author will implement it, so it is stated here rather than left to judgement.
+# It is also written ONCE and used in both the report line and the assertion, because a duplicated literal is
+# the same failure one step out.
+EXPECTED_CLASSES = 4  # literal: the number of mutation classes I believe I implemented
 FINDINGS = ROOT / "FINDINGS.md"
 TRACE = ROOT / "clockfloor" / "analyse_outliers.json"
 
@@ -141,12 +149,11 @@ def main():
         ("status stamps bounded", test_status_stamps(tmp)),
     ]
     print("MUTATION SELF-TEST - bad inputs derived from the files' own shape, not from my imagination")
-    print("classes run: %d (expected %d)\n" % (len(results), 4))
+    print("classes run: %d (expected %d)\n" % (len(results), EXPECTED_CLASSES))
     # TRAP 14's GENERATED-LIST GUARD (S-F151): a generated list can silently OMIT an item, and the omission is invisible
     # because there is no row to look wrong. So the count is asserted against what I believe I implemented. Proven by
     # deleting a class from the list above and watching the tool report success on three tests instead of four - which
     # is exactly the failure this constant prevents.
-    EXPECTED_CLASSES = 4
     if len(results) != EXPECTED_CLASSES:
         print("FAIL: %d mutation classes ran, expected %d. A class is missing from the list, and its absence cannot"
               % (len(results), EXPECTED_CLASSES))

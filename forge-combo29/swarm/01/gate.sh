@@ -236,6 +236,24 @@ fi
 #     unrelated line ("adequate for 12 percent") satisfied it and a file with every spread stripped still passed.
 run "mutation self-test (shape-derived)" python3 mutation_selftest.py
 
+# 3k. THE GENERATED-LIST GUARD MUST STAY A LITERAL (Trap 14, S-F151). If EXPECTED_CLASSES were derived from the list it
+#     guards, the guard would be theatre - I demonstrated it: with `len(results) != len(results)` a deleted class gave
+#     "classes run: 3 (expected 4)" and exit 0. Cheap to keep honest by grepping for the derived form.
+derived=""
+if grep -qE "EXPECTED_CLASSES\s*=\s*(len\(|.*len\(results\))" mutation_selftest.py 2>/dev/null; then
+  derived="assignment derived from a list"
+fi
+if grep -qE "len\(results\)\s*!=\s*len\(results\)" mutation_selftest.py 2>/dev/null; then
+  derived="$derived; assertion compares the list with itself"
+fi
+if [ -n "$derived" ]; then
+  echo "FAIL  the generated-list guard is derived from what it guards:$derived"
+  echo "      see MEASUREMENT_TRAPS.md Trap 14 - EXPECTED_CLASSES must be a hard-coded literal"
+  fail=1
+else
+  echo "ok    generated-list guard uses a literal expectation"
+fi
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then
