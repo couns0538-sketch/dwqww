@@ -1,0 +1,19 @@
+# kimi5 job 19 prediction (own commit before Step 1, never edited; no time, no commit id)
+# Model used: passing cut_node=false makes the verification search reduce LESS (inside search,
+# cut nodes get the stronger LMR), so the verification is "stronger": it proves the TT move holds
+# more often, so fewer fail-lows (fewer singular results) -> fewer extensions -> smaller tree.
+# Triple extensions add depth where doubles stopped today -> bigger tree.
+# Depth-12 anchors are the job's own known answers: snc1/base on G = 16793551/17611204 = 0.9536;
+# tem100/base on G = 19117129/17611204 = 1.0855. Depth 14 should amplify both effects slightly.
+
+P1: ratio SingularNonCut 1 / base, node sums, G, depth 14: guess 0.945. Survives if measured in
+    [0.900, 0.990], KILLED outside.
+
+P2: share of singular verification searches that end singular (singular_score < singular_beta),
+    O, depth 12, under BASE: guess 0.40. Survives if measured in [0.25, 0.55], KILLED outside.
+
+P3: same share under SingularNonCut 1: guess 0.33, range [0.18, 0.50]; and the DIRECTION claim:
+    below base. A less-reduced verification finds the holding move more often, so fewer fail-lows.
+
+P4: TripleExtMargin 100 / base, node sums, G, depth 14: LARGER. Guess 1.09, survives if measured
+    in [1.02, 1.16], KILLED outside (also killed if smaller).
