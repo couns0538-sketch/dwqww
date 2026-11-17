@@ -1,0 +1,12 @@
+diff -ruN a/src/nnue_v3.cpp b/src/nnue_v3.cpp
+--- a/src/nnue_v3.cpp	2026-11-17 13:10:14.413143771 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 13:11:50.109143771 +0000
+@@ -1063,7 +1063,7 @@
+ 
+     auto step_kept_and_accum = [&](int off, __m512i vr) {
+         _mm512_store_si512(reinterpret_cast<__m512i*>(acc + off), vr);
+-        _mm512_store_si512(reinterpret_cast<__m512i*>(dst_ref + off), vr);
++        /* PLANTED FAULT: skip writing refreshed tile to child accumulator */ (void)0;
+         const __m512i cr = _mm512_min_epi16(_mm512_max_epi16(vr, zero), qa);
+         sum_ref = _mm512_add_epi32(sum_ref, _mm512_madd_epi16(_mm512_mullo_epi16(cr, _mm512_load_si512(reinterpret_cast<const __m512i*>(w_ref + off))), cr));
+ 
