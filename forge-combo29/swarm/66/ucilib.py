@@ -249,7 +249,9 @@ def parse_info(texts):
 # -- FEN validation --------------------------------------------------------
 
 def check_fen(fen):
-    """Validate with python-chess. Returns (ok, reason)."""
+    """Validate with python-chess. Returns (ok, reason). None means startpos."""
+    if fen is None:
+        fen = chess.STARTING_FEN
     board = chess.Board()
     try:
         board.set_fen(fen)
@@ -262,6 +264,8 @@ def check_fen(fen):
 
 def check_line(fen, moves):
     """Validate a FEN plus a move list, all legal, using python-chess."""
+    if fen is None:
+        fen = chess.STARTING_FEN
     ok, reason = check_fen(fen)
     if not ok:
         return False, reason

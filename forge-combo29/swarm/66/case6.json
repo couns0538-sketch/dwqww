@@ -1,0 +1,153 @@
+{
+  "depth12_node_counts": [
+    56720,
+    56720,
+    56720
+  ],
+  "depth12_node_counts_warm": [
+    2071,
+    7232,
+    2122
+  ],
+  "repeated_clock": {
+    "apparent_drain_ratio": 0.48,
+    "clock_believed_by_gui_ms": 1000,
+    "clock_ms": 1000,
+    "depth_per_go": [
+      14,
+      15,
+      16,
+      17,
+      18,
+      17
+    ],
+    "nodes_per_go": [
+      101640,
+      171497,
+      185592,
+      108405,
+      229022,
+      45058
+    ],
+    "repeats": 6,
+    "total_wall_ms": 485.0,
+    "wall_ms_per_go": [
+      67.8,
+      98.3,
+      96.7,
+      56.3,
+      140.5,
+      25.4
+    ]
+  },
+  "repeated_movetime": {
+    "movetime_ms": 200,
+    "repeats": 6,
+    "total_wall_ms": 1143.6,
+    "wall_ms_per_go": [
+      190.4,
+      190.7,
+      190.4,
+      190.8,
+      190.8,
+      190.5
+    ]
+  },
+  "scaled_single_go": {
+    "depth": 19,
+    "go": "go wtime 6000",
+    "position_invalid_fen": false,
+    "wall_ms": 257.6
+  },
+  "summary": {
+    "passed": 15,
+    "rows": [
+      {
+        "check": "repeat 1 of `go wtime 1000` terminates",
+        "detail": "68 ms at depth 14 (position invalid_fen=False)",
+        "pass": true
+      },
+      {
+        "check": "repeat 2 of `go wtime 1000` terminates",
+        "detail": "98 ms at depth 15 (position invalid_fen=False)",
+        "pass": true
+      },
+      {
+        "check": "repeat 3 of `go wtime 1000` terminates",
+        "detail": "97 ms at depth 16 (position invalid_fen=False)",
+        "pass": true
+      },
+      {
+        "check": "repeat 4 of `go wtime 1000` terminates",
+        "detail": "56 ms at depth 17 (position invalid_fen=False)",
+        "pass": true
+      },
+      {
+        "check": "repeat 5 of `go wtime 1000` terminates",
+        "detail": "140 ms at depth 18 (position invalid_fen=False)",
+        "pass": true
+      },
+      {
+        "check": "repeat 6 of `go wtime 1000` terminates",
+        "detail": "25 ms at depth 17 (position invalid_fen=False)",
+        "pass": true
+      },
+      {
+        "check": "no repeat was a refused position",
+        "detail": "0 of 6 position replies carried invalid FEN",
+        "pass": true
+      },
+      {
+        "check": "repeated `go` does NOT drain: every repeat plans from the SAME value",
+        "detail": "wall spread 25..140 ms over 6 repeats",
+        "pass": true
+      },
+      {
+        "check": "N repeats cost about N x the per-go spend (no accumulation, no decay)",
+        "detail": "total 485 ms = 6 x 81 ms; every go within 2x of the mean",
+        "pass": true
+      },
+      {
+        "check": "N repeats deliver N full clock plans from ONE clock value",
+        "detail": "485 ms of search for a 1000 ms clock the GUI never decremented",
+        "pass": true
+      },
+      {
+        "check": "baseline: ONE go with 6 x the clock matches the repeat total",
+        "detail": "one go 258 ms vs 6 goes 485 ms",
+        "pass": true
+      },
+      {
+        "check": "repeated `go movetime` each spends its full movetime (a GUI cannot make it drain)",
+        "detail": "wall [190.4, 190.7, 190.4, 190.8, 190.8, 190.5] for movetime 200 over 6 repeats",
+        "pass": true
+      },
+      {
+        "check": "ucinewgame between searches does not change the per-go budget",
+        "detail": "wall [50.7, 51.8, 50.2] over 3 ucinewgame-separated goes",
+        "pass": true
+      },
+      {
+        "check": "control: `go depth 12` after ucinewgame gives identical node counts",
+        "detail": "nodes [56720, 56720, 56720] over 3 cleared searches",
+        "pass": true
+      },
+      {
+        "check": "the no-ucinewgame run DIFFERS (proves the control can see a warm table)",
+        "detail": "nodes [2071, 7232, 2122] without ucinewgame",
+        "pass": true
+      }
+    ],
+    "title": "case 6: repeated go on the same clock",
+    "total": 15
+  },
+  "ucinewgame_variant": {
+    "clock_ms": 1000,
+    "repeats": 3,
+    "wall_ms_per_go": [
+      50.7,
+      51.8,
+      50.2
+    ]
+  }
+}

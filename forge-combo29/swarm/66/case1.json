@@ -1,0 +1,81 @@
+{
+  "opponent_clock_mirror": {
+    "go": "go btime 300000",
+    "info_strings": [],
+    "terminated_within_3s": false
+  },
+  "opponent_clock_only": {
+    "depth_at_budget": 39,
+    "engine_time_ms_at_budget": 288722,
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+    "go": "go wtime 300000",
+    "info_strings": [],
+    "invalid_fen_position_reply": [
+      "readyok"
+    ],
+    "nodes_at_budget": 416554567,
+    "seldepth_at_budget": 56,
+    "stop_bestmove": "bestmove c7c5",
+    "terminated": false,
+    "wall_ms_at_budget": 288723.06542299996
+  },
+  "own_clock_control_1000": {
+    "depth": 14,
+    "elapsed_ms": 30.749783000146635,
+    "go": "go btime 1000",
+    "terminated": true
+  },
+  "own_clock_control_budget": {
+    "depth": 31,
+    "elapsed_ms": 13077.891933000046,
+    "go": "go btime 300000",
+    "terminated": true
+  },
+  "summary": {
+    "passed": 7,
+    "rows": [
+      {
+        "check": "opponent-clock `go` does NOT terminate inside the budget",
+        "detail": "budget 300s, bestmove=None after 288.7s",
+        "pass": true
+      },
+      {
+        "check": "opponent-clock `go` reaches a depth no clock search reaches",
+        "detail": "depth 39 in 288.7s",
+        "pass": true
+      },
+      {
+        "check": "opponent-clock `go` prints no diagnostic at all",
+        "detail": "0 info string lines",
+        "pass": true
+      },
+      {
+        "check": "explicit stop answers exactly one bestmove",
+        "detail": "stop -> 'bestmove c7c5'",
+        "pass": true
+      },
+      {
+        "check": "the unmanaged search's move is legal",
+        "detail": "bestmove 'bestmove'",
+        "pass": false
+      },
+      {
+        "check": "the mirror (White to move, btime only) also never answers in 3 s",
+        "detail": "timed_out=True after 1.83s",
+        "pass": true
+      },
+      {
+        "check": "control: the same position with its OWN clock terminates and stops early",
+        "detail": "31 ms depth 14",
+        "pass": true
+      },
+      {
+        "check": "control: a managed budget-sized clock terminates by itself (soft ~ budget/22)",
+        "detail": "13.1 s at depth 31",
+        "pass": true
+      }
+    ],
+    "title": "case 1: opponent's clock only",
+    "total": 8
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "budget_ratios": [
+    {
+      "last_info_over_budget": 0.7443,
+      "movetime_ms": 10000,
+      "unprinted_tail_ms": 2554.5,
+      "wall_over_budget": 1.0001
+    },
+    {
+      "last_info_over_budget": 0.7076,
+      "movetime_ms": 30000,
+      "unprinted_tail_ms": 8770.1,
+      "wall_over_budget": 1.0
+    },
+    {
+      "last_info_over_budget": 0.5754,
+      "movetime_ms": 60000,
+      "unprinted_tail_ms": 25474.6,
+      "wall_over_budget": 1.0
+    }
+  ],
+  "clock_control_60s": {
+    "depth": 26,
+    "engine_time_ms": 1678,
+    "expected_hard_ms": 35994.0,
+    "expected_soft_ms": 2726.8,
+    "go": "go wtime 60000",
+    "position_invalid_fen": false,
+    "soft_binds_before_hard": true,
+    "wall_ms": 1679.0
+  },
+  "movetime_rows": [
+    {
+      "bestmove": "d2d4",
+      "depth": 27,
+      "engine_time_ms": 7436,
+      "go_invalid_fen": false,
+      "info_strings": [],
+      "movetime_ms": 10000,
+      "nodes": 13206934,
+      "position_invalid_fen": false,
+      "seldepth": 38,
+      "soft_hard_expected_ms": 9990,
+      "terminated": true,
+      "wall_ms": 9990.5
+    },
+    {
+      "bestmove": "d2d4",
+      "depth": 29,
+      "engine_time_ms": 21221,
+      "go_invalid_fen": false,
+      "info_strings": [],
+      "movetime_ms": 30000,
+      "nodes": 37627482,
+      "position_invalid_fen": false,
+      "seldepth": 48,
+      "soft_hard_expected_ms": 29990,
+      "terminated": true,
+      "wall_ms": 29991.1
+    },
+    {
+      "bestmove": "g1f3",
+      "depth": 30,
+      "engine_time_ms": 34516,
+      "go_invalid_fen": false,
+      "info_strings": [],
+      "movetime_ms": 60000,
+      "nodes": 56847297,
+      "position_invalid_fen": false,
+      "seldepth": 44,
+      "soft_hard_expected_ms": 59990,
+      "terminated": true,
+      "wall_ms": 59990.6
+    }
+  ],
+  "summary": {
+    "passed": 11,
+    "rows": [
+      {
+        "check": "movetime 10000 terminates",
+        "detail": "wall 9990 ms, depth 27, engine time 7436 ms",
+        "pass": true
+      },
+      {
+        "check": "movetime 30000 terminates",
+        "detail": "wall 29991 ms, depth 29, engine time 21221 ms",
+        "pass": true
+      },
+      {
+        "check": "movetime 60000 terminates",
+        "detail": "wall 59991 ms, depth 30, engine time 34516 ms",
+        "pass": true
+      },
+      {
+        "check": "movetime 10000 stopped by the clock, not the depth clamp",
+        "detail": "depth 27 (<64) at wall 9990 ms against budget 9990 ms",
+        "pass": true
+      },
+      {
+        "check": "movetime 30000 stopped by the clock, not the depth clamp",
+        "detail": "depth 29 (<64) at wall 29991 ms against budget 29990 ms",
+        "pass": true
+      },
+      {
+        "check": "movetime 60000 stopped by the clock, not the depth clamp",
+        "detail": "depth 30 (<64) at wall 59991 ms against budget 59990 ms",
+        "pass": true
+      },
+      {
+        "check": "movetime 10000 spends its whole budget of wall time (soft==hard here)",
+        "detail": "wall/budget = 1.000",
+        "pass": true
+      },
+      {
+        "check": "movetime 30000 spends its whole budget of wall time (soft==hard here)",
+        "detail": "wall/budget = 1.000",
+        "pass": true
+      },
+      {
+        "check": "movetime 60000 spends its whole budget of wall time (soft==hard here)",
+        "detail": "wall/budget = 1.000",
+        "pass": true
+      },
+      {
+        "check": "control: a 60 s CLOCK stops near its SOFT limit (2727 ms), far under the hard 35994 ms",
+        "detail": "wall 1679 ms, depth 26",
+        "pass": true
+      },
+      {
+        "check": "control: that clock search was NOT stopped by movetime (no movetime was sent)",
+        "detail": "go wtime 60000",
+        "pass": true
+      }
+    ],
+    "title": "case 2: large movetime",
+    "total": 11
+  }
+}
