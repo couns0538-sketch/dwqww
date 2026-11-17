@@ -1,27 +1,28 @@
-DOES THE RECOMMENDED PROTOCOL PREVENT THE HAZARDS? — for H1, yes, and the naive driver provably fails
-===============================================================================================
-Two drivers, identical except the `info string` check. Each plays game 1 (so a stale board exists), is then given a
-hazard input, and asked for a move. The INTENDED boards were chosen so their legal sets are DISJOINT from the stale
-board's — 26 and 27 moves, overlap ZERO with the stale board's 42 — so the returned move reveals WHICH board was
-actually searched.
+DOES THE RECOMMENDED PROTOCOL PREVENT THE HAZARDS? — both, with controls that prove it
+==================================================================================
+Two drivers, identical except the `info string` check. Each plays game 1 (so a stale board of 42 legal moves exists),
+is given a hazard input, then asked for a move. Intended boards were chosen (and PRINTED, with their disjointness
+verified) so the returned move reveals which board was searched.
 
 | driver | scenario | bestmove | legal on INTENDED? | legal on STALE? | board searched |
 |---|---|---|---|---|---|
-| **NAIVE** | H1: refused FEN for the new game | **g1f3** | **no** | **yes** | **STALE — a wrong board** |
-| COMPLIANT | H1: refused FEN for the new game | f7g7 | yes | no | **INTENDED — correct** |
-| NAIVE | H2: illegal token in the move list | g1f3 | yes | yes | ambiguous |
-| COMPLIANT | H2: illegal token in the move list | g1f3 | yes | yes | ambiguous |
+| **NAIVE** | H1: refused FEN for the new game | **g1f3** | **no** | **yes** | **STALE — wrong board** |
+| COMPLIANT | H1: refused FEN for the new game | f7g7 | yes | no | INTENDED — correct |
+| **NAIVE** | H2: illegal token MID-LIST (`f2f3 f7f6` + illegal `f2f3` + rest) | **e2e4** | **no** | **no** | **neither — the truncated prefix** |
+| COMPLIANT | H2: same input | d7d5 | yes | no | INTENDED — correct |
 
-THE ANSWER: for H1 the protocol works and the control proves it — the naive driver answers a move that is **illegal
-on the board it meant to play** (stale board searched), while the compliant driver, having counted the invalid-FEN
-line and rebuilt, answers `f7g7`, legal on the intended board and illegal on the stale one. That is a clean
-discrimination, and it is exactly the pair of facts that makes the result meaningful.
+Both hazards now discriminate, and the controls carry the result:
+- **H1**: the naive driver answers a move ILLEGAL on the board it meant to play (stale board searched); the compliant
+  one answers `f7g7`, legal on the intended board and illegal on the stale one.
+- **H2**: the naive driver answers `e2e4`, legal on **neither** board — because a mid-list illegal token truncates the
+  game to a 2-ply prefix, so it searched a THIRD board that is neither the stale one nor the intended one. That is
+  worse than H1 and is exactly the "silently playing a different game" shape. The compliant driver rebuilds and
+  answers `d7d5`, legal on the intended board.
 
-H2 REMAINS AMBIGUOUS on this construction, and I say so rather than scoring it: the two-ply board after `e2e4 e7e5`
-shares its entire legal-move set with the stale 42-move board, so `g1f3` is legal on both and cannot say which was
-searched. Answering H2 properly needs a stale board and an intended board whose sets are disjoint AND reachable from
-`startpos`, which I did not build.
+WHY THE CONSTRUCTION MATTERED, twice: my first H2 attempt appended the illegal token at the END, so the legal prefix
+EQUALLED the intended board and the naive driver looked correct; and my first H1 attempt compared against the
+truncated board rather than the intended one, so both drivers looked correct. Both errors were caught by checking
+that the boards' legal sets were actually disjoint before believing the result.
 
-PREDICTION SCORED: P1 (compliant plays 0 wrong moves) held on H1 and untested on H2. P2 held for H1 (it rebuilt). P3
-held for H1 — the naive driver played a move illegal on its intended board, so the control shows the protocol is
-what prevents the error. P4 held (no hangs).
+PREDICTIONS: P1 held (compliant plays 0 wrong moves in both scenarios); P2 held (it rebuilt on both); P3 held (the
+naive driver failed BOTH, not just one); P4 held (no hangs).

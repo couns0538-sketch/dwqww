@@ -110,6 +110,10 @@ The four rules, which are the whole of it:
 4. **Send both clocks, and read to `bestmove` before the next command.**
 
 Every one of those maps to a hazard measured on the PC build on this page, and to a seat that lost time to it.
+**Claim strength, stated plainly:** this driver shape is **validated for two of the three hazards** — the
+refused-FEN case and the illegal-token case, each with a control showing what a naive driver does instead —
+and the third (partial clock) is covered by its own measurement rather than by this test.
+
 ## Why this is safe for the owner's PC games
 
 The match program drives the engine directly and sends well-formed positions, so neither hazard arises in the PC's

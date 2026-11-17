@@ -93,17 +93,20 @@ for compliant,label in ((False,"NAIVE"),(True,"COMPLIANT")):
         d.set_position("position fen "+INT1.fen())
     bm=d.go(); d.close()
     print("| %s | H1 refused FEN for the new game | %s | %s | %s | **%s** |"%((label,)+verdict(bm,I1SET)))
-    # H2: the driver sends a move list with an illegal token; intended is INT2 reached by a legal prefix
+    # H2 DISCRIMINATING: the intended board is reachable from startpos AND has a legal set disjoint from STALE
+    good="f2f3 f7f6 f3f4 h7h5 f4f5"
     d=Driver(compliant)
     d.set_position("position startpos moves "+STALE_MOVES); d.go()
-    # a legal prefix that reaches INT2 does not exist from startpos, so use: prefix + illegal token
-    good="e2e4 e7e5"
-    diags=d.set_position("position startpos moves "+good+" e2e4")
+    # the illegal token must be in the MIDDLE, or the legal prefix equals the intended board and cannot discriminate
+    parts=good.split()
+    bad_line=" ".join(parts[:2]+["f2f3"]+parts[2:])   # f2f3 is illegal at that point
+    diags=d.set_position("position startpos moves "+bad_line)
     if compliant and diags>0:
         d.set_position("position startpos moves "+good)
     bm=d.go(); d.close()
     b2=chess.Board()
     for m in good.split(): b2.push(chess.Move.from_uci(m))
     B2SET=set(m.uci() for m in b2.legal_moves)
+    print("    H2 intended board:", b2.fen(), "| legal", len(B2SET), "| disjoint from STALE:", SSET.isdisjoint(B2SET))
     bm_,oi,os_,searched = verdict(bm,B2SET)
     print("| %s | H2 illegal token (intended = after %s) | %s | %s | %s | **%s** |"%(label,good,bm_,oi,os_,searched))
