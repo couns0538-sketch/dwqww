@@ -90,6 +90,21 @@ print("stray FINDINGS.md outside this seat: %d %s" % (len(_strays), _strays if _
 if _strays:
     print("HARD FAILURE: a findings file exists outside the seat — move its rows here and delete it.")
 
+# LEAKED-SHELL GUARD. A heredoc that lost its terminator wrote five lines of python (`"""`, `open(...)`, `print(...)`, a
+# bare `PY`, and a shell command) straight into this file, and EVERY EXISTING CHECK PASSED: none of them looks at lines
+# that are not table rows. A findings file containing executable-looking text is a defect whether or not it breaks a table.
+_LEAK_PAT = ("open(", "print(", "import ", "subprocess", "PY", "python3 ", "git add", "git commit", "XEOF", "EOF")
+_leaks = []
+_in_text = open("FINDINGS.md").read().split("\n")
+for _i, _l in enumerate(_in_text, 1):
+    _t = _l.strip()
+    if not _t or _t.startswith("|") or _t.startswith("#") or _t.startswith("FINDINGS") or _t.startswith("One line per"):
+        continue
+    if any(_t.startswith(_p) or _t == _p.replace(" ", "") for _p in _LEAK_PAT):
+        _leaks.append((_i, _t[:60]))
+print()
+print("non-table lines that look like leaked shell/code: %d %s" % (len(_leaks), _leaks if _leaks else ""))
+
 print()
 print("finding rows: %d" % len(rows))
 print("rows with a file path: %d" % (len(rows) - len(nopath)))
@@ -98,7 +113,7 @@ print("rows with NO path in the evidence cell: %d %s" % (len(nopath), nopath))
 print("rows whose paths do NOT resolve: %d %s" % (len(unresolved), unresolved))
 print("rows with a malformed column count: %d %s" % (len(shape_bad), shape_bad))
 print()
-ok = not nopath and not unresolved and not shape_bad and not _strays
+ok = not nopath and not unresolved and not shape_bad and not _strays and not _leaks
 print("VERDICT:", "PASS — %d of %d rows parse and point at a file present in this checkout." % (len(resolved), len(rows))
       if ok else "FAIL — see the lines above.")
 sys.exit(0 if ok else 1)

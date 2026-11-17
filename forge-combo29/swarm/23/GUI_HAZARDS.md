@@ -7,6 +7,30 @@
 Seat 23, verified on **PC r15 under PC20, Threads 1, Hash 16, OwnBook false**. Both hazards are confirmed on the
 build the owner's PC actually plays, and both share a single defensive rule at the end.
 
+## The contract, in one table — read this first
+
+Four situations produce output a front end can misread, and they are distinguishable **only** by the fields shown. Every
+row is measured on the base build with Threads 1 / Hash 16 / `OwnBook false`, stdout drained to `bestmove`.
+
+| situation | `#info depth` lines | nodes | `pv` | score | `bestmove` | `info string` | what it means |
+|---|---|---|---|---|---|---|---|
+| normal search | = depth (× MultiPV) | > 0 | **non-empty** | any | a legal move | none | search ran |
+| **drawn root** (3-fold in the list, or halfmove ≥ 100, or insufficient material) | = depth (never × MultiPV) | **0** | **empty** | **cp 0** | a legal move — the generator's first | none | nothing was searched |
+| **empty/illegal `searchmoves`** | = depth | **0** | **empty** | **cp 0** | **`0000`** | `searchmoves restriction has no legal root moves` | caller error; **not a legal move** |
+| **stalemated root + unsatisfiable restriction** | = depth | **0** | **empty** | **cp 0** | **`0000`** | **none at all** | caller error, **silently** |
+| refused FEN or illegal token in the list | search runs on the WRONG board | > 0 | non-empty | plausible | plausible | one `info string` | the position is not what you sent |
+
+**Three rules follow, and they are the whole page compressed:**
+
+1. **`nodes == 0` with an EMPTY `pv` means nothing was searched** — never show its score. The empty `pv` is the reliable
+   signal; the node count is a symptom and the two auto-draw rules share it.
+2. **`bestmove 0000` is never a move.** Treat it as an error, and do not rely on a diagnostic to explain it — on a
+   stalemated root there is none (23-F159).
+3. **Count the `info string` lines on every search.** They are the only signal that your position or your restriction was
+   rejected, and a corrupted case is otherwise indistinguishable from a healthy one.
+
+The sections below explain each row, with the measurements behind it.
+
 ## The detail that matters most
 
 **A corrupted move list is DISCARDED from the first illegal token onward, not skipped.** One bad ply does not lose

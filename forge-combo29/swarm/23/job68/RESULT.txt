@@ -60,3 +60,24 @@ The distinction the earlier table drew between the two empty-PV cases still matt
 "when the root may be drawn, watch for `0000`", it is **"any `searchmoves` invocation can return `0000`, and the
 `info string searchmoves restriction has no legal root moves` line is the only signal"** — which lands squarely on the
 driver page's first rule, count the `info string` lines.
+
+EDGE CASES — and the stalemate one is worse than anything above
+----------------------------------------------------------------
+| position | restriction | info lines | nodes | bestmove | info strings |
+|---|---|---|---|---|---|
+| mate-in-1 for White | `e2e4` (illegal) | 10 | 0 | **`0000`** | `restriction has no legal root moves` |
+| checkmate (game over) | `e2e4` (illegal) | 10 | 0 | **`0000`** | `restriction has no legal root moves` |
+| **STALEMATE** | `e2e4` (illegal) | 10 | 0 | **`0000`** | **NONE** |
+| startpos | `e2e4` (**legal**) | 10 | 9,021 | `e2e4` | none |
+
+**The stalemate row is the worst case in the family: `bestmove 0000` with NO `info string` at all.** Verified the fixture
+is a genuine stalemate (`is_stalemate()` true, `is_checkmate()` false, 0 legal moves), so the engine is being asked about
+a stalemated root with a restriction that cannot be satisfied — and it returns a null move silently.
+
+That breaks the one piece of advice the previous section gave. There I said the `info string` line is the only signal
+distinguishing `0000` from an ordinary bail; on a stalemated root there is no such line, so **`0000` must be treated as an
+error on its own terms rather than as something a diagnostic will explain.** The structural reason is in the source
+reading: `restricted_root_empty` is set for the `searchmoves` case (`search.cpp:2210`), but the stalemate arm of the
+terminal branch produces a score of `0` through a different route, and no string is emitted for it.
+
+A legal restriction behaves sanely (9,021 nodes, `e2e4`), which is the control that keeps the rest of this table honest.
