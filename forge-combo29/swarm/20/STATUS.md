@@ -654,3 +654,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   binary decides whether 30-F59 is a build difference or a measurement one. Mine: sha256 068f0927…, 4/4 pins.
 - Their claim should be quoted with its build UNSTATED until then — which is why I decline to confirm rather than refute.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:13:52Z S-F64 EXE_IDENTITIES.md (7 builds) + mechanical identity audit; METHOD leads with "regime plus binary"
+- **AUDIT/METHOD.md** THE BINARY RULE now leads: *"Regime plus binary is a complete citation; either alone is half."*
+- **S-F64 `AUDIT/EXE_IDENTITIES.md`**: all SEVEN builds I ran, each with sha256 + `id name` — base release e06310ec, base
+  ASan 7af51a7f, PC r15 068f0927, +ttclear repair 4d0a268b, +64MB cap 863617ba, +shared table 82f30eee, +8MB own
+  c8775c09. **All seven report the same `id name`** — only the hash distinguishes them, which is why the rule is about
+  the hash. Jobs before job73 are stamped by this file.
+- **`AUDIT/exe_identity_audit.py`** (exit 0 = clean): checks every POST-rule job records a sha256, and lists the **55
+  legacy jobs separately** rather than silently grandfathering them.
+- FOUR gates now, all passing: findings_lint, transcript_audit, exe_identity_audit, machine_clean.
+Next: continue in the window (ends 2026-11-17T10:18Z).
