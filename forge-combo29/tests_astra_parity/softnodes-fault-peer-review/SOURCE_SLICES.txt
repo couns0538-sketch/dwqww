@@ -1,0 +1,137 @@
+forge-combo29/include/forge/search.hpp:25-39
+25: struct SearchLimits {
+26:     int depth = 64;
+27:     std::uint64_t nodes = 0;
+28:     bool nodes_specified = false;
+29:     // `go softnodes`: finish the iteration that passes `nodes`, hard-stop at 4x.
+30:     // Left false for bench, `go depth`, and `go nodes`.
+31:     bool soft_nodes = false;
+32:     // Milliseconds. -1 means that limit was not given. parse_clock_ms stores
+33:     // only non-negative values, including clocks that do not fit in 32 bits.
+34:     std::int64_t movetime_ms = -1;
+35:     std::int64_t time_ms = -1;
+36:     std::int64_t increment_ms = 0;
+37:     // 0 means the increment/sudden-death time control (no movestogo given).
+38:     int moves_to_go = 0;
+39:     int mate_moves = 0;
+
+forge-combo29/src/uci.cpp:78-81
+78:     forge::SearchLimits limits;
+79:     std::string token;
+80:     std::vector<std::string> tokens;
+81:     while (input >> token) tokens.push_back(token);
+
+forge-combo29/src/uci.cpp:100-110
+100:         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+101:         else if (token == "nodes" || token == "softnodes") {
+102:             if (i < tokens.size()) {
+103:                 const std::string& text = tokens[i++];
+104:                 std::uint64_t value = 0;
+105:                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+106:                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+107:                     limits.nodes = value;
+108:                     limits.nodes_specified = true;
+109:                     if (token == "softnodes") limits.soft_nodes = true;
+110:                 }
+
+forge-combo29/src/search.cpp:1257-1266
+1257: bool Worker::is_draw(const Board& board, int ply) const {
+1258:     (void)ply;
+1259:     if (board.halfmove_clock() >= 100) {
+1260:         // Checkmate on the hundredth half-move still wins; everything else is a draw.
+1261:         return !board.in_check() || board.has_legal_move();
+1262:     }
+1263:     // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+1264:     // replace its terminal draw score with a material evaluation.
+1265:     return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+1266:            (!board.in_check() && !board.has_legal_move());
+
+forge-combo29/src/search.cpp:1518-1527
+1518:     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+1519:     if (aborted_) return 0;
+1520:     ++local_nodes_;
+1521:     seldepth_ = std::max(seldepth_, ply);
+1522:     ss->pv_length = 0;
+1523:     ss->move_count = 0;
+1524: 
+1525:     if (!root_node) {
+1526:         if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+1527:         if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+
+forge-combo29/src/search.cpp:2130-2138
+2130:     soft_node_limit_ = 0;
+2131:     // Soft budget is the finished-iteration target. The hard budget stays on the
+2132:     // existing node stop, so a runaway iteration still discards its partial move.
+2133:     if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
+2134:         constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
+2135:         node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
+2136:         node_limit_specified_ = true;
+2137:         soft_node_limit_ = limits.nodes;
+2138:     }
+
+forge-combo29/src/search.cpp:2140-2156
+2140:     // Time allocation. Movetime keeps its own limit. Clock play goes through
+2141:     // plan_clock_budget so the plan stays inside the time left after overhead.
+2142:     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+2143:     soft_limit_ms_ = hard_limit_ms_ = 0;
+2144:     time_managed_ = false;
+2145:     clock_reserve_empty_ = false;
+2146:     if (limits.infinite) {
+2147:         soft_limit_ms_ = hard_limit_ms_ = 0;
+2148:     } else if (limits.movetime_ms >= 0) {
+2149:         hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+2150:         soft_limit_ms_ = hard_limit_ms_;
+2151:     } else if (limits.time_ms >= 0) {
+2152:         const ClockPlan plan = clock_plan_for(limits);
+2153:         soft_limit_ms_ = plan.soft_ms;
+2154:         hard_limit_ms_ = plan.hard_ms;
+2155:         clock_reserve_empty_ = plan.reserve_empty;
+2156:         time_managed_ = !plan.reserve_empty;
+
+forge-combo29/src/search.cpp:2173-2176
+2173:     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
+2174:     mate_moves_ = mate_moves;
+2175:     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
+2176:     int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+
+forge-combo29/src/search.cpp:2343-2344
+2343:     for (int depth = 1; depth <= max_depth; ++depth) {
+2344:         root_depth_ = depth;
+
+forge-combo29/src/search.cpp:2493-2507
+2493:         } else {
+2494:             emit(depth, score, result.pv);
+2495:         }
+2496: 
+2497:         if (result.best_move == previous_best) ++stable_iterations;
+2498:         else stable_iterations = 0;
+2499:         previous_best = result.best_move;
+2500:         const int iteration_previous_score = previous_score;
+2501:         previous_score = score;
+2502: 
+2503:         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+2504:         // The iteration above is finished. Passing the soft budget stops here,
+2505:         // keeping this move and score. The hard cap is enforced inside search.
+2506:         if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+2507:         if (should_stop()) break;
+
+forge-combo29/src/search.cpp:2578-2596
+2578:         }
+2579:     }
+2580: 
+2581:     nodes_.store(local_nodes_, std::memory_order_relaxed);
+2582:     result.nodes = total_nodes() + extra_nodes_;
+2583:     result.seldepth = std::max(result.seldepth, seldepth_);
+2584:     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+2585:         std::chrono::steady_clock::now() - start_).count());
+2586:     if (emergency_ply && result.depth < 1) {
+2587:         result.best_move = root_candidates.front();
+2588:         result.pv.clear();
+2589:         result.ponder_move = Move::none();
+2590:     }
+2591:     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+2592:     if (emit_info && soft_node_limit_ != 0) {
+2593:         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+2594:         std::cout << "info string softnodes nodes " << result.nodes << std::endl;
+2595:     }
+2596:     return result;

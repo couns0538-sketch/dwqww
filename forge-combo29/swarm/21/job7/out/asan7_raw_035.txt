@@ -1,0 +1,2183 @@
+>>> uci
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name Clear Hash type button
+uciok
+>>> setoption name Hash value 16
+>>> isready
+readyok
+>>> setoption name Threads value 1
+>>> isready
+readyok
+>>> setoption name OwnBook value false
+>>> isready
+readyok
+>>> ucinewgame
+>>> isready
+readyok
+>>> position fen 36 w - - 8/8/2Q1P3/2K5/4N2k/3P3P/8/7n 106
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5rk1/4pp1p/1pr3p1/pN2bn2/P7/2P4P/1P3PP1/R1BR2K1 b - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b2Q4/4qr/2p1p3/2Pp2kp/p1nP1p2/PP3rNp/4PBRP/1K4R1 w - - 5 57
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4kB2/8/2R2qN1/r2P1p2/P2PPPPp/7P/4K3/7R w - - 2 57
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp 1818 nodes 50 nps 50000 hashfull 0 time 1 pv c6f6
+info depth 2 seldepth 3 score cp 2039 nodes 111 nps 55500 hashfull 0 time 2 pv c6f6 a5a4
+bestmove c6f6
+>>> position fen r4rk1/p3b1pp/1pp1b3/5p2/2PPpB2/8/qNQ2PPP/1R3RKk1 b - - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen rk1N2/3n1n2/6p1/5p2/1pR2p1P/1pP1P3/1B2N1R1/3b1BK1 b - - 1 39
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1k4B1/4r3/4b1R1/p7/P2P4/6K1/8/8  - - 16 116
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r5r1/pbp1np1p/1p1q1kp1/nb1p3/PP5N/4P2P/B1PPQP2/R1B1K1R1 w - - 3 22
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/2b5/4p2p/4k2P/2p2q2/2P5/7R/3R3K w - 10 92
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 4n3/8/3k2K1/7P/1pP1P3/R7/1p1q2B1/3b4 w - - 1 64
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 3 score cp -1391 nodes 50 nps 0 hashfull 0 time 0 pv a3a6 d6c5
+info depth 2 seldepth 3 score cp -1391 nodes 89 nps 89000 hashfull 0 time 1 pv a3a6 d6c5
+bestmove a3a6
+>>> position fen 8/2n4k/N5p1/8/2P1r3/3P4/3K4/8 - - 2 74
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen K6b/P7/2n5/3k2BP/8/88/8 b - - 2 102
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2B1n3/8/6P1/1k1p4/pp1P4/5n2/1K6/2r5 w - 1 92
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b KQkq - 0 4
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 7B/2N5/8/3p4/3P4/N7/8/3K1k2 9 - - b 102
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1k2bqr/ppn1pp2/2pn231/3p4/7P/NPP2PP1/P2P2b1/3RK1NR b K - 4 25
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen b 8/4N3/8/3N4/3P4/2K5/3B4/7k - - 14 130
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/1p2rp2/p6k/PPp3r1/2p5/RQ3p2/6N1/6K1 4 - - w 78
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen R7/6r1/1p6/16/3k1n2/5r1b/8/2K5 b - - 37 95
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1n3q2/2r1k3/np1b3p/N2b1p2/P1ppp3/3P1BP1/5N1P/R1bQRK3 w - - 6 43
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/4rpk/P1p1Kn2/4np1p/pb3P2/P2Q1b1N/3N3P/5R2 b - - 3 39
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/6r1/2PP1p2/b4pkp13P3P/5p2/3q2PK/8 b - - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen - b - 8/8/4n1kB/P1N5/2p3P1/7B/3Nr3/6KR 11 88
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen - w 1nbk1r2/rp2n1N1/p4ppp/1p1pp3/1P2P3/P2P2b1/1BPK3P/RNQ3R1 - 2 22
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/6Pk/8/5N1N/6bP/3K4/8/8 - - b 8 81
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 5k1b/8/7R/3K4/2Np4/8/p7/8 b N - 1 116
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 1r1qkbnr/1b2ppp1/1pp5/pP3P1p/2N3nP/4PN2/P2P4/R1BQKB1R w Qk - 315
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1nbqkbr1/1p1pppp1/2B2nrp/2p1P3/pP4PPP/N1P5/PB1PQP2/R3K1NR b KQ - 1 11
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1n5r/4k3/p1ppnp2/1p1P4/1P4P1/1NqR3B/3N4/2B1RK2 - - 0 57
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 6K1/p1k5/P3pppp/2pp4/4Bn2/7P/7n/5K1R w - - 2 57
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 2r5/4k1 1/4b2B/pPP1R1P1/2p4p/7P/1K3R2/1n6 w - - 5 64
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2b5/3k4/1r6/pp3N2/3p4/1P1P2Rp/Nr2PP1P/2R1K3 w - - 2 3
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 4 score cp 417 nodes 99 nps 99000 hashfull 0 time 1 pv g3g8
+info depth 2 seldepth 7 score cp 483 nodes 193 nps 96500 hashfull 0 time 2 pv c1a1 b2b3
+bestmove c1a1
+>>> position fen n1N5/p7/8/4k3/2p1P2P/8/P2K4/2R 4B w - - 0 92
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/pp1r3p/2kp1/P1ppR3/6KP/5P2/1PP5/8 b - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1rb1kb1r/1p1ppp1p/1qn2n2/p1p3P1/1P2N1P1/P7/2PPP2P/R1BQKBNR w KQk - 3
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1k4K1/3B4/8/8/8/8/3B3n/3r3n w 8 - - 127
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1b2rk1/4q1pp/1pp2p2/2n1pP2/p3n1P1/2PP4/PPN1B2P/2KRR1Q1 w - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1rb2r2/1p13p2k1/p1N3pn/5pPp/P1P2b1P/1P3p2/R2PPP1R/2Q1KB2 w - - 3 29
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1r6/1k3p1p/p2B3P/P5N1/1r6/R3N3/4K3/1Q6 b - - 1 k88
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1rb1k2r/5p1p/pp2pnp1/Pp4/1P1P2n1/4B3/1R1KP1PP/1N4NR w - - 1 22
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1b1n1r1/8/2p3p1/P2k1p2/N1Pp1pP/P3P1P1/4P3/4KB1R b - - 0 46
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/4k3/6p1/2P5/3P4/8/3n4/N5K1 b - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - b - 8/8/8/4Pp2/k7/4n3/pB6/K7 5 88
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/3qk3/-2b5/1n6/3p4/8/4KB2/6r1 b - - 2 130
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 4rk1r/1p6/1P1p1p2/pR1NpP1p/q1PR2P1/5P2/N1n3K1/4Q1b1 b - - 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1n5k/5B1r/p1p5/1pb1np2/4N2N/6KP/R3r2B/2R5 b  - - 13 60
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 14 score cp 318 nodes 317 nps 105666 hashfull 0 time 3 pv e2e4
+info depth 2 seldepth 14 score cp 316 nodes 396 nps 132000 hashfull 0 time 3 pv e2e4 h4g6 h8g7
+bestmove e2e4
+>>> position fen 6r1/p3k1b1/P1n1p2p/2PrpPpP/2R1p1N1/2PPK1P1/8/2BN3R - - 0 32
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 7k/p7/RpP5/4p3/2P1P2P/4n3/P4P2/1K3BR1 - w - 1 71
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/5P1k/4b3/8/4R2K/8/1n4N2/8 b - - 3 88
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2Q2b1k/4R1p1/2P5/3pB1NP/3P1p1P/4r3/5K2/1N3b1R 0 - - b 39
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/7k/8/P7/8/1KBp4/8/8 w - 4 141
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2r3kr/5B1p/2Nb2p1/P1pp2PP/1p6/7K/8/8 b -B - 2 60
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 8/3r1kp/3P1p1p/5P2/8/6P1/7P/3R3K w - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 5k1r/2n5/6K1/P6p/4B2/7N/2b1n3/R7 b - - 1 95
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/pk2R3/6p1/8/2r1Pp2/1rp2P2/5PKP/2R5 - - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/2pk2p1/rpn1N1B1/p1b1p2P/b1p2Q1P/N7/P2P1r2/RKB1R3 b 3 - - 46
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen q1b1k3/1pQ5/1r2r2p/p2p3N/np3KBP/BN6/8/4RR2 w - 5 43
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 7R/p3k3/P3p3/5pp/3n3P/3p4/B3R3/5K2 b - - 0 81
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen - w - 4n3/2k5/4p1b1/4P3/8/3p4/p5K1/8 0 99
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 6nb/7r/3pk1p1p/p3RP1p/1r3PP1/5K2/8/8 b - - 1 60
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/P7/8/4k3/K7/3bp3/7r/5n2 w - -  120
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2r1kbn1/p3P1p1/bp1q3r/3p4/3n3p/P1NPN1B1/1PP1PP1P/R2QK2R b KQ 18 2 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 6k1/5p1p/5p1P/1p6/8/p4P2/2qp1P2/1R1R1K2 b 4 - 0 1
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 8/8/1r6/3p3k/7n/8/2N4K/8 w - - 0 2
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 1 score cp -763 nodes 13 nps 0 hashfull 0 time 0 pv c2e3
+info depth 2 seldepth 5 score cp -788 nodes 85 nps 85000 hashfull 0 time 1 pv c2d4 b6b2 h2g3
+bestmove c2d4
+>>> position fen 8/8/1p6/nP6/1K6/82k5/8 b - - 36 137
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 6k18/1q1p4/r1p4P/1p4KR/8/3N2b1/1N6/8 b - - 10 67
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2k5/8/8/P3N3/8/2N1K3/R7/8 b - 4 130
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2n5/5k2/7p/3P3P/4BK2/8/r5NN/8 42 - - b 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b - - 1 18
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b r1bq1b2/npBpk3/p3p2r/2pP2pp/2P3p1/P3n3/QP3P1P/RN2KBNR KQ - 3 18
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 3kr3/4R3/2Pr1p3/pp4p1/1b2K3/6p1/4R3/5B1r w - - 5 78
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2R5/8/PP5p/7P/1b2p1p1/2p5/1k6/3R1K2 - w - 0 85
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 2nr3r/8/p1p2k1p/1p3p1P/bPp4/P2NPq2/4B1R1/1KR5 b - - 3 60
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4k3/2r4r/b1P1p1p1/p2p3n/P3P3/P4p2/R2PN2P/B3KR1N w - - 36
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r2k4/8/1n6/p7/6pP/3P1p2/N7/4KN2 w - 1 78
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - w 8/3N2k1/8/2P5/5p2/5r2/5K2/r2R4 - 13 92
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 4rb1r/p1k2p1p/np6/1pP3p1/P6/P3R1Q1/R2PP1bq/2B1KB2 b - - 7 25
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3N1Qr1/9b3/2N1P2P/7k/2p2p2/8/8/5K2 b - - 2 123
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 5b2/8/8/p1p3n1/2P5/k2K 4/8/8 w - - 1 99
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3R4/6k1/P7/5pP1/1r16p2p/2P3P1/8/4K3 w - - 0 57
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen r1bq1kr/2p2pbp/p2p1NpB/Ppnnp3/3PB3/N5P1/1PP1PP1P/R2QK2R w KQ b6 0 15
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4nknr/4r3/1b5p/RpB2pKR1/1P5P/2B5/2P3b1/R5N1 w - - 2 57
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1 w - - 8/k7/3N4/4P3/4QKQ1/p4n2/8/8 120
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1N2k3/1n4R1/8/8/7p/3K4/8/8 r - - 6 127
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/7r/1P3r1k/p2P3p/4P2P/7Q/P1R5/3n2K1 b - 4 67
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2r1n3/8/5B2/8R2p1k1b1/3p4/8/4K3 b - - 2 137
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 82/8/3N4/8/1k2R3/8/8/1K6 b - - 0 130
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen r2k1b2/P3p1q1/6b1/1n3p2/2B2rQp1/1PN5/2PP1P1P/R1B1K2R w - - 2 50
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen rnbq1rk1/4ppbp/1p1p2Pn/8/p1R5/NP2P3/P1PPNPP1/R1BQKB2 Q - 0 11
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3k4/8/1r3n/8/8/8/Q7/6K1 b - - 46 137
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1bqk1n/n1pp3r/Q4pp1/p3p1Pp/4PP2/PPb4N/1BPP3P/R3KB1R w KQ - 6 22
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3r2k1/p7/n4bp1/pPB3P1/2P5/3pK2N/4P3/4RQ2 w - - 0 36
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 4 score cp 2251 nodes 50 nps 0 hashfull 0 time 0 pv f1f6
+info depth 2 seldepth 9 score cp 2154 nodes 257 nps 128500 hashfull 0 time 2 pv f1f6 d8e8 c5e7
+bestmove f1f6
+>>> position fen b3R4/8/1N6/P4k2/8/1R5p/7K/8 w - - 1 99
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1Q6/8/1p4p1/pP2k3/P1K2N1P/6p1/8/3r4 88 - - 11 b
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1nb2b1r/1pp1p121/r2p2kp/p1P2p2/1P1P1PnB/P7/2q1P1BP/RN1QK1NR w KQ - 1 15
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen b5Q1/8/2p1p3/2qp3p/p1nP1p1k/Pr2P1Np/5BRP/2K3R1 b - - 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1bqkbnr/2pppppp/ppn5/8/8/3PBP12/PPP1P1PP/RNQ1KBNR b KQkq - 0 4
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 4b1n1/2R1k3/1p4p1/P2p1pP1/P2PB3/5r2/4K3/8 - b - 1 67
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/3r2Q1/8/1k6/8/8/68/K7 b - - 16 144
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/8/7p/15k/8/8/8/8 w - - 0 134
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 88 b - - 3 7r/8/3kP3/1Pp3R1/p1P5/2K5/5b2/7r
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen 8/08/2n4k/b7/8/3R2p1/6r1/3K1B2 w - - 1 120
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/2k2B2/3r4/2r1P3/pN4KP/2p5/8/4b3 w - - 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r7/2R5/1k6/8/B6p/2bK4/8/8 b - 13 137
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1b1r3r/1pQ5/1P6/5P1k/8/p1p5/2n3N1/5K b - - 2 81
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 3q1k2/6NP/2p2K2/bp1p4/3r4/8/1N6/3Rq w - - 3 85
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen - b - 8/5b1P/3k2p1/p2p1p2/P2P4/R7/7K/1B1r4 0 81
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen w - - 3 29
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3krqr1/5pb1/Q1pp1np1/1p1Pp2p/P11b1P1/p5BB/3NPP1P/4K1NR w - - 2 29
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1r4k1/4Bp1/5q2/2K5/1P5P/8/2b5/8 b - - 0 88
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2b5/3p1k2/r6P/Bp 1n1BP1/p7/P7/8/Kn4R1 b - - 2 67
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1qBb3/3kN1r1/n7/p1p1pp2/3P4/pP3PPp/R1PQK2P/1R5B b - - 1 46
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 6 score cp -195 nodes 96 nps 96000 hashfull 0 time 1 pv c8d8 e7f5
+info depth 2 seldepth 6 score cp -195 nodes 138 nps 138000 hashfull 0 time 1 pv c8d8 e7f5
+bestmove c8d8
+>>> position fen r1q1b1N1/3k1r2/n7/4pp2/p2p1Q2/pP3PPp/R1P-K2P/6RB w - - 2 50
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1nbq1bnr/r1pppk2/pp3p1p/6p1/P4NPP/4PP1R/1PPP1K2/RNBQ1B2 b - 11 1 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k7/1p6/pP1Q4/P2R4/2p5/7K/5p12/8 w - - 4 113
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/8/2Bk2p1/1r6/2rN2Pp2b4P/7K/2R2Q2 w - - 4 71
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 5B2/5K2/5P2/4k3/7P/5N1P/8/8 b  - 6 109
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1r1n1b2/p3k3/P6p/2Pr1ppP/2R3PR/B1PP1p2/5K2/3N44b - - 1 39
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rnbqk1nr/pppppp2/7b/4N1pp/1P6/4P3/P1PP1PPP/RNBQKBN1R b KQkq - 2 4
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen r1bqk1n1/pppp1p1r/3b2pp/2n1p3/8/NPP2PK1/PB1PP1PP/R2Q1BNR w q - 8
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1k6/8/bPpPP1n/p6P/3N2p1/3P2p1/3b2K1/3BN3 w - - 1 64
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 7q/r2/5nP1/2p2k2/2p3pP/2pN4/2P3K1/6R1 b - - 7 81
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3k4/5P2/7P/2P5/8/8/p7/K7 w - 1 99
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen Rr6/8/3P4/3k4/8/1p6/8/6K1 w - 13 - 127
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5b2/p3k3/P6p/2PP1P1P/1n1R2R1/r1P2pb/5r2/3N3K w - - 0 50
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1b1k1nr/p2p1p1p/n1q4p/4P3/1P1p3P/2p5/P1PQP1PR/RK3BN1 w kq - 2 5
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 1 score cp -288 nodes 25 nps 0 hashfull 0 time 0 pv d2d4
+info depth 2 seldepth 3 score cp -228 nodes 55 nps 0 hashfull 0 time 0 pv d2d4 h6h5
+bestmove d2d4
+>>> position fen b - - 12 102
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2bn4/8/7N/8/4k3/4rp2/1q6/6K1 w - 19 120
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - w - 4k3/6rn/PP4p1/3p4/1p1p2P1/Np5P/1P1p4/3R1NKb 0 50
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/p3k3/PR2pppp/8/3p3P/QBp5/R5n1/5K2 b - - 5 67
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 5 score cp -2023 nodes 36 nps 0 hashfull 0 time 0 pv e7f7 b3e6 f7g7 f1g2
+info depth 2 seldepth 6 score cp -2044 nodes 161 nps 161000 hashfull 0 time 1 pv e7d8 b6d6 d8c7
+bestmove e7d8
+>>> position fen 8/N7/1R6/8/k7/5r2/bK2Q3/8 w 34 - - 120
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen n5K1/7P/4P3/8/2P3b1/1k3B2/3q4/8 b - 3 88
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rn1qkbnr/ppp1ppp1/3p4/7p/3P3P/NbP1BN2/P2PPP1/RQ2KB1R w KQkq - 2 8
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3q1k1n/p2pp1rp/PN6/5p2Q3bPp1/b1NP3N/3BPKPP/1r3B1R b - - 4 25
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen - b - 6n1/p2kq2r/P3p3/1NprPp2/1PP2n1p/3P1pPP/1pK5/3QR1N1 2 46
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1r4k1/8R/7B/p1Pb2P1/3R3p/7P/3R3B/1K6 w - - 11 85
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen r1bq1b1r/1pNppk1p/p1n2p1n/6p1/P3P3/6PP/RPPP1P2/2B1QKB1R b K - 0 11
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen rn1qkb1r/pp2pppp/2ppb2B/5n2/1P1P2P1/2K5/P1P1PP1P/RN1Q1BNR w q - 4 8
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 4 score cp 30 nodes 37 nps 0 hashfull 0 time 0 pv g4f5
+info depth 2 seldepth 4 score cp 51 nodes 76 nps 0 hashfull 0 time 0 pv g4f5 e6f5
+bestmove g4f5
+>>> position fen 8/5R2/4p2k/p3P3/P7/P7/2nK2b124R3 w - - 1 113
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen rB2n2r/1p6/pP5k/PbPpp3/3p2P1/4R2N/4P3/1N2KB2 w - - 57
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k6n/7b/3N4/6r1/1P2p3/7p/8/N3K4 b - - 22 88
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1n6/rk3p2/1p5R/1p1pP1Qp/2p2n1b/5K2/P2N3P/3R1B1R w - 2 36
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 7n/4r3/5k2/8/p6P/P7/8/K1B5 w - 120 6 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/1k6/bP1PP1np/pp5P/2B3p1/3P1Np1/6K1/2b5 67 - - 5 b
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/4k3/4b1K1/8/r7//2n5/8 w - - 5 148
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/5Q2/3k4/7p/827r/1K6/7r w - - 3 120
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 4n3/8/8/r2p1k2/8/8/8/1K6 b - - 6 10
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp 1465 nodes 41 nps 0 hashfull 0 time 0 pv e8f6
+info depth 2 seldepth 2 score cp 1437 nodes 71 nps 0 hashfull 0 time 0 pv e8f6 b1c2
+bestmove e8f6
+>>> position fen 3k1N2/3n1n2/6p1/5p2/1pR2p1P/1p1P3/1B2N1R1/3b1BK1 b - - 1 39
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rnbqkb1r/2ppppp1/1p6/p2n3p/3PQP2/BP2P3/P1P3PP/RN2KBNR w KQq 0 8
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1n4nr/r3P1k1/p1p3p1/1pb2P1B/1P1Np1B1p/q1P4P/3N2P1/1R2K1NR b - - 0 32
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen b - - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3q1b2/1ppkpppn/r1n3r/p2P4/2P1P1b1/N3BP1N/PPQ1B2P/1R2K2R w K - 4 15
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 7K/1k4B1/8/5B2/8/8/7n/r6n b - - 15
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - b 1r1k4/8/2p3pb/1N3b2/1P1Q2Pp/r6P/6BR/6NK - 10 53
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 2brk3/1p6/2Qq1pn1p/prnP3N/Pp2pQP1/7P/3KB3/1NB3RR b - - 2 32
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1rb1qkn1/p1nppB2/rp4p1/6b1/R1pPpPp1/4BB2N/1PP3RP/1NQ1K3 w - - 6 22
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen rnbq1bnr/ppp1pppp/3k4/3p4/1P6/N3PN2/P1PP1PPP/R1BQKB1R b 0 - KQ 4
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - b - 5K2/5b2/1N6/2k5/8/2n1p3/8/8 18 144
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1nb1kr2/1pqp4/r1pp1b1n/6pp/4PpP1/PPP2P2/1R1P1QK1/2BN3R b - 1 25
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/k7/8/1PpB4/6p1/6R1/6K1/4r3 w - - 64
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2rk4/PBn2b2/8/4Bp2/RPrp1/6r1/2P4P/2bK3R w - - 2 71
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/1r6/3n4/B2k3P/p7/P7/8/K7 w - - 134
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3r4/2k5/2P5Np1Pp2K/7P/4p3/8/8 w - - 5 78
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 5k1r/4n3/6K1/P6p/8/3B3N/2b1n3/6R1 w - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k7/5b2/2P4K/8/4q3/1p6/8/8 b - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - w 2b5/2B1nk2/r2p3P/1p3BP1/pR6/P7/8/Kn6 - 6 71
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1rbqkbnr/5pp1/p7/nppPp3/QPP3Pp/5N2/P2P1PRP/RNBK12 b k - 2 11
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/6b1/8/p1p5/2P5/k4Kn1/8/8 w - -43 120
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k7/8/q4p2/8/3Kn1r1/p7/8/8 - - b 33 123
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen r3kbn1/3Rp1pr/p5Pp/2n4/bp3p1P/7R/4QP2/2BNK3 w - - 0 36
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 11 b - - 8/1b6/8/8/p5k1/P3K2p/5n2/8 116
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k w 4k1nr/2p5/2PBp2p/pB3p2/PN2r2P/1P1qPQP1/5P2/R1N1KR2 - 1 29
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 5K2/1p1k2Nb/4p3/4P3/8/P3q3/8/8 w - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen w - - 2 92
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2B5/8/2Nk4/3P4/8/8/5K2/8 b - 4 116
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 53 b - - 4 2k4r/1b6/1rp4p/p1p1Pp1P/PP1N2P1/3PnNpK/3bB3/8
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen 5NB1/8/5B2/5b2/6k1/8/7K8/8 b - - 0 116
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2q5/4R3/1k6/5p2/4r3/3N1Kp1/2P4B/8 b - - 74
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/5p2/1k6/p4r1p/1b1R1P2/K1/8/8 w - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rN6/5n2/8/8/8/2Q3rk/1P1N4/2N40 w - - 7 92
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen rn1qkbnr/p1p1pppp/1p1p4/5b2/1P6/PBPP/2PPPP2/RNBQKBNR b KQkq - 0 4
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2N1r3/B4n2/k4Pp1/6Pp/p1p3RP/P1P2P2/8/25 b - - 2 74
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen - w 8/6B1/k4br1/2r5/p7/3K4/8/8 - 29 134
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/8/8/P3P3/7k/8/K7/1N6 b-- - 3 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/ppn1r3/P1prp3/7p/1P3pPb/3B1Q2/RB1k2K1/R7 b  - 0 39
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r4rk1/1p4qn/p4b1p/P1p1p3/2P3B1/4Q1PP/5P2/3RR1K1 b - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5k2/1qp5/1Br3pr/P4P1p/4KP2/Rp5P/2B3PR/1N3bN1 b - - 32
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r6Q/p2n4/5R22/2ppb3/1p6/PP6/8/1k2nbK1 b - - 0 53
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen rn6/p5nk/1p6/1P2pQ2/2P1P2P/4b1R1/P3rP20/RK3B2 b - - 0 46
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/1n4k1/4K3/8/1N5p 6R1/8/8 b - - 41 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k7/4rn2/1p3p2/3Kn1R1/1p2N2p/P7/6BP/R3Q2R - - 1 57
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 7k/pR6/1pP5/4p2n/2P1P2P/4R3/P4r1/1K3B2 w - - 3 64
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 6k1/N5B1/6P1/5r2/p6p/B7/8/1K3b27w - - 4 106
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/1P3k2/7P/2p5/2p1K3/8/1q6/3q4 w 1 - 13 127
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 2n1k3/5p2/br7/PnN2b2/4P3/2B5/8/5Kb1 b - - 0 81
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen - b - 8/6R1/8/8/8/4k1n1/8/K7 15 137
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 2k5/8/1K6/8/1P6/8/6RP/8 w - - 4
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 21r3/3k1r2/4p3/6p1/pp6/2b1K3/7p/8 b - - 0 88
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/1p2rp1k/pq5r1/PPpp4/Q1R5/5p2/6N1/5RK1 b - - 3 74
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen b - - 19 116
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/1Nr2Np1/rpBn1kr1/pP6/Pq1P2p1/7P/3Q3R/B3K3 w - - 0 50
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 9 score cp 687 nodes 137 nps 137000 hashfull 0 time 1 pv b7d6 b4d2 e1d2
+info depth 2 seldepth 10 score cp 681 nodes 364 nps 182000 hashfull 0 time 2 pv b7d6 c7e7 h2e2
+bestmove b7d6
+>>> position fen r6k/8/3p4/8/p6n/P7/1K6/r4b2 w 99 - 5 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen q3kbnr/2pbn1p1/2rp1p1p/pQ6/1PPpP3/B2K1P1P/P5PR/RN3BN1w k - 0 15
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2k5/p6R/r3rbp1/2p1p3/Pp2Pp2/K1P3P2/5PKP/R3B3 b - - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen w 1rb5/pppp1krp/n4np1/3RPp2/4q2P/2KQ3N/1PPNPPP1/5B1R - - 10 22
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/3B2k1/2r5/p2n2p1/R1PPn1P1/1P3p2/2K5/BNb3 b - - 4 46
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 2Q2b1k/4R1p1/2P5/3pB1NP/3P1p1/4r3/5K2/1N3b1R b - - 0 39
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rnbqkbnr/1p1ppp1p/p1p5/6pQ/4P3/2P2N2/PP1P1PPPRNB1KB1R b KQkq - 1 4
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 134 w - - 39 3k4/8/8/5Qn1/3r4/8/8/5K2
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen 5k2/r7/8/p3p1R1/1Pp2P1P/81N3K2/8 w - - 2 64
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 7b/8/8/p1p5/k1P5/8/4n3/4K3 b 4- - 50 123
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 64 w - - 5 8/1R6/5k1r/P2p4/3pPpp1/8/1B3P2/5K2
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen R7/1R5q/2P3r1/1P3k2/3p3P/5P1N/P/3K3B w - - 1 71
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2k5/52/3p3p/p1p5/PRP3r1/3b3P/2NK4/3B4 w - - 0 57
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/r6R1/2k5/8/8/4K3/8/8 w - - 10 141
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 3k4/r6b/P2r2p1/5p2/6p1/4P1P/B1N1P3/2K2R2 b - - 6 81
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2k5/1p6/pP1R4/P4p2/Q1p4b/6K1/8/8 106 - - 6 w
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/6p1/1p62PP4b1/2p1k1B1/4p3/5R2/3NK3 w - - 7 106
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/5k2/5r1P/8/2R5/1K6/3N4/8 b - - 116 2
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+bestmove f6f1
+>>> position fen 1rb1kbnr/pp1pp1pp/q1n2pP1/8/Pp6/4P2N/2PP1P1P/RNBQKB1R w - 1 8
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/1rp5/b2k1p2/1p2p3/PP1p2qr/3PP2B/4RK2/6Q1 b - 1 53
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rnbqkbn1/p1p1p1pr/3p1p1p/1p6/3P4/19P2P1P/PP1BP1P1/RN2KBNR w KQq - 2 8
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen - w - r1q2br1/3kp3/2p2B2/p1nN1p2/1p1P3p/PP3PPb/2PQK1BP/RR6 2 36
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 1n2k3/3bn2p/1p2p32p3p1/3p3N/N2P1r2/rPP5/3RK3 w - - 0 29
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 92 w - - 1 8/n1r2K1k/8/p5P1/p7/8/8/8
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen r2q2n1/1p1kb1p1/3ppp1r/1pp2bQ1/P7/2P2NR1/1P1P2PPP/1NBK3R w - - 0 15
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/6qp/8/1K6/6Pb/7P/8/1k6 w - - 1 0
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen b - - 7 39
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1bqkb1r/pppp1ppp/2n2n2/5N2/3P4/2PB4/5PP3PPP/RNBQ1RK1 b kq - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1rbq1bnr/2ppk3/5p1p/p1p1p2/1B2P1p1/1P1P1PP1/P6P/RNQ1KBNR w KQ - 4 15
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen N1B5/p3n1r1/1P1p1b2/r1p5/3kb1P1/1P2p3/1K6/8 - - b 0 74
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen w1b2br1/3p4/q2nk1pp/1pB1pp2/p6P/P1Q2nPB/K1P2p2/RN3R2 w - - 10 36
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen Q/1R6/8/K4B1P/8/P7/6k1/8 b - - 2 130
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1nb1kb1r/1pp1pppp9r2p4/p7/q1PP1Pn1/4B3/PP2P2P/RN1QKBNR w KQk - 0 8
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 7r/2p4k/2P1p2n/p1B4p/P3pP1P/3NP1PB/3K1R2/2R5 13 - - w 50
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1b6/8/7P/1k6/p5r1/3r4/2K/8 b - - 7 116
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1bqkbnr/1ppppp1p/2n5/p5p1/P7/2N3wPB/1PPPPP1P/R1BQK1NR b KQkq - 2 4
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen b - - 0 18
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rnb2q1r/p3bpqp/2kpP3/1pp5/3P1P1N/1P6/P3P1PP/RNBQKB1R b KQ - 0 11
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 7 score cp 735 nodes 63 nps 0 hashfull 0 time 0 pv e7h4 g2g3 f7e6
+info depth 2 seldepth 7 score cp 735 nodes 110 nps 110000 hashfull 0 time 1 pv e7h4 g2g3
+bestmove e7h4
+>>> position fen 8/2k4r/B5/8/3p1p2/2Bp1Pp1/K7/8 b - - 2 81
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2b4b/3r2k1/p1npp2p/1ppQp2P/PB2P3/R1PB1PP1/K2/1N5R b - - 3 46
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/3K3k/8/1N4P1/2n5/8/8/8 b - - 4 116
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp 22 nodes 39 nps 0 hashfull 0 time 0 pv h7g6
+info depth 2 seldepth 3 score cp 23 nodes 69 nps 0 hashfull 0 time 0 pv h7g6 b5d6
+bestmove h7g6
+>>> position fen 1nb2b1r/r2k3p/4pp2/pP1pP1p1/P2P/RP1BBP1R/6Qn/4K3 b - - 1 32
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen - b - 7k/6R1/2K5/8/2n5/4B3/8/8 11 144
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/8/4n1k1/8/8/4N1K1/8/8 b - k 16 116
+>>> isready
+info string invalid FEN: invalid en-passant square
+readyok
+>>> position fen 8/k4b2/7Bp/7P/6B1/7K/5b2/8 b - - 11 123
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/8/kP6/2p04/1r4p1/6R1/7K/8 b - - 2 67
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 53 b - - 0 r7/3k4/p1p2p1p/2R1R1B1/P4QN1/7P/3P2K1/3N3n
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2Nrkbn/3qp3/2p3pp/pp1p4/6pn/2Pb2BP/PP2P1P1/1R1K1BNR w - - 0 22
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1r5n/k2n4/5Pp1/2NN2Pp/p1p3RP/P1P1BP2/2q5/5K2 b - 14 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 6k1/3p2b1/1qp4P/1p3N2/6pK/r2N1R2/8/8 b - - 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/6R1/k6p/7P/K7/P1B5/8 w - - 113
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2b4k/8/5N2/R2b1P2/3p1n2/5K2/5P2/8 w - - 4 64
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 3 score cp 447 nodes 14 nps 0 hashfull 0 time 0 pv f6d5
+info depth 2 seldepth 3 score cp 453 nodes 25 nps 0 hashfull 0 time 0 pv f6d5 f4d5
+bestmove f6d5
+>>> position fen 5r2/8/3BP3/k1N3pp/5pP1/1pN4K/3n2BP/4b2R - - 5 85
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r2q1rk1/5ppp/p3bn2/2b5/5P25/5N2/PPP3PP/RNBQ1R1K w - - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/5K2/1B3P2/7P/8/6kP/8/8 w - 113 1 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/8/7b/n5k1//2K5/8 w - - 18 120
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/k6p/1p6/1p6/P3r1p1/bR1B4/3P2K1/8 b - - 13 53
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 4 score cp 175 nodes 42 nps 0 hashfull 0 time 0 pv e4a4 b3b5
+info depth 2 seldepth 4 score cp 175 nodes 77 nps 0 hashfull 0 time 0 pv e4a4 b3b5
+bestmove e4a4
+>>> position fen 1k6/8/1n6/1pq/1P6/8/2K5/8 w - - 51 134
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rnbqkbnr/2pp3p/p5p1/1pN1pp2/4PP2/3P3N/PPP3PP/RBQKB1R w KQkq - 0 8
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen r1b1kbnr/4pp1p/1p3n2/p2p3Q/2B5/4P1P1/PPPK12/RNB1N2R b kq - 1 18
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/8/7K/1k4P1/1nn5/7p/7P/8 148 - - 14 w
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1bk1b2/p2p3r/1pn2ppBp/2q1N2P/p2QPP2/RP1PB3/2n1K1P1/1N5R w - - 2 22
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen r3kb2/3qp2r/1npp1ppn/pp5Rp/3PP2B/1P3PPb/P1P1Q1BP/RN4KR b q - 3 18
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/1k6/3R4/p3r3/P1BP4/6K1/8/8 w - -7 15 127
+>>> isready
+info string invalid FEN: invalid en-passant square
+readyok
+>>> position fen r3kbnr/1b2pp61/1pp5/NP2nP1p/P2q3P/4PN1R/3P4/1RBQKB2 b k - 0 18
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 7r/8/3kP3/1Pp3R1/p1P5/2K5/5b2/7r - b - 3 88
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/1k6/8/6K1/bp6/2p2p2/1p6/6B1 b -  - 5 109
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 1 score cp 2195 nodes 21 nps 0 hashfull 0 time 0 pv b2b1q
+info depth 2 seldepth 2 score cp 2320 nodes 50 nps 0 hashfull 0 time 0 pv b2b1q g1c5
+bestmove b2b1q
+>>> position fen 8/3n1k2/8/8/1b6/3N4/7K/3N4 w - 53 148
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/5pp1/4p2p/75P/1b2k1K1/3R4/1q5r w - - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen - w - 8/nnr3k1/R3p2r/3N4/5PP1/1R6/6K1/8 3 71
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8//8/2k5/8/8/6Q1/7K w - - 15 113
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r2q2k1/n2bpr1p/1p1p3n/8/R2b2B1/NPP1P1P1/P2PKP2/1RB5 b - - 625
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1n6/8/n1rb1k1N/N2B4/p2p1q1P/6p1/5R2/2RK4 - - b 5 74
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen - w - 2q5/4k3/8/1n6/3p4/3K4/8/6Bb 1 134
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/r1p1k1r1/b2q1p2/Np2pn1p/1P1p1NPP/P2P1P2/1R1QP1BR/5K2 - - 2 32
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - b 2R5/5P2/3N2P1/P6b/4p3/3k4/1B6/6K1 - 2 88
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 4k/2r3p1/1pN5/pP1P4/P6P/4N1p1/3K4/B6Q b - - 0 67
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen w 7K/8/4B3/2P5/8/3r2k1/5R2/8 - - 10 134
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 4kbQ/1r2p1pr/5RPp/pn1P4/1p5P/1bN1BP2/7Q/6K1 b - - 2 53
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/1P5P/6k1/2p5/2q5/2p5/6K1/3q4 w- - 3 134
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen n1k1N3/4P3/8/4P3/pK6/Q1r3Pp/8/3R4 w - 99 1 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 881p4k1/1P1K4/B7/P6b/n6P/8/8 b - - 8 81
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 7r/8/8/5k2/8/1K6/3Q4/8 w - 5 134
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1rb3r1/ppppk2p/n4np1/1R2Pp2/6qP/2K1Q2N/1PPNPPkP1/5B1R b - - 3 18
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2rr3k/p6p/8/3Nbp2/2P5/3R3P/P1n3P1/3R1K2 w - - 01
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3k4/1r6/4B1R1/p7/P2P4/6K1/8/8 w - 1 120
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen R7/3k1p2/2r5/4BKP1/8/8/8/8 b - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/4R3/1N1P2k1/1R6/P7/7/4n2K/8 b - - 3 88
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1r2knn1/p5qr/4pp2/1p1P3/1pPp2pp/1PBP1PPP/4K1R1/1N2RQN1 b - - 5 32
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2r5/8/1k6/p6p/8/7K/8/8 - - 13 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3r2n1/3kr3/5q2/p1ppp1Pp/P3pR1P/1PP4b/2PK4/B4BNR w - - 2
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rn1qkbnr/p1p3p1/3pPp2/p4Bp/PP6/1bP4P/4P1P1/RN2KBNR w KQq - 0 15
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r5r1/pbp1np1p/1p1q1kp1/n1b1p3/PP5N/4P2P/B1PPQP2/R1B1K1R1 w - -  22
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5k2/6N1/P1P1P1P1/1P6/2Kp4/1pb3p1/8/8 w  - 2 64
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen w Kkq - 1 8
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b - - 0 116
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen w 3kr3/4R3/2P1p3/pp4p1/1b2K3/6p1/4R3/5B1r - - 5 78
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 6N2/8/8/3p4/3P3k/N7/3B4/3K2R1 w - - 11 92
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/1/8/kpR5/8/Pr6/6n1/5n1K w - - 18 92
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1rk1Q1N1/8/8/pBpnKP2/7P/3RB2b/3R3P/8 b - 1 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5k2/4R3/8/p3P3//3n3/P7/2K5/7b b - - 2 123
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r2qk1n3r/p3pp1p/Ppp1b1p1/4b3/3n1PP1/4P2P/RP1P1K2/1NB1QB1R w kq - 1 15
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen rnb1k1nr/pppq1p1p/4p2p/3p4/7b/P1PP1NP1/1PKKPP1R/1R1Q1BN1 b kq - 0 11
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 4k1n1/p3b1R1/b6pr2B1r/3p4/1q5p/1PNPN3/2P1PP1P/2R1K3 w - - 2 29
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/3k4/bP5p/1Q5P/p2b2b1/8/B6K/82b - - 0 88
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/2k2N2/R7/P2P4/5N2/8/82K5 b - - 6 123
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/1K6/8/8/8/p7/8/3k4 16 - - w 148
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 18/4npp1/7r/2n5/P1p4P/N3k1B1/8/bR2BK2 w - - 6 57
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen bN6/r7/1kn4R/pr5P/1p2P2P/6b1/8w/5K1B w - - 7 57
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/1p6/1P2N1k1/p3B2n/P1Kn/6bP/8/8 b - - 15 67
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 6k1/2B2p2/7P/1r6/1P2b23/3K4/7q/8 w - - 2 78
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1r1qkbnr/p2np3/b2p4/2p3pp/PPP2p21P/3PP1P1/R2QNP2/1NB1KB1R w Kk - 0 15
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2N5/2P5/4r1P1/kp2p3/1bQ2RNp/4r2P/P6K/7N w - - 3 71
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 6 score cp 2372 nodes 66 nps 0 hashfull 0 time 0 pv c4b4 a5a6
+info depth 2 seldepth 6 score cp 2372 nodes 110 nps 110000 hashfull 0 time 1 pv c4b4 a5a6
+bestmove c4b4
+>>> position fen rnbqkbnr/1p1ppp1p/p1p5/6pQ/4P3/2P2N2/PP1P1PPP/RNB1KB1R b KQkq 1 - 4
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/5k2/KN3N2/Pb/5p1R/P5P1/3r4/8 b - - 1 81
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1r4k1/1p6/pP6kP5n1/2r3N1/1B3R2/7K/8 w - - 4 113
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen n1k1N3/4P3/8/4P3/pK6/Q1r3Pp/8/3R4 w - - 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1r4nr/p2n1kq1/4pp2/P1p1P2p/1pPp2p1/1P1P1PPP/2NBK2R/R4QN1 bK - - 4 25
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 1Bkr4/1pn3r1/p4p2/n4P2/1Q4pR/2p5/6K1/1B6 b - - 67
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5r1b/8/8/3k2p1/7p/7P/8/4K3 b - - 109
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - b kq r1bqk2r/pp2bppp/4p3/2np3n/8/2P1BN2/PP2BPPP/RN1Q1RK1 0 1
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 3rR3/n2b2bk/3NB3/8/1P4pP/2rP3R/4K3/8 5w - - 4 64
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen rnb1kbnr/1p1p1ppp/8/p1p1p3/P5Q1/2P1P3/RP1P1PPP/1NB1KBNR w Kk3q - 0 8
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 2r1k1nr/pBN2ppN/b7n/2pq1P1R/3b4/1RpbP1P1/PB6/2K5 b k - 3 32
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 2N3k1/Pn6/5B2/7p/Pp6/3Bpp2/8/1b2K3 b - Q 5 67
+>>> isready
+info string invalid FEN: invalid en-passant square
+readyok
+>>> position fen 8/7k/3Q4/7B/5R1P/4K3/4R3/8 b - - 123
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen k7/8/8/2p1b3/2P5/p7/K7/8 b - - 130
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen nn4/6k1/7r/5R2/4KPP1/8/8/8 w - - 10 92
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rn1qk2r/p1pp1ppp/1p2pB1n/5b2/P7/3P4/1PP1PPPP/RNQ1KBNR w KQkq - 7 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1nbq1bnr/r1Nppk2/pp3p1p/6p1/P4NPP/4PP1R/1PPP1K2/RNBQ1B2 b - - 1 11
+>>> isready
+info string invalid FEN: impossible piece inventory
+readyok
+>>> position fen 8/2k5/4R3/p7/P7/7-/2K5/8 w - - 16 99
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/r3nk2/1k1p4/4B1P1/pK6/Pp5b/8/8 b - - 6 88
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/4B3/5p2/8/8/p2k1b2/8/3K4 w - - 141
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1k6/8/8/p3P3/P7/1B4K1/3R4/8 130 - - 2 b
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/1kr4/6r1/8/p7/5K2/3B4/8 w - - 5 141
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1Bb22/8/3P1p2/1p1r1kp1/P2p1np1/5P2/5K1R/R1B1N1N1 b - - 0 46
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/5K1k/2n5/p7/p2 2P1/8/8/8 b - - 0 88
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1r5k/2pn/B7/p1B5/P3p2P/8/8/K7 b - - 1 81
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 7k/8/6p1/6K1/PP4/8/2N5/1n6 b - - 8 95
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4r1n1/3k2br/5p1p/pb6/P1Np1P2/1PPPP1P1/1B1KR2P/7 w - - 1 29
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen rn6/8/k1r5/p2Npp1PK1Rp3P1/P1R5/3K4/2B3q1 b - - 6 60
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 3N1k2/8/6B1/1P2P1P1/8/4K2p/1B6/1n5N b - -n 12 88
+>>> isready
+info string invalid FEN: invalid en-passant square
+readyok
+>>> position fen 2k5/p6R/P2ppppp/n1p5/7n/2B4P/3N2B1/1r3K1R N - - 0 43
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 6k1/4b3/3B4/3p3P/31N2/3r4/R2N4/3KR3 b - - 5 67
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/Pk4/8/4P2r/3p1p2/3p2p1/5P2/B1K5 b - - 2 74
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3N3k/8/1N6/8/1pnb2K1//6n1/8 b - - 9 102
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rnb2b1r/1pp5/p3p1kn/PP1p1ppp/3P2PP/2RQBPK1/2P1P3/1N3BN1 bw- - 0 18
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - w - 8/8/P7/5K2/2p4k/8/5n2/8 12 120
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/1k6/8/2K4P/2Nr4/p1B1q3/8/8 102 - - 6 b
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2n4b/3R1p2/1rkp4/2p2P2/pPP2pnN/P3q3/2K2R2/4B3 w - 0 50
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2n1r2r/p1p3k1/np2pp1p/3p3P/bPPP1PB1/P3PQ2/2q5/K3R1NR b - 14 39
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1bq1bnr/pp1pp1p/1pn2kp1/6P1/PPp4N/4P3/2PP1P1P/R1BQKB1R b KQ - 0 11
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4N1n1/3n4/3p1r2/2kP3B/2P3p1/P2KP1Pp/8/bNB5 w - 2 - 43
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1br1k2/pp2npbp/4p1p1/2n3B1/2B5/5N2/PPP2PPP/RN2R1K1 w - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/8/4Pp2/k7/4n3/pB6/K7 b - - 5
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1nb2bn1/1pkB4/5rp1/p3Pr1p/2p4P/PP2PN2/RN2KP2/2BQ3QR w - - 0 22
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen k7/8/3b4/2p5/2P5/p7/K7/18 w - - 16 127
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2nn4/8/R6k/2r5/5PP1/5K2/8/ b - - 3 88
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 4kb2/r3p3/1p3ppr/pp3P/P1qpPN2/2P4B/1B4PP/1N2KR2 w - - 1 43
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4k3/1r2b3/pp1p3p/P2Pp1p1/RNp2PP1/2P4P/QP1KR3/2B3N1 b - 0 32
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r3qb1r/1bpnpk2/pp3npp/1P1p1p1B/Q1P1PP2/P2P3N/6PP/RNB2K1R - w - 6 15
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/3k4/7p/7P/8/4K3/8/2n5 w -- 1 141
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/b7/1nK5/8/2B1p3/7p/5n2/6k1 w - - 2 11
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp -1265 nodes 22 nps 0 hashfull 0 time 0 pv c4e6
+info depth 2 seldepth 3 score cp -1435 nodes 80 nps 0 hashfull 0 time 0 pv c4e2 h3h2
+bestmove c4e2
+>>> position fen 2N1Q3/2P5/6P1/kppb5/4p1Np/4r2P/P4RK1/8 b - - 2 74
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 6kN/2B5/6np/1p1p3P/1p6/3K4/2Q3N1/b7w - - 4 57
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rnb2q1r/p3bppp/2kpP3/1pp5/3P1P1N/1P6/P3P1PP/QNBQKB1R b KQ - 0 11
+>>> isready
+info string invalid FEN: impossible piece inventory
+readyok
+>>> position fen 1b2k3/8/6r1/p4p2/p3p3/8/6K1/B6N w - -2 11 99
+>>> isready
+info string invalid FEN: invalid en-passant square
+readyok
+>>> position fen 4kr1r/pn6/n3PP1p/2p2N1R/1PPp4/P1RK1P2/1B4b1/1N6 6 - - w 43
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b - - 9 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/3k4/5K2/8/8/3p3q/4B3/1r6 b - - 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - w 8/k7/8/p7/P7/7p/K7/8 - 10 106
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen nn4b1/1N1rk3/1pBb1q1p/5p2/P1pp4/Q2P2P1/5N1P/R1R2K2 w -r- 13 50
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2b2nr1/n2pk/4p1p1/2r1Pp1p/2PPq3/5Q1P/PBN2P1R/2RK4 b - - 1 46
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/8/8/4kPK1/4B2P/2R5/8/8 w - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rn3r2/6kp/bp4pn/pB1p4/1Pp3P1/2P5/P3K31/1N4N1 w - - 1 43
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen br2k2r/2ppnpb1/p3p2p/2P3p1/p1Q1P2P/N4P1K/PB1qN1PR/1R6 w k  6 22
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rn0bqkbn1/p1ppp3/1p4p1/5p1p/r2P1PP1/3BP3/PPP4P/RNBQK1NR w KQq - 1 8
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen r1b2b1r/p2p2p1/n4n1p/1ppk1P2/3Pp2Q/2P2p1q/PP4P1/R2K1NN1 w 22 - 0 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1q3nr/2pp1k1p/bp2pp1B/p1P4R/P2P4/1Q2PP2/R2KN/1P1/3N1B2 w - - 7 29
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 7r/b7/1pRk4/1P1Pnpp1/1P3P2/P4BPP/1K6/RN6 b - - 1 53
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 5 score cp -802 nodes 18 nps 0 hashfull 0 time 0 pv e5c6 d5c6 h8h3 f4g5 h3g3
+info depth 2 seldepth 5 score cp -802 nodes 27 nps 0 hashfull 0 time 0 pv e5c6 d5c6
+bestmove e5c6
+>>> position fen r1b1qb2/p1p2r2/3pkpn1/2P4p/1pN1n1PP/2N5/PPK2P2/R2Q1B1R w - 0 36
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rn1qkb2/2pbpp1r/1p2p1p1/p1n4p1PPPKP2/B3P3/P2N2PP/R4BNR w q - 2 15
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 3r4/7p/P3k2P/3p2PB/2p5/1p4K1/8/8 74 - - 3 b
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1rb1k2b/p1p1Np2/2n2p2/2Ppq1rp/1Q1P1P2/4P1P1/PP2B2P/R1B1K2R w - 3 22
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/b3n3/4k3/4r3/5pK1/5N2/1q6 - - 5 113
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r2q2k1/1bp1rpbp/pp1p2p1/2nP4/8/1BN2N2/PPPQ1PPP/4RRK1 w 1 - 0 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3k1b1r/1pr1p1p1/4Bp2/p1np3P/P1qpPN2/8/1RP3PP/1NBK1R2 w - k 1 36
+>>> isready
+info string invalid FEN: invalid en-passant square
+readyok
+>>> position fen b r1b1kN2/pp3p2/n2p1np1/2p1p1P1/P3N3/1P2K3/2PPP2r/BR1Q1B1R q - 1 18
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/4k3/4B2R/8/8/6p1/3qn4/3K4 b - - 2 130
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 5b2/1p5k/8B/8/7b/2rn2K1/8/8 w - - 56 134
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen b - - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1b6/4k3/7p/1p5P/3p4/N6/n3K3/5Q2 b - - 17 74
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1b5/2qpkr2/1p1p4/2p3pp/Pn1bP3/1RP2P1K/1N6/2B4R b - - 3
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3bk3/6r1/p1Np-4/Pp1PP2P/1Rp4p/2P1K3/1P2R3/1QB3N1 b - - 3 39
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen - w 8/2k2N2/8/P7/3K4/8/n3R3/3N4 - 2 127
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/4B3/5p2/8/8/p7/4k1b1/2K5 b - - 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/7pk/7P/8/4K3/r7/8 w - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 4rb1r/p1k2p1p/np6/1pP3p1/1P6/P3R1Q1/R2PP1bq/2B1KB2 b - - 7
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 99 w - - 26 8/5n2/2N1n2k/4r2N/8/5P2/4nK2/8
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen 6n1/2Nbkp2/8/qp1N1p2r/1p2P1P1/PPPp4/8/2R1nK2 w - - 0 50
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 3b4/1B4p1/1p1k4/Np2r2/1P2pqN1/3R3P/P4B2/6K1 b - - 9 74
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen rnb3nr/N1k2pp1/3p4/1pp4p/1P6/b1P1PpP1/-P2P4/RNB1KB1R b Q - 1 18
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 2bk4/3N1p2/p2n3/q1p1p1PP/1P2B3/P1P1PR2/2PB1K2/1R6 w - - 1 36
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2k3nr/1bp1b3/r1q2p1p/p1p1PN2/P4pPP/1P1P1Q2/NR2R1/5B1K b - - 2 39
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen N7k8/4k2P/2B5/8/8/6K1/5q2 w - - 0 141
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/8/8/8/n6k/4K3/b7/8 - w - 4 113
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/4B3/8/8/8/5K2/8/3kr34 b - - 3 116
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/8/1p6/pP2k3/Q4p2/8/2K5/8 w - - 3 127
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp 1307 nodes 29 nps 0 hashfull 0 time 0 pv a4c4
+info depth 2 seldepth 4 score cp 1341 nodes 62 nps 0 hashfull 0 time 0 pv a4c4 f4f3
+bestmove a4c4
+>>> position fen KQkq b rnbqkb1r/pppppp1p/7n/6p1/PP1P4/2P5/4PPPP/RNBQKBNR - 0 4
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/1p6/pPN1k3/P7/8/6r1/4K3/1B6 w 7 - - 141
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3r4/5Nk1/R7/1p6/5K1b/NB4n1/7n/8 w 85 - 5 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1k3q1r/1pp2p1p/p1n1rp2/3p4/PP1/4/2PQ1NPP/6PK/4RR2 b - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen w - - 2 134
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1rbnkbnr/p3p11p1/3p2Pp/1p3p2/Pp5P/NB1NP3/1q1P1P2/R1BQK2R b KQk - 3 18
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2k5/4B3/r2P4/pp3pp1/P1B1q3/3RP3/1RPK4/6N1 b - 46 0 -
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2r5/4p2k/1B6/4pPn2/2pb4/P6K/3R1R1P/5Bq1 w - - 0 71
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/1k6/7P/8/4R3/3K4/8/8 w - 36 148
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/pp1/4p2p/7P/1b2k1K1/3R4/1q5r w - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1b5/2qpkr2/1p1p4/2p3pp/Pn1bP3/1RP2P1K/1N6/2B4R b - - 3
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen r1q3r1/3kp1b1/2p2B2/p1nN1p2/1p1P2b1/PP3PPp/R1PQ2BP/1R2K3 b- - 1 39
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b7/8/8/p7/P6K/8/8/5k2 w - - 10 14r
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen b - - 26 144
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/P7/8/2p/K1k/8/7n/8 b - - 5 116
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/4n1r1/8/3k4/8/8/8/7K w - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/R7/6p1/4p1P1/4r2p/8/1k4K1/8 w - 0 - 127
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/1p6/1P5r/4K1k1/8b/8/8 w - - 14 148
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 2b1kbr1/r2p1n2/2q3Q1/1pB2p2/p1P4P/P5PB/K6n/Rr4n1 w - - 1 43
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 5 score cp -1606 nodes 87 nps 87000 hashfull 0 time 1 pv g6g8 b1a1 a2a1 c6c5
+info depth 2 seldepth 5 score cp -1606 nodes 133 nps 133000 hashfull 0 time 1 pv g6g8 b1a1 a2a1
+bestmove g6g8
+>>> position fen 6n1/3k4/3r4/8/2Q5/8/8/6K1 w - 53 141
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1n4n1/3k1p2/6p1/1p3P2/p1rN2R1/P3B1K1/Q7/1R2r2q  - - 4 53
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rnbqkb1r/3pp1Pp1/1p5p/Q4pn1/1pP2P2/B1N1P2N/P2P2PP/R3KB1R b KQkq - 1 11
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen k7/5N2/6K1/1qP5/N2b1P3/1p6/8/8 w - - 17 120
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 2k1b3/Rr6/3r4/2n5/1P6/RR2pKp1/2P4P/8 b - - 1 q95
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/8/4n3/8/k5BP/8/7K/8 b - - 130
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen w - - 4 71
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen bk6/6P1/2p2r2/2PP3q/3npR2/p1BB3N/Pr6/6K1 - - w 3 64
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/8/6R1/k6p/7P/K7/P1B5/8 w 40 - - 113
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 7k/8/8/8/3K1nP1/8/8/6R1 w - - 2 q06
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/3n2Q1/2k4pB8/1P6/5P1P/1K4P1/8 b - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen N7/8/5k1P/2Bq4/K/8/8/8 b - - 7 144
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3NK3/P7/4bp2/8/1P4k1/p6p/7P/3R44 w - - 6 71
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1nb1q3/r2ppk2/ppp4n/1N2b1p1/PPP2NP1/B3PPK1/3P3r/R2Q1B2 w - - 7Q22
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1R3q1k/8/4K3/1n4N1/1N6/1p6/8/8 w - - 3 99
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 4 score cp 508 nodes 27 nps 0 hashfull 0 time 0 pv b8f8 h8g7
+info depth 2 seldepth 4 score cp 508 nodes 52 nps 0 hashfull 0 time 0 pv b8f8 h8g7
+bestmove b8f8
+>>> position fen 8/7k/3Q4/7B/5R1P/4K3/4R3/8 - - 12 123
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2B2k1K/4q3/3r3P/8/4p3/8/4p3/8 w - - 113
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen - b - 6n1/p2kq2r/P3pp2/2prP3/2Pp1npp/NPpP1PPP/1R6/2K1RQN1 1 39
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 8/6bk/4pR1p/7P/2p5/3R4/8/6K1 - b - 5 102
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 2b2k2/3p4/B1q5/PN3p1r/3p2n1/6P1/4KP2/1RB2N2 w - 0 36
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen n6K/7P/4P3/2k5p/1RP3b1/8/q7/5B2 w - - 1 85
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen K7/8/4P1k1/8/8/3P2NP/5n28 w - - 6 120
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 8/B5p1/R7/P2k4/2p1n3/6Br/8/n5K1 w - - -13 71
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 1rb1k1nr/1ppp1pbp/n3pqp1/p1P5/7P/N4P1R/PP1PP1P1/1RBQKBN1 - k w 1 8
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 6n1/3b4/8/8/8/4K3/7k/8 w - 60 141
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b 8/4N3/7k/8/6K1/7r/8/8 - - 2 123
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 2k5/8/P7/8/6N1/R6N/16/8 b - - 8 144
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 4 b - - 2b1q1kr/n2R3p/1np1P2b/3BN1p1/1P3N1P/r2P3R/8/1b1K4 46
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3N3r/4bP2/2r1P2P/6k1/1Np22/8/5K2/8 w - - 8 120
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen r1b1k2r/ppp1np1p/nw1q1p3/3p3p/6Pb/P1PP1N2/1PK1PP1R/1R1Q1BN1 w kq - 2 15
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 3k4/2p5/pp6/7p/P4N2/5P2/1Pn2K1P/8 b - - 0
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 6b1/5r1r/8/1Pk1p3/2P5/p1P5/4K3/3R4 w - -/13 78
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5Q2/1b6/r3k1pB/ppPp1n1p/P1P2P1P/N1P3p1/6P1/3K2R1 w - 1 36
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 8/2R4N/4k2P/8/8/3p4/8/3K4  - - 0 116
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 3K1Nk1/8/8/8//5N2/8/8 b - - 0 137
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2r1n3/2b5/8/8/2p1k3/3p1b2/8/B1K5 w - - 134 26
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+bestmove a1b2
+>>> position fen 8/8/1pR 5/1P1p1b2/r1nPk3/2K5/7r/8 b - - 0 67
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1q3b2/1ppk2p1/2np1p2/r2Pp1N1/p1P5/N2QB1K1/PP2R2P/5B1R b - -  32
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b 8/4R3/6k1/P3R3/8/3N4/8/7K - - 12 109
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen rnb1k2r/1ppp1pbp/p7/B2Pp1p1/4n3/3KPPPN/P1P1B2P/RNQ1R3 b - -5 18
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1k4r1/bpp2P1p/p2p4/8/PP5P/6q1/5PP1/1R3RK1 w - - 0 1
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp -359 nodes 28 nps 0 hashfull 0 time 0 pv f7g8q g3g8
+info depth 2 seldepth 2 score cp -359 nodes 56 nps 0 hashfull 0 time 0 pv f7g8q g3g8
+bestmove f7g8q
+>>> position fen r4b2/pbp1qr/2Pp1pn1/N2k3p/Np2n1PP/5P2/PPK5/R4B1R w - - 0 43
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen b3kr2/5n1p/n4B2/p1p2r1B/pPR2P2/3PP2N/3N2PP/4K1R1 11 - - w 43
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1r3b2/p1p1qr2/2Pp2n1/N2k1pnp/Np4PP/1P1b1P2/PK4BR/3R4 w - -  50
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1b6/8/7P/2k5/p5r1/2Kr4/8/38 w - - 0 113
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen b6k/1qB2p2/8/1r5P/2p2R1P/bp6/2P1K3/4R3 b - 1 53
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen N2B4/8/2P4/2PR4/8/1p2n1p1/8/1K6 w - - 0 106
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen w kb6/5n2/5PP1/1P1P4/1p6/8/1K1R4/8 - - 5 92
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 4k1n1/5p1r/1p2b1Qp/p1rpp2n/1b3P2/2N1P1P1/PPP3NR/R1B1KB2 w - 15 29
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen rn2k2r/p3b1p1/1p3n2/4ppR1/1PpPB1P/1Q6/P1P2PB1/R1qK4 w kq - 7 29
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 1kb5/8/1P5p/1p1B3P/pQ/3P2p1/5p2/2b3nK w - - 3 78
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen b - - 0 1
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 81K1N4/7b/8/8/3k4/8/8 w - - 39 148
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 1R3Q2/4bR2/4k2/3r3P/2N2P1N/1P1p4/8/2BK2R1 w - - 1 64
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/3r4/3k4/5r2/p2bp3/1p4p1/6K1/8w - - 3 106
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 1B6/6k1/1p1Q1n2/1pP1P2b/4P1P1/5P2/4N3/NR3K2 b 2 - - 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 5bn1/p3N3/P6p/r1k2P1P/2P5/8/5R2/2R3K1 w - - 71
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2k2N2/pn4Rr/7p/1Ppn4/P1P5/1NR5/2KN4/2B5 b - - 60
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 6K1/8/6Q1/8/4B1n1/k7/1B6/8 b - - 14 137K
+>>> isready
+info string invalid FEN: FEN must contain exactly six fields
+readyok
+>>> position fen 4R3/6k18/p3NP1P/2KP4/1P6/2P5/8 b - - 0 67
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen 53 b - - 4 n3r2B/p1k5/3p1rp1/1P5p/2bK3P/P4p2/1R2B1P1/2R5
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen b - - 1 46
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 2R5/4BP2/4N3/P7/4p1P1/16/6b1/3k2K1 w - - 4 78
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 3K2k1/5R2/6PP/8/8/nr4/8/8 w - - 0 1
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 8/3p2B1/2k5/P5n1/8/2K5/3R4/4n2 w - - 0 106
+>>> isready
+info string invalid FEN: invalid FEN fields
+readyok
+>>> position fen 8/2Pk4/8/6n1/3b4/5r2/8/7K w - - 1 148
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 2 score cp -752 nodes 13 nps 0 hashfull 0 time 0 pv h1g2 d7c7
+info depth 2 seldepth 4 score cp -757 nodes 43 nps 0 hashfull 0 time 0 pv c7c8q d7c8
+bestmove c7c8q
+>>> position fen 1k4rb1/bpp2Q1p/p2p4/8/PP5P/6q1/5PP1/1R3RK1 w - - 0 1
+>>> isready
+info string invalid FEN: too many squares in FEN rank
+readyok
+>>> position fen r1bqkbnr/n1pppppp/p7/8/1pP3P1/NP5B/PB1PPP1P/RQ2K1NR w KQkqn - 0 8
+>>> isready
+info string invalid FEN: invalid castling rights
+readyok
+>>> position fen 4Rr /7k/N2P4/7p/8/p7/3nK3/8 b - - 13 102
+>>> isready
+info string invalid FEN: FEN must contain six fields
+readyok
+>>> position fen 4b3/1r2Np2/p2R1n2/P1k5/15p/3p4/7B/7K w - - 14 71
+>>> isready
+info string invalid FEN: invalid FEN rank
+readyok
+>>> position fen 2b1kb2/8/2Pp3r/k1PpP1NPp/P7/5Kp1/7R/8 b - - 0 46
+>>> isready
+info string invalid FEN: invalid FEN placement
+readyok
+>>> position fen 5r1b/8/8/3k2p1/7p/7P/2K5/8 w - - 28 1136
+>>> isready
+readyok
+>>> go depth 2
+info depth 1 seldepth 1 score cp -1626 nodes 9 nps 0 hashfull 0 time 0 pv c2d1
+info depth 2 seldepth 3 score cp -1589 nodes 25 nps 0 hashfull 0 time 0 pv c2d1 d5d4
+bestmove c2d1
+>>> quit

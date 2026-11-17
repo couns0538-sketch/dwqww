@@ -1,0 +1,20 @@
+# PREDICTION — job21: the PC patch's OWN new surfaces (new code, not the repaired door)
+written before the first measuring command.
+
+The PC patch adds six compile-time fixes and five UCI options. Its fixes are claimed to repair
+known r9 defects; the value now is finding something the patch INTRODUCED or left half-done on
+its own new surfaces. Probe list, each at Threads 1 on the PC build:
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | HistRework accepts 0..3 and refuses 4 and -1 with `invalid value` | killed if out-of-range values are silently accepted |
+| P2 | every new option appears in the `uci` list, and each accepted value changes nothing about the four pins when left at default | killed if a default-off option changes a pin |
+| P3 | `go wtime btime 50` (a keyword where a value belongs) does NOT lose the clock: the engine still uses the 50 (FORGE_FIX_GO_PARSE) | killed if it answers instantly with 0 nodes |
+| P4 | `go depth` (no value) does not fall back to depth 1 silently in a way that returns the first legal move with 0 nodes | killed if it does |
+| P5 | `go nodes abc` (non-integer) leaves nodes unspecified and still searches | killed if it answers instantly with 0 nodes |
+| P6 | MateAlphaGuard exists only in the PC build (base build answers `unknown option`) | killed if the base build accepts it |
+| P7 | 0 sanitizer lines, 0 crashes over the probe set | killed by any one |
+
+Direction: P1/P3/P5 should PASS because the patch documents them as fixed. If P3 or P5 fails, that
+is a NEW find on the PC build (a `go` line whose limit is silently dropped). P4 is the one I most
+expect to break, because "depth with no value" is the exact shape FORGE_FIX_GO_PARSE describes.

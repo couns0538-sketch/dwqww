@@ -1,0 +1,18 @@
+# PREDICTION — job22: 30-F1 done properly (go + stop), and the wtime/btime parse, Threads 1
+written before the first measuring command.
+
+30-F1 (seat 30) claims the engine prints EXACTLY ONE bestmove per `go` line, including malformed
+ones, and lists `go banana`, `go depth -3`, `go`, `go depth 0`, `go nodes 0`, `go movetime 0`.
+My job21 probe could not test that, because a bare `go` never ends without `stop`. This job sends
+each go, waits a short fixed time, sends `stop`, and counts bestmoves.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | each of the six go lines yields exactly ONE bestmove after `stop` | REFUTES 30-F1 if any yields 0 or 2 |
+| P2 | the bestmove for each arrives within 2 s of the `stop` | killed if a case needs longer |
+| P3 | `go depth 5` (control) yields one bestmove WITHOUT a stop | killed if it needs one |
+| P4 | the stopped answer is a legal move | killed by any illegal move |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Direction: CONFIRMS 30-F1 on the PC build if P1 holds. This is a check of another seat's finding
+on a different build from theirs (they used the base tree), so it is worth its own line.

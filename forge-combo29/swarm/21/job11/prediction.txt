@@ -1,0 +1,17 @@
+# PREDICTION — job11 (area 1 job 3 AGAIN, SEED 2111 game), seat 21
+written before the first measuring command; not edited afterwards.
+
+What differs from job4: the random game is built from SEED 2111 instead of 2101, so the
+1,000 plies and every position on them are different, and the driver asserts that a
+`nodes` line was parsed for each perft (seat 19's integrity rule) instead of trusting an
+empty list.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the 1,000-ply legal list is applied completely: perft 1 and perft 2 equal python-chess | killed by any difference |
+| P2 | an illegal move at ply 1, 10 and 500 keeps the legal prefix at BOTH perft 1 and perft 2 | killed by any difference |
+| P3 | exactly one `info string illegal move` per bad token | killed if 0 or 2 |
+| P4 | 0 crashes, 0 sanitizer lines | killed by any one |
+| P5 | no case reaches the 1,000-ply limit by game end (a random game can end early) | if it ends early, the report says so and the prefix rule is still tested |
+
+Direction: CONFIRMS the brief's prefix rule on a second, independent game.

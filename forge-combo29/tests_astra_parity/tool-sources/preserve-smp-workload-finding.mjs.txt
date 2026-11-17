@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const root='/workspace/work/parity-run',sf=root+'/state.json',s=JSON.parse(fs.readFileSync(sf));
+const summary=JSON.parse(fs.readFileSync(root+'/response-diagnostic-recording-0018/snapshot-01/SUMMARY.txt'));
+const review='/workspace/work/parity-response-diagnostic-0018-findings/REVIEW.md';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+assert.equal(hash(review),'29716fb7e78e8ebd18e572cb3164d1bbf7ba1c2100e1a9a713af6d4cebab90ad');
+assert.equal(summary.completed,42);assert.equal(summary.blocked,0);
+const file=s.repo+'/forge-combo29/tests_astra_parity/faults/smp-ending-workload-0019.txt';
+const parts=['Observed SMP ending search workload; no engine edit.','UTC '+new Date().toISOString(),fs.readFileSync(review,'utf8'),
+ 'Repetitions: five per release case/thread/depth, as prescribed by decision0018; two TSan searches, one per case. No ten-try recurrence claim. Exact histories/commands/raw outputs follow.'];
+for(const row of summary.rows){
+ const p=row.process;parts.push('\nROW '+row.mode+' '+row.id,JSON.stringify(p,null,2));
+ for(const key of ['stdout','stderr']){const content=fs.readFileSync(p[key],'utf8');assert.equal(hash(p[key]),p[key+'Sha256']);parts.push('FULL '+key.toUpperCase()+' '+p[key],content);}
+}
+fs.writeFileSync(file,parts.join('\n')+'\n',{flag:'wx'});
+s.smpEndingWorkloadFinding={file,sha256:hash(file),reviewSha256:hash(review),sourceCommit:summary.sourceCommit,releaseSearches:40,tsanSearches:2,soakCredit:0,engineChanged:false,originalWarmStateReproduced:false};
+fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');
+console.log(JSON.stringify(s.smpEndingWorkloadFinding,null,2));

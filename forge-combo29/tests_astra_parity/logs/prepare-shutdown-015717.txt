@@ -1,0 +1,54 @@
+{
+  "label": "prepare-shutdown-015717",
+  "started": "2026-11-15T00:56:02.158Z",
+  "cwd": "/workspace/work/dwqww-parity",
+  "argv": [
+    "timeout",
+    "-k",
+    "2",
+    "440",
+    "node",
+    "/workspace/work/parity-run/prepare-shutdown-015717.mjs"
+  ],
+  "inputFile": null,
+  "ended": "2026-11-15T00:56:02.243Z",
+  "exit": 0,
+  "signal": null,
+  "stdoutFile": "/workspace/work/parity-run/logs/prepare-shutdown-015717.stdout.txt",
+  "stderrFile": "/workspace/work/parity-run/logs/prepare-shutdown-015717.stderr.txt",
+  "stdoutSha256": "9f307d718c95ac9db2de3d8563a392107847714b82989de984c84c69edd994d6",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+
+STDOUT
+{
+  "directory": "/workspace/work/parity-run/shutdown-review-015717",
+  "declaration": {
+    "utc": "2026-11-15T00:56:02.224Z",
+    "purpose": "Ten fresh candidate/reference pairs at full250ms quit allowance after a reference forced shutdown with4ms allowance at native batch cutoff; all outputs retained and no corpus credit.",
+    "pairs": 10,
+    "fen": "6rb/1b2pk2/p1p1p3/P3PP2/1P3P1p/K1P4P/6q1/R4r2 b - - 0 49",
+    "threads": 1,
+    "hash": 16,
+    "ownBook": false,
+    "depth": 9,
+    "expected": {
+      "move": "f1a1",
+      "scoreKind": "mate",
+      "score": 2,
+      "nodes": 705
+    },
+    "source": "#include \"uci_process.hpp\"\n#include <fstream>\n#include <iostream>\n#include <memory>\nstd::string quoted(const std::string& s) {std::string out=\"\\\"\";for(unsigned char c:s){if(c=='\"'||c=='\\\\'){out+='\\\\';out+=c;}else if(c=='\\n')out+=\"\\\\n\";else if(c=='\\r')out+=\"\\\\r\";else if(c=='\\t')out+=\"\\\\t\";else if(c<32)out+='?';else out+=c;}return out+'\"';}\nint main(int argc,char**argv){\n if(argc!=4)return 2;const std::string directory=argv[1],fen=\"6rb/1b2pk2/p1p1p3/P3PP2/1P3P1p/K1P4P/6q1/R4r2 b - - 0 49\";\n for(int repetition=1;repetition<=10;repetition++)for(int engine=0;engine<2;engine++){\n  const std::string side=engine==0?\"candidate\":\"reference\",name=\"pair-\"+std::to_string(repetition)+\"-\"+side;\n  std::unique_ptr<UciProcess> process;std::string error;UciResult result;UciShutdownResult shutdown;bool searched=false;\n  try {process=std::make_unique<UciProcess>(argv[engine+2],1,10000);result=process->search(fen,9,10000,true);searched=true;shutdown=process->finish(250);}\n  catch(const std::exception& e){error=e.what();if(process)shutdown=process->finish(250);}\n  std::ofstream trace(directory+\"/\"+name+\".transcript.txt\");if(process)trace<<process->transcript();else trace<<error;trace.close();\n  std::cout<<\"{\\\"repetition\\\":\"<<repetition<<\",\\\"engine\\\":\"<<quoted(side)<<\",\\\"binary\\\":\"<<quoted(argv[engine+2])<<\",\\\"fen\\\":\"<<quoted(fen)<<\",\\\"searched\\\":\"<<(searched?\"true\":\"false\")<<\",\\\"error\\\":\"<<quoted(error)<<\",\\\"depth\\\":\"<<result.depth<<\",\\\"bestmove\\\":\"<<quoted(result.move)<<\",\\\"score_kind\\\":\"<<quoted(result.score_kind)<<\",\\\"score\\\":\"<<result.score<<\",\\\"bound\\\":\"<<quoted(result.score_bound)<<\",\\\"nodes\\\":\"<<result.nodes<<\",\\\"shutdown\\\":{\\\"reaped\\\":\"<<(shutdown.reaped?\"true\":\"false\")<<\",\\\"exit_code\\\":\"<<shutdown.exit_code<<\",\\\"signal\\\":\"<<shutdown.signal<<\",\\\"timed_out\\\":\"<<(shutdown.timed_out?\"true\":\"false\")<<\",\\\"driver_sigterm\\\":\"<<(shutdown.driver_sigterm?\"true\":\"false\")<<\",\\\"driver_sigkill\\\":\"<<(shutdown.driver_sigkill?\"true\":\"false\")<<\",\\\"error\\\":\"<<quoted(shutdown.error)<<\"},\\\"transcript\\\":\"<<quoted(directory+\"/\"+name+\".transcript.txt\")<<\"}\"<<std::endl;\n }\n}\n",
+    "headerSha256": "606bd7cd54e94acba10da32bacc9c2620b7e5d8882b360e2492294ac197d40d2",
+    "binaryPins": {
+      "/workspace/work/parity-run/builds/step2-release/forge": "df76cddaea8a37dae7f8d1a5178700e0168aad8c463764ed6870d9c4fce2dc56",
+      "/workspace/work/r4-run/builds/guard-enabled/forge": "710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc"
+    },
+    "original": "/workspace/work/parity-run/equality-batches/step2/S2-0001/worker-1.jsonl.pending-3929.txt",
+    "originalSha256": "173fdbf8bc20b665f704df9c556061a24cbe4636fe625fb20184bab80fa1bca7",
+    "timing": "Measured header identical to v3 corpus transport; timing retained in every full transcript."
+  }
+}
+
+STDERR
+

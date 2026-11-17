@@ -1,0 +1,16 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';
+const [label,...args0]=process.argv.slice(2),root='/workspace/work/v3-run',cwd='/workspace/work';
+if(!/^[a-z0-9-]+$/.test(label??''))throw Error('label');
+const args=[...args0];let inputFile=null;if(args[0]==='--stdin'){args.shift();inputFile=args.shift();}if(!args.length)throw Error('command');
+const log=root+'/logs/'+label+'.txt',stdoutFile=root+'/logs/'+label+'.stdout.txt',stderrFile=root+'/logs/'+label+'.stderr.txt';
+if([log,stdoutFile,stderrFile].some(p=>fs.existsSync(p)))throw Error('fresh log required');
+const argv=['timeout','-k','2','440',...args],started=new Date().toISOString();
+const start={label,started,cwd,argv,inputFile};console.log('START '+JSON.stringify(start));fs.writeFileSync(log,JSON.stringify({...start,status:'running',stdoutFile,stderrFile},null,2)+'\n',{flag:'wx'});
+const out=fs.openSync(stdoutFile,'wx'),err=fs.openSync(stderrFile,'wx');
+const r=cp.spawnSync(argv[0],argv.slice(1),{cwd,input:inputFile?fs.readFileSync(inputFile):undefined,stdio:[inputFile?'pipe':'ignore',out,err],timeout:450000});
+fs.closeSync(out);fs.closeSync(err);
+const stdout=fs.readFileSync(stdoutFile),stderr=fs.readFileSync(stderrFile),ended=new Date().toISOString();
+const metadata={...start,ended,exit:r.status,signal:r.signal,error:r.error?.message,stdoutFile,stderrFile,stdoutSha256:crypto.createHash('sha256').update(stdout).digest('hex'),stderrSha256:crypto.createHash('sha256').update(stderr).digest('hex')};
+const stdoutDisplay=stdout.length>8*1024*1024?'Complete stdout retained in sibling '+label+'.stdout.txt (SHA256 above). Final8192 bytes follow:\n'+stdout.toString().slice(-8192):stdout.toString();
+fs.writeFileSync(log,JSON.stringify(metadata,null,2)+'\n\nSTDOUT\n'+stdoutDisplay+'\nSTDERR\n'+stderr.toString()+'\n');fs.writeFileSync(root+'/logs/'+label+'.metadata.txt',JSON.stringify(metadata,null,2)+'\n');
+console.log('RESULT '+JSON.stringify({...metadata,log,stdoutTail:stdout.toString().slice(-1800),stderrTail:stderr.toString().slice(-1800)}));process.exit(r.status??1);

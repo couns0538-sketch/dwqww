@@ -1,0 +1,29 @@
+[
+  {
+    "utc": "2026-11-15T01:35:52.536Z",
+    "argv": [
+      "sha256sum",
+      "/workspace/work/fastchess/fastchess",
+      "/workspace/work/parity-match-preparation/protocol.mjs"
+    ],
+    "cwd": "/workspace/work/fastchess",
+    "exit": 0,
+    "signal": null,
+    "stdout": "f8f1706b6b4906d524dd0ac0547deb9ec2b6b10b4e32d7bde66914ddee0ebd4f  /workspace/work/fastchess/fastchess\ndf5b9634a8293588dd6211803cab8e2330558764a44c6be12f24cf2caf5faf4f  /workspace/work/parity-match-preparation/protocol.mjs\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T01:35:52.538Z",
+    "argv": [
+      "sed",
+      "-n",
+      "29,56p",
+      "/workspace/work/fastchess/app/src/matchmaking/tournament/tournament_manager.cpp"
+    ],
+    "cwd": "/workspace/work/fastchess",
+    "exit": 0,
+    "signal": null,
+    "stdout": "void TournamentManager::start(const cli::Args& args) {\n    const auto options = cli::OptionsParser(args);\n\n    config::TournamentConfig = std::make_unique<config::Tournament>(options.getTournamentConfig());\n\n    config::EngineConfigs = std::make_unique<std::vector<EngineConfiguration>>(options.getEngineConfigs());\n\n    Logger::setLevel(config::TournamentConfig->log.level);\n    Logger::setStrict(config::TournamentConfig->strict);\n    Logger::setCompress(config::TournamentConfig->log.compress);\n    Logger::openFile(config::TournamentConfig->log.file, config::TournamentConfig->log.append_file);\n    Logger::setEngineComs(config::TournamentConfig->log.engine_coms);\n\n    LOG_INFO(\"{}\", cli::OptionsParser::Version);\n\n    random::seed(config::TournamentConfig->seed);\n\n    if (config::TournamentConfig->tb_adjudication.enabled) {\n        LOG_INFO(\"Loading Syzygy tablebases...\");\n        const int tbPieces = initSyzygy(config::TournamentConfig->tb_adjudication.syzygy_dirs);\n        if (tbPieces == 0) {\n            throw fastchess_exception::format(\n                \"Error: Failed to load Syzygy tablebases from the following directories: {}\",\n                config::TournamentConfig->tb_adjudication.syzygy_dirs);\n        }\n        LOG_INFO(\"Loaded {}-piece Syzygy tablebases.\", tbPieces);\n    }\n\n",
+    "stderr": ""
+  }
+]

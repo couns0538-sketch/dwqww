@@ -1,0 +1,23 @@
+# PREDICTION — job1, area 1 (seat 21, seed 2101)
+written before the first measuring command of this job; not edited afterwards.
+
+Setup: 20,000 single-mutation FENs drawn from G (353) and R (5,720 positions from random games by
+python-chess with SEED 2101, one every 7 plies), mutation kinds replace/insert/delete/swapfld/dropfld
+uniformly at random; engine = ASan+UBSan build of 6b98f217 (nm shows __asan_ > 0, __ubsan_ > 0).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | FENs REFUSED (`info string invalid FEN: ...`) | 8,000 to 14,000 of 20,000 |
+| P2 | FENs ACCEPTED | 6,000 to 12,000 of 20,000 |
+| P3 | of the ACCEPTED, python-chess also says valid | 60 % to 92 % |
+| P4 | of the ACCEPTED, python-chess says INVALID (engine laxer) | 8 % to 40 %; killed if < 200 FENs or > 8,000 |
+| P5 | crashes (dead engine process) | 0 to 2 |
+| P6 | hangs (no readyok/bestmove in 20 s) | 0 to 2 |
+| P7 | sanitizer lines (ASan/UBSan) | 0; killed by any one line |
+| P8 | illegal bestmoves on accepted FENs | 0 to 3 |
+| P9 | control: a 3,000-character first field is REFUSED without a crash | must hold exactly |
+| P10 | mutation kind "dropfld" is the most often REFUSED kind; "replace" the most often ACCEPTED-with-python-invalid | killed if another kind dominates by > 20 % |
+
+Why: set_fen parses fields and most malformed boards fail structural checks (piece counts, king count,
+side-to-move field), but castling-rights/clock/ep fields are known lax from the brief (impossible
+castling accepted), so a wide band of accepted-but-python-invalid is expected.

@@ -1,0 +1,26 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index e5d55fcb..a1edeaa4 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -101,11 +101,12 @@ struct TTEntry {
+     // 50-move draw from either clock. An exact clock match stays usable, except
+     // a mate the remaining half-moves cannot deliver. Not a repetition key.
+     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
++        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;
++        if (rule50_clock == capped) return true;
+         if (is_mate_score(score)) {
+             const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));
+             if (static_cast<int>(current_clock) + distance > 100) return false;
+         }
+-        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;
+         const int stored_clock = rule50_clock;
+         const int stored_depth = depth;
+         const bool inside_horizon = stored_clock + stored_depth < 100 &&
+{
+  "commit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+  "file": "forge-combo29/include/forge/search.hpp",
+  "beforeSha256": "6396815f6b2ef582151890bf5586019f0eab12e9f2586c9fafd6543ea4919e15",
+  "afterSha256": "44a77666b8ad0a91232a11dbced7deae101f85a426b17d67d31671ccf9fa89e8",
+  "diffSha256": "c6cf57424b372bd06e221262730bf862785ead9ad92ae384fd718877a00f8767",
+  "step1Audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0007.txt"
+}

@@ -1,0 +1,136 @@
+[
+  {
+    "utc": "2026-11-15T00:47:42.861Z",
+    "argv": [
+      "git",
+      "branch",
+      "--show-current"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "for-fable-and-opus/astra-0011-pc-parity\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.867Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include",
+      "forge-combo29/CMakeLists.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.875Z",
+    "argv": [
+      "git",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.883Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "forge-combo29/include/forge/search.hpp\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.889Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "forge-combo29/include/forge/search.hpp"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.894Z",
+    "argv": [
+      "git",
+      "diff",
+      "--",
+      "forge-combo29/include/forge/search.hpp"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp\nindex e5d55fcb..a1edeaa4 100644\n--- a/forge-combo29/include/forge/search.hpp\n+++ b/forge-combo29/include/forge/search.hpp\n@@ -101,11 +101,12 @@ struct TTEntry {\n     // 50-move draw from either clock. An exact clock match stays usable, except\n     // a mate the remaining half-moves cannot deliver. Not a repetition key.\n     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {\n+        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;\n+        if (rule50_clock == capped) return true;\n         if (is_mate_score(score)) {\n             const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));\n             if (static_cast<int>(current_clock) + distance > 100) return false;\n         }\n-        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;\n         const int stored_clock = rule50_clock;\n         const int stored_depth = depth;\n         const bool inside_horizon = stored_clock + stored_depth < 100 &&\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.904Z",
+    "argv": [
+      "git",
+      "add",
+      "--",
+      "forge-combo29/include/forge/search.hpp"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.922Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Accept identical capped rule-50 clocks before cross-clock TT checks"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "[for-fable-and-opus/astra-0011-pc-parity d9a8587d] Accept identical capped rule-50 clocks before cross-clock TT checks\n 1 file changed, 2 insertions(+), 1 deletion(-)\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T00:47:42.924Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-parity",
+    "exit": 0,
+    "signal": null,
+    "stdout": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf\n",
+    "stderr": ""
+  }
+]

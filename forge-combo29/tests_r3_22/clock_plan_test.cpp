@@ -1,0 +1,248 @@
+// Plans for clock play: time left, increment, moves-to-go, and Move Overhead.
+// The coefficients 22, 75, 60, and 5 are the sudden-death defaults in src/search.cpp.
+// clock_guard_test.cpp checks those live tune values still match.
+
+#include "forge/clock_plan.hpp"
+#include "forge/uci_clock.hpp"
+
+#include <algorithm>
+#include <cstdint>
+#include <iostream>
+#include <limits>
+#include <string>
+
+namespace {
+
+constexpr int kDivisor = 22;
+constexpr int kIncPercent = 75;
+constexpr int kHardPercent = 60;
+constexpr int kHardMultiple = 5;
+constexpr std::int64_t kLarge = 1000000000000LL;
+
+int failures = 0;
+int checks = 0;
+
+void fail(const std::string& message) {
+    ++failures;
+    if (failures <= 30) std::cerr << "FAIL " << message << '\n';
+}
+
+[[nodiscard]] bool fits_mul(std::int64_t value, std::int64_t numer) {
+    if (value < 0 || numer <= 0) return value == 0;
+    return value <= std::numeric_limits<std::int64_t>::max() / numer;
+}
+
+struct Legacy {
+    std::int64_t soft = 0;
+    std::int64_t hard = 0;
+    bool safe = false;
+};
+
+// Previous allocation, including the 1 ms floor that the fix removes.
+[[nodiscard]] Legacy previous_plan(std::int64_t time, std::int64_t increment, std::int64_t moves_to_go,
+                                  std::int64_t overhead) {
+    Legacy out;
+    if (overhead < 0) overhead = 0;
+    if (time < 0) time = 0;
+    if (increment < 0) increment = 0;
+    std::int64_t available = time - overhead;
+    if (available < 1) available = 1;
+    if (!fits_mul(increment, 3) || !fits_mul(increment, kIncPercent) || !fits_mul(available, 4) ||
+        !fits_mul(available, kHardPercent)) {
+        return out;
+    }
+    std::int64_t soft = 0;
+    std::int64_t hard = 0;
+    if (moves_to_go > 0) {
+        const std::int64_t mtg = moves_to_go < 50 ? moves_to_go : 50;
+        soft = available / (mtg + 1) + increment * 3 / 4;
+        if (!fits_mul(soft, 4)) return out;
+        hard = std::min(available * 4 / 5, soft * 4);
+    } else {
+        soft = available / kDivisor + increment * kIncPercent / 100;
+        if (!fits_mul(soft, kHardMultiple)) return out;
+        hard = std::min(available * kHardPercent / 100, soft * kHardMultiple);
+    }
+    out.soft = std::max<std::int64_t>(1, std::min(soft, available));
+    out.hard = std::max<std::int64_t>(1, std::min(hard, available));
+    out.safe = true;
+    return out;
+}
+
+void check(std::int64_t time, std::int64_t increment, std::int64_t moves_to_go, std::int64_t overhead, int divisor,
+           int inc_percent, int hard_percent, int hard_multiple) {
+    ++checks;
+    const std::int64_t oh = overhead > 0 ? overhead : 0;
+    const std::int64_t tm = time > 0 ? time : 0;
+    const std::int64_t inc = increment > 0 ? increment : 0;
+    const std::int64_t usable = tm > oh ? tm - oh : 0;
+    if (divisor == kDivisor && inc_percent == kIncPercent && hard_percent == kHardPercent &&
+        hard_multiple == kHardMultiple) {
+        const std::int64_t span = usable > 0 ? usable : 1;
+        if (!fits_mul(inc, 100) || !fits_mul(span, 100)) {
+            fail("grid value is outside the clock multiply contract time=" + std::to_string(time));
+            return;
+        }
+    }
+    const forge::ClockPlan plan =
+        forge::plan_clock_budget(time, increment, moves_to_go, overhead, divisor, inc_percent, hard_percent, hard_multiple);
+    const std::string where = "time=" + std::to_string(time) + " inc=" + std::to_string(increment) +
+                              " mtg=" + std::to_string(moves_to_go) + " oh=" + std::to_string(overhead);
+    if (plan.soft_ms < 0 || plan.hard_ms < 0) fail("negative budget " + where);
+    if (plan.soft_ms > plan.hard_ms) fail("soft above hard " + where);
+    if (plan.soft_ms > usable || plan.hard_ms > usable) fail("plan above time-overhead " + where);
+    if (usable == 0) {
+        if (!plan.reserve_empty || plan.soft_ms != 0 || plan.hard_ms != 0) fail("expected empty reserve " + where);
+    } else if (plan.reserve_empty || plan.soft_ms < 1 || plan.hard_ms < 1) {
+        fail("expected a positive reserve " + where);
+    }
+    if (divisor != kDivisor || inc_percent != kIncPercent || hard_percent != kHardPercent ||
+        hard_multiple != kHardMultiple) {
+        return;
+    }
+    const Legacy old = previous_plan(time, increment, moves_to_go, overhead);
+    if (!old.safe) {
+        fail("could not score the previous plan " + where);
+        return;
+    }
+    if (usable == 0) {
+        if (old.soft < 1 || old.hard < 1) fail("previous plan was already empty " + where);
+        return;
+    }
+    if (old.soft <= old.hard) {
+        if (plan.soft_ms != old.soft || plan.hard_ms != old.hard || plan.reserve_empty) {
+            fail("safe plan changed " + where + " new " + std::to_string(plan.soft_ms) + "/" +
+                 std::to_string(plan.hard_ms) + " old " + std::to_string(old.soft) + "/" + std::to_string(old.hard));
+        }
+    } else if (plan.hard_ms != old.hard || plan.soft_ms != old.hard || plan.soft_ms >= old.soft) {
+        fail("soft was not pulled down to hard " + where);
+    }
+}
+
+void expect(std::int64_t time, std::int64_t increment, std::int64_t moves_to_go, std::int64_t overhead,
+            std::int64_t soft, std::int64_t hard, bool empty, const char* name) {
+    check(time, increment, moves_to_go, overhead, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan plan =
+        forge::plan_clock_budget(time, increment, moves_to_go, overhead, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    if (plan.soft_ms != soft || plan.hard_ms != hard || plan.reserve_empty != empty) {
+        fail(std::string(name) + " got " + std::to_string(plan.soft_ms) + "/" + std::to_string(plan.hard_ms) +
+             (plan.reserve_empty ? " empty" : " live") + " expected " + std::to_string(soft) + "/" +
+             std::to_string(hard) + (empty ? " empty" : " live"));
+    }
+}
+
+void add_point(std::int64_t (&points)[8], int& count, std::int64_t value) {
+    for (int i = 0; i < count; ++i) {
+        if (points[i] == value) return;
+    }
+    if (count < 8) points[count++] = value;
+}
+
+} // namespace
+
+int main() {
+    static_assert(forge::kMaxClockMs <= std::numeric_limits<std::int64_t>::max() / 150);
+    static_assert(forge::kMaxClockMs <= std::numeric_limits<std::int64_t>::max() / 100);
+
+    expect(0, 0, 0, 10, 0, 0, true, "zero clock, overhead 10");
+    expect(5, 0, 0, 50, 0, 0, true, "5 ms clock, overhead 50");
+    expect(9, 0, 0, 10, 0, 0, true, "one under overhead");
+    expect(10, 0, 0, 10, 0, 0, true, "clock equal to overhead");
+    expect(0, 0, 0, 0, 0, 0, true, "zero clock and zero overhead");
+    expect(11, 0, 0, 10, 1, 1, false, "one millisecond usable");
+    expect(1, 0, 0, 0, 1, 1, false, "one millisecond and no overhead");
+    expect(100, 0, 0, 10, 4, 20, false, "sudden death, no increment");
+    expect(100, 2000, 0, 10, 54, 54, false, "increment pulled soft down to hard");
+    expect(60000, 100, 0, 10, 2801, 14005, false, "ordinary minute plus increment");
+    expect(10000, 0, 40, 10, 243, 972, false, "moves-to-go 40");
+    expect(1000, 5000, 1, 10, 792, 792, false, "moves-to-go with a large increment");
+    expect(5000, 100, 49, 10, 174, 696, false, "moves-to-go just under the cap");
+    expect(5000, 100, 50, 10, 172, 688, false, "moves-to-go at the cap");
+    expect(5000, 100, 51, 10, 172, 688, false, "moves-to-go just over the cap");
+    expect(10000, 100, 0, 10, 529, 2645, false, "increment that still fits under hard");
+
+    const forge::ClockPlan capped_50 =
+        forge::plan_clock_budget(5000, 100, 50, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan capped_large =
+        forge::plan_clock_budget(5000, 100, kLarge, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan capped_max =
+        forge::plan_clock_budget(5000, 100, forge::kMaxClockMs, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    if (capped_50.soft_ms != capped_large.soft_ms || capped_50.hard_ms != capped_large.hard_ms ||
+        capped_50.soft_ms != capped_max.soft_ms || capped_50.hard_ms != capped_max.hard_ms) {
+        fail("moves-to-go above 50 changed the plan");
+    }
+    const forge::ClockPlan sudden =
+        forge::plan_clock_budget(5000, 100, 0, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan negative_mtg =
+        forge::plan_clock_budget(5000, 100, -1, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    if (sudden.soft_ms != negative_mtg.soft_ms || sudden.hard_ms != negative_mtg.hard_ms ||
+        sudden.reserve_empty != negative_mtg.reserve_empty) {
+        fail("negative moves-to-go diverged from sudden death");
+    }
+
+    const forge::ClockPlan no_overhead =
+        forge::plan_clock_budget(100, 0, 0, 0, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan negative_overhead =
+        forge::plan_clock_budget(100, 0, 0, -4, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    if (no_overhead.soft_ms != negative_overhead.soft_ms || no_overhead.hard_ms != negative_overhead.hard_ms) {
+        fail("negative overhead was not treated as zero");
+    }
+    const forge::ClockPlan no_inc =
+        forge::plan_clock_budget(10000, 0, 0, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan negative_inc =
+        forge::plan_clock_budget(10000, -50, 0, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+    if (no_inc.soft_ms != negative_inc.soft_ms || no_inc.hard_ms != negative_inc.hard_ms) {
+        fail("negative increment was not treated as zero");
+    }
+
+    const forge::ClockPlan wide_div =
+        forge::plan_clock_budget(2200, 0, 0, 0, 22, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan narrow_div =
+        forge::plan_clock_budget(2200, 0, 0, 0, 10, kIncPercent, kHardPercent, kHardMultiple);
+    if (wide_div.soft_ms != 100 || wide_div.hard_ms != 500 || narrow_div.soft_ms != 220 || narrow_div.hard_ms != 1100) {
+        fail("soft divisor did not scale the sudden-death plan");
+    }
+    const forge::ClockPlan mtg_div_a =
+        forge::plan_clock_budget(5000, 0, 10, 10, 22, kIncPercent, kHardPercent, kHardMultiple);
+    const forge::ClockPlan mtg_div_b =
+        forge::plan_clock_budget(5000, 0, 10, 10, 80, kIncPercent, kHardPercent, kHardMultiple);
+    if (mtg_div_a.soft_ms != mtg_div_b.soft_ms || mtg_div_a.hard_ms != mtg_div_b.hard_ms || mtg_div_a.soft_ms != 453 ||
+        mtg_div_a.hard_ms != 1812) {
+        fail("moves-to-go plan followed the sudden-death divisor");
+    }
+    const forge::ClockPlan with_inc =
+        forge::plan_clock_budget(10000, 1000, 0, 0, kDivisor, 75, kHardPercent, kHardMultiple);
+    const forge::ClockPlan without_inc_share =
+        forge::plan_clock_budget(10000, 1000, 0, 0, kDivisor, 0, kHardPercent, kHardMultiple);
+    if (with_inc.soft_ms != 1204 || with_inc.hard_ms != 6000 || without_inc_share.soft_ms != 454 ||
+        without_inc_share.hard_ms != 2270) {
+        fail("increment percent did not scale the soft budget");
+    }
+
+    const std::int64_t bases[] = {0, 1, 9, 10, 11, 50, 1000, kLarge, forge::kMaxClockMs};
+    for (const std::int64_t overhead : bases) {
+        std::int64_t points[8] = {};
+        int count = 0;
+        add_point(points, count, 0);
+        add_point(points, count, 1);
+        add_point(points, count, overhead - 1);
+        add_point(points, count, overhead);
+        if (overhead < std::numeric_limits<std::int64_t>::max()) add_point(points, count, overhead + 1);
+        add_point(points, count, kLarge);
+        add_point(points, count, forge::kMaxClockMs);
+        for (int t = 0; t < count; ++t) {
+            for (int i = 0; i < count; ++i) {
+                for (int m = 0; m < count; ++m) {
+                    check(points[t], points[i], points[m], overhead, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+                }
+            }
+        }
+    }
+
+    if (failures != 0) {
+        std::cerr << failures << " failed out of " << checks << " checks\n";
+        return 1;
+    }
+    std::cout << "PASS clock plan checks " << checks << '\n';
+    return 0;
+}

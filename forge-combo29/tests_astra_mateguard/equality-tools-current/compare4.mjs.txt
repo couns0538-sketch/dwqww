@@ -1,0 +1,178 @@
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import readline from 'node:readline';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+
+const ROOT='/workspace/work/r4-run';
+const DEFAULT_CORPUS='/workspace/work/dwqww-all/forge-combo29/soak_all/search_corpus.txt';
+const EXPECTED_CORPUS='571fd73cf5ec3ddad78d6afc1dd65c57d7f4c3f8eaa424cbfbabe94a4a8b06c1';
+const DRIVER=ROOT+'/equality-tools/search_compare',MERGED=ROOT+'/builds/guard-enabled/forge',LOCK='/workspace/work/all-run/builds/release/forge';
+export const COUNT_FIELDS='records_completed positions positions_low_clock positions_high_clock differences_low_clock differences_high_clock fault_positions excluded excluded_no_legal excluded_insufficient excluded_halfmove100 invalid_fens engine_runs illegal missing missing_info wrong_depth sanitizer_issues transport_issues crashes nonzero_exits shutdown_timeouts reproduction_pairs reproduction_differences reproduction_fault_pairs'.split(' ');
+export const COUNT_MAP=Object.fromEntries(COUNT_FIELDS.map(k=>[k,'counts.'+k]));
+const OPTIONS={Threads:1,Hash:16,OwnBook:false,UseNNUE:true,MultiPV:1,NnueFile:'',ContHist4PlyRead:false,NonPawnCorrection:false,LmrDeeperShallower:false};
+const zero=()=>Object.fromEntries(COUNT_FIELDS.map(k=>[k,0]));
+const json=x=>JSON.stringify(x,null,2)+'\n';
+const hash=raw=>crypto.createHash('sha256').update(raw).digest('hex');
+const hashFile=file=>hash(fs.readFileSync(file));
+const quote=s=>"'"+String(s).replaceAll("'","'\\''")+"'";
+const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function safeInt(n,name,min=0,max=Number.MAX_SAFE_INTEGER){if(!Number.isSafeInteger(n)||n<min||n>max)throw Error(name+' out of range');return n;}
+function inside(file){file=path.resolve(file);if(!file.startsWith(ROOT+'/'))throw Error('Output must be inside '+ROOT);return file;}
+function records(text){return text.split('\n').map(line=>line.replace(/\r$/,'').replace(/^[ \t]+|[ \t]+$/g,'')).filter(line=>line&&!line.startsWith('#'));}
+async function readLines(file,fn){let n=0;for await(const line of readline.createInterface({input:fs.createReadStream(file),crlfDelay:Infinity}))await fn(line,++n);}
+
+export function prepareShards(input=DEFAULT_CORPUS,directory=ROOT+'/compare-shards'){
+  input=path.resolve(input);directory=inside(directory);
+  const raw=fs.readFileSync(input),sourceSha=hash(raw);
+  if(input===DEFAULT_CORPUS&&sourceSha!==EXPECTED_CORPUS)throw Error('Frozen corpus SHA256 changed');
+  if(fs.existsSync(directory))throw Error('Refusing to overwrite shard directory '+directory);
+  const all=records(raw.toString('utf8')),split=[[],[],[],[]];all.forEach((line,i)=>split[i%4].push(line));
+  fs.mkdirSync(directory,{recursive:true});
+  const shards=split.map((lines,worker)=>{
+    const file=directory+'/shard-'+worker+'.txt',content=lines.join('\n')+'\n';fs.writeFileSync(file,content,{flag:'wx',mode:0o444});
+    return {worker,file,records:lines.length,sha256:hash(content),globalIndexFormula:'4 * local_index + '+worker};
+  });
+  const manifest={schema:1,type:'frozen_round_robin_four_shards',preparedUTC:new Date().toISOString(),source:input,sourceSha256:sourceSha,sourceBytes:raw.length,sourceRecords:all.length,normalizedRecordSha256:hash(all.join('\n')+'\n'),normalization:'Comparator record_line: strip CR and leading/trailing ASCII space/tab, omit blank/comment records; preserve duplicates',assignment:'source_record_index % 4',globalIndexFormula:'4 * local_index + worker',eligibleTargetPerWorker:25000,shards,note:'Shard targets select 25000 eligible comparisons per shard, not necessarily the original global first 100000 eligible prefix; no engine-result filtering.'};
+  fs.writeFileSync(directory+'/manifest.txt',json(manifest),{flag:'wx',mode:0o444});
+  fs.writeFileSync(directory+'/count-map.txt',json(COUNT_MAP),{flag:'wx',mode:0o444});
+  console.log('PREPARED '+JSON.stringify({...manifest,manifest:directory+'/manifest.txt',manifestSha256:hashFile(directory+'/manifest.txt')}));
+  return manifest;
+}
+
+export function makePlan(config,outOverride){
+  const out=inside(outOverride??config.out),manifestFile=path.resolve(config.manifest??ROOT+'/compare-shards/manifest.txt');
+  const manifest=JSON.parse(fs.readFileSync(manifestFile,'utf8'));
+  if(manifest.type!=='frozen_round_robin_four_shards'||manifest.shards?.length!==4)throw Error('Invalid shard manifest');
+  const seconds=safeInt(config.seconds??330,'seconds',1,330),seed=String(config.seed??4754000);
+  if(!/^\d+$/.test(seed)||BigInt(seed)>18446744073709551615n)throw Error('seed must be uint64 decimal text');
+  if(typeof config.seed==='number'&&!Number.isSafeInteger(config.seed))throw Error('Use a decimal string for a uint64 seed');
+  const driver=path.resolve(config.driver??DRIVER),merged=path.resolve(config.merged??MERGED),lock=path.resolve(config.lock??LOCK);
+  const requested=config.workers;if(!Array.isArray(requested)||requested.length!==4||new Set(requested.map(w=>w.worker)).size!==4)throw Error('Supply exactly four workers, IDs0..3');
+  const workers=requested.map(w=>{
+    const worker=safeInt(w.worker,'worker',0,3),shard=manifest.shards.find(x=>x.worker===worker);if(!shard)throw Error('Missing shard '+worker);
+    const offset=safeInt(w.offset,'offset',0,shard.records),remaining=safeInt(w.remainingEligible,'remainingEligible',0,25000);
+    const requestedLimit=safeInt(w.recordLimit??config.recordLimit??25000,'recordLimit',1,25000);
+    const limit=Math.min(remaining,requestedLimit,shard.records-offset),prefix=out+'/worker-'+worker;
+    const argv=[driver,'--merged',merged,'--lock',lock,'--input',shard.file,'--offset',String(offset),'--limit',String(limit),'--seconds',String(seconds),'--seed',seed,'--out',prefix+'.jsonl'];
+    return {worker,shard,offset,remainingEligibleBefore:remaining,recordLimit:limit,prefix,argv,timeoutArgv:['-k','5s',String(seconds+15)+'s',...argv],skip:remaining===0||offset===shard.records,skipReason:remaining===0?'target_already_met':offset===shard.records?'shard_exhausted':null};
+  }).sort((a,b)=>a.worker-b.worker);
+  return {schema:1,type:'comparison_four_worker_plan',out,manifestFile,manifest,seconds,shutdownAllowanceSeconds:20,seed,driver,merged,lock,workers,countMap:COUNT_MAP,
+    note:'Each --limit caps input records at remaining eligible target; exclusions consume cursor records without overshooting the eligible target. Root alone manages future cursors.'};
+}
+
+async function runWorker(plan,w,active){
+  if(w.skip)return {...w,accepted:false,skipped:true,counts:zero(),next_offset:w.offset,remainingEligibleAfter:w.remainingEligibleBefore,summary:null,summaryRaw:null,process:null,validationErrors:[]};
+  const stdout=w.prefix+'.stdout.txt',stderr=w.prefix+'.stderr.txt',consoleFile=w.prefix+'.console.txt';
+  const fds=[stdout,stderr,consoleFile].map(file=>fs.openSync(file,'wx'));
+  const command=['/usr/bin/timeout',...w.timeoutArgv];
+  fs.writeFileSync(w.prefix+'.command.txt','UTC '+new Date().toISOString()+'\nCWD '+plan.out+'\nCOMMAND '+command.map(quote).join(' ')+'\n',{flag:'wx'});
+  let child,spawnError=null,killTimer=null,stopRequested=false;const ioErrors=[];
+  const stop=()=>{stopRequested=true;try{if(child?.pid)process.kill(-child.pid,'SIGTERM');}catch{};killTimer??=setTimeout(()=>{try{if(child?.pid)process.kill(-child.pid,'SIGKILL');}catch{}},5000);};
+  child=spawn(command[0],command.slice(1),{cwd:plan.out,stdio:['ignore','pipe','pipe'],detached:true});active.set(w.worker,{child,stop});
+  const write=(channel,chunk)=>{try{fs.writeSync(fds[channel],chunk);fs.writeSync(fds[2],chunk);}catch(e){ioErrors.push(e.message);stop();}};
+  child.stdout.on('data',chunk=>write(0,chunk));child.stderr.on('data',chunk=>write(1,chunk));
+  const processResult=await new Promise(resolve=>{child.on('error',e=>{spawnError=e.message;});child.on('close',(code,signal)=>resolve({code,signal,spawnError,ioErrors,timedOut:code===124||code===137}));});
+  processResult.stopRequested=stopRequested;
+  if(stopRequested||processResult.timedOut||processResult.signal||![0,1].includes(processResult.code)){
+    try{if(child.pid){process.kill(-child.pid,'SIGKILL');processResult.finalGroupSigkill=true;}}catch(e){if(e.code!=='ESRCH')processResult.cleanupError=e.message;}
+  }
+  active.delete(w.worker);if(killTimer)clearTimeout(killTimer);for(const fd of fds)try{fs.closeSync(fd);}catch(e){ioErrors.push(e.message);}
+  const validationErrors=[],check=(ok,message)=>{if(!ok)validationErrors.push(message);};
+  const consoleText=fs.readFileSync(consoleFile,'utf8'),rawLine=consoleText.split(/\r?\n/).filter(line=>line.startsWith('SUMMARY ')).at(-1);
+  const summaryRaw=rawLine?rawLine.slice(8):null;let summary=null;
+  try{if(summaryRaw)summary=JSON.parse(summaryRaw);else check(false,'missing final SUMMARY');}catch(e){check(false,'invalid SUMMARY: '+e.message);}
+  const rowCounts={records_completed:0,positions:0,excluded:0,invalid_fens:0},shardRecords=records(fs.readFileSync(w.shard.file,'utf8'));
+  const configs=[],fileSummaries=[],partialRows=[];let next=w.offset;
+  if(fs.existsSync(w.prefix+'.jsonl'))await readLines(w.prefix+'.jsonl',(line,n)=>{
+    if(!line.trim())return;let row;try{row=JSON.parse(line);}catch(e){check(false,'invalid JSONL line '+n);return;}
+    if(row.type==='config')configs.push(row);
+    else if(row.type==='summary')fileSummaries.push(row);
+    else if(row.type==='partial')partialRows.push(row.data);
+    else if(['position','excluded','invalid_fen'].includes(row.type)){
+      const context=row.context??row,index=context.index;
+      check(index===next,'noncontiguous committed input index '+index+' expected '+next);
+      check(context.fen===shardRecords[index],'committed FEN/shard mismatch '+index);
+      next++;rowCounts.records_completed++;rowCounts[row.type==='position'?'positions':row.type==='excluded'?'excluded':'invalid_fens']++;
+    }else check(false,'unknown JSONL record type '+row.type);
+  });else check(false,'missing JSONL');
+  check(configs.length===1,'expected one driver CONFIG');
+  const cfg=configs[0];
+  check(!!cfg&&cfg.merged===plan.merged&&cfg.lock===plan.lock&&cfg.input===w.shard.file&&cfg.offset===w.offset&&cfg.limit===w.recordLimit&&cfg.seconds===plan.seconds&&cfg.depth===9&&cfg.observed_shutdown===true&&cfg.cold_state==='fresh_process_and_ucinewgame_before_every_search'&&equal(cfg.options,OPTIONS),'driver CONFIG/settings mismatch');
+  check(fileSummaries.length===1&&!!summary&&equal(fileSummaries[0],summary),'console/file SUMMARY mismatch');
+  if(summary){
+    check(summary.type==='summary'&&!summary.driver_error,'driver did not produce count SUMMARY');
+    check(summary.offset===w.offset&&summary.next_offset===w.offset+summary.records_completed&&summary.next_offset===next,'committed cursor mismatch');
+    check(summary.positions<=w.remainingEligibleBefore&&summary.records_completed<=w.recordLimit,'eligible target/input limit overshoot');
+    check(summary.records_completed===summary.positions+summary.excluded+summary.invalid_fens,'record/eligible/exclusion count mismatch');
+    check(summary.positions===summary.positions_low_clock+summary.positions_high_clock,'eligible clock-group mismatch');
+    for(const k of COUNT_FIELDS)check(Number.isSafeInteger(summary[k])&&summary[k]>=0,'invalid count '+k);
+    for(const [k,v]of Object.entries(rowCounts))check(summary[k]===v,'JSONL/SUMMARY count mismatch '+k);
+    check(typeof summary.partial==='boolean'&&(!summary.partial||summary.partial_evidence?.counted===false),'missing partial exclusion contract');
+    check(partialRows.length===(summary.partial?1:0),'partial row count mismatch');
+    if(summary.partial)check(summary.partial_evidence.context.index===summary.next_offset&&partialRows[0]?.counted===false,'partial cursor/exclusion mismatch');
+    const rawSeed=summaryRaw.match(/"seed"\s*:\s*(\d+)/)?.[1];check(rawSeed!==undefined&&BigInt(rawSeed)===BigInt(plan.seed),'exact seed mismatch');
+  }
+  check(!spawnError&&!ioErrors.length,'spawn or output I/O failed');
+  const accepted=!!summary&&!validationErrors.length,counts=accepted?Object.fromEntries(COUNT_FIELDS.map(k=>[k,summary[k]])):zero();
+  const result={worker:w.worker,accepted,skipped:false,offset:w.offset,recordLimit:w.recordLimit,remainingEligibleBefore:w.remainingEligibleBefore,
+    next_offset:accepted?summary.next_offset:w.offset,remainingEligibleAfter:w.remainingEligibleBefore-counts.positions,counts,summary,summaryRaw,process:processResult,
+    rowCounts,validationErrors,partialRows,globalRecordMapping:'4 * local_index + '+w.worker,
+    committedRange:accepted?{firstLocal:w.offset,lastLocalExclusive:summary.next_offset,firstGlobal:4*w.offset+w.worker,stride:4}:null,
+    outputPrefix:w.prefix,command,uncommittedReason:accepted?null:validationErrors.join('; ')};
+  fs.writeFileSync(w.prefix+'.result.txt',json(result),{flag:'wx'});return result;
+}
+
+export function combineWorkers(plan,workers,interruption=null){
+  const counts=zero();for(const w of workers)if(w.accepted)for(const k of COUNT_FIELDS)counts[k]+=w.counts[k];
+  const partialWorkers=workers.filter(w=>!w.skipped&&(!w.accepted||w.summary?.partial||w.process?.timedOut||w.process?.signal));
+  const workerErrors=workers.filter(w=>w.validationErrors?.length||w.process?.spawnError||w.process?.ioErrors?.length);
+  const exhaustedWorkers=workers.filter(w=>w.remainingEligibleAfter>0&&(w.skipReason==='shard_exhausted'||w.summary?.eof===true)).map(w=>({worker:w.worker,next_offset:w.next_offset,remainingEligible:w.remainingEligibleAfter}));
+  const faults=counts.fault_positions||counts.crashes||counts.nonzero_exits||counts.shutdown_timeouts||counts.sanitizer_issues||counts.transport_issues||counts.illegal;
+  const allTargetsMet=workers.every(w=>w.remainingEligibleAfter===0);
+  return {schema:1,type:'comparison_sharded_summary',seed:plan.seed,counts,completed_units:counts.records_completed,counts_exclude_partial:true,
+    partial:!!interruption||partialWorkers.length>0,partial_evidence:{counted:false,workers:partialWorkers.map(w=>({worker:w.worker,acceptedCompletedUnits:w.counts.records_completed,excluded:w.summary?.partial_evidence??null,uncommittedReason:w.uncommittedReason??null,process:w.process}))},
+    workers,worker_count:4,allTargetsMet,exhaustedWorkers,interruption,hasCompletedFaults:!!faults,validationFailed:workerErrors.length>0,
+    nextWorkers:workers.map(w=>({worker:w.worker,offset:w.next_offset,remainingEligible:w.remainingEligibleAfter})),
+    manifest:plan.manifestFile,sourceSha256:plan.manifest.sourceSha256,shards:plan.manifest.shards,
+    countMap:COUNT_MAP,note:'Only final-summary-verified committed records are counted. Eligible comparisons are counts.positions; input records and exclusions remain separate. Partial record and reproduction attempts are excluded. Root manages all cursors; wrapper writes no global state. Counts only, no engine speed or strength conclusion.'};
+}
+
+async function run(configFile,outOverride,dry=false){
+  const config=JSON.parse(fs.readFileSync(configFile,'utf8')),plan=makePlan(config,outOverride);
+  if(dry){console.log('PLAN '+JSON.stringify(plan));return;}
+  if(fs.existsSync(plan.out))throw Error('Batch output directory must be new: '+plan.out);
+  for(const shard of plan.manifest.shards){if(hashFile(shard.file)!==shard.sha256||records(fs.readFileSync(shard.file,'utf8')).length!==shard.records)throw Error('Frozen shard changed: '+shard.file);}
+  if(hashFile(plan.manifest.source)!==plan.manifest.sourceSha256)throw Error('Frozen source changed');
+  const inputs=[plan.driver,plan.merged,plan.lock,plan.manifestFile,...plan.manifest.shards.map(s=>s.file)],inputHashes=Object.fromEntries([...new Set(inputs)].map(file=>[file,hashFile(file)]));
+  fs.mkdirSync(plan.out,{recursive:true});fs.writeFileSync(plan.out+'/config.txt',json({...plan,inputConfig:path.resolve(configFile),inputHashes,startedUTC:new Date().toISOString()}),{flag:'wx'});
+  fs.writeFileSync(plan.out+'/count-map.txt',json(COUNT_MAP),{flag:'wx'});
+  const active=new Map();let interruption=null;
+  const stop=signal=>{interruption??=signal;for(const w of active.values())w.stop();};
+  const onInt=()=>stop('SIGINT'),onTerm=()=>stop('SIGTERM');process.on('SIGINT',onInt);process.on('SIGTERM',onTerm);
+  const progress=setInterval(()=>console.log('WORKERS_PROGRESS '+JSON.stringify({utc:new Date().toISOString(),active:[...active.keys()],out:plan.out})),30000);
+  console.log('WORKERS_START '+JSON.stringify({out:plan.out,seed:plan.seed,seconds:plan.seconds,workers:plan.workers.map(w=>({worker:w.worker,offset:w.offset,recordLimit:w.recordLimit,remainingEligible:w.remainingEligibleBefore,skip:w.skip}))}));
+  let workers;try{
+    workers=await Promise.all(plan.workers.map(async w=>{try{return await runWorker(plan,w,active);}catch(e){return {worker:w.worker,accepted:false,skipped:false,offset:w.offset,next_offset:w.offset,remainingEligibleBefore:w.remainingEligibleBefore,remainingEligibleAfter:w.remainingEligibleBefore,counts:zero(),summary:null,summaryRaw:null,validationErrors:[e.stack],uncommittedReason:e.message};}}));
+  }finally{clearInterval(progress);process.off('SIGINT',onInt);process.off('SIGTERM',onTerm);for(const w of active.values())w.stop();}
+  const changedInputs=[];
+  for(const [file,expected]of Object.entries(inputHashes))if(hashFile(file)!==expected)changedInputs.push(file);
+  if(changedInputs.length)for(const w of workers){w.preInputChangeCounts=w.counts;w.accepted=false;w.counts=zero();w.next_offset=w.offset;w.remainingEligibleAfter=w.remainingEligibleBefore;(w.validationErrors||=[]).push('input changed during batch');w.uncommittedReason='input changed during batch';}
+  const summary=combineWorkers(plan,workers,interruption);if(changedInputs.length)summary.changedInputs=changedInputs;
+  summary.inputHashes=inputHashes;summary.finishedUTC=new Date().toISOString();
+  const artifacts={};for(const name of fs.readdirSync(plan.out).sort()){const file=path.join(plan.out,name);if(fs.statSync(file).isFile())artifacts[name]={bytes:fs.statSync(file).size,sha256:hashFile(file)};}
+  summary.artifactEvidence={manifest:plan.out+'/artifact-hashes.txt',files_count:Object.keys(artifacts).length+1,total_bytes_before_summary:Object.values(artifacts).reduce((n,f)=>n+f.bytes,0)};
+  fs.writeFileSync(plan.out+'/summary.txt',json(summary),{flag:'wx'});
+  fs.writeFileSync(plan.out+'/artifact-hashes.txt',json({...artifacts,'summary.txt':{bytes:fs.statSync(plan.out+'/summary.txt').size,sha256:hashFile(plan.out+'/summary.txt')}}),{flag:'wx'});
+  console.log('SUMMARY '+JSON.stringify(summary));process.exitCode=summary.validationFailed||interruption||summary.exhaustedWorkers.length?3:summary.hasCompletedFaults?1:0;
+}
+async function main(args){
+  if(!args.length||args.includes('--help')){console.log('prepare [CORPUS [SHARD_DIRECTORY]]\nrun CONFIG_JSON [--out NEW_BATCH_DIRECTORY] [--dry-run]\nFour workers use separate immutable roundrobin shards and explicit offset/remainingEligible targets. Driver budget<=330s, per-worker timeout budget+15s with kill-after5s. No global state/commit/push.');return;}
+  if(args[0]==='prepare'){if(args.length>3)throw Error('prepare expects [CORPUS [DIRECTORY]]');prepareShards(args[1],args[2]);return;}
+  if(args[0]!=='run'||!args[1])throw Error('Expected prepare or run CONFIG_JSON');
+  let override,dry=false;for(let i=2;i<args.length;i++){if(args[i]==='--out')override=args[++i];else if(args[i]==='--dry-run')dry=true;else throw Error('Unknown argument '+args[i]);}
+  await run(args[1],override,dry);
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(e=>{console.error('SUMMARY '+JSON.stringify({type:'comparison_sharded_summary_error',driver_error:e.stack,partial:true,counts_exclude_partial:true}));process.exitCode=3;});

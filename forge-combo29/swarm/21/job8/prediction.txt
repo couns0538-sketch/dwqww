@@ -1,0 +1,22 @@
+# PREDICTION — job8 (area 1 job 2 AGAIN, SEED 2111 clock values), seat 21
+written before the first measuring command; not edited afterwards.
+
+What differs from job3: clock/extreme values drawn with SEED 2111 (five random halfmove
+values above 100, three random fullmove values), four new ep forms (e0, and two mate-in-1
+positions at halfmove 100 for both sides), and the 19-F12-safe driver with `OwnBook false`.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | every halfmove value ≥ 100, including all five seed-drawn ones, is ACCEPTED | killed by any refusal |
+| P2 | every accepted halfmove ≥ 100 gives `score cp 0 nodes 0` at depth 4 | killed if any one gives nodes > 0 |
+| P3 | `hm100_mate_in_1` (White mates in 1, halfmove 100) still reports 0 nodes and plays a non-mating move | killed if it finds the mate |
+| P4 | `hm100_black_mate_in_1` (BLACK mates in 1, halfmove 100) also 0 nodes | killed if nodes > 0 |
+| P5 | `fullmove 0` refused again; 65535 and 65536 accepted | killed by any deviation |
+| P6 | `ep_e0` is refused (rank 0 is not a square) | killed if accepted |
+| P7 | 0 crashes, 0 sanitizer lines | killed by any one |
+| P8 | every accepted FEN's perft 2 equals python-chess's | killed by any difference |
+| P9 | no `nodes` line is ever missing from a perft answer (the integrity assert never fires) | killed if it fires |
+
+Why: P1/P2 follow from `src/board.cpp:351` clamping and `src/search.cpp:2251`'s root-draw
+test being `>= 100`. P3/P4 follow from 30-F7's report of the fault being side-blind; this run
+re-tests it on a different seed's positions, which is what a repeat is for.

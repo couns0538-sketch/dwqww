@@ -1,0 +1,29 @@
+# PREDICTION — job10: CHECK of seat 08's 08-F5, seat 21
+written before the first measuring command; not edited afterwards.
+
+08-F5 says, for `wtime` of 10, 1 or 0 (with `Move Overhead` at its default 10):
+  (i)   the answer comes back almost instantly (0.14–0.17 ms median);
+  (ii)  the `wtime 1` answer EQUALS the `go depth 1` answer in 8 of 8 cases, and equals the
+        first legal move in only 1 of 8 — i.e. it is a shallow search, not a "play the first move";
+  (iii) a `winc 10` on a `wtime 10` clock does NOT change that, because the reserve test runs
+        before the increment is used.
+
+My harness uses 8 of my own positions (O's first 8), each in a fresh process, with `OwnBook
+false`, and measures with a monotonic clock from sending `go` to reading `bestmove`. Two
+comparisons per position: the `wtime 1` answer against `go depth 1`, and against the first
+legal move per python-chess.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | every `wtime 10/1/0` answer returns in under 2 ms wall time | REFUTES if any case is slower |
+| P2 | the `wtime 1` answer equals `go depth 1` in at least 6 of 8 | REFUTES if ≤ 5 |
+| P3 | the `wtime 1` answer equals the first legal move in at most 2 of 8 | REFUTES if ≥ 4 |
+| P4 | all 8 `wtime 1` answers are legal moves | REFUTES if any is illegal |
+| P5 | `wtime 10 winc 10` behaves like `wtime 10 winc 0` (same answer on at least 7 of 8) | REFUTES if ≤ 6 |
+| P6 | 0 illegal bestmoves and 0 crashes over all cases | killed by any one |
+
+Direction: CONFIRMS. The mechanism 08-F5 describes is visible in `search.cpp` around the lines
+it cites, and the behaviour it predicts (a fast, shallow answer) is what a reserve-empty plan
+must produce. My check is worth doing because the claim's discriminating evidence (the 8-of-8
+comparison against `go depth 1`) is the only thing that separates "shallow search" from "first
+legal move", and a wrong comparison there would flip the conclusion.

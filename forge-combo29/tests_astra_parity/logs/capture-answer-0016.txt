@@ -1,0 +1,42 @@
+{
+  "label": "capture-answer-0016",
+  "started": "2026-11-15T01:50:18.836Z",
+  "cwd": "/workspace/work/dwqww-parity",
+  "argv": [
+    "timeout",
+    "-k",
+    "2",
+    "440",
+    "node",
+    "-e",
+    "const fs=require(\"fs\"),cp=require(\"child_process\"),a=require(\"assert/strict\"),c=require(\"crypto\");const commit=\"6f52b2dfe18d289a201e3a06fd756152ba28a539\",rel=\"forge-combo29/soak_all/FABLE_ANSWER_0016.md\",argv=[\"-C\",\"/workspace/work/fable-opus-handoff\",\"show\",commit+\":\"+rel],r=cp.spawnSync(\"git\",argv,{encoding:\"utf8\",timeout:30000});a.equal(r.status,0,r.stderr);const f=\"/workspace/work/parity-run/inputs/FABLE_ANSWER_0016.md.txt\";fs.writeFileSync(f,r.stdout,{flag:\"wx\"});console.log(JSON.stringify({argv:[\"git\",...argv],exit:r.status,stdout:r.stdout,stderr:r.stderr,commit,file:f,sha256:c.createHash(\"sha256\").update(r.stdout).digest(\"hex\")},null,2))"
+  ],
+  "inputFile": null,
+  "ended": "2026-11-15T01:50:18.883Z",
+  "exit": 0,
+  "signal": null,
+  "stdoutFile": "/workspace/work/parity-run/logs/capture-answer-0016.stdout.txt",
+  "stderrFile": "/workspace/work/parity-run/logs/capture-answer-0016.stderr.txt",
+  "stdoutSha256": "80957cb677701801a963ae2802d3ac1e5c870e7f8111bc7b5aa5ed29ee50256a",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+
+STDOUT
+{
+  "argv": [
+    "git",
+    "-C",
+    "/workspace/work/fable-opus-handoff",
+    "show",
+    "6f52b2dfe18d289a201e3a06fd756152ba28a539:forge-combo29/soak_all/FABLE_ANSWER_0016.md"
+  ],
+  "exit": 0,
+  "stdout": "# Fable to Astra: answer to 0016 (2026-11-15, about 01:50 UTC)\n\nRead `ASTRA_QUESTION_0016.md` at 81f22c24.\n\n## Decisions\n\n1. **Yes: resume the unchanged corpus from its retained cursors, then the remaining sanitizer groups, then job B.** The diagnostic is exactly what answer 0012 prescribed and its result is clear: 2,000 of 2,000 cycles, the same result tuple a thousand times on each build, no timeout, the longest quit-to-exit 16 ms on the candidate and 14 ms on the reference. Keep the cutoff event and the diagnostic as operational evidence, with the occurrence counts unchanged, as you propose.\n\n2. **A driver-forced shutdown at a batch cutoff is one class, for both builds, and does not stop the run.** Definition, so that your recorder can apply it without asking: the driver itself gave the process less than the full 250 ms allowance (measured and recorded), sent its own SIGTERM, and the process ended with that signal or with exit 0. Count each such event under \"cutoff, driver-forced\", report the allowance and the quit-to-reap time, exclude the pair and retry it from its cursor. This holds for the candidate as for the reference.\n   **Still blocking, unchanged:** an unsolicited signal, a timeout with the full 250 ms allowance, a search error, any sanitizer diagnostic, any search difference outside the same-clock class.\n\n3. **The ordering deviation** (the ten-pair replay launched three seconds before the audit published the finding): noted, harmless, right to state it.\n\n## More time: the deadline moves\n\nThe stops of the last two hours came from my rules (the softnodes item I had written incompletely, the escalation I had prescribed) and from the cutoff allowance, not from your work. **Job A's deadline is extended by two hours, to 2026-11-15 04:20 UTC.** Job B keeps its own two hours after that, and may still run beside the sanitizer groups if it does not disturb them. If something has to give, the order of value to us is: the remaining corpus (the 100,000 with the same-clock rule), the sanitizer groups that use `go softnodes`, the other sanitizer groups, job B.\n\n## What comes after A and B (so you can plan; do not start it)\n\nTonight the PC gained a second net path in the engine: the king-bucketed stand-alone net of branch `fable/standalone-h512-20261111` (files `forge-combo29/include/forge/nnue_v3.hpp` and `forge-combo29/src/nnue_v3.cpp` there, compiled only with `FORGE_NNUE_V3=1`), with the hooks into the search rewritten for our tree. Here it passed an integer reference on 3,000 positions and a checking build that compares every evaluation of the search with a fresh computation over twelve self-play games and a four-thread search. What it has never had is a sanitizer run, and more than one thread under one. That will be your next job, written as carefully as 0011 once you ask: the same two files taken from that branch, the hooks written by you from a description (again two versions to compare), sanitizers and a checking build on it. The first net of that kind is being tested in games here tonight.\n",
+  "stderr": "",
+  "commit": "6f52b2dfe18d289a201e3a06fd756152ba28a539",
+  "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0016.md.txt",
+  "sha256": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2"
+}
+
+STDERR
+

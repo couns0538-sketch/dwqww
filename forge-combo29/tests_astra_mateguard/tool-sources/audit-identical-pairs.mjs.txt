@@ -1,0 +1,20 @@
+import fs from 'node:fs';import readline from 'node:readline';import crypto from 'node:crypto';
+const [prefix]=process.argv.slice(2);if(!prefix?.startsWith('/workspace/work/r4-run/matches/'))throw Error('prefix');
+const file=prefix+'.events.ndjson',groups=new Map();
+for await(const line of readline.createInterface({input:fs.createReadStream(file)})){
+ if(!line.trim())continue;const e=JSON.parse(line);if(!Number.isInteger(e.game))continue;
+ const g=groups.get(e.game)||{moves:[]};groups.set(e.game,g);
+ if(e.event==='game_started')g.start=e;
+ if(e.event==='move')g.moves.push({move:e.move,fen:e.fen,legal:e.legal});
+ if(e.event==='game_finished')g.end=e;
+}
+const summary=JSON.parse(fs.readFileSync(prefix+'.summary.json')),rows=[];let identical=0,complete=0;
+for(let id=1;id<=summary.requestedGames;id+=2){
+ const a=groups.get(id),b=groups.get(id+1);if(!a?.end||!b?.end){rows.push({pair:(id+1)/2,complete:false});continue;}
+ if(a.start.start_fen!==b.start.start_fen)throw Error('openingpair mismatch');++complete;
+ const firstDifference=Array.from({length:Math.max(a.moves.length,b.moves.length)},(_,i)=>i).find(i=>JSON.stringify(a.moves[i])!==JSON.stringify(b.moves[i]));
+ const equal=firstDifference===undefined&&a.end.result===b.end.result&&a.end.termination===b.end.termination&&a.end.reason===b.end.reason;identical+=equal;
+ rows.push({pair:(id+1)/2,complete:true,identical:equal,firstDifferentPly:firstDifference===undefined?null:firstDifference+1,plies:[a.moves.length,b.moves.length],results:[a.end.result,b.end.result],fen:a.start.start_fen});
+}
+const result={seed:summary.seed,definition:'Same paired opening, complete exact UCI move/FEN/legal sequence, board-color result and termination/reason; no score/time equality requirement',requestedPairs:summary.requestedGames/2,completePairs:complete,identicalPairs:identical,differentPairs:complete-identical,mainAuditPassed:summary.passed,eventSha256:crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),rows};
+fs.writeFileSync(prefix+'.pair-identity.txt',JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({...result,rows:undefined}));process.exitCode=summary.passed&&complete===summary.requestedGames/2?0:1;

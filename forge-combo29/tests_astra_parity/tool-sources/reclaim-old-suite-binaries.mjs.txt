@@ -1,0 +1,9 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const dir='/workspace/work/r4-run/existing-suite-asan/bin',out='/workspace/work/parity-run/inputs/reclaimed-old-suite-binaries.txt';
+assert.ok(!fs.existsSync(out));assert.equal(fs.realpathSync(dir),dir);
+const files=[];
+for(const name of fs.readdirSync(dir)){const file=dir+'/'+name,st=fs.lstatSync(file);assert.ok(st.isFile()&&!st.isSymbolicLink());const bytes=fs.readFileSync(file);assert.ok(bytes.subarray(0,4).equals(Buffer.from([127,69,76,70])),'Only generated ELF executables may be reclaimed');files.push({file,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')});}
+assert.ok(files.length>0);const proof={utc:new Date().toISOString(),purpose:'Reclaim only old generated standalone ASAN suite executables. Source, old raw outputs, build records, current tools, reference engines and core objects are retained. These executables are reproducible from the recorded old suite commands.',rebuildRecords:'/workspace/work/r4-run/existing-suite-asan/logs',oldAcceptedEvidenceCommit:'65e600e237ce6cc955abd3dd4637f92defc85f5f',files,totalBytes:files.reduce((n,x)=>n+x.bytes,0)};
+fs.writeFileSync(out,JSON.stringify(proof,null,2)+'\n',{flag:'wx'});
+for(const x of files){const b=fs.readFileSync(x.file);assert.equal(crypto.createHash('sha256').update(b).digest('hex'),x.sha256);fs.unlinkSync(x.file);}
+console.log(JSON.stringify({removedGeneratedExecutables:files.length,reclaimedBytes:proof.totalBytes,manifest:out,sourceOrRawEvidenceRemoved:false}));

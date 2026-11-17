@@ -1,0 +1,14 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const run='/workspace/work/parity-run',sf=run+'/state.json',s=JSON.parse(fs.readFileSync(sf));
+const row=s.continuationPairedSoftnodesRows.find(x=>x.index===12),dir=row.rawSource,hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+assert.equal(row.passed,false);assert.equal(row.credit.pairs,0);assert.equal(s.blockFurtherEngineWork,true);
+const raw=fs.readFileSync(dir+'/stdout.txt','utf8'),faults=raw.split('\n').filter(x=>x.startsWith('FAULT ')).map(x=>JSON.parse(x.slice(6)));
+assert.equal(faults.length,1);assert.equal(faults[0].reason,'shutdown_fault');
+const q=row.shutdowns[0];assert.equal(q.shutdown_budget_ms,250);assert.equal(q.signal,9);assert.equal(q.driver_sigkill,1);
+const file=s.repo+'/forge-combo29/tests_astra_parity/faults/asan-shutdown-0020.txt';
+const record={utc:new Date().toISOString(),index:12,seed:row.seed,group:row.group,sourceCommit:row.sourceCommit,shutdown:q,fault:faults[0],observed:row.observedIncludingPartialPair,acceptedCleanGames:0,acceptedCleanSearches:0,diagnosticLines:row.diagnosticLines,auditFile:row.auditFile,auditSha256:row.auditSha256,rawPackage:row.rawPackage,repeats:0,repeatReason:'Immediate stop under0016 full-allowance shutdown policy; classification/diagnostic request sent through GitHub. No engine source or expectations changed.'};
+const text=['ASan shutdown finding0020',JSON.stringify(record,null,2),'Exact native command and process outcome',fs.readFileSync(dir+'/command.txt','utf8'),'FULL STDOUT',raw,'FULL STDERR',fs.readFileSync(dir+'/stderr.txt','utf8')].join('\n');
+fs.writeFileSync(file,text+'\n',{flag:'wx'});
+s.asanShutdownFault0020={...record,file,sha256:hash(file),resolved:false};
+fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');
+console.log(JSON.stringify({file,sha256:hash(file),bytes:fs.statSync(file).size,shutdown:q,observedGames:56,observedSearches:8291,accepted:0,blockFurtherEngineWork:s.blockFurtherEngineWork},null,2));

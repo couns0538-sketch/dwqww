@@ -1,0 +1,43 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const root='/workspace/work/r4-shutdown-review',batch='/workspace/work/r4-run/equality-batches/E-0004',sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const name='worker-3.jsonl.pending-17200.txt',raw=fs.readFileSync(batch+'/'+name),manifest=JSON.parse(fs.readFileSync(batch+'/artifact-hashes.txt'));assert.equal(sha(raw),manifest[name].sha256);assert.equal(raw.length,manifest[name].bytes);assert.ok(fs.readFileSync(root+'/original-pending-full.txt').equals(raw));
+const attempts=raw.toString().split('\n').filter(l=>l.startsWith('ATTEMPT ')).map(l=>{const m=l.match(/^ATTEMPT (\d+) (.*)$/);return {attempt:Number(m[1]),pair:JSON.parse(m[2])};});assert.equal(attempts.length,2);
+const original=attempts[0].pair,retry=attempts[1].pair;assert.equal(original.different,false);assert.equal(original.lock.shutdown_timeouts,1);assert.equal(original.lock.budget_interrupted,false);assert.deepEqual(original.lock.shutdown,{observed:true,reaped:true,exit_code:0,signal:0,timed_out:true,driver_sigterm:true,driver_sigkill:false,error:''});assert.equal(retry.merged.attempted,false);assert.equal(retry.merged.budget_interrupted,true);
+const audit=JSON.parse(fs.readFileSync(batch+'/all-differences-audit.txt'));const finding=audit.partialOperationalFindings.filter(x=>x.worker===3&&x.localIndex===17200);assert.equal(finding.length,1);
+fs.writeFileSync(root+'/original-event.txt',JSON.stringify({artifactManifest:batch+'/artifact-hashes.txt',originalPendingSha256:sha(raw),finding,attempts},null,2)+'\n',{flag:'wx'});
+fs.copyFileSync('/workspace/work/r4-run/equality-tools/search_compare.cpp',root+'/original-search-compare.cpp');
+for(const name of ['run-and-verify.mjs','finalize-review.mjs'])fs.copyFileSync(root+'/'+name,root+'/'+name+'.txt');
+const summary=JSON.parse(fs.readFileSync(root+'/reproduction-summary.txt'));assert.equal(summary.freshPairs,10);assert.equal(summary.shutdownTimeouts,0);assert.equal(summary.differences,0);assert.equal(summary.otherTransportOrExitIssues,0);assert.equal(summary.sanitizerDiagnostics,0);
+const report=`# Shutdown review: E-0004 record 68803
+
+**The shutdown timeout did not reproduce in ten fresh paired repetitions (0/10 reference shutdown timeouts; 0/10 candidate shutdown timeouts). The original finding remains valid and unwaived.** Boundary proximity is recorded; a boundary-induced cause is supported, not proven.
+
+FEN: \`8/8/8/3pkp2/4p2p/b2P4/2Q2K2/1N4r1 w - - 2 69\`
+
+Worker 3, local index 17200, global record 68803. Both original searches completed depth 9 with \`f2g1 cp 769 nodes 14647\` and no score difference. Reference shutdown recorded reaped=true, exit_code=0, signal=0, timed_out=true, driver_sigterm=true, driver_sigkill=false. Its budget_interrupted flag is false. The next attempted reproduction never launched either engine: the candidate attempt recorded attempted=false and budget_interrupted=true. The position remained partial and excluded from completed corpus counts.
+
+## What the code establishes
+
+The unchanged transport's \`UciProcess::finish\` at uci_process.hpp:306 uses an overall shutdown budget, but its graceful deadline is only 3/5 of that budget (line 312). With 250 ms available, that is 150 ms. After sending quit and closing stdin, if the child is not yet observed reaped **or either output pipe has not reached EOF** by that graceful deadline, lines 360–364 mark timed_out=true, attempt SIGTERM if a child PID remains, and continue observation. The timeout flag is retained even when a subsequent waitpid reports normal exit 0. Therefore timed_out=true and exit_code=0 are consistent; driver_sigterm=true records a successful signal-send call, not proof that the signal terminated the process.
+
+The comparator at original-search-compare.cpp:173–178 passes \`max(1, min(250, remaining_batch_ms))\` and labels a shutdown timeout as budget-interrupted only if remaining was below 250 and the batch budget is exhausted after finish. Original budget_interrupted=false means that exemption was not established for this shutdown. Lines 181–186 therefore correctly retain shutdown_timeouts=1. A fresh matching search does not erase it.
+
+The unstarted following reproduction directly proves that the batch budget had expired before that next search. However the original transcript does not record the exact remaining milliseconds at quit, the graceful deadline, pipe-EOF timestamps, or scheduling delays. It cannot prove whether the preceding timeout was caused by a shortened boundary allowance, scheduling/pipe observation delay, or a genuine transient slow quit. No clock manipulation, deadline-pressure experiment, or diagnostic filtering was performed.
+
+## Exact ten-pair reproduction
+
+A small private C++ helper uses a byte-identical copy of the existing uci_process.hpp, with its unchanged startup, fresh-process search, ucinewgame, and shutdown implementation. It performs exactly ten sequential candidate/reference pairs (20 fresh processes), Threads=1, Hash=16, OwnBook=false, remaining defaults, depth=9. Every repetition receives a full 250 ms shutdown budget; it does not attempt to recreate the exhausted batch boundary.
+
+All twenty searches returned \`f2g1 cp 769 nodes 14647\` at depth 9, matching the original. All twenty exits were observed/reaped normally with exit 0 and signal 0. There were zero shutdown timeouts, zero other transport/exit issues, zero score differences, and zero sanitizer diagnostic matches. Every complete command/stdout/stderr/quit/shutdown transcript is retained as pair-N-{candidate,reference}.transcript.txt. This 0/10 recurrence observation is not a bound on the event rate.
+
+## Evidence and scope
+
+- original-pending-full.txt is a byte-identical copy of the original pending fault; its original artifact-manifest hash and the two original attempts are checked in original-event.txt. Original files and aggregate finding were not modified.
+- reproduction-summary.txt contains all twenty results and transcript hashes. command-0.* and command-1.* retain the actual compile/run argv, stdout, stderr, times, and exits.
+- repeat-pairs.cpp and unchanged uci_process.hpp preserve the exact helper sources. run-and-verify.mjs.txt and finalize-review.mjs.txt are inert publication copies. No Python helper was created in this evidence bundle; the native scratch helper binary should remain VM-local.
+- original-pins.txt pins both engine binaries, the transport header, original pending record, and E-0004 aggregate; they were rechecked unchanged after the repetitions.
+
+No production/tool/source/state/Git change or fix was made. No expected value was changed. Classification: **non-reproduced observed reference shutdown timeout adjacent to batch exhaustion, with ultimately normal exit; boundary causation unproven.** Keep the operational finding and the partial exclusion visible.
+`;
+fs.writeFileSync(root+'/SHUTDOWN-68803.md',report,{flag:'wx'});
+const files=Object.fromEntries(fs.readdirSync(root).filter(n=>n!=='repeat-pairs'&&n!=='artifact-hashes.txt').map(n=>{const b=fs.readFileSync(root+'/'+n);return[n,{bytes:b.length,sha256:sha(b)}]}));fs.writeFileSync(root+'/artifact-hashes.txt',JSON.stringify(files,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({originalArtifactHashVerified:true,tenPairsVerified:true,recurrence:0,classification:'boundary-adjacent; boundary causation unproven; original finding retained',report:root+'/SHUTDOWN-68803.md'}));

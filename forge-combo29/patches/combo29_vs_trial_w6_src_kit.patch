@@ -1,0 +1,543 @@
+--- trial_w6_src_kit/include/forge/bitboard.hpp
++++ combo29_snapshot/include/forge/bitboard.hpp
+@@ -8,7 +8,7 @@
+ // are indexed with PEXT over the relevant mask (same table sizes, same attack
+ // sets, another entry order; no magic search at start-up). Needs BMI2.
+ #ifndef FORGE_SPD_SLIDER_PEXT
+-#define FORGE_SPD_SLIDER_PEXT 1
++#define FORGE_SPD_SLIDER_PEXT 0
+ #endif
+ #if FORGE_SPD_SLIDER_PEXT
+ #if !defined(__BMI2__)
+--- trial_w6_src_kit/include/forge/board.hpp
++++ combo29_snapshot/include/forge/board.hpp
+@@ -5,10 +5,17 @@
+ // FORGE_SEARCH_SPEED2 (R14 build switch, default 0 = lock code): speed-only, node-identical search changes
+ // (TT prefetch after every make, MovePicker history / piece hoist, table piece_type). See src/search.cpp.
+ #ifndef FORGE_SEARCH_SPEED2
+-#define FORGE_SEARCH_SPEED2 1
++#define FORGE_SEARCH_SPEED2 0
++#endif
++
++// FORGE_SDK_MOVE_EQ32 (SDK long job 2026-11-06; default 0 = the code before it): Move::operator== compares the
++// four bytes as one 32-bit word.
++#ifndef FORGE_SDK_MOVE_EQ32
++#define FORGE_SDK_MOVE_EQ32 1
+ #endif
+ 
+ #include <array>
++#include <bit>
+ #include <cassert>
+ #include <cstddef>
+ #include <cstdint>
+@@ -20,7 +27,7 @@
+ #ifndef FORGE_SPD_PREFETCH_EARLY
+ // Build switch, default 0 (= the lock's code): search prefetches the child's TT
+ // cluster before make_move from Board::key_after where that key is cheap and exact.
+-#define FORGE_SPD_PREFETCH_EARLY 1
++#define FORGE_SPD_PREFETCH_EARLY 0
+ #endif
+ 
+ namespace forge {
+@@ -50,7 +57,20 @@
+ // quiets-only generation mode for the move picker, which yields the same
+ // quiet moves in the same order as the lock's full list after its filter.
+ #ifndef FORGE_SPD_NO_ZERO_MOVELISTS
+-#define FORGE_SPD_NO_ZERO_MOVELISTS 2
++#define FORGE_SPD_NO_ZERO_MOVELISTS 0
++#endif
++
++// Build switch (default 0 = the lock code). 1: the board keeps per-position
++// "king lines" - the side to move's pieces that alone block an enemy slider's
++// line to their own king (pinned), its pieces that alone block one of its own
++// sliders' lines to the enemy king (discovered-check candidates), and the
++// squares from which each piece type checks the enemy king. They are computed
++// once on first use and kept across make / unmake through Undo. is_legal and
++// gives_check answer normal moves from them; en passant, castling, promotions,
++// king moves and positions in check keep the lock's full tests. Every answer
++// equals the lock's, so the search visits the same nodes.
++#ifndef FORGE_SPD_KING_LINES
++#define FORGE_SPD_KING_LINES 1
+ #endif
+ 
+ struct Move {
+@@ -66,7 +86,15 @@
+     std::uint8_t flags = 0;
+ #endif
+ 
++#if FORGE_SDK_MOVE_EQ32
++    // The four bytes compared as one 32-bit word: the same predicate as the member-wise default (no padding), which
++    // g++ 15 turns into four byte compares and two branches.
++    [[nodiscard]] bool operator==(const Move& other) const {
++        return std::bit_cast<std::uint32_t>(*this) == std::bit_cast<std::uint32_t>(other);
++    }
++#else
+     [[nodiscard]] bool operator==(const Move&) const = default;
++#endif
+     [[nodiscard]] bool is_capture() const { return (flags & (Capture | EnPassant)) != 0U; }
+     [[nodiscard]] bool is_promotion() const { return (flags & Promotion) != 0U; }
+     [[nodiscard]] bool is_castle() const { return (flags & (KingCastle | QueenCastle)) != 0U; }
+@@ -101,6 +129,17 @@
+     std::size_t size_ = 0;
+ };
+ 
++#if FORGE_SPD_KING_LINES
++// Per-position king lines of the side to move (see the switch comment above).
++// Index of check_squares = piece type; King and NoPieceType stay 0.
++struct KingLines {
++    bool valid = false;
++    Bitboard pinned = 0;
++    Bitboard discoverers = 0;
++    std::array<Bitboard, 7> check_squares{};
++};
++#endif
++
+ struct Undo {
+     Piece captured = Empty;
+     std::uint8_t castling = 0;
+@@ -111,6 +150,9 @@
+     std::uint64_t pawn_key = 0;
+     Bitboard checkers = 0;
+     std::uint16_t plies_from_null = 0;
++#if FORGE_SPD_KING_LINES
++    KingLines king_lines;
++#endif
+ };
+ 
+ struct NullUndo {
+@@ -119,6 +161,9 @@
+     std::uint16_t halfmove = 0;
+     std::uint16_t plies_from_null = 0;
+     Bitboard checkers = 0;
++#if FORGE_SPD_KING_LINES
++    KingLines king_lines;
++#endif
+ };
+ 
+ class Board {
+@@ -148,6 +193,9 @@
+ #endif
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     [[nodiscard]] bool has_legal_move() const;
++    // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
++    // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
++    // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
+     [[nodiscard]] bool is_legal(const Move& move) const;
+     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
+     [[nodiscard]] bool gives_check(const Move& move) const;
+@@ -228,6 +276,12 @@
+     // Plies since the last null move; bounds search-level repetition scans.
+     std::uint16_t plies_from_null_ = 1024;
+     std::vector<std::uint64_t> key_history_;
++#if FORGE_SPD_KING_LINES
++    // Lazily computed for the current position; invalidated by every make and
++    // restored by every unmake (each search thread owns its Board copy).
++    mutable KingLines king_lines_;
++    void refresh_king_lines() const;
++#endif
+ 
+     void put_piece(Piece piece, int square);
+     void remove_piece(int square);
+--- trial_w6_src_kit/include/forge/nnue.hpp
++++ combo29_snapshot/include/forge/nnue.hpp
+@@ -26,7 +26,7 @@
+ // same per-lane order and the same final reduction as the 16-lane design in
+ // src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
+ #ifndef FORGE_SPD_NNUE_ZMM
+-#define FORGE_SPD_NNUE_ZMM 1
++#define FORGE_SPD_NNUE_ZMM 0
+ #endif
+ 
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+--- trial_w6_src_kit/include/forge/search.hpp
++++ combo29_snapshot/include/forge/search.hpp
+@@ -17,7 +17,7 @@
+ #ifndef FORGE_SPD_TT_NOTLS
+ // Build switch, default 0 (= the lock's code): the Worker that runs on the thread
+ // holding the table's ExclusiveLease calls TT probe / store without lock_stripe.
+-#define FORGE_SPD_TT_NOTLS 1
++#define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
+ namespace forge {
+--- trial_w6_src_kit/src/board.cpp
++++ combo29_snapshot/src/board.cpp
+@@ -6,6 +6,13 @@
+ #include <cstdlib>
+ #include <sstream>
+ 
++// FORGE_SDK_SEE_HOIST (SDK long job 2026-11-06; default 0 = the code before it): see_ge() builds each side's
++// king-contact and king-line slider sets once per call instead of at every exchange step, and skips the pin
++// filter when both are empty after masking. Same sets, same pop order: bit-exact.
++#ifndef FORGE_SDK_SEE_HOIST
++#define FORGE_SDK_SEE_HOIST 1
++#endif
++
+ namespace forge {
+ namespace {
+ 
+@@ -350,6 +357,9 @@
+     candidate.key_ = candidate.compute_key();
+     candidate.pawn_key_ = candidate.compute_pawn_key();
+     candidate.checkers_ = candidate.compute_checkers();
++#if FORGE_SPD_KING_LINES
++    candidate.king_lines_.valid = false;
++#endif
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
+     candidate.key_history_.push_back(candidate.key_);
+@@ -702,9 +712,18 @@
+     return false;
+ }
+ 
++#if FORGE_SPD_KING_LINES
+ bool Board::is_legal(const Move& move) const {
+     const Color us = side_;
+     const Piece moving = squares_[move.from];
++    // Not in check, not en passant, not a king move: the own king can only
++    // become attacked when a pinned piece leaves the line to its pinner. A
++    // capture keeps its target square occupied, so it never opens a line.
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++        if (!king_lines_.valid) refresh_king_lines();
++        return (king_lines_.pinned & square_bb(move.from)) == 0 ||
++               attacks::aligned(king_square(us), move.from, move.to);
++    }
+     Bitboard occupancy = occupied() & ~square_bb(move.from);
+     int captured_square = move.to;
+     if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
+@@ -724,6 +743,30 @@
+     const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);
+     return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
+ }
++#else
++bool Board::is_legal(const Move& move) const {
++    const Color us = side_;
++    const Piece moving = squares_[move.from];
++    Bitboard occupancy = occupied() & ~square_bb(move.from);
++    int captured_square = move.to;
++    if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
++    Bitboard removed = 0;
++    if (move.is_capture()) {
++        removed = square_bb(captured_square);
++        occupancy &= ~removed;
++    }
++    occupancy |= square_bb(move.to);
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        occupancy &= ~square_bb(rook_from);
++        occupancy |= square_bb(rook_to);
++    }
++    const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);
++    return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
++}
++#endif
+ 
+ bool Board::is_pseudo_legal(const Move& move) const {
+     if (move.from >= 64 || move.to >= 64 || move.from == move.to) return false;
+@@ -796,6 +839,85 @@
+     return (reach & square_bb(move.to)) != 0;
+ }
+ 
++#if FORGE_SPD_KING_LINES
++bool Board::gives_check(const Move& move) const {
++    const Color us = side_;
++    const Color them = opposite(us);
++    const int ksq = king_square(them);
++    // Normal moves: a direct check comes from a square that already sees the
++    // enemy king (the vacated origin lies on that line only when the mover
++    // checked the king before the move, which a legal position excludes); a
++    // discovered check comes from a sole blocker leaving its line.
++    if ((move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U) {
++        if (!king_lines_.valid) refresh_king_lines();
++        const int type = piece_type(squares_[move.from]);
++        if ((king_lines_.check_squares[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0) return true;
++        return (king_lines_.discoverers & square_bb(move.from)) != 0 && !attacks::aligned(ksq, move.from, move.to);
++    }
++    const Bitboard king_bit = square_bb(ksq);
++    Bitboard occ = (occupied() ^ square_bb(move.from)) | square_bb(move.to);
++    if ((move.flags & EnPassant) != 0U) occ &= ~square_bb(move.to - pawn_push_delta(us));
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        occ = (occ & ~square_bb(rook_from)) | square_bb(rook_to);
++        if ((attacks::rook(rook_to, occ) & king_bit) != 0) return true;
++    }
++    const int type = move.is_promotion() ? move.promotion : piece_type(squares_[move.from]);
++    Bitboard direct = 0;
++    switch (type) {
++    case Pawn: direct = attacks::pawn(us, move.to); break;
++    case Knight: direct = attacks::knight(move.to); break;
++    case Bishop: direct = attacks::bishop(move.to, occ); break;
++    case Rook: direct = attacks::rook(move.to, occ); break;
++    case Queen: direct = attacks::queen(move.to, occ); break;
++    default: break;
++    }
++    if ((direct & king_bit) != 0) return true;
++    const Bitboard moved = square_bb(move.from);
++    const Bitboard diagonals = (pieces(us, Bishop) | pieces(us, Queen)) & ~moved;
++    const Bitboard lines = (pieces(us, Rook) | pieces(us, Queen)) & ~moved;
++    if (diagonals != 0 && (attacks::bishop(ksq, occ) & diagonals) != 0) return true;
++    return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;
++}
++
++namespace {
++// Pieces of either colour that alone stand between `king` and one of the
++// given rook-like / bishop-like sliders (the lock's see_ge uses the same walk
++// over the empty-board rays and the between masks).
++[[nodiscard]] Bitboard single_blockers(int king, Bitboard rook_like, Bitboard bishop_like, Bitboard occupancy) {
++    Bitboard snipers = (attacks::rook(king, 0) & rook_like) | (attacks::bishop(king, 0) & bishop_like);
++    Bitboard blockers = 0;
++    while (snipers != 0) {
++        const Bitboard between = attacks::between(king, pop_lsb(snipers)) & occupancy;
++        if (between != 0 && !more_than_one(between)) blockers |= between;
++    }
++    return blockers;
++}
++} // namespace
++
++void Board::refresh_king_lines() const {
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Bitboard occupancy = occupied();
++    const int our_king = king_square(us);
++    const int their_king = king_square(them);
++    KingLines& lines = king_lines_;
++    lines.pinned = single_blockers(our_king, pieces(them, Rook) | pieces(them, Queen),
++                                   pieces(them, Bishop) | pieces(them, Queen), occupancy) & occupied(us);
++    lines.discoverers = single_blockers(their_king, pieces(us, Rook) | pieces(us, Queen),
++                                        pieces(us, Bishop) | pieces(us, Queen), occupancy) & occupied(us);
++    lines.check_squares[NoPieceType] = 0;
++    lines.check_squares[Pawn] = attacks::pawn(them, their_king);
++    lines.check_squares[Knight] = attacks::knight(their_king);
++    lines.check_squares[Bishop] = attacks::bishop(their_king, occupancy);
++    lines.check_squares[Rook] = attacks::rook(their_king, occupancy);
++    lines.check_squares[Queen] = lines.check_squares[Bishop] | lines.check_squares[Rook];
++    lines.check_squares[King] = 0;
++    lines.valid = true;
++}
++#else
+ bool Board::gives_check(const Move& move) const {
+     const Color us = side_;
+     const Color them = opposite(us);
+@@ -827,6 +949,7 @@
+     if (diagonals != 0 && (attacks::bishop(ksq, occ) & diagonals) != 0) return true;
+     return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;
+ }
++#endif
+ 
+ bool Board::has_legal_en_passant_capture() const {
+     if (ep_square_ < 0) return false;
+@@ -885,6 +1008,9 @@
+     undo.pawn_key = pawn_key_;
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
++#if FORGE_SPD_KING_LINES
++    undo.king_lines = king_lines_;
++#endif
+ 
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -942,6 +1068,9 @@
+     checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
++#if FORGE_SPD_KING_LINES
++    king_lines_.valid = false;
++#endif
+     return true;
+ }
+ 
+@@ -974,6 +1103,9 @@
+     pawn_key_ = undo.pawn_key;
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
++#if FORGE_SPD_KING_LINES
++    king_lines_ = undo.king_lines;
++#endif
+ }
+ 
+ void Board::make_null_move(NullUndo& undo) {
+@@ -982,6 +1114,9 @@
+     undo.halfmove = halfmove_;
+     undo.plies_from_null = plies_from_null_;
+     undo.checkers = checkers_;
++#if FORGE_SPD_KING_LINES
++    undo.king_lines = king_lines_;
++#endif
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+@@ -992,6 +1127,9 @@
+     plies_from_null_ = 0;
+     checkers_ = 0;
+     key_history_.push_back(key_);
++#if FORGE_SPD_KING_LINES
++    king_lines_.valid = false;
++#endif
+ }
+ 
+ void Board::unmake_null_move(const NullUndo& undo) {
+@@ -1002,6 +1140,9 @@
+     halfmove_ = undo.halfmove;
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
++#if FORGE_SPD_KING_LINES
++    king_lines_ = undo.king_lines;
++#endif
+ }
+ 
+ std::optional<Move> Board::parse_uci(std::string_view text) {
+@@ -1118,6 +1259,14 @@
+     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+     const Bitboard lines = pieces(Rook) | pieces(Queen);
+     int result = 1;
++#if FORGE_SDK_SEE_HOIST
++    // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
++    // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
++    // exchange; only `live` loses bits, so `set & live` is exactly what the loop used to rebuild at every step.
++    std::array<Bitboard, 2> contact{};
++    std::array<Bitboard, 2> snipers{};
++    unsigned prepared = 0;
++#endif
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+@@ -1126,6 +1275,36 @@
+         // Existing checks reject every non-king; singleton ray blockers identify
+         // exactly the origins whose departure would expose a live enemy slider.
+         const Bitboard king_attackers = stm_attackers & pieces(stm, King);
++#if FORGE_SDK_SEE_HOIST
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const std::size_t side = static_cast<std::size_t>(stm);
++            const int king = king_square(stm);
++            if ((prepared & (1U << side)) == 0U) {
++                const Color enemy = opposite(stm);
++                const Bitboard queens = pieces(enemy, Queen);
++                contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
++                                (attacks::knight(king) & pieces(enemy, Knight)) |
++                                (attacks::king(king) & pieces(enemy, King));
++                snipers[side] = (attacks::bishop(king, 0) & (pieces(enemy, Bishop) | queens)) |
++                                (attacks::rook(king, 0) & (pieces(enemy, Rook) | queens));
++                prepared |= 1U << side;
++            }
++            const Bitboard live = occupancy & ~square_bb(to);
++            bool checked = (contact[side] & live) != 0;
++            Bitboard pinners = snipers[side] & live;
++            // Neither a contact check nor a live slider on a king line: nothing to filter (the common case).
++            if (checked || pinners != 0) {
++                Bitboard forbidden = 0;
++                while (!checked && pinners != 0) {
++                    const int pinner = pop_lsb(pinners);
++                    const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                    if (blockers == 0) checked = true;
++                    else if (!more_than_one(blockers)) forbidden |= blockers;
++                }
++                stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++            }
++        }
++#else
+         if ((stm_attackers & ~king_attackers) != 0) {
+             const Color enemy = opposite(stm);
+             const int king = king_square(stm);
+@@ -1147,6 +1326,7 @@
+             }
+             stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
+         }
++#endif
+         if (stm_attackers == 0) break;
+         result ^= 1;
+         Bitboard bb = 0;
+--- trial_w6_src_kit/src/search.cpp
++++ combo29_snapshot/src/search.cpp
+@@ -8,6 +8,14 @@
+ #include <limits>
+ #include <optional>
+ 
++// FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
++// losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
++// behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
++// never outgrow its storage (it only reuses slots of moves it has already handed out).
++#ifndef FORGE_SDK_BADCAP_PREFIX
++#define FORGE_SDK_BADCAP_PREFIX 0
++#endif
++
+ namespace forge {
+ 
+ namespace tune {
+@@ -454,7 +462,12 @@
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+                     if (!board_.see_ge(move, -move_score_threshold(move))) {
++#if FORGE_SDK_BADCAP_PREFIX
++                        // bad_count_ < index_: this slot's move has already been handed out (or skipped).
++                        moves_[bad_count_++].move = move;
++#else
+                         bad_captures_[bad_count_++] = move;
++#endif
+                         continue;
+                     }
+                     return move;
+@@ -491,7 +504,11 @@
+                 bad_index_ = 0;
+                 [[fallthrough]];
+             case BadCaptures:
++#if FORGE_SDK_BADCAP_PREFIX
++                if (bad_index_ < bad_count_) return moves_[bad_index_++].move;
++#else
+                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
++#endif
+                 return Move::none();
+ 
+             case QsGenerate:
+@@ -553,7 +570,9 @@
+ #endif
+     std::size_t index_ = 0;
+     std::size_t count_ = 0;
+-#if FORGE_SPD_NO_ZERO_MOVELISTS
++#if FORGE_SDK_BADCAP_PREFIX
++    // Losing captures live in moves_[0, bad_count_).
++#elif FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Move, 64> bad_captures_;
+ #else
+     std::array<Move, 64> bad_captures_{};
+@@ -642,6 +661,15 @@
+         sorted_ = false;
+     }
+ 
++    // First slot of the quiet list: behind the losing captures when they share moves_.
++    [[nodiscard]] std::size_t quiet_start() const {
++#if FORGE_SDK_BADCAP_PREFIX
++        return bad_count_;
++#else
++        return 0;
++#endif
++    }
++
+     void generate_captures() {
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, true);
+@@ -673,8 +701,8 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
+-        index_ = 0;
+-        count_ = 0;
++        index_ = quiet_start();
++        count_ = quiet_start();
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+@@ -692,8 +720,8 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, false);
+-        index_ = 0;
+-        count_ = 0;
++        index_ = quiet_start();
++        count_ = quiet_start();
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {

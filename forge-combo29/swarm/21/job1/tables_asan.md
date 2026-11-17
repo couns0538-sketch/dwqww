@@ -1,0 +1,68 @@
+### counts (as recorded by the runner)
+| ACCEPTED | 1225 |
+| REFUSED | 18775 |
+
+### per mutation kind
+| kind | ACCEPTED | REFUSED |
+| delete | 241 | 3932 |
+| dropfld | 0 | 3965 |
+| insert | 179 | 3840 |
+| replace | 605 | 3334 |
+| swapfld | 200 | 3704 |
+
+### accepted FENs
+| measure | count |
+| accepted | 1225 |
+| ... python-chess also valid | 1186 |
+| ... python-chess INVALID | 39 |
+| refused | 18775 |
+
+### bestmove legality, reclassified
+| legal | 1186 |
+| n/a | 39 |
+
+### accepted-but-python-invalid FENs (all, with the mutation)
+| idx | src | kind | mutation | FEN | engine bestmove |
+| 198 | R | insert | insert pos 58 ' ' | `4R3/3n3r/1p5P/pP1k1PP1/P1p1p3/3pRB1N/2Rb4/1NB2K2 w - - 0 5 7` | f3e4 |
+| 718 | R | replace | replace pos 39 '2' -> ' ' | `5B2/8/5R2/1k3P2/3P3p/3K3P/8/8 w - - 8 1 0` | d4d5 |
+| 2120 | R | replace | replace pos 16 'P' -> '1' | `2r3kn/8/p2P4/nN51/1p6/2RKP3/1b6/3B4 b - - 2 74` | b2c3 |
+| 2156 | R | replace | replace pos 3 'r' -> '1' | `2b311/1q4pp/1rkbppn1/1pp5/N1P2P2/1R1P2PP/1P1NPB2/Q3KB1R w - - 11 36` | f1g2 |
+| 2722 | R | replace | replace pos 44 'B' -> '1' | `r1bqkb1r/2ppp3/p4n2/1p3ppp/P2P1P2/1PN1P1P1/111P3P/R2QKBNR b KQkq - 0 11` | c8b7 |
+| 3025 | G | replace | replace pos 49 'R' -> '1' | `r2q1knr/1bp1b1Np/pp1p2p1/2n1p3/2B1P3/2N5/PPP2PPP/11BQ1RK1 w - - 0 1` | g7e6 |
+| 3644 | R | replace | replace pos 8 'p' -> '1' | `8/4k3/8/17/8/2b5/4r3/3K4 b - - 37 137` | e2e6 |
+| 5362 | R | replace | replace pos 28 'P' -> '1' | `B3k1nb/p4p2/q5pr/7p/P2Pp2P/71/2K5/RN3BNR w - - 1 29` | f1a6 |
+| 5478 | R | replace | replace pos 25 'b' -> '1' | `3kB2Q/7r/P2r4/8/PBp2p1b/311K1p/8/2R5 w - - 8 71` | b4a5 |
+| 5809 | R | replace | replace pos 7 'P' -> '1' | `8/8/p7/17/4q3/4p2K/5k2/7R b - - 12 130` | e4h1 |
+| 6097 | R | replace | replace pos 13 'B' -> '1' | `8/kP2K3/8/8/611/3p4/8/8 b - - 5 123` | a7b7 |
+| 6210 | R | insert | insert pos 36 ' ' | `8/8/n1K3k1/6r1/8/R1B5/2bN4/8 w - - 2 6 134` | c3d4 |
+| 7320 | R | replace | replace pos 25 'p' -> '1' | `r6r/2pNq1k1/n7/pp3n1p/P1P12pB/R2PP3/6PP/1N2KBR1 b - - 0 32` | e7e3 |
+| 7357 | R | replace | replace pos 7 'q' -> '1' | `2b3r1/114pp/1rkbppn1/1pp5/N1P2P2/1R1P2PP/1P1NPB2/Q3KB1R w - - 11 36` | f1g2 |
+| 7541 | R | replace | replace pos 26 'n' -> '1' | `7k/4N3/8/6P1/1r6/7P/5RN1/213K1 b - - 5 116` | b4e4 |
+| 7935 | R | replace | replace pos 23 'B' -> '1' | `k7/8/pP4p1/2Pb4/1nB3P1/11nq1r2/5R2/K7 w - - 4 71` | c4d3 |
+| 7938 | R | insert | insert pos 59 ' ' | `r1bn2r1/p2p1kpp/2p2p2/8/P2pqP1K/P2B2QP/5BP1/RN4NR b - - 2 2 5` | g7g5 |
+| 8122 | R | insert | insert pos 29 ' ' | `8/8/8/8/r3k2p/8/6K1/8 b - - 2 7 137` | a4a8 |
+| 8424 | R | replace | replace pos 2 'b' -> '1' | `R412/1R6/6kN/3p1p2/8/2Kp3p/3B1p2/7n w - - 2 78` | a8g8 |
+| 10531 | R | replace | replace pos 20 'p' -> '1' | `1r4k1/8/2Q2P2/P7/8/31p3/8/1R3K2 w - - 14 85` | c6d5 |
+| 10685 | R | replace | replace pos 35 '3' -> ' ' | `1N6/6k1/8/2P5/1K5B/8/8/n7 b - - 0 1 0` | g7f7 |
+| 10899 | R | replace | replace pos 23 'Q' -> '1' | `1B2R3/4N3/NP6/8/4k3/8/511K/7N b - - 4 116` | e4e3 |
+| 11035 | R | replace | replace pos 41 'P' -> '1' | `rnbqkb1r/1p1ppppp/p4n2/2p5/2P5/1P3PP1/P2P12P/RNBQKBNR b KQkq - 0 4` | d7d5 |
+| 13814 | R | replace | replace pos 2 'b' -> '1' | `r11qkbnr/1pp1ppQ1/3p3B/p7/2PPP1p1/7N/Pn3PPP/RNK2B1R b kq - 0 11` | f8g7 |
+| 14112 | R | replace | replace pos 31 'P' -> '1' | `r3k1r1/5p1B/R3b3/3qpnp1/1pPP4/41PPP/4K3/8 b - - 1 46` | d5c4 |
+| 14119 | R | replace | replace pos 4 'P' -> '1' | `8/R61/1kr5/4P3/8/p7/5K2/8 w - - 3 106` | a7a3 |
+| 14149 | R | insert | insert pos 29 ' ' | `8/2k5/8/K7/8/8/8/7q w - - 4 1 13` | a5b4 |
+| 15402 | R | replace | replace pos 1 'n' -> '1' | `314/2kr2p1/1p4P1/1Q1p2R1/P3RP2/1p2P3/8/7K w - - 1 57` | e4e6 |
+| 16470 | R | replace | replace pos 26 'r' -> '1' | `8/6b1/4Bk2/4p3/1pp1K3/8/1p15/3r4 b - - 9 81` | b2b1q |
+| 17803 | R | replace | replace pos 1 'R' -> '1' | `413/4b3/5k1N/1R3p2/3K4/3p2np/5B2/8 w - - 1 85` | f2g3 |
+| 17847 | R | replace | replace pos 34 'P' -> '1' | `4q1br/p2n2k1/n1p2p1b/1p2B1pp/1P5N/11QPP3/2P2PPP/R2K3R b - - 1 32` | g5h4 |
+| 17976 | R | replace | replace pos 3 'p' -> '1' | `8/116/1P2k3/7p/7P/8/n3n2K/8 w - - 81 113` | b6b7 |
+| 18428 | R | replace | replace pos 22 'R' -> '1' | `4k3/8/1pbP2N1/8/5p2/2q11pP1/5r2/4B1K1 w - - 0 71` | e1c3 |
+| 18512 | R | replace | replace pos 35 'r' -> '1' | `Rnb5/6b1/2r1k1p1/1pp2p2/6P1/3P2R1/71/1r1QK3 w - - 1 64` | g4f5 |
+| 18708 | R | replace | replace pos 21 'p' -> '1' | `4k3/pB2r3/P4p2/3PP3/512/8/1r6/3K4 b - - 2 60` | e7e5 |
+| 19134 | R | insert | insert pos 30 ' ' | `8/1k6/8/5K2/N7/8/3b4/8 w - - 1 7 141` | f5g4 |
+| 19201 | R | replace | replace pos 1 'r' -> '1' | `413/3k4/2r1Np2/PQP1p2p/4B2P/8/p2K1n2/8 b - - 1 67` | f2e4 |
+| 19726 | R | replace | replace pos 5 'b' -> '1' | `1r1k112/2pP4/n5p1/P3n2p/3PK1P1/4P2P/2N3BR/2r1Q3 b - - 0 53` | c1e1 |
+| 19991 | R | replace | replace pos 36 'P' -> '1' | `r6r/n4kb1/P2pbN1p/3Q1PR1/4p2P/2K1P3/12N1P2/R1B4B w - - 2 36` | d5b7 |
+
+### genuinely illegal bestmoves after reclassification
+none
+

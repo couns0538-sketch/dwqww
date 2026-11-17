@@ -1,0 +1,2 @@
+import {read} from './protocol.mjs';import {auditExtra} from './audit-extra.mjs';
+const file=process.argv[2],record=read(file),plan=record.plan,processResult=read(plan.files.process),command=read(plan.files.command);const summary=await auditExtra(plan,processResult,command.inputHashes);console.log(JSON.stringify(summary,null,2));process.exitCode=summary.passed?0:summary.completed?2:3;
