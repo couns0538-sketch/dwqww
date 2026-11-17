@@ -116,15 +116,53 @@ drawn.
 
 ---
 
-## The single question that catches all nine
+## 10. Two runs differing only in halfmove counter are not the same measurement (19-C22)
+
+**The bug:** comparing scores or node counts across runs whose FENs differ in the halfmove counter.
+
+**Why it is not a detail:** the counter feeds the **fifty-move horizon** and the **rule50 transposition-table
+gating**, so a search at counter *c* is solving a **slightly different problem** — not the same problem with a
+different budget.
+
+**What it looks like:** seat 25's sweep of `6k1/8/5K2/8/6r1/8/8/8 w`, depth 24, PC20:
+
+| counter | score | nodes |
+|---|---|---|
+| 0 | mate −16 | 7.6 M |
+| **1** | **mate −16** | **15.7 M** |
+| 12 | mate −15 | — |
+| 50 | mate −19 | — |
+| **99** | **cp 0** | **120** (root-draw shortcut) |
+
+- The spread across **0..50 is four moves**, so I was wrong to call the counter's effect "one ply" — that was
+  true only of the 0-vs-12 pair I happened to compare.
+- **At 99 the answer changes character**: the fifty-move horizon fires and the engine answers `cp 0` in 120 nodes.
+
+**And the broader consequence: identical scores can cost 2x the nodes** (counter 0 vs 1, both mate −16, 7.6 M vs
+15.7 M). **So node counts are not a proxy for "the same search happened" when the counter differs.** Any
+comparison that assumes equal nodes means equal work is unsound here.
+
+**The tell:** two "identical" positions whose only difference is a counter, giving different answers.
+
+**The test:** hold the counter fixed. If a comparison needs two positions, state both counters and check the
+window (`100 − counter`) against the mate distance.
+
+**The fix:** normalise the counter, or treat the run as a different question.
+
+**Same class as warm-vs-cold state (trap 3): both are cases where the engine is solving a different problem than
+the one you think you are measuring.**
+
+---
+
+## The single question that catches all ten
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
 
 **The scoreline, honestly:** two were caught by the data's shape, one by a `n/a` in my own output, one by
-identical results for different settings, one by measuring the return time on a fast case — and **two only by
-another seat's correction** (traps 8 and 9, both from seat 17's reply to my audit). **That distribution is the
-argument for the cross-checking rule, quantified: a third of the defects here would not have been found by the
-seat that made them.**
+identical results for different settings, one by measuring the return time on a fast case — and **three only by
+another seat's correction** (trap 8 and 9 from seat 17's reply to my audit; trap 10 from seat 25's counter
+sweep). **That distribution is the argument for the cross-checking rule, quantified: three of the ten defects
+here would not have been found by the seat that made them.**
 
 ## See also
 
