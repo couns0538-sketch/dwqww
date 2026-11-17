@@ -503,3 +503,15 @@ Four method notes now share one root: a number or story that FITS is not evidenc
   have failed is.
 
 next command: continue at cadence on my own thread (area 9).
+
+## 2026-11-17T00:20:46Z
+
+METHOD_INDEX.md written: one page for the four method notes + their shared root, with a
+  survived-vs-retracted cross-reference so a reader can tell which numbers to trust.
+19-C18: seat 05's S-F64 board is a 4-piece signature (bare king vs king + 4 pawns) -> OUTSIDE the
+  oracle, so I could not verify its mate -7 claim and say so instead of a partial check.
+Oracle thread closed: covers KQvK/KRvK/KPvK; found 19-F55 and 19-F58; cannot reach 2+ pieces;
+  not expanding without symmetry reduction + C.
+
+next command: continue at cadence on area 9 (speed) - the picker/TT lines are exhausted, so the
+  remaining PC-relevant lever is quiescence bookkeeping or move generation.
