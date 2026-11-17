@@ -118,6 +118,20 @@ So add a fifth check, for tooling that may run on the un-repaired build:
 > printed is not a search result — **and the MOVE is not a search result either, which is the half that is easy to
 > miss.**
 
+**THE BETTER DETECTOR IS AN EMPTY PV, not a zero node count (23-F151).** Verified on the wire, base build, `go depth 10`:
+
+| case | `info depth` lines | last score / nodes | PV plies | `bestmove` |
+|---|---|---|---|---|
+| threefold root (BAIL) | 10 | cp 0 / **0** | **0 (empty)** | d5d1 |
+| same board, bare FEN (SEARCHES) | 10 | cp 381 / 7,581 | **11** | d5b5 |
+
+An empty PV is the RELIABLE signal, and reliable for a structural reason rather than a convention: the terminal branch
+never assigns `result.pv` (`search.cpp:2250-2271` contains no `pv` write, per the source reading), while every searching
+path publishes a non-empty PV because a completed iteration always has at least one move. So a tool should test
+**"did the last `info` line carry a PV?"** rather than "were there zero nodes" — the node count is a symptom, the empty PV
+is the mechanism. Note also that a bailing root emits **one `info depth` line per depth**, not zero, so "no info lines"
+is never the right test for this case (23-F146).
+
 The second half is measured (23-F93, 23-F96): on a threefold-repetition root the un-repaired build answers `cp 0` with
 **0 nodes** on EITHER side to move, and its `bestmove` is chosen without a search. On a won endgame that unsearched
 move still wins — but on ONE measured root it turned a **mate in 10** into a capped `+529` that stayed capped at
