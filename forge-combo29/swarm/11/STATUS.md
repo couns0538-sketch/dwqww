@@ -518,6 +518,18 @@ story — a 512-wide net with 8x8 buckets loaded on every evaluation — and it 
 because search-side bookkeeping dominates instead. The first attempt at measuring it (`-pg`, S-F104)
 also failed, by 28 % distortion, and only instrumenting the source directly with a measured clock
 rate gave an answer worth reporting.
+
+**On the v3 speed job, the harnesses outlived the patch attempt.** I built one candidate speed
+patch for the v3 path (hoisting `prepare()` out of the per-evaluation call). It passed the identity
+check — bench 11/13/16 and all three eval values identical — but was 0.9998x, i.e. not faster, with
+a bootstrap CI [0.9898, 1.0096] containing 1.0, so I dropped it and committed it as a CANDIDATE so
+nobody repeats the attempt. What that attempt leaves behind is worth more: **`job_v3/identity.sh`**
+(takes a base exe, a patched exe and the net; checks three benches and three evals; exits non-zero on
+any single difference) and **`job_v3/timing.py`** (runs FOUR binaries by default, two builds per side,
+and reports the ratio of medians with a bootstrap interval). Both are reusable by any seat doing file
+7's Step 2, and the four-binary default is what showed the patch side was the noisier one
+(12.95 % two-build spread against base's 5.61 %) — which also killed my own P6 prediction on that
+side. A negative result plus two harnesses is a better outcome than a lucky-sounding positive.
 S-F88 (40 games in one process, no slowdown) and S-F89, which CLOSES the memory gap S-F88 admitted:
 reading VmRSS from /proc directly, memory is flat at 26.4 MB from game 1 to game 120 with 0 illegal
 moves, so a long-lived process is stable in memory as well as in speed.
