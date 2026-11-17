@@ -156,6 +156,27 @@ def main() -> int:
         print(row)
     print("  (! = exceeds the threshold; ratio itself printed for every cell)")
 
+    # The rule that actually fits: a per-MultiPV Hash ceiling, not a product.
+    print("\n=== per-MultiPV Hash ceiling (the form that fits) ===")
+    hmax = {}
+    for m in mpvs:
+        safe_h = [h for h in data["hashes"] if cls.get((h, m), (False, 0))[0]]
+        hmax[m] = max(safe_h) if safe_h else 0
+    print("  measured frontier Hmax:", {m: hmax[m] for m in mpvs})
+    for label, ceiling in (
+        ("exact   (max measured safe Hash)", hmax),
+        ("conservative (one step down at the noisy cells)",
+         {m: (hmax[m] if m == 1 else (48 if m == 2 else 24)) for m in mpvs}),
+    ):
+        fp = [k for k, (s, r) in cls.items() if k[0] <= ceiling[k[1]] and not s]
+        fa = [k for k, (s, r) in cls.items() if k[0] > ceiling[k[1]] and s]
+        print(f"  {label}: wrong {len(fp) + len(fa)}/{len(cls)} "
+              f"(false-safe {len(fp)}, false-alarm {len(fa)})")
+        for h, m in sorted(fp):
+            print(f"      false-safe  Hash {h:>3} MPV {m} ratio {cls[(h,m)][1]:.2f}")
+        for h, m in sorted(fa):
+            print(f"      false-alarm Hash {h:>3} MPV {m} ratio {cls[(h,m)][1]:.2f}")
+
     if args.patch:
         pdata = load(args.patch)
         pcells = table(pdata)
