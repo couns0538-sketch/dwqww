@@ -3008,3 +3008,25 @@ checking that every FEN was accepted, which is the rule already in REFUSED_FEN_T
 statement about the position.
 Gates: 226 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:53:49Z — swept my own accepted-FEN cases: all 38 parse to the right board, unlike S-C84 (S-C59)
+AFTER CONFIRMING S-C84 I ASKED THE OBVIOUS FOLLOW-UP IN MY OWN AREA: do the 38 accepted-but-invalid FENs I recorded in
+S-F1 also search a WRONG board? That would make them the same hazard. THEY DO NOT, and the reason matters.
+METHOD: perft 2 as a board fingerprint, each accepted FEN compared against its canonicalised form (digit runs collapsed
+to their sum). Single-position probe on a discriminating board (king on e1, canonical perft2 = 15): every accepted
+variant summing to 8 gives 15 (4K111, 4K21, 4K12, 21K4, 12K4); every rejected one summing to 7 or 9 is DIAGNOSED and
+gives 400.
+THEN THE FULL SWEEP: **38 of 38 accepted adjacent-digit FENs produce the SAME perft 2 as their canonicalised form. 0
+differ.** So digit-summing is a correct reading of a malformed shape, not a lax check.
+THE COMPARISON THAT MATTERS: S-C84 is DIAGNOSED and searches the WRONG board - high severity, a fabricated row. S-F1 is
+UNDIAGNOSED and searches the RIGHT board - low severity, the correct answer from a FEN a strict parser would refuse.
+Reporting them as one class would have inflated my finding to the severity of theirs. And the inversion is worth noting:
+the engine says NOTHING for the accepted-but-correct parse and DOES say something for the illegal one - then searches the
+wrong board anyway. THE DIAGNOSTIC IS NOT A GUIDE TO WHETHER THE ANSWER IS ABOUT YOUR POSITION.
+AND THE SWEEP CAUGHT MY OWN BUG, which is the part I want on the record. My first extraction found 37, and I was about to
+write "37 of 37, not the 38 I had been quoting". The bug: fen.split("/")[:-1] drops the last chunk, and the "/" only
+separates ranks - so the last chunk carries rank 1 PLUS the remaining fields. One case had its adjacent digits in rank 1
+and was silently excluded. Corrected selector gives 38, matching the record exactly.
+MY INSTINCT WAS TO REPORT A DISCREPANCY IN THE RECORD. THE DISCREPANCY WAS MINE. The recorded number had survived a
+20,000-FEN sweep; mine had survived ninety seconds. Before reporting that two counts disagree, suspect the new counter.
+Gates: 227 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
