@@ -580,3 +580,15 @@ next: cadence.
 Tally: 35 findings, 22 checks/plants, 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:40Z
+- **08-C23: mechanical proof of the 08-C17 assertion — 0 ordering violations across 57 harnesses.** No harness sends
+  a `setoption` between `go` and the `bestmove` wait, so no timing or score of mine came from a silently truncated
+  search.
+- **08-N4 (new method rule 4): the audit produced TWO false positives before it was right** — one from counting a
+  setoption that precedes the `go`, one from a "bestmove" pattern matching a reader helper so the window stretched
+  into the next function. Both would have been published as defects in my own harness. Rule: open the flagged file
+  before believing the tool; a static analyser is only as good as its model of the code.
+- Tally: 35 findings, 23 checks/audits/plants, 4 method lines, 1 withdrawal.
+
+next: cadence.
