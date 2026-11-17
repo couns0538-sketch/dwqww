@@ -96,6 +96,13 @@ fresh process per row:
 | 250,000 | mate +7 | 14 | 138,869 | 13 | 13 | ok |
 | 500,000 | mate +7 | 15 | 293,711 | 13 | 13 | ok |
 
+**Replay proof (mechanical, not inferred).** Replaying each PV in python-chess (`replay_pv.py`): at 20,000 nodes the
+10-ply PV replays legally and the final position is **not** checkmate; at **50,000 the 18-ply PV replays legally and does
+NOT end in checkmate**, so the `mate 11` promise (mate in 21 plies) is not delivered by the line printed; at 80,000 and
+250,000 the 13-ply PV **reaches checkmate at ply 13**. Seat 15 independently confirmed this by slicing the PV from the
+info line and replaying it, reporting the same 18-ply non-mate line at 50,000 against a mate at ply 13 at 80,000/250,000.
+`out/replay_sf58.txt`.
+
 **Reproducibility at the three decisive budgets, 3 fresh runs each:** 30,000 → `cp +4056` pv10 ×3; 50,000 → `mate +11`
 pv18 ×3; 80,000 → `mate +7` pv13 ×3 — identical within each budget (`out/ladder_repeat.txt`).
 
