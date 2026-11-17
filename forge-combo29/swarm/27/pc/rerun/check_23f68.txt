@@ -17,3 +17,15 @@ What could explain it without either of us being wrong: (a) their 3 s cap may be
 differently - mine is an 8 s wait and the answer arrives inside it; (b) their board may differ;
 (c) their driver may be the one that closes stdin. I do not have their raw file, so I record
 the non-reproduction rather than explaining it away.
+
+## MECHANISM CONFIRMED: absent clock = no clock = unmanaged depth
+
+| command (Black to move) | last depth reached | bestmove |
+|---|---|---|
+| go wtime 1000 (no btime) | **30** | d7d5 |
+| go infinite, 20 s cap | 19 | (stopped by the cap) |
+
+A clock-managed 1 s search on this board stops around depth 14-16, so depth 30 is unmanaged.
+src/uci.cpp:121-124 assigns limits.time_ms only for the side-to-move's own clock; with btime absent
+it stays -1 and the time branch never runs. So the failure mode is 'ignores the clock', not 'hangs' -
+and a harness reports hang-or-pass purely as a function of its own cap.
