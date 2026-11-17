@@ -1,0 +1,28 @@
+PREDICTION — SW-23 job 64 (does the drawn-root bail fire when the THREEFOLD IS NOT AT THE ROOT? — a real-use case)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+Every fixture in this family puts the threefold AT THE ROOT. A real game rarely looks like that: the repetition
+usually happens a few plies BEFORE the position the engine is asked about, and by then the side to move may have played
+on. If the bail only works when the repeated position is the one being searched, then a GUI or an analysis tool would
+still get a full search where the game is drawn by history — and no diagnostic would say so.
+
+DESIGN — on a castling-neutral board (`1K6/8/8/3R4/8/8/8/k7 w`), build a move list where the root-position identity
+occurs three times at plies 0, 4 and 8, then play ONE more move (a rook step) so the engine is asked about a position
+that has NOT repeated — but whose history contains a threefold. Validate with `job59/validate.py`: root occurrence == 3,
+final position ends somewhere else. Compare against:
+  S-A  the threefold root itself (known: 0 nodes, cp 0)
+  S-B  threefold in the history, one ply further on (the case in question)
+  S-C  control: same one-ply-advanced position with a history containing only TWO occurrences of the earlier position.
+
+Prediction (each with the range that kills it):
+  P1  S-A BAILS (0 nodes) — reproduces 23-F125 on this board.
+  P2  **S-B BAILS TOO (0 nodes, cp 0).** If so, the bail is not "is this position repeated" but "does the history contain
+      a repetition", i.e. the engine is stricter than the 75-move/subsumed case and behaves as though the game is over.
+      That would make the hazard BROADER than the family has described so far, and worth telling the owner plainly.
+      KILLED if S-B SEARCHES — in which case the bail is strictly root-only, the family's scope narrows, and the
+      practical advice stays as it is.
+  P3  S-C SEARCHES (> 0 nodes), the control, because two occurrences are not a draw under any rule.
+      KILLED if it bails, which would mean some other rule (not repetition count) is driving the behaviour.
+
+P2 is the one that matters and I have no prior expectation. Either answer is a useful and different statement about what
+a tool can rely on, which is why this is worth a job rather than an assumption.
