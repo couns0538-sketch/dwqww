@@ -641,3 +641,19 @@ next: cadence.
 Tally: 36 findings, 25 checks/audits/plants, 4 method lines, 2 withdrawals.
 
 next: cadence.
+
+## 2026-11-17T01:50Z
+- **08-F37: THE MECHANISM FOUND, and my ordering hypothesis KILLED.** Built V1 (BARE_KING_LMR_CAP=0) and V2
+  (BARE_KING_ONE_THREAD=1), pins identical at 312,866. **V1 plays the BASE move on 11 of 11 divergence boards**;
+  V2 restores 6 of 11. So the cap alone causes every divergence. The both-waiting pattern is 8/9/8 of 11 across
+  V0/V1/V2 — unchanged — so ordering is NOT the cause. WHY the cap changes the choice: unestablished (consistent
+  with altered LMR, not instrumented).
+- **Arc:** boundary measured and held -> mechanism eyeballed and refuted (08-W2) -> ordering hypothesised ->
+  instrument run. The WITHDRAWAL was the step that made the attribution possible.
+- **pc20/WHY_CASUALTIES.md: six mechanism claims counted**, each with what it got wrong and how caught. Four of the
+  six were me explaining my OWN earlier correction — that is the evidence behind "why claims need a test designed to
+  kill them".
+
+Tally: 37 findings, 26 checks/audits/plants, 4 method lines, 2 withdrawals.
+
+next: cadence.
