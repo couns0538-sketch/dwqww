@@ -1,0 +1,51 @@
+Job 7 Task 1 — Outside-Search Engine CPU Counts Over 60-Game Self-Play Stream at `Hash 32`
+==========================================================================================
+Counting build: Separate instrumented copy (`/tmp/carbon2_job7/count_src`, NOT used for any timed run) built from
+Job 6 `bundle2.patch.txt` with `S7` Part 3 removed (`Worker::clear` unconditionally clearing all tables) and `S5`'s
+debug `assert` restored (`o0_drop_s7p3_and_s5_assert.patch.txt`).
+Workload: 60-game FEN-root stream of Job 5's driver (`select_book_fens(positions_250.txt, 60)`), `PC20` at **`Hash 32`**
+(engine default, matching the PC), `Threads 1`, `MultiPV 1`, `net768.fnn3` (`checksum 30ab43b4ba5db5f3`), `go softnodes 2000`.
+Clock source: `clock_gettime(CLOCK_THREAD_CPUTIME_ID)` per handler on the executing thread and
+`clock_gettime(CLOCK_PROCESS_CPUTIME_ID)` across the 60-game stream (`start_count_j7` -> `dump_count_j7`).
+
+Stream totals (two back-to-back verification runs on the identical 60-game `Hash 32` stream, `trace_hash32 = afc8237d71719c40`):
+- Games: `60`
+- Searches (`go softnodes 2000`): `7,645` (`127.42` searches/game)
+- Total nodes searched: `25,564,637` (`3,343.97` nodes/search)
+- Total `info depth ...` lines emitted: `70,513` (**`9.2234` info lines per search**, `1,175.22` info lines per game)
+- Total `info depth ...` bytes emitted: `6,988,700` bytes (**`914.15` bytes per search**, `116,478.3` bytes per game; `99.11` bytes/line)
+  *(Note: `62,868` of the `70,513` info lines — `89.16%` of lines, `8.2234` lines/search — are intermediate iterations discarded unused by the PC's client.)*
+
+=== Breakdown of Engine CPU Time Per Game (`Hash 32`, Run 2 Full Sub-Breakdown; Run 1 in Notes) ===
+
+Total 60-game engine CPU (`CLOCK_PROCESS_CPUTIME_ID` delta): `13,238,955,613 ns` (`13,238.96 ms` total = **`220.649 ms` / game**, `1.7317 ms` / search).
+*(Run 1 total engine CPU: `13,196,552,885 ns` = `219.943 ms` / game.)*
+
+| Part | Handler / Sub-Component | 60-Game Total CPU (`ms`) | Engine CPU / Game (`ms`) | Share of Game Engine CPU (`%`) | `>= 1.0%` Gate Verdict |
+| :--- | :--- | ---: | ---: | ---: | :--- |
+| **(a1)** | `ucinewgame`: Transposition table fill (`shared_.tt.clear()`, `32 MB` x 60) | `88.612` *(Run 1: `71.379`)* | **`1.477 ms`** *(Run 1: `1.190 ms`)* | **`0.669%`** *(Run 1: `0.541%`)* | **BELOW `1%` (`< 1.0%`) -> Skip `O1`** |
+| **(a2)** | `ucinewgame`: `Worker::clear()` (all histories, corrections, `SearchStack`) | `20.431` *(Run 1: `18.627`)* | **`0.341 ms`** *(Run 1: `0.310 ms`)* | **`0.154%`** *(Run 1: `0.141%`)* | **BELOW `1%`** |
+| **(a3)** | `ucinewgame`: `Board::set_fen(StandardStartFen)` + `PositionCache` reset | `0.831` *(Run 1: `0.776`)* | **`0.014 ms`** *(Run 1: `0.013 ms`)* | **`0.006%`** *(Run 1: `0.006%`)* | **BELOW `1%`** |
+| **(a) Total** | **All `ucinewgame` work (`a1 + a2 + a3`, `60` calls)** | **`109.874`** *(Run 1: `90.782`)* | **`1.831 ms`** *(Run 1: `1.513 ms`)* | **`0.830%`** *(Run 1: `0.688%`)* | **BELOW `1%` (`< 1.0%`)** |
+| **(b)** | **`position` handler (`apply_position_sv`, `7,645` calls; `S7` Part 1 active)** | **`21.513`** *(Run 1: `20.404`)* | **`0.359 ms`** (`2.81 us`/pos) | **`0.162%`** *(Run 1: `0.155%`)* | **BELOW `1%` (`< 1.0%`)** |
+| **(c1)** | `info` output: building each line (`buf` formatting + `hashfull()`, `70,513` lines) | `26.232` *(Run 1: `27.979`)* | **`0.437 ms`** (`0.37 us`/line) | **`0.198%`** *(Run 1: `0.212%`)* | Part of `(c)` |
+| **(c2)** | `info` output: writing + flushing (`std::cout.write` + `flush()`, `70,513` lines) | `107.312` *(Run 1: `106.781`)* | **`1.789 ms`** (`1.52 us`/line) | **`0.811%`** *(Run 1: `0.809%`)* | Part of `(c)` |
+| **(c) Total** | **All `info` output (`c1 + c2`, `9.22` lines & `914.15` B / search)** | **`133.545`** *(Run 1: `134.759`)* | **`2.226 ms`** *(Run 1: `2.246 ms`)* | **`1.009%`** *(Run 1: **`1.021%`**)* | **MEETS `>= 1.0%` GATE -> Execute `O2` (`InfoOnce`)** |
+| **(d1)** | `go` parse/dispatch + `bestmove` write/flush + condvar handoff (`7,645` searches) | `46.177` | **`0.770 ms`** (`6.04 us`/search) | **`0.349%`** | **BELOW `1%`** |
+| **(d2)** | `isready` -> `readyok` handler (`60` calls) | `0.387` | **`0.006 ms`** | **`0.003%`** | **BELOW `1%`** |
+| **(d3)** | Iterative-deepening search (`Worker::search` + `Worker::qsearch` + NNUE v3) | `12,927.460` | **`215.458 ms`** (`1.691 ms`/search) | **`97.647%`** | Inside-search |
+| **(d) Total** | **Everything else (`d1 + d2 + d3`)** | **`12,974.024`** *(Run 1: `12,950.608`)* | **`216.234 ms`** *(Run 1: `215.843 ms`)* | **`97.999%`** *(Run 1: `98.136%`)* | — |
+
+*(Client-side side-effect note, not counted in engine % above: the Python driver spent `632.29 ms` CPU across the 60 games = `10.538 ms/game` [`82.7 us/search`], much of it reading and splitting the `8.22` discarded intermediate `info` lines per search over the OS pipe.)*
+
+=== Raw Counter Lines ===
+Run 1:
+  `info string count_j7_start_proc_ns 81166799`
+  `info string count_j7_end_proc_ns 13277719684 ucinewgame_calls 60 tt_clear_cpu_ns 71378806 worker_clear_cpu_ns 18627053 ucinewgame_other_cpu_ns 776159 position_calls 7645 position_cpu_ns 20404261 go_searches 7645 info_lines 70513 info_bytes 6988933 info_build_cpu_ns 27978506 info_write_cpu_ns 106780601`
+Run 2:
+  `info string count_j7_start_proc_ns 81618998`
+  `info string count_j7_end_proc_ns 13320574611 ucinewgame_calls 60 tt_clear_cpu_ns 88612372 worker_clear_cpu_ns 20430776 ucinewgame_other_cpu_ns 831134 position_calls 7645 position_cpu_ns 21512833 go_searches 7645 info_lines 70513 info_bytes 6988700 info_build_cpu_ns 26232484 info_write_cpu_ns 107312452 bestmove_and_dispatch_cpu_ns 46177257 search_root_setup_cpu_ns 40035 isready_cpu_ns 386577`
+
+Decision under Task 2's `>= 1%` rule:
+- **`(c) info output` (`1.009%`–`1.021%`, `2.23–2.25 ms/game`, `9.22` lines / `914` bytes per search) meets the `>= 1%` threshold** -> proceed with **`O2` (`InfoOnce`)**.
+- **`(a) ucinewgame` (`0.541%`–`0.669%` TT fill, `0.688%`–`0.830%` total)**, **`(b) position` (`0.155%`–`0.162%`)**, and **`(d1) go/bestmove dispatch` (`0.349%`)** are all strictly below `1.0%` on this machine's Task 1 stream -> per Task 2 (*"each only if its count in task 1 is 1 % of a game's engine CPU or more"*), `O1` and `O3` are skipped.

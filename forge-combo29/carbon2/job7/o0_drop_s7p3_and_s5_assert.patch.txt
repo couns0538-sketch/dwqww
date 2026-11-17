@@ -1,0 +1,225 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 16:54:00.681143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 16:58:52.249143771 +0000
+@@ -478,11 +478,7 @@
+     // root until the shared stop flag is raised.
+     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
+     void clear();
+-    void clear_caches() {
+-        if (v1_eval_dirty_) {
+-            evaluator_.clear();
+-        }
+-    }
++    void clear_caches() { evaluator_.clear(); }
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+     // Zero the count other workers add into a node budget. Searcher::search does
+     // this for every worker before it starts any of them.
+@@ -572,8 +568,6 @@
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+     mutable MoveList picker_scratch_;
+     mutable MoveList evasion_scratch_;
+-    bool threat_history_dirty_ = true;
+-    bool v1_eval_dirty_ = true;
+     bool nnue_active_ = false;
+ #if FORGE_NNUE_V3
+     const nnue::v3::Net* v3_active_net_ = nullptr;
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 16:54:00.681143771 +0000
++++ b/src/board.cpp	2026-11-17 16:59:34.449143771 +0000
+@@ -2,6 +2,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <cassert>
+ #include <cctype>
+ #include <cstdlib>
+ #include <sstream>
+@@ -1182,6 +1183,12 @@
+     else undo.king_lines.valid = false;
+ #endif
+ 
++#ifndef NDEBUG
++    std::uint64_t dbg_key = key_;
++    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++        dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++    }
++#endif
+     if (precomputed_key == nullptr && ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+@@ -1191,16 +1198,25 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
++#ifndef NDEBUG
++        dbg_key ^= piece_key(captured_square, undo.captured);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, undo.captured);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
++#ifndef NDEBUG
++    dbg_key ^= piece_key(move.from, moving);
++#endif
+     if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+@@ -1208,8 +1224,14 @@
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, promoted);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, moving);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+     }
+@@ -1220,16 +1242,29 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
++#ifndef NDEBUG
++        dbg_key ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
++#ifndef NDEBUG
++    dbg_key ^= Z.castling[castling_];
++#endif
+     if (precomputed_key != nullptr) {
+         castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+         if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
+         if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+         side_ = them;
+         key_ = *precomputed_key;
++#ifndef NDEBUG
++        dbg_key ^= Z.castling[castling_] ^ Z.side;
++        if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++            dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++        }
++        assert(key_ == dbg_key);
++#endif
+     } else {
+         key_ ^= Z.castling[castling_];
+         castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+@@ -1247,6 +1282,7 @@
+     // the other colour cannot be the checker, so it is not consulted.
+     if (known_gives_check == 0) {
+         checkers_ = 0;
++        assert(compute_checkers() == 0);
+     } else {
+         const int their_king = king_square(them);
+         const Bitboard occ_now = occupied();
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 16:54:00.681143771 +0000
++++ b/src/search.cpp	2026-11-17 16:59:01.893143771 +0000
+@@ -1266,50 +1266,10 @@
+ Worker::~Worker() = default;
+ 
+ void Worker::clear() {
+-    if (v1_eval_dirty_) {
+-        evaluator_.clear();
+-        for (SearchStack& ss : stack_) ss = SearchStack{};
+-        stack_dirty_limit_ = MaxPly + 7;
+-        v1_eval_dirty_ = false;
+-    } else {
+-        const int limit = std::min<int>(MaxPly + 7, stack_dirty_limit_);
+-        for (int i = 0; i <= limit; ++i) {
+-            SearchStack& entry = stack_[static_cast<std::size_t>(i)];
+-            entry.pv_length = 0;
+-            entry.ply = i < MaxPly + 4 ? i - 4 : 0;
+-            entry.current_move = Move::none();
+-            entry.excluded_move = Move::none();
+-            entry.killers = {};
+-            entry.moved_piece = Empty;
+-            entry.static_eval = ValueNone;
+-            entry.raw_eval = ValueNone;
+-            entry.move_count = 0;
+-            entry.arrival_index = 0;
+-            entry.cutoff_count = 0;
+-            entry.double_extensions = 0;
+-            entry.withheld_plies = 0;
+-            entry.in_check = false;
+-            entry.tt_pv = false;
+-            entry.null_move_allowed = true;
+-            entry.continuation = nullptr;
+-            entry.dirty.count = 0;
+-            entry.entered_move = Move::none();
+-            entry.entered_piece = Empty;
+-            entry.entered_capture = Empty;
+-            entry.entered_side = 0;
+-            entry.entered_null = false;
+-            entry.diff_known = false;
+-            entry.corr_np_idx = {};
+-            entry.corr_mat_idx = 0;
+-            entry.corr_mat_mix = 0;
+-            entry.corr_valid = 0;
+-        }
+-    }
++    stack_dirty_limit_ = MaxPly + 7;
++    evaluator_.clear();
+     std::memset(main_history_.get(), 0, sizeof(*main_history_));
+-    if (threat_history_dirty_) {
+-        std::memset(threat_history_.get(), 0, sizeof(*threat_history_));
+-        threat_history_dirty_ = false;
+-    }
++    std::memset(threat_history_.get(), 0, sizeof(*threat_history_));
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+@@ -1326,6 +1286,7 @@
+     std::memset(joint_correction_.get(), 0, sizeof(*joint_correction_));
+     std::memset(continuation_correction_.get(), 0, sizeof(*continuation_correction_));
+     std::memset(threat_maps_.data(), 0, sizeof(threat_maps_));
++    for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+ namespace {
+@@ -1377,14 +1338,10 @@
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+-    if (!nnue_active_) {
+-        v1_eval_dirty_ = true;
+-        return evaluator_.evaluate(board);
+-    }
++    if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+     if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
+ #endif
+-    v1_eval_dirty_ = true;
+     const bool residual = nnue::residual();
+     // Features used for this evaluation. A null move keeps the parent's
+     // accumulator: the piece set is unchanged, and a float copy would be the
+@@ -1835,7 +1792,6 @@
+ 
+ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+     if (!tune::ThreatHistory) return;
+-    threat_history_dirty_ = true;
+     const int index = quiet_threat_index(board, move);
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+@@ -3090,7 +3046,6 @@
+     } else
+ #endif
+     if (nnue::enabled && nnue::available()) {
+-        v1_eval_dirty_ = true;
+         nnue::refresh(board, ss->accumulator);
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
