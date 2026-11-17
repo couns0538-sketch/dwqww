@@ -760,8 +760,9 @@ fires on a planted real violation. A narrowing that is not re-proved is indistin
 is exactly the operation that looks like progress while silently disabling.
 
 **Deeper point:** a checker written in the same language as the documents it inspects will always be vulnerable to this.
-The stable defence is not cleverer patterns but a planted failing case that runs every time, so that a narrowing which
-goes too far is caught by the proof rather than by noticing an absence of failures.
+Every narrowing is a patch on a pattern; the planted case is a property of the harness. **So the stable defence is a
+planted failing case that runs every time, not cleverer patterns** — a narrowing that goes too far is then caught by the
+proof rather than by noticing an absence of failures.
 
 ## The fix, in one line each
 
