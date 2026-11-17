@@ -259,3 +259,34 @@ harness reports more than a few milliseconds, your number is apparatus.
 
 **Before publishing any number, ask what else could produce it.** All three of these were plausible-looking and
 two of them reached a finding.
+
+## A `mate N` score's PV is often SHORTER than 2N-1 plies — do not use the PV as proof
+
+Three sightings on unrelated depths and budgets:
+
+| where | score | PV plies | needed (2\|N\|) |
+|---|---|---|---|
+| seat 05's 05-F58, `go nodes 50000` | `mate 11` | 18 | 21 |
+| seat 19's 19-F59, `go depth 24` | `mate -25` | 24 | 50 |
+| this seat, `go depth 16` on a counter-80 board | `mate 10` | 16 | 19 |
+
+**It is common enough that any "the PV must be a mate" assertion has to allow for it**, and — more useful — **it
+means a short PV is not evidence that the score is wrong either.** The cheap decisive test is:
+
+**ask the engine from the PV's end position.** On the depth-16 row the PV ends at
+`7k/4Q3/8/4K3/8/8/8/8 w - - 96 9`, neither check nor checkmate; asking the engine there at depth 18 returns
+`mate 2`, which confirms the score is real and the line is simply truncated.
+
+So: **PV length is not a proof of a mate score in either direction.** Replay it, then ask the engine from where it
+stopped.
+
+## Four content-level catches tonight, all found by reading the artefact rather than the intention
+
+1. **Zero `info depth` lines** recorded as a row (the pipe closing, not a search) — caught by reading the raw output.
+2. **A guard raising an undefined `Missing`** — caught because a guarded run finally hit a real zero-info reply.
+3. **A heredoc stripping backticks** from a findings row — caught by grepping the rendered line.
+4. **A backtick in a shell `echo` executing a FEN as a command**, leaving the sentence with a hole where the
+   position should be — caught by reading the committed evidence file.
+
+**The common thread: every one of these looked correct at the moment of writing.** The rule that catches all four
+is the same — after writing, read the file as a reader would, not as its author.

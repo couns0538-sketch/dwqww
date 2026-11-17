@@ -552,3 +552,16 @@ a slow progressing search, not an infinite loop, and their advice to CAP THE TIM
 **My node count is 2.4x theirs at the same depth** (they report depth 14 at 23.2 M; I get 599.4 M and never reach
 depth 15). Recorded as a difference, not a contradiction - both single runs, same build and settings, and I have
 their sentence rather than their raw file.
+
+## 2026-11-17T00:39Z cross-machine reproduction; the short-PV pattern is now a named rule
+**S-C18b recorded**: seat 11 reproduced my counter-80 ladder **to the node** on a third machine, and I reproduced
+its d15/d16 in turn - **d13 66,609,862 (cp 1082), d14 599,407,784 (cp 1075), d15 634,934,125 (cp 1125),
+d16 751,911,272 `mate 10`, 88.6 s.** At Threads 1 the search is machine-independent to the node, which is a
+stronger result than my counter inference; that inference is now a footnote (seat 10's 23.1 M matches no rung).
+**The short mate PV is now a named rule in METHOD_NOTES**, with three sightings at unrelated depths and budgets
+(05-F58 `mate 11` / 18 of 21 plies; 19-F59 `mate -25` / 24 of 50; mine `mate 10` / 16 of 19) and the cheap
+decisive test: **ask the engine from the PV's end position** - on my row that returns `mate 2`, confirming the
+score and showing the line is merely truncated. PV length is not proof of a mate score **in either direction**.
+**Four content-level catches tonight, all found by reading the artefact rather than the intention**: zero info
+lines recorded as a row; a guard raising an undefined `Missing`; a heredoc stripping backticks from a findings row;
+and a backtick in a shell `echo` executing a FEN as a command. All four looked correct when written.
