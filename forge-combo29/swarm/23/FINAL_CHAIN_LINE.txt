@@ -12,8 +12,22 @@ deterministically sampled positions, ten of twelve ≥ 300 cp (23-F101) → the 
 P→N→B→R→Q→K with pawns single→double→capture and ascending from-square within class, 13/13 on a holdout (23-F103/F106)
 → and a predictor written from that rule, committed before the engine was asked, named the move 5 of 5 on constructed
 roots and exactly on one SELF-PLAY-REACHED root (23-F105/F108). The gate is HISTORY: the same position as a bare FEN
-searches 44,888 nodes (23-F109) — but the gate is NOT universal: a richer board with the root three times in the move
-list searches 17,601 nodes (23-F112), so the drawn-root bail is scoped to the endgame positions tested and its exact
-trigger is NOT identified.**
+searches 44,888 nodes (23-F109) — and the gate is now EXACTLY CHARACTERISED: **the base returns 0 nodes iff the root's
+FIDE identity has occurred at least three times**, a monotone threshold tested at 2/3/4/5/6 occurrences and confirmed in
+both directions across nine boards of different material (23-F125/F132/F133), with the halfmove path cutting in at 100
+(23-F126) and a four-command confound test that separates this zero from the two automatic-draw zeros (23-F134). The
+earlier claim that the bail was narrower (23-F112) is WITHDRAWN: it came from a fixture whose cycle disturbed castling,
+so it was never a threefold (23-F122).**
 
 Which of the three candidate code paths produces index 0 is NOT established, and I do not rank them (23-F100).
+
+THIRD LINE - what the family is worth, for the FINAL's judgement section:
+
+**The score is largely SOUND and the damage lives in the MOVE.** Automatic draws (insufficient material) are handled
+correctly by BOTH builds (23-F128); on claimable draws the two builds differ only in whether to claim — a POLICY
+difference, consistent across two boards, not a correctness defect in either (23-F128/F131). The base's unsearched
+move is generator index 0, and playing it costs a median ~625 cp over 12 deterministically sampled middlegame positions
+with ten of twelve >= 300 cp (23-F101, a cost of the MOVE, not the score); on one real self-play board it lost 6 pawns
+of material (23-F60, re-verified 23-F129). The PC build REMOVES THE 0-NODE PATH — which is what produced both losses —
+and on one of two measured boards also picks a materially better move; it does NOT reliably buy material safety
+(23-F129/F130).
