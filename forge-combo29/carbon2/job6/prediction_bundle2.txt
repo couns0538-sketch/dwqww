@@ -1,0 +1,24 @@
+Job 6 Bundle 2 Prediction (committed BEFORE any Bundle 2 timed run)
+===================================================================
+Target: `forge-combo29/carbon2/job6/bundle2.patch.txt` — ONE unified diff against the Job 4 base
+(`6b98f217 + pc_r15.patch + carbon2/a_speed_pc20_v3.patch.txt + carbon2/job3/e1_legal_check_evasions.patch.txt`)
+combining all eleven proven-identical steps of Jobs 4, 5, and 6:
+- Job 4/5 `bundle1` steps (`S1 + S2 + S3 + S4 + S5 + S6 + S7`)
+- Job 6 new work-removing steps (`G1 + G2 + G3 + G4`):
+  - `G1`: Cached `corr_mat_idx` (`material_key` index propagated on `SearchStack` across quiet/null moves and reused in `corrected_eval` + `update_correction`) + inline `has_dead_material_candidates` guard (`10.61%` profile group).
+  - `G2`: `Board::see_ge` no-recapture fast-exits + unified `FORGE_SDK_SEE_HOIST` king-line cache (`5.94%` profile share).
+  - `G3`: `known_gives_check` reuse in `Board::make_move` (~93% `checkers_ = 0` fast path), `MovePicker::init_check_squares()` `ensure_king_lines()` deduplication, ray-free pawn stalemate fast-exit in `Board::has_legal_move()`, and branchless king-evasion taboo pre-mask (`6.15%` Board profile group).
+  - `G4`: Per-search `v3_active_net_` / `nnue_active_` snapshot, hoisted `nnue::v3::prepare` (`6,464 B -> 112 B` frame), direct `board.king_square` + parent `KingKey` reuse on non-king moves in `Worker::static_evaluate_v3` (`6.36%` profile group).
+
+Predicted speedup of `bundle2` (B) over Job 5 `bundle1` (A) on this cloud CPU (Intel Xeon @ 2.60GHz, g++ 13.3 AVX-512, `PC20 + net768`):
+- 12-round ABBA (`A1 B1 B2 A2`) x 60-game FEN-root self-play (`A = bundle1`, `B = bundle2`, `go softnodes 2000`, `getrusage` engine CPU ns and wall clock):
+  `+1.2%` to `+3.5%` (`1.012x` to `1.035x`) in `median_of_paired_round_ratios`.
+- 4-round ABBA `bench 13` (`A = bundle1`, `B = bundle2`, `PC20 + net768`):
+  `+1.5%` to `+4.0%` (`1.015x` to `1.040x`) in `median_of_paired_round_ratios`.
+- Stack frame sizes (`bundle1 -> bundle2`):
+  `sizeof(MovePicker): 2240 -> 2240 B (+0 B)`, `Worker::search: 4496 -> 4560 B (+64 B; -2544 B vs Job 4 base 7104 B)`, `Worker::qsearch: 2704 -> 2704 B (+0 B; -2544 B vs Job 4 base 5248 B)`, `nnue::v3::prepare: 6464 -> 112 B (-6352 B)`.
+- Identity: 100% bit-exact across all `bench 11/13/16` (`net512` & `net768`), 250-pos depth-9, 1000-pos evals, 6-game traces (`4560d7c3afdeba2e`, `9ed22c1193ab96de`), and ONE identical 64-bit FNV-1a trace (`ee465caeff9c0fcf`, `7,670` searches, `25,641,316` nodes) across all 48 runs of the 12-round x 60-game self-play benchmark.
+
+Kill range:
+- Any identity or 48-run FNV trace divergence kills `bundle2` immediately.
+- If the 12-round x 60-game self-play `median_of_paired_round_ratios` (`bundle2 / bundle1`) is `<= 1.008x` (`<= +0.8%`) on both `getrusage` engine CPU and wall clock OR fails to exceed the A/A build-noise spread (`not measured`), the `bundle2` speed prediction is killed.
