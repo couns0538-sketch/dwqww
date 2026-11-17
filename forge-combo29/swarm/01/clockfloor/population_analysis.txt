@@ -1,0 +1,23 @@
+S-C62: does the sample's node-ratio tail reproduce at population scale?
+source: /tmp/wtpop/pairs.jsonl
+
+POPULATION             n=2794   node med 0.962 mean 1.094 Q1 0.743 Q3 1.242 max 18.37 | wall med 1.036 | per-node med 1.071 Q1 1.047 Q3 1.097 max 2.02 | fewer on 56.4 %
+the old stride sample  n=116    node med 0.931 mean 0.971 Q1 0.705 Q3 1.146 max  2.60 | wall med 1.000 | per-node med 1.071 Q1 1.049 Q3 1.095 max 1.35 | fewer on 67.2 %
+
+TAIL SHAPE, population vs sample
+  node ratio > 2x : population 164 of 2794 (5.9 %) | sample 4 of 116 (3.4 %)
+  node ratio > 5x : population 10 (0.36 %) | sample 0 (0.00 %)
+  node ratio >10x : population 1 (0.04 %) | sample 0 (0.00 %)
+
+PER-NODE COST, which S-C54's reconciliation depends on being UNIFORM
+  population: median 1.071, Q1 1.047, Q3 1.097, range 0.52-2.02
+  If Q1..Q3 is narrow and the range is not extreme, per-node cost is a near-constant multiplier and the
+  bimodal node ratio is the whole story - which is what S-C54 claimed from 116 pairs.
+
+DOES THE SAMPLE HOLD?
+  node median: population 0.9618 vs sample 0.9305 -> difference -0.0312
+  wall median: population 1.0364 vs sample 1.0000 -> difference -0.0364
+  mean node ratio: population 1.0941 (Q1 0.743, Q3 1.242, max 18.37) vs sample 0.9714 (Q1 0.705, Q3 1.146, max 2.60)
+
+VERDICT: the sample's median DOES NOT reproduce - it is off by 0.031, which is the S-C42 failure
+  mode again: a stride sample that flattered the figure. The population number should replace it.

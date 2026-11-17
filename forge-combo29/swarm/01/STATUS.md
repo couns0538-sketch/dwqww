@@ -3278,3 +3278,23 @@ vanished entirely under a seeded random subsample (all rungs ~0.962). THAT IS S-
 DETECT IT - the fifth time tonight a discrepancy I was about to report was my own instrument.
 Gates: 235 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: let the population run finish; the phase structure of the wall ratio is worth one more split.
+## 2026-11-17T04:27:15Z — the mean is the figure a sample gets most wrong, and my tail claim rests on it (S-C64)
+THE POPULATION RUN'S SHARPEST RESULT IS ABOUT WHICH STATISTIC SURVIVES SAMPLING, not about PC20.
+Same positions, 2,700+ at population scale against a ~116-pair sample:
+    node MEDIAN: population 0.9618 vs sample 0.9305  -> difference 0.031
+    node MEAN  : population 1.0941 vs sample 0.9714  -> difference 0.123
+THE MEAN'S ERROR IS FOUR TIMES THE MEDIAN'S, for a structural reason: the mean is dragged by the extreme positions
+(population max 18.37 against the sample's 2.60), and a 116-pair sample contains few of them.
+AND THIS CORRECTS MY OWN FINDING DIRECTLY. S-C46/S-C54 describe the node ratio as "bimodal, median 0.926, mean 1.214,
+tail to 18.4x" - the MEDIAN and the TAIL were right, and THE MEAN WAS THE LEAST RELIABLE NUMBER ON THE LINE. The
+population gives mean 1.094, not 1.214. Worse, on a fresh random subsample of the SAME SIZE the mean came out 0.971 -
+so it is not merely biased, it is UNSTABLE AT THAT SAMPLE SIZE IN BOTH DIRECTIONS, which is worse than a bias because
+there is no consistent correction to apply.
+RULE RECORDED: a claim about a heavy-tailed distribution must not be carried by its mean; and if a mean is quoted it
+needs the sample size AND the max, because the max is what the mean is chasing.
+ALSO CAUGHT BY MY OWN CHECKS: the pooled-spread check failed on my new analysis artifact because the mean line had no
+spread beside it. I put the spread on that line rather than tuning the check - which is how the divergence above became
+visible at all. A check that fires on a new artifact and makes me add the distribution is doing exactly what it was
+built for.
+Gates: 236 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: population run still going; report where it stops with the checkpoint count.

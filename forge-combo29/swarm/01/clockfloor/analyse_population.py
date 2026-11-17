@@ -120,8 +120,11 @@ def main():
              % (pop["node_median"], smp["node_median"], smp["node_median"] - pop["node_median"]))
     L.append("  wall median: population %.4f vs sample %.4f -> difference %.4f"
              % (pop["wall_median"], smp["wall_median"], smp["wall_median"] - pop["wall_median"]))
-    L.append("  mean node ratio: population %.4f vs sample %.4f -> difference %+.4f"
-             % (pop["node_mean"], smp["node_mean"], smp["node_mean"] - pop["node_mean"]))
+    # the spread goes ON the mean's line: a pooled mean without its distribution is the S-F139 deficiency, and the
+    # pooled-spread check correctly flagged exactly this line on the new artifact
+    L.append("  mean node ratio: population %.4f (Q1 %.3f, Q3 %.3f, max %.2f) vs sample %.4f (Q1 %.3f, Q3 %.3f, max %.2f)"
+             % (pop["node_mean"], pop["node_q1"], pop["node_q3"], pop["node_max"],
+                smp["node_mean"], smp["node_q1"], smp["node_q3"], smp["node_max"]))
     L.append("")
     dmed = abs(smp["node_median"] - pop["node_median"])
     dmed_wall = abs(smp["wall_median"] - pop["wall_median"])
