@@ -85,7 +85,10 @@ class Engine:
             if s.startswith("bestmove"):
                 bm = s.split()[1]
                 break
-        last = infos[-1] if infos else ""
+        # GUARD (S-W1): a row with no info depth line has no score/node/depth. Raise, do not record None.
+        if not infos:
+            raise RuntimeError("no 'info depth' line for a search of %r (row aborted)" % fen)
+        last = infos[-1]
         n = re.search(r"nodes (\d+)", last)
         sc = re.search(r"score (cp|mate) (-?\d+)", last)
         dp = re.search(r"depth (\d+)", last)
@@ -115,7 +118,10 @@ class Engine:
             if s.startswith("bestmove"):
                 bm = s.split()[1]
                 break
-        last = infos[-1] if infos else ""
+        # GUARD (S-W1), second copy in search_warm(): zero info lines => no score/nodes. Raise.
+        if not infos:
+            raise RuntimeError("no 'info depth' line for %r (warm row aborted)" % fen)
+        last = infos[-1]
         n = re.search(r"nodes (\d+)", last)
         sc = re.search(r"score (cp|mate) (-?\d+)", last)
         dp = re.search(r"depth (\d+)", last)

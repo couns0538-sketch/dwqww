@@ -79,7 +79,10 @@ class Engine:
             elif s.startswith("bestmove"):
                 bm = s.split()[1]
                 break
-        last = infos[-1] if infos else ""
+        # GUARD (S-W1): zero info lines => no score/nodes. Raise rather than record a None row.
+        if not infos:
+            raise RuntimeError("no 'info depth' line for %r (row aborted)" % fen)
+        last = infos[-1]
         n = re.search(r"nodes (\d+)", last)
         sc = re.search(r"score (cp|mate) (-?\d+)", last)
         return {"bestmove": bm, "nodes": int(n.group(1)) if n else None,

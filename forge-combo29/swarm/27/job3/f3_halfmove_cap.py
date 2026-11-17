@@ -56,7 +56,10 @@ class Engine:
         if not ok:
             raise RuntimeError("no bestmove for %r (last %r)" % (fen, lines[-3:]))
         infos = [l for l in lines if l.startswith("info depth")]
-        last = infos[-1] if infos else ""
+        # GUARD (S-W1): zero info lines => no score/nodes. Raise rather than record a None row.
+        if not infos:
+            raise RuntimeError("no 'info depth' line for %r (row aborted)" % fen)
+        last = infos[-1]
         import re
         n = re.search(r"nodes (\d+)", last)
         sc = re.search(r"score (cp|mate) (-?\d+)", last)

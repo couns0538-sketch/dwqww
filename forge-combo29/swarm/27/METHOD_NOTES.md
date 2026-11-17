@@ -100,6 +100,44 @@ that silently records `None` and looks like a normal row. `raise` instead.
 **Prove the guard fires** with a fake engine that answers every `go` with `bestmove a2a3` and no info line;
 the harness must raise. A guard never shown to fire is a claim about code, not behaviour.
 
+### The exact anti-pattern, so you can grep for it
+
+Six of my fifteen harnesses had this line, and it is the whole bug:
+
+```python
+last = infos[-1] if infos else ""          # WRONG: silently proceeds with an empty line
+```
+
+That does not abort. It yields `last = ""`, then `re.search(r"score ...", "")` returns `None`, and the row is
+recorded with `score: None`, `nodes: None`, `depth: None` — **a row that looks like a measurement of nothing.**
+Combined with a fabricated `bestmove` it produces exactly the plausible-looking output that fooled two seats.
+
+Grep for it with:
+
+```bash
+grep -rn 'infos\[-1\] if infos else' .        # Python harnesses
+grep -rn 'if infos else ""' .                  # same pattern, wider
+```
+
+The correct form:
+
+```python
+if not infos:
+    raise Missing("no 'info depth' line (zero-info-line signature; row aborted)")
+last = infos[-1]
+```
+
+**A bench parser needs its own version** — `check_29f3_pc.py` reads `info string bench depth`, not `info depth`,
+so guarding on `infos` would never fire there:
+
+```python
+bench_lines = [l for l in lines if "info string bench depth" in l]
+if not bench_lines:
+    raise Missing("no 'info string bench depth' line (row aborted)")
+```
+
+**Whatever your harness's "the engine reported something" line is, guard on THAT line's emptiness.**
+
 **And check the score against the material before publishing it.** The companion lesson from the same
 incident: I published `mate -25` on a king-versus-king-and-rook position, where the theoretical maximum DTM
 is 16 moves (31 plies). **A one-line material check — is 2|N| even reachable here? — would have caught a

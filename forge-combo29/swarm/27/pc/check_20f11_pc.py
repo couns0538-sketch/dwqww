@@ -80,6 +80,9 @@ class Engine:
 def summarise(lines):
     infos = [l for l in lines if l.startswith("info depth")]
     bm = next((l.split()[1] for l in lines if l.startswith("bestmove")), None)
+    # GUARD (S-W1): zero info lines is not a search result. summarise() is called for control rows
+    # where 0 info lines IS the expected answer (the emergency path), so it reports rather than raises;
+    # every CALLER that treats the row as a measurement checks zero_info first.
     last = infos[-1] if infos else ""
     n = re.search(r"nodes (\d+)", last)
     pv = re.search(r"\bpv\b", last)

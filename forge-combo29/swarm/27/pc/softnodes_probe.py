@@ -91,7 +91,7 @@ def search(exe, settings, fen, limit, timeout=600):
             m = re.search(r"softnodes nodes (\d+)", soft[-1])
             if m:
                 final_nodes = int(m.group(1))
-        last = infos[-1] if infos else ""
+        last = infos[-1]   # guard above guarantees non-empty
         n = re.search(r"nodes (\d+)", last)
         sc = re.search(r"score (cp|mate) (-?\d+)", last)
         d = re.search(r"depth (\d+)", last)

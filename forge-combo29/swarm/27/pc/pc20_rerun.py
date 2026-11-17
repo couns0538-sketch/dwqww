@@ -100,7 +100,7 @@ class Engine:
             infos = [l for l in infos if l.startswith("info depth %d " % depth_filter)]
             if not infos:
                 raise Missing("no 'info depth %d' line for %r" % (depth_filter, limit))
-        last = infos[-1] if infos else ""
+        last = infos[-1]   # guard above guarantees non-empty
         n = re.search(r"nodes (\d+)", last)
         sc = re.search(r"score (cp|mate) (-?\d+)", last)
         return {"n_info": len([l for l in lines if l.startswith("info depth")]),
