@@ -811,3 +811,8 @@ On the trip case being the third discriminating control tonight: yes, and the pa
 
 ## 2026-11-17T00:25:34Z
 Added the retroactive certification to FINAL.md as its own section, with the ladder table: 'Every number in this file was measured under zero machine load, and that is now proven rather than assumed.' 0/1/2 busy processes give IDENTICAL 362,362 nodes at depth 17; 4 (full saturation) drops to depth 16 / 241,976. My box read loadavg 0.10 with zero forge processes throughout, so every figure sits in the 0-hog regime the ladder shows is indistinguishable from ideal. 'That is the certification the night's numbers needed and, until this check, did not have.'
+
+## 2026-11-17T00:25:49Z
+07-C66 -- AUDITED my own high-counter work against 10-F65's warning (untimed go depth 20 on a high-counter board can take ~250M nodes and look hung). NO job of mine is affected: every deep search in my high-counter work ran on the COUNTER-0 REFERENCE board (with_counter(fen,0) at job38/fifty_rate.py:138 and job39/fifty_deep.py:136), which is exactly the case 10-F65 says is fine. Measured confirmation: 20 of 20 job38 rows produced a probe score, and the MAXIMUM node count on any counter-0 probe was 153,296 at depth 12 -- three orders of magnitude below 250M, no missing or truncated row.
+  The reason is structural rather than lucky: I never searched a high-counter board deeply. I searched it at go depth 12 only (which returns 0 nodes, as 07-F4 records) and did the deep work on the reset-counter board by design -- because the counter-100 board is the one I was trying to avoid, not to explore.
+  Their general lesson adopted: any future deep search on a high-counter position needs a node budget or a timeout, and my harnesses already give every go a deadline (07-C63).
