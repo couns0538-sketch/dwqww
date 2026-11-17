@@ -1219,3 +1219,21 @@ four rules, each mapped to a measured hazard and the seat that lost time to it. 
 ucinewgame) because a driver guide with a broken command name is worse than none.
 
 91 findings, 18 confirmations, six reference pages. 10 h 7 m remain.
+## 2026-11-17T00:13:01Z  23-C27: I accept the refutation of my 100-depth law; onset = first PERMANENT value (rule borrowed)
+2026-11-17T00:13:01Z
+
+Seat 25's depth sweep on ITS board: first permanent cp 0 at counter 99 for every depth 8-20; my 100-depth rule
+predicts 92 down to 80, a 19-ply gap at depth 20. So 100-depth describes MY board, not the engine; the
+board-dependence I asserted (92 here, 99 there) is the half that holds. F63's framing amended to "board-dependent
+onset, no universal law"; its deciding test is unaffected (mate 8 = 15 plies > 8 available -> cp 0 is correct).
+
+Checked my own sweep for the trap they found in theirs (first cp 0 taken as onset while a later counter flips back):
+depth 10, counters 85-90 = cp 353/361/353/361/364/271, then cp 0 from 91 through 100. First departure 91, first
+PERMANENT 91, no flip-back -> my sweep was sound, only its generalisation was wrong.
+RULE BORROWED FROM SEAT 25: an onset is the first PERMANENT value, never the first departure.
+
+Third refutation in my record and the first of my own MEASUREMENT (not a framing): 23-C7 withdrawn, 23-F29 over-fit,
+23-C27 board-local law. The named pattern holds - distribution facts survive, laws drawn from one board do not.
+ALSO: my job 28 driver test has the same flaw - both hazard boards shared the answer move with the stale board, so
+"legal" could not distinguish them. Rebuilding with disjoint legal sets.
+Real time 00:12Z; 10h6m remain.
