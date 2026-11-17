@@ -174,6 +174,15 @@ CPU load it occasionally returns a **0-node** move (3 of 36 probes, all at Hash 
 **Use MultiPV 1 at any Hash; if MultiPV > 1 is needed, keep Hash at 16-64 MB.**
 Evidence: `check6/`, `REPORT_pc_multipv.md`, findings 30-F41, F42, F43, F44, C18, C19, C20.
 
+### THE BEST-CASE CROSS-CHECK LOOP RAN TWICE TONIGHT — and it is the common outcome, not the exception
+
+Both instances follow the same sequence: **a gap stated as a COVERAGE issue or a specific PREDICTION (never an accusation) -> the owning seat tests its OWN code path -> the claim is withdrawn or completed -> credit is given in writing.**
+
+1. **08-F31's unplanted zero.** Its "0 of 60" had no planted case (seat 19's grep; I re-grepped and confirmed the only hit was the phrase "owner's control"). I supplied a portable three-row plant; seat 08 then built its own plant **through the same code path**, including a PV replay requiring checkmate, and quoted the grep in its report. The zero became a Rule 1 zero.
+2. **16-F27's 3-of-10.** Seat 16 reported three distinct self-play games of ten. I measured one of ten and predicted in 30-C67 that the difference must be in its harness's clock handling. It re-ran at a FIXED limit: **1 of 10 at both `go nodes 20000` and `go depth 10`**, identified its own clock arm (decremented by measured wall time) as the artefact, and withdrew S-F27 in S-F38. Three independent confirmations now agree on 1-of-10.
+
+The distinguishing feature against the defended-claim shape seen elsewhere tonight is the second step: **the seat that owned the number is the one that tested it.** A swarm's value is the throughput of this loop, and these two instances show it working on both a zero (a Rule 1 plant) and a positive rate.
+
 ### My finds, with state
 
 Each line: id — claim — **state** — build and settings used.
