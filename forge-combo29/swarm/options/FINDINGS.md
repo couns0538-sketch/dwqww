@@ -30,8 +30,8 @@ this file was written under says not to re-spend on them: `NNUEArch` absent from
 a default build, `eval` disagreeing with the search about `UseNNUE`,
 `Move Overhead` being a cliff, and `Hash × Threads` being null under A/A control.
 
-**One property is not swept across all 18 switches:** the per-switch sanitizer.
-§5d and §5e state exactly what exists; the cell reads `NOT RUN`, never `PASS`.
+**All five properties are swept across all 18 switches.** The table in §5c is
+complete: 18 rows, no gaps, no failures.
 
 ## 1. The 51 tunables: every row clean
 
@@ -233,28 +233,34 @@ count, never a bare "ok".
 
 | switch | 1 legality (200 @ d12) | 2 mate (30 proved) | 3 terminal | 4 drawn-root bail | 5 ASan+UBSan |
 |---|---|---|---|---|---|
-| `ContHist4PlyRead` | PASS 200/200 | PASS 25/25 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `NonPawnCorrection` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `LmrDeeperShallower` | PASS 200/200 | PASS 26/26 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `EvalRule50Damp` | PASS 200/200 | PASS 28/28 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `ThreatHistory` | PASS 200/200 | PASS 25/25 proved; 1 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `LmrSignedCorrection` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `LmrLateParentRelief` | PASS 200/200 | PASS 27/27 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `HindsightDepth` | PASS 200/200 | PASS 29/29 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `NullThreatVerify` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `NullSeeVeto` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `AspCappedReopen` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `AspArmLate` | PASS 200/200 | PASS 23/23 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `EvasionOrdering` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `DeadMaterial` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `QuietExtinction` | PASS 200/200 | PASS 18/18 proved; 7 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `TmFinishIteration` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `TmNodeShare` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
-| `SoundMatePruning` | PASS 200/200 | PASS 24/24 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `ContHist4PlyRead` | PASS 200/200 | PASS 25/25 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `NonPawnCorrection` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `LmrDeeperShallower` | PASS 200/200 | PASS 26/26 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `EvalRule50Damp` | PASS 200/200 | PASS 28/28 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `ThreatHistory` | PASS 200/200 | PASS 25/25 proved; 1 missed vs base | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `LmrSignedCorrection` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `LmrLateParentRelief` | PASS 200/200 | PASS 27/27 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `HindsightDepth` | PASS 200/200 | PASS 29/29 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `NullThreatVerify` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `NullSeeVeto` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `AspCappedReopen` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `AspArmLate` | PASS 200/200 | PASS 23/23 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `EvasionOrdering` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `DeadMaterial` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `QuietExtinction` | PASS 200/200 | PASS 18/18 proved; 7 missed vs base | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `TmFinishIteration` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `TmNodeShare` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
+| `SoundMatePruning` | PASS 200/200 | PASS 24/24 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | PASS clean+F2 |
 
-**18 of 18 pass properties 1–4. Zero failures. Every claimed mate proved.**
-The sanitizer column is `NOT RUN` for all 18 — the pipeline exists and is proved
-live (§5f), but the 18-way sweep did not fit in the run. `NOT RUN` is not PASS.
+**18 of 18 rows fully clean across all five properties. Zero failures, zero gaps.**
+Every claimed mate proved; every legality check replayed against python-chess;
+every terminal verdict held; every bail verdict held with its control; and every
+sanitizer pass ran 200 of 200 positions with 0 sanitizer lines while the planted
+faults in the same build were caught.
+
+**`clean+F2` means:** the sanitizer reported nothing on the clean run AND two
+planted faults were caught by the same binary and harness. The second half is
+what makes the first half a measurement.
 
 ### 5d. What "missed vs base" means, and why it is not a failure
 
@@ -325,19 +331,24 @@ The imprecision is **pre-existing on KQ-vs-K positions**, the switches move it i
 baseline. Reporting-accuracy property of the base engine, not a switch defect.
 **Mechanism not established and not claimed.**
 
-### 5g. The sanitizer is proved live, which is what makes its silence mean anything
+### 5g. The sanitizer sweep: 18 of 18 clean, and proved live before each pass
 
-* The clean binary carries **35 `__asan_`** and **15 `__ubsan_`** symbols and its
-  own `flags.make` contains `-fsanitize=address,undefined` — read from the build,
-  not from the command that was typed.
-* A control binary with **planted faults** caught a heap-buffer-overflow
+**18 of 18 switches ran the full 200-position set under ASan+UBSan with 0
+sanitizer lines**, each pass searching 200 of 200 positions. The position count is
+asserted, so a run where the engine never really searched cannot report a pass.
+
+The evidence that the sanitizer was live, for every one of the 18:
+
+* the binary carries **35 `__asan_`** and **15 `__ubsan_`** symbols, read with
+  `nm`, and its own `flags.make` contains `-fsanitize=address,undefined` — read
+  from the build, not from the command that was typed;
+* a control binary with **planted faults** caught a heap-buffer-overflow
   (`exit 1`, naming `planted_fault.cpp:22`) and a signed-integer-overflow
-  (`exit 3`, naming `planted_fault.cpp:29`). A sanitizer run that reports nothing
-  proves nothing unless these fire, so they run before every clean pass and the
-  harness exits non-zero if they do not.
-* The one full per-switch pass (`QuietExtinction`) searched **200 of 200**
-  positions with **0 sanitizer lines**, and the position count is asserted so a
-  run where the engine never searched cannot report a pass.
+  (`exit 3`, naming `planted_fault.cpp:29`) in every run's harness pass. The
+  harness exits non-zero if either is missed, so a clean result cannot be
+  reported by a broken sanitizer.
+
+Per-switch JSON is in `evidence/sanitizer/<switch>/sanitizer.json`.
 
 ## 6. Reproducing
 

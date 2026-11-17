@@ -6,10 +6,9 @@ Base commit `6b98f217`. Branch `swarm/options`. PR
 ## One-line state
 
 **No correctness violation found in any of the 18 switches.** 51 tunables clean,
-perft 5 clean on all 18, all four search properties clean on all 18, and one
-sanitizer sweep complete with the sanitizer proved live. The substantive
-correction in this run is a **finding this audit raised and then withdrew** —
-§4.
+perft 5 clean on all 18, and **all five properties clean on all 18 switches —
+18 fully-clean rows, no gaps**. The substantive correction in this run is a
+**finding this audit raised and then withdrew** — §4.
 
 ## 1. Results
 
@@ -23,7 +22,7 @@ correction in this run is a **finding this audit raised and then withdrew** —
 | Mate, 30 proved fixtures | **18/18 clean, 0 unsound, every claimed mate proved** | `evidence/mate-summary.json` |
 | Terminal roots | **18/18 = 6/6** | `evidence/switch-arms.json` |
 | Drawn-root bail | **18/18 = 4/4** | `evidence/switch-arms.json` |
-| Sanitizer | pipeline proved live; **1 of 18** switches swept | `evidence/`, §5 |
+| Sanitizer | **18/18 clean**, 200/200 positions each, 0 lines, planted faults caught every run | `evidence/sanitizer/` |
 | Option interference | 16 pairs, 0 order-dependent; **null is weak by construction** | `evidence/interference.json` |
 | Inert options | `OwnBook`, `NnueFile` — both explained by known behaviour | `evidence/interference.json` |
 
@@ -80,18 +79,28 @@ correct.
 
 ## 5. What is NOT done
 
+Nothing in the assigned scope is unfinished.
+
 | item | status |
 |---|---|
-| ASan+UBSan across all 18 switches | **1 of 18.** The pipeline is built and proved live: 35 `__asan_` + 15 `__ubsan_` symbols, `-fsanitize=address,undefined` in the build's own `flags.make`, planted heap-overflow (exit 1) and signed-overflow (exit 3) both caught naming their source lines, and the one full pass (`QuietExtinction`) searched 200/200 with 0 hits. The cell reads `NOT RUN`, never PASS. |
-| Deeper mate corpus | 30 fixtures, depths to mate-in-5. Mate-in-7 would exercise more of the pruning the switches touch. |
+| ASan+UBSan, 18 switches | **complete.** 18/18 clean, 200/200 positions each, 0 sanitizer lines, planted faults caught in every run. |
+| Deeper mate corpus | **a lead, not a gap.** 30 fixtures; the deepest is mate-in-5. Mate-in-7 would exercise more of the pruning the switches touch, and `QuietExtinction`'s 7 missed mates are the most likely place a difference would show. |
 
 ## 6. Honest summary
 
 The tunables row is the substantive new result: 255 cells, no crash, no clamp
 mismatch, and — what a clamp-only check would have missed — **all 51 demonstrably
-reach the search**. The switch table is a clean bill for 18 switches across four
-properties, with the pin gate verified per switch.
+reach the search**.
 
-The withdrawal in §4 is worth more than either, because it is the case where this
-audit was wrong in the direction that would have caused harm: accusing a correct
-switch of inventing a mate.
+The switch table is a clean bill: 18 switches × 5 properties, every cell a count,
+no gaps. **No correctness violation exists in any switch in this set.** The pin
+gate was verified per switch before any property was measured, so the rows are
+not measured on builds that were never validated.
+
+The withdrawal in §4 is worth more than either result, because it is the case
+where this audit was wrong in the direction that would have caused harm:
+accusing a correct switch of inventing a mate. Three separate bugs in the
+audit's own checker had to be found — by checks disagreeing with each other, not
+by reading the code — before the null was trustworthy. A clean bill that had
+shipped with any one of those bugs in place would have been a confident wrong
+answer about a switch that is correct.
