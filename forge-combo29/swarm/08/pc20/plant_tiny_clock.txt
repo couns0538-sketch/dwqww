@@ -1,0 +1,22 @@
+## PLANT at the TINY clocks (the gap 08-C13 named) — comparator `wall_ms > clock_ms`
+
+| clock ms | PLANT (fake, sleeps 300 ms) | over clock? | required | CONTROL (real) | over clock? | control info lines |
+|---|---|---|---|---|---|---|
+| 100 | 301.3 ms | **YES** | YES | 5.8 ms (d2d4) | no | 9 |
+| 30 | 301.1 ms | **YES** | YES | 1.4 ms (c2c4) | no | 5 |
+| 10 | 300.9 ms | **YES** | YES | 0.7 ms (d2d4) | no | 1 |
+| 1 | 301.3 ms | **YES** | YES | 0.7 ms (d2d4) | no | 1 |
+| 0 | 301.1 ms | **YES** | YES | 0.7 ms (d2d4) | YES | 1 |
+
+## Verdict
+
+| question | answer |
+|---|---|
+| the comparator fires at EVERY tiny clock size on a planted overrun | **YES** |
+| the real engine is never recorded as over at any size > 0 | **YES** |
+| at wtime 0, does the real engine answer without searching? | see the info-line column: 1 line (the emergency ply), 0.8 ms — arithmetic, not a false positive |
+
+**The tiny-clock zeros are now MEASURED**, closing the one gap 08-C13 named. Note the measurement floor:
+the fake engine's 300 ms is caught at every size, but this does not prove a 1-2 ms overrun at wtime 1 would
+be caught — the floor of one round trip is about 0.1-0.2 ms, so an overrun smaller than that at wtime 1
+remains below what any harness can see, and I say so rather than implying the comparator is exact.
