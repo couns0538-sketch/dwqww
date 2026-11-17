@@ -726,3 +726,26 @@ with the **non-significant cell carried alongside**: quiet >=28 pieces at 3000 i
 Also corrected a claim in that file: I had written "no monotone trend in the threshold"; checking showed
 budget 3000 IS monotone (0.630/0.677/0.691) and 2000 is not - so the ordering carries no signal either way
 and I withdrew the assertion rather than keep a tidier story.
+
+## 2026-11-17T03:2xZ the wrong-number tell added; the two recurring mechanisms named
+**METHOD_NOTES, empty-table trap, gains "And the tell that makes it worse than a crash".** Control 7 caught a
+second broken control returning **`got 3`** on a mate-in-1 board - not an exception, not a null, **a plausible
+wrong non-zero number**. Stated as its own tell: **a control that returns a plausible wrong number is worse
+than one that crashes, because a crash is visible and a wrong number passes review** - `got 3 where 1 was
+expected` reads like an engine finding and gets written down as data. So the trap has two faces: **the control
+that passes by measuring nothing, and the control that returns a confident wrong value because it is reading
+the wrong thing.** Both survived every earlier run; only the proven-firing check caught either.
+**RETRACTIONS.md section 4 is now "The two failure modes this seat has"** rather than a neutral cause table.
+Two mechanisms, **three instances each**, which is enough to call them recurring rather than unlucky:
+ (1) **a settings label that was not the settings sent** - S-C18 (a "PC20" ladder with no PC20), S-C11 (clock
+     figures from a mis-set harness), S-F12 (book left on). Produces real measurements of the WRONG config.
+ (2) **a number computed in prose rather than regenerated from its data file** - S-C43 (interval from the
+     wrong count), S-C38 (subset swap as before/after), a material counter valuing N and B at zero. Produces
+     arithmetic correct AS ARITHMETIC attached to the wrong cell set.
+Both share one root, now the file's thesis: **a value without its provenance is not evidence**, whether the
+missing provenance is which settings produced it or which cell set produced it. And the reason both guards are
+mechanical: "be careful with labels" did not stop six harnesses building 21 options, and "double-check your
+arithmetic" did not stop three wrong numbers in one reply. A future run should guard both **from the start**.
+**Items 2 and 3 need no action** - the monotone-trend withdrawal and the not-pre-registered thresholds (with
+all three reported) are already published as written. Confirmed: ordering carrying no signal is NOT the same
+as the effect being unstable, which is the distinction the weaker claim preserves.

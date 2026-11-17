@@ -476,6 +476,23 @@ fired is not known to work. The planted-case rule already in this file ("a zero 
 case through the same harness") is the same idea applied to the measurement; this is the same idea applied to
 the **control itself**, and it is the half I had been skipping.
 
+### And the tell that makes it worse than a crash
+
+When control 7 was added, it caught a second broken control immediately — and that one had been returning
+**`got 3`** on a mate-in-1 board. Not an exception, not a null: **a plausible wrong non-zero number.**
+
+That is the worse class of failure, and it deserves stating as its own tell:
+
+> **A control that returns a plausible wrong number is worse than one that crashes.** A crash is visible; a
+> wrong number passes review. `got 3 where 1 was expected` looks like an engine finding rather than a bug, so
+> it gets written down as data. The vacuous pass and the wrong number are the same underlying fault — a
+> control that is not measuring what it believes it measures — and only the second one produces output you
+> might publish.
+
+So the empty-table trap has two faces: **the control that passes by measuring nothing**, and **the control that
+returns a confident wrong value because it is reading the wrong thing.** Both survived every earlier run of
+this tool. Only the proven-firing check caught either.
+
 ### What actually caught it
 
 Not an assertion. **The question "why does a K+Q v K board with an obvious mate return DRAW?"** The suite said

@@ -119,17 +119,32 @@ their place (warm repeats get *faster*; an absent `btime` gives NO clock rather 
 
 ---
 
-## 4. Method failures behind the withdrawals
+## 4. The two failure modes this seat has
 
-Seven of the substantive retractions above cluster into two causes, and both are now guarded:
+The retractions above are not incidental. Grouped by cause they collapse into **two mechanisms, three
+instances each** — enough to call them recurring rather than unlucky, and enough that a future run should
+guard both **from the start** rather than rediscover them:
 
-| cause | retractions | guard |
+| mechanism | instances | what it produces |
 |---|---|---|
-| a settings label that was not the settings sent | S-C18 group, S-C11 group, S-F12 | `pc/check_settings.py` (count = 22, all advertised) and `pc/check_settings_values.py` (values vs the canonical list; proven to catch a digit transposition) |
-| a number computed in prose, not regenerated from the data file | S-C43 CI, S-C38 framing, and a material counter that valued N and B at zero | every interval/share/sum printed by a script that reads the JSON; `pc/strata_19c46.py` is the first converted file |
+| **a settings label that was not the settings sent** | S-C18 group (a "PC20" ladder with no PC20 applied), S-C11 group (clock figures from a mis-set harness), S-F12 (book left on) | numbers that are real measurements of the **wrong configuration**, carrying a confident label |
+| **a number computed in prose rather than regenerated from its data file** | S-C43 (a Wilson interval from the wrong count), S-C38 (a subset swap reported as before/after), the material counter that valued N and B at zero | arithmetic that is correct **as arithmetic** and attached to the wrong cell set |
 
-The overlap is not accidental: **a value without its provenance is not evidence**, whether the missing
-provenance is *which settings produced it* or *which cell set produced it*.
+Both have the same root, and it is worth stating in one line because it covers the rest of this file:
+
+> **A value without its provenance is not evidence** — whether the missing provenance is *which settings
+> produced it* or *which cell set produced it*.
+
+Three instances each is also why both guards are **mechanical rather than attentional.** "Be careful with
+labels" did not work: six harnesses were silently building 21 options. "Double-check your arithmetic" did not
+work: three numbers were wrong in a single reply. What works is an assertion the harness runs every time:
+
+- **settings provenance** → `pc/check_settings.py` (count must equal 22, every option advertised) and
+  `pc/check_settings_values.py` (values compared against the canonical list; proven to catch a digit
+  transposition `5643 → 5634`, and proven to catch the malformed `setoption name X Y` form that omits the
+  literal word `value`).
+- **number provenance** → every interval, share, sum and ratio printed by a script that reads the result
+  JSON. `pc/strata_19c46.py` is the first converted file; the retraction it would have prevented is S-C43.
 
 ---
 
