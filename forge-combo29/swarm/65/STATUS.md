@@ -6,33 +6,33 @@ Base `origin/integrate/combo29-all`. Engine build: `-DCMAKE_BUILD_TYPE=Release
 
 ## State
 
-**Complete**, including the two follow-ups: a measured comparison of candidate
-`game_ply` fixes, and drawn-root pre-emption split by drawn condition and by book
-state. All seven original questions answered with measurements; deliverables
-written; whole audit re-runnable in one command.
+**Complete**, including the two follow-ups: a measured comparison of four
+`game_ply` derivations (which retracted the `Book Depth` defect), and drawn-root
+pre-emption split by drawn condition and by book state. All seven original
+questions answered with measurements; deliverables written; whole audit
+re-runnable in one command.
 
 Deliverables in `forge-combo29/swarm/65/`:
 
 | file | content |
 | --- | --- |
-| `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic |
+| `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic, and one retraction |
 | `BOOK_WIRE.md` | exact reply shapes, the deadlock proof, the `go`-form matrix, harness rules |
 | `STATUS.md` | this file: claim → command index, what is not done |
-| `scripts/` | 27 files: 18 Python measurement scripts, 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 1 pipeline runner, plus `q7b_verify.py`/`q7c_exhaustive_gap.py` which are also imported as helpers, and 1 `.gitignore` |
+| `scripts/` | 27 files: 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 1 pipeline runner, 1 `.gitignore`, and 20 Python scripts (several are imported as helpers by the others) |
 | `evidence/` | 26 captured outputs, one per step of `run_all.sh` |
 
 ## Reproduce
 
 ```bash
 cd forge-combo29
-bash swarm/65/scripts/run_all.sh          # ~5 min, includes building two patched binaries
+bash swarm/65/scripts/run_all.sh          # ~5 min, includes building three patched binaries
 ```
 
-The runner builds the engine, the three C++ probes, and two patched copies of the
-tree (for the `game_ply` comparison), then runs every measurement in order. It
-**aborts** on a failed SEE self-test, a failed
-score-absence check, or a failed drawn-root check, so a green run means those
-three load-bearing assertions held.
+The runner builds the engine, the three C++ probes, and three patched copies of
+the tree (for the `game_ply` comparison), then runs every measurement in order. It
+**aborts** on a failed SEE self-test, a failed score-absence check, or a failed
+drawn-root check, so a green run means those three load-bearing assertions held.
 
 ## Claim → command index
 
@@ -136,14 +136,16 @@ produces it. All commands run from `forge-combo29/`.
   concatenation (`src/uci.cpp:260-265`); it works for the repo's own
   `tests_t16/start h2h4.book` but was not audited further, as it is outside the
   book-behaviour question.
-* No code was changed in the tree under test. `q8c_derivation_compare.py` builds
-  two patched copies in `/tmp` to measure what a fix would do; those builds are
-  comparison artifacts, not a proposed patch, and the lock build is the one all
-  other results come from.
-* The `game_ply` comparison covers five scenarios and two candidate fixes. It does
-  not cover a caller that sends `fen ... moves ...` with a counter *lower* than the
-  true ply, which the same analysis says behaves symmetrically; that case is
-  inferred, not measured.
-* The drawn-condition matrix uses one root per cell. Six roots is enough to show
-  pre-emption tracks the book entry rather than the condition, but the per-cell
-  counts are small.
+* No code was changed in the tree under test. The `q8*` scripts build three
+  patched copies in `/tmp` to measure what each candidate derivation would do;
+  those builds are comparison artifacts, not a proposed patch, and the lock build
+  is the one all other results come from.
+* The `game_ply` matrix covers 14 cases: both counter directions, all three
+  `position` forms, at depths either side of the gate. It does not test a
+  mid-game FEN whose counter is wrong *and* whose position is absent from the
+  book; there the gate decides nothing either way, so the case has no observable
+  output to compare.
+* The drawn-condition matrix uses one root per cell, plus two entry-bearing
+  controls. Six roots is enough to show pre-emption tracks the book entry rather
+  than the condition, but the per-cell counts are small; a seventh condition added
+  later should be assumed to inherit the hazard until measured.
