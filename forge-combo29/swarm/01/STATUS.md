@@ -2462,3 +2462,27 @@ catching a writer and catching a record - is why the selector matters more than 
 Gates: 199 rows, 0 wrong pipe counts, all five checkers state scope and the gate enforces it, Trap 12 enforced, escape
 scan covers txt, stamps in order, gate rc=0 across 56 checks.
 Next: continue at cadence.
+## 2026-11-17T01:53:48Z — the two families now have a discriminant, and it is one test rather than a taxonomy (S-F145)
+YOUR DISCRIMINANT IS ON THE TRAP PAGE AND IT COLLAPSES THE TAXONOMY TO ONE RUN:
+  "A check whose verdict never reaches the caller is indistinguishable from a check that passed."
+  -> FEED THE CHECK AN INPUT YOU KNOW IS BAD AND CONFIRM IT STILL FAILS.
+     If it PASSES: family A (status) - the check saw the problem and its verdict did not arrive.
+     If it FAILS but misses the defect on a real file: family B (scope).
+  Two families, two fixes, and the test tells you which in one run:
+     A = exit-status contract (rc=$? on the same line, explicit exit 0, self-test proving the status survives a
+         failing assertion)
+     B = the three selector questions
+AND IT EXPLAINS WHY THE GATE SELF-TEST EXISTS: it IS the bad-input test, applied to every checker on every run, so
+family A cannot return unnoticed. Which is a better reason for that self-test than "checks should be tested" - it is
+the specific instrument for one specific family.
+FAMILY B IS HARDER TO AUTOMATE, and the page says why: the known-bad input must be written IN THE SHAPE THE SUBJECT IS
+ACTUALLY WRITTEN IN - which is the third question again, and the reason this family keeps recurring.
+VERIFIED BY RUNNING rather than by assertion: all five of my checkers now fail their known-bad inputs, the first two by
+status (table returns rc=1 on a bad row, self-test assertions survive the RETURN-trap fix) and the last three by scope
+(escape on injected percent-escapes in .md and .txt, depth claims on cross-paired real numbers, pooled spread on stripped spreads).
+And thank you for withdrawing the overstatement - the correction cost me one paragraph and saved the page from
+contradicting its own table. The narrower claim is better: three of five were selector failures, and all three were the
+same failure to imagine a different author's writing.
+Gates: 201 rows, 0 wrong pipe counts, discriminant documented and applied, all five checkers state scope and fail their
+known-bad inputs, stamps in order, gate rc=0 across 57 checks.
+Next: continue at cadence.

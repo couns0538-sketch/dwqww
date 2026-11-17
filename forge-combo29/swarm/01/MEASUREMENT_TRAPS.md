@@ -309,12 +309,51 @@ Five checks I built tonight failed, and **not one of them failed in its logic**:
 new check is on its **selector**, not its comparison — and the cheapest test of a selector is to ask **what it does not
 cover**, not whether it works on the case in front of you.
 
-The three questions, asked once per check, cost about a minute:
+### But first: these five fall into TWO families, and only one is a selector problem
+
+An earlier draft of this page said all five were the third question below. **Checking the table refutes that**, and the
+narrower claim is the one the evidence supports:
+
+| family | count | which | what actually failed |
+|---|---|---|---|
+| **A — the verdict never reached the caller** | 2 | findings table, gate self-test | the check examined the right thing; its status was 0 or was overwritten, so the gate read a pass |
+| **B — the selector was too narrow** | 3 | escape scan, depth claims, pooled spread | the check never examined the subject at all |
+
+**Family A is fixed by a contract, not a selector**: a checker returns non-zero on a problem, and the caller reads the
+status on the same line (`rc=$?`) rather than after an unrelated command. That is the `S-F122`/`S-F124` pair, and it is
+why `gate.sh` now ends with an explicit `exit 0` and every checker returns its own status.
+
+> **A check whose verdict never reaches the caller is indistinguishable from a check that passed.**
+
+That sentence is the discriminant, and it reduces the two families to **one test**: **feed the check an input you know is
+bad, and confirm it still fails.** If it passes, the family is **status** — the check saw the problem and its verdict did
+not arrive. If it fails, the family is **scope** — the check never looked, or looked for the wrong shape.
+
+| the bad-input test | family | fix |
+|---|---|---|
+| it PASSES on input you know is bad | A — status | exit-status contract: `rc=$?` on the same line, explicit `exit 0`, and a self-test that proves the status survives a failing assertion |
+| it FAILS, but on a real file it misses the defect | B — scope | the three questions below |
+
+**This is why `gate.sh`'s self-test exists and why it runs on every invocation**: it is the bad-input test, applied to
+every checker in the gate. A checker that stops failing on a known-bad input fails the gate, so family A cannot come
+back unnoticed. Family B is harder to automate, because the known-bad input must be written *in the shape the subject is
+actually written in* — which is the third question.
+
+**Family B is fixed by the three questions below.** Of its three members, **one is the first question** (the escape
+scan globbed `*.md` while the evidence is `*.txt` — a file-type miss, answerable by looking) and **two are the
+third** (the depth check's idea of "a row" and the pooled check's idea of how a claim is written). So the third
+question accounts for two of five overall, not all five — still the most frequent single cause, and the only one
+that needed imagining another author rather than reading a directory listing.
+
+### The three questions for a selector, asked once per check
 
 1. **File types** — does the glob cover every format the subject appears in? (`.md` and `.txt` are different worlds;
    my evidence lives in `.txt` and my prose in `.md`.)
 2. **Directories** — does it reach every folder, including the ones added after the check was written?
-3. **Row shapes** — does the pattern match the way the subject is actually written, or the way I imagine it is?
+3. **Row shapes — and this is the one nobody asks: does the pattern match how the subject is ACTUALLY WRITTEN, or how
+   I imagine it is?** The first two are mechanical — you can answer them by looking at a directory listing. This one
+   requires imagining a different author, which is why it is last and why it is the one I kept getting wrong: my
+   pooled-spread regex matched the word `pooled`, and every one of my files says `median node ratio`.
 
 **And name the exclusions.** "This check does not scan `.json` because node counts only appear in `.txt` summaries" is
 auditable — a reader can see whether the exclusion is safe. An unstated exclusion is indistinguishable from an
