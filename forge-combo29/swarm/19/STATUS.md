@@ -864,3 +864,15 @@ next command: continue at cadence.
       halve or +60%% a given position. Guide: compare S14 vs PC20 PER POSITION, report the spread.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:12:43Z
+
+19-C42 MECHANISM for MateAlphaGuard's exact 1.000: read from source - declared false at
+  search.cpp:183, referenced at ONLY two places (2134, 2159), each a futility-pruning guard
+  '(!tune::MateAlphaGuard || !is_mate_score(alpha))'. So it only fires when alpha is a MATE
+  score; otherwise NO different code executes. Not 'below resolution' - an UNEXECUTED BRANCH.
+  Burden on any contrary claim: exhibit a node where alpha is mate-valued.
+THIRD time tonight reading source turned a zero into a mechanism (19-F37 hardcoded bench table,
+  19-F23 self-clearing bench, this). A uniform result is a reason to read the code, not to sample more.
+
+next command: continue at cadence.
