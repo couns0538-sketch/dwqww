@@ -1562,3 +1562,12 @@ sweeping the counter (91 at depth 10 here, this run 92, within +/-4). So 23-C26 
 two directions: the search's own onset, and the gap between two interfaces. All 4 predictions held.
 Limit: one board, one depth, one build; the onset moves with depth (23-C26: 95/92/91/89/89 at depths 6-14) so the step
 would too. 108 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 17 m remain.
+## 2026-11-17T01:02:07Z  curve on the GUI page: eval is most misleading exactly when a game heads for a counter draw
+2026-11-17T01:02:07Z
+
+GUI_HAZARDS' eval trap now carries the nine-counter sweep as a table (gap 25/25/32/45/135/406 from c92), the fact that
+eval stayed at 406 with 0 cp spread, and the actionable sentence: near the end of the fifty-move count the interfaces
+diverge completely, earlier they roughly agree - so a GUI showing eval is most misleading exactly when a game heads
+for a counter draw. That is the actionable form of F78/F79/F80: not "they disagree" but "they disagree HERE, and the
+gap grows as the position approaches a counter draw".
+108 findings, 18 confirmations (2 refutations), thirteen named faults, six reference pages. 9 h 17 m remain.
