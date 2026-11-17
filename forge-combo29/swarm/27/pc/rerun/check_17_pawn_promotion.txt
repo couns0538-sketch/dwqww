@@ -25,3 +25,20 @@ The excluded failure mode is precise: a board whose FIRST GENERATED move happens
 whether the fallback picks a good move or a lucky one. On this board first-in-order (b7b8q) and mating
 (b7a8q) are DIFFERENT moves, which is what makes the row decisive. Their earlier 8/P7/... boards fail
 exactly that test - a7a8q is both first and mating there, so the base build 'passes' while proving nothing.
+
+## SCOPE: which halfmove counters make the base build play the non-mate
+
+Same board, base build e06310ec, Threads 1, Hash 16, OwnBook false, go depth 8, fresh process each:
+
+| halfmove | bestmove | score |
+|---|---|---|
+| 95 | b7a8q | mate 1 |
+| 98 | b7a8q | mate 1 |
+| 99 | b7a8q | mate 1 |
+| **100** | **b7b8q (not a mate)** | **cp 0** |
+| 101 | b7b8q (not a mate) | cp 0 |
+| 105 | b7b8q (not a mate) | cp 0 |
+
+So on the base build the wrong move starts exactly at the fifty-move threshold (100) and persists at
+every counter above it; below 100 the engine searches and finds the mate. That is the drawn-root
+shortcut's boundary, and it shows the failure is not a one-off at 100 but the whole >=100 band.
