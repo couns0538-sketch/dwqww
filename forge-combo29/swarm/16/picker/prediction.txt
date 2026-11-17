@@ -1,0 +1,25 @@
+# PREDICTION — replacing the picker's full sort with repeated find-max: identity or not?
+
+Committed BEFORE building anything. File 7's rule: a speed patch must keep every node count identical.
+
+`MovePicker::pick_best` sorts the remaining move list once with `std::sort` (5.03 % of bench-13 time) when more
+than 4 moves remain, then hands them out one at a time. A repeated find-max-and-swap loop is O(n) per move rather
+than O(n log n) for the whole list.
+
+**The catch, and it is the whole question:** `std::sort` is NOT stable, so for two moves with EQUAL scores the order
+they come out in is unspecified. Repeated find-max-and-swap also produces a different order among ties than the
+current sort does. My own S-F11/S-F35 work established that move ORDER changes node counts.
+
+P1. The find-max variant does NOT preserve identity — predicted at least 1 of the 200 OG200 node rows differs, and
+    most likely many. Reason: ties are common in move scores (history and SEE produce equal values constantly), so
+    the two methods will diverge for some positions.
+    Kills it: 0 of 200 rows differ, which would mean ties are rare enough at depth 12 not to matter and the patch is
+    a legitimate identity-preserving speed candidate.
+P2. If identity fails, the patch is NOT a speed patch and must be labelled a SEARCH CHANGE — it would need strength
+    testing, not identity testing. Predicted that is the outcome.
+P3. The magnitude of divergence is predicted to be small (under 5 % on the total node sum) even if the row count is
+    large, because a tie-break difference usually changes the tree only slightly.
+    Kills it: a divergence above 25 % on the total, which would mean ties drive the entire search — worth knowing on
+    its own.
+P4. If identity DOES hold (P1 refuted), the timing is predicted to improve by 1 % to 4 % on `bench 13`, because
+    sorting is 5.03 % of bench time and O(n) versus O(n log n) cannot recover all of it.
