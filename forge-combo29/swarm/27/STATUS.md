@@ -513,3 +513,16 @@ plies vs their -15 = 29 plies). I have their sentence, not their raw output, so 
 a setting, a different FEN, or a real difference between runs.
 **What I did NOT do: adjust my numbers toward theirs or re-run until they matched.** These are the first runs on
 that board, unpicked. Resolving it needs their exact command line and raw `info depth 24` line.
+
+## 2026-11-17T00:30Z my exact inputs for S-C17 are on record, plus an observation about my own row
+**FEN:** `6k1/8/5K2/8/6r1/8/8/8 w - - 0 1` (halfmove 0, fullmove 1), sent as ONE-LINE `position fen`, never built
+from a move list. **stdin** (committed as `pc/rerun/input_19f59_depth24.uci`): option block, then `ucinewgame` +
+`isready`, **then** `position`, `isready`, `go depth 24` - that order matters because seat 10's 10-F11 showed
+`ucinewgame` after a `position` silently resets to startpos. **Driver** `paced_session.py` (waits for bestmove each
+line). **exe** `068f0927...`. Full write-up with the raw depth-24 line: `pc/rerun/S-C17_inputs.md`.
+**And something about my own row that matters: my depth-24 PV is 24 plies while `mate -25` needs 2|N| = 50, so my
+own line is TRUNCATED like 05-F58** - all 24 plies legal, final position not check, the line stops long before the
+mate it claims. The move `f6f5` is still the longest-defence choice, but **the score is unproven by its own PV** -
+the S-C15 phenomenon on a second board, at depth 24 instead of at a node budget.
+**Kept as first runs, unpicked.** If seat 19's raw line matches my FEN and settings, the two builds genuinely
+differ at depth 24 here - and that is the more interesting outcome, recorded rather than reconciled away.
