@@ -657,3 +657,17 @@ next: cadence.
 Tally: 37 findings, 26 checks/audits/plants, 4 method lines, 2 withdrawals.
 
 next: cadence.
+
+## 2026-11-17T01:52Z
+- **08-F38: the reduction explanation is now a MEASUREMENT.** Cap ON vs cap OFF, depth 10, on the 11 divergence
+  boards: **cap-OFF visits FEWER nodes on 9 of 11** (by 3,356-14,040), more on 2 (+621, +10,981), identical on 0.
+  Direction matches the clamping account, so the mechanism story is SUPPORTED — but stated as a strong tendency with
+  2 counter-cases, since one counter-case is as large as the effect being claimed.
+- 08-W2's open question is now closed at the level reachable without engine internals.
+- For the FINAL: (1) "the withdrawal was the step that made the attribution possible"; (2) "four of six mechanism
+  claims were me explaining my own earlier correction — each time I explained a fix, the explanation was the next
+  thing to be wrong."
+
+Tally: 38 findings, 27 checks/audits/plants, 4 method lines, 2 withdrawals.
+
+next: cadence.
