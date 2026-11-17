@@ -560,3 +560,19 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - PROCESS: hit the missing-directory heredoc failure a THIRD time; now a written rule in METHOD.md (`mkdir -p` first, or
   use a writing tool that creates the path) — three times is a pattern.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:10:04Z the declared gap BREAKS the candidate (S-C45) — deep endgames fail the pre-stated tolerance
+- 12 endgame-ish G positions (material <= 20), clock **10,000 ms**, MPV 3, Threads 1, candidate (own 8MB alt @ Hash
+  2048) vs healthy reference (Hash 16): **median 4 cp, p90 112 cp (OVER the 100 limit), max 253 cp**, deepest depth
+  23 both. **PRE-STATED TOLERANCE: FAIL.**
+- MECHANISM as predicted: at depth 13-15 an 8MB table is never stressed (median 0 cp); at depth 23 it EVICTS what the
+  reference kept. **This also corrects my own earlier claim** — "no saturation at 4x clock" was NOT a depth test:
+  doubling the clock on shallow positions kept depth ~15, only these endgames reached 23.
+- **S-F56's requirement is met by NONE of my four variants**: 64MB cap (moves lines), sharing (moves them worse), 8MB
+  own (fails at depth), repaired-uncapped (never restores depth). Next step is **adaptive sizing** (start small, grow
+  with the alt table's own depth) — NOT built; or accept the alt lines need a full-size table and make ALLOCATING it
+  cheap (lazy zeroing / smaller cluster format).
+- **METHOD RULE 0b added**: a declared gap must be measured before a candidate is called ready — every number in
+  S-C43/S-C44 was true and the conclusion would still have been wrong. **The gap you keep declaring is usually the
+  answer.**
+Next: continue in the window (ends 2026-11-17T10:18Z).
