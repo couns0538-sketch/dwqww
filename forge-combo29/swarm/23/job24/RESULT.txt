@@ -1,0 +1,32 @@
+DOES ANY LONE-KING BOARD HIDE A COST BEHIND AN EQUAL SCORE? — no, and the contrast with the drawn root is the point
+================================================================================================================
+Same method that exposed 23-F60's invisible -805: score each CANDIDATE MOVE ALONE, because a root score can conceal
+a difference. Six boards of 23-C11/F45/F47; base move at depth 12, PC move at depth 12, then both moves scored ALONE
+at fixed depth 16 on the PC build.
+
+| # | board | base move | PC move | same? | base move alone @16 | PC move alone @16 | gap |
+|---|---|---|---|---|---|---|---|
+| 1 | 6k1/8/7R/2K5/8/8/8/8 w | c5b6 | c5b6 | yes | 558 | 558 | 0 |
+| 2 | 7K/5k2/8/4R3/8/8/8/8 w | e5f5 | h8h7 | **NO** | 451 | 440 | **-11** |
+| 3 | 8/3K4/8/8/8/7k/3R4/8 w | d7c7 | d2e2 | **NO** | 409 | 484 | **+75** |
+| 4 | 4k2K/8/8/1R6/8/8/8/8 w | b5b7 | b5b7 | yes | 511 | 511 | 0 |
+| 5 | 8/8/8/8/8/R7/7K/3k4 w | a3a5 | a3a2 | **NO** | 448 | 448 | 0 |
+| 6 | 8/8/8/6k1/8/8/5K2/1Q6 w | b1e4 | b1e4 | yes | 1167 | 1167 | 0 |
+
+Prediction scored honestly: P1 predicted >= 4 of 6 identical — I got **3 of 6**, so P1 is MISSED (marginally).
+P2 held (1 of 3 differing boards has the base's move worse). P3 held (largest gap **75 cp**, far under 300).
+
+THE FINDING IS THE CONTRAST, which is why this was worth running:
+- Drawn root (23-F60/61): the base's unsearched move loses **751-853 cp** — a minor piece — while the PC's holds.
+- Lone-king boards: the base's move is worth between **-11 and +75 cp** of the PC's, and on three boards it is the
+  SAME move. No material is lost and no board hides a blunder.
+
+So the two defects have completely different cost profiles: the drawn-root defect makes the engine BLUNDER a piece
+because it does not search at all, while the lone-king defect makes it FAIL TO CONVERT a won endgame — it plays a
+reasonable move and simply does not find the mate at the searched depth. That distinction is the practically useful
+conclusion: the drawn-root repair protects material, the lone-king repair improves conversion, and only the first is
+a move-quality hazard.
+
+P1 being missed is a small surprise worth stating: I expected the base and PC to agree on most boards because both
+are searching, but they disagree on half of them (moves differ though the values are close) — which is consistent
+with 23-F56's picture that a difference in depth, not a difference in understanding, is what changes the move.
