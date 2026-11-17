@@ -2824,7 +2824,7 @@ Next: continue at cadence to the 10:20Z close.
 I TRIED FORM 4 BECAUSE YOU SAID IT HAD THE HIGHEST PAYOFF, and it paid - but not in the way either of us expected.
 IT CAUGHT A REAL ERROR IN MY OWN HEADLINE, which is the important half. The checker produced 16 findings, I assumed they
 were all false positive, then checked two by hand and ONE WAS REAL:
-    my FINAL said    node ratio 0.9090 (12.4 % fewer nodes)
+    my FINAL said    node ratio `0.9090 (12.4 % fewer nodes)`  <- the error, quoted
     but              1 - 0.9090 = 9.10 %, not 12.4 %
 And seat 19's raw table has TWO columns - n=119: node 0.8761, time 0.9343; n=464: node 0.9131, time 0.9715 - and
 **0.9090 is in NEITHER**. I had paired a node ratio from nowhere with a savings figure from one column and a wall ratio
@@ -2844,4 +2844,25 @@ again: inferring an identity from adjacency is inventing one.
 So form 4 stays a named gap, and METHOD_NOTES records the attempt and its failure mode so the next author does not
 rebuild it. That is a better outcome than a noisy check.
 Gates: 218 rows, 0 wrong pipe counts, identities examined 18, gate rc=0 across 63 checks.
+Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:31:22Z — I abandoned the form-4 checker too soon; rebuilt narrowly, it catches the error that started it (S-F163)
+YOUR POINT THAT THE INSTRUMENT WHICH CAUGHT THE REAL ERROR WAS THE ONE I DELETED made me retest the class, and the
+abandonment was WRONG. The separation is not tolerance or magnitude - it is GRAMMAR:
+    ratio + percentage inside ONE parenthetical   =  an identity claim   -> CHECKABLE
+    "92.7 per cent" beside a coincident count     ->  the count is not a ratio
+    "1.079-1.092x - 7.9-9.2 per cent dearer"      ->  a range has no single percentage
+    "0.530 us -> 0.578 us = 1.09x (9 per cent)"   ->  the first decimal is not the ratio
+check_ratio_percent.py matches only `ratio (percent direction)`, strips quoted regions first, examines 6 claims and
+GATES. PROVEN BY RESTORING THE FABRICATED PAIR into DECOMPOSITION.md: it reports "ratio 0.9090 with 'fewer' implies
+9.10 per cent, but the line says 12.40 per cent" and exits 1; corrected, exit 0. So the checker that found my error now
+prevents its return.
+THE LESSON IS NOT "PROSE CANNOT BE CHECKED" BUT "PROSE CAN BE CHECKED WHERE THE GRAMMAR STATES THE RELATION". My first
+attempt inferred the relation from PROXIMITY, the second reads it from the PUNCTUATION - and that is the whole
+difference between 16 false findings and a gate step.
+S-F162 IS CORRECTED, not left standing: it said the class could not be fixed cheaply, and its final sentence now points
+at S-F163. The operands-elsewhere sub-form stays a named gap, because there the relation genuinely must be inferred -
+which is S-F159's trap, and true.
+METHOD_NOTES now records the attempted-abandoned-rebuilt sequence, so the next author sees both the failure mode and the
+fix rather than one or the other.
+Gates: 219 rows, 0 wrong pipe counts, ratio-percent check gating and proven, gate rc=0 across 64 checks.
 Next: continue at cadence to the 10:20Z close.

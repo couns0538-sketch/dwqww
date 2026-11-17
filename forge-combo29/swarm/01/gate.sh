@@ -272,6 +272,13 @@ run "published identities close" python3 check_identities.py
 #     0.9820 - reported with the recomputation from the factor rows, exit 1; restored, exit 0.
 run "labelled-table product rows" python3 check_table_identities.py clockfloor/DECOMPOSITION.md STATUS.md clockfloor/PER_NODE_CELL.md
 
+# 3o. RATIO WITH ITS PERCENTAGE IN ONE PARENTHETICAL (METHOD_NOTES form 4, same-parenthetical sub-form, S-F163).
+#     This is the instrument that caught a real error in my headline: 0.9090 with "12.4 % fewer nodes", where
+#     1 - 0.9090 = 9.10 %. It was deleted once as unfixable; the rebuild matches only `ratio (percent direction)`, so the
+#     three false-positive mechanisms (percentage beside a coincident count, range endpoints, first-decimal pairing) are
+#     excluded by grammar rather than by tolerance. Proven by restoring the fabricated pair: exit 1 naming the ratio.
+run "ratio with percentage in one parenthetical" python3 check_ratio_percent.py
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then
