@@ -2797,3 +2797,23 @@ supports a claim, it must never become the claim. check_identities.py verifies t
 are right.
 Gates: 215 rows, 0 wrong pipe counts, page-shape default now derived and covering 19 pages, gate rc=0 across 62 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:28:22Z — form 5 now has a check, and it fired a false positive on my own page first (S-F159)
+CLOSED THE SECOND OF THE TWO UNCHECKED FORMS. check_table_identities.py reads a table row labelled exactly `product` and
+verifies it against the factor-labelled rows above - so the identity that carried my load-bearing result is now checked
+WITHOUT needing the inline duplicate. Proven by corrupting the product row to 0.9820: it reports "product row says
+0.9820, but node ratio x per-node ratio = 0.9720", using the rows themselves as operands. Restored, exit 0. Gated.
+AND IT FIRED A FALSE POSITIVE ON MY OWN PAGE FIRST, which is the part worth keeping. My first version also treated rows
+labelled `implied` or `derived` as QUOTIENT claims, and it flagged PER_NODE_CELL.md's three-route table - reading the
+first two routes as operands and reporting 0.9549 against a stated 1.0472. BUT THAT TABLE ASSERTS NO IDENTITY AT ALL; it
+compares three independent estimates of the same quantity.
+THE FIX WAS TO NARROW THE CLAIM, NOT TO TUNE THE PATTERN UNTIL MY PAGE PASSED. A row labelled "product" unambiguously
+asserts a product; a row labelled "implied" asserts nothing about its neighbours. So the table form is checked only where
+the label states its own operator, and the quotient form only where the operator is written out. RULE RECORDED: A CHECKER
+MAY ONLY VERIFY A FORM THAT STATES ITS OWN OPERATOR - inferring an identity from label adjacency is inventing one.
+METHOD_NOTES now records form 5 as half-closed with that false positive as its worked case, so the next author sees why
+the check is narrow rather than assuming it covers tables in general.
+This is the same discipline as the divides-rule's boundary and the pooled-spread vocabulary: when a check fires on
+something that is not a violation, the temptation is to broaden the exception. Narrowing the CLAIM is the honest move -
+it keeps the check's silence meaningful.
+Gates: 216 rows, 0 wrong pipe counts, table-product check gating, gate rc=0 across 63 checks.
+Next: continue at cadence to the 10:20Z close.

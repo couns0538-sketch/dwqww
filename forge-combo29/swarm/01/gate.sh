@@ -267,6 +267,11 @@ run "path substitution (coverage)" python3 check_path_substitution.py
 #     recomputation, exit 1; restored, exit 0.
 run "published identities close" python3 check_identities.py
 
+# 3n. TABLE ROWS LABELLED "product" (METHOD_NOTES form 5, S-F159). The form that carried the load-bearing result and that
+#     no checker could see, because operands and result sit on different lines. Proven by corrupting the product row to
+#     0.9820 - reported with the recomputation from the factor rows, exit 1; restored, exit 0.
+run "labelled-table product rows" python3 check_table_identities.py clockfloor/DECOMPOSITION.md STATUS.md clockfloor/PER_NODE_CELL.md
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

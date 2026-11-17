@@ -20,11 +20,11 @@ reader could verify by hand, presented in a form no script recomputes.**
 | 2 | **product** — `A × B = C` | `0.9090 × 1.0693 = 0.9720` | `check_identities.py` (tolerance 0.002) |
 | 3 | **quotient** — `A / B = C` | `0.9715 / 0.9131 = 1.0640` | `check_identities.py` |
 | 4 | **ratio stated in prose** — "the saving is 8.69 %" with the operands elsewhere | "node ratio **0.9131**" on a line whose derivation is three lines up | **nothing** |
-| 5 | **table row** — terms and result on separate lines | the `DECOMPOSITION.md` table: node, per-node, *product*, observed | **nothing** |
+| 5 | **table row** — terms and result on separate lines | the `DECOMPOSITION.md` table: node, per-node, *product*, observed | **`check_table_identities.py`, product rows only** |
 
-**Forms 4 and 5 are the interesting rows.** They are not rare — form 5 was how my single most load-bearing result was
-presented, and form 4 is how every percentage on these pages is written. **Neither has a check, and until I wrote this
-table I had not noticed that the two forms I use most are the two that nothing verifies.**
+**Form 4 is the remaining gap; form 5 is now half-closed.** They are not rare — form 5 was how my single most load-bearing result was
+presented, and form 4 is how every percentage on these pages is written. **When I first wrote this table, neither had a check** — and I had not noticed that the two forms I use most were
+the two nothing verified.
 
 ## What to do about each
 
@@ -37,6 +37,30 @@ table I had not noticed that the two forms I use most are the two that nothing v
    point at the artifact.
 4. **Table row** — the cheap fix is to **also state the identity inline**, which I have now done for the decomposition
    (`0.9090 x 1.0693 = 0.9720` sits beside the table). The table stays readable; the inline line makes it checkable.
+
+## Building the form-5 check found a false positive, and the fix was to narrow the claim
+
+`check_table_identities.py` verifies a table row labelled **product**. My first version also treated rows labelled
+*implied* or *derived* as quotient claims — and it fired on my own `PER_NODE_CELL.md` table, which lists **three routes
+to the same quantity**:
+
+```
+| route | per-node ratio | sample | method |
+| direct, fixed go nodes | 1.0693 | n=180 | budget held constant |
+| implied at n=464 | 1.0640 | n=464 | time ratio ÷ node ratio |
+```
+
+It read the first two rows as operands and reported `0.9549` against a stated `1.0472`. **That table asserts no identity
+at all** — it is a comparison of three independent estimates.
+
+**The fix was to narrow the claim, not to tune the pattern until my page passed.** A row labelled "product" unambiguously
+asserts a product; a row labelled "implied" asserts nothing about its neighbours. So the table form is checked **only**
+where the label is exactly `product`, and the quotient form is checked only inline — where the operator is written out
+and there is no ambiguity about what is being claimed.
+
+**The general rule this adds: a checker may only verify a form that states its own operator.** Labelled tables are
+tractable exactly where the label is unambiguous, and the temptation to infer an identity from adjacency is the
+temptation to invent one.
 
 ## The audit procedure, in three steps
 
