@@ -1,0 +1,52 @@
+ANALYTIC DERIVATION of the exposure condition.
+Written before the measurement it predicts; kept as the prediction of record.
+
+Notation: root halfmove clock H (98 or 99). Ply 0 = root. Assume no move by
+either side in the tree resets the clock (no pawn move, no capture), so the node
+at ply p carries clock H+p.
+
+The engine's leaf rule (search.cpp:1302-1305) is
+
+    if (hm >= 100) return !in_check() || has_legal_move();
+
+i.e. the node at hm >= 100 is a DRAW unless that node is already checkmate.
+The first such node is at ply
+
+    j0 = 100 - H.
+
+So the search reaches the true mate at ply p only if the mate node is reached
+before any draw-pruned node: the checkmate has to BE the node at j0, because a
+node at j0 that is not mate returns 0 and the subtree dies there.
+
+  mate FOUND correctly (engine right)   <=>  p == j0
+  mate MISSED   (engine returns 0)      <=>  p >  j0
+
+Enumerating the two clocks against the smallest mates:
+
+  H=99, j0=1: the mover at ply 1 is the LOSER (root side to move), who cannot
+    mate. Any mate by the opponent lands at an even ply p >= 2 > j0. So a
+    defender-side mate is ALWAYS missed at H=99. (A root-side mate in 1, p=1,
+    is a checkmate AT j0 and is seen correctly -- that is the other branch of
+    the rule and it works.)
+  H=98, j0=2: a mate by the opponent in 1 move (p=2) lands exactly on j0 and is
+    found. A mate in 2 moves (p=4) or more is missed.
+
+PREDICTIONS THIS MAKES, each falsifiable:
+
+  P1  At H=99, a position where the side to move is lost to a mate in 1 (which
+      is the reported board) is scored 0. OBSERVED, matches.
+  P2  The SAME board at H=98 is scored mate -1. OBSERVED, matches.
+  P3  At H=98, a position where the side to move is lost to a mate in 2 is
+      scored 0, even though a mate in 1 at H=98 is found. This is the parity
+      split: the defect is not "halfmove 99" but "the mate does not land exactly
+      on the clock-100 ply".
+  P4  If a legal move by the side to move RESETS the clock (capture or pawn
+      move), the clock never reaches 100 on that line and the engine must
+      report the true value. This is the control that shows the rule only bites
+      when the clock truly rolls over.
+  P5  Positions that are GENUINELY drawn at hm >= 100 score 0, and that 0 is
+      correct. Any checker that calls those bugs is broken; they are the
+      control class the assignment asks for.
+
+P3 is the prediction that decides whether this is a "one-ply-down" defect in
+general or a narrow parity artefact. It is measured in job3/family_M2.
