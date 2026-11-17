@@ -297,7 +297,7 @@ AVX2 *is* emulated and correctly reported absent there.
 
 ```bash
 export LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13
-export PORTABLE_WORK=/tmp/build          # absolute; every script reads this
+export PORTABLE_WORK=/tmp/build          # absolute and required; no default
 git worktree add /tmp/wt/base 6b98f217
 
 scripts/build_all.sh                     # builds native, v2, v3, v4both + 2 controls
@@ -311,10 +311,11 @@ python3 scripts/final_table.py           # §4 corrected ratios
 python3 scripts/validate.py              # slot-bias correction check
 ```
 
-Paths are confined to `PORTABLE_WORK`: a bare filename resolves inside it, and a path that
-escapes it is refused rather than opened. `build_all.sh` also takes `SRC` for the source
-tree and marks each build directory it creates, so it will not replace a directory it did
-not make.
+Paths are confined to `PORTABLE_WORK`, which is required rather than defaulted — a
+default of `/tmp/build` let a stale directory from an earlier session feed an analysis. A
+bare filename resolves inside the work dir, and a path that escapes it is refused rather
+than opened. `build_all.sh` also takes `SRC` for the source tree and marks each build
+directory it creates, so it will not replace a directory it did not make.
 
 `evidence/logs/post-refactor-reverify.txt` records a full clean rebuild in a fresh work
 directory producing the same pins and the same table.

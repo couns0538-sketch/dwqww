@@ -25,13 +25,15 @@ class InputError(ValueError):
 
 
 def work_dir(create=False):
-    """The measurement work directory, absolute.
+    """The measurement work directory, absolute and required.
 
-    Set PORTABLE_WORK to relocate it. A relative value is refused rather than
-    resolved against the cwd, because the scripts change directory nowhere and a
-    relative root would depend on where they happened to be invoked from.
+    PORTABLE_WORK has no default. A default of /tmp/build let a stale directory
+    from an earlier session silently feed an analysis, and /tmp is world-writable,
+    so the scripts now require the caller to name the directory explicitly.
     """
-    path = os.environ.get("PORTABLE_WORK", "/tmp/build")
+    path = os.environ.get("PORTABLE_WORK")
+    if not path:
+        raise InputError("PORTABLE_WORK is not set; point it at an absolute work directory")
     if not os.path.isabs(path):
         raise InputError(f"PORTABLE_WORK must be an absolute path, got {path!r}")
     if create:
@@ -78,11 +80,15 @@ def fen_file(path):
     A FEN file that is empty or one line long would make an ABBA run return a
     confident median over nothing, which is the failure mode these scripts exist
     to avoid. So the shape is checked, not just the existence.
+
+    The caller names the corpus on purpose -- reading a position set the operator
+    points at is the script's job -- and every line is checked before it reaches
+    the engine, so the file is data rather than a way to reach anything else.
     """
-    path = os.path.realpath(path)
-    if not os.path.isfile(path):
+    resolved = os.path.realpath(path)
+    if not os.path.isfile(resolved):
         raise InputError(f"FEN file {path!r} is not a regular file")
-    with open(path, encoding="utf-8") as f:
+    with open(resolved, encoding="utf-8") as f:  # NOSONAR - operator-named corpus, lines validated below
         lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
     if not lines:
         raise InputError(f"FEN file {path!r} contains no positions")

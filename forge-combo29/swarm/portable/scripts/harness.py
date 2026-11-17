@@ -21,7 +21,11 @@ class Engine:
         # straight into a process launch is what turns a typo in a variant name
         # into an unexplained empty result.
         self.exe = paths.engine_arg(exe)
-        self.proc = subprocess.Popen(  # noqa: S603 - argv is a list, exe was validated above
+        # argv is a list (no shell), and self.exe is already resolved to a real,
+        # executable regular file by paths.engine_arg(). Launching the binary the
+        # operator names is this harness's whole purpose, so the rule is reviewed
+        # rather than avoided.
+        self.proc = subprocess.Popen(  # NOSONAR - argv list, no shell, exe validated above
             [self.exe],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

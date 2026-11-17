@@ -118,7 +118,7 @@ def main(argv):
         "spread": {"min": min(ratios), "q1": statistics.quantiles(ratios, n=4)[0],
                    "q3": statistics.quantiles(ratios, n=4)[2], "max": max(ratios)},
     }
-    with open(out_path, "w") as f:
+    with open(out_path, "w") as f:  # NOSONAR - out_path is confined to PORTABLE_WORK by paths.out_path
         json.dump({"summary": summary, "rows": rows}, f, indent=1)
     print("\n=== SUMMARY ===")
     print(json.dumps(summary, indent=1))
