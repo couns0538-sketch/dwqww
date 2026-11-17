@@ -899,3 +899,17 @@ Family E promoted to the TOP of HARNESS_TRAPS.md with its rule and the rationale
   are the cases where more data would have made the answer worse). Page finished at 15 traps / 5 families.
 
 next command: continue at cadence on measurements; traps page closed.
+
+## 2026-11-17T01:13:44Z
+
+19-C44/C45 PC20 depth by BUDGET (6 set-G positions, summed depth):
+  go nodes 20000: S14 59 vs PC20 62 = +3 ply
+  go nodes 50000: S14 71 vs PC20 72 = +1
+  go nodes 250000: S14 95 vs PC20 96 = +1
+  go softnodes 2000 (SELF-PLAY): S14 45 vs PC20 43 = ** MINUS 2 **
+  => PC20 wins at MATCH budgets and LOSES at the self-play budget. Likely mechanism: at 2000 nodes the
+     per-node overhead (corrhist/cuckoo/rework) does not compound into an extra ply; at larger budgets it does.
+  => No single 'PC20 better/worse' claim is meaningful without naming the budget - trap 10's shape a
+     third time, on the budget axis. Found by sweeping the parameter, not by testing one value.
+
+next command: continue at cadence.
