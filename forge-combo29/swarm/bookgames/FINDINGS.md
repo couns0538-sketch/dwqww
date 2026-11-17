@@ -17,9 +17,9 @@ the book is walked through complete two-sided games.
 | question | answer |
 |---|---|
 | Does the book produce legal, terminating games? | **Yes.** 1,120 games over five arms, 0 illegal moves, 0 engine errors, 0 non-rule terminations beyond 4 harness ply-cap stops |
-| Does any game leave the book into an illegal or lost-on-the-spot position? | **No.** 0 of 1,120 games left the book into an illegal position; the move after book exit is a legal, searched move |
+| Does any game leave the book into an illegal or lost-on-the-spot position? | **No.** 0 illegal moves; 0 of 63 exit positions below −200 cp (worst −50); **0 of 63 exit positions is a drawn root** |
 | How deep does the book take games? | **Ply 16, always.** All 1,120 games exit at exactly ply 16 — the book's own deepest leaf (see §2) |
-| Can book play reach a repetition or 50-move draw? | **No, and it cannot**: the book's position graph is acyclic, so no book line revisits a position |
+| Can book play reach a repetition or 50-move draw? | **No, and it cannot**: the book's position graph is acyclic, so no book line revisits a position; worst halfmove clock at exit is 6 |
 | Does the book disagree with the engine at depth 18 and lose material? | **13 of 589 played book moves concede material; 0 are condemned at depth 18.** Largest gap 51 cp against a measured 18 cp noise floor |
 | Does the book fire from the opponent's clock alone on the patched build? | **Yes**, and games played that way behave identically to both-clocks games |
 
@@ -160,8 +160,26 @@ which is the rule working, not the rule being broken.
 
 `book_on_drawn_root` counts plies where the book fired on a position that was
 *already* a repetition, a 50-move draw, or insufficient material — the game-level
-form of trap 19a. **0 events in 1,120 games.** The book never had the opportunity,
-because it never reached a drawn root (§2.2).
+form of trap 19a. **0 events in 1,120 games.**
+
+The stronger check is on the **position the engine is handed immediately after the
+book stops**, because that is where trap 19a would bite. `scripts/q1c_exit_drawn.py`
+tests all 63 distinct exit positions against the engine's own three drawn-root
+tests, each reported separately. `evidence/q1c-exit-drawn.json`:
+
+| test | exit positions failing it |
+|---|---|
+| threefold repetition (asked with `startpos moves ...`, so history exists) | **0 of 63** |
+| halfmove clock ≥ 100 | **0 of 63** |
+| insufficient material | **0 of 63** |
+
+**Worst halfmove clock at any book exit: 6.** The book exits at ply 16 with a
+counter that started at 0, so a 50-move root is not merely unobserved, it is
+arithmetically unreachable.
+
+The detector is shown to fire on all three kinds of drawn root by controls in the
+same script (a 50-move root, a hand-built threefold, and a bare-minor position), so
+the zeros above are "looked and found none", not "could not have found one".
 
 ### Re-entry into the book
 
@@ -187,6 +205,28 @@ drawn-root bail.
 | 6 (`Book Variety` 100) | 200 | *(running)* | *(running)* | **0** | **0** |
 | 30 (default) | 320 | **16, all** | 16, all | **0** | **0** |
 | 100 (max) | 200 | **16, all** | 16, all | **0** | **0** |
+
+### The arms are comparable, and that is checked rather than assumed
+
+Because the book RNG is per-process (§7), two arms played at `Book Variety 30`
+could in principle be comparing two different draws rather than two settings. So
+the arms' opening distributions are compared directly:
+
+| arm | games | `e2e4` | `c2c4` | `e2e4` share |
+|---|---|---|---|---|
+| `default` | 320 | 178 | 142 | 0.556 |
+| `depth100` | 200 | 102 | 98 | 0.510 |
+
+Two-proportion test: **z = 1.03**, consistent with one shared distribution, and
+both sit near the 0.583 single-position share measured over 24 processes in §7.
+**So the arms are sampling the same book, at the size used here.** The RNG averages
+out at 200+ games; it does not at one game, which is why the probe tables in §7 use
+`Book Variety 0` and the game tables use many games.
+
+(`depth0` shows `e2e4` 200 of 200 because with `Book Depth 0` **no book move is
+played at all** — that "first move" is the engine's search choice, and the fact
+that it is constant while the book arms are not is itself a check that the book,
+not the search, was producing the variety.)
 
 Raising `Book Depth` from 30 to 100 changed **nothing**: still 16 plies, still 53
 distinct opening lines, still 0 drawn roots. That is the expected result once §2
@@ -302,20 +342,53 @@ answer. It did.
 
 | case | lock | patched |
 |---|---|---|
-| book position, White, both clocks | books `c2c4`, 0.000 s | books `c2c4`, 0.000 s |
+| book position, White, both clocks | books `e2e4`, 0.000 s | books `e2e4`, 0.000 s |
 | book position, White, **only `wtime`** | books `e2e4`, 0.000 s | books `e2e4`, 0.000 s |
-| book position, White, **only `btime`** | **no bestmove in 5 s** | **books `c2c4`, 0.000 s** |
-| book position, Black, both clocks | books `c7c5`, 0.000 s | books `e7e5`, 0.000 s |
-| book position, Black, **only `btime`** | books `e7e5`, 0.000 s | books `c7c5`, 0.000 s |
+| book position, White, **only `btime`** | **no bestmove in 5 s** | **books `e2e4`, 0.000 s** |
+| book position, Black, both clocks | books `c7c5`, 0.000 s | books `c7c5`, 0.000 s |
+| book position, Black, **only `btime`** | books `c7c5`, 0.000 s | books `c7c5`, 0.000 s |
 | book position, Black, **only `wtime`** | **no bestmove in 5 s** | **books `c7c5`, 0.000 s** |
-| **no-book** position, White, both clocks | search, 0.421 s | search, 0.398 s |
-| **no-book** position, White, **only `btime`** | **no bestmove in 5 s** | **search, 0.399 s** |
-| **no-book** position, White, **only `wtime`** | search, 0.429 s | search, 0.394 s |
+| **no-book** position, White, both clocks | search, 0.453 s | search, 0.468 s |
+| **no-book** position, White, **only `btime`** | **no bestmove in 5 s** | **search, 0.466 s** |
+| **no-book** position, White, **only `wtime`** | search, 0.463 s | search, 0.471 s |
+
+**Every row where both builds answer now returns the SAME move**, which is what
+makes this a comparison of builds rather than of two book RNG draws — see the
+next subsection, which is the reason this table had to be re-run.
 
 So on the patched build the asymmetry is gone: **both colours book whichever
 single clock is supplied**, and — the row that matters, because a book reply
 returns before the time manager is consulted — a **no-book position with only the
-opponent's clock now answers in 0.399 s** where the lock is unbounded.
+opponent's clock now answers in 0.466 s** where the lock is unbounded.
+
+### The book RNG is nondeterministic, and my first version of this table was contaminated by it
+
+The engine seeds the book RNG from `steady_clock::now()` **per process**
+(`src/uci.cpp:161-162`), so at the default `Book Variety` of 30 the *same*
+position returns *different* book moves on different runs. `scripts/q0_rng.py`,
+24 fresh processes, startpos at `go wtime 1000 btime 1000`:
+
+| `Book Variety` | distribution over 24 processes | distinct |
+|---|---|---|
+| 30 (default) | `c2c4` **14**, `e2e4` **10** | 2 |
+| **0** | `e2e4` **24** | **1** |
+
+That reproduces the coordinator's `14 / 10` exactly and shows `Book Variety 0`
+pins the choice.
+
+**This invalidated the first version of the table above, and the fix is in the
+same commit.** Run at the default variety, the lock and patched builds returned
+different book moves (`c2c4` vs `e7e5` on one row) — and both arms show zero
+`info depth` lines, so "one arm searched differently" cannot rule the RNG out.
+**Those differences were the RNG, not the patch.** The table above was re-run with
+`Book Variety 0` and every row where both builds answer now returns the same move.
+The script now sets variety 0 by default and says why in a comment at the call site.
+
+**A control that would have caught it, and that this table now satisfies:** if two
+arms differ on a book move while agreeing on every clock case they both answer,
+the difference is the RNG. The re-run's lock and patched columns are identical on
+all six rows where both answer, and differ only on the three rows where the lock
+does not answer at all — which is the actual claim.
 
 ### The games, played that way
 

@@ -56,6 +56,9 @@ def board_for(moves: list[str]) -> chess.Board:
 
 def main() -> int:
     engine, out_path, book_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    # Variety 0 pins the book choice (see q0_rng.py). Without it this probe's
+    # lock-vs-patched table compares two different RNG draws, not two builds.
+    book_variety = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 
     entries = bg.load_book(book_path)
     keys = {k for k, _m, _w in entries}
@@ -95,6 +98,13 @@ def main() -> int:
             eng.handshake()
             eng.newgame()
             eng.setoption("OwnBook", "true")
+            # Pin the book RNG. The engine seeds it from steady_clock::now() per
+            # process (uci.cpp:161-162), so at the default Book Variety of 30 the
+            # SAME position returns different book moves on different runs. The
+            # first version of this probe left the default in place and its
+            # lock-vs-patched table showed different moves -- which is the RNG,
+            # not the patch. See q0_rng.py, which measures that directly.
+            eng.setoption("Book Variety", str(book_variety))
             eng.position_checked(f"fen {fen}")
             started = time.monotonic()
             reply = eng.go(go_body, WINDOW)
