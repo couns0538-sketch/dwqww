@@ -1,0 +1,336 @@
+[
+  {
+    "key": "ep-discovers-check",
+    "title": "en passant that discovers check",
+    "fen": "4k3/8/8/3pP3/8/8/8/4R1K1 w - d6 0 1",
+    "note": "the ep capture itself delivers discovered check along the e-file",
+    "must_have": [
+      "e5d6"
+    ],
+    "must_lack": [],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 15,
+        "python": 15,
+        "ok": true
+      },
+      "2": {
+        "engine": 85,
+        "python": 85,
+        "ok": true
+      },
+      "3": {
+        "engine": 1369,
+        "python": 1369,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "ep-exposes-king",
+    "title": "en passant that would expose the king (illegal)",
+    "fen": "8/8/8/8/k2pP2R/8/8/4K3 b - e3 0 1",
+    "note": "both the captured pawn (d4) and the capturer leave rank 4",
+    "must_have": [],
+    "must_lack": [
+      "d4e3"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 6,
+        "python": 6,
+        "ok": true
+      },
+      "2": {
+        "engine": 89,
+        "python": 89,
+        "ok": true
+      },
+      "3": {
+        "engine": 635,
+        "python": 635,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "castle-through-attack",
+    "title": "castling through an attacked square",
+    "fen": "r4rk1/8/8/8/8/8/8/R3K2R w KQ - 0 1",
+    "note": "O-O illegal because f1 is attacked; O-O-O unaffected",
+    "must_have": [
+      "e1c1"
+    ],
+    "must_lack": [
+      "e1g1"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 23,
+        "python": 23,
+        "ok": true
+      },
+      "2": {
+        "engine": 470,
+        "python": 470,
+        "ok": true
+      },
+      "3": {
+        "engine": 10190,
+        "python": 10190,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "castle-out-of-check",
+    "title": "castling out of check",
+    "fen": "4k3/8/8/8/1b6/8/8/R3K2R w KQ - 0 1",
+    "note": "both castles illegal while the king stands in check",
+    "must_have": [],
+    "must_lack": [
+      "e1g1",
+      "e1c1"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 4,
+        "python": 4,
+        "ok": true
+      },
+      "2": {
+        "engine": 56,
+        "python": 56,
+        "ok": true
+      },
+      "3": {
+        "engine": 1475,
+        "python": 1475,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "castle-rook-attacked",
+    "title": "castling when the rook is attacked (legal)",
+    "fen": "r3k3/8/8/8/8/8/8/R3K2R w KQq - 0 1",
+    "note": "an attacked rook does not bar castling; only king squares matter",
+    "must_have": [
+      "e1c1",
+      "e1g1"
+    ],
+    "must_lack": [],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 26,
+        "python": 26,
+        "ok": true
+      },
+      "2": {
+        "engine": 352,
+        "python": 352,
+        "ok": true
+      },
+      "3": {
+        "engine": 8852,
+        "python": 8852,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "castle-rights-lost-rook-capture",
+    "title": "castling rights lost by rook capture",
+    "fen": "r3k2r/8/8/8/8/8/8/R3K3 w Qkq - 0 1",
+    "note": "h1 rook is gone, so the kingside right is gone; queenside survives",
+    "must_have": [
+      "e1c1"
+    ],
+    "must_lack": [
+      "e1g1"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 16,
+        "python": 16,
+        "ok": true
+      },
+      "2": {
+        "engine": 362,
+        "python": 362,
+        "ok": true
+      },
+      "3": {
+        "engine": 5628,
+        "python": 5628,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "promotion-with-capture",
+    "title": "promotion with capture",
+    "fen": "nn6/P7/8/8/8/8/8/k6K w - - 0 1",
+    "note": "all four promotions by capture; the quiet push is blocked by Na8",
+    "must_have": [
+      "a7b8q",
+      "a7b8r",
+      "a7b8b",
+      "a7b8n"
+    ],
+    "must_lack": [
+      "a7a8q",
+      "a7a8r",
+      "a7a8b",
+      "a7a8n"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 7,
+        "python": 7,
+        "ok": true
+      },
+      "2": {
+        "engine": 40,
+        "python": 40,
+        "ok": true
+      },
+      "3": {
+        "engine": 411,
+        "python": 411,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "underpromotion-knight-check",
+    "title": "underpromotion to knight giving check",
+    "fen": "8/1P1k4/8/8/8/8/8/7K w - - 0 1",
+    "note": "b8=N+ checks Kd7; b8=Q/R/B do not, so the knight is the only checker",
+    "must_have": [
+      "b7b8n",
+      "b7b8q",
+      "b7b8r",
+      "b7b8b"
+    ],
+    "must_lack": [],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 7,
+        "python": 7,
+        "ok": true
+      },
+      "2": {
+        "engine": 42,
+        "python": 42,
+        "ok": true
+      },
+      "3": {
+        "engine": 469,
+        "python": 469,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "double-push-beside-pawn",
+    "title": "double pawn push landing beside an enemy pawn",
+    "fen": "4k3/8/8/8/3p4/8/4P3/4K3 w - - 0 1",
+    "note": "e2e4 sets an ep square next to the black d4 pawn; black may answer dxe3",
+    "must_have": [
+      "e2e4"
+    ],
+    "must_lack": [],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 6,
+        "python": 6,
+        "ok": true
+      },
+      "2": {
+        "engine": 38,
+        "python": 38,
+        "ok": true
+      },
+      "3": {
+        "engine": 248,
+        "python": 248,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "pinned-piece-along-line",
+    "title": "pinned piece that can still move along the pin line",
+    "fen": "4r1k1/8/8/8/8/8/4R3/4K3 w - - 0 1",
+    "note": "the pinned rook keeps every move along the pin line and no others",
+    "must_have": [
+      "e2e3",
+      "e2e4",
+      "e2e8"
+    ],
+    "must_lack": [
+      "e2a2",
+      "e2h2",
+      "e2d2"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 10,
+        "python": 10,
+        "ok": true
+      },
+      "2": {
+        "engine": 129,
+        "python": 129,
+        "ok": true
+      },
+      "3": {
+        "engine": 1775,
+        "python": 1775,
+        "ok": true
+      }
+    }
+  },
+  {
+    "key": "pin-bishop-illegal",
+    "title": "pinned bishop that may not leave the pin line",
+    "fen": "4r1k1/8/8/8/8/8/4B3/4K3 w - - 0 1",
+    "note": "control for the previous fixture: same pin, a piece that cannot use it",
+    "must_have": [],
+    "must_lack": [
+      "e2c4",
+      "e2d3",
+      "e2f3",
+      "e2g4"
+    ],
+    "problems": [],
+    "cells": {
+      "1": {
+        "engine": 4,
+        "python": 4,
+        "ok": true
+      },
+      "2": {
+        "engine": 64,
+        "python": 64,
+        "ok": true
+      },
+      "3": {
+        "engine": 791,
+        "python": 791,
+        "ok": true
+      }
+    }
+  }
+]
