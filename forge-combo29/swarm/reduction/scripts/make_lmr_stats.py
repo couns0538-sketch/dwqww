@@ -56,6 +56,16 @@ HPP_SWITCH_NEW = """#pragma once
 #define FORGE_LMR_KEYS 0
 #endif
 
+// FORGE_LMR_MOVES (diagnostic, default 0): per-ply fingerprints of the MOVES that
+// received a reduction -- count, XOR of the 32-bit move encodings, and sum. Companion to
+// FORGE_LMR_KEYS: FORGE_LMR_KEYS says which POSITIONS each build visits, this says which
+// MOVES each build reduces at those positions. If the reduced-move fingerprints already
+// differ at a ply where the visited positions still agree, the mechanism is in the
+// reduction decision itself; if they agree until the positions part, it is downstream.
+#ifndef FORGE_LMR_MOVES
+#define FORGE_LMR_MOVES 0
+#endif
+
 // FORGE_LMR_STATS_PRINT (default 1, meaningful only when FORGE_LMR_STATS is on):
 // whether the counters are also PRINTED. Building counters-on/print-off isolates
 // "the counters do not perturb the tree" from "the print path does not perturb it",
@@ -131,6 +141,11 @@ public:
         }
     };
 private:
+#if FORGE_LMR_MOVES
+    std::uint64_t mv_count_[MaxPly + 8] = {};
+    std::uint64_t mv_xor_[MaxPly + 8] = {};
+    std::uint64_t mv_sum_[MaxPly + 8] = {};
+#endif
 #if FORGE_LMR_KEYS
     std::uint64_t key_count_[MaxPly + 8] = {};
     std::uint64_t key_xor_[MaxPly + 8] = {};
@@ -215,11 +230,24 @@ void Worker::lmr_note_apply(int r_final, int r_before_cap, bool cap_gate, bool c
     }
 }
 
+#if FORGE_LMR_MOVES
+void Worker::lmr_note_move(int ply, int move_fingerprint) {
+    if (ply < 0 || ply >= MaxPly + 8) return;
+    const std::uint64_t m = static_cast<std::uint64_t>(static_cast<std::uint32_t>(move_fingerprint));
+    ++mv_count_[ply];
+    mv_xor_[ply] ^= m;
+    mv_sum_[ply] += m;
+}
+#endif
+
 void Worker::lmr_note_research() {
     for (LmrStatBlock* b : {&lmr_iter_, &lmr_here()}) ++b->research;
 }
 
 void Worker::lmr_begin_iteration() {
+#if FORGE_LMR_MOVES
+    for (int i = 0; i < MaxPly + 8; ++i) { mv_count_[i] = 0; mv_xor_[i] = 0; mv_sum_[i] = 0; }
+#endif
 #if FORGE_LMR_KEYS
     for (int i = 0; i < MaxPly + 8; ++i) { key_count_[i] = 0; key_xor_[i] = 0; key_sum_[i] = 0; }
 #endif
@@ -239,6 +267,16 @@ void Worker::lmr_flush_iteration(int depth, bool emit) {
                     depth, p, static_cast<unsigned long long>(key_count_[p]),
                     static_cast<unsigned long long>(key_xor_[p]),
                     static_cast<unsigned long long>(key_sum_[p]));
+    }
+    std::fflush(stdout);
+#endif
+#if FORGE_LMR_MOVES
+    for (int p = 0; p < MaxPly + 8; ++p) {
+        if (!mv_count_[p]) continue;
+        std::printf("info string rmv depth %d ply %d count %llu xor %016llx sum %016llx\n",
+                    depth, p, static_cast<unsigned long long>(mv_count_[p]),
+                    static_cast<unsigned long long>(mv_xor_[p]),
+                    static_cast<unsigned long long>(mv_sum_[p]));
     }
     std::fflush(stdout);
 #endif
@@ -301,6 +339,9 @@ def do_hpp(root):
     void lmr_note_reject(bool mate, bool fifty, bool dep, bool mcnt, bool bare, bool pvcap);
     void lmr_note_apply(int r_final, int r_before_cap, bool cap_gate, bool cap_clamped);
     void lmr_note_research();
+#if FORGE_LMR_MOVES
+    void lmr_note_move(int ply, int move_fingerprint);
+#endif
     void lmr_begin_iteration();
     void lmr_flush_iteration(int depth, bool emit);
     void lmr_flush_total(bool emit);
@@ -380,10 +421,18 @@ def do_cpp(root, cap, cap_macro):
         note = """#if FORGE_LMR_STATS
             lmr_note_apply(r, lmr_r_before_cap, lmr_cap_gate, lmr_cap_clamped);
 #endif
+#if FORGE_LMR_MOVES
+            lmr_note_move(ply, static_cast<int>(static_cast<std::uint32_t>(move.from) |
+                                                (static_cast<std::uint32_t>(move.to) << 8)));
+#endif
 """
     else:
         note = """#if FORGE_LMR_STATS
             lmr_note_apply(r, r, false, false);
+#endif
+#if FORGE_LMR_MOVES
+            lmr_note_move(ply, static_cast<int>(static_cast<std::uint32_t>(move.from) |
+                                                (static_cast<std::uint32_t>(move.to) << 8)));
 #endif
 """
 
@@ -473,6 +522,16 @@ def do_loop_hooks(root):
         lmr_flush_iteration(depth, emit_info);
 #endif
 """
+    # ANCHOR ASSERTION: the flush must sit immediately after the emit() call that the
+    # root iterative-deepening loop uses for its `info depth` line, and that emit() must
+    # be the one at base 6b98f217 search.cpp:2543 inside the loop opened at :2392.
+    # Asserting the relationship (not a line number) keeps this checkable after the
+    # instrumentation itself has shifted every line: an earlier version of this report
+    # cited line 2689/2532/2557, which resolve on the INSTRUMENTED tree and land in
+    # unrelated code on the base file this patch is supposed to apply to.
+    assert s.count(old) == 1, f"emit-anchor appears {s.count(old)} times, expected 1"
+    assert s.count("for (int depth = 1; depth <= max_depth; ++depth) {") == 2, \
+        "expected exactly two iterative-deepening loops (main + multipv alt)"
     s = patch_text(s, old, new, "cpp iteration flush")
 
     old = "    if (result.best_move.is_none()) result.best_move = root_candidates.front();\n"

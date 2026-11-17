@@ -47,16 +47,18 @@ different trees. The negative result and its cause are now the same measurement.
 **What that leaves** is narrower and more useful than "uncharacterised": the difference is
 created inside an iteration's tree, before any score is published, downstream of the
 first divergence, and it consists of visiting **different positions** rather than the same
-ones more often. §6 names the next step: the first divergence in **move identity**, which
-is a small extension of the fingerprint machinery already here.
+ones more often. I also checked the timing of the *reduction decision* itself (§5.5) and it
+is **not** the discriminator either — the ordering is mixed (7 same-ply, 2 MOVES-first, 2
+positions-first) and the two counter-cases do not even share an ordering. §6 names the
+transposition table as the next hypothesis; that is a hypothesis, not a result.
 
 **What is established** (measured, reproducible, with the exact command):
 1. The instrument works, is off by default, and is honest under its own gate (§2).
 2. **Its output cannot perturb what it measures**, measured as two separate claims: the
    counters do not change the tree (silent build = base, 40 of 40), and the print path
    does not change it either (printing = silent, 31 of 31, including every per-depth node
-   count). Nothing prints inside a search — the flush is at `search.cpp:2689`, between
-   completed iterations (§3).
+   count). Nothing prints inside a search: the flush goes immediately after the root
+   loop's `emit` call, between completed iterations (§3).
 3. On ordinary positions the engine applies **390 reductions per 1000 nodes**, mean
    magnitude **2.38**, and re-searches **2.66%** of them (§4). Nobody had published
    these.
@@ -207,18 +209,60 @@ Both are now measured separately, by building the instrumented source a third wa
 ### 3.1 Where it prints — the structural answer
 
 **Nothing prints inside the search.** The counters are plain integer increments in the
-move loop (`lmr_note_apply`, `lmr_note_reject`, `lmr_note_research`, `src/search.cpp`
-lines 2109–2136 in the instrumented tree). The only output happens in
-`Worker::lmr_flush_iteration`, **called at `src/search.cpp:2689`**, which is inside the
-root iterative-deepening loop (`for (int depth = 1; depth <= max_depth; ++depth)`, opened
-at line 2532) and **after** the call to `search()` at line 2557 has returned and the
-aspiration loop at 2555 has closed. So the print runs once per *completed depth
-iteration*, between iterations — never during one.
+move loop (`lmr_note_apply`, `lmr_note_reject`, `lmr_note_research`). The only output
+happens in `Worker::lmr_flush_iteration`, and it runs **between completed iterations,
+immediately after the `emit` call that the root iterative-deepening loop uses for its own
+`info depth` line**.
 
-That is the same place the engine's own `emit(depth, score, result.pv)` prints its
-`info depth …` line (the lambda defined at line 2361, called immediately above the flush
-at 2688). The instrument is therefore structurally in the same position as the output the
-engine already produces: between iterations, under the same `uci_output_mutex()`.
+That relationship is the durable statement, and it is checkable three ways:
+
+1. **In the patch, by inspection.** The hunk in
+   `patches/lmr_stats_nocap.patch.txt` is the proof — the inserted `lmr_flush_iteration`
+   line sits directly beneath the context line `emit(depth, score, result.pv);`:
+
+   ```
+        } else {
+            emit(depth, score, result.pv);
+        }
+   +#if FORGE_LMR_STATS
+   +        lmr_flush_iteration(depth, emit_info);
+   +#endif
+   ```
+
+2. **On the base tree**, anchor by *text*, not by line number: the flush goes immediately
+   after `emit(depth, score, result.pv);`, inside the root iterative-deepening loop. On
+   `6b98f217` that `emit` call is at `src/search.cpp:2543` and its loop opens at `:2392`.
+3. **On a patched tree, do not trust any number** — including ones this report might
+   quote. The instrumentation shifts every line after its first insertion, so the same
+   pair moves with every feature added to the generator. While this section was being
+   written the flush went from `:2718` to `:2745` purely because a later diagnostic was
+   added above it. **The relationship is stable; the line number is not.** Find it with
+
+   ```
+   grep -n -B4 'lmr_flush_iteration(depth' src/search.cpp
+   ```
+
+   and check that the context reads as it does in the patch hunk above: the closing
+   brace of the `else` that holds `emit(depth, score, result.pv);`, then the `#if`, then
+   the flush — four lines from `emit` to the call, on the tree this was checked against.
+
+**On the line numbers this report originally quoted.** An earlier version cited
+`search.cpp:2689`, `2532` and `2557` for this. **Those are lines in the instrumented tree,
+not in the base file.** On `6b98f217` — which is 2,753 lines — 2689 is
+`seldepth_override = -1;` and 2532/2557 are clock-setup code in `Searcher::search`. The
+instrumentation itself shifts every line after its first insertion, so a line number
+quoted from one tree cannot check the other. That is the trap this report keeps recording:
+**a true number attached to the wrong object.** The position is what is true in both
+trees, which is why it is now stated as a position, with the patch as the artefact that
+pins it.
+
+The generator asserts the relationship rather than a number
+(`scripts/make_lmr_stats.py`, the `ANCHOR ASSERTION` block immediately before the flush
+insertion): it requires the `emit` anchor to occur exactly once and the
+iterative-deepening loop header to occur exactly twice, and it fails the build of the
+instrument if either count changes. An earlier version of the generator used a bare
+`str.replace` on an anchor that silently matched nothing and inserted no record site at
+all — which is why that one is now an assertion with a count.
 
 ### 3.2 The measured answer — 31 of 31, every per-depth node count
 
@@ -551,6 +595,68 @@ fingerprints over the few hundred positions at these plies that is not a realist
 collision, and the two boards where the fingerprints *did* agree are the reason to trust
 the ones where they differ. It is stated as a fingerprint, not a proof of set equality.
 
+### 5.5 Does the *reduction decision* differ before the trees part?
+
+§5.4 showed the builds visit different positions. The follow-up is whether they **reduce
+different moves** at a ply where they still visit the same positions — if so, the
+reduction decision is the earliest observable difference and the mechanism is in *what
+gets reduced*; if not, the tree parted for another reason and the reduction is downstream.
+
+`FORGE_LMR_MOVES=1` fingerprints the moves that actually received a reduction, per ply
+(count, XOR and sum of the 32-bit `(from,to)` encodings). Both fingerprints are computed
+per board, and the two divergence plies are compared:
+
+| board | cls | d_div | ply reduced-moves differ | ply positions differ | order |
+|---|---|---|---|---|---|
+| `8/8/2B1k3/…` | pred | 4 | 2 | 2 | same-ply |
+| `8/8/2k5/4P3/…` | pred | 5 | 2 | 2 | same-ply |
+| **`8/2k5/4P3/8/…`** | **CNTR** | 5 | **never** | 4 | positions-first |
+| `8/4k3/8/6R1/…` | pred | 4 | **1** | 3 | **MOVES-first** |
+| `1R6/8/k7/…` | pred | 5 | 1 | 1 | same-ply |
+| **`8/8/8/4R3/2k5/…`** | **CNTR** | 4 | **1** | 1 | same-ply |
+| `8/8/8/1R6/1K6/…` | pred | 4 | 2 | 2 | same-ply |
+| `8/8/P7/…` | pred | 6 | 2 | 2 | same-ply |
+| `6K1/2b5/…` | pred | 6 | **3** | 4 | **MOVES-first** |
+| `8/2k5/p7/…` | pred | 5 | **never** | 3 | positions-first |
+| `2k5/8/p7/…` | pred | 4 | 0 | 0 | same-ply |
+
+`{'same-ply': 7, 'positions-first': 2, 'MOVES-first': 2}`.
+
+**Two boards hand-verified against the raw lines**, because this is exactly where a
+display can flatter a result. On `8/4k3/8/6R1/8/P7/3K4/8` at depth 4, `keys` agree at
+plies 0–2 and differ at ply 3, while `rmv` differs **already at ply 1** (count 14 vs 13,
+different xor):
+
+```
+mcap  keys ply1 count 8   xor 24b08feceac82f77   |  moff  keys ply1 count 8   xor 24b08feceac82f77   (same)
+mcap  keys ply2 count 23  xor afc27ee94b516138   |  moff  keys ply2 count 23  xor afc27ee94b516138   (same)
+mcap  keys ply3 count 55  xor aa739c525fbae4c4   |  moff  keys ply3 count 45  xor 31c36810f791dd10   (differ)
+mcap  rmv  ply1 count 14  xor 000000000000341b   |  moff  rmv  ply1 count 13  xor 0000000000002c0b   (DIFFER)
+```
+
+So on that board the two builds really do reduce a different set of moves two plies before
+they visit a different set of positions.
+
+**What this does and does not establish.** The ordering is **mixed — 7 same-ply, 2
+MOVES-first, 2 positions-first** — so there is no single ordering that describes the
+population, and **the two counter-cases do not share an ordering**: one is
+`positions-first` (reduced moves identical at every ply of that iteration) and the other
+`same-ply`. That is a **negative** for the hypothesis that the counter-cases are
+distinguished by when their reduction decision diverges: they are not even consistent with
+each other.
+
+So §6 item 2 is now **answered as far as this instrument reaches, and the answer is "not
+this either"**: on the two boards that matter the reduction-decision timing does not
+separate them. What §5.4 established (different positions visited) stands; what this adds
+is that the *reduced-move* fingerprint is not the missing discriminator.
+
+**Controls.** A build compared against **itself** produces **no rows at all** — there is
+no node divergence to key on — and the script now reports that as `VOID` with exit code 2
+rather than as a 0-of-0 pass; an earlier version returned a bare empty result that reads
+exactly like a clean control. The genuine control is that the comparison does find per-ply
+differences when they exist (11 rows, two orderings, hand-verified above), and that the
+`FORGE_LMR_MOVES` counters do not perturb the tree.
+
 ---
 
 ## 6. What this establishes, and where the next instrument points
@@ -578,6 +684,8 @@ the ones where they differ. It is stated as a fingerprint, not a proof of set eq
   boards**, including both counter-cases (§5.4). So the reduction counters average over a
   different node population on each side, which is *why* they could not separate the
   classes — the negative in §5.1 is explained rather than merely reported.
+- **The timing of the reduction decision does not separate the counter-cases either**
+  (§5.5): mixed ordering across the set and inconsistent between the two counter-cases.
 
 **Inferred, not established**
 - The mechanism is created **inside a single iteration's visit set**, before a score is
@@ -600,24 +708,31 @@ different number of times.
    positions at the divergence depth on 9 of 11 boards, including both counter-cases. That
    is the answer to the prior question, and it is why reduction counts were the wrong
    instrument.
-2. **The first ply at which the two trees differ, in move identity** — **this is now the
-   next step.** §5.4 locates the ply where the visited *sets* diverge (ply 4 on one
-   counter-case, ply 1 on the other). The open question is which *move* was reduced at the
-   parent of that ply and what it reached, i.e. the first divergence in the move sequence
-   rather than in the node population. One counter and one `info string` line at the
-   point where the two builds' move lists part would answer it.
-3. **TT hit rate per depth** on both sides. A clamp that changes visited nodes changes
-   what the table has seen; if the counter-case boards show a different TT hit trajectory
-   *after* the divergence depth, the mechanism runs through the table rather than through
-   the reduction arithmetic.
+2. **Done — reduced-move fingerprints (§5.5).** The ordering of "moves reduced differ"
+   against "positions visited differ" is **mixed** (7 same-ply, 2 MOVES-first, 2
+   positions-first) and **the two counter-cases do not share an ordering** (one
+   positions-first, one same-ply). So the reduction-decision *timing* is not the
+   discriminator either. This was the cheapest decisive extension of §5.4 and it is now
+   measured rather than named.
+3. **TT hit rate per depth** on both sides — **the remaining candidate**, and the one the
+   evidence now points at. The builds visit different positions at the same ply, so they
+   populate and read the transposition table differently; a per-depth TT hit/probe ratio on
+   each build, compared at the divergence depth, would test whether the mechanism runs
+   through the table rather than through the reduction arithmetic. This is a bigger
+   instrument than (1) or (2) — it needs counters on the probe path, which is hotter than
+   the move loop — and it is the place to start next.
 
-**Recommended next step: (2).** It is a small extension of the instrument already in this
-branch — the fingerprint machinery of §5.4 is in place, so it is one more per-ply record
-and a comparison, not a new harness. (3) is the fallback if (2) shows the move lists agree.
+**Recommended next step: (3).** Items (1) and (2) are both done and both negative; what
+they jointly leave is a difference in *which positions are reached*, and the table is the
+most likely carrier of that. I did not build it: it is a larger change than the two probes
+above, and starting it near the end of the run would have risked a half-finished third
+instrument on top of two clean ones.
 
-**What I did not do, and would want read as a gap:** I did not build that second
-instrument, and this report should not be read as saying the mechanism is in the table
-or in move ordering — only that it is not in any reduction statistic I could count.
+**What this report does and does not say.** It says the mechanism is not in any reduction
+statistic (including the cap's own clamped share), not in the aspiration window, not at
+the clamp's immediate effect, and not in the timing of the reduction decision. It does
+**not** say the mechanism is in the transposition table — that is the next hypothesis, not
+a result.
 
 ---
 
@@ -654,6 +769,7 @@ Individual scripts, each self-describing:
 | `ordinary_stats.py EXE FENS` | the position-set statistics of §4 |
 | `print_gate.py SILENT PRINTING` | counters-on-silent vs counters-on-printing, plus controls (§3) |
 | `visit_sets.py ON OFF` | per-ply visit-set fingerprints: same positions or different? (§5.4) |
+| `reduced_moves.py ON OFF` | reduced-move fingerprints vs visit sets: which diverges first? (§5.5) |
 
 Raw outputs are in `evidence/raw/`, JSON in `evidence/`.
 

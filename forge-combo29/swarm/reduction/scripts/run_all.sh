@@ -163,4 +163,13 @@ python3 "$SWARM/scripts/identity40.py" "$BASE" "$SILENT" "$SWARM/evidence/OG200.
   > "$RAW/identity_silent_vs_base.txt" 2>&1
 tail -2 "$RAW/identity_silent_vs_base.txt"
 
+echo "### does the reduction DECISION differ before the trees part? (§5.5)"
+MOVES_ON=$(build movescapON /tmp/src_cap "-DFORGE_LMR_STATS=1 -DFORGE_LMR_KEYS=1 -DFORGE_LMR_MOVES=1 -DFORGE_FIX_BARE_KING_LMR_CAP=1 -DFORGE_FIX_BARE_KING_ONE_THREAD=0") || exit 1
+MOVES_OFF=$(build movescapOFF /tmp/src_cap "-DFORGE_LMR_STATS=1 -DFORGE_LMR_KEYS=1 -DFORGE_LMR_MOVES=1 -DFORGE_FIX_BARE_KING_LMR_CAP=0 -DFORGE_FIX_BARE_KING_ONE_THREAD=0") || exit 1
+pins "$MOVES_ON" movescapON
+pins "$MOVES_OFF" movescapOFF
+python3 "$SWARM/scripts/reduced_moves.py" "$MOVES_ON" "$MOVES_OFF" --depth 10 \
+  --json "$SWARM/evidence/reduced_moves_d10.json" > "$RAW/reduced_moves_d10.txt" 2>&1
+cat "$RAW/reduced_moves_d10.txt"
+
 echo "done"
