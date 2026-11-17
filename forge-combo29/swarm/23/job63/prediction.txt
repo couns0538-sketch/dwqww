@@ -1,0 +1,30 @@
+PREDICTION — SW-23 job 63 (does the PC's repair stay adequate on F60's SECOND board, where the loss was smaller?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F129 tested ONE board and found the PC's repair fixes both the move and the score. The open question it names is
+whether that holds more generally. 23-F60 recorded a SECOND board with the same defect pattern:
+`5k2/1p4p1/2p2p1p/p2p4/P2PqP2/1QP3P1/1P3P2/5K2 b - - 16 35` — base played `c6c5` in 0 nodes = cp -39, PC played `e4b1`
+after 1,602,068 nodes = cp 0. That is a much SMALLER loss than the queen hang, which makes it a good second data point in
+the other direction: if the repair is adequate here too, the pattern is "adequate where measured, twice".
+
+DESIGN — same method as 23-F129, on that board:
+1. Find a CASTLING-NEUTRAL 4-ply cycle from the FEN (no king/rook/pawn moves in the cycle) and validate with
+   `job59/validate.py` at exactly 3 occurrences. Note: this FEN has castling `-` already, so any cycle is
+   castling-neutral by construction — I will confirm that rather than assume it.
+2. Base `go depth 10` on the validated root; PC `go depth 12`.
+3. Material by static exchange on the actual capture squares, after each move — the corrected method from 23-F129's
+   in-place correction, NOT the square-blind version that over-claimed.
+4. Also record each build's SCORE and nodes.
+
+Prediction (each with the range that kills it):
+  P1  A valid castling-neutral cycle exists and validates at 3. KILLED if none — reported as not constructible.
+  P2  **THE BASE RETURNS 0 NODES** and its move is generator index 0 (23-F98). KILLED if it searches — this board was
+      reached by a clock game, so its history may differ from a constructed cycle and I would have to say so.
+  P3  **THE PC's MOVE LOSES LESS MATERIAL THAN THE BASE'S** — i.e. the repair again improves the move, measured by static
+      exchange rather than by score. KILLED if the PC's move loses MORE, which would be a far more serious finding.
+  P4  THE ABSOLUTE LOSS IS SMALLER HERE THAN ON F129's BOARD (which was +6 for White). F60's own numbers suggest a
+      small loss (cp -39 vs cp 0, not a queen). KILLED if the exchange shows a loss >= 5 pawns, which would mean the
+      score understated it and F60's numbers were the misleading part.
+
+The reason to run this rather than rest on F129: "the repair is adequate" on the strength of ONE board is exactly the
+one-fixture generalisation I retracted twice tonight.
