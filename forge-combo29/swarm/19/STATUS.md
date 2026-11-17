@@ -1220,11 +1220,11 @@ a sign-share is unavailable and why.**
 | **19-C54** PC20 per-node cost | **+7.1 %** (median 1.071) | **90.0 %** (162/180 dearer) | **PER-POSITION, a tax** |
 | **19-C58** prefetch slowdown | **+9.80 %** | **93.1 %** (121/130 slower) | **PER-POSITION, a tax** |
 | **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — weak lean |
-| **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728), CI **[0.9014, 1.0497] includes 1.0** | **52.9 %** (63/119) | **UNRESOLVED** — the pooled CI includes no effect, so this is *not* "a real effect that is random per position"; it is *not established either way* |
-| **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %** (pooled, large enough to be real) | **54.2 %** (65/120) | **COIN FLIP** — a real pooled effect that is per-position random. *This* is what the label means; see the wall-time row for what it does not. |
-| **19-C60** TtPruneV2 | −4.7 % | 60.8 % (73/120) | weak lean, p = 1.000 |
-| **19-C60** CuckooRep | −0.9 % | 52.5 % (63/120) | coin flip, p = 1.000 |
-| **19-C60** HistRework | +3.1 % | 46.7 % (56/120) | coin flip, p = 0.523 |
+| **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728), CI **[0.9014, 1.0497] includes 1.0** | **52.9 %** (63/119) | **UNRESOLVED** — no established effect either way |
+| **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %**, bootstrap 95 % CI **[0.8887, 1.0108] includes 1.0** | **54.2 %** (65/120) | **UNRESOLVED** — *correction: 19-C56 called this a real pooled effect; at n=120 its CI includes 1.0, so it is not established* |
+| **19-C60** TtPruneV2 | −4.7 %, CI **[0.8814, 1.0307] includes 1.0** | 60.8 % (73/120) | **UNRESOLVED** |
+| **19-C60** CuckooRep | −0.9 %, CI **[0.9376, 1.0487] includes 1.0** | 52.5 % (63/120) | **UNRESOLVED** |
+| **19-C60** HistRework | +3.1 %, CI **[0.9567, 1.1106] includes 1.0** | 46.7 % (56/120) | **UNRESOLVED** |
 | **19-C35** bench per-node | +1.2 % | *not computable* | see caption |
 | **19-C55** bench node sign flip | +14.5 / −10.6 / +8.7 % | *not computable* | see caption |
 | **19-C44/45** PC20 +3 ply at 20k | +3 ply | *not computable from 6 positions* | **session-level** |
@@ -1237,11 +1237,23 @@ sign-share was never a per-position measurement. Likewise 19-C55's three bench n
 single values with no distribution, and 19-C44/45 ran on six positions. **An effect claim that cannot produce a
 sign-share should say so, and the absence is evidence about the claim.**
 
-**What the column reorders — and this is the opposite of what the earlier findings implied:** the two claims that
-survive **per position** are both **taxes** (per-node cost 90.0 %, prefetch 93.1 %). **Every headline EFFICIENCY
-claim — 12.4 % fewer nodes, 2.7 % faster, CorrHistV2's 5.2 % saving — is session-level or a coin flip.** A reader
-of the earlier findings would assume the reverse. **No amount of pooled precision makes a session-level figure a
-per-position fact.**
+**CLASSIFY IN THIS ORDER — the share cannot do it alone:**
+1. **Does the pooled 95 % CI exclude 1.0?** If **no** → **UNRESOLVED**, full stop. The share is then
+   *uninterpretable*, not merely weak: near 50 % it cannot distinguish "real but per-position random" from
+   "nothing to measure".
+2. **If yes, then the share decides:** high (≥85 %) → **PER-POSITION**; ~60 % → **SESSION-LEVEL**; ~50 % →
+   **PER-POSITION RANDOM**.
+
+**Applying that order changed five of the rows above.** CorrHistV2, TtPruneV2, CuckooRep, HistRework and the
+wall-time figure are **all UNRESOLVED** — every one of their bootstrap intervals on the pooled ratio includes 1.0
+(TtPruneV2 [0.8814, 1.0307], CuckooRep [0.9376, 1.0487], CorrHistV2 [0.8887, 1.0108], HistRework [0.9567, 1.1106]),
+and the geometric-mean intervals agree. **Including CorrHistV2, which 19-C56 called a real pooled effect — that was
+wrong.** With four switches, the honest statement is: **none of them is established as a node saving at n=120 on
+this set, individually.** Their *aggregate* effect (19-C53, −12.4 %) is a separate and larger measurement.
+
+**What survives the reclassification, and it is the opposite of what the earlier findings implied:** the two claims
+that hold **per position** are both **taxes** — per-node cost (90.0 %, a large pooled effect) and prefetch (93.1 %).
+**Every efficiency claim about an individual switch is UNRESOLVED; the aggregate saving is session-level at 60.5 %.**
 
 **Requirement doing real work on the document that states it:** applying this rule caught the category error in its
 own table (see the prerequisite above). **That is the strongest evidence that the rule is worth having.**
