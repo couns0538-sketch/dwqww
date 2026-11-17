@@ -182,24 +182,30 @@ selftest() {
   local rc=0 tmpd
   tmpd="$(mktemp -d)"
 
-  # a findings table with a literal pipe inside a cell must be rejected
+  # EVERY injection asserts that it LANDED before its result is trusted (S-F132). printf converts %%, so an
+  # injection built with it can silently write clean input and the check then passes correctly - which reads as
+  # "the check is broken". Each grep below is the proof that the bad input arrived.
   printf '| S-F1 | 1 | this | breaks the cell | x | y |\n' > "$tmpd/bad.md"
+  grep -q '| S-F1 | 1 | this | breaks the cell' "$tmpd/bad.md" || { echo "  INJECTION FAILED: bad row not written"; rc=1; }
   FINDINGS_ARTIFACT="$tmpd/art1.txt" python3 check_findings_table.py "$tmpd/bad.md" > "$tmpd/out" 2>&1
   [ $? -ne 0 ] || { echo "  a bad pipe in a row was ACCEPTED"; rc=1; }
 
   # a well-formed row must be accepted - so the rejection above is for the right reason, not because the checker
   # rejects everything
   printf '| S-F1 | 1 | well formed | evidence.txt | NEW |\n' > "$tmpd/good.md"
+  grep -q 'well formed' "$tmpd/good.md" || { echo "  INJECTION FAILED: good row not written"; rc=1; }
   FINDINGS_ARTIFACT="$tmpd/art2.txt" python3 check_findings_table.py "$tmpd/good.md" > "$tmpd/out2" 2>&1
   [ $? -eq 0 ] || { echo "  a well-formed row was REJECTED"; rc=1; }
 
   # a STATUS stamp in the future must be rejected
   printf '## 2099-01-01T00:00:00Z — a stamp that cannot be true\nbody\n' > "$tmpd/future.md"
+  grep -q '^## 2099-' "$tmpd/future.md" || { echo "  INJECTION FAILED: future stamp not written"; rc=1; }
   python3 check_status_stamps.py "$tmpd/future.md" > "$tmpd/out3" 2>&1
   [ $? -ne 0 ] || { echo "  a future stamp was ACCEPTED"; rc=1; }
 
   # and a possible stamp must be accepted
   printf '## 2026-01-01T00:00:00Z — a stamp that could be real\nbody\n' > "$tmpd/past.md"
+  grep -q '^## 2026-' "$tmpd/past.md" || { echo "  INJECTION FAILED: past stamp not written"; rc=1; }
   python3 check_status_stamps.py "$tmpd/past.md" > "$tmpd/out4" 2>&1
   [ $? -eq 0 ] || { echo "  a valid past stamp was REJECTED"; rc=1; }
 

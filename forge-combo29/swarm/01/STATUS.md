@@ -276,9 +276,30 @@ what fails at the moment of creation. **The rules that hold are the ones that ru
 
 ### The instance that proves that thesis, better than the table above (S-F130)
 
-The table is a *retrospective*. It shows six failures I eventually caught. It does not show that having the rule
-would have prevented them. One incident does, and it happened **four minutes after I wrote the rule** — the rule page
-committed at 01:24, the formula that violates it at 01:28:
+**This failure came at three depths, and each one was hidden by the layer above it looking correct:**
+
+| depth | the thing | what it appeared to do | what it was doing |
+|---|---|---|---|
+| 1 | **the checker** (`check_findings_table.py`) | verified row shape, printed "every row has the right cell count" | always exited 0, so the gate read it as a pass |
+| 2 | **the self-test** (inside `gate.sh`) | verified the checker rejects bad input | a RETURN trap's cleanup overwrote the assertions, so it passed a deliberately broken checker |
+| 3 | **the negative test** of the self-test | injected a bad escape to prove the new check fires | `printf` **converted the escape**, so no bad input ever arrived |
+
+At every depth the layer below was tested by something that could not fail it, and the layer above reported success.
+**The recursion only stopped when I stopped testing the test with a tool that transforms its input** — and the rule
+that closes it is the third one:
+
+> **When a negative test passes, doubt the injection before doubting the check, and print proof the bad input
+> arrived.**
+
+That is the best of the three, because depths 1 and 2 could be found by reading the code — a RETURN trap's status is
+visible in the source. **Depth 3 cannot**, because the injection *looks* right: the command contains the bad pattern,
+the shell ran it, the file exists. Only printing the file's contents distinguishes "the check missed it" from "the bad
+input was never there". So every negative test in the gate now prints proof of injection before reporting a verdict —
+`injected: True` — and the general form is: **a test's first duty is to show that its subject arrived.**
+
+The table below is the other half of the picture. It is a *retrospective*: six failures I eventually caught. It does
+not show that having the rule would have prevented them. The formula below does, because it happened **four minutes
+after I wrote the rule** — the rule page committed at 01:24, the violating formula at 01:28:
 
 I had just finished the page saying *derive a ratio by dividing the numbers you actually have*. I then wrote a new
 script to sweep softnodes budgets and summarised the collision rate as `1 − (distinct−1)/(n−1)`. That printed
@@ -288,8 +309,23 @@ script to sweep softnodes budgets and summarised the collision rate as `1 − (d
 contributes 6 colliding pairs out of 66, not a third of them. **The rule page was still open in my context while I
 wrote the formula that violates it.** (The 36 / 55 / 45 figures were never saved to a file — they went to a terminal,
 which is the `S-F120` failure again — so they are reproduced from the committed sweep in
-`softgran/wrong_formula_reproduced.txt`, with the pair arithmetic spelled out. A claim about my own error gets the
-same evidence standard as a claim about the engine.)
+`softgran/wrong_formula_reproduced.txt`, with the pair arithmetic spelled out.)
+
+### The principle that reproduction states, and that I had not applied to myself
+
+> **A number I am telling you about my own mistake gets exactly the same evidence standard as a number about the
+> engine: it is either reproducible from a committed artifact, or it is not a claim I am entitled to make.**
+
+That is uncomfortable in a specific way, and worth naming. Correcting myself *earns* credibility, which quietly makes
+my self-corrections the least-audited claims in the record — a reader is inclined to accept "I got this wrong" more
+readily than "the engine does this", because the first sounds like humility rather than a claim at all. But
+"my formula printed 36 / 55 / 45 %" is a **factual assertion about the past**, and it is false in the same way any
+other unsaved number is false: unverifiable, and therefore worth nothing to whoever reads it next.
+
+So the self-correction standard has a floor, and it is the same floor as everything else. **The fact that I am
+admitting an error does not exempt the account of that error from evidence.** The reproduction file exists because of
+this, not as extra diligence: without it the most rhetorically persuasive paragraph in this record would have been
+the one with no artifact behind it.
 
 So the lesson is not "be careful" and it is not even "know the rule". It is narrower and more useful:
 
@@ -1941,4 +1977,28 @@ Next: continue at cadence.
    for Trap 8. Rule: when a negative test passes, doubt the INJECTION before doubting the check, and print proof the
    bad input arrived.
 Gates: 177 rows, 0 wrong pipe counts, page shape OK on both edited pages, escapes clean, stamps in order, 46 checks ok.
+Next: continue at cadence.
+## 2026-11-17T01:30:43Z — the three depths open that section, and the reproduction principle is stated (S-F133, S-F134)
+1. THE THREE DEPTHS NOW OPEN THE SECTION, since each was hidden by the layer above looking correct. Table at the top:
+   depth 1 the findings checker (always exited 0 -> gate read it as a pass); depth 2 the gate's self-test (a RETURN
+   trap's cleanup overwrote the assertions, so it passed a broken checker); depth 3 the negative test of that
+   self-test (printf CONVERTED the escape, so no bad input arrived). The section then says why the third rule is the
+   best of the three: DEPTHS 1 AND 2 ARE FINDABLE BY READING THE CODE - a stray exit 0 or a RETURN trap's status is
+   visible in the source. DEPTH 3 IS NOT, because the injection LOOKS right: the command contains the bad pattern,
+   the shell ran it, the file exists. Only printing the file distinguishes "the check missed it" from "the bad input
+   was never there". General form recorded: a test's first duty is to show that its subject arrived.
+   AND I MADE THAT CLAIM TRUE RATHER THAN SOFTENING IT. I had written "every negative test in the gate now prints
+   proof of injection" - then checked, and the gate's selftest() had FOUR injections with no proof at all. So I added
+   the assertion to each, and proved it: breaking one injection now yields "INJECTION FAILED: bad row not written"
+   with gate exit 1, instead of being misread as a checker failure. Restored, exit 0.
+2. THE REPRODUCTION PRINCIPLE IS STATED, and the reason it needed stating is uncomfortable: CORRECTING MYSELF EARNS
+   CREDIBILITY, which quietly makes my self-corrections the LEAST-AUDITED claims in the record. A reader accepts "I
+   got this wrong" more readily than "the engine does this", because the first sounds like humility rather than an
+   assertion - but "my formula printed 36/55/45 %" is a factual claim about the past and is false in exactly the way
+   any unsaved number is false. PRINCIPLE: a number I tell you about my own mistake gets the same evidence standard as
+   a number about the engine - reproducible from a committed artifact, or not a claim I am entitled to make. The
+   reproduction file exists because without it the most rhetorically persuasive paragraph in this record would have
+   been the one with no artifact behind it.
+Gates: 179 rows, 0 wrong pipe counts, injection proofs in all four self-test cases and negative-tested, escapes
+clean, stamps in order.
 Next: continue at cadence.
