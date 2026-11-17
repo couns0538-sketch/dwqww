@@ -152,6 +152,14 @@ window (`100 − counter`) against the mate distance.
 **Same class as warm-vs-cold state (trap 3): both are cases where the engine is solving a different problem than
 the one you think you are measuring.**
 
+### The sentence that reconciles two apparently opposite findings
+
+**The counter is inert until the search can reach the horizon.** At **depth 20**, counters 0, 1, 12 and 50 give
+*identical* scores at *identical* node counts (232,803) and only 99 differs; at **depth 24** the 2× node swing
+appears. So a shallow sweep concludes "the counter does nothing" and a deep sweep concludes "it changes
+everything", and **both are true — they are about different depths.** Any counter comparison must state the depth
+alongside the counter, or it is reporting a property of its own choice of depth.
+
 ---
 
 ## The single question that catches all ten
