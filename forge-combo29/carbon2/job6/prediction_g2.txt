@@ -1,0 +1,20 @@
+Step G2 Prediction (committed BEFORE any Step G2 timed run)
+===========================================================
+Step name: `G2` (`g2_see_fast_no_recapture_and_hoist_unify.patch.txt`, stacked on `bundle.patch.txt + G1`)
+
+Functions and `profile_bundle1.txt` self-time share attacked:
+- `forge::Board::see_ge(Move const&, int) const` (`5.94%` self, `12,300,134` calls — Rank #5 in `profile_bundle1.txt`, of which `8,966,565` calls come from quiet-move SEE pruning in `Worker::search`).
+- Why not already done in Jobs 1-5: Job 5 `S6` added an unpinned enemy-pawn recapture fast-exit when `SeeValue[Pawn] - swap < 0`, but on the ~70% of quiet `see_ge` calls where `them` has zero attackers on `to`, `see_ge` still called `attackers_to_fast` (computing both sides' contact attackers + both PEXT slider lookups) and entered the exchange loop, and when `S6`'s king-line guard fell through (`(contact_them | snipers_them) != 0`), iteration 1 recomputed `contact[them]` and `snipers[them]` a second time.
+
+Work removed:
+1. Compute surviving enemy pieces `them_live = occupied(them) & live0` and `them_contact` first; if `them_contact == 0` and no surviving enemy bishop/rook/queen sits on `attacks::bishop_ray(to)` / `attacks::rook_ray(to)`, immediately `return true` with zero PEXT lookups and zero `us`-attacker work.
+2. Unify `S6`'s `contact_them` / `snipers_them` directly into `FORGE_SDK_SEE_HOIST`'s `contact[them]` / `snipers[them]` (`prepared |= 1U << them`) so iteration 1 never recomputes them.
+3. Compute `b_atk` and `r_atk` once; if `(them_contact | ((b_atk | r_atk) & them_live)) == 0` (any ray-aligned enemy slider is blocked), immediately `return true` without computing `us`'s contact attackers or entering the `while (true)` loop.
+
+Predicted `bench 13` gain on this cloud CPU (Intel Xeon @ 2.60GHz, g++ 13.3 AVX-512, `PC20 + net768`):
+- Predicted `bench 13` `median_of_paired_round_ratios`: `+0.6%` to `+2.0%` (`1.006x` to `1.020x`) on `getrusage` CPU NPS and wall NPS.
+- Stack sizes (`G1 -> G2`): `sizeof(MovePicker) = 2240 -> 2240 B (+0 B)`, `Worker::search = 4496 -> 4496 B (+0 B)`, `Worker::qsearch = 2704 -> 2704 B (+0 B)`.
+
+Kill range:
+- Any mismatch on the 152,488-call two-binary `see_ge` oracle or engine identity pins kills the step immediately.
+- If `bench 13` `median_of_paired_round_ratios` is `<= 1.004x` (`<= +0.4%`) OR falls inside the A/A build-noise spread (`not measured`), the standalone `bench 13` speed prediction is killed (while keeping the proven-identical step in `bundle2.patch.txt`).
