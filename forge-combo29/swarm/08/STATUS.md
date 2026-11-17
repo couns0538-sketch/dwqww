@@ -380,3 +380,18 @@ seat left unchecked; everything else I sampled has a C line).
 Tally: 32 findings (08-F1..F32), 10 checks (08-C1..C10), 2 method lines, 1 withdrawal (08-C6W).
 
 next: cadence; next confirmation or an extension of the clock work.
+
+## 2026-11-17T00:49Z
+- **08-F33 corrects my own 08-F28.** At 15 SOURCED boards per class the median spread is **1.8x (184-338 ms), not
+  the 5.3x** of hand-built boards, and "few pieces AND few moves" is the FASTEST median. What holds, sharper: the
+  whole tail is in **<=8-piece positions** (quiet_endgame p90 **1164 ms** vs 334 ms median, **2 of 15 over 1200 ms**,
+  worst **1585.5 ms** = the hard plan; every other class had zero over 1200 ms). Move count does NOT separate them
+  (33 moves gave the worst case; 4 moves gave both 1225 ms and 175 ms) — piece count does.
+- **08-C11: seat 19's coverage gap closed with a PLANT.** `plant_check.py` drives the same code path: clocked
+  **cp -4161** at depth 16, depth-20 reference **mate -5**, classified **mate_appeared**, and the 10-ply pv replays
+  to **checkmate** in python-chess. So the 0-of-60 is a MEASURED zero, not "not shown".
+- Method note kept: zeros are the easiest claims to leave unplanted and the hardest to doubt.
+
+Tally: 33 findings, 11 checks/plants (08-C1..C11), 2 method lines, 1 withdrawal.
+
+next: cadence + remaining confirmations.
