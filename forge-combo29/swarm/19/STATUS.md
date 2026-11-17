@@ -816,3 +816,14 @@ COMPLETE BOUND on the fault (three angles): below 100 cannot fire ; at 100+ alwa
   substitute move is WRONG (f2f3 where a1a8 mates) ; PC r15 never fires under either regime.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:10:20Z
+
+REPORT_fifty_move_bound.md consolidates the twenty-one/twenty-two thread into ONE file: the three-angle
+  bound in FINAL form (below 100 cannot fire / at 100+ always fires with a wrong substitute / PC r115
+  never fires under either regime), plus threshold (19-C37), settings-independence (19-C38), fix side
+  (19-C36) and severity (19-C39: throws away a mate, castling rights, +369 with 0 nodes).
+  Attribution in the report: fault + mechanism + rate + two self-corrections = seat 07; threshold shared
+  with seat 21; my contribution = threshold precision, settings-independence, fix side, severity.
+
+next command: continue at cadence.
