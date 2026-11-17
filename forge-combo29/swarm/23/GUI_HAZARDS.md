@@ -157,6 +157,25 @@ Every one of those maps to a hazard measured on the PC build on this page, and t
 showing what a naive driver does instead — H1: the naive driver searches the *stale* board; H2: it searches a *third*
 board (the truncated prefix); H3: it never gets a move at all, while the compliant driver gets one in 30 ms.
 
+## A sixth trap: `eval` and `go` contradict each other on a drawn position
+
+`eval` scores the BOARD statically and knows nothing about move history; `go` searches, and on the base build a
+repetition root is short-circuited to cp 0 with 0 nodes. On the same position the two therefore disagree:
+
+| build | `eval` total | `go depth 12` |
+|---|---|---|
+| base | **+406** | **cp 0, 0 nodes** |
+| PC r15 + PC20 | +406 | cp 507, 44,269 nodes |
+
+So a GUI that shows `eval`'s number for the position while taking its move from `go` displays a winning score (+406)
+next to a move chosen from a draw with no search at all — a 406 cp contradiction, with no diagnostic anywhere.
+
+> **Do not mix the two interfaces.** If you display `eval`, say that it is a static board score that ignores repetition,
+> and do not present it as the engine's opinion of the game state.
+
+This is not an `eval` defect — a static evaluator has no history and is right to score the board. It is a trap in how
+a front end combines the two answers (23-F78).
+
 ## Why this is safe for the owner's PC games
 
 The match program drives the engine directly and sends well-formed positions, so neither hazard arises in the PC's
