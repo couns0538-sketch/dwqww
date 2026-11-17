@@ -1528,3 +1528,16 @@ That is a genuinely distinct failure mode: F44..F75 are "the base's search is sh
 are right for what they were asked, and combining them misleads". Worth keeping apart rather than filed as more of the
 same.
 106 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 18 m remain.
+## 2026-11-17T01:01:15Z  23-F79: the eval/go gap has a PRINCIPLED boundary - large for history draws, small for material draws
+2026-11-17T01:01:15Z
+
+  fifty-move root (KRvK, halfmove 150): eval +406 | go cp 0 (0 nodes base, 240 PC)  <- same 406 cp contradiction
+  counter-0 twin                      : eval +406 | go cp 348 / mate 8             <- interfaces agree
+  bare K v K (insufficient material)  : eval  +20 | go cp 0 on BOTH builds        <- nearly agree
+So the gap is 406 cp where the draw comes from HISTORY (repetition, fifty-move) which a static eval cannot know, and
+20 cp where it comes from MATERIAL which it can see. The magnitude tracks exactly what the evaluator is blind to - not
+an arbitrary list of draw types. All 4 predictions held.
+Limits: one board per case, one depth, both builds. Detail not smoothed: the PC's fifty-move go returned cp 0 after
+240 nodes rather than 0 - it searched briefly then reported the draw (repaired behaviour), unlike the base's instant
+answer.
+107 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 17 m remain.
