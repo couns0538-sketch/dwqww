@@ -4,7 +4,7 @@
 Hash 16, and both have the same shape: the default is fine, a plausible non-default silently changes the
 measurement, and nothing warns you.**
 
-> **Assert and record `Threads 1`, `MultiPV 1`, and never send `movestogo 0`.**
+> **Assert and record `Threads 1`, `MultiPV 1`, and never send `movestogo 0` or `depth 0` to mean "unset".**
 
 ## Trap 1 — `MultiPV` above 1 divides a node budget (S-C21)
 
@@ -48,3 +48,22 @@ All three are **settings whose name suggests they do not matter to the measureme
    not a search defect.
 
 This is the same family as the attribution rule: the failure is never in the number, and it is never announced.
+
+## Trap 3 — `depth 0` is one ply, not "no limit" (S-C28, S-F87)
+
+`go depth 0` **clamps to one ply**: measured depth 1 in 155 nodes, while omitting the field reaches **depth 21** in
+the same wall time — a **21-fold depth loss** from the value a harness is most likely to send when it means
+"unset". The same reading applies to the other limits: `go movetime 0` still reached **depth 6** (993 nodes,
+1.3 ms — a floor, not zero time), and only `go nodes 0` is honoured literally, answering at once with a different
+move (`f5f4` against the control's `b6b5`).
+
+**So three of the four limit fields clamp 0 upward, and the fourth declines to search at all.** To mean "no
+limit", **omit the token**.
+
+## The family: three settings a harness sends to mean "unset", all of which do the opposite
+
+| setting | what 0 / a non-default does | measured |
+|---|---|---|
+| `movestogo 0` | selects the sudden-death branch | **482 ms vs 57 ms** with the token omitted (8.4x) |
+| `depth 0` | clamps to one ply | **depth 1 vs depth 21** |
+| `MultiPV 4+` | divides the node budget | **depth 10 → 7** at 20,000 nodes |

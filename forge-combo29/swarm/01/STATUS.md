@@ -987,3 +987,12 @@ notice. Each was found by **looking at the artefact**, not by assuming it was fi
 The pattern across all three: the defect was in something I had created and not re-read. The structural checker
 is the cheapest of the three to institutionalise — it runs in a second and needs no engine — which is why it is
 committed alongside the findings rather than kept as a personal habit.
+
+## 2026-11-17T00:11:03Z — 25-minute cadence
+SEAT 25's S-F37 CONFIRMED AND ITS OWN CAVEAT CLOSED (S-C28) — and the answer is the worse of the two readings.
+  Seat 25 reported that depth/movetime clamp 0 upward but flagged that its probe was a SCOPE result, not a 0-versus-ABSENT one. I tested 0 against the field being ABSENT, which is what a harness actually needs:
+    go depth 0 -> DEPTH 1, 155 nodes.  go depth 5 -> depth 5.  NO depth limit (go infinite stopped at 1 s) -> DEPTH 21, 1,493,714 nodes.
+  So 0 and ABSENT differ completely: 0 clamps to ONE PLY while omitting the field searches freely. A harness that sends depth 0 to mean 'no limit' gets a 21-fold depth loss on my board (S-F87).
+  Also confirmed: go movetime 0 -> depth 6, 993 nodes, 1.3 ms (a floor, not zero time); go nodes 0 -> answered with f5f4 and no depth/nodes line at all, against the control go nodes 20000 -> depth 10, b6b5. So three of the four limit fields clamp 0 upward and the fourth declines to search.
+  THIS COMPLETES A FAMILY of three settings a harness sends to mean 'unset', each doing the opposite: movestogo 0 (sudden-death branch, 8.4x the plan of omitting it), depth 0 (one ply vs depth 21), and MultiPV above 1 (divides the node budget, depth 10 -> 7). All three now sit in MEASUREMENT_TRAPS.md with the same rule: to mean 'no limit', OMIT THE TOKEN — never send 0.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
