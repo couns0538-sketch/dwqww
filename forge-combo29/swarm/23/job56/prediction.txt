@@ -1,0 +1,35 @@
+PREDICTION — SW-23 job 56 (WHAT distinguishes the boards that bail from the one that does not?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F112 found that `r3k2r/8/8/8/8/8/8/R3K2R w KQkq` with the root 3x in the move list SEARCHES 17,601 nodes, while
+every sparse endgame with the root 3x bails at 0. That is a scope limit with no explanation, which makes it weak tea.
+This job isolates variables ONE AT A TIME to find which factor carries the bail.
+
+The boards differ in many ways at once (material, legal-move count, castling rights, halfmove clock, number of distinct
+positions in the history). So instead of comparing those two boards, I build a LADDER of positions that vary one thing
+from a known-bailing base.
+
+BASE (known to bail): `1K6/8/8/3R4/8/8/8/k7 w - - 0 1` with cycle `d5d6 a1b1 d6d5 b1a1` twice -> 0 nodes (23-F110).
+Rungs, each a minimal edit of the base, each with its own 4-ply cycle found by search and validated:
+  L1 add castling rights that are LEGAL          `1K6/8/8/3R4/8/8/8/k7 w Kq - 0 1`  -> does not parse (no rook/king
+       placement allows it); skipped if invalid, printed as skipped rather than silently dropped
+  L2 add a BLACK ROOK on h8                      `1K6/8/8/3R4/8/8/8/k6r w - - 0 1`
+  L3 add a BLACK PAWN on h7                      `1K6/8/8/3R4/8/8/7p/k7 w - - 0 1`
+  L4 move the black king off a1 to b2            `1K6/8/8/3R4/8/8/1k6/8 w - - 0 1`
+  L5 same material as base, kings swapped sides  `1k6/8/8/3r4/8/8/8/K7 b - - 0 1` (mirrored, black to move)
+Each rung gets: a cycle found by search, root occurrence asserted == 3, and `go depth 10`.
+
+Prediction (each with the range that kills it):
+  P1  **MORE MATERIAL KEEPS THE BAIL** on at least 3 of the 4 rungs that add a piece or move a king (L2, L3, L4, L5):
+      i.e. material count is NOT the discriminator, and the rich-board result of F112 must be explained by something
+      else (castling rights, or move-history length, or legal-move count). KILLED if fewer than 3 rungs bail.
+  P2  WHICHEVER rungs DO search share a feature the bailing ones lack; I will name it ONLY if every searching rung has
+      it and every bailing rung lacks it — otherwise I report the ladder table with no factor claimed.
+  P3  A CONTROL ON THE LADDER ITSELF: the unedited BASE bails (0 nodes) in the same run. KILLED if it does not, in
+      which case the ladder is measuring something other than the base behaviour and no rung means anything.
+  P4  EVERY rung's cycle must be validated as making the ROOT occur exactly 3 times and ENDING at the root; a rung whose
+      fixture fails that assertion is EXCLUDED and printed as excluded, not reported as a bail or a search.
+
+If P1 holds and P2 finds no clean discriminator, the honest output is: "the bail survives added pieces and moved kings;
+the F112 board differs by something else, and I have not isolated it." That is more useful than a guess and it is what I
+expect to write.
