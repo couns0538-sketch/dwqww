@@ -1,0 +1,29 @@
+kimi5 job 16 prediction, written before Step 1 (2026-11-17T03:32Z, claim commit 1794884614).
+Committed as its own commit "kimi5 job 16 prediction"; never edited.
+
+Step 3 tree ratios to I2 (S14, depth 12; O = first200.fens, G = set_G.epd). For each: my point
+guess and the KILL RANGE: the prediction is dead if the measured ratio (its 95 % bootstrap
+interval's midpoint) lands outside the range.
+
+| tree | O guess | O kill range | G guess | G kill range |
+|---|---|---|---|---|
+| T_m4  (QuietMalusPerMove 4)  | 1.020 | outside [0.970, 1.080] | 1.030 | outside [0.965, 1.105] |
+| T_mn4 (QuietMalusPerMove -4) | 0.990 | outside [0.940, 1.045] | 0.990 | outside [0.935, 1.055] |
+| T_b32 (QuietMalusBase 32)    | 0.995 | outside [0.955, 1.035] | 0.990 | outside [0.950, 1.045] |
+| T_r1  (ResearchMalus 1)      | 1.000 | outside [0.975, 1.030] | 1.005 | outside [0.975, 1.040] |
+| T_m4r (PerMove 4 + ResMal 1) | 1.025 | outside [0.965, 1.095] | 1.035 | outside [0.960, 1.115] |
+
+Reasoning: E1 scales the malus on the tried quiets only (the best move keeps +bonus), so it
+weakens/strengthens the ordering memory of losing quiets; bigger malus (m4) should order the
+fail-high move relatively better and shrink the tree a little OR disturb ordering and grow it;
+I guess growth of a few percent at most. E2 touches only quiets whose full-depth re-search
+fails, a small population, so T_r1 stays within a few percent of 1.00.
+
+Step 2 counters:
+- share of `researched` that fails (researched_fail / researched): guess 0.30;
+  kill range: outside [0.10, 0.60].
+- share of update_quiet_stats calls with n >= 4 ((e1_n4_7 + e1_n8_15 + e1_n16p) / e1_calls):
+  guess 0.15; kill range: outside [0.05, 0.35].
+- bonus_without_research: my answer (c) says the bonus CAN fire without a re-search
+  (reduced_depth == new_depth when r <= 0 after the clamp), so I predict bwr > 0;
+  kill range: bwr == 0 exactly (then my reading of the code is wrong).
