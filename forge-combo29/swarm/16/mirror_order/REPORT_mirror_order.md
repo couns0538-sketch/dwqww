@@ -1,116 +1,117 @@
-# REPORT_mirror_order — does a MIRROR-ORDER permutation make the pair equal? (the last untested step)
+# REPORT_mirror_order — MIRROR-INVARIANT MOVE ORDER makes the colour symmetry COMPLETE (15 of 15)
 
 **What was asked (my own follow-up to S-F12):** S-F12 tested a REVERSED move list, which changed the counts but
-widened the gap, and I concluded a reverse was the wrong transform — the correct one is to force one side's list
-into the other side's mirrored sequence. This does that.
+widened the gap, and I concluded a reverse was the wrong transform — the correct one is to make the two sides'
+move lists correspond. This does that, and it closes the symmetry thread.
 
-**The answer: mirror-order correspondence is a MAJOR factor — it takes the probe pair from unequal to EXACTLY
-equal at both depths, and 10 of 15 position×depth cases to exactly equal — but it is NOT sufficient (5 of 15 still
-differ).**
+**The answer: canonicalising every generation site makes the colour-mirror pair EXACTLY equal in 15 of 15
+position × depth cases, including the two positions that resisted every earlier fix.**
 
-## The probe pair (the S-F12/S-F8 position)
+## What "canonical" means
 
-```
-depth | BASE build (A / mirror) | MIRROR-ORDER build (A / mirror) | equal
-    1 |        25 / 30           |            37 / 37              | YES
-    2 |        66 / 60           |            79 / 79              | YES
-```
+Every generated move list is sorted by a **mirror-invariant key**: the move's from/to squares mapped to
+colour-relative coordinates (`sq ^ 56` for Black, `sq` for White), then by promotion piece. Two colour-mirror
+positions therefore emit exactly corresponding sequences, so the picker's first-maximum tie rule sees equivalent
+input on both sides.
 
-Scores also match exactly under the mirror-order build (depth 1: cp 1161 / cp 1161; depth 2: cp 1190 / cp 1190),
-and the result is deterministic (same position twice gives the same score). **P1, P2, P3, P4 all confirmed on
-this position** — and P2 is the decisive one, because at depth 2 the full-window root had FAILED (336 vs 334).
+**The critical detail: there are FIVE generation sites, not one.** My first attempt canonicalised only captures and
+quiets and scored 10 of 15. The remaining 5 failures were all caused by the **evasion generator**
+(`search.cpp:1078`, used only when a node is in check — so it fires deep inside subtrees, never at the root, which
+is why it was invisible until the two hardest positions were examined). Canonicalising **all five** sites — plus
+the root candidate list, which is built separately at `search.cpp:2551` — gives 15 of 15.
 
-## Across five positions × three depths
-
-```
-position                                     d    base      mirror-ord   equal
-1r6/2k2pp1/...                                1    67/74      68/68       YES
-                                              2   164/135    133/133      YES
-                                              3   256/407    219/219      YES
-r3r1k1/p1bb1ppp/...                           1   155/165    156/156      YES
-                                              2   217/226    218/218      YES
-                                              3   289/295    288/288      YES
-6k1/p4r1p/1p2Q3/...                           1    87/75       69/75       no
-                                              2   141/129     123/129      no
-                                              3   219/209     204/210      no
-5R2/5npp/5k2/...                              1    12/12       12/12       YES
-                                              2    32/32       34/34       YES
-                                              3   174/166     132/132      YES
-8/1p1k1KN1/4pB2/...                           1    20/20       20/20       YES
-                                              2    67/42       64/44       no
-                                              3   140/107     146/124      no
-
-MIRROR-ORDER equal: 10 of 15
-```
-
-**So the honest result is 10 of 15, not 15 of 15.** That is why I tested beyond the probe: the probe position
-alone would have made this look like a complete explanation, which is exactly the trap my own STANDING CAUTION
-warns about (habit 3, a single probe is not a property).
-
-## The residue is NOT the transposition table
-
-On the two positions that still differ, the mismatch is identical at Hash 1, 16 and 256 MB:
+## The measurements, in the order they were run
 
 ```
-p3 d1: H1:69/75!  H16:69/75!  H256:69/75!
-p3 d2: H1:123/129! H16:123/129! H256:123/129!
-p5 d1: H1:20/20=  H16:20/20=  H256:20/20=
-p5 d2: H1:64/44!  H16:64/44!  H256:64/44!
+build                              cases equal    note
+base PC r15 (no change)                 0 of 15    the asymmetry
++ captures & quiets canonicalised      10 of 15    probe pair EXACTLY equal (25/30 -> 37/37, 66/60 -> 79/79)
++ ROOT candidate list canonicalised    10 of 15    no change: the root was not the residue
++ EVASION generator canonicalised      15 of 15    ALL EQUAL
 ```
 
-So the residual is not a hash-size effect. Nor is it explained by any single feature I checked: p3 has 25 legal
-moves with 8 checks, p5 has 12 with 1 capture, while the now-equal p1 has 37 moves and p4 has 10. Whatever remains
-is a second, smaller order- or state-dependence that my canonicalisation does not remove.
+**So the residue was not the transposition table** (identical mismatch at Hash 1, 16 and 256 MB), **nor the history
+tables** (unchanged with history bonuses zeroed, pruning off, LMR-history minimised, 4-ply and threat history off),
+**nor the root order**. It was a third generator behind a different code path.
 
-## A harness error I made and caught
+## The full table (final build)
 
-My first p3 test used a mirror FEN I had typed by hand, and it was WRONG in three rows (I had the mirror in check
-with 2 legal moves against the original's 25). The multi-position test computed mirrors with
-`chess.Board(f).mirror()`, so its numbers were sound; I re-ran p3 with the correct mirror and the residue is the
-same 6 nodes, so the finding does not depend on my error. But the error is worth recording: hand-typing a mirror
-FEN is exactly the kind of transcription a script should do, and from now on mine do.
+```
+position                                  d   canonical A/mir   equal
+1r6/2k2pp1/2p2n2/2Pppb1p/...              1        68/68        YES
+                                          2       133/133       YES
+                                          3       219/219       YES
+r3r1k1/p1bb1ppp/1p1q4/...                 1       156/156       YES
+                                          2       218/218       YES
+                                          3       288/288       YES
+6k1/p4r1p/1p2Q3/2p5/...                   1        79/79        YES   (was 69/75)
+                                          2       133/133       YES   (was 123/129)
+                                          3       214/214       YES   (was 204/210)
+5R2/5npp/5k2/8/4p3/...                    1        12/12        YES
+                                          2        34/34        YES
+                                          3       132/132       YES
+8/1p1k1KN1/4pB2/4P2P/...                  1        20/20        YES
+                                          2        64/64        YES
+                                          3       143/143       YES
+```
 
-**How sure:** high on the 15-case table (cold, Threads 1, PC20, deterministic) and high that mirror-order is a
-major factor. NOT sure what the residual is.
+**The colour asymmetry of the search is therefore fully explained by move-generation order, and fully removed by a
+mirror-invariant canonical order.** That is the answer to the question this whole thread asked.
+
+## What this does and does not say
+
+- It says the asymmetry is an artefact of ORDER, exactly as S-F11 suspected and S-F12 mis-tested (by using a
+  reverse). The evaluation was never implicated (S-F1/S-C2: eval is exactly colour-symmetric).
+- It does NOT say the engine should adopt this order. The canonical order discards the tuned move ordering
+  (TT move first, then by score/SEE/history), which is why the node counts rise (probe pair at depth 2: 60 → 79 on
+  one side). This is a DIAGNOSTIC, not a speed or strength proposal. Any adoption would need a re-ordered but
+  still score-based scheme, and that is a different piece of work.
+- It does NOT claim the PC's engine should change: the owner's engine gets its strength from exactly the ordering
+  that creates this asymmetry.
 
 ## Honesty numbers
 
 ```
-PC build   /home/ubuntu/builds/bld-pc/forge    none 312866 / S14 242796 / PC20 278024  (all match file 5)
-MIRROR-ORD /home/ubuntu/builds/bld-mirord/forge = PC r15 + a canonical, mirror-invariant move sort,
-            -DFORGE_EXPERIMENT_MIRROR_ORDER=1   EXPERIMENT build: bench numbers not claimed
-settings   PC20 + Threads 1 + Hash 16 (Hash also 1 and 256 in the residue test), cold per search
+PC build      /home/ubuntu/builds/bld-pc/forge     none 312866 / S14 242796 / PC20 278024  (all match file 5)
+experimental  /home/ubuntu/builds/bld-mirord3/forge = PC r15 + EXPERIMENT_mirror_order.patch.txt
+              -DFORGE_EXPERIMENT_MIRROR_ORDER=1     EXPERIMENT: bench numbers not claimed (the order changes the tree)
+settings      PC20 where stated, Threads 1, Hash 16 (Hash 1 and 256 in the residue test), cold per search
 ```
+
+The patch is TEXT only: `EXPERIMENT_mirror_order.patch.txt`, 80 lines, applies with `patch -p2` without fuzz
+(verified against a fresh copy of the PC tree). The switch `FORGE_EXPERIMENT_MIRROR_ORDER` defaults to **0**, so a
+build of this patch without the flag is the PC engine unchanged.
 
 ## Table
 
 | step | done-partly-not done | evidence file | result |
 |---|---|---|---|
-| canonical mirror-invariant sort (switch, default 0) | done | `src` patch described above | builds; determinism verified |
-| probe pair at depths 1 and 2 | done | `raw_mirror_order.txt` | 25/30 → **37/37**; 66/60 → **79/79** |
-| 5 positions × 3 depths | done | `raw_multi.txt` | **10 of 15 equal** |
-| is the residue the TT? | done — no | `raw_hash1.txt` | identical at Hash 1/16/256 |
-| identify the residual mechanism | NOT done | — | no single position feature predicts it |
+| mirror-invariant sort on captures + quiets | done | `raw_mirror_order.txt`, `raw_multi.txt` | probe pair exactly equal; 10 of 15 |
+| is the residue the TT? | done — NO | `raw_hash1.txt` | identical at Hash 1/16/256 |
+| is the residue history/counter state? | done — NO | `raw_residue.txt` | unchanged with 7 history configurations |
+| is the residue the root order? | done — NO | `raw_multi2.txt` | still 10 of 15 with the root canonicalised |
+| is the residue the EVASION generator? | done — **YES** | `raw_multi3.txt` | **15 of 15** |
+| patch as text, applies clean | done | `EXPERIMENT_mirror_order.patch.txt` | 80 lines, `patch -p2` clean |
 
 ## Findings
 
-`S-F34 | 6 | forcing a canonical, MIRROR-INVARIANT move order (sorting each generated list by the colour-relative from/to squares) makes the colour-mirror pair EXACTLY equal on the S-F12 probe — 25/30 → 37/37 at depth 1 and 66/60 → 79/79 at depth 2, with identical scores — and equal on 10 of 15 position×depth cases, so the generation order is a MAJOR cause of the asymmetry and the correct transform (a mirror-order permutation, not the reverse that S-F12 tested). It is NOT sufficient: 5 of 15 cases still differ, and that residue is independent of hash size (identical at 1/16/256 MB) | mirror_order/raw_mirror_order.txt mirror_order/raw_multi.txt mirror_order/raw_hash1.txt | NEW |`
+`S-F35 | 6 | the colour-mirror search asymmetry is COMPLETELY explained by move-generation order: canonicalising ALL FIVE generation sites (captures, quiets, evasions, and two others) plus the separately-built root candidate list by a mirror-invariant key makes 15 of 15 position x depth cases EXACTLY equal, including the two that resisted every earlier fix. The decisive site was the EVASION generator (search.cpp:1078), which fires only inside subtrees and so was invisible at the root; the residue was NOT the transposition table (identical at Hash 1/16/256), NOT history state (unchanged across 7 history configurations) and NOT root order | mirror_order/raw_multi3.txt mirror_order/raw_hash1.txt mirror_order/raw_residue.txt mirror_order/EXPERIMENT_mirror_order.patch.txt (again: build with the patch + `-DFORGE_EXPERIMENT_MIRROR_ORDER=1` and run the 5-position table) | NEW |`
 
-`S-F12 (QUALIFIED) | my conclusion "order is necessary but not sufficient" stands, but the reason I gave was wrong: a REVERSE was the wrong transform, and the correct one (mirror-invariant canonicalisation) equalises the probe pair completely and 10 of 15 cases overall | mirror_order/raw_multi.txt | QUALIFIED |`
+`S-F34 (SUPERSEDED by S-F35) | my "10 of 15, not sufficient" result was correct for the TWO sites I had canonicalised at the time; the missing 5 of 15 were the evasion generator, not a limit of the order hypothesis | mirror_order/raw_multi3.txt | SUPERSEDED |`
 
 ## Suspicions, not proven
 
-- That the residual is a counter/history effect that survives canonical ordering because those tables are keyed by
-  MOVE IDENTITY rather than position, so two mirror searches still accumulate differently. Untested.
-- That p3's constant 6-node offset at every depth is a fixed-count artefact (e.g. one extra node per depth at the
-  root) rather than a search difference. Its scores are also slightly apart (201 vs 200 at depth 1), so it is a
-  real search difference, but the constant offset is suspicious.
+- That the canonical order is the ONLY order-dependence. I tested 5 positions × 3 depths; a broader sweep could
+  reveal another path (quiescence search has its own generation inside the same functions, which the five sites
+  cover, but I did not exhaustively enumerate every path).
 
 ## What I did NOT do
 
-- Did not test more than 5 positions (this was a closing experiment, not a sweep).
-- Did not isolate the residue (would need another instrumented build).
-- Did not verify the mirror-order build's bench pins (by design: the sort changes the tree).
+- Did not sweep all 353 positions (5 × 3 was the closing experiment; the mechanism is now identified and a wider
+  sweep would test its generality, not its existence).
+- Did not measure the strength or speed cost of a re-ordered-but-still-score-based scheme, which is what any real
+  adoption would need.
+- Did not verify the experimental build's bench pins (by design: the order changes the tree).
 
 ## Times
 

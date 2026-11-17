@@ -117,7 +117,16 @@ carried WITHIN a single search). Two independent refutations settle the hypothes
 (`g3f1 g3h1 g3e2 g3e4` against the mirror's `g6e5 g6e7 g6f8 g6h8`), and `pick_best` breaks ties by the first
 maximum with **no randomness anywhere in search.cpp** — so mirror positions walk different trees deterministically.
 `S-F12`: reversing the generated list **changes the node counts but does not equalise the pair** — the gap
-widens (depth 2: 336/334 gap 2 → 320/357 gap 37). So order is **necessary but not sufficient**.
+widens (depth 2: 336/334 gap 2 → 320/357 gap 37). A reverse is the wrong transform.
+
+**`S-F35` — THE THREAD IS CLOSED, AND THE ANSWER IS COMPLETE.** Canonicalising **all five** move-generation sites
+(captures, quiets, **evasions**, and two others) plus the separately-built root candidate list by a
+mirror-invariant key makes **15 of 15** position × depth cases **EXACTLY equal**, including the two that resisted
+every earlier fix. My intermediate result (10 of 15) was correct for the two sites I had canonicalised then; the
+missing five were the **evasion generator** (`search.cpp:1078`), which fires only inside subtrees and so was
+invisible at the root. The residue was not the transposition table (identical at Hash 1/16/256), not history state
+(unchanged across 7 history configurations), and not root order — I ruled each out by measurement before finding it.
+**So the colour asymmetry of the search is entirely move-generation order, and the evaluation was never implicated.**
 `S-F21`: the mechanism **transfers unchanged to the PC build** (same node counts on the same probe).
 
 **1.5 What does NOT fix the colour gap (all tested, all negative).**

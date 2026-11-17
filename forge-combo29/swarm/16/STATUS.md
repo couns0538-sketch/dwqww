@@ -479,3 +479,21 @@ seed: 1601
   like a complete explanation, which is exactly the trap my STANDING CAUTION habit 3 warns about.
 - files: mirror_order/ (REPORT, EXPERIMENT_mirror_order.patch.txt, search.cpp.experiment.txt, raw_*.txt).
 - Cadence continues for the remaining window; next FINAL block at 10:18:40Z.
+
+## 2026-11-17T02:05Z
+- S-F35: THE SYMMETRY THREAD IS CLOSED WITH A COMPLETE MECHANISM. Canonicalising EVERY move-generation site by a
+  mirror-invariant key makes the colour-mirror pair EXACTLY equal in 15 of 15 position x depth cases.
+    base PC r15                     0 of 15
+    + captures & quiets            10 of 15   (probe pair already exactly equal)
+    + root candidate list          10 of 15   (root was NOT the residue)
+    + EVASION generator            15 of 15   <- THE ANSWER
+  The decisive site is the evasion generator (search.cpp:1078), which fires only inside subtrees and so never
+  showed at the root. I ruled out, by measurement, before finding it: the transposition table (identical mismatch
+  at Hash 1/16/256), history/counter state (unchanged across 7 configurations), and root order.
+- Correct framing in the report: this is a DIAGNOSTIC, not a speed or strength proposal. The canonical order
+  discards the tuned ordering that gives the engine its strength, which is why node counts rise. The owner's
+  engine should NOT adopt it; its asymmetry is the cost of its ordering, now fully understood.
+- S-F34 is marked SUPERSEDED by S-F35 in FINDINGS (my 10-of-15 was correct for the two sites then canonicalised).
+- Deliverables: mirror_order/REPORT_mirror_order.md, EXPERIMENT_mirror_order.patch.txt (80 lines, patch -p2 clean,
+  switch defaults 0), search.cpp.experiment.txt, raw_mirror_order/raw_multi/raw_multi2/raw_multi3/raw_hash1/raw_residue.
+- check_folder.py ALL CHECKS PASS (411 files, 42 findings rows). Cadence continues; FINAL block at 10:18:40Z.

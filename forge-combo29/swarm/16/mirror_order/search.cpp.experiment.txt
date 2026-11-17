@@ -1054,6 +1054,9 @@ private:
         init_check_squares();
         buffer_.clear();
         board_.generate_pseudo_legal(buffer_, false);
+#if FORGE_EXPERIMENT_MIRROR_ORDER
+        canonicalise_moves(board_, buffer_);
+#endif
         index_ = quiet_start();
         count_ = quiet_start();
         seeded_ = false;
@@ -1079,6 +1082,9 @@ private:
         init_check_squares();
         buffer_.clear();
         board_.generate_pseudo_legal(buffer_, false);
+#if FORGE_EXPERIMENT_MIRROR_ORDER
+        canonicalise_moves(board_, buffer_);
+#endif
         index_ = 0;
         count_ = 0;
         seeded_ = false;
@@ -2555,6 +2561,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             root_candidates.push_back(move);
         }
     }
+#if FORGE_EXPERIMENT_MIRROR_ORDER
+    canonicalise_moves(board, root_candidates);
+#endif
     result.restricted_root_empty = root_restricted_ && !legal.empty() && root_candidates.empty();
     if (result.restricted_root_empty && emit_info) {
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
