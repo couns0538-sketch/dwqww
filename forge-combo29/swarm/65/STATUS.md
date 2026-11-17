@@ -53,8 +53,8 @@ produces it. All commands run from `forge-combo29/`.
 | two lines, 0 info depth, no score | `python3 swarm/65/scripts/q3_score_absence.py` | `evidence/score_absence.txt` |
 | naive `info depth` reader times out on book, passes off-book | `python3 swarm/65/scripts/q2_cost_and_deadlock.py` | `evidence/cost_deadlock.txt` |
 | five `go` forms split, per position | `python3 swarm/65/scripts/q1_go_matrix.py` | `evidence/go_matrix.txt` |
-| book p50 0.024 ms vs search p50 442 ms | `python3 swarm/65/scripts/q2b_latency.py --runs 200` | `evidence/latency.txt` |
-| 154/154 castles round-trip as `e1g1`/`e8g8` | `python3 swarm/65/scripts/q1b_castles.py` | `evidence/castles.txt` |
+| book p50 ~0.02 ms vs search p50 ~440 ms (four orders of magnitude) | `python3 swarm/65/scripts/q2b_latency.py --runs 200` | `evidence/latency.txt` |
+| 154/154 castle positions exercised, 0 king-takes-rook strings on the wire | `python3 swarm/65/scripts/q1b_castles.py` | `evidence/castles.txt` |
 
 ### Interactions
 

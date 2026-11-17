@@ -3,7 +3,7 @@ binary /tmp/build65/forge
 ### A. drawn-root bail vs OwnBook
 | case | book | info depth | bestmove | invalid FEN |
 | --- | --- | ---: | --- | --- |
-| drawn root (halfmove 100), book ON | YES | 0 | e2e4 | no |
+| drawn root (halfmove 100), book ON | YES | 0 | c2c4 | no |
 | drawn root (halfmove 100), book OFF | no | 64 | a2a3 | no |
 | drawn root by insufficient material, book ON | no | 64 | e2d1 | no |
 | checkmated root, book ON | no | 64 | 0000 | no |
@@ -11,42 +11,42 @@ binary /tmp/build65/forge
 ### B. MultiPV vs OwnBook
 | case | book | info depth | bestmove | invalid FEN |
 | --- | --- | ---: | --- | --- |
-| MultiPV 1 | YES | 0 | c2c4 | no |
+| MultiPV 1 | YES | 0 | e2e4 | no |
 | MultiPV 2 | YES | 0 | e2e4 | no |
-| MultiPV 3 | YES | 0 | e2e4 | no |
-| MultiPV 3, book OFF, movetime 100 | no | 33 | e2e4 | no |
+| MultiPV 3 | YES | 0 | c2c4 | no |
+| MultiPV 3, book OFF, movetime 100 | no | 34 | d2d4 | no |
 
 ### C. clock extremes vs OwnBook
 | case | book | info depth | bestmove | invalid FEN |
 | --- | --- | ---: | --- | --- |
 | wtime 1 btime 1 winc 1 binc 1 | YES | 0 | e2e4 | no |
-| wtime 10 btime 10 winc 1 binc 1 | YES | 0 | c2c4 | no |
-| wtime 0 btime 0 winc 1 binc 1 | YES | 0 | c2c4 | no |
+| wtime 10 btime 10 winc 1 binc 1 | YES | 0 | e2e4 | no |
+| wtime 0 btime 0 winc 1 binc 1 | YES | 0 | e2e4 | no |
 | movetime 1 | YES | 0 | e2e4 | no |
-| movetime 0 | YES | 0 | c2c4 | no |
-| movetime 0, book OFF | no | 4 | e2e4 | no |
+| movetime 0 | YES | 0 | e2e4 | no |
+| movetime 0, book OFF | no | 5 | c2c4 | no |
 
 ### D. forms the book is excluded from, with OwnBook true
 | case | book | info depth | bestmove | invalid FEN |
 | --- | --- | ---: | --- | --- |
 | go depth 6 | no | 6 | d2d4 | no |
 | go nodes 50000 | no | 11 | d2d4 | no |
-| go infinite + stop | no | 17 | e2e4 | no |
+| go infinite + stop | no | 18 | e2e4 | no |
 | go wtime + searchmoves e2e4 | no | 20 | e2e3 | no |
 | go wtime + mate 2 | no | 3 | g1f3 | no |
-| go ponder + stop | no | 16 | e2e4 ponder c7c5 | no |
+| go ponder + stop | no | 18 | e2e4 ponder c7c5 | no |
 
 ### E. Book Depth gate (game_ply)
 | case | book | info depth | bestmove | invalid FEN |
 | --- | --- | ---: | --- | --- |
 | Book Depth 0, clock | no | 18 | e2e4 | no |
-| Book Depth 1, clock (ply 0) | YES | 0 | e2e4 | no |
-| Book Depth 1, clock, black to move (ply 1) | no | 19 | c7c5 | no |
-| Book Depth 2, clock, black to move (ply 1) | YES | 0 | c7c5 | no |
+| Book Depth 1, clock (ply 0) | YES | 0 | c2c4 | no |
+| Book Depth 1, clock, black to move (ply 1) | no | 18 | c7c5 | no |
+| Book Depth 2, clock, black to move (ply 1) | YES | 0 | e7e5 | no |
 
 ### F. Ponder prediction on a book move
 | case | book | info depth | bestmove | invalid FEN |
 | --- | --- | ---: | --- | --- |
-| Ponder false | YES | 0 | e2e4 | no |
+| Ponder false | YES | 0 | c2c4 | no |
 | Ponder true | YES | 0 | e2e4 ponder c7c5 | no |
 

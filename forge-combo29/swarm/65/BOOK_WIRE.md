@@ -37,7 +37,7 @@ Properties, all measured (`evidence/cost_deadlock.txt`, `evidence/latency.txt`):
 | `info` lines of any kind | 1 (`info string book move ...`) |
 | `score` anywhere in the reply | **none** |
 | `nodes` / `nps` / `time` fields | **none** |
-| wall time `go` → `bestmove` | p50 **0.024 ms**, max **0.44 ms** over 200 round trips |
+| wall time `go` → `bestmove` | p50 **~0.02 ms**, max **< 0.5 ms** over 200 round trips (`evidence/latency.txt`: p50 0.023 ms, max 0.369 ms) |
 | round trips under 1 ms | **200/200** |
 
 ### Shape B — the search answers
@@ -267,13 +267,17 @@ startpos with `Book Variety 0`.
 | ply | book | info depth | bestmove |
 | ---: | --- | ---: | --- |
 | 0–15 | YES | 0 | e2e4, c7c5, c2c3, e7e5, g1f3, b8c6, f1c4, g8f6, f3g5, d7d5, e4d5, f6d5, d2d3, f8e7, d1h5, e7g5 |
-| 16 | **no** | 18 | c1g5 |
+| 16 | **no** | ~19 | c1g5 |
 | 17–23 | no | 19–23 | … |
 
 The transition is exactly one reply wide: ply 15 is Shape A, ply 16 is Shape B,
-nothing in between, and ply 16 arrives after ~510 ms instead of ~0.02 ms. A reader
-that assumes "the first N plies are instant" will under-read its timeout at the
-boundary by three orders of magnitude.
+nothing in between, and ply 16 arrives after roughly half a second instead of
+~0.02 ms. A reader that assumes "the first N plies are instant" will under-read
+its timeout at the boundary by three orders of magnitude.
+
+The `info depth` counts and timings past ply 16 are clock-driven and differ
+between runs; the shape change and its position do not. The book line itself
+(plies 0–15) is fixed by `Book Variety 0` and reproduces exactly.
 
 `Book Depth` produces the identical wire change at a chosen ply (`boundary.txt`
 block B, gate at ply 4), and the two are indistinguishable from the reply alone.
@@ -287,9 +291,13 @@ Only the cause differs: no entry vs. not allowed.
 | --- | --- |
 | How do I know the book fired? | the literal substring `info string book move ` in the reply |
 | How do I know it did not? | absence of that substring — but also scan for `invalid FEN` in *both* the position and go windows |
+| Does `go btime 10000` reach the book? | Only for Black. The gate reads the mover's own clock, so with White to move it searches. |
 | May I wait for `info depth`? | **No.** Wait for `bestmove` with a timeout. |
 | Is the book move scored? | No. No score, no nodes, no depth, no pv. |
+| Does the book override a drawn root? | **Yes.** On a fifty-move or repetition root it plays a book move instead of reporting `score cp 0` with an empty pv. |
 | Does MultiPV change the reply? | No. |
 | Does Ponder change it? | Yes: a `ponder <move>` suffix taken from the book. |
-| How fast? | p50 0.024 ms, max 0.44 ms over 200 round trips; all under 1 ms. |
+| Is the book deterministic? | Only at `Book Variety 0`. The default is 30. |
+| How fast? | p50 ~0.02 ms, max under 0.5 ms, all 200 under 1 ms (`evidence/latency.txt`) |
 | What timeout is safe? | Any timeout above a few ms works for the book; the *boundary* reply can take a second or more, so do not shrink the timeout to fit the book path. |
+| Is any book move illegal? | No. 2520/2520 legal, 154 castles all kingside, 0 king-takes-rook strings on the wire. |

@@ -81,7 +81,7 @@ python3 "$SCRIPTS/q4b_gates_and_rng.py" --binary "$FORGE" | tee "$EV/gates_rng.t
 echo "== 14. book boundary walk =="
 python3 "$SCRIPTS/q5_boundary.py" --binary "$FORGE" --plies 24 | tee "$EV/boundary.txt"
 
-echo "== 16. determinism across ten fresh processes =="
+echo "== 15. determinism across ten fresh processes =="
 python3 "$SCRIPTS/q6_determinism.py" --binary "$FORGE" --variety 0 --runs 10 | tee "$EV/determinism_v0.txt"
 python3 "$SCRIPTS/q6_determinism.py" --binary "$FORGE" --variety 30 --runs 10 | tee "$EV/determinism_v30.txt"
 

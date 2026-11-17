@@ -109,8 +109,12 @@ Measured latency difference between the two paths, 200 round trips each
 
 | path | p50 | min | max |
 | --- | ---: | ---: | ---: |
-| book | 0.024 ms | 0.023 ms | 0.439 ms |
-| search, 9 plies into a Ruy Lopez | 442 ms | 240 ms | 2646 ms |
+| book | 0.023 ms | 0.022 ms | 0.369 ms |
+| search, 9 plies into a Ruy Lopez | 442 ms | 239 ms | 2646 ms |
+
+(These are the values from the run captured in `evidence/latency.txt`. The book
+path's own numbers move by a few tens of microseconds between runs — the
+microsecond-scale figure is what matters, not the third digit.)
 
 That is roughly four orders of magnitude, and it is the whole reason the wire
 shapes in `BOOK_WIRE.md` are a separate document.
@@ -248,24 +252,26 @@ management is consulted, which is consistent with `continue`.
 
 | ply | book | info depth | bestmove | wall ms |
 | ---: | --- | ---: | --- | ---: |
-| 0–15 | YES | 0 | e2e4 … e7g5 | 0.0–0.6 |
-| 16 | **no** | 18 | c1g5 | 509.8 |
-| 17–23 | no | 19–23 | … | 568–1072 |
+| 0–15 | YES | 0 | e2e4 … e7g5 | under 1 |
+| 16 | **no** | 19 | c1g5 | ~500 |
+| 17–23 | no | 19–23 | … | 500–1100 |
 
 The transition is one ply wide, instant → not instant, with the latency jumping
-from under 1 ms to ~510 ms. Nothing in the reply announces the boundary; the only
-observable change is the shape.
+from under 1 ms to about half a second. Nothing in the reply announces the
+boundary; the only observable change is the shape.
 
-(The plies after the boundary are clock-driven search and their moves vary between
-runs; the *shape* change at ply 16 does not.)
+(The plies after the boundary are clock-driven search: their moves, `info depth`
+counts and timings vary between runs, and the values in `evidence/boundary.txt`
+will differ from any other run. The *shape* change at ply 16 does not vary, and
+that is the claim.)
 
 ### 5.2 Gate boundary looks identical
 
 With `Book Depth 4` (`evidence/boundary.txt` block B) the same shape change happens
-at ply 4, with 19 `info depth` lines and ~545 ms. From the wire alone, "the book
-ran out" and "the book was not allowed here" are indistinguishable. Only the
-implementation distinguishes them (§1.2 condition 4 vs `candidates()` returning
-empty).
+at ply 4, with ~20 `info depth` lines and a few hundred ms. From the wire alone,
+"the book ran out" and "the book was not allowed here" are indistinguishable. Only
+the implementation distinguishes them (§1.2 condition 4 vs `candidates()`
+returning empty).
 
 ### 5.3 The gate reads the FEN's move counter, not the game
 
@@ -361,24 +367,54 @@ illegal book moves (python-chess): 0/2520
 ```
 
 Every book move is legal, judged by python-chess, which is an independent move
-generator from `board.cpp`. Nothing is illegal. 154 of the 2520 are castles, all
-kingside, and all 154 round-trip through the engine's wire format as the king's
-two-square move with 0/154 mismatches (`evidence/castles.txt`).
+generator from `board.cpp`. Nothing is illegal.
+
+Castling is the one encoding hazard: the book stores it as Polyglot
+king-takes-rook (`e1h1`, `e8a8`) and `decode_move` must rewrite it before it
+reaches UCI (`src/book.cpp:82-91`). 154 of the 2520 book moves are castles — all
+kingside, no queenside anywhere in the book. All 154 castle positions were
+replayed through the engine with `Book Variety 0`
+(`evidence/castles.txt`, `q1b_castles.py`):
+
+```
+castle positions exercised through the engine: 154/154
+  replies that were book moves: 154/154
+  replies that were a castle:   151/154
+king-takes-rook strings on the wire: 0/154
+illegal or unparseable replies:      0/154
+```
+
+Zero king-takes-rook strings reached the wire, and every reply was legal — so the
+decode is correct. The three positions that did not castle are cases where the
+heaviest book move is something other than the castle, not failures.
 
 ### 7.3 Material
 
-Static exchange flags 135 of 2520 moves as "material at risk". **Every one of them
-is a false positive**, and this is the interesting part: they are captures whose
-recapture is poisoned, and quiet moves where the "winning" capture loses a piece
-to a skewer or a recapture the swap list does not model. Re-checked with the
-engine's own search, book off, depth 12, `Clear Hash` between searches
-(`evidence/soundness_verified.txt`):
+Static exchange flags 135 of 2520 moves as "material at risk". **None of them is
+an actual defect**, and the reason is worth stating precisely rather than
+dismissing the flags wholesale:
+
+* some flags are captures whose recapture is **poisoned** — the swap list assumes
+  the opponent recaptures and it loses to be the one who does;
+* the rest are quiet moves after which the opponent has a capture the swap list
+  scores as winning material, where the engine judges the resulting position
+  acceptable anyway. `f1c4` in `rnbqkb1r/pp2pppp/5n2/2pP4/8/2P5/PP1P1PPP/RNBQKBNR w KQkq - 1 4`
+  is one: SEE is right that `...Nxd5` wins a pawn, and the engine still scores
+  White +31 after it at depth 14, i.e. the pawn is a real concession that buys
+  enough. So SEE is measuring material, and the book is occasionally willing to
+  give material for development — which is a judgement call, not a bug.
+
+Re-checked with the engine's own search, book off, depth 12, `Clear Hash` between
+searches (`evidence/soundness_verified.txt`):
 
 ```
 SEE-flagged book moves: 135
 positions scored: 135 (unscoreable 0)
 book moves with gap > 100 cp: 0/135
 ```
+
+That is the operative result: **no flagged move costs more than 100 cp**, so no
+book move loses material in a way the engine regards as losing.
 
 ### 7.4 Exhaustive quality gap
 
