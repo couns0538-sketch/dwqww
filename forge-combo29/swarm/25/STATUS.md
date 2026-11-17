@@ -214,6 +214,47 @@ the errors of mine.
 
 If the window ends here, this branch is self-describing.
 
+## 2026-11-17T01:56Z - CYCLE (c) JOB 1, seed 2531: one correction of my own published mechanism, one new MultiPV number
+
+**Prediction pushed alone at `2f0e799c7` before the first measuring command.** Full report at
+`forge-combo29/swarm/25/job1d/REPORT_job1d.md`. Prediction record: S1 HIT, S2 HIT, S4 HIT, S5/S6 hit as stated but
+**not the test I thought they were** (see below), S3 a NEAR MISS (4 mates against an expected 5-20, inside the kill
+range I had declared - recorded as a near miss, not dressed as a hit).
+
+**The correction (S-C47): my own S-C32 wording was too strong, and a random board found it.** R4 board 103 reported
+`mate 6` / `g4h5` at depths 12-13 and `mate 4` / `h3h4` at depths 14-20 - a 6->4 fall, the exact shape S-C32 said
+never happens. Measured properly, **it is not a shortening: it is a change of move.** Pinned with `searchmoves`:
+`g4h5` says `mate 6` at depths **12, 14, 16 and 20** with an identical 11-ply PV every time; `h3h4` says `mate 4` at
+**12, 14 and 20** with an identical 7-ply PV. Neither number moves. So the mechanism survives intact, and the
+sentence "never 9-7-5" is true only of a **fixed first move** - a free-search depth ladder mixes move-choice changes
+with distance changes and cannot separate them. S-C31's qualifier in this file now carries this.
+
+**The new number (S-C48): MultiPV decides which move the engine calls best on 47 of 250 random middlegame positions
+(19%).** At a fixed depth 12, Threads 1, Hash 16, one fresh process per configuration: same top score **203/250**,
+different score AND different bestmove **47/250**, and **0** differing bestmoves with equal scores - so all 47 are
+genuine search differences, not ties. This extends S-C24 (MultiPV costs ~3x throughput) with the other half: on a
+fixed depth budget MultiPV also changes the answer. The direction is not uniform (MultiPV 3 found the SHORTER mate on
+board 103), so there is no "MultiPV is more accurate" rule to state.
+
+**Independent verification, and its limits.** `matesolve3.py` is a brute-force solver with no engine code; it confirms
+`h3h4` forces mate in exactly 4 (engine agrees) and `pv_truth.py` confirms that 7-ply PV survives defender-best-play
+replay. **NOT established: whether `g4h5` forces mate in 6.** The solver cleared budgets up to mate-in-5 (4=not forced,
+8.2s; 5=not forced, 451s, 6.07M memo entries) and the mate-in-6 budget was still running when I wrote this. A timeout
+is not an answer, so the report states the gap rather than filling it - the engine's `mate 6` there is unverified, and
+no claim rests on it.
+
+**S-C49:** 2 of 250 boards resolved from centipawns at depth 12 into mates at depth 16 (board 151 `cp 4335` -> `mate 5`,
+board 220 `cp 2906` -> `mate 3`), and all **6** depth-16 mates had PV length exactly 2|N|-1 and replayed to checkmate,
+with 0 illegal PVs in 250. Consistent with S-F29's depth-18 threshold being a requirement.
+
+**Guards at 01:56Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
+`audit_final.py` -> 0 mismatches. `final_selfcheck.py` -> re-run before the close as planned.
+
+**Three more wrong "known answers" of mine, all caught by running the checks:** a back-rank mate called as mate-in-2
+that was mate-in-1, a ladder likewise, and a queen line likewise - plus a budget off-by-one in `pv_truth.py` that made
+every correct PV look unforced. That is the eleventh through fourteenth instance of the control-error pattern; none
+was caught by reading.
+
 ## 2026-11-16T23:59Z - S-C37 statement kept verbatim; third guard re-run all green
 
 S-C37 in the FINAL reads: "two distinct but CORRELATED samples, so the effective size lies BETWEEN N AND 2N openings -
