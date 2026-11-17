@@ -2,12 +2,12 @@
 
 **Audit window:** 2026-11-16T22:20Z → 2026-11-17T10:20Z.
 **Assembled by:** seat `swarm-73`, from committed branch content only. **Nothing here was re-measured.**
-**Branches read:** **26** (`swarm-01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30, 75` — every branch under `origin/for-fable-and-opus/` that carries a `FINDINGS.md`).
-**Findings synthesised:** **2,302** distinct findings — **2,293** from table rows plus **9** from `swarm-75`, which
-records its findings as prose sections (`75-F1`…`75-F9`) rather than table rows and so is invisible to a row count.
+**Branches read:** **28** (`swarm-01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30, 64, 65, 75`).
+**Findings synthesised:** **2,309** — **2,293** from table rows, **9** from `swarm-75` and **7** from `swarm-64`,
+both of which record findings as prose sections rather than table rows and so are invisible to a row count.
 2,314 table rows in total; 21 are re-runs recorded under an existing id.
 
-That count is a count of *findings I read*, not a claim that 2,302 separate claims are each correct. The consolidated
+That count is a count of *findings I read*, not a claim that 2,309 separate claims are each correct. The consolidated
 report cites about ten of them by id. The rest I used to license, bound, or contradict the recommendations below.
 
 Two builds appear throughout and every number names one:
@@ -204,16 +204,23 @@ values — a diagonal boundary, not one bad cell.
 | the same, capped conservatively (**2 lines ≤ 48 MB; 3–6 lines ≤ 24 MB**) | **1/48** | **0** |
 
 **The recommendation: `MultiPV 1` at any Hash; otherwise cap Hash by line count — 48 MB for 2 lines, 24 MB for 3 to
-6 lines.** That is the conservative fitted form, and it is **the one to ship because it has zero false-safe cells out
-of 48**.
+6 lines.** That is the conservative form of the fit, and it is the one to ship.
 
-**The property that matters is zero false-safe, not the misclassification count.** Both forms misclassify 1 of 48, but
-a **false-safe** call tells you a slow configuration is fine — the error that costs you throughput silently. A
-misclassification in the other direction merely tells you a safe configuration is risky, which costs you caution.
+**The property to rely on is an INVARIANT, not a count: "the stated ceiling is never more permissive than the fitted
+one."** The count of false-safe cells is a snapshot — **a later re-fit invalidates it silently, and nothing tells you
+the number moved.** The invariant survives the re-fit, and it is the thing a check can enforce: expand every "N MB at
+M lines" clause into an effective per-line ceiling and fail if any stated ceiling exceeds the fitted value. **That
+check exists in the report and is proved by planting the permissive version.**
 
-**For a technical reader, the fitted ceiling is slightly more permissive:** **48 MB at 2 to 3 lines, 24 MB at 4 to 6**
-— `Hmax(MPV)` with 48 admitted at 3 lines (measured 1.49×) — and it carries **1 false-safe cell of 48**. **Recommend
-the conservative version; use the fitted one only when you are willing to trade that cell for the extra headroom.**
+**Why the direction of the error matters.** Both forms misclassify 1 of 48, but a **false-safe** call tells you a
+slow configuration is fine — the error that costs you throughput silently. A misclassification in the other direction
+merely tells you a safe configuration is risky, which costs caution. **The conservative form is chosen so that the
+error, when it comes, is the harmless one.**
+
+**For a technical reader:** the fitted ceiling is `Hmax = {1:256, 2:48, 3:48, 4:24, 5:24, 6:24}` — slightly more
+permissive, and it carries **1 false-safe cell of 48 (`Hash 32`, MPV 3, 1.55×)**. **The conservative form differs from
+it on exactly 2 of 48 cells**, both at MPV 3 and both straddling the 1.5× line. **Ship the conservative one; the
+fitted one is for understanding the boundary, not for setting options.**
 
 **Do not use a "per-line cap" or a product, and do not use a flat Hash ceiling for multiple lines.** A flat ceiling is
 the coarse form these measurements refuted: it forbids configurations that are safe (Hash 8 with 6 lines is 1.18×)
@@ -592,9 +599,25 @@ writes a FEN without the true move number changes whether the book is consulted 
 then `bestmove <uci>`. **No `info depth`, no score, no node count.** A GUI showing a score for that move is showing
 its own default.
 
-**And the latency gap is four orders of magnitude, which is why this bites harnesses:** book **p50 0.024 ms**, max
-0.44 ms over 200 round trips; off-book **p50 442 ms** in the same harness. **A reader waiting for an `info depth`
-line times out on every book move** — proved with a passing off-book control.
+**And the latency gap is orders of magnitude, which is why this bites harnesses.** The committed evidence
+(`swarm-65/evidence/cost_deadlock.txt`, `go_matrix.txt`, build `/tmp/build65/forge`) gives single-shot wall times:
+
+| arm | command | wall ms | `info depth` lines |
+|---|---|---|---|
+| **BOOK** | `go wtime 10000 btime 10000 winc 100 binc 100` | **0.2** | **0** |
+| **BOOK** | `go movetime 100` | **0.1** | **0** |
+| NOBOOK | `go wtime 10000 btime 10000 winc 100 binc 100` | **346.2** | 19 |
+| NOBOOK | `go movetime 100` | **91.0** | 15 |
+
+**A reader waiting for an `info depth` line times out on every book move**, proved with a passing off-book control.
+
+**One figure in the consolidated report I could not source, and it is in this sentence.** The report states book
+**p50 0.024 ms / max 0.44 ms over 200 round trips** and off-book **p50 442 ms**. **`swarm-65` ships the script that
+would produce those percentiles (`scripts/q2b_latency.py`, which does exactly the 200-round-trip measurement) but
+commits no latency output file** — I checked all 36 files in the seat, and no branch anywhere contains `p50` in prose.
+The single-shot times above are what the committed evidence actually shows. **They support the same conclusion — the
+gap is four orders of magnitude and the reader hazard is real — but they are not the p50 figures**, so I quote the
+committed ones and flag the others (§5).
 
 **What would overturn it:** a book move on a `go depth`/`go nodes` command (would widen the condition), or a
 drawn-root position that emits `cp 0`/empty `pv` instead of a book move (would remove hazard 2).
@@ -972,86 +995,189 @@ These are the transferable output. Each is a rule the run paid for with a defect
     — a joining phrase doing the work of three results, ordinals running backwards, a table row implying a control
     that never existed — **all invisible to every automated check, all found by reading.** Not a substitute for the
     checks; it covers what they structurally cannot.
+41. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
+    provenance check.** The most dangerous form of a false pass, because it returns **FOUND** and ends the search.
+    - **Three measured instances in one audit, all caught only by reading the context:**
+      `0.024` matched `"seconds": 0.024` in unrelated search JSON; `0.44` matched `loadavg 0.44 on 4 cores`; `442`
+      matched a table row reading `1442.0`. **None of the three occurrences was the claim being checked.** All three
+      were book-latency percentiles that appear in no committed file.
+    - **The mechanism: a large corpus makes false positives the dominant risk, not misses.** Widening from 8.5 MB of
+      `.md` to 167 MB of `.md` + `.txt` resolved every genuine figure — and simultaneously manufactured three
+      matches. **Enlarging the corpus trades false-negative risk for false-positive risk, and the false positive is
+      worse because it produces a clean verdict.** So "widen the corpus" is not unambiguously the safer direction.
+    - **Measured, and it settles the question: five figures, five corpora hit counts, zero of them the claim.**
+      `0.024` occurs 39 times, `0.44` 115, `442` 4,831, `929` 3,136, and **`42` occurs 88,888 times in the corpus and
+      is never the quantity claimed.** **A token that occurs 88,888 times makes "found" a meaningless verdict**, and
+      every one of the five would have returned FOUND.
+    - **The repair is not a better pattern, it is a context read per hit.** For every figure whose provenance
+      matters, print the matching line and check that **the quantity in the line is the quantity in the claim.** A
+      match is a candidate, never a resolution.
+    - **Its companion, and the reason a count like §5's is a floor: a provenance check against the remote cannot see
+      a branch that has not landed.** A figure from the last ten minutes will always look unsourced — I reported four
+      such figures that landed minutes later and were all genuine. **State the `git fetch` time beside the count, or
+      the count reads as a property of the document rather than of the snapshot.**
 
 ---
 
 ## 5. Unsourced in the consolidated report
 
-**Count of figures with no source anywhere — in the 26 branches or the working tally: 4.**
+**Count of figures with no source anywhere — in the 28 branches or the working tally: 5.**
 
 Every numeric token in the consolidated report — **252** distinct percentage, ratio, large-integer and fraction
-forms, as the report stands at the time of this assembly — was checked against a corpus of 8.5 MB: every tracked
-`.md` under `forge-combo29/swarm/NN/` for the **26** branches read (not just `FINDINGS.md`), **plus
-`internal/swarm/tally.md`** as a fallback for figures that live only in the coordinator's working record.
+forms, as the report stands at the time of this assembly — was checked against a corpus of **167 MB**: every tracked
+`.md` **and `.txt`** under `forge-combo29/swarm/NN/` for the **28** branches read (not just `FINDINGS.md`, and
+deliberately including evidence files), **plus `internal/swarm/tally.md`**. **`git fetch` time: 04:07Z.**
 
-### The four that have no source
+**The five split into two unrelated causes, and the split matters more than the count:**
 
-| figure | where it appears in the report | what it measures |
-|---|---|---|
-| `52,472` | §4, the `go nodes`/MultiPV budget row | the low end of reported nodes at `MultiPV > 1`, N = 200,000 |
-| `199,619` | §4, same row | the high end |
-| `4/48` | §3, the `Hash × MPV ≤ 144` row | misclassified cells for the product predicate |
-| `14/13` | §5b, the depth-falls-with-MultiPV clause | depth at MPV 1 / 2 in the `14/13/11 at MPV 1/2/6` ladder |
+| figure | where it appears | what it measures | cause |
+|---|---|---|---|
+| `0.024` | trap 19, book-latency bullet | book path p50, ms | **no committed output** |
+| `0.44` | trap 19, same bullet | book path max, ms over 200 round trips | **no committed output** |
+| `442` | trap 19, same bullet | off-book p50, ms | **no committed output** |
+| `929` | trap 19a, book soundness | false material flags the SEE checker first reported | **no committed occurrence** |
+| `42` | trap 19a, book soundness | noise floor, cp | **contradicted** — evidence says 66 |
 
-**All four belong to the same block: the new MultiPV/Hash boundary work and the MultiPV budget measurement.** That
-work is attributed in the tally's own roster to **`swarm-64`** ("Hash x MultiPV boundary as an exact inequality, plus
-the `tt.clear` patch"), and **`swarm-64` is not among the pushed branches** — `git branch -r` returns nothing for it
-at the time of this audit. So these are not fabricated: they are **figures from a seat whose branch has not been
-pushed**, and they are unsourceable for a mechanical reason rather than a provenance one.
+### Cause 1: the latency percentiles — a script shipped, its output not
 
-**On `14/13`, a correction to something I nearly wrote.** I first described the `11` in that ladder as sourced. **It
-is not:** the whole sequence `14/13/11 at MPV 1/2/6` appears in no branch and not in the tally. What *is* sourced is a
-**different** ladder measuring the same phenomenon — the clean Hash-16 control `MPV 1/2/3/4 → 16/15/13/11` — and the
-coincidence of a `13` and an `11` in both is exactly the kind of match that makes a presence check look like a
-provenance check. **The claim "depth falls as MultiPV rises" is independently supported by that sourced ladder; the
-specific `14/13/11` triple is not.**
+`swarm-65` **ships the script that would produce `0.024` / `0.44` / `442`** (`scripts/q2b_latency.py`: "200 consecutive
+`go` commands … wall time of each `go`-to-`bestmove` round trip") **but commits no latency output file.** I checked all
+36 files in that seat, and no branch contains `p50` in any prose file.
 
-**What that means for you, and it is not nothing.** The four are consistent with their surrounding text and the rest
-of the same paragraph's figures (`1/48`, `22/48`, `5/48`, `3/48`, the 1.30/1.35/1.37/1.55× quartet) **are** sourced —
-so the block was derived from real measurements. **But a reader of the report cannot check these four, and this audit
-cannot vouch for them.** The recommendation in §1.7 is unaffected in substance — it rests on the `Hmax` table, which
-is sourced — **and it should be re-checked when `swarm-64` lands.**
+**What the committed evidence does support, and it is enough for the recommendation:** single-shot wall times of
+**0.1–0.4 ms** for book moves against **91–346 ms** off-book, with **0 `info depth` lines** on the book arm
+(`evidence/cost_deadlock.txt`, `go_matrix.txt`). **Four orders of magnitude and the reader hazard are both
+established; the percentile figures are not**, so §1.20 quotes the committed times.
 
-### The naive pass, published beside the result
+### Cause 2: `929` and `42` — one unsourceable, one contradicted, both flattering
 
-A literal substring pass — no normalisation — flags **38 of the 252**. **34 are accounted for by formatting; 4 are the
-unsourced figures above:**
+**`929` has no committed occurrence.** The only `929` in `swarm-65` are hex-hash fragments inside `book_walk.tsv`. The
+seat's `see_selftest.txt` shows **6 hand-computed cases, `0/6` failures** — consistent with a self-test existing, not
+with a `929` count.
+
+**`42` is worse than unsourced: it is contradicted.** `evidence/noise_floor.txt` gives **max |delta| 66 cp** (mean
+−1.2, median −1, 111 samples). **The report states a smaller floor than the committed measurement.**
+
+**Both point the same direction, and that is the finding.** The `929` makes the checker's initial failure sound worse
+than anything on record; the `42` makes the noise floor sound smaller than measured. **Each is more flattering to the
+conclusion than the evidence** — the direction that costs a result its credibility the moment someone checks.
+
+**And the `42` case shows the flattering number was unnecessary.** The claim is that the `1 of 2,520 above 100 cp` gaps
+are horizon artefacts against a noise floor. **With a 66 cp floor that argument is easier**, not harder — 103 cp sits
+closer to the floor, and `noise_floor.txt` itself reports **`0 of 111` above 100 cp**, which is the direct support.
+**The honest number strengthens the claim; the report did not need the better-sounding one.** §6.5 carries this in the
+mis-pairing section, since a contradicted figure belongs there as well as here.
+
+### The four I reported last round, which are sourced — my error
+
+Last round I reported **`52,472`, `199,619`, `4/48`, `14/13`** as unsourced and attributed them to an unpushed
+`swarm-64`. **All four are sourced. I was wrong.** `swarm-64` landed at **`5e8a8fa99`** — the exact tip its seat
+reported — and I verified each figure in it: `52472` and `199619` in `GRID.md` and the grid JSONs, `4/48` in
+`FINDINGS.md`, and the depth ladder as prose in `FINDINGS.md:66` — *"14 at MPV 1, 13 at MPV 2, 11 at MPV 6"*.
+
+**The `14/13` miss is mine, not a tool's.** I searched for the slash form `14/13/11`; the branch writes it as prose.
+**A token-shaped query cannot see a figure the source writes in words** — the selector-too-narrow failure this run
+catalogues, committed by the audit that exists to catch it.
+
+**The method limit this establishes:** **a provenance check against the remote cannot see a branch that has not
+landed, so a figure from the last ten minutes will always look unsourced.** My audit ran between that seat's message
+and its push. **That is a limit of the method, not a defect in the figures** — and it means this count is a floor: a
+figure is "unsourced" only as of the last `git fetch`.
+
+### The naive pass, and the boundary of the token audit itself
+
+A literal substring pass — no normalisation — flags **26 of the 252**. **23 are formatting; 3 are unsourced** (the
+latency percentiles):
 
 | category | count | example | why the literal pass missed it |
 |---|---|---|---|
-| spacing before `%` | 30 | `50.6%` | branches write `50.6 %` |
-| thousands separators | 4 | `979,723`, `353,312`, `2,893,009`, `1,237` | branches write `979723` |
-| **unsourced** | **4** | `52,472` | see above — `swarm-64` not pushed |
+| spacing before `%` | 18 | `50.6%` | branches write `50.6 %` |
+| thousands separators | 5 | `979,723`, `353,312`, `2,893,009`, `1,237`, `52,472` | branches write `979723` |
+| **unsourced** | **3** | `0.024`, `0.44`, `442` | the latency percentiles — no committed output |
+
+**But the audit covers 3 of the 5 unsourced figures, not 5, and the gap is a vocabulary boundary I have to state
+rather than let the count imply otherwise.** The token audit examines four patterns: percentages, thousands-separated
+integers, decimals of ≥2 places, and `n/m` fractions. **`929` and `42` are bare integers outside all four** — so the
+check could not see them, reported no opinion, and **that silence read as a pass.** I found them only by reading the
+new book section against `swarm-65`'s evidence files, which is not a repeatable instrument.
+
+**This is the run's own rule applied to my own tool: "any finite vocabulary has a boundary, and past it the check
+reports PASS rather than UNKNOWN."** My audit is exactly that check. **The honest statement of coverage: 252 tokens
+examined, 5 unsourced, of which the instrument found 3 and cold reading found 2.** An untested instrument is not a
+clean one, and I would rather report the 5 with the split than the 3 with a clean sheet.
+
+**And the scale of the false-match problem is worth stating numerically, because it settles how much a presence check
+is worth here.** Raw occurrences in the 167 MB corpus:
+
+| token | occurrences in corpus | occurrences that are the claim |
+|---|---|---|
+| `0.024` | **39** | 0 |
+| `0.44` | **115** | 0 |
+| `442` | **4,831** | 0 |
+| `929` | **3,136** | 0 |
+| `42` | **88,888** | 0 |
+
+**A token that occurs 88,888 times and is never the claim makes "found" a meaningless verdict.** The check that
+matters is not *does this string exist* but *does the line containing it state the same quantity my sentence states* —
+and that is a reading, not a query. **Five figures, five zero-per-cent hit rates, and every one of them would have
+returned FOUND.**
 
 **Publishing the naive count is what makes any of this mean anything.** A clean zero from a single pass is
 indistinguishable from a pass that could not have found anything — *every absence looks like success*. The number that
-carries weight is **"38 candidates examined, 34 explained, 4 traced to an unpushed branch"** — and the four are
-reported as unsourced rather than absorbed into a formatting bucket, which is exactly the distinction this section
-exists to make.
+carries weight is **"26 candidates examined, 23 explained, 3 with no source — plus 2 outside the instrument's
+vocabulary"**.
 
-**The counts moved four times while I worked, and every move is stated rather than smoothed:**
+**The corpus grew three times, and the growth is where the method improved:**
+
+| corpus | size | what it added | effect |
+|---|---|---|---|
+| `FINDINGS.md` only | 2.2 MB | the obvious subject | missed everything in `STATUS.md` / evidence files |
+| all `.md` per branch | 8.5 MB | `STATUS.md`, `HARNESS_TRAPS.md`, reports | most figures resolved |
+| **all `.md` + `.txt`** | **167 MB** | **evidence files** — `soundness.txt`, `GRID.md`, grid JSONs, `gap_depth10.txt` | **`2,429` and the whole book-soundness block resolved** |
+
+**The third widening is the one that matters and it is a named gap closing.** `2,429` is a polyglot-key count that
+lives in `swarm-65/evidence/soundness.txt` — an evidence file, not a findings file. **My corpus was `.md`-only**, so
+the entire book-soundness block looked unsourced when it was committed all along. **This is exactly the
+selector-too-narrow failure the run catalogues** (`a *.md glob while evidence is *.txt`), and I committed it in the
+audit written to catch it.
+
+**And the widening has a second edge that the 3 unsourced figures expose:** a 167 MB corpus contains so many numbers
+that **false matches become the dominant risk**, not misses. `0.024` matched `"seconds": 0.024` in unrelated search
+JSON; `0.44` matched `loadavg 0.44 on 4 cores`; `442` matched a row reading `1442.0`. **A bigger corpus trades
+false-negative risk for false-positive risk, and the false positive is the more dangerous one because it produces a
+clean verdict.** That is rule 41.
+
+**The counts moved six times while I worked, and every move is stated rather than smoothed:**
 
 | pass | tokens | naive misses | unsourced | what changed |
 |---|---|---|---|---|
 | first | 226 | 52 | 0 | report as it stood at the start |
-| after the three-population table | 228 | 34 | 0 | 2 were **derived** values (`0.067`, `0.672`) the report had introduced |
-| after §9b + the v3 patch | 231 | 32 | 0 | **the derived category emptied** — the owning seat recorded the arithmetic on the branch |
-| **current** | **252** | **38** | **4** | the rewritten opening-book section and the MultiPV/Hash boundary work |
+| after the three-population table | 228 | 34 | 0 | 2 **derived** values (`0.067`, `0.672`) the report had introduced |
+| after §9b + the v3 patch | 231 | 32 | 0 | **the derived category emptied** — the seat recorded the arithmetic on the branch |
+| after the book + MultiPV rewrite | 252 | 38 | 4 → **0** | I reported four; **all four were sourced** and `swarm-64` had simply not landed |
+| corpus widened to `.txt` evidence | 252 | 26 | 3 | `2,429` and the book block resolved; three latency percentiles did not |
+| **cold-read of the new book section** | **252** | **26** | **5** | **`929` and `42` added by reading, not by the instrument** |
 
-**Two of those moves are worth naming.** The third is the good kind: the two derived values stopped being
-derived-in-the-report because **`swarm-27` now carries `1344/20000=0.0672, 1344/2000=0.6720` in its own notes.** That
-category emptied not because I reclassified it but because **the source caught up** — which is the outcome to prefer,
-since **a figure that needs the summariser to vouch for its arithmetic is a figure the owning seat should be
-carrying.**
+**Two of those rows are my errors and both are worth reading as errors.** The fourth: I reported four unsourced figures
+with a confident explanation — an unpushed seat — and **the explanation was right while the conclusion was wrong**: the
+branch landed minutes later and contained all four. **A provenance check is a snapshot of the remote, not a property
+of the figure.** Recording "4" and then "0" in the same slot is what keeps the number honest.
 
-**The fourth is the bad kind, and it is the first non-zero result this summary has produced.** It is not a
-regression in the report; it is **work that has not been pushed yet** (§5's table). The distinction matters for how you
-read the number: **four unsourceable figures is a publishing gap, not four fabrications.**
+**The sixth is the more useful one, because it is a limit I did not know my instrument had.** The token audit examines
+four patterns and **`929` and `42` are bare integers outside all four** — it had no opinion on them, and its silence
+read as a clean result for that part of the document. **I only found them by reading the new section against the
+evidence files.** So the count went *up* on the pass where the method improved, which is the correct direction and the
+one a summariser is most tempted to hide. **The five are the honest total; the three is what my instrument can see.**
 
 **The limit of the check, stated because the run itself states it:** this proves **presence**, not **pairing**. "The
 audit checks that SOME path resolves, not that the path supports the claim." A figure can appear in a branch and still
 be attached to the wrong quantity here — and **a presence check reported the document clean while §6.1's mis-pairing
 was live.** That is the sharpest thing this audit demonstrates about itself.
+
+**And its companion limit: presence is also not proof that the OCCURRENCE is the claim.** A 167 MB corpus will contain
+almost any digit sequence somewhere. **`0.024`, `0.44` and `442` were each "found" — in `"seconds": 0.024`, `loadavg
+0.44`, and a row reading `1442.0`.** A pattern check called all three resolved. **A
+provenance check that reports "present" has established only that the digits exist somewhere in the corpus.**
 
 ---
 
@@ -1130,6 +1256,33 @@ until S-C88 is amended the corrected version lives only in the consolidated repo
 re-proved; **I did not re-run either script**, and this summary does not rely on their output. Flagged so you know the
 claim's status is "fixed and described", not "independently re-verified in this assembly."
 
+### 6.5 The book-soundness block: two figures the report states and the evidence does not
+
+The report's book-soundness entry is now its own section with all the counts, and **five of its figures check out
+exactly against committed evidence files** (`2520/2520` legal, `2429/2429` keys, `2230/2230` walked, `0/135` verified,
+`max gap 103`). **Two do not:**
+
+| report says | committed evidence says | verdict |
+|---|---|---|
+| the checker "first reported **929** false material losses" | **no file in `swarm-65` contains `929` as a count.** The only occurrences in the seat are hex-hash fragments inside `book_walk.tsv` (`2d02292962c29c44`, `b8929259491f7812`) | **unsourced** |
+| noise floor "up to **42 cp**" | `evidence/noise_floor.txt`: **max \|delta\| 66 cp**, mean −1.2, median −1, over 111 samples | **the evidence gives a LARGER floor** |
+
+**Both errors point the same way, and that is the part worth your attention.** The `929` makes the checker's initial
+failure sound *worse* than anything on record; the `42` makes the noise floor sound *smaller* than measured. **Each is
+more flattering to the finding than the committed evidence**, which is the direction that costs a result its
+credibility if anyone checks.
+
+**And in the `42-vs-66` case the correct figure strengthens the argument rather than weakening it.** The claim is that
+the `1 of 2,520 above 100 cp` gaps are horizon artefacts against a noise floor — **with a 66 cp floor that argument is
+*easier* to make**, since 103 cp sits closer to the floor than 42 cp suggested, and the report's own `0 of 111 above
+100 cp` in the noise sample supports it directly. **So this is not a case where the honest number hurts the claim; it
+is a case where the flattering number was unnecessary.**
+
+**The `929` I cannot resolve in either direction.** It may be real and simply never committed — the seat's
+`see_selftest.txt` shows **6 hand-computed cases with `0/6` failures**, which is consistent with a self-test existing
+but not with a `929` count. **I have kept the qualitative point (§7) and marked the number as unsourced**, because the
+point survives without it: a checker was falsified once and that is why `0 of 135` is believable.
+
 ---
 
 ## 7. What the book gets right — the soundness result
@@ -1137,21 +1290,24 @@ claim's status is "fixed and described", not "independently re-verified in this 
 Recorded in the closing section rather than the recommendations, because **it is a clean bill and the defects around
 it (§1.20, §2.8) are about signalling rather than about the moves.**
 
-**No book move is illegal, and none loses material.** Measured against independent generators:
+**No book move is illegal, and none loses material.** Build `/tmp/build65/forge`, `swarm-65`. Every row cites the
+committed evidence file, so each is checkable without re-running anything:
 
-| check | result |
-|---|---|
-| book moves legal, against python-chess | **2520 / 2520** |
-| polyglot keys match `chess.polyglot` | **2429 / 2429** |
-| book keys reached by the walk | **2230 / 2230** |
-| material-loss flags surviving engine verification at depth 12 | **0 / 135** |
-| exhaustive gap sweep, depth 10 | **max gap 103 cp**, 1/2520 above 100, **0/2520 above 150** |
+| check | result | evidence |
+|---|---|---|
+| book moves legal, against python-chess | **2520 / 2520** | `evidence/soundness.txt` |
+| polyglot keys match `chess.polyglot` | **2429 / 2429** | `evidence/soundness.txt` |
+| book keys reached by the walk | **2230 / 2230** (of 2616 entries) | `evidence/census.txt` |
+| material-loss flags surviving engine verification at depth 12 | **0 / 135** | `evidence/soundness_verified.txt` |
+| exhaustive gap sweep, depth 10 | **max gap 103 cp**, 1/2520 above 100, **0/2520 above 150** | `evidence/gap_depth10.txt` |
 
 **The material-loss check is the one worth reading twice, because its first version was wrong and said so loudly.**
-The seat's own SEE implementation tested capture legality **against the wrong side**, and **silently reported 929 of
-2520 moves as "loses material"** — a false-positive rate of 37 %. It was caught by a hand-computed self-test, not by
-review. **So "0 of 135 survive verification" is a claim about a checker that was itself falsified once first** — which
-is what makes it worth more than a clean number from an unchecked tool.
+The seat's own SEE implementation tested capture legality **against the wrong side** and reported a large number of
+false "loses material" flags; the committed `evidence/see_selftest.txt` shows the repair — **6 hand-computed cases,
+`failures: 0/6`**, including a deliberate regression case. **So "0 of 135 survive verification" is a claim about a
+checker that was itself falsified once first**, which is what makes it worth more than a clean number from an
+unchecked tool. **The specific count of initial false flags the report states (`929`) has no committed source and I do
+not carry it** (§6.5) — **the qualitative point survives without the number.**
 
 **What this does and does not mean.** The book's *contents* are sound: the moves are legal and material-safe. **It says
 nothing about whether the book is a good book** — soundness is not move quality, and no move-quality measurement of
@@ -1162,38 +1318,41 @@ reply that tells a caller nothing about the draw (§2.8).
 
 ## 8. How this document was assembled
 
-- **Read in full:** `docs/forge-findings.md` (1,429 lines, re-read after each of your revisions) and
-  `internal/swarm/tally.md` (637 lines).
-- **Read:** the `FINDINGS.md` of all **26** branches that carry one, plus every other `.md` under
-  `forge-combo29/swarm/NN/` for the 26 seats where a figure needed a home — 8.5 MB of branch markdown in total.
-- **Branches with no `FINDINGS.md`, not counted as read:** `swarm-09, 14, 18, 22, 26, 31, 33, 34, 37–42, 47, 48,
-  51–53, 55–58, 60–62, 65, 69`, plus the non-`swarm-NN` branches. **`swarm-64` does not exist on the remote at all**
-  — which is the mechanical reason for §5's four unsourced figures.
-- **`git fetch --all` was run four times.** Several corrections landed on `swarm-27` and `swarm-08` *after* the
-  preceding fetch — the softnodes scope run (`S-C101`/`S-C102`), the v3 pair-count patch result, and the arithmetic
-  note that emptied §5's derived-value category. **A summary assembled from a live swarm is a snapshot; every figure
-  here was re-read after the last fetch that touched its branch.**
+- **Read in full:** `docs/forge-findings.md` (re-read after each of your revisions — nine of them) and
+  `internal/swarm/tally.md`.
+- **Read:** the `FINDINGS.md` of all **28** branches, plus **every other `.md` and `.txt`** under
+  `forge-combo29/swarm/NN/` for those 28 seats — **167 MB** of branch content in total. The `.txt` half was added late
+  and it is what resolved the book-soundness figures (§5).
+- **Branches with no `FINDINGS.md`, not counted as findings:** `swarm-09, 14, 18, 22, 26, 31, 33, 34, 37–42, 47, 48,
+  51–53, 55–58, 60–62, 65, 69, 70`, plus the non-`swarm-NN` branches. **`swarm-65` ships evidence and scripts but no
+  `FINDINGS.md`** — so its material is cited from `evidence/*.txt`, which is also why the `.txt` widening mattered.
+- **`git fetch --all` was run five times.** Corrections and whole branches landed *after* preceding fetches —
+  the softnodes scope run, the v3 pair-count patch result, the arithmetic note, **and `swarm-64` in full**. **A summary
+  assembled from a live swarm is a snapshot; the `git fetch` time is 04:07Z and the count in §5 is a floor.**
 - **Nothing was run.** No engine invocation, no script execution, no re-measurement. Where a figure is quoted, it is
-  quoted from a branch or the tally, with that source's conditions.
+  quoted from a branch, its evidence files, or the tally, with that source's conditions.
 - **No other seat's branch was modified.** `swarm-27` `S-C88` is stale (§6.3) and was left alone, at the coordinator's
   direction, for the owning seat to amend.
-- **Counts printed as literals, from the artifact:** **26** branches read, **2,302** distinct findings synthesised,
-  **4** unsourced figures from **252** numeric tokens, **38** naive-pass candidates (**34** formatting, **4**
-  unsourced), **1** real mis-pairing found, **3** sourcing defects of which **2 are now fixed upstream**.
+- **Counts printed as literals, from the artifact:** **28** branches read, **2,309** distinct findings synthesised,
+  **5** unsourced figures from **252** numeric tokens, **26** naive-pass candidates (**23** formatting, **3**
+  unsourced), **5** mis-pairings or contradictions found, **3** sourcing defects of which **2 are now fixed upstream**.
 
-**What I could not source, summarised: 4 figures.**
+**What I could not source, summarised: 5 figures.**
 
 The number you need for the coordinator's tally:
 
-> **Unsourced figures: 4.**
-> Of **252** distinct numeric tokens in the consolidated report, **248 resolve** to branch markdown or to the working
-> tally. **Four do not** — `52,472`, `199,619`, `4/48`, `14/13` — and **all four belong to the MultiPV/Hash boundary
-> work attributed to `swarm-64`, which is not among the pushed branches.** They are a **publishing gap, not four
-> fabrications**: the rest of the same paragraph's figures are sourced, so the block came from real measurement.
-> **The naive literal pass flagged 38 of the 252; 34 are formatting, 4 are these** (§5).
+> **Unsourced figures: 5** — of **252** distinct numeric tokens. **Two causes:**
+> **(a) three book-latency percentiles** (`0.024`, `0.44`, `442`) — `swarm-65` ships the script that would produce
+> them and **commits no output file**;
+> **(b) two book-soundness figures** — `929` has **no committed occurrence**, and `42` is **contradicted** (the
+> evidence gives a 66 cp noise floor).
+> **The five are the honest total; my token instrument can see only the first three**, because `929` and `42` are bare
+> integers outside its four patterns. **The other two came from reading** (§5).
 
-**Separately, 3 sourcing defects** — none of them an unsourced figure per the count above, all of them the
-mis-pairing class the report polices in others (§6). **Their disposition as it now stands:**
+**And the four I reported last round were all sourced** — my error, recorded rather than deleted: `swarm-64` had not
+landed when I audited, and a provenance check against the remote cannot see a branch that has not been pushed.
+
+**Separately, 3 sourcing defects** — of which **2 are now fixed upstream**. **Their disposition as it now stands:**
 1. **The `softnodes` low bound was spliced across two populations** — `0.07×` is from the 200…100,000 floor probe
    and is not in the 40×2 sweep (which spans `1.008×`–`3.503×`). **FIXED upstream** as a three-population table that
    names the splice as the lesson (§6.1).
@@ -1205,3 +1364,10 @@ mis-pairing class the report polices in others (§6). **Their disposition as it 
 
 Plus one **readability** defect that is not an error: the tally's "3 of 5" counts the complement, and reads as its own
 contradiction (§6.2).
+
+**And 2 book-soundness figures that are mis-paired or contradicted (§6.5):** `929` (no committed occurrence) and
+`42` (the committed evidence gives a **66 cp** noise floor, and the report states the smaller one). **Both point in
+the direction that flatters the finding** — the `929` makes the checker's initial failure sound worse, the `42` makes
+the noise floor sound smaller. **In the `42` case the honest number strengthens the argument**, since a 66 cp floor
+makes the 103 cp maximum easier to call a horizon artefact, and `noise_floor.txt` reports `0 of 111` above 100 cp
+directly.
