@@ -368,3 +368,24 @@ seat-versus-seat comparison of those numbers meaningless. My own `mate -25` was 
 
 **So: before quoting a deep mate score, check that 2|N| is reachable with the material on the board.** It is a
 one-line test and it settles in cases where no amount of re-running will.
+
+## An ABSENT clock field is not a zero clock — it is no clock at all, and the search then runs unmanaged
+
+`parse_limits` (src/uci.cpp:121-124) assigns `limits.time_ms` **only** for the clock of the side to move:
+`wtime` when White is to move, `btime` when Black is. If the field for the side to move is missing, `time_ms`
+stays at its sentinel **-1**, and the time-management branch in `Worker::search` never runs.
+
+**So the failure mode of a partial `go` line is "ignores the clock", not "hangs".** The search runs to its
+internal default depth and *answers*, possibly after a long time — which looks like a hang only if your cap is
+shorter than the default search.
+
+| what you send (Black to move) | what the engine does |
+|---|---|
+| `go wtime 1000` | **no clock** — runs unmanaged, answers eventually |
+| `go wtime 1000 btime 1000 winc 10 binc 10` | honours `btime`, answers quickly |
+
+**A harness that only caps its wait therefore reports this as a hang or a pass depending on its timeout**, which is
+why seat 23's 3-second cap reported "no bestmove" while my 8-second wait got one in 3 of 3 runs — same build, same
+board. **Both observations are correct; they measure different things.** The general lesson: when a command
+misbehaves, check whether the *option you think you sent* was actually parsed into a limit, before concluding the
+engine failed to stop.
