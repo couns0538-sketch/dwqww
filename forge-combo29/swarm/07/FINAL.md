@@ -106,7 +106,10 @@ false).
    distinct finals and ten distinct sequences (07-C68). So with fixed starts the **effective sample size
    is one per start**, not ten — and varying the opening is the only thing that makes a self-play set
    non-degenerate. Seat 16 measured 7-of-10 identical on a clock and blamed millisecond drift; removing
-   the clock made the duplication total, which confirms their explanation.
+   the clock made the duplication total, which confirms their explanation. **This one needs no patch, no
+   decision about defaults and no re-run — it is actionable the moment it is read**, which is why it is on
+   this list at all: if self-play currently uses fixed starts with node limits, the data set is smaller
+   than it looks by whatever factor the starts repeat.
 
 ## Audit method: how to check a seat's scope without raising a phantom alarm
 
