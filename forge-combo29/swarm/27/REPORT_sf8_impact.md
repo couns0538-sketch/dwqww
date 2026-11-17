@@ -101,3 +101,44 @@ run have used it.
 
 - `pc/check_sf8_impact.py` — the three-arm harness, with the four controls above.
 - `out19c46/sf8_impact_25x10.json` — every cell, with the chosen move, score, nodes and settings count.
+
+---
+
+# Boundary added after the fact: pinning distorts absolute scores but preserves RANK ORDER
+
+The four recommendations above are about **absolute** scores. A cross-seat result depends on a weaker property,
+and it holds.
+
+Seat 25's S-C50 compares two candidate moves by scoring **both** with `searchmoves` pinned at depth 20, then asks
+which setting's preferred move scores higher. That uses pinned scores in a **relative** comparison. So the
+question is not "is a pinned score equal to a free score" (it is not, S-C72: 25 of 25 differ) but **"does pinning
+preserve the order between two candidates"**.
+
+Measured, 8 positions, PC20, depth 10, both candidates pinned the same way:
+
+```
+fen                                    A bestmove/score   pinned1  pinned2   pin rank == free rank?
+r2qkbnr/ppp1pppp/3pb3/8/1n...          c7c5 / 44          40       -34      yes
+r2qkbnr/pp2pppp/3pb3/2p5/1...          c2c3 / -36         -44      -153     yes
+r2qkbnr/pp2pppp/3pb3/2p5/1...          b4c6 / 30          33       -127     yes
+r2qkbnr/pp2pppp/2npb3/2p5/...          d2e1 / -40         -41      -58      yes
+r2qkbnr/pp2pppp/2npb3/2p5/...          c5d4 / 51          47       -215     yes
+r2qkbnr/pp2pppp/2np4/2p2b2...          d4d5 / 61          78       -132     yes
+r2qkbnr/pp2pppp/2np4/2p2b2...          f5d7 / -39         -65      -306     yes
+r2qkbnr/pp1bpppp/2np4/2p5/...          d4d5 / 49          60       -108     yes
+
+rank order agrees: 8 of 8
+```
+
+**The absolute distortion is large and real** — 44 → 40, 61 → 78, −39 → −65 — **and the ordering is unchanged.**
+Because a comparison of two pinned candidates applies the same distortion to both, it cancels.
+
+**So the boundary on S-C72 is:**
+
+| use of a pinned score | verdict |
+|---|---|
+| recording an **absolute** score for a position | **unusable** — wrong in 25 of 25, up to 32 cp (S-C72) |
+| verifying that a **move** is best | **vacuous** — the restriction makes it the only option (S-C72) |
+| comparing **two candidates both pinned the same way** | **usable** — rank order preserved 8 of 8 (S-C76) |
+
+Seat 25's S-C50 is in the third row and its conclusion stands. Anyone using the first two rows should stop.
