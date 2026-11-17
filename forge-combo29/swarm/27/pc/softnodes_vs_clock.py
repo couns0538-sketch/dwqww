@@ -32,7 +32,7 @@ S14 = ["LmrQuietBase 93", "LmrQuietDivisor 205", "LmrNoisyBase 13", "LmrNoisyDiv
        "HistoryBonusQuadratic 24", "HistoryBonusLinear 54", "HistoryBonusMax 2212",
        "SingularDepth 6", "IirDepth 2", "NonPawnCorrection true"]
 PC20X = ["CuckooRep true", "HistRework 2", "TtPruneV2 true", "CorrHistV2 true",
-         "MateAlphaGuard true", "OwnBook value false" ]
+         "MateAlphaGuard true", "OwnBook false" ]
 
 POSITIONS = [
     ("O-mid1", "rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4"),

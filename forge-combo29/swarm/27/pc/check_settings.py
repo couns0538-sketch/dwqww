@@ -25,7 +25,7 @@ S14 = ["LmrQuietBase value 93", "LmrQuietDivisor value 205", "LmrNoisyBase value
        "HistoryBonusLinear value 54", "HistoryBonusMax value 2212", "SingularDepth value 6",
        "IirDepth value 2", "NonPawnCorrection value true"]
 PC20X = ["CuckooRep value true", "HistRework value 2", "TtPruneV2 value true",
-         "CorrHistV2 value true", "MateAlphaGuard value true", "OwnBook value false"]
+         "CorrHistV2 value true", "MateAlphaGuard value true", "OwnBook false"]
 BASE = ["Hash value 16", "Threads value 1"]
 PC20 = BASE + S14 + PC20X
 
