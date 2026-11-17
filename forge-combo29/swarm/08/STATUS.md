@@ -906,3 +906,22 @@ next: cadence.
 **42 findings, 33 checks/audits/plants, 5 method lines, 3 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:28Z — two more corrections, both mine
+- **08-W4: my real-position arm's framing was FALSE.** I labelled the 0.937 median "time per identical node budget",
+  but **0 of 120 positions gave equal node counts** between the v3-net and built-in arms (verified: one position gave
+  c4d5 at 176,774 nodes vs b1c3 at 72,345 — different moves, different depths). So it is a ratio of times for UNEQUAL
+  work and supports no cost claim about the v3 path. What survives is narrow: a 200k-node search took a median 6 %
+  less wall time with the net on, per-position spread **1.48x** (bigger than the deviation), 16 of 120 the other way.
+  **Method consequence: a real-position COST check compares a patch against its OWN base with identical node rows**
+  — which is Step 2's design, so the coordinator's requirement is met there, not here.
+- **08-C35: the mechanical fix for 08-W3.** `pc20/emit_config.py` parses a harness's option list with `ast` and prints
+  it with "PC20 switches present: N". On the defective script it immediately reports **22 options, 5 PC20 switches
+  present** — it would have caught the defect before publication. Renaming the variable would not have.
+- **Pattern noted:** all four withdrawals (W1..W4) are a label or a framing, none a measurement. That is itself the
+  seat's main finding about itself.
+
+## 2026-11-17T02:28Z — TALLY (generated, not maintained)
+**42 findings, 34 checks/audits/plants/tools, 5 method lines, 4 withdrawals** (and 1 open lead).
+
+next: cadence.
