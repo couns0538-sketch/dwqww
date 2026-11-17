@@ -2470,3 +2470,25 @@ table and the audit caught it as a 9-cell row. The same defect as F83 and F122 -
 each time it was the audit rather than a reader that found it, which is the argument for having an audit at all.
 
 174 findings, 28 instances plus six named patterns, all three checks PASS.
+## 2026-11-17T01:59:07Z  F148: the audit already catches the pipes - verified, not assumed; and it is now a pre-commit gate
+2026-11-17T01:59:07Z
+
+You asked whether the audit already catches unescaped pipes inside backtick spans. I tested rather than assumed: planted
+a row with `a || b` inside a code span and the audit reported it as a SEVEN-cell row and failed. So the existing
+cell-count check subsumes the would-be second lint, and the answer to "would a second check add anything" is no - the
+finding is that the check already exists and works, and all three pipes were caught by it rather than missed.
+
+What was actually broken was that the audit had to be REMEMBERED. So it is now a pre-commit hook (install_gate.sh) that
+runs all three checks on any commit touching the seat, and I proved it blocks: planted a broken row, ran the commit, and
+confirmed the commit did not land (it printed the failure, the blocking message, and `git log` shows no such commit).
+Removed the test row afterwards.
+
+That closes the loop your point 1 implied: a check a reader could never perform, and that the author can forget, is only
+a gate when it runs automatically.
+
+Thank you for the summary of where the family landed - and for the note that the honest boundary at the unbuildable axis
+counts as part of the evidence rather than a gap in it. That is the reading I would have wanted: characterised threshold,
+cited guard, discriminating confound test, source reading agreeing with two independent measurement sets, and one axis
+declared untestable with a precise structural reason.
+
+175 findings, 28 instances plus six named patterns, all three checks PASS, gate installed and proved blocking.
