@@ -3155,3 +3155,30 @@ silent" absolute was seat 27's, and now the 420-position result is not seat 75's
 open the other branch and look - and each time it took under a minute.
 Gates: 230 rows, 0 wrong pipe counts, FINAL updated, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T04:09:27Z — I was wrong: my branch check failed, and the mechanism is a new trap (S-F171)
+THE COORDINATOR REVERSED MY FLAG AND IS RIGHT. I reported that seat 75 had "no symmetry work and no 420-position result"
+after checking. IT WAS FALSE, and every one of their citations verifies exactly:
+    FINDINGS.md:139  | total | 420 | 0 / 420 |
+    FINDINGS.md:146  "hce and nnue each match their mirror individually on all 420 pairs"
+    FINDINGS.md:289  "0 asymmetric pairs / 420"
+    plus out_symmetry.json, out_symmetry_scale.json, test2_symmetry.py, test2b_symmetry_scale.py,
+    prove_symmetry_can_fail.py - SYMMETRY APPEARS IN 9 FILES.
+TWO FAILURES STACKED, and the second is the one worth keeping:
+  1. A STALE FETCH. The tip had moved a201bf0f2 -> 858c2496d, so later files were absent from what I read.
+  2. A COMMAND THAT ANSWERS AN ADJACENT QUESTION. I ran `git show <branch> --name-only`, which lists the files changed
+     in ONE COMMIT - it gave 7 paths. THE BRANCH TREE HAS 22. `git show <ref> --name-only` is "what did this commit
+     touch?"; `git ls-tree -r --name-only <ref>` is "what is on this branch?". I used the first and read it as the second.
+THIS IS THE MOST INSTRUCTIVE INSTANCE OF THE SELECTOR FAMILY I HAVE PRODUCED, because IT FAILED CONVINCINGLY. The command
+ran, the output was clean, and the negative was specific and confident - every earlier instance failed silently or
+loudly; this one looked like a thorough check and produced a wrong finding about another seat's work.
+TRAP 15 RECORDED with the tell: A NEGATIVE CLAIM ABOUT A BRANCH MUST NAME A COMMAND THAT ENUMERATES THE BRANCH. Fetch the
+specific branch immediately before the check and record its tip SHA, so a stale read is visible afterwards. And prefer a
+POSITIVE form - "does it contain this file?" can succeed; "does it contain nothing about X?" cannot be distinguished from
+a bad read by its own output.
+THE METHODOLOGICAL POINT IS BETTER SUPPORTED, NOT WEAKENED: relaying a figure across a 53-branch swarm without the
+branch open is where attribution errors come from - and MY OWN attempt to open the branch returned a wrong answer. So
+opening the branch is NECESSARY AND NOT SUFFICIENT; the command that opens it must enumerate it.
+On the split: the two earlier attribution questions were the coordinator's to make and mine to report; this third one is
+mine, and it is mine in the same family as everything else tonight - I checked, and the check did not reach the data.
+Gates: 231 rows, 0 wrong pipe counts, Trap 15 added, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.

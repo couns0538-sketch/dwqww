@@ -551,6 +551,31 @@ Two consequences, both now in the code:
 2. **A short count is reported as a finding even when the assertion is what failed.** The message says the absence
    "couldn't otherwise show up", so the next reader knows why the guard exists rather than deleting it as noise.
 
+## Trap 15 — `git show --name-only` is one commit, not a branch (S-F171)
+
+> **"What is on this branch?" is `git ls-tree -r --name-only <ref>`. `git show <ref> --name-only` answers "what did this
+> commit touch?" — and the two differ by every file the branch accumulated before that commit.**
+
+I reported that another seat's branch had **no symmetry work and no 420-position result**, after checking. It was false.
+The coordinator supplied line citations and all of them verified. Two failures stacked:
+
+1. **A stale fetch** — the branch tip had moved (`a201bf0f2` → `858c2496d`), so later files were absent from what I read.
+2. **A command that answers an adjacent question** — `git show <branch> --name-only` listed **7** paths; the branch tree
+   has **22**. I read a commit's diff as the branch's contents.
+
+```
+git show <ref> --name-only       ->   7 paths   (the commit's diff)
+git ls-tree -r --name-only <ref> ->  22 paths   (the tree)
+```
+
+**This is the most instructive instance of the selector family** because it failed *convincingly*: the command ran, the
+output was clean, and the negative was specific and confident. Every earlier instance failed silently or loudly; this one
+looked like a thorough check and produced a wrong finding about another seat's work.
+
+**The tell is cheap: a negative claim about a branch must name a command that enumerates the branch.** If the answer is
+"X is not there", the instrument must be one capable of listing what *is*. And prefer a positive form — "does it contain
+this file?" can succeed; "does it contain nothing about X?" cannot be distinguished from a bad read by its own output.
+
 ## The shape the harness traps share
 
 Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), Trap 10 (a profile that never looked at
