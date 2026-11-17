@@ -409,3 +409,18 @@ next: cadence + remaining confirmations.
   individually rather than left silent.
 
 next: cadence; then continue confirmations.
+
+## 2026-11-17T00:51Z
+- **08-C14: tiny-clock plant** closes the last gap in my own zero ledger. Fake engine sleeping 300 ms is caught as
+  over the clock at wtime 100/30/10/1/0 (301 ms); real engine never over at any size > 0 (0.7-5.9 ms, 1-9 info
+  lines). `wtime 0` stated as an ARITHMETIC exemption (any nonzero time exceeds a zero clock; the engine answers in
+  0.7-0.8 ms with the emergency ply), not a false positive. Limit recorded: a 300 ms overrun proves the comparator
+  fires, not that a 1-2 ms overrun at wtime 1 is visible above the ~0.1-0.2 ms round-trip floor.
+- **08-C15: seat 06 S-F28 CONFIRMS.** Colour-mirror asymmetry, PC r15 + base, Threads 1, depth 10, 60 pairs:
+  base 23.3 %, PC switches OFF 26.7 %, ON 35.0 %, PC20 35.0 % — OFF-vs-ON +8.3 points, inside the ±12 interval a
+  60-pair sample allows. Score asymmetry 96.7-100 % unequal on ALL configs incl. base, so not a PC20 artefact.
+  Not a reproduction of their counts; level and difference only.
+
+Tally: 33 findings, 15 checks/plants (C1..C15), 3 method lines (N1..N3), 1 withdrawal (C6W).
+
+next: cadence.
