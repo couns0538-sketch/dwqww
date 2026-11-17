@@ -1,0 +1,41 @@
+PREDICTION — SW-23 job 49 (does F98's generator-order mechanism explain F60's losing move on a MIDDLEGAME board?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F98 established, on five ENDGAME drawn roots, that the base's 0-node move is index 0 of the engine's own `go perft 1`
+divide. 23-F60 established, on a MIDDLEGAME board reached by real self-play, that the base's 0-node move was **e6e5**
+and that it hangs a piece (cp -805 against cp 0 for the PC's move). Those are two separate findings joined only by the
+phrase "0-node move".
+
+If F98's mechanism is general, then on F60's position **e6e5 should be the FIRST move the engine generates**. That is a
+direct, cheap, falsifiable cross-check between two findings, on a board of a completely different type from F98's five
+endgames, where an actual piece was lost rather than a mate discarded.
+
+POSITION (23-F60's, quoted exactly): `rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16`
+The move F60 attributes to the base's 0-node path: **e6e5**.
+
+METHOD: base build, Threads 1, Hash 16, OwnBook false. (a) `go perft 1` on that FEN -> the full divide in the engine's
+own order, with parsed-lines == node-total asserted. (b) `go depth 16` on the same bare FEN -> nodes and bestmove.
+Report where e6e5 sits in the divide, and what the engine actually returns.
+
+IMPORTANT CAVEAT I state BEFORE measuring: this FEN carries `halfmove 11` and NO repetition history, so a search of the
+bare FEN is NOT a drawn root and the engine will presumably search normally. The 0-node behaviour in F60 came from the
+third-occurrence CONTEXT, not from this FEN alone. So this job tests the GENERATOR-ORDER claim (is e6e5 the first
+generated move?), NOT whether the engine returns 0 nodes here. If the engine searches normally on the bare FEN, that is
+consistent with everything in F60 and is not a refutation.
+
+Prediction (each with the range that kills it):
+  P1  **e6e5 IS INDEX 0 IN THE DIVIDE** on this middlegame position. KILLED if e6e5 is not the first generated move —
+      which would mean F98's index-0 rule does NOT generalise beyond my five endgame roots, and F60's losing move came
+      from a different mechanism (e.g. a TT-driven root ordering), a distinction that matters to any code-reading seat.
+  P2  THE DIVIDE PARSES COMPLETELY: parsed move lines == the `nodes N` total, and the count is plausible for a
+      middlegame position (>= 20 legal moves). KILLED if the assertion fails — in which case no conclusion may be drawn
+      (23-F99: a new format is a new parser, and an unparsed divide reads as "not in the list").
+  P3  A CONTROL ON THE FEN ITSELF: python-chess must agree the position is legal and black is to move, and must agree
+      that **e6e5 is a legal move** there. KILLED if python-chess rejects the FEN or the move — then F60's quoted
+      position and move are inconsistent and that finding needs checking before anything else in this job matters.
+  P4  (informational, not a kill) the engine's `go depth 16` on the bare FEN is expected to SEARCH (> 1000 nodes),
+      because there is no draw in this FEN. Whatever it returns is recorded for comparison with F60's endgame cells.
+
+If P1-P3 hold, F60's losing move is explained at the generator level on a middlegame board too, which turns F98 from an
+endgame observation into a mechanism with one confirmed non-endgame instance. If P1 fails, F98 must be re-scoped to
+"drawn roots tested" and I say so.
