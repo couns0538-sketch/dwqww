@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Prove the probe is PASSIVE before any count taken with it is trusted.
 
-Three binaries are compared on the four honesty pins:
-  A  forge-base-6b98f217   the pristine binary built before any edit
-  B  build/clean/forge     rebuilt from the same source after the probe edits
-  C  build/probe/forge     the same source with -DFORGE_PRUNE_PROBE=1
+Three arms are compared on the four honesty pins:
+  A  build/base/forge    the AUDIT BASE (6b98f217) rebuilt from pristine source
+  B  build/clean/forge   this branch's source (audit base + probe edits, probe off)
+  C  build/probe/forge   the same source with -DFORGE_PRUNE_PROBE=ON
 
-Claim under test: A == B == C on every pin. B == A proves my edits changed no
-behaviour when the probe is compiled out. C == A proves the probe only READS.
-If C differs, every counter it reports is suspect and this script fails loudly.
+Claim under test: A == B == C on every pin. B == A proves the branch's committed
+source behaves exactly like the audit base when the probe is compiled out. C == A
+proves the probe only READS. If C differs, every counter it reports is suspect
+and this script fails loudly.
+
+All three arms are BUILT, not shipped as blobs (`scripts/build.sh all`). An
+earlier version of this script required a committed pre-edit binary; that binary
+is gitignored, so the check could not run from a clean clone. Building the base
+from git is both reproducible and a stronger test.
 
 Pins must be sent on stdin as UCI commands. `./forge bench 11` as argv prints
 nothing and exits 0 (brief trap; that is a silent way to record no number), so
@@ -18,6 +24,7 @@ this script refuses to use argv form.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 
@@ -44,9 +51,16 @@ def run_pin(binary: str, commands: list[str]) -> int:
 
 
 def main() -> int:
-    base = sys.argv[1] if len(sys.argv) > 1 else "build/forge-base-6b98f217"
+    base = sys.argv[1] if len(sys.argv) > 1 else "build/base/forge"
     clean = sys.argv[2] if len(sys.argv) > 2 else "build/clean/forge"
     probe = sys.argv[3] if len(sys.argv) > 3 else "build/probe/forge"
+
+    missing = [p for p in (base, clean, probe) if not os.path.exists(p)]
+    if missing:
+        print(f"missing build arm(s): {missing}\n"
+              f"run: bash scripts/build.sh all\n"
+              f"(all three arms are built from source; no binary is committed)", file=sys.stderr)
+        return 2
 
     results: dict[str, dict[str, int]] = {}
     failures: list[str] = []

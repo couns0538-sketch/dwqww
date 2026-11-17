@@ -403,9 +403,16 @@ default handles it". Those cells are now `both-wrong` and counted separately
 
 ## Reproducing
 
+**Verified from a clean checkout of this branch**, not only from my working tree:
+`build.sh all` builds all three arms and `check_probe_identity.py` reports all
+four pins matching in all three. The audit base is **rebuilt from git commit
+`6b98f217`**, so no binary is committed and the base arm is reproducible rather
+than a blob nobody can check. If the base commit is not in your clone, fetch it
+or set `AUDIT_BASE_COMMIT`.
+
 ```bash
 cd forge-combo29/swarm/pruning
-bash scripts/build.sh all                  # clean + probe builds
+bash scripts/build.sh all                  # clean + probe + audit-base builds
 python3 scripts/check_probe_identity.py    # pins must match in all three arms
 python3 scripts/check_instruments_live.py  # counters and ablations must fire
 python3 scripts/selftest_oracle.py         # oracle vs known answers + planted faults

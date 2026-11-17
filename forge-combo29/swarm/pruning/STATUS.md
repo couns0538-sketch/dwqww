@@ -39,6 +39,13 @@
 | every corpus FEN: python-chess AND engine accepted | **30/30** |
 | distances cross-checked by 3 independent solvers | **30/30 agree** |
 
+## Repro verified from a clean clone
+
+`bash scripts/build.sh all` builds all three arms (clean, probe, and the audit
+base **rebuilt from git commit `6b98f217`**) and `check_probe_identity.py`
+reports all four pins matching in all three. Tested from a detached checkout of
+the pushed remote ref, not just from my working tree. No binary is committed.
+
 ## Left untested (stated, not hidden)
 
 - Zugzwang where the side to move has **non-pawn material** and every move
