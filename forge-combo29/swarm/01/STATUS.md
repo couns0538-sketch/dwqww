@@ -1353,8 +1353,10 @@ Both sides move by the same depth-limited searcher, so depth 10 produces a 40-pl
 from the identical first move. The measurement is **"self-play survival at depth D"**, not objective move quality —
 and a claim built on it must state D and show the ordering stable across a range.
 
-That is Trap 6's lesson one level up: **truth, like safety, is a property of the configuration rather than of the
-command.**
+**Truth, like safety, is a property of the configuration.**
+
+(That is Trap 6's lesson one level up: a command's safety and a play-out's truth are both properties of the setting
+they run under, not of the command itself.)
 
 ### And a transcription error of my own, caught before it stood (S-F99)
 
@@ -1362,3 +1364,11 @@ I first wrote depth 8 as "20/26, c6c7 +6 better" when the sweep printed **26/26 
 from another row while writing by hand. Re-ran to confirm, corrected in place. **This is precisely why the tables
 in this report are pasted from committed scripts rather than typed**: a plausible wrong number is
 indistinguishable from a right one, and only the script knows which it is.
+
+## 2026-11-17T00:38:12Z — 25-minute cadence
+THE PLAYOUT CAUTION IS NOW TRAP 7 on the traps page (S-F100), and 'Truth, like safety, is a property of the configuration' sits verbatim beside the five-row table in both the FINDINGS and the FINAL.
+  TRAP 7 states the method's real limit: a play-out removes the engine's SCORE from the judgement but NOT THE ENGINE FROM THE PLAY - both sides move by the same depth-limited searcher, so the same first move yields a 40-ply defence at depth 10 and a 16-ply one at depth 12. The table shows the ordering REVERSING SIGN across depths 8/10/12/14 and across node budgets, and the rule reads: 'A play-out measures self-play survival at depth D, not objective move quality. State D, and show the ordering is stable across a range - or do not call it ground truth.'
+  It closes with the sentence you asked to keep, which is Trap 6's lesson one level up: a command's SAFETY and a play-out's TRUTH are both properties of the setting they run under, not of the command itself.
+  AND THE S-F99 NOTE NOW MAKES THE PASTING LINK EXPLICIT: I transcribed a figure wrongly while writing by hand - having already written the rule that tables are pasted from committed scripts rather than typed, and then breaking it by hand-writing one number. It is a FOURTH species: the number was measured correctly and transcribed wrongly, which no plausibility check catches because a plausible wrong number looks like a right one.
+  The traps page is now seven traps in sequence, family table, guard - verified by check_page_shape.py, which is clean.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

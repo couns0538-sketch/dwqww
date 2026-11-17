@@ -1,8 +1,8 @@
-# The six things that silently change what a harness measures
+# The seven things that silently change what a harness measures
 
 **Seat 01, 2026-11-17. One page, ready for the brief. Every trap below is confirmed by me on PC r15 + PC20,
-Threads 1, Hash 16. Four are settings, one is a timer and one is a command whose safety depends on the
-position, and all six share one shape: the default is fine, a plausible
+Threads 1, Hash 16. Four are settings, one is a timer, one is a command whose safety depends on the position,
+and one is a measurement whose truth depends on the setting, and all seven share one shape: the default is fine, a plausible
 non-default or a careless measurement silently changes the number, and nothing warns you.**
 
 > ## THE RULE
@@ -92,6 +92,30 @@ So the same command is safe on one board and a grind on another, and **the trigg
 > **Any `go depth N` in a harness gets a wall cap and a node cap. Whether it is safe is a property of the position.**
 
 A harness without a cap cannot tell "slow" from "hung", which is exactly how this reads when it happens.
+
+## Trap 7 — a play-out is ground truth only for the player that plays it
+
+A play-out is a better test than reading a score: it plays the game out and lets an independent library adjudicate,
+so a wrong score cannot hide the consequence. **But it does not remove the engine from the PLAY** — both sides are
+moved by the same depth-limited searcher, so the same first move can produce a 40-ply defence at depth 10 and a
+16-ply one at depth 12.
+
+Measured on one board with two candidate first moves (`c6d6` / `c6c7` plies survived, 3 deterministic runs each):
+
+| play-out setting | plies survived | reading |
+|---|---|---|
+| depth 8 | **26 / 26** | equal |
+| depth 10 | **24 / 40** | second move better by 16 |
+| **depth 12** | **20 / 16** | **second move worse by 4** |
+| depth 14 | **22 / 32** | second move better by 10 |
+| nodes 5k / 20k / 50k | 20 / 22 | second move better |
+
+**One setting supports the claim, one ties, three reverse it.**
+
+> **A play-out measures "self-play survival at depth D", not objective move quality. State D, and show the ordering
+> is stable across a range — or do not call it ground truth.**
+
+**Truth, like safety, is a property of the configuration.**
 
 ## The family of four settings, and why one rule covers all of them
 
