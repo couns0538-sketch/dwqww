@@ -318,7 +318,10 @@ evaluation. A better enrichment criterion for a later run is a material **score*
 MultiPV settings* (found 0) while the class I was hunting turned up on a *depth* ladder. Both recorded as such.
 
 **Guards at 03:40Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
-`audit_final.py` -> **0 mismatches**.
+`audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> **4/4 PASS** (S-F29 depth-16 cp 1359 / depth-20 mate 8;
+S-C26 terminal ladder; S-C27 64-line burst, answer unchanged; S-C22 MPV3 clock Hash16 depth 13 vs Hash256 depth 2).
+
+**101 findings.** Working tree clean; local = remote.
 
 ## 2026-11-17T03:17Z - CYCLE (d) CLOSE: all three guards green, 99 findings
 
