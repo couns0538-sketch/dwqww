@@ -440,3 +440,16 @@ Anyone reading "node 50000" in a dataset should read it as "a repeatable search 
 **Labelling side closed** - reproducibility (48/48), cross-mode structure (18/18 one ply deeper), the undershoot
 magnitude (median 74 %), and the limit-crossing rule are all measured. Nothing further owed there.
 Next: another unconfirmed cross-seat finding on the PC path.
+
+## 2026-11-17T00:16Z S-C15: seat 05's mate-PV truncation confirmed exactly, with a verified control
+My own harness, PC r15/PC20/Threads 1/Hash 16/OwnBook false, 2 reps per row, all deterministic, on their
+`r2r4/.../4K2R b - - 1 40` board. **Every number matches theirs:**
+  `softnodes 2000` cp 3725 / 3,190 nodes / depth 8; `nodes 20000` cp 4056 / 10,515 / depth 10;
+  **`nodes 50000` `mate 11` / 44,749 nodes / 18-ply PV where 2N-1 = 21 -> TRUNCATED by 3**;
+  `nodes 250000` `mate 7` / 138,869 / 13-ply vs 13 needed -> consistent; `depth 20` `mate 7` / 13-of-13.
+  **bestmove `b3c2` in every row**, so their S-F59 holds - the score and PV length are corrupted, the move is not.
+**The control that makes it testable**: the same checker on a verified mate-in-1 (S-C13 board) reports `mate 1`,
+1 ply, 2N-1 = 1, consistent - and the script ABORTS if the control fails, so "truncated" is not a default.
+**This is also a second independent sighting of what my S-C12 measured**: a `go nodes` budget at a match value
+stops mid-iteration, and here the consequence is a **score the engine's own PV cannot support** (`mate 11` in
+18 plies).
