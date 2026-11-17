@@ -1,0 +1,29 @@
+THE START POSITION CHAIN — the published perft values a reader can check in ten seconds
+| depth | engine | published | match |
+|---|---|---|---|
+| 1 | 20 | 20 | yes |
+| 2 | 400 | 400 | yes |
+| 3 | 8,902 | 8,902 | yes |
+| 4 | 197,281 | 197,281 | yes |
+| 5 | 4,865,609 | 4,865,609 | yes |
+
+python-chess's own walker on the same depths (independent implementation):
+   depth 1: 20
+   depth 2: 400
+   depth 3: 8,902
+   depth 4: 197,281
+
+WHAT THIS VERIFIES AND WHAT IT DOES NOT
+---------------------------------------
+VERIFIED in ~1 s: the engine's move generator matches the PUBLISHED perft chain on the start position to depth 5
+(20 / 400 / 8,902 / 197,281 / 4,865,609), and python-chess's independent walker agrees to depth 4. So the walker used
+throughout this seat's comparisons is anchored on a known answer, which is the claim PERFT_NULL_RESULT.md makes about
+itself in its first line.
+
+NOT RE-RUN: the 5,000-position sweeps and the depth-5 totals (7,399,207,740 / 1,022,355,864 / 2,603,588,130). Those are
+hours of compute and their raw outputs are on disk; the one I spot-checked — the seed-2301 perft-4 total of 154,284 for
+position 1 in `job1/compare_R.out` — matches. Re-running them would test the machine's stability over the session, not
+the claim, and the claim already carries its own control (a planted one-node mismatch was caught, per 23-F3).
+
+THE HONEST STATEMENT FOR THE FINAL: the perft null result's ANCHOR is re-verified today; its BULK rests on saved outputs
+whose checker was itself proved able to fail.
