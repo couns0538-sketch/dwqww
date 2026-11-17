@@ -1,0 +1,2988 @@
+{
+ "manifest": {
+  "pristine": {
+   "path": "/tmp/s71/forge-combo29/swarm/71/test_v3.fnn3",
+   "bytes": 6309096,
+   "sha256": "1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a",
+   "header": {
+    "version": 3,
+    "header_bytes": 192,
+    "inputs": 768,
+    "hidden": 512,
+    "king_buckets": 8,
+    "output_buckets": 8,
+    "flags": 2,
+    "qa": 255,
+    "qb": 64,
+    "eval_scale": 400
+   },
+   "layout": {
+    "w1": [
+     192,
+     6291648
+    ],
+    "b1": [
+     6291648,
+     6292672
+    ],
+    "w2": [
+     6292672,
+     6309056
+    ],
+    "b2": [
+     6309056,
+     6309088
+    ],
+    "checksum": [
+     6309088,
+     6309096
+    ]
+   }
+  },
+  "outdir": "/tmp/mut",
+  "cases": [
+   {
+    "name": "ctrl_pristine",
+    "class": "control",
+    "field": "none (pristine file)",
+    "offset": null,
+    "bytes": 6309096,
+    "sha256": "1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a",
+    "checksum_stored": "fdff70de72e4ca82",
+    "checksum_computed": "fdff70de72e4ca82",
+    "checksum_valid": true,
+    "expect": "accept",
+    "note": "the net every mutant is derived from"
+   },
+   {
+    "name": "ctrl_kingmap_permuted",
+    "class": "control",
+    "field": "king_bucket_map (in-range permutation)",
+    "offset": 48,
+    "bytes": 6309096,
+    "sha256": "f1ed40933d43d75a579aadf631c9987b2e82589985d051fcddfafab3e40a5159",
+    "checksum_stored": "4ace2fee45d3ecc2",
+    "checksum_computed": "4ace2fee45d3ecc2",
+    "checksum_valid": true,
+    "expect": "accept",
+    "note": "valid-checksum header change that stays in range: proves refusals are not blanket"
+   },
+   {
+    "name": "ctrl_outputmap_rotated",
+    "class": "control",
+    "field": "output_bucket_map (in-range rotation)",
+    "offset": 112,
+    "bytes": 6309096,
+    "sha256": "307a3b72c5afdc1178361c5e351fcf735ae6da039678af2f4915ca169cc2be2c",
+    "checksum_stored": "65a9c60612cd06d0",
+    "checksum_computed": "65a9c60612cd06d0",
+    "checksum_valid": true,
+    "expect": "accept",
+    "note": "second valid-checksum in-range header change"
+   },
+   {
+    "name": "ctrl_flags_residual_cleared",
+    "class": "control",
+    "field": "flags 2 -> 0 (mirror off)",
+    "offset": 32,
+    "bytes": 6309096,
+    "sha256": "93b77847633ae0271360aa3a3ffab369f6aa0d178640b08b9e8102f5bb081e9b",
+    "checksum_stored": "01b41c1359f1c29c",
+    "checksum_computed": "01b41c1359f1c29c",
+    "checksum_valid": true,
+    "expect": "accept",
+    "note": "flag removal stays legal"
+   },
+   {
+    "name": "ctrl_weight_inrange",
+    "class": "control",
+    "field": "w1[0] 1 -> 2 (checksum resealed)",
+    "offset": 192,
+    "bytes": 6309096,
+    "sha256": "22569476f3df661f49c9775ea16b7ec1158b5e43090c2b58637bd6d22ddf1a07",
+    "checksum_stored": "cc67348c3b264de7",
+    "checksum_computed": "cc67348c3b264de7",
+    "checksum_valid": true,
+    "expect": "accept",
+    "note": "weight change with a valid checksum must load"
+   },
+   {
+    "name": "hdr_magic",
+    "class": "header",
+    "field": "magic[0] 'F' -> 'X'",
+    "offset": 0,
+    "bytes": 6309096,
+    "sha256": "4be397c47d79f285794200136f5682eae53b53ed8f9d29ca74f9edca7dfc7a5c",
+    "checksum_stored": "fa3ce7a485ba37a0",
+    "checksum_computed": "fa3ce7a485ba37a0",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "same length, same checksum validity"
+   },
+   {
+    "name": "hdr_version_4",
+    "class": "header",
+    "field": "version 3 -> 4",
+    "offset": 8,
+    "bytes": 6309096,
+    "sha256": "161691d2d2ee257c98e26f5b0c5249ed9cb1247c45f3511641f417a35551abb5",
+    "checksum_stored": "47b5e74ced9d7a95",
+    "checksum_computed": "47b5e74ced9d7a95",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_version_0",
+    "class": "header",
+    "field": "version 3 -> 0",
+    "offset": 8,
+    "bytes": 6309096,
+    "sha256": "f546d4893dd16e499b55c771630b13d816c17cd23323f8c510f0b955696803f3",
+    "checksum_stored": "d1eb6099bc92e1d1",
+    "checksum_computed": "d1eb6099bc92e1d1",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_header_bytes_191",
+    "class": "header",
+    "field": "header_bytes 192 -> 191",
+    "offset": 12,
+    "bytes": 6309096,
+    "sha256": "1bdc02740ac6aefdad19cca640a689aae76d4fd17e039c21d0cb42939b559856",
+    "checksum_stored": "41bf06c1ac6019cd",
+    "checksum_computed": "41bf06c1ac6019cd",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_header_bytes_256",
+    "class": "header",
+    "field": "header_bytes 192 -> 256",
+    "offset": 12,
+    "bytes": 6309096,
+    "sha256": "b69955288c4685be524126d7cf2a180f2519fbb15b86095998b1e5499451b6b1",
+    "checksum_stored": "5268e775dcde7085",
+    "checksum_computed": "5268e775dcde7085",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "a longer header would shift every block"
+   },
+   {
+    "name": "hdr_inputs_767",
+    "class": "header",
+    "field": "inputs 768 -> 767",
+    "offset": 16,
+    "bytes": 6309096,
+    "sha256": "0f97f972a52bf8009a0ed59562a317c904850c494a56928db535c9d4ba5bb153",
+    "checksum_stored": "47a7c4ac373ff1aa",
+    "checksum_computed": "47a7c4ac373ff1aa",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_inputs_1536",
+    "class": "header",
+    "field": "inputs 768 -> 1536",
+    "offset": 16,
+    "bytes": 6309096,
+    "sha256": "f9ed733dc8d19ed11e4af0b22f04c8f11565fcfea83759696b47e552c55864a4",
+    "checksum_stored": "1af5f1efa221a639",
+    "checksum_computed": "1af5f1efa221a639",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_hidden_544",
+    "class": "header",
+    "field": "hidden 512 -> 544 (in range, x32, body not resized)",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "a66eb7d9023a22c3521e9d65bb2d1b14c0675a85acc2e4c7410356bb0be1a5e0",
+    "checksum_stored": "1929dc9e2b916562",
+    "checksum_computed": "1929dc9e2b916562",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "in-range claim, size mismatch"
+   },
+   {
+    "name": "hdr_hidden_480",
+    "class": "header",
+    "field": "hidden 512 -> 480 (in range, x32, body not resized)",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "106ff11af5d23832fca8a7647cd51d0ff0719f61b6a10b5cee1124bf4d3ad32a",
+    "checksum_stored": "a2df03757120f84f",
+    "checksum_computed": "a2df03757120f84f",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_hidden_1056",
+    "class": "header",
+    "field": "hidden 512 -> 1056 (> MaxHidden)",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "405eb2b1166a3e2958c4e23b6f12252a095e9d9db0d5dbc5139efe1f26c75089",
+    "checksum_stored": "8c77aa6000e7b158",
+    "checksum_computed": "8c77aa6000e7b158",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_hidden_0",
+    "class": "header",
+    "field": "hidden 512 -> 0 (< MinHidden)",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "3259279e2115fb04dafee6525f8bd5287c4bbc2fb3647bf8a70fd1ffb621e1e1",
+    "checksum_stored": "c588689e4d17c624",
+    "checksum_computed": "c588689e4d17c624",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_hidden_500",
+    "class": "header",
+    "field": "hidden 512 -> 500 (not a multiple of 32)",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "8041e0717aef6c32f480dc3c4ada7ac825426d65c2db9d6ede835e3135e3b25b",
+    "checksum_stored": "ec4955c4c8021f5b",
+    "checksum_computed": "ec4955c4c8021f5b",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "the AVX-512 kernel reads in 32-lane steps"
+   },
+   {
+    "name": "hdr_king_9",
+    "class": "header",
+    "field": "king_buckets 8 -> 9 (in range, body not resized)",
+    "offset": 24,
+    "bytes": 6309096,
+    "sha256": "4f92351edd778ee0aa95c67574744f29eb4c94ada4b54c5262d4249fd14b48ae",
+    "checksum_stored": "863b1b936322e72f",
+    "checksum_computed": "863b1b936322e72f",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_king_1",
+    "class": "header",
+    "field": "king_buckets 8 -> 1 (in range, body not resized)",
+    "offset": 24,
+    "bytes": 6309096,
+    "sha256": "c9791730a8cc4b2dffa10fcee6b2f2c5c95a2a561162ea53c3e2fa9cf14e7329",
+    "checksum_stored": "f8b1caf57eec7387",
+    "checksum_computed": "f8b1caf57eec7387",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_king_33",
+    "class": "header",
+    "field": "king_buckets 8 -> 33 (> MaxKingBuckets)",
+    "offset": 24,
+    "bytes": 6309096,
+    "sha256": "3eb76ab00e74dd55817a0f68691f8e19aedb06834ac9fb99feb9d51b1d1288b0",
+    "checksum_stored": "a5b01ddea54194e7",
+    "checksum_computed": "a5b01ddea54194e7",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_king_0",
+    "class": "header",
+    "field": "king_buckets 8 -> 0",
+    "offset": 24,
+    "bytes": 6309096,
+    "sha256": "806a4464527f7c9e589d5e75175fe4899f96fcc89a3f62a66fd3677aa4b5ae74",
+    "checksum_stored": "a5aca92539a3a0ba",
+    "checksum_computed": "a5aca92539a3a0ba",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_out_9",
+    "class": "header",
+    "field": "output_buckets 8 -> 9 (in range, body not resized)",
+    "offset": 28,
+    "bytes": 6309096,
+    "sha256": "4957e05ee6882f006a3d8a11b88b313d6b215dc9ddb29af5a0635497a9de04ff",
+    "checksum_stored": "4603b788d7de359f",
+    "checksum_computed": "4603b788d7de359f",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_out_17",
+    "class": "header",
+    "field": "output_buckets 8 -> 17 (> MaxOutputBuckets)",
+    "offset": 28,
+    "bytes": 6309096,
+    "sha256": "a04be857ada9cd122ca5a469a38e559df511062bcc965f23a55c6622e01cab13",
+    "checksum_stored": "c5eaea7ef0733ae7",
+    "checksum_computed": "c5eaea7ef0733ae7",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_out_0",
+    "class": "header",
+    "field": "output_buckets 8 -> 0",
+    "offset": 28,
+    "bytes": 6309096,
+    "sha256": "8a1066a7fd933f08e75631b2e88c607750f9e87ac496d98aa09791a7cdf55143",
+    "checksum_stored": "e504aafd00cea23a",
+    "checksum_computed": "e504aafd00cea23a",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_flags_residual",
+    "class": "header",
+    "field": "flags 2 -> 3 (residual|mirror)",
+    "offset": 32,
+    "bytes": 6309096,
+    "sha256": "884aa86530a1828b133eeee105862abcd9f4631f09a2dc1e89c60fb397b7596b",
+    "checksum_stored": "da2108ebf233050f",
+    "checksum_computed": "da2108ebf233050f",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "loader accepts, UCI unloads: residual unsupported"
+   },
+   {
+    "name": "hdr_flags_unknown",
+    "class": "header",
+    "field": "flags 2 -> 4 (unknown bit 2)",
+    "offset": 32,
+    "bytes": 6309096,
+    "sha256": "1def432e1e024d65f9f69b482dc12a175fc4227d948771f2cea0574e4f30e939",
+    "checksum_stored": "9cb903dbc68240c8",
+    "checksum_computed": "9cb903dbc68240c8",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_qa_254",
+    "class": "header",
+    "field": "qa 255 -> 254",
+    "offset": 36,
+    "bytes": 6309096,
+    "sha256": "f0887fb2cd067dc7f05969d6d6e6fd2d8ff06c7bc9f88b1bde13d50b9247d2a9",
+    "checksum_stored": "8e96bb7409bae37f",
+    "checksum_computed": "8e96bb7409bae37f",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_qb_32",
+    "class": "header",
+    "field": "qb 64 -> 32",
+    "offset": 40,
+    "bytes": 6309096,
+    "sha256": "d6ca2ad8c57ca61f085157987afe87e09232d9aa198445ca72313181414759eb",
+    "checksum_stored": "4016752ba8d22f62",
+    "checksum_computed": "4016752ba8d22f62",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_scale_0",
+    "class": "header",
+    "field": "eval_scale 400 -> 0",
+    "offset": 44,
+    "bytes": 6309096,
+    "sha256": "2f7aef936b83caea73486cd3417344c6182aa9eb782c9c7cb6ce9ec026493c67",
+    "checksum_stored": "6dda90ef970d5871",
+    "checksum_computed": "6dda90ef970d5871",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_scale_10001",
+    "class": "header",
+    "field": "eval_scale 400 -> 10001 (> MaxEvalScale)",
+    "offset": 44,
+    "bytes": 6309096,
+    "sha256": "abf9fa567ed7b9ec39335dc27fa01b182c2dd0f1633143c022c1e8d901d3f4d9",
+    "checksum_stored": "5a772228f3c771a5",
+    "checksum_computed": "5a772228f3c771a5",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_reserved_1",
+    "class": "header",
+    "field": "reserved[15] 0 -> 1",
+    "offset": 160,
+    "bytes": 6309096,
+    "sha256": "7225ad7941257dd1008dafab12540224de846c96e534e5a3d2e871a20f63a3ec",
+    "checksum_stored": "d9e765892bcefc83",
+    "checksum_computed": "d9e765892bcefc83",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "reserved bytes must be zero"
+   },
+   {
+    "name": "hdr_kingmap_oob",
+    "class": "header",
+    "field": "king_bucket_map[0] 0 -> 8 (== king_buckets)",
+    "offset": 48,
+    "bytes": 6309096,
+    "sha256": "46af28ce6c711260e8b855efd83c920dc80e1abcaef1c43fa15cd0bb00c49182",
+    "checksum_stored": "56ffd53a6609f14a",
+    "checksum_computed": "56ffd53a6609f14a",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "index would read past w1's bucket range"
+   },
+   {
+    "name": "hdr_kingmap_255",
+    "class": "header",
+    "field": "king_bucket_map[0] 0 -> 255",
+    "offset": 48,
+    "bytes": 6309096,
+    "sha256": "cc4bd8423a001bb9ea9e6f05962ab48a3d8135d1d99e7199bb24942b67d19262",
+    "checksum_stored": "305d7caf8f87693d",
+    "checksum_computed": "305d7caf8f87693d",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "hdr_outmap_oob",
+    "class": "header",
+    "field": "output_bucket_map[0] 0 -> 8 (== output_buckets)",
+    "offset": 112,
+    "bytes": 6309096,
+    "sha256": "febc725ba0040cc2588de96f36b6c127f62002669efaba917a310c2a7e3a894d",
+    "checksum_stored": "b98920378561a7ba",
+    "checksum_computed": "b98920378561a7ba",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "index would read past w2"
+   },
+   {
+    "name": "hdr_outmap_255",
+    "class": "header",
+    "field": "output_bucket_map[32] 7 -> 255",
+    "offset": 144,
+    "bytes": 6309096,
+    "sha256": "27dae1408bd643586d16822c4243395c66b65f98b470b653588705d4e04c85ab",
+    "checksum_stored": "7cecfc144c43afda",
+    "checksum_computed": "7cecfc144c43afda",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "bomb_max_dims",
+    "class": "bomb",
+    "field": "hidden 1024 / king 32 / out 16, body unchanged",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "5519220e62c53bea78dd0717445c4773e9ada5c982a44a6ded6d03aadc89d34b",
+    "checksum_stored": "1ef972d036246768",
+    "checksum_computed": "1ef972d036246768",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "legal-range maxima: expected size ~50 MB, file is 6.3 MB"
+   },
+   {
+    "name": "bomb_hidden_max_only",
+    "class": "bomb",
+    "field": "hidden 512 -> 1024, king/out unchanged",
+    "offset": 20,
+    "bytes": 6309096,
+    "sha256": "718c498d2b85b56597b7312609e18fead16fa18bef4e59034a9d454e7674fae3",
+    "checksum_stored": "2cdaa73f992095f8",
+    "checksum_computed": "2cdaa73f992095f8",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "bomb_king_max_only",
+    "class": "bomb",
+    "field": "king_buckets 8 -> 32, hidden/out unchanged",
+    "offset": 24,
+    "bytes": 6309096,
+    "sha256": "fa00c1e8725c5a15e17ab73cf3b7205324c2db436975f54be8e92f9857a05cd3",
+    "checksum_stored": "d64f297a68f7d51a",
+    "checksum_computed": "d64f297a68f7d51a",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "bomb_out_max_only",
+    "class": "bomb",
+    "field": "output_buckets 8 -> 16, hidden/king unchanged",
+    "offset": 28,
+    "bytes": 6309096,
+    "sha256": "875d67ff7c467aa50cb3e8873af705eaca16147d344068ec43dc98960f864811",
+    "checksum_stored": "851cf5153fe309ea",
+    "checksum_computed": "851cf5153fe309ea",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "ck_flip_w1",
+    "class": "checksum",
+    "field": "w1 byte XOR 1 at file/3",
+    "offset": 2103032,
+    "bytes": 6309096,
+    "sha256": "c20444d36dbee421aac4e014333d28db2e2bd22fcec5322a78d2d284971879d0",
+    "checksum_stored": "fdff70de72e4ca82",
+    "checksum_computed": "e673c6fe5067eb33",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": "accidental weight damage"
+   },
+   {
+    "name": "ck_flip_b1",
+    "class": "checksum",
+    "field": "b1 byte XOR 1",
+    "offset": 6291652,
+    "bytes": 6309096,
+    "sha256": "8832c3f727e9961f539cc4db7bcb9d8184f9287b0ad1a1b18117282597895a05",
+    "checksum_stored": "fdff70de72e4ca82",
+    "checksum_computed": "3a0014ad6aa3a353",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "ck_flip_w2",
+    "class": "checksum",
+    "field": "w2 byte XOR 1",
+    "offset": 6292676,
+    "bytes": 6309096,
+    "sha256": "b09d38b5204cc8ef304d83b2b25d03553eda66d82e8890fe6c047095f80b7631",
+    "checksum_stored": "fdff70de72e4ca82",
+    "checksum_computed": "2ee58c5f1407f0d3",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "ck_flip_b2",
+    "class": "checksum",
+    "field": "b2 byte XOR 1",
+    "offset": 6309056,
+    "bytes": 6309096,
+    "sha256": "2b872555a538bdb0b6a18944b733daa7d46b1a5d20dfd328e94c20a3076be79f",
+    "checksum_stored": "fdff70de72e4ca82",
+    "checksum_computed": "035823c515db0b03",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "ck_flip_scale",
+    "class": "checksum",
+    "field": "eval_scale low byte XOR 1 (in range: 400 -> 401)",
+    "offset": 44,
+    "bytes": 6309096,
+    "sha256": "71129bd144d2eda134f25819601c600893f98e6c1586b93c9b8a22d8c38906b7",
+    "checksum_stored": "fdff70de72e4ca82",
+    "checksum_computed": "c1da528453da135f",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": "the altered value is itself legal; only the checksum sees it"
+   },
+   {
+    "name": "ck_flip_stored",
+    "class": "checksum",
+    "field": "stored checksum byte XOR 1",
+    "offset": 6309095,
+    "bytes": 6309096,
+    "sha256": "79833bc6db1aa217048597ccc2e7ec8547d314f203fd79d64a6267f7dd877935",
+    "checksum_stored": "fcff70de72e4ca82",
+    "checksum_computed": "fdff70de72e4ca82",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "rechecksummed",
+    "class": "adversarial",
+    "field": "w1 byte XOR 0xFF at file/3, checksum recomputed",
+    "offset": 2103032,
+    "bytes": 6309096,
+    "sha256": "d4c92fa94ae83963265f74f00b17bf68398f2bd3f3076688b663bcd636668832",
+    "checksum_stored": "a1ab778dfa69b9f9",
+    "checksum_computed": "a1ab778dfa69b9f9",
+    "checksum_valid": true,
+    "expect": "accept",
+    "note": "must load: FNV-1a detects accident, not intent"
+   },
+   {
+    "name": "tr_zero",
+    "class": "truncation",
+    "field": "cut to 0 bytes",
+    "offset": null,
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checksum_stored": null,
+    "checksum_computed": null,
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_8",
+    "class": "truncation",
+    "field": "cut to 8 bytes (magic only)",
+    "offset": null,
+    "bytes": 8,
+    "sha256": "47b430a3b073d2947d9caffabd9917b3072b67f4dc3e098184055b5f6c7ebe6d",
+    "checksum_stored": "334e4e4547524f46",
+    "checksum_computed": "cbf29ce484222325",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_191",
+    "class": "truncation",
+    "field": "cut to 191 bytes (one short of the header)",
+    "offset": null,
+    "bytes": 191,
+    "sha256": "3040b03cc2e347ea2d8a58d42ef46a784a94e2e779a80766cadb63dae832b0bd",
+    "checksum_stored": "0000000000000000",
+    "checksum_computed": "d971ad5448b36b6e",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_header_192",
+    "class": "truncation",
+    "field": "cut at exactly the header length",
+    "offset": null,
+    "bytes": 192,
+    "sha256": "62d1ef30b7f1eb9b34f9f36968bc4294859c9a3b1331033a50b2a06e5240e2bc",
+    "checksum_stored": "0000000000000000",
+    "checksum_computed": "2f94f43788df8bea",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": "header alone cannot carry a checksum"
+   },
+   {
+    "name": "tr_200",
+    "class": "truncation",
+    "field": "cut at header + 8 bytes",
+    "offset": null,
+    "bytes": 200,
+    "sha256": "f2e8f745e724445183851d5892f1113313764f09e0168362db311dcb21b389f1",
+    "checksum_stored": "003dfff8fffb002f",
+    "checksum_computed": "001fde1e06b8ad2a",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": "first size that clears the minimum-length gate"
+   },
+   {
+    "name": "tr_w1_start",
+    "class": "truncation",
+    "field": "cut at exactly the first weight block (header+w1)",
+    "offset": null,
+    "bytes": 6291648,
+    "sha256": "f495600d549f79cf89552d75b50b0b1f30007b8e3531c7d9e7d032fbebae504a",
+    "checksum_stored": "003c0039ffd4002b",
+    "checksum_computed": "d996dce0cda5c26d",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_w1_mid",
+    "class": "truncation",
+    "field": "cut mid-w1 (header + w1/2)",
+    "offset": null,
+    "bytes": 3145920,
+    "sha256": "df8a4aa0f9a952e569170d1de925540327064d8e5d7aa27fd2e06946006a101e",
+    "checksum_stored": "001bffc2ffd9ffde",
+    "checksum_computed": "37331f26e9d88658",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_w1_mid_block",
+    "class": "truncation",
+    "field": "cut mid-block: b1 cut in half",
+    "offset": null,
+    "bytes": 6292160,
+    "sha256": "17f7ab31dfce65e1e1de7134f5fa70a7882d0636b8b03659c92201c384ddcf84",
+    "checksum_stored": "0006ffed00500008",
+    "checksum_computed": "6ed43ba794209645",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_w2_mid",
+    "class": "truncation",
+    "field": "cut mid-w2",
+    "offset": null,
+    "bytes": 6300864,
+    "sha256": "642f1d9e1e5b2389d6eeb7a2729c878014ed15fd98c86453fedbcee765ecb061",
+    "checksum_stored": "0002fff9fff2fff0",
+    "checksum_computed": "ebfd5077fd21658e",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_b2_mid",
+    "class": "truncation",
+    "field": "cut mid-b2",
+    "offset": null,
+    "bytes": 6309064,
+    "sha256": "9f82c28780cd1e951422f93ce83e37e22377a9577b27d55b9099f6fcfd11f9ff",
+    "checksum_stored": "0000000000000000",
+    "checksum_computed": "e34266333fd38982",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_drop_checksum",
+    "class": "truncation",
+    "field": "cut the last 8 bytes (all weights intact)",
+    "offset": null,
+    "bytes": 6309088,
+    "sha256": "39c044286252d9d66383f7747e783315c78ac86943f9c785d466565e6da4e906",
+    "checksum_stored": "0000000000000000",
+    "checksum_computed": "ea0d6f00eb29ee42",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": "stored 'checksum' would be the last 8 bytes of b2"
+   },
+   {
+    "name": "tr_1_short",
+    "class": "truncation",
+    "field": "one byte short of complete",
+    "offset": null,
+    "bytes": 6309095,
+    "sha256": "6b902a0b0b522006d302a011b97a3afab74b9c3473df966adc29bd32357c0b58",
+    "checksum_stored": "ff70de72e4ca8200",
+    "checksum_computed": "0beef437d4b6f676",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_extend_1",
+    "class": "truncation",
+    "field": "one byte past complete (appended 0x00)",
+    "offset": null,
+    "bytes": 6309097,
+    "sha256": "cf6366b7bc610bd8fbce7635b08027189fc5b430d8aceae5f2bee5fc91bab9b2",
+    "checksum_stored": "00fdff70de72e4ca",
+    "checksum_computed": "7dd6c9fd3ac33e00",
+    "checksum_valid": false,
+    "expect": "refuse",
+    "note": ""
+   },
+   {
+    "name": "tr_extra_block",
+    "class": "truncation",
+    "field": "an extra b1 block appended, checksum resealed",
+    "offset": null,
+    "bytes": 6310120,
+    "sha256": "cf9c603bf5ba3a2018ee9db6ff4d9ab37eb67b4391dea179770a477f99b00c98",
+    "checksum_stored": "5534c8884552bcf5",
+    "checksum_computed": "5534c8884552bcf5",
+    "checksum_valid": true,
+    "expect": "refuse",
+    "note": "a duplicated layer: size check, not a header field"
+   }
+  ]
+ },
+ "results": [
+  {
+   "name": "ctrl_pristine",
+   "class": "control",
+   "field": "none (pristine file)",
+   "offset": null,
+   "bytes": 6309096,
+   "sha256": "1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a",
+   "checksum_stored": "fdff70de72e4ca82",
+   "checksum_computed": "fdff70de72e4ca82",
+   "checksum_valid": true,
+   "expect": "accept",
+   "note": "the net every mutant is derived from",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/ctrl_pristine.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/ctrl_pristine.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: loaded v3 /tmp/mut/ctrl_pristine.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": false,
+    "accepted": true
+   }
+  },
+  {
+   "name": "ctrl_kingmap_permuted",
+   "class": "control",
+   "field": "king_bucket_map (in-range permutation)",
+   "offset": 48,
+   "bytes": 6309096,
+   "sha256": "f1ed40933d43d75a579aadf631c9987b2e82589985d051fcddfafab3e40a5159",
+   "checksum_stored": "4ace2fee45d3ecc2",
+   "checksum_computed": "4ace2fee45d3ecc2",
+   "checksum_valid": true,
+   "expect": "accept",
+   "note": "valid-checksum header change that stays in range: proves refusals are not blanket",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/ctrl_kingmap_permuted.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 4ace2fee45d3ecc2 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval -757",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/ctrl_kingmap_permuted.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 4ace2fee45d3ecc2 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval -757"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: loaded v3 /tmp/mut/ctrl_kingmap_permuted.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 4ace2fee45d3ecc2 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": false,
+    "accepted": true
+   }
+  },
+  {
+   "name": "ctrl_outputmap_rotated",
+   "class": "control",
+   "field": "output_bucket_map (in-range rotation)",
+   "offset": 112,
+   "bytes": 6309096,
+   "sha256": "307a3b72c5afdc1178361c5e351fcf735ae6da039678af2f4915ca169cc2be2c",
+   "checksum_stored": "65a9c60612cd06d0",
+   "checksum_computed": "65a9c60612cd06d0",
+   "checksum_valid": true,
+   "expect": "accept",
+   "note": "second valid-checksum in-range header change",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/ctrl_outputmap_rotated.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 65a9c60612cd06d0 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval -160",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/ctrl_outputmap_rotated.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 65a9c60612cd06d0 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval -160"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: loaded v3 /tmp/mut/ctrl_outputmap_rotated.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 65a9c60612cd06d0 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": false,
+    "accepted": true
+   }
+  },
+  {
+   "name": "ctrl_flags_residual_cleared",
+   "class": "control",
+   "field": "flags 2 -> 0 (mirror off)",
+   "offset": 32,
+   "bytes": 6309096,
+   "sha256": "93b77847633ae0271360aa3a3ffab369f6aa0d178640b08b9e8102f5bb081e9b",
+   "checksum_stored": "01b41c1359f1c29c",
+   "checksum_computed": "01b41c1359f1c29c",
+   "checksum_valid": true,
+   "expect": "accept",
+   "note": "flag removal stays legal",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/ctrl_flags_residual_cleared.fnn3 hidden 512 king_buckets 8 output_buckets 8 standalone eval_scale 400 checksum 1b41c1359f1c29c max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 1246",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/ctrl_flags_residual_cleared.fnn3 hidden 512 king_buckets 8 output_buckets 8 standalone eval_scale 400 checksum 1b41c1359f1c29c max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 1246"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: loaded v3 /tmp/mut/ctrl_flags_residual_cleared.fnn3 hidden 512 king_buckets 8 output_buckets 8 standalone eval_scale 400 checksum 1b41c1359f1c29c max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": false,
+    "accepted": true
+   }
+  },
+  {
+   "name": "ctrl_weight_inrange",
+   "class": "control",
+   "field": "w1[0] 1 -> 2 (checksum resealed)",
+   "offset": 192,
+   "bytes": 6309096,
+   "sha256": "22569476f3df661f49c9775ea16b7ec1158b5e43090c2b58637bd6d22ddf1a07",
+   "checksum_stored": "cc67348c3b264de7",
+   "checksum_computed": "cc67348c3b264de7",
+   "checksum_valid": true,
+   "expect": "accept",
+   "note": "weight change with a valid checksum must load",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/ctrl_weight_inrange.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum cc67348c3b264de7 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/ctrl_weight_inrange.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum cc67348c3b264de7 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: loaded v3 /tmp/mut/ctrl_weight_inrange.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum cc67348c3b264de7 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": false,
+    "accepted": true
+   }
+  },
+  {
+   "name": "hdr_magic",
+   "class": "header",
+   "field": "magic[0] 'F' -> 'X'",
+   "offset": 0,
+   "bytes": 6309096,
+   "sha256": "4be397c47d79f285794200136f5682eae53b53ed8f9d29ca74f9edca7dfc7a5c",
+   "checksum_stored": "fa3ce7a485ba37a0",
+   "checksum_computed": "fa3ce7a485ba37a0",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "same length, same checksum validity",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_magic.fnn3: bad magic (expected FORGENN3)",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_magic.fnn3: bad magic (expected FORGENN3)"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_magic.fnn3: bad magic (expected FORGENN3)"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_version_4",
+   "class": "header",
+   "field": "version 3 -> 4",
+   "offset": 8,
+   "bytes": 6309096,
+   "sha256": "161691d2d2ee257c98e26f5b0c5249ed9cb1247c45f3511641f417a35551abb5",
+   "checksum_stored": "47b5e74ced9d7a95",
+   "checksum_computed": "47b5e74ced9d7a95",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_version_4.fnn3: unsupported version 4",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_version_4.fnn3: unsupported version 4"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_version_4.fnn3: unsupported version 4"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_version_0",
+   "class": "header",
+   "field": "version 3 -> 0",
+   "offset": 8,
+   "bytes": 6309096,
+   "sha256": "f546d4893dd16e499b55c771630b13d816c17cd23323f8c510f0b955696803f3",
+   "checksum_stored": "d1eb6099bc92e1d1",
+   "checksum_computed": "d1eb6099bc92e1d1",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_version_0.fnn3: unsupported version 0",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_version_0.fnn3: unsupported version 0"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_version_0.fnn3: unsupported version 0"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_header_bytes_191",
+   "class": "header",
+   "field": "header_bytes 192 -> 191",
+   "offset": 12,
+   "bytes": 6309096,
+   "sha256": "1bdc02740ac6aefdad19cca640a689aae76d4fd17e039c21d0cb42939b559856",
+   "checksum_stored": "41bf06c1ac6019cd",
+   "checksum_computed": "41bf06c1ac6019cd",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_header_bytes_191.fnn3: header_bytes must be 192",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_header_bytes_191.fnn3: header_bytes must be 192"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_header_bytes_191.fnn3: header_bytes must be 192"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_header_bytes_256",
+   "class": "header",
+   "field": "header_bytes 192 -> 256",
+   "offset": 12,
+   "bytes": 6309096,
+   "sha256": "b69955288c4685be524126d7cf2a180f2519fbb15b86095998b1e5499451b6b1",
+   "checksum_stored": "5268e775dcde7085",
+   "checksum_computed": "5268e775dcde7085",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "a longer header would shift every block",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_header_bytes_256.fnn3: header_bytes must be 192",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_header_bytes_256.fnn3: header_bytes must be 192"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_header_bytes_256.fnn3: header_bytes must be 192"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_inputs_767",
+   "class": "header",
+   "field": "inputs 768 -> 767",
+   "offset": 16,
+   "bytes": 6309096,
+   "sha256": "0f97f972a52bf8009a0ed59562a317c904850c494a56928db535c9d4ba5bb153",
+   "checksum_stored": "47a7c4ac373ff1aa",
+   "checksum_computed": "47a7c4ac373ff1aa",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_inputs_767.fnn3: inputs must be 768",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_inputs_767.fnn3: inputs must be 768"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_inputs_767.fnn3: inputs must be 768"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_inputs_1536",
+   "class": "header",
+   "field": "inputs 768 -> 1536",
+   "offset": 16,
+   "bytes": 6309096,
+   "sha256": "f9ed733dc8d19ed11e4af0b22f04c8f11565fcfea83759696b47e552c55864a4",
+   "checksum_stored": "1af5f1efa221a639",
+   "checksum_computed": "1af5f1efa221a639",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_inputs_1536.fnn3: inputs must be 768",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_inputs_1536.fnn3: inputs must be 768"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_inputs_1536.fnn3: inputs must be 768"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_hidden_544",
+   "class": "header",
+   "field": "hidden 512 -> 544 (in range, x32, body not resized)",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "a66eb7d9023a22c3521e9d65bb2d1b14c0675a85acc2e4c7410356bb0be1a5e0",
+   "checksum_stored": "1929dc9e2b916562",
+   "checksum_computed": "1929dc9e2b916562",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "in-range claim, size mismatch",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_hidden_544.fnn3: file size 6309096 != expected 6703400",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_hidden_544.fnn3: file size 6309096 != expected 6703400"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_hidden_544.fnn3: file size 6309096 != expected 6703400"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_hidden_480",
+   "class": "header",
+   "field": "hidden 512 -> 480 (in range, x32, body not resized)",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "106ff11af5d23832fca8a7647cd51d0ff0719f61b6a10b5cee1124bf4d3ad32a",
+   "checksum_stored": "a2df03757120f84f",
+   "checksum_computed": "a2df03757120f84f",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_hidden_480.fnn3: file size 6309096 != expected 5914792",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_hidden_480.fnn3: file size 6309096 != expected 5914792"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_hidden_480.fnn3: file size 6309096 != expected 5914792"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_hidden_1056",
+   "class": "header",
+   "field": "hidden 512 -> 1056 (> MaxHidden)",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "405eb2b1166a3e2958c4e23b6f12252a095e9d9db0d5dbc5139efe1f26c75089",
+   "checksum_stored": "8c77aa6000e7b158",
+   "checksum_computed": "8c77aa6000e7b158",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_hidden_1056.fnn3: hidden must be a multiple of 32 in 32..1024, got 1056",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_hidden_1056.fnn3: hidden must be a multiple of 32 in 32..1024, got 1056"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_hidden_1056.fnn3: hidden must be a multiple of 32 in 32..1024, got 1056"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_hidden_0",
+   "class": "header",
+   "field": "hidden 512 -> 0 (< MinHidden)",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "3259279e2115fb04dafee6525f8bd5287c4bbc2fb3647bf8a70fd1ffb621e1e1",
+   "checksum_stored": "c588689e4d17c624",
+   "checksum_computed": "c588689e4d17c624",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_hidden_0.fnn3: hidden must be a multiple of 32 in 32..1024, got 0",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_hidden_0.fnn3: hidden must be a multiple of 32 in 32..1024, got 0"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_hidden_0.fnn3: hidden must be a multiple of 32 in 32..1024, got 0"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_hidden_500",
+   "class": "header",
+   "field": "hidden 512 -> 500 (not a multiple of 32)",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "8041e0717aef6c32f480dc3c4ada7ac825426d65c2db9d6ede835e3135e3b25b",
+   "checksum_stored": "ec4955c4c8021f5b",
+   "checksum_computed": "ec4955c4c8021f5b",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "the AVX-512 kernel reads in 32-lane steps",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_hidden_500.fnn3: hidden must be a multiple of 32 in 32..1024, got 500",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_hidden_500.fnn3: hidden must be a multiple of 32 in 32..1024, got 500"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_hidden_500.fnn3: hidden must be a multiple of 32 in 32..1024, got 500"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_king_9",
+   "class": "header",
+   "field": "king_buckets 8 -> 9 (in range, body not resized)",
+   "offset": 24,
+   "bytes": 6309096,
+   "sha256": "4f92351edd778ee0aa95c67574744f29eb4c94ada4b54c5262d4249fd14b48ae",
+   "checksum_stored": "863b1b936322e72f",
+   "checksum_computed": "863b1b936322e72f",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_king_9.fnn3: file size 6309096 != expected 7095528",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_king_9.fnn3: file size 6309096 != expected 7095528"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_king_9.fnn3: file size 6309096 != expected 7095528"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_king_1",
+   "class": "header",
+   "field": "king_buckets 8 -> 1 (in range, body not resized)",
+   "offset": 24,
+   "bytes": 6309096,
+   "sha256": "c9791730a8cc4b2dffa10fcee6b2f2c5c95a2a561162ea53c3e2fa9cf14e7329",
+   "checksum_stored": "f8b1caf57eec7387",
+   "checksum_computed": "f8b1caf57eec7387",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_king_1.fnn3: file size 6309096 != expected 804072",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_king_1.fnn3: file size 6309096 != expected 804072"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_king_1.fnn3: file size 6309096 != expected 804072"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_king_33",
+   "class": "header",
+   "field": "king_buckets 8 -> 33 (> MaxKingBuckets)",
+   "offset": 24,
+   "bytes": 6309096,
+   "sha256": "3eb76ab00e74dd55817a0f68691f8e19aedb06834ac9fb99feb9d51b1d1288b0",
+   "checksum_stored": "a5b01ddea54194e7",
+   "checksum_computed": "a5b01ddea54194e7",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_king_33.fnn3: king_buckets must be 1..32, got 33",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_king_33.fnn3: king_buckets must be 1..32, got 33"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_king_33.fnn3: king_buckets must be 1..32, got 33"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_king_0",
+   "class": "header",
+   "field": "king_buckets 8 -> 0",
+   "offset": 24,
+   "bytes": 6309096,
+   "sha256": "806a4464527f7c9e589d5e75175fe4899f96fcc89a3f62a66fd3677aa4b5ae74",
+   "checksum_stored": "a5aca92539a3a0ba",
+   "checksum_computed": "a5aca92539a3a0ba",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_king_0.fnn3: king_buckets must be 1..32, got 0",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_king_0.fnn3: king_buckets must be 1..32, got 0"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_king_0.fnn3: king_buckets must be 1..32, got 0"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_out_9",
+   "class": "header",
+   "field": "output_buckets 8 -> 9 (in range, body not resized)",
+   "offset": 28,
+   "bytes": 6309096,
+   "sha256": "4957e05ee6882f006a3d8a11b88b313d6b215dc9ddb29af5a0635497a9de04ff",
+   "checksum_stored": "4603b788d7de359f",
+   "checksum_computed": "4603b788d7de359f",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_out_9.fnn3: file size 6309096 != expected 6311148",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_out_9.fnn3: file size 6309096 != expected 6311148"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_out_9.fnn3: file size 6309096 != expected 6311148"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_out_17",
+   "class": "header",
+   "field": "output_buckets 8 -> 17 (> MaxOutputBuckets)",
+   "offset": 28,
+   "bytes": 6309096,
+   "sha256": "a04be857ada9cd122ca5a469a38e559df511062bcc965f23a55c6622e01cab13",
+   "checksum_stored": "c5eaea7ef0733ae7",
+   "checksum_computed": "c5eaea7ef0733ae7",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_out_17.fnn3: output_buckets must be 1..16, got 17",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_out_17.fnn3: output_buckets must be 1..16, got 17"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_out_17.fnn3: output_buckets must be 1..16, got 17"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_out_0",
+   "class": "header",
+   "field": "output_buckets 8 -> 0",
+   "offset": 28,
+   "bytes": 6309096,
+   "sha256": "8a1066a7fd933f08e75631b2e88c607750f9e87ac496d98aa09791a7cdf55143",
+   "checksum_stored": "e504aafd00cea23a",
+   "checksum_computed": "e504aafd00cea23a",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_out_0.fnn3: output_buckets must be 1..16, got 0",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_out_0.fnn3: output_buckets must be 1..16, got 0"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_out_0.fnn3: output_buckets must be 1..16, got 0"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_flags_residual",
+   "class": "header",
+   "field": "flags 2 -> 3 (residual|mirror)",
+   "offset": 32,
+   "bytes": 6309096,
+   "sha256": "884aa86530a1828b133eeee105862abcd9f4631f09a2dc1e89c60fb397b7596b",
+   "checksum_stored": "da2108ebf233050f",
+   "checksum_computed": "da2108ebf233050f",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "loader accepts, UCI unloads: residual unsupported",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/hdr_flags_residual.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 residual eval_scale 400 checksum da2108ebf233050f max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/hdr_flags_residual.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 residual eval_scale 400 checksum da2108ebf233050f max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: residual v3 networks are not supported"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_flags_unknown",
+   "class": "header",
+   "field": "flags 2 -> 4 (unknown bit 2)",
+   "offset": 32,
+   "bytes": 6309096,
+   "sha256": "1def432e1e024d65f9f69b482dc12a175fc4227d948771f2cea0574e4f30e939",
+   "checksum_stored": "9cb903dbc68240c8",
+   "checksum_computed": "9cb903dbc68240c8",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_flags_unknown.fnn3: unknown flag bits",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_flags_unknown.fnn3: unknown flag bits"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_flags_unknown.fnn3: unknown flag bits"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_qa_254",
+   "class": "header",
+   "field": "qa 255 -> 254",
+   "offset": 36,
+   "bytes": 6309096,
+   "sha256": "f0887fb2cd067dc7f05969d6d6e6fd2d8ff06c7bc9f88b1bde13d50b9247d2a9",
+   "checksum_stored": "8e96bb7409bae37f",
+   "checksum_computed": "8e96bb7409bae37f",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_qa_254.fnn3: quantisation must be qa 255 / qb 64",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_qa_254.fnn3: quantisation must be qa 255 / qb 64"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_qa_254.fnn3: quantisation must be qa 255 / qb 64"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_qb_32",
+   "class": "header",
+   "field": "qb 64 -> 32",
+   "offset": 40,
+   "bytes": 6309096,
+   "sha256": "d6ca2ad8c57ca61f085157987afe87e09232d9aa198445ca72313181414759eb",
+   "checksum_stored": "4016752ba8d22f62",
+   "checksum_computed": "4016752ba8d22f62",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_qb_32.fnn3: quantisation must be qa 255 / qb 64",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_qb_32.fnn3: quantisation must be qa 255 / qb 64"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_qb_32.fnn3: quantisation must be qa 255 / qb 64"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_scale_0",
+   "class": "header",
+   "field": "eval_scale 400 -> 0",
+   "offset": 44,
+   "bytes": 6309096,
+   "sha256": "2f7aef936b83caea73486cd3417344c6182aa9eb782c9c7cb6ce9ec026493c67",
+   "checksum_stored": "6dda90ef970d5871",
+   "checksum_computed": "6dda90ef970d5871",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_scale_0.fnn3: eval_scale must be 1..10000",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_scale_0.fnn3: eval_scale must be 1..10000"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_scale_0.fnn3: eval_scale must be 1..10000"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_scale_10001",
+   "class": "header",
+   "field": "eval_scale 400 -> 10001 (> MaxEvalScale)",
+   "offset": 44,
+   "bytes": 6309096,
+   "sha256": "abf9fa567ed7b9ec39335dc27fa01b182c2dd0f1633143c022c1e8d901d3f4d9",
+   "checksum_stored": "5a772228f3c771a5",
+   "checksum_computed": "5a772228f3c771a5",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_scale_10001.fnn3: eval_scale must be 1..10000",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_scale_10001.fnn3: eval_scale must be 1..10000"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_scale_10001.fnn3: eval_scale must be 1..10000"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_reserved_1",
+   "class": "header",
+   "field": "reserved[15] 0 -> 1",
+   "offset": 160,
+   "bytes": 6309096,
+   "sha256": "7225ad7941257dd1008dafab12540224de846c96e534e5a3d2e871a20f63a3ec",
+   "checksum_stored": "d9e765892bcefc83",
+   "checksum_computed": "d9e765892bcefc83",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "reserved bytes must be zero",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_reserved_1.fnn3: reserved header bytes must be zero",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_reserved_1.fnn3: reserved header bytes must be zero"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_reserved_1.fnn3: reserved header bytes must be zero"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_kingmap_oob",
+   "class": "header",
+   "field": "king_bucket_map[0] 0 -> 8 (== king_buckets)",
+   "offset": 48,
+   "bytes": 6309096,
+   "sha256": "46af28ce6c711260e8b855efd83c920dc80e1abcaef1c43fa15cd0bb00c49182",
+   "checksum_stored": "56ffd53a6609f14a",
+   "checksum_computed": "56ffd53a6609f14a",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "index would read past w1's bucket range",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_kingmap_oob.fnn3: king_bucket_map entry out of range",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_kingmap_oob.fnn3: king_bucket_map entry out of range"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_kingmap_oob.fnn3: king_bucket_map entry out of range"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_kingmap_255",
+   "class": "header",
+   "field": "king_bucket_map[0] 0 -> 255",
+   "offset": 48,
+   "bytes": 6309096,
+   "sha256": "cc4bd8423a001bb9ea9e6f05962ab48a3d8135d1d99e7199bb24942b67d19262",
+   "checksum_stored": "305d7caf8f87693d",
+   "checksum_computed": "305d7caf8f87693d",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_kingmap_255.fnn3: king_bucket_map entry out of range",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_kingmap_255.fnn3: king_bucket_map entry out of range"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_kingmap_255.fnn3: king_bucket_map entry out of range"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_outmap_oob",
+   "class": "header",
+   "field": "output_bucket_map[0] 0 -> 8 (== output_buckets)",
+   "offset": 112,
+   "bytes": 6309096,
+   "sha256": "febc725ba0040cc2588de96f36b6c127f62002669efaba917a310c2a7e3a894d",
+   "checksum_stored": "b98920378561a7ba",
+   "checksum_computed": "b98920378561a7ba",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "index would read past w2",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_outmap_oob.fnn3: output_bucket_map entry out of range",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_outmap_oob.fnn3: output_bucket_map entry out of range"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_outmap_oob.fnn3: output_bucket_map entry out of range"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "hdr_outmap_255",
+   "class": "header",
+   "field": "output_bucket_map[32] 7 -> 255",
+   "offset": 144,
+   "bytes": 6309096,
+   "sha256": "27dae1408bd643586d16822c4243395c66b65f98b470b653588705d4e04c85ab",
+   "checksum_stored": "7cecfc144c43afda",
+   "checksum_computed": "7cecfc144c43afda",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/hdr_outmap_255.fnn3: output_bucket_map entry out of range",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/hdr_outmap_255.fnn3: output_bucket_map entry out of range"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/hdr_outmap_255.fnn3: output_bucket_map entry out of range"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "bomb_max_dims",
+   "class": "bomb",
+   "field": "hidden 1024 / king 32 / out 16, body unchanged",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "5519220e62c53bea78dd0717445c4773e9ada5c982a44a6ded6d03aadc89d34b",
+   "checksum_stored": "1ef972d036246768",
+   "checksum_computed": "1ef972d036246768",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "legal-range maxima: expected size ~50 MB, file is 6.3 MB",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/bomb_max_dims.fnn3: file size 6309096 != expected 50399496",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/bomb_max_dims.fnn3: file size 6309096 != expected 50399496"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/bomb_max_dims.fnn3: file size 6309096 != expected 50399496"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "bomb_hidden_max_only",
+   "class": "bomb",
+   "field": "hidden 512 -> 1024, king/out unchanged",
+   "offset": 20,
+   "bytes": 6309096,
+   "sha256": "718c498d2b85b56597b7312609e18fead16fa18bef4e59034a9d454e7674fae3",
+   "checksum_stored": "2cdaa73f992095f8",
+   "checksum_computed": "2cdaa73f992095f8",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/bomb_hidden_max_only.fnn3: file size 6309096 != expected 12617960",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/bomb_hidden_max_only.fnn3: file size 6309096 != expected 12617960"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/bomb_hidden_max_only.fnn3: file size 6309096 != expected 12617960"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "bomb_king_max_only",
+   "class": "bomb",
+   "field": "king_buckets 8 -> 32, hidden/out unchanged",
+   "offset": 24,
+   "bytes": 6309096,
+   "sha256": "fa00c1e8725c5a15e17ab73cf3b7205324c2db436975f54be8e92f9857a05cd3",
+   "checksum_stored": "d64f297a68f7d51a",
+   "checksum_computed": "d64f297a68f7d51a",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/bomb_king_max_only.fnn3: file size 6309096 != expected 25183464",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/bomb_king_max_only.fnn3: file size 6309096 != expected 25183464"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/bomb_king_max_only.fnn3: file size 6309096 != expected 25183464"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "bomb_out_max_only",
+   "class": "bomb",
+   "field": "output_buckets 8 -> 16, hidden/king unchanged",
+   "offset": 28,
+   "bytes": 6309096,
+   "sha256": "875d67ff7c467aa50cb3e8873af705eaca16147d344068ec43dc98960f864811",
+   "checksum_stored": "851cf5153fe309ea",
+   "checksum_computed": "851cf5153fe309ea",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/bomb_out_max_only.fnn3: file size 6309096 != expected 6325512",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/bomb_out_max_only.fnn3: file size 6309096 != expected 6325512"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/bomb_out_max_only.fnn3: file size 6309096 != expected 6325512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "ck_flip_w1",
+   "class": "checksum",
+   "field": "w1 byte XOR 1 at file/3",
+   "offset": 2103032,
+   "bytes": 6309096,
+   "sha256": "c20444d36dbee421aac4e014333d28db2e2bd22fcec5322a78d2d284971879d0",
+   "checksum_stored": "fdff70de72e4ca82",
+   "checksum_computed": "e673c6fe5067eb33",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "accidental weight damage",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/ck_flip_w1.fnn3: checksum mismatch",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/ck_flip_w1.fnn3: checksum mismatch"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/ck_flip_w1.fnn3: checksum mismatch"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "ck_flip_b1",
+   "class": "checksum",
+   "field": "b1 byte XOR 1",
+   "offset": 6291652,
+   "bytes": 6309096,
+   "sha256": "8832c3f727e9961f539cc4db7bcb9d8184f9287b0ad1a1b18117282597895a05",
+   "checksum_stored": "fdff70de72e4ca82",
+   "checksum_computed": "3a0014ad6aa3a353",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/ck_flip_b1.fnn3: checksum mismatch",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/ck_flip_b1.fnn3: checksum mismatch"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/ck_flip_b1.fnn3: checksum mismatch"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "ck_flip_w2",
+   "class": "checksum",
+   "field": "w2 byte XOR 1",
+   "offset": 6292676,
+   "bytes": 6309096,
+   "sha256": "b09d38b5204cc8ef304d83b2b25d03553eda66d82e8890fe6c047095f80b7631",
+   "checksum_stored": "fdff70de72e4ca82",
+   "checksum_computed": "2ee58c5f1407f0d3",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/ck_flip_w2.fnn3: checksum mismatch",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/ck_flip_w2.fnn3: checksum mismatch"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/ck_flip_w2.fnn3: checksum mismatch"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "ck_flip_b2",
+   "class": "checksum",
+   "field": "b2 byte XOR 1",
+   "offset": 6309056,
+   "bytes": 6309096,
+   "sha256": "2b872555a538bdb0b6a18944b733daa7d46b1a5d20dfd328e94c20a3076be79f",
+   "checksum_stored": "fdff70de72e4ca82",
+   "checksum_computed": "035823c515db0b03",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/ck_flip_b2.fnn3: checksum mismatch",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/ck_flip_b2.fnn3: checksum mismatch"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/ck_flip_b2.fnn3: checksum mismatch"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "ck_flip_scale",
+   "class": "checksum",
+   "field": "eval_scale low byte XOR 1 (in range: 400 -> 401)",
+   "offset": 44,
+   "bytes": 6309096,
+   "sha256": "71129bd144d2eda134f25819601c600893f98e6c1586b93c9b8a22d8c38906b7",
+   "checksum_stored": "fdff70de72e4ca82",
+   "checksum_computed": "c1da528453da135f",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "the altered value is itself legal; only the checksum sees it",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/ck_flip_scale.fnn3: checksum mismatch",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/ck_flip_scale.fnn3: checksum mismatch"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/ck_flip_scale.fnn3: checksum mismatch"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "ck_flip_stored",
+   "class": "checksum",
+   "field": "stored checksum byte XOR 1",
+   "offset": 6309095,
+   "bytes": 6309096,
+   "sha256": "79833bc6db1aa217048597ccc2e7ec8547d314f203fd79d64a6267f7dd877935",
+   "checksum_stored": "fcff70de72e4ca82",
+   "checksum_computed": "fdff70de72e4ca82",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/ck_flip_stored.fnn3: checksum mismatch",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/ck_flip_stored.fnn3: checksum mismatch"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/ck_flip_stored.fnn3: checksum mismatch"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "rechecksummed",
+   "class": "adversarial",
+   "field": "w1 byte XOR 0xFF at file/3, checksum recomputed",
+   "offset": 2103032,
+   "bytes": 6309096,
+   "sha256": "d4c92fa94ae83963265f74f00b17bf68398f2bd3f3076688b663bcd636668832",
+   "checksum_stored": "a1ab778dfa69b9f9",
+   "checksum_computed": "a1ab778dfa69b9f9",
+   "checksum_valid": true,
+   "expect": "accept",
+   "note": "must load: FNV-1a detects accident, not intent",
+   "probe_rel": {
+    "rc": 0,
+    "verdict": "accept",
+    "detail": "ACCEPTED\tv3 /tmp/mut/rechecksummed.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum a1ab778dfa69b9f9 max|w1| 205 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968",
+    "stdout_head": [
+     "ACCEPTED\tv3 /tmp/mut/rechecksummed.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum a1ab778dfa69b9f9 max|w1| 205 max|b1| 96 max|w2| 16 kernel avx512\tstartpos_eval 968"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: loaded v3 /tmp/mut/rechecksummed.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum a1ab778dfa69b9f9 max|w1| 205 max|b1| 96 max|w2| 16 kernel avx512"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": false,
+    "accepted": true
+   }
+  },
+  {
+   "name": "tr_zero",
+   "class": "truncation",
+   "field": "cut to 0 bytes",
+   "offset": null,
+   "bytes": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "checksum_stored": null,
+   "checksum_computed": null,
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_zero.fnn3: file too small for a v3 header",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_zero.fnn3: file too small for a v3 header"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_zero.fnn3: file too small for a v3 header"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_8",
+   "class": "truncation",
+   "field": "cut to 8 bytes (magic only)",
+   "offset": null,
+   "bytes": 8,
+   "sha256": "47b430a3b073d2947d9caffabd9917b3072b67f4dc3e098184055b5f6c7ebe6d",
+   "checksum_stored": "334e4e4547524f46",
+   "checksum_computed": "cbf29ce484222325",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_8.fnn3: file too small for a v3 header",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_8.fnn3: file too small for a v3 header"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_8.fnn3: file too small for a v3 header"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_191",
+   "class": "truncation",
+   "field": "cut to 191 bytes (one short of the header)",
+   "offset": null,
+   "bytes": 191,
+   "sha256": "3040b03cc2e347ea2d8a58d42ef46a784a94e2e779a80766cadb63dae832b0bd",
+   "checksum_stored": "0000000000000000",
+   "checksum_computed": "d971ad5448b36b6e",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_191.fnn3: file too small for a v3 header",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_191.fnn3: file too small for a v3 header"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_191.fnn3: file too small for a v3 header"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_header_192",
+   "class": "truncation",
+   "field": "cut at exactly the header length",
+   "offset": null,
+   "bytes": 192,
+   "sha256": "62d1ef30b7f1eb9b34f9f36968bc4294859c9a3b1331033a50b2a06e5240e2bc",
+   "checksum_stored": "0000000000000000",
+   "checksum_computed": "2f94f43788df8bea",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "header alone cannot carry a checksum",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_header_192.fnn3: file too small for a v3 header",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_header_192.fnn3: file too small for a v3 header"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_header_192.fnn3: file too small for a v3 header"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_200",
+   "class": "truncation",
+   "field": "cut at header + 8 bytes",
+   "offset": null,
+   "bytes": 200,
+   "sha256": "f2e8f745e724445183851d5892f1113313764f09e0168362db311dcb21b389f1",
+   "checksum_stored": "003dfff8fffb002f",
+   "checksum_computed": "001fde1e06b8ad2a",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "first size that clears the minimum-length gate",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_200.fnn3: file size 200 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_200.fnn3: file size 200 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_200.fnn3: file size 200 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_w1_start",
+   "class": "truncation",
+   "field": "cut at exactly the first weight block (header+w1)",
+   "offset": null,
+   "bytes": 6291648,
+   "sha256": "f495600d549f79cf89552d75b50b0b1f30007b8e3531c7d9e7d032fbebae504a",
+   "checksum_stored": "003c0039ffd4002b",
+   "checksum_computed": "d996dce0cda5c26d",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_w1_start.fnn3: file size 6291648 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_w1_start.fnn3: file size 6291648 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_w1_start.fnn3: file size 6291648 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_w1_mid",
+   "class": "truncation",
+   "field": "cut mid-w1 (header + w1/2)",
+   "offset": null,
+   "bytes": 3145920,
+   "sha256": "df8a4aa0f9a952e569170d1de925540327064d8e5d7aa27fd2e06946006a101e",
+   "checksum_stored": "001bffc2ffd9ffde",
+   "checksum_computed": "37331f26e9d88658",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_w1_mid.fnn3: file size 3145920 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_w1_mid.fnn3: file size 3145920 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_w1_mid.fnn3: file size 3145920 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_w1_mid_block",
+   "class": "truncation",
+   "field": "cut mid-block: b1 cut in half",
+   "offset": null,
+   "bytes": 6292160,
+   "sha256": "17f7ab31dfce65e1e1de7134f5fa70a7882d0636b8b03659c92201c384ddcf84",
+   "checksum_stored": "0006ffed00500008",
+   "checksum_computed": "6ed43ba794209645",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_w1_mid_block.fnn3: file size 6292160 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_w1_mid_block.fnn3: file size 6292160 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_w1_mid_block.fnn3: file size 6292160 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_w2_mid",
+   "class": "truncation",
+   "field": "cut mid-w2",
+   "offset": null,
+   "bytes": 6300864,
+   "sha256": "642f1d9e1e5b2389d6eeb7a2729c878014ed15fd98c86453fedbcee765ecb061",
+   "checksum_stored": "0002fff9fff2fff0",
+   "checksum_computed": "ebfd5077fd21658e",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_w2_mid.fnn3: file size 6300864 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_w2_mid.fnn3: file size 6300864 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_w2_mid.fnn3: file size 6300864 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_b2_mid",
+   "class": "truncation",
+   "field": "cut mid-b2",
+   "offset": null,
+   "bytes": 6309064,
+   "sha256": "9f82c28780cd1e951422f93ce83e37e22377a9577b27d55b9099f6fcfd11f9ff",
+   "checksum_stored": "0000000000000000",
+   "checksum_computed": "e34266333fd38982",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_b2_mid.fnn3: file size 6309064 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_b2_mid.fnn3: file size 6309064 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_b2_mid.fnn3: file size 6309064 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_drop_checksum",
+   "class": "truncation",
+   "field": "cut the last 8 bytes (all weights intact)",
+   "offset": null,
+   "bytes": 6309088,
+   "sha256": "39c044286252d9d66383f7747e783315c78ac86943f9c785d466565e6da4e906",
+   "checksum_stored": "0000000000000000",
+   "checksum_computed": "ea0d6f00eb29ee42",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "stored 'checksum' would be the last 8 bytes of b2",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_drop_checksum.fnn3: file size 6309088 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_drop_checksum.fnn3: file size 6309088 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_drop_checksum.fnn3: file size 6309088 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_1_short",
+   "class": "truncation",
+   "field": "one byte short of complete",
+   "offset": null,
+   "bytes": 6309095,
+   "sha256": "6b902a0b0b522006d302a011b97a3afab74b9c3473df966adc29bd32357c0b58",
+   "checksum_stored": "ff70de72e4ca8200",
+   "checksum_computed": "0beef437d4b6f676",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_1_short.fnn3: file size 6309095 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_1_short.fnn3: file size 6309095 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_1_short.fnn3: file size 6309095 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_extend_1",
+   "class": "truncation",
+   "field": "one byte past complete (appended 0x00)",
+   "offset": null,
+   "bytes": 6309097,
+   "sha256": "cf6366b7bc610bd8fbce7635b08027189fc5b430d8aceae5f2bee5fc91bab9b2",
+   "checksum_stored": "00fdff70de72e4ca",
+   "checksum_computed": "7dd6c9fd3ac33e00",
+   "checksum_valid": false,
+   "expect": "refuse",
+   "note": "",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_extend_1.fnn3: file size 6309097 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_extend_1.fnn3: file size 6309097 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_extend_1.fnn3: file size 6309097 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  },
+  {
+   "name": "tr_extra_block",
+   "class": "truncation",
+   "field": "an extra b1 block appended, checksum resealed",
+   "offset": null,
+   "bytes": 6310120,
+   "sha256": "cf9c603bf5ba3a2018ee9db6ff4d9ab37eb67b4391dea179770a477f99b00c98",
+   "checksum_stored": "5534c8884552bcf5",
+   "checksum_computed": "5534c8884552bcf5",
+   "checksum_valid": true,
+   "expect": "refuse",
+   "note": "a duplicated layer: size check, not a header field",
+   "probe_rel": {
+    "rc": 1,
+    "verdict": "refuse",
+    "detail": "/tmp/mut/tr_extra_block.fnn3: file size 6310120 != expected 6309096",
+    "stdout_head": [
+     "REFUSED\t/tmp/mut/tr_extra_block.fnn3: file size 6310120 != expected 6309096"
+    ],
+    "stderr_head": [],
+    "sanitizer_lines": [],
+    "timeout": false
+   },
+   "engine": {
+    "rc": 0,
+    "timeout": false,
+    "stdout_lines": [
+     "info string NNUE v3: /tmp/mut/tr_extra_block.fnn3: file size 6310120 != expected 6309096"
+    ],
+    "stderr": "",
+    "stderr_nonempty": false,
+    "readyok_count": 2,
+    "refused": true,
+    "accepted": false
+   }
+  }
+ ]
+}
