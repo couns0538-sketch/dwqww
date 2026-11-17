@@ -743,3 +743,18 @@ next: cadence.
 Tally: 39 findings, 30 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead.
 
 next: cadence.
+
+## 2026-11-17T02:16Z — TALLY CORRECTION (counted from the file, not from memory)
+I have been reporting "30 checks" in my messages; the file holds **26**. Counted mechanically just now:
+
+| series | count | ids |
+|---|---|---|
+| findings | **39** | 08-F1..F39 |
+| checks / audits / plants | **26** | C1..C6, C8..C27 (no C7 — superseded by C8, noted in the file) |
+| method lines | **5** | 08-N1..N5 |
+| withdrawals | **2** | 08-W1, 08-W2 |
+| open leads | **1** | 08-O1 |
+
+**So the correct tally is 39 / 26 / 5 / 2 / 1**, and my earlier "30 checks" messages over-reported by four. This is the
+same failure the seat has been catching all night — a count quoted from memory rather than read from the file — and it
+is now caught the same way: by reading the file.
