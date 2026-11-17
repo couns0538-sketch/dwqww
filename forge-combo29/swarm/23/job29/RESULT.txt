@@ -1,0 +1,28 @@
+IS THE DRAWN-ROOT BLUNDER GENERAL? — yes in 3 of 4 games, and one game where BOTH builds give 0 nodes
+==================================================================================================
+Six clock self-play games from varied openings, each played until the position had ACTUALLY occurred 3 times by my
+own key (board+side+castling+ep) — not python-chess's claimable predicate (the 23-F59 error). Four reached a third
+occurrence; two did not within 200 plies.
+
+| # | opening | 3rd occ at ply | base move / nodes | PC move / nodes | base move alone @16 | PC move alone @16 | gap |
+|---|---|---|---|---|---|---|---|
+| 1 | (none) | 31 | e6e5 / **0** | b6b4 / 1,376,300 | **cp -805** | cp 0 | 805 |
+| 2 | e2e4 | 69 | c6c5 / **0** | e4b1 / 1,602,068 | **cp -39** | cp 0 | 39 |
+| 3 | d2d4 | 31 | e6e5 / **0** | b6b4 / 1,376,300 | **cp -805** | cp 0 | 805 |
+| 4 | c2c4 | 142 | d1c1 / **0** | d1c1 / **0** | cp 0 | cp 0 | 0 |
+| 5 | g1f3 | none within 200 plies | — | — | — | — | — |
+| 6 | e2e4 e7e5 | none within 200 plies | — | — | — | — | — |
+
+PREDICTIONS: P1 held (4 games reached a third occurrence, needed >= 3). P2 held (base answered 0 nodes in every one).
+P3 held (the base's unsearched move was worse than -100 cp in 2 of the 4 — games 1 and 3 at -805). P4 held (moves
+differed in 3 of 4).
+
+WHAT IS NEW AND MATTERS, in game 4: **BOTH builds answered 0 nodes and the same move** (`d1c1`, cp 0 each). So the
+defect is NOT universally repaired on the PC — there is at least one naturally reached repetition where the PC also
+short-circuits. That is a case file 3's "repaired on the PC since 15 November" does not cover, and it is only visible
+because I played games to their own third occurrence rather than reusing one board.
+
+LIMITS, stated because this is a small sample: 4 games, all from seed games this build played against itself in this
+session, one settings combination. Two of the six openings did not reach a repetition in 200 plies, so "how often a
+game reaches one" is not measured here. And I am not claiming game 4's shared 0 nodes is the same root cause as the
+base's — only that the observable is identical.
