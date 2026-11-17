@@ -1385,9 +1385,12 @@ artefact.** The five instances:
 | a rate needs its population named | first reported the truncation as a bare "2 of 14" without the 0-of-120 ordinary-play figure beside it |
 | a derived flag is a claim about the data, not a summary | the zero-node checker scored 220-node cells "healthy" and would have reported "no collapse in any cell" |
 
-**That is a diagnosis with a mechanism, not a confession.** The mechanism is that a prose rule binds its author's
-memory, and memory fails predictably at the moment of creation — you are thinking about the content you are adding,
-not the shape of the page you are adding it to. **So the rules that matter are the ones that run in a script before
+That is a diagnosis with a mechanism, not a confession.
+
+> **A prose rule binds the author's memory, and memory fails at the moment of creation — when attention is on the
+> content being added, not on the shape of the artefact it is being added to.**
+
+**So the rules that matter are the ones that run in a script before
 the claim**: `check_findings_table.py` (row shape), `check_page_shape.py` (section order), `honesty.py` (the pins),
 and the paste-from-script habit for tables. Each checker exists because a rule already in prose was not enough.
 
