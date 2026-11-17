@@ -526,3 +526,17 @@ next: cadence.
 Tally: 33 findings, 22 checks/plants, 3 method lines, 1 withdrawal, 46 report/analysis files.
 
 next: cadence.
+
+## 2026-11-17T01:30Z
+- **08-F34: drained the owner's clock to the flag — 0 flags in 600 moves.** Owner's control, PC r15 PC20, Threads 1,
+  clock walked forward as a GUI does (clock -= wall, += 60), 200 moves x 3 positions: lowest clock **1438-1744 ms**,
+  **0 moves where wall > remaining clock**. The clock STABILISES rather than draining, because once the spend falls
+  below the 60 ms increment the drift is positive and the time manager shortens with it.
+- Limits stated: not a game (same position re-searched, nothing won); 6+0.06 is generous against a ~185-340 ms median
+  move; and a single ≤8-piece endgame move (1585 ms) arriving at ~1400 ms would still risk a flag — not staged here.
+- That completes the clock line: per-position share (2.5-13.7 %, median ~4 %), where the tail lives (≤8 pieces, up to
+  the hard plan), and whether it ever flags (no, 600 moves).
+
+Tally: 34 findings, 22 checks/plants, 3 method lines, 1 withdrawal.
+
+next: cadence.
