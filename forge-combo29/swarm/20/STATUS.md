@@ -787,3 +787,16 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   K+B/B+N v K is not a forced win).
 - Reconciliation paragraph now sits directly under the S-C51 confirmation table, not in a footnote.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:20:07Z METHOD pre-check list for mate scores + why a bound beats a re-run; my own identity gate caught 3 of my jobs
+- **PRE-CHECK (three items, ten seconds, no harness)**: (1) material maximum — K+R/K+Q v lone king **<=16 moves (31
+  plies)**, K+B or K+N alone **NOT a forced win**; (2) arithmetic — `mate N` claims **2|N|** plies (N<0) or **2N-1**
+  (N>0), so if that exceeds the material maximum the score is impossible; (3) read material, write maximum, compare.
+- **Why bound beats re-run**: a re-run shows a number did not come out again and invites "different build/harness/
+  machine"; a bound shows the number **could not come out of ANY engine on that material** — a statement about the
+  POSITION, not the measurement, and it cannot be argued with.
+- **My own identity gate caught job74, job75, job79** — post-rule jobs with no exe identity. Each now has EXE_ID.txt
+  (sha256 + id_name + regime); gate returns 0. **Fourth time a check I built caught my own work** — the argument for
+  building them.
+- Four gates pass: findings_lint, transcript_audit, exe_identity_audit, machine_clean.
+Next: continue in the window (ends 2026-11-17T10:18Z).
