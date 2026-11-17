@@ -12,12 +12,12 @@ invisible to this instrument", never "this change is safe"**, and the two are on
 probe proves the change was live. The measurement is in §6, the blind-spot list in §10.
 
 **A companion file enumerates the whole run as a matrix rather than an argument**:
-[`test-matrix.md`](test-matrix.md) — **129 rows**: 29 areas tested and correct, 29 tested and wrong, 15
+[`test-matrix.md`](test-matrix.md) — **130 rows**: 29 areas tested and correct, 30 tested and wrong, 15
 tested with a conditional answer, 21 never tested (each with the reason), and **35 instruments in this
 audit that reported something false**, with what caught each one. Start there if you want the checklist;
 start here if you want the reasoning.
 
-**Start here — the eight decisions, in the order they cost you if you get them wrong.**
+**Start here — the ten decisions, in the order they cost you if you get them wrong.**
 
 | # | decision | verdict | section |
 |---|---|---|---|
@@ -29,6 +29,8 @@ start here if you want the reasoning.
 | 6 | Any harness that re-sends its option block per game | **an unchanged `Hash` re-send clears the table** (same as `Clear Hash` as measured, but it leaves a **cold table with warm histories**). **Costs nothing around `ucinewgame`; costs +157% nodes between moves; changes 4 of 30 answers on a resume path without `ucinewgame`** | §3, trap 3 |
 | 7 | `AspirationDelta` and the two aspiration switches | **leave the delta at 18 and do not enable either switch without re-screening.** Changing the delta moves the score on **126 of 133** positions and the move on **95 of 133** for a **12–15% median node saving**; one position's `cp 517` becomes a **true `mate 2`** at delta 200, so the default window misses a forced mate a wider one finds. Both switches lose a mate the default finds at fixed depth | §3 |
 | 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it on the evidence so far** — it costs **2–3 plies of effective depth** on forced mates and is **the only thing on this engine measured to lose a mate the default finds**. On 30 verified fixtures it changes 9 verdicts, helps 4, **harms 5**. **It does converge**: every harm recovers by depth 9 or 10, so the cost is depth-efficiency, not soundness | §3 |
+| 9 | `ContHist4PlyRead` | **never enable it for anything that reads mate scores** — it reports **`mate 12` for a mate in 5 plies**, a claim 7 plies wrong whose printed PV cannot deliver it. **Default is `false` and the default build is correct on the same position**, so this is a hazard for whoever turns it on, not a live defect. Scope 1 of 30 mate fixtures; mechanism unknown | §1b |
+| 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 167 of 192 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Zero of the 37 attributable failures involved the bail**, so patching the bail fixes none of them | §10 |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
 question that was not asked, in **five** distinct ways, and three of the five are indistinguishable from
@@ -2264,9 +2266,6 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
   - Know which of the three uses you are making: absolute recording (unusable), move verification
     (vacuous), **two-candidate comparison with both arms pinned at a ≥100 cp gap (usable)**. Anything wider
     is not established.
-- **A defect's blast radius is a different question from the defect, and has to be measured rather than
-  inferred.** Checking whether one finding invalidated a cross-seat result changed what the finding meant
-  for that result.
 - **A cap test needs a rising-series control.** "Respected the cap" is equally consistent with "ignored
   the budget and searched a fixed amount" unless rising budgets produce rising work. **The controls are
   the product; the numbers are downstream of them.** Seven checks in one seat in a few hours were made
@@ -2596,30 +2595,27 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
     **format** in a given **directory**. It cannot tell whether a check **ought** to scan a directory
     nobody thought of. **Format-and-directory reach is now testable; which directories should exist
     is still imagination.**
-- **A correction that adds without removing is not a correction — and the COORDINATOR did it while writing
-  the rule.** A defect entry was rewritten from "splices" to "truncates" by **replacing the heading and
-  appending the new evidence, while the old sentence ("and then applies `e7e5` anyway") stayed standing
-  three lines above the perft-3 result that refutes it.** **A reader who stopped at the first sentence got
-  the opposite answer from a reader who continued.** Two further cosmetic survivors in the same edit — a
-  count list printed twice in adjacent sentences, and a range label that only made sense if the reader
-  inferred the sequence length.
-  - **The tell: after correcting an entry, read it TOP TO BOTTOM as a stranger, not as the person who just
-    edited it.** The editor's eye skips the sentence it did not touch.**
-- **A correction that adds without removing is not a correction, and the row ABOUT the correction is
-  where the survivor hides.** A findings row that documents its own correction **makes the finding look
-  maintained**, so a skimmer takes the first plain statement and reads the qualifier as a footnote.
-  - **The pattern is self-camouflaging, which is why it needs a tool rather than attention.** One seat
-    fixed the exact sentence it had been shown and **left a second instance three sentences later in the
-    same row**; a sweep that flags rows pointing at a *later* finding id while still asserting an
-    unqualified absolute found it. **The author had just fixed the sentence it was asked about and still
-    missed its twin.**
-  - **And the detector's own limit is the same shape:** once corrected, the sentence contains the
-    offending words *inside the clause explaining why that phrase is wrong*, so it flags itself. The
-    qualifier set had to accept self-rejecting forms (`not … none`, `often no`, `only N of M`). **A
-    detector for stale absolutes will always fire on the text that retires them.**
 - **A correction that adds without removing is not a correction.** Same mechanism as the stale
   number: the new claim is written, the old one stays standing in the same section, and the reader
-  meets both.
+  meets both. **Three separate instances are recorded below, which is itself an instance** — and the
+  first two were standing next to this one until a duplicate check found them.
+  - **The coordinator did it while writing this very rule.** A defect entry was rewritten from
+    "splices" to "truncates" by **replacing the heading and appending the new evidence, while the old
+    sentence ("and then applies `e7e5` anyway") stayed standing three lines above the perft-3 result
+    that refutes it** — so **a reader who stopped at the first sentence got the opposite answer from a
+    reader who continued.** Two further cosmetic survivors in the same edit: a count list printed
+    twice in adjacent sentences, and a range label that only made sense if the reader inferred the
+    sequence length. **The tell: after correcting an entry, read it TOP TO BOTTOM as a stranger**,
+    because the editor's eye skips the sentence it did not touch.
+  - **The row ABOUT the correction is where the survivor hides**, because a row that documents its own
+    correction **makes the finding look maintained** and a skimmer reads the qualifier as a footnote.
+    **The pattern is self-camouflaging, which is why it needs a tool rather than attention**: one seat
+    fixed the exact sentence it was shown and **left a second instance three sentences later in the
+    same row**, which a sweep for rows asserting an unqualified absolute while pointing at a later
+    finding id then caught.
+  - **And a detector for this will always fire on the text that retires it**, because the corrected
+    sentence contains the offending words inside the clause explaining why they are wrong. The
+    qualifier set had to accept self-rejecting forms (`not … none`, `often no`, `only N of M`).
   - **An edit has two operations and the second is the one that gets skipped: adding is an authoring
     act, removing is a search act, and a search only works if you look for what you wrote.** Write
     both in one edit so no window exists where both stand; then grep for the phrase you contradicted.
@@ -3033,8 +3029,6 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
   - **Its limit belongs beside it: the audit checks that SOME path resolves, not that the path supports
     the claim.** A row citing an unrelated file that exists passes — the same shape as a checker that
     cannot tell a claim from a quotation of it.
-- **A control must be demonstrated to fail when the input is wrong**, not merely to pass when it is
-  right.
 - **State what the comparator is before comparing.** A validation gate and the thing it validates
   can share the same broken key, in which case no assertion can ever disagree with it.
 - **"Why" claims need the test more than "what" claims do.** A wrong description looks wrong; a
@@ -3473,6 +3467,25 @@ silently while leaving "the reference resolves" true.
     correctness one. **`Lmr` + `FutilityPrune` change 55 of 148 and enabling them LOSES mates** — one board
     goes from `mate 2 / g1b1 / 894 nodes` to **`cp 831 / g2h1 / 331`**. **`SingularExt` and
     `QuietExtinction` are inert**, and only in endgames.
+  - **And a ninth false-mate mode, found later, is a SWITCH rather than a parser bug: `ContHist4PlyRead`
+    reports `mate 12` for a mate in 5 plies.** On `3k4/8/6K1/1Q6/8/8/8/8 w - - 6 4` at `go depth 12`:
+    **59228 nodes and `g6f7` with the switch on, against `cp 1203` / `b5b7` / 80842 nodes with it off.
+    I reproduced both arms myself and verified the claim three ways**:
+    - **`mate 12` implies 23 plies and the PV it prints is 14**, so the PV cannot deliver the score it
+      claims — and replaying it against python-chess ends at `3Q4/3K4/k7/8/8/8/8/8`, **not checkmate**.
+    - **The true distance is 5 plies**, established by an exhaustive AND/OR search (none in 1 or 3, mate in
+      5). So the **distance is wrong by seven plies** while a mate really does exist: **this is a wrong
+      distance, not a missed mate and not a mate where there is none.**
+    - **It requires the switch.** `ContHist4PlyRead` is `default false` and **the default build is correct
+      on this position**, so the blast radius is exactly "whoever turned it on" — a shipping decision, not
+      an emergency.
+    - **Scope measured by the seat: 1 of 30 mate fixtures.** Narrow and position-specific, **not a collapse
+      of mate detection**, and **the mechanism is not established and is not claimed** — a reproducible
+      wrong answer with an unproven cause is the honest form.
+  - **Three mate-defect classes now have to be kept apart, and a checker that conflates them will report one
+    as another**: a **wrong distance where a mate exists** (this one, off by 7 plies); a **false mate where
+    none exists**; and a **PV too short to verify the score** (10 of 190 claims in one corpus, which an
+    earlier draft of this report wrongly called false mates). **Only the first two are defects.**
   - **And a short clock silently costs the mate**: **3 of 7 clock forms changed the answer on a
     mate-in-4 board.** Separately, **5 of 21 clocked cells publish a score the clockless search does not
     give at the same reported depth**, because `emit(depth, result.score, …)` prints the **unfinished
@@ -4642,11 +4655,68 @@ Collected here so a reader does not mistake a closed behaviour for a closed mech
   tax that outweighs a real node saving" as established**, with the CI robust to the game-sequence
   autocorrelation that a skeptical reader should ask about. **The residual open item is not the sign but
   the switch decomposition** — see the next entry.
+  - **A reproduction attempt on a shared machine failed, and that is recorded rather than hidden.** Sixteen
+    ABBA blocks at 250 ms gave a PC/base geomean of **0.8637** — but the **A/A control, the same binary in
+    both slots, gave 1.1710**, so that harness's floor was a 17% swing and the bias-corrected figure
+    ("26% slower") is an artefact of the correction, not a measurement. **A small re-run against a 4–5%
+    effect needs a floor well under 4.5%, and this one had 17%.** The n = 10,774 run with its CI excluding
+    1.0 is the measurement of record; **"independently checked" means nothing without the floor it was
+    checked against, so both numbers are here.**
 - **Every individual PC20 switch as a node saving.** All four paired-effect CIs include 1.0. The
   aggregate is established and the components are not; TtPruneV2's *direction* is significant while its
   *magnitude* is not.
 
 **Known scope limits that a reader might otherwise over-read**
+- **The engine cannot reliably convert won endings, and the cause is the FIFTY-MOVE CLOCK, not the
+  bare-minor inversion — this is the single most consequential finding in the report for anyone who plays
+  the engine.** Measured with an **exact-table oracle as the control, which converts 20 of 20 in KQK and 20
+  of 20 in KRK and 192 of 192 won KPK cells**, so the harness is proven able to convert:
+
+  | family | engine, depth 12 | engine, `nodes 12000` | oracle |
+  |---|---|---|---|
+  | KQK | **18 / 20** | 19 / 20 | **20 / 20** |
+  | KRK | **10 / 20** | **8 / 20** | **20 / 20** |
+  | KBNK | **3 / 20** | **3 / 20** | not run (no 4-piece table) |
+  | KPK (192 won cells) | 142 / 192 | **167 / 192** | **192 / 192** |
+
+  - **Every attributable failure ends in a fifty-move claim with ZERO drawn-root bails**: 2 KQK + 10 KRK +
+    25 KPK = **37 failures, `n_bails = 0` on all 37.** So **a repair aimed at the bail would fix none of
+    them**, and that negative is the most useful part of the result — it contradicts the natural hypothesis.
+  - **The mechanism is the already-documented leaf band, and I verified it independently on the seat's own
+    board.** `8/8/8/8/8/2k5/8/KQ6 w - - H 1` at `go depth 12`:
+
+    | halfmove clock | score | nodes |
+    |---|---|---|
+    | 0 and 60 | **cp 1220** | 93,585 |
+    | 80 | cp 1129 | 711,846 |
+    | 85 | cp 1085 | 18,784,716 |
+    | **90** | **cp 0** | **101,428,235** |
+    | 95 | cp 0 | 156,416 |
+
+    **The band is at clock 90 and the score there is exactly `cp 0` — not "small", the same value a real
+    draw returns**, which is why the engine cannot distinguish a won position from a drawn one at that
+    clock. **And the node count to answer a question it answered in 93,585 nodes at clock 60 is 101
+    million.** The engine does not fail to see the win; **it decides the position is drawn and then
+    shuffles correctly for a drawn position.**
+  - **The seat is careful about what it proves**: it **did not instrument the leaf**, so this is
+    "consistent with the documented `H > 100 − p` rule", not a proof. **KBNK is a measurement without a
+    mechanism** — 3 of 20, 17 ended in a fifty-move claim, and **the seat explicitly refuses to attribute it
+    to the bare-minor inversion because it built no KBNK table**. That refusal is the right call.
+  - **The bare-minor inversion's game-level cost is SMALLER than the static number suggests, and that is a
+    second null**: as the defender the engine **held 20 of 20 in both KBK and KNK**, because
+    `is_insufficient_material()` short-circuits the root and it plays the generator's first move. **The
+    −147/−144 score never costs a draw.** What it does cost is a **bail storm**: **2,152 bails across 20 KBK
+    games and 2,064 across 20 KNK games**, about 100 per game, and 100+ plies of shuffling a bare minor.
+    **So the defect is "it cannot win a won ending" and "it makes a drawn one tedious", not "it loses drawn
+    ones".**
+  - **One KRK game shows the two mechanisms compounding, which is why they must be described separately**:
+    the engine held the win for 100 plies, the clock reached 99, its score collapsed to `cp 0` in 320
+    nodes, it played **`Kxh3`, giving up the rook**, and the remainder is K vs K with the bail firing every
+    ply. **The clock defect created the material bail, not the reverse.**
+  - **Horizon does not rescue it**, and the ladder belongs with the numbers: at depth 12 the exact KQK
+    positions that fail need depths in the tens to convert, and the node counts at clock 90 (101 million on
+    a three-piece board) show why that is not a practical answer. **The report's §2 band repair is the
+    relevant fix, not more depth and not the bail patch.**
 - **The mate-in-one forfeit breadth.** 6 of 6 fixtures, two mate types — and all six have Black's king on
   g8/h8 with pawns intact. Breadth beyond two structures was not tested.
 - **The MultiPV instability split.** The rate held when the stratum nearly doubled, and the interval is
@@ -4725,6 +4795,7 @@ reached is not an area that was cleared.
 | **The NNUE v3 net loader under malformed input** | **Sound.** **53 of 60 hand-built mutants refused, and the 7 that load are exactly the 7 that must** — one residual-flags case the loader accepts by format and the **UCI layer then refuses and unloads**. Plus **1,819 swept header mutations** and **0 sanitizer lines** under ASan+UBSan. Header mutants were **re-checksummed**, so the field guard is what refuses them rather than the checksum. **The one defect is a resource bug, not corruption** — see §10's B29. **The v2 loader remains open** (different path, magic `FORGENET`, its own size cap) |
 | **The fifty-move clock inside TT entries** | **Sound, and the null is earned.** All four `score_usable` branches are reached in live search (**262M / 681k / 143k / 37M** verdicts over 76 searches), so none is dead code. Warming at clock 10 and probing at 90 changed the score on **6 of 7 boards — and the same-clock warm control changed it on the same boards**, so the drift is the ordinary warm-table effect, **not clock provenance**. The mate-distance branch is verified against a separately generated expectation set: **43 cells, 0 mismatches**, with controls that must fire and do. **Limit stated by the seat**: 7 boards, depth 12, one clock pair |
 | **Book play inside a full two-sided game** | **Clean.** **1,120 games over five arms**: 0 illegal moves, 0 engine errors, **0 games left the book into an illegal position**, and the move after book exit is a legal searched move. **Every game exits at exactly ply 16** (the book's deepest leaf) and **the position graph is acyclic, so no book line can reach a repetition** — a structural fact, not a sampling result. 13 of 589 played book moves concede material, **0 condemned at depth 18**, largest gap 51 cp against an 18 cp noise floor |
+| **Mate scores through the transposition table** | **Correct, and verified against the exact failure modes.** `score_to_tt` adds `ply` on store and `score_from_tt` subtracts it on probe (`search.cpp:179-199`), applied at **all 10 store sites and both score-bearing probes** — checked by enumeration, with a grep for a store lacking the wrapper returning **nothing**. The probe-side clamp **discards** a score that would decode into the centipawn band (returns `ValueNone`) rather than clamping it, which is the right direction: clamping would report a mate at a distance that does not exist. **The named experiment passes**: a DTM stored at ply 4 and re-probed at ply 8 keeps the distance BELOW the node unchanged (1→1, 3→3, 5→5, 7→7, 9→9). **Exhaustive sweep: 118,332 cells, 0 failures**, and two planted-wrong pairs — no adjustment, and an inverted one — produce **234,608 failures**, so the checker demonstrably fires |
 
 **STILL OPEN — these are the rows that are genuinely unreached:**
 
@@ -4734,7 +4805,7 @@ reached is not an area that was cleared.
 | **The qsearch false-draw repair** | ~20 lines, closes both wrong cells, costs zero pins — but it changes `Worker::is_draw`, shared with the main search and the drawn-root work. **Needs the owner's decision plus the full 14-cell sweep** |
 | **Pruning features against forced mates, at feature level** | Only the switch-level screen exists: `Lmr+FutilityPrune` change 55 of 148 answers and **lose mates**, and **`SoundMatePruning` costs 2–3 plies** (§3). **Which of the individual features does it, and under what conditions, is not established** — the corpus-level null for null-move, razor, RFP, move-loop, LMR and singular is a null about those paths *as configured*, not a proof they cannot interact with a forced sequence beyond the horizon |
 | **ThreadSanitizer with recorded flags** | The prior TSan work is this audit's worst provenance gap — **27 findings across 8 seats with no flag set, compiler line or hash recorded**, and its most-quoted row is a ~1,000× wall-clock outlier measured inside that process. **A proper run needs the flags written down before the numbers mean anything** |
-| **Long-game replay position identity** | Determinism at Threads 1 is established over 40 positions and 200 label cells, and warm-state shift is measured at 55 cp (433 cp corpus-level). **Whether state accumulates over thousands of plies, and whether the board after N moves equals a fresh FEN load, is not** |
+| ~~**Long-game replay position identity**~~ **— CLOSED, and it is clean where it matters** | **200 games, 27,788 plies** replayed in one process at `go depth 8`, with a 40-game / 5,401-ply fresh-process arm drawn before measuring. **Position identity: 5,401/5,401 at perft 4 and 1,852/1,852 at perft 5** — the move-list board IS the FEN board. **Halfmove clock agreement 5,369/5,369, boundary exactly at 100.** **RSS 42.2 MiB at all 277 samples from ply 300 to the end, +1.6 MiB total.** **But in-process vs fresh-process bestmove differs on 46.0% of plies (2,486/5,401)** — and scored against a depth-14 fresh oracle that is **better 85 / equal 37 / worse 78, median 0 cp**, so it is **the same engine making equally good moves off a warm table, not a defect and not a strength claim.** **`ucinewgame` between plies makes it byte-identical, 5,401 of 5,401.** **Bails: 0 differences out of 5,401, and all 89 bails predicted independently 89/89.** **So the thing that would have been a defect — accumulating state or a diverging board — is absent, and the 46% is a property of depth-8 move identity across processes, which the report now says plainly because it is the number most likely to be quoted wrongly** |
 | **Endgame conversion at game level** | The static inversion is measured (KB vs K = −147, KN vs K = −144, both below K vs K's +2) and reaches search for KNN vs K, but **no conversion rate exists**: nobody measured whether KBNK or KPK is actually won at a real budget |
 | **`bestmove 0000` consistency across mate roots** | A checkmate root answers `mate 0` / 0 nodes / `bestmove 0000` on the fixtures tested. **Whether that holds at every mate root** matters because an inconsistency breaks every client's mate detection, and it was not swept |
 | **Mate labels over a corpus** | Two labelling errors are recorded (eight by-eye fixtures all one ply short; ten "false" mates that were merely unverifiable). **A corpus-level rate with an oracle's provenance does not exist**, and a handful of examples is not a rate |
