@@ -1,0 +1,24 @@
+kimi5 job 21 prediction (own commit before Step 1, never edited; no times, no commit ids)
+
+P1: nodes(LmrCaptureHistDiv 2048) / nodes(base) at depth 14 on G.
+    Guess 0.970 (smaller). KILLED when the measured ratio falls outside [0.945, 0.995].
+    Reason: at depth 12 the known ratio is 0.9916; the tried-capture malus mass (every
+    non-best capture gets -bonus, only a best capture earns) outweighs the bonus mass,
+    so r rises more often than it falls, and history entries saturate deeper, so the
+    shrink grows with depth.
+
+P2: under base on G at depth 12, the share of eligible captures (captures entering the
+    late-move reduction block) with t = clamp(history/2048, -2, 2) != 0.
+    Guess 0.35. KILLED when the measured share falls outside [0.20, 0.50].
+    Reason: t != 0 needs |history| >= 2048; under PC20 HistoryBonusMax is 2212, so one
+    near-cap bonus or malus already puts an entry past the line, but most late captures
+    are tried at low depth and sit at small or zero entries.
+
+P3: under base on G at depth 12, reduced search's score above alpha per 1,000 eligible
+    captures with t = -2. Guess 70 per 1,000. Outside [40, 110] kills the row.
+
+P4: same, at t = +2. Guess 170 per 1,000. Outside [110, 250] kills the row.
+    Reason for P3/P4: if capture history sorts, a positive entry (a capture that earned
+    a bonus before) beats alpha after reduction much more often than a negative one
+    (repeatedly refuted captures); the block's gate (quiet || !tt_pv || move_count > 4)
+    keeps early-ordered captures mostly out, so both rates stay modest.
