@@ -466,7 +466,7 @@ must check the instrument before you run it.**
 |---|---|---|
 | 1 | "never use `bench` for magnitudes" | **19-C56**: a bench magnitude transferred correctly (4.3 % → 5.2 %). Version 1 would have discarded a valid result. |
 | 2 | "`bench` understates per-node cost ~6×" | **19-C58**: a *different* patch measured 9.43 % on bench and 9.80 % real — bench was accurate. The bias had no direction. |
-| 3 (final) | **patch-specific** | falsifiable: predicts some patches agree and others diverge, in either direction |
+| 3 (final) | **patch-specific** | falsifiable as a claim about the SIGN DISTRIBUTION: across patches, `(real − bench)` should not be consistent in one direction. **Would be refuted by a consistent run of ~5+ patches in one direction.** With 3 patches (one optimistic, two accurate) I have only killed version 2, not confirmed the strong form |
 
 **The three cases in one table:**
 
