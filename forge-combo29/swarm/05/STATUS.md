@@ -836,3 +836,16 @@ every sentence.
 - NOTE on attribution: seat 25's S-C38 confirms SEAT 13's S-F24, not mine — finding ids collide across seats. My S-F24
   is about mate-score sampling and has no confirming seat. I did not record a confirmation I could not verify.
 - next command: continue at cadence.
+
+## $(date -u) — ASSIGNMENT: seat 15's class claim, my own version
+- S-F65: REPRODUCED on my own 8 sparse endgames + 8 middlegames, my own PC r15 build, PC20/Threads 1/Hash 16/OwnBook
+  false, fresh process per search. Clock 6s+0.06 then `go depth D+4`:
+  * SPARSE: **4 of 8 gained a mate**; median cp movement on the other 4 = **6 cp**
+  * MIDDLEGAME (20+ pieces): **0 of 8**; median movement **69 cp**
+  Direction matches seat 15 (2/5 sparse, 0/5 middle) and seat 17's counts. My sparse rate is higher (4/8 vs 2/5) and my
+  middlegame median movement larger (69 vs 12 cp) — class-level effect, magnitude position-set dependent.
+- S-F66: the REPLAY RULE caught 2 of those 4 "gained mates" as TRUNCATED — `mate +16` promising 31 plies with a legal
+  28-ply non-mating PV, and `mate +20` promising 39 with a legal 25-ply non-mating PV. Both sparse endgames, so the
+  defect extends to long endgame mates |N| = 16 and 20, beyond the boards I had. The ply-count test alone would have
+  counted them as clean gains.
+- next command: continue at cadence.
