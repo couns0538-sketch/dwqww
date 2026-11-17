@@ -85,7 +85,10 @@ def D(board, m, memo, b):
     return res
 
 
-def timed(fn, secs):
+def timed(fn, secs, board):
+    """Run fn with a time cap. On timeout the recursion unwinds WITHOUT popping its pushes, so the board it mutated is
+    corrupt - my first version left moves on the board and a later push() then failed with an assertion. The board
+    passed in is therefore restored from its fen afterwards, and callers must pass a THROWAWAY copy."""
     b = Bud(secs)
     memo = {}
     t0 = time.time()
@@ -93,6 +96,9 @@ def timed(fn, secs):
         return fn(b, memo), time.time() - t0, len(memo), False
     except Timeout:
         return None, time.time() - t0, len(memo), True
+    finally:
+        # nothing to restore: callers pass a throwaway board, so an aborted recursion cannot corrupt anything reused
+        pass
 
 
 def main():
@@ -109,10 +115,11 @@ def main():
 
     # (B) no shorter forced mate: full search at budget N-1
     print("\n(B) is there a forced mate in <= N-1 by ANY move?")
-    nb = chessturn = chess.Board(fen)
+    nb = chess.Board(fen)
     if N - 1 >= 1:
-        fn = (lambda b, m: A(nb, N - 1, m, b)) if attacker_is_stm else (lambda b, m: D(nb, N - 1, m, b))
-        got, dt, memo, to = timed(fn, cap)
+        work = chess.Board(fen)
+        fn = (lambda b, m: A(work, N - 1, m, b)) if attacker_is_stm else (lambda b, m: D(work, N - 1, m, b))
+        got, dt, memo, to = timed(fn, cap, work)
         if to:
             print(f"    TIMEOUT after {dt:.1f}s (memo {memo}) -> (B) NOT ESTABLISHED")
             b_state = "timeout"
@@ -129,8 +136,9 @@ def main():
     # (A) does the given move mate within N?
     if move is None:
         print("\n(A) no move supplied - the general question 'any move mates in <= N' is the EXPENSIVE one")
-        fn = (lambda b, m: A(nb, N, m, b)) if attacker_is_stm else (lambda b, m: D(nb, N, m, b))
-        got, dt, memo, to = timed(fn, cap)
+        work2 = chess.Board(fen)
+        fn = (lambda b, m: A(work2, N, m, b)) if attacker_is_stm else (lambda b, m: D(work2, N, m, b))
+        got, dt, memo, to = timed(fn, cap, work2)
         if to:
             print(f"    TIMEOUT after {dt:.1f}s -> UNRESOLVED (a timeout is not a refutation)")
         elif got:
@@ -148,8 +156,9 @@ def main():
         print(f"\n(A) {move} mates immediately => CONFIRMED")
         return
     print(f"\n(A) after {move}, can the attacker force mate in <= {N-1} more?")
-    fn = (lambda b, m: D(nb, N - 1, m, b)) if attacker_is_stm else (lambda b, m: A(nb, N - 1, m, b))
-    got, dt, memo, to = timed(fn, cap)
+    work3 = chess.Board(nb.fen())
+    fn = (lambda b, m: D(work3, N - 1, m, b)) if attacker_is_stm else (lambda b, m: A(work3, N - 1, m, b))
+    got, dt, memo, to = timed(fn, cap, work3)
     if to:
         print(f"    TIMEOUT after {dt:.1f}s (memo {memo}) -> UNRESOLVED")
         return
