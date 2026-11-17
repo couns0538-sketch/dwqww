@@ -1,0 +1,67 @@
+# STATUS — aspiration windows
+
+**State: complete.** Branch `swarm/aspiration`, deliverable `forge-combo29/swarm/aspiration/`.
+
+## Headline
+
+- **No bound is published as a value.** 0 `inside == 0` in 5,320 traced iterations
+  (133 positions × depth 10 × 4 deltas), fault control firing 6/6 when the fault exists.
+- **Mate windows clean.** 190 positive mate claims, 180 testable, 0 false; 0 distance
+  overclaims against `seldepth`.
+- **`AspCappedReopen`'s bound-publishing break is unreachable** (0 firings in 448
+  iterations; live counter proven by 15 planted-fault exits). Its *reopen* path does run and
+  changes windows — 5 tries vs 13 on one board.
+- **Both switches change verdicts.** Each loses a mate at fixed depth (2 of 8 mate fixtures).
+- **`AspirationDelta` changes the answer.** Score moves on 126/133 positions between delta 18
+  and 50 (and 18 and 200); move on 95/133. Aspiration buys ~12–15% fewer nodes (median) and
+  costs a factor of up to 2.56 on individual positions.
+
+## Pins
+
+| build | bench 11 | bench 13 | bench 16 | perft 5 |
+|---|---|---|---|---|
+| target | 312,866 | 862,329 | 3,024,920 | 4,865,609 |
+| stock | 312,866 | 862,329 | 3,024,920 | 4,865,609 |
+| trace (instrumented) | 312,866 | 862,329 | 3,024,920 | 4,865,609 |
+| never-narrow | 384,663 | 841,308 | 2,872,935 | 4,865,609 |
+| planted fault | 260,752 | 443,702 | 1,561,882 | 4,865,609 |
+
+The trace build is **bit-identical to stock** — instrumentation does not perturb the search.
+The never-narrow build must differ on bench (it does; that is proof the flag took effect) and
+must match on perft (it does; movegen untouched).
+
+`bench N` on **stdin**, `OwnBook false`. With the book on, bench 11 reads 1,919,423 — a wrong
+number that looks plausible.
+
+## Files
+
+```
+FINDINGS.md                          result first, then evidence, then withdrawals
+STATUS.md                            this file
+scripts/pin.sh                       the four honesty pins
+scripts/uci.py                       UCI driver; never pipes quit into a live search
+scripts/build_corpus.py              corpus + dual validation (python-chess AND engine refusal)
+scripts/gen_mates.py                 DTM by AND/OR proof, engine not involved
+scripts/measure_aspiration.py        measures 1, 3, 4 (validity / delta / switches)
+scripts/measure_mate.py              measure 2 (mate windows, go mate N)
+scripts/measure_ladders.py           score-per-depth ladders, mate-distance vs seldepth
+scripts/capped_reopen_reachability.py  switch 1 reachability + planted-fault control
+scripts/stock_vs_wide.py             pinned stock vs never-narrow, with node/time ratios
+scripts/classify_mate_claims.py      FALSE / LOOSE / TRUE_TIGHT / UNVERIFIABLE
+scripts/scan_false_mate.py           per-depth mate-claim scan across four arms
+scripts/patches/asp-trace-fault-off.patch   the instrumentation (one file, src/search.cpp)
+evidence/*.json                      every number above, with depth and build
+```
+
+## Withdrawn
+
+1. Eight fixtures labelled "mate in 2/3/4" by eye were **all mate in 1**.
+2. A "false mate" finding (8 rows) — the PVs were **truncated, not wrong**. 0 false.
+3. A "pin mismatch on all builds" — my parser read `nps` instead of `nodes`.
+
+## Open / not tested
+
+- Single-threaded only (`Threads 1`); no clock arm.
+- Corpus cannot place a narrowed window directly on a mate score (mates resolve by depth 3;
+  narrowing starts at depth 4). Covered indirectly via `go mate N` and deep KQK ladders.
+- Delta sweep is 4 points, not a curve.

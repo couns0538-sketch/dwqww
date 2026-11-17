@@ -1,0 +1,133 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..1daeacc7c 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -7,6 +7,7 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <cstring>
++#include <string>
+ #include <iostream>
+ #include <limits>
+ #include <optional>
+@@ -68,6 +69,16 @@ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
++#ifndef FORGE_ASP_TRACE
++#define FORGE_ASP_TRACE 0
++#endif
++#ifndef FORGE_ASP_FAULT
++#define FORGE_ASP_FAULT 0
++#endif
++#ifndef FORGE_ASP_OFF
++#define FORGE_ASP_OFF 0
++#endif
++
+ int AspirationDelta = 18;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+@@ -2402,39 +2413,100 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         int beta = Infinite;
+         // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+         // after the previous iteration failed high or low at least once.
++#if FORGE_ASP_OFF
++        const bool narrow = false;
++#else
+         const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++#endif
+         if (narrow) {
+             alpha = std::max(score - delta, -Infinite);
+             beta = std::min(score + delta, Infinite);
+         }
+         int iteration_score = score;
+         bool failed_window = false;
++        const char* asp_exit = "unset";
++#if FORGE_ASP_TRACE
++        const int asp_alpha0 = alpha;
++        const int asp_beta0 = beta;
++        int asp_tries = 0;
++        std::string asp_windows;
++#define ASP_NOTE(tag) do { asp_windows += " ["; asp_windows += std::to_string(asp_tries);     asp_windows += ":"; asp_windows += (tag); asp_windows += "]"; } while (0)
++#else
++#define ASP_NOTE(tag) do { } while (0)
++#endif
+         while (true) {
+             ss->ply = 0;
++#if FORGE_ASP_TRACE
++            ++asp_tries;
++            asp_windows += " " + std::to_string(alpha) + "/" + std::to_string(beta);
++#endif
+             iteration_score = search(board, ss, depth, alpha, beta, false);
+-            if (aborted_) break;
++            if (aborted_) {
++                ASP_NOTE("abort");
++#if FORGE_ASP_TRACE
++                asp_exit = "abort";
++#endif
++                break;
++            }
+             if (iteration_score <= alpha) {
+                 failed_window = true;
++                ASP_NOTE("low");
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
+                     alpha = capped_fail_low(iteration_score);
+-                    if (iteration_score <= alpha) break;
++                    if (iteration_score <= alpha) {
++#if FORGE_ASP_TRACE
++                        asp_exit = "low_break";
++#endif
++                        break;
++                    }
+                 } else {
+                     alpha = std::max(iteration_score - delta, -Infinite);
+                 }
+             } else if (iteration_score >= beta) {
+                 failed_window = true;
++                ASP_NOTE("high");
++#if FORGE_ASP_FAULT
++                // PLANTED FAULT: publish the fail-high bound without re-searching.
++                {
++                    asp_exit = "high_fault";
++                    break;
++                }
++#endif
+                 if (tune::AspCappedReopen) {
+                     beta = capped_fail_high(iteration_score);
+-                    if (iteration_score >= beta) break;
++                    if (iteration_score >= beta) {
++#if FORGE_ASP_TRACE
++                        asp_exit = "high_break";
++#endif
++                        break;
++                    }
+                 } else {
+                     beta = std::min(iteration_score + delta, Infinite);
+                 }
+             } else {
++#if FORGE_ASP_TRACE
++                asp_exit = "exact";
++#endif
+                 break;
+             }
+             delta += delta / 2 + 4;
+         }
++#if FORGE_ASP_TRACE
++        if (emit_info && !aborted_) {
++            const std::lock_guard<std::mutex> trace_lock(uci_output_mutex());
++            std::cout << "info string ASPTRACE depth=" << depth
++                      << " a0=" << asp_alpha0 << " b0=" << asp_beta0
++                      << " tries=" << asp_tries
++                      << " fa=" << alpha << " fb=" << beta
++                      << " score=" << iteration_score
++                      << " exit=" << asp_exit
++                      << " narrow=" << (narrow ? 1 : 0)
++                      << " inside=" << ((alpha < iteration_score && iteration_score < beta) ? 1 : 0)
++                      << " win=" << asp_windows << std::endl;
++        }
++#endif
++#undef ASP_NOTE
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
+             // A clock or external stop may keep a root move that already raised
