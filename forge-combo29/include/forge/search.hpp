@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
+#include "forge/tt_trace.hpp"
 #if FORGE_NNUE_V3
 #include "forge/nnue_v3.hpp"
 #endif
@@ -155,6 +156,12 @@ public:
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
+#if FORGE_TT_TRACE
+    // Trace build only: whole-table reads for the ttstats command. Not used by
+    // search, and only safe with all accessors quiescent (as uci calls it).
+    [[nodiscard]] const TTCluster* trace_clusters() const { return clusters_.get(); }
+    [[nodiscard]] const std::uint64_t* trace_keys() const { return trace_keys_.get(); }
+#endif
     void prefetch(std::uint64_t key) const {
 #if defined(__GNUC__) || defined(__clang__)
         __builtin_prefetch(&cluster_for(key));
@@ -207,6 +214,12 @@ private:
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;
+#if FORGE_TT_TRACE
+    // Full 64-bit key per slot, parallel to clusters_. The shipped entry stores
+    // only 32 bits of key, so a different position that shares those 32 bits is
+    // accepted as a hit. This array is what makes that measurable.
+    std::unique_ptr<std::uint64_t[]> trace_keys_;
+#endif
 
     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
 #if defined(__SIZEOF_INT128__)

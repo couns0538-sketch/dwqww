@@ -367,12 +367,19 @@ void TranspositionTable::resize(std::size_t mb) {
     cluster_count_ = new_count;
     generation_ = 0;
     ++epoch_;
+#if FORGE_TT_TRACE
+    trace_keys_ = std::unique_ptr<std::uint64_t[]>(new std::uint64_t[new_count * 4]());
+    tttrace::g.false_hit_detector_armed = 1;
+#endif
 }
 
 void TranspositionTable::clear() {
     for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
     generation_ = 0;
     ++epoch_;
+#if FORGE_TT_TRACE
+    if (trace_keys_) std::fill_n(trace_keys_.get(), cluster_count_ * 4, std::uint64_t{0});
+#endif
 }
 
 #if FORGE_SPD_TT_NOTLS
@@ -386,6 +393,18 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
     if constexpr (TakeLock) lock = lock_stripe(index);
     const std::uint32_t key32 = verification_key(key);
     const std::uint8_t generation = generation_;
+#if FORGE_TT_TRACE
+    {
+        auto& c = tttrace::g;
+        ++c.probe;
+        int fill = 0;
+        for (const TTEntry& e : cluster.entries) {
+            if (e.occupied()) ++fill;
+        }
+        c.probe_cluster_fill_sum += static_cast<std::uint64_t>(fill);
+    }
+    const std::uint64_t* shadow = trace_keys_.get() + index * 4;
+#endif
     auto snapshot = [&](const TTEntry& entry, bool hit) {
         TTProbe result;
         result.entry = entry;
@@ -413,8 +432,30 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
             found->gen_bound = static_cast<std::uint8_t>(
                 (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
         }
+#if FORGE_TT_TRACE
+        {
+            auto& c = tttrace::g;
+            ++c.probe_hit;
+            const std::size_t slot = static_cast<std::size_t>(found - cluster.entries.data());
+            if (shadow[slot] != key) ++c.false_hit;
+            const int stored = static_cast<int>(found->depth);
+            const int wanted = tttrace::g_probe_depth;
+            if (stored < wanted) {
+                ++c.hit_shallower;
+                if (wanted - stored >= 3) ++c.hit_shallower_by_3plus;
+            } else if (stored == wanted) {
+                ++c.hit_equal;
+            } else {
+                ++c.hit_deeper;
+            }
+            if (found->generation() != generation) ++c.hit_stale_generation;
+        }
+#endif
         return snapshot(*found, true);
     }
+#if FORGE_TT_TRACE
+    ++tttrace::g.probe_miss;
+#endif
     TTEntry* replace = &cluster.entries[0];
     int replace_score = replace->occupied()
                             ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
@@ -464,6 +505,33 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     const bool stale_slot = entry != &cluster.entries[probe.slot_];
     const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
                        entry->generation() != generation_;
+#if FORGE_TT_TRACE
+    {
+        auto& c = tttrace::g;
+        ++c.store;
+        int fill = 0;
+        for (const TTEntry& e : cluster.entries) {
+            if (e.occupied()) ++fill;
+        }
+        c.store_cluster_fill_sum += static_cast<std::uint64_t>(fill);
+        if (admit) {
+            ++c.store_admit;
+            if (!entry->occupied()) {
+                ++c.store_into_empty;
+            } else if (same_position) {
+                ++c.store_same_key;
+            } else {
+                // An admitted store over a DIFFERENT position is the only store
+                // that destroys information. Record what it destroyed.
+                ++c.store_displace;
+                c.displaced_depth[entry->depth]++;
+            }
+        } else {
+            ++c.store_reject;
+        }
+    }
+    (void)stale_slot;
+#endif
     // Same-slot stores still refresh the move when the new score is rejected.
     // A stale slot must not paint that rejected move onto the deeper entry.
     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
@@ -474,6 +542,9 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+#if FORGE_TT_TRACE
+        if (trace_keys_) trace_keys_[probe.cluster_ * 4 + static_cast<std::size_t>(entry - cluster.entries.data())] = key;
+#endif
     }
 }
 
@@ -546,6 +617,33 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     const bool stale_slot = entry != &cluster.entries[probe.slot_];
     const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
                        entry->generation() != generation_;
+#if FORGE_TT_TRACE
+    {
+        auto& c = tttrace::g;
+        ++c.store;
+        int fill = 0;
+        for (const TTEntry& e : cluster.entries) {
+            if (e.occupied()) ++fill;
+        }
+        c.store_cluster_fill_sum += static_cast<std::uint64_t>(fill);
+        if (admit) {
+            ++c.store_admit;
+            if (!entry->occupied()) {
+                ++c.store_into_empty;
+            } else if (same_position) {
+                ++c.store_same_key;
+            } else {
+                // An admitted store over a DIFFERENT position is the only store
+                // that destroys information. Record what it destroyed.
+                ++c.store_displace;
+                c.displaced_depth[entry->depth]++;
+            }
+        } else {
+            ++c.store_reject;
+        }
+    }
+    (void)stale_slot;
+#endif
     // Same rule as store_body: keep a rejected shallow move off a different slot.
     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
     if (admit) {
@@ -555,6 +653,9 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+#if FORGE_TT_TRACE
+        if (trace_keys_) trace_keys_[probe.cluster_ * 4 + static_cast<std::size_t>(entry - cluster.entries.data())] = key;
+#endif
     }
 }
 #endif
@@ -1434,21 +1535,43 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         if (alpha >= beta) return alpha;
     }
 
+#if FORGE_TT_TRACE
+    tttrace::g_probe_depth = 0; // qsearch stores and reads at depth 0
+    tttrace::g_probe_ply = ply;
+#endif
 #if FORGE_SPD_TT_NOTLS
     const TTProbe tt_probe = probe_tt(board.key());
 #else
     const TTProbe tt_probe = shared_.tt.probe(board.key());
 #endif
+#if FORGE_TT_TRACE
+    // Null control: with g_no_read set, no probe result reaches the search. The
+    // table still stores, so the only thing removed is the read path. Every size
+    // must then produce the identical answer; any size difference left is a
+    // harness leak, not a table effect.
+    const bool tt_hit = tt_probe.hit && !tttrace::g_no_read;
+#else
     const bool tt_hit = tt_probe.hit;
+#endif
     const TTEntry& tte = tt_probe.entry;
     const bool near50 = board.halfmove_clock() >= 90;
-    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+#if FORGE_TT_TRACE
+    const bool trace_use_tt_move = !tttrace::g_no_tt_move;
+#else
+    constexpr bool trace_use_tt_move = true;
+#endif
+    const Move tt_move = trace_use_tt_move && tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
                                  rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
-    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+#if FORGE_TT_TRACE
+    const bool trace_allow_cutoff = !tttrace::g_no_tt_cutoff;
+#else
+    constexpr bool trace_allow_cutoff = true;
+#endif
+    if (trace_allow_cutoff && !pv_node && !near50 && tt_hit && tt_score != ValueNone &&
         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
@@ -1584,15 +1707,32 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     (ss + 2)->killers = {};
 
     // Transposition table probe.
+#if FORGE_TT_TRACE
+    tttrace::g_probe_depth = depth;
+    tttrace::g_probe_ply = ply;
+#endif
 #if FORGE_SPD_TT_NOTLS
     const TTProbe tt_probe = probe_tt(board.key());
 #else
     const TTProbe tt_probe = shared_.tt.probe(board.key());
 #endif
+#if FORGE_TT_TRACE
+    // Null control: with g_no_read set, no probe result reaches the search. The
+    // table still stores, so the only thing removed is the read path. Every size
+    // must then produce the identical answer; any size difference left is a
+    // harness leak, not a table effect.
+    const bool tt_hit = tt_probe.hit && !tttrace::g_no_read;
+#else
     const bool tt_hit = tt_probe.hit;
+#endif
     const TTEntry& tte = tt_probe.entry;
     const bool near50 = board.halfmove_clock() >= 90;
-    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+#if FORGE_TT_TRACE
+    const bool trace_use_tt_move = !tttrace::g_no_tt_move;
+#else
+    constexpr bool trace_use_tt_move = true;
+#endif
+    const Move tt_move = trace_use_tt_move && tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
                                  rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
@@ -1600,6 +1740,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
     ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+#if FORGE_TT_TRACE
+    const bool trace_allow_cutoff_s = !tttrace::g_no_tt_cutoff;
+#else
+    constexpr bool trace_allow_cutoff_s = true;
+#endif
 
     // HindsightDepth: the parent already reduced this move. If the mover's static
     // eval fell by a pawn or more, search one ply less; if it did not fall and
@@ -1635,7 +1780,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         }
     }
 
-    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+    if (trace_allow_cutoff_s && !pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
         board.halfmove_clock() < 90 &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
@@ -2705,6 +2850,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     }
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
+#if FORGE_TT_TRACE
+    tttrace::g.reset();
+#endif
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
     // MultiPV above 1 does not start helpers, so the main thread may own the
     // table the way a one-thread search does.

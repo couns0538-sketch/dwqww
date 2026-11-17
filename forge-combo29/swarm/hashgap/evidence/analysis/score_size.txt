@@ -1,0 +1,26 @@
+## Score-difference size, Hash 16 vs Hash 64
+
+| budget | n | 0 cp | 1-4 cp | 5-19 cp | 20-49 cp | >=50 cp | median |max| |
+|---|---|---|---|---|---|---|---|
+| 200000 | 40 | 39 | 0 | 0 | 1 | 0 | 0 | 21 |
+| 300000 | 40 | 39 | 0 | 1 | 0 | 0 | 0 | 7 |
+| 400000 | 40 | 37 | 2 | 1 | 0 | 0 | 0 | 7 |
+| 500000 | 40 | 33 | 2 | 2 | 2 | 1 | 0 | 88 |
+| 750000 | 40 | 12 | 8 | 15 | 5 | 0 | 5 | 46 |
+| 1000000 | 40 | 8 | 7 | 20 | 5 | 0 | 7 | 36 |
+| 1500000 | 40 | 2 | 7 | 25 | 6 | 0 | 8 | 41 |
+| 2000000 | 40 | 2 | 9 | 20 | 7 | 2 | 9 | 63 |
+| 4000000 | 40 | 2 | 4 | 19 | 13 | 2 | 11 | 80 |
+
+## Is the diverging budget ordinary? Measured speed on this machine
+
+bench nps on this machine: 1379726
+
+| wall time | nodes the engine would search | Hash 16 vs 64 move differs? |
+|---|---|---|
+| 0.1s | 137972 | below the smallest measured budget |
+| 0.25s | 344931 | 0/40 at the 300000 row |
+| 0.5s | 689863 | 0/40 at the 500000 row |
+| 1.0s | 1379726 | 1/40 at the 1000000 row |
+| 2.0s | 2759452 | 2/40 at the 2000000 row |
+| 5.0s | 6898630 | 3/40 at the 4000000 row |

@@ -569,6 +569,15 @@ int uci_loop(std::istream& in) {
                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
                     }
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+#if FORGE_TT_TRACE
+                    forge::tttrace::g.nodes_reported = result.nodes;
+                    forge::tttrace::g.depth_reported = result.depth;
+                    forge::tttrace::g.seldepth_reported = result.seldepth;
+                    std::cout << "trace ";
+                    forge::tttrace::g.dump(stdout, "search");
+                    forge::tttrace::flush();
+                    std::cout.flush();
+#endif
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }
@@ -587,6 +596,78 @@ int uci_loop(std::istream& in) {
                       << " total " << parts.total;
             if (parts.in_check) std::cout << " incheck 1";
             std::cout << std::endl;
+        } else if (command == "trace_no_cutoff") {
+            // Trace build only: keep storing and ordering, drop every TT cutoff.
+#if FORGE_TT_TRACE
+            int value = 1;
+            (void)(input >> value);
+            forge::tttrace::g_no_tt_cutoff = value != 0;
+            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+              std::printf("info string trace_no_cutoff %d\n", value != 0 ? 1 : 0); std::fflush(stdout); }
+#endif
+        } else if (command == "trace_no_move") {
+            // Trace build only: keep storing and cutting, stop supplying tt_move.
+#if FORGE_TT_TRACE
+            int value = 1;
+            (void)(input >> value);
+            forge::tttrace::g_no_tt_move = value != 0;
+            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+              std::printf("info string trace_no_move %d\n", value != 0 ? 1 : 0); std::fflush(stdout); }
+#endif
+        } else if (command == "trace_no_read") {
+            // Trace build only: null control. Stores still happen; no probe is read.
+#if FORGE_TT_TRACE
+            int value = 1;
+            (void)(input >> value);
+            forge::tttrace::g_no_read = value != 0;
+            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+              std::printf("info string trace_no_read %d\n", value != 0 ? 1 : 0); std::fflush(stdout); }
+#endif
+        } else if (command == "ttkeys") {
+            // Trace build only: dump every occupied slot's full 64-bit key, so the
+            // cluster remap fraction between two table sizes can be computed from
+            // real probe traffic instead of from an assumption about hashing.
+#if FORGE_TT_TRACE
+            const auto& table = searcher.transposition_table();
+            const std::size_t clusters = table.cluster_count();
+            const forge::TTCluster* raw = table.trace_clusters();
+            const std::uint64_t* keys = table.trace_keys();
+            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+              std::printf("keysbegin %zu\n", clusters);
+              for (std::size_t i = 0; i < clusters; ++i) {
+                  for (std::size_t slot = 0; slot < 4; ++slot) {
+                      if (raw[i].entries[slot].occupied()) {
+                          std::printf("%llu\n", (unsigned long long)keys[i * 4 + slot]);
+                      }
+                  }
+              }
+              std::printf("keysend\n");
+              std::fflush(stdout); }
+            continue;
+#endif
+        } else if (command == "ttstats") {
+            // Trace build only. Reports whole-table occupancy, which hashfull()
+            // samples only 1000 clusters of, so it is comparable across sizes.
+#if FORGE_TT_TRACE
+            const auto& table = searcher.transposition_table();
+            const std::size_t clusters = table.cluster_count();
+            std::uint64_t occupied = 0;
+            const std::uint64_t* keys = table.trace_keys();
+            (void)keys;
+            const forge::TTCluster* raw = table.trace_clusters();
+            for (std::size_t i = 0; i < clusters; ++i) {
+                for (const forge::TTEntry& entry : raw[i].entries) {
+                    if (entry.occupied()) ++occupied;
+                }
+            }
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::printf("ttstats {\"clusters\":%zu,\"slots\":%zu,\"occupied\":%llu,"
+                        "\"load_factor\":%.6f,\"hashfull_permille\":%d}\n",
+                        clusters, clusters * 4, (unsigned long long)occupied,
+                        double(occupied) / double(clusters * 4), table.hashfull());
+            std::fflush(stdout);
+            continue;
+#endif
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
