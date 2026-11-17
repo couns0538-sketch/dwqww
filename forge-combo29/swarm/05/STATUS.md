@@ -888,3 +888,11 @@ every sentence.
 - S-F71: the class direction is stable across FOUR sets: sparse gains labels on every one (2/5, 4/8, 6/30, 6/30);
   middlegame gains none on any (0/5, 0/8, 0/30, 0/30) = **0 of 73 middlegame positions across four sets**.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F73: S-F72's rule tested on ALREADY-COLLECTED data (no new engine runs): my depth-12 S14 work on O+G and R has 28
+  mate scores — 26 complete PVs, all 26 delivered; 2 short PVs (18/24, 14/26), neither delivered. With the probe's 11
+  (9 complete delivered, 2 incomplete not) that is **39 of 39, no exception**, across 2 builds, 3 settings and 4
+  position sets. So PV completeness is a RULE for predicting whether a mate score's line mates; mate distance is not.
+- The fifth method note stays as the transferable lesson.
+- next command: continue at cadence.
