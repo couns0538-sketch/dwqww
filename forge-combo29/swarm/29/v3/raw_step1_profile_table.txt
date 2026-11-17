@@ -1,0 +1,55 @@
+=== FILE 7 STEP 1: the v3 path profiled under PC20 + the test net ===
+Build: file 5's tree + `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, g++ 13.3.0, `-march=x86-64-v4`, kernel avx512.
+Net: file 7's generator, 6,309,096 bytes, FNV-1a `fdff70de72e4ca82`. Regime: **PC20 + test net, Threads 1, Hash 16**,
+`bench 13`. Method: perf task-clock samples (the only event this unprivileged user can open), no-children,
+percent-limit 0.1. 42 symbols parsed, 98.3 % of samples attributed.
+
+## The v3 family: 19.75 % of the run
+
+| v3 symbol | share |
+|---|---|
+| `nnue::v3::apply_changes_pair` | 7.92 % |
+| `nnue::v3::refresh_from_pieces` | 4.75 % |
+| `nnue::v3::evaluate` | 4.51 % |
+| `nnue::v3::load` | 0.83 % |
+| `nnue::v3::apply_changes` | 0.80 % |
+| `nnue::v3::king_key` | 0.58 % |
+| `nnue::v3::prepare` | 0.36 % |
+| **total** | **19.75 %** |
+
+## What actually dominates: MOVE ORDERING, not the net
+
+| symbol | share |
+|---|---|
+| `MovePicker::pick_best` | 10.24 % |
+| `Worker::search` | 7.74 % |
+| `MovePicker::next` | 6.71 % |
+| `Worker::qsearch` | 6.56 % |
+| `MovePicker::generate_evasions` | 5.83 % |
+| `Board::see_ge` | 5.08 % |
+| `Worker::corrected_eval` | 4.82 % |
+| introsort on `MovePicker::Scored` | 3.80 % |
+| `fill_pseudo_legal<GenMode::1>` | 3.66 % |
+| `Board::is_legal_complete` | 3.40 % |
+
+**Move ordering alone (pick_best + next + introsort) is 20.75 % — about equal to the whole v3 evaluation family
+(19.75 %).** Add `generate_evasions` + `fill_pseudo_legal` + `is_legal_complete` (12.89 %) and move handling is
+a third of the run.
+
+## Prediction outcomes — two killed
+| # | predicted | got | verdict |
+|---|---|---|---|
+| P1 | forward pass hottest v3 symbol, 25-55 %; killed under 10 % | hottest v3 symbol is `apply_changes_pair` at **7.92 %**; `evaluate` (forward pass) is 4.51 % | **KILLED** |
+| P2 | v3 family 40-75 %, killed under 25 % | **19.75 %** | **KILLED** |
+| P3 | nps 15-60 % of the no-net figure | needs measurement | pending |
+| P4 | per-node cost >=4x, total time 20-200x | needs measurement | pending |
+
+## Why this matters more than the prediction being wrong
+The obvious assumption — that a net-driven engine spends most of its time in the net — is FALSE on this build. The
+hand-written move picker is the biggest single cost centre on the v3 path, much as it was on the built-in path (my
+29-F36: picker family ~4.3 % of a bench-13 run, scoring 3.8x selection). So the speed lever for the PC's real path is
+**the move picker**, and file 7's framing ("a faster v3 path is the most useful speed find there is") needs
+qualifying: a faster v3 path is worth at most the 19.75 % its family occupies.
+
+Caveat: perf samples on a shared machine, per-symbol error near ±1 point; 19.75 % vs 20.75 % is a tie within that
+error, so the honest statement is **"the move picker costs about as much as the whole net"**, not "more".

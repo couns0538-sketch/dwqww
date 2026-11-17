@@ -483,3 +483,13 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F57: FILE 7 STEP 0 PASSED on my build. All EIGHT bench numbers match exactly (none 312866/862329; PC20 278024/587276; net-only 965454/4151906; PC20+net 625258/3652372) and all THREE eval lines match under PC20+net (nnue 968 / 1176 / 31, hce 0 in each). Build: file 5 tree + -DFORGE_NNUE_V3=1, g++ 13.3.0, -march=x86-64-v4, kernel avx512; net 6,309,096 bytes / fdff70de72e4ca82.
 - The gate confirms by measurement what 29-N43 argued: the v3 path IS reproducible by a seat, and the job is open.
 - Next: the mandatory PREDICTION committed alone before any profiling, then Step 1 profiling.
+
+## Tue Nov 17 12:57:54 AM UTC 2026
+- 29-F58 STEP 1 DONE, and BOTH my v3 predictions are killed:
+    v3 family total: 19.75% (P2 predicted 40-75%, killed) - apply_changes_pair 7.92, refresh_from_pieces 4.75, evaluate 4.51, rest small
+    hottest v3 symbol is apply_changes_pair, NOT the forward pass (P1 killed: evaluate is 4.51%, not 25-55%)
+    MOVE ORDERING alone is 20.75%: pick_best 10.24, next 6.71, introsort 3.80 - about EQUAL to the whole net
+    with generate_evasions 5.83 + fill_pseudo_legal 3.66 + is_legal_complete 3.40, move handling is a THIRD of the run
+- So the assumption that a net-driven build spends most of its time in the net is FALSE here. The speed lever on the PC's real path is the MOVE PICKER, and file 7's 'a faster v3 path is the most useful speed find' caps that work at 19.75%.
+- Caveat: +-1 point per symbol, so 19.75 vs 20.75 is a TIE - honest form is 'the picker costs about as much as the whole net', not 'more'.
+- next: Step 2 patches on the v3 path, and the per-node-cost measurement you asked for (P3/P4).
