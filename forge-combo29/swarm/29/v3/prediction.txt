@@ -1,0 +1,23 @@
+# PREDICTION - file 7 Step 1 (v3 profiling). Committed ALONE before the first profiling command.
+# Never edited afterwards. Each number carries the range that kills it.
+
+# Context: the v3 path quadruples the node count on bench 13 (862,329 -> 4,151,906 net-only; 587,276 -> 3,652,372
+# PC20+net). Two possible reasons: (a) the net's evaluations are different so the search tree legitimately differs,
+# (b) the v3 EVALUATION IS SLOW enough that... no - node counts are node counts; a slow eval does not change them.
+# So (a) is the whole story of the node counts, and the SPEED question is nodes-per-second.
+
+P1  The hottest single v3 symbol on bench 13 under PC20+net will be the FORWARD PASS (the affine/AVX-512 kernel that
+    turns the accumulated features into a score), not the accumulator refresh and not the incremental update.
+    Predicted share of total samples: 25 % to 55 %. KILLED if the forward pass is under 10 % or the refresh is hotter.
+P2  Summed, all `nnue::v3::*` functions will hold 40 % to 75 % of bench-13 samples under PC20+net, i.e. the
+    evaluation dominates the v3 build the way it dominated the built-in build (my 29-F1 measured 38.7 % there).
+    KILLED if the v3 family is under 25 %.
+P3  Nodes per second will DROP sharply versus the built-in net at the same settings. Predicted: bench 13 nps under
+    PC20+net between 15 % and 60 % of the PC20 no-net figure. KILLED if nps is above 75 % (the net would be
+    essentially free, which contradicts P2) or below 8 %.
+P4  The per-node cost of the v3 path versus the built-in path will be at least 4x. Predicted ratio (built-in ms per
+    100k nodes) / (v3 ms per 100k nodes): 4 to 25. KILLED if under 2.5.
+    This is the measurement that decides whether the 6.2x node difference is search shape or evaluation cost: the
+    node count is 6.2x larger AND (per P4) each node is >=4x dearer, so the total time cost of the v3 path should be
+    roughly 25x to 150x the built-in path on the same bench. Predicted total bench-13 wall time ratio: 20x to 200x.
+    KILLED if the total ratio is under 10x (the net would be far cheaper than its node count implies).
