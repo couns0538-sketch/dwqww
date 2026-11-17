@@ -779,3 +779,15 @@ next: cadence.
 Tally (per the gate): **39 / 27 / 5 / 2**, plus 1 open lead.
 
 next: cadence.
+
+## 2026-11-17T02:22Z
+- **08-C30: seat 21's 21-F8b CONFIRMS.** python-chess accepts `... w - - 0 0` (33 moves) while the engine refuses it
+  (`invalid FEN: invalid FEN fields`), and `go perft 1` afterwards gives **20 nodes = the PREVIOUS board**, not 33 —
+  proven by synchronous perft, so no reader pattern can explain it.
+- **The control caught a would-be false positive:** my first previous position also had 33 legal moves, so perft 1
+  would have been identical either way; the control aborted instead of printing an ambiguous CONFIRMS, and I used
+  startpos (20 moves) to make the number discriminating. Same class as "a test that cannot fire".
+- Hazard noted: a tool counting fullmoves from 0 gets a silent refusal and a search of the WRONG board — the same
+  hazard as 08-C3 from a second corner of the FEN parser.
+
+next: cadence.
