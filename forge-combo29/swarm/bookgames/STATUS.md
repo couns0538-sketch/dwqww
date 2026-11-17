@@ -36,7 +36,7 @@ Engine: Chess Engine Forge 6.4.24 candidate, `id author OpenAI`.
 |---|---|---|---|
 | `default` | Q1/Q2 at `Book Depth` 30 | 320 | **complete** |
 | `depth100` | Q2 at `Book Depth` 100 (max) | 200 | **complete** |
-| `depth0` | Q2 at `Book Depth` 0 (book off) | 200 | running |
+| `depth0` | Q2 at `Book Depth` 0 (book off) | 200 | **complete** |
 | `depth6var100` | Q2 low depth, max variety | 200 | queued |
 | `patched` | Q4 games on the trap-1 build | 200 | queued |
 
@@ -51,7 +51,7 @@ the book.
 | script | question | result |
 |---|---|---|
 | `book_paths.py` | book graph: cycles, depth, leaf ply | **16-ply DAG**, 199 leaves all at ply 16, no cycle, planted-cycle control fires, diamond control silent |
-| `play_games.py` | two-sided games | 520 games so far: **0 illegal, 0 engine errors, 0 drawn-root book events, 0 re-entries**; every game exits at **ply 16** |
+| `play_games.py` | two-sided games | 720 games complete (520 of them book-playing): **0 illegal, 0 engine errors, 0 drawn-root book events, 0 re-entries**; every book-playing game exits at **ply 16** |
 | `analyse_games.py` | termination / repetition / exit distribution | 0 games over threefold; 3 ply-cap stops, both inspected by hand and both far past book exit |
 | `q1b_exit_quality.py` | do games leave the book into a lost position | **0 of 63 lines** ≤ −200 cp; worst exit **−50 cp** |
 | `q3_book_vs_search.py` | book vs depth-18 choice, material | 589 played book moves: 13 concede material |
@@ -84,6 +84,6 @@ the book.
   not available. Diversity was obtained through `Book Variety` (up to 100) instead.
   Recorded as a limit in `scripts/play_games.py`.
 * **The re-entry search is only partly exhaustive.** Closed completely for 122 of
-  199 leaves; the other 77 are covered by a bounded search plus 1,120 games.
+  199 leaves; the other 77 are covered by a bounded search plus the 720 completed games.
 * **`Book Depth` derivation was not examined.** The brief says the diagnosis is
   correct and must not be patched; it was not patched and no claim is made about it.

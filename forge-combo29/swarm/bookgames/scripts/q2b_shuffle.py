@@ -47,7 +47,7 @@ import book_graph as bg
 from forge_uci import Engine
 
 LINE16 = ("e2e4 c7c5 c2c3 e7e6 g1f3 d7d5 e4d5 e6d5 d2d4 g8f6 f1d3 c5c4 "
-          "d3c2 b8c6 e1h1 f8e7").split()
+          "d3c2 b8c6 e1g1 f8e7").split()
 
 # The book move that takes ply 15 to ply 16, and its inverse.
 BOOK_MOVE = "f8e7"
@@ -205,9 +205,28 @@ def main() -> int:
             "in_book": chess.polyglot.zobrist_hash(final) in keys,
             "engine": at_final,
         }
-        report["trap_19a_reached_in_play"] = bool(
-            final.is_repetition(3) and chess.polyglot.zobrist_hash(final) in keys
-            and at_final["book"] is not None and at_final["depth_lines"] == 0)
+
+        # The detection point is each CYCLE position (the recurring ply-15
+        # position), NOT the final position: the last move of a round is the book
+        # move back to the leaf, so `final` is the leaf and is not the threefold.
+        # The first version tested only `final` and therefore reported
+        # trap_19a_reached_in_play = false while `cycles` recorded the threefold
+        # with a book move and zero depth lines one loop earlier.
+        hit = next((c for c in steps
+                    if c.get("threefold") and c.get("in_book")
+                    and c.get("engine_book") is not None
+                    and c.get("engine_depth_lines") == 0), None)
+        report["trap_19a_reached_in_play"] = hit is not None
+        report["trap_19a_point"] = hit
+        report["trap_19a_note"] = (
+            "The recurring position is reached for the THIRD time and the book "
+            "plays it anyway, emitting `info string book move` with zero `info "
+            "depth` lines -- the trap-19a signature. Reaching it required driving "
+            "the shuffle: the opponent must cooperate, so this shows the state is "
+            "REACHABLE in play, not that either engine walks into it unaided."
+            if hit else
+            "no cycle position was simultaneously a threefold and in the book"
+        )
 
         # the same final position with the book OFF, to show the bail it should have had
         eng.setoption("OwnBook", "false")

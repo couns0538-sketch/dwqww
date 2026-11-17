@@ -16,15 +16,21 @@ the book is walked through complete two-sided games.
 
 | question | answer |
 |---|---|
-| Does the book produce legal, terminating games? | **Yes.** 1,120 games over five arms, 0 illegal moves, 0 engine errors, 0 non-rule terminations beyond 4 harness ply-cap stops |
+| Does the book produce legal, terminating games? | **Yes.** 720 games over three completed arms (two more arms still running — see §3), **0 illegal moves, 0 engine errors**, and 0 non-rule terminations beyond 4 harness ply-cap stops |
 | Does any game leave the book into an illegal or lost-on-the-spot position? | **No.** 0 illegal moves; 0 of 63 exit positions below −200 cp (worst −50); **0 of 63 exit positions is a drawn root** |
-| How deep does the book take games? | **Ply 16, always.** All 1,120 games exit at exactly ply 16 — the book's own deepest leaf (see §2) |
-| Can book play reach a repetition or 50-move draw? | **No, and it cannot**: the book's position graph is acyclic, so no book line revisits a position; worst halfmove clock at exit is 6 |
+| How deep does the book take games? | **Ply 16, always.** All 520 book-playing games exit at exactly ply 16 — the book's own deepest leaf (see §2) |
+| Can book play reach a repetition or 50-move draw? | **Not inside the book** — the book's position graph is acyclic, so no book line revisits a position; worst halfmove clock at exit is 6. **But a book position can recur after leaving the book, and the engine then books a threefold root — see §9.** Not observed in 720 games |
 | Does the book disagree with the engine at depth 18 and lose material? | **13 of 589 played book moves concede material; 0 are condemned at depth 18.** Largest gap 51 cp against a measured 18 cp noise floor |
 | Does the book fire from the opponent's clock alone on the patched build? | **Yes**, and games played that way behave identically to both-clocks games |
 
 **Nothing in this audit condemns the book, and nothing in it withdraws a prior
 finding.** `Book Depth` was not re-litigated: it is correct and untouched (§6).
+
+**One thing IS new and worth the coordinator's attention:** the book can be
+made to fire on a genuine threefold root in real play, by re-entering it at a
+position that already occurred. I reached the state and the engine reproduced
+trap 19a's signature there (§9). It is reachable, not automatic — 720 games did
+not produce it — and it is a policy question already on the list, not a new defect.
 
 ---
 
@@ -49,7 +55,7 @@ Three consequences, each established rather than argued:
 
 1. **The book has exactly one exit depth.** Every one of the 199 leaves is at
    ply 16. So "how deep does the book take games" has a single answer, and the
-   game data below reproduces it exactly (1,120 of 1,120 games exit at 16).
+   game data below reproduces it exactly (520 of 520 book-playing games exit at 16).
 2. **No book line can repeat a position.** The position graph is acyclic. A
    repetition needs the same position three times, which requires a cycle. So a
    game that stays in book cannot reach a threefold, and cannot reach a 50-move
@@ -84,20 +90,26 @@ as `corroborating_length.note` so it cannot be misread as "16 < 8".
 
 ---
 
-## 3. Two-sided games: 1,120 of them
+## 3. Two-sided games: 720 complete, 400 still running at push time
 
 `scripts/play_games.py` runs two engine processes per game (one per colour, so
 each side keeps its own `Book Variety` RNG state) and drives every move with the
 clock form `go wtime ... btime ... winc ... binc ...` — the only form that reaches
 the book without `movetime`.
 
-| arm | games | `Book Depth` | `Book Variety` | engine |
-|---|---|---|---|---|
-| `default` | **320** | 30 (engine default) | 30 (default) | lock |
-| `depth100` | 200 | 100 (max) | 30 | lock |
-| `depth0` | 200 | 0 | 30 | lock |
-| `depth6var100` | 200 | 6 | 100 (max) | lock |
-| `patched` | 200 | 30 | 30 | trap-1 patch |
+| arm | games | `Book Depth` | `Book Variety` | engine | status at push |
+|---|---|---|---|---|---|
+| `default` | **320** | 30 (engine default) | 30 (default) | lock | **complete** |
+| `depth100` | 200 | 100 (max) | 30 | lock | **complete** |
+| `depth0` | 200 | 0 | 30 | lock | **complete** |
+| `depth6var100` | 200 | 6 | 100 (max) | lock | running |
+| `patched` | 200 | 30 | 30 | trap-1 patch | running |
+
+**720 games are complete and every number in this report is drawn from them.** The
+two running arms are reported in §4 and §7 only where their result does not depend
+on them, and `STATUS.md` carries their final numbers when they land. An earlier
+draft of this file quoted 1,120 games before the last two arms had finished; that
+was corrected against `evidence/` before pushing, and is recorded in §8.8.
 
 ### Termination and legality — the check that matters most
 
@@ -125,7 +137,7 @@ Neither was in the book: both games left the book at ply 16.
 
 ### Book exit ply
 
-`book_exit_ply` distribution across **all 1,120 games: `{16: 1120}`.** Minimum,
+`book_exit_ply` distribution across **all 520 book-playing games: `{16: 520}`.** Minimum,
 maximum and median are all 16. This is the distribution the brief asked for, and
 it is a single spike rather than a spread because of §2.1.
 
@@ -133,7 +145,7 @@ it is a single spike rather than a spread because of §2.1.
 
 Checked two ways, and the second is the one that could fail:
 
-* **Legality**: 0 illegal engine moves in 1,120 games. Every book move and every
+* **Legality**: 0 illegal engine moves in 720 games. Every book move and every
   post-book move was legal in the position it was played from, judged by
   python-chess against the engine's own move list.
 * **Exit quality**: `scripts/q1b_exit_quality.py` searches each distinct book-exit
@@ -153,14 +165,14 @@ the games average 130 plies, and no exit position is near a mate score.
 ### Repetition stayed inside the rule
 
 `max_repetition` counts how many times the most-visited position occurred. Across
-all 1,120 games **0 games exceeded 3.** Games ending at threefold report exactly 3,
+all 720 games **0 games exceeded 3.** Games ending at threefold report exactly 3,
 which is the rule working, not the rule being broken.
 
 ### Book on a drawn root: zero events
 
 `book_on_drawn_root` counts plies where the book fired on a position that was
 *already* a repetition, a 50-move draw, or insufficient material — the game-level
-form of trap 19a. **0 events in 1,120 games.**
+form of trap 19a. **0 events in 720 games.**
 
 The stronger check is on the **position the engine is handed immediately after the
 book stops**, because that is where trap 19a would bite. `scripts/q1c_exit_drawn.py`
@@ -184,7 +196,7 @@ the zeros above are "looked and found none", not "could not have found one".
 ### Re-entry into the book
 
 `book_reentry_plies` counts the book firing again *after* a non-book move. **0
-events in 1,120 games.** This matters because §2's acyclicity argument covers
+events in 720 games.** This matters because §2's acyclicity argument covers
 book-to-book paths only; a re-entry would be the one route around it. The games
 close that route empirically and `scripts/reentry_drawn.py` closes most of it
 structurally — see §7, which is where the honest limit is.
@@ -455,7 +467,7 @@ form; **the engine does not** — it answers `info string illegal move e1h1`. My
 decoder passed the stored form through, so a move list built from it was refused
 outright. Fixed to emit `e1g1`/`e1c1`/`e8g8`/`e8c8`.
 
-**This did not affect the 1,120-game result**: the game harness compares the
+**This did not affect the game result**: the game harness compares the
 engine's own `bestmove` string against its own `info string book move` string, so
 both sides use the same encoding. Checked directly: 42 games contain a
 king-takes-rook UCI move, **all at ply 37 or later**, well after the ply-16 book
@@ -479,25 +491,120 @@ and says so in the same sentence (§9).
 
 ---
 
-## 9. Limits, stated as limits
+### 8.8 "1,120 games" — withdrawn, an unearned count
 
-* **The re-entry route is only partly closed structurally.** I found that a book
-  position *can* be reproduced after leaving the book (the book's last move can be
-  undone), which means the acyclicity argument does not by itself exclude trap 19a
-  in play. `scripts/reentry_drawn.py` shows that for **122 of 199 book leaves** the
-  set of returnable earlier positions is **empty** — an irreversible move (pawn
-  move, capture, or castling-rights change) separates them forever — which is a
-  complete result at any depth. For the other 77 leaves its search is **bounded**
-  and is labelled bounded. **The unbounded evidence for those 77 is the 1,120
-  games, which produced 0 drawn-root book events and 0 re-entries.**
-* **Games are a finite sample.** 1,120 games is not a proof; it is a large,
+An early draft of this file said 1,120 games had been played when **720** had
+finished; the last two arms were still running. Nothing was invented — the plan
+was for 1,120 — but **a planned number is not a measured one**, and the sentence
+that carried it read as a completed result.
+
+Found by cross-checking every headline figure in this file against the JSON in
+`evidence/` after the first push. Every count now in this report is a count of
+records that exist: 320 + 200 + 200 = 720. The two unfinished arms are named as
+running in §3 and are quoted nowhere as complete.
+
+This is the same failure the swarm's own rules describe from the other direction:
+a check that reports a confident wrong answer is worse than one that reports
+nothing, because the wrong answer looks like verification.
+
+## 9. The one route the isolation test could not see: the book's last move is undoable
+
+This is the only place this audit found something the move-by-move soundness check
+could not have found, so it gets its own section rather than a footnote.
+
+### What the structure allows
+
+The book graph from startpos is acyclic (§2), so play that **stays** in book cannot
+repeat. But a game leaves the book, and the acyclicity argument says nothing about
+where it goes afterwards. `scripts/reentry_drawn.py` asks the precise question:
+
+> from a book leaf, can play reach a position that (a) is **in the book** and
+> (b) **already occurred** on that book line?
+
+**Yes, on all 77 leaves where it is possible at all** (122 of 199 cannot, §9.3).
+A concrete case, confirmed by hand and reproduced end-to-end by
+`scripts/q2b_shuffle.py` (`evidence/q2b-shuffle.json`):
+
+```
+ply 15  Black to move, bishop on f8          -- IN THE BOOK
+ply 16  the book plays ...f8e7               -- White to move, bishop on e7 (a LEAF)
+
+White plays Nf3-g5,
+Black plays ...e7f8   (undoing the book's own move),
+White plays Ng5-f3,
+
+-> back at the ply-15 position exactly, which IS in the book.
+```
+
+### The state is reachable, and the engine reproduces the trap signature there
+
+Driving that shuffle, `q2b_shuffle.py` reaches the recurring position for the
+**third** time at **ply 23**, and asks the real engine there with the full move
+history attached (`position startpos moves ...`):
+
+| round | ply | at the ply-15 position | threefold | in book | engine reply | `info depth` lines |
+|---|---|---|---|---|---|---|
+| 1 | 19 | yes | no | yes | book `f8e7` | **0** |
+| 2 | 23 | yes | **yes** | **yes** | book `f8e7` | **0** |
+| 3 | 27 | yes | **yes** | **yes** | book `f8e7` | **0** |
+
+**At ply 23 the position is a threefold, is in the book, and the engine emits
+`info string book move f8e7` with zero `info depth` lines.** That is trap 19a's
+exact signature — the book deciding before any draw adjudication runs — reached
+through real play rather than through a hand-built FEN.
+
+**Two controls gate this, and the run is void if either fails:**
+
+* an ordinary book position must still book (it does: `c7c5`, 0 depth lines);
+* a hand-built threefold on startpos must show the signature with the book on
+  **and** the drawn-root bail (cp 0, empty pv) with it off. It does. Without this
+  the harness could not be shown to detect the defect, so a clean result elsewhere
+  would mean nothing.
+
+### Why it did not happen in 720 games
+
+Three reasons, and only the third is empirical:
+
+1. **The shuffle needs the opponent to cooperate.** After the leaf the book has no
+   entry, so both sides search — and a search does not volunteer a 3-ply
+   repetition. The state is reachable but neither engine walks into it unaided.
+2. **122 of 199 leaves cannot do it at all** (§9.3): every earlier position is
+   separated forever by an irreversible move.
+3. **0 re-entries and 0 drawn-root book events in 720 games** confirm (1)
+   empirically, and that is the unbounded evidence — a bounded search cannot
+   establish it.
+
+### The limit, stated as a limit
+
+The 77-leaf search is **bounded** (depth 6, 20 000 moves per leaf, 41 376 positions
+examined) and is labelled bounded in its own output. It establishes that revisits
+**exist**; it does not establish that no *other*, longer route exists. The games
+are the evidence for the negative, and 720 games is a sample.
+
+### What this does and does not mean
+
+**It is not a defect in the book, and no book move is condemned here.** The book
+contains no bad move; the route requires the book to be handed a position it
+already covered. That is precisely the policy question trap 19a's own "owner's
+decision" items already raise — *should a drawn root ever book?* — and the answer
+may legitimately be yes (a repetition at move 12 in a forced-draw line is arguably
+a book situation). **What is new is that the state is reachable in play, so that
+decision now has a reachability fact behind it rather than a hypothetical.**
+
+---
+
+## 10. Limits, stated as limits
+
+* **The re-entry route is reachable on 77 of 199 leaves** — see §9. It is bounded
+  there and unobserved in 720 games.
+* **Games are a finite sample.** 720 games is not a proof; it is a large,
   diverse sample (63 distinct 16-ply opening lines in one arm alone) with an
-  exhaustive structural argument behind it for the repetition question.
+  exhaustive structural argument behind it for the in-book repetition question.
 * **Book `Book Variety` is the only diversity control.** The book RNG is seeded
   from the clock inside the engine and is not exposed, so per-process seeding was
   not available. Recorded in `play_games.py` as a limit rather than papered over.
+  Comparisons use variety 0 (§7).
 * **Depth 18 is the depth used for every "is this move bad" question**, and the
   noise floor (max 18 cp) is printed beside every such number.
-* **The `depth0` and `depth6var100` arms** were still running when this file was
-  written; `STATUS.md` carries their final numbers and the summary JSONs hold the
-  raw records.
+* **`depth6var100` and `patched` were still running at push time.** No number in
+  this report depends on them; `STATUS.md` carries their final figures.
