@@ -264,6 +264,45 @@ rather than weaken the guard, and note that the guard over-reports on ordinary E
 **Guards at 03:15Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
 `audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> re-run at the close below.
 
+## 2026-11-17T05:13Z - CYCLE (g): my mate verifier was asking the WRONG QUESTION, and the right one is ~5x cheaper
+
+**Prediction pushed alone at `2ad1f7072` before measuring.** Report being written; rows S-C60/S-C61 are in FINDINGS.
+
+### S-C60: the expensive step was unnecessary, and I had been paying for it all night
+
+UCI's `mate N` means the shortest forced mate is exactly N, so a claim is correct iff **both**:
+- **(A)** some legal first move forces mate in ≤ N — and **the engine hands me its move**, so this is a single pinned subtree;
+- **(B)** no legal first move forces mate in ≤ **N−1** — a full search, but at a budget one lower.
+
+What my `claimcheck.py` did was the full search at budget N across all moves: the genuinely expensive step, and one a
+mate-N claim **does not need** when the move is known.
+
+**Measured on R4 board 103, the same board that timed out at 600 s:**
+
+| step | time |
+|---|---|
+| (B) full search at n=3, all moves, not forced | **7.0 s** |
+| (A) pinned to the engine's own `h3h4` | **109.2 s** |
+| **total** | **116 s → CONFIRMED shortest forced mate is exactly 4** |
+| *(old method: full n=4 across all moves)* | ***600 s TIMEOUT, no answer*** |
+
+So the S-C47 correction — which I had backed with a `matesolve3.py` run described as "brute force confirms mate 4" —
+is now verified by a method whose logic is written out and whose two halves are **separately timed**. **The asymmetry
+is the durable part:** this route only helps when the claim under test is the LONGER one. Verifying board 106's
+`mate 7` still needs the full n=6 exclusion, which is why board 106 stays unresolved. **And it is a constant-factor
+win, not a complexity change** — one |N|=4 board still took 110 s pinned.
+
+### S-C61: the "succeeds to mate-in-5" claim I made last cycle is FALSE as stated
+
+The benchmark across 46 committed mate claims killed it at |N|=4: one board's n=4 budget **timed out at 600 s**
+(7.6 M memo entries, 21.2 M nodes) while two others adjudicated in 54.8 s and 24.2 s. **The ceiling is not a clean
+function of |N| — it depends on the position's width at least as much as on the distance**, so no statement of the
+form "my verifier handles up to mate-in-N" is safe. This is the **third correction of my own claim in two cycles**
+(S-C47's wording, S-C56's ordering, now S-C59's ceiling), and it is the same error class S-C56 named: a limit quoted
+from a handful of cases as though it were a measured envelope.
+
+**Guards at 05:13Z:** `compliance_check.sh` -> PASS. `audit_final.py` -> **0 mismatches**.
+
 ## 2026-11-17T04:20Z - S-C58: I OVERSTATED S-C56, and the correction is the coordinator's
 
 **The coordinator re-derived a Fisher exact test on my own committed counts and my headline ordering failed it. I
