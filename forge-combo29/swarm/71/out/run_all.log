@@ -1,0 +1,112 @@
+
+=== build hashes
+0a9cfbbec364f9458593e5388a94e7c223b94c336cc31b5f4fd62b48811ba947  ./build/forge
+fcfd10f3b366c776b5e4f6995637812c682cee90a667d262b273f92f25cfd54a  ./build_verify/forge
+1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a  test_v3.fnn3
+
+=== test net identity (expect bytes 6309096, fnv1a64 fdff70de72e4ca82)
+Traceback (most recent call last):
+  File "/agent/repos/dwqww/forge-combo29/swarm/71/make_v3_testnet.py", line 53, in <module>
+    main(sys.argv[1])
+  File "/agent/repos/dwqww/forge-combo29/swarm/71/make_v3_testnet.py", line 47, in main
+    with open(out, "xb") as f:
+         ^^^^^^^^^^^^^^^
+FileExistsError: [Errno 17] File exists: 'out/regen_testnet.fnn3'
+IDENTICAL to shipped test net
+
+=== Q1a incremental vs refresh, 400 sequences x 120 plies, every ply
+INC sequences 400 compared 48400 acc_mismatched 0 eval_compared 48400 eval_mismatched 0 fens_refused 0 moves_refused 0 replays 48000 king_key_changes 202 stride 1 max_abs_delta 0
+
+=== Q1b incremental vs refresh, 200 sequences x 40 plies, every ply
+INC sequences 200 compared 8200 acc_mismatched 0 eval_compared 8200 eval_mismatched 0 fens_refused 0 moves_refused 0 replays 8000 king_key_changes 7 stride 1 max_abs_delta 0
+
+=== Q1c incremental vs refresh with evaluation gaps (replay_ply rebuild branch)
+INC sequences 200 compared 3000 acc_mismatched 0 eval_compared 3000 eval_mismatched 0 fens_refused 0 moves_refused 0 replays 2800 king_key_changes 172 stride 3 max_abs_delta 0
+
+=== Q1d lone-king walks: 5012 king-key transitions through the rebuild branch
+INC sequences 120 compared 7320 acc_mismatched 0 eval_compared 7320 eval_mismatched 0 fens_refused 0 moves_refused 0 replays 7200 king_key_changes 5012 stride 1 max_abs_delta 0
+
+=== Q1e distinct positions compared (fixtures overlap; this is the honest denominator)
+COUNT seq_deep.tsv                 distinct_positions 47418
+COUNT seq_large.tsv                distinct_positions 7761
+COUNT seq_small.tsv                distinct_positions 479
+COUNT kingwalk.tsv                 distinct_positions 6961
+COUNT pairwise_overlap
+COUNT   seq_deep.tsv             vs seq_large.tsv            7761
+COUNT   seq_deep.tsv             vs seq_small.tsv            479
+COUNT   seq_deep.tsv             vs kingwalk.tsv             0
+COUNT   seq_large.tsv            vs seq_small.tsv            479
+COUNT   seq_large.tsv            vs kingwalk.tsv             0
+COUNT   seq_small.tsv            vs kingwalk.tsv             0
+COUNT union_distinct_positions 54379
+
+=== Q2 colour mirror, 1000 positions
+MIRROR compared 1000 asymmetric 0 refused 0 max_abs_delta 0
+
+=== Q2 colour mirror, 200 committed opening positions
+MIRROR compared 200 asymmetric 0 refused 0 max_abs_delta 0
+
+=== Q3 bare kings
+BARE 4k3/8/8/8/8/8/8/4K3 w - - 0 1              eval     23 wild 0
+BARE 4k3/8/8/8/8/8/8/4K3 b - - 0 1              eval     23 wild 0
+BARE 8/8/8/8/8/8/8/K6k w - - 0 1                eval     68 wild 0
+BARE k7/8/8/8/8/8/8/7K b - - 0 1                eval   -135 wild 0
+BARE 4k3/8/8/8/8/8/8/3qK3 w - - 0 1             eval    -57 wild 0
+BARE 4k3/8/8/8/8/8/8/3QK3 b - - 0 1             eval   -127 wild 0
+BARE compared 6 refused 0 wild 0
+
+=== Q4 damaged nets
+DAMAGE cases 12 pristine_bytes 6309096 netpath ./netpath
+DAMAGE zero_len         bytes 0        expect refused  got refused  OK | LOADPROBE refused damage_out/zero_len.fnn3: file too small for a v3 header
+DAMAGE header_only      bytes 192      expect refused  got refused  OK | LOADPROBE refused damage_out/header_only.fnn3: file too small for a v3 header
+DAMAGE trunc_half       bytes 3154548  expect refused  got refused  OK | LOADPROBE refused damage_out/trunc_half.fnn3: file size 3154548 != expected 6309096
+DAMAGE trunc_1          bytes 6309095  expect refused  got refused  OK | LOADPROBE refused damage_out/trunc_1.fnn3: file size 6309095 != expected 6309096
+DAMAGE extend_1         bytes 6309097  expect refused  got refused  OK | LOADPROBE refused damage_out/extend_1.fnn3: file size 6309097 != expected 6309096
+DAMAGE bad_magic        bytes 6309096  expect refused  got refused  OK | LOADPROBE refused damage_out/bad_magic.fnn3: bad magic (expected FORGENN3)
+DAMAGE flip_w1          bytes 6309096  expect refused  got refused  OK | LOADPROBE refused damage_out/flip_w1.fnn3: checksum mismatch
+DAMAGE flip_b1          bytes 6309096  expect refused  got refused  OK | LOADPROBE refused damage_out/flip_b1.fnn3: checksum mismatch
+DAMAGE flip_scale       bytes 6309096  expect refused  got refused  OK | LOADPROBE refused damage_out/flip_scale.fnn3: checksum mismatch
+DAMAGE flip_checksum    bytes 6309096  expect refused  got refused  OK | LOADPROBE refused damage_out/flip_checksum.fnn3: checksum mismatch
+DAMAGE rechecksummed    bytes 6309096  expect ACCEPTED got ACCEPTED OK | LOADPROBE accepted v3 damage_out/rechecksummed.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum a1ab778dfa69b9f9 max|w1| 205 max|b1| 96 max|w2| 16 kernel avx512 startpos_eval 968
+DAMAGE hidden_too_big   bytes 6309096  expect refused  got refused  OK | LOADPROBE refused damage_out/hidden_too_big.fnn3: hidden must be a multiple of 32 in 32..1024, got 1056
+DAMAGE summary cases 12 accidental_damage_refused 11 adversarial_accepted 1 violations 0
+
+=== Q5 UCI activation / refusal / FEN diagnostic
+ACTIVATION net_off | info string bench depth 11 nodes 312866 time 185 nps 1691167
+ACTIVATION net_on  | info string bench depth 11 nodes 965454 time 852 nps 1133161
+ACTIVATION nodes_off 312866 nodes_on 965454
+ACTIVATION bench_nodes_changed 1 (1 means the net took effect)
+NOTACT no_file   | info string bench depth 11 nodes 312866 time 169 nps 1851278
+NOTACT file_only | info string bench depth 11 nodes 312866 time 185 nps 1691167
+NOTACT nodes_no_file 312866 nodes_file_only 312866
+NOTACT inert 1 (1 means a file loaded with NNUEArch false had no effect)
+DAMAGED_UCI exit_status 2 error_lines 1 first info string ERROR NNUE v3: damage_out/flip_w1.fnn3: checksum mismatch
+DAMAGED_UCI info_depth_lines 0 bestmove_lines 0
+DAMAGED_UCI loud_and_no_search 1 (1 is required)
+ARCHNOFILE exit_status 2 error_lines 1 info_depth_lines 0
+FENDIAG with_isready     8/8/8/8/8/8/8/8 w - - 0 1                      in_position_reply 1 in_go_prefix 0 pos_lines 2 go_lines 3
+FENDIAG without_isready  8/8/8/8/8/8/8/8 w - - 0 1                      in_position_reply 0 in_go_prefix 1 pos_lines 0 go_lines 4
+FENDIAG with_isready     rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR    in_position_reply 1 in_go_prefix 0 pos_lines 2 go_lines 3
+FENDIAG without_isready  rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR    in_position_reply 0 in_go_prefix 1 pos_lines 0 go_lines 4
+FENDIAG with_isready     Pnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR    in_position_reply 1 in_go_prefix 0 pos_lines 2 go_lines 3
+FENDIAG without_isready  Pnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR    in_position_reply 0 in_go_prefix 1 pos_lines 0 go_lines 4
+FENDIAG seen_in_at_least_one_stream_every_path 1 (1 is required)
+FALSEPOS compared 12 false_positives 0
+UCI activation     PASS
+UCI not_activated  PASS
+UCI damaged        PASS
+UCI arch_no_file   PASS
+UCI fendiag        PASS
+UCI falsepos       PASS
+UCI all_pass 1
+
+=== Q5b fault injection: the incremental check must FAIL when corrupted
+injection detected: acc_mismatched 492
+
+=== Q6 identity baseline
+BASELINE progress 175/200 (14s)
+BASELINE progress 200/200 (15s)
+BASELINE rows 200 refused 0 missing_nodes 0
+BASELINE node_sum 29791805 expected 27944084 match 0
+
+run_all finished fail=0

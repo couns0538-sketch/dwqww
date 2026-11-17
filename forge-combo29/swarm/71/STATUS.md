@@ -13,7 +13,7 @@ asks whether the incrementally maintained v3 accumulator can be wrong.
 
 | # | question | state | count achieved so far |
 |---|---|---|---|
-| 1 | incremental vs full refresh disagreement | **run; clean so far** | **57,720 positions compared, 0 mismatches** |
+| 1 | incremental vs full refresh disagreement | **run; clean** | **54,379 distinct positions compared, 0 mismatches** |
 | 2 | determinism and colour symmetry | **run; clean** | 1,212 mirror pairs, 0 asymmetric |
 | 3 | bare king graceful | **run; clean** | 6 positions, 0 wild scores, no crash |
 | 4 | truncated / bit-flipped / zero-length net | **run; answered** | 12 damage cases, 11 refused, 1 accepted by design |
@@ -24,9 +24,8 @@ asks whether the incrementally maintained v3 accumulator can be wrong.
 
 ## Question 1 — the number that matters
 
-**57,720 positions compared between the incremental accumulator and a fresh refresh, 0
-mismatches.** Broken down, every one of these from a real move sequence replayed by the engine
-itself:
+**54,379 distinct positions compared between the incremental accumulator and a fresh refresh, 0
+mismatches.** Per-run counts, every one from a real move sequence replayed by the engine itself:
 
 | fixture | sequences | positions compared | king-key changes | mismatches |
 |---|---|---|---|---|
@@ -35,7 +34,13 @@ itself:
 | 120 lone-king walks x 60 plies, every ply | 120 | 7,320 | **5,012** | 0 |
 | 12 sequences x 40 plies, every 3rd ply | 12 | 180 | — | 0 |
 | 12 sequences x 40 plies, every 5th ply | 12 | (subset of above) | — | 0 |
-| **total, distinct runs** | | **57,720** | | **0** |
+| **union of the above** | | **54,379 distinct** | | **0** |
+
+The fixture counts do **not** add up to 54,379: `seq_small` ⊂ `seq_large` ⊂ `seq_deep`, because
+all three take the first N rows of the same corpus with the same 40-ply prefix (`deep ∩ large =
+7,761`, `deep ∩ small = 479`, `kingwalk ∩ deep = 0`). 47,418 + 6,961 = 54,379 is the union, and
+`count_distinct.py` computes it and is wired into `run_all.sh`. My first figure of 57,720 was a
+subtraction I had not checked; it is replaced above.
 
 The comparison is not only on the final position: for every ply in every sequence the harness
 compares all 2 x 512 accumulator units (and both king keys and king squares) against a fresh
