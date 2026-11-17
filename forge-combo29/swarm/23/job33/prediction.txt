@@ -1,0 +1,20 @@
+PREDICTION — SW-23 job 33 (does the driver protocol's `info string` rule catch the DRAWN-ROOT case?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+The driver page's primary rule is "count the `info string` lines after every `position`; rebuild if any appeared".
+That rule was validated for a REFUSED FEN and an ILLEGAL TOKEN. The drawn-root defect is different: the position is
+ACCEPTED (no diagnostic at all) and the engine answers cp 0 with 0 nodes. So the question is whether the driver page's
+rule catches it — I expect NOT, and that the page should say so.
+
+Method: the 23-F58 threefold root, reached as a move list (so no FEN refusal is involved). Send it to the base build and
+the PC build, count `info string` lines, and check whether the answer is 0 nodes. If there are no diagnostics, the
+`info string` rule cannot fire and the page needs a second check for this case.
+
+Prediction (each number with the range that kills it):
+  P1  the drawn-root case produces ZERO `info string` lines on both builds.        KILLED if any appear.
+  P2  the base therefore passes the info-string rule while answering 0 nodes.        KILLED if it searches.
+  P3  a node-count check (0 nodes = suspicious) DOES catch it, on both builds for the base and neither for the PC.
+  P4  the PC's answer will be > 1000 nodes on the same input, so a 0-node check would not flag it. KILLED if 0 nodes.
+
+If P1 holds, the honest conclusion is that the driver page's single rule is insufficient and needs a second one:
+"a search that returns bestmove with 0 nodes is suspicious — either the root is drawn or the position was refused".
