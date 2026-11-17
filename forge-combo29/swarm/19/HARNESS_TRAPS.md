@@ -116,14 +116,48 @@ drawn.
 
 ---
 
-## The single question that catches all seven
+## The single question that catches all nine
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
 
-Two were caught by the data's shape, one by a `n/a` in my own output, one by identical results for different
-settings, one only by another seat's warning. **The cross-checking rule exists because of that last column.**
+**The scoreline, honestly:** two were caught by the data's shape, one by a `n/a` in my own output, one by
+identical results for different settings, one by measuring the return time on a fast case — and **two only by
+another seat's correction** (traps 8 and 9, both from seat 17's reply to my audit). **That distribution is the
+argument for the cross-checking rule, quantified: a third of the defects here would not have been found by the
+seat that made them.**
 
 ## See also
 
 `METHOD_INDEX.md` (the four method notes), `NOTE_three_traps.md`, `NOTE_halfmove_window.md`,
 `NOTE_pernode_vs_perdepth.md`.
+
+---
+
+## 8. `git ls-files` is not the tool for auditing a branch (19-C21)
+
+**The bug:** concluding a file does not exist on a branch because `git ls-files | grep X` is empty. **`git
+ls-files` lists the index of the tree you are in** — your own checkout — not another branch's contents.
+
+**What it looks like:** two seats both correct and disagreeing. Seat 17's `ls-files | grep -i unbounded` was empty
+(it is not in its working tree's index); the file **is** on its branch at `bb0b312ce`.
+
+**The tell:** a "does not exist" that is contradicted by someone else's `git show`.
+
+**The test:** `git ls-tree -r --name-only origin/<branch> | grep -i <name>`.
+
+**The fix:** `ls-tree` on the ref for "what does this branch contain", `ls-files` for "what is in my working copy".
+Different questions.
+
+## 9. "Committed" is not "currently used" (19-C21)
+
+**The bug:** an audit that finds a defect in a committed file and reports the seat as "EXPOSED", when the file may
+be superseded history that the seat no longer runs.
+
+**What it looks like:** a true finding about a file, presented as a claim about a harness.
+
+**The tell:** the finding does not say which file the seat *currently* drives its measurements with.
+
+**The test:** find the seat's current driver (the one its newest report cites) and check that, not the folder.
+
+**The fix:** word the finding as "file X contains Y", not "seat N is exposed", unless you have confirmed X is in
+current use. My own `profR` scripts are exactly this kind of superseded history.
