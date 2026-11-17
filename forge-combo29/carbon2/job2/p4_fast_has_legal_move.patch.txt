@@ -1,0 +1,92 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 11:30:38.645143771 +0000
++++ b/src/board.cpp	2026-11-17 11:41:36.277143771 +0000
+@@ -719,16 +719,57 @@
+     return moves;
+ }
+ 
++namespace {
++// Pieces of either colour that alone stand between `king` and one of the
++// given rook-like / bishop-like sliders.
++[[nodiscard]] Bitboard single_blockers(int king, Bitboard rook_like, Bitboard bishop_like, Bitboard occupancy) {
++    Bitboard snipers = (attacks::rook_ray(king) & rook_like) | (attacks::bishop_ray(king) & bishop_like);
++    Bitboard blockers = 0;
++    while (snipers != 0) {
++        const Bitboard between = attacks::between(king, pop_lsb(snipers)) & occupancy;
++        if (between != 0 && !more_than_one(between)) blockers |= between;
++    }
++    return blockers;
++}
++} // namespace
++
+ bool Board::has_legal_move() const {
+-    // A single legal quiet pawn push proves non-terminal without generating
+-    // the full move list. Promotions and every failed witness use the original
+-    // complete fallback; exact king-safety testing handles checks and pins.
+-    const Bitboard pushes = pawn_push(side_, pieces(side_, Pawn)) & ~occupied() & ~(Rank1BB | Rank8BB);
+-    if (pushes != 0) {
+-        const int to = lsb(pushes);
+-        const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),
+-                           static_cast<std::uint8_t>(to), 0, Quiet};
+-        if (is_legal(witness)) return true;
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const Bitboard occ = occupied();
++        const Bitboard us_occ = occupied(us);
++        const Bitboard them_occ = occupied(them);
++        const int ksq = king_square(us);
++#if FORGE_SPD_KING_LINES
++        const Bitboard pinned = king_lines_.valid
++            ? king_lines_.pinned
++            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++#else
++        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++#endif
++        const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
++        if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
++        if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
++        const Bitboard not_us = ~us_occ;
++        for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
++            if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
++        }
++        const Bitboard queens = pieces(us, Queen);
++        for (Bitboard bb = (pieces(us, Bishop) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::bishop(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        for (Bitboard bb = (pieces(us, Rook) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::rook(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        const Bitboard occ_no_king = occ & ~square_bb(ksq);
++        for (Bitboard k = attacks::king(ksq) & not_us; k != 0;) {
++            const int to = pop_lsb(k);
++            const Bitboard to_bb = square_bb(to);
++            if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
++        }
+     }
+     MoveList moves;
+     generate_pseudo_legal(moves, false);
+@@ -908,21 +949,6 @@
+     return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;
+ }
+ 
+-namespace {
+-// Pieces of either colour that alone stand between `king` and one of the
+-// given rook-like / bishop-like sliders (the lock's see_ge uses the same walk
+-// over the empty-board rays and the between masks).
+-[[nodiscard]] Bitboard single_blockers(int king, Bitboard rook_like, Bitboard bishop_like, Bitboard occupancy) {
+-    Bitboard snipers = (attacks::rook_ray(king) & rook_like) | (attacks::bishop_ray(king) & bishop_like);
+-    Bitboard blockers = 0;
+-    while (snipers != 0) {
+-        const Bitboard between = attacks::between(king, pop_lsb(snipers)) & occupancy;
+-        if (between != 0 && !more_than_one(between)) blockers |= between;
+-    }
+-    return blockers;
+-}
+-} // namespace
+-
+ void Board::refresh_king_lines() const {
+     const Color us = side_;
+     const Color them = opposite(us);

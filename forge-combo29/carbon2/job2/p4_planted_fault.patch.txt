@@ -1,0 +1,12 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 11:41:36.277143771 +0000
++++ b/src/board.cpp	2026-11-17 11:43:43.213143771 +0000
+@@ -754,7 +754,7 @@
+         if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
+         if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
+         const Bitboard not_us = ~us_occ;
+-        for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
++        for (Bitboard bb = pieces(us, Knight) /* PLANTED FAULT: omit pieces(us, Knight) & ~pinned ~pinned */; bb != 0;) {
+             if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
+         }
+         const Bitboard queens = pieces(us, Queen);

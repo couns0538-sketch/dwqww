@@ -1,0 +1,411 @@
+diff -ruN a/include/forge/nnue_v3.hpp b/include/forge/nnue_v3.hpp
+--- a/include/forge/nnue_v3.hpp	2026-11-17 11:18:08.513143771 +0000
++++ b/include/forge/nnue_v3.hpp	2026-11-17 11:32:27.145143771 +0000
+@@ -48,6 +48,7 @@
+ #include "forge/board.hpp"
+ #include "forge/nnue.hpp"
+ 
++#include <algorithm>
+ #include <array>
+ #include <cstddef>
+ #include <cstdint>
+@@ -138,12 +139,13 @@
+     std::uint64_t columns = 0;
+ };
+ 
+-// Per-worker state: one accumulator per stack index (ply + 4) and the cache.
++// Per-worker state: one accumulator per stack index (ply + 4), compact L1 validity flags, and the cache.
+ struct WorkerState {
+     std::vector<Accumulator> stack;
++    std::vector<std::uint8_t> valid_flags;
+     RefreshCache cache;
+     std::uint64_t generation = 0;
+-    void invalidate() { for (Accumulator& acc : stack) acc.valid = false; }
++    void invalidate() { std::fill(valid_flags.begin(), valid_flags.end(), static_cast<std::uint8_t>(0)); }
+ };
+ 
+ // ---- loading and selection (must not run during a search) ----
+@@ -269,16 +271,18 @@
+         }
+     }
+     child.valid = true;
++    state.valid_flags[static_cast<std::size_t>(k)] = 1;
+ }
+ // Makes state.stack[index] valid for `board` (the position at that index): walks back to the nearest
+ // valid ancestor (index >= 4 is the search root) and replays, or refreshes through the cache.
+ template <class DirtyOf>
+ void make_valid(const Net& net, WorkerState& state, int index, const Board& board, DirtyOf&& dirty_of) {
+-    if (state.stack[static_cast<std::size_t>(index)].valid) return;
++    if (state.valid_flags[static_cast<std::size_t>(index)] != 0) return;
+     int ancestor = index - 1;
+-    while (ancestor >= 4 && !state.stack[static_cast<std::size_t>(ancestor)].valid) --ancestor;
++    while (ancestor >= 4 && state.valid_flags[static_cast<std::size_t>(ancestor)] == 0) --ancestor;
+     if (ancestor < 4) {
+         refresh_cached(net, state.cache, board, state.stack[static_cast<std::size_t>(index)]);
++        state.valid_flags[static_cast<std::size_t>(index)] = 1;
+         return;
+     }
+     for (int k = ancestor + 1; k <= index; ++k) replay_ply(net, state, k, board, index, dirty_of);
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 11:18:08.513143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 11:32:32.309143771 +0000
+@@ -171,7 +171,9 @@
+ 
+ private:
+     friend class Searcher;
++    friend struct TTTestProbe;
+     static constexpr std::size_t StripeCount = 1024;
++    static constexpr std::size_t HashfullSampleLimit = 1000;
+     struct alignas(64) Stripe { std::mutex mutex; };
+     // Opt-in controller ownership: request exclusive access, drain each stripe,
+     // then publish TLS. Lifecycle mutations still require all users quiescent.
+@@ -208,6 +210,8 @@
+ #endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
++    mutable std::atomic<bool> stripes_dirty_{false};
++    mutable std::array<std::atomic<int>, 32> sample_gen_counts_{};
+     std::atomic<bool> exclusive_requested_{false};
+     std::uint64_t epoch_ = 0;
+     std::unique_ptr<TTCluster[]> clusters_;
+@@ -537,6 +541,7 @@
+     bool tt_owned_ = false;
+ #endif
+     int seldepth_ = 0;
++    int stack_dirty_limit_ = MaxPly + 7;
+     int root_depth_ = 0;
+     int mate_moves_ = 0;
+     std::size_t root_history_index_ = 0;
+diff -ruN a/src/nnue_v3.cpp b/src/nnue_v3.cpp
+--- a/src/nnue_v3.cpp	2026-11-17 11:18:08.513143771 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 11:32:28.853143771 +0000
+@@ -634,6 +634,7 @@
+ void prepare(const Net& net, WorkerState& state, int stack_size) {
+     if (state.generation == net.generation && state.stack.size() == static_cast<std::size_t>(stack_size)) return;
+     state.stack.assign(static_cast<std::size_t>(stack_size), Accumulator{});
++    state.valid_flags.assign(static_cast<std::size_t>(stack_size), static_cast<std::uint8_t>(0));
+     state.cache.entries.assign(static_cast<std::size_t>(2 * net.king_buckets * 2), RefreshCache::Entry{});
+     for (RefreshCache::Entry& entry : state.cache.entries) {
+         // An entry starts as the empty board: bias only, no pieces.
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 11:18:08.513143771 +0000
++++ b/src/search.cpp	2026-11-17 11:35:58.133143771 +0000
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <charconv>
+ #include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+@@ -400,12 +401,12 @@
+     : table_(table), previous_(active_lease_), gate_(table.exclusive_gate_, std::defer_lock) {
+     if (!table_.has_exclusive_access()) {
+         gate_.lock();
+-        table_.exclusive_requested_.store(true, std::memory_order_release);
++        table_.exclusive_requested_.store(true, std::memory_order_seq_cst);
+         try {
+-            // A foreign accessor either completes before its stripe drains,
+-            // or observes the request after acquiring that drained stripe.
+-            for (std::size_t i = 0; i < StripeCount; ++i) {
+-                const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
++            if (table_.stripes_dirty_.exchange(false, std::memory_order_seq_cst)) {
++                for (std::size_t i = 0; i < StripeCount; ++i) {
++                    const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
++                }
+             }
+         } catch (...) {
+             table_.exclusive_requested_.store(false, std::memory_order_release);
+@@ -432,8 +433,9 @@
+     std::mutex& stripe = stripes_[index % StripeCount].mutex;
+     if (has_exclusive_access()) return std::unique_lock<std::mutex>(stripe, std::defer_lock);
+     for (;;) {
++        stripes_dirty_.store(true, std::memory_order_seq_cst);
+         std::unique_lock<std::mutex> lock(stripe);
+-        if (!exclusive_requested_.load(std::memory_order_acquire)) return lock;
++        if (!exclusive_requested_.load(std::memory_order_seq_cst)) return lock;
+         // Never wait for the gate while holding a stripe: the owner drains it.
+         lock.unlock();
+         const std::lock_guard<std::mutex> wait(exclusive_gate_);
+@@ -447,12 +449,14 @@
+     clusters_ = std::move(new_clusters);
+     cluster_count_ = new_count;
+     generation_ = 0;
++    for (auto& c : sample_gen_counts_) c.store(0, std::memory_order_relaxed);
+     ++epoch_;
+ }
+ 
+ void TranspositionTable::clear() {
+     for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
+     generation_ = 0;
++    for (auto& c : sample_gen_counts_) c.store(0, std::memory_order_relaxed);
+     ++epoch_;
+ }
+ 
+@@ -491,6 +495,10 @@
+     if (found != nullptr) {
+         // Reused entries remain recent even when search returns a TT cutoff.
+         if (found->generation() != generation) {
++            if (index < HashfullSampleLimit) [[unlikely]] {
++                sample_gen_counts_[found->generation()].fetch_sub(1, std::memory_order_relaxed);
++                sample_gen_counts_[generation].fetch_add(1, std::memory_order_relaxed);
++            }
+             found->gen_bound = static_cast<std::uint8_t>(
+                 (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
+         }
+@@ -549,6 +557,14 @@
+     // A stale slot must not paint that rejected move onto the deeper entry.
+     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+     if (admit) {
++        if (probe.cluster_ < HashfullSampleLimit) [[unlikely]] {
++            if (entry->occupied()) {
++                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++            }
++            if (bound != BoundNone) {
++                sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++            }
++        }
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+@@ -589,6 +605,10 @@
+         if (entry.key32 == key32 && entry.occupied()) {
+             // Reused entries remain recent even when search returns a TT cutoff.
+             if (entry.generation() != generation_) {
++                if (index < HashfullSampleLimit) [[unlikely]] {
++                    sample_gen_counts_[entry.generation()].fetch_sub(1, std::memory_order_relaxed);
++                    sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++                }
+                 entry.gen_bound = static_cast<std::uint8_t>(
+                     (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+             }
+@@ -630,6 +650,14 @@
+     // Same rule as store_body: keep a rejected shallow move off a different slot.
+     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+     if (admit) {
++        if (probe.cluster_ < HashfullSampleLimit) [[unlikely]] {
++            if (entry->occupied()) {
++                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++            }
++            if (bound != BoundNone) {
++                sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++            }
++        }
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+@@ -641,15 +669,10 @@
+ #endif
+ 
+ int TranspositionTable::hashfull() const {
+-    int count = 0;
+-    const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+-    for (std::size_t i = 0; i < sample; ++i) {
+-        const auto lock = lock_stripe(i);
+-        for (const TTEntry& entry : clusters_[i].entries) {
+-            if (entry.occupied() && entry.generation() == generation_) ++count;
+-        }
+-    }
+-    return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
++    const std::size_t sample = std::min<std::size_t>(HashfullSampleLimit, cluster_count_);
++    if (sample == 0) return 0;
++    const int count = std::max(0, sample_gen_counts_[generation_].load(std::memory_order_relaxed));
++    return count * 1000 / (4 * static_cast<int>(sample));
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -1114,6 +1137,7 @@
+ Worker::~Worker() = default;
+ 
+ void Worker::clear() {
++    stack_dirty_limit_ = MaxPly + 7;
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
+@@ -1244,11 +1268,14 @@
+     child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,
+                                           static_cast<Color>(child->entered_side));
+     child->diff_known = true;
+-    child->accumulator.valid = false;
+-    child->runtime_psqt.valid = false;
+ #if FORGE_NNUE_V3
+-    if (v3_state_) [[unlikely]] v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
++    if (nnue::v3::active()) {
++        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++        return;
++    }
+ #endif
++    child->accumulator.valid = false;
++    child->runtime_psqt.valid = false;
+ }
+ 
+ bool null_see_veto_threat(Board& board) {
+@@ -1280,11 +1307,14 @@
+     child->entered_null = true;
+     child->diff_known = true;
+     child->dirty.count = 0;
+-    child->accumulator.valid = false;
+-    child->runtime_psqt.valid = false;
+ #if FORGE_NNUE_V3
+-    if (v3_state_) [[unlikely]] v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
++    if (nnue::v3::active()) {
++        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++        return;
++    }
+ #endif
++    child->accumulator.valid = false;
++    child->runtime_psqt.valid = false;
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+@@ -2555,17 +2585,65 @@
+         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+-        std::cout << "info depth " << depth;
++        char buf[3072];
++        char* p = buf;
++        auto put_lit = [&](const char* s, std::size_t n) { std::memcpy(p, s, n); p += n; };
++        auto put_i64 = [&](std::int64_t v) { p = std::to_chars(p, buf + sizeof(buf) - 64, v).ptr; };
++        auto put_u64 = [&](std::uint64_t v) { p = std::to_chars(p, buf + sizeof(buf) - 64, v).ptr; };
++        auto put_score = [&](int sc) {
++            if (is_mate_score(sc)) {
++                const int distance = MateValue - std::abs(sc);
++                const int mate = (distance + 1) / 2;
++                put_lit("mate ", 5);
++                put_i64(sc > 0 ? mate : -mate);
++            } else {
++                put_lit("cp ", 3);
++                put_i64(sc);
++            }
++        };
++        put_lit("info depth ", 11);
++        put_i64(depth);
+         if (multipv > 1) {
+-            // depth, multipv, score, then the usual fields, then pv.
+-            std::cout << " multipv " << pv_index << " score " << format_score(score)
+-                      << " seldepth " << std::max(shown_seldepth, depth);
++            put_lit(" multipv ", 9);
++            put_i64(pv_index);
++            put_lit(" score ", 7);
++            put_score(score);
++            put_lit(" seldepth ", 10);
++            put_i64(std::max(shown_seldepth, depth));
+         } else {
+-            std::cout << " seldepth " << std::max(shown_seldepth, depth) << " score " << format_score(score);
++            put_lit(" seldepth ", 10);
++            put_i64(std::max(shown_seldepth, depth));
++            put_lit(" score ", 7);
++            put_score(score);
++        }
++        put_lit(" nodes ", 7);
++        put_u64(nodes);
++        put_lit(" nps ", 5);
++        put_u64(nps);
++        put_lit(" hashfull ", 10);
++        put_i64(shown_hash);
++        put_lit(" time ", 6);
++        put_i64(elapsed);
++        put_lit(" pv", 3);
++        for (const Move move : pv) {
++            if (p + 8 >= buf + sizeof(buf)) break;
++            *p++ = ' ';
++            if (move.is_none()) {
++                put_lit("0000", 4);
++            } else {
++                *p++ = static_cast<char>('a' + file_of(move.from));
++                *p++ = static_cast<char>('1' + rank_of(move.from));
++                *p++ = static_cast<char>('a' + file_of(move.to));
++                *p++ = static_cast<char>('1' + rank_of(move.to));
++                if (move.is_promotion()) {
++                    constexpr std::array<char, 7> promo_chars{' ', ' ', 'n', 'b', 'r', 'q', ' '};
++                    *p++ = promo_chars[move.promotion];
++                }
++            }
+         }
+-        std::cout << " nodes " << nodes << " nps " << nps << " hashfull " << shown_hash << " time " << elapsed << " pv";
+-        for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
+-        std::cout << std::endl;
++        *p++ = '\n';
++        std::cout.write(buf, p - buf);
++        std::cout.flush();
+     };
+ 
+ #if FORGE_FIX_ROOT_DRAWN
+@@ -2670,31 +2748,40 @@
+         time_managed_ = false;
+     }
+ 
+-    for (SearchStack& ss : stack_) {
+-        ss.pv_length = 0;
+-        ss.current_move = Move::none();
+-        ss.excluded_move = Move::none();
+-        ss.moved_piece = Empty;
+-        ss.static_eval = ValueNone;
+-        ss.continuation = &(*continuation_history_)[Empty][0];
+-        ss.double_extensions = 0;
+-        ss.withheld_plies = 0;
+-        ss.null_move_allowed = true;
+-        ss.arrival_index = 0;
+-        ss.killers = {};
+-    }
+-    SearchStack* ss = &stack_[4];
+-    for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
+-    for (SearchStack& entry : stack_) {
+-        entry.accumulator.valid = false;
+-        entry.runtime_psqt.valid = false;
++#if FORGE_NNUE_V3
++    const bool use_v3_eval = nnue::enabled && nnue::available() && nnue::v3::active();
++#else
++    constexpr bool use_v3_eval = false;
++#endif
++    const int init_limit = use_v3_eval
++        ? std::min<int>(MaxPly + 7, stack_dirty_limit_)
++        : (MaxPly + 7);
++    for (int i = 0; i <= init_limit; ++i) {
++        SearchStack& entry = stack_[static_cast<std::size_t>(i)];
++        entry.pv_length = 0;
++        if (i < MaxPly + 4) entry.ply = i - 4;
++        entry.current_move = Move::none();
++        entry.excluded_move = Move::none();
++        entry.moved_piece = Empty;
++        entry.static_eval = ValueNone;
++        entry.continuation = &(*continuation_history_)[Empty][0];
++        entry.double_extensions = 0;
++        entry.withheld_plies = 0;
++        entry.null_move_allowed = true;
++        entry.arrival_index = 0;
++        entry.killers = {};
++        if (!use_v3_eval) {
++            entry.accumulator.valid = false;
++            entry.runtime_psqt.valid = false;
++        }
+         entry.diff_known = false;
+         entry.entered_null = false;
+         entry.dirty.count = 0;
+     }
++    SearchStack* ss = &stack_[4];
+ #if FORGE_NNUE_V3
+     if (v3_state_) v3_state_->invalidate();
+-    if (nnue::enabled && nnue::available() && nnue::v3::active()) [[unlikely]] {
++    if (use_v3_eval) {
+         // A v3 net is the whole evaluation. Build its root accumulators now (left lazy, a root whose
+         // evaluation comes from the hash table never gets them); the compiled-in network is not touched.
+         (void)static_evaluate_v3(board, ss);
+@@ -3015,9 +3102,15 @@
+         result.ponder_move = Move::none();
+     }
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
++    stack_dirty_limit_ = std::min<int>(MaxPly + 7, std::max(seldepth_, result.depth) + 8);
+     if (emit_info && soft_node_limit_ != 0) {
++        char sbuf[64];
++        std::memcpy(sbuf, "info string softnodes nodes ", 28);
++        char* end = std::to_chars(sbuf + 28, sbuf + sizeof(sbuf) - 2, result.nodes).ptr;
++        *end++ = '\n';
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+-        std::cout << "info string softnodes nodes " << result.nodes << std::endl;
++        std::cout.write(sbuf, end - sbuf);
++        std::cout.flush();
+     }
+     return result;
+ }

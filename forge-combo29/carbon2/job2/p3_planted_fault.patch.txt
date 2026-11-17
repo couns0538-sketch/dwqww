@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 11:35:58.133143771 +0000
++++ b/src/search.cpp	2026-11-17 11:35:58.681143771 +0000
+@@ -559,7 +559,7 @@
+     if (admit) {
+         if (probe.cluster_ < HashfullSampleLimit) [[unlikely]] {
+             if (entry->occupied()) {
+-                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++                /* PLANTED FAULT */ (void)0;
+             }
+             if (bound != BoundNone) {
+                 sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
