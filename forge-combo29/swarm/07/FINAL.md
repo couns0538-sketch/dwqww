@@ -1,4 +1,4 @@
-# FINDINGS — seat 07, area 7: FINAL BLOCK (2026-11-17T09:40Z target; written 2026-11-17T09:35Z)
+# FINDINGS — seat 07, area 7: FINAL BLOCK (window closes 2026-11-17T10:19Z; this file written 2026-11-17T01:10Z)
 
 Seat 07, branch `for-fable-and-opus/swarm-07`, folder `forge-combo29/swarm/07/`. Every figure below is
 Threads 1 unless a line says otherwise. Two builds were used throughout:
@@ -17,9 +17,9 @@ false).
 
 | id | finding | state | build / settings |
 |---|---|---|---|
-| **07-F1** | `searchmoves` naming no legal root move, on a board that HAS legal moves, prints one fabricated `info depth D … score cp 0 nodes 0` line **per depth** (64 of them with no depth limit) and then `bestmove 0000`. The engine already computes the true cause at `search.cpp:2531` (`restricted_root_empty`). | **CONFIRMED by seat 10 (10-C15) with its own harness**, and by seat 17 as S-F1/S-F8 (independent observation, same defect). **Still present on the PC build** — not repaired. A 3-edit PC-tree text patch cures it with every pin unchanged (07-C23). | base and PC r15; **none, S14 and PC20**; Threads 1. |
-| **07-F3** | On the **base** tree a fifty-move root with a counter-resetting move available is declared a draw **without being searched** (`cp 0`, **0 nodes**, 12 fabricated depth lines) while a forced mate exists. Example `8/6qk/8/8/8/1p4p1/4K3/8 b - - 100 1`: base `cp 0`/0 nodes vs PC **`mate 6`**/15,981 nodes. | **OPEN** (no independent confirmation yet). This is the `FORGE_FIX_ROOT_DRAWN` defect in the act; the PC build gets it right. | base and PC r15; **none**; Threads 1. |
-| **07-F4** | The base tree declares a draw on **all 20** fifty-move-counter-100 positions in the targeted sample (0 nodes each), and the counter-reset reference shows a **decisive** result on 5 of 20 — **4 losses masked, 1 win thrown away**. | **OPEN**. Rate **settled at depth 30** (07-C39): no position changed category between depth 18 and 30. | base; **none**; Threads 1; reference depth 18/24/30. |
+| **07-F1** | `searchmoves` naming no legal root move, on a board that HAS legal moves, prints one fabricated `info depth D … score cp 0 nodes 0` line **per depth** (64 of them with no depth limit) and then `bestmove 0000`. The engine already computes the true cause at `search.cpp:2531` (`restricted_root_empty`). | **CONFIRMED by seat 10 (10-C15)** with its own harness, and by seat 17 as S-F1/S-F8 (independent observation, same defect). **Measured live on ALL SIX arms — base and PC × none/S14/PC20** (07-C77), so it is unfixed code on the shipping branch. **THE ONLY OUTSTANDING ENGINE CHANGE OF MINE.** Repaired by a **one-edit** shared-path patch, `job73/07f1_shared_report_v3.patch.txt`: all eight pins unchanged, seven zero-node paths verified, clean-tree rebuild byte-identical. Supersedes `job55` v1 and v2 (both marked DO NOT USE). | base and PC r15; **none, S14 and PC20**; Threads 1. |
+| **07-F3** | On the **base** tree a fifty-move root with a counter-resetting move available is declared a draw **without being searched** (`cp 0`, **0 nodes**, 12 fabricated depth lines) while a forced mate exists. Example `8/6qk/8/8/8/1p4p1/4K3/8 b - - 100 1`: base `cp 0`/0 nodes vs PC **`mate 6`**/15,981 nodes. | **CLOSED BY THE PC BUILD** (07-C77: base fails in all three regimes, PC searches and finds mate in all three) — a justification for a fix already in the tree, **not outstanding work**. Now proved by replay (07-C75): three regimes, three different PVs, every one reaching actual checkmate. | base and PC r15; **none, S14, PC20**; Threads 1. |
+| **07-F4** | The base tree declares a draw on **all 20** fifty-move-counter-100 positions in the targeted sample (0 nodes each), and the counter-reset reference shows a **decisive** result on 5 of 20 — **4 losses masked, 1 win thrown away**. | **MECHANICAL AND 20 OF 20** (07-C76: no counter-100 root is a genuine fifty-move draw, and all 80 counter-0 roots search). **Boundary exact at counter 100** (07-C80: base abandons a mate-1 at 100+, still wrong at 9,999; PC plays it at every counter). The 5-of-20 cost figure remains supporting colour — it needs a referee. | base; **none**; Threads 1; reference depth 18/24/30. |
 
 ### Withdrawn claims of my own (kept visible)
 
@@ -355,4 +355,21 @@ ordering, not search, until proven otherwise.
 
 ## Times
 
-`git log` on the branch; each job's `stamps.txt`.
+`git log` on the branch is the authority; each job's `stamps.txt` carries a `date -u` read taken at the
+time of the run. The most recent commits, newest first, with the times git recorded:
+
+```
+e262de1ec  01:10Z  seat 19 fix-side confirmed with exact boundary; is_fifty_moves wording corrected; consistency pass
+0cbf014e2  01:08Z  job73 v3: clean-tree verification, and v2 was not shippable
+bd6f30613  01:01Z  job73: verifying my own live patch found the same defect in the patch
+a1f8a44ca  00:50Z  job72: only ONE of my two faults is live on the PC build
+d332b6132  00:50Z  job71: 07-F3/F4 turned from a rate into a mechanical per-position claim
+66a974f43  00:48Z  job70: S-F35/S-F37 CONFIRMED (34/120 -> 120/120, residue 0), plus a false refutation
+```
+
+**One thing about this file's own timeline worth being explicit about:** the header previously said
+"written 2026-11-17T09:35Z", which was a placeholder and is **earlier than the window closes
+(10:19Z) but later than the actual writing time** — it was corrected to the real read
+(01:10Z) during the final consistency pass. A wrong timestamp in a document whose whole argument is
+"record the regime and the binary" would have been a poor joke, so it is noted here rather than
+silently fixed.

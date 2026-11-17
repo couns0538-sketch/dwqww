@@ -3,11 +3,12 @@
 One line per finding, only ever ADDED. A check of someone else's finding is its own line.
 
 **Summary for a reader with one minute.** This seat's net result is **one real engine defect that
-another seat has confirmed and that is still live on the PC build** — 07-F1, a fabricated
-`score cp 0 nodes 0` line for a restricted-empty `searchmoves` root, with a text patch that leaves
-every pin and every bestmove unchanged — plus **three base-tree defects on the fifty-move/drawn-root
-path** (07-F3, 07-F4 and their rate), **two withdrawn claims of my own** (07-R1 and 07-R2), and
-**41 checks**, most of which came back clean.
+another seat has confirmed and that is live on the shipping build** — 07-F1, a fabricated
+`score cp 0 nodes 0` line for every path that reports without searching, with a one-edit text patch
+that leaves every pin and every bestmove unchanged — plus **the fifty-move/drawn-root defect on the
+base tree (07-F3/07-F4), which the PC build already fixes and which is now stated mechanically (20 of
+20 counter-100 roots, boundary exactly at 100)** rather than as a rate, **two withdrawn claims of my
+own** (07-R1 and 07-R2), and **41 checks**, most of which came back clean.
 
 **Rules that will save the next person more time than any individual result here — 23 of them, the newest being
 the build-liveness rule. The first is the cheapest to apply:**

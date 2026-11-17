@@ -1064,3 +1064,6 @@ $ git status --short
  M FINDINGS.md
  M STATUS.md
 ```
+
+## 2026-11-17T01:13:38Z — independent re-verification of the deliverable (3rd clean build)
+Fresh copy of PC r15 -> v3 applies --fuzz=0 -> from-scratch build -> **byte-identical 2db028fa…** again. All eight pins OK, seven zero-node paths 0 failures. The patch alone determines the binary; nothing in any of my scratch trees is load-bearing.
