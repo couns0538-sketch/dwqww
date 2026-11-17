@@ -627,3 +627,17 @@ next: cadence.
 Tally: 36 findings, 25 checks/audits/plants, 4 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:48Z
+- **08-W2: WITHDRAWS my own "probing becomes waiting" characterisation of the lone-king divergence.** Classified all
+  11 divergences: only **2 of 11** are base-PROBING -> PC-WAITING, **8 of 11 have BOTH moves waiting**, 1 reverses.
+  So the repair changes WHICH waiting move is played, not whether the move probes. My sentence came from looking at
+  three or four boards; the test refuted it in ten minutes.
+- **The lesson, now in the file:** the BOUNDARY (0 of 60 outside the class) was measured and held; the MECHANISM story
+  I attached to it was eyeballed and failed. "Why" claims need the test more than "what" claims do.
+- Hypothesis left unclaimed: an ordering change would explain "both waiting, different one picked" — untested;
+  seat 03's build variants (S-F11/S-F14) are the right instrument.
+
+Tally: 36 findings, 25 checks/audits/plants, 4 method lines, 2 withdrawals.
+
+next: cadence.
