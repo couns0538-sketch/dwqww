@@ -1,0 +1,54 @@
+## seat 03 S-F7 — do the PC20 switches change a PERFT count? (they must not)
+
+PC r15, Threads 1, Hash 16. Arm A = S14 only (PC20 off); arm B = S14 + the five PC20 switches + OwnBook false.
+
+| fen | perft4 base | perft4 PC off | perft4 PC ON | all equal? |
+|---|---|---|---|---|
+| rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP | 197,281 | 197,281 | 197,281 | yes |
+| rnbqkbnr/ppppp1pp/5p2/8/8/N1PP4/PP | 370,486 | 370,486 | 370,486 | yes |
+| r1bqk1nr/ppp3pp/2n1pp1B/2bp4/Q7/N1 | 1,713,213 | 1,713,213 | 1,713,213 | yes |
+| r1bqk1nr/p1p3pp/1pQbpp1B/8/1Pp3P1/ | 217,913 | 217,913 | 217,913 | yes |
+| 1rbq2nr/2p2k1p/1p1bpp1B/p5p1/QPP3P | 803,862 | 803,862 | 803,862 | yes |
+| 1rbq2nr/2p2k1p/1p2pp1B/p5p1/1PP2bP | 993,414 | 993,414 | 993,414 | yes |
+| 1rb2Bnr/2p2k1p/1p2pp2/P5p1/1PP2bPP | 881,950 | 881,950 | 881,950 | yes |
+| 1r4nr/2pb3p/1B2ppk1/Pp4p1/1PP2bPP/ | 1,006,135 | 1,006,135 | 1,006,135 | yes |
+| 6nr/1rpb3p/5pk1/PpB1p1p1/1PP2bPP/7 | 709,930 | 709,930 | 709,930 | yes |
+| 1r3Bnr/2pb3k/5p1p/Pp2p1p1/1PP2bPP/ | 1,175,332 | 1,175,332 | 1,175,332 | yes |
+| r4Bnr/2pb3k/8/Pp2pppp/1PP2bPP/1QR4 | 1,219,833 | 1,219,833 | 1,219,833 | yes |
+| 5B1r/2pbn2k/8/rp2pPpp/1PP1P2P/1Q5N | 750,433 | 750,433 | 750,433 | yes |
+| 5Bkr/2p1n3/4b3/rp2pP1p/1PP1P1pP/1Q | 839,830 | 839,830 | 839,830 | yes |
+| 6kr/2p5/4bB2/rp2pP1p/1PP1P1pP/P7/Q | 417,190 | 417,190 | 417,190 | yes |
+| r5kr/3b4/2p2B2/4pP1p/1Pp1P1NP/P3P3 | 395,665 | 395,665 | 395,665 | yes |
+| 1r4k1/3b2B1/2p5/4pP2/1Pp1P1Br/P3P2 | 604,690 | 604,690 | 604,690 | yes |
+| 6k1/3b4/8/2B1pP2/1Rp1P1Br/P3P2R/Q7 | 493,833 | 493,833 | 493,833 | yes |
+| 5B2/5k2/8/1b2pP1B/R1p1P2r/P3P3/Q7/ | 70,246 | 70,246 | 70,246 | yes |
+| 5k2/5B2/b7/4pP2/2R1P1r1/PQ2P3/8/5K | 231,113 | 231,113 | 231,113 | yes |
+| 8/4k3/4B3/4pP2/2Q1P3/P3P1rR/8/5K2  | 187,474 | 187,474 | 187,474 | yes |
+| 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP | 743,255 | 743,255 | 743,255 | yes |
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/ | 2,532,855 | 2,532,855 | 2,532,855 | yes |
+| 6k1/p4r1p/1p2Q3/2p5/2P1N3/1P3P2/PK | 355,356 | 355,356 | 355,356 | yes |
+| 5R2/5npp/5k2/8/4p3/4P3/3K1PPP/8 b  | 51,728 | 51,728 | 51,728 | yes |
+| 8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2b5/8 | 55,616 | 55,616 | 55,616 | yes |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - | 3,744 | 3,744 | 3,744 | yes |
+| 2r4r/pp4k1/3q2p1/3ppn2/1P4QP/P2P1N | 3,355,492 | 3,355,492 | 3,355,492 | yes |
+| 8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/8 w  | 3,766 | 3,766 | 3,766 | yes |
+| r1bqkb1r/pppp1ppp/2n2n2/5N2/3P4/2P | 1,454,071 | 1,454,071 | 1,454,071 | yes |
+| R7/8/8/5p1p/5K1P/1kpr2n1/8/8 b - - | 76,635 | 76,635 | 76,635 | yes |
+
+## THE CONTROL — the harness must be able to see a difference
+
+
+| position | perft 2 |
+|---|---|
+| original | 400 |
+| one move later (must differ) | 440 |
+
+| question | answer |
+|---|---|
+| the harness can see a perft difference (control) | **YES** |
+| PC-off equals BASE on every position | **30 of 30** |
+| **PC-ON equals PC-off on every position** | **30 of 30** |
+
+**CONFIRMS**: turning every PC20 switch on changes NO perft count on 30 positions, and the PC build matches
+the base build with them off. So none of the five options reaches move generation — they are search-side
+only, which is what S-F7 asserts.

@@ -110,8 +110,14 @@ def main():
             pc20 = [n for n in names if n in PC20_SWITCHES]
             print("    %d option-name mentions, %d distinct names" % (len(hits), len(names)))
             print("    PC20 switches present: %d %s" % (len(pc20), pc20 if pc20 else ""))
+            # dedupe on the NAME so a pasted list looks like the list that was sent, not like the two scanners
+            by_name = {}
+            for _, text in hits:
+                nm = text.split()[0]
+                if nm not in by_name or len(text) > len(by_name[nm]):
+                    by_name[nm] = text
             print("    pasteable list:")
-            print("        " + ", ".join(sorted({h[1] for h in hits})))
+            print("        " + ", ".join(by_name[n] for n in sorted(by_name)))
             print("    first mentions with line numbers:")
             for ln, text in hits[:8]:
                 print("        line %d: %s" % (ln, text))

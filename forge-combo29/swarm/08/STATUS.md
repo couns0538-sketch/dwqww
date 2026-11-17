@@ -976,3 +976,18 @@ next: cadence.
 **43 findings, 34 checks/audits/plants/tools, 6 method lines, 5 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:41Z
+- **emit_config.py: pasteable list now deduped by NAME** (one line of work, as suggested) — a pasted list now looks
+  like the list that was sent.
+- **08-C36: seat 03's S-F7 CONFIRMS.** 30 positions, perft 4, PC r15: **PC-off equals BASE on 30 of 30** AND
+  **all five PC20 switches ON equals PC-off on 30 of 30** — so none of the five reaches move generation.
+- **08-N7 (new method rule), from my own control failing:** my first control assumed "one move later" changes perft
+  and got the identical 400, so the script printed **VOID** rather than a false zero — correct behaviour. Only after
+  making the control SEARCH for a differing perft (400 vs 440) did the zero become admissible. **A control must search
+  for a case that differs, and a run that cannot demonstrate a difference must invalidate itself.**
+
+## 2026-11-17T02:41Z — TALLY (generated, not maintained)
+**43 findings, 35 checks/audits/plants/tools, 7 method lines, 5 withdrawals** (and 1 open lead).
+
+next: cadence.
