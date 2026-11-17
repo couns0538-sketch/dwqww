@@ -889,3 +889,13 @@ HARNESS_TRAPS.md = fifteen traps in FIVE families (A no-search four disguises / 
   put first on a rewrite - its instances are all cases where more data would have made it worse.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:13:17Z
+
+19-C43 contrast: CuckooRep/TtPruneV2/CorrHistV2/HistRework are UNCONDITIONAL boolean gates so they fire on
+  ordinary positions (ratios 0.50-1.63); only MateAlphaGuard requires alpha to be a mate score, hence
+  exactly 1.000. So the null is proved to be an unexecuted branch, not uninformative.
+Family E promoted to the TOP of HARNESS_TRAPS.md with its rule and the rationale (its three instances
+  are the cases where more data would have made the answer worse). Page finished at 15 traps / 5 families.
+
+next command: continue at cadence on measurements; traps page closed.
