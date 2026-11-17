@@ -1,0 +1,19 @@
+# 23-F68 does NOT reproduce on my machine: go wtime 1000 with Black to move answers
+# board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1 (Black to move)
+# PC r15 068f0927, Threads 1, Hash 16, OwnBook false, paced driver, 8 s cap on the wait
+# 2026-11-17T01:12:50Z
+
+| command | run | info lines | bestmove |
+|---|---|---|---|
+| go wtime 1000 | 1 | 25 | **e7e5** |
+| go wtime 1000 | 2 | 26 | **e7e5** |
+| go wtime 1000 | 3 | 26 | **e7e5** |
+| go wtime 1000 btime 1000 winc 10 binc 10 | 1 | 14 | e7e5 |
+
+Seat 23 reports NO BESTMOVE in 3 s for the naive row on the same build and settings.
+I get 25-26 info lines and a bestmove in 3 of 3 runs. So the claim does not reproduce here.
+
+What could explain it without either of us being wrong: (a) their 3 s cap may be measured
+differently - mine is an 8 s wait and the answer arrives inside it; (b) their board may differ;
+(c) their driver may be the one that closes stdin. I do not have their raw file, so I record
+the non-reproduction rather than explaining it away.
