@@ -15,16 +15,40 @@ perft 5 = 4,865,609. The same four pins are bit-identical on the repair build.
 | 4 TT interaction | **DEFECT** — a depth-0 qsearch store discards a deep entry's depth | `scripts/ttstore.cpp` |
 | 5 50-move in qsearch | **DEFECT, two cells** — leaf band (mate → `cp 0`) and a false draw where no mate exists | `evidence/claim_model.txt`, `evidence/band_repair.txt` |
 
-## The two property-5 cells, against an independent FIDE claim model
+## Property 5 — the two cells, and what changed in this revision
 
-| position | H | base | repair | model |
+All at `go depth 20` unless noted.
+
+| position | H | base | repair | status |
 |---|---|---|---|---|
-| mate available, no pawn resets | 99 | **`cp 0`**, 36 nodes | **mate −1**, 63 | mate |
-| no mate, pawn resets available | 97 | **`cp 0`**, 1,061 nodes | **−525**, 86,268 | **−620** |
-| genuine draw | 98 / 99 / 100 | `cp 0` | `cp 0` | 0 |
+| B mate available, no pawn resets | 99 | `cp 0`, 48 | `mate -1`, 83 | **base wrong; repair fixes** |
+| A no mate, same claim window as its H=96 neighbour | 96 | `-630`, 3,402,177 | `-630`, 3,402,177 | agree |
+| **A** | **97** | **`cp 0`, 2,672** | **`-649`, 5,243,161** | **1,273x node cliff + 630 cp jump; repair removes it** |
+| A | 98 | `cp 0`, 1,079 | `cp 0`, 1,079 | untouched |
 
-Both wrong cells are on the base; both are right after the repair; genuine draws are untouched.
-The H=97 repair costs **81× the nodes** — correct, but not free, and stated as such.
+**Revised after review, and the review went two rounds.** The coordinator first challenged the direction
+of cell A/97, then reversed and told me not to withdraw it. **Both of us were working from a `-620` that
+does not survive a depth sweep**, so the reversal did not settle anything: their argument and mine shared
+the same defective leaf value. What is left is a narrower finding that needs no evaluation at all. See
+FINDINGS §5c.
+
+- **Withdrawn:** the value "about -620". It came from a depth-4 material-only minimax that oscillates
+  -520/-620 with depth parity on two independent movegens — and those two movegens share the same
+  material leaf, so their agreement was not a second opinion.
+- **Withdrawn:** "White forces a clock-resetting capture." I could not find one. The line offered to me
+  (`g8f8 a1a7 f8e8 a7f7`) is legal but ends in **rook-for-pawn** (`+100 - 500`), a capture White would
+  not play.
+- **Kept, narrower than I first stated:** H=96 and H=97 have the **same claim window** (4 plies, 2 White
+  moves), and across that one clock unit the base flips from a searched `-630` to a searched `cp 0` while
+  its node count collapses **1,273x** (3,402,177 -> 2,672). `seldepth 20` at H=97 shows the draw was
+  searched, not a root bail.
+- **Also withdrawn:** "a correct search must return the same verdict for both clocks." It must not — H=94
+  and H=95 share a 6-ply window and legitimately differ (-631 vs -638). The defensible claim is that a
+  *qualitative* decisive-to-draw flip across the pair needs a mechanism, and the base shows none.
+
+**The predicate is written out in §5c**, with one bug of my own disclosed: my model tested `depth<=0`
+before honouring the claim, so a clock>=100 node at the horizon returned material rather than
+`max(0, material)`.
 
 ## Shipped in this branch
 
@@ -64,4 +88,6 @@ scripts/matrix2.py                             # properties 2/3 with mutant cont
 scripts/ttstore.cpp                            # property 4 reproduction
 scripts/band2.py                               # property 5 clock sweep through the real engine
 scripts/pins.py                                # the four pins, for any build
+scripts/window_count.py                        # property 5b, model-free claim-window count
+scripts/pychess_claim_model.py                 # python-chess claim model (second movegen)
 ```

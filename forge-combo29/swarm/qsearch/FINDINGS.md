@@ -24,11 +24,15 @@ The same four pins are **bit-identical on the repair build** (below), so the rep
 | 2 | Stand-pat correctness | **SOUND.** Checkmate returns `-32000`, stalemate returns `0`, at clocks 0/99/100. |
 | 3 | Check evasions | **SOUND.** In-check nodes generate evasions, never stand pat, including when every legal move is a non-capture. |
 | 4 | TT interaction | **DEFECT (minor, real).** A depth-0 qsearch store **overwrites a deep main-search entry** and discards its depth. Bound-type checking itself is correct. |
-| 5 | 50-move inside qsearch | **DEFECT (real, measured, two cells).** The `H > 100 − p` leaf band is reachable **through qsearch**, and so is a **false draw in a non-mate position**. A repair closes both at zero pin cost. |
+| 5 | 50-move inside qsearch | **DEFECT.** The `H > 100 − p` leaf band is reachable **through qsearch** (mechanism established). Separately, a non-mate position returns an internally inconsistent score across two clocks with an identical claim window. A repair closes both at zero pin cost. |
 
-Two defects. Neither is a crash. One is a small search-efficiency loss; one produces a **wrong score at
-two clock values**, one of them in a position with no mate at all. **Property 5's defect is the one worth
-acting on.**
+Two defects. Neither is a crash. One is a small search-efficiency loss; one produces a wrong score.
+**Property 5's defect is the one worth acting on.**
+
+**Read §5c before quoting §5b.** Two numbers in the first version of 5b were produced by a model that
+oscillates with depth, and one mechanism reported to me (a forced clock-resetting capture) does not hold.
+The conclusion survives on a different argument — a window-count that uses no evaluation at all — but the
+value `-620` and the "forced reset" wording are **withdrawn**.
 
 ---
 
@@ -178,72 +182,171 @@ says `MATE 1`), but qsearch returns **0** before looking, because `is_draw` at c
 
 **End to end, this reproduces the documented band exactly.**
 
-| clock | base `go depth 12` |
-|---|---|
-| 96 | `mate -1`, 63 nodes |
-| 97 | `mate -1`, 63 nodes |
-| 98 | `mate -1`, 63 nodes |
-| **99** | **`cp 0`, 36 nodes** |
-| 100 | `cp 0`, 0 nodes (root guard — correct, the side to move may claim) |
+| clock | base `go depth 12` | repair `go depth 12` |
+|---|---|---|
+| 96 | `mate -1`, 63 nodes | `mate -1`, 63 nodes |
+| 97 | `mate -1`, 63 nodes | `mate -1`, 63 nodes |
+| 98 | `mate -1`, 63 nodes | `mate -1`, 63 nodes |
+| **99** | **`cp 0`, 36 nodes** | **`mate -1`, 63 nodes** |
+| 100 | `cp 0`, 0 nodes (root guard — correct, the side to move may claim) | same |
 
 This is the `H > 100 − p` band with `p = 2, H = 99`, matching `docs/forge-findings.md` §2. **My
 contribution is the mechanism attribution, not the band's existence**: the band is a *qsearch* property,
 reached only via quiet evasions, and no depth can escape it (confirmed at depths 8/12/16 above).
 
-### 5b. A second cell, in a position with no mate at all — this one is not in the existing report
+### 5b. A second cell, in a position with no mate — REVISED, and the mechanism is not what I first reported
 
-While building the *control* for the band repair I found that the base returns a false draw in a position
-where **no mate exists** and a **pawn move is available to reset the clock**. This is a different defect
-from the documented band, and it is wider.
+Position A: `6k1/5ppp/8/8/8/8/8/R5NK b - - H 40` (White Ra1 Ng1 Kh1, Black Kg8 Pf7 Pg7 Ph7).
 
-Position A: `6k1/5ppp/8/8/8/8/8/R5NK b - - H 40` — Black is down a rook, has six pawn moves and two king
-moves. Any pawn move resets the half-move clock, so the fifty-move draw is **not** available on Black's
-best line.
+I originally reported this as "base returns a false draw worth about -620 where the true value is -620",
+on the strength of a depth-4 material-only minimax. **That reasoning did not survive checking, and this
+section now rests on a different argument that does not use that model.** See §5c for what was withdrawn.
 
-I built an independent FIDE claim model to adjudicate this (`scripts/claim_model.cpp`): exact minimax
-over forge's perft-pinned movegen, material leaf eval, and at clock ≥ 100 the node value is
-`max(0, continuation)` because **FIDE 9.3 makes the claim optional** and a mating move ends the game
-first. Its self-validation is a planted fault: removing the claim option turns h=98/99 from `0` into
-`-620`, so the model genuinely exercises the rule.
+**What is true and checkable without any evaluation model: H=96 and H=97 have identical claim windows.**
+Count the plies until the side that wants the draw (Black) can first claim, assuming Black shuffles its
+king and White never captures (a capture resets the clock):
 
-| H | model (d4) | base d12 | base nodes | repair d12 | repair nodes |
-|---|---|---|---|---|---|
-| 95 | −620 | −507 | 80,489 | −507 | 80,489 |
-| 96 | −620 | −531 | 106,852 | −531 | 106,852 |
-| **97** | **−620** | **`cp 0`** | **1,061** | **−525** | 86,268 |
-| 98 | 0 | `cp 0` | 487 | 0 | 487 |
-| 99 | 0 | `cp 0` | 227 | 0 | 238 |
+| H | plies to a Black-turn claim | White moves in that window |
+|---|---|---|
+| 94 | 6 | 3 |
+| 95 | 6 | 3 |
+| **96** | **4** | **2** |
+| **97** | **4** | **2** |
+| 98 | 2 | 1 |
+| 99 | 2 | 1 |
 
-**At H = 97 base returns a draw worth `cp 0` where the true value is about −620, in 1,061 nodes.** The
-repair returns −525 in 86,268 nodes, converging on the model. At H = 98 and 99 the model itself says the
-draw is real (0), and both builds agree — so the repair does not over-correct.
+H=96 and H=97 give White **exactly the same number of moves** to find a mate or a clock resetting
+capture. **I first wrote that this forces an identical verdict, and that is too strong** — H=94 and H=95
+share a 6-ply window and legitimately score different values (-638 at H=95 against -631 at H=94 in one run), because the
+*positions* White reaches differ even when the move count matches. What the window count establishes is
+narrower and still useful: the pair is **not entitled to a qualitative jump from a decisive score to a
+draw**, and any such jump needs a mechanism. The base does not produce one; it produces a node-count
+cliff (below).
 
-(At 95–96 the model is at its depth-4 resolution and does not see the same −507/−531 the engine's
-depth-12 search reports; those two cells are **not** evidence of an engine defect and I am not counting
-them as one.)
+**The base returns one of each, and the discontinuity is a node-count cliff.** `go depth 20`, both
+builds — verified in one run, numbers copied from the run not from memory:
 
-### The repair, and both cells it fixes
-
-Table from `evidence/claim_model.txt`, `go depth 12` on both builds:
-
-| position | H | base | repair | model |
+| H | base score | base nodes | repair score | repair nodes |
 |---|---|---|---|---|
-| B `6k1/8/5PPP/8/8/8/8/R6K b` (mated, no pawn moves) | 96 | mate −1 | mate −1 | mate |
-| B | 97 | mate −1 | mate −1 | mate |
-| B | 98 | mate −1 | mate −1 | mate |
-| **B** | **99** | **`cp 0`, 36** | **mate −1, 63** | **mate** |
-| B | 100 | `cp 0`, 0 nodes | `cp 0`, 0 nodes | 0 |
-| **A** `6k1/5ppp/...` (no mate, pawn resets available) | **97** | **`cp 0`, 1,061** | **−525, 86,268** | **−620** |
-| A | 98 | `cp 0` | `cp 0` | 0 |
-| A | 99 | `cp 0` | `cp 0` | 0 |
+| 95 | -638 | 3,349,692 | -638 | 3,349,692 |
+| **96** | **-630** | **3,402,177** | **-630** | **3,402,177** |
+| **97** | **`cp 0`** | **2,672** | **-649** | **5,243,161** |
+| 98 | `cp 0` | 1,079 | `cp 0` | 1,079 |
 
-Two independent cells, both wrong on the base, both right after the repair, and the cells where the draw
-is *genuine* are untouched.
+Between H=96 and H=97 the base drops from **3.4 M nodes to 2,672** — a **1,273x** collapse across one
+clock unit — and its score jumps 630 cp toward draw. The repair keeps the node count in the same band
+across the pair (3.4 M to 5.2 M) and does not jump.
 
-**One cost to be honest about:** at A/H=97 the repair spends **86,268 nodes against 1,061** — an 81×
-increase. That is the price of not taking a false draw; it is the same order as the neighbouring cells
-(h=96 is 106,852 nodes), so it is a return to normal search cost rather than a new pathology. It is still
-a real cost and the owner should see it.
+**The seldepth column proves this is not a root bail.** At H=97 the base reports `seldepth 20` with 2,672
+nodes: the search ran, reached depth 20, and *then* concluded draw. A drawn-root bail would report 0
+nodes. So the `cp 0` is a **searched** draw, not the documented root guard — see §7 trap 2 of the parent
+report, which is exactly the confusion this column rules out.
+
+**This is the claim I stand behind, stated as narrowly as the evidence allows:** across one clock unit
+the base flips from a searched -630 to a searched 0 and its node count collapses 1,273x, with no change to
+the claim window or to either side's material. The repair removes the flip and keeps the cost in band.
+**I do not claim to know the true value of either cell.** The coordinator's independent reversal to
+"base is wrong at H=97" and their later reversal back to "5b stands" both rest on a `-620` that I have
+since shown to be an artefact, so I am neither adopting their number nor defending mine.
+
+### 5c. The claim predicate, the forced-reset line, and what was withdrawn
+
+The coordinator asked for four things. All four are answered here. **Two of them changed my conclusion**,
+so the answers come with the corrections rather than after them.
+
+#### (1) The exact claim predicate my model uses
+
+```cpp
+static int solve(Board& b,int depth,int alpha,int beta){
+  if(++g_nodes>g_cap){ g_cap_hit=true; return 0; }
+  if(g_ply>kMaxPly) return b.side_to_move()==White? material(b): -material(b);
+  const MoveList mv=b.legal_moves(false);
+  if(mv.size()==0) return b.in_check()? -30000+(128-depth) : 0;   // mate/stalemate first
+  const bool claimable = b.halfmove_clock()>=100;
+  if(depth<=0) return b.side_to_move()==White? material(b) : -material(b);
+  int best = claimable ? 0 : -99999;    // the claiming side may take the draw
+  for(const Move m: mv){ ... }
+  return best;
+}
+```
+
+- **Whose turn:** the test is applied at every node, to **the side to move**. `best` is initialised to
+  0 when `claimable`, so the side to move may take the draw instead of playing on.
+- **What clock it reads:** `b.halfmove_clock()`, the clock at that node, compared against 100.
+- **Declined claim at 100, re-offered at 101:** yes — the test is re-evaluated at every node, so a claim
+  declined at clock 100 is available again at 101 and at every later node. That part is correct.
+
+**But the ordering is wrong, and it is a bug I introduced.** `if(depth<=0) return material` fires
+*before* the claim is honoured, so a clock ≥ 100 node reached exactly at the horizon returns **material**
+instead of `max(0, material)`. That is a hole in the model, and it is one of the two reasons the numbers
+in the original 5b were not trustworthy. The corrected ordering moves the claim test above the depth
+cutoff; with it, H=98 becomes a stable 0 at every depth while H=96/97 stay identical to each other.
+
+#### (2) The forced reset — and this is where my original 5b was wrong
+
+I could not produce a forced reset for White at H=97, and I am not going to assert one.
+
+What I checked, exhaustively over the relevant window with **legal moves only**:
+
+- White has **no forced mate** from H=97: `mateoracle` reports `NOMATE` at limits 6, 8 and 10.
+- White has **no winning capture** on any Black-king-shuffle line at H=96, H=97 or H=98. The only
+  captures the rook can reach on the 7th rank are `Rxf7`, and after every legal Black king move the king
+  **recaptures**: net for White is `+100 − 500 = −400`, a rook for a pawn. A losing capture is not a
+  resource White would use, so it does not deny Black's claim.
+- Black has **six pawn moves that reset the clock themselves**, so Black is never forced to let the
+  clock run against its will.
+
+**The coordinator's cited line `g8f8 a1a7 f8e8 a7f7` does end in that losing capture.** The line is
+legal and it does reset the clock to 0, but it concedes a rook for a pawn, and the resulting position
+(K+N versus K+2P) is only about +0.69 for White — it is not the win the line was offered as evidence for.
+So the *specific* forced-reset mechanism reported to me does not hold.
+
+#### (3) The independent check on one cell
+
+Three routes, and they do not all agree, which is the point:
+
+| route | H=96 | H=97 | H=98 |
+|---|---|---|---|
+| my C++ claim model, depth 4 | −620 | −620 | 0 |
+| python-chess minimax, same predicate, depth 4 | −620 | −620 | 0 |
+| **my C++ model, depths 2..8** | **−520/−620 alternating** | **−520/−620 alternating** | **0 at every depth** |
+| base engine, depth 20 | −630 | `cp 0` | `cp 0` |
+| repair engine, depth 20 | −630 | −649 | `cp 0` |
+
+The two models agreeing at depth 4 is **not** two independent confirmations — they are the same
+algorithm with the same material leaf, and both oscillate identically when depth is varied. That
+agreement is an artefact. **The independent evidence that actually survives is the window-count
+argument in §5b**, which uses no evaluation at all.
+
+#### (4) What I withdraw
+
+- **Withdrawn: "the true value at H=97 is about −620."** It came from a depth-4 material-only leaf that
+  alternates −520/−620 by depth parity on two different movegens. Not established.
+- **Withdrawn: "White forces a capture that resets the clock."** I could not find such a capture, and the
+  one line offered to me ends in a rook-for-pawn loss. At H=96/97 Black's pawn moves reset the clock
+  whenever Black wants, and Black's king shuffles toward a claim.
+- **Withdrawn: "H=96 is roughly right and only H=97 is wrong."** I no longer know which of the pair is
+  wrong, and I am not asserting either. What is defensible is that the *transition* between them is
+  anomalous and the repair removes it.
+
+**Kept, on the window-count argument:** the base's H=96 / H=97 pair is internally inconsistent, and the
+repair makes it consistent. That is a real defect and it is exactly one cell wide on this fixture.
+
+### The repair, and the cells it fixes
+
+The authoritative base-versus-repair numbers for this section are the depth-20 table in §5b for
+position A and the depth-12 table in §5 for position B. **I am not repeating them here**, because an
+earlier revision of this file carried the same cells at depth 12, 16 and 20 with different values in
+three places, and a reader had no way to tell which one an argument was resting on. If a number in this
+report is quoted, quote it from §5 (position B) or §5b (position A).
+
+Two cells change between the builds, and they are the two this section is about:
+
+- **B/99.** Base returns `cp 0` where the repair returns `mate -1`. The child position is a genuine mate
+  in one, so base is wrong here regardless of any model — this cell needs no value judgement.
+- **A/97.** Base returns `cp 0` at 2,672 nodes; the repair returns `-649` at 5,243,161. **I do not
+  assert which value is correct.** The claim is that base's decisive-to-draw flip across H=96/H=97 is
+  unaccompanied by any mechanism, and the repair removes it.
 
 **The repair closes it, and costs zero pins.** A clock-100 leaf is a draw only if the side to move is
 not mated **and** has no immediate mating move (only checking moves can mate, so the scan is cheap):
@@ -266,17 +369,20 @@ if (board.halfmove_clock() >= 100) {
 
 - **All four pins identical** on the repair build (table at the top).
 - **Clocks 0–89: 0 of 90 cells differ** — the repair touches nothing outside the band.
-- **The genuine-draw cells stay draws**: A/H=98, A/H=99, B/H=100 all `cp 0` before and after, and the
-  independent model agrees they should be 0. So the repair does not over-correct.
-- **12-position sweep**: 10/12 byte-identical, and the 2 that differ are exactly the two band cells.
+- **The cells both routes call draws stay draws**: A/H=98, A/H=99, B/H=100 are all `cp 0` before and
+  after. The repair does not over-correct there.
+- **12-position sweep (depth 12)**: 10/12 byte-identical, and the 2 that differ are exactly the two cells
+  above.
 - A promotion chain (`8/1P1P1P1P/8/8/8/8/8/k1K5 w - - 0 1`) is unchanged: `mate2`, 671 nodes.
 
 **Honest limits on the repair:**
 
-- I verified it on **two** defective cells (B/99 and A/97) plus their neighbours and controls. I did not
-  re-run the full 14-cell sweep from `docs/forge-findings.md`, so I cannot claim it fixes every cell of
-  the documented band — only the cells I measured.
-- The A/H=97 cell costs **81× the nodes** (1,061 → 86,268). Correct, but not free.
+- I verified it on **two** cells (B/99, where base is demonstrably wrong, and A/97, where base is
+  internally inconsistent) plus their neighbours and controls. I did not re-run the full 14-cell sweep
+  from `docs/forge-findings.md`, so I cannot claim it fixes every cell of the documented band.
+- The A/H=97 cell costs **1,962x the nodes** at depth 20 (2,672 → 5,243,161). Correct, but not free.
+- For A/97 I have **not** established which build is numerically right. The repair makes the pair
+  consistent; consistency is not correctness.
 - The repair changes `Worker::is_draw`, which is **shared by the main search and the drawn-root work in
   §2** of the existing report. That is why it is not committed here.
 
@@ -351,3 +457,16 @@ missing patch, and a zero counter is visibly a zero rather than a silent pass.
    nearly reported "the repair breaks the correct control at h=97" — when in fact base was wrong at
    h=97 and the repair was right. Both errors came from trusting an intermediate table instead of
    building an independent oracle for the cell in question.
+9. **`python-chess`'s `push()` accepts a move that leaves the mover's king in check.** `b.push(Move.
+   from_uci("f8e7"))` succeeded on `5k2/R4ppp/8/8/8/8/8/6NK b - - 99 41` even though the a7 rook attacks
+   e7, and the resulting board fails `is_valid()`. Several of my probes pushed UCI moves without
+   `b.is_legal()` first, so they explored **illegal positions**. I found it when a "free pawn capture"
+   appeared on a square the rook was attacking. Every probe in `scripts/` now takes moves only from
+   `legal_moves`. Re-running the claim question with legal moves only gave the **same verdict**, so this
+   one did not change a conclusion — but it easily could have.
+10. **A model that agrees with another model built the same way is not a second opinion.** My C++ claim
+    model and a python-chess version agreed exactly on -620 at depth 4, and I read that as independent
+    confirmation. Varying depth shows both oscillate -520/-620 by parity, identically, because they share
+    the same material leaf. **The value was an artefact of the leaf, and the agreement was an artefact of
+    the shared design.** The evidence that survived is the window count in §5b, which uses no evaluation
+    at all.
