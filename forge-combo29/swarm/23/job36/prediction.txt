@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 36 (is the eval/go disagreement general over DRAW TYPES?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F78 showed eval and go disagree on a THREEfold repetition. There are three draw mechanisms the engine answers at
+once: repetition, the fifty-move counter, and insufficient material. If the eval/go asymmetry holds for all three, F78
+is a general interface property; if it holds for only some, the boundary is worth stating.
+
+Method: base and PC builds, Threads 1, Hash 16, `eval` vs `go depth 12` on:
+  D1 the threefold root (23-F58), already measured
+  D2 a fifty-move root (won K+R v K with halfmove 150)
+  D3 insufficient material (bare K v K)
+  D4 a counter-0 NON-drawn twin of D2, as the control (eval and go should both say white is winning)
+
+Prediction (each number with the range that kills it):
+  P1  eval will report a non-zero total on ALL THREE draw types.       KILLED if any is 0.
+  P2  go will report cp 0 on D1 and D2 (as measured) but ALSO on D3.   KILLED if D3's go is non-zero.
+  P3  eval's total will be identical between each draw root and its counter-0 twin (static eval has no history or
+      counter).                                                         KILLED if any differs by > 20 cp.
+  P4  the control D4 will have eval and go AGREE (both positive, same sign). KILLED if they disagree in sign.
+
+If P2 is killed on D3 (insufficient material), that is a different mechanism and worth naming separately.
