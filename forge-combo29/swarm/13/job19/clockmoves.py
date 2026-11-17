@@ -26,6 +26,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "lib"))
 from settings import PC20, describe  # noqa: E402
+from freshguard import SearchCounter  # noqa: E402
 
 EXE = sys.argv[1]
 FENS = sys.argv[2]
@@ -38,7 +39,12 @@ BAD = ("unknown option", "invalid value", "error")
 CLOCKS = [2000, 6000, 20000, 60000]
 
 
+COUNTER = SearchCounter("clockmoves")
+
+
 def run(fen, wtime):
+    """One search in ONE fresh process (the caller creates a process per search)."""
+    COUNTER.new_process()
     p = subprocess.Popen([EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, bufsize=1)
 
@@ -97,6 +103,7 @@ def run(fen, wtime):
         p.kill()
     d = re.search(r"\bdepth (\d+)", last) if last else None
     n = re.search(r"\bnodes (\d+)", last) if last else None
+    COUNTER.record_search()
     return {"wtime": wtime,
             "bestmove": (bm.split()[1] if bm and len(bm.split()) > 1 else None),
             "depth": int(d.group(1)) if d else None,
@@ -122,6 +129,7 @@ def main():
         if (i + 1) % 10 == 0:
             print("%d/%d positions" % (i + 1, len(fens)), flush=True)
 
+    COUNTER.assert_single_use()      # structural: one search per process
     pairs = {}
     for a in range(len(CLOCKS)):
         for b in range(a + 1, len(CLOCKS)):

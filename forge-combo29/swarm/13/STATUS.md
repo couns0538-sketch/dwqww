@@ -845,3 +845,20 @@ GUARD ADDED: lib/freshguard.py — SearchCounter asserts one search per process 
   Self-test (python3 lib/freshguard.py) covers all five cases; it passes.
   mates_run.py and clockgain.py now use a fresh process per search, structurally.
 Next command: cd forge-combo29/swarm/13 && python3 lib/freshguard.py && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:21:05 AM UTC 2026
+
+S-F22 FINISHED UNDER THE STRICT DISCIPLINE — and it REPRODUCED EXACTLY. This was the last item owed on the
+clock thread.
+  Re-ran clockmoves.py with a fresh process per search, enforced by lib/freshguard.py
+  (SearchCounter.assert_single_use). All SIX percentages identical to the original:
+    2000v6000 34/40 | 2000v20000 31/40 | 2000v60000 31/40 | 6000v20000 33/40 | 6000v60000 33/40 |
+    20000v60000 39/40 — every one the same as before.
+  And the sharp result held: in the strict data, IDENTICAL node counts gave an IDENTICAL move 7 times out of 7,
+    zero exceptions.
+  So S-F22 was never contaminated — its run() always spawned a process per search. It is now STRUCTURALLY
+    guaranteed rather than true-by-inspection, and its state is CONFIRMED rather than provisional.
+FINAL_NOTES.md now carries the double-own-goal note (two "likely safe" guesses contradicted by five-minute
+tests tonight) as the strongest argument for the guard replacing the guess, plus the current corrected state
+of S-F24 / S-F11 / S-F12 / S-F19 / S-F21 / S-F22 so the close cannot get them wrong.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py && python3 lib/freshguard.py

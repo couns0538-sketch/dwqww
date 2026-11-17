@@ -8,6 +8,15 @@ they survive a context cut.
    (From the three times a hand-built "PC20" list omitted the 14 S14 settings; now structural in
    `lib/settings.py`, asserted at import.)
 
+## Asked for later in the run
+0. **Twice tonight my own "likely safe" guess was contradicted by a five-minute test** (job16's warm arm was
+   cold because ucinewgame is a cold reset; job17/18/19 "likely safe because a systematic shift would cancel"
+   was wrong — one cell moved depth 18 -> 24). That is the best argument for `lib/freshguard.py` replacing the
+   guess: the guard is a runtime assertion, and it also fails when nothing was recorded so a harness cannot
+   pass vacuously.
+   Also carry: S-F24 withdrawn/corrected (1 of 16, +17 cp); S-F11 and S-F12 survive re-testing; S-F19/S-F21
+   stand with a caveat on non-plateau cells; S-F22 CONFIRMED by exact reproduction under the strict discipline.
+
 ## My own reminders
 2. Move generation is CLOSED — restate it (see `MOVE_GENERATION_CLOSED.md`), with its four limits.
 3. Every finding must carry build + settings in the FINAL table (S-F1..S-F20, S-C1..S-C4).

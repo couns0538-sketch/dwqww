@@ -88,6 +88,28 @@ which is the right material for a match question.
   of the range could be 95 % or 100 % on a larger set.
 - `winc 60` was held constant; the plateau structure could shift with a different increment.
 
+## STRICT RE-RUN (after the S-F24 correction)
+Once job 20's shared-process contamination was found, I re-ran this measurement under the strict discipline —
+a fresh engine process for **every** search, enforced by `lib/freshguard.py` (`SearchCounter.assert_single_use`).
+
+**All six percentages reproduced EXACTLY:**
+
+| pair | original | strict re-run |
+|---|---|---|
+| 2,000 vs 6,000 | 34/40 | **34/40** |
+| 2,000 vs 20,000 | 31/40 | **31/40** |
+| 2,000 vs 60,000 | 31/40 | **31/40** |
+| 6,000 vs 20,000 | 33/40 | **33/40** |
+| 6,000 vs 60,000 | 33/40 | **33/40** |
+| 20,000 vs 60,000 | 39/40 | **39/40** |
+
+And the sharp result held too: in the strict data, **identical node counts gave an identical move 7 times out
+of 7, with zero exceptions.**
+
+This finding was never contaminated, because `clockmoves.py`'s `run()` always spawned its own process per
+search. It is now *structurally* guaranteed rather than true-by-inspection, which is the difference the S-F24
+correction taught. Raw: `out/clockmoves.json` (original) and `out_strict/clockmoves.json` (strict).
+
 ## Files
 `clockmoves.py`, `out/clockmoves.json` (160 searches + per-position move by clock), `G_all.fens`, `stamps.txt`.
 
