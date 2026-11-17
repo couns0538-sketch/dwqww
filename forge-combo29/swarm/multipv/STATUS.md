@@ -64,6 +64,7 @@ forge-combo29/swarm/multipv/
    fastpaths.py               property 6: book, drawn roots, precedence, searchmoves
    budget_stability.py        the same budget measurement three times; reports every repeat
    render.py                  template -> FINDINGS.md; fails if any marker survives
+   lint_scripts.py            the 4 static checks CI raised against this seat's first push
   evidence/
    audit.json                 structural, controls, agreement, time pressure, promotion
    judge.json                 property 5 verdicts and the depth-only control
@@ -99,6 +100,30 @@ Pins on this build: bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, pe
 - **No clock play.** `go movetime` and `go nodes` only; the clock seat owns real budgets.
 - **No claim about whether a standard GUI needs PV monotonicity.** The violation count and its
   mechanism are measured; the convention's force on clients is not something this seat can settle.
+
+## The report is generated, so it cannot ship unrendered
+
+`FINDINGS.md` is the file a reader opens and it is **generated**. The first push of this branch got
+this wrong — the marker template was `FINDINGS.md` and the resolved text went to a second file
+nobody would open, so 115 placeholders sat in the PR. The layout is now:
+
+| file | role |
+|---|---|
+| `FINDINGS.template.md` | source a human edits; carries the counter markers; banner says it is not the report |
+| `FINDINGS.md` | **the deliverable**; generated, zero markers, the one in the diff |
+
+`render.py` has five checks, each with a planted fault in `--selftest`:
+
+1. **missing** — a marker naming no counter
+2. **residual** — any marker surviving into its own output; deletes the output rather than leave one
+3. **type** — a dict/list resolved into prose
+4. **suspicious** — 24 named denominator counters that must be nonzero, so a lookup returning 0 by
+   default fails instead of printing `0` as a measurement
+5. **reflow** — the markdown re-wrap cannot alter tables, fences, headings, lists or block quotes,
+   and is idempotent
+
+`render.py --check` fails when the committed `FINDINGS.md` is stale or contains a marker, and it is
+the last stage of `run_all.sh`.
 
 ## Reproduction
 

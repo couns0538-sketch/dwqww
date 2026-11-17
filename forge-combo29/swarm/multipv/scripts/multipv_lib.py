@@ -29,11 +29,29 @@ class EngineFault(RuntimeError):
     pass
 
 
+def _validated_exe(candidate):
+    """Resolve an engine path and refuse anything that is not a regular executable file.
+
+    The path comes from argv, so it is not trusted: this rejects a directory, a symlink loop, a
+    FIFO, or a file that exists but is not executable, with a sentence saying which — instead of
+    letting `Popen` raise `FileNotFoundError` or execute something unintended.  Absolute-ised so the
+    process working directory cannot change what runs between here and `Popen`.
+    """
+    path = os.path.realpath(os.path.abspath(candidate))
+    if not os.path.exists(path):
+        raise EngineFault("engine not found: %s (run 00_build_and_pins.sh first)" % path)
+    if not os.path.isfile(path):
+        raise EngineFault("engine is not a regular file: %s" % path)
+    if not os.access(path, os.X_OK):
+        raise EngineFault("engine is not executable: %s" % path)
+    return path
+
+
 class Engine:
     """One long-lived process; each search is read to `bestmove`."""
 
     def __init__(self, exe=None, hash_mb=16, multipv=1, ownbook=False, extra_options=()):
-        self.exe = exe or DEFAULT_EXE
+        self.exe = _validated_exe(exe or DEFAULT_EXE)
         self.proc = subprocess.Popen(
             [self.exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL, text=True, bufsize=1,
@@ -188,7 +206,8 @@ def parse_info(line):
         elif t == "score":
             kind, value = parse_score(tok[i + 1:])
             out["score_kind"], out["score"] = kind, value
-            i += 2 if kind == "cp" else 2
+            # both "cp N" and "mate N" are two tokens, so this is unconditional
+            i += 2
         elif t == "seldepth":
             out["seldepth"] = int(tok[i + 1]); i += 2
         elif t == "nodes":

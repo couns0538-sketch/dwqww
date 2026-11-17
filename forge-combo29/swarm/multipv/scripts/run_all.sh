@@ -20,9 +20,12 @@ stage() {  # name, then the command
   if ! "$@"; then echo "!!! $name FAILED"; rc=1; fi
 }
 
-[ -x "$EXE" ] || { echo "no such engine: $EXE  (run 00_build_and_pins.sh first)"; exit 2; }
+[[ -x "$EXE" ]] || { echo "no such engine: $EXE  (run 00_build_and_pins.sh first)"; exit 2; }
 echo "engine: $EXE"
-md5sum "$EXE" | tee "$EV/wire/engine.md5"
+# Build LABEL, not a security control: md5 so a reader can match this report to a binary that was
+# described elsewhere, sha256 beside it for collision resistance. Nothing authenticates against it.
+sha256sum "$EXE" | tee "$EV/wire/engine.sha256"
+md5sum    "$EXE" | tee "$EV/wire/engine.md5"
 
 # --- pins, the gate every other number depends on --------------------------------------------
 stage "pins" bash -c '
@@ -53,6 +56,8 @@ stage "wire control" bash -c "$PY '$HERE/wire_control.py' '$EXE' | tee '$EV/wire
 # --- the six properties ----------------------------------------------------------------------
 stage "structural + controls + agreement" "$PY" "$HERE/audit.py" "$EXE" \
       --positions 40 --depth 12 --json "$EV/audit.json"
+stage "lint selftest" bash -c "$PY '$HERE/lint_scripts.py' --selftest"
+stage "lint scripts" "$PY" "$HERE/lint_scripts.py"
 stage "render selftest" bash -c "$PY '$HERE/render.py' --selftest"
 stage "budget stability" "$PY" "$HERE/budget_stability.py" "$EXE" \
       --positions 40 --mpv 6 --repeats 3 --json "$EV/budget_stability.json"
@@ -84,5 +89,5 @@ stage "render report" "$PY" "$HERE/render.py"
 stage "report is committed and current" "$PY" "$HERE/render.py" --check
 
 echo
-if [ "$rc" = 0 ]; then echo "run_all: all stages passed"; else echo "run_all: AT LEAST ONE STAGE FAILED"; fi
+if [[ "$rc" == 0 ]]; then echo "run_all: all stages passed"; else echo "run_all: AT LEAST ONE STAGE FAILED"; fi
 exit $rc

@@ -66,5 +66,6 @@ generated, so it cannot be committed with a placeholder in it.
 | `scripts/agreement.py` | the `searchmoves` noise floor that retired the first judge |
 | `scripts/fastpaths.py` | property 6: book, drawn roots, precedence, `searchmoves` |
 | `scripts/budget_stability.py` | the budget measurement three times, so the range is visible |
-| `scripts/render.py` | renders the template into `FINDINGS.md`; 4 checks incl. zero-residual; `--selftest` |
+| `scripts/render.py` | renders the template into `FINDINGS.md`; 5 checks incl. zero-residual; `--selftest` |
+| `scripts/lint_scripts.py` | the 4 static checks raised against this seat's first push; `--selftest` |
 | `evidence/` | every JSON the report cites, plus raw stdout under `evidence/wire/` |
