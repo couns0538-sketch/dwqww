@@ -2,6 +2,20 @@
 
 **Audit window:** 2026-11-16T22:20Z → 2026-11-17T10:20Z.
 **Assembled by:** seat `swarm-73`, from committed branch content only. **Nothing here was re-measured.**
+**Provenance audited against these tips** (`git fetch`, 04:07Z) — **not merely a timestamp, because a figure from the
+last few minutes will look unsourced against any fetch**:
+
+| branch | tip | branch | tip | branch | tip |
+|---|---|---|---|---|---|
+| `swarm-08` | `d28a2a2e4` | `swarm-23` | `f8ed0e477` | `swarm-29` | `b7b8270e9` |
+| `swarm-19` | `f3dc2c059` | `swarm-25` | `5a11ae02e` | `swarm-64` | `6d7488700` |
+| `swarm-27` | `0a322e2c2` | `swarm-65` | `621c1b02d` | `swarm-69` | `6eb2e8947` |
+| `swarm-75` | `858c2496d` | | | | |
+
+**A provenance count is a statement about those tips, never about the documents.** Four figures I reported as
+unsourced two rounds ago were in `swarm-64`, which pushed minutes after my fetch — **the count was a timing artefact,
+not a defect in the report.** Record the commit, not the clock.
+
 **Branches read:** **29** (`swarm-01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30, 64, 65, 69, 75`).
 **Findings synthesised:** **2,328** — **2,312** from table rows, **9** prose findings in `swarm-75` and **7** in
 `swarm-64`, both of which record findings as prose sections rather than table rows and so are invisible to a row
@@ -83,10 +97,17 @@ saying so**. `go depth 64` on such a position reports `depth 64`, `seldepth 64`,
 
 | what you receive | what it means |
 |---|---|
-| `0000` with `mate 0` | checkmate |
-| `0000` with `cp 0` | stalemate, **or** an empty `searchmoves` restriction. **In the stalemate case there is no `info string` at all** — treat `0000` as an error unconditionally |
+| `0000` with `mate 0` | **checkmate** — the game is over, and this is the one `0000` that is a correct answer |
+| `0000` with `cp 0` | stalemate, **or** an empty `searchmoves` restriction. **In the stalemate case there is no `info string` at all** — so no diagnostic distinguishes them |
 | a legal move, **empty `pv`**, `nodes 0` | adjudicated draw — **do not play the move** |
 | zero `info` lines | the search never ran (`go nodes 0/1`, `go` then `quit`) |
+
+**The `0000` advice that is safe to act on, stated precisely so it is not over-applied: treat `0000` as "no move was
+played" and consult the score — `mate 0` means checkmate, `cp 0` means a draw or an empty restriction, and the two
+`cp 0` cases are indistinguishable from the wire.** A rule of the form "treat `0000` as an error unconditionally" would
+also reject the checkmate case, which is a correct answer; **it is the right instruction for a harness that only ever
+sends positions with a legal move available, and the wrong one for a GUI.** Both halves matter and they are easy to
+compress into a contradiction.
 
 **The reliable check is `pv` empty.** It is guaranteed rather than conventional: no `pv` write exists in the bail
 branch (`search.cpp:2250-2271`), while every searching path sets it (`:2458`). It holds for a search stopped
@@ -183,7 +204,10 @@ Fixed `go nodes 200000` grid (work constant, time the variable), PC r15 + PC20, 
 **113 → 557 ms = 4.9×**, with six cells slower than 1.5× the fastest spanning two Hash values and three MultiPV
 values — a diagonal boundary, not one bad cell.
 
-**The practical rule is a per-line cap, and the product form is wrong. Do not use `Hash × MultiPV` as the model.**
+**The practical rule is a HASH CEILING KEYED ON LINE COUNT — not a "per-line cap", and not a product.** Do not use
+`Hash × MultiPV` as the model, and do not read "per-line cap" into the recommendation: a cap *per line* would scale
+the budget with the line count, which is the product form in different words. What is fitted is a **ceiling on Hash
+whose value depends on how many lines you asked for.**
 - **The cost is not Hash, not MultiPV, and not their product.** **Four cells share `Hash × MPV = 96` and measure
   1.30×, 1.35×, 1.37× and 1.55×** — **no constant separates them.**
 - **MultiPV 1 is flat in Hash** (114.0–139.3 ms across Hash 8–256, a 1.22× spread with no trend, 8 of 8 within
@@ -509,9 +533,15 @@ requires `knights == 0`**, so two knights are never adjudicated:
 |---|---|---|---|---|
 | K vs K | draw | +2 | **cp 0** | true |
 | KB vs K | draw | −147 | **cp 0** | true |
-| KN vs K | draw | −104 | **cp 0** | true |
+| KN vs K | draw | **−104** | **cp 0** | true |
 | **KNN vs K** | **draw** | **+187** | **cp 251** | **false** |
 | KBN vs K | win | +237 | cp 272 | false |
+
+**Read the two KN rows as different placements, not a contradiction — and note that the source does not say so.**
+The first table's KN is on `b1` (FEN given, **−144**); this table's is **−104** and **names no square**. That is a
+**−40 cp spread from the knight's square alone**, which is a small instance of the same bare-minor instability the
+bishop sweep shows. **The row I rely on for the verdict is KNN vs K** — `+187` static reaching **`cp 251`** in a real
+depth-6 search — and both tables agree on that one.
 
 **So `+187` static becomes `cp 251` in a real depth-6 search.** Every other wrong bare-minor static is masked by the
 insufficient-material verdict; **this one is not.** The engine believes a drawn KNN vs K is a quarter-pawn-plus win and
@@ -753,8 +783,14 @@ free text.
 
 Worse: **a stalemated root with an unsatisfiable `searchmoves` emits `bestmove 0000` with no `info string` at all.**
 Base, `go depth 10 searchmoves e2e4` on `7k/5Q2/6K1/8/8/8/8/8 b` (verified `is_stalemate()` true, 0 legal moves): 10
-info lines, 0 nodes, `bestmove 0000`, **and nothing else on the wire**. **So `0000` must be treated as an error
-unconditionally** — a diagnostic cannot be relied on.
+info lines, 0 nodes, `bestmove 0000`, **and nothing else on the wire**. **A diagnostic therefore cannot be relied
+on** — the `info string` that accompanies the illegal-restriction case is absent here.
+
+**So the instruction is "`0000` means no move was played — branch on the score", with one exception that matters:**
+**`0000` with `mate 0` is checkmate and is a correct answer.** A front end that treats every `0000` as an error will
+reject a legitimate checkmate; one that treats every `0000` as a move will play a null against a stalemate. **Neither
+blanket rule is right, and the distinguishing field is the score.** The safe form for a harness that only sends
+positions with a legal move available is to fail on any `0000`; a GUI needs the `mate 0` branch.
 
 ### 2.5 Mate scores that are wrong at the depth reported — **broken**
 
@@ -1121,8 +1157,9 @@ These are the transferable output. Each is a rule the run paid for with a defect
       match is a candidate, never a resolution.
     - **Its companion, and the reason a count like §5's is a floor: a provenance check against the remote cannot see
       a branch that has not landed.** A figure from the last ten minutes will always look unsourced — I reported four
-      such figures that landed minutes later and were all genuine. **State the `git fetch` time beside the count, or
-      the count reads as a property of the document rather than of the snapshot.**
+      such figures that landed minutes later and were all genuine. **Record the COMMIT each branch was audited at, not
+      the clock** — a timestamp is unverifiable after the fact and invites the reading that the document is at fault
+      when the snapshot is. **The count is a property of the tips named in the header, and nothing else.**
 47. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
     this run's method record.** **Every other claim here is one comparison against one threshold and has one number to
     check; a decomposition has three numbers, two samples and one subtraction — and it is the derived part that gets
@@ -1150,8 +1187,14 @@ These are the transferable output. Each is a rule the run paid for with a defect
 
 Every numeric token in the consolidated report — **262** distinct percentage, ratio, large-integer and fraction
 forms — was checked against a corpus of **167 MB**: every tracked `.md` **and `.txt`** under
-`forge-combo29/swarm/NN/` for the **29** branches read, **plus `internal/swarm/tally.md`**.
-**`git fetch` time: 04:07Z.**
+`forge-combo29/swarm/NN/` for the **29** branches read, **plus `internal/swarm/tally.md`**. **The audit is against the
+branch tips named in the header**, which is the only form of this claim that stays checkable: a timestamp says when I
+looked, a commit says what I looked at.
+
+**And the count has already been wrong once in the direction this guards against.** I reported four figures as
+unsourced two rounds ago; all four were in `swarm-64`, **which pushed minutes after my fetch.** The count was a timing
+artefact, not a defect in the report — so read the seven below as **seven against these tips**, and re-run the audit
+against new tips before treating any of them as a defect in the document.
 
 **The seven split into four causes, and the split matters more than the count:**
 
@@ -1468,7 +1511,7 @@ measured separately; collected, they are one property of the protocol surface ra
 
 | # | mechanism | what you asked | what you got |
 |---|---|---|---|
-| 1 | **`bestmove 0000`** | a move | a null move — for "no legal move" or an empty restriction (§2.4) |
+| 1 | **`bestmove 0000`** | a move | no move — for **checkmate** (correct), **stalemate**, or an empty restriction (§2.4) |
 | 2 | **zero `info depth` lines** | a search | a `bestmove` with no search behind it (§2.4, §1.3) |
 | 3 | **a refused FEN searching the last valid board** | about position B | a legal move, plausible score and full PV **about A** (§2.3) |
 | 4 | **an unknown `go` token silently ignored** | `mpv 3` | **MultiPV 1** — the setting you asked for, absent (§4 rule 8) |
@@ -1540,7 +1583,8 @@ is not your problem; the TT state is.**
   material in §7c and §4.
 - **`git fetch --all` was run five times.** Corrections and whole branches landed *after* preceding fetches —
   the softnodes scope run, the v3 pair-count patch result, the arithmetic note, **and `swarm-64` in full**. **A summary
-  assembled from a live swarm is a snapshot; the `git fetch` time is 04:07Z and the count in §5 is a floor.**
+  assembled from a live swarm is a snapshot**; the tips are named in the header and **the §5 count is a statement
+  about those commits, not about the documents.**
 - **Nothing was run.** No engine invocation, no script execution, no re-measurement. Where a figure is quoted, it is
   quoted from a branch, its evidence files, or the tally, with that source's conditions.
 - **No other seat's branch was modified.** `swarm-27` `S-C88` is stale (§6.3) and was left alone, at the coordinator's

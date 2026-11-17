@@ -60,10 +60,36 @@ because an independent recomputation is a stronger guarantee than a citation but
 
 ## Deliverable
 
-`OWNER_SUMMARY.md` — 1,588 lines, **47 measurement rules**, 20 recommendations:
+`OWNER_SUMMARY.md` — 1,632 lines, **47 measurement rules**, 20 recommendations:
 1. What to change · 2. What is broken (9) · 3. What is not established · 4. **47 rules** ·
 5. Unsourced (7) · 6. Mis-paired · 7. Book soundness · **7b. The four ways of answering a question not asked** ·
 **7c. The reuse trap** · 8. Method.
+
+## Cold read of OWNER_SUMMARY.md (04:16Z) — 5 arrangement defects found
+
+Read top to bottom for arrangement, not numbers. **All five were invisible to the token audit and to every check I
+built; all five are true sentences in misleading order.**
+
+| # | defect | why it was invisible |
+|---|---|---|
+| 1 | §1.3 said `0000`+`mate 0` = checkmate, then the next row said "treat `0000` as an error **unconditionally**" | both sentences true; the blanket rule would reject a correct checkmate. **Same error repeated in §2.4 and §7b** |
+| 2 | §1.7 opened "**the practical rule is a per-line cap**" while the report says it is **not** a per-line cap and §1.7 says so 40 lines later | a summary sentence contradicting its own recommendation; both halves sourced |
+| 3 | §1.17 gave KN vs K as **−144** in one table and **−104** in the next, no note they are different squares | two true numbers, −40 cp apart, reading as a contradiction |
+| 4 | §7b's `0000` row said "a null move — for no legal move", folding checkmate into a defect row | imprecise rather than wrong |
+| 5 | rule 46 said "state the `git fetch` time", superseded by the header's "record the commit, not the clock" | two copies of the same instruction at different vintages |
+
+**Defect 1 is the one that would have cost the owner something** — a GUI implementing it would treat a checkmate as an
+error. It is the same class seat 23 found three of: **each sentence true, the arrangement wrong.**
+
+**And the count is worth noting against my own audit:** five arrangement defects found by reading, zero found by the
+262-token provenance pass. **That is consistent with the run's own finding that cold reading was the highest-yield
+instrument on this class, and with its finding that no automated check can reach it.**
+
+## Method note added (coordinator, 04:16Z)
+
+The audit now records **the branch tip SHAs it audited against**, in the header, rather than a fetch time. Four
+figures I reported unsourced two rounds ago were in `swarm-64`, which pushed minutes later — **the count was a timing
+artefact.** A provenance pass records the commit, since a figure from the last few minutes will always look unsourced.
 
 ## Constraints honoured
 
