@@ -495,6 +495,12 @@ and what a reader can check.
 Instance 17 said this about control expectations; it applies equally to thresholds embedded in predictions, where it is
 easier to miss because the threshold looks like rigour rather than like an assumption.
 
+**AND THE SAME PAGE SHOWED THE MIRRORED FAULT THREE TIMES: an instance CITED before it was written.** Instance 24's own
+number, then 26 and 27 — both cited in findings (23-F123, 23-F127) for over an hour while no section existed, leaving
+gaps the numbering check surfaced. A finding can cite a rule before the rule is written, exactly as a document can carry
+a count before the count is true, and `rule_check.py`'s numbering check catches both. That is why a structural check earns
+its place beside a semantic one: it does not need to understand the prose to notice that section 26 is missing.
+
 ## Instance 25 — I read a decreasing number as a wrong number (23-F90 retracted by 23-F119)
 
 The engine reported `mate 13` at depth 14, `mate 10` at 16, `mate 7` at 20, `mate 6` at 24 on a K+Q v K board. I read the
