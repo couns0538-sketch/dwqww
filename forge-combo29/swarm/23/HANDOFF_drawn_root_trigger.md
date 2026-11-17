@@ -27,11 +27,18 @@ Seat 23 (area 3, move generation), branch `for-fable-and-opus/swarm-23`, folder 
 Everything below is from the BASE build (`~/build/forge`, sha256 `e06310ec…`), Threads 1, Hash 16, OwnBook false,
 `go depth 10`, fresh process per line, stdout drained to `bestmove`.
 
-**What you are being asked to explain:** on some positions whose root has occurred three times in the move list, the
-engine returns `bestmove` with **0 `info depth` lines and 0 nodes**, scoring **cp 0** — and the move it returns is the
-first move of its own generated list (23-F98). On other positions with the same threefold root it searches normally.
-The state is: **reproducible effect, four explanations ruled out, no clean characterisation.** The table below is the
-input; the last section lists the mechanisms I would consider and the cell that would kill each.
+**What this document was ORIGINALLY asking you to explain, and what is actually left** (the STOP notice above supersedes
+this paragraph; it is kept so the original framing is visible):
+
+ORIGINAL: on some positions whose root had occurred three times in the move list, the engine returns `bestmove` with
+**0 `info depth` lines and 0 nodes**, scoring **cp 0**, and the move is the first of its own generated list (23-F98); on
+other positions with "the same threefold root" it searched normally, and the state was recorded as *reproducible effect,
+four explanations ruled out, no clean characterisation*.
+
+ACTUAL: there was no such split. The trigger is fully characterised (23-F125/F140 — 0 nodes iff the SEARCHED position has
+occurred at least three times in the sent move list), and the boards that searched were never threefolds because my
+validator's key omitted castling (23-F122). The only question left for a source reader is why the bail publishes the
+generator's first move rather than searching — §5 below states it in that form.
 
 ---
 
@@ -226,7 +233,9 @@ Related rows: 23-F93, F96, F98, F100, F101, F103, F105, F108, F110, F112, F113, 
 **CORRECTION, added after 23-F122 — the rows named above as "the scope limits and this handoff" are WITHDRAWN.** F112's
 scope limit, F114's castling conditioner and F115's material ladder were all responses to a defect in MY fixture
 validation: the occurrence key omitted the castling field, so two boards that searched were miscounted as threefolds.
-The trigger is now exactly characterised — the base returns 0 nodes iff the root's FIDE identity has occurred at least
-three times (23-F125, tested at 2/3/4/5/6 and confirmed in both directions across nine boards, 23-F132/F133). Everything
+The trigger is now exactly characterised — the base returns 0 nodes iff the POSITION BEING SEARCHED (the end of the sent
+move list) has occurred at least three times in that list (23-F125, tested at 2/3/4/5/6 and confirmed in both directions
+across nine boards, 23-F132/F133; the wording "root's identity" became "searched position" in 23-F140, and the
+measurements are unaffected because every fixture had the repeated position at the end of its list). Everything
 in this document's sections 1–6 was assembled to explain that non-existent split and should be read as superseded; the
 MEASUREMENTS in them are correct, the QUESTION was wrong. Current state: 23-F125, 23-F126, 23-F128, 23-F129/F130.

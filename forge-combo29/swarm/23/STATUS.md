@@ -2401,3 +2401,21 @@ Updated in four places so nothing contradicts: F125's headline, F140's row, TRIG
 chain line.
 
 167 findings, 25 instances plus four named patterns, all three checks PASS.
+## 2026-11-17T01:54:41Z  the phrase-grep found FIVE documents carrying the old wording, not four
+2026-11-17T01:54:41Z
+
+You said four places carrying one sentence is where a partial update hides. The grep for "at least three times" showed
+four consistent hits plus F133 still saying "the root's FIDE identity". But the wider search for the CONCEPT found two
+more that the phrase list missed because they worded it differently: job60's RESULT ("iff the root's FIDE identity") and
+the handoff's opening paragraph, which still described the state as "no clean characterisation" - i.e. the STOP notice
+was at the top of the file and the body beneath it still told the old story.
+
+All five now agree on which position counts. And F140 carries the paired statement you asked for: the nine board-level
+tests stand unchanged, and the sentence is more precisely worded - refinement of wording, not retreat from testing,
+stated in the same place so neither can be read as the other.
+
+This is the third time a phrase-based check has been insufficient and the concept-level read caught more: the phrase list
+is a spot check, and the honest conclusion is that summarising sentences need reading against the table, not grepping for
+known words. Recorded in the stale-claim audit's own LIMIT section where it belongs.
+
+167 findings, all three checks PASS.
