@@ -185,8 +185,9 @@ def play_game(engine, opening, base_ms, inc_ms, game_index, rng):
             result["moves"].append(record)
             break
 
+        san = board.san(parsed)
         board.push(parsed)
-        record["san"] = board.peek() and board.san(parsed)
+        record["san"] = san
         result["moves"].append(record)
         result["plies"] = ply + 1
 
