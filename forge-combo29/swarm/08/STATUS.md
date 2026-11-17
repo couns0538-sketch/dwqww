@@ -327,3 +327,17 @@ cannot give one — and keep confirming.
 next command:
 
     cd /agent/repos/dwqww/forge-combo29/swarm/08/pc20 && cat volatility_rate.txt
+
+## 2026-11-17T00:20Z
+- **08-F31 — the rate for the owner.** 30 boards/class at the owner's clock, clocked score vs completed `go depth D+4`:
+  sparse (<=12 pieces) **10 of 27 boards have a MATE the clocked search missed (37 %)**; real-game/full-material
+  **0 of 30** for mate, queen-gap and 200cp-gap, every score within 113 cp (median 14). Note "gap >= queen in cp"
+  is 0 in BOTH classes — the sparse error is a mate APPEARING, so quoting only cp gaps would invert the result.
+- 3 sparse depth-(D+4) references did not finish in 90 s (the time tail inside the reference search).
+- **08-N2 METHOD: `select()` on a Python text-mode buffered pipe is not a timeout.** It reported 90 s timeouts on
+  clocked searches that answer in 194 ms, because `readline()` reads ahead. Would have produced "the sparse class
+  hangs" — false. Fixed with a reader thread; rule recorded: prove a timeout against a known-fast case first.
+- Clock headline (pc20/CLOCK_HEADLINE.md) unchanged: 5 shape classes, 161-853 ms medians, worst 1585.4 ms.
+
+next: extend the sparse mate-rate with a second independent sparse sample (different seed) to confirm 37 % is not
+seed-specific, then continue confirming other seats.
