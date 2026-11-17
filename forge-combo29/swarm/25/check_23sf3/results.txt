@@ -1,0 +1,48 @@
+### seat 23's horizon claim, tested on MY board
+board: r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w - - <c> 1
+predict: first-cp-0 counter ~ 100 - depth  (seat 23: 95/92/91/89/89 at depths 6/8/10/12/14)
+
+ depth   first cp0 at counter  100-depth   near?
+     6                     97         94    True
+          counter 96: score cp -166 (8736 nodes)
+          counter 97: score cp 0 (3868 nodes)
+     8                     99         92   False
+          counter 98: score cp -108 (7240 nodes)
+          counter 99: score cp 0 (251 nodes)
+    10                     99         90   False
+          counter 98: score cp -102 (18859 nodes)
+          counter 99: score cp 0 (341 nodes)
+    12                     99         88   False
+          counter 98: score cp -106 (39638 nodes)
+          counter 99: score cp 0 (463 nodes)
+    14                     99         86   False
+          counter 98: score cp -118 (115035 nodes)
+          counter 99: score cp 0 (615 nodes)
+
+*** SEAT 23's HORIZON CLAIM DOES NOT HOLD ON MY BOARD - and the reason is a NON-MONOTONIC flip they would have
+*** caught too if they had swept both sides of their onset. ***
+
+MY SWEEP (PC r15/PC20, Threads 1, Hash 16), board r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w:
+  depth  6: first cp0 at "97"  - but counter 98 gives cp -78, so 97 is NOT a boundary (see below)
+  depth  8: first cp0 at 99     depth 10: 99     depth 12: 99     depth 14: 99
+  depth 16: 99   depth 18: 99   depth 20: 99
+So the onset is PINNED AT 99 for every depth from 8 to 20, while 100 - depth predicts 92/90/88/86/84/82/80. My board
+does not track 100 - depth at all: the gap between prediction and observation grows to 19 plies at depth 20.
+
+THE DEPTH-6 "97" IS A NON-MONOTONIC FLIP, not an onset. Re-run with both counters:
+  counter 95: cp -151    96: cp -166    97: cp 0    98: cp -78    99: cp 0
+Counter 98 scores -78, so cp 0 at 97 is a local artifact, not the start of a permanent zero. My sweep script reported
+the FIRST zero and stopped, which is exactly the wrong instrument for a non-monotonic landscape - a control error of
+mine, caught by re-running both sides of the reported onset.
+With the flip accounted for, my board's answer is: FIRST PERMANENT cp 0 at counter 99, independent of depth 8..20.
+
+WHAT THIS MEANS FOR THE MECHANISM DISPUTE:
+  * seat 23 is RIGHT that the onset is board-dependent (92 on theirs, 99 on mine) and that a depth sweep is the test.
+  * seat 23 is WRONG to generalise "roughly 100 - depth" to my board: on mine the onset does not move with depth at
+    all between 8 and 20. So the horizon explanation does not replace the mechanism here.
+  * MY S-F3 wording "one ply early" was measured at depth 10 and is still what the data says at depths 8-20 on this
+    board - but the correct DESCRIPTION of my board is "pinned at 99 for depths 8..20", not "a coded test at 99".
+    Whether it is coded or a fixed point of something else, I have not determined, and S-F3 is already recorded as
+    NOT A DEFECT under file 6, so no defect claim changes.
+  * The honest summary: both boards show a horizon-shaped onset, but the SLOPE differs - theirs moves 1 per depth,
+    mine does not move at all in the tested range. A single "100 - depth" law describes their board, not both.
