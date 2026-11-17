@@ -1,0 +1,75 @@
+THE BAIL IS MONOTONE IN TRUE OCCURRENCE COUNT — and the seventy-five-move rule is NOT applied on the root
+==============================================================================================================
+23-F122 established the trigger. This asks whether it behaves like a threshold or like a special case, and tests a
+second automatic draw rule in the same run.
+
+Occurrence-count sweep, one board, one castling-neutral cycle, every fixture validated by `job59/validate.py` (two
+independent counters agreeing) and asserted to its exact count before the engine was called:
+
+| true occurrences | nodes | score | verdict |
+|---|---|---|---|
+| **2** | 7,581 | cp 381 | **searched** |
+| **3** | **0** | cp 0 | **BAIL** |
+| **4** | **0** | cp 0 | **BAIL** |
+| **5** | **0** | cp 0 | **BAIL** |
+| **6** | **0** | cp 0 | **BAIL** |
+
+P1 HELD (2 occurrences searches — the two-vs-three control, rebuilt under the corrected validator and confirming it).
+P2 HELD: **once the root has genuinely occurred three times the bail fires, and further occurrences add nothing.** So the
+trigger is a THRESHOLD at three, not a special case for exactly three, and it is monotone. That is a cleaner statement
+than anything the seat had before 23-F122: *the base bails iff the root's FIDE identity has occurred at least three
+times.*
+
+THE SEVENTY-FIVE-MOVE RULE IS NOT APPLIED ON THE ROOT — P3 killed
+------------------------------------------------------------------
+FIDE 9.6.2 makes a seventy-five-move count an AUTOMATIC draw, unlike the claimable fifty-move rule at 9.3. If the engine
+honoured it on the root, a halfmove clock at 75 should produce the same 0-node bail.
+
+| halfmove, no repetition | nodes | score | verdict |
+|---|---|---|---|
+| 74 | 7,581 | cp 381 | searched |
+| **75** | **7,580** | cp 381 | **searched** |
+| **76** | 7,723 | cp 384 | **searched** |
+
+**All three search.** So the engine does not treat a seventy-five-move root as drawn — it reports a winning score at
+halfmove 76. P3 predicted a bail and is recorded as KILLED.
+
+**BUT THE WIDER SWEEP CHANGES WHAT THIS MEANS, and my first reading of it was too weak.** Sweeping the halfmove field on
+a bare FEN:
+
+| halfmove | nodes | score | verdict |
+|---|---|---|---|
+| 0 | 7,581 | cp 381 | searched |
+| **99** | **200** | **cp 0** | **searched** (200 nodes!) |
+| **100** | **0** | cp 0 | **BAIL** |
+| 101 | 0 | cp 0 | BAIL |
+| 150 / 199 / 200 / 201 | 0 | cp 0 | BAIL |
+
+So the base recognises a move-count draw at the root **from halfmove 100 onward** and not before: 99 searches (briefly,
+200 nodes, and already scoring cp 0 — it has seen the draw but still searched), 100 bails outright. That covers the
+seventy-five-move case in EFFECT, because halfmove 100 > 75: any position at 75 or beyond is drawn by the engine long
+before 9.6.2's threshold matters. **So the accurate statement is not "9.6.2 is ignored" but "9.6.2 is subsumed — the root
+bail triggers at halfmove 100, which is stricter than 9.6.2 requires and therefore never mishandles a 75-move draw."**
+My P3 was killed for the narrow reason (75 itself does not bail) and the narrow reason turns out not to matter.
+
+This is a distinct fact from the fifty-move behaviour (23-F93/F96 measured the fifty-move path separately, and the base
+DOES recognise the claimable fifty at the root). So the engine recognises one of the two move-count draws and not the
+other, which is worth stating plainly and worth a line in the hazards page: **a tool that trusts the engine's root score
+will see cp 381 on a position that is an automatic draw under 9.6.2.** For the match program this matters less than for
+analysis tools, since a match ends at the 100th half-move anyway — but "the program ends the game first" is not the same
+as "the engine is right", and 23-F96's lesson is that a plausible score beside a drawn position is exactly the shape a
+tool author needs to know about.
+
+WHAT I AM NOT CLAIMING
+-----------------------
+That the engine ignores 9.6.2 anywhere else — only that it does not apply it AT THE ROOT in this measurement. A GUI
+relying on the engine to adjudicate a 75-move draw would be wrong here; whether the engine applies the rule in the
+search tree (as opposed to the root) is untested.
+
+LIMITS: one board (K+R v K), base build, `go depth 10`; the 75-move cells use a bare FEN with halfmove 74/75/76 and no
+history, so the repetition path is not involved.
+
+INSTANCE 27, small: my validator's python-chess counter looped over `(5,4,3,2)` only, so a SIX-occurrence fixture
+reported as five and the validator rejected a good fixture. The cap was a constant where it should have scaled with the
+line. Found because the rejection appeared in a table where six cells were expected to behave like the other four — and
+the fix added a six-occurrence case to the self-test so the cap cannot silently return.

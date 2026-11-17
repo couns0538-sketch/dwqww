@@ -74,7 +74,9 @@ def count_via_python_chess(fen, moves):
     b = chess.Board(fen)
     for mv in moves[:idx]:
         b.push(chess.Move.from_uci(mv))
-    for n in (5, 4, 3, 2):
+    # HARD CAP DEFECT, found by job 60: the first version looped over (5,4,3,2) only, so a position occurring SIX
+    # times reported as 5 and the validator rejected a perfectly good fixture. The cap must scale with the line length.
+    for n in range(len(moves) // 2 + 1, 1, -1):
         if b.is_repetition(n):
             return n
     return 1
@@ -116,7 +118,11 @@ if __name__ == "__main__":
     ok3, msg3 = check_fixture("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
                               "a1b1 a8b8 b1a1 b8a8 a1b1 a8b8 b1a1 b8a8".split(), expect=1)
     print("  same cycle, expect=1         ->", "PASS" if ok3 else "FAIL", "|", msg3)
+    # occurrence-6 case: catches a hard-capped counter (the defect this fix addresses)
+    six = ("b8c8 a1b2 c8b8 b2a1 " * 5).split()
+    ok4, msg4 = check_fixture("1K6/8/8/3R4/8/8/8/k7 w - - 0 1", six, expect=6)
+    print("  six occurrences, expect=6   ->", "PASS" if ok4 else "FAIL", "|", msg4)
     print()
-    good = ok and (not ok2) and ok3
-    print("SELF-TEST:", "PASS — the validator accepts a real threefold, rejects a fake one, and agrees with"
-          " python-chess on both" if good else "FAIL")
+    good = ok and (not ok2) and ok3 and ok4
+    print("SELF-TEST:", "PASS — accepts a real threefold, rejects a fake one, handles six occurrences,"
+          " and agrees with python-chess on all three" if good else "FAIL")
