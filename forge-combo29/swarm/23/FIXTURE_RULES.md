@@ -87,3 +87,4 @@ a field (23-F122) — in each case the tool did exactly what it was told and the
 | core family revalidated under it | `job59/revalidate_core.py` -> `revalidate_core.out` |
 | the original castling-key audit | `job59/key_audit.out`, `full_audit.out` |
 | the trigger as finally established | `job59/RESULT_TRIGGER_FOUND.txt`, 23-F122/F125 |
+
