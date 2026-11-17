@@ -148,9 +148,38 @@ def selfcheck():
     print("ALL SELFCHECKS PASS" if ok else "SELFCHECK FAILURES ABOVE")
 
 
+def solve_move(fen, move, maxn):
+    """Smallest forced mate after a SPECIFIC first move. Separates 'the engine chose a longer mate' from
+    'the engine reported a distance its move does not have' - two very different defects."""
+    b = chess.Board(fen)
+    mv = chess.Move.from_uci(move)
+    if mv not in b.legal_moves:
+        print(f"{move} is not legal in {fen}")
+        return None
+    b.push(mv)
+    if b.is_checkmate():
+        print(f"after {move}: checkmate immediately")
+        print("SMALLEST AFTER MOVE: mate 1")
+        return (1, move)
+    print(f"position: {fen}")
+    print(f"after {move}: not mate; defender to move")
+    found = None
+    for k in range(1, maxn + 1):
+        memo = {}
+        ok = defender_node(b, k, memo)
+        print(f"  attacker forces mate in <= {k} more moves: {ok}", flush=True)
+        if ok:
+            found = k + 1
+            break
+    print(f"SMALLEST AFTER {move}: {'mate ' + str(found) if found else 'none within ' + str(maxn + 1)}")
+    return (found, move)
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "solve":
         solve(sys.argv[2], int(sys.argv[3]))
+    elif sys.argv[1] == "solve-move":
+        solve_move(sys.argv[2], sys.argv[3], int(sys.argv[4]))
     elif sys.argv[1] == "verify":
         verify(sys.argv[2], sys.argv[3:])
     elif sys.argv[1] == "selfcheck":
