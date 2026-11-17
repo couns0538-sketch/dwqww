@@ -1206,3 +1206,16 @@ AREAS, all with the same protocol and per-row board labels:
   front-end         3 hazards confirmed on the PC build, 2 rules (count info strings; send both clocks)
   my own faults     11, each named with the rule that catches it
 90 findings, 18 confirmations (2 refutations), six reference pages. 10 h 7 m remain.
+## 2026-11-17T00:11:59Z  23-F66 PC20 switches change moves (3/20); GUI_HAZARDS gains the end-to-end driver
+2026-11-17T00:11:59Z
+
+23-F66: PC20 vs S14-only at depth 14 on 20 quiet positions -> different MOVE on 3 of 20, score shifted on 17 of 20
+(cp 34->44, -38->-27, 101->105). S14+CorrHistV2 alone differs on 6 of 20 and agrees with PC20 on 2 of the 3 A-vs-B
+changes, so the effect is NOT attributable to one switch. Consequence: a PC20 result and an S14 result are different
+measurements, comparable only with the settings stated.
+
+GUI_HAZARDS.md now has "What a well-behaved driver looks like, end to end": a protocol block in the safe order plus
+four rules, each mapped to a measured hazard and the seat that lost time to it. Fixed a typo in it (ucnewgame ->
+ucinewgame) because a driver guide with a broken command name is worse than none.
+
+91 findings, 18 confirmations, six reference pages. 10 h 7 m remain.
