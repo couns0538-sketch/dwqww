@@ -51,8 +51,13 @@ print("gaps:", gaps, "| duplicates:", dups)
 # A stated count is a number-word ADJACENT to "instances"/"faults", standing alone (start of a bolded phrase or after
 # a comma), so "a one-line assertion" cannot match. TWO patterns are needed because the page states the count twice in
 # different casing: "**One rule, TWENTY-ONE instances from this seat" and "**twenty-one** faults".
-prose = re.findall(r"[A-Za-z,\s]*?\b([A-Za-z]+(?:-[A-Za-z]+)?)\s+instances?\b", text) \
-      + re.findall(r"\*\*([a-z]+(?:-[a-z]+)?)\*\* faults", text)
+# SCOPE NARROWED after a false positive (the same fault this page names): "Two instances of the same object at different
+# sizes" is a sentence about two EXAMPLES, not a statement of the total. A stated TOTAL is a count adjacent to
+# "instances"/"faults" that is either bolded or introduced by "One rule,"/"Total:" — so the pattern now requires that
+# context rather than any number-word before "instance".
+prose = re.findall(r"\*\*([A-Za-z]+(?:-[A-Za-z]+)?)\s+instances?\b", text) \
+      + re.findall(r"\*\*([a-z]+(?:-[a-z]+)?)\*\* faults", text) \
+      + re.findall(r"(?:One rule,|Total:|now stands on)\s*([A-Za-z]+(?:-[A-Za-z]+)?)\s+instances?\b", text)
 # hyphenated number words like twenty-one need normalising before lookup
 prose = [w for w in prose if w.lower().split('-')[0] in
          {'one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen',

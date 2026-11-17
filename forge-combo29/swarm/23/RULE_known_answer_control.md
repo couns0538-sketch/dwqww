@@ -711,6 +711,38 @@ facts (`git rev-parse --is-inside-work-tree`, the branch actually checked out, t
 verdict; then a short-circuit is visible as a missing line rather than as a confident negative. And when a chain's
 verdict is `BLOCKED` or `PASS`, ask which step produced it — here the answer was "the one before the first `&&`".
 
+## Named pattern — A GUARD THAT FIRES ON DOCUMENTATION IS WORSE THAN NO GUARD
+
+Two instances of the same object at different sizes, and both were fixed by narrowing rather than removing:
+
+1. **The leak guard** (23-F162). Written to catch a heredoc's shell lines inside `FINDINGS.md`, it flagged
+   `FIXTURE_RULES.md`'s legitimate `import sys; ...` sample and a rule-page `print(...)` sample — both inside fenced
+   code blocks. Left as written, every future code sample would have been a "failure", and the guard would have been
+   turned off within a day. Fixed by making it fence-aware.
+2. **The extremum check** (earlier in this page). Written to catch a stale maximum, it fired on rows that mentioned an
+   extremum incidentally. Fixed by restricting it to rows MAKING an extremum claim.
+
+**The principle: a check's scope must be the set of cases where the property is supposed to hold, not the set of cases
+that happen to be easy to scan.** A guard with a false-positive rate you cannot afford teaches people to override it,
+and an overridden guard is strictly worse than none — it consumes attention and returns nothing.
+
+**MECHANICAL CONSEQUENCE: when a guard fires on something legitimate, fix the SCOPE in the same edit and re-prove it
+fires on the intended fault.** Both instances above kept their planted-failure proof after narrowing; a narrowing that
+is not re-proved is indistinguishable from a removal.
+
+## Named pattern — ANYTHING A SUMMARY QUOTES VERBATIM IS COPIED BY SCRIPT, THEN VERIFIED
+
+23-F163 parked the GUI hazard table into `FINAL_CHAIN_LINE.txt` **by script from the source page**, not by retyping, and
+verified it afterwards (five rows, the MultiPV columns, the amended rule 2).
+
+Retyping is where a paraphrase enters silently: not as a lie, but as a small improvement of phrasing that changes the
+claim — "a legal move" becomes "the best move", "(never × MultiPV)" becomes "(× MultiPV)". The FINAL is the document most
+likely to be quoted onward, so it is the document where a silent paraphrase costs most.
+
+**MECHANICAL CONSEQUENCE: a verbatim quote in any summary is inserted by a script that reads the source, and the result
+is checked after insertion** (row count, a distinctive string from each row). Prose ABOUT a table may be written by hand;
+the table itself may not.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if

@@ -81,3 +81,21 @@ reading: `restricted_root_empty` is set for the `searchmoves` case (`search.cpp:
 terminal branch produces a score of `0` through a different route, and no string is emitted for it.
 
 A legal restriction behaves sanely (9,021 nodes, `e2e4`), which is the control that keeps the rest of this table honest.
+
+THE HAZARD IS ON THE PC BUILD TOO — so it is not a base-tree-only concern
+--------------------------------------------------------------------------
+The owner plays PC r15. Eight cells, both builds, `go depth 10`:
+
+| case | base | PC r15 |
+|---|---|---|
+| startpos + `searchmoves e2e4` (LEGAL) | 9,021 nodes, `e2e4` | **identical** |
+| startpos + `searchmoves e2e5` (illegal) | 0 nodes, **`0000`**, `info string` | **identical** |
+| stalemate + illegal restriction | 0 nodes, **`0000`**, **no string** | **identical** |
+| mate-in-1 + illegal restriction | 0 nodes, **`0000`**, `info string` | **identical** |
+
+**Every cell agrees between the two builds**, including the silent stalemate case. So this is a property of the protocol
+handling, not of the drawn-root repair or of the base tree — and it reaches the build the owner's PC actually plays.
+
+That matters for how it is described in the write-up. The other three hazards on the GUI page are also present on the PC
+build, but they were each demonstrated on it; this one now is too. A front end written against the PC build needs
+`bestmove 0000` handled exactly as a front end written against the base does.
