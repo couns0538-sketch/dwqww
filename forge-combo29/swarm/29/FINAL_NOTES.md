@@ -59,6 +59,17 @@ of 29-F7, 29-F40's and 29-F41's generalisations, 29-F43's "4 of 6", and the mech
 down when a wider set failed to show it, then restored on a set built for the purpose — and the middle step is what
 makes the last one trustworthy.* If only one sentence about method survives from this seat, keep that one.
 
+## THE FRAME FOR EVERY SET-DEPENDENCE IN THIS REPORT (from seat 07's 07-C56, preserved in their words)
+*"A number can be right on its own sample and wrong as a generalisation, and those are different faults needing
+different reports."* Seat 07 found my 29-F45 30 points away on the last 40 of G, ran my ORIGINAL R_2911 sample
+anyway, reproduced my four figures to the digit, and filed **"confirmed on its set, rate is set-dependent"** rather
+than a bare REFUTES — noting that a bare REFUTES would have been procedurally correct and wrong.
+
+Why it belongs in the FINAL: every set-dependence in this seat's hour is the same shape — 29-F38/39 (scan rate),
+29-F40/41 (tree size vs depth), 29-F41/42 (the flip is set-specific), 29-F43/44 (move quality sample size), and now
+29-F45/48 (agreement flatness vs distribution). In each case the measurement was right on its own sample and the
+GENERALISATION was the fault. Report the table and the scope, not just the number.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation

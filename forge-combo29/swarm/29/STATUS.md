@@ -364,3 +364,7 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N31 state update: F45 now has a SECOND SEAT (confirmed to the digit) and is scoped; only F42 and F44 remain open. FINAL_NOTES corrected accordingly - it previously listed all three as open, which would have been out of date at the deadline.
 - Seat 07's method note preserved in the finding: they ran my ORIGINAL sample before judging, so their report is 'confirmed on its set, set-dependent' rather than a bare REFUTES. A number can be right on its own sample and wrong as a generalisation - different faults, different reports.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:08:45 AM UTC 2026
+- Seat 07's frame is now in BOTH the FINAL notes and FINDINGS (29-N32), in their words: 'a number can be right on its own sample and wrong as a generalisation, and those are different faults needing different reports.' The FINAL section lists all five set-dependences of my hour that share that shape (F38/39, F40/41, F41/42, F43/44, F45/48) - in every one the measurement was sound on its own sample and the GENERALISATION was the fault.
+- next: continuing at cadence.
