@@ -1,0 +1,20 @@
+PREDICTION — SW-23 job 35 (does the drawn-root defect appear in the `eval`/analysis path?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+The whole drawn-root chain used `go` (a search). The engine also has an `eval` command, which is what an analysis tool
+would call to score a position without searching. If `eval` on a threefold-repetition root reports a real score while
+`go` reports 0, an analysis tool using `eval` would not see the defect at all — worth knowing, and cheap.
+
+Method: the 23-F58 threefold root, base and PC builds, Threads 1, Hash 16. Ask `eval` (three numbers: hce, nnue,
+total) and compare with `go depth 12`. Also `eval` on the counter-0 twin (not drawn) as a control.
+
+Prediction (each number with the range that kills it):
+  P1  `eval` will report a NON-ZERO total on the repetition root (it evaluates statically and should not know about
+      the repetition). KILLED if it reports total 0.
+  P2  the `eval` total will be close to the counter-0 twin's total (within 60 cp). KILLED if the gap exceeds 200 cp.
+  P3  `go` on the same root will report cp 0 / 0 nodes on the base (reproducing 23-F58). KILLED if it searches.
+  P4  so an analysis tool using `eval` sees a real score where a tool using `go` sees 0 — the two disagree, and the
+      asymmetry is the finding.
+
+If P1 is killed (eval also reports 0), then the draw detection is in the shared static path and an analysis tool sees
+the same thing a search does, which is cleaner and worth stating.
