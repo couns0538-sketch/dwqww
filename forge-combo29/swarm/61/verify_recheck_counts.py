@@ -19,14 +19,23 @@ with open(PATH, encoding="utf-8") as handle:
     text = handle.read()
 
 # Numbered table rows look like: | 23 | claim | report | derived | verdict |
-row_re = re.compile(r"^\|\s*(\d+)\s*\|(.+?)\|(.+?)\|\s*$", re.MULTILINE)
+# Parsed with str.split rather than a regex: the previous pattern
+# `^\|\s*(\d+)\s*\|(.+?)\|(.+?)\|\s*$` nests two lazy quantifiers between literals, which is the
+# shape that backtracks super-linearly on adversarial input, and SonarCloud flagged it as a
+# security hotspot. Splitting on the delimiter removes the pattern rather than suppressing the
+# rule, and is also easier to read.
 
 rows = []
-for m in row_re.finditer(text):
-    idx = int(m.group(1))
-    cells = [c.strip() for c in m.group(0).strip().strip("|").split("|")]
+for line in text.splitlines():
+    stripped = line.strip()
+    if not stripped.startswith("|") or not stripped.endswith("|"):
+        continue
+    cells = [c.strip() for c in stripped.strip("|").split("|")]
     if len(cells) < 5:
         continue
+    if not cells[0].isdigit():
+        continue
+    idx = int(cells[0])
     verdict_cell = cells[-1]
     rows.append((idx, cells[1], verdict_cell))
 

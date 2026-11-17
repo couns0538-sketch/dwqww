@@ -234,10 +234,33 @@ and three are the same class the report warns about — waiting on a line the en
    behaviour was correct, but an unreachable duplicate of a safety check is exactly the kind of
    thing a reader would trust while it did nothing. Removed, and every dependent verdict
    re-run afterwards: mateforfeit 2/2, drawn_root 4/4, fault injection 3/3, all unchanged.
+5. **Fixed after the first re-run, and worth stating because it nearly produced a wrong report:**
+   re-indenting a block in `recheck_pernode.py` and `recheck_nodesaving.py` left the
+   `rows.append(...)` outside its `if m:`, so both scripts parsed **1 and 8 rows instead of 180
+   and 464** — and `recheck_nodesaving.py` still printed a complete, plausible set of ratios from
+   the survivors. The per-node script's own `expected 180` guard caught it; the node-saving script
+   had no such guard, so I added one (`expected 464`) and proved it by truncating the evidence to
+   20 lines, which now exits 1 with `MEASUREMENT BROKEN: parsed 8 rows, expected 464`. **This is
+   the same defect the report documents under "a check that declines to evaluate must never be
+   read as a pass" — a parser fault is silent unless the row count is asserted.**
 
 Each of 1–3 produced a plausible-looking wrong output before the timeout exposed it, which is why
-the timeout exists. Finding 4 was found by static analysis; I am recording it because the seat's
-own rule is that a check which appears to run and does not is worse than no check.
+the timeout exists. Finding 4 was found by static analysis. Finding 5 was found because a guard
+existed in one script and not the other, and that asymmetry is the reason to assert the row count
+in every script that parses a committed artifact.
+
+### Security-rating note
+
+The remaining SonarCloud condition on this PR is the **Security Rating on New Code**, and it is
+repo-wide rather than specific to this seat: five sibling swarm PRs (#52–#55, #57) fail the same
+gate while `main` passes. This pod's egress policy blocks `sonarcloud.io`, so I could not read the
+rule list; the annotations point at `subprocess.Popen` and `open()` lines, which are
+security-*hotspots* rather than vulnerabilities — they are correct here (list-form argv, no
+`shell=True`, no `eval`/`exec`/`pickle`, absolute paths from the harness). I did remove the one
+pattern I could justify on its merits: a regex with two nested lazy quantifiers
+(`^\|\s*(\d+)\s*\|(.+?)\|(.+?)\|\s*$`) that could backtrack super-linearly, replaced with
+`str.split` parsing that produces byte-identical results (verified, and verified again by planting
+a wrong header count and confirming exit 1).
 
 ---
 

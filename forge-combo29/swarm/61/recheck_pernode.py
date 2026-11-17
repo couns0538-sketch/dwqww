@@ -37,14 +37,14 @@ def load():
     rows = []
     pat = re.compile(r"\s*(\d+)/\s*(\d+) n (\S+) \|\s*(\d+)/\s*(\d+) ms (\S+) \| pernode (\S+)")
     with open(PATH, encoding="utf-8") as handle:
-      for ln in handle:
-        m = pat.match(ln)
-        if m:
-            rows.append({
-                "npc": int(m.group(1)), "ns14": int(m.group(2)),
-                "tpc": int(m.group(4)), "ts14": int(m.group(5)),
-                "pn_printed": float(m.group(7)),
-            })
+        for ln in handle:
+            m = pat.match(ln)
+            if m:
+                rows.append({
+                    "npc": int(m.group(1)), "ns14": int(m.group(2)),
+                    "tpc": int(m.group(4)), "ts14": int(m.group(5)),
+                    "pn_printed": float(m.group(7)),
+                })
     return rows
 
 

@@ -31,14 +31,14 @@ report = {
 random.seed(20261117)
 rows = []
 with open(PATH, encoding="utf-8") as handle:
-  for ln in handle:
-    ln = ln.strip()
-    if not ln:
-        continue
-    parts = [p.strip() for p in ln.split("|")]
-    nc, npf = parts[0].split()[0].split("/")
-    mpf, mc = parts[1].split()[0].split("/")
-    rows.append((int(nc), int(npf), int(mpf), int(mc)))
+    for ln in handle:
+        ln = ln.strip()
+        if not ln:
+            continue
+        parts = [p.strip() for p in ln.split("|")]
+        nc, npf = parts[0].split()[0].split("/")
+        mpf, mc = parts[1].split()[0].split("/")
+        rows.append((int(nc), int(npf), int(mpf), int(mc)))
 
 n = len(rows)
 per = [(r[2] / r[1]) / (r[3] / r[0]) for r in rows]

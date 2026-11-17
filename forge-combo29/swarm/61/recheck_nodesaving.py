@@ -32,14 +32,23 @@ def load():
     rows = []
     pat = re.compile(r"\s*(\d+) S14\s+(\d+) ms/\s*(\d+) n \| PC20\s+(\d+) ms/\s*(\d+) n \| ratio (\S+)")
     with open(PATH, encoding="utf-8") as handle:
-      for ln in handle:
-        m = pat.match(ln)
-        if m:
-            rows.append({"s14n": int(m.group(3)), "pcn": int(m.group(5))})
+        for ln in handle:
+            m = pat.match(ln)
+            if m:
+                rows.append({"s14n": int(m.group(3)), "pcn": int(m.group(5))})
     return rows
 
 
 rows = load()
+
+# The arm's own n is 464.  A parser fault that silently drops rows would still produce a
+# plausible-looking ratio from whatever survived -- an edit of mine dropped 463 of them once and
+# the numbers still printed.  Assert the count before computing anything from it.
+EXPECTED_N = 464
+if len(rows) != EXPECTED_N:
+    print("MEASUREMENT BROKEN: parsed %d rows, expected %d" % (len(rows), EXPECTED_N))
+    sys.exit(1)
+
 ns14 = sum(r["s14n"] for r in rows)
 npcn = sum(r["pcn"] for r in rows)
 pooled = npcn / ns14

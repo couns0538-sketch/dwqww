@@ -44,7 +44,7 @@ def load_fens(path, n):
     """Validate EVERY FEN with python-chess before it can enter the run."""
     good, rejected = [], []
     with open(path, encoding="utf-8") as handle:
-      lines = handle.readlines()
+        lines = handle.readlines()
     for i, ln in enumerate(lines):
         fen = ln.strip()
         if not fen or fen.startswith("#"):
