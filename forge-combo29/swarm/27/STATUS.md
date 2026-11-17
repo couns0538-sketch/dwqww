@@ -1334,3 +1334,26 @@ Both pairs repeated bit-identically, so deterministic.
 **OWNER-FACING: a corpus labelled under `go mate N` is labelled by a MATE-HUNTING SEARCH, not by depth 2N-1 - and
 mixing those labels with `go depth` labels mixes two incomparable searches.** If any of his data came from a
 `mate` limit, those rows are not depth-matched to the rest.
+
+## 2026-11-17T17:5xZ S-C131/132 — the 163x ratio is a DIAGNOSTIC SIGNATURE; nodes != softnodes at the same N
+**S-C131: `mate` IS THE ONLY LIMIT FLAG THAT CHANGES THE SEARCH TREE.** Same board, same reported depth 7, fresh
+process each:
+  go depth 7            d4c5  cp -33   3,411          <- reference
+  go depth 7 (repeat)   d4c5  cp -33   3,411          identical
+  go depth 7 ponder     NONE  cp -33   3,411          **SAME tree; only the bestmove is withheld**
+  go softnodes 1000000  d2e1  cp -31   1,966,644      searches deeper, as asked
+  go nodes 1000000      d2e1  cp -61   709,638        searches deeper, as asked
+  go mate 4             e2e3  cp -36   556,387        **DIFFERENT MOVE, 163x**
+**`ponder` changes only whether a bestmove is emitted; the node-budget forms search deeper exactly as requested.
+So `mate` alone gates heuristics - which makes a node count 100x+ above its depth peers a USABLE FINGERPRINT for
+spotting a mate-labelled row in an existing corpus, without needing the provenance of the run that produced it.**
+**S-C132: `go nodes N` AND `go softnodes N` ARE NOT THE SAME EXPERIMENT AT THE SAME N - confirmed at new budgets,
+new board.**
+  go nodes 20000      d4c5  d8  cp -64   9,359   (0.47x)
+  go softnodes 20000  e2e3  d9  cp -58   20,800  (1.04x)   **DIFFERENT MOVE AND SCORE**
+  go nodes 200000     d2e1  d13 cp -64   182,349 (0.91x)
+  go softnodes 200000 d2e1  d14 cp -58   200,399 (1.00x)
+`go nodes` undershoots (stops when the next iteration would exceed N); `softnodes` lands on budget (finishes the
+iteration that passes N, hard-stops at 4N). **A corpus mixing `nodes` and `softnodes` budgets at the same N is
+mixing two experiments.** Extends S-C12 to a different board and budget - the second place tonight where "same
+N" turned out not to name the same search.
