@@ -565,3 +565,16 @@ score and showing the line is merely truncated. PV length is not proof of a mate
 **Four content-level catches tonight, all found by reading the artefact rather than the intention**: zero info
 lines recorded as a row; a guard raising an undefined `Missing`; a heredoc stripping backticks from a findings row;
 and a backtick in a shell `echo` executing a FEN as a command. All four looked correct when written.
+
+## 2026-11-17T01:01Z S-C21: my own inconclusive became a confirmation
+S-C20 said "inconclusive, and the failure is my set design" because neither sparse set I built landed in the window
+where a mate exists but lies beyond depth 10. **I built that window and the claim reproduces:** of 12 generated
+KQ/KR-vs-K candidates, **5 gained a `mate` label from `go depth 10` to `go depth 20`** - cp 973 -> mate 7, cp 452 ->
+mate 7, cp 1174 -> mate 6, cp 466 -> mate 5, cp 1036 -> mate 13. **5/12 = 42 %, inside seat 05's reported range**
+(2/5, 4/8, 6/30, 6/30) and on a set my own generator produced.
+**Checked `mate 13` against KRvK's 16-move maximum before publishing** - it is within the bound, so not a
+truncation artefact. That check is in the finding deliberately, because S-W1's withdrawal was caused by omitting it.
+**Not called confirmed: the middlegame half.** My 0 of 5 is consistent with seat 05's 0 of 73 but too small a set.
+Method note for anyone repeating this: seat 19's committed `dtm.py` enumerates whole signatures and its tables are
+summaries, so for picking individual positions the workable oracle is generating candidates and reading the
+engine's own mate distance at depth 20.
