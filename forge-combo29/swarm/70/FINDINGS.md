@@ -479,6 +479,42 @@ which touched only the `.py`.
 The failure mode this guards is silent: a tagged run that also rewrote the default
 filenames would overwrite the base evidence while appearing to work.
 
+## F14 — every headline number is traced to its evidence file, with a negative control
+
+`| 70-F14 | control | 17 claim groups across FINDINGS/SEARCHMOVES_TABLE each traced to a literal string in the file it cites, and the audit proves it can fail on every run | audit_doc_numbers.txt | NEW |`
+
+```bash
+python3 forge-combo29/swarm/70/audit_doc_numbers.py; echo $?
+```
+
+The documents were edited several times **after** their numbers were produced, which
+is exactly when a stale number survives. So every headline figure is listed with the
+literal string that must be present in the cited evidence file:
+
+- 17 claim groups checked, **0 failing**
+- `ALL DOC NUMBERS TRACEABLE: True`, exit 0
+
+### F14a — the audit's own negative control, and the bug it caught in itself
+
+First attempt at a negative control: plant a wrong number (`199/159` for `142/159`),
+confirm the audit exits non-zero. It exited **zero**. The planting step was a string
+replace whose target did not match, so **nothing was planted** and the "control"
+reported green.
+
+That is the failure mode the whole audit exists to prevent, occurring inside the
+control. Fixed: the planting now asserts the target exists and that the mutation
+changed the text, and the negative control is **built into the script and runs every
+time** rather than being a thing I remember to do:
+
+```
+== NEGATIVE CONTROL ==
+negative control passed: True
+detail: planted run exit 1 (expected non-zero), names planted value: True
+```
+
+A control that silently does nothing is worse than no control, because it launders
+an unchecked claim into a checked-looking one.
+
 ---
 
 ## Suspicions, not proven

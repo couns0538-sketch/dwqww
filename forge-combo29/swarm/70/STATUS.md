@@ -184,6 +184,31 @@ compared against really is pre-change.
 The claim happened to be true. That is not the point — an unverified claim that
 happens to be true and one that is false are indistinguishable to a reader.
 
+## 2026-11-17T05:15Z — end-to-end consistency audit, and a broken negative control
+
+Added `audit_doc_numbers.py`: every headline number in FINDINGS/SEARCHMOVES_TABLE is
+traced to a literal string in the file that produces it. Motivated by the fact that
+the docs were edited several times **after** their numbers were produced.
+
+**17 claim groups, 0 failing.** Exit 0.
+
+Then I tried to prove the audit can fail by planting `199/159` in place of
+`142/159`. **It exited zero.** The planting was a string replace whose target did
+not match, so nothing was planted and the control reported green.
+
+That is the exact defect the audit exists to catch, inside the control for the
+audit. Fixed and made permanent:
+
+- planting now asserts the target exists and the mutation changed the text;
+- the negative control is **inside the script and runs on every invocation**,
+  printing its own pass/fail, instead of being a step I might forget.
+
+Current output: `negative control passed: True`, `planted run exit 1 (expected
+non-zero), names planted value: True`.
+
+Lesson recorded in FINDINGS F14a: a control that silently does nothing is worse
+than no control, because it launders an unchecked claim into a checked-looking one.
+
 ## Deliverables
 
 - `FINDINGS.md` — F1..F11, each with a re-runnable command.
