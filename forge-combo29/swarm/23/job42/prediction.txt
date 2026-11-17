@@ -1,0 +1,31 @@
+PREDICTION — SW-23 job 42 (is the "short PV" symptom of a TRUNCATED LINE or of a WRONG MATE DISTANCE?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+WHY, from job 41's table rather than from any new hunch: on W2 (K+Q v K) the PC reports `mate 13` at depth 14 with a
+17-ply PV, and `mate 10` at depth 16 with a 19-ply PV that really mates. 17 plies is 2*9-1, so that PV is shaped like
+a mate-in-9 line while the score says 13. That means my 23-F88 phrasing ("the shortfall is unbounded, it is whatever
+the search had completed") may be the WRONG DESCRIPTION of my own result: the PV may be short because the DISTANCE is
+wrong, not because the PV is truncated. Those are different defects with different consequences — a truncated PV is a
+display problem; a wrong mate distance changes what the engine promises.
+
+Boards: W2 `8/5K2/7Q/4k3/8/8/8/8 w` on the PC build, depths 13, 14, 15, 16, 17, 18; and W1 `1K6/8/8/3R4/8/8/8/k7 w`
+on the PC build for contrast. Threads 1, Hash 16, OwnBook false, no PC20 switches. For each cell: full PV replayed in
+python-chess (moves legal? ends in mate? how many plies?), plus the bestmove, plus whether the bestmove is the first
+move of a verified mating PV.
+
+Prediction (each with the range that kills it):
+  P1  THE DISTANCE IS REVISED, NOT STABLE: on W2 the reported mate distance DECREASES by at least 2 plies between the
+      first depth that reports a mate and depth 16.                            KILLED if it is stable or increases.
+  P2  WHEN THE DISTANCE IS FINALLY CORRECT (depth 16/18), PV plies = 2N-1 EXACTLY — the line completes at the moment
+      the score becomes trustworthy.                                          KILLED if any such cell is not 2N-1.
+  P3  THE SHORT CELLS' PV LENGTH EQUALS 2M-1 FOR A SMALLER M: i.e. the line is a completed mate line for a different
+      distance than the one reported, so the score is what is wrong.          KILLED if the PV length is not of that
+      form — that would mean the PV is genuinely a truncated fragment, and F88's wording stands as written.
+  P4  THE BESTMOVE IS STABLE ACROSS THE REVISION on W2 (same move at every depth from 13 to 18), even while the score
+      changes — so a tool that only takes the move is safe, and one that quotes the DISTANCE is not.
+                                                                              KILLED if the bestmove changes.
+
+If P1-P3 hold, F88 must be reworded: "a mate score can be numerically wrong about its own distance at the depth where
+the mate is first found, and the short PV is a symptom of that — the line is a complete mate line for a DIFFERENT
+distance than the score reports." That is a stronger and more actionable statement than "the shortfall is unbounded",
+and it is a correction of my own description, not of my measurement.
