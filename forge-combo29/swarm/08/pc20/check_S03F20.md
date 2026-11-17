@@ -7,7 +7,14 @@ Their claims:
 > S-F22: "the strict S-F20 signature (chosen move scored worse than an available alternative by more than a queen)
 > occurs **0 of 50** ... the smaller-magnitude version occurs 11 of 45, median 36 cp"
 
-## Verdict: PARTLY CONFIRMS — the ranking reverses at depth ≥18, but their depth-12 scores do NOT reproduce
+## Verdict: PARTLY CONFIRMS — the substance holds, the depth attribution was wrong, and the effect is visible from depth 18 rather than 12
+
+**Stated plainly: S-F20's substance holds — `c6d6` is the better move and the engine plays `c6c7`. What is wrong is
+the depth it is attributed to: it is a depth-18-and-beyond fact, not a depth-12 one, and the depth-12 scores in the
+finding line do not reproduce.** The two measurements are consistent once the depth is stated: their S-F22 zero is
+measured at depth 16, where my own table puts the gap on this board at 22 cp — inside their own smaller-magnitude
+band (median 36 cp) and nowhere near the queen-sized gap their strict test looks for.
+
 
 My own harness, root scores by searching each move alone with `go depth D searchmoves <move>`:
 
