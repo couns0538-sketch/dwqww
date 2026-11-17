@@ -136,6 +136,22 @@ not about the measurement, and it cannot be argued with.
 Also worth checking: node count against the budget given; depth against the depth limit; a score against the score
 range the position's material allows.
 
+## REPORT COUNTS, NOT RATES, AND NEVER AVERAGE ACROSS KINDS
+
+When an event is **categorical** — a mate appears, a move changes, a crash occurs — the honest unit is a **count over
+a stated denominator**, not a rate and never a magnitude.
+
+Three cases where I held to this tonight:
+- **"1 of 4 sparse boards had a mate appear; 0 of 4 full-material"** (S-C53) — a count. n=4 is not a rate.
+- **Refusing to convert `mate 9` to centipawns to average it against `cp 4302`** — that mapping is arbitrary and yields
+  seat 08's "meaningless 106×". An average across a categorical change and a continuous one is not a number about
+  anything.
+- **`go nodes 20000` truncation: "short by 4 plies", not "30 % wrong"** — plies are the unit the claim is made in.
+
+**The test: if you had to explain the unit to the owner, would he agree two different values are the same kind of
+thing?** A mate and a centipawn score are not; two depths are; two plies short are. When they are not, report the
+counts separately and let him compare what he cares about.
+
 ## MEASURING
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
