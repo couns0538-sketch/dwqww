@@ -1,0 +1,677 @@
+diff -ruN base_r15/include/forge/nnue_v3.hpp prof_r15/include/forge/nnue_v3.hpp
+--- a/include/forge/nnue_v3.hpp	2026-11-17 09:35:28.953143771 +0000
++++ b/include/forge/nnue_v3.hpp	2026-11-17 09:51:21.025143771 +0000
+@@ -47,6 +47,7 @@
+ 
+ #include "forge/board.hpp"
+ #include "forge/nnue.hpp"
++#include "forge/prof.hpp"
+ 
+ #include <array>
+ #include <cstddef>
+@@ -143,7 +144,10 @@
+     std::vector<Accumulator> stack;
+     RefreshCache cache;
+     std::uint64_t generation = 0;
+-    void invalidate() { for (Accumulator& acc : stack) acc.valid = false; }
++    void invalidate() {
++        prof::g.v3_frames_invalidated += stack.size();
++        for (Accumulator& acc : stack) acc.valid = false;
++    }
+ };
+ 
+ // ---- loading and selection (must not run during a search) ----
+@@ -235,6 +239,7 @@
+         if (!(pair_keys[pi] == parent.keys[pi])) pair_ok = false;
+     }
+     if (pair_ok) {
++        ++prof::g.v3_replay_pair;
+         apply_changes_pair(net, parent.values[0].data(), child.values[0].data(), pair_keys[0],
+                            parent.values[1].data(), child.values[1].data(), pair_keys[1], dirty);
+         for (const Color p : {White, Black}) {
+@@ -252,6 +257,7 @@
+         child.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+         child.keys[pi] = key;
+         if (key == parent.keys[pi]) {
++            ++prof::g.v3_replay_single;
+             apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
+         } else {
+             // The king changed bucket or side: rebuild this perspective from the
+@@ -274,7 +280,10 @@
+ // valid ancestor (index >= 4 is the search root) and replays, or refreshes through the cache.
+ template <class DirtyOf>
+ void make_valid(const Net& net, WorkerState& state, int index, const Board& board, DirtyOf&& dirty_of) {
+-    if (state.stack[static_cast<std::size_t>(index)].valid) return;
++    if (state.stack[static_cast<std::size_t>(index)].valid) {
++        ++prof::g.v3_eval_already_valid;
++        return;
++    }
+     int ancestor = index - 1;
+     while (ancestor >= 4 && !state.stack[static_cast<std::size_t>(ancestor)].valid) --ancestor;
+     if (ancestor < 4) {
+diff -ruN base_r15/include/forge/prof.hpp prof_r15/include/forge/prof.hpp
+--- a/include/forge/prof.hpp	1970-01-01 00:00:00.000000000 +0000
++++ b/include/forge/prof.hpp	2026-11-17 09:48:29.765143771 +0000
+@@ -0,0 +1,142 @@
++#pragma once
++
++#include <atomic>
++#include <cstdint>
++#include <iostream>
++#if defined(__x86_64__) || defined(_M_X64)
++#include <x86intrin.h>
++#endif
++
++namespace forge::prof {
++
++inline std::uint64_t rdtsc() {
++#if defined(__x86_64__) || defined(_M_X64)
++    return __rdtsc();
++#else
++    return 0;
++#endif
++}
++
++struct Counters {
++    // Coarse non-overlapping phase cycles across UCI position + go
++    std::uint64_t cyc_uci_position = 0;
++    std::uint64_t cyc_go_wall_until_join = 0;
++    std::uint64_t cyc_exclusive_lease = 0;
++    std::uint64_t cyc_root_setup = 0;
++    std::uint64_t cyc_emit_hashfull = 0;
++    std::uint64_t cyc_emit_io = 0;
++    std::uint64_t cyc_tree_search = 0;
++
++    // Exact deterministic event counters
++    std::uint64_t uci_position_cmds = 0;
++    std::uint64_t uci_position_plies = 0;
++    std::uint64_t parse_uci_legal_Generated = 0;
++    std::uint64_t uci_go_spawns = 0;
++    std::uint64_t exclusive_stripe_locks = 0;
++    std::uint64_t hashfull_calls = 0;
++    std::uint64_t hashfull_clusters = 0;
++    std::uint64_t stack_frames_inited = 0;
++    std::uint64_t v3_frames_invalidated = 0;
++
++    std::uint64_t search_nodes = 0;
++    std::uint64_t qsearch_nodes = 0;
++    std::uint64_t tt_probes = 0;
++    std::uint64_t tt_hits = 0;
++    std::uint64_t tt_cutoffs = 0;
++    std::uint64_t tt_eval_hits = 0;
++
++    std::uint64_t has_legal_move_calls = 0;
++    std::uint64_t has_legal_move_full_gen = 0;
++    std::uint64_t king_lines_refreshes = 0;
++    std::uint64_t nodes_reaching_movepicker = 0;
++
++    std::uint64_t evasion_gen_calls = 0;
++    std::uint64_t evasion_pseudo_scored = 0;
++    std::uint64_t evasion_legal_found = 0;
++    std::uint64_t is_legal_complete_calls = 0;
++
++    std::uint64_t record_move_eager_diffs = 0;
++    std::uint64_t v3_eval_calls = 0;
++    std::uint64_t v3_eval_already_valid = 0;
++    std::uint64_t v3_replay_pair = 0;
++    std::uint64_t v3_replay_single = 0;
++    std::uint64_t v3_refresh_calls = 0;
++    std::uint64_t v3_refresh_cols = 0;
++
++    std::uint64_t corrected_eval_calls = 0;
++    std::uint64_t update_correction_calls = 0;
++    std::uint64_t corr_nonpawn_unchanged_side = 0;
++    std::uint64_t corr_mat_unchanged = 0;
++    std::uint64_t cont4_dead_writes = 0;
++
++    std::uint64_t cuckoo_child_calls = 0;
++    std::uint64_t cuckoo_scans = 0;
++    std::uint64_t cuckoo_hits = 0;
++    std::uint64_t rework_threat_maps = 0;
++    std::uint64_t rework_quiet_deltas = 0;
++
++    void reset() { *this = Counters{}; }
++
++    void dump(std::ostream& os) const {
++        const std::uint64_t total_searcher =
++            cyc_exclusive_lease + cyc_root_setup + cyc_emit_hashfull + cyc_emit_io + cyc_tree_search;
++        const std::uint64_t cyc_thread_and_pipe =
++            cyc_go_wall_until_join > total_searcher ? (cyc_go_wall_until_join - total_searcher) : 0;
++        const std::uint64_t grand_total = cyc_uci_position + cyc_go_wall_until_join;
++        auto pct = [&](std::uint64_t v) -> double {
++            return grand_total > 0 ? (100.0 * static_cast<double>(v) / static_cast<double>(grand_total)) : 0.0;
++        };
++        os << "info string PROF_CYCLES grand_total " << grand_total
++           << " uci_position " << cyc_uci_position << " (" << pct(cyc_uci_position) << "%)"
++           << " thread_and_bestmove " << cyc_thread_and_pipe << " (" << pct(cyc_thread_and_pipe) << "%)"
++           << " exclusive_lease " << cyc_exclusive_lease << " (" << pct(cyc_exclusive_lease) << "%)"
++           << " root_setup " << cyc_root_setup << " (" << pct(cyc_root_setup) << "%)"
++           << " emit_hashfull " << cyc_emit_hashfull << " (" << pct(cyc_emit_hashfull) << "%)"
++           << " emit_io " << cyc_emit_io << " (" << pct(cyc_emit_io) << "%)"
++           << " tree_search " << cyc_tree_search << " (" << pct(cyc_tree_search) << "%)\n";
++        os << "info string PROF_UCI pos_cmds " << uci_position_cmds
++           << " pos_plies " << uci_position_plies
++           << " parse_uci_moves_gen " << parse_uci_legal_Generated
++           << " go_spawns " << uci_go_spawns
++           << " exclusive_stripe_locks " << exclusive_stripe_locks
++           << " hashfull_calls " << hashfull_calls
++           << " hashfull_clusters " << hashfull_clusters
++           << " stack_frames_inited " << stack_frames_inited
++           << " v3_frames_invalidated " << v3_frames_invalidated << "\n";
++        os << "info string PROF_NODES search " << search_nodes
++           << " qsearch " << qsearch_nodes
++           << " tt_probes " << tt_probes
++           << " tt_hits " << tt_hits
++           << " tt_cutoffs " << tt_cutoffs
++           << " tt_eval_hits " << tt_eval_hits
++           << " reaching_movepicker " << nodes_reaching_movepicker << "\n";
++        os << "info string PROF_BOARD has_legal_move " << has_legal_move_calls
++           << " has_legal_full_gen " << has_legal_move_full_gen
++           << " king_lines_refreshes " << king_lines_refreshes
++           << " evasion_gen " << evasion_gen_calls
++           << " evasion_pseudo_scored " << evasion_pseudo_scored
++           << " evasion_legal_found " << evasion_legal_found
++           << " is_legal_complete " << is_legal_complete_calls << "\n";
++        os << "info string PROF_NNUE record_move_eager_diffs " << record_move_eager_diffs
++           << " v3_evals " << v3_eval_calls
++           << " v3_already_valid " << v3_eval_already_valid
++           << " v3_replay_pair " << v3_replay_pair
++           << " v3_replay_single " << v3_replay_single
++           << " v3_refreshes " << v3_refresh_calls
++           << " v3_refresh_cols " << v3_refresh_cols << "\n";
++        os << "info string PROF_B4_CORR corrected_eval " << corrected_eval_calls
++           << " update_correction " << update_correction_calls
++           << " nonpawn_unchanged_sides " << corr_nonpawn_unchanged_side
++           << " mat_unchanged_evals " << corr_mat_unchanged
++           << " cont4_dead_writes " << cont4_dead_writes
++           << " cuckoo_child_calls " << cuckoo_child_calls
++           << " cuckoo_scans " << cuckoo_scans
++           << " cuckoo_hits " << cuckoo_hits
++           << " rework_threat_maps " << rework_threat_maps
++           << " rework_quiet_deltas " << rework_quiet_deltas << std::endl;
++    }
++};
++
++inline Counters g;
++
++} // namespace forge::prof
+diff -ruN base_r15/src/board.cpp prof_r15/src/board.cpp
+--- a/src/board.cpp	2026-11-17 09:35:28.953143771 +0000
++++ b/src/board.cpp	2026-11-17 09:51:07.021143771 +0000
+@@ -1,4 +1,5 @@
+ #include "forge/board.hpp"
++#include "forge/prof.hpp"
+ 
+ #include <algorithm>
+ #include <array>
+@@ -720,6 +721,7 @@
+ }
+ 
+ bool Board::has_legal_move() const {
++    ++prof::g.has_legal_move_calls;
+     // A single legal quiet pawn push proves non-terminal without generating
+     // the full move list. Promotions and every failed witness use the original
+     // complete fallback; exact king-safety testing handles checks and pins.
+@@ -730,6 +732,7 @@
+                            static_cast<std::uint8_t>(to), 0, Quiet};
+         if (is_legal(witness)) return true;
+     }
++    ++prof::g.has_legal_move_full_gen;
+     MoveList moves;
+     generate_pseudo_legal(moves, false);
+     for (const Move move : moves) {
+@@ -740,6 +743,7 @@
+ 
+ #if FORGE_SPD_KING_LINES
+ bool Board::is_legal_complete(const Move& move) const {
++    ++prof::g.is_legal_complete_calls;
+     const Color us = side_;
+     const Piece moving = squares_[move.from];
+     // Not in check, not en passant, not a king move: the own king can only
+@@ -924,6 +928,7 @@
+ } // namespace
+ 
+ void Board::refresh_king_lines() const {
++    ++prof::g.king_lines_refreshes;
+     const Color us = side_;
+     const Color them = opposite(us);
+     const Bitboard occupancy = occupied();
+@@ -1182,7 +1187,9 @@
+ 
+ std::optional<Move> Board::parse_uci(std::string_view text) {
+     if (text.size() != 4 && text.size() != 5) return std::nullopt;
+-    for (const Move move : legal_moves()) {
++    const MoveList legal = legal_moves();
++    prof::g.parse_uci_legal_Generated += legal.size();
++    for (const Move move : legal) {
+         if (move_to_uci(move) == text) return move;
+     }
+     return std::nullopt;
+@@ -1540,6 +1547,7 @@
+     const std::size_t since_null = std::min<std::size_t>(static_cast<std::size_t>(plies_from_null_) + 1, 1024);
+     const std::size_t span = std::min(std::min(clock, since_null), size);
+     if (span < 4) return false;
++    ++prof::g.cuckoo_scans;
+     const std::uint64_t* const keys = key_history_.data();
+     const std::size_t now = size - 1;
+     // Running XOR of the opponent's move deltas (one ply each, side key removed) between the candidate earlier
+@@ -1562,9 +1570,9 @@
+         }
+         // As in is_repetition(root_index): one occurrence at or after the root is a draw; before the root a second
+         // occurrence inside the window is needed.
+-        if (now - distance >= root_index) return true;
++        if (now - distance >= root_index) { ++prof::g.cuckoo_hits; return true; }
+         for (std::size_t further = distance + 2; further < span; further += 2) {
+-            if (keys[now - further] == earlier) return true;
++            if (keys[now - further] == earlier) { ++prof::g.cuckoo_hits; return true; }
+         }
+     }
+     return false;
+diff -ruN base_r15/src/nnue_v3.cpp prof_r15/src/nnue_v3.cpp
+--- a/src/nnue_v3.cpp	2026-11-17 09:35:28.957143771 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 09:51:21.581143771 +0000
+@@ -692,6 +692,7 @@
+     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
+     const int hidden = net.hidden;
+     ++cache.refreshes;
++    ++prof::g.v3_refresh_calls;
+     for (int piece = WP; piece <= BK; ++piece) {
+         const auto pi = static_cast<std::size_t>(piece);
+         Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+@@ -700,11 +701,13 @@
+             const int square = pop_lsb(removed);
+             sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+             ++cache.columns;
++            ++prof::g.v3_refresh_cols;
+         }
+         while (added != 0) {
+             const int square = pop_lsb(added);
+             add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+             ++cache.columns;
++            ++prof::g.v3_refresh_cols;
+         }
+         entry.pieces[pi] = pieces[pi];
+     }
+diff -ruN base_r15/src/search.cpp prof_r15/src/search.cpp
+--- a/src/search.cpp	2026-11-17 09:35:28.957143771 +0000
++++ b/src/search.cpp	2026-11-17 09:54:36.429143771 +0000
+@@ -1,4 +1,5 @@
+ #include "forge/clock_plan.hpp"
++#include "forge/prof.hpp"
+ #include "forge/search.hpp"
+ #include "forge/tm_finish.hpp"
+ #include "forge/tm_node_share.hpp"
+@@ -398,6 +399,7 @@
+ 
+ TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
+     : table_(table), previous_(active_lease_), gate_(table.exclusive_gate_, std::defer_lock) {
++    const std::uint64_t t_lease0 = prof::rdtsc();
+     if (!table_.has_exclusive_access()) {
+         gate_.lock();
+         table_.exclusive_requested_.store(true, std::memory_order_release);
+@@ -407,12 +409,14 @@
+             for (std::size_t i = 0; i < StripeCount; ++i) {
+                 const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
+             }
++            prof::g.exclusive_stripe_locks += StripeCount;
+         } catch (...) {
+             table_.exclusive_requested_.store(false, std::memory_order_release);
+             throw;
+         }
+     }
+     active_lease_ = this;
++    prof::g.cyc_exclusive_lease += prof::rdtsc() - t_lease0;
+ }
+ 
+ TranspositionTable::ExclusiveLease::~ExclusiveLease() {
+@@ -641,8 +645,10 @@
+ #endif
+ 
+ int TranspositionTable::hashfull() const {
++    ++prof::g.hashfull_calls;
+     int count = 0;
+     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
++    prof::g.hashfull_clusters += sample;
+     for (std::size_t i = 0; i < sample; ++i) {
+         const auto lock = lock_stripe(i);
+         for (const TTEntry& entry : clusters_[i].entries) {
+@@ -1052,6 +1058,8 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, false);
++        ++prof::g.evasion_gen_calls;
++        prof::g.evasion_pseudo_scored += buffer_.size();
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+@@ -1243,6 +1251,7 @@
+     child->entered_null = false;
+     child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,
+                                           static_cast<Color>(child->entered_side));
++    ++prof::g.record_move_eager_diffs;
+     child->diff_known = true;
+     child->accumulator.valid = false;
+     child->runtime_psqt.valid = false;
+@@ -1288,6 +1297,18 @@
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
++    ++prof::g.corrected_eval_calls;
++    if (ss != nullptr && ss->ply > 0 && !ss->entered_null) {
++        const Move m = ss->entered_move;
++        const bool cap_nonpawn = ss->entered_capture != Empty && piece_type(ss->entered_capture) != Pawn;
++        const bool mover_nonpawn = piece_type(ss->entered_piece) != Pawn || m.is_promotion();
++        if (!mover_nonpawn) ++prof::g.corr_nonpawn_unchanged_side;
++        if (!cap_nonpawn) ++prof::g.corr_nonpawn_unchanged_side;
++        if (!cap_nonpawn && !m.is_promotion()) ++prof::g.corr_mat_unchanged;
++    } else if (ss != nullptr && ss->ply > 0 && ss->entered_null) {
++        prof::g.corr_nonpawn_unchanged_side += 2;
++        ++prof::g.corr_mat_unchanged;
++    }
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+         int fixed = 0;
+@@ -1324,6 +1345,7 @@
+ }
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval, const SearchStack* ss) {
++    ++prof::g.update_correction_calls;
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
+@@ -1489,6 +1511,7 @@
+ // The change of a quiet move's score when quarters/4 of its butterfly term come from the twin:
+ // blend(plain, twin) - plain. |result| <= 2 * 16384.
+ int Worker::rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const {
++    ++prof::g.rework_quiet_deltas;
+     const int plain = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+     return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(tune::HistRework)) - plain;
+ }
+@@ -1555,6 +1578,7 @@
+     for (const int back : {1, 2, 4}) {
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
++        if (back == 4 && !tune::ContHist4PlyRead) ++prof::g.cont4_dead_writes;
+         apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+                       back == 4 ? bonus / 2 : bonus);
+     }
+@@ -1621,6 +1645,7 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    ++prof::g.qsearch_nodes;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+@@ -1642,6 +1667,8 @@
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+     const bool tt_hit = tt_probe.hit;
++    ++prof::g.tt_probes;
++    if (tt_hit) ++prof::g.tt_hits;
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+@@ -1654,6 +1681,7 @@
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        ++prof::g.tt_cutoffs;
+         return tt_score;
+     }
+ 
+@@ -1664,7 +1692,7 @@
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+-        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
++        if (tt_hit && tte.eval != ValueNone) { ++prof::g.tt_eval_hits; ss->raw_eval = tte.eval; }
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+@@ -1687,14 +1715,17 @@
+ 
+     // B4 HistRework: check evasions score quiet moves with the twin, which reads this node's maps.
+     if (in_check && tune::HistRework != 0) [[unlikely]] {
++        ++prof::g.rework_threat_maps;
+         threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+     }
++    ++prof::g.nodes_reaching_movepicker;
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
++        if (in_check) ++prof::g.evasion_legal_found;
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+@@ -1770,6 +1801,7 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    ++prof::g.search_nodes;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+@@ -1799,6 +1831,8 @@
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+     const bool tt_hit = tt_probe.hit;
++    ++prof::g.tt_probes;
++    if (tt_hit) ++prof::g.tt_hits;
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+@@ -1856,6 +1890,7 @@
+             apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][tt_move.from][tt_move.to], bonus);
+             update_continuation(ss, board.moved_piece(tt_move), tt_move.to, bonus);
+         }
++        ++prof::g.tt_cutoffs;
+         return tt_score;
+     }
+ 
+@@ -1866,7 +1901,7 @@
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+-        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
++        if (tt_hit && tte.eval != ValueNone) { ++prof::g.tt_eval_hits; ss->raw_eval = tte.eval; }
+         else if (reuse_raw) ss->raw_eval = reused_raw;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+@@ -2037,7 +2072,11 @@
+              !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+-    if (tune::HistRework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
++    if (tune::HistRework != 0) [[unlikely]] {
++        ++prof::g.rework_threat_maps;
++        threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
++    }
++    ++prof::g.nodes_reaching_movepicker;
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+@@ -2075,6 +2114,7 @@
+             continue;
+         }
+         if (!board.is_legal(move)) continue;
++        if (in_check) ++prof::g.evasion_legal_found;
+         ++move_count;
+         ss->move_count = move_count;
+         const bool capture = move.is_capture();
+@@ -2404,6 +2444,7 @@
+ }
+ 
+ int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    ++prof::g.cuckoo_child_calls;
+     constexpr int DrawScore = 0;
+     // depth <= 0 goes on to qsearch_cuckoo through search(), which applies the bound there; the root, and the
+     // singular verification search of a node (excluded move set), are left alone.
+@@ -2416,6 +2457,7 @@
+ }
+ 
+ int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
++    ++prof::g.cuckoo_child_calls;
+     constexpr int DrawScore = 0;
+     if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+         if (beta <= DrawScore) return DrawScore;
+@@ -2457,6 +2499,8 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    const std::uint64_t t_setup0 = prof::rdtsc();
++    std::uint64_t emit_cyc_this_search = 0;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -2548,13 +2592,17 @@
+ 
+     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
+         if (!emit_info) return;
++        const std::uint64_t t_em0 = prof::rdtsc();
+         const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count();
+         const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+         const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        const std::uint64_t t_hf0 = prof::rdtsc();
+         const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
++        const std::uint64_t t_hf1 = prof::rdtsc();
++        prof::g.cyc_emit_hashfull += t_hf1 - t_hf0;
+         std::cout << "info depth " << depth;
+         if (multipv > 1) {
+             // depth, multipv, score, then the usual fields, then pv.
+@@ -2566,6 +2614,9 @@
+         std::cout << " nodes " << nodes << " nps " << nps << " hashfull " << shown_hash << " time " << elapsed << " pv";
+         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
+         std::cout << std::endl;
++        const std::uint64_t t_em1 = prof::rdtsc();
++        prof::g.cyc_emit_io += (t_em1 - t_em0) - (t_hf1 - t_hf0);
++        emit_cyc_this_search += t_em1 - t_em0;
+     };
+ 
+ #if FORGE_FIX_ROOT_DRAWN
+@@ -2670,6 +2721,7 @@
+         time_managed_ = false;
+     }
+ 
++    prof::g.stack_frames_inited += stack_.size();
+     for (SearchStack& ss : stack_) {
+         ss.pv_length = 0;
+         ss.current_move = Move::none();
+@@ -2732,6 +2784,8 @@
+         alt_worker->parent_worker_ = this;
+         alt_list.push_back(alt_worker.get());
+     }
++    const std::uint64_t t_loop0 = prof::rdtsc();
++    prof::g.cyc_root_setup += t_loop0 - t_setup0;
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
+         // Sample only while a game clock is running and the option is on.
+@@ -3016,9 +3070,15 @@
+     }
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+     if (emit_info && soft_node_limit_ != 0) {
++        const std::uint64_t t_sf0 = prof::rdtsc();
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         std::cout << "info string softnodes nodes " << result.nodes << std::endl;
++        const std::uint64_t d_sf = prof::rdtsc() - t_sf0;
++        prof::g.cyc_emit_io += d_sf;
++        emit_cyc_this_search += d_sf;
+     }
++    const std::uint64_t loop_total = prof::rdtsc() - t_loop0;
++    prof::g.cyc_tree_search += loop_total > emit_cyc_this_search ? (loop_total - emit_cyc_this_search) : 0;
+     return result;
+ }
+ 
+@@ -3137,6 +3197,7 @@
+ // key changed is refreshed through the per-worker cache. Only stand-alone v3 nets are accepted (the UCI code
+ // refuses a residual one), so the value returned is the net's alone.
+ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
++    ++prof::g.v3_eval_calls;
+     const nnue::v3::Net& net = *nnue::v3::loaded();
+     if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
+     nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
+diff -ruN base_r15/src/uci.cpp prof_r15/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 09:35:28.957143771 +0000
++++ b/src/uci.cpp	2026-11-17 09:49:40.081143771 +0000
+@@ -1,6 +1,7 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
++#include "forge/prof.hpp"
+ #if FORGE_NNUE_V3
+ #include "forge/nnue_v3.hpp"
+ #endif
+@@ -41,6 +42,7 @@
+ namespace {
+ 
+ void apply_position(forge::Board& board, std::istringstream& input) {
++    ++forge::prof::g.uci_position_cmds;
+     forge::Board candidate = board;
+     std::string token;
+     if (!(input >> token)) return;
+@@ -82,6 +84,7 @@
+         }
+         forge::Undo undo;
+         (void)candidate.make_move(*move, undo);
++        ++forge::prof::g.uci_position_plies;
+     }
+     board = candidate;
+ }
+@@ -291,6 +294,8 @@
+     std::condition_variable stop_cv;
+     bool stop_requested = false;
+     bool ponder_hit_received = false;
++    std::uint64_t go_t0 = 0;
++    bool go_timing_active = false;
+     auto stop_search = [&]() {
+         {
+             const std::lock_guard<std::mutex> lock(stop_mutex);
+@@ -299,6 +304,10 @@
+         searcher.stop();
+         stop_cv.notify_all();
+         if (worker.joinable()) worker.join();
++        if (go_timing_active) {
++            forge::prof::g.cyc_go_wall_until_join += forge::prof::rdtsc() - go_t0;
++            go_timing_active = false;
++        }
+         ponder_search_active = false;
+     };
+ 
+@@ -625,11 +634,21 @@
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string unknown option " << name << std::endl;
+             }
++        } else if (command == "profreset") {
++            stop_search();
++            forge::prof::g.reset();
++        } else if (command == "profdump") {
++            stop_search();
++            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++            forge::prof::g.dump(std::cout);
+         } else if (command == "position") {
+             stop_search();
++            const std::uint64_t t0 = forge::prof::rdtsc();
+             apply_position(board, input);
++            forge::prof::g.cyc_uci_position += forge::prof::rdtsc() - t0;
+         } else if (command == "go") {
+             stop_search();
++            const std::uint64_t t_go_start = forge::prof::rdtsc();
+ #if FORGE_NNUE_V3
+             if (const std::string v3_problem = forge::nnue::v3::problem(); !v3_problem.empty()) {
+                 // Fail-loud rule: a requested v3 net that cannot evaluate never falls back silently.
+@@ -703,6 +722,9 @@
+                 }
+                 ponder_search_active = limits.ponder;
+                 searcher.reset_stop();
++                go_t0 = t_go_start;
++                go_timing_active = true;
++                ++forge::prof::g.uci_go_spawns;
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+                     const forge::SearchInfo result = searcher.search(
