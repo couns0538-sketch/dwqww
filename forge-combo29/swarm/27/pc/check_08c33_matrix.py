@@ -30,13 +30,25 @@ S14 = ["LmrQuietBase 93", "LmrQuietDivisor 205", "LmrNoisyBase 13", "LmrNoisyDiv
        "LmrHistoryDivisor 5643", "NullMoveBase 5", "LmpBase 8", "HistoryPruneMultiplier 2220",
        "HistoryBonusQuadratic 24", "HistoryBonusLinear 54", "HistoryBonusMax 2212",
        "SingularDepth 6", "IirDepth 2", "NonPawnCorrection true"]
-OPTS = ["Hash 16", "Threads 1", "OwnBook false"] + S14
+PC20X = ["CuckooRep true", "HistRework 2", "TtPruneV2 true", "CorrHistV2 true",
+         "MateAlphaGuard true", "OwnBook false"]
+
+# WHICH OPTION LIST IS SENT IS NOW AN ARGUMENT, NOT A DEFAULT. The first version of this file built a
+# 17-option S14 list and its finding claimed "22 options asserted on the PC arm" - a false label, caught by
+# measuring both lists side by side (S14 gives 505 nodes on the repetition door, PC20 gives 389). A harness
+# that can be either configuration must SAY which it is, and print the count it actually applied.
+SETTINGS = {
+    "S14": ["Hash 16", "Threads 1", "OwnBook false"] + S14,                 # 17 options
+    "PC20": ["Hash 16", "Threads 1"] + S14 + PC20X,                          # 22 options
+}
+EXPECT = {"S14": 17, "PC20": 22}
+OPTS = SETTINGS["S14"]                                  # module default, kept for the CLI path
 
 BASE = "/agent/repos/base/build-release/forge"
 PC = "/agent/repos/base/build-pc/forge"
 
 
-def run(exe, pos_cmd, go_cmd, timeout=60):
+def run(exe, pos_cmd, go_cmd, timeout=60, expect=None, opts=None):
     p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, bufsize=1)
 
@@ -61,7 +73,7 @@ def run(exe, pos_cmd, go_cmd, timeout=60):
             return {"error": "no uciok"}
         adv = {m.group(1) for m in (re.match(r"option name (.+?) type ", l) for l in lines) if m}
         n_applied = 0
-        for item in OPTS:
+        for item in (opts if opts is not None else OPTS):
             name, _, val = item.rpartition(" ")
             if name not in adv:
                 return {"error": "option %r not advertised" % name}
@@ -74,6 +86,8 @@ def run(exe, pos_cmd, go_cmd, timeout=60):
                 if "unknown option" in l or "invalid value" in l:
                     return {"error": "bad option %r: %s" % (item, l)}
             n_applied += 1
+        if expect is not None and n_applied != expect:
+            return {"error": "applied %d options, label promises %d" % (n_applied, expect)}
         send("ucinewgame"); send("isready")
         until(lambda x: x.strip() == "readyok")
         send(pos_cmd)
@@ -145,30 +159,31 @@ def main():
         print("\nPREFLIGHT FAILED - refusing to measure")
         sys.exit(1)
 
-    print("\n=== halfmove door (08-C33), `go depth 4` ===")
-    print("  hm    base bestmove/nodes/infos        PC bestmove/nodes/infos")
-    for hm in (0, 99, 100):
-        pos = "position fen 7k/8/6K1/8/8/8/8/R7 w - - %d 1" % hm
-        rb = run(BASE, pos, "go depth 4")
-        rp = run(PC, pos, "go depth 4")
-        def fmt(r):
-            if "error" in r:
-                return "ERR:%s" % r["error"][:28]
-            return "%-5s %-6s %2d" % (r["bestmove"], r["nodes"], r["n_info"])
-        print("  %3d   %-30s %s" % (hm, fmt(rb), fmt(rp)))
+    def fmt(r):
+        if "error" in r:
+            return "ERR:%s" % r["error"][:34]
+        return "%-5s nodes %-5s n=%d" % (r["bestmove"], r["nodes"], r["n_applied"])
 
-    print("\n=== repetition door (08-C34), `go depth 4` ===")
+    for name in ("S14", "PC20"):
+        opts, exp = SETTINGS[name], EXPECT[name]
+        print("\n=== halfmove door (08-C33), `go depth 4`, PC arm = %s (%d options) ===" % (name, exp))
+        print("  hm    base                          PC[%s]" % name)
+        for hm in (0, 99, 100):
+            pos = "position fen 7k/8/6K1/8/8/8/8/R7 w - - %d 1" % hm
+            rb = run(BASE, pos, "go depth 4", expect=17, opts=SETTINGS["S14"])
+            rp = run(PC, pos, "go depth 4", expect=exp, opts=opts)
+            print("  %3d   %-29s %s" % (hm, fmt(rb), fmt(rp)))
+
     cases = [("twice (control)", "g1f3 g8f6 f3g1 f6g8"),
              ("THREE times", "g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8")]
-    for lbl, mv in cases:
-        pos = "position startpos moves " + mv
-        rb = run(BASE, pos, "go depth 4")
-        rp = run(PC, pos, "go depth 4")
-        def fmt2(r):
-            if "error" in r:
-                return "ERR:%s" % r["error"][:28]
-            return "%-5s %-6s %2d" % (r["bestmove"], r["nodes"], r["n_info"])
-        print("  %-16s base %-28s PC %s" % (lbl, fmt2(rb), fmt2(rp)))
+    for name in ("S14", "PC20"):
+        opts, exp = SETTINGS[name], EXPECT[name]
+        print("\n=== repetition door (08-C34), `go depth 4`, PC arm = %s (%d options) ===" % (name, exp))
+        for lbl, mv in cases:
+            pos = "position startpos moves " + mv
+            rb = run(BASE, pos, "go depth 4", expect=17, opts=SETTINGS["S14"])
+            rp = run(PC, pos, "go depth 4", expect=exp, opts=opts)
+            print("  %-16s base %-29s PC %s" % (lbl, fmt(rb), fmt(rp)))
 
 
 if __name__ == "__main__":
