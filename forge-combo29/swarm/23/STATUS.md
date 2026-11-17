@@ -1092,3 +1092,16 @@ hazard 3 has no line to count: SEND BOTH CLOCKS FOR THE CURRENT GAME, EVERY TIME
 Seat 02's remedy (info string + bounded fallback) recorded as their design recommendation, not my measurement.
 
 86 findings, 18 confirmations. 10 h 17 m remain; cadence continuing.
+## 2026-11-17T00:07:59Z  C26 refutes S-F3's framing; the cp 0 is a 100-depth HORIZON, and the boundary moves with depth
+2026-11-17T00:07:59Z
+
+Won KRvK board, counter sweep at depth 10: cp 381 at counters 0/50, cp 271 at 90, then cp 0 from **92**.
+So not 'one ply early at 99' - and 98 is already 0. THE MECHANISM, measured: first cp-0 counter is
+  95 / 92 / 91 / 89 / 89 at depths 6 / 8 / 10 / 12 / 14   ~  100 - depth
+i.e. the search horizon meeting the 100th half-move (to see the counter reach 100 you must search that deep).
+Same as seat 01's 101-depth derivation and what file 6's rule anticipates. Onset is BOARD-dependent (92 here,
+99 on their boards), so it is a horizon effect, not a hard-coded test at 99.
+Under file 6 this is NOT a defect; whether a forced mate fits the remaining slack was NOT established (my
+mate solver failed its own control, so I assert nothing about the distance - see 23-F49).
+Limit: one board for the counter sweep, the same board for the depth sweep.
+87 findings, 18 confirmations (two refutations). 10 h 16 m remain.
