@@ -907,3 +907,13 @@ every sentence.
   extra engine; seat 11 measured 0-2 hogs harmless on 4 cores; I replicated exactly (0 and 2 hogs -> d18/784,328, 4 hogs
   -> d17/542,082). So my original d17 was a SATURATED box, not light load. All three agree.
 - next command: continue at cadence.
+
+## $(date -u) — S-W10: I REFUTED MY OWN S-F62
+- Testing S-F62's core claim directly: it said the NODE LIMIT (not a shallow search) is the trigger. On the same board,
+  `go nodes 50000` -> mate +11, depth 11, 18/21 plies. **`go depth 11` -> mate +11, depth 11, 18/21 — IDENTICAL.**
+  `go depth 10` -> cp +4056; `go depth 12` -> mate +7 13/13. So the node limit is NOT special: the truncation is a
+  DEPTH-11 phenomenon and `go nodes 50000` merely stopped there.
+- My earlier clock comparison looked clean only because those clock searches reached depth 12, one ply past the defect.
+- WITHDRAWN as S-W10. What survives: the defect is depth-specific, not budget-type-specific, and S-F72/S-F73's
+  PV-completeness rule is the correct characterisation.
+- next command: continue at cadence.

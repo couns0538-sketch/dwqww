@@ -1,0 +1,10 @@
+S-F62's core claim: the NODE LIMIT is the trigger, not the depth it happens to reach.
+Test: `go nodes 50000` reached depth 11. If the node limit were just a depth proxy, `go depth 11`
+would give the same score and PV. If they differ, the node-limited STOP itself is what produces it.
+
+| command | score | depth | pv plies | needed |
+|---|---|---|---|---|
+| `go nodes 50000` | mate +11 | 11 | 18 | 21 |
+| `go depth 10` | cp +4056 | 10 | 10 | - |
+| `go depth 11` | mate +11 | 11 | 18 | 21 |
+| `go depth 12` | mate +7 | 12 | 13 | 13 |
