@@ -17,9 +17,9 @@ reader could verify by hand, presented in a form no script recomputes.**
 | # | form | example from this record | checked by |
 |---|---|---|---|
 | 1 | **difference** — `A − B = C` | *not used in my files* | **nothing** |
-| 2 | **product** — `A × B = C` | `0.9090 × 1.0693 = 0.9720` | `check_identities.py` (tolerance 0.002) |
+| 2 | **product** — `A × B = C` | `0.8761 × 1.0693 = 0.9368` | `check_identities.py` (tolerance 0.002) |
 | 3 | **quotient** — `A / B = C` | `0.9715 / 0.9131 = 1.0640` | `check_identities.py` |
-| 4 | **ratio stated in prose** — "the saving is 8.69 %" with the operands elsewhere | "node ratio **0.9131**" on a line whose derivation is three lines up | **nothing** |
+| 4 | **ratio stated in prose** — "the saving is 8.69 %" with the operands elsewhere | "node ratio **0.9131**" on a line whose derivation is three lines up | **nothing — attempted and abandoned, see below** |
 | 5 | **table row** — terms and result on separate lines | the `DECOMPOSITION.md` table: node, per-node, *product*, observed | **`check_table_identities.py`, product rows only** |
 
 **Form 4 is the remaining gap; form 5 is now half-closed.** They are not rare — form 5 was how my single most load-bearing result was
@@ -36,7 +36,27 @@ the two nothing verified.
    construction** — the fix is editorial: either show the operands on the same line, or mark the number as a summary and
    point at the artifact.
 4. **Table row** — the cheap fix is to **also state the identity inline**, which I have now done for the decomposition
-   (`0.9090 x 1.0693 = 0.9720` sits beside the table). The table stays readable; the inline line makes it checkable.
+   (`0.8761 x 1.0693 = 0.9368` sits beside the table). The table stays readable; the inline line makes it checkable.
+
+## Form 4 was attempted and abandoned, and the reason is worth more than the tool would have been
+
+A checker for prose ratios looked cheap: take a stated percentage, take the numbers on the same line, recompute. It was
+built, run, and **deleted**, because the findings were almost entirely the checker's own fault:
+
+* `"92.7 %"` beside a node count of `92.7` was read as an identity;
+* `"1.079–1.092× — 7.9–9.2 % dearer"` paired the **low** ratio with the **high** percentage, because a range has no
+  single percentage;
+* `"0.530 us -> 0.578 us = 1.09x (9 % dearer)"` paired the first decimal on the line rather than the ratio.
+
+**A guard on the ratio's magnitude cut the findings from 16 to 10, and the remaining 10 were still false.** At that point
+the honest move was to stop: **a checker whose output is mostly its own error teaches the reader to skip it** — the
+`Trap 12`/`Trap 14` lesson at a new place, since a check that fires on the innocent case is worse than no check.
+
+**What would have been needed:** knowing which number *is* the ratio, which means parsing intent from prose. That is the
+same trap as the form-5 false positive (`S-F159`): **inferring an identity from adjacency is inventing one.**
+
+So form 4 **stays a named gap**, and saying it is unchecked is the deliverable. A noisy checker would have hidden the gap
+behind a stream of exemptions.
 
 ## Building the form-5 check found a false positive, and the fix was to narrow the claim
 

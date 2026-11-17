@@ -9,19 +9,19 @@ separately**:
 
 | their figure | value |
 |---|---|
-| node ratio (fixed depth 12, n=119) | **0.9090** (12.4 % fewer nodes) |
-| per-node ratio (fixed `go nodes 50000`, n=180) | **1.0693** (7 % dearer per node) |
-| product | **0.9720** |
-| observed wall ratio | **0.9728** |
+| node ratio (fixed depth 12, n=119) | **0.8761** (12.39 % fewer nodes) |
+| per-node ratio (fixed `go nodes 50000`, n=180) | **1.0693** (6.93 % dearer per node) |
+| product | **0.9368** |
+| observed wall ratio (same n=119 run) | **0.9343** |
 
-**Stated inline so it can be checked rather than only tabulated: `0.9090 x 1.0693 = 0.9720`.**
+**Stated inline so it can be checked rather than only tabulated: `0.8761 x 1.0693 = 0.9368`.**
 
 *Why the inline form matters (S-F157).* An identity split across table rows is unverifiable by any automated check — the
 checker sees one term per line and no operator — so `check_identities.py` skipped this page entirely while checking the
 same figures where they appeared inline elsewhere. **Stating a load-bearing identity in a form a machine can recompute
 costs one line and makes the page's central claim checkable.**
 
-**Agreement to 0.1 %.** That is not a correlation — it is the arithmetic closing, which means each term is measured well
+**Agreement to 0.27 %.** That is not a correlation — it is the arithmetic closing, which means each term is measured well
 enough that their product is the third.
 
 ## Applied to my data

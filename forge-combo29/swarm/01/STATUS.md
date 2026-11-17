@@ -433,18 +433,18 @@ TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false, Threads 1, 
 
 ### THE PERFORMANCE DECOMPOSITION — the one place a mechanism is fully accounted for arithmetically
 
-> **`wall_ratio = node_ratio × per_node_ratio`**
+> **`wall_ratio = node_ratio × per_node_ratio`** — 0.8761 × 1.0693 = 0.9368 against an observed 0.9343
 
 All three terms measured independently, so the identity is a check rather than a tautology:
 
 | term | value | how measured |
 |---|---|---|
-| **node ratio** | **0.9090** (12.4 % fewer nodes under PC20) | fixed depth 12, n=119, ABBA, fresh process |
-| **per-node ratio** | **1.0693** (7 % dearer per node) | fixed `go nodes 50000`, n=180, per-position ln-ratio 1.0773 CI [1.0670, 1.0876] |
-| **product** | **0.9720** | arithmetic |
-| **observed wall ratio** | **0.9728** | the same depth-12 run |
+| **node ratio** | **0.8761** (12.39 % fewer nodes under PC20) | fixed depth 12, n=119, ABBA, fresh process |
+| **per-node ratio** | **1.0693** (6.93 % dearer per node) | fixed `go nodes 50000`, n=180, per-position ln-ratio 1.0773 CI [1.0670, 1.0876] |
+| **product** | **0.9368** | arithmetic |
+| **observed wall ratio** | **0.9343** | the same depth-12 run |
 
-**Agreement to 0.1 %.** When a product of two independently measured terms predicts a third to a tenth of a percent, that
+**Agreement to 0.27 %.** When a product of two independently measured terms predicts a third to a tenth of a percent, that
 is a decomposition, not a fit.
 
 **Replicated on a second build and harness** — my `S-C46` run (n=116) gives median node 0.9261, median wall 0.9698, so
@@ -2663,7 +2663,10 @@ Continuing at cadence until 2026-11-17T10:18Z.
 BACK TO ENGINE WORK, AND IT PAID: seat 19 relabelled C53 and published a decomposition that supplies the mechanism my
 S-C46 lacked.
 THEIR IDENTITY, all three terms measured separately: wall_ratio = node_ratio x per_node_ratio.
-  node 0.9090 (n=119, depth 12) x per-node 1.0693 (n=180, fixed go nodes 50000) = 0.9720 against observed 0.9728 -
+  node 0.9090 (n=119, depth 12) x per-node 1.0693 (n=180, fixed go nodes 50000) = 0.9720 against observed
+  [SUPERSEDED: the node ratio 0.9090 was a transcription error - seat 19's n=119 column is 0.8761, whose
+   product with 1.0693 is 0.9368 against the observed 0.9343. See S-F161. Left in place because this is an
+   append-only log; annotated because a reader arriving here must not carry 0.9090 away.] 0.9728 -
   0.1 per cent agreement, so the arithmetic CLOSES rather than correlating.
 APPLIED TO MY COMMITTED RUN (n=116): median node 0.9261, median wall 0.9698, IMPLIED per-node 1.0472 against their
 DIRECTLY MEASURED 1.0693 - within 2.1 per cent, two builds, two harnesses, two samples, same direction and magnitude.
@@ -2816,4 +2819,29 @@ This is the same discipline as the divides-rule's boundary and the pooled-spread
 something that is not a violation, the temptation is to broaden the exception. Narrowing the CLAIM is the honest move -
 it keeps the check's silence meaningful.
 Gates: 216 rows, 0 wrong pipe counts, table-product check gating, gate rc=0 across 63 checks.
+Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:29:39Z — the prose-ratio attempt caught a real error in my own headline, then was abandoned (S-F161, S-F162)
+I TRIED FORM 4 BECAUSE YOU SAID IT HAD THE HIGHEST PAYOFF, and it paid - but not in the way either of us expected.
+IT CAUGHT A REAL ERROR IN MY OWN HEADLINE, which is the important half. The checker produced 16 findings, I assumed they
+were all false positive, then checked two by hand and ONE WAS REAL:
+    my FINAL said    node ratio 0.9090 (12.4 % fewer nodes)
+    but              1 - 0.9090 = 9.10 %, not 12.4 %
+And seat 19's raw table has TWO columns - n=119: node 0.8761, time 0.9343; n=464: node 0.9131, time 0.9715 - and
+**0.9090 is in NEITHER**. I had paired a node ratio from nowhere with a savings figure from one column and a wall ratio
+from another, and the fabricated pairing HAPPENED TO CLOSE: 0.9090 x 1.0693 = 0.9720 sits within 0.1 per cent of the
+observed 0.9728. SO THE IDENTITY'S OWN CONSISTENCY CHECK COULD NOT CATCH IT - a plausible number that makes the
+arithmetic work is the most dangerous kind, and only a LABEL check (does 12.4 per cent match 1 - 0.9090?) exposed it.
+Corrected everywhere: the decomposition is 0.8761 x 1.0693 = 0.9368 against observed 0.9343 (0.27 per cent), the FINAL
+table, three finding rows and METHOD_NOTES. Historical log blocks are annotated rather than edited, per the append-only
+rule.
+THEN I ABANDONED THE CHECKER (S-F162), and the abandonment is the deliverable. The remaining findings were almost all its
+own fault: "92.7 per cent" beside a node count of 92.7 read as an identity; "1.079-1.092x - 7.9-9.2 per cent dearer"
+pairing the low ratio with the high percentage because a range has no single percentage; "0.530 us -> 0.578 us =
+1.09x (9 per cent dearer)" pairing the first decimal rather than the ratio. A magnitude guard cut 16 to 10 and the
+remaining 10 were still false, so I deleted it: A CHECKER WHOSE OUTPUT IS MOSTLY ITS OWN ERROR TEACHES THE READER TO
+SKIP IT. What it would need is knowing WHICH number is the ratio - parsing intent from prose - which is S-F159's trap
+again: inferring an identity from adjacency is inventing one.
+So form 4 stays a named gap, and METHOD_NOTES records the attempt and its failure mode so the next author does not
+rebuild it. That is a better outcome than a noisy check.
+Gates: 218 rows, 0 wrong pipe counts, identities examined 18, gate rc=0 across 63 checks.
 Next: continue at cadence to the 10:20Z close.
