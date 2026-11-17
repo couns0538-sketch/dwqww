@@ -7,70 +7,74 @@
 
 ## State: DONE — summary current as of the last fetch
 
-`OWNER_SUMMARY.md` written and revised through five rounds of coordinator corrections.
+`OWNER_SUMMARY.md` written and revised through seven rounds of coordinator corrections.
 
 ## Numbers the coordinator asked for
 
-> **Unsourced figures: 5.**
-> **Findings synthesised: 2,309** (2,293 table rows + 9 prose findings in `swarm-75` + 7 in `swarm-64`; 2,314 rows
-> total, 21 re-runs recorded under an existing id).
-> **Branches read: 28.**
+> **Unsourced figures: 7.**
+> **Findings synthesised: 2,328** (2,312 table rows + 9 prose findings in `swarm-75` + 7 in `swarm-64`; 2,333 rows
+> total, 21 re-runs under an existing id).
+> **Branches read: 29.**
 
-**The five, split by cause:**
+**The seven, by cause:**
 
-1. **Three book-latency percentiles** — `0.024`, `0.44`, `442`. `swarm-65` ships `scripts/q2b_latency.py`, which
-   would produce exactly these, **and commits no latency output file.** Committed evidence gives single-shot times of
-   0.1–0.4 ms (book) vs 91–346 ms (off-book), which supports the same conclusion without the percentiles.
-2. **Two book-soundness figures** — `929` has **no committed occurrence**; `42` is **contradicted** (`noise_floor.txt`
-   gives **max |delta| 66 cp**). Both flatter the finding; in the `42` case the honest number *strengthens* it.
+| cause | figures |
+|---|---|
+| no committed output (script ships, evidence does not) | `0.024`, `0.44`, `442` — book latency percentiles |
+| no committed occurrence | `929` (SEE false flags), `13.2%` (move-change stable-board rate) |
+| **contradicted by evidence** | `42` (noise floor; `noise_floor.txt` gives **66 cp**) |
+| budget not in the committed sweep | `40 of 40` at 2M nodes (`swarm-69` stops at 1M, where it is already 24/24) |
 
-**My instrument can see only the first three.** `929` and `42` are bare integers outside its four token patterns, so
-it reported no opinion and its silence read as a pass. **The other two came from cold-reading the new book section
-against `swarm-65`'s evidence files.** Reported as 5 with the split, not 3 with a clean sheet.
+**`0.0712` is verified by arithmetic** (I recomputed Fisher from the counts: 0.071172) **and excluded from the count**,
+because an independent recomputation is a stronger guarantee than a citation but not the one §5 measures.
 
-## The four I reported last round were all sourced — my error, recorded
+## New this round (determinism seat, `swarm-69`)
 
-`52,472`, `199,619`, `4/48`, `14/13` are all in `swarm-64` at `5e8a8fa99`, the tip its seat reported. I audited
-between that seat's message and its push. **The method limit, now rule 41's companion: a provenance check against the
-remote cannot see a branch that has not landed.** The two misses: `14/13` is written as prose in `FINDINGS.md:66` and
-my query searched the slash form; `52,472`/`199,619` needed a `.txt` corpus.
+- **Hash 16 vs 64 is a budget condition, not a Hash fact:** 0/24 at 50k, 2/24 at 200k, 17/24 at 500k, 24/24 at 1M.
+  **Of 178 differing cells, 15 changed the best move** — I recomputed both totals from `job4/hash_sensitivity.json`
+  and they match. The 2M row is the unsourced one.
+- **`ucinewgame` 0 of 25 / `Clear Hash` 24 of 25**, with the source reasons, and **the drift reproducible on 3 of 3
+  processes** — so a reused harness gets a stable-looking wrong number, not noise. Placed in §7c.
+- **Piped harness measures nothing** (EOF aborts the search, fabricates `bestmove a2a3`, perfectly reproducible).
+- **Fullmove-0 FEN is python-chess VALID and engine-REFUSED** — validation and acceptance are different gates.
+- **Cross-build at population scale:** 0 of 200 and 0 of 341 non-lone-king positions differ in **both node counts and
+  best moves**; lone-king control 12 of 12.
+- **Nine machine-environment inputs change nothing** (0/40 at two budgets, both builds) — so the environment is not
+  the problem, the TT state is.
+
+## Corrections applied (seven rounds)
+
+1. Illegal-FEN diagnostic always emitted → **emitted EXACTLY ONCE; scan both, assert one.**
+2. "No duplicate signature" is 2 of 5 → 40 % / 60 %.
+3. `softnodes` floor **plus** the 60-position scope run.
+4. **MultiPV/Hash, corrected twice** → conservative cap, now stated as the **invariant**, not the count.
+5. Two fallbacks → **"the last valid board."**
+6. Opening book: own-clock gate, pre-empts draw adjudication, fullmove-derived `Book Depth`.
+7. **Score-change criterion WITHDRAWN** (p = 0.0712, underpowered; replication p = 0.726 pointing the other way).
+   Select on **move** change; score change is **unestablished in either direction**. I had been recommending it —
+   that is corrected in §1.7 and rule 33.
+8. **MultiPV residual: ratio not subtraction.** "1.72× predicted, 1.94× observed, ~0.22× is search" replaces
+   "135.4 = 104.5 + 31". The subtraction came from two different samples and the per-position excess ranges
+   135.0–195.6 ms.
+9. **v3 loaded-net symmetry added:** 0 of 353 on the v3 path with a loaded net, beside 0 of 420 on the built-in.
 
 ## Deliverable
 
-`forge-combo29/swarm/73/OWNER_SUMMARY.md` — 1,373 lines:
-1. **What to change** — 20 recommendations with verdicts (22 markers over 20 items: **14 ship, 3 do-not-ship,
-   5 needs-more-evidence**).
-2. **What is broken** — 9 items, plus 5 named withdrawals.
-3. **What is not established.**
-4. **The measurement rules** — **41 rules**, including the new rule 41 on provenance false matches.
-5. **Unsourced** — 5 figures, two causes, with the count history.
-6. **Sourced but mis-paired** — 3 sourcing defects (2 fixed upstream) + 2 book contradictions (§6.5).
-7. **What the book gets right** — soundness, each row citing its evidence file.
-8. **How this was assembled.**
-
-## Corrections applied (five rounds)
-
-1. Illegal-FEN diagnostic always emitted → **refined again: emitted EXACTLY ONCE; scan both streams, assert one.**
-2. "No duplicate signature" is 2 of 5 → 40 % / 60 %.
-3. `softnodes` floor **plus** the 60-position scope run. Uses the seat's own sentence verbatim.
-4. **MultiPV/Hash, corrected twice.** Final: MultiPV 1 at any Hash; else **48 MB at 2 lines, 24 MB at 3–6**. Now
-   expressed as the **invariant** ("never more permissive than the fitted one") because a count is a snapshot a
-   re-fit invalidates.
-5. Two fallbacks → **"the last valid board"**, which in a fresh session is startpos.
-6. Opening book: own-clock gate, pre-empts draw adjudication, fullmove-derived `Book Depth`.
-7. v3 pair-count patch at needs-more-evidence (g++ vs clang+znver5+PGO).
-8. Evaluation defects: KNN-vs-K reaches search; bare-minor inversion does not.
+`OWNER_SUMMARY.md` — 1,588 lines, **47 measurement rules**, 20 recommendations:
+1. What to change · 2. What is broken (9) · 3. What is not established · 4. **47 rules** ·
+5. Unsourced (7) · 6. Mis-paired · 7. Book soundness · **7b. The four ways of answering a question not asked** ·
+**7c. The reuse trap** · 8. Method.
 
 ## Constraints honoured
 
 - No engine run, no script executed, no re-measurement.
-- No other seat's branch modified. `swarm-27` S-C88 deferred to its owner at the coordinator's direction.
+- No other seat's branch modified. `swarm-27` S-C88 deferred to its owner.
 
 ## Open items
 
-1. **`929` and `42`** — the report should be corrected in place; I have flagged both and carried neither as fact
-   (§6.5). `42` in particular is a contradicted figure sitting in the report.
-2. **`swarm-27` S-C88** still asserts the withdrawn absolute; deferred to its owner.
-3. **Three latency percentiles** need the `q2b_latency.py` output committed, or the report should quote the
-   single-shot times I use instead.
-4. Counts here are snapshots at the 04:07Z fetch — re-derive, do not edit.
+1. **`42` should be corrected in the report** — it is contradicted, not merely unsourced, and it sits in the book
+   soundness block. `929` likewise has no committed occurrence.
+2. **Three latency percentiles** need `q2b_latency.py` output committed, or the report should quote the single-shot
+   times (0.1–0.4 ms vs 91–346 ms) that I use instead.
+3. **The 2M Hash row** is unsourced; the 1M row already carries the recommendation.
+4. Counts are snapshots at the 04:07Z fetch — re-derive, do not edit.
