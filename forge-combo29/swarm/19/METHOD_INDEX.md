@@ -75,8 +75,12 @@ rather than a property of the engine?** Three of my four failures were caught by
 
 - Findings that survived these audits: `19-F55`, `19-F58`, `19-F59` (with the depth-24 calibration), `19-F44`–`49`
   (softnodes/nodes), `19-F50`–`53` (the clock), `19-F15`/`F20`/`F26` (tie order and pins).
-- Retracted or corrected: `19-R1` (19-F18/F19, warm state), `19-C8` (defect-enum ordering), `19-C9` (two failed
-  solvers + ply convention), `19-C16` (per-search counts).
+- **RETRACTED: `19-R2` — the DTM oracle is wrong for black-as-strong, so `19-F55`, `19-F58` and `19-C24` are
+  withdrawn.** Read `RETRACTION_dtm_oracle.md` before using any DTM value from this branch. The cause and the
+  transferable lesson are trap 11 in `HARNESS_TRAPS.md`: **validating a summary statistic (a maximum) does not
+  validate a table you then read individual cells from.**
+- Also retracted or corrected: `19-R1` (19-F18/F19, warm state), `19-C8` (defect-enum ordering), `19-C9` (two
+  failed solvers + ply convention), `19-C16` (per-search counts).
 - Reports carrying the full evidence for each: `REPORT_*.md` in this folder.
 
 ---

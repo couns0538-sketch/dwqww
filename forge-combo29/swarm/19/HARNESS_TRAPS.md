@@ -162,15 +162,44 @@ alongside the counter, or it is reporting a property of its own choice of depth.
 
 ---
 
-## The single question that catches all ten
+## 11. Validating a summary statistic does not validate a table (19-R2)
+
+**The bug:** I validated my distance-to-mate solver by checking that its **maximum** DTM matched theory — KQvK
+19 plies, KRvK 31 plies — both of which passed exactly. Then I read **individual cells** from the same table and
+reported them as facts.
+
+**What it looked like:** an oracle giving `DTM 9` for a position where an independent brute force gives
+**5 plies**. Over-stating by 4. And an engine score (`mate +5`) that was **closer to the truth than my own
+instrument**.
+
+**Two symptoms that were visible and I did not look at:**
+- a **mate-in-1** position returned `dtm = None` — absent from the table entirely;
+- a position I queried raised `KeyError` — also absent.
+
+**The tell:** every "over-claim" I measured was **exactly 2 plies**. **A uniform offset across unrelated
+positions is a property of the instrument, not the subject.** That is the same tell as a rate too high to
+believe.
+
+**The test:** brute-force **one** position and compare it to the table's cell. One position, once. I had a
+brute-force routine written for the KQvK validation already.
+
+**The fix:** spot-check individual cells, not just aggregates. Then, and only then, quote cells.
+
+**Consequence when I did check:** 19-F55, 19-F58 and 19-C24 were withdrawn, and 19-C24 had been actively
+backwards — I had called another seat's finding "arithmetically impossible" on the strength of a wrong table.
+
+---
+
+## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
 
 **The scoreline, honestly:** two were caught by the data's shape, one by a `n/a` in my own output, one by
-identical results for different settings, one by measuring the return time on a fast case — and **three only by
-another seat's correction** (trap 8 and 9 from seat 17's reply to my audit; trap 10 from seat 25's counter
-sweep). **That distribution is the argument for the cross-checking rule, quantified: three of the ten defects
-here would not have been found by the seat that made them.**
+identical results for different settings, one by measuring the return time on a fast case, **one by noticing a
+uniform 2-ply offset and suspecting my own instrument rather than the engine** (trap 11) — and **four only by
+another seat's correction** (traps 8 and 9 from seat 17; trap 10 from seat 25; and the *shape* of trap 11 first
+came from seat 05's finding I was trying to check). **That distribution is the argument for the cross-checking
+rule, quantified: four of the eleven defects here would not have been found by the seat that made them.**
 
 ## See also
 
