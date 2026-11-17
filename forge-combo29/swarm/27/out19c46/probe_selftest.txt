@@ -1,0 +1,24 @@
+probe.py self-test, 2026-11-17T03:47:49Z
+engine: PC r15 068f0927 and a committed fake fixture
+
+probe.py self-test:
+  1 illegal FEN refused before reaching the engine           PASS 
+  2 a valid FEN passes                                       PASS 
+  3 invalid-FEN reply guard fires on a refused FEN           PASS 
+  4 a real search returns a parseable result                 PASS Result(depth=8, score=('cp', 22), nodes=6170, bestmove=d2d4, pv=8)
+  5 REAL engine's refused-FEN reply is caught                PASS 
+EXIT=0
+
+=== THE THREE BUGS IN THIS FILE, ALL FOUND BY ITS OWN CONTROLS ===
+1. The timeout was unreachable: 'while now < deadline: readline()' blocks, so the deadline is never
+   re-tested and a silent child hangs for ever. A timeout in name only.
+2. A NEW reader thread per _until call: two threads competed for the same pipe, so the second call's
+   reader swallowed lines the first was waiting for. Symptom: the fake engine answered uciok and then
+   appeared to ignore isready.
+3. THE GUARD SCANNED THE WRONG LINES: the invalid-FEN diagnostic arrives BEFORE readyok (during the
+   position/isready exchange), not during the search. Scanning only the go output meant a real engine
+   returned a startpos result with NO error raised - control 5 caught it. A harness that sends
+   isready between position and go - the normal defensive pattern - loses the only signal.
+
+AND: the fake engine buffered its stdout when piped, so the self-test waited 30s on 'no uciok'.
+It is now a COMMITTED FIXTURE (fixtures/fake_refusing_engine.py) that flushes and can be run by hand.

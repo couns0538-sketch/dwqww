@@ -46,8 +46,43 @@ answer as the valid position before it. So:
 - in a **long-running** session, it silently searches **whatever position was last set successfully**.
 
 **The second is the more dangerous**, because a harness that measures 200 positions and has one malformed FEN
-gets **the previous position's answer recorded under the malformed one** — a duplicate row that looks like a
-genuine measurement, with no startpos signature to give it away.
+gets **the previous position's answer recorded under the malformed one**.
+
+**AND — corrected by seat 01, who is right and makes it worse — that row does not look like a duplicate.** Their
+point, verified here: the re-search runs on a restored board with different TT and history state, so the SCORE
+differs too. Measured (PC r15, `go depth 6`):
+
+```
+predecessor A  K+R v K     its bestmove a1a8  -> after the invalid FEN: a1a8,  mate 1
+predecessor B  middlegame  its bestmove f1e2  -> after the invalid FEN: f1e2,  cp 106
+```
+
+A row keyed on **(position, move, score)** therefore does not look like a repeat at either predecessor: `mate 1`
+and `cp 106` are different values, and each matches its own predecessor's move rather than appearing twice.
+**It looks like a fresh, plausible measurement.** I described the harm as "a duplicate row" and that was too
+comfortable — **there is no duplicate signature to detect.**
+
+## The discriminator that identifies this defect rather than a fallback
+
+Seat 01 supplied the test that separates the three candidate behaviours, and it is worth stating because it
+needs no instrumentation:
+
+**Send the SAME invalid FEN after TWO DIFFERENT valid predecessors.**
+
+| hypothesis | prediction |
+|---|---|
+| startpos fallback | the **same** answer both times |
+| outright refusal | **no bestmove** at all |
+| **previous position** (the truth) | **two different answers, each following its predecessor** |
+
+Measured: `a1a8 / mate 1` after the K+R v K predecessor and `f1e2 / cp 106` after the middlegame one. **That is
+the third row, and it is the only hypothesis that explains both cells.** Seat 01 reports the same result
+bit-identical 3 of 3 on PC r15 and identical on base, which also dates the defect before the patch — so it is
+not a regression introduced by the PC build.
+
+**The operational consequence is narrow and absolute: the ONLY reliable detector is confirming that every FEN
+was accepted.** No property of the returned row distinguishes a substituted answer, because the row is a real
+search of a real position — just not the one you sent.
 
 ## Why this is severe
 
