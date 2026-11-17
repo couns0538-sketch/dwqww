@@ -1,0 +1,32 @@
+PREDICTION — SW-23 job 68 (does `searchmoves` change what the bail publishes? — a protocol-level test of the source reading)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+The source reading says `result.best_move = root_candidates.front()` where `root_candidates` is a generator-order copy
+filtered by `searchmoves` at `search.cpp:2203-2209`, and that the terminal branch is entered when `root_candidates.empty()`
+OR `root_drawn`. That makes a prediction testable from the protocol, without reading further.
+
+If `searchmoves` filters `root_candidates` BEFORE the bail, then on a drawn root with `searchmoves X` the bail should
+publish **X** — the first move in generator order that is also in the restriction — rather than the unrestricted head.
+
+FIXTURE: the validated threefold root `1K6/8/8/3R4/8/8/8/k7 w` with cycle `b8c8 a1b2 c8b8 b2a1` twice (bails, publishes
+`d5d1` unrestricted). Its generator order is read from `go perft 1` in the same run.
+
+Cases:
+  U   unrestricted                          -> expect `d5d1` (generator head)
+  R1  `go depth 10 searchmoves d5d8`        -> expect `d5d8` if searchmoves filters before the bail
+  R2  `go depth 10 searchmoves b8a8 d5d8`   -> expect whichever of those two is earlier in generator order
+  R3  `go depth 10 searchmoves e2e4`        -> an ILLEGAL restriction on this board; the `restricted_root_empty` path
+
+Prediction (each with the range that kills it):
+  P1  U publishes `d5d1` with 0 nodes. GATE — killed if not, in which case the fixture or the premise is wrong and nothing
+      below means anything.
+  P2  **R1 publishes `d5d8`, not `d5d1`.** KILLED if R1 still publishes `d5d1`, which would mean the restriction is
+      applied AFTER the branch, contradicting the source reading's ordering, and would be a real disagreement to table.
+  P3  R2 publishes the earlier-in-generator-order of `b8a8` and `d5d8`. KILLED if it publishes a move outside that set.
+  P4  R3 is REPORTED rather than predicted: the source says the empty-restriction case sets
+      `restricted_root_empty = true` (`search.cpp:2210`) but still populates `best_move`, so what it publishes with
+      `go searchmoves <illegal>` is an open question here — I will state what happens, not what should.
+
+This is a mechanism test rather than a new claim about defects: if it holds, the bail's move is exactly "first
+generated move passing the filter", which is a precise statement a tool author can act on; if it fails, the source
+reading's ordering is wrong somewhere and that is worth knowing before the FINAL cites it.
