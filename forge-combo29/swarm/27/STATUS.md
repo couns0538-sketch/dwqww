@@ -1218,3 +1218,29 @@ harness that checks "did it warn" sees a warning and assumes abandonment; what i
 fen errors but NOT an unknown position type, which prints nothing - so the only complete defence remains the one
 already stated: **confirm every FEN was accepted by YOUR OWN validator before sending**, plus matching the exact
 `position` forms you emit.
+
+## 2026-11-17T15:0xZ S-C117/118 — WITHDREW S-C91's "location moves"; field-count claim splits BOTH ways
+**S-C117 WITHDRAWN: THE DIAGNOSTIC LOCATION IS FIXED, IT DOES NOT MOVE.** Measured with a DRAIN-BASED reader
+(which cannot steal lines via a parser), both builds, both patterns:
+  position, isready, go -> DIAG right after `position`; nothing after isready; nothing after go
+  position, go          -> DIAG right after `position`; nothing after go
+**MY S-C91 "matrix" WAS AN ARTEFACT OF MY OWN READER.** I partitioned the stream by which `until()` call happened
+to consume a line; with no isready sent, the diagnostic fell into the `go` collector BECAUSE THAT WAS THE NEXT
+READ - not because the engine put it there. **That is the S-C84 defect a THIRD time: inferring the engine's
+behaviour from the slice of output my code happened to capture.** The coordinator built the engine and measured
+the fixed location; that version is correct and mine should not have been relayed.
+**S-C118: the field-count claim ("any count != 6 is refused in silence, searches startpos") SPLITS BOTH WAYS.**
+References: startpos -> d2d4/cp 34; K6k six-field -> a1b1/cp 0.
+  fields 6  NONE                                  bm a1b1  accepted (board honoured)
+  fields 5  "invalid FEN: FEN must contain six"   bm d2d4  REFUSED, previous kept
+  fields 4  "invalid FEN: FEN must contain six"   bm d2d4  REFUSED, previous kept
+  fields 3  "invalid FEN: FEN must contain six"   bm d2d4  REFUSED, previous kept
+  fields 7  NONE                                  bm a1b1  ACCEPTED, surplus dropped
+  fields 8  NONE                                  bm a1b1  ACCEPTED, surplus dropped
+**TOO FEW is refused WITH a diagnostic. TOO MANY is not refused at all - surplus dropped, board honoured
+(a1b1, the real K6k answer, NOT startpos).** The too-many case is the S-C1 behaviour and is arguably the
+CORRECT permissive choice rather than a defect.
+**WHAT SURVIVES: reply-scanning cannot cover the genuinely silent cases, so CLIENT-SIDE VALIDATION IS THE PRIMARY
+DEFENCE** - that stands regardless of which field counts speak. And "a session with no position command has
+nothing to refuse" is the right reason my "fresh session is silent" observation was wrong: a missing command,
+not a missing diagnostic.
