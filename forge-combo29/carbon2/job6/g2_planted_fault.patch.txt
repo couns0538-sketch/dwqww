@@ -1,0 +1,12 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 15:55:48.505143771 +0000
++++ b/src/board.cpp	2026-11-17 15:56:27.741143771 +0000
+@@ -1479,7 +1479,7 @@
+                                     (attacks::king(to) & pieces(them, King))) & live0);
+     const Bitboard them_ray_sliders =
+         ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
+-    if ((them_contact | them_ray_sliders) == 0) return true;
++    if (them_contact == 0 /* PLANTED FAULT: ignore ray-aligned enemy sliders in early return */) return true;
+ 
+ #if FORGE_SDK_SEE_HOIST
+     // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
