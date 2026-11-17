@@ -385,3 +385,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Mechanical fix carried forward: let the weak sample keep the weaker word ('no sign of X', never 'X'), and put any generalisation in its own sentence that names its scope.
 - FINDINGS method order is now: FIRST RULE (zeros) + denominator corollary -> THE FAILURE MODE (caveat contradicting itself) -> THE PC20 TABLE -> three named rules -> rows.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:14:02 AM UTC 2026
+- 29-F50 is the first sample in my data where the quality evidence TURNS AGAINST PC20, and it weakens my own F44. At depth 14 (30 positions, R_2911, Threads 1, Hash 16): 27/30 same bestmove (90.0%); of the 3 disagreements, judged under the neutral S14 regime at depth 17, ALL 3 FAVOUR S14 - pos 4 by 33 cp, pos 9 by 109 cp, and pos 27 categorically: S14's move lets the opponent mate in 6, PC20's in 7.
+- 29-N34: F44 can no longer be summarised as 'quality shows no sign of damage'. Accurate: dead heat at depths 10-12 (7-7-3, 2-2-1), but at depth 14 all 3 of 3 favour S14. n=3 is a SIGNAL not a result - but it is the axis where PC20's pruning would show, and depth 14 is where the PC actually plays.
+- This is more useful to the owner than a clean bill of health. NEXT MEASUREMENT flagged: 100+ positions at depth 14 and depth 16.
+- next: continuing at cadence with the wider depth-14 run.

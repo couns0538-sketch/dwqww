@@ -1,0 +1,40 @@
+=== 29-F44 quality test at DEPTH 14 (match-clock depths) -- and it points the OTHER way ===
+Prior runs measured quality at depth 10/12 where PC20 and S14 disagree on ~15 % of positions. At depth 14 the
+disagreements are fewer but, in this sample, ALL of them favour S14 -- the opposite of the earlier runs and the
+first evidence in my own data that PC20's reduced tree can cost something at match depths.
+
+PC r15 build, 30 positions from R_2911, depth 14, Threads 1, Hash 16. Each disagreement judged under the NEUTRAL
+S14 regime at depth 17; mover's advantage = negated engine score.
+
+| result | count | share |
+|---|---|---|
+| SAME bestmove | 27 | 90.0 % |
+| DIFFERENT bestmove | 3 | 10.0 % |
+
+The three disagreements:
+
+| pos | S14 move (d14 score) | PC20 move (d14 score) | S14 move's line | PC20 move's line | better |
+|---|---|---|---|---|---|
+| 4 | c2c3 cp -269 | h3g4 cp -267 | -270 | -303 | S14 |
+| 9 | g4e5 cp 3186 | c2a3 cp 3160 | +3504 | +3395 | S14 |
+| 27 | h2e2 cp 1357 | e7e4 cp 1353 | **mate -6** | **mate -7** | S14 |
+
+Position 27 is the sharpest: after S14's move the opponent mates in 6, after PC20's in 7 -- S14 is a whole move of
+mate-distance better.
+
+WHAT THIS DOES TO 29-F44/F49: it does NOT overturn them (27 of 30 agree; three disagreements cannot outweigh the
+7-7-3 and 2-2-1 results at lower depths), but it is the first sample where the disagreements are one-sided, and the
+direction is AGAINST PC20. Three observations that keep it in proportion:
+1. n = 3. Three disagreements, all favouring one side, is the sort of thing that happens by chance (~1 in 4 for a
+   fair coin), so this is a SIGNAL, not a result.
+2. The effect, where it appears, is small at positions 4 and 9 (33 and 109 centipawns on a depth-17 line) but
+   categorical at 27 (mate distance).
+3. It is consistent with the depth-10 sign flip (29-F41/F42): the comparison is depth-dependent in BOTH directions,
+   which is exactly why a single depth cannot settle F44.
+
+STATUS: 29-F44 becomes "no sign of damage at depths 10-12 (7-7-3, 2-2-1), but at depth 14 all 3 disagreements in a
+30-position sample favour S14". That is a weaker position than an hour ago and it must not be relayed as
+"PC20 costs nothing".
+
+NEXT MEASUREMENT, if hours remain: the same test on 100+ positions at depth 14, and at depth 16. Three disagreements
+is not enough to decide, and this is the axis where PC20's pruning would actually show.
