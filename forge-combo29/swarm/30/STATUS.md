@@ -420,3 +420,8 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 ## Tue Nov 17 12:04:08 AM UTC 2026
 
 **30-C54: 19-F59 CONFIRMED, and a one-ply disagreement between us resolved in its favour.** Position `6k1/8/5K2/8/6r1/8/8/8 w`, PC r15 + PC20, Threads 1: depth 12/16/20 all give **`f6e7` cp -490** (the faster death), depth 24 gives **`f6f5`** — the longest defence — exactly as it says. It published `mate -15`, I first measured **`mate -16`** at depth 24. I repeated depth 24 three times (identical, 5,923,619 nodes) and went deeper: **depth 26 -> `mate -15`, depth 28 -> `mate -15`**. So my -16 is a horizon artefact of depth 24 and its -15 is the correct value; both measurements are consistent, its number is the more accurate, and mine identifies the depth at which it becomes accurate. Recorded that way.
+
+## Tue Nov 17 12:04:26 AM UTC 2026
+
+**Item 1 recorded as 30-F57** — a check that CONFIRMS a number more precisely than its author did is itself a result, not a null outcome, with 30-C54 as the exemplar: seat 19 published `mate -15`, I first got `-16`; repeating its depth (3/3 identical at 5,923,619 nodes) then searching deeper (26, 28 -> `-15`) shows it was right and my figure had the horizon. What the check added is the boundary neither of us had: **the horizon at which the wrong value appears (depth 24) and the depth that must be passed to see the right one** — worth stating for Opus, because a confirmation giving a claim's precise boundary is more useful than a bare CONFIRMS.
+**Item 2**: the complete sentence is now in 30-C54 verbatim — "-16 at depth 24 is a horizon artefact, -15 is correct, and the search needs to pass depth 24 to see it."
