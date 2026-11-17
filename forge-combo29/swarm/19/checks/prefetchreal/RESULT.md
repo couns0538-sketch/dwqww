@@ -7,12 +7,27 @@
 **largest of the three**. **So 19-F10 and 29-C4 both stand as general speed claims — this is the one place in my
 record where bench UNDERSTATED nothing and generalised correctly.**
 
-## Setup, and why it is a clean control
+## The control — and why this is a clean result rather than another mixed one
+**Both builds pass all four honesty pins with IDENTICAL node counts:**
+
+| pin | CTRL | PF |
+|---|---|---|
+| bench 11 | 312,866 | **312,866** |
+| bench 13 | 862,329 | **862,329** |
+| bench 16 | 3,024,920 | **3,024,920** |
+| perft 5 | 4,865,609 | **4,865,609** |
+
+**That equality is the control, and it is what makes this measurement unambiguous.** Because the patched build
+walks **the same tree** as the control and reaches **the same node count**, every millisecond of the difference is
+**per-node cost** — there is no node-count difference to confound it, and no need to infer per-node cost from two
+noisy ratios as 19-C53 had to. The measured ratio **is** the quantity being claimed.
+
 - **CTRL** = unpatched `6b98f217` tree, g++ 13.3.0, `-DFORGE_MATE_ALPHA_GUARD=1`, `FORGE_MARCH=x86-64-v4`,
   **0 `_mm_prefetch` in `nnue.cpp`**.
-- **PF** = same tree + `job3/prefetch_columns.patch.txt`, **17 prefetch calls**.
-- **Both pass all four honesty pins with IDENTICAL node counts** (312,866 / 862,329 / 3,024,920 / 4,865,609).
-  **So the patch is a pure per-node-cost change** — the correct control for this question.
+- **PF** = same tree, same flags + `job3/prefetch_columns.patch.txt`, **17 prefetch calls**.
+
+**Reinforced at run time:** the fixed `go nodes 50000` budget produced an achieved **node ratio of 1.0000** across
+all 130 pairs, so the same-tree property held in the measured sessions too, not just in the pins.
 - Fixed `go nodes 50000`, Threads 1, Hash 16, ABBA, fresh process per search, **130 pairs**.
 - **Node ratio achieved 1.0000** — the fixed budget held, so the time ratio is the per-node cost.
 

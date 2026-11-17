@@ -78,6 +78,14 @@ rather than a property of the engine?** Three of my four failures were caught by
 same as stratifying on *the variable that governs power*. Came from 19-C52, where I announced a separator with a
 **3-7 %** chance of answering its own question.
 
+## 6. `NOTE_bench_bias_is_patch_specific.md` — the final form of the bench rule
+
+**`bench` may understate, match, or overstate relative to real positions; the bias is patch-specific. If the number
+matters, measure it once on real positions.** Third revision, and the first that is falsifiable rather than
+hortatory. The note records all three revisions, the three cases that forced them, what bench remains valid for
+(pins, determinism, ablation direction, structural counters), and what needs a real measurement. Companion to
+trap 17.
+
 ## Cross-references
 
 - Findings that survived these audits: `19-F55`, `19-F58`, `19-F59` (with the depth-24 calibration), `19-F44`–`49`

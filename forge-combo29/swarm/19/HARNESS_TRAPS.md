@@ -455,6 +455,41 @@ must check the instrument before you run it.**
 
 ---
 
+## 17. `bench`'s bias is PATCH-SPECIFIC, not directional (19-C53/C55/C56/C58)
+
+> **`bench` may understate, match, or overstate relative to real positions. There is no blanket rule about which
+> way it errs. If the number matters, measure it on real positions once.**
+
+**This rule took three revisions, and each was forced by a measurement rather than by a preference for caution:**
+
+| version | claim | what killed it |
+|---|---|---|
+| 1 | "never use `bench` for magnitudes" | **19-C56**: a bench magnitude transferred correctly (4.3 % → 5.2 %). Version 1 would have discarded a valid result. |
+| 2 | "`bench` understates per-node cost ~6×" | **19-C58**: a *different* patch measured 9.43 % on bench and 9.80 % real — bench was accurate. The bias had no direction. |
+| 3 (final) | **patch-specific** | falsifiable: predicts some patches agree and others diverge, in either direction |
+
+**The three cases in one table:**
+
+| patch | bench | real | verdict |
+|---|---|---|---|
+| PC20 per-node cost | 1.0119 (+1.2 %) | median 1.071 (+7.1 %) | bench **understated ~6×** |
+| `CorrHistV2` nodes | −4.3 % | −5.2 % | bench **matched** |
+| NNUE prefetch per-node | +9.4 % | **+9.8 %** | bench **matched** |
+| aggregate PC20 node sign | +14.5 / −10.6 / +8.7 across bench 11/13/16 | −9.1 % | bench **got the sign wrong** on 2 of 3 |
+
+**Still valid on bench** (no dependence on the position distribution): the honesty pins, determinism, ablation
+**direction** (and 19-F26 shows direction *varies by bench*, making bench a conservative test of it), and
+**structural counters** — call counts, probe counts, hit-slot distributions.
+
+**Needs a real-position measurement:** per-node cost in either direction, aggregate node/time effects of an option
+set, and any magnitude that will be quoted to the owner.
+
+**Companion trap:** a **pooled** ratio is not a per-position property. 19-F32's 5 % pooled saving holds on only
+**54.2 %** of positions (IQR 28× the effect size) — true of a session, useless for one position. **That is a
+property of the switch, not a defect of bench.**
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
