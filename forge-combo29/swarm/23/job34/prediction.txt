@@ -1,0 +1,23 @@
+PREDICTION — SW-23 job 34 (are the driver page's OTHER two rules enough? ucinewgame and both-clocks)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+Finding one hole in my own page (23-F76, the drawn root) makes it worth testing the other two rules the same way,
+with the driver page's own claims as the hypotheses:
+
+RULE 1 ("ucinewgame before the first position, never between a position and its search") — claim: sending ucinewgame
+AFTER a position discards the position (23-C1). Test: position P, then ucinewgame, then search; the answer should be
+startpos's, not P's. If any variant of that ordering does NOT discard, the rule is too strong.
+
+RULE 4 ("send both clocks, read to bestmove before the next command") — claim: a pipelined next command corrupts the
+answer (19-F12). Test: send `go` then immediately `position ...` without reading bestmove; compare with the ordered
+version. If the pipelined version is fine, the rule is unnecessary.
+
+Prediction (each number with the range that kills it):
+  P1  position-then-ucinewgame gives a DIFFERENT (startpos) answer from position alone. KILLED if identical.
+  P2  ucinewgame BEFORE the position gives the position's own answer. KILLED if it gives startpos's.
+  P3  pipelining `position` straight after `go` (no drain) changes or loses the first answer. KILLED if the first
+      answer is intact and legal.
+  P4  a fully ordered driver and a pipelining one disagree on at least one of three positions. KILLED if never.
+
+If P3 is killed, rule 4 is overcautious and I will soften it on the page to "prefer reading to bestmove" rather than
+"never send the next command first".
