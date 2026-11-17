@@ -1166,3 +1166,27 @@ SEAT 16's S-F28 CONFIRMED ON BOTH HALVES, AND I CAN EXPLAIN THE SPREAD (S-C31, S
   THE EXPLANATION, which seat 16 did not offer: the wall spread is 2.91x and the NODE spread is 3.11x - they move together. So a longer move is a DEEPER COMPLETED ITERATION, not a slower one. That ties three of my own results into one mechanism: S-C20/S-F68 (a clock move costs its last completed iteration, rho 1.000), S-C15/S-F64 (the clock path is a quantised step function), and now this (the variance at fixed clock is the staircase's, measurable in nodes).
   PRACTICAL CONSEQUENCE: two games at '6 s per move' can differ by ~3x in search effort per move purely from where each move's iteration boundary falls - which is exactly why a node budget is the reproducible choice and a clock budget is not.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### SEVENTEENTH UPDATE — the effort-spread mechanism, which ties three results together
+
+**S-C31 / S-F91.** Seat 16's S-F28 confirmed on both halves, and I can explain the variance it measured:
+
+| | measured |
+|---|---|
+| overruns across a 10-move sequence at a 6,000 ms clock | **0 of 10** |
+| per-move search time at an IDENTICAL clock | 121.6–353.9 ms = **2.91x** |
+| per-move **node count** across the same moves | 209,208–650,246 = **3.11x** |
+
+**The wall spread (2.91x) and the node spread (3.11x) move together.** So a longer move is a **deeper completed
+iteration**, not a slower one — the variance at a fixed clock *is* the iteration staircase, and it is measurable
+in nodes without timing anything.
+
+**This is the third leg of one mechanism**, and it ties three of my results together:
+
+1. **S-C20 / S-F68** — a clock move costs its last completed iteration (Spearman rho **1.000** over 16 boards);
+2. **S-C15 / S-F64** — the clock path is a quantised step function, reproducible only to a plateau;
+3. **S-F91** — so the per-move variance at a fixed clock is that staircase, and the node count predicts it.
+
+**For the owner:** two games at "6 s per move" can differ by ~3x in search effort per move purely from where each
+move's iteration boundary falls. That is the same reason a node budget is reproducible and a clock budget is not —
+now demonstrated across a whole sequence, not just a single search.
