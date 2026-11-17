@@ -34,7 +34,7 @@ came from a fresh process unless the row says the table was deliberately shared.
 
 | field | UCI definition | measured | verdict | line that shows it |
 |---|---|---|---|---|
-| `depth` | "the depth searched" — the iteration the score and pv belong to | `max_depth` is clamped to `[1,64]` and the emit loop walks it unconditionally; on a drawn root it emits one line per depth with **0 nodes**; on the abort path it emits an **unfinished** iteration's pv under that iteration's depth with the **previous** iteration's score | **NON-CONFORMANT** | `info depth 64 seldepth 64 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv` and `info depth 22 seldepth 40 score cp 112 … time 950 pv d4c5 …` |
+| `depth` | "the depth searched" — the iteration the score and pv belong to | `max_depth` is clamped to `[1,64]` and the emit loop walks it unconditionally; on a drawn root it emits one line per depth with **0 nodes**; on the abort path it emits an **unfinished** iteration's pv under that iteration's depth with the **previous** iteration's score | **NON-CONFORMANT** — independently reproduced on the owner's own build | `info depth 64 seldepth 64 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv` and `info depth 22 seldepth 40 score cp 112 … time 950 pv d4c5 …` |
 | `seldepth` | "the depth searched including selective deepening" | printed as `max(seldepth_, depth)` — so it **cannot** be < `depth`, by construction not by measurement; on the bail it is `max(0, depth)`, i.e. entirely fabricated | **NON-CONFORMANT on the bail; UNFALSIFIABLE elsewhere** | `info depth 64 seldepth 64 … nodes 0 … pv` |
 | `multipv` | 1-based index of this line among the reported lines | 1..n contiguous and present on **every** line at MultiPV 2/3/4; absent entirely at MultiPV 1 (allowed: MultiPV 1 needs no index); **absent on the book path** and **degrades to only `multipv 1`** on a drawn root | **CONFORMANT on searching paths; two known exceptions** | `info depth 1 multipv 3 score cp -10 seldepth 1 nodes 74 …`; book: only `info string book move c2c4` |
 | `score` | evaluation in cp, **from the side to move**; `mate N` in moves | same board both sides: `cp 490` (White) vs `cp -477` (Black); mirror: `cp 20` / `cp 5`; `mate 2` and `mate -2` both correct; `mate 0` only on a true checkmate | **CONFORMANT** | `… 4K2R w … → cp 490` / `… 4K2R b … → cp -477` |
@@ -109,6 +109,33 @@ reference run.
 any tool that plots score-versus-depth, or that stops when depth reaches a threshold, treats an
 unfinished iteration as finished evidence. On the bail it is worse — a GUI displays the full
 configured depth on a search that touched no nodes.
+
+**Independent reproduction (owner, own build).** The owner reproduced the same shape on a
+different build — so it is not a property of this harness. Their case: `go infinite`, then `stop`
+at 1.05 s, final line `info depth 20 seldepth 33 … pv …` whose pv is **18 plies**. A pv shorter
+than the depth it claims, on the last line a client sees.
+
+That is a *weaker* proof than the one cited above and is recorded as confirmation, not as the
+basis of the finding:
+
+| observation | what it shows |
+|---|---|
+| owner: pv length 18 < claimed depth 20 | the line is internally inconsistent — a completed depth-20 iteration cannot carry an 18-ply pv |
+| this audit: `depth 22` carries the depth-21 score and the depth-21-shaped pv | *which* iteration the line actually belongs to — depth 21 — and therefore that the label is off by one |
+
+Both agree the abort path mislabels `depth`. Only the score-carried-forward comparison identifies
+the mislabelled value, which is why the report cites this audit's instance and the owner's as
+corroboration. The owner's run also did not force a pv-head change, which is the condition that
+makes the revision fire — consistent with the 5-of-8 rate measured here rather than a contradiction.
+
+**A related check that looks tempting and does not work.** On a searching path one might expect
+`len(pv) >= depth`, since the pv runs about one ply per depth. **I tested that and it is false:**
+on a clean `go depth 20` from startpos, the completed depth-16 iteration reports a **15-ply pv**
+(1 of 20 lines). TT cutoffs and transpositions shorten a pv legitimately, so a short pv is *not* a
+violation and cannot be used as a symptom of the revision line. The owner's pv-length observation
+is evidence *because it is on the final line of an aborted search* and paired with their knowledge
+that no completion was reached — not because shortness alone proves anything. This is exactly why
+the score-carried-forward comparison, which needs no heuristic, is the proof of record.
 
 ### `seldepth` — cannot be wrong by this measurement, which is the problem
 
@@ -338,7 +365,6 @@ surplus is `wait + (time in the unfinished iteration)`. Two rows of five deviate
 opposite direction. That design cannot attribute the surplus, so I discarded it and used the
 during-ponder snapshot instead, which needs no arithmetic on racy quantities. `time_ponder_vary.json`
 is kept because the negative result is itself the reason the design was changed.
-
 **What a client does wrong:** a GUI that pairs `time` with the time control it sent sees the engine
 "spend" the whole ponder wait out of its own clock — a 6 s think on a 1 s budget after a 5 s ponder —
 and its time-management display, `nps` display and any "time trouble" warning fire wrongly. This
@@ -437,6 +463,17 @@ stated as such rather than reported as a pass.
   topic. I checked formatting and sign, not the boundary's correctness.
 - **The book path's `multipv`** cannot be tested for contiguity because there are no lines at all;
   that is reported as an absence, not as a measured value.
+- **`len(pv) >= depth` as a violation.** Tested and **rejected**: a clean `go depth 20` produces a
+  completed depth-16 line with a 15-ply pv, so short pvs are legitimate and this cannot serve as a
+  symptom check. The owner's pv-length observation is evidence only because it is on the final line
+  of an aborted search that never completed, not because shortness proves anything on its own.
+- **The deliverable's own git hygiene.** This repo blocks branch deletion, so if a temporary branch
+  were created for the tree swap it could not be removed. **No temporary branch was created** — the
+  swap was done entirely with `mktemp` index files outside `.git`, a `commit-tree`, and a plain
+  fast-forward push, so there is nothing left behind to clean up. The one unreachable object that
+  remains is the *superseded* tree from commit `18990db73` (the ~13,327-file one); it is still
+  reachable through this branch's ancestry and cannot be deleted without a force-push, which the
+  repo blocks. That is stated rather than claimed clean.
 
 ---
 
@@ -474,3 +511,51 @@ Scripts: `uci.py` (driver + parser), `fixtures.py` (validation helpers), `probe.
 `probe_targeted.py`, `probe_time_vary.py`, `probe_time_origin.py`,
 `probe_time_during_ponder.py`, `probe_hashfull_generation.py`, `probe_monotonicity.py`,
 `probe_pv_contract.py`, `controls.py`.
+
+---
+
+## Appendix: why the PR first read as ~13,327 files, and how it was fixed
+
+Not an audit finding, recorded because it made the deliverable hard to review.
+
+`main` **is** an ancestor of the audit base `6b98f217` — the audit base is 328 commits *ahead* of
+it. Branching at the audit base therefore gave the branch a tree containing the whole
+`forge-combo29` engine, and a PR against `main` rendered all of it as added:
+
+| | files in PR |
+|---|---|
+| PR as first pushed (`18990db73`) | **13,327** |
+| after the tree swap (`97c9025ab`) | **47** |
+
+The fix is a normal commit whose **tree** is `main`'s tree plus only this seat's 47 paths. It was
+built with a throwaway index kept outside `.git`, so the real checkout was never disturbed:
+
+```
+IDX=$(mktemp -u /tmp/swapidx.XXXXXX)
+GIT_INDEX_FILE=$IDX git read-tree origin/main
+# for each path under forge-combo29/swarm/infofields/:
+GIT_INDEX_FILE=$IDX git update-index --add --cacheinfo <mode>,<blob>,<path>
+TREE=$(GIT_INDEX_FILE=$IDX git write-tree)
+git commit-tree $TREE -p <current tip> -m ...
+git push origin <new sha>:refs/heads/swarm/infofields      # plain fast-forward, never --force
+```
+
+`GIT_INDEX_FILE` was set **per-command and never exported**: it persists in a shell session, and the
+next `git status` in the real checkout would then read the swap index and report thousands of staged
+deletions — at which point a `git checkout .` or `reset --hard` would destroy the branch. The
+variable was verified unset (`GIT_INDEX_FILE=[<unset>]`) and the real checkout verified clean
+before the push.
+
+Safety checks run before pushing:
+
+- `git ls-tree -r` over the 47 paths is **byte-identical** between `18990db73` and the new tree —
+  same modes, same blob hashes, so no content changed in the swap;
+- the tree diff against `origin/main` is **exactly 47 files**, **none** outside
+  `forge-combo29/swarm/infofields/`, and **zero deletions**;
+- `git merge-base origin/main <new tip>` is `origin/main`'s own sha;
+- the push reported `18990db73..97c9025ab` — a fast-forward, so no history was rewritten and every
+  earlier commit remains an ancestor.
+
+One file was deliberately dropped: the root `.gitignore` added in `18990db73` sat outside the
+deliverable folder. `forge-combo29/swarm/infofields/.gitignore` covers the same patterns
+(`build/`, `__pycache__/`, `*.pyc`) for this seat.

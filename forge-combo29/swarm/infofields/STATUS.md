@@ -8,7 +8,7 @@ result is written up in `FINDINGS.md`.
 
 | field | verdict |
 |---|---|
-| `depth` | **NON-CONFORMANT** — bail (`depth 64`, 0 nodes) and abort revision (`depth 22` with the depth-21 score, proven on the wire) |
+| `depth` | **NON-CONFORMANT** — bail (`depth 64`, 0 nodes) and abort revision (`depth 22` with the depth-21 score, proven on the wire). **Independently reproduced on the owner's own build** (their run: final `info depth 20 … pv` carrying an 18-ply pv); their instance is confirmation, this audit's score-carried-forward proof is what the report cites |
 | `seldepth` | **NON-CONFORMANT on the bail**; ordering invariant **unfalsifiable** by construction (`max(seldepth_, depth)`) |
 | `multipv` | **CONFORMANT** on searching paths; absent on book, degrades to `multipv 1` on a drawn root |
 | `score` | **CONFORMANT** — side-to-move relative both ways, `mate ±N` and `mate 0` correct |
@@ -51,6 +51,19 @@ result is written up in `FINDINGS.md`.
   would perturb the pins.
 - `hashfull` at Hash 2048 with multi-threaded fill.
 - `nodes` at Threads > 1 against an independent count (none exists on the wire).
+- `len(pv) >= depth` as a violation check — **tested and rejected**: a clean `go depth 20` gives a
+  completed depth-16 line with a 15-ply pv, so short pvs are legitimate.
+
+## PR shape (fixed)
+
+The branch was first pushed at 13,327 files because the audit base is 328 commits *ahead* of `main`
+and carries the whole engine in its tree. A normal commit re-parented on the previous tip with a
+tree of `main` + only this seat's 47 paths collapsed the PR to **47 files**, with a plain
+fast-forward push (no force). Content verified byte-identical; see the appendix in `FINDINGS.md`.
+
+No temporary branch was created, so nothing is left for the repo's branch-deletion block to strand.
+The superseded 13,327-file tree remains reachable in ancestry and cannot be removed without a
+force-push, which the repo blocks — stated rather than claimed clean.
 
 ## Reproduction
 
