@@ -462,3 +462,17 @@ next: cadence.
 Tally: 33 findings, 18 checks/plants (C1..C18), 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:12Z
+- **08-C19: seat 13 S-F10 CONFIRMS to the node.** Owner's clock, PC r15 PC20 Threads 1: startpos 5x gives
+  **650,246 nodes / depth 19 / e2e4 in all five** (their three determinism figures), wall varying only 355-363 ms.
+  Clock share on 8 G positions **median 4.1 %** (their figure); 6 s -> 366.6 ms, 30 s -> 1268.9 ms (their scaling).
+  0 illegal bestmoves.
+- **Reconciled my 4.9 % vs their 4.1 %: position set, not engine.** Per-position share spans **2.5-13.7 %** (5.5x),
+  so a 3-position sample gives 4.9 % and an 8-position one 4.1 %. THE HONEST OWNER FIGURE IS NOW
+  **2.5-13.7 % per position, median ~4 %**, not a single number — correcting the implicit single figure in 08-F24.
+- Third instance of the small-sample lesson tonight (after 08-F27, 08-F33); all three recorded under 08-N1.
+
+Tally: 33 findings, 19 checks/plants (C1..C19), 3 method lines, 1 withdrawal.
+
+next: cadence.
