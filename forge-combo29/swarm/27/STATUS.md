@@ -933,3 +933,29 @@ The third row is sound and several seats use it; the first two must stop.
 **Pattern worth keeping: a defect's BLAST RADIUS is a different question from the defect, and it has to be
 MEASURED rather than inferred.** Second time tonight that testing my own finding against another seat's use of
 the same mechanism changed what I would have said.
+
+## 2026-11-17T08:2xZ S-C77..80 — 19-C60 replicated 4/4, two p-values corrected, add/drop asymmetry is the finding
+**REPLICATED seat 19's 19-C60 on my own harness and 120-position set, depth 12 (PC r15, PC20 arms, Threads 1,
+Hash 16, OwnBook false, option count asserted per cell).**
+  switch        their pooled / share / p      |  mine pooled / share / p
+  TtPruneV2     0.9528 / 60.8% / 1.000        |  0.8992 / 61.7% / 0.013
+  CuckooRep     0.9914 / 52.5% / 1.000        |  0.9768 / 60.0% / 0.035
+  CorrHistV2    0.9478 / 54.2% / 1.000        |  0.9368 / 52.5% / 0.648
+  HistRework    1.0311 / 46.7% / 0.523        |  0.9702 / 50.0% / 1.000
+**The shape replicates FOUR FOR FOUR** - pooled effect small, per-position spread much larger - and run-to-run
+spread is **EXACTLY ZERO (10 of 10 baselines identical, max node diff 0)**, so the distribution is genuinely
+position-to-position and cannot be averaged away.
+**TWO OF THEIR p-VALUES ARE WRONG, AND THE CORRECTION HELPS THEM: 60.8% at n=120 is 73/120 -> exact two-sided
+p = 0.0221, NOT 1.000; 52.5% is 63/120 -> 0.648, NOT 1.000. Their CorrHistV2 0.411 and HistRework 0.523 are
+EXACTLY right (reproduced to four decimals), so their sign test is correct and two rows are transcription
+errors. TtPruneV2's sign agreement is therefore REAL (p=0.022), just smaller than their 65-80% prediction.**
+**S-C78 - THE REAL FINDING: I ran BOTH designs on the same 120 positions and they answer different questions.**
+  ADD to S14: TtPruneV2 0.8992, CuckooRep 0.9768, CorrHistV2 0.9368, HistRework 0.9702 (all four save nodes)
+  DROP from PC20: TtPruneV2 1.0853, CuckooRep 1.0362, HistRework 1.0577, **CorrHistV2 0.9998 (NOTHING)**
+**CorrHistV2 saves 6.3% alone and 0.02% margin in the bundle - a switch can be essential alone and redundant in
+the bundle.** "How much does TtPruneV2 save" has two true answers (10% bare, 8.5% of the bundle); their 5% and
+my 10% measure different things. **Actionable: keep or drop CorrHistV2 and nothing measured changes.**
+**TWO OF MY OWN BUGS, FOUND BY THE COMPARISON:** (S-C79) IQR/effect printed 2327.7 because a spread was divided
+by an effect of 0.0002 - right arithmetic, meaningless number, reads like a real effect being swamped when
+there is none; now prints "none (effect ~0)". (S-C80) the add-one and drop-one runs wrote to the SAME filename
+and the drop-one **silently overwrote 600 add-one cells**; the filename now names the design.
