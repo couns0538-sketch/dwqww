@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-NINE instances plus twelve named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-NINE instances plus thirteen named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -856,6 +856,24 @@ there, write, compare. An edit that only adds cannot decrease a count.
 **And the limit, since it applies to me too:** the coordinator caught this by re-reading, which is the detector this page
 says is the only one that finds prose defects. A count check would have caught a deleted section heading; it would not
 have caught a deleted paragraph inside one.
+
+## Named pattern — A COUNT THAT CHANGES WITHOUT AN ACCOUNTABLE OPERATION IS A SYMPTOM
+
+The most transferable sentence either of us produced, and it came from the moment I explained a discrepancy away.
+
+My findings count crept by one between two messages. I attributed it to a double-write on my side and moved on. It was
+in fact **a duplicate id** (23-F202): a stale draft of F71 sitting beside its fuller replacement. Every individual row was
+true; only the total was wrong.
+
+**A count is itself a claim, and it can be false while every item it counts is true.** Three flavours of that have now
+appeared in this seat: figures outliving the claim around them (23-F181), gates that cannot fail (23-F199), and a total
+that disagrees with a membership nobody re-checked (23-F202).
+
+**MECHANICAL CONSEQUENCE: when a total moves and you cannot name the operation that moved it, that is not bookkeeping —
+it is a finding waiting to be read.** Name the operation; if you cannot, go and find what changed. And state both numbers
+when they differ in kind: **"N distinct findings, M rows"**, never "M with a parenthetical", because the distinct number
+is what a reader wants and the row count is what the audit needs, and saying both plainly avoids the impression that
+something is loose.
 
 ## The fix, in one line each
 
