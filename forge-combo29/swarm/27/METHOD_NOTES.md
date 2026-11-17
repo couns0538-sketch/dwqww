@@ -395,3 +395,15 @@ why seat 23's 3-second cap reported "no bestmove" while my 8-second wait got one
 board. **Both observations are correct; they measure different things.** The general lesson: when a command
 misbehaves, check whether the *option you think you sent* was actually parsed into a limit, before concluding the
 engine failed to stop.
+
+## THE SESSION'S MOST CONSISTENT RESULT, in one line
+
+**Fixed limits are deterministic; wall-clock-driven limits are not; and the variation lives in the harness, not the
+engine.** Four seats reached this independently in one evening, by four different routes:
+
+| seat | the route | what it found |
+|---|---|---|
+| 05 | increment ceiling (S-F75) | 6000 -> 24000 ms increment gives 1.01x time and identical depth — the clock saturates |
+| 28 | fixed-point floor (S-F44) + step-function note (S-F43) | the clock rule has a floor and cannot be lost by searching; node count is a step function of available time |
+| 16 | clock artefact (S-F38) | their own "three distinct positions" was the clock arm, not the engine; fixed limits give 1 sequence |
+| 27 (this seat) | harness overhead (S-W4/S-W5) + fixed-limit check (S-C27) | 1300 ms of process overhead in wall time; fixed limits give 1 sequence in 5 of 5 games |
