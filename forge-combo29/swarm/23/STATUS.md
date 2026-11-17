@@ -2371,3 +2371,33 @@ pass over the corrected passage asking whether every number could be re-run and 
 what the number now says.
 
 166 findings, 25 instances plus four named patterns, all three checks PASS.
+## 2026-11-17T01:54:11Z  F140: the headline sentence needed refining - the bail tracks the SEARCHED position, not the root
+2026-11-17T01:54:11Z
+
+I went to test whether a threefold in the HISTORY (not at the root) also bails, which is how real games look. The first
+answer was "no - it searches 12,978 nodes", and I wrote that up. Then I tested the longer continuations I had merely
+PRESUMED would behave the same way, and found my wording was wrong:
+
+  plies past the repetition | root occ | SEARCHED-position occ | nodes | verdict
+        1                  |    3     |          1            | 12,978 | searched
+        3                  |    3     |          3            |      0 | BAIL
+        5                  |    4     |          1            | 11,691 | searched
+
+The verdict follows the SEARCHED position's own count exactly: 1 searches, 3 bails, 1 searches. So the accurate sentence
+is:
+
+  **the base returns 0 nodes iff the position at the END of the sent move list has occurred at least three times in
+  that list.**
+
+That is a REFINEMENT, not a refutation. Every F125/F132/F133 fixture had the repeated position at the end of its list, so
+those results stand; what changes is scope - a tool sending a long move list can have the engine bail at the end of it,
+regardless of where the game started.
+
+The lesson is the one from F139 arriving again: I presumed a longer continuation "would behave the same way" and wrote it
+into a result file, then tested it and it did not. Presumption in a results file is the same fault as a fabricated
+example - it reads as measurement and is not.
+
+Updated in four places so nothing contradicts: F125's headline, F140's row, TRIGGER.md's opening sentence, and the FINAL
+chain line.
+
+167 findings, 25 instances plus four named patterns, all three checks PASS.
