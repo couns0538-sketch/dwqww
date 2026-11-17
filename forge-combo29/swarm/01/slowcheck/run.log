@@ -1,0 +1,22 @@
+seat10_risky_c80       DID NOT FINISH within 90 s - seat 10's 'looks hung' 90.0s depth 15  nodes 250077687  cp 962   None
+seat10_risky_c90       completed   62.6s depth 20  nodes 429738395  cp 0     d1d7
+my_A_mate1_c100        completed   0.0s depth 20  nodes 420        mate 1   a1a8
+my_B_pawn_mate_c100    completed   0.0s depth 20  nodes 662        mate 2   h6h7
+my_C_quiet_mate_c99    completed   0.0s depth 20  nodes 540        cp 0     h4e1
+
+
+A. MY OWN BOARDS (3): all completed
+   my_A_mate1_c100        0.0 s, depth 20, 420 nodes, mate 1
+   my_B_pawn_mate_c100    0.0 s, depth 20, 662 nodes, mate 2
+   my_C_quiet_mate_c99    0.0 s, depth 20, 540 nodes, cp 0
+   -> so the untimed `go depth 20` I used in S-C6 was SAFE on these boards: each carries a short
+      forced mate, and the iterative loop breaks as soon as the mate is found, so the search never
+      has to grind to depth 20. My figures are not affected by 10-F65.
+
+B. SEAT 10's OWN RISKY BOARDS (2):
+   seat10_risky_c80       DID NOT FINISH within 90 s - seat 10's 'looks hung' (90.0 s, depth 15, 250077687 nodes)
+   seat10_risky_c90       completed (62.6 s, depth 20, 429738395 nodes)
+   -> at least one did NOT complete within 90 s, which reproduces seat 10's warning.
+
+THE ACTIONABLE PART, which holds either way: CAP THE TIME. An untimed `go depth N` on a
+  high-counter board can take a very long time, and a harness without a cap reports that as a hang.

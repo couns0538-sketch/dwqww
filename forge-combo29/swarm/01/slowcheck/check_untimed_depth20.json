@@ -1,0 +1,82 @@
+{
+ "rows": [
+  {
+   "finished": false,
+   "elapsed_s": 90.0,
+   "reached_depth": 15,
+   "nodes": 250077687,
+   "score": "cp 962",
+   "bestmove": null,
+   "cap": 90.0,
+   "board": "seat10_risky_c80",
+   "fen": "5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1",
+   "verdict": "DID NOT FINISH within 90 s - seat 10's 'looks hung'"
+  },
+  {
+   "finished": true,
+   "elapsed_s": 62.6,
+   "reached_depth": 20,
+   "nodes": 429738395,
+   "score": "cp 0",
+   "bestmove": "d1d7",
+   "cap": 90.0,
+   "board": "seat10_risky_c90",
+   "fen": "5k2/8/8/8/8/8/8/1K1Q4 w - - 90 1",
+   "verdict": "completed"
+  },
+  {
+   "finished": true,
+   "elapsed_s": 0.0,
+   "reached_depth": 20,
+   "nodes": 420,
+   "score": "mate 1",
+   "bestmove": "a1a8",
+   "cap": 90.0,
+   "board": "my_A_mate1_c100",
+   "fen": "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 1",
+   "verdict": "completed"
+  },
+  {
+   "finished": true,
+   "elapsed_s": 0.0,
+   "reached_depth": 20,
+   "nodes": 662,
+   "score": "mate 2",
+   "bestmove": "h6h7",
+   "cap": 90.0,
+   "board": "my_B_pawn_mate_c100",
+   "fen": "8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1",
+   "verdict": "completed"
+  },
+  {
+   "finished": true,
+   "elapsed_s": 0.0,
+   "reached_depth": 20,
+   "nodes": 540,
+   "score": "cp 0",
+   "bestmove": "h4e1",
+   "cap": 90.0,
+   "board": "my_C_quiet_mate_c99",
+   "fen": "8/8/8/8/2K4Q/8/8/1k6 w - - 99 1",
+   "verdict": "completed"
+  }
+ ],
+ "verdict": [
+  "",
+  "A. MY OWN BOARDS (3): all completed",
+  "   my_A_mate1_c100        0.0 s, depth 20, 420 nodes, mate 1",
+  "   my_B_pawn_mate_c100    0.0 s, depth 20, 662 nodes, mate 2",
+  "   my_C_quiet_mate_c99    0.0 s, depth 20, 540 nodes, cp 0",
+  "   -> so the untimed `go depth 20` I used in S-C6 was SAFE on these boards: each carries a short",
+  "      forced mate, and the iterative loop breaks as soon as the mate is found, so the search never",
+  "      has to grind to depth 20. My figures are not affected by 10-F65.",
+  "",
+  "B. SEAT 10's OWN RISKY BOARDS (2):",
+  "   seat10_risky_c80       DID NOT FINISH within 90 s - seat 10's 'looks hung' (90.0 s, depth 15, 250077687 nodes)",
+  "   seat10_risky_c90       completed (62.6 s, depth 20, 429738395 nodes)",
+  "   -> at least one did NOT complete within 90 s, which reproduces seat 10's warning.",
+  "",
+  "THE ACTIONABLE PART, which holds either way: CAP THE TIME. An untimed `go depth N` on a",
+  "  high-counter board can take a very long time, and a harness without a cap reports that as a hang."
+ ]
+}

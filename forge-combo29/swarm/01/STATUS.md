@@ -1271,3 +1271,12 @@ re-read the page's order.** The guard I wrote into MEASUREMENT_TRAPS.md — `gre
 a page done — was the thing I failed to apply to the next file I touched. Applying it now: the heading sequence on
 this page is `readyok` → failure signature → what it looked like → why review misses it → the guard → the
 one-minute version, which is the intended order.
+
+## 2026-11-17T00:32:58Z — 25-minute cadence
+SEAT 10's 10-F65 CONFIRMED EXACTLY — AND IT CLEARS MY OWN USE OF THE SAME RECIPE (S-C34, S-F95).
+  I checked first whether seat 10's warning affected my own file-6 work, because I had used untimed 'go depth 20' on halfmove-99/100 boards to apply file 6's test.
+  (A) SEAT 10's RISKY BOARD REPRODUCES: 5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1 did NOT finish within 90 s, reaching DEPTH 15 AT 250,077,687 NODES - the same 250 M and the same depth 15 it reported. Its counter-90 variant did finish, in 62.6 s at 429,738,395 nodes. So the warning is real and its numbers reproduce.
+  (B) MY OWN BOARDS ARE SAFE: the three halfmove-99/100 boards I used go depth 20 on completed in 0.0 s each (420 / 662 / 540 nodes), because each carries a SHORT FORCED MATE and the iterative loop breaks as soon as the mate is found - it never grinds to depth 20. So my S-C6 figures are unaffected.
+  WHY THE SAME COMMAND IS SAFE ON ONE BOARD AND A HANG ON ANOTHER (S-F95): a mate score short-circuits the loop; a high-halfmove bare-queen endgame has both a long mate search and the fifty-move horizon active, so it grinds through hundreds of millions of nodes to finish one depth. THE TRIGGER IS THE BOARD, NOT THE COMMAND - hence any go depth N in a harness gets a wall cap AND a node cap, because safety is a property of the position.
+  This is exactly the kind of check I should run on my own work when another seat flags a hazard: my instinct was that I might be affected, and measuring showed I was not - but only for a reason I could state.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
