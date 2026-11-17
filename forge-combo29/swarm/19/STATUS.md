@@ -596,3 +596,18 @@ next command: continue at cadence.
   Not repairing the solver tonight: a repaired one needs per-position brute-force validation first.
 
 next command: continue at cadence on non-oracle work.
+
+## 2026-11-17T00:45:47Z
+
+19-C25 CONFIRMS seat 21's 21-F12 exactly: FEN 6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 100 60,
+  go searchmoves e1e8 depth 4 -> PC r15: 8 nodes / mate 1 / e1e8 ; base: 0 nodes / cp 0.
+  Beyond it: the BASE build emits 4 info lines at depths 1-4 with pv EMPTY and nodes 0 - it
+  announces depth progress while searching nothing, so the right harness check is 'nodes>0 and
+  PV non-empty', not 'an info line appeared'.
+
+state of my thread: oracle WORK closed and retracted (19-R2, trap 11, three reports bannered).
+  Since then: exact-integer confirmations of other seats (19-C19 king lines, 19-C25 searchmoves)
+  and harness audits (19-C20 select trap, traps 1-11). That mix is deliberate - counters and
+  reproductions, not derived tables.
+
+next command: continue at cadence with counter-based confirmations of other seats' open findings.
