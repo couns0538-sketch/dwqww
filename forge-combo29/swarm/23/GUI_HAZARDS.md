@@ -147,6 +147,11 @@ The four rules, which are the whole of it:
    the engine is not on the board you think it is.
 4. **Send both clocks, and read to `bestmove` before the next command.**
 
+Rule 4 is not a nicety — a violation does not perturb the answer, it **replaces** it. Sending `position startpos`
+straight after `go` on a Ruy Lopez position, with no drain, returns the fabricated **`bestmove a2a3` at 0 nodes**,
+where the ordered run returns **`f1b5` at 89,103 nodes** (23-F77). So a pipelining driver is not merely slower or
+noisier: it gets a legal-looking move that was never searched, and nothing in the stream says so.
+
 Every one of those maps to a hazard measured on the PC build on this page, and to a seat that lost time to it.
 **Claim strength, stated plainly:** this driver shape is **validated for all three hazards**, each with a control
 showing what a naive driver does instead — H1: the naive driver searches the *stale* board; H2: it searches a *third*
