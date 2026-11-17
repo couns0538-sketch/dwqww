@@ -2350,3 +2350,24 @@ So the iff now stands on five occurrence counts on one board plus the only-if ha
 material. What is still one board: the "if" half at 4, 5 and 6 occurrences.
 
 159 findings, all three checks PASS.
+## 2026-11-17T01:53:27Z  F139: a fabricated illustration, twice in one night - and the check that catches it
+2026-11-17T01:53:27Z
+
+Your mirrored-direction clause is in, and writing it caught me committing the mirrored failure myself: I wrote that the
+number-corrected-prose-stale case "nearly happened to TRIGGER.md", checked, and TRIGGER.md was accurate. The example was
+invented to illustrate a rule I had just written. Replaced with one I can substantiate - the GUI_HAZARDS row corrected
+from +20 to 76/17 while the sentence below still generalised from it.
+
+That is the second time tonight, so it is now F139 rather than an incident: in the handoff I claimed M7's move "was not
+its generator index 0 in an earlier test" when I had never recorded M7's move at all - the claim was invented to support
+a paragraph and measured only afterwards. Both times the rule being illustrated was correct and the example was not.
+
+The shape is worth recording because it is not the same as a wrong measurement: **an example feels like exposition
+rather than evidence**, so it does not get the checking a number gets. A rule catalogue is exactly as prone to it as any
+other prose. The defence is the one already in the page - an example is a claim, and it is checked before it stands.
+
+The mirrored clause itself: both directions of stale-passage failure happen at the same instant, and the check is one
+pass over the corrected passage asking whether every number could be re-run and whether every sentence still describes
+what the number now says.
+
+166 findings, 25 instances plus four named patterns, all three checks PASS.
