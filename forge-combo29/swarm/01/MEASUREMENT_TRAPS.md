@@ -257,6 +257,12 @@ Two corollaries:
    refuses and says *"NOTHING WAS MEASURED … none is claimed"*. If a result is absent, the honest output says so in
    the same words as a failure, never in the shape of a result.
 
+**A trap that is adjacent but separate, and gets its own page:** the reader can be perfect and the *divisor* still
+wrong. `go nodes N` never spends N, so a per-node figure must divide by the count the engine reports, not the count
+you asked for — and because the same request cancels on both sides of a comparison, the mistake silently converts a
+per-node ratio into a raw **time** ratio under a per-node label. See `NODE_COUNT_NORMALISATION_RULE.md` (S-F123,
+S-F125). Trap 11 is "you did not receive the output"; that page is "you received it and divided by the wrong number".
+
 
 ## The shape the harness traps share
 

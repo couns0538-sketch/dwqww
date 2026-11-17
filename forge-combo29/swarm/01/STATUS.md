@@ -1752,3 +1752,30 @@ between. A harness normalising by the REQUESTED budget is wrong by up to 2x and 
 Gates: 168 rows, 0 wrong pipe counts, self-test proves both checkers in both directions, artifact preserved, stamps
 in order, page shape OK.
 Next: continue at cadence.
+## 2026-11-17T01:24:46Z — the normalisation rule is a method page now, and writing it corrected it twice (S-F125, S-F126)
+1. S-F123 IS PROMOTED TO A METHOD RULE: NODE_COUNT_NORMALISATION_RULE.md, in the same shape as ATTRIBUTION_RULE.md
+   (rule box, what happened, the check, what it is not). THE RULE: divide by the node count on the last info line,
+   never by the number passed to go nodes. It is cross-linked from MEASUREMENT_TRAPS.md as adjacent-but-separate to
+   Trap 11: Trap 11 is "you did not receive the output"; this is "you received it and divided by the wrong number".
+2. AND WRITING IT CORRECTED MY OWN CLAIM TWICE, which is the part worth keeping.
+   First: I wrote that the wrong divisor "fabricates a 25 % speedup". I had not computed that. The real mechanism is
+   subtler and worse: if the same request R divides both sides it CANCELS, so the comparison silently becomes a raw
+   TIME ratio reported under a per-node label. Measured on the committed artifact: per-node 0.856x (54.6 -> 46.8
+   ms/100k) where the request-divisor reports 0.820x (80.5 -> 66.0 ms) - an understatement of 4.2 %, not 25 %.
+   The dangerous property is not a wrong constant but a CHANGE OF QUANTITY: a time ratio sits in a per-node column
+   and looks entirely plausible.
+   Second: verifying the page against the artifact, my own ABBA checker turned out to print two different statistics
+   in one sentence - "median ms/100k 54.0 -> 46.6 = 0.91x", where 46.6/54.0 is 0.863 and the 0.91 was a median of
+   per-position ratios. Both numbers were correct; the sentence was not. Both are now labelled (0.911x median of
+   ratios, 0.856x ratio of medians) with the spread stated. A figure a reader cannot verify by arithmetic from the
+   same line will be misread - the reader's division IS the check.
+3. THE RULE NOW RUNS IN THE GATE: a grep for a per-node figure dividing by a requested budget, which fails the gate
+   and points at the page. Proven by injecting exactly that mistake into check_per_node_abba.py (gate exit 1) and
+   restoring it (exit 0). Every number in the rule page was then re-verified against the committed JSON by script -
+   all seven checks pass, including the 80.5/66.0 medians and the .5 that an even-count median produces.
+YOUR POINT 2, KEPT AS YOU PUT IT: I am not averaging my two figures that disagree in sign. 1.09x (bench 13, fixed
+depth) and 0.856-0.911x (game positions, fixed budget) are different workloads, and the defensible statement is
+"about the same per node, within ~12 %" - not a point value, and not a direction. The cause is named in both pages.
+Gates: 170 rows, 0 wrong pipe counts, self-test proves both checkers, normalisation rule enforced, damage scan clean,
+stamps in order.
+Next: continue at cadence.

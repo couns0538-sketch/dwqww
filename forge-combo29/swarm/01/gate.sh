@@ -84,6 +84,20 @@ else
   echo "ok    no shell-expansion damage markers in the markdown"
 fi
 
+# 3c. NO PER-NODE FIGURE NORMALISED BY THE REQUESTED BUDGET (the rule in NODE_COUNT_NORMALISATION_RULE.md).
+#     The request is not a quantity, and if the same request divides both sides of a comparison it cancels into a raw
+#     time ratio reported under a per-node label. This greps the scripts for the shape of the mistake so the rule
+#     cannot quietly come back the next time I write a throughput harness.
+baddiv=$(grep -nE "(1e5|100000\.0?|100_000)\s*/\s*(requested|budget|node_budget|request)\b" v3net/*.py *.py 2>/dev/null || true)
+if [ -n "$baddiv" ]; then
+  echo "FAIL  a per-node figure divides by the REQUESTED budget, not the reported count"
+  echo "$baddiv" | head -4 | sed 's/^/      /'
+  echo "      see NODE_COUNT_NORMALISATION_RULE.md: divide by the count on the last info line"
+  fail=1
+else
+  echo "ok    no per-node figure divides by a requested budget"
+fi
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

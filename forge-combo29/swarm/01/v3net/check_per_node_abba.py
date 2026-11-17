@@ -163,8 +163,18 @@ def main():
             results[mode] = {"n": len(good), "median_ratio": ratio,
                              "a100": statistics.median([p["a100"] for p in good]),
                              "b100": statistics.median([p["b100"] for p in good])}
-            L.append("  %s: %d comparable positions, median ms/100k %.1f -> %.1f = **%.2fx**"
-                     % (mode, len(good), results[mode]["a100"], results[mode]["b100"], ratio))
+            # REPORT BOTH STATISTICS, because they are not the same number. `median_ratio` is the median of the
+            # per-position ratios; `a100`/`b100` are the medians of the two columns. Printing the two medians next to
+            # the median-of-ratios invited a reader to divide 46.6 by 54.0 and get 0.863 where the line said 0.91 -
+            # two correct numbers, one misleading sentence. Both are now labelled.
+            ratio_of_medians = results[mode]["b100"] / results[mode]["a100"]
+            results[mode]["ratio_of_medians"] = ratio_of_medians
+            L.append("  %s: %d comparable positions" % (mode, len(good)))
+            L.append("    median of per-position ratios : **%.3fx**   <- the headline figure" % ratio)
+            L.append("    ratio of the two column medians: **%.3fx**   (%.1f -> %.1f ms/100k)"
+                     % (ratio_of_medians, results[mode]["a100"], results[mode]["b100"]))
+            L.append("    both are valid summaries; they differ because the positions are not equally weighted, and"
+                     " the spread of per-position ratios is wider than either number suggests.")
         L.append("")
 
     L.append("COMPARISON with the published figures")
