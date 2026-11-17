@@ -17,6 +17,7 @@ shows it again.
 | id | area | finding | evidence | state |
 |---|---|---|---|---|
 | 69-F5 | determinism | **Nine machine-environment inputs change nothing** at a fixed budget (0/40 each, two budgets): working directory, `LANG`/`LC_ALL`/`LC_NUMERIC` + `TZ`, environment-variable order, CPU affinity (cores 0/1/2), `nice -n 19`, `ulimit -v` 2 GB, `ulimit -v` 64 MB, `ulimit -s` 8 MB, `ulimit -n` 256. A fixed-budget answer is a property of the (build, position, budget) triple, not of the process environment. | `job1_env_matrix.py`, `job1/env_matrix.json` | NEW |
+| 69-F5b | determinism | **Memory pressure never changes an answer; it kills the process.** Stepped `ulimit -v` from 1 GB down to 16 MB: every cap that let the engine run gave 0 / 12 differing cells, and below the cliff the engine died on 12 / 12. At `Hash 16` the cliff is between 56 MB (dies) and 60 MB (works); at `Hash 256` between 290 MB (dies) and 300 MB (works), i.e. roughly the table size plus ~40 MB. **The dangerous middle band does not exist here** — the failure is loud, not silent. | `job2_memory_pressure.py`, `job2/memory_pressure.json`, `job2/boundary.raw.txt` | NEW |
 
 ## Transposition-table state (jobs 3, 3b)
 
@@ -25,6 +26,7 @@ shows it again.
 | 69-F6 | determinism | **`ucinewgame` is a true cold reset (0/25 cells differ from a fresh process); `Clear Hash` is not (24/25 differ).** Read from the source: `ucinewgame` -> `Searcher::clear()` (`src/search.cpp:2679`) wipes histories *and* table; `Clear Hash` -> `Searcher::clear_hash()` (`:2667`) wipes the table then calls `Worker::clear_caches()`, which is only `evaluator_.clear()` (`include/forge/search.hpp:452`). | `job3_tt_state.py`, `job3/tt_state.json` | NEW |
 | 69-F7 | determinism | **The divergence from `Clear Hash` is reproducible, not noise.** Three independent processes replaying the same sequence produced identical cells for all three reset regimes; within one process the two replays differed. So a harness that reuses a process gets a *stable-looking wrong* number and can reproduce it indefinitely. | `job3b_tt_reproducible.py`, `job3/tt_reproducible.json` | NEW |
 | 69-F8 | determinism | The same position searched four times in a row in one process drifts away from its fresh-process answer deterministically: 37135 cp72, 41762 cp37, 39116 cp44, 30366 cp35. The error grows with the number of prior searches in the process. | `job3b_tt_reproducible.py` | NEW |
+| 69-F8b | determinism | The reuse trap reproduces on the pattern a real harness uses — **walking games**: 5 / 6 positions reached by random legal games differ from a fresh process, under both `position startpos moves` and `position fen`, with and without `Clear Hash`. `ucinewgame` restores 0 / 6. `position fen X` and `position startpos moves <moves reaching X>` agree 0 / 6 in a fresh process, so the two command forms are interchangeable. | `job3c_game_walk.py`, `job3/game_walk.json` | NEW |
 
 ## Hash size (job 4)
 

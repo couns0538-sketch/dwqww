@@ -103,6 +103,82 @@ any of the four moves.
 are real cells, not silent matches: every variant reported the same non-trivial node counts
 and bestmoves as the reference, and the wrapper proof above shows each wrapper was in force.
 
+## Memory pressure
+
+One cap is a point, not a boundary, so `ulimit -v` was stepped from 1 GB down to 16 MB
+(`job2_memory_pressure.py`, 12 positions, `go nodes 50000`).
+
+| cap | `Hash 16` | `Hash 256` |
+|---|---|---|
+| 1 GB, 256 MB, 128 MB, 96 MB, 80 MB, 64 MB | searched, **0 / 12 differ** | 1 GB only: searched, 0 / 12 |
+| 48 MB … 16 MB | **died on 12 / 12** | died on 12 / 12 |
+
+Bisected cliff:
+
+| Hash | largest cap that DIES | smallest cap that WORKS |
+|---|---|---|
+| 16 | 59 MB | **60 MB**, and the answer is bit-identical to no cap |
+| 256 | 290 MB | **300 MB**, likewise identical |
+
+So the failure mode is a clean death, not a quiet change. Above the cliff the answer does
+not move at all; below it there is no answer. **There is no band where memory pressure
+silently changes a fixed-budget result.** That is the safe shape for a harness — but it
+also means a harness must treat "engine exited without `bestmove`" as a hard failure and
+never as a missing cell, because an out-of-memory kill looks like a short read.
+
+The cliff is roughly the table size plus ~40 MB (16 MB table -> 60 MB; 256 MB table ->
+300 MB), so a harness that raises Hash must raise the memory cap with it or it will see
+every cell die.
+
+
+## Hash size
+
+`Threads 1`, base build, **fresh process per cell**, first 24–40 positions of set O,
+compared against `Hash 16` on the same position and budget.
+
+| budget | Hash 16 vs 64 | Hash 64 vs 256 | Hash 16 vs 256 | Hash 16 vs 1 |
+|---|---|---|---|---|
+| `go nodes 50000` | 0 / 24 | 0 / 24 | 0 / 24 | 11 / 24 |
+| `go nodes 200000` | 2 / 24 | 0 / 24 | 2 / 24 | 24 / 24 |
+| `go nodes 500000` | 17 / 24 | 0 / 24 | 17 / 24 | 24 / 24 |
+| `go nodes 1000000` | 24 / 24 | 9 / 24 | 24 / 24 | 24 / 24 |
+| `go nodes 2000000` (40 positions) | **40 / 40** | — | — | — |
+
+So the honest answer to "is `Hash 16` vs `Hash 64` identical at a fixed node budget" is:
+**only below roughly 200,000 nodes.** At 500,000 it moves 17 of 24 positions; at
+1,000,000 it moves all 24; at 2,000,000 it moves all 40. `Hash 1` is different even at
+50,000 nodes.
+
+Of 178 differing cells in the sweep, **15 also moved the bestmove** and **13 differ by
+exactly one node**. A one-node difference matters because the count is what a harness
+divides by or compares, and the bestmove changes are what a strength comparison sees.
+
+A warm process differs from a fresh process at **every** Hash size (40 / 40, both
+budgets), so table size does not rescue the reuse trap: warm-16 vs fresh-16 is 40 / 40
+apart. The two traps are separate and both have to be avoided.
+
+### What this means for a harness
+
+1. Start a **fresh process per cell**. Nothing else makes a reused process agree with a
+   fresh one — not `Clear Hash`, not a bigger table.
+2. If a process must be reused, send **`ucinewgame`** before every `position`, never
+   `Clear Hash`. `ucinewgame` reproduced the fresh answer in 25 of 25 cells; `Clear Hash`
+   in 1 of 25.
+3. Pin **Hash** and do not change it between compared runs, above all above ~200,000
+   nodes. "Bigger Hash is just faster" is false in this engine at large budgets.
+4. Treat a one-node difference as a real difference. It is 13 of the 178 cells here.
+
+## Second build as the available proxy for a second machine
+
+A second build of the identical source, in a different directory, with `-g` added,
+produces a different binary (4,869,512 vs 794,944 bytes) and **the same answers**:
+0 / 40 differing at `go nodes 50000` and at `go depth 12`, and it passes all three bench
+pins. No dependence on build address, allocation order, an uninitialised read or a
+timestamp was detected.
+
+This is a proxy and not a second machine. A different CPU, a different `-march`, or a
+different compiler is **untested**; see the limits section of `FINDINGS.md`.
+
 ## Transposition-table initial state
 
 `go nodes 50000`, `Threads 1`, `Hash 16`, base build, 5 positions, 5 trials each, compared
@@ -144,3 +220,53 @@ The drift is deterministic and directional — the histories keep accumulating f
 position that was just searched. A harness that reuses a process and calls `Clear Hash`
 will get a *stable-looking but wrong* node count, and the error grows with how many searches
 the process has already run.
+
+## Cross-build node counts on non-lone-king roots
+
+`go depth 12`, `Threads 1`, `Hash 16`, base vs PC, same 200 positions of set O.
+Set O has **0 lone-king roots of 200**, so all 200 are eligible.
+
+| set | node counts differ | bestmoves differ | any field differs |
+|---|---|---|---|
+| O, non-lone-king, n = 200 | **0 / 200** | **0 / 200** | 0 / 200 |
+| G, non-lone-king, n = 341 | **0 / 341** | **0 / 341** | — |
+| G, lone-king (control), n = 12 | **12 / 12** | 4 / 12 | — |
+
+Repeated at `go nodes 200000` to show the result is not a `go depth` artifact:
+0 / 200 and 0 / 341 non-lone-king differ, 12 / 12 lone-king control differ.
+
+So the cross-build divergence is confined to lone-king roots **in node counts as much as
+in bestmoves**, and the predicate separates the two classes completely (0 of 541 outside
+the class, 12 of 12 inside it). The sizes are large when it happens: +161,907 nodes on
+`8/6qk/8/8/8/1p4p1/4K3/8 b - - 0 1`, and the same FEN is -94,836 at `go nodes 200000`.
+
+The two builds answer a fixed-budget non-lone-king search identically, so a harness that
+compares node counts between them on ordinary positions is comparing like with like.
+
+## One table: what varies and what does not
+
+Fixed-budget answer = (nodes, bestmove, score, depth). `Threads 1` throughout.
+
+| input | does it change a fixed-budget answer? | denominator |
+|---|---|---|
+| working directory | **no** | 0 / 40, two budgets |
+| `LANG` / `LC_ALL` / `LC_NUMERIC` / `TZ` | **no** | 0 / 40, two budgets |
+| environment variable order | **no** | 0 / 40, two budgets |
+| CPU affinity (cores 0, 1, 2) | **no** | 0 / 40 each, two budgets |
+| `nice -n 19` | **no** | 0 / 40, two budgets |
+| `ulimit -v` 2 GB | **no** | 0 / 40, two budgets |
+| `ulimit -v` 64 MB (memory pressure) | **no** | 0 / 40, two budgets |
+| `ulimit -v` down to the cliff | **no** — it dies instead | 0 / 12 at every cap that ran; 12 / 12 deaths below 60 MB |
+| `ulimit -s` 8 MB | **no** | 0 / 40, two budgets |
+| `ulimit -n` 256 | **no** | 0 / 40, two budgets |
+| a second build of the same source | **no** | 0 / 40, two budgets |
+| base build vs PC build, non-lone-king | **no** | 0 / 200 (set O), 0 / 341 (set G) |
+| **process reuse + `Clear Hash`** | **YES** | 24 / 25 cells |
+| **process reuse + no reset** | **YES** | 24 / 25 cells |
+| **process reuse + `ucinewgame`** | no | 0 / 25 (fen), 0 / 6 (game walk) |
+| **`position fen` vs `position startpos moves`** | no | 0 / 6 |
+| **Hash 16 vs 64, ≥ 200k nodes** | **YES** | 17 / 24 at 500k, 24 / 24 at 1M, 40 / 40 at 2M |
+| **Hash 16 vs 1, any budget** | **YES** | 11 / 24 at 50k, 24 / 24 above |
+| **PC build, lone-king root** | **YES** | 12 / 12 |
+| **piped stdin (EOF during search)** | **YES** | 0 info lines, fabricated bestmove |
+
