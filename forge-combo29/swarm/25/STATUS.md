@@ -214,7 +214,45 @@ the errors of mine.
 
 If the window ends here, this branch is self-describing.
 
-## 2026-11-17T01:56Z - CYCLE (c) JOB 1, seed 2531: one correction of my own published mechanism, one new MultiPV number
+## 2026-11-17T02:27Z - CYCLE (c) CLOSE: all three guards green, 97 findings
+
+`compliance_check.sh` -> **PASS**: tracked binaries 0 | files outside my folder 0 | non-text files 0 | engine source
+committed 0 | uncommitted changes none.
+`audit_final.py` -> **0 mismatches**: no finding marked dead in FINDINGS.md is left live in this document.
+`final_selfcheck.py` -> **4/4 PASS** (S-F29 depth-16 cp 1359 / depth-20 mate 8; S-C26 terminal ladder; S-C27 64-line
+burst, answer unchanged; S-C22 MPV3 clock Hash16 depth 13 vs Hash256 depth 2). It names what it does not cover:
+S-F30/S-F31 full games, S-F25/S-F32 regime sweeps, S-C12/S-C25 variant build, S-C18..20 seat 27's binary - each of
+those carries its own committed evidence.
+
+**97 findings** in FINDINGS.md. Working tree clean; local = remote at `e09b7a930`.
+
+**Cycle (c) produced one correction and one new mechanism-level result:**
+- **S-C47** corrects my own S-C32: a reported mate number CAN fall with depth (6 -> 4 on one board), and the fall is
+  a change of MOVE, not a shortening - pinned with `searchmoves`, each move's number is constant at every depth.
+- **S-C48** MultiPV changes which move is called best on 18.8% of random middlegame positions at depth 12 and 16.4% at
+  depth 16, so depth does not dissolve it; every disagreement is a real score difference (0 ties, with a planted-case
+  control proving the zero is measured); median gap 15-21 cp but a tail to 452 cp.
+- **S-C50** neither setting is more accurate - 27 vs 20 for the deeper reference, p=0.38 - so MultiPV is a second
+  sample, not a correction; gaps median 43 cp.
+- **S-C49** 2 of 250 boards resolved from centipawns into mates between depth 12 and 16, all 6 depth-16 mates with
+  correct-length PVs.
+
+**Stated as a bound, not a proof:** on board 103 the independent solver excluded a forced mate of 5 or fewer after
+`g4h5` (budgets 2/3/4/5 all not forced; the 5-budget took 451 s over 6.07 M entries) and the budget confirming the
+engine's `mate 6` was killed at its 3000 s cap. So `mate 6` is consistent with my evidence and not proven by it.
+Nothing in this cycle depends on it.
+
+**Two new control errors, both mine, both caught by running rather than reading:**
+- A **budget off-by-one** in `pv_truth.py` (floor instead of ceil on remaining plies) that made every CORRECT PV look
+  unforced - it would have produced a false defect report had I trusted it. Fixed, then the mate-4 line verified.
+- **An anchor-match text edit that spliced a row into line 1 of FINDINGS.md** and passed every guard: 0 binaries, 0
+  mismatches, and the row count still read 96, because a spliced row is still one line with the right pipe count.
+  Caught only by grepping the new id. Restored with `git checkout --` and re-appended by **appending to end of file**,
+  never by anchor. This is COPYING_RULE lesson 4 in its sharpest form: structurally valid, semantically ruined.
+
+**Next at cadence:** seed 2541, same job, PREDICTION committed and pushed alone first. The open question worth
+carrying: whether the ~18% MultiPV disagreement rate holds on a set of positions where the engine is near its
+horizon (S-F29's depth-18 region), where a display setting has more room to change the answer.
 
 **Prediction pushed alone at `2f0e799c7` before the first measuring command.** Full report at
 `forge-combo29/swarm/25/job1d/REPORT_job1d.md`. Prediction record: S1 HIT, S2 HIT, S4 HIT, S5/S6 hit as stated but
