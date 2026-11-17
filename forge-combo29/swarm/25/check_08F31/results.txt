@@ -1,0 +1,45 @@
+### 08-F31 mechanism: does a clocked search miss mates a D+4 search finds?
+clock: go wtime 6000 btime 6000 winc 60 binc 60 | reference: go depth D+4 | PC20, Threads 1, Hash 16
+
+  # pieces    class   clock score   D     D+4 score  mate appeared?
+  1     21     full score cp -294  18 score cp -300           False
+  2     27     full score cp -256  18 score cp -312           False
+  3     14      mid  score cp 274  17  score cp 275           False
+  4     11   sparse score cp -798  18 score cp -878           False
+  5     12   sparse score cp -779  20 score cp -907           False
+  6      8   sparse score cp 4302  19  score mate 9            True
+  7     20     full   score cp 33  18   score cp 37           False
+  8     12   sparse score cp -1915  18 score cp -2233           False
+  9     30     full score cp -132  18 score cp -118           False
+ 10      9   sparse score cp 2387  16 score cp 2582           False
+ 11     20     full    score cp 0  19  score cp -26           False
+ 12     23     full score cp -256  18 score cp -292           False
+ 13     27     full  score cp 390  14  score cp 364           False
+ 14     15      mid score cp -1148  16 score cp -1185           False
+ 15     19      mid score cp -764  18 score cp -868           False
+ 16      9   sparse score cp -2371  17 score cp -2437           False
+
+SPARSE (<=12 pieces): 1 of 6 boards had a mate appear at D+4
+FULL   (>=20 pieces): 0 of 7 boards had a mate appear at D+4
+
+seat 08 claim: sparse 10 of 27 (37 %), full 0 of 30.
+
+VERDICT: CONFIRMS the MECHANISM and the CLASS ASYMMETRY of 08-F31 on my own board set; the exact rate is a different
+sample and I do not claim it.
+
+WHAT REPRODUCED:
+  * SPARSE (<= 12 pieces): **1 of 6 boards** had a mate APPEAR at depth D+4 that the clocked search reported as cp
+    (pos 6: `cp 4302` at depth 19 -> `mate 9` at depth 23). So the fault shape - a mate hiding behind a large cp
+    score at the depth the clock buys - is real and I saw it independently.
+  * FULL MATERIAL (>= 20 pieces): **0 of 7 boards**, every score within 80 cp of the deeper one (mostly within 30).
+    Exactly the class asymmetry they report.
+  * the "gap >= queen in centipawns" framing: on pos 6 the clock said cp **4302** - a score a cp-gap metric would
+    NEVER flag as wrong, since it LOOKS like a winning position - while the truth was mate 9. So their central
+    methodological point is confirmed by my own instance: quoting only the cp gap understates this completely.
+
+WHAT I DO NOT CLAIM: their rate. My sample is 6 sparse / 7 full / 3 mid boards from a 16-position set, not their
+30-per-class set, so 1-of-6 is not a contradiction of 10-of-27 (37 %) - both are "a minority of sparse boards, none
+full". A rate claim needs their sample size, not mine.
+
+ALSO NOTE: at pos 11 the engine gave `cp 0` at the clock and `cp -26` at D+4 on a 20-piece board - the drawn-root
+behaviour, not a volatility case, and consistent with my own S-F3 family being NOT A DEFECT under file 6.
