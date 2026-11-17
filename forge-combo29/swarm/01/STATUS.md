@@ -1992,7 +1992,10 @@ BACK TO CONFIRMING WORK, AND IT LANDED ON MY OWN AREA: softnodes was part of are
 SEAT 19's 19-C49 CONFIRMED ON PC20, WITH TWO THINGS THEY DID NOT SAY. Their claim: `softnodes N` stops at the first
 ITERATION BOUNDARY at or after N (search.cpp:2932, only after a completed iteration; hard cap 4N at :2499), so
 softnodes 2000 and 3000 can buy the IDENTICAL search. I verified both citations against the source first - both exact.
-  PC20: 6 of 12 = 50 % identical, IDENTICAL across three runs on the same six positions. Inside their predicted
+  PC20: 6 of 12 = 50 % identical, IDENTICAL across three runs on the same six positions. [SUPERSEDED LATER IN THIS
+  LOG: at n=200 the figure is 44.0 %, and the configuration-dependence claim below is withdrawn - see S-C42 and
+  S-C50 near the end. Left in place rather than edited because this is an append-only log; annotated because a
+  reader arriving here must not carry 50 % away.] Inside their predicted
         25-60 %, above their 10 % kill threshold -> P1 STANDS.
   plain: 2 of 12 = 17 %. Above their kill threshold but far below their predicted range.
   CONTROL 2000-vs-20000: 0 of 12 in both configs, so the tool CAN tell budgets apart and the identity is real - not
@@ -2532,4 +2535,28 @@ Next: continue at cadence.
    it needs a harness that knows where each check looks. RECORDING A GAP IS WORTH MORE THAN ROUNDING THE LIST UP TO FIVE.
 Gates: 203 rows, 0 wrong pipe counts, four mutation classes implemented and gating, coverage gap stated, stamps in
 order, gate rc=0 across 58 checks.
+Next: continue at cadence.
+## 2026-11-17T01:56:37Z — the add-without-remove rule, and the gap now has a cost attached (S-F148, S-F149)
+1. YOUR POINT 1 IS NOW A SIBLING OF TRAP 0, not a separate note (S-F148), because the mechanism is the same shape one
+   level up: "A correction that leaves the original claim standing elsewhere in the same section is not a correction."
+   And the mechanism is stated precisely so it transfers: AN EDIT HAS TWO OPERATIONS AND THE SECOND IS THE ONE THAT GETS
+   SKIPPED - adding is an authoring act, REMOVING IS A SEARCH ACT, and a search only works if you look for what you
+   wrote. Two mechanical habits: grep for the phrase you just contradicted, and write the addition and the removal in
+   ONE edit so no window exists where both are present.
+   APPLYING HABIT 1 IMMEDIATELY FOUND A LIVE CASE IN MY OWN LOG: STATUS.md states "PC20: 6 of 12 = 50 % identical" with
+   no marker, superseded to 44.0 % at n=200 much later in the same file. The log is append-only so the text stays, but
+   it is annotated IN PLACE now - because a reader arriving at that block must not carry 50 % away. A rule that finds a
+   violation the first time it is applied is a rule worth having.
+2. POINT 2 RECORDED, AND THE ENUMERATION POINT IS THE PART I KEPT PROMINENT: publishing a four-row table where three
+   were built is Trap 0 in the one place it is least excusable, inside a table whose subject is verification. AND THE
+   ENUMERATION ITSELF WAS THE CHECK - I caught it not by re-reading but by having to write a function per class, at
+   which point the missing one had no function to point at. Forcing a claim into an enumerated form is a verification
+   act, and cheaper than reviewing the same claim in prose. That is worth more than the stamp class now existing.
+3. POINT 3: THE GAP NOW HAS A KNOWN COST, DEMONSTRATED (S-F149). Path substitution is precisely the class that would
+   have caught S-F142, and I verified that EMPIRICALLY rather than by reasoning: a .txt carrying an escaped percent,
+   against the pre-S-F142 scan, gives "files the OLD scan would open: []" - zero files, so the defect passes silently;
+   the widened scan opens it. So the unimplemented class is not hypothetical - it has a documented failure already in
+   the record, which turns a named gap into a prioritised one.
+Gates: 205 rows, 0 wrong pipe counts, recipe and four classes gating, gap cost documented, stale claim annotated in the
+log, stamps in order, gate rc=0 across 58 checks.
 Next: continue at cadence.

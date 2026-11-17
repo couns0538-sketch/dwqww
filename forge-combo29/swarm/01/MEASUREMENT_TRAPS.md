@@ -30,6 +30,30 @@ So: **tables in a report are the pasted output of a committed script, never rety
 invisible to every plausibility check the author applies, because the wrong number reads as naturally as the right
 one — and only the script knows which it is.
 
+### The sibling: an edit that adds without removing (S-F148)
+
+Trap 0 is a number transcribed wrongly. Its sibling is a sentence **corrected wrongly**, and the mechanism is the same
+shape one level up:
+
+> **A correction that leaves the original claim standing elsewhere in the same section is not a correction.**
+
+I corrected Trap 13's conclusion — family B "cannot be automated" became "automation covers content, not coverage" — and
+left the original sentence three lines further down in the same section, in a paragraph that still read *"family B's
+residual is not automatable."* **A reader arriving at that section meets both, and the corrected one is the one with the
+hedge while the uncorrected one reads as the plain claim.** The stale version is also the more confident-sounding,
+which is exactly backwards.
+
+The mechanism, stated so it transfers: **an edit has two operations, and the second is the one that gets skipped.
+Adding the correction is an authoring act; removing the corrected-with text is a *search* act**, and a search only
+works if you look for what you wrote before. Two habits that make it mechanical:
+
+1. **Grep for the phrase you just contradicted**, in the same file, before you consider the correction done.
+2. **Write the correction and the removal in one edit**, so there is no window in which both exist.
+
+This is the same failure as a stale number surviving beside a fresh one, and the same failure as `S-F126`'s two
+statistics in one sentence: **the document ends up asserting both, and the reader has no way to know which is current.**
+The difference is only that prose claims are harder to grep than figures — which is why habit 1 above exists.
+
 ## Trap 1 — `MultiPV` above 1 divides a node budget (S-C21)
 
 The M lines are produced from the same N nodes, so a fixed budget buys fewer plies:
