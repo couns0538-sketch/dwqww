@@ -1,0 +1,124 @@
+--- a/src/search.cpp	2026-11-17 12:03:34.080663065 +0000
++++ b/src/search.cpp	2026-11-17 12:09:16.064663065 +0000
+@@ -90,10 +90,52 @@
+ #define FORGE_ABORT_FAIL_HIGH_FALLBACK 0
+ #endif
+ 
++// FORGE_SNG_CHECK (kimi5 job 19; default 0 = the code before it): singular
++// verification counters, observe only. 1 = one SNG counter line per UCI search.
++#ifndef FORGE_SNG_CHECK
++#define FORGE_SNG_CHECK 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_SNG_CHECK
++// Singular verification counters (kimi5 job 19). Observe only: no value, control
++// flow or table entry of the search changes. All runs of this job use Threads 1,
++// so plain counters. One counter set per UCI search: reset where the search's own
++// counters reset, one SNG line printed where the search result returns.
++namespace sngc {
++// Per (depth class, cut flag): verifications run, ended singular, doubles, triples,
++// multi-cut returns (singular_beta >= beta), negative extensions -2 and -1.
++// Classes: 0 = depth 6-7, 1 = 8-9, 2 = 10-11, 3 = 12+, 4 = any other depth.
++struct Cnt {
++    std::uint64_t verif = 0, sing = 0, dbl = 0, trp = 0, mc = 0, n2 = 0, n1 = 0;
++};
++Cnt c[5][2];
++int cls_of(int d) {
++    if (d >= 6 && d <= 7) return 0;
++    if (d >= 8 && d <= 9) return 1;
++    if (d >= 10 && d <= 11) return 2;
++    if (d >= 12) return 3;
++    return 4;
++}
++void reset() { std::memset(c, 0, sizeof(c)); }
++void print() {
++    static const char* names[5] = {"d6_7", "d8_9", "d10_11", "d12p", "other"};
++    std::cout << "info string SNG v1";
++    for (int k = 0; k < 5; ++k)
++        for (int cut = 0; cut < 2; ++cut) {
++            const Cnt& x = c[k][cut];
++            std::cout << ' ' << names[k] << (cut ? "c " : "n ") << x.verif << ',' << x.sing << ',' << x.dbl
++                      << ',' << x.trp << ',' << x.mc << ',' << x.n2 << ',' << x.n1;
++        }
++    std::cout << std::endl;
++}
++} // namespace sngc
++#endif
++
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -2194,6 +2236,11 @@
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++#if FORGE_SNG_CHECK
++            const int sng_cls = sngc::cls_of(depth);
++            const int sng_cut = cut_node ? 1 : 0;
++            ++sngc::c[sng_cls][sng_cut].verif;
++#endif
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             // grok47/r4-08 (audit finding 7): (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch,
+             // which never reads excluded_move, so the singular search would cut off on this node's own
+@@ -2209,18 +2256,36 @@
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
++#if FORGE_SNG_CHECK
++                ++sngc::c[sng_cls][sng_cut].sing;
++#endif
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
++#if FORGE_SNG_CHECK
++                    ++sngc::c[sng_cls][sng_cut].dbl;
++#endif
+                     if (tune::TripleExtMargin > 0 && !tt_capture && singular_score < singular_beta - tune::TripleExtMargin) {
+                         extension = 3;
++#if FORGE_SNG_CHECK
++                        ++sngc::c[sng_cls][sng_cut].trp;
++#endif
+                     }
+                 }
+             } else if (singular_beta >= beta) {
++#if FORGE_SNG_CHECK
++                ++sngc::c[sng_cls][sng_cut].mc;
++#endif
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
++#if FORGE_SNG_CHECK
++                ++sngc::c[sng_cls][sng_cut].n2;
++#endif
+             } else if (cut_node) {
+                 extension = -1;
++#if FORGE_SNG_CHECK
++                ++sngc::c[sng_cls][sng_cut].n1;
++#endif
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+@@ -2476,6 +2541,9 @@
+     stopped_by_nodes_ = false;
+     extra_nodes_ = 0;
+     pondering_ = limits.ponder;
++#if FORGE_SNG_CHECK
++    sngc::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
+@@ -3131,6 +3199,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_SNG_CHECK
++    sngc::print(); // one SNG counter line per UCI search
++#endif
+     return result;
+ }
+ 

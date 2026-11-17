@@ -1,0 +1,48 @@
+--- a/src/search.cpp	2026-11-17 12:03:13.148663065 +0000
++++ b/src/search.cpp	2026-11-17 12:03:34.080663065 +0000
+@@ -119,6 +119,8 @@
+ int SeeNoisyMultiplier = 150;
+ int SingularDepth = 7;
+ int SingularMargin = 2;
++int SingularNonCut = 0;
++int TripleExtMargin = 0;
+ int IirDepth = 4;
+ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
+@@ -200,6 +202,7 @@
+         {"SeeQuietMultiplier", &SeeQuietMultiplier, 0, 200},
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
++        {"SingularNonCut", &SingularNonCut, 0, 1},       {"TripleExtMargin", &TripleExtMargin, 0, 400},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+@@ -2198,7 +2201,8 @@
+             const int singular_depth = std::max(1, (depth - 1) / 2);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+-            const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta,
++                                                    tune::SingularNonCut ? false : cut_node);
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -2207,6 +2211,9 @@
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
++                    if (tune::TripleExtMargin > 0 && !tt_capture && singular_score < singular_beta - tune::TripleExtMargin) {
++                        extension = 3;
++                    }
+                 }
+             } else if (singular_beta >= beta) {
+                 return singular_beta;
+@@ -2219,7 +2226,7 @@
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+         }
+-        ss->double_extensions = inherited_double_extensions + (extension == 2);
++        ss->double_extensions = inherited_double_extensions + (extension >= 2);
+         int new_depth = depth - 1 + extension;
+ 
+ #if FORGE_SPD_PREFETCH_EARLY

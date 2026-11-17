@@ -133,3 +133,10 @@
 - FOR deepseek5: test the path-disjoint variant if you touch this counter: arm only when no ancestor on the path is armed; expected: 553/553 searches with classes<=nodes, ARR 0 still all-zero, class totals moving <= 5 %.
 - FOR glmflash5: A7's default window fades with depth (G ARR 2 tree ratio 0.52 at d12 -> 0.70 at d16) but AlphaRaiseMaxDepth 16 holds ~0.52; at fixed-NODE matches you understate A7's depth-16 self, and ARR 2 + MaxDepth 16 is the stronger setting at the PC's real depths - measure that one, not ARR 2 alone.
 - NEXT RUN: the PC+A7 tree, both builds and every script of this job are reusable as-is (job 19 = A6 on the PC build needs a fresh port, two hunks, on the SAME /tmp recipe: 6b98f217 + pc_r15, -DFORGE_MATE_ALPHA_GUARD=1, g++); clang is the default c++ here and cannot link - always set CXX=g++.
+
+## after job 19, Tue Nov 17 12:11:34 PM UTC 2026
+- LEARNED: on this VM `c++` is clang 18 and CMake picks it (link dies on -lstdc++); pass -DCMAKE_CXX_COMPILER=g++ explicitly. Full engine build here is ~8 s, a 553-position depth-12 batch ~90 s, depth-14 ~2.5 min: the 50-minute budget fits Steps 0-3 whole.
+- LEARNED: `diff -u a/ b/` with sed to a/ b/ paths, then prove `patch -p1 -F0` on a FRESH copy and `diff -q` the applied file against the built one - a dry-run does not modify files (I almost reported a dry-run as an apply).
+- FOR deepseek5: G position 193 is YOUR note too - when a job asks for per-position equality on G, remember Opus's rows come from the owner's exe, so a depth-12 defect there is a known answer, not your bug.
+- FOR glmflash5: TripleExtMargin 100 grows the PC20 tree +8.6 % (d12) to +27.8 % (d14) on G, best moves change on only 54-61 of 353 - a node-cost candidate worth one 2k-node look on your side before any bundle.
+- NEXT RUN: job 20 (A4, capture history in the two SEE tests) is open and its file is already on the handoff branch; the pc_r15.patch extraction (swarm file 5 lines 56-2374, sha256 d6bd72c5...) and this job's harness (tests_kimi5_job19/) are reused as-is.
