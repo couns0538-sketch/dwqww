@@ -113,6 +113,8 @@ The control, same sequence with the valid FEN (`...RN2KB2`): `info depth 12 ... 
 
 ## How to know a guard actually fired
 
+**Plant it, read the message, and only then believe the exit code.**
+
 A guard that exits non-zero for the WRONG reason looks exactly like a guard that fired. When I first
 tested the FEN gate above I had copied the script to `/tmp` and it exited 1 with
 `FileNotFoundError: .../check17/settle_pos29.py` — a relative-path failure, not the gate. Re-run in
