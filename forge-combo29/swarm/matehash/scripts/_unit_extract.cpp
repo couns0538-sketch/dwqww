@@ -109,6 +109,43 @@ int main() {
     // ValueNone must survive the probe path
     if (score_from_tt(ValueNone, 10) != ValueNone) fails.push_back({"valuenone", 10, 10, 0, 0, 0});
 
+    // ---- the coordinator's named experiment, spelled out -----------------
+    // "store a mate at ply 4 and probe at ply 8, compare against the DTM".
+    // DTM here is `rem` plies below the node; the value stored must be the
+    // position-relative MATE-rem, and reading it at ply 8 must give a
+    // root-relative distance of 8+rem -- i.e. the same DTM, re-referenced.
+    printf("named_case store_ply=4 probe_ply=8\n");
+    for (int rem : {1, 3, 5, 7, 9}) {
+        const int at_node = MateValue - (4 + rem);   // score seen at ply 4
+        const int stored  = score_to_tt(at_node, 4); // what the table holds
+        const int reread  = score_from_tt(stored, 8);
+        const int dist_at_node = MateValue - std::abs(at_node);   // root-relative at ply 4
+        const int dist_reread  = reread == ValueNone ? -1 : MateValue - std::abs(reread);
+        // Three things must hold, and they are three separate claims:
+        //  1. the root-relative distance at storage is 4 + rem;
+        //  2. the root-relative distance at the re-probe is 8 + rem;
+        //  3. the distance BELOW THE NODE -- dist minus its own ply -- is rem
+        //     both times, i.e. the mate itself did not move.
+        // Assertion 3 is the one that would fail on a wrong or absent
+        // adjustment, and it is expressed without reference to either ply.
+        const bool dtm_same = (dist_at_node == 4 + rem) && (dist_reread == 8 + rem)
+                              && (dist_at_node - 4 == rem) && (dist_reread - 8 == rem);
+        printf("  rem=%d node=%d stored=%d reread=%d dist@4=%d dist@8=%d below_node=%d %s\n",
+               rem, at_node, stored, reread, dist_at_node, dist_reread,
+               dist_reread - 8, dtm_same ? "OK" : "MISMATCH");
+        if (!dtm_same) fails.push_back({"named_case", 4, 8, rem, dist_reread, 8 + rem});
+        ++checked;
+    }
+    // Can a legitimate DTM reach the clamp? MateInMaxPly = MateValue - MaxPly,
+    // so a mate score touches the clamp exactly at distance MaxPly. Report the
+    // largest DTM the search can produce and whether it lands on the boundary.
+    printf("clamp MateInMaxPly=%d MateValue=%d MaxPly=%d\n", MateInMaxPly, MateValue, MaxPly);
+    printf("  max_legal_dtm_plies=%d  score_at_max=%d  is_mate_score=%d\n",
+           MaxPly - 1, MateValue - (MaxPly - 1),
+           (MateValue - (MaxPly - 1)) >= MateInMaxPly ? 1 : 0);
+    printf("  score_at_exactly_MaxPly=%d  is_mate_score=%d\n",
+           MateValue - MaxPly, (MateValue - MaxPly) >= MateInMaxPly ? 1 : 0);
+
     printf("cells_checked %d\n", checked);
     printf("failures %zu\n", fails.size());
     for (size_t i = 0; i < fails.size() && i < 12; ++i) {
