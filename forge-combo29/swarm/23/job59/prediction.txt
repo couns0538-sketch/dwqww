@@ -1,0 +1,39 @@
+PREDICTION — SW-23 job 59 (does the ENGINE's repetition key include CASTLING RIGHTS?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F117's handoff lists this as mechanism **C** and names the observation that would settle it. It is a position-IDENTITY
+question, which is area-3 relevant: whether two boards with the same piece placement and side to move but different
+castling rights are "the same position" for repetition purposes.
+
+DESIGN — a position that recurs with the SAME placement and side to move but DIFFERENT castling rights, because a king
+or rook moved away and came back. Under FIDE, castling rights are part of position identity, so this is NOT a repetition;
+under a key that ignores them, it is.
+
+Base board: `r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1` — the F108/F114 board, where a threefold in the move list SEARCHES
+(17,601 nodes). That is the crucial property: this board is known NOT to bail on a rights-preserving threefold, so if a
+rights-CHANGING recurrence makes it bail, the comparison is meaningful.
+
+Sequence (all moves validated in python-chess before the engine runs):
+  Q1  `e1e2 e8e7 e2e1 e7e8` — both kings step out and back. Rights are LOST (KQkq -> -) after the first king move and
+      never return. The final position has the SAME placement and side to move as the root but castling `-`.
+      Sent once (2 full cycles would be needed for threefold) — see Q2.
+  Q2  `e1e2 e8e7 e2e1 e7e8` ×2 — the final position occurs at plies 0/4/8 with the same PLACEMENT each time but rights
+      only on occurrence 1. Under a rights-inclusive key: occurrences are (rights) and (-) (-) → at most 2 of a kind.
+      Under a rights-blind key: 3 occurrences.
+  Q3  CONTROL, rights preserved: `a1b1 a8b8 b1a1 b8a8` ×2 → 3 occurrences WITH rights, known to search (17,601 nodes).
+
+Prediction (each with the range that kills it):
+  P1  Q3 SEARCHES (reproducing 23-F114's 17,601-node cell on this board). KILLED if it bails — then the board is not
+      behaving as recorded and no comparison below is valid.
+  P2  **Q2 ALSO SEARCHES** — the engine's repetition key INCLUDES castling rights, so a rights-losing recurrence is not a
+      threefold. KILLED if Q2 bails (0 nodes with cp 0), which would mean the key is rights-BLIND and the engine would
+      call a non-repetition a repetition — a distinct defect, and a broader one, since it would fire in ordinary games
+      whenever a king or rook returns home.
+  P3  Q1 SEARCHES (a single cycle, no threefold under any key). KILLED if it bails — that would mean something other
+      than repetition count drives the bail on this board.
+  P4  EVERY move list validates: the final position's placement and side to move equal the root's, and I print the
+      castling field at each occurrence so the reader can see the rights actually change. KILLED if the rights do NOT
+      change (e.g. the shuttle avoids the king) — the fixture would then not test the question.
+
+This is the direct test of mechanism C. If P2 holds, C is dead as an explanation for the F112/F114 anomaly and the source
+reader should look elsewhere; if P2 fails, C is live and the defect is worse than a bail on genuine repetitions.
