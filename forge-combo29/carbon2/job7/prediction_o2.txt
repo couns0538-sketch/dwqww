@@ -1,0 +1,17 @@
+Step O2 Prediction (committed ALONE before any Step O2 timed run)
+=================================================================
+Step name: `O2` (`o2_uci_option_info_once.patch.txt`, stacked on `job6/bundle2.patch.txt + job7/o0_drop_s7p3_and_s5_assert.patch.txt`)
+
+What Step O2 adds and what work it removes (with Task 1 counts from `outside_search_counts.txt`):
+- Adds UCI option `InfoOnce` (`type check default false`).
+- With `InfoOnce` absent / `false`: output is unchanged byte for byte.
+- With `InfoOnce` set to `true`: suppresses intermediate `info depth ...` formatting, mutex locking, and `std::cout.write` / `std::cout.flush()` calls (`62,868 / 70,513` lines = `89.16%` of `info depth` lines, `8.2234` discarded lines per search) as well as auxiliary `info string softnodes nodes ...` / `TmNodeShare` / `TmFinishIteration` lines during search, snapshotting the latest exact-score `emit(...)` state and writing + flushing that ONE `info depth ...` line directly before `bestmove` (byte-for-byte identical, modulo `time`/`nps`, to the line picked by the PC client's rule on the `false` run, including exact `depth`, `seldepth`, `score`, `nodes`, `hashfull`, and `pv`).
+- Task 1 measured count at `Hash 32` (`outside_search_counts.txt`): `info` output consumed `2.226-2.246 ms` engine CPU per game (`133.55-134.76 ms` across 60 games) = **`1.009%-1.021%` of engine CPU** (`9.2234` `info` lines and `914.15` bytes per search), plus `7,645` `info string softnodes` flushes and client-side pipe `readline()` parsing over `70,513` suppressed lines per 60-game run.
+
+Predicted self-play gain at `Hash 32` (`A = base`, `B = O2 with InfoOnce true`, 8 rounds x 60 games ABBA on Intel Xeon @ 2.60GHz):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): `+0.7%` to `+2.2%` (`1.007x` to `1.022x`).
+- End-to-end self-play wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`, reflecting both engine `write`/`flush` syscalls and client pipe reads): `+1.5%` to `+4.5%` (`1.015x` to `1.045x`).
+
+Kill range:
+- Any mismatch on the `InfoOnce` absent/false whole-stream output proof, the `InfoOnce true` per-search client-rule proof (`7,645` searches), or any engine identity pin kills `O2` immediately.
+- If `median_of_paired_round_ratios` across the 60-game `Hash 32` ABBA runs is `<= 1.005x` (`<= +0.5%`) on engine `getrusage` CPU AND `<= 1.010x` (`<= +1.0%`) on wall clock, the `O2` speed prediction is killed.
