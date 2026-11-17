@@ -45,6 +45,36 @@ separately and answered by measurement:
 Inferring (2) from (1) produces either false alarm (impugning seat 25) or false comfort (clearing the `f3`
 premise that really was wrong). It produced both tonight, in the same family of findings.
 
+## Test the CLAUSE, not the claim
+
+The most useful catch of the last hour was not a wrong finding. It was **one wrong clause inside a correct
+finding**, and the difference is what makes it hard to detect.
+
+The claim I published was: *an illegal FEN is diagnosed and then the previous position is searched; therefore
+scan the reply for `invalid FEN` and abort.* **Every part of that is true.** Attached to it, in the same
+paragraph, was a supporting clause: *"a fresh session gives no diagnostic at all, so the first position is
+undetectable."* **That clause was false** — the diagnostic is always emitted; only its location moves.
+
+**Why testing the headline would not have found it.** I did verify the finding: I re-ran the invalid-FEN case,
+confirmed the substitution, confirmed it on both builds, confirmed seat 01's discriminator. All of that passed,
+because **the finding was right**. The wrong clause was a *caveat*, and caveats are exactly the part of a
+finding that nobody re-tests — they do not change the recommendation, so they read as harmless colour.
+
+**Two concrete rules:**
+
+1. **A caveat is a claim and gets tested like one.** "You cannot detect X" and "this only works when Y" are
+   assertions about the engine, and an untested assertion in the qualifications is as dangerous as one in the
+   conclusion — more so, because a reader trusts it without checking.
+2. **When a claim has an "only" / "never" / "cannot" in it, that word is the whole claim.** The test is
+   narrow ("is there a case where the diagnostic is missing?") and it takes one command. My clause had a
+   universal negative in it and I had tested the *positive* half of the same sentence.
+
+**The mechanism of the original error, kept because it is the sharpest instance in this file:** I concluded the
+engine omitted the diagnostic because it was absent **from the lines my probe was reading**. That is S-C84
+itself, one level up — inferring an engine's behaviour from the slice of its output a harness happens to
+capture. A harness that reads only the search stream misses the diagnostic; a researcher who reads only one
+stream misses the engine.
+
 ## Judge by the artifact, never by its appearance
 
 Three guard failures on this thread, by three different seats, all from the same mistake:
