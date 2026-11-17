@@ -878,3 +878,13 @@ every sentence.
 - S-F68: the three seats' rates differ by POSITION SET not by seat (2/5, 4/8, 6/30). My hand-built set gave 50%, my
   randomly-generated set 20%. Middlegame arm stable across all three: 0/5, 0/8, 0/30.
 - next command: reconcile the contention relay with my own S-F49 explanation.
+
+## $(date -u) — SUGGESTED JOB: second sparse sample
+- S-F70: the half-not-delivered fraction is NOT stable — fresh seed, 30 more sparse endgames: **6/30 gained a label
+  again, but only 1 undelivered** (first set: 3 of 6). Pooled: 12 gained, 4 undelivered = 1 in 3. Honest summary:
+  "between a third and a half of gained mate labels were not delivered in my two samples", not a fixed fraction.
+  BUT the mechanism is clear: all 4 undelivered cases are mate +15/+17/+15/+19 (needing 29/33/29/37 plies, PVs of
+  28/31/25/35) — every one a LONG mate, |N| >= 15, while every delivered case in the same sets is |N| <= 14.
+- S-F71: the class direction is stable across FOUR sets: sparse gains labels on every one (2/5, 4/8, 6/30, 6/30);
+  middlegame gains none on any (0/5, 0/8, 0/30, 0/30) = **0 of 73 middlegame positions across four sets**.
+- next command: continue at cadence.
