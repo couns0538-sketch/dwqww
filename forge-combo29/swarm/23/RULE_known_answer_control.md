@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **nineteen** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, NINETEEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these nineteen faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -389,6 +389,25 @@ Two things this cost and two it bought:
   - bought: 23-F95, a real front-end hazard, found by tripping over it.
   - bought: the habit — every move list in every fixture from now on goes through python-chess legality and
     occurrence-count assertions BEFORE the engine is started, and the assertion prints what it checked.
+
+## Instance 20 — the prediction was about the engine, and the fixtures were the part that failed (23-F97)
+
+I wrote a prediction over three fixtures: "the mate is thrown away on at least two of the three". Two of the three could
+not answer. One root had **no short repetition cycle at all** (rook on a1, king on b3 — every shuffle changes the
+position), so it was excluded at construction. The other had a threefold root that is `cp 430` and stays `cp 430/427/
+427/427` at depths 16/18/20/22 — a genuine long win with **no mate available**, so "threw away the mate" is vacuous
+there and my own printed P4 excluded it.
+
+Result: one eligible fixture, which is the one F96 already had. The prediction was evaluated against a denominator of
+one while being phrased about three.
+
+**The rule: when a prediction is phrased over N fixtures, "N are measurable" is itself a claim about the world, and it
+needs checking before the prediction means anything.** These were MY fixtures — the part of the experiment I control
+completely — and I predicted the engine's behaviour while leaving my own construction's viability unpredicted. Print
+the eligible count first, then evaluate against that number, and say which fixtures dropped out and why.
+
+Worth noting the outcome was still useful: the same run confirmed 23-F93's zero-node rule on a SECOND root, which is
+what let F96 be re-scoped to one fixture instead of being withdrawn entirely.
 
 ## The fix, in one line each
 

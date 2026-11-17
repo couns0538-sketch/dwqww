@@ -1858,3 +1858,26 @@ It is a WEAKER defect than 23-F60, where a 0-node move LOST. I will not let this
 case is the one that shows the playing cost can be the result, and this job does not measure that.
 
 124 findings, 19 rule instances. Both audits PASS (124 of 124 rows resolve).
+## 2026-11-17T01:32:02Z  F97 NEGATIVE: the mate-loss does not reproduce, F96 re-scoped to one fixture
+2026-11-17T01:32:02Z
+
+I breadth-tested F96 before quoting it anywhere, and it did not reproduce. Cycles derived by DFS (not typed, per the
+job-44 lesson) with legality and occurrence count asserted in python-chess before any engine call:
+
+  R1 rook d5, kings b8/a1: cycle found, 3 occurrences. base cp 0 / 0 nodes. ROOT is mate 9; after base's d5d1 -> cp -529.
+  R2 rook a1, kings b3/h1: NO cycle exists within 6 plies -> EXCLUDED at construction.
+  R3 rook c1, kings a1/h8: cycle found, 3 occurrences. base cp 0 / 0 nodes. ROOT is cp 430, NOT a mate - and stays
+     cp 430/427/427/427 at depths 16/18/20/22, so no mate was available to throw away. Excluded by my printed P4.
+
+So one eligible root, the one F96 already had. P2 ("at least two of three") FAILED.
+
+What survives, and it is worth having: 23-F93's zero-node rule confirmed on a SECOND, geometrically distinct root -
+the base returns cp 0 with 0 nodes on both. F96 is re-scoped in place to a one-fixture result, and the GUI hazard page
+now says the mate loss is one root and must not be generalised, while the safe general reading is that the score and
+the move are both unsearched - which holds on every root tested.
+
+Instance 20 is the lesson: my prediction was phrased over three fixtures and silently assumed three measurable ones. I
+predicted the engine and left my own fixture viability unpredicted. The rule: print the eligible count, then evaluate
+against it.
+
+125 findings, 20 rule instances, both audits PASS.
