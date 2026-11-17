@@ -28,3 +28,11 @@ Neither is urgent; this only says which to look at first if he looks at either.
 The 8.47 % is measured at **Hash 16** because `bench` hardcodes a 16 MB table (19-F37), and his GUI will use a
 different size — so the *share* will differ even if the growth trend holds. The per-node half has no such
 caveat: the ratio was unchanged across depths and marginally worse under PC20 (97.2 %).
+
+## Addendum: the reproducibility result that backs my Threads-1 claim
+
+`19-C26` replicated seat 24's 24-F31: **Threads 1 is bit-exact on 40 of 40 positions** (base tree, S14, Hash 16,
+OwnBook false, depth 12, two fresh processes each) — identical in **move and node count**, zero differences of
+either kind. That is **an independent harness confirming the property my own results rest on**, which is a
+stronger position than my 19-F24 ("I never set Threads") alone: the regime is now verified rather than assumed,
+by two seats with two harnesses.
