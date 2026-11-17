@@ -230,6 +230,10 @@ class Engine:
 
         # THE S-C84 DEFENCE: the engine diagnoses a refused FEN and then searches the PREVIOUS position.
         # A probe that ignores this line records the wrong board's answer under this board's name.
+        # The diagnostic appears in ONE OF TWO PLACES depending on whether the caller sent `isready`
+        # after `position` (S-C91 matrix): in the POSITION reply when it did, and in the `go` output AHEAD
+        # OF THE FIRST `info depth` when it did not. Scanning both is the only complete defence, and it is
+        # cheap. A harness that reads only one of the two misses it half the time.
         for l in lines:
             low = l.lower()
             if "invalid fen" in low or "illegal fen" in low:
@@ -295,6 +299,37 @@ def _selftest(exe=None):
             chk("3 invalid-FEN reply guard fires on a refused FEN", False, "it returned a result")
         except ProbeError as ex:
             chk("3 invalid-FEN reply guard fires on a refused FEN", "REFUSED" in str(ex))
+
+    # control 6: the NO-isready path must also raise. `search()` always sends `isready`, so this control
+    # drives the engine by hand - otherwise it is testing the same code path as control 5 and passing for
+    # the same reason, which is exactly the vacuous-control trap this file is about.
+    if exe:
+        import subprocess as _sp
+        p2 = _sp.Popen([exe], stdin=_sp.PIPE, stdout=_sp.PIPE, stderr=_sp.STDOUT, text=True, bufsize=1)
+        try:
+            p2.stdin.write("uci\n"); p2.stdin.flush()
+            for l in iter(p2.stdout.readline, ""):
+                if l.strip() == "uciok":
+                    break
+            p2.stdin.write("position fen 8/8/8/8/8/8/1k6/K7 w - - 0 1\n")
+            p2.stdin.write("go depth 4\n"); p2.stdin.flush()
+            saw_diag_before_info = False
+            seen_info = False
+            for l in iter(p2.stdout.readline, ""):
+                low = l.lower()
+                if "invalid fen" in low and not seen_info:
+                    saw_diag_before_info = True
+                if l.startswith("info depth"):
+                    seen_info = True
+                if l.startswith("bestmove"):
+                    break
+            chk("6 diagnostic appears in the go output BEFORE first info depth",
+                saw_diag_before_info)
+        finally:
+            try:
+                p2.kill()
+            except Exception:
+                pass
 
     if exe:
         with Engine(exe, settings="PC20", depth=8) as e:

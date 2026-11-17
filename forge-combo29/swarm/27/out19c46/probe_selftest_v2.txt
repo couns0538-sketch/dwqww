@@ -1,0 +1,22 @@
+probe.py self-test WITH control 6 (both diagnostic paths), 2026-11-17T03:49:30Z
+
+probe.py self-test:
+  1 illegal FEN refused before reaching the engine           PASS 
+  2 a valid FEN passes                                       PASS 
+  3 invalid-FEN reply guard fires on a refused FEN           PASS 
+  6 diagnostic appears in the go output BEFORE first info depth PASS 
+  4 a real search returns a parseable result                 PASS Result(depth=8, score=('cp', 22), nodes=6170, bestmove=d2d4, pv=8)
+  5 REAL engine's refused-FEN reply is caught                PASS 
+EXIT=0
+
+=== CONTROL 6 PROVEN ABLE TO FAIL ===
+Run against a fake engine that does NOT emit the diagnostic, control 6 reports:
+  saw_diag = False -> FAIL (correct: the control detects the absence)
+So control 6 is not vacuous: it passes on the real engine, and fails on an engine that omits the line.
+
+=== AND THE CORRECTED DEFENCE IT IMPLEMENTS ===
+The diagnostic appears in ONE OF TWO PLACES (S-C91 matrix):
+  in the POSITION reply   when the harness sends isready after position
+  in the go OUTPUT        otherwise, BEFORE the first info depth line
+Scanning both is the only complete defence. My first version scanned one and I
+wrongly concluded the fresh-session case had no diagnostic at all.
