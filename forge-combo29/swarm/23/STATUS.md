@@ -1933,3 +1933,31 @@ publishing the unmodified list head; root ordering skipped when the draw short-c
 ranked - ranking them without reading the code would be an invented cause.
 
 128 findings, 20 rule instances, both audits PASS.
+## 2026-11-17T01:36:45Z  F101-F102: index 0 costs a median ~625 cp (my prediction was 10x low), and my scoring needed 3 fixes
+2026-11-17T01:36:45Z
+
+First DISTRIBUTION measurement of what playing generator index 0 actually costs, rather than two showcase boards.
+12 positions, every 400th line of the validated seed-2301 set (deterministic, not hand-picked), base for g0 and the
+searched move, PC at depth 12 scoring in the mover's view.
+
+Costs excluding one mate row: 40, 213, 442, 601, 607, 644, 1005, 1035, 1261, 2148, 2222.
+  median 625.5 | min 40 | max 2,222 | TEN of twelve >= 300 cp | g0 == searched best on 0 of 12.
+The twelfth position: the searched move mates in 5 and g0 does not - reported separately because a mate is not a cp
+value. Planted blunder control = +1,259 cp damage, so the measure can see damage.
+
+P1 KILLED. I predicted a median under 60 cp on the theory that index 0 is usually adequate. It is ten times that.
+
+F102 is the part worth reading. Getting to those numbers took THREE fixes to my own scoring, and none was caught by a
+control I designed - each was caught because the number was absurd on rereading:
+  1. a sign branch keyed on b.turn AFTER the push, i.e. the opponent, inverting every black-to-move row. Caught because
+     the table said a depth-12 SEARCHED best move was 2,222 cp worse than an unsearched one, which cannot be true.
+  2. 100000-1000*val turning "mate -4" (side to move IS mated) into +104000. Caught the second time position 8 gave an
+     absurd number; p8_check.out is the independent rerun that exposed it.
+  3. I printed sorted[n//2] and called it the median - the upper of two middle elements, one rank too high.
+
+The fix is installed, not described: the script asserts that the searched best move is not materially worse than g0
+(tolerance 200 cp) and that a mate cell never scores negative for the mover, printing ABSURDITY and skipping the row,
+plus a sign-convention self-test before any cost is computed. Those assertions would have caught 1 and 2 immediately.
+Absurdity depends on somebody rereading a table; an assertion does not.
+
+130 findings, 20 rule instances, both audits PASS.

@@ -1,0 +1,63 @@
+PLAYING GENERATOR INDEX 0 COSTS A MEDIAN OF ~625 cp — and this job's own arithmetic needed THREE fixes
+=========================================================================================================
+23-F98/F100 established WHAT the 0-node move is (generator index 0). F60 and F96 measured what it cost on two boards.
+This job measures the DISTRIBUTION, and it took three corrections to its own scoring before any number was usable.
+
+THE RESULT, after the corrections
+---------------------------------
+Positions: every 400th line of the validated seed-2301 set (5000 positions), giving 12 evenly spread positions —
+deterministic sampling, not hand-picked. Base build for g0 and the searched move, PC at depth 12 for scoring, mover's
+view throughout.
+
+| # | g0 (index 0) | searched best | score after g0 | score after best | cost |
+|---|---|---|---|---|---|
+| 1 | e5e4 | f8g7 | -37 | 3 | 40 |
+| 2 | h2h3 | g6h6 | 1012 | 1619 | 607 |
+| 3 | c2c3 | b4b5 | -970 | -369 | 601 |
+| 4 | c2c3 | a7a8 | -248 | 757 | 1005 |
+| 5 | c2c3 | d1d2 | -601 | 43 | 644 |
+| 6 | f4f5 | b4b1 | -1775 | -740 | 1035 |
+| 7 | b2b3 | d5e6 | 537 | 979 | 442 |
+| 8 | d5d4 | f4h2 | -1001 | **mate in 5** | **975 plies→mate** |
+| 9 | g4g5 | c2c3 | -1481 | -1268 | 213 |
+| 10 | c3c4 | d4c5 | 676 | 1937 | 1261 |
+| 11 | a6a5 | b8d7 | -2426 | -204 | 2222 |
+| 12 | h3h4 | b4e4 | -1858 | 290 | 2148 |
+
+**Costs in cp, excluding the one mate row: 40, 213, 442, 601, 607, 644, 1005, 1035, 1261, 2148, 2222 → median 625.5,
+min 40, max 2,222. Ten of twelve are >= 300 cp.** Position 8 is reported separately because a mate is not a cp value:
+on it the searched move mates in 5 and g0 does not, so g0 missed a forced mate outright — 1 of 12.
+
+P1 **KILLED**: I predicted a median under 60 cp on the theory that index 0 is usually adequate. The measured median is
+**625.5 cp**, an order of magnitude larger. The prediction's own kill condition was "median exactly 0", which the
+weaker form of the prediction would have passed — but the substantive claim ("small but non-zero") is wrong and is
+recorded as wrong.
+P2 HELD: heavily skewed — median 625.5 with a tail to 2,222 cp plus a missed mate.
+P3 HELD: g0 == the searched best move on **0 of 12**, so the comparison is between genuinely different moves.
+P4 HELD after the fixes: the planted blunder (a move giving away a queen or rook) registers **+1,259 cp** of damage,
+so the measure can see damage and the near-numbers are not blind.
+
+THE THREE CORRECTIONS, in order, because the sequence is the lesson
+-------------------------------------------------------------------
+1. **A sign branch on the wrong side.** `sign = -1 if not b.turn else 1` branched on the side to move AFTER the move
+   had been pushed — which is the OPPONENT — so every black-to-move row was inverted. Caught because the table said a
+   depth-12 SEARCHED best move was 2,222 cp WORSE than an unsearched move, which is absurd on its face.
+2. **A mate formula valid for one sign only.** `100000 - 1000*val` turns `mate -4` (the side to move IS mated) into
+   **+104000**, i.e. a big win. Caught the second time the same position produced an absurd number.
+3. **"Median" of an even-length list.** I printed `sorted[n//2]` (the upper of the two middle elements) and labelled it
+   the median. The true median of eleven values is the sixth; my number was one rank too high. For twelve values the
+   median is the mean of the 5th and 6th, so printing a single element needs the convention stated.
+
+WHAT THIS SAYS ABOUT MY OWN METHOD, plainly
+--------------------------------------------
+None of the three was caught by a control I designed. Each was caught because the NUMBER WAS ABSURD — a searched move
+worse than an unsearched one, a mate scored as a win for the wrong colour, a median that disagreed with the sorted list
+when I looked at it. A control that asserts "the searched best move must never be materially worse than generator
+index 0" would have caught #1 and #2 immediately; that control did not exist and now should. **Absurdity is a detector
+that depends on somebody rereading the table; an assertion does not.**
+
+LIMITS: 12 positions from one seed set, `go depth 12` for scoring, one build pair, middlegame positions only (the drawn
+roots behave differently by construction — there g0 is returned with 0 nodes and cp 0, so the "cost" there is measured
+by F96's method, not this one). The PC is the scorer, so g0 and best are both judged by one engine's evaluation; the
+planted case is what shows that judge can see real damage. The 625.5 cp median is a property of THESE 12 positions at
+depth 12, and I do not extrapolate it to a rating loss without game results, which I have not measured.
