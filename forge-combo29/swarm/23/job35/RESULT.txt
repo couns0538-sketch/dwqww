@@ -1,0 +1,32 @@
+DOES `eval` SEE THE DRAWN ROOT? — NO: eval and go DISAGREE COMPLETELY on the same position
+========================================================================================
+The whole drawn-root chain used `go`. An analysis tool may instead call `eval`, which scores statically. Threefold
+root sent as a move list (so it is genuinely drawn by repetition), base and PC, Threads 1, Hash 16:
+
+| build | position | `eval` hce / nnue / total | `go depth 12` |
+|---|---|---|---|
+| base | repetition root | **502 / -96 / 406** | **cp 0, 0 nodes**, d5d1 |
+| base | counter-0 twin (not drawn) | 502 / -96 / 406 | cp 348, 22,108 nodes |
+| PC r15 + PC20 | repetition root | **502 / -96 / 406** | cp 507, 44,269 nodes, d5b5 |
+| PC r15 + PC20 | counter-0 twin (not drawn) | 502 / -96 / 406 | mate 8, 48,226 nodes |
+
+FINDINGS:
+1. **`eval` is completely blind to the repetition**: its total is **406 on the repetition root and 406 on the
+   counter-0 twin — byte-identical** — which is correct for a STATIC evaluator (it scores the board, not the history)
+   but means an analysis tool reading `eval` never sees that the position is drawn.
+2. **On the base, `eval` and `go` contradict each other on the same position**: eval says +406, go says cp 0 with 0
+   nodes. A tool using eval would report a winning position; a tool using go would report a draw with no search.
+3. **On the PC the contradiction is milder but real**: eval +406, go cp 507 — both say "white is better", but go
+   searched 44,269 nodes and eval did not.
+
+ALL FOUR PREDICTIONS HELD (P1 non-zero total, P2 identical to the counter-0 twin at a 0 cp gap, P3 the base's go is
+0 nodes, P4 the asymmetry).
+
+WHY IT MATTERS, and it is a different audience from the rest of the chain: the drawn-root defect is invisible to any
+tool that scores positions with `eval`, and the base's 0-node `go` answer and its `eval` answer disagree by 406 cp on
+the same board. So a harness or GUI that mixes the two interfaces (eval for display, go for moves) will show a
+contradiction with no diagnostic anywhere.
+
+LIMIT: this is the STATIC evaluator behaving as designed (it has no history); I am not calling `eval` wrong. The
+finding is the asymmetry between the two interfaces and its effect on an analysis tool, which is why I report it as a
+finding about the interface pair rather than about `eval`.
