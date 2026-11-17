@@ -65,12 +65,28 @@ So the engine's `mate 4` on this board is correct, and its PV is a proof, not ju
 
 ## 4. What I did NOT establish, stated as a limit
 
-**Whether `g4h5` also forces mate in 6.** The `searchmoves g4h5` probe shows the engine reports `mate 6` there at
-every depth, but the independent solver has not finished that sub-tree within the time I gave it, and a timeout
-is not an answer. Until a solver run completes, the honest statement is: *the engine reports `mate 6` after
-`g4h5`, and I have not independently verified that distance*. If `g4h5` in fact mates in 4 as well, then the
-MultiPV-1 answer at depth 12 was not merely late but **wrong about the distance**, which would be a stronger
-and different finding. I am not claiming that, and the report does not rest on it.
+**Whether `g4h5` forces mate in 6.** The `searchmoves g4h5` probe shows the engine reports `mate 6` there at every
+depth 12, 14, 16 and 20, but the independent solver has not finished the budget that would confirm it.
+
+What the solver *did* complete, and this is a real result rather than an absence:
+
+| budget (total moves after `g4h5`) | independent verdict | time |
+|---|---|---|
+| mate in ≤ 2 | not forced | 0.0 s |
+| mate in ≤ 3 | not forced | 0.1 s |
+| mate in ≤ 4 | not forced | 8.2 s |
+| mate in ≤ 5 | **not forced** | 451.5 s (6.07 M memo entries) |
+| mate in ≤ 6 | **NOT RUN TO COMPLETION** — killed at the 3000 s cap | — |
+
+So the honest statement is a **one-sided bound: `g4h5` does not force mate in 5 or fewer, which is consistent with
+the engine's `mate 6` but does not prove it.** The engine's number requires exactly 6, and my run excludes 5 and
+below. Confirming 6 needs the m=5 budget to finish, which was still climbing when the time cap hit and had already
+reached ~1.8 GB of memo table; I stopped it rather than risk the machine.
+
+Until that finishes, the honest statement is: *the engine reports `mate 6` after `g4h5`, the independent solver has
+excluded every distance of 5 or less, and the exact distance is unverified.* No claim in this report depends on it,
+and the §2 conclusion (the ladder's drop is a change of move rather than a shortening) does not need it — that
+conclusion rests on the pinned `searchmoves` ladder and on the verified `mate 4`, both of which stand on their own.
 
 Note also that the engine's own `mate 6` PV after `g4h5` differs between MultiPV 1 and MultiPV 3
 (`f1f7 d5e7 g1g6 h6h7 g6g7 h7h6 g7h7 h6g5 f7f4` versus `g1g6 h6h7 f1f7 e8f6 g6f6 h7h8 f6h6 g7h6 f7h7`), so at most
