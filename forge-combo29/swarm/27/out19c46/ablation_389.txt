@@ -1,0 +1,31 @@
+ABLATION of the threefold repetition door, PC r15, go depth 4, option count asserted per cell
+board: position startpos moves g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8  (is_repetition(3) verified)
+
+PC20 (full)                 nodes 389    opts 22
+
+DROP-ONE from PC20 (22 -> 21): tests NECESSITY IN THE BUNDLE
+  PC20 minus CuckooRep        nodes 393    opts 21   small effect
+  PC20 minus HistRework       nodes 389    opts 21   NO EFFECT
+  PC20 minus TtPruneV2        nodes 501    opts 21   LARGE EFFECT
+  PC20 minus CorrHistV2       nodes 393    opts 21   small effect
+  PC20 minus MateAlphaGuard   nodes 389    opts 21   NO EFFECT
+  PC20 minus OwnBook          nodes 389    opts 21   NO EFFECT
+
+ADD-ONE to S14 (17 -> 18): tests SUFFICIENCY FROM THE BASELINE
+  S14 alone                nodes 505    opts 17
+  S14 + CuckooRep          nodes 501    opts 18
+  S14 + HistRework         nodes 505    opts 18
+  S14 + TtPruneV2          nodes 397    opts 18
+  S14 + CorrHistV2         nodes 505    opts 18
+  S14 + MateAlphaGuard     nodes 505    opts 18
+  S14 + OwnBook            nodes 505    opts 18
+
+HISTREWORK AT EVERY VALUE, with TtPruneV2 present:
+  TtPruneV2 + HistRework 0 -> nodes 397    opts 19
+  TtPruneV2 + HistRework 1 -> nodes 397    opts 19
+  TtPruneV2 + HistRework 2 -> nodes 397    opts 19
+  TtPruneV2 + HistRework 3 -> nodes 397    opts 19
+
+CONCLUSION: TtPruneV2 accounts for 505->397 of the 505->389 drop (108 of 116 nodes).
+HistRework has NO effect at any value 0-3, alone or in the bundle.
+08-F43's 'PC20 minus HistRework = 389 (unchanged)' is the REFUTATION of its own claim, not support.
