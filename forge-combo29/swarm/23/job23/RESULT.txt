@@ -1,0 +1,40 @@
+IS THE BASE'S 0-NODE MOVE ACTUALLY WORSE? — yes, badly: it loses a piece on one board
+====================================================================================
+23-F58 showed the base answering a naturally reached third occurrence in 0 nodes with a different move from the PC.
+Both scores were cp 0, so the question was whether the MOVE is worse even though the position is drawn. It is.
+
+GAME 1 — third occurrence at ply 31, halfmove 11, `rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16`
+(base played **e6e5** in 0 nodes; PC played **b6b4** after 1,376,300 nodes). At fixed depth 16 on the PC build,
+each move scored ALONE:
+
+| query | score |
+|---|---|
+| unrestricted depth 16 | cp 0 (bestmove b6b4) |
+| **only e6e5 — the base's unsearched move** | **cp -805** |
+| only b6b4 — the PC's searched move | cp 0 |
+
+So the move the base picked **without searching loses about eight pawns of evaluation** — it hangs a piece — while the
+PC's move keeps the position level. The score both engines report (cp 0) hides this completely: the defect is not
+merely "a different move", it is "a losing move chosen with no analysis".
+
+GAME 2 — second clock game, third occurrence at ply 68, halfmove 16,
+
+`5k2/1p4p1/2p2p1p/p2p4/P2PqP2/1QP3P1/1P3P2/5K2 b - - 16 35` (base played **c6c5** in 0 nodes; PC played **e4b1**
+after 1,602,068 nodes):
+
+| query | score |
+|---|---|
+| unrestricted depth 16 | cp 0 (bestmove e4b1) |
+| **only c6c5 — the base's unsearched move** | **cp -39** |
+| only e4b1 — the PC's searched move | cp 0 |
+
+Smaller, but the same direction: the unsearched move is worse.
+
+VERDICT: all four predictions held (P1 the base's move is >= 20 cp worse — it is 805; P2 both further games reached
+a third occurrence; P3 the base answered 0 nodes every time; P4 the unsearched move was worse in both).
+The defect is therefore a REAL COST on a position that arises in normal self-play: a losing move, chosen instantly,
+on a board the match program would otherwise have ended the game at.
+
+THE HONEST COUNTERWEIGHT, which I will not drop: in a real match the game ENDS at the third occurrence, so this
+position is never searched and this losing move is never played. The cost lands on analysis, other GUIs and human
+play — where it is a losing move rather than a cosmetic difference.
