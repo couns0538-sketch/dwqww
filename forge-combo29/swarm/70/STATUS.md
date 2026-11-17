@@ -111,6 +111,31 @@ Removed 4 committed `.pyc` binaries (the brief forbids binaries in the repo) and
 added `.gitignore` for `__pycache__/` and `*.pyc`. 59 text files tracked. Verified
 `gen_positions.py` regenerates all 112 fixtures byte-identically (no diff).
 
+## 2026-11-17T04:45Z — open thread CLOSED (does the one-line fix repair a pinned score?)
+
+I had left this open rather than guess. Ran it.
+
+`job1/fix_vs_pinned_score.txt`, `job1/fix_significance.txt`. 53 positions, 265
+(move, position) pairs, base vs scratch patch A, depth 12.
+
+| comparison | n | identical | mean | sd |
+|---|---|---|---|---|
+| `pinned_base − intree_base` (control) | 265 | **10/265** | −7.6 | 44.2 |
+| `pinned_pA − intree_pA` | 265 | **9/265** | −5.5 | 46.9 |
+| `pinned_pA − intree_base` | 265 | **9/265** | −5.5 | 46.9 |
+
+Exact McNemar: 8 fixed, 9 broken, **p = 1.0000**. **Decisive null.** The patch is
+a control-restorer, not a measurement-restorer.
+
+Post-hoc subgroup: top move alone 1/53 → 6/53 (5 fixed, 0 broken, p = 0.0625).
+Does not clear 0.05 and was chosen after seeing the full result, so it is recorded
+as a lead for a pre-registered run, **not** as a finding.
+
+The generalisable rule: **a fix that makes a CONTROL valid does not necessarily
+make a MEASUREMENT valid.** Written into `FINDINGS.md` F12 and into the fix
+section of `SEARCHMOVES_TABLE.md` as a three-row "what you want / does patch A
+give it" table.
+
 ## Deliverables
 
 - `FINDINGS.md` — F1..F11, each with a re-runnable command.

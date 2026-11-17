@@ -382,6 +382,43 @@ Writing this test found two real bugs in my own code, which is the point of it:
 boolean, so `True == <set>` was False. Both are fixed; a harness bug that prints a
 confident wrong answer is worse than no harness.
 
+## F12 — the one-line fix repairs the CONTROL and does NOT repair the MEASUREMENT
+
+`| 70-F12 | area 1 | restoring the root TT store makes `searchmoves <all legal>` a true no-op (60/60) but leaves a single pinned score wrong (9/265 vs 10/265, p=1.00) | job1/fix_vs_pinned_score.txt | NEW |`
+
+```bash
+python3 forge-combo29/swarm/70/job1/fix_vs_pinned_score.py
+python3 forge-combo29/swarm/70/job1/fix_significance.py
+```
+
+F1 showed patch A fixes the all-legal control. That is a statement about the
+**control**. It says nothing about a one-move root, which is what a verifier
+runs. This measures that question directly: 53 positions, 265 (move, position)
+pairs, both builds.
+
+| comparison | n | identical | `|d| >= 10` | `|d| >= 50` | mean | sd |
+|---|---|---|---|---|---|---|
+| `pinned_base − intree_base` (control, reproduces 10/265) | 265 | **10/265** | 211/265 | 50/265 | −7.6 | 44.2 |
+| `pinned_pA − intree_pA` (does the fix restore a pinned score?) | 265 | **9/265** | 195/265 | 67/265 | −5.5 | 46.9 |
+| `pinned_pA − intree_base` (fix vs the engine's real value) | 265 | **9/265** | 195/265 | 67/265 | −5.5 | 46.9 |
+
+Exact McNemar on the discordant pairs: **8 fixed by the patch, 9 broken by it,
+p = 1.0000.** Decisive null. **The patch is a control-restorer only; a single
+pinned score remains a different number, sd 47 cp.**
+
+### F12a — a post-hoc subgroup worth a pre-registered run, not a finding
+
+The top move alone moves from 1/53 to 6/53 identical (5 fixed, 0 broken,
+exact McNemar **p = 0.0625**). It does not clear 0.05, and the subgroup was chosen
+*after* seeing the full-set result, so it is exploratory. Reported because a
+future run should pre-register exactly this subgroup on a fresh position set, not
+because it is a result.
+
+**The generalisable rule this closes with:** *a fix that makes a CONTROL valid does
+not necessarily make a MEASUREMENT valid.* Restoring the TT store repairs the
+no-op baseline and leaves the one-move root a different search, because a
+one-move root is a different search for reasons the TT store does not touch.
+
 ---
 
 ## Suspicions, not proven

@@ -1,0 +1,17 @@
+engine base /tmp/build-rel/forge
+engine pA   /tmp/build-pA/forge   (scratch build, root TT store restored)
+depth 12
+
+positions 53, (move, position) pairs 265
+
+== CONTROL: the original measurement, reproduced ==
+pinned_base  - intree_base   (BASE build)            n 265  identical  10/265  |d|>=10 211/265  |d|>=50  50/265  mean    -7.6  sd   44.2
+  ...top move only                                   n  53  identical   1/53  |d|>=10  42/53  |d|>=50  13/53  mean   -12.5  sd   45.2
+
+== THE QUESTION: does the fix restore a PINNED score? ==
+pinned_pA    - intree_pA     (PATCH A build)         n 265  identical   9/265  |d|>=10 195/265  |d|>=50  67/265  mean    -5.5  sd   46.9
+  ...top move only                                   n  53  identical   6/53  |d|>=10  39/53  |d|>=50   8/53  mean    -9.0  sd   31.0
+
+== THE NUMBER A HARNESS AUTHOR NEEDS ==
+pinned_pA    - intree_base   (fix vs the engine's real value) n 265  identical   9/265  |d|>=10 195/265  |d|>=50  67/265  mean    -5.5  sd   46.9
+pinned_base  - intree_base   (same comparison, no fix) n  53  identical   1/53  |d|>=10  42/53  |d|>=50  13/53  mean   -12.5  sd   45.2
