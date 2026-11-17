@@ -1254,6 +1254,13 @@ nodes on Kiwipete and 0% on four other positions**, with full-game cost unmeasur
   - **State the invariant, not the count.** "Zero false-safe" is a snapshot that a later re-fit
     invalidates silently; **"never more permissive than the fit"** survives the re-fit and is the
     property a check can enforce.
+  - **And the ceiling is CONSERVATIVE at 2 lines, which is the right direction but worth saying.** An
+    independent check on KiWipete at 400 ms found **`Hash 64` MPV 2 at 352,976 nodes / depth 13 against the
+    recommended `Hash 48` at 272,115 / depth 14** — so 48 is not optimal on that board, merely safe. **The
+    two claims a reader acts on both reproduced**: MultiPV 1 is flat in Hash (526,330 against 526,468), and
+    MPV 6 at Hash 256 collapses to **6,966 nodes and depth 5–6 against 178,057 and depth 11 at Hash 16.**
+    **A conservative ceiling is not a defect** — the invariant is "never more permissive" — but a reader
+    expecting 48 to be the best value should know it is a floor on safety, not an optimum.
   - **The fitted ceiling is `Hmax = {1:256, 2:48, 3:48, 4:24, 5:24, 6:24}`, which carries 1 false-safe
     cell of 48 (`Hash 32`, MPV 3, 1.55×); the conservative form carries 0 and differs on exactly
     2 of 48 cells**, both at MPV 3 and both straddling the 1.5× line. **Ship the conservative form.**
