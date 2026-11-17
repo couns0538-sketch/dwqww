@@ -1,0 +1,18 @@
+# Position 90 of G, release build, warm repeats (seat 24's 24-F3 outlier)
+# exe /agent/repos/base/build-pc/forge (PC r15) sha256 068f0927..., Threads 1, Hash 16, OwnBook false
+# go depth 12, same position six times in ONE process
+# 2026-11-17T00:00:57Z
+
+fresh process: 25 ms, 79,980 nodes, bestmove f3f8, score cp 2197
+
+| run in one process | wall ms | nodes |
+|---|---|---|
+| 1 | 26.1 | 79,980 |
+| 2 | 3.4 | 7,518 |
+| 3 | 3.0 | 7,527 |
+| 4 | 1.8 | 3,521 |
+| 5 | 0.6 | 1,389 |
+| 6 | 0.5 | 1,324 |
+
+Warm state makes this position 50x FASTER on the release build, the opposite direction from the
+348-378 SECOND TSan stall seat 24 measured. So 24-F3 is a TSan artefact, not a release-build defect.
