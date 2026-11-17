@@ -41,3 +41,22 @@ first rule (count the `info string` lines).
 LIMITS: one board, one depth, base build; the restriction cases use a drawn root, so whether `0000` also occurs on a
 NON-drawn root with an empty restriction is untested — the source suggests `restricted_root_empty` is independent of the
 bail, but I have not measured it.
+
+THE `0000` CASE IS GENERAL TO AN EMPTY RESTRICTION, NOT SPECIFIC TO DRAWN ROOTS
+-------------------------------------------------------------------------------
+The limit I flagged is now tested. Same board, same illegal `searchmoves e2e4`, at `go depth 10`:
+
+| root | info lines | nodes | bestmove | info string |
+|---|---|---|---|---|
+| threefold (DRAWN) | 10 | 0 | **`0000`** | `searchmoves restriction has no legal root moves` |
+| bare FEN (**NOT drawn**) | 10 | 0 | **`0000`** | `searchmoves restriction has no legal root moves` |
+
+**So `bestmove 0000` is a property of the empty `searchmoves` restriction, not of the drawn-root bail.** On the
+non-drawn root the engine would otherwise search (7,581 nodes on this board) and instead returns a null move. That makes
+it a broader front-end hazard than the drawn-root family: any caller that builds a `searchmoves` list which can be empty
+— a book filter, a "only these candidates" analysis mode, a UI that lets a user deselect all moves — receives `0000`.
+
+The distinction the earlier table drew between the two empty-PV cases still matters, but the advice changes: it is not
+"when the root may be drawn, watch for `0000`", it is **"any `searchmoves` invocation can return `0000`, and the
+`info string searchmoves restriction has no legal root moves` line is the only signal"** — which lands squarely on the
+driver page's first rule, count the `info string` lines.

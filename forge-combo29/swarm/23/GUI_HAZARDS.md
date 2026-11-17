@@ -1,4 +1,4 @@
-# TWO GUI HAZARDS, ONE RULE — for anyone writing a front end for this engine
+# GUI HAZARDS AND RULES — for anyone writing a front end for this engine
 
 > **The owner's match program is unaffected.** It drives the engine directly with well-formed positions, so
 > neither hazard arises in the PC's self-play or matches. Everything here matters for anyone else writing a
@@ -99,6 +99,33 @@ Both times this fired it was mine:
 So this heuristic is worth adding to a driver's own checks even though it is not a substitute for counting the
 `info string` lines: it catches the cases where the diagnostic was not read, and it is cheap — compare the node count
 of consecutive positions and flag an exact match.
+
+## Hazard 4 — an EMPTY `searchmoves` RESTRICTION returns `bestmove 0000`, and its structured fields look like a draw
+
+This one is separate from the drawn-root material because **it has nothing to do with draws**: it is about an illegal or
+empty `searchmoves` restriction, and it happens on any root, drawn or not (23-F153/F156).
+
+Measured on the base build, `go depth 10 searchmoves e2e4` where `e2e4` is not legal on that board:
+
+| root | `#info depth` lines | nodes | `pv` | score | `bestmove` |
+|---|---|---|---|---|---|
+| threefold (drawn) | 10 | 0 | **empty** | **cp 0** | **`0000`** |
+| bare FEN (**not drawn**) | 10 | 0 | **empty** | **cp 0** | **`0000`** |
+
+**`0000` is not a legal UCI move.** A front end will either raise, or worse, pass it on as though the engine had moved.
+
+**Why this is the worst combination.** An ordinary drawn-root bail and an empty-restriction return have **identical
+structured fields** — 10 `info depth` lines, `nodes 0`, `cp 0`, empty `pv` — and differ **only in the free text**:
+
+    info string searchmoves restriction has no legal root moves
+
+So a tool that inspects the structured fields cannot tell a null move from a legal first move played on a drawn position;
+the only signal is an `info string` line. If you are writing a front end, **build your `searchmoves` list so it cannot be
+empty** (check it against the legal move list before sending), and **treat `bestmove 0000` as its own error**, not as a
+draw.
+
+> Note for the driver page's first rule: this is another case where counting the `info string` lines is the difference
+> between a diagnosis and a mystery.
 
 ## The drawn-root case is invisible to the diagnostic rule — a second check
 

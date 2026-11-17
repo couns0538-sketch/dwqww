@@ -25,6 +25,30 @@ ever disagree with it — a check that cannot fail, at the level of the fixture 
 legitimate six-occurrence fixture within minutes of being written. The self-test caught it because the six-occurrence
 case is in the self-test.
 
+## Writing to these files — the append path is a trap
+
+I created a stray `FINDINGS.md` one directory above the seat **twice in twenty minutes**, both times by appending with
+`>> ../FINDINGS.md` from inside a `job*/` folder. From `job68/` that lands in `swarm/`, not the seat; from the seat it
+lands in `swarm/` too. The path looks local and is not.
+
+**Convention: the seat's own files are the only writable target, and they are written from the SEAT ROOT with no `..`:**
+
+```bash
+cd forge-combo29/swarm/23            # always from here
+cat >> FINDINGS.md <<'XEOF'          # never ../FINDINGS.md, never from inside a job/
+...rows...
+XEOF
+```
+
+Two guards now exist, neither of which needs to be remembered:
+- `audit_findings.py` HARD FAILS if a `FINDINGS.md` exists anywhere under `swarm/` outside the seat (**proved**: planted
+  at `swarm/FINDINGS.md`, audit printed `stray FINDINGS.md outside the seat: 1` and `VERDICT: FAIL`; removed, PASS);
+- the pre-commit gate runs that audit automatically (23-F150).
+
+**And the trap is worth naming as a class, not an incident: a relative path that looks local and is not.** The same shape
+appeared when a `&&` chain reported success from a step that never ran (23-F152) and when a fixture key silently omitted
+a field (23-F122) — in each case the tool did exactly what it was told and the instruction was wrong.
+
 ## The rules
 
 1. **Identity is FIDE identity**: placement + side to move + castling rights, plus en-passant ONLY when a legal
