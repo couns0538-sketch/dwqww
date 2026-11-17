@@ -391,3 +391,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N34: F44 can no longer be summarised as 'quality shows no sign of damage'. Accurate: dead heat at depths 10-12 (7-7-3, 2-2-1), but at depth 14 all 3 of 3 favour S14. n=3 is a SIGNAL not a result - but it is the axis where PC20's pruning would show, and depth 14 is where the PC actually plays.
 - This is more useful to the owner than a clean bill of health. NEXT MEASUREMENT flagged: 100+ positions at depth 14 and depth 16.
 - next: continuing at cadence with the wider depth-14 run.
+
+## Tue Nov 17 12:22:47 AM UTC 2026
+- 29-F51: I ran the wider depth-14 test immediately instead of leaving it as a note, and it REVERSES my own F50. 80 positions at depth 14: 67/80 same bestmove (83.8%); of the 13 disagreements PC20 better 8, S14 better 4, tie 1. So F50's 'all 3 favour S14' was SMALL-SAMPLE NOISE.
+- 29-N35: withdraws F50's signal-against-PC20 and RESTORES F44's 'no sign of damage' for depths 10-12 AND 14. Across all my samples the tally has swung 7-7 (n=17), 2-2 (n=5), 0-3 (n=3) and 8-4 (n=13) - that is what noise looks like, and no sample shows PC20 systematically worse.
+- FOURTH time tonight a small tally pointed the wrong way (with the 4-of-6 in F43 and the two single-cell percentages). Rule now heavily evidenced: widen the sample before reporting a sign; treat any tally under ~20 outcomes as a hint at most.
+- next: continuing at cadence.
