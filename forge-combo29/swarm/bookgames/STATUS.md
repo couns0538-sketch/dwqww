@@ -37,8 +37,8 @@ Engine: Chess Engine Forge 6.4.24 candidate, `id author OpenAI`.
 | `default` | Q1/Q2 at `Book Depth` 30 | 320 | **complete** |
 | `depth100` | Q2 at `Book Depth` 100 (max) | 200 | **complete** |
 | `depth0` | Q2 at `Book Depth` 0 (book off) | 200 | **complete** |
-| `depth6var100` | Q2 low depth, max variety | 200 | queued |
-| `patched` | Q4 games on the trap-1 build | 200 | queued |
+| `depth6var100` | Q2 low depth, max variety | 200 | **complete** |
+| `patched` | Q4 games on the trap-1 build | 200 | running at push |
 
 Time control for every arm: `3000+50` with 3 workers. Chosen after timing one game
 at 11.5 s, so the whole set is affordable; the clock form is the one that reaches
@@ -51,16 +51,28 @@ the book.
 | script | question | result |
 |---|---|---|
 | `book_paths.py` | book graph: cycles, depth, leaf ply | **16-ply DAG**, 199 leaves all at ply 16, no cycle, planted-cycle control fires, diamond control silent |
-| `play_games.py` | two-sided games | 720 games complete (520 of them book-playing): **0 illegal, 0 engine errors, 0 drawn-root book events, 0 re-entries**; every book-playing game exits at **ply 16** |
+| `play_games.py` | two-sided games | 920 games complete across four arms: **0 illegal, 0 engine errors, 0 drawn-root book events, 0 re-entries**; exit ply follows `Book Depth` exactly (0/6/16/16) |
 | `analyse_games.py` | termination / repetition / exit distribution | 0 games over threefold; 3 ply-cap stops, both inspected by hand and both far past book exit |
 | `q1b_exit_quality.py` | do games leave the book into a lost position | **0 of 63 lines** ≤ −200 cp; worst exit **−50 cp** |
 | `q3_book_vs_search.py` | book vs depth-18 choice, material | 589 played book moves: 13 concede material |
 | `q3b_depth18_verdict.py` | are those 13 actually worse | **0 condemned at depth 18**; noise floor max 18 cp; worst gap 51 cp |
-| `q4_clock_gate.py` | book from the opponent's clock alone | lock: 2 forms unbounded; **patched: all 7 forms answer**, incl. a no-book position in 0.399 s |
+| `q4_clock_gate.py` | book from the opponent's clock alone | lock: 2 forms unbounded; **patched: all 9 forms answer**, incl. a no-book position in 0.466 s. Run at `Book Variety 0` |
+| `q0_rng.py` | is the book RNG deterministic | **no**: variety 30 gives `c2c4` 14 / `e2e4` 10 over 24 processes; variety 0 gives `e2e4` 24/24 |
+| `q2b_shuffle.py` | can a threefold book root be reached in play | **yes**: at ply 23 the position is a threefold, in the book, and the engine books it with 0 depth lines |
+| `q5_trap2_closes_route.py` | does the existing trap-2 patch fix that | **yes**, on identical frozen positions: lock books, trap 2 returns the drawn-root bail and still books elsewhere |
 | `reentry_drawn.py` | can play re-enter the book on a drawn root | 122 of 199 leaves: **empty** returnable set (complete at any depth); other 77 bounded |
 | `test_material_judge.py` | is the material judge trustworthy | 6 cases + negative control, all pass |
 
 ---
+
+## The one substantive finding
+
+`scripts/q2b_shuffle.py` drives a 3-ply shuffle that returns to a book position the
+game already visited. At ply 23 that position is a **threefold, is in the book, and
+the engine books it with zero `info depth` lines** -- trap 19a's signature, reached
+in play. It is reachable but not automatic (920 games never produced it, because
+the opponent must cooperate), and `scripts/q5_trap2_closes_route.py` shows the
+existing trap-2 patch closes it on identical positions.
 
 ## Withdrawn during this audit (all apparatus, none about the engine)
 
@@ -84,6 +96,8 @@ the book.
   not available. Diversity was obtained through `Book Variety` (up to 100) instead.
   Recorded as a limit in `scripts/play_games.py`.
 * **The re-entry search is only partly exhaustive.** Closed completely for 122 of
-  199 leaves; the other 77 are covered by a bounded search plus the 720 completed games.
+  199 leaves; the other 77 are covered by a bounded search plus the 920 completed
+  games. **And `q2b_shuffle.py` shows the route is REACHABLE on those 77** -- see
+  FINDINGS section 9. It is the one thing here the isolation audit could not see.
 * **`Book Depth` derivation was not examined.** The brief says the diagnosis is
   correct and must not be patched; it was not patched and no claim is made about it.
