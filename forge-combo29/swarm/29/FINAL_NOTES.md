@@ -104,10 +104,11 @@ kept in FINDINGS beside the new ones rather than deleted, so the shrinkage is vi
 
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
-- 29-F42/29-F52 (tree size, RE-VERIFIED at n=100): **PC20 searches a smaller tree at match depths on both sets —
-  -11.9 % on R_2911 and -10.7 % on G at depth 12 — and depth 10 is approximately NEUTRAL (+0.3 %), not a clear
-  cost.** Use these magnitudes, not the n=25-30 ones (which read -19.5 % and +2.3 %): the direction was always stable,
-  the magnitudes were inflated by small samples.
+- 29-F42/29-F52/29-F53 (tree size, EVERY CELL NOW AT n >= 60): **PC20 searches a smaller tree at match depths on
+  both sets — -11.9 % R_2911 and -10.7 % G at depth 12, -11.0 % R_2911 at depth 14 — and at depth 10 it is
+  SET-DEPENDENT: R_2911 approx neutral (+0.3 %), G still clearly better (-15.3 %).** Nothing supports PC20 being
+  slower anywhere. Use these magnitudes, not the n=20-30 ones (-19.5 %, -14.1 %, -12.7 %, +2.3 %, -15.9 %): the
+  direction was always stable and every magnitude was inflated or exaggerated by a small sample.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation
   (96.0 % slot-0 hits vs 26/25/25/24 %; 0 vs 16,811 generation writes; 50 of 861,904 vs a high real-play rate).
 - 29-F36 recommendation: picker scoring 2.91 % vs selection 0.77 % → reduce history reads per move, not the sort.

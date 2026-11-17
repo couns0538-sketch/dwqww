@@ -39,15 +39,15 @@ separate sentence that names its scope.
 If any PC20-vs-S14 node figure from me is quoted anywhere, quote THIS, not a single number. PC r15 build,
 Threads 1, Hash 16. Both position sets, both depths where I have them:
 
-**RE-VERIFIED AT 100 POSITIONS PER CELL (29-F52) — USE THIS TABLE, NOT THE OLD ONE:**
+**EVERY CELL NOW AT n >= 60 (29-F52 for three cells, 29-F53 for the last two) — USE THIS TABLE, NOT THE OLD ONE:**
 
 | set | depth | n | S14 nodes | PC20 nodes | PC20 vs S14 |
 |---|---|---|---|---|---|
 | R_2911 | 10 | 100 | 2,609,660 | 2,617,493 | **+0.3 %** (was +2.3 % at n=30) |
 | R_2911 | 12 | 100 | 8,813,133 | 7,765,730 | **-11.9 %** (was -19.5 % at n=30) |
 | G | 12 | 100 | 5,810,612 | 5,187,912 | **-10.7 %** (was -12.7 % at n=25) |
-| R_2911 | 14 | 20 | 5,888,909 | 5,061,004 | -14.1 % (NOT re-run at 100) |
-| G | 10 | 25 | 582,081 | 489,649 | -15.9 % (NOT re-run at 100) |
+| R_2911 | 14 | 60 | 11,635,072 | 10,354,053 | **-11.0 %** (was -14.1 % at n=20) |
+| G | 10 | 100 | 2,255,871 | 1,910,468 | **-15.3 %** (was -15.9 % at n=25) |
 
 Old n=25-30 table, kept only to show what small samples did to the magnitudes:
 
@@ -61,8 +61,9 @@ Old n=25-30 table, kept only to show what small samples did to the magnitudes:
 
 Reading it: the effect depends on **depth AND position set together**. At the SAME depth 10, PC20 costs 2.3 % more on
 R_2911 and saves 15.9 % on G, so neither "PC20 always prunes" nor "PC20 costs more at low depth" is true in general.
-The one stable claim, re-verified at n=100: **at match depths PC20 searches a smaller tree on both sets** (-10.7 % G,
--11.9 % R_2911 at depth 12), and **depth 10 is approximately neutral (+0.3 %), not a clear cost.** Three of my last three conclusions on this topic needed exactly this reframing (29-F38 -> 39, 29-F40 -> 41,
+The stable claim, with every cell at n >= 60: **at match depths PC20 searches a smaller tree on both sets** (-10.7 % G,
+-11.9 % R_2911 at depth 12, -11.0 % R_2911 at depth 14), and at depth 10 it is **set-dependent** — R_2911 neutral
+(+0.3 %), G still clearly better (-15.3 %). Nothing supports PC20 being slower anywhere. Three of my last three conclusions on this topic needed exactly this reframing (29-F38 -> 39, 29-F40 -> 41,
 29-F41 -> 42), which is why 29-N23 makes the sweep the default.
 
 ## NAMED RULE (29-N23): sweep the second variable before any number reaches a summary
@@ -224,3 +225,4 @@ transposition-table work on BOTH grounds: the distribution it samples and the co
 | 29-F52 | 9 | **29-F42's table re-verified at 100 positions per cell (it was built on 25-30), and the magnitudes shrink.** Same build and settings, PC r15, PC20 vs S14, Threads 1, Hash 16: **R_2911 depth 10, n 30 -> 100: +2.3 % -> +0.3 %** (the "sign flip" is now inside noise — the switches are approximately FREE at depth 10, not a clear cost); **R_2911 depth 12: -19.5 % -> -11.9 %**; **G depth 12: -12.7 % -> -10.7 %**. So the DIRECTION of every claim is unchanged and the STABLE form to relay stands — **PC20 searches a smaller tree at match depths on both sets (about 11-12 % here), and depth 10 is approximately neutral** — but three of my published magnitudes were inflated by small samples in the same direction the sign-flip was. Fifth small-sample distortion of the hour. | `slots/raw_f42_reverified.txt`, `slots/pc20_tt_effect.py` | NEW |
 | 29-N36 | 9 | **PATTERN worth carrying into the FINAL: the DIRECTION of every surviving claim of mine has been stable; the NUMBERS have all moved toward smaller effects as the samples grew.** Five instances: 29-F38/39 (scan rate 11.1 % -> 0.1-44.8 % range), F40/41 (tree size vs depth), F41/42 (the flip is set-specific), F43/44 (4-of-6 -> 7-7-3), F52 (magnitudes 19.5 -> 11.9 %, 12.7 -> 10.7 %, flip 2.3 -> 0.3 %). Recommendation for the FINAL: **quote the direction with confidence, quote the magnitude only with the n it came from.** The old table's numbers in FINDINGS are annotated SUPERSEDED-BY 29-F52 rather than deleted, so the record shows what sampling did. | `slots/raw_f42_reverified.txt` | NEW |
 | 29-N37 | 9 | SELF-CHECK while writing 29-N36 into the FINAL: I first wrote that table's sample sizes from memory and **got two of them wrong** (claimed the scan-rate run went "60 -> 200 positions" when the convergence run was **20 -> 200**, with a separate 60-position 2x2 sweep; and labelled the tree-size row "30 -> 30" where the widening there was an AXIS change, depth 12 -> 10, at the same n). Corrected by reading the raw files (`raw_conv.txt`, `raw_sweep.txt`, `raw_pc20_nodes.txt`, `raw_pc20_d10.txt`, `raw_move_soundness.txt`, `raw_soundness100.txt`) rather than trusting recall. Relevant because 29-N36 is precisely a rule about quoting n — a table that quotes n wrongly would discredit the rule it is meant to evidence. | `FINAL_NOTES.md` §29-N36 table; the six raw files named | NEW |
+| 29-F53 | 9 | **The tree-size table is now complete at n >= 60 in every cell, and the two remaining cells also shrank.** Closed the last two unre-verified cells: **R_2911 depth 14, n 20 -> 60: -14.1 % -> -11.0 %** (11,635,072 vs 10,354,053 nodes); **G depth 10, n 25 -> 100: -15.9 % -> -15.3 %** (2,255,871 vs 1,910,468, essentially unchanged). Final verified picture: at match depths PC20 searches **10.7-11.9 % fewer nodes on both sets**; at depth 10 it is **set-dependent, with R_2911 approximately neutral (+0.3 %) and G still clearly better (-15.3 %)**; nothing supports PC20 being slower anywhere. Three of five magnitudes had been inflated by small samples, every one in the direction of a stronger story. | `slots/raw_f42_final_table.txt`, `slots/pc20_tt_effect.py` | NEW |

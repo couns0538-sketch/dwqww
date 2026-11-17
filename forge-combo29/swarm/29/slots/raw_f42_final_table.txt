@@ -1,0 +1,26 @@
+=== 29-F42 TABLE, FINAL VERSION — EVERY CELL NOW AT n >= 60 (29-F53) ===
+The table began with 25-30 positions per cell. 29-F52 re-verified three cells at n=100; this run closes the remaining
+two. Nothing below is now based on fewer than 60 positions.
+
+PC r15 build (6b98f217 + pc_r15.patch), PC20 vs S14, Threads 1, Hash 16, one fresh process per regime.
+
+| set | depth | n | S14 nodes | PC20 nodes | PC20 vs S14 | (n=25/30 value) |
+|---|---|---|---|---|---|---|
+| R_2911 | 10 | 100 | 2,609,660 | 2,617,493 | **+0.3 %** | +2.3 % |
+| R_2911 | 12 | 100 | 8,813,133 | 7,765,730 | **-11.9 %** | -19.5 % |
+| R_2911 | 14 | 60 | 11,635,072 | 10,354,053 | **-11.0 %** | -14.1 % |
+| G | 10 | 100 | 2,255,871 | 1,910,468 | **-15.3 %** | -15.9 % |
+| G | 12 | 100 | 5,810,612 | 5,187,912 | **-10.7 %** | -12.7 % |
+
+READING IT:
+- At match depths (12, and 14 on R_2911) PC20 searches **10.7-11.9 % fewer nodes** on both sets, with the small-sample
+  figures having been 12.7-19.5 %. The direction is stable, the magnitude is ~11 %, not ~16-20 %.
+- At depth 10 the two sets DISAGREE and the R_2911 side is now essentially neutral: **+0.3 % on R_2911 (a wash)**
+  against **-15.3 % on G**. So "PC20 costs more at low depth" is wrong; the truthful statement is that depth 10 is
+  **set-dependent and on my random-game set approximately neutral**, while G still benefits.
+- Nothing in this table supports a claim that PC20 is slower anywhere.
+
+WHAT CHANGED AND WHY IT MATTERS: three of five magnitudes were inflated by small samples (R_2911 d12 by 7.6 points,
+d14 by 3.1, G d12 by 2.0), and the one cell that looked like a COST (+2.3 %) was really a wash (+0.3 %). Every error
+was in the direction of a stronger story, which is why the sample-size rule (29-N36) exists and why the old values are
+kept here in brackets rather than deleted.

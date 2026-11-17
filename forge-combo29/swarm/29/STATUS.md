@@ -421,3 +421,11 @@ Mon Nov 16 09:06:21 PM UTC 2026
 ## Tue Nov 17 12:24:35 AM UTC 2026
 - As asked: the misquoted-n correction now sits INSIDE the 29-N23 rule row itself, not only in the separate N37 note - 'the five-instance table written to evidence this rule first misquoted two of its own n values from memory (29-N37), corrected by reading six raw files. A rule about quoting n whose own table misquotes n is the clearest possible argument for the rule.'
 - next: continuing at cadence on the PC path.
+
+## Tue Nov 17 12:25:06 AM UTC 2026
+- 29-F53: closed the LAST TWO un-verified cells, so the whole tree-size table is now n >= 60 everywhere.
+    R_2911 depth 14: n 20 -> 60, -14.1% -> -11.0%
+    G      depth 10: n 25 -> 100, -15.9% -> -15.3% (essentially unchanged - this cell always held)
+- Final verified picture: match depths PC20 searches 10.7-11.9% FEWER nodes on both sets; at depth 10 it is SET-DEPENDENT (R_2911 approx neutral +0.3%, G clearly better -15.3%); NOTHING supports PC20 being slower anywhere.
+- Three of five magnitudes had been inflated by small samples, every one in the direction of a stronger story (R d12 by 7.6 points, d14 by 3.1, G d12 by 2.0), and the one cell that looked like a COST (+2.3%) was a wash (+0.3%).
+- next: continuing at cadence.
