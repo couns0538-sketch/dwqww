@@ -92,10 +92,23 @@ def solve_after(fen, move, maxn):
 
 
 def checkpv(fen, pv):
+    """Is this PV a forced mate of its own length?
+
+    The ATTACKER is the side DELIVERING mate, which is not always the side to move: a NEGATIVE mate score means the
+    side to move is the one being mated. My first version assumed the side to move was the attacker, which made every
+    negative-mate PV report nonsense (it asked the losing side to force a mate). The mate VALUE must be passed in.
+    """
+    raise SystemExit("use checkpv_value(fen, value, pv): the attacker depends on the SIGN of the mate score")
+
+
+def checkpv_value(fen, value, pv):
     root = chess.Board(fen)
-    attacker = root.turn
+    # mate value is from the side-to-move's perspective: negative => side to move is being mated
+    attacker = root.turn if value > 0 else (not root.turn)
     b = chess.Board(fen)
     forced = True
+    print(f"  attacker: {'white' if attacker else 'black'}; claimed mate {value} "
+          f"(side to move {'white' if root.turn else 'black'})")
     for i, u in enumerate(pv):
         mv = chess.Move.from_uci(u)
         if mv not in b.legal_moves:
@@ -161,4 +174,5 @@ if __name__ == "__main__":
     elif sys.argv[1] == "after":
         print(f"smallest forced mate after {sys.argv[3]}: {solve_after(sys.argv[2], sys.argv[3], int(sys.argv[4]))}")
     elif sys.argv[1] == "checkpv":
-        checkpv(sys.argv[2], sys.argv[3:])
+        print("usage: checkpv FEN MATEVALUE PV...   (MATEVALUE from the side to move, e.g. -5)")
+        checkpv_value(sys.argv[2], int(sys.argv[3]), sys.argv[4:])
