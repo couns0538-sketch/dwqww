@@ -121,9 +121,9 @@ SIXTH LINE — THE HAZARD TABLE FOR THE FINAL'S GUI SECTION, to be reproduced VE
 | situation | `#info depth` lines | nodes | `pv` | score | `bestmove` | `info string` | what it means |
 |---|---|---|---|---|---|---|---|
 | normal search | = depth (× MultiPV) | > 0 | **non-empty** | any | a legal move | none | search ran |
-| **drawn root** (3-fold in the list, or halfmove ≥ 100, or insufficient material) | = depth (never × MultiPV) | **0** | **empty** | **cp 0** | a legal move — the generator's first | none | nothing was searched |
-| **empty/illegal `searchmoves`** | = depth | **0** | **empty** | **cp 0** | **`0000`** | `searchmoves restriction has no legal root moves` | caller error; **not a legal move** |
-| **stalemated root + unsatisfiable restriction** | = depth | **0** | **empty** | **cp 0** | **`0000`** | **none at all** | caller error, **silently** |
+| **drawn root** (3-fold in the list, or halfmove ≥ 100, or insufficient material) | engine ceiling (10 at `go depth 10`; **64 under `go nodes`**), never × MultiPV | **0** | **empty** | **cp 0** | a legal move — the generator's first | none | nothing was searched |
+| **empty/illegal `searchmoves`** | engine ceiling (same as above) | **0** | **empty** | **cp 0** | **`0000`** | `searchmoves restriction has no legal root moves` | caller error; **not a legal move** |
+| **stalemated root + unsatisfiable restriction** | engine ceiling (same as above) | **0** | **empty** | **cp 0** | **`0000`** | **none at all** | caller error, **silently** |
 | refused FEN or illegal token in the list | search runs on the WRONG board | > 0 | non-empty | plausible | plausible | one `info string` | the position is not what you sent |
 
 The three rules that follow it, also verbatim:

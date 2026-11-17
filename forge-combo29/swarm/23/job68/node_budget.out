@@ -1,0 +1,33 @@
+fixture: PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+
+| build | root | budget | info lines | nodes | score | pv | bestmove |
+|---|---|---|---|---|---|---|---|
+| base | drawn | `go nodes 1000` | 64 | 0 | cp 0 | 0 | d5d1 |
+| base | drawn | `go nodes 100000` | 64 | 0 | cp 0 | 0 | d5d1 |
+| base | drawn | `go depth 10` | 10 | 0 | cp 0 | 0 | d5d1 |
+| base | bare (searches) | `go nodes 1000` | 5 | 615 | cp 405 | 6 | b8a8 |
+| base | bare (searches) | `go nodes 100000` | 20 | 86820 | mate 10 | 19 | d5b5 |
+| base | bare (searches) | `go depth 10` | 10 | 7581 | cp 381 | 11 | d5b5 |
+| PC | drawn | `go nodes 1000` | 5 | 720 | cp 405 | 6 | b8a8 |
+| PC | drawn | `go nodes 100000` | 17 | 88230 | mate 9 | 17 | d5b5 |
+| PC | drawn | `go depth 10` | 10 | 27390 | cp 377 | 11 | d5b5 |
+| PC | bare (searches) | `go nodes 1000` | 5 | 731 | cp 405 | 6 | b8a8 |
+| PC | bare (searches) | `go nodes 100000` | 16 | 93919 | mate 8 | 15 | d5b5 |
+| PC | bare (searches) | `go depth 10` | 10 | 24982 | cp 380 | 10 | d5d2 |
+
+WHAT THIS ADDS — and one number that corrects a generalisation
+---------------------------------------------------------------
+1. **The bail fires under a NODE budget too**, on both builds, at 1,000 and 100,000 nodes: base `cp 0 / 0 nodes / empty
+   PV / d5d1` in every cell. So the mechanism is budget-independent across all three budget kinds now tested — depth,
+   movetime/clock (23-F168), and nodes.
+2. **BUT THE NUMBER OF `info depth` LINES IS BUDGET-DEPENDENT: 10 at `go depth 10`, and 64 at `go nodes 1000` AND at
+   `go nodes 100000`.** So "one line per depth" is right only when a depth is what you asked for. Under a node budget
+   the terminal branch's `for (depth = 1; depth <= max_depth; ++depth)` loop runs to its own ceiling (64, not the
+   requested depth), which makes 23-F146's sentence correct as written ("one per depth") but incomplete as a
+   generalisation — the count is `min(requested depth, engine ceiling)` and the ceiling is what shows under `go nodes`.
+3. **The empty-PV discriminator still holds in every cell**, which is the part that matters: 12 of 12 cells with the PV
+   empty are bails, and every searching cell has a non-empty PV. The detector survives the correction.
+4. The PC searches under a node budget on the drawn root too (720 and 88,230 nodes), consistent with 23-F131/F169.
+
+So a tool must NOT infer "the search ran to depth N" from a line count on a bailed root — the line count is the engine's
+ceiling, not the search's depth, and on a bail there was no search at all.
