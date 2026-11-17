@@ -1,0 +1,27 @@
+check_custom_exceptions.py verification, 2026-11-17T02:23:33Z
+
+=== CONTROLS ===
+controls:
+  1 raise-without-class IS reported                        PASS 
+  2 raise-with-class is NOT reported                       PASS 
+  3 builtin exceptions are exempt                          PASS 
+  /tmp/plant/p.py: raises RealProblem but never defines it
+
+=== PLANTED CASE (must report and exit 1) ===
+--: line 1: /tmp/p2/q.py: No such file or directory
+  /tmp/plant/p.py: raises RealProblem but never defines it
+scanned 1 .py files; 1 undefined custom exception(s)
+FAILURE - a harness that raises an undefined name does not fail, it CRASHES,
+exit was 1
+
+=== REAL FOLDER (45 .py, 0 undefined) ===
+  3 builtin exceptions are exempt                          PASS 
+
+scanned 45 .py files; 0 undefined custom exception(s)
+
+=== VERSION HISTORY OF THIS CHECKER, both failures instructive ===
+v1: DEF_RE without re.M -> '^' matched only file start -> NO definition ever found -> 25 false positives on 45 files.
+v2: regex over raw text -> matched the words 'raise Missing' in DOCSTRINGS -> reported files whose comments DESCRIBED the bug.
+v3: ast.walk for ast.Raise nodes -> 0 false positives, planted case still caught.
+
+Both v1 and v2 reported CONFIDENT WRONG ANSWERS, which is the failure mode the script exists to catch.
