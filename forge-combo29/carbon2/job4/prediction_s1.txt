@@ -1,0 +1,18 @@
+Step: s1_tiled_refresh_and_single_fuse
+Base: 6b98f217 + pc_r15.patch + a_speed_pc20_v3.patch.txt + e1_legal_check_evasions.patch.txt
+
+Functions and profile share attacked:
+- forge::nnue::v3::refresh_from_pieces: 8.90% self in Job 3 Sec 1 profile (7.59% self in post-E1 profile; 1,836,282 calls in 24 FEN-root games)
+- forge::nnue::v3::apply_changes (single-perspective update): 1.45% self in Job 3 Sec 1 profile (0.76% post-E1; 1,829,536 calls)
+- forge::nnue::v3::output_sum_avx512 + evaluate: 2.49% self in Job 3 Sec 1 profile (2.47% post-E1; ~78% of calls follow single-king bucket transitions)
+- forge::Worker::static_evaluate_v3 + nnue::v3::pieces_of: 2.69% self in Job 3 Sec 1 profile (1.90% post-E1; 1,829,536 13-bitboard copies)
+Total profile share attacked: 15.53% of Job 3 Sec 1 self-play profile (12.72% of post-E1 self-play profile).
+
+Mechanism:
+1. 8-ZMM (256-int16) tiled register-resident AVX-512 loop in refresh_from_pieces: loads entry.values once per tile, applies all removed/added feature columns in ZMM registers, and writes both entry.values and destination in a single pass (eliminating intermediate L1 store/reload passes and trailing std::copy_n), while skipping unchanged piece bitboards via XOR == 0.
+2. Zero-copy Board::piece_bitboards() const reference for root refresh_cached and leaf (k == top) king-bucket refreshes, avoiding 1.83M 104-byte Pieces array copies.
+3. Fused 1-ply single-king-refresh + unchanged-perspective update + SCReLU output accumulation in static_evaluate_v3 (when one king changed bucket/mirror key and the other kept its key: 1,829,536 evaluations in 24 games), avoiding reloading 3 KiB of child.values in a separate output_sum_avx512 pass without changing dot-product instructions.
+
+Predicted wall-time gain on the self-play driver (FEN roots, 768 test net, PC20):
+- Predicted median of paired round wall-time ratios (B / A): 1.020x to 1.045x (+2.0% to +4.5%).
+- Kill criterion (range that kills this prediction): median of paired round wall-time ratios < 1.010x (< +1.0%), or reported "not measured" with paired-median gain < 1.010x.
