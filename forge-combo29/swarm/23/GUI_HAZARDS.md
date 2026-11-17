@@ -85,7 +85,7 @@ startup      uci  ->  read until "uciok"
              for each option you set:   setoption ...
                                         isready  ->  read EVERY line until "readyok"
                                         (stop on "unknown option" / "invalid value")
-             ucnewgame          ONCE, before any position        <- see 23-C1: it DISCARDS a position sent before it
+             ucinewgame         ONCE, before any position        <- see 23-C1: it DISCARDS a position sent before it
 position     ALWAYS send the move list when you have one:
                  position startpos moves e2e4 e7e5 g1f3 ...
              only use `position fen` when there is no history
