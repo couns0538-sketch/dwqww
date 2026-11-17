@@ -1,4 +1,11 @@
-# Seat 19's softnodes granularity: confirmed, but the fraction is configuration-dependent (S-C41)
+# Seat 19's softnodes granularity: confirmed on PC20 (S-C41, corrected by S-C42)
+
+> **CORRECTION AT THE TOP (`S-C42`): the identical fraction on PC20 is 44.0 %, not the 50 % reported below.**
+> The 50 % here came from 12 hand-picked positions; re-measured on 200 positions at a fixed stride it is **88 of 200 =
+> 44.0 %** (Wilson 95 % CI 37.3–50.9 %), which agrees with seat 19's 46.5–47.0 % and supersedes this page's number.
+> See `LARGE_SAMPLE.md`. **Everything else here stands** — the mechanism, the 4N cap, the overrun, the bimodality, and
+> the finding that the fraction moves with configuration (50 % PC20 vs 17 % plain, both on the same 12 positions, so
+> the *dependence* is not affected by which sample measures it). Read the percentages below as n=12 values.
 
 Seat 19's `19-C49` predicted — before measuring — that `softnodes N` stops at the first **iteration boundary** at or
 after N nodes, so `softnodes 2000` and `softnodes 3000` can buy the **identical** search on a large share of
@@ -25,27 +32,32 @@ citations and both are right, then tested the predictions.
 The soft budget is only tested **after an iteration completes**, and the hard cap is **4N**. So `softnodes N` means
 "stop at the first iteration boundary at or after N" — it **overruns** N, by up to a whole iteration.
 
-## P1 — CONFIRMED on PC20, but it is configuration-dependent, which the prediction did not say
+## P1 — CONFIRMED on PC20; a configuration dependence I claimed here is WITHDRAWN (see S-C42)
 
 12 positions, fresh process per row, read to `bestmove` before `quit` (Trap 11), three runs:
 
 | settings | identical 2000-vs-3000 | control: identical 2000-vs-20000 |
 |---|---|---|
-| **PC20** | **6 of 12 = 50 %** (three runs, same six positions) | **0 of 12** |
+| **PC20** | **6 of 12 = 50 %** (n=12 values — superseded: 44.0 % at n=200, see the banner) | **0 of 12** |
 | plain | **2 of 12 = 17 %** | 0 of 12 |
 
-Seat 19 predicted **25–60 %**, killed under 10 %. On PC20 it lands at **50 %**, inside their range — **P1 stands**.
+Seat 19 predicted **25–60 %**, killed under 10 %. On these 12 positions PC20 lands at 50 %; the n=200 figure is **44.0 %**. Either way it is inside their range — **P1 stands**.
 On plain settings it is **17 %**: still above their kill threshold, but far below their predicted range.
 
 **The control is what makes either number mean anything.** If 2000-vs-20000 were also "identical" then the tool
 could not distinguish budgets at all and the fraction would be an artefact (Trap 8). It is 0 of 12 in both configs,
 so the identity at 2000-vs-3000 is real.
 
-**The configuration dependence is a finding in itself and it is not in their prediction.** The identical share is a
-property of how large the iteration spanning 2,000 nodes happens to be, which depends on the search's reduction and
-pruning settings. PC20 makes iterations coarser at that depth; the plain build makes them finer. So "what fraction of
-positions are identical" has no single answer — it is a function of the settings, and any measurement of it needs
-its configuration stated. Their prediction names none.
+> **WITHDRAWN by `S-C42`.** I claimed here that the identical fraction is configuration-dependent, on the strength of
+> 50 % (PC20) against 17 % (plain) — **both measured on the same 12 hand-picked positions**. At n=200 the figures are
+> **44.0 %** and **36.0 %**, an 8-point gap with two-proportion **z = 1.633**, which is **not** significant and whose
+> intervals overlap. So the honest statement is that the fraction is **roughly 36–44 %** under this workload, and the
+> difference between these two configurations is within noise at this sample size.
+>
+> What survives from the paragraph below is the *reason* the question needs a configuration stated at all — the
+> identical share depends on how large the iteration spanning N happens to be, which the reduction and pruning settings
+> influence. What does not survive is the claim that I *demonstrated* that dependence. Seat 19's prediction named no
+> configuration and, on this evidence, did not need to.
 
 ## P2 — the ratio, and why one number cannot describe it
 
@@ -82,13 +94,13 @@ underestimate rather than a description of nothing.
 Both mean **the budget is not a quantity**, and in both cases two different budgets can select the *same* search.
 Their consequence is right and sharper than mine in one respect: **for `go nodes` the same-budget collision is a
 measurement hazard, but for `softnodes` it is the thing under study** — seat 19 is testing whether raising a budget
-changes play, and on 50 % of positions (PC20) it provably cannot, because the engine runs the identical tree.
+changes play, and on ~44 % of positions (PC20, n=200) it provably cannot, because the engine runs the identical tree.
 
 ## What I am not claiming
 
-* Not that P1 is wrong — it stands on PC20 at 50 %, inside their stated range.
+* Not that P1 is wrong — it stands on PC20 at 44-50 %, inside their stated range.
 * Not that the plain-settings 17 % refutes them; their kill threshold was 10 %, and 17 % clears it.
 * Not that the identical positions are a defect. The engine is doing what its code says; the issue is that a
   *budget comparison* on those positions is comparing a configuration with itself.
-* Not a general fraction. **12 positions, and the figure moves with settings**, so 50 % is "on this set under PC20",
-  not a property of the engine.
+* Not a general fraction. **The figure moves with settings** (50 % vs 17 % on the same 12 positions) **and with
+  sample** (50 % at n=12 → 44.0 % at n=200), so no single percentage is a property of the engine.

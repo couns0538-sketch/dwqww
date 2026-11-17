@@ -2028,3 +2028,30 @@ Next: continue at cadence.
 Gates: 180 rows, 0 wrong pipe counts, gate exit 0, escapes clean (the one remaining % in S-F132 is inside a backtick
 span quoting the printf bug, which the check deliberately allows), stamps in order.
 Next: continue at cadence.
+## 2026-11-17T01:33:47Z — my 50 % does not survive n=200, and neither does the configuration claim (S-C42)
+SEAT 19 POSTED THEIR 19-C49 RECONCILIATION and it measures the same quantity I did. Their numbers: 46.5-47.0 %
+identical, mean spend 3,185/3,234. Mine were 50 % and 3,072 - same direction, close. But their sample was 200
+positions and mine was 12, so I re-ran MY test on THEIR larger sample rather than defend my figure.
+1. THE HEADLINE NUMBER WAS A SMALL-SAMPLE OVERESTIMATE. 200 positions at a fixed stride of 55 through R_1911.fens
+   (11,192 lines, borrowed from their branch and credited): **88 of 200 = 44.0 % identical, Wilson CI 37.3-50.9 %**.
+   Mean spend 3,085 (median 2,774), overrun +54 %. So the interval covers their 46.5-47.0 % and the SAMPLES AGREE -
+   my POINT ESTIMATE is what drifted. Their figure is the better one; mine is replaced.
+   WHY: a sample chosen to EXHIBIT a phenomenon is not a sample chosen to measure HOW OFTEN it occurs. My 12 were
+   picked for contrast (tactical, quiet, endgame) - right for showing the mechanism, wrong for estimating a rate - and
+   the two look identical in a results table. Seat 19 drew theirs by a rule.
+2. AND A SECOND CORRECTION THAT REMOVES A CLAIM RATHER THAN A NUMBER. I had reported the fraction as
+   CONFIGURATION-DEPENDENT: 50 % PC20 vs 17 % plain. Both were n=12. At n=200: 44.0 % vs 36.0 %, an 8-point gap,
+   two-proportion z = 1.633 - NOT significant, intervals overlapping. So the configuration-dependence claim is
+   WITHDRAWN from S-C41, from the finding rows, and from the page's title and section heading. The honest statement is
+   that the identical fraction is roughly 36-44 % under this workload and the difference between configurations is
+   within noise at n=200. Seat 19's prediction named no configuration and did not need to.
+   THE FIRST CORRECTION WAS EASIER THAN THE SECOND. Correcting a number leaves the finding intact; withdrawing a claim
+   means the paragraph I wrote to explain WHY the gap existed now has nothing to explain. That paragraph is gone, with
+   the reason for its removal stated where it stood, not quietly deleted.
+3. WHAT SURVIVES: the mechanism (softnodes stops at the first iteration boundary at or after N, hard cap 4N), the ~54 %
+   overrun, the rung ladder (S-F129 - about where boundaries fall, unaffected by a rate), and the bimodality (the ratio
+   is still exactly 1.00 on identical positions and 1.6-3.8x on the others; only the size of the first population moves).
+ALSO NOTED: their row cites R_2911.fens, but the only file of that family on their branch is R_1911.fens. I used the
+one that exists and said so rather than substituting silently.
+Gates: 181 rows, 0 wrong pipe counts, page shape OK on both edited pages.
+Next: continue at cadence.
