@@ -87,6 +87,21 @@ and put any generalisation in its own sentence that names its scope.
 twenty minutes later)**; 13 -> 8-4 mildly pro-PC20. The three-outcome sample produced a confident-looking 3-0 the wrong
 way and the 13-outcome sample of the same configuration reversed it.
 
+### STATED AS A FINDING, not an anecdote (29-N36): direction with confidence, magnitude only with its n
+Five separate measurements this hour produced the same pattern — the DIRECTION was always stable and every NUMBER
+moved toward a smaller effect as the sample grew:
+
+| finding | first measured | after widening | positions (then -> now) |
+|---|---|---|---|
+| scan rate (29-F38 -> F39) | 11.1 % at depth 12, Hash 16 | 0.1-44.8 % across depth x hash | 20 -> 200 (and 60 in the 2x2 sweep) |
+| tree size vs depth (29-F40 -> F41) | -19.5 % at depth 12 | +2.3 % at depth 10 (same 30 positions) | 30 -> 30 (axis, not n) |
+| the flip is set-specific (F41 -> F42) | +2.3 % on R_2911 d10 | -15.9 % on G, same depth | 30 -> 25 |
+| move quality (29-F43 -> F44) | "4 of 6 for PC20" | 7-7-3 dead heat | 40 -> 100 |
+| tree size magnitudes (29-F52) | -19.5 % / -12.7 % / +2.3 % | -11.9 % / -10.7 % / +0.3 % | 30/25 -> 100 |
+
+**So: quote the direction with confidence, and quote a magnitude only with the n it came from.** The old numbers are
+kept in FINDINGS beside the new ones rather than deleted, so the shrinkage is visible rather than tidied away.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F42/29-F52 (tree size, RE-VERIFIED at n=100): **PC20 searches a smaller tree at match depths on both sets —

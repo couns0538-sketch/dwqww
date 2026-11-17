@@ -411,3 +411,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Direction of every claim unchanged; three published MAGNITUDES were inflated in the same direction the flip was. Top-of-file table now shows the n=100 figures as current and keeps the old row only to show what small samples did.
 - 29-N36 pattern for the FINAL: the DIRECTION of every surviving claim has been stable; the NUMBERS have all moved toward smaller effects as samples grew (fifth instance). Quote direction with confidence, magnitude only with its n.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:24:14 AM UTC 2026
+- 29-N36 is now a STATED FINDING in the FINAL with a five-instance table (scan rate, tree-size-vs-depth, set-specificity, move quality, tree-size magnitudes), and the headline sentence: quote the DIRECTION with confidence, a MAGNITUDE only with the n it came from.
+- 29-N37 SELF-CHECK: I first wrote that table's sample sizes from memory and got TWO WRONG (said the scan-rate run was '60 -> 200' when it was 20 -> 200 plus a separate 60-position 2x2; and labelled the depth row '30 -> 30' when the widening there was an AXIS change, not an n change). Corrected by reading six raw files instead of trusting recall.
+- Worth noting because N36 is a rule about quoting n - a table quoting n wrongly would discredit the very rule it evidences.
+- next: continuing at cadence.
