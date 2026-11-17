@@ -1,0 +1,12 @@
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 14:51:19.097143771 +0000
++++ b/src/uci.cpp	2026-11-17 14:52:56.969143771 +0000
+@@ -117,7 +117,7 @@
+             tail_sv = moves_sv;
+         } else if (moves_sv.size() >= canon.size() &&
+                    moves_sv.substr(0, canon.size()) == canon &&
+-                   (moves_sv.size() == canon.size() || is_uci_ws(moves_sv[canon.size()]))) {
++                   true /* PLANTED FAULT: omit token-boundary check on canonical_moves prefix */) {
+             matched_prefix = true;
+             tail_sv = moves_sv.substr(canon.size());
+         } else {
