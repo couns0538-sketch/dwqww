@@ -771,3 +771,20 @@ seed: 1601
 - If the patch or its timing is still incomplete nearer the close, the FINDINGS line will say UNMEASURED plainly
   rather than carry a number I did not earn.
 - check_folder.py ALL CHECKS PASS (474 files, 53 findings rows).
+
+## 2026-11-17T04:35Z
+- STEP 2 DONE, BOTH HALVES MEASURED. The patch is `v3/v3_straightline_counts.patch.txt` (139 lines, one file,
+  applies -p2 clean): it specialises the v3 accumulator walk's 2- and 3-change cases, because an INSTRUMENTED
+  scratch build showed all 127,177 calls in a depth-12 search have count exactly 2 or 3 and the inner loop is a
+  variable-bound loop the compiler cannot unroll.
+- IDENTITY: PERFECT. All 200 OG200 node rows identical (0 diff lines), sum 27,944,084 both sides, 8/8 benches and
+  3/3 evals match. So it is a true identity-preserving patch.
+- SPEED: NO EFFECT DETECTED. ABBA, 30 blocks / 120 timed searches, `go nodes 20000`, Threads 1: median A 11.27 ms
+  vs B 11.63 ms, ratio 0.9694, bootstrap 95 % CI [0.9418, 1.0297] — contains 1.0. Per-block spread 0.82-1.20,
+  reported as asked. I did NOT hunt for a winning subset.
+- So the honest finding is a NULL RESULT: the v3 accumulator walk is already effectively vectorised at AVX-512
+  width and a straight-line rewrite buys nothing. With S-F35's 20.65 % share, the picker (34-37 %) remains the
+  place to look. File 7's rule applies: a patch that moves no nodes and no time is recorded as null, not kept.
+- Limits stated: one build per side (file 7 wants two; CI already contains 1.0 so unlikely to change), fixed node
+  budget rather than the PC's exact workload, and a 518-sample profile behind the target choice.
+- check_folder.py ALL CHECKS PASS (482 files, 54 findings rows). Continuing to the close at 10:18:40Z.

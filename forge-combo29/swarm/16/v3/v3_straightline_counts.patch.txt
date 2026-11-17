@@ -1,0 +1,139 @@
+--- a/forge-combo29/src/nnue_v3.cpp
++++ b/forge-combo29/src/nnue_v3.cpp
+@@ -210,12 +210,36 @@
+ 
+ void apply_changes_pair_scalar(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+                                const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    // [swarm-16] counts are 2 or 3 in every measured call (127,177 calls, never 0/1/4): specialise them so the
++    // inner loop is straight-line. Identical arithmetic, same order, same 16-bit wraparound.
++    const int n0 = c0.count;
++    const int n1 = c1.count;
++    const bool s0_2 = n0 == 2, s1_2 = n1 == 2;
++    const bool s0_3 = n0 == 3, s1_3 = n1 == 3;
+     for (int h = 0; h < hidden; ++h) {
+         int v0 = source0[h];
+-        for (int i = 0; i < c0.count; ++i) v0 += c0.adds[i] ? c0.columns[i][h] : -c0.columns[i][h];
++        if (s0_2) {
++            v0 += c0.adds[0] ? c0.columns[0][h] : -c0.columns[0][h];
++            v0 += c0.adds[1] ? c0.columns[1][h] : -c0.columns[1][h];
++        } else if (s0_3) {
++            v0 += c0.adds[0] ? c0.columns[0][h] : -c0.columns[0][h];
++            v0 += c0.adds[1] ? c0.columns[1][h] : -c0.columns[1][h];
++            v0 += c0.adds[2] ? c0.columns[2][h] : -c0.columns[2][h];
++        } else {
++            for (int i = 0; i < n0; ++i) v0 += c0.adds[i] ? c0.columns[i][h] : -c0.columns[i][h];
++        }
+         destination0[h] = static_cast<std::int16_t>(v0);
+         int v1 = source1[h];
+-        for (int i = 0; i < c1.count; ++i) v1 += c1.adds[i] ? c1.columns[i][h] : -c1.columns[i][h];
++        if (s1_2) {
++            v1 += c1.adds[0] ? c1.columns[0][h] : -c1.columns[0][h];
++            v1 += c1.adds[1] ? c1.columns[1][h] : -c1.columns[1][h];
++        } else if (s1_3) {
++            v1 += c1.adds[0] ? c1.columns[0][h] : -c1.columns[0][h];
++            v1 += c1.adds[1] ? c1.columns[1][h] : -c1.columns[1][h];
++            v1 += c1.adds[2] ? c1.columns[2][h] : -c1.columns[2][h];
++        } else {
++            for (int i = 0; i < n1; ++i) v1 += c1.adds[i] ? c1.columns[i][h] : -c1.columns[i][h];
++        }
+         destination1[h] = static_cast<std::int16_t>(v1);
+     }
+ }
+@@ -255,17 +279,42 @@
+ 
+ void apply_changes_pair_avx2(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+                              const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    // [swarm-16] straight-line the 2- and 3-change cases (all measured calls); identical arithmetic otherwise.
++    const int n0 = c0.count;
++    const int n1 = c1.count;
+     for (int h = 0; h < hidden; h += 16) {
+         __m256i v0 = _mm256_load_si256(reinterpret_cast<const __m256i*>(source0 + h));
+-        for (int i = 0; i < c0.count; ++i) {
+-            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[i] + h));
+-            v0 = c0.adds[i] ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++        if (n0 == 2 || n0 == 3) {
++            const __m256i a0 = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[0] + h));
++            v0 = c0.adds[0] ? _mm256_add_epi16(v0, a0) : _mm256_sub_epi16(v0, a0);
++            const __m256i a1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[1] + h));
++            v0 = c0.adds[1] ? _mm256_add_epi16(v0, a1) : _mm256_sub_epi16(v0, a1);
++            if (n0 == 3) {
++                const __m256i a2 = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[2] + h));
++                v0 = c0.adds[2] ? _mm256_add_epi16(v0, a2) : _mm256_sub_epi16(v0, a2);
++            }
++        } else {
++            for (int i = 0; i < n0; ++i) {
++                const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[i] + h));
++                v0 = c0.adds[i] ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++            }
+         }
+         _mm256_store_si256(reinterpret_cast<__m256i*>(destination0 + h), v0);
+         __m256i v1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(source1 + h));
+-        for (int i = 0; i < c1.count; ++i) {
+-            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[i] + h));
+-            v1 = c1.adds[i] ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++        if (n1 == 2 || n1 == 3) {
++            const __m256i b0 = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[0] + h));
++            v1 = c1.adds[0] ? _mm256_add_epi16(v1, b0) : _mm256_sub_epi16(v1, b0);
++            const __m256i b1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[1] + h));
++            v1 = c1.adds[1] ? _mm256_add_epi16(v1, b1) : _mm256_sub_epi16(v1, b1);
++            if (n1 == 3) {
++                const __m256i b2 = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[2] + h));
++                v1 = c1.adds[2] ? _mm256_add_epi16(v1, b2) : _mm256_sub_epi16(v1, b2);
++            }
++        } else {
++            for (int i = 0; i < n1; ++i) {
++                const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[i] + h));
++                v1 = c1.adds[i] ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++            }
+         }
+         _mm256_store_si256(reinterpret_cast<__m256i*>(destination1 + h), v1);
+     }
+@@ -307,17 +356,42 @@
+ 
+ void apply_changes_pair_avx512(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+                                const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    // [swarm-16] straight-line the 2- and 3-change cases (all measured calls); identical arithmetic otherwise.
++    const int n0 = c0.count;
++    const int n1 = c1.count;
+     for (int h = 0; h < hidden; h += 32) {
+         __m512i v0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h));
+-        for (int i = 0; i < c0.count; ++i) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[i] + h));
+-            v0 = c0.adds[i] ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        if (n0 == 2 || n0 == 3) {
++            const __m512i a0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[0] + h));
++            v0 = c0.adds[0] ? _mm512_add_epi16(v0, a0) : _mm512_sub_epi16(v0, a0);
++            const __m512i a1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[1] + h));
++            v0 = c0.adds[1] ? _mm512_add_epi16(v0, a1) : _mm512_sub_epi16(v0, a1);
++            if (n0 == 3) {
++                const __m512i a2 = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[2] + h));
++                v0 = c0.adds[2] ? _mm512_add_epi16(v0, a2) : _mm512_sub_epi16(v0, a2);
++            }
++        } else {
++            for (int i = 0; i < n0; ++i) {
++                const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[i] + h));
++                v0 = c0.adds[i] ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++            }
+         }
+         _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
+         __m512i v1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h));
+-        for (int i = 0; i < c1.count; ++i) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[i] + h));
+-            v1 = c1.adds[i] ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        if (n1 == 2 || n1 == 3) {
++            const __m512i b0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[0] + h));
++            v1 = c1.adds[0] ? _mm512_add_epi16(v1, b0) : _mm512_sub_epi16(v1, b0);
++            const __m512i b1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[1] + h));
++            v1 = c1.adds[1] ? _mm512_add_epi16(v1, b1) : _mm512_sub_epi16(v1, b1);
++            if (n1 == 3) {
++                const __m512i b2 = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[2] + h));
++                v1 = c1.adds[2] ? _mm512_add_epi16(v1, b2) : _mm512_sub_epi16(v1, b2);
++            }
++        } else {
++            for (int i = 0; i < n1; ++i) {
++                const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[i] + h));
++                v1 = c1.adds[i] ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++            }
+         }
+         _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
+     }
