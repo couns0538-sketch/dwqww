@@ -1047,3 +1047,20 @@ Both engines report cp 0 at the root, which HIDES the cost - the reason earlier 
 Counterweight kept: a real match ends at the third occurrence, so this move is never played there; the cost
 lands on analysis, other GUIs and human play - where it is a losing move, not a cosmetic difference.
 83 findings, 18 confirmations. 10 h 19 m remain.
+## 2026-11-17T00:01:16Z  drawn-root chain closed at four links; -805 robust at depths 8-20
+2026-11-17T00:01:16Z
+
+23-F61: scoring each candidate alone at depths 8 / 12 / 16 / 20, the base's unsearched move gives
+cp -751 / -832 / -805 / -853 while the PC's move is cp 0 at EVERY depth. So it is a stable blunder of roughly
+a minor piece, not a near-equal alternative - and not a depth artefact.
+
+The chain, complete, each link measured:
+  1. the defect exists                      23-F44  (base 0 nodes on a constructed repetition)
+  2. it is present on the clock path        23-F57  (and softnodes; not a fixed-depth-only artefact)
+  3. it is reached by a natural clock game  23-F58  (ply 31, halfmove 11)
+  4. the move it plays is LOSING            23-F60/61 (-805, robust 8-20)
+The explanatory sentence to keep: BOTH engines report cp 0 at the root, which is why the cost was invisible to
+score-based checks - only scoring the candidates separately exposes it.
+
+Counterweight unchanged: a real match ends at the third occurrence, so the move is never played there; the cost
+lands on analysis, other GUIs and human play. 84 findings, 18 confirmations. 10 h 17 m remain.
