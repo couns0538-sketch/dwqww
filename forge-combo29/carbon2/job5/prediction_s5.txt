@@ -1,0 +1,16 @@
+Step: s5_make_move_early_key_and_slim_undo
+Stacked on: Job 4 base (r15c + E1) + S1 + S2 + S3 + S4
+
+Functions and profile share attacked:
+- forge::Board::make_move: 2.85% self in post-E1 self-play profile (14,130,074 calls)
+- forge::Board::unmake_move: 1.90% self in post-E1 self-play profile (14,126,707 calls)
+- forge::Board::key_after overlap: 1.33% self in post-E1 self-play profile (14,085,794 calls)
+Total profile share attacked: 6.08% of post-E1 self-play profile.
+
+Mechanism (100% state- and search-identical):
+1. Precomputed Zobrist key handoff (`Board::make_move(move, undo, early_key ? &child_key : nullptr)`): `Worker::search` and `Worker::qsearch` already compute `child_key` via `Board::key_after` two lines before `make_move` (succeeding on >92% of moves), so passing `&child_key` lets `make_move` assign `key_ = *precomputed_key` instead of repeating six Zobrist table loads/XORs and two en-passant checks.
+2. Conditional `KingLines` save/restore in `make_move` and `unmake_move`: on ~71.5% of moves (`10.1M` of `14.1M`), `king_lines_.valid` is `false`; copying only the 1-byte `valid = false` flag instead of copying all 72 bytes of `KingLines` twice saves ~1.4 GB of dead stack reads/writes per 24 games.
+
+Predicted bench 13 gain (stacked on S1..S4, PC20 + 768 test net):
+- Predicted median of paired round bench 13 ratios (B / A): 1.008x to 1.035x (+0.8% to +3.5%).
+- Kill criterion (range that kills this prediction): median of paired round bench 13 ratios < 1.005x (< +0.5%).
