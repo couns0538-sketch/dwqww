@@ -15,7 +15,10 @@ engine searches normally; 3 plies past → it occurs three times → the engine 
 | 6 | 0 | BAIL |
 
 Same board, same castling-neutral cycle, every fixture validated by `job59/validate.py` with two independent counters
-agreeing and asserted to its exact count before the engine was called.
+agreeing and asserted to its exact count before the engine was called. **The threshold also holds on a DENSE MIDDLEGAME
+board with about thirty legal moves — 2 occurrences → 29,994 nodes and searched, 3 and 4 → 0 nodes and bailed (23-F143) —
+so it is not an artefact of the endgames where it was first found.** And it holds when the repeated position sits at the
+END of a long list rather than at the root (23-F141: 10-ply preamble, 2 → searches, 3/4/5 → bail).
 
 ## The standard rebuttal to any future "this 0-node cell breaks the threshold" report
 
