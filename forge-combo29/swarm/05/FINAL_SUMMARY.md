@@ -4,11 +4,59 @@ Branch `for-fable-and-opus/swarm-05`, folder `forge-combo29/swarm/05/`.
 Base commit 6b98f217. Build: plain Release, GCC 13.3.0, sha256 `e06310ec...a83`, **honesty 4/4**
 (bench 11 = 312866, 13 = 862329, 16 = 3024920, perft 5 = 4865609), re-verified after seat 19's 19-F12 warning.
 
-## The one thing worth reading
-**A `mate N` score is sometimes reported with a PV far too short to deliver that mate, and the score itself is
-often not yet stable.** Found on G/192 in job1, then reproduced on a completely fresh 200-position random set in
-job1b (R/120), where it self-corrects with depth exactly the same way. Two independent instances, two different
-position sets. That is S-F1 + S-F9.
+## Lead results (in the order I would read them)
+
+### 1. The owner's control ranking, confirmed by a second seat
+
+Depth each of the owner's real controls reaches on the same boards (PC r15 + PC20, **Threads 1**, Hash 16,
+OwnBook false, fresh process per row). **Seat 01's S-C11 reproduced this ranking on 3 of 3 boards** with its own
+harness and its own build:
+
+| control | startpos (mine / seat 01) | G0 middlegame | deep middlegame |
+|---|---|---|---|
+| `go softnodes 2000` (self-play) | d7 / d7 | d8 | d7 |
+| `go nodes 20000` (match) | d11 / d11 | d11 | d10 |
+| `go nodes 50000` (match) | d14 / d14 | d13 | d12 |
+| `go nodes 250000` (match) | d17 / d17 | d17 | d15 |
+| **`go wtime 6000 … winc 60` (strength match)** | **d19 / d19** | **d18** | **d18** |
+| `go movetime 6000` | d27 / d27 | d28 | d24 |
+
+My figures are from `match/out/budget_translation.txt`; seat 01's are from its own harness
+(`checks/s05f49/check_s05f49.txt`) and agree on all six startpos depths. (My first version of this table had four
+transcription errors — G0 softnodes d8, nodes50000 d13, nodes250000 d17, and movetime deep middlegame d24 — which I
+caught by re-reading the raw file rather than trusting the draft.)
+
+**The operational point, which seat 01 confirmed independently: the clock path BEATS the 250,000-node match budget**
+(d19 vs d17 on startpos; d18 vs d16 on G0) **while spending only 0.16-0.37 s of its 6 seconds.** So the owner's
+strength matches are not starved relative to the node-limited matches — they are simply leaving most of their own
+clock unused. Stated the other way: the same 6 seconds would buy depth 27-28 if sent as `go movetime`.
+
+### 2. Mate labels: 0 of 73 middlegame positions, and a length test that rejects undelivered labels
+
+Across four independent position sets (mine and two other seats'), a deeper search on a middlegame position **never**
+converted a score into a mate label: **0 of 73 middlegame positions** (5 + 8 + 30 + 30 across the four sets). The
+matching sparse-endgame arm, same four sets, same protocol, gained labels every time: **18 labels from 73 sparse
+positions** (2/5, 4/8, 6/30, 6/30). So it is 0/73 against 18/73 on identical protocols — the strongest single arm of my
+run, and the one I would lead with.
+
+And where a mate label IS gained, the printed line often does not deliver it. The rule, **39 of 39 with no exception**:
+
+> **a printed PV shorter than 2|N|-1 means the mate label was not delivered — no replay and no DTM oracle needed.**
+
+| the last PV line | count | did the line mate? |
+|---|---|---|
+| length = 2\|N\|-1 (complete) | 35 | **yes, 35 of 35** |
+| length shorter (incomplete) | 4 | **no, 0 of 4** |
+
+Seat 19's validated DTM oracle escalated two of these from "unbacked" to **arithmetically impossible**: on
+`8/8/8/3k4/8/8/8/KR6 w` my `mate +20` promises 39 plies against a KRvK maximum of 31. Complete versus impossible is a
+distinction worth keeping: a short PV says the line was cut off, an impossible score says the number cannot be right
+whatever the line says.
+
+### 3. The earlier mate-truncation instances
+
+Found on G/192, reproduced on a fresh 200-position set (R/120). Superseded in generality by item 2 above but they are
+where the defect was first isolated.
 
 ## Findings
 | id | one line |
