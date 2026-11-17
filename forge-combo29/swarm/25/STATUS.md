@@ -246,10 +246,12 @@ mpv1 by construction.
 
 **Independent verification, and its limits.** `matesolve3.py` is a brute-force solver with no engine code; it confirms
 `h3h4` forces mate in exactly 4 (engine agrees) and `pv_truth.py` confirms that 7-ply PV survives defender-best-play
-replay. **NOT established: whether `g4h5` forces mate in 6.** The solver cleared budgets up to mate-in-5 (4=not forced,
-8.2s; 5=not forced, 451s, 6.07M memo entries) and the mate-in-6 budget was still running when I wrote this. A timeout
-is not an answer, so the report states the gap rather than filling it - the engine's `mate 6` there is unverified, and
-no claim rests on it.
+replay. **For `g4h5` I have a ONE-SIDED bound, not a verification:** the solver excluded every forced mate of **5 moves
+or fewer** (budgets 2/3/4/5 all "not forced", the last taking 451 s over 6.07 M memo entries) and the budget that would
+confirm the engine's `mate 6` was killed at the 3000 s cap without finishing. So `mate 6` is **consistent with** my
+evidence and **not proven by it**, and the report says so in §4 rather than rounding it up. Output kept at
+`job1d/b103/inc_g4h5.txt`. No claim rests on it: §2's conclusion rests on the pinned `searchmoves` ladder and the
+verified `mate 4`, both independent of this.
 
 **S-C49:** 2 of 250 boards resolved from centipawns at depth 12 into mates at depth 16 (board 151 `cp 4335` -> `mate 5`,
 board 220 `cp 2906` -> `mate 3`), and all **6** depth-16 mates had PV length exactly 2|N|-1 and replayed to checkmate,
