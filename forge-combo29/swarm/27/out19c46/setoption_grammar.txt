@@ -1,0 +1,18 @@
+SETOPTION GRAMMAR - does it report malformed input the way `go` does not?
+PC r15, fresh process per row, then go depth 8 to see the EFFECT
+
+setoption command                          messages                                       nodes     info
+(reference: no setoption)                  NONE                                           4099      8
+setoption name Hash value 16               NONE                                           4099      8
+setoption name Hash value abc              invalid value for option Hash                  4099      8
+setoption name Hash value 0                invalid value for option Hash                  4099      8
+setoption name Hash value 99999            invalid value for option Hash                  4099      8
+setoption name Hash                        invalid value for option Hash                  4099      8
+setoption name Hash 16                     unknown option Hash 16                         4099      8
+setoption name NoSuchOption value 5        unknown option NoSuchOption                    4099      8
+setoption name OwnBook value yes           invalid value for option OwnBook               4099      8
+setoption name Threads value -1            invalid value for option Threads               4099      8
+
+=== READING ===
+setoption DOES emit messages for every malformed form tested - unlike `go`, which emits none.
+So the `go` silence is NOT a parser-wide habit: it is specific to parse_limits.
