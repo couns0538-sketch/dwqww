@@ -806,3 +806,13 @@ next command: continue at cadence.
   Three independent angles now agree: seat 07's 20-of-100 rate, my 19-C36 fix side, this threshold.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:09:48Z
+
+19-C38 threshold is SETTINGS-INDEPENDENT: under PC20 (all 15 options) base gives exactly the same
+  numbers as default options - 252/mate 1/a1a8 at ctr 99, 0/cp 0/f2f3 at 100/101/9999. So the fault
+  is in the drawn-root shortcut itself, not in any tunable - no configuration avoids it on base.
+COMPLETE BOUND on the fault (three angles): below 100 cannot fire ; at 100+ always fires on base and the
+  substitute move is WRONG (f2f3 where a1a8 mates) ; PC r15 never fires under either regime.
+
+next command: continue at cadence.
