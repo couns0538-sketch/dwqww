@@ -452,6 +452,33 @@ Caveat stated in the file: power is low at k=2 (39 pairs) and the two references
 disagree on the direction at k=3 (R1 +2, R3 +5), so this is "no effect detected",
 not "no effect exists".
 
+## F13 — the `--tag` change is regression-tested, not asserted
+
+`| 70-F13 | control | re-running the default command leaves rank_final.txt and rank_final_pairs.csv byte-identical, and tagged names cannot collide with default ones | job3/test_tag_no_overwrite.txt | NEW |`
+
+```bash
+python3 forge-combo29/swarm/70/job3/test_tag_no_overwrite.py; echo $?
+```
+
+I added `--tag` to `job3/rank_final.py` so a patched run writes
+`rank_final_patchA.txt` instead of silently overwriting the base evidence. I then
+**claimed in a message that this left the base outputs unchanged, before checking
+it.** Checking it showed the claim was true, but the claim was made in the wrong
+order, so it now has a committed test:
+
+| check | result |
+|---|---|
+| tagged names ∩ default names is empty | yes |
+| re-running `python3 rank_final.py` leaves `rank_final.txt` identical | yes, sha256 `5e781ae1…e72bd` unchanged |
+| same for `rank_final_pairs.csv` | yes, sha256 `4f73aa91…d4a64` unchanged |
+
+The baseline is genuinely pre-change: `rank_final.txt` was last written in commit
+`796a90b6f` (04:20:09Z) and the `--tag` edit landed in `2d8739125` (04:48:50Z),
+which touched only the `.py`.
+
+The failure mode this guards is silent: a tagged run that also rewrote the default
+filenames would overwrite the base evidence while appearing to work.
+
 ---
 
 ## Suspicions, not proven

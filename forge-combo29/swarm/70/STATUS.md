@@ -160,6 +160,30 @@ Caveat recorded in the file: low power at k=2 (39 pairs) and the references
 disagree on direction at k=3, so this is "no effect detected", not "no effect
 exists".
 
+## 2026-11-17T05:05Z — self-correction: a claim I made before checking it
+
+In my previous message I asserted that adding `--tag` to `job3/rank_final.py`
+"left the base outputs unchanged and still reproducing". **I stated that before
+verifying it**, which is the wrong order and the exact failure this audit is about.
+
+I have now verified it, and then written a committed test so the claim does not
+rest on my word:
+
+`job3/test_tag_no_overwrite.txt`, `python3 job3/test_tag_no_overwrite.py` (exit 0)
+
+| check | result |
+|---|---|
+| tagged names ∩ default names empty | yes |
+| default command re-run leaves `rank_final.txt` byte-identical | yes, sha256 unchanged |
+| same for `rank_final_pairs.csv` | yes, sha256 unchanged |
+
+Provenance: `rank_final.txt` last written in `796a90b6f` (04:20:09Z); the `--tag`
+edit landed in `2d8739125` (04:48:50Z) and touched only the `.py`. So the baseline
+compared against really is pre-change.
+
+The claim happened to be true. That is not the point — an unverified claim that
+happens to be true and one that is false are indistinguishable to a reader.
+
 ## Deliverables
 
 - `FINDINGS.md` — F1..F11, each with a re-runnable command.
