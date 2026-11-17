@@ -13,11 +13,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twelve** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **thirteen** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWELVE instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, THIRTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Four sentences to carry into any measurement of this engine
 
@@ -263,6 +263,24 @@ assert stale_set.isdisjoint(intended_set), "fixture cannot distinguish the two b
 Print the sizes AND the overlap before the run, and let the assertion stop it. An overlap of 0 is the only
 thing that makes "which board was searched?" answerable from the move alone; my two errors both had a fixture
 where the answer was the same either way, and neither looked wrong until the sets were compared.
+
+
+## Instance 13 — the criterion for "a case of the thing under test" was itself a proxy (23-F71)
+
+Playing games until they reached a third occurrence, I collected four as "repetition cases". One of them —
+`8/8/8/8/8/8/8/k2K4` — is **bare K vs K**: two pieces, insufficient material. Both builds short-circuit it, and they
+do so on the board ALONE with no history, because that is the documented insufficient-material rule, not the
+repetition defect. I reported it as "a repetition the PC does not repair", and it was neither a repetition case nor
+an unrepaired defect.
+
+The trap is one level up from instance 11: there I used a library predicate as a proxy for the ENGINE's condition;
+here I used **"reached three occurrences" as a proxy for "is a case of the defect under test"**. A game can satisfy
+the proxy while being drawn for a stronger reason (material), so the sample silently contains a case that cannot
+show the effect.
+
+**The rule:** for every collected case, assert the reason it is a case — here, that the position is drawn BY THE
+REPETITION and not by material, i.e. `is_insufficient_material()` is False and the board has enough force to matter.
+A criterion that is easy to compute is usually a proxy; assert the thing itself.
 
 ## The fix, in one line each
 
