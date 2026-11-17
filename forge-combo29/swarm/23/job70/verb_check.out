@@ -1,0 +1,16 @@
+A. FIXTURE 23-F60 (Black to move). Assertions the FINAL's prose makes:
+  piece on b6 is a QUEEN not a minor piece                   got=True  want=True  OK
+  queen already attacked at root (White)                     got=True  want=True  OK
+  after e6e5 the queen is STILL on b6                        got=True  want=True  OK
+  after e6e5 the queen is STILL attacked                     got=True  want=True  OK
+  after PC's b6b4 the queen has LEFT b6                      got=True  want=True  OK
+  => base IGNORES an existing threat (not a new hang)        got=True  want=True  OK
+
+B. KNOWN-ANSWER CONTROL: a board where the move DOES create a new hang.
+  control: nothing of Black's is attacked by Qh5 on f7? (piece exists) got=True  want=True  OK
+  control: after a7a6 the f7 pawn is attacked (threat UNANSWERED) got=True  want=True  OK
+  control: f7 was ALSO attacked before a7a6 (so this is also a failure-to-answer, not a new hang) got=True  want=True  OK
+  control2: the KNIGHT on g1 is not attacked before it moves got=False want=False OK
+  control2: after Ng1-f3 the knight's NEW square f3 IS attacked => a GENUINE new hang got=True  want=True  OK
+
+VERDICT: PASS
