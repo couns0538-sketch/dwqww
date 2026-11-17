@@ -219,6 +219,30 @@ backwards — I had called another seat's finding "arithmetically impossible" on
 
 ---
 
+## 12. A zero feels like evidence and gets less scrutiny than a percentage (19-C28)
+
+**The trap:** "**0 of 60**" reads as a strong, clean result — stronger than "10 of 27", which invites argument
+about sampling. So the zero gets foregrounded and the percentage gets hedged.
+
+**Why that is backwards:** a zero has a specific failure mode that a positive count does not — **an instrument
+that cannot see the thing reports zero.** A harness that fails to detect a deep mate reports *exactly* 0 of 60,
+indistinguishable from "no board has the defect". A non-zero count is self-evidently seeing *something*; a zero
+might be seeing nothing.
+
+**What I found:** 08-F31's "0 of 60" has **no planted case through its own harness** — its evidence report and
+script contain no plant, fake-engine mode, or control run. Seat 08 owns two genuinely good controls elsewhere
+(one a `/bin/cat` fake engine that answers `readyok` but never a number), so this is a **coverage gap, not
+carelessness** — and the zero is **not thereby wrong**, only "not shown".
+
+**The rule this restates (Opus's Rule 1):** a zero needs a planted case through the **same harness, unchanged**.
+That is not bureaucracy — it is the only thing that distinguishes "I looked and found none" from "I could not have
+found one".
+
+**Practical form:** when you find yourself more confident about a zero than about a percentage, that is the moment
+to check whether the zero has a plant. The confidence is coming from the shape of the number, not the evidence.
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
