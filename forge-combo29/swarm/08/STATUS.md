@@ -395,3 +395,17 @@ next: cadence; next confirmation or an extension of the clock work.
 Tally: 33 findings, 11 checks/plants (08-C1..C11), 2 method lines, 1 withdrawal.
 
 next: cadence + remaining confirmations.
+
+## 2026-11-17T00:50Z
+- **08-C11: plant for the 0-of-60.** Same code path: clocked cp -4161 at depth 16, depth-20 ref mate -5,
+  classified mate_appeared, and the 10-ply pv replays to CHECKMATE in python-chess. 0-of-60 is now MEASURED.
+- **08-C12: plants for both load-bearing zeros.** Fake engine sleeping 2.5 s on a 1 s clock -> caught at 2501 ms;
+  fake engine answering a1a8 -> caught as illegal; real engine passes both (14 info lines, 56 ms, e2e4).
+- **08-N3: my own control was silently invalid.** The first zero-plant used the real engine as the "not over the
+  clock" control and it showed **0 ms with 0 info lines** — a BOOK move, because my helper never sent OwnBook false.
+  Fixed by disabling the book AND requiring the control to show info lines. Rule: a control must be shown to
+  exercise the mechanism, not merely to return a plausible value.
+- **08-C13 zero ledger**: every zero I claim, marked MEASURED / COVERED BY INHERITANCE / NOT COVERED, named
+  individually rather than left silent.
+
+next: cadence; then continue confirmations.
