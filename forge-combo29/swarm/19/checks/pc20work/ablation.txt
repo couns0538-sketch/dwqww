@@ -7,3 +7,25 @@ which single option causes the per-position variance? one option ON at a time, d
   MateAlphaGuard  1.000  1.000  1.000  1.000
 
 1.000 = no change. Values far from 1 show that ONE option reshapes that position's tree.
+
+## WHY MateAlphaGuard is EXACTLY 1.000 — read from the source, not inferred
+
+`src/search.cpp:183` declares it `false` by default, and it is referenced at only **two** places (lines 2134 and
+2159), each inside a futility-pruning guard:
+
+```
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+    (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+#endif
+```
+
+So the option **only** suppresses futility pruning when **`alpha` is already a mate score**. On positions where no
+node ever has a mate-valued alpha, the condition is `(!false || ...)` = `true` either way and the option is a
+**no-op by construction**. That is why the ratio is exactly 1.000 to three decimals on four unrelated positions —
+not "an effect below resolution" but **no code path difference executed at all**.
+
+## So the finding is sharper than "no measurable effect"
+It is: **MateAlphaGuard can only fire when the search reaches a node whose aspiration window's alpha is a mate
+score.** On the four positions tested at depth 14 that never happens, so the option cannot be attributed any
+node-count effect whatsoever. Anyone claiming it does something on ordinary positions must first show a node where
+alpha is mate-valued.
