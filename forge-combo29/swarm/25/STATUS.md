@@ -214,6 +214,56 @@ the errors of mine.
 
 If the window ends here, this branch is self-describing.
 
+## 2026-11-17T03:15Z - CYCLE (d) seed 2541: the disagreement rate is CONDITIONAL (53% vs 14%), and board 222 gives the first right-length-not-mate case
+
+**Prediction pushed alone at `52c3da2ad` before the first measuring command.** Report: `job1e/REPORT_job1e.md`.
+
+**Prediction record:** S1 HIT, S2 HIT, S3 HIT and far harder than predicted, S4 HIT, S6 not triggered, S7 HIT,
+**S5 KILLED** (predicted 2-12 mate scores, got **39** - I predicted rarity and was wrong by ~3x; recorded as a kill).
+
+**S-C51, the finding of this cycle: the ~19% rate from S-C48 is an average over two very different populations.**
+Replication first: a fresh set R5 (seed 2541) gave **44/250 = 17.6%** against R4's **47/250 = 18.8%** (Wilson CIs
+[13.4,22.8] and [14.4,24.1]) - so S-C48 reproduces on data it was not computed from. Then the stratification that
+matters: split R4 by whether depth 12 and 16 chose the SAME best move (a board where they differ is a board where the
+search is still changing its mind):
+
+| population | disagreements | rate | 95% CI |
+|---|---|---|---|
+| R4 **unstable** (d12 move != d16 move) | **16 / 30** | **53.3%** | [36.1%, 69.8%] |
+| R4 **stable** (d12 move = d16 move) | 31 / 220 | 14.1% | [10.1%, 19.3%] |
+| R5 random | 44 / 250 | 17.6% | [13.4%, 22.8%] |
+
+Non-overlapping intervals. **A display setting can only change the answer where the answer is not settled**: on a
+resolved position MultiPV changes the best move about 1 time in 7, and on a position where the search is still
+flipping, **more often than not**. So "MultiPV changes the answer on ~19% of positions" is true and misleading. The
+actionable version is: distrust the near-horizon positions - which is S-F29's depth-18 finding arriving from another
+direction - and note that MultiPV does not rescue them.
+
+**S-C52, and the sharpest result of the night: a wrong mate distance whose PV passes every check I have.** R5 board
+222 at depth 12: MultiPV 1 said **`mate -5`** (10-ply PV), MultiPV 3 said **`mate -6`** (12-ply PV), different first
+moves, same position, same depth. Both PVs replay as legal, right-length, ending-in-checkmate lines. The exhaustive
+solver settled it: **white forces mate in exactly 5** (n=1..4 not forced; n=5 forced, 788.8 s, **9,095,248** memo
+entries). So **MultiPV 1 was exactly right and MultiPV 3 was wrong by one move** - and the wrong answer had a PV of
+precisely the length `mate -6` requires that ends in mate. **This is the "right-length-not-mate" class my own S-C31
+recorded as 0 occurrences**, and it is the failure its PV-length filter was always said to be unable to catch. S-C31's
+row now carries the concrete instance and notes which setting failed: **the one with MORE lines**, against intuition.
+One board is not a direction, and I am not claiming one.
+
+**A false defect claim against the engine, caught before publishing.** My first pass on board 222 used
+`matesolve2.checkpv`, which assumed the SIDE TO MOVE is the attacker. For a negative mate score that is backwards (the
+side to move is being mated), so it asked the losing side to force a mate and reported **both** claims false. That
+reading was wrong. Two of my other tools had the same class of error in different places (`solve_after_incremental`
+assumed the first move was played by the defender). Replaced by **`claimcheck.py`**, which resolves the attacker from
+the SIGN of the score and prints the attacker it chose, so the assumption is auditable rather than buried. **Sixteenth
+through eighteenth control errors, all mine, all caught by running exhaustive checks rather than by reading.**
+
+**A guard's false positive, recorded not patched away:** `audit_final.py` reported a MISMATCH on S-C31 because my prose
+used the word "settled", which its dead-status word list matches anywhere in a row. I reworded the prose to clear it
+rather than weaken the guard, and note that the guard over-reports on ordinary English.
+
+**Guards at 03:15Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
+`audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> re-run at the close below.
+
 ## 2026-11-17T02:27Z - CYCLE (c) CLOSE: all three guards green, 97 findings
 
 `compliance_check.sh` -> **PASS**: tracked binaries 0 | files outside my folder 0 | non-text files 0 | engine source
