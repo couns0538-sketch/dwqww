@@ -1126,17 +1126,43 @@ node effects is not evidence of a flat real-position tax.
 
 ## 4. Audit of every bench-based node claim — `checks/realnode/AUDIT_bench_claims.md`
 **Mine:** 19-C35 **SUPERSEDED**; 19-F32 **SURVIVES as magnitude** (bench 4.3 % → real **5.2 %**, n=120) but
-**QUALIFIED as meaning** — only **54.2 %** of positions favour it, IQR 0.767–1.180 (28× the effect), so it is a
-pooled property, not a per-position one; 19-F34 **QUALIFIED**; 19-F33, 19-C40, 19-F42, 19-C19, 19-F26, 19-C3,
+**QUALIFIED as meaning** — see the coin-flip note below; 19-F34 **QUALIFIED**; **19-C58 confirms 19-F10's prefetch
+penalty is GENERAL (9.80 % on real positions, n=130)**; 19-F33, 19-C40, 19-F42, 19-C19, 19-F26, 19-C3,
 19-F16/F17 **SURVIVE**.
+
+### The 54.2 % coin flip — a property of the SWITCH, not of the measurement
+`CorrHistV2` saves **5.2 % of nodes pooled** but uses fewer on only **54.2 % of positions** (65 of 120), with an
+interquartile range of 0.767–1.180 — **28 times the effect size**. **This is not a measurement artefact and more
+data will not remove it: it is what the switch does.** The switch saves nodes *on average across a game* and is a
+coin flip *on any given position*. **So "saves 5 % of nodes" is true of a session and unusable for predicting any
+single move's cost.** Anyone budgeting nodes per position should not apply this figure per position.
 **Others:** 29-F42/F53 **SURVIVE and are corroborated** (real positions: 10.7–11.9 % vs my 12.4 %); 29-F59
 **SURVIVES**; 29-F56 **QUALIFIED** (right conclusion, underpowered n=40); 29-F58 is a **bench-13 profile** and must
 be quoted as such; seat 27's 600-cell series **SURVIVES** (I reproduced 600/600); 07's IIR `searchmoves` pin
 **SURVIVES**. **Open action: 29's `_mm_prefetch` 9.43 % bench-13 wall-time result needs a real-position re-check
 before anyone reads it as a general speed claim.**
 
-**Note on my own rule:** my first version said "never use bench for magnitudes". **That was too broad** — 19-C56
-shows a bench magnitude transferring correctly, and the over-cautious rule would have discarded a valid result.
+**Note on my own rule — it took three revisions, and each was forced by a measurement:**
+1. "never use bench for magnitude" — **too broad**: 19-C56 shows a bench magnitude transferring (4.3 % → 5.2 %).
+2. "bench understates per-node cost" — **wrong as a generalisation**: I assumed the bias had a direction, and
+   19-C58 refuted it (**prefetch: bench 9.43 %, real 9.80 % — bench was accurate**).
+3. **Current: bench's bias is PATCH-SPECIFIC, not directional.** Bench may understate (19-C35: 1.2 % vs 7 %),
+   overstate, or match (19-C58). **There is no safe blanket rule — measure on real positions once if the number
+   matters.** Bench stays valid for pins, determinism, ablation direction and structural counters, which do not
+   depend on the position distribution.
+
+### Small samples in this harness overstate effects — the observed rate
+Three instances in this seat, all caught before publication:
+| instance | small-n result | truth | factor |
+|---|---|---|---|
+| 19-C56 smoke | 21.5 %, n=6 | 5.2 %, n=120 | **4.1×** |
+| 19-C58 smoke | 13.19 %, n=6 | 9.80 %, n=130 | 1.35× |
+| 19-C52 subset | 7/14 = 50 % | — | power 0.03–0.07 |
+**The honest statement is that both smoke overstatements ran the same direction (up), at 1.35× and 4.1× — but
+that is TWO observations, not a rate, and a "factor of four" would itself be a small-sample claim.** What can be
+said without overreaching: **6-position smoke tests in this harness erred upward twice out of two, once by 4×,
+and both were caught only because the full run was already queued. Treat any n<10 speed number as a hypothesis,
+never a result.**
 
 ## What the owner should be told about PC20, in one line
 **PC20 searches ~12 % fewer nodes at matched depth but pays ~7 % more per node everywhere, so the net wall-time
