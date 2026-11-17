@@ -576,3 +576,18 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   S-C43/S-C44 was true and the conclusion would still have been wrong. **The gap you keep declaring is usually the
   answer.**
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:10:29Z CLOSE: all four variants fail; tolerance question WITHDRAWN as moot; recommendation unchanged
+- **S-C46**: (1) repaired only -> collapses to depth 1 (no depth); (2) fixed 64MB cap -> lines move <=775 cp both ways;
+  (3) share one table -> lines move <=~900 cp (bounds from a different root restriction); (4) own 8MB -> 0 cp median
+  shallow but **p90 112 cp at depth 23**. **All four fail.**
+- **S-F59**: the tolerance question I put to the owner is **MOOT and WITHDRAWN** — it was about the 8MB candidate, which
+  fails at depth under ANY tolerance. If he answers "accept the tolerance" it does not rescue the candidate. Please
+  withdraw it with him.
+- **Recommendation unchanged and never variant-dependent: MultiPV 1 at any Hash, or Hash 16 MB with multiple lines.**
+- **S-F60**: mechanism explains why all four fail — the alt line NEEDS a large table (small evicts) and the engine
+  cannot afford to allocate one (second full-size table allocated synchronously). Real fix attacks **allocation COST,
+  not size** (lazy zeroing / smaller cluster format / one allocation with disjoint generations) — design work, not
+  measurement; I built none. Supersedes my own "adaptive sizing" suggestion.
+- Saturation correction now sits BESIDE the saturation claim in job70/HARDENING.md, not only in the new finding.
+Next: continue in the window (ends 2026-11-17T10:18Z).
