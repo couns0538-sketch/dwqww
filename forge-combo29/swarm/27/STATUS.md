@@ -1375,3 +1375,25 @@ evidence. It reports what is separable and names the gap.
 **Two of my own bugs found while testing it: an uninterpolated `%d` in a format string, and I mis-read the exit
 code because `echo "exit=$?"` was capturing a PIPELINE's status - the pipeline trap from METHOD_NOTES, caught by
 testing rather than reading.**
+
+## 2026-11-17T19:2xZ S-C134..137 — BUILT SEAT 63's PROBE: 7 of 7 scan; but the scan ships COMPILED OUT
+**The coordinator's provenance question: seat 63's "0 of 125 non-drawn entered the scan, 13 of 13 drawn did" -
+where only 6 of the drawn 13 were evidenced. I built their probe and measured the missing 7.**
+**S-C134: `scanned_roots == 1` IN 7 OF 7 drawn endgames from `drawn_endgame.json`. With their 6 constructed rows,
+"13 of 13" IS NOW A MEASUREMENT.**
+Build: PC r15 + their `two_doors_mate` change, `FORGE_FIX_ROOT_DRAWN=0`, their SCANPROBE counters inlined;
+**honesty gate all four pass** (312866 / 862329 / 3024920 / 4865609), sha256 `8b1dc48a73...`.
+Per-FEN: 8338/31, 5472/31, 5552/28, 7108/24, 6849/30, 7660/24, 4568/19 ns and legal counts.
+**S-C135: THE CONTROL, SAME BINARY - 12 ordinary non-drawn roots give `roots=1, scanned_roots=0` in 12 of 12.**
+So the counter is reached on every root and only the drawn branch increments it; it is not 1 by default.
+**S-C136: COST 177-319 ns PER LEGAL MOVE, MEDIAN ~240 - so their "220-280 ns" HOLDS, but three of my seven (269,
+296, 319) sit at or above their top of 280. The honest range across all ten measurements is ~177-319 ns.**
+**S-C137 - THE PROVENANCE FACT THEIR REPORT DOES NOT STATE: `FORGE_FIX_ROOT_DRAWN` DEFAULTS TO 1, WHICH COMPILES
+THE ENTIRE SCAN BLOCK OUT.** On a default PC r15 build the scan is never reached (`roots=0`, not
+`scanned_roots=0`) and the seven drawn roots emit **NO `info depth` lines**. I had to set it to 0 to reproduce
+their measurement. **So their "13 of 13" describes the fix-DISABLED configuration; on the build the owner plays
+the scan does not exist. That does not invalidate the cost - it BOUNDS it: 177-319 ns/legal is the cost of the
+PROPOSED CHANGE, not of the shipped engine.**
+**Build notes for anyone reproducing: their `two_doors_mate.patch.txt` does not apply to my tree's line offsets
+(reproduced the hunk verbatim instead); their `instrument.py` cross-TU `extern` inside `namespace forge` does not
+link against globals defined at global scope in uci.cpp - inlined both into one translation unit.**
