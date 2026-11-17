@@ -231,7 +231,7 @@ def main() -> int:
     print(f"pairs={len(rows)} order_dependent={len(order_dependent)}")
     for r in order_dependent:
         print(f"  ORDER-DEPENDENT {r['a']} vs {r['b']} fields={r['differing_fields']}")
-    print(f"controls: documented_precedence_detected={control_passed} "
+    print(f"controls: fingerprint_sensitive={control_positive} "
           f"unrelated_pair_null={negative_passed}")
     print(f"no_effect_on_probe={len(no_effect)}: {no_effect}")
     if not report["controls"]["passed"]:

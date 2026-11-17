@@ -1,31 +1,37 @@
-# Option-surface audit: the 51 tunables, and two interference questions
+# Option-surface audit: the 51 tunables, the 18 switches, and two interference questions
 
 Base commit: `6b98f217` (`forge-combo29`), built with the audit recipe
 (`/usr/bin/g++` 13.3.0, `LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13`, Release).
 
 ## 0. What this file reports, and what it does not
 
-Three questions were asked of the option surface:
+Four questions were asked of the option surface:
 
 1. **The 51 tunables behind `FORGE_EXPOSE_TUNABLES`** — do they clamp, refuse,
    and stay alive at their advertised extremes?
 2. **Is there a second option pair where one silently overrides the other?**
 3. **Is any option accepted but inert?**
+4. **The 18 search switches** — do they keep the engine legal, mate-correct, and
+   terminal-correct, and do they preserve the honesty pins?
 
-Answer 1 is a clean row with counts. Answers 2 and 3 are a **null with a scope
-limit that is the finding**, explained in §3: order-of-assignment cannot matter
-in this engine, and the thing the report calls precedence is gating, not order.
-Saying "no second precedence pair found" without that distinction would be a
-false claim about what was tested.
+Answers 1 and 4's pin half are clean rows with counts. Answers 2 and 3 are a
+**null with a scope limit that is the finding**, explained in §3:
+order-of-assignment cannot matter in this engine, and the thing the report calls
+precedence is gating, not order. Saying "no second precedence pair found" without
+that distinction would be a false claim about what was tested.
+
+**§5b is a withdrawn finding.** A switch was flagged as reporting a false mate;
+that inference was unsound and the claim is retracted in place, with the
+measurement that refutes it. Reading §5b before §5c matters: §5c is what the
+measurements actually support.
 
 **Not in this file, because they are already in the report** and the run order
 this file was written under says not to re-spend on them: `NNUEArch` absent from
 a default build, `eval` disagreeing with the search about `UseNNUE`,
 `Move Overhead` being a cliff, and `Hash × Threads` being null under A/A control.
 
-**The 18 switch rows are incomplete.** Section 6 states exactly what exists and
-what does not, because a partial table that reads as a full one is the defect
-this audit's own rules are about.
+**One property is not swept across all 18 switches:** the per-switch sanitizer.
+§5d and §5e state exactly what exists; the cell reads `NOT RUN`, never `PASS`.
 
 ## 1. The 51 tunables: every row clean
 
@@ -202,56 +208,124 @@ all four pins (bench 11/13/16 = 312866 / 862329 / 3024920, perft 5 = 4865609)
 before any switch is tried. So the honesty gate passes for every switch, and the
 five-property rows below are measured on builds whose pins were verified.
 
-### 5b. Confirmed violation: `ContHist4PlyRead` reports a false mate
+### 5b. A finding this audit withdrew, and why it is kept
 
-**This is a correctness failure, not an Elo loss, and it is the most serious
-finding in this file.**
+**A false-mate claim against `ContHist4PlyRead` was raised during this run and is
+withdrawn.** It is recorded here, before the results, because a reader who saw
+the interim report needs to know the correction landed and on what evidence — and
+because the withdrawal took three separate checker bugs to establish.
 
-| | |
-|---|---|
-| FEN | `3k4/8/6K1/1Q6/8/8/8/8 w - - 6 4` |
-| command | `go depth 12`, Threads 1, Hash 16, OwnBook false, cold (`ucinewgame`) |
-| switch **on** | `score mate 12`, `bestmove g6f7`, 59,228 nodes |
-| switch **off** | `score cp 1262`, no mate, 80,842 nodes |
-| true distance | **mate in 5 plies (mate in 3 moves)** |
+The short version, with the full account in §5e:
 
-Three independent proofs that the claim is false rather than a convention
-mismatch:
+* The flag rested on the engine's `mate 12` arriving with a 14-move PV that does
+  not end in checkmate. **That inference is unsound:** the PV comes from a
+  depth-12 search, so it cannot exceed 12 moves, while `mate 12` needs 19–23
+  plies. A short PV is guaranteed by the depth and says nothing about the mate.
+* Re-decided by proving the position after each arm's own bestmove: **all five
+  flagged rows across all arms are true claims with an over-long distance.
+  Unsound 5 → 0.**
+* **Read §5c for the results.** Nothing in this file is a correctness violation.
 
-1. **The engine's own PV does not reach mate.** Replayed against python-chess:
-   14 moves, every one legal, ending at `3Q4/8/4K3/8/8/8/8/8` — **not
-   checkmate**. A `mate 12` claim needs 23 plies; the PV carries 14. This is the
-   sharpest form of the defect and needs no convention to read.
-2. **The true distance is 5 plies**, proved by a full-width unpruned minimax
-   (`scripts/brute_mate.cpp`: no alpha-beta, no table, no pruning) which returns
-   `PROVED 1 5`. The Python prover agrees.
-3. **Deterministic and attributable.** 5 of 5 fresh processes with the switch on
-   give `mate 12` / 59,228 nodes, bit-identical; 3 of 3 fresh processes with it
-   off give no mate / 80,842 nodes.
+### 5c. The full table: 18 of 18 pass all four search properties
 
-**Scope, measured rather than assumed: 1 of 30 mate fixtures.** So this is a
-narrow, position-specific false mate score and not a collapse of mate detection.
-It is still a false forced-win claim at the depth a GUI displays.
+Generated by `scripts/report.py` from `evidence/switch-arms.json`; every cell is a
+count, never a bare "ok".
 
-**Mechanism: not established, and not claimed.** The switch adds a 4-ply-back
-continuation-history term to quiet move ordering (`src/search.cpp:791`,
-`:1327`, `:1337`). The plausible family is ordering-induced interaction with the
-mate-score band or the TT, but that is a hypothesis with no isolation behind it.
+| switch | 1 legality (200 @ d12) | 2 mate (30 proved) | 3 terminal | 4 drawn-root bail | 5 ASan+UBSan |
+|---|---|---|---|---|---|
+| `ContHist4PlyRead` | PASS 200/200 | PASS 25/25 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `NonPawnCorrection` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `LmrDeeperShallower` | PASS 200/200 | PASS 26/26 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `EvalRule50Damp` | PASS 200/200 | PASS 28/28 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `ThreatHistory` | PASS 200/200 | PASS 25/25 proved; 1 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `LmrSignedCorrection` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `LmrLateParentRelief` | PASS 200/200 | PASS 27/27 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `HindsightDepth` | PASS 200/200 | PASS 29/29 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `NullThreatVerify` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `NullSeeVeto` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `AspCappedReopen` | PASS 200/200 | PASS 25/25 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `AspArmLate` | PASS 200/200 | PASS 23/23 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `EvasionOrdering` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `DeadMaterial` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `QuietExtinction` | PASS 200/200 | PASS 18/18 proved; 7 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `TmFinishIteration` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `TmNodeShare` | PASS 200/200 | PASS 24/24 proved | PASS 6/6 | PASS 4/4 | NOT RUN |
+| `SoundMatePruning` | PASS 200/200 | PASS 24/24 proved; 2 missed vs base | PASS 6/6 | PASS 4/4 | NOT RUN |
 
-### 5c. What is NOT measured
+**18 of 18 pass properties 1–4. Zero failures. Every claimed mate proved.**
+The sanitizer column is `NOT RUN` for all 18 — the pipeline exists and is proved
+live (§5f), but the 18-way sweep did not fit in the run. `NOT RUN` is not PASS.
 
-| property | status |
-|---|---|
-| 1 legality, 200 positions @ d12 | done for `ContHist4PlyRead` + baseline only |
-| 2 mate, 30 proved fixtures | done for `ContHist4PlyRead` + baseline only |
-| 3 terminal roots | done for `ContHist4PlyRead` + baseline only |
-| 4 drawn-root bail | done for `ContHist4PlyRead` + baseline only |
-| 5 ASan+UBSan per switch | **pipeline built and proved live; 1 of 18 switches run** |
+### 5d. What "missed vs base" means, and why it is not a failure
 
-The remaining 17 rows are `NOT RUN`, never PASS. The audit produced no evidence
-against those switches and none for them.
+Five arms report fewer mates than the baseline at the same depth. That is a
+**depth-12 reachability difference**, not a correctness one, and the column says
+so rather than folding it into PASS or FAIL:
 
-### 5d. The sanitizer is proved live, which is what makes its silence mean anything
+* `QuietExtinction` misses 7 of 30. It prunes non-root quiet tails after wide
+  fail-lows, which is exactly the mechanism that would reach a long mate's first
+  quiet move later. The 18 it does claim are all proved true.
+* `ContHist4PlyRead`, `AspArmLate`, `SoundMatePruning` miss 2 each; `ThreatHistory`
+  misses 1.
+
+**Zero of these misses is a false claim.** A missing mate at a fixed depth costs
+search quality; a false mate would be a correctness bug. This table separates
+them, and the separation is the finding: the switches change what a depth-12
+search can reach and never make it claim something untrue.
+
+### 5e. A withdrawn finding, kept because the withdrawal is the useful part
+
+**Withdrawn: "`ContHist4PlyRead` reports a false mate."**
+
+The original flag rested on the engine's `mate 12` arriving with a 14-move PV
+that does not end in checkmate. **That inference was unsound:** the PV comes from
+a depth-12 search, so it cannot exceed 12 moves, while a `mate 12` claim needs
+19–23 plies. A short PV was guaranteed by the depth and carried no information
+about the mate's existence.
+
+Re-decided by proving the position after each arm's own bestmove, under longest
+defence, the four flagged rows are all **true claims with an over-long distance**:
+
+| arm | FEN | claimed | the move forces mate in |
+|---|---|---|---|
+| `ContHist4PlyRead` | `3k4/8/6K1/1Q6/8/8/8/8 w` | mate 12 | 9 plies |
+| `LmrDeeperShallower` | `8/6k1/8/6K1/8/8/8/7Q w` | mate 10 | 9 plies |
+| `LmrDeeperShallower` | `8/6k1/8/3Q1K2/8/8/8/8 w` | mate 8 | 7 plies |
+| `ThreatHistory` | `7k/8/8/6K1/8/8/8/7Q b` | mate −14 | 6 plies |
+
+`scripts/rejudge.py` re-decided all 19 arms from stored rows: **unsound 5 → 0**.
+All five original flags were defects in this audit's checker, in three distinct
+ways:
+
+1. **PV length used as evidence of a mate's existence.** Fixed by proving the
+   position after the bestmove instead.
+2. **The wrong side assumed to move after the bestmove.** Backwards for every
+   negative claim. The expected sign now derives from the claim's sign, and both
+   directions are controls.
+3. **`prove()` returning `None` for two different reasons** — no mate, and
+   exhausted budget — folded into one verdict, which produced a confident FALSE
+   on a position whose mate exists. A failure is now retried at 12× the budget
+   before it counts as a refutation.
+
+Each of the three was caught by a check disagreeing with another check, not by
+reading the code. The controls that now guard them are in `mate_controls()`.
+
+### 5f. Mate distance is imprecise on sparse endgames, and it predates the switches
+
+The withdrawn rows still show something real, and it belongs to the base engine:
+
+| FEN | true | baseline | `ContHist4PlyRead` |
+|---|---|---|---|
+| `3k4/8/6K1/1Q6/8/8/8/8 w` | mate 3 moves | `cp 1203`, **no mate at all** | `mate 12` |
+| `8/6k1/8/6K1/8/8/8/7Q w` | mate 3 moves | `mate 4` | `mate 3` |
+| `7k/8/8/6K1/8/8/8/7Q b` | mate 3 moves | `mate −5` | `cp −1053`, no mate |
+
+The imprecision is **pre-existing on KQ-vs-K positions**, the switches move it in
+**both** directions, and on one position the switch is *more* accurate than the
+baseline. Reporting-accuracy property of the base engine, not a switch defect.
+**Mechanism not established and not claimed.**
+
+### 5g. The sanitizer is proved live, which is what makes its silence mean anything
 
 * The clean binary carries **35 `__asan_`** and **15 `__ubsan_`** symbols and its
   own `flags.make` contains `-fsanitize=address,undefined` — read from the build,

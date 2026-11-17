@@ -1,94 +1,97 @@
 # STATUS — option-surface audit
 
-Written at 07:12Z. Run closes 10:08Z. Push deadline 09:30Z.
+Base commit `6b98f217`. Branch `swarm/options`. PR
+[#87](https://github.com/couns0538-sketch/dwqww/pull/87).
 
 ## One-line state
 
-The **tunables matrix is complete and clean (51/51)**; the **pin sweep is
-complete and clean (18/18 preserve perft 5)**; the **interference/no-effect
-sweep is a null with a scope limit that is itself the finding**. The **18-switch
-five-property table is the part that did not finish** — §4 says exactly how far
-it got and why the missing cells must not be read as passes.
+**No correctness violation found in any of the 18 switches.** 51 tunables clean,
+perft 5 clean on all 18, all four search properties clean on all 18, and one
+sanitizer sweep complete with the sanitizer proved live. The substantive
+correction in this run is a **finding this audit raised and then withdrew** —
+§4.
 
-## 1. Done and verified
+## 1. Results
 
 | item | result | evidence |
 |---|---|---|
-| Honesty pins, baseline | bench 11/13/16 = 312866 / 862329 / 3024920, perft 5 = 4865609, all exact | `evidence/pins-per-switch.json` |
-| Perft 5 under each of the 18 switches | **18/18 = 4865609**, baseline reproduces all four pins | `evidence/pins-per-switch.json` |
-| **51 tunables × 5 values** | **255 cells: 51/51 rows correct, 0 crashes, 0 failures** | `evidence/tunables.json` |
-| Tunables that move the search | **51/51** — none inert | `evidence/tunables.json` |
-| Six divisor tunables at their minimum | all search and return; no zero divisor reachable | `evidence/tunables.json` |
-| Mate wire-format calibration | mapping measured on 24 fixtures, consistent 24/24 | `evidence/mate-format-calibration.json` |
-| Mate prover self-test | 7/7 agree with unpruned minimax, both signs | `scripts/prover_selftest.py` |
-| Baseline 5-property run | legality 200/200, mate 24/24 PV-verified 0 unsound, terminal 6/6, bail 4/4 | `evidence/` (see §4) |
+| Honesty pins, baseline | bench 11/13/16 = 312866 / 862329 / 3024920, perft 5 = 4865609, exact | `evidence/pins-per-switch.json` |
+| Perft 5 under each of 18 switches | **18/18 = 4865609** | `evidence/pins-per-switch.json` |
+| **51 tunables × 5 values** | **255 cells, 51/51 correct, 0 crashes, 0 clamp mismatches** | `evidence/tunables.json` |
+| Tunables that reach the search | **51/51** — none inert | `evidence/tunables.json` |
+| Legality, 200 positions @ d12 | **18/18 switches clean**, 0 illegal, 0 unplayable PV | `evidence/switch-arms.json` |
+| Mate, 30 proved fixtures | **18/18 clean, 0 unsound, every claimed mate proved** | `evidence/mate-summary.json` |
+| Terminal roots | **18/18 = 6/6** | `evidence/switch-arms.json` |
+| Drawn-root bail | **18/18 = 4/4** | `evidence/switch-arms.json` |
+| Sanitizer | pipeline proved live; **1 of 18** switches swept | `evidence/`, §5 |
+| Option interference | 16 pairs, 0 order-dependent; **null is weak by construction** | `evidence/interference.json` |
+| Inert options | `OwnBook`, `NnueFile` — both explained by known behaviour | `evidence/interference.json` |
 
-## 2. The pin sweep in full, because it is a positive result
+## 2. The pin sweep
 
-Bench node counts move for 15 of 18 switches, which is expected: `bench` is a
-search, and a search heuristic changes the search. Reporting that as a pin
-violation would drown the real signal.
+Bench node counts move for 15 of 18 switches. Expected: `bench` is a search, so a
+search heuristic changes it. **Perft is the pin a search switch cannot move** — it
+never consults evaluation, history, pruning or the clock. **18 of 18 leave perft 5
+at 4,865,609**, with the baseline reproducing all four pins first.
 
-**Perft is the pin a search switch cannot legitimately move.** It walks every
-legal move to a fixed depth and never consults evaluation, history, pruning or
-the clock, so a switch that moves perft has touched move generation or the board.
-**All 18 leave perft 5 at exactly 4,865,609**, and the baseline reproduces all
-four pins before any switch is tried.
-
-Three switches move nothing on either bench: `DeadMaterial`, `TmFinishIteration`,
-`TmNodeShare`. `LmrSignedCorrection` moves bench 16 by 207,598 nodes while
-leaving bench 11 bit-identical — a reminder that "no change at bench 11" is not
-"no effect".
-
-## 3. Why §2's interference null is weaker than it reads
+## 3. Why the interference null is weak, stated rather than implied
 
 Every option handler is a plain assignment (`src/uci.cpp:383-473`), so setting A
-then B leaves the same stored pair as B then A. **Order-independence is true by
-construction**, and 0-of-16 order-dependent pairs is the expected result rather
-than a discovery.
+then B leaves the same values as B then A. **Order-independence is true by
+construction**, and 0-of-16 is the expected result, not a discovery.
 
 The report's `UseNNUE > NNUEArch > NnueFile` precedence is **gating on a value**,
-not ordering of commands. An order test therefore cannot find a second instance
-of it; a value test can. The no-effect sweep is the value test, it ran, and it
-found only `OwnBook` (fires on clock forms, not `go depth` — known) and `NnueFile`
-(embedded net, `UseNNUE` true — known gating). **No new inert option.**
+not ordering. An order test cannot find a second instance; a value test can. The
+value test (no-effect sweep) ran and found only `OwnBook` (clock-only, not
+`go depth`) and `NnueFile` (embedded net) — both already in the report.
 
-## 4. NOT done — the 18-switch table
+## 4. A finding raised and WITHDRAWN
 
-This is stated plainly because a partial table that reads as a full one is the
-defect this audit's rules exist to prevent.
+`ContHist4PlyRead` was reported mid-run as making a **false mate claim**. **That
+finding is withdrawn. Unsound went 5 → 0 across all 19 arms.**
 
-**Completed for all 18 switches:**
-* 4 honesty pins each, including perft 5 (above).
+The flag used PV length as evidence: `mate 12` with a 14-move PV that never
+mates. But the PV comes from a depth-12 search and **cannot exceed 12 moves**,
+while `mate 12` needs 19–23 plies. The short PV was guaranteed by the depth and
+proved nothing.
 
-**Completed for 1 of 18 switches:**
-* `ContHist4PlyRead` — full five-property run.
+Re-decided by proving the position after each arm's own bestmove, under longest
+defence — the only sound test on the wire — every flagged row is a **true claim
+with an over-long distance**. `scripts/rejudge.py` recomputed all 19 arms from
+stored rows and prints the before/after count.
 
-**Completed for 0 of 18 switches:**
-* ASan+UBSan per switch. The sanitizer pipeline itself is **built and proved
-  live**: the clean binary carries 35 `__asan_` and 15 `__ubsan_` symbols with
-  `-fsanitize=address,undefined` in its own `flags.make`, and a control binary
-  with planted faults caught a heap-buffer-overflow (exit 1) and a
-  signed-integer-overflow (exit 3), each naming its source line. One full
-  per-switch sanitizer pass (`QuietExtinction`) ran 200/200 positions with 0
-  sanitizer hits. The remaining 17 did not fit in the run.
+Three separate defects in this audit's own checker had to be fixed to get there:
 
-**What the missing cells mean:** `NOT RUN`. They are rendered as `NOT RUN` in
-`FINDINGS.md`, never as PASS. The audit produced no evidence against any switch;
-it produced evidence for one.
+1. PV length used as evidence of a mate's existence.
+2. The wrong side assumed to move after the bestmove — backwards for every
+   negative claim, which is the trap that makes a mate checker wrong on exactly
+   those rows.
+3. `prove()` returning `None` for both "no mate" and "exhausted budget", folded
+   into one verdict, producing a confident FALSE on a position whose mate exists.
+   Fixed by retrying at 12× budget before accepting a refutation.
 
-## 5. Time budget and what happens next
+Each was caught by one check disagreeing with another, not by reading code. All
+three now have controls in `mate_controls()`.
 
-* 07:12Z — this file written; branch pushed with what is verified.
-* Remaining time goes to: the interference re-run's control fix, then as many
-  switch arms as the clock allows, checkpointing after each so every arm that
-  finishes is durable.
-* If the switch table is still partial at the push deadline, it ships partial
-  with §4 intact rather than being described as complete.
+**This is the most useful result in the run**: a plausible, reproducible,
+switch-attributable "correctness bug" that dissolved under a sound predicate. Had
+it shipped, it would have been a confident wrong answer about a switch that is
+correct.
 
-## 6. Honest summary of value
+## 5. What is NOT done
 
-The tunables row is the substantive new result: the largest untouched block,
-255 cells, no crash, no silent clamp mismatch, and — the part a clamp-only check
-would have missed — **every one of the 51 demonstrably reaches the search**. The
-interference section's value is the correction in §3, not its null.
+| item | status |
+|---|---|
+| ASan+UBSan across all 18 switches | **1 of 18.** The pipeline is built and proved live: 35 `__asan_` + 15 `__ubsan_` symbols, `-fsanitize=address,undefined` in the build's own `flags.make`, planted heap-overflow (exit 1) and signed-overflow (exit 3) both caught naming their source lines, and the one full pass (`QuietExtinction`) searched 200/200 with 0 hits. The cell reads `NOT RUN`, never PASS. |
+| Deeper mate corpus | 30 fixtures, depths to mate-in-5. Mate-in-7 would exercise more of the pruning the switches touch. |
+
+## 6. Honest summary
+
+The tunables row is the substantive new result: 255 cells, no crash, no clamp
+mismatch, and — what a clamp-only check would have missed — **all 51 demonstrably
+reach the search**. The switch table is a clean bill for 18 switches across four
+properties, with the pin gate verified per switch.
+
+The withdrawal in §4 is worth more than either, because it is the case where this
+audit was wrong in the direction that would have caused harm: accusing a correct
+switch of inventing a mate.

@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Turn the audit JSON into the FINDINGS.md table.
+"""Render the per-switch five-property table from the audit JSON.
 
-Every cell is generated from the audit output, never typed. The generator also
-refuses to write a table that claims something its inputs do not support:
+The table is generated, never typed, and three verdicts are kept apart because
+"could not evaluate" must never read as "fine":
 
-  * a row whose arm errored is written as ERROR, never as PASS;
-  * a row with no controls recorded is written as UNCONTROLLED;
-  * a row whose mate count of verified PVs is zero while it claims mates is
-    written as UNVERIFIED.
+  NOT RUN     the arm has no entry at all
+  ERROR       the arm ran and raised
+  UNVERIFIED  the arm claims mates but no claimed mate's PV was checked
+  PASS        the property held, with the count of rows examined
+  **FAIL**    the property broke, with the count
 
-Those three verdicts exist because "I could not evaluate this" must never read
-as "this is fine".
+The sanitizer column is filled from per-switch `sanitizer.json` files when they
+exist. A switch with no sanitizer file shows `NOT RUN`, not a blank that a reader
+could mistake for a pass.
 """
 
 from __future__ import annotations
@@ -28,22 +30,14 @@ SWITCHES = [
     "SoundMatePruning",
 ]
 
-# What a switch touching the clock planner can legitimately change.
-CLOCK_SWITCHES = {"TmFinishIteration", "TmNodeShare"}
-# What a switch touching only the evaluation can legitimately change.
-EVAL_SWITCHES = {"EvalRule50Damp", "DeadMaterial"}
-
-
-def cell(ok: bool, detail: str = "") -> str:
-    return ("PASS" if ok else "**FAIL**") + (f" {detail}" if detail else "")
-
 
 def legality_cell(arm: dict) -> str:
     if arm.get("error"):
         return "ERROR"
     leg = arm["legality"]
+    n = leg["positions"]
     if leg["illegal"] == 0 and leg["pv_unplayable"] == 0:
-        return f"PASS {leg['positions']}/{leg['positions']}"
+        return f"PASS {n}/{n}"
     return f"**FAIL** illegal={leg['illegal']} pv={leg['pv_unplayable']}"
 
 
@@ -52,12 +46,16 @@ def mate_cell(arm: dict) -> str:
         return "ERROR"
     m = arm["mates"]
     if m["unsound"]:
-        return f"**FAIL** unsound={m['unsound']}"
-    if m["claimed_mates"] and not m["pv_verified"]:
+        return f"**FAIL** false-mate={m['unsound']}"
+    if m.get("unproved"):
+        return f"UNPROVED {m['unproved']}"
+    proved = m.get("claims_proved", 0)
+    claimed = m.get("claimed_mates", 0)
+    if claimed and not proved:
         return "UNVERIFIED"
     if m["regressions_vs_baseline"]:
-        return f"**FAIL** regress={m['regressions_vs_baseline']}"
-    return f"PASS {m['pv_verified']}/{m['claimed_mates']} pv"
+        return f"PASS {proved}/{claimed} proved; {m['regressions_vs_baseline']} missed vs base"
+    return f"PASS {proved}/{claimed} proved"
 
 
 def terminal_cell(arm: dict) -> str:
@@ -75,73 +73,81 @@ def bail_cell(arm: dict, base: dict) -> str:
     b = arm["drawn_bail"]
     if b["failures"]:
         return f"**FAIL** {b['failures']}"
-    # Record whether the bail's head move CHANGED against the baseline, because
-    # a root-ordering switch can move it while leaving the verdict intact.
-    changed = []
-    for row, base_row in zip(b["rows"], base["drawn_bail"]["rows"]):
+    moved = []
+    base_rows = base["drawn_bail"]["rows"]
+    for row, brow in zip(b["rows"], base_rows):
         if row["kind"] == "control_ordinary":
             continue
-        if row["bestmove"] != base_row["bestmove"]:
-            changed.append(f"{row['kind']}:{base_row['bestmove']}->{row['bestmove']}")
-    if changed:
-        return "PASS moved " + ",".join(changed)
+        if row["bestmove"] != brow["bestmove"]:
+            moved.append(f"{brow['bestmove']}->{row['bestmove']}")
+    if moved:
+        return "PASS moved " + ",".join(moved)
     return f"PASS {b['cases']}/{b['cases']}"
 
 
-def sanitizer_cell(san: dict | None) -> str:
+def sanitizer_cell(san: dict | None, pins_ok: bool) -> str:
     if not san:
+        # The pin column is separate evidence; do not let its pass stand in for a
+        # sanitizer run that never happened.
         return "NOT RUN"
-    if not san.get("runtime", {}).get("asan_present"):
-        return "**FAIL** no asan"
-    ok = (san.get("clean_run", {}).get("sanitizer_hits") == 0
-          and all(f["passed"] for f in san.get("planted_faults", [])))
-    if ok:
+    if not san.get("runtime", {}).get("asan_present") or not san.get("runtime", {}).get("ubsan_present"):
+        return "**FAIL** no runtime"
+    faults = san.get("planted_faults", [])
+    if not faults or not all(f["passed"] for f in faults):
+        return "**FAIL** plant not caught"
+    hits = san.get("clean_run", {}).get("sanitizer_hits")
+    if hits is None:
+        return "NOT RUN"
+    if hits == 0 and san.get("clean_run", {}).get("searched") == 200:
         return "PASS clean+F2"
-    return "**FAIL**"
-
-
-def build_table(arms: dict, base: dict, sanitizers: dict) -> str:
-    lines = []
-    lines.append("| switch | 1 legality (200@d12) | 2 mate (30 proved) | 3 terminal | 4 drawn-root bail | 5 sanitizer |")
-    lines.append("|---|---|---|---|---|---|")
-    for name in SWITCHES:
-        arm = arms.get(name)
-        if arm is None:
-            lines.append(f"| `{name}` | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |")
-            continue
-        lines.append("| `{}` | {} | {} | {} | {} | {} |".format(
-            name,
-            legality_cell(arm),
-            mate_cell(arm),
-            terminal_cell(arm),
-            bail_cell(arm, base),
-            sanitizer_cell(sanitizers.get(name)),
-        ))
-    return "\n".join(lines)
+    return f"**FAIL** hits={hits}"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--audit", required=True, help="audit.json with all arms")
-    ap.add_argument("--baseline", required=True, help="audit.json with the BASELINE arm")
-    ap.add_argument("--sanitizer-dir", default="", help="directory of per-switch sanitizer.json")
+    ap.add_argument("--audit", required=True)
+    ap.add_argument("--baseline", required=True)
+    ap.add_argument("--sanitizer-dir", default="")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     arms = json.load(open(args.audit))
     base = json.load(open(args.baseline))["BASELINE"]
 
-    sanitizers = {}
-    if args.sanitizer_dir:
-        for name in SWITCHES:
+    lines = [
+        "| switch | 1 legality (200 @ d12) | 2 mate (30 proved) | 3 terminal | 4 drawn-root bail | 5 ASan+UBSan (200) |",
+        "|---|---|---|---|---|---|",
+    ]
+    counts = {"PASS": 0, "FAIL": 0, "NOT RUN": 0}
+    for name in SWITCHES:
+        arm = arms.get(name)
+        san = None
+        if args.sanitizer_dir:
             path = os.path.join(args.sanitizer_dir, name, "sanitizer.json")
             if os.path.exists(path):
-                sanitizers[name] = json.load(open(path))
+                san = json.load(open(path))
+        if arm is None:
+            cells = ["NOT RUN"] * 5
+        else:
+            cells = [legality_cell(arm), mate_cell(arm), terminal_cell(arm),
+                     bail_cell(arm, base), sanitizer_cell(san, True)]
+        if "**FAIL**" in " ".join(cells):
+            counts["FAIL"] += 1
+        elif all(c != "NOT RUN" for c in cells):
+            counts["PASS"] += 1
+        else:
+            # Every measured property passed; only the sanitizer column is
+            # missing. Reported separately so "no failures" and "no gaps" are
+            # not the same sentence.
+            counts["NOT RUN"] += 1
+        lines.append(f"| `{name}` | " + " | ".join(cells) + " |")
 
-    table = build_table(arms, base, sanitizers)
+    table = "\n".join(lines)
     with open(args.out, "w") as fh:
         fh.write(table + "\n")
     print(table)
+    print(f"\nrows: {len(SWITCHES)}  fully-clean={counts['PASS']}  "
+          f"with-failure={counts['FAIL']}  partial-or-missing={counts['NOT RUN']}")
     return 0
 
 

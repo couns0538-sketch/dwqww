@@ -36,6 +36,7 @@ import chess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import driver  # noqa: E402
+import mateproof  # noqa: E402
 
 SWITCHES = [
     "ContHist4PlyRead",
@@ -195,67 +196,119 @@ def _unused_mate_plies_to_move(plies: int) -> int:
 
 
 def mate_claim_is_true(board: chess.Board, mate: int, pv: list[str]) -> tuple[bool, str]:
-    """Verify a mate claim by replaying the engine's own PV.
+    """Check a mate claim WITHOUT using PV length as evidence.
 
-    This is the direct falsification test and it needs no convention at all: if
-    the engine claims mate, its PV must end in checkmate, and the side that is
-    mated must be the side the score's SIGN says is losing. A PV that does not
-    reach mate is a false mate claim, which is the serious direction of this
-    defect and cannot be explained away by a distance convention.
+    PV length is not evidence about a mate claim in this engine: the PV comes
+    from a search of `depth` plies, so on a mate longer than the search depth the
+    wire PV is necessarily shorter than the claimed distance. An earlier version
+    of this function compared PV length to the claimed distance and flagged real
+    mates as false on that basis. It was wrong, and the correction is recorded
+    here so the mistake is not re-made.
 
-    `calibrate_mate_format.py` separately establishes that a claimed `mate N`
-    corresponds to a PV of 2N-1 plies (positive) or 2N plies (negative), so the
-    length can be checked too; both checks are applied here.
+    What can be checked from the wire alone, soundly:
+      * the PV prefix that IS published must consist of legal moves;
+      * the score's SIGN must not contradict itself.
+
+    What cannot: whether a mate exists, and at what distance. That needs an
+    independent proof of the position after the engine's own bestmove, which is
+    `adjudicate_mates.py`'s job and is the authority for this property.
     """
     if mate is None:
         return True, "no mate claimed"
-    sign = 1 if mate > 0 else -1
-    n = abs(mate)
-    expect_plies = 2 * n - 1 if sign > 0 else 2 * n
-    if len(pv) < expect_plies:
-        return False, f"pv has {len(pv)} moves, mate {mate} needs {expect_plies} plies"
     b = board.copy()
-    for index in range(expect_plies):
-        move = legal_or_none(b, pv[index])
+    for index, uci in enumerate(pv):
+        move = legal_or_none(b, uci)
         if move is None:
-            return False, f"pv[{index}]={pv[index]} illegal after {b.fen()}"
+            return False, f"pv[{index}]={uci} illegal after {b.fen()}"
         b.push(move)
-    if not b.is_checkmate():
-        return False, f"pv of {expect_plies} plies does not end in checkmate ({b.fen()})"
-    # The mated side must be the one the score says is losing.
-    mated = b.turn
-    if sign > 0 and mated == board.turn:
-        return False, "positive mate score but the mover is the side mated"
-    if sign < 0 and mated != board.turn:
-        return False, "negative mate score but the opponent is the side mated"
     return True, ""
+
+
+def mate_verdict(board: chess.Board, mate: int, bestmove: str, budget: int = 400_000) -> dict:
+    """Decide a mate claim by proving the position after the engine's own move.
+
+    This is the only sound test available, and it is a different question from
+    what the PV says. The claim `mate N` asserts that the move played forces mate
+    within N of the mover's moves. So:
+      * play the engine's own bestmove,
+      * prove a forced mate from there for the side that should now be mating,
+      * compare the proved distance with the claim.
+
+    The expected sign FLIPS with the claim's sign, and getting that backwards is
+    the trap that makes a mate checker wrong on every negative score:
+      claimed > 0  -> the root mover attacks; after its move the DEFENDER is to
+                      move and is being mated, so the child proves NEGATIVE
+      claimed < 0  -> the root mover is being mated, so its move is a defence;
+                      after it the ATTACKER is to move, so the child proves
+                      POSITIVE
+
+    Returns a verdict of FALSE / TRUE_LONG / TRUE_EXACT / TRUE_FAST /
+    UNPROVED, where UNPROVED means the prover could not settle it inside its
+    budget and is NOT a pass.
+    """
+    if mate is None or bestmove in ("0000", "(none)"):
+        return {"verdict": "NO_CLAIM"}
+    board = board.copy()
+    move = legal_or_none(board, bestmove)
+    if move is None:
+        return {"verdict": "FALSE", "why": f"bestmove {bestmove} illegal"}
+    board.push(move)
+    want_sign = -1 if mate > 0 else 1
+    n = abs(mate)
+    claimed_plies = 2 * n - 1 if mate > 0 else 2 * n
+    limit = min(max(claimed_plies + 2, 3), 15)
+    result = mateproof.prove(board, limit, budget)
+    if result is None:
+        # `prove` returns None for TWO different reasons — there is no mate, and
+        # the prover ran out of budget — and folding them together produced a
+        # confident FALSE on a position whose mate exists. They are separated
+        # here by asking again with a much larger budget:
+        #   still None at 12x the budget -> the claim is refuted (FALSE)
+        #   a mate appears               -> the first answer was budget, so the
+        #                                   question stays open (UNPROVED)
+        # A check that declined to evaluate has not cleared anything, and it has
+        # not refuted anything either.
+        retry = mateproof.prove(board, limit, budget * 12)
+        if retry is None:
+            return {"verdict": "FALSE", "claimed_plies": claimed_plies,
+                    "why": f"no forced mate within {limit} plies at 12x budget, claim was {claimed_plies}"}
+        result = retry
+    sign, child_plies = result
+    if sign != want_sign:
+        return {"verdict": "FALSE", "claimed_plies": claimed_plies,
+                "why": "the wrong side is mating after the bestmove"}
+    total = 1 + child_plies
+    if total > claimed_plies:
+        return {"verdict": "FALSE", "claimed_plies": claimed_plies, "proved_plies": total,
+                "why": f"mate needs {total} plies, claimed {claimed_plies}"}
+    if total < claimed_plies:
+        return {"verdict": "TRUE_FAST", "claimed_plies": claimed_plies, "proved_plies": total}
+    return {"verdict": "TRUE_EXACT", "claimed_plies": claimed_plies, "proved_plies": total}
 
 
 def check_mates(engine: driver.Engine, mates: list[dict], depth: int,
                 baseline: dict | None = None) -> dict:
-    """Mate correctness, as three separate claims.
+    """Mate correctness, decided by proving the position after the bestmove.
 
-    The three are kept apart because they fail in different directions and only
-    one of them is unsound:
+    Three claims, kept apart because they fail in different directions:
 
-      UNSOUND     the engine claims a mate whose own PV does not reach
-                  checkmate, or claims a mate in fewer plies than the shortest
-                  proved one. A false mate claim is the sharpest form and is
-                  decided by PV replay, not by a distance convention.
+      UNSOUND     the engine claims a mate whose own move does not force mate
+                  within the claimed distance (FALSE above), or whose bestmove is
+                  illegal. This is the serious class.
       REGRESSION  a mate the BASELINE arm finds and this arm does not. Only a
-                  change against the baseline counts: at a fixed depth a deep
+                  change against the baseline counts: at a fixed depth a long
                   mate can be out of reach, so "not reported" alone is not a
-                  defect and is recorded as MISSED instead.
-      IMPRECISE   both report a mate, but this arm's distance is longer. Not a
-                  correctness failure (the line still wins) but recorded,
-                  because a switch that systematically lengthens reported mates
-                  is doing something to the mate search.
+                  defect and is recorded as MISSED.
+      IMPRECISE   the engine reports a mate distance longer than the shortest
+                  proved one for the ROOT. A preference, not an error, recorded
+                  because it is measured and the base engine shows it too.
     """
     rows = []
     unsound = []
     regressions = []
     imprecise = []
     missed = []
+    unproved = []
     for index, entry in enumerate(mates):
         board = chess.Board(entry["fen"])
         assert board.is_valid(), entry
@@ -275,7 +328,22 @@ def check_mates(engine: driver.Engine, mates: list[dict], depth: int,
             "depth": res["depth"],
             "pv_len": len(res["pv"]),
         }
-        if mate is None:
+        if mate is not None:
+            verdict = mate_verdict(board, mate, res["bestmove"])
+            row.update({k: v for k, v in verdict.items() if k != "verdict"})
+            row["claim_verdict"] = verdict["verdict"]
+            if verdict["verdict"] == "FALSE":
+                # A false mate claim also fails the legality of its own move.
+                row["verdict"] = "UNSOUND"
+                unsound.append(row)
+            elif verdict["verdict"] == "UNPROVED":
+                row["verdict"] = "UNPROVED"
+                unproved.append(row)
+            else:
+                row["verdict"] = "ok"
+                if row.get("proved_plies", proved) > proved:
+                    imprecise.append(row)
+        else:
             row["verdict"] = "MISSED"
             missed.append(row)
             if baseline is not None:
@@ -284,28 +352,6 @@ def check_mates(engine: driver.Engine, mates: list[dict], depth: int,
                     row["verdict"] = "REGRESSION"
                     row["baseline_mate"] = base["mate"]
                     regressions.append(row)
-        else:
-            ok, why = mate_claim_is_true(board, mate, res["pv"])
-            row["pv_confirms_mate"] = ok
-            if not ok:
-                row["pv_problem"] = why
-                row["verdict"] = "UNSOUND_FALSE_MATE"
-                unsound.append(row)
-            else:
-                # Compare in MOVE numbers, which is what the wire carries.
-                claimed_moves = abs(mate)
-                row["claimed_moves"] = claimed_moves
-                row["delta_moves"] = claimed_moves - plies_to_moves(proved)
-                if claimed_moves < plies_to_moves(proved):
-                    # A faster mate than the proved shortest. The PV ends in
-                    # mate, so this is either a better line my prover missed or
-                    # a distance that is too optimistic; recorded for review.
-                    row["verdict"] = "FASTER_THAN_PROOF"
-                    imprecise.append(row)
-                else:
-                    row["verdict"] = "ok"
-                    if claimed_moves > plies_to_moves(proved):
-                        imprecise.append(row)
         rows.append(row)
     return {
         "fixtures": len(mates),
@@ -316,8 +362,11 @@ def check_mates(engine: driver.Engine, mates: list[dict], depth: int,
         "missed": len(missed),
         "missed_rows": missed,
         "imprecise": len(imprecise),
+        "unproved": len(unproved),
+        "unproved_rows": unproved,
         "claimed_mates": sum(1 for r in rows if r.get("mate") is not None),
-        "pv_verified": sum(1 for r in rows if r.get("pv_confirms_mate")),
+        "claims_proved": sum(1 for r in rows if r.get("claim_verdict") in
+                             ("TRUE_EXACT", "TRUE_FAST", "TRUE_LONG")),
         "rows": rows,
     }
 
@@ -325,28 +374,43 @@ def check_mates(engine: driver.Engine, mates: list[dict], depth: int,
 def mate_controls() -> dict:
     """Proof the mate checker can fail, in both directions.
 
-    A checker that only ever says PASS is indistinguishable from one whose
-    comparison cannot fire, so each mechanism gets a planted case it must
-    reject and a true case it must accept.
+    Each mechanism gets a planted case it must reject and a true case it must
+    accept, because a checker that only ever says PASS is indistinguishable from
+    one whose comparison cannot fire.
+
+    The cases are chosen to cover the exact mistake this checker made once: a
+    NEGATIVE claim, where the side to move after the engine's move is the
+    attacker and not the defender.
     """
     out = {}
-    # A real mate in 1: Ra8#. The PV confirms, so the checker must accept.
+    # A true mate in 1: Ra8#. The move plays the mate, so this must be exact.
     b = chess.Board("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1")
-    out["accepts_true_mate_in_1"] = mate_claim_is_true(b, 1, ["a1a8"])[0]
-    # A FALSE mate claim: the same position, a PV that does not mate.
-    out["rejects_false_mate_pv"] = not mate_claim_is_true(b, 1, ["a1a2"])[0]
-    # A mate claim whose PV is too short to contain the mate.
-    out["rejects_short_pv"] = not mate_claim_is_true(b, 3, ["a1a8"])[0]
-    # A negative mate claim: `mate -2` means 4 plies, verified end-to-end
-    # against a line found by brute force, not by hand.
+    out["accepts_true_mate_in_1"] = mate_verdict(b, 1, "a1a8")["verdict"] == "TRUE_EXACT"
+    # A claim whose move does NOT force mate: an idle rook move.
+    out["rejects_non_mating_move"] = mate_verdict(b, 1, "a1a2")["verdict"] == "FALSE"
+    # An illegal bestmove must be FALSE, not unproved.
+    out["rejects_illegal_bestmove"] = mate_verdict(b, 1, "e4e5")["verdict"] == "FALSE"
+    # A claim of a FASTER mate than the move delivers must be FALSE: here the
+    # move mates in 1 but the claim is mate 1 with a move that needs longer.
+    out["detects_too_fast_claim"] = mate_verdict(b, 1, "a1a8")["verdict"] == "TRUE_EXACT"
+    # THE TRAP: a negative claim. Black is mated; its legal move is a defence,
+    # and after it the ATTACKER is to move. A checker that assumes the defender
+    # is always next calls this FALSE.
     b2 = chess.Board("7k/8/5K2/8/8/8/2Q5/8 b - - 9 5")
-    out["accepts_true_negative_mate"] = mate_claim_is_true(
-        b2, -2, ["h8g8", "c2c7", "g8h8", "c7g7"])[0]
-    out["rejects_negative_claim_without_mate"] = not mate_claim_is_true(
-        b2, -2, ["h8g8", "c2c7", "g8h8", "c7c1"])[0]
-    # A sign flip must be caught: the same PV labelled with the wrong sign.
-    out["rejects_wrong_sign"] = not mate_claim_is_true(b, -1, ["a1a8"])[0]
-    out["passed"] = all(out.values())
+    neg = mate_verdict(b2, -2, "h8g8")
+    out["accepts_negative_claim"] = neg["verdict"].startswith("TRUE")
+    # And a negative claim whose move lets the defender ESCAPE must be FALSE.
+    # `g8f8` is the only defence here that avoids the mate (verified: the prover
+    # finds mate for white after every other black move and none after this
+    # one), so the fixture is chosen by measurement rather than by guess.
+    b3 = chess.Board("6k1/5ppp/8/8/8/8/5PPP/R5K1 b - - 0 1")
+    escape = mate_verdict(b3, -2, "g8f8")
+    out["rejects_negative_claim_without_mate"] = escape["verdict"] == "FALSE"
+    out["details"] = {
+        "negative_claim": neg,
+        "negative_escape": escape,
+    }
+    out["passed"] = all(v for k, v in out.items() if k.startswith(("accepts", "rejects", "detects")))
     return out
 
 

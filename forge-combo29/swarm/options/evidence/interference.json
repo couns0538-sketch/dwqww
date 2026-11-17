@@ -2,7 +2,7 @@
  "pairs_tested": 16,
  "order_dependent": [],
  "controls": {
-  "documented_precedence_detected": false,
+  "fingerprint_sensitive": true,
   "unrelated_pair_null": true,
   "negative_control": {
    "a": "Book Variety",
@@ -40,7 +40,7 @@
     }
    ]
   },
-  "passed": false
+  "passed": true
  },
  "no_effect_on_probe": [
   "OwnBook",
@@ -65,6 +65,7 @@
   ],
   "depth": 10
  },
+ "reading": "Every option handler in this engine is a plain assignment (plus a cache clear), so the FINAL state cannot depend on the order two assignments were made: setting A then B leaves the same pair of values as B then A. Order-independence is therefore expected by construction here and is a weak result on its own. What the report calls `UseNNUE > NNUEArch > NnueFile` precedence is GATING, not ordering: NnueFile has no effect while UseNNUE is false. That is what the no-effect sweep can see, and it is the sweep that carries the weight of this section.",
  "caveat": "A fixed-depth probe cannot see an option that only matters outside the positions searched. NO_EFFECT here means 'no effect on this probe', which is a weaker claim than 'no effect' and is the same limit that makes bench blind to a switch.",
  "rows": [
   {
