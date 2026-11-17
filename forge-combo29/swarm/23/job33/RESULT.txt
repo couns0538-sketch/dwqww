@@ -1,0 +1,31 @@
+DOES THE DRIVER PAGE's `info string` RULE CATCH THE DRAWN-ROOT CASE? — NO, and the page needs a second rule
+======================================================================================================
+The driver page's primary rule is "count the `info string` lines after every `position`; rebuild if any appeared".
+It was validated for a REFUSED FEN (23-F67) and an ILLEGAL TOKEN (23-F67). The drawn-root defect is different: the
+position is ACCEPTED with no diagnostic, and the engine answers cp 0 with **0 nodes**.
+
+Threefold-repetition root sent as a MOVE LIST (`position fen <root> moves d5d6 a1b1 ... twice`), so no FEN refusal is
+involved, `go depth 12`:
+
+| build | info-string lines | nodes | info-string rule fires? | 0-node check fires? |
+|---|---|---|---|---|
+| base 6b98f217 | **0** | **0** | **NO** | yes |
+| PC r15 + PC20 | **0** | 44,269 | **NO** | no |
+
+PREDICTIONS: P1 held (zero diagnostics on both), P2 held (the base passes the info-string rule while answering 0
+nodes), P3 held (a 0-node check catches the base and not the PC), P4 held (the PC searched 44,269 nodes, so a 0-node
+check would not flag it).
+
+SO THE PAGE's SINGLE RULE IS INSUFFICIENT. The drawn-root case is invisible to it: no diagnostic is emitted, and on the
+BASE the search silently returns a move having searched nothing. The page needs a second check:
+
+> **A search that returns `bestmove` with 0 nodes is suspicious.** On the base build a 0-node answer means either the
+> root is drawn (repetition / fifty-move / insufficient material) or the position was refused. Either way the engine
+> has not analysed the position, and any score it printed is not a search result.
+
+Note the limit of that check honestly: it catches the BASE (0 nodes) but not the PC (44,269 nodes) — the PC's answer
+there is a real search of a drawn position, which is correct behaviour and needs no check. So the 0-node rule is a
+detector for the un-repaired build, not a general driver rule; on the PC the drawn-root case is simply normal.
+
+This does not weaken 23-F67: both hazards there emit a diagnostic, and the rule catches both. It bounds the rule's
+scope, which is what a rule should carry.

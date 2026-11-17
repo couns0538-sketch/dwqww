@@ -92,6 +92,26 @@ So this heuristic is worth adding to a driver's own checks even though it is not
 `info string` lines: it catches the cases where the diagnostic was not read, and it is cheap — compare the node count
 of consecutive positions and flag an exact match.
 
+## The drawn-root case is invisible to the diagnostic rule — a second check
+
+The four rules above catch a **refused** position or a **truncated** move list, because both emit an `info string` line.
+A **drawn root** does not: the position is accepted, no diagnostic appears, and the engine returns a move having
+searched nothing. Measured (threefold-repetition root sent as a move list, `go depth 12`):
+
+| build | `info string` lines | nodes | diagnostic rule fires? |
+|---|---|---|---|
+| base | **0** | **0** | **no** |
+| PC r15 + PC20 | **0** | 44,269 | no (and it need not — the PC really searched) |
+
+So add a fifth check, for tooling that may run on the un-repaired build:
+
+> **A search that returns `bestmove` with 0 nodes is suspicious.** Either the root is drawn (repetition, fifty-move,
+> insufficient material) or the position was refused. Either way the engine has not analysed anything and any score it
+> printed is not a search result.
+
+On the PC build this check never fires for the drawn-root case because the repair makes it a real search — which is
+the correct behaviour, and the reason the check is a detector for the un-repaired build rather than a general rule.
+
 ## What a well-behaved driver looks like, end to end
 
 Three seats were bitten by DRIVER SHAPE rather than by engine behaviour (the FEN-vs-moves difference in 23-C20, the
