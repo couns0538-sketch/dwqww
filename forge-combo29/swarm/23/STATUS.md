@@ -1783,4 +1783,6 @@ base_result.out/pc_result.out so it cannot be quietly cited as the former. Three
 first asked whether the MATER was mated, the second was correct but my expected values were wrong twice, the third was
 too slow. Instance 17: the expected value inside a control is itself a claim and must be DERIVED, not recalled.
 
-120 findings, 16 rule instances. Real time 01:31Z.
+120 findings, 16 rule instances. (Time correction: I typed "01:31Z" here; the date -u stamp on this entry is
+01:27:14Z. Third instance of the typed-time fault, so the rule page gets it a third time — the stamp line is
+authoritative and no prose time should be written at all.)

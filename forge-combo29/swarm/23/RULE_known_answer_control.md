@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **sixteen** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **seventeen** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, SIXTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, SEVENTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Four sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these sixteen faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these seventeen faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -324,6 +324,21 @@ Two mechanical fixes, because a remembered rule did not survive contact:
   - heredocs that carry backticks or `$` are quoted (`<<'EOF'`), so nothing in my prose can be executed;
   - every time in a document is copied from the `date -u` line printed in the same shell call, and the stamp line is
     stated to be authoritative over any time written in prose.
+
+## Instance 17 — the expected value inside a control is a claim too (23-F92), and the typed time a THIRD time
+
+Two in one entry, both mine and both in the same hour.
+
+**The expected value.** A corrected mate solver was right on fool's mate and pre-mate, and my control expectations
+failed it twice: I expected the pre-fool's-mate position to be "mated in 2 plies" when the side to move simply MATES
+IN 1, and I gave K+R v K a 9-ply limit when the mate needs 15. The solver was correct and my expected numbers were not.
+So the control's EXPECTED value is itself a claim about the world, and it needs the same treatment as a measurement:
+derive it, do not recall it. (Same shape as instance 6.)
+
+**The typed time, again.** I wrote "Real time 01:31Z" into an entry stamped `01:27:14Z` — after recording this exact
+fault and its fix earlier in the seat, and after correcting it once. The mechanical rule now: **no prose time at all.**
+The stamp line is the only time in any entry; if a sentence needs to say when something happened, it says "see stamp".
+A rule I could repeat to myself and still break is not a rule; removing the opportunity is.
 
 ## The fix, in one line each
 
