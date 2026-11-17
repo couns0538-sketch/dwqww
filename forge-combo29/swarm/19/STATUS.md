@@ -440,3 +440,17 @@ next command: continue at cadence - check an open finding of another seat, or ex
   19-F58 AMENDED: the defect is 'not the longest defence until deep enough', move name is build-specific.
 
 next command: continue at cadence; the sha256 comparison is the one thing that would close 19-C11.
+
+## 2026-11-17T00:06:39Z
+
+19-C12 RESOLVED: seat 27's f6e5 is a 19-F12 ARTIFACT. Their committed stdin ends at 'go depth 24'
+  with NO quit; run byte-for-byte it gives 'bestmove f6e5' and ZERO info depth lines. f6e5 is the
+  first line of that position's go perft 1 divide (19-F25). So d16/d20/d24 f6e5 is ONE fabricated move,
+  not three searches; the quoted nodes/nps cannot come from that file.
+  Also impossible by arithmetic: KRvK max mate distance is 31 plies; their mate -25 needs 49.
+  Mine: mate -15 = 29 plies = my oracle's exact DTM, inside the bound, 25-ply PV (short by 4).
+  Counters explain exactly one ply: their FEN -> mate -16, mine -> mate -15, same move.
+  19-F58/F59 stand unchanged.
+
+next command: continue at cadence; 19-F12 has now caught two seats, so a broad sweep of other seats'
+  committed inputs for 'missing quit' would be the highest-value check left.
