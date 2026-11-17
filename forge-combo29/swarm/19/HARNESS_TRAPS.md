@@ -274,6 +274,37 @@ I checked, and it would have been unshown had I not.**
 
 ---
 
+## 13. A zero in an output file cannot be classified without the input (19-C33)
+
+**The trap:** to find aborted searches across 49 branches, sweep committed **output** for `nodes 0` or an empty
+PV. Mechanically this works perfectly — it is immune to indentation and to interleaved `readyok` lines.
+
+**Why it still cannot produce a defect count:** **`nodes 0` with an empty PV is the engine's *correct* answer on
+any drawn or terminal root.** A drawn root and an aborted search are **byte-identical in the output**. Verified:
+seat 21's `asan_raw_031.txt` contains `info depth 1 ... score cp 0 nodes 0 ... pv` (empty) then a real
+`bestmove` — on positions the seat deliberately constructed, because **it is the area-1 seat that studies exactly
+those**.
+
+**The tell:** a sweep whose largest count belongs to the seat that *specialises* in the behaviour you are
+flagging. Seat 21's 469 of 6,770 claimed searches were the majority of the whole sweep, and it is the
+terminal-position seat.
+
+**The test:** replay the position. For each zero-node search, ask whether its root is drawn or terminal. If it is,
+the zero is correct.
+
+**The fix:** the distinguishing information is **the position, not the output**. A usable version needs either
+the positions replayed or the driver's own command stream.
+
+**Three sweeps, three instructive failures** (all kept in the record):
+1. **input files** (19-C13) — flags *suspicion*, not defect; and "committed" is not "currently used" (19-C21);
+2. **output files, zero `info` lines** (19-C14) — broke on indentation, then on `bestmove`-block boundaries
+   (19-C16);
+3. **output files, zero node counts** (19-C33) — mechanically sound, semantically blind.
+
+**A sweep of outputs can tell you where to look. Only a replay can tell you what you found.**
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**
