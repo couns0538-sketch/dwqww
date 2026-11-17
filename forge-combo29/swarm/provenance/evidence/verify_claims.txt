@@ -1,0 +1,25 @@
+
+=== refs and commits the negative claims quantify over
+  refs=616 (origin/*=611, tags=3)  commits=8898
+  both refs/remotes/origin/* AND refs/tags are inside this census.
+
+=== CLAIM: no COMMIT starts with 068f  (expected: it is a binary sha256, not a commit)
+  PASS  git rev-list --all | grep -c '^068f' (0)
+
+=== CLAIM: the audit base is a real commit containing forge-combo29/
+  PASS  git cat-file -t 6b98f217 (commit)
+  PASS  base tree contains forge-combo29/
+
+=== CLAIM: the r15 patch text hashes to d6bd72c531f785f4...
+  PASS  patch sha256 = d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a
+
+=== CLAIM: integrate/combo29-all is an OLDER tree, not the base's line
+  merge-base = e04556ddc  (documented e04556ddc)
+  PASS  a merge-base exists, so the histories are related, not disjoint
+  base is 277 commits ahead (documented 277)
+
+=== CLAIM: the owner's net is not in the repository
+  PASS  no .fnn3 file at the base commit
+
+================ ALL CLAIMS VERIFIED
+================
