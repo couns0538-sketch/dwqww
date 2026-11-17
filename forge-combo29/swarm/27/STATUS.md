@@ -1055,3 +1055,31 @@ duplicate signature.
 (against a fake engine that omits the line it reports FAIL). Its first version called `e.search()` - which
 always sends `isready` - so it exercised the SAME path as control 5 and passed for the same reason: **a control
 that cannot reach the code path it names is a vacuous control wearing a different hat.**
+
+## 2026-11-17T11:0xZ S-C96..100 — the universal sweep refuted my own S-N1 AND found a softnodes floor
+**The coordinator suggested sweeping my own "cannot/never" claims mechanically rather than from recall. It paid
+off twice in one run.**
+**S-C96: my S-N1 range was WRONG. Published "`go softnodes N` overshoots N by 1.02x to 1.95x (median 1.20x)"
+from 4 POSITIONS x 2 BUDGETS. Measured on 40 positions x 2 budgets (80 cells): 1.008x to 3.503x, median
+1.577x, p75 2.257x - 29 of 80 cells OUTSIDE the published band.** Four positions is not a sample of an
+overshoot DISTRIBUTION.
+**S-C99, THE BETTER HALF - bisecting that refutation found a FLOOR, not just a wider overshoot.** On
+`6k1/5ppp/8/8/8/8/5PPP/R5K1 w` (K+R v K, mate in 1):
+  softnodes 200 -> 210 nodes (depth 10) | 1000 -> 1008 (depth 48) | 1344 -> 1344 (depth 64)
+  softnodes 2000/20000/100000 -> 1344 nodes (depth 64) - a **14.9x UNDER-shoot**
+**The engine reaches depth 64 at 1,344 nodes and stops (max_depth clamped to 64), so every budget above that
+produces FEWER nodes than requested. And the answer is CORRECT at every budget (mate 1, a1a8)** - so it is not
+a wrong answer, it is that `softnodes N` is bounded by the work needed to reach depth 64, which on a small
+tree is far below N.
+**S-C100: this makes S-N1 structurally wrong, not merely narrow** - it assumed the search always WANTS more
+nodes than N. The ratio is bounded by the tree: **0.07x to 3.50x**, floor from the depth-64 clamp, ceiling from
+an iteration boundary landing late. My published band was a property of the four boards I picked, and **the
+floor case could never have appeared in them because none reached depth 64.**
+The determinism half of S-N1 (8 of 8 identical across 3 runs) is a DIFFERENT claim and stands.
+**S-C97: `sweep_universals.py`** generates the list mechanically, with three controls including a universal
+straddling a table-cell boundary. **Why mechanical beats recalled: recall finds the claims I remember being
+unsure about; a grep finds the ones I was CONFIDENT about, which are the dangerous ones.**
+**S-C98: the constructive counterpart - READ EVERYTHING YOU RECEIVE.** Seat 01's harness is placement-proof
+because it ACCUMULATES the stream before parsing. "Read until the line I expect, discard the rest" is
+placement-sensitive; "accumulate the raw stream, then parse the buffer" removes the entire class without
+knowing where the engine puts its message.
