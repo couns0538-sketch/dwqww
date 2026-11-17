@@ -1,0 +1,34 @@
+PREDICTION — SW-23 job 45 (is the base's root-draw bail COUNT-based or SIDE-based?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+JOB 44'S RESULT, and why this follow-up exists. On two structurally identical threefold roots (same board, root
+occurring 3 times at plies 0/4/8), differing only in SIDE TO MOVE:
+  T-W (white to move, white WINNING):  base `cp 0`, **0 nodes**, bestmove d5d1.
+  T-L (black to move, black LOST):     base `cp -405`, **21,755 nodes**, bestmove b1c2.
+Both roots are threefold repetitions of the ROOT position, both with halfmove 8 at the root — so the only difference
+is which side is to move and therefore who benefits from a claim. That asymmetry is not something I predicted (my
+job-44 P1 said the base would give cp 0 on T-L, and it did not), and before writing it up I must rule out the boring
+explanation: that the 0-node bail is driven by the OCCURRENCE COUNT and my T-L line somehow did not reach three.
+
+DESIGN — a 2x2, changing only one thing at a time:
+  W-2  T-W moves `d5d6 a1b1 d6d5 b1a1`            root occurs 2x, white to move, winning
+  W-3  T-W moves `d5d6 a1b1 d6d5 b1a1 d5d6 a1b1 d6d5 b1a1`  root occurs 3x (job 44's cell)
+  L-2  T-L moves `a1b1 d5d6 b1a1 d6d5`            root occurs 2x, black to move, lost
+  L-3  T-L moves `a1b1 d5d6 b1a1 d6d5 a1b1 d5d6 a1b1 d6d5`  root occurs 3x (job 44's cell)
+All four validated in python-chess for occurrence count and side to move BEFORE any engine call. Base build only
+(the PC's behaviour is a separate question and is not needed to explain the base's bail), Threads 1, Hash 16,
+OwnBook false, `go depth 12`. Report score, nodes, bestmove for each.
+
+Prediction (each with the range that kills it):
+  P1  THE BAIL IS COUNT-BASED ON THE WINNING SIDE: W-2 SEARCHES (nodes > 1000, score a win ~cp 340-410) while W-3
+      bails (0 nodes, cp 0). KILLED if W-2 also bails (then the bail is not about the third occurrence at all and my
+      whole reading of 23-F43/F44-T-W is wrong) or if W-3 searches (then job 44's T-W cell was not reproducible).
+  P2  THE BAIL IS ABSENT ON THE LOSING SIDE AT EITHER COUNT: L-2 and L-3 both SEARCH (nodes > 1000) and both report a
+      LOSS. KILLED if L-3 bails — in which case the bail IS symmetric and job 44's asymmetry was a measurement fluke
+      that I must explain before publishing anything about it.
+  P3  IF P1 AND P2 BOTH HOLD, the bail depends on SIDE (who is winning), not count alone — which is the surprising
+      claim, so it gets the strictest test: every one of the four cells must behave as stated, with no cell
+      ambiguous. Any single cell disagreeing means I report "asymmetry not established" instead.
+
+This is the control that decides whether job 44's asymmetry is a finding or a defect in my own measurement. I would
+rather spend the measurement than publish the asymmetry on one cell per side.

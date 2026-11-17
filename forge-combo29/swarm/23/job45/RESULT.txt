@@ -1,0 +1,76 @@
+JOB 44's ASYMMETRY WAS MY OWN TYPO — withdrawn, and the corrected 2x2 is symmetric
+======================================================================================
+This file records a retraction and the measurement that replaces it. Nothing in job 44's output is deleted; its cell is
+explained as a measurement of a DIFFERENT position than the one I labelled.
+
+WHAT I CLAIMED (job 44, one cell per side, never written into FINDINGS.md)
+--------------------------------------------------------------------------
+On two structurally identical threefold roots the base appeared to behave ASYMMETRICALLY by side to move:
+  T-W (white to move, winning): base cp 0, **0 nodes**, d5d1.
+  T-L (black to move, lost):    base cp -405, **21,755 nodes**, b1c2.
+Read as: the engine bails instantly only when the side to move is WINNING.
+
+WHY IT WAS WRONG
+----------------
+Job 44's T-L move list was typed by hand and is **illegal at ply 7**:
+
+    a1b1 d5d6 b1a1 d6d5 a1b1 d5d6 a1b1 d6d5
+                                     ^ ply 7: a1b1 is not legal in 1K6/8/3R4/8/8/8/8/1k6 b - - 6 4
+
+python-chess rejects it (`job45/job45_fixture_check.out`). The ENGINE does not reject it — it prints
+
+    info string illegal move a1b1
+
+and **continues searching the position reached by the first six moves**, which is a ONE-repetition position, not a
+threefold. So the T-L cell measured a legal, ongoing, lost position, and cp -405 with 21,755 nodes is exactly what such
+a position should score. There was never an asymmetry; there was a typo and a silent-recovery path in the engine that
+turned it into a plausible-looking number.
+
+THE CORRECTED 2x2 (every move list validated against python-chess legality AND occurrence count before any engine call)
+----------------------------------------------------------------------------------------------------------------------
+| case | build | eval | go depth 12 | nodes | bestmove |
+|---|---|---|---|---|---|
+| W-2  2x, WHITE winning | base | 406 | cp 348 | 22,108 | d5b5 |
+| W-2  2x, WHITE winning | PC r15 | 406 | cp 391 | 61,605 | d5b5 |
+| **W-3  3x, WHITE winning** | base | 406 | **cp 0** | **0** | d5d1 |
+| **W-3  3x, WHITE winning** | PC r15 | 406 | **cp 362** | 56,153 | d5b5 |
+| L-2  2x, BLACK lost | base | -364 | cp -394 | 15,158 | a1b2 |
+| L-2  2x, BLACK lost | PC r15 | -364 | cp -398 | 31,833 | a1b2 |
+| **L-3  3x, BLACK lost** | base | -364 | **cp 0** | **0** | a1b1 |
+| **L-3  3x, BLACK lost** | PC r15 | -364 | **cp 0** | 104 | a1b1 |
+| CTRL W twin, no moves | base | 406 | cp 348 | 22,108 | d5b5 |
+| CTRL W twin, no moves | PC r15 | 406 | cp 391 | 61,605 | d5b5 |
+| CTRL L twin, no moves | base | -364 | cp -394 | 15,158 | a1b2 |
+| CTRL L twin, no moves | PC r15 | -364 | cp -398 | 31,833 | a1b2 |
+
+THE ENGINE IS SYMMETRIC BY SIDE, AND THE COUNT IS WHAT DRIVES IT: at TWO occurrences both builds search and report a
+win/loss normally (base 22,108 nodes and 15,158 nodes). At THREE occurrences BOTH builds return cp 0 on BOTH sides.
+The base returns 0 nodes in both cases — the documented drawn-root defect (23-F43). The PC returns 104 nodes on L-3
+and 56,153 on W-3, so its repair searches briefly in both cases as well.
+
+WHAT SURVIVES AS A FINDING, AND WHAT IT IS WORTH
+-------------------------------------------------
+1. **The base bails at ZERO nodes on a threefold root on EITHER side** — this is 23-F43 restated for the repetition
+   case with a matched 2-vs-3-occurrence control, which 23-F43 did not have (it used a halfmove-150 root). The 2-vs-3
+   contrast is what makes it a claim about the REPETITION RULE rather than about the fifty-move counter: the same
+   board, the same side to move, only one more cycle, and 22,108 nodes become 0.
+2. **The PC's repair moves the score on the winning side but NOT on the losing side**: W-3 goes cp 362 against the
+   base's cp 0, while L-3 stays cp 0. Both are cp 0 on the base. So where the base and PC disagree, they disagree only
+   where the side to move is winning — on the losing side the repair changes the node count and the move, not the
+   score. That is a narrower and better-supported version of what I thought I had found in job 44, arrived at by
+   having the typo pointed out by a validator rather than by reasoning.
+3. **An operational hazard worth its own line, and the most transferable thing here: an illegal move in a `position
+   ... moves` list produces ONE `info string` line and a SEARCH ON A DIFFERENT POSITION.** The engine does not refuse
+   the command, does not return to the root, and does not stop. A harness that does not validate its own move lists
+   against an independent implementation will silently measure whatever position the legal prefix reaches, and every
+   number it reports will be internally consistent and about the wrong board. This is the same family as 23-C23
+   (refused FEN -> previous game's board) with a different trigger.
+
+INSTANCE 19 OF THE FAMILY, and the sharpest one: my fixture had been "validated" by looking at the engine's output. A
+move list is an INPUT, and an input needs a checker from OUTSIDE the system under test. python-chess rejected the list
+instantly; the engine never complained. **Validate inputs with an independent implementation, never with the system
+being measured** — because the system being measured is precisely the thing whose error handling may be wrong.
+
+PROCESS NOTE: I had already drafted the asymmetry as a finding. It is not in FINDINGS.md, and the withdrawal is
+recorded here rather than the claim being quietly dropped. The prediction for job 45 said in advance that a single
+disagreeing cell would mean "asymmetry not established" — and a single cell was all there was.

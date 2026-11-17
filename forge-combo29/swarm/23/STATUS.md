@@ -1811,3 +1811,27 @@ What they found, and what I found about them:
     now does a real header-width comparison and is PROVED able to fail (planted wrong-width row counts 1, clean 0).
 
 120 findings, 18 rule instances. Audits re-run again immediately before the FINAL block as ordered.
+## 2026-11-17T01:30:28Z  F95 + a RETRACTION: my "side asymmetry" was an illegal move in my own fixture
+2026-11-17T01:30:28Z
+
+Job 44 measured two threefold roots and I read a side-to-move ASYMMETRY out of them (base bailing instantly on the
+winning side, searching on the losing side). Job 45's fixture validation killed it: the losing-side move list has an
+illegal ply 7, which I had typed by hand. python-chess rejects it instantly. The ENGINE does not - it prints one
+"info string illegal move a1b1" and searches the position reached by the LEGAL PREFIX. So that cell measured a
+one-repetition position, and the asymmetry was my typo plus a silent-recovery path.
+
+Corrected 2x2, every list validated for legality AND occurrence count before any engine call:
+  2 occurrences: base searches on both sides (22,108 nodes winning; 15,158 losing).
+  3 occurrences: base returns cp 0 with 0 nodes on BOTH sides. Symmetric.
+The real findings are F93 (bails at zero nodes on a threefold root either side - the 2-vs-3 control makes it about the
+repetition rule rather than the fifty-move counter) and F94 (where the PC's repair moves the SCORE, it does so only on
+the winning side: PC cp 362 winning vs cp 0 losing, against base cp 0 on both).
+The asymmetry claim is withdrawn in job44/RESULT.txt, in place, with the reason - not deleted.
+
+F95 is the transferable one: an illegal move in a "position ... moves" list does not refuse the command; it searches a
+DIFFERENT board and answers normally. My first repro piped stdin from a file, hit 19-F12, and showed ZERO info lines -
+so my evidence for the hazard was initially the very fault I was documenting. Rewritten holding stdin open with a
+legal-move control (4,957 nodes legal vs 4,416 after the illegal ply). Instance 19: an INPUT must be checked by
+something other than the system under test.
+
+123 findings, 19 rule instances. Audits PASS (123 of 123 rows resolve). 

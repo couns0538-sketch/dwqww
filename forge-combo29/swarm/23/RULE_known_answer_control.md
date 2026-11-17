@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **eighteen** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **nineteen** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, EIGHTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, NINETEEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these eighteen faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these nineteen faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -365,6 +365,30 @@ And a second, worse one in the same hour: `doc_check.py`'s table check had a `pa
 it printed **0 malformed rows for every page regardless of content** — a check that could not fail, inside an audit
 written to catch checks that cannot fail. Replaced with a real header-width comparison and proved able to fail (a
 planted wrong-width row counts 1; the clean page counts 0).
+
+## Instance 19 — the fixture I "validated" with the system under test (23-F95, and a retraction)
+
+I built a two-cell comparison whose whole point was a SIDE asymmetry, and one of the two move lists was a hand-typed
+sequence with a typo at ply 7. The engine printed `info string illegal move a1b1` and then **searched the position
+reached by the legal prefix**, reporting a perfectly ordinary score and node count. I read that number as the
+behaviour of a threefold root, wrote an asymmetry out of it, and it looked like a discovery.
+
+python-chess rejected that move list instantly.
+
+**A move list is an INPUT, and an input must be checked by something other than the system being measured** — because
+the system being measured is exactly the thing whose error handling may be wrong, and here the "error handling"
+converted a typo into a plausible measurement. The engine never refused the command; there was no error message, no
+non-zero status, nothing a harness would notice.
+
+Two things this cost and two it bought:
+  - cost: a drafted asymmetry finding, withdrawn (recorded in `job45/RESULT.txt`, not deleted).
+  - cost: the first repro I wrote for the hazard piped stdin from a file, which triggered 19-F12 and produced ZERO
+    info lines — so my evidence for the hazard was initially the very fault I was documenting. Rewritten as a driver
+    that holds stdin open and drains to `bestmove`, with a legal-move control beside it (4,957 nodes legal vs 4,416
+    nodes after the illegal ply).
+  - bought: 23-F95, a real front-end hazard, found by tripping over it.
+  - bought: the habit — every move list in every fixture from now on goes through python-chess legality and
+    occurrence-count assertions BEFORE the engine is started, and the assertion prints what it checked.
 
 ## The fix, in one line each
 
