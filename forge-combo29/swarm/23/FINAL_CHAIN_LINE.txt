@@ -194,6 +194,13 @@ failure and exited 0** — `doc_check.py` never called `sys.exit` at all — so 
 survived its own earlier proof because that proof exercised the one checker that did exit nonzero. The general form:
 **proving a gate on one of its members proves only that member.**
 
+**A third instance, and this one is the gate WORKING rather than failing: three times tonight a new finding was refused
+because its evidence cell cited no resolvable file — a bare commit SHA, a `sed` line range, or a source path the
+resolver could not find.** That is the audit enforcing its own rule that every row names something a reader can open, and
+it is worth knowing that the refusal was correct each time: a commit SHA is not evidence a reader can check without the
+repository, and a resolver cannot verify what it cannot find. **An evidence rule that rejects the convenient form is the
+rule earning its place.**
+
 A second, smaller instance from the same hour: the count checker silently skipped a number word outside its vocabulary,
 so a test intended to prove it *could* fail passed by accident. "I could not evaluate this" must never be reported as
 "this is fine".
