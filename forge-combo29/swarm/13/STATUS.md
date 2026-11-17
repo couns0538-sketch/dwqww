@@ -756,3 +756,19 @@ Added the generalisation beside the settings rule, as asked, in lib/AUDIT_settin
 Also cross-linked that reasoning from lib/settings.py itself, so a reader of the code finds it; verified the
 module still imports and PC20 is still 22.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:01:30 AM UTC 2026
+
+JOB 20: closed the caveat I have carried through S-F19/S-F21/S-F22 — are the clock-changed moves better or
+worse? S-F24: BETTER, 4 of 5.
+  16 G positions, 2,000 vs 60,000 ms; 5 changed their move. Equal-depth-16 scoring of BOTH candidate moves
+  (play it, search the reply, negate — the job-13 technique) rather than comparing the two clock searches'
+  own differing depths:
+    pos 0  +3 cp | pos 6 +156 cp | pos 7 +58 cp | pos 14 -33 cp | pos 15 +984 cp
+    median +58 cp; longer-clock move better in 4, worse in 1, equivalent 0.
+    median depth 15 (2 s) -> 24 (60 s): the mechanism is visible in the data.
+  The +984 outlier was HAND-VERIFIED: after c6b5 white scores +3231 (black -3231); after h6h5 white +2231
+  (black -2231) — both lost for black, but the shallow move walks into ~1,000 cp worse.
+  LIMITS: SELF-CONSISTENCY (the judge is the same engine), depth 16 is an arbitrary judge, 5 changed
+  positions is a small base, and a score gain is not a game result. NO MATCH RUN, so NO ELO CLAIM.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
