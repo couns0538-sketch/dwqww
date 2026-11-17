@@ -2524,3 +2524,26 @@ concluded `go infinite` is safe to run without a stop path.
 
 Correct statement for a harness author: **`go infinite` is bounded by `stop` or 64, whichever comes first; on a real
 position it is `stop` that matters.** F189 is corrected in place and the trap entry should carry this form.
+## 2026-11-17T03:32:43Z  gate exit codes fixed and re-proved; duplicate id caught by counting
+2026-11-17T03:32:43Z
+
+Two defect classes closed, both about checks that could not fail.
+
+**F199 - the gate could not fail.** `doc_check.py` printed a VERDICT and never called `sys.exit`, so its exit status was
+always 0 and the hook (which tests `$?`) read every failure as a pass. Found by testing the GATE rather than the script:
+I deleted a whole TRIGGER.md section, committed, and the commit LANDED while the script on its own printed the DROP.
+Fixed, and re-proved at gate level - the same deletion now prints VERDICT: FAIL and pre-commit: BLOCKED and does not
+commit. The earlier proof (F148) had exercised the one checker that did exit nonzero, so "gate live and proved" was
+true for one of three members.
+
+**F200 - the count checker skipped a number word outside its vocabulary**, so my first test of whether it could fail
+passed by accident: "THIRTY" was not in the dict, no comparison ran, exit 0. Extended and documented; a real mismatch
+now exits 1. Rule: "I could not evaluate this" must never be reported as "this is fine".
+
+**F202 - a finding id appeared twice.** 23-F71 had a stale draft beside its fuller replacement: both rows valid, the
+total wrong. Found by noticing 228 rows where I had reported 227. The audit now checks for duplicate ids and hard-fails
+(proved by planting a second 23-F1). The row count is itself a claim, and a duplicate makes the number wrong while
+every row stays true.
+
+State: **200 findings + 28 confirmations = 228 rows**, 29 rule instances, 12 named patterns. All three checks exit
+nonzero on failure, each verified by deletion; the clean tree passes all three.
