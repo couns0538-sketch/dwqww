@@ -512,12 +512,10 @@ printed nothing; the second hit a node cap and reported the cap as a clean resul
 **Neither is evidence.** The current version reports a bounded null *as* bounded
 and says so in the same sentence (§9).
 
----
-
 ### 8.8 "1,120 games" — withdrawn, an unearned count
 
 An early draft of this file said 1,120 games had been played when **720** had
-finished; the last two arms were still running. Nothing was invented — the plan
+finished; arms were still running. Nothing was invented — the plan
 was for 1,120 — but **a planned number is not a measured one**, and the sentence
 that carried it read as a completed result.
 
@@ -529,6 +527,8 @@ running in §3 and is quoted nowhere as complete.
 This is the same failure the swarm's own rules describe from the other direction:
 a check that reports a confident wrong answer is worse than one that reports
 nothing, because the wrong answer looks like verification.
+
+---
 
 ## 9. The one route the isolation test could not see: the book's last move is undoable
 
