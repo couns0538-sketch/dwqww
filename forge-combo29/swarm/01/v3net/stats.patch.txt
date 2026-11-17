@@ -1,0 +1,110 @@
+# DO NOT APPLY THIS PATCH TO THE REPOSITORY.
+#
+# swarm seat 01, evidence for S-F113/S-F114. This patch only makes two counters that the engine ALREADY keeps
+# (`RefreshCache::refreshes`, `::columns`) readable from outside, and adds one `info string v3 refresh_stats`
+# line after the bench output. It changes no search decision: all four of file 7's bench 13 numbers are
+# identical with and without it (862329 / 587276 / 4151906 / 3652372).
+#
+# It exists so the ratio in REFRESH_RATIO.md can be re-measured. Kept as text per the swarm rules: engine
+# source is never committed, only patches as .patch.txt.
+#
+# Use (in a scratch copy, never in the repository):
+#   patch -p1 --dry-run < stats.patch.txt     # verifies: three files, no rejects
+#   patch -p1           < stats.patch.txt
+#   build with -DFORGE_NNUE_V3=1, then run v3net/check_v3_refresh_ratio.py
+#
+--- a/src/nnue_v3.cpp	2026-11-16 22:19:26.307165491 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 00:53:09.255165491 +0000
+@@ -35,6 +35,11 @@
+ std::string g_problem;
+ std::uint64_t g_generation = 0;
+ 
++// swarm seat 01 (S-F113): the refresh/column counters already existed per worker but nothing ever read them.
++// These are the same counts held for the whole run, so a single info string can report the ratio Step 2 needs.
++std::uint64_t g_refreshes = 0;
++std::uint64_t g_columns = 0;
++
+ std::uint32_t read_u32(const std::uint8_t* p) {
+     return static_cast<std::uint32_t>(p[0]) | (static_cast<std::uint32_t>(p[1]) << 8U) |
+            (static_cast<std::uint32_t>(p[2]) << 16U) | (static_cast<std::uint32_t>(p[3]) << 24U);
+@@ -692,6 +697,7 @@
+     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
+     const int hidden = net.hidden;
+     ++cache.refreshes;
++    ++g_refreshes;
+     for (int piece = WP; piece <= BK; ++piece) {
+         const auto pi = static_cast<std::size_t>(piece);
+         Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+@@ -700,17 +706,22 @@
+             const int square = pop_lsb(removed);
+             sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+             ++cache.columns;
++            ++g_columns;
+         }
+         while (added != 0) {
+             const int square = pop_lsb(added);
+             add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+             ++cache.columns;
++            ++g_columns;
+         }
+         entry.pieces[pi] = pieces[pi];
+     }
+     std::copy_n(entry.values.data(), hidden, destination);
+ }
+ 
++RefreshStats refresh_stats() { return RefreshStats{g_refreshes, g_columns}; }
++void reset_refresh_stats() { g_refreshes = 0; g_columns = 0; }
++
+ void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator) {
+     const Pieces pieces = pieces_of(board);
+     for (const Color p : {White, Black}) {
+--- a/include/forge/nnue_v3.hpp	2026-11-16 22:19:26.303165491 +0000
++++ b/include/forge/nnue_v3.hpp	2026-11-17 00:53:09.255165491 +0000
+@@ -149,6 +149,15 @@
+ // ---- loading and selection (must not run during a search) ----
+ // Loads a v3 file. On failure nothing stays loaded (no silent fallback) and
+ // *error names the reason.
++// swarm seat 01 (S-F113): per-run refresh statistics. A refresh is a full 512-wide rebuild of one perspective;
++// `columns` counts the column add/subs it cost. Reported once per bench so Step 2 can size the split.
++struct RefreshStats {
++    std::uint64_t refreshes = 0;
++    std::uint64_t columns = 0;
++};
++RefreshStats refresh_stats();
++void reset_refresh_stats();
++
+ [[nodiscard]] bool load(const std::string& path, std::string* error);
+ void unload();
+ [[nodiscard]] const Net* loaded();
+--- a/src/uci.cpp	2026-11-16 22:19:26.307165491 +0000
++++ b/src/uci.cpp	2026-11-17 00:53:12.435165491 +0000
+@@ -776,6 +776,9 @@
+                 if (!bench_board.set_fen(fen)) continue;
+                 forge::SearchLimits limits;
+                 limits.depth = depth;
++#if FORGE_NNUE_V3
++                if (forge::nnue::v3::active()) forge::nnue::v3::reset_refresh_stats();
++#endif
+                 bench_searcher.clear();
+                 total_nodes += bench_searcher.search(
+                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+@@ -784,8 +787,17 @@
+                 std::chrono::steady_clock::now() - start).count();
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+-                      << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+-                      << std::endl;
++                      << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0);
++#if FORGE_NNUE_V3
++            // swarm seat 01 (S-F113): report the refresh/column ratio on its own info line, so the bench line
++            // above stays byte-identical and no identity number can move.
++            if (forge::nnue::v3::active()) {
++                const forge::nnue::v3::RefreshStats rs = forge::nnue::v3::refresh_stats();
++                std::cout << " info string v3 refresh_stats refreshes " << rs.refreshes
++                          << " columns " << rs.columns;
++            }
++#endif
++            std::cout << std::endl;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

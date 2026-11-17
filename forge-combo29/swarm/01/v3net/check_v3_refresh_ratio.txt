@@ -1,0 +1,24 @@
+S-F113: the refresh/column ratio, measured with a stats-only patch
+stats exe sha256: b9d2962362b2015ecafed2749bdf1098769417e89ef258b570e8b7d755caf633
+clean exe sha256: 227aae56ef1678479cf08d0fc3e3c73683753e89d61f12b252f0fec9e388471e
+net sha256: 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a
+PC20 + test net where named, Threads 1, Hash 16, bench 13.
+The stats build prints one extra `info string v3 refresh_stats refreshes N columns M` and leaves the
+bench line byte-identical; the nodes column below is the proof that the search did not change.
+
+row	nodes	expected	identity	stats(refreshes,columns)	columns per refresh
+none	862329	862329	PASS	None	n/a
+pc20	587276	587276	PASS	None	n/a
+net	4151906	4151906	PASS	(6087, 44898)	7.38
+pc20net	3652372	3652372	PASS	(6485, 45353)	6.99
+
+IDENTITY: all four configurations reproduce their published bench 13 numbers exactly, so the
+stats build is the same search and its counters describe the real v3 path.
+
+PC20 + test net: 6485 refreshes costing 45353 columns, i.e. **6.99 columns per refresh**.
+  Read against hidden=512: a rebuild that touches k pieces costs k columns and rewrites all
+  512 int16 of the destination, so the per-column cost of a refresh is the same as an
+  incremental column but the fixed 1 KB copy-out is paid every time.
+Test net alone: 6087 refreshes / 44898 columns = 7.38 columns per refresh.
+  The two rows differ only by PC20, so comparing them shows whether search settings change
+  how often the rebuild path fires - which is the thing a speed patch must not perturb.

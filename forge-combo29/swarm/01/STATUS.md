@@ -1554,3 +1554,26 @@ string. Instrumentation first, so the patch aims at a measured cost.
 Gates: 155 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on MEASUREMENT_TRAPS.md after moving Trap 10
 ahead of the closing material (the checker caught it appended after "The guard").
 Next: emit the refresh/columns ratio, then Step 3 timing if a patch follows.
+## 2026-11-17T00:55:40Z — the dead counter now reports: 6.99 columns per refresh (S-F114, S-F115)
+I REVIVED THE COUNTER RATHER THAN GUESSING AT THE COST. stats.patch.txt (text only, DO NOT APPLY to the repo) makes
+the already-existing RefreshCache::refreshes/::columns readable and prints one info string after the bench line,
+leaving that line byte-identical. IDENTITY HELD in all four configurations: 862329 / 587276 / 4151906 / 3652372,
+identical with and without the patch, so the counters describe the real search.
+RESULT: PC20 + test net = 6,485 refreshes / 45,353 columns = 6.99 COLUMNS PER REFRESH. Test net alone = 6,087 /
+44,898 = 7.38. PC20 shifts the refresh count by 6.5 %, so settings do move how often the path fires - worth knowing
+before any patch perturbs it. Against the bench set's MEAN of 24.9 pieces (8 positions, 199 men) a full rebuild
+would cost ~24.9 columns, so the cache saves ~72 % and is NOT a no-op. But 6.99 columns of 1 KB plus a fixed 1 KB
+copy-out, 6,485 times per bench 13, is why this backup path costs 39.3 % as much as the incremental update it
+avoids. MECHANISM: the cache entry holds the piece set of the last position cached under (perspective, king bucket),
+so a same-bucket different-placement position forces a ~7-column diff. A key that tracked which pieces moved would
+hand back something 1-2 columns away. THAT is the Step 2 question, now with a number.
+TWO SELF-CORRECTIONS IN THIS BLOCK, both mine, both caught before shipping:
+  (1) The first instrumented run read 2,570 ms vs 2,161 clean - a 19 % regression that would have been a headline.
+      Five alternating runs: instrumented 2113/2118/2149/2104/2121, clean 2136/2127/2125/2142/2117. Load noise on a
+      4-core VM. Same confound as S-F74: one pair of timings is not a comparison.
+  (2) I first wrote the cache's saving as 78 %, comparing against 32 pieces, without checking that the bench set's
+      mean is 24.9. Against the mean it is 72 %. The baseline was a number I assumed, not measured.
+STATUS OF THE PATCH: applies clean (patch -p1 --dry-run, three files, no rejects), carries a DO NOT APPLY header,
+and no .fnn3 net is committed (gitignored; verified absent from the folder).
+Gates: 157 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on all three v3 pages.
+Next: Step 2 aims at the cache key, with the node-identity rule checked per position, not just per bench total.
