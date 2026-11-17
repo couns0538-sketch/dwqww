@@ -1,0 +1,31 @@
+IS THE SELF-PLAY PATH STABLE? — yes: `go softnodes 2000` is fully deterministic across fresh processes
+==================================================================================================
+The gap: I had shown the three NODE budgets are unstable across positions (23-F24) and the CLOCK path is stable
+(23-F54/55), but the SELF-PLAY command — `go softnodes 2000`, per file 6 — had only been tested on 10 positions
+(23-F13). This tests 30 fresh quiet positions, TWO independent processes each.
+
+| measure | result | prediction |
+|---|---|---|
+| move disagreements between two fresh processes | **0 of 30** | P1 held |
+| node-count disagreements | **0 of 30** | P2 held |
+| runs reporting more than 2000 nodes (the 23-F14 overshoot) | **30 of 30** | P3 held (needed >= 25) |
+| depth reached | deterministic per position; distribution 6 / 7 / 8 plies on 6 / 19 / 5 positions | P4 held |
+
+VERDICT: the self-play path is STABLE. Two fresh processes choose the same move AND report the same node count on all
+30 positions, and the overshoot of 23-F14 is present on every one (2,026 to 3,445 nodes for a 2,000 budget).
+
+SO THE PICTURE ACROSS ALL THREE PATHS IS NOW COMPLETE:
+
+| path | command | stable across fresh processes? |
+|---|---|---|
+| clock (matches) | `go wtime/btime ... winc ...` | **yes** — 0 of 20 (23-F54), 0 of 20 at 1 s (23-F55) |
+| self-play | `go softnodes 2000` | **yes** — 0 of 30, this job |
+| node budgets | `go nodes 20000/50000/250000` | **no** — ~30 % of positions change move between budgets (23-F24) |
+
+And the distinction is clean: `softnodes` and the clock pick a STOPPING POINT from the search's own progress, while
+`go nodes` aims at a fixed count and stops wherever the depth boundary falls. The two stable paths stop at a
+COMPLETED depth by construction; the unstable one stops on a count. That is consistent with 23-F56's finding that a
+depth difference is what changes the move.
+
+LIMIT: quiet middlegames only, one build/settings combination, and 30 positions — the same caveat I have applied to
+the 30 % figure, and I make no claim about non-quiet or tactical positions.
