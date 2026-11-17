@@ -473,15 +473,102 @@ spent and score are all downstream of the treatment. The usable axes are the one
 running either arm — material count, piece count, halfmove counter, a reference depth from a different
 budget, a pre-computed branching factor.
 
-**Two smaller lessons from the same exchange:**
+**One smaller lesson from the same exchange:**
 
 - **Summed differences and sign tests are different statistics and can disagree honestly.** My same-move
   summed ply difference was −11 while the win/loss split was 67–31 for PC20. Both were correct; the sum was
   dominated by ties. Report both, always, or one of them will be quoted against you.
-- **A depth number on an already-decided position is not a depth.** 20 of my 600 cells reported `mate N`
-  scores with `depth 45` and `depth 24` on a mate in 1 — the engine was printing a counter, not a depth. All
-  20 favoured one config, and they were dragging the aggregate toward the null. Exclude mate-score cells
-  from any depth statistic.
+
+## A depth number on an already-decided position is not a depth
+
+This is the same lesson as "a bare node figure names no search", one field to the left on the `info` line:
+**a figure that has a name does not necessarily have the quantity the name promises.**
+
+20 of my 600 positions at `go softnodes 2000` report a `mate N` score in at least one config. They are not
+ordinary cells:
+
+```
+2k5/8/4pp2/1P5p/6p1/6KP/3r1P2/3q3b w - - 0 35   S14 depth 12  mate -3 | PC20 depth 8  mate -3
+5Q2/8/p5pp/6k1/5R2/1B5P/P5P1/5K2 w - - 0 39    S14 depth 24  mate  2 | PC20 depth 24 mate  2
+r6n/1p4k1/p3Q3/P3p2R/2B1P1Pp/8/1PP2KP1/4N3 w  S14 depth 45  mate  1 | PC20 depth 45 mate  1
+```
+
+`depth 45` and `depth 24` on a position that is a **mate in 1** are not depth numbers in any useful sense —
+the engine is printing its internal counter, not the depth it searched. Three consequences, and the first is
+the one that cost me a result:
+
+1. **They bias comparisons.** All 20 of these cells favoured S14, because S14's inflated counter beats PC20's.
+   They were dragging my aggregate toward the null. Excluding them moved my same-move summed difference from
+   −11 to **+38** and the PC20 win share from 0.615 to **0.684**. A single contaminated stratum, 3 % of the
+   sample, flipped the sign of my summary statistic.
+2. **They are not comparable across configs.** Two configurations that both say `mate 3` are not thereby at
+   the same depth; the counter that goes with the score depends on the path taken.
+3. **The filter is one line**: drop any cell where either arm's score is `mate`, from *depth* statistics.
+   Keep them for mate-specific questions, where they are the whole point.
+
+The general form, which is worth more than the instance: **before averaging a field across cells, check what
+that field means on the cells where it is degenerate.** Depth means nothing on a decided position; `hashfull`
+means little at 1,024 MB; `nps` means little on a 2 ms search; `time` means nothing when the harness is the
+timing source (see that section). A mean over such cells is a mean of mixed quantities, and it will move in
+whichever direction the degenerate cells lean — here, consistently toward S14.
+
+The degeneracy is measured, not argued. `go depth 1` on startpos, PC r15, Hash 16, Threads 1, OwnBook false:
+
+```
+info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4
+```
+
+**26 nodes were searched and the engine reports `nps 0` and `time 0`.** Both are integer-millisecond
+truncations of a sub-millisecond search, so on short searches the two fields that look most like objective
+measurements are the two that carry no information at all — and `nps 0` divided into anything is how a
+harness produces a divide-by-zero or an infinite speed-up. `hashfull 0` on the same line is likewise a
+cluster sample of a nearly empty table, not a statement that hashing is free.
+
+**One consequence worth stating separately, because it bit me.** Filtering these cells out is not a
+clean-up, it is a different experiment, and it must be *described* as one. When I excluded the 20 mate cells
+from my 600, I reported it as "the aggregate moves from −11 to +38". But −11 was the **same-move 406** sum
+and +38 is the **clean same-move 387** sum: two changes at once (a filter *and* a subset switch), presented
+as one. Worse, the all-600 sum was *also* +38, by coincidence, which made the false before/after reading look
+confirmed by the data. The arithmetic that settles it:
+
+```
+same-move 406   = -11   decomposes as   mate-in-same-move (-49)  +  clean-in-same-move (+38)
+all 600         = +38   (coincidence - a different set reaching the same total)
+```
+
+Two rules from this: **when you apply a filter, hold every other subset choice fixed**, and **when a
+before/after comparison produces a number you have seen elsewhere, check the cell sets before believing the
+agreement.** A repeated total is more likely a coincidence than a confirmation.
+
+## Never write a number you have not regenerated from its data file
+
+Three arithmetic errors in one reply, all mine, all in the same direction of harm: they made my case look
+stronger than it was.
+
+1. **A confidence interval computed from the wrong count.** I published `[0.586, 0.767]` next to the figure
+   `67/109`. That interval belongs to `67/98`. The correct interval for 67/109 is `[0.521, 0.701]` — a
+   0.065-wide shift, enough that a non-overlap argument I built on it collapsed.
+2. **A subset swap described as a before/after.** "Excluding mate cells moves the sum from −11 to +38" was
+   really a 406-cell set becoming a 98-cell set *and* a filter being applied. Two changes, reported as one.
+3. **A hand-rolled material counter that valued knights and bishops at zero**, which then reported 100 %
+   rook-or-more imbalance on a position set whose true figure is 22.0 %.
+
+All three were plausible-looking. Only the third was caught by a plausibility check (100 % is impossible);
+the first two required someone else to recompute them. That is the worst property a numerical error can
+have: **the errors that survive longest are the ones that are merely a little wrong.**
+
+**The rule.** Every interval, share, sum and ratio in a finding is produced by a script that reads the JSON
+result file, and the finding quotes the script's output. Not a number I remember, not one I worked out in
+prose, not one carried from an earlier draft. If a number appears in a finding and no script prints it, that
+number is a claim about my memory rather than about the engine.
+
+Two checks that are cheap and catch the shapes above:
+
+- **Print the cell set with the number.** `67/109 = 0.615` on one line, `67/98 = 0.684` on the next, forces
+  the denominator and the interval to be read together. My mispairing was invisible because they were in
+  different sentences.
+- **When you apply a filter, assert the subset is unchanged otherwise.** The before/after that fooled me
+  differed in two ways, and a one-line set-equality assertion would have refused it.
 
 ## A bare node figure names no search
 

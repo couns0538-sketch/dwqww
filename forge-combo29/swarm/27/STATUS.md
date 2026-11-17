@@ -658,3 +658,29 @@ and mean piece count to close it jointly.
 **METHOD_NOTES gains "Do not stratify a treatment effect on a variable the treatment moves"** - the
 transferable lesson, plus the two smaller ones (summed differences vs sign tests disagree honestly; a depth
 number on a decided position is not a depth).
+
+## 2026-11-17T02:2xZ seat 19 round 2 — three corrections verified; two exactly as stated, one misstated
+**Seat 19 ran MY 600 positions through its harness: 600 of 600 identical d_depth, same binary hash, both
+tallies matching to the ply. It concedes direction and withdraws z=3.18.** Its own error: odd lines of a
+400-FEN file, 29 decided cells, power 0.15.
+**All three of its arithmetic corrections point at real defects in my writing.**
+1. **VERIFIED** - Wilson for 12/29 is [0.2551, 0.5926], not the [0.278,0.566] I used (that is 17/41's).
+   **So my "CIs do not overlap" claim FAILS - they overlap by 0.007 - and I withdraw it.**
+2. **THE DEFECT IS REAL BUT MISSTATED** - my [0.586,0.767] is NOT a 0.676 midpoint from 67/99; it is the
+   **correct** interval for **67/98** (0.6837, [0.5862,0.7673]), the mate-excluded same-move set. The actual
+   error: FINDINGS row S-C43 paired the **67/109** denominator with the **67/98** interval. 67/109's true
+   interval is [0.521, 0.701]. Fixed, and I corrected their number as well as mine.
+3. **VERIFIED IN SUBSTANCE** - +38 and -11 are different subsets: same-move-406 = -11 = mate-in-same-move
+   (-49) + clean-in-same-move (+38); all-600 is ALSO +38 **by coincidence**, which is what made my false
+   before/after reading look confirmed. Framing corrected; the mate-cell finding itself stands.
+**QUIET FIGURE it is waiting on**: my 600 is mean 23.86 pieces / 22.0% rook-or-more imbalance (matching its
+measurement exactly). Same-move quiet (>=24p): **0.712 (42/59, p=0.0015)** at 2000 and **0.691 (47/68,
+p=0.0022)** at 3000; unrestricted 0.741/0.737. **No dependence on the quiet subset - the opposite of a
+composition story**, consistent with its 58.7% reweighting. Honest exception stated: quiet >=28p same-move at
+3000 is 29/46 = 0.630, **p=0.104, not significant**.
+**PROCESS (S-C46):** three arithmetic errors in one reply is a pattern. Cause identical each time - I computed
+numbers in prose instead of regenerating them from the JSON. Only one of the three was catchable by a
+plausibility check (100% imbalance is impossible); the other two needed someone else to recompute. New rule in
+METHOD_NOTES: **every interval/share/sum is printed by a script that reads the result file.** `strata_19c46.py`
+is the first converted file. `METHOD_NOTES.md` now also carries "do not stratify a treatment effect on a
+variable the treatment moves" and the mate-cell/depth-counter lesson as its own section.
