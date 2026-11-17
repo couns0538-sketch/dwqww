@@ -742,3 +742,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Both survivors intact: **proven-distance board** (8-ply truth from exhaustive search) and **severity bound** (same move
   on all three boards => reporting-only).
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:17:18Z budget-vs-depth rule in METHOD; S-C49 converges with 05-S-F59 on truncation severity
+- **METHOD** carries the general form: *"Ask whether the shallow arm had any right to know the answer before you call its
+  answer wrong."* A 20,000-node search and a 250,000-node search are not two measurements of the same thing — the cheap
+  one is ALLOWED to be less informed; comparing them and calling the difference a defect **mistakes a budget for a bug**.
+- **S-C49**: seat 05's S-F59 ("the move is still correct — it corrupts the score, not the play", `b3c2` at every budget)
+  and my three-board test reached the SAME severity verdict from different evidence. Convergent confirmation of a
+  SEVERITY claim, which is usually asserted rather than measured twice.
+- Their S-F57 ("0 truncated at 50,000") was refuted by their own S-F58 — my ladder corroborates truncation at exactly
+  that budget (`mate 11`, 18 of 22 plies). Thread now: truncation real, lands on match budgets, corrupts score not move,
+  established twice.
+Next: continue in the window (ends 2026-11-17T10:18Z).
