@@ -1,0 +1,65 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -518,6 +518,8 @@
+     std::size_t root_history_index_ = 0;
+     std::vector<Move> root_moves_;
+     bool root_restricted_ = false;
++    // job6 reverse test: one side of the ROOT position has only its king (r15's root_bare_king_)
++    bool root_bare_king_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1668,14 +1668,33 @@
+         else improving = true;
+     }
+ 
++// job6 reverse test: the r15 PC build's two bare-king rules, as switches.
++#ifndef FORGE_FIX_BARE_KING_LMR_CAP
++#define FORGE_FIX_BARE_KING_LMR_CAP 1
++#endif
++#ifndef FORGE_FIX_BARE_KING_ONE_THREAD
++#define FORGE_FIX_BARE_KING_ONE_THREAD 1
++#endif
+ #if FORGE_BARE_KING_MATE_FIX
+     const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+-    const bool bare_king_mode = multi_worker &&
++#if FORGE_FIX_BARE_KING_ONE_THREAD
++    const bool bare_king_rule = multi_worker || root_bare_king_;
++#else
++    const bool bare_king_rule = multi_worker;
++#endif
++    const bool bare_king_mode = bare_king_rule &&
+         (board.occupied(White) == board.pieces(White, King) ||
+          board.occupied(Black) == board.pieces(Black, King));
+ #else
+     constexpr bool bare_king_mode = false;
+ #endif
++#if FORGE_FIX_BARE_KING_LMR_CAP
++    const bool bare_king_lmr_cap = !bare_king_mode && root_bare_king_ &&
++        (board.occupied(White) == board.pieces(White, King) ||
++         board.occupied(Black) == board.pieces(Black, King));
++#else
++    constexpr bool bare_king_lmr_cap = false;
++#endif
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+         board.halfmove_clock() + depth < 100) {
+@@ -2008,6 +2027,7 @@
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            if (bare_king_lmr_cap) r = std::min(r, 1);
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+@@ -2158,6 +2178,8 @@
+     null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
++    root_bare_king_ = board.occupied(White) == board.pieces(White, King) ||
++                      board.occupied(Black) == board.pieces(Black, King);
+     root_history_index_ = board.history_size() - 1;
+     node_limit_ = limits.nodes;
+     // Helpers must observe the budget. Leaving the flag false on them made
