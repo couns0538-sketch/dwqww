@@ -131,10 +131,10 @@ in `evidence/repeatability.json`).
 |---|---|---|
 | `infinite` | `go infinite` | **CAP** (by definition) |
 | `infinite` | `go infinite abc` | **CAP** — junk token ignored |
-| `infinite` | `go infinite depth 5` | **CAP at depth 5**, ladder complete, then blocks. `infinite` beats `depth` |
+| `infinite` | `go infinite depth 5` | depth 5 ladder completes, then **blocks** — depth still bounds the search, but `infinite` suppresses the `bestmove` until `stop` |
 | `ponder` | `go ponder` | **CAP** — waits for `ponderhit`/`stop` |
 | `ponder` | `go ponder abc` | **CAP** |
-| `ponder` | `go ponder wtime 1000` | **CAP** — `ponder` beats the clock |
+| `ponder` | `go ponder wtime 1000` | **CAP** — `ponder` suppresses the clock rather than being bounded by it |
 
 ### `searchmoves` (corrected pass, `evidence/searchmoves.jsonl`)
 
@@ -358,7 +358,7 @@ searched differently" reading is unavailable.**
 | `go depth 0x10` | 1/42 | not decimal |
 | `go depth +5` | 1/42 | `read_int` rejects `+` (unlike `read_clock`) |
 | `go depth 5 0` | 5/818 | stray token |
-| `go movetime 1` | 5/818 in 15 of 16 runs — **race-affected**, see §3 |
+| `go movetime 1` | 5/818 (15 of 16) | **race-affected** — see §3 for the 2-outcome distribution |
 
 **Bare `go` being `go infinite` is the most likely real harness bug in this
 whole document** — it does not require a malformed value, an overflow, or an
@@ -552,14 +552,25 @@ The two things a client cannot fix on its own, and which belong in the engine:
 | `evidence/movetime_zero_interleaved.json` | 30 fresh processes per arm, interleaved |
 | `evidence/build_and_run.log` | the matrix run log, build label on every line |
 | `scripts/` | `go_probe.py` (the harness), `matrix.py`, `keyword_eating.py`, `lastwins.py`, `searchmoves_pass.py`, `boundedness.py`, `huge_clock.py`, `repeatability.py`, `movetime_zero.py`, `book_randomness.py`, `find_reference_fen.py`, `search_reference_board.py` |
-| `scripts/verify_claims.py` | re-derives 180 checkable figures in this document from the evidence |
+| `scripts/verify_claims.py` | re-derives 290 checkable claims (numeric + table shape) from the evidence |
 
 ## How the figures here are checked
 
-`python3 scripts/verify_claims.py` re-derives **180** of this document's numbers
-from the JSON/JSONL evidence and exits non-zero on any mismatch. **It was proved
-able to fail**: planting `999` for `go depth 5` nodes gives
-`§1 go depth 5 nodes :: 999 != 818`, exit 1; restoring the file gives exit 0.
+`python3 scripts/verify_claims.py` re-derives **290** checkable claims from this
+document and the evidence, and exits non-zero on any mismatch. Two kinds:
+numeric (figures against the JSON/JSONL) and structural (every markdown table row
+against its header's cell count).
+
+**Both were proved able to fail.**
+- Numeric: planting `999` for `go depth 5` nodes gives
+  `§1 go depth 5 nodes :: 999 != 818`, exit 1; restoring gives exit 0.
+- Structural: deleting one cell from the `depth` row gives
+  `table shape at line 106 :: 7 cells, header has 8`, exit 1; restoring gives
+  exit 0.
+
+The structural check earned its place immediately: it caught **two** mangled
+tables that no numeric check could see, both introduced by my own edits after
+the tables had been written correctly.
 
 **What it does not check is the prose**, and two defects in this document were
 found by writing it rather than by that script:

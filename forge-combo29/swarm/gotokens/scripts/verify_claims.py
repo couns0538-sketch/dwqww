@@ -273,6 +273,26 @@ def main() -> int:
         check(f"§method {name} rows carry a build label",
               all("6b98f217" in r.get("build", "") for r in rows), "a row is unlabelled")
 
+    # --- document shape: every markdown table row has its header's cell count --
+    # A row with the wrong number of cells renders as a mangled table and is
+    # invisible to numeric checks. This was found by reading the flag-keyword
+    # table after an edit dropped a cell.
+    doc_lines = DOC.read_text().splitlines()
+    header_cells: int | None = None
+    for lineno, line in enumerate(doc_lines, 1):
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            header_cells = None
+            continue
+        cells = len(stripped.strip("|").split("|"))
+        if header_cells is None:
+            header_cells = cells
+            continue
+        if set(stripped.replace("|", "").replace("-", "").replace(":", "").strip()) == set():
+            continue  # separator row
+        check(f"table shape at line {lineno}", cells == header_cells,
+              f"{cells} cells, header has {header_cells}")
+
     # --- report -----------------------------------------------------------
     print(f"{checks} claims checked against evidence")
     if failures:
