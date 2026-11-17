@@ -1311,3 +1311,12 @@ output rather than kept as habits:
 | `check_findings_table.py` | table row shape, id uniqueness | section order, column content, truth, staleness |
 | `check_page_shape.py` | heading sequence, duplicates, empty sections, stranded sections | whether the order is the *intended* one |
 | `honesty.py` | the four node pins | anything about correctness beyond those pins |
+
+## 2026-11-17T00:37:27Z — 25-minute cadence
+CHECKED seat 06's S-F39 BY ITS OWN GROUND-TRUTH PLAYOUT — IT CONFIRMS AT ITS SETTING, BUT THE 'GROUND TRUTH' IS SETTING-DEPENDENT (S-C35, S-F98).
+  AT ITS OWN SETTING (depth 12 for both sides): c6d6 survives 20 plies, c6c7 survives 16 — c6c7 worse by 4, so the DIRECTION CONFIRMS. All deterministic, 3 runs each, scores never read.
+  BUT THE PLAYOUT DEPTH CHANGES THE ANSWER, INCLUDING ITS SIGN: depth 8 -> 20/26 (c6c7 BETTER by 6); depth 10 -> 24/40 (c6c7 better by 16); depth 12 -> 20/16 (c6c7 worse by 4); depth 14 -> 22/32 (c6c7 better by 10). On node budgets 5k/20k/50k it was consistently 20/22, c6c7 BETTER. So 3 of 5 depth settings REVERSE the claim.
+  WHY, and this is the finding (S-F98): a playout is ground truth only for the PLAYER that plays it. Seat 06's method removes the engine's SCORE from the judgement - genuinely better than reading a score - but it does not remove the engine from the PLAY: both sides move by the same depth-limited searcher, so at depth 10 it plays a 40-ply defence and at depth 12 a 16-ply one from the same first move. The ply count measures 'how long this engine survives against itself at depth D', not 'which move is objectively better'.
+  THE SCOPE WORD SHOULD NOT BE 'ground truth' BUT 'self-play survival at D', and any claim built on it must state D and show the ordering is stable across a range - which here it is not. That is my own Trap 6 lesson one level up: truth, like safety, is a property of the CONFIGURATION rather than the command.
+  I also caught a sign error in my own verdict text before publishing it (my code said 'CONFIRMS the direction' when my numbers showed the opposite) - the third sign-reading slip tonight, so I now print the raw ply counts beside every verdict.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

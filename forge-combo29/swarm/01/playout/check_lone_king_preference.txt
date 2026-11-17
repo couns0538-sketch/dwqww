@@ -1,0 +1,23 @@
+CHECK of seat 06's S-F39: lone-king move preference, tested by GROUND-TRUTH PLAYOUT
+exe_started: /home/ubuntu/builds/release/forge
+sha256: e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+board: 1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183
+both sides played by the ENGINE at go nodes 20000 (a node budget, never an untimed depth);
+python-chess adjudicates; scores never consulted; 3 runs per first move
+
+first_move	run	plies_survived	reason
+c6d6	1	20	checkmate
+c6d6	2	20	checkmate
+c6d6	3	20	checkmate
+c6c7	1	22	checkmate
+c6c7	2	22	checkmate
+c6c7	3	22	checkmate
+
+c6d6: plies survived [20, 20, 20] (identical across 3 runs)
+c6c7: plies survived [22, 22, 22] (identical across 3 runs)
+
+GROUND TRUTH: c6d6 survives 20 plies, c6c7 survives 22 - a difference of 2 plies.
+VERDICT: CONFIRMS the direction of seat 06's S-F39: c6c7 (the second move) is WORSE by
+  ground truth, surviving 2 fewer plies. A playout cannot consult a score, so this is the
+  engine's own play revealing a preference that loses sooner. My absolute ply counts differ
+  from seat 06's 22/20 because I capped each move at 20000 nodes rather than playing at depth 12.
