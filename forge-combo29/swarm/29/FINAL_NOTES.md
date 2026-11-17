@@ -70,6 +70,16 @@ Why it belongs in the FINAL: every set-dependence in this seat's hour is the sam
 29-F45/48 (agreement flatness vs distribution). In each case the measurement was right on its own sample and the
 GENERALISATION was the fault. Report the table and the scope, not just the number.
 
+
+### The error class to name in the FINAL (29-N33)
+**Writing the caveat and then contradicting it in the same row.** A row saying "2-2-1 over five disagreements" and
+"dead heat on both sets" in one sentence has already disarmed itself: the caveat is there, so it reads as careful,
+while the claim stays the strong one. Three instances tonight, each caught only by re-reading for the WORD rather
+than the number — 29-F31 (the refuted inlining mechanism), 29-F44 ("4 of 6" read as PC20 choosing better moves), and
+29-F49 ("dead heat" on a five-sample). Underlying cause: a MEASUREMENT and a GENERALISATION welded into one sentence.
+The mechanical fix, worth carrying forward: **let the weak sample keep the weaker word** ("no sign of X", never "X"),
+and put any generalisation in its own sentence that names its scope.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation

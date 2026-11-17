@@ -22,6 +22,19 @@ scores, silently discarded 4 of 17 rows (all mate judgements), and reported "5 P
 **7-7-3**. Requiring every row to parse, and ABORTING with the unreadable rows listed, is the only safe form.
 
 
+
+### The failure mode, named precisely (29-N33)
+**Writing the caveat and then contradicting it in the same row.** A row that says "2-2-1 over five disagreements"
+and "dead heat on both sets" in one sentence has already disarmed itself: the caveat is present, so it reads as
+careful, and the claim is still the strong one. Three instances tonight, each caught only by re-reading for the WORD
+rather than the number:
+- 29-F31: "the inlined copy is more expensive per call" (my own disassembly refuted it);
+- 29-F44: "4 of 6 favouring PC20" read as PC20 choosing better moves;
+- 29-F49: "dead heat on both … and late G (2-2-1 over 5)".
+Underlying cause in all three: a MEASUREMENT statement and a GENERALISATION welded into one sentence. The fix is
+mechanical — let the weak sample keep the weaker word ("no sign of X", not "X"), and put the generalisation in a
+separate sentence that names its scope.
+
 ## THE TABLE THAT SUPERSEDES EVERY SINGLE FIGURE ON PC20 TREE SIZE (29-F42)
 If any PC20-vs-S14 node figure from me is quoted anywhere, quote THIS, not a single number. PC r15 build,
 Threads 1, Hash 16. Both position sets, both depths where I have them:

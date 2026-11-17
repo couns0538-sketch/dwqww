@@ -379,3 +379,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N33 WORDING FIX on my own F49: I had written 'dead heat on both R_2911 (7-7-3) and late G (2-2-1)', which applies 'dead heat' to a FIVE-disagreement sample. Corrected to: dead heat on R_2911 (7-7-3 over 17); on late G only 'no sign of PC20 being worse' (2-2-1 over 5).
 - The summary pair, in the coordinator's own honest form: FREQUENCY is set-dependent; QUALITY shows no sign of damage on either set.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:09:47 AM UTC 2026
+- 29-N33 named precisely in the method note and in FINAL_NOTES: THE failure mode is 'writing the caveat and then contradicting it in the same row' - the caveat makes it read as careful while the claim stays strong. Three instances tonight (F31 refuted mechanism, F44 '4 of 6', F49 'dead heat' on a five-sample), each caught only by re-reading for the WORD not the number.
+- Mechanical fix carried forward: let the weak sample keep the weaker word ('no sign of X', never 'X'), and put any generalisation in its own sentence that names its scope.
+- FINDINGS method order is now: FIRST RULE (zeros) + denominator corollary -> THE FAILURE MODE (caveat contradicting itself) -> THE PC20 TABLE -> three named rules -> rows.
+- next: continuing at cadence.
