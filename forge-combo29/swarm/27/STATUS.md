@@ -1072,7 +1072,7 @@ produces FEWER nodes than requested. And the answer is CORRECT at every budget (
 a wrong answer, it is that `softnodes N` is bounded by the work needed to reach depth 64, which on a small
 tree is far below N.
 **S-C100: this makes S-N1 structurally wrong, not merely narrow** - it assumed the search always WANTS more
-nodes than N. The ratio is bounded by the tree: **0.07x to 3.50x**, floor from the depth-64 clamp, ceiling from
+nodes than N. The ratio is bounded by the tree and the bound has TWO SEPARATE POPULATIONS: **the 80-cell sweep (budgets 500/2000) spans 1.008x to 3.503x**, while the **0.067x floor is a separate probe** (1,344 nodes vs `softnodes 20000` on one mating board; the same floor against 2,000 would be 0.672x). [CORRECTED - this line originally quoted them as one range, which spliced two experiments.] Ceiling from
 an iteration boundary landing late. My published band was a property of the four boards I picked, and **the
 floor case could never have appeared in them because none reached depth 64.**
 The determinism half of S-N1 (8 of 8 identical across 3 runs) is a DIFFERENT claim and stands.
@@ -1121,3 +1121,27 @@ because a reader applies it where it fails** - "a soft budget is unreliable" wou
 owner deciding whether to trust his self-play labels, which is the exact decision S-N1's determinism half exists
 to settle.
 METHOD_NOTES 1,040 lines; FINDINGS 155 rows.
+
+## 2026-11-17T12:1xZ S-C104/105 — two spliced ranges fixed; the pattern's sweep found a third instance
+**Both corrections confirmed and applied, arithmetic re-derived.**
+**1. THE SPLICED RANGE.** "0.07x to 3.50x" treated three populations as one. Verified:
+  80-cell sweep (budgets 500/2000): **1.008x to 3.503x** - its own minimum, because NO position there reached
+    the depth-64 clamp;
+  **0.067x is one cell of a SEPARATE floor probe** (1,344 nodes / softnodes 20000);
+  the same 1,344-node floor against softnodes 2000 would be **0.672x**.
+**So the floor ratio is a function of (tree, BUDGET), not a minimum of the sweep.** Separated in S-C100, in the
+STATUS quote, and METHOD_NOTES now states the budget-dependence - including that I made this splice in a
+findings row before the summary seat caught it, which is the same error as the original band: one number
+standing in for a population.
+**2. S-C87 now POINTS AT its own correction** instead of restating the absolute: "in this cell there is no
+duplicate signature, and S-C95 shows that holds for only 3 of 5 predecessors - so the correct statement is
+'often no duplicate signature', not 'none'."
+**3. THE PATTERN IS SELF-CAMOUFLAGING AND NEEDED A SWEEP: a correction that ADDS without REMOVING leaves the row
+looking maintained while a skimmer takes the first plain statement and reads the qualifier as a footnote.**
+`find_stale_absolutes.py` flags rows pointing at a LATER finding id while still asserting an unqualified
+absolute. **It found a THIRD instance: the tail of S-C87 still said "there is no duplicate signature" AFTER the
+new qualified text - I had fixed the sentence named and left its twin three sentences later, in the same row.**
+**And a false positive taught the detector its own limit:** once fixed, the sentence contains the words "no
+duplicate signature" inside the clause explaining why that phrase is wrong, so it flagged itself; the qualifier
+set now includes self-rejecting forms (`not ... none`, `often no`, `only N of M`). Final: 0 candidates, all three
+controls passing.
