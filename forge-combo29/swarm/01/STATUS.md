@@ -2139,3 +2139,29 @@ Next: continue at cadence.
    people to ignore it.
 Gates: 184 rows, 0 wrong pipe counts, trace check proven both ways, page shape OK, stamps in order, 48 checks ok.
 Next: continue at cadence.
+## 2026-11-17T01:40:58Z — replicated seat 19's wall-time prediction, and the 18x outlier explains the disagreement (S-C46)
+BACK TO ENGINE WORK: seat 19 committed 19-C53, predicting a PC20/S14 wall ratio of 0.88-0.93 (their reasoning: seat
+29 found 10.7-11.9 % fewer nodes, their own per-node cost is within 1.2 %, so the saving should show as time; seat
+29's null result was n=40 with a CI too wide to see 10 %). I replicated it on my build.
+DESIGN FIXED FIRST: S14 vs PC20 on PC r15 (S14 = PC20 minus its six non-default flags), go depth 12 (not a node
+budget, to avoid the S-F123 rung confound), ABBA, fresh process per search, engine-reported time only, 120 pairs at a
+fixed stride through R_1911.fens. 116 usable.
+RESULT: median paired wall ratio 0.983, CI on the geometric mean 0.916-1.125 (contains 1.0). Median node ratio 0.926,
+i.e. 7.4 % fewer nodes under PC20. Against their 0.88-0.93: OUTSIDE on the slow side - a 10 % uniform saving would
+have shown as a median near 0.90 and did not. That is consistent with seat 29's null result.
+BUT THE TAIL IS THE REAL FINDING, and it reconciles the two seats. Mean node ratio 1.214, mean wall ratio 1.318,
+pooled node ratio 0.955 - THREE STATISTICS, THREE ANSWERS. PC20 used fewer nodes on 69 pairs and MORE on 47, and the
+worst single pair searched 18.37x more nodes and took 23.70x longer (12,957 -> 238,009 nodes). A handful of such pairs
+drag every mean above 1.0 while the median sits below it.
+THE TEST THAT SEPARATES THE TWO CLAIMS: restrict to the 61 pairs where PC20 used >=5 % fewer nodes. Their median wall
+ratio is 0.750, mean 0.728. So THE MECHANISM IS REAL WHERE IT APPLIES - a node saving does become wall time, at
+roughly the rate the nodes predict. What fails is the assumption that the saving survives averaging over the
+positions where PC20's search explodes. Both seats were describing a BIMODAL phenomenon through single summary
+numbers - S-F126's lesson in a third place, now in engine measurement rather than in my own bookkeeping.
+WHY I CAUGHT IT: the harness printed median and geometric mean side by side, LABELLED, because S-F126 says two
+numbers beside a third get read as deriving from each other. A mean-only report would have said "no difference"; a
+median-only report "slightly faster"; a pooled-node report "4.5 % fewer nodes". The tail needed showing, not
+summarising.
+Gates: 185 rows, 0 wrong pipe counts, page shape OK, stamps in order.
+Next: look at the five 18x-class positions - an outlier that large deserves its own explanation before anyone calls
+it a defect.
