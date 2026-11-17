@@ -1,0 +1,43 @@
+THE ABANDONED PROVER IS REPAIRED — and it independently reproduces seat 27's DTM 6
+=================================================================================
+23-F49 recorded a DTM prover of mine that failed its own control; 23-F119 records that abandoning it became the reason a
+mate-distance claim went unchecked. The named pattern is "a broken tool becomes a reason to skip the check". The repair:
+
+ATTEMPTS
+--------
+1. Unbounded minimax — recursed to Python's limit. Reversible moves make the tree effectively infinite.
+2. Same recursion plus a "seen on this path" guard — STILL recursed, because the guard key carried the move counters, so
+   a position re-reached with a different halfmove clock looked new. A guard that does not match the positions the
+   search actually revisits is not a guard.
+3. **Depth-bounded** `can_mate_in(board, n)` — "can the side to move force mate in at most n plies" — with DTM taken as
+   the smallest odd n that succeeds. A bounded search cannot run away by construction, and it matches what seat 27 did.
+
+CONTROLS — all five pass before any result prints
+--------------------------------------------------
+| control | got | want |
+|---|---|---|
+| C1 fool's mate already delivered → is_checkmate | True | True |
+| C2 black mates in 1 ply → dtm_for_mover == 1 | 1 | 1 |
+| C3 KRvK win → finite DTM | finite | finite |
+| C4 bare kings → no forced mate | INF | INF |
+| C5 W2 K+Q v K → finite DTM | finite | finite |
+
+Two controls are load-bearing rather than decorative: **C2** would catch an off-by-one in the ply convention, and **C4**
+would catch a prover that reports a mate on a drawn board — which is precisely the failure seat 27's own tool had and
+F89 documents.
+
+THE NUMBER, cross-checked against an independent implementation
+----------------------------------------------------------------
+| board | this prover | seat 27's exhaustive search |
+|---|---|---|
+| W2 `8/5K2/7Q/4k3/8/8/8/8 w` | **11 plies (mate in 6)** | **11 plies (mate 6)** — **AGREE** |
+| KRvK `1K6/8/8/3R4/8/8/8/k7 w` | 15 plies (mate in 8) | not measured by seat 27 |
+
+So the oracle is back, and its first use corroborates the refutation rather than merely deferring to it.
+
+WHAT THIS CHANGES
+-----------------
+The named pattern's mechanical fix — "name the tool's dependants when it breaks" — is now backed by a repaired tool
+rather than a resolution. Any future "the mate distance is wrong" claim in this seat has an oracle available, so the
+excuse that produced F90 no longer exists. The prover runs in ~64 s for these cells, which is slow but affordable; that
+cost is the reason it was skipped once, and the answer is to run it less often and later, not to skip it.

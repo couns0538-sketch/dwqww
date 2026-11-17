@@ -513,6 +513,35 @@ depends on ground truth I have decided not to compute is a finding I should not 
 Separate and unaffected: the truncated-PV observation (23-F86/F88) stands — a mate score can arrive with a PV too short
 to deliver mate. Truncation and correctness are independent, which is what the retracted row itself asserted.
 
+## Named pattern — A BROKEN TOOL BECOMES A REASON TO SKIP THE CHECK
+
+Distinct from the instances above, and subtler: the failure is not in a measurement but in the DECISION NOT TO MEASURE.
+
+The sequence, from 23-F119:
+1. I tried to build a DTM prover (a ground-truth oracle for mate distance).
+2. It failed its own control (23-F49) — empty tables, vacuous passes.
+3. I recorded that honestly as a fault and **stopped using it**.
+4. Hours later I wrote a finding that REQUIRED that oracle ("the mate distance is wrong"), could not check it, and
+   published anyway. The absent tool was not cited as a gap; it had quietly become a reason not to look.
+5. Seat 27 built the prover, ran it, and refuted me in one step.
+
+**The pattern: a tool that fails its control converts, without any decision, from "a thing to fix" into "a thing that is
+not available" and then into "a reason the check is not part of the plan".** Nothing announces the transition. The
+correct state after a control failure is `BROKEN — BLOCKS CLAIMS THAT DEPEND ON IT`, not `discarded`.
+
+**UPDATE (job 58): the tool is now REPAIRED and passes five controls, reproducing seat 27's DTM 6 independently. The
+pattern's fix is therefore demonstrable rather than merely recommended — see `job58/RESULT.txt`. Repairing it took three
+attempts (unbounded recursion; a cycle guard keyed on positions that included the move counters and so never matched;
+finally a depth-bounded formulation), which is itself the argument that a broken tool should be FIXED rather than
+dropped: the fix was not obvious, and abandoning it was the cheaper path that cost a false finding.**
+
+Two mechanical consequences worth installing:
+- **Name the tool's dependants when it breaks.** 23-F49's entry recorded that the prover was unreliable; it did not say
+  "therefore no mate-distance claim may be made in this seat", which is the sentence that would have stopped F90.
+- **A claim requiring an unobtained ground truth is a claim to DEFER, not a claim to soften.** I softened it instead —
+  I wrote "the distance can be wrong" rather than "mate 10 is true DTM", which felt appropriately modest and was still
+  unsupported. Softening a claim hides the missing oracle; deferring it exposes the gap.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if
