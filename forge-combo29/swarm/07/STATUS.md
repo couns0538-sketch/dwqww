@@ -766,3 +766,12 @@ Two more standing rules in the FINDINGS header (12 now, 65 rows in the table):
   Seat 08 reported 2/5 and 318 cp for sparse, 0/5 and 3 cp for middlegames -- counts match, medians close, on independently built boards.
   NO mate-to-cp conversion performed, for the reason seat 08 themselves gave: mapping mate to 30000 cp gives a meaningless ratio (their 106x), which is the incomparable-units rule already in my header (07-C44).
   Practical reading for the owner: a clocked sparse endgame can publish a score that a completed search turns into a mate -- a training-data concern if clocked self-play scores are used as labels, which is exactly why seat 08 linked it to the label question.
+
+## 2026-11-17T00:13:30Z
+07-C60 -- CONFIRMED 25-S-F37 (all three of the zero-limit claims). PC r15/PC20, Threads 1, Hash 16, OwnBook false, fresh process per cell, startpos:
+  go depth 0  -> depth 1, d2d4, 26 nodes -- IDENTICAL to go depth 1, so 0 clamps up.
+  go movetime 0 -> depth 5, 971 nodes, 1.2 ms -- identical to go movetime 1, a floor not zero time.
+  go nodes 0  -> depth 0, 0 nodes, a2a3 -- against the normal depth-10 answer d2d4, so it differs as claimed.
+  REFINEMENT: their quoted pair was g1e2 vs f1e2, which must be a different position; on startpos it is a2a3, which is the FIRST LEGAL MOVE IN GENERATION ORDER.
+  THE CONNECTION WORTH MAKING: that is the same fallback as the fabricated bestmove (19-F12, root_candidates.front() at search.cpp:3017) and the shared zero-node report path (07-C54). go nodes 0 is DELIBERATE (documented as 'an immediate bounded answer'); the other two are defects -- but they share the mechanism, which is why a harness sees them as looking alike.
+  Also confirmed: only nodes honours 0 literally; depth and movetime clamp up. That is the practical rule for any harness that tries to express 'do nothing' with a zero.
