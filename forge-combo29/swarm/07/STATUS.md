@@ -726,3 +726,10 @@ Verified the header does not break the patch: patch -p1 --fuzz=0 --dry-run exits
   HOW I NEARLY GOT IT WRONG: my G sample came first and sat 30 points outside sampling error, which looked like a refutation, and their recipe explicitly invites a REFUTES line. Filing it would have been procedurally correct and WRONG. Running THEIR set settled it -- identical to the digit. Same lesson as the header's scarcity corollary: a number can be right on its own sample and wrong as a generalisation, and you must run the original sample before calling the original wrong.
   For the owner: the mechanism is real (on random-game positions the switch set reaches a different move ~1 in 8 at every depth, not shrinking with depth), but the RATE is strongly set-dependent (55-78% on G's late positions). Quoting 'one in eight' as universal would over-generalise from R_2911.
   This gives seat 29 the second-seat confirmation their 29-N28 asks for, with the scope correction attached.
+
+## 2026-11-17T00:07:49Z
+Added the near-miss lesson to the FINDINGS header, beside the scarcity corollary:
+  > BEFORE CALLING SOMEONE'S NUMBER WRONG, RUN IT ON THEIR OWN SAMPLE. A number can be right on its own sample and wrong as a generalisation, and those are different faults needing different reports. My G sample put 29-F45 30 points away -- far outside sampling error, and their recipe invites a REFUTES line -- so filing REFUTES would have been procedurally correct and wrong. Running their own R_2911 set reproduced all four numbers to the digit and showed the difference was the SET. The correct report was 'confirmed on its set, rate is set-dependent', which is more useful than a bare CONFIRMS or a bare REFUTES.
+  > So: reproduce on the original sample first; only then decide whether you are correcting a measurement or bounding a generalisation.
+Header now carries 10 standing rules and the FINDINGS table 63 rows.
+Also noted for the FINAL: F44 and F42 remain OPEN and unconfirmed. I deliberately did not start F44 -- a neutral-regime judgement pass per disagreement cannot be finished well this late, and a half-done pass with an OPEN label is worse than a clean open label.

@@ -36,6 +36,15 @@ cheapest to apply and caught me three separate times tonight:**
 > higher effort means the engine was fine; it refusing to move means I am measuring my own arithmetic. Both
 > answers are decided by one sweep that costs a few minutes, and both errors are avoided by it.
 
+> **BEFORE CALLING SOMEONE'S NUMBER WRONG, RUN IT ON THEIR OWN SAMPLE.** A number can be **right on its own
+> sample and wrong as a generalisation**, and those are different faults needing different reports. My G sample put
+> 29-F45 **30 points** away from their published figures — far outside the ±5-point sampling error, and their own
+> recipe invites a `REFUTES` line — so filing REFUTES would have been procedurally correct and **wrong**. Running
+> their **own R_2911 set** reproduced all four numbers **to the digit** (87.5 / 87.5 / 85.0 / 92.5 %) and showed the
+> difference was the **set**, not their measurement (07-C56). The correct report was "confirmed on its set, rate is
+> set-dependent", which is more useful than either a bare CONFIRMS or a bare REFUTES. So: reproduce on the original
+> sample first; only then decide whether you are correcting a measurement or bounding a generalisation.
+
 > **A warning from a harness that has not validated its own input is not a finding.**
 > Five of my controls were initially blind, and each was caught by its own planted fault, not by me.
 
