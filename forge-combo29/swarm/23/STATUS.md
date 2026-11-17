@@ -1609,3 +1609,15 @@ hardest exactly where it is about to give up (counter 88 at d8 = 14,921 nodes vs
 Still no mechanism: I have not read the search code and will not invent a cause; flagged as a concrete lead for an
 area-7 seat.
 110 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 13 m remain.
+## 2026-11-17T01:07:46Z  F82 CORRECTED AGAIN: BOTH builds show the pre-collapse peak - it is a SEARCH property, not a base-tree defect
+2026-11-17T01:07:46Z
+
+I ran the PC under PC20 on the same counters at depths 9/10/11: it shows the IDENTICAL shape - peak at counter 91 for
+d9/d10 and 90 for d11, same depth-dependence, roughly half the base's magnitude (7.3M vs 16.4M at c91/d10; 12.4M vs
+27.2M at c90/c89/d11). So my earlier "the base explodes and the PC does not" is WITHDRAWN as too strong.
+WHAT HOLDS, and it is the sentence worth keeping: "the search works hardest exactly where it is about to give up" -
+a property of the SEARCH near the fifty-move horizon, on BOTH builds, deterministic, depth-dependent like the score
+onset. Better lead for area 7 than a build comparison: it points at SHARED search code rather than a fixed defect.
+NOT separated, and named as such: whether the base's ~2x-larger peak is the drawn-root repair or the PC20 switches.
+FOURTH self-correction this window (C7, F29, F70, F82) - all four the same shape: a comparison a second measurement
+narrowed rather than overturned. 110 findings, 18 confirmations, thirteen named faults. 9 h 13 m remain.
