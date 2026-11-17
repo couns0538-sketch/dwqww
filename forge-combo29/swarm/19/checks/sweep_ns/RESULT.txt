@@ -1,0 +1,57 @@
+# searches CLAIMED (a bestmove with a preceding info line) but reporting nodes 0 or an empty PV
+
+Closing check from HARNESS_TRAPS (traps 1 and 1b): a search happened only if nodes > 0 AND the PV is
+non-empty. This looks at the last info line before each bestmove, so it is immune to the readyok
+interleaving that broke the earlier per-search sweep (19-C16).
+
+| seat | claimed searches | with nodes 0 | with empty PV | files affected |
+|---|---|---|---|---|
+| 21 | 6770 | **469** | **0** | 223 |
+| 05 | 425 | **320** | **0** | 12 |
+| 27 | 1557 | **219** | **0** | 44 |
+| 25 | 267 | **186** | **0** | 95 |
+| 15 | 2206 | **140** | **6** | 141 |
+| 17 | 2938 | **52** | **0** | 52 |
+| 24 | 2315 | **24** | **0** | 11 |
+| 07 | 250 | **10** | **0** | 10 |
+| 02 | 113 | **9** | **0** | 5 |
+| 10 | 1135 | **6** | **0** | 3 |
+| 20 | 234 | **4** | **0** | 1 |
+| 30 | 12 | **4** | **0** | 4 |
+| 01 | 11 | **3** | **0** | 2 |
+| 28 | 12 | **2** | **0** | 2 |
+
+## files, largest first (first 30)
+
+- seat 25: `forge-combo29/swarm/25/job3/final/all_raw.txt` — 60 claimed, **60 zero-node**, **0 empty-PV**
+- seat 27: `forge-combo29/swarm/27/job1/san/real/sess_000.out.txt` — 100 claimed, **46 zero-node**, **0 empty-PV**
+- seat 27: `forge-combo29/swarm/27/job1/san/real_paced/sess_000.out.txt` — 100 claimed, **46 zero-node**, **0 empty-PV**
+- seat 25: `forge-combo29/swarm/25/job3/real/all_raw.txt` — 60 claimed, **33 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3/out_asan/mate.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3/out_asan/stale.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3/out_planted/mate.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3/out_planted/stale.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3b/out_asan_b/mate.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3b/out_asan_b/stale.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3b/out_planted_b/mate.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job3b/out_planted_b/stale.raw.txt` — 30 claimed, **30 zero-node**, **0 empty-PV**
+- seat 27: `forge-combo29/swarm/27/job1/san/real/sess_004.out.txt` — 100 claimed, **27 zero-node**, **0 empty-PV**
+- seat 27: `forge-combo29/swarm/27/job1/san/real_paced/sess_004.out.txt` — 100 claimed, **27 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job2/out/KBvK.raw.txt` — 20 claimed, **20 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job2/out/KNvK.raw.txt` — 20 claimed, **20 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job2/out/KvK.raw.txt` — 20 claimed, **20 zero-node**, **0 empty-PV**
+- seat 05: `forge-combo29/swarm/05/job2/out/threefold.raw.txt` — 20 claimed, **20 zero-node**, **0 empty-PV**
+- seat 27: `forge-combo29/swarm/27/job1/san/real/sess_003.out.txt` — 100 claimed, **11 zero-node**, **0 empty-PV**
+- seat 27: `forge-combo29/swarm/27/job1/san/real_paced/sess_003.out.txt` — 100 claimed, **11 zero-node**, **0 empty-PV**
+- seat 24: `forge-combo29/swarm/24/checks/c_02f2.raw` — 16 claimed, **10 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job1/out_asan/asan_raw_031.txt` — 37 claimed, **7 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job6/out6/asan6_raw_031.txt` — 37 claimed, **7 zero-node**, **0 empty-PV**
+- seat 15: `forge-combo29/swarm/15/check_s07f1/check_s07f1_release.txt` — 7 claimed, **0 zero-node**, **6 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job14/out/asan14_raw_002.txt` — 22 claimed, **6 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job14/out/asan14_raw_022.txt` — 34 claimed, **6 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job7/out/asan7_raw_036.txt` — 35 claimed, **6 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job1/out_asan/asan_raw_008.txt` — 31 claimed, **5 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job1/out_asan/asan_raw_032.txt` — 24 claimed, **5 zero-node**, **0 empty-PV**
+- seat 21: `forge-combo29/swarm/21/job14/out/asan14_raw_001.txt` — 31 claimed, **5 zero-node**, **0 empty-PV**
+
+seats scanned: 49 ; files with a suspect search: 605
