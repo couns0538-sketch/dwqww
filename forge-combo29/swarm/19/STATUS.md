@@ -784,3 +784,14 @@ next command: continue at cadence.
   Good outcome for the owner: adopting PC r15 costs nothing at the search, and its value is the fixes.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:08:32Z
+
+19-C36 confirmed 07-F4/07-C76 AND added the fix side. Three counter-100 roots with a reset available:
+  BASE 0 nodes / cp 0 on all three (reproduces C76 mechanically);
+  PC r15 -> 15,981 nodes mate 6 ; 252 nodes mate 1 ; 4,899 nodes cp 0.
+  So on 2 of 3 boards the base build was masking a MATE, not just a quiet score - a stronger
+  statement of the fix's value than a 20-position rate. And FORGE_FIX_ROOT_DRAWN does what its name
+  says, unlike FORGE_FIX_ABORT_PUBLISH (defaults 0, does not cover its own case).
+
+next command: continue at cadence.
