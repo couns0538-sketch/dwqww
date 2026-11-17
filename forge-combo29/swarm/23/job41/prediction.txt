@@ -1,0 +1,32 @@
+PREDICTION — SW-23 job 41 (how wide is the mate-with-truncated-PV window? sweeping it instead of citing two cells)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F86 found, on two cells per build, that a `mate N` score can come with a PV too short to deliver mate. That finding
+says explicitly that I did not sweep it. This job does, so the hazard can be stated as a range rather than an anecdote.
+
+Boards (three won boards, so the result is not one position's quirk):
+  W1 `1K6/8/8/3R4/8/8/8/k7 w`          (the F80/C26/F84 board — K+R v K)
+  W2 `8/5K2/7Q/4k3/8/8/8/8 w`          (K+Q v K, the board 23-F43 used)
+  W3 `1K6/8/8/3R4/8/8/8/k7 w` at halfmove 60 — same material, counter inside the horizon, so the mates differ in length
+
+Depths 8, 10, 12, 14, 16, 18 on both builds, Threads 1, Hash 16, OwnBook false, no PC20 switches. For every cell
+where the score is `mate N`, replay the PV in python-chess and record: PV plies, plies needed (2N-1), and whether the
+replay ends in MATE.
+
+Prediction (each with the range that kills it):
+  P1  THE WINDOW IS NARROW: on each board/build, at most TWO depths report `mate N` with a too-short PV before a depth
+      reports it with a mating PV.                                         KILLED if any board/build shows three or more.
+  P2  IT DOES NOT PERSIST AT DEPTH: at depth 18 every `mate N` cell replays to MATE on every board/build. If a build
+      is still truncating at 18, that is the stronger hazard and the finding must say so.
+                                                                           KILLED if any depth-18 mate cell fails replay.
+  P3  THE TOO-SHORT PV IS ALWAYS EXACTLY ONE PLY SHORT IN ITS REPORTED DISTANCE — i.e. PV plies = 2N-3, not 2N-5 or
+      shorter (the score is one ply optimistic, not several).             KILLED if any short cell is >= 2 plies short
+      by the 2N-1 measure... with the caveat that a PV can also be truncated for display reasons unrelated to the
+      distance, which is what P3 is testing for.
+  P4  A CONTROL ON THE METHOD ITSELF: the same sweep on a DRAWN board (`8/8/8/8/8/8/8/K6k w`, all moves cp 0) reports
+      NO mate cell at any depth on either build — so any mate cell in this job is a property of a won board, not of
+      the harness's parsing.                                               KILLED if a mate appears on the drawn board.
+
+If P1-P4 hold: F86 becomes "a mate score is one ply optimistic about its own PV for at most two depths, and never at
+depth 18", which is a bounded, testable hazard a GUI author can act on (replay the PV; do not trust its length).
+If P1 or P2 fails, the hazard is wider than F86's two cells suggested and F86 must be upgraded, not just extended.
