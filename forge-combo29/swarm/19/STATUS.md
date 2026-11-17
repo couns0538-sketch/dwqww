@@ -553,3 +553,17 @@ next command: continue at cadence.
   seat's push-back.
 
 next command: continue at cadence.
+
+## 2026-11-17T00:36:22Z
+
+19-C22/19-C23 counter effect: 19-C11's 'one ply' scoped to the 0-vs-12 pair I compared.
+  INDEPENDENTLY CONFIRMED seat 25 at depth 24: counter 0 -> mate -16 at 7,608,471 nodes;
+  counter 1 -> mate -16 at 15,702,225 nodes = 2.06x, same score. Node counts are NOT a proxy
+  for search equality when the counter differs.
+  NEW QUALIFIER: at depth 20 counters 0/1/12/50 ALL give cp -490 at exactly 232,803 nodes -
+  identical - and only 99 differs (cp 0 at 100 nodes). So the counter is INERT at shallow depth
+  and only bites once the fifty-move horizon gate is reachable. A shallow sweep would have
+  concluded the opposite of seat 25.
+HARNESS_TRAPS.md is now TEN traps; scoreline: three of ten caught only by another seat.
+
+next command: continue at cadence.
