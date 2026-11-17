@@ -22,6 +22,8 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
 | clock share per position | **2.5 %–13.7 %, median ~4 %** — a range, not a single number | `pc20/check_S13F10.md` |
 | the tail | **confined to positions with ≤8 pieces**; p90 1164 ms, worst **1585 ms = the hard plan** | `pc20/SHAPE_REFINED.md` |
 | clock ever exceeded | **0 of 400** (planted: `pc20/plant_zeros.txt`) | 08-F7, 08-C12 |
+| clock over a LONG game | **0 flags in 600 moves**; the clock stabilises at 1438-1744 ms | 08-F34, `pc20/REPORT_drain_to_flag.md` |
+| worst boards at the lowest clocks | **0 flags in 21 cells** down to 200 ms — the plan shrinks with the clock | 08-F35 |
 | `movetime T` | spends **T − 10 ms** on the wall clock (plant-clean) | 08-F2, `job4/` |
 | the PC build vs base | clock behaviour **identical** within 1.4 % at every control | 08-F16, `pc20/REPORT_pc20.md` |
 
@@ -31,6 +33,9 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
 3. **A mid-search `setoption` silently stops the search**, exactly like `stop` — a measurement-integrity fact for the whole swarm. `pc20/check_S12F12.md`.
 4. **Zeros are planted.** `pc20/plant_check.py` (0-of-60), `pc20/plant_zeros.py` (0-of-400 / 0-of-800), `pc20/plant_tiny_clock.py` (tiny clocks). Ledger: 08-C13.
 5. **`softnodes N` is deterministic and overshoots N by 1.3–2.1x** — the owner's self-play path. `softnodes/`.
+6. **The engine does not flag on the owner's control**: 600 moves with a draining clock gave 0 overruns and a
+   stable clock floor, and the worst boards give 0 overruns even at 200 ms because the plan shrinks with the clock
+   (`pc20/REPORT_drain_to_flag.md`).
 
 ## THE THREE METHOD RULES (top of `FINDINGS.md`, each with its instance)
 1. A summary I typed is not evidence, and a small sample is not a population (3 instances, 08-N1).

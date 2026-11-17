@@ -109,3 +109,16 @@ The PC build's clock is **safe but pessimistic at long clocks and slightly gener
 exceeded a clock in 400 timed searches, it spends `movetime − 10 ms` exactly, it achieves only 61–78 % of its own
 soft plan on long clocks because it stops at iteration boundaries, and with ≤10 ms left it plays one ply, which
 measurement says is a weak move and not a lost position.
+
+## 5. Does it ever flag? — **No, measured two ways** (08-F34, 08-F35)
+
+| test | result |
+|---|---|
+| a long game on 6 s + 0.06, clock walked forward exactly as a GUI does, 200 moves x 3 positions | **0 flags in 600 moves**; the clock STABILISES at **1438-1744 ms** and stays there |
+| the three SLOWEST boards from the shape sweep, re-run at clocks from 6000 down to 200 ms (21 cells) | **0 flags**; the 1585 ms board given 1600 ms took only **218 ms** |
+
+The mechanism: once the engine's spend drops below the 60 ms increment the clock is a random walk with positive
+drift, and the time manager shortens as the clock approaches its floor — so the clock has a stable equilibrium
+rather than a slow decline. And on small clocks the plan itself shrinks (at 200 ms: soft 8 / hard 40 ms), so the
+expensive iteration that caused a 1585 ms move at a 6 s clock no longer fits.
+**Not measured: a real game.** Both tests re-search fixed positions with falling clocks; no game is played.
