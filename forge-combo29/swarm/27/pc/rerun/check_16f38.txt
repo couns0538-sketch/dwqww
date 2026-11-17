@@ -13,3 +13,15 @@ differences occasionally changed the depth reached. Their correction is right.
 
 This is the same class as my own S-W4/S-W5 clock work, from a different seat and a different symptom:
 a clock-driven harness producing variation that looks like engine non-determinism.
+
+## Same test on the BASE build (is determinism an engine property or a PC-patch effect?)
+
+| build | limit | distinct sequences in 5 games |
+|---|---|---|
+| PC r15 / PC20 | go nodes 20000 | 1 |
+| PC r15 / PC20 | go depth 10 | 1 |
+| base e06310ec / S14 | go nodes 20000 | 1 |
+| base e06310ec / S14 | go depth 10 | 1 |
+
+So determinism at Threads 1 under a fixed limit is an ENGINE property present on both builds,
+which is what makes 'fixed limits are deterministic' usable as a harness rule.
