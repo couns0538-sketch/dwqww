@@ -3,17 +3,17 @@
 **Seat:** report assembly for the owner. Synthesising; not measuring.
 **Branch:** `for-fable-and-opus/swarm-73` — `forge-combo29/swarm/73/`
 **Window:** opened 03:48Z, audit closes 2026-11-17T10:20Z.
-**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:33Z).
+**Provenance audited against the 31 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:36Z).
 
-## State: DONE — summary current as of the 04:33Z fetch
+## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — 2,197 lines, **58 rules**. Revised through fourteen rounds.
+`OWNER_SUMMARY.md` — **2,344 lines, 58 rules, 22 recommendations** (13 ship / 5 do-not-ship / 4 needs-more-evidence). Fifteen rounds.
 
 ## Numbers the coordinator asked for
 
-> **Unsourced figures: 9.**
-> **Findings synthesised: 2,353** (2,332 table rows + 9 prose in `swarm-75`, 7 in `swarm-64`, 7 in `swarm-74`).
-> **Branches read: 34.**
+> **Unsourced figures: 9** (of 284 tokens).
+> **Findings synthesised: 2,380** = 2,371 distinct table-row ids + 9 prose findings in `swarm-75`; 2,392 raw rows, 21 re-runs under an existing id.
+> **Branches read: 31** carrying a `FINDINGS.md`, of 63 `swarm-NN` branches on the remote.
 
 | cause | figures |
 |---|---|
@@ -30,6 +30,33 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Fifteenth round — totals re-derived from artefacts, and one false pointer found
+
+**Acting on the closing seat's prediction, I stopped trusting carried figures and re-derived every total from the files.**
+It found drift, which is the point.
+
+| quantity | carried | re-derived | verdict |
+|---|---|---|---|
+| findings | 2,353 | **2,380** (2,371 distinct table-row ids + 9 prose in `swarm-75`) | **drifted** |
+| branches read | 34 | **31** with a `FINDINGS.md`, of 63 `swarm-NN` | **wrong both ways** |
+| rules | 58 | **58** | correct |
+| recommendations | 21 | **22** | **drifted** |
+| line count | 2,197 | **2,344** | **drifted** |
+
+**And one false cross-reference — exactly the class the seat named.** A sentence said "the check is trivial and it is
+the same one **§45** needs", pointing at the decomposition/label rule. §45 had become the "correction adds without
+removing" rule after a renumber; the decomposition rule is §47. **A pointer is a claim and this one was false**, and
+no content check compares a pointer against its target. Repaired, and all 31 section refs and 20 rule refs were then
+machine-verified to resolve.
+
+**The entry-count trap was live in my own document too.** `swarm-64/65/74` record findings as prose *sections*, and I
+had earlier counted section headings as findings. They are not: those files carry context sections and summaries, so
+an entry count overstates a fault count. Only the **9 explicitly-id'd** findings in `swarm-75` are counted; the other
+three prose seats contribute **0** to the total by the definition now stated in the header.
+
+**A second self-inflicted inconsistency, caught by the same pass:** two stale count paragraphs had accumulated in the
+header from successive edits, so the document asserted 2,353 and 2,328 in different places. Removed.
 
 ## Fourteenth round — the mechanism reverses, and a resolution rule
 

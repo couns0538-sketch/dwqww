@@ -2,40 +2,39 @@
 
 **Audit window:** 2026-11-16T22:20Z → 2026-11-17T10:20Z.
 **Assembled by:** seat `swarm-73`, from committed branch content only. **Nothing here was re-measured.**
-**Provenance audited against these branch tips** (`git fetch`, 04:26Z) — **not merely a timestamp, because a figure
+**Provenance audited against these branch tips** (`git fetch`, 04:36Z) — **not merely a timestamp, because a figure
 from the last few minutes will look unsourced against any fetch.** A provenance count is a statement about these
 commits, never about the documents:
 
 | branch | tip | branch | tip | branch | tip |
 |---|---|---|---|---|---|
-| `swarm-01` | `ddbc91f3b` | `swarm-13` | `bdf138f81` | `swarm-27` | `e3ff15de7` |
+| `swarm-01` | `d65a5b4a6` | `swarm-13` | `bdf138f81` | `swarm-27` | `d5a54c7cd` |
 | `swarm-02` | `c210792d6` | `swarm-15` | `943e3674b` | `swarm-28` | `41a28dd01` |
-| `swarm-03` | `0c0c5f51f` | `swarm-16` | `da67daa17` | `swarm-29` | `b7b8270e9` |
+| `swarm-03` | `0c0c5f51f` | `swarm-16` | `38c2b3563` | `swarm-29` | `b7b8270e9` |
 | `swarm-04` | `87a058891` | `swarm-17` | `bb0b312ce` | `swarm-30` | `4d8a63fa2` |
 | `swarm-05` | `2aa813e74` | `swarm-19` | `f3dc2c059` | `swarm-64` | `6d7488700` |
-| `swarm-06` | `28cb02cd0` | `swarm-20` | `0c1d951e4` | `swarm-65` | `f53a5c6b3` |
-| `swarm-07` | `a2cf7360e` | `swarm-21` | `528ca6313` | `swarm-66` | `5177bf676` |
-| `swarm-08` | `93e1deaaa` | `swarm-23` | `241d8f0cb` | `swarm-67` | `f0796fb75` |
-| `swarm-10` | `68f6f81a0` | `swarm-24` | `45aba7f69` | `swarm-69` | `6eb2e8947` |
-| `swarm-11` | `41f2af30b` | `swarm-25` | `b83f89cc8` | `swarm-71` | `f72f71ca0` |
-| `swarm-12` | `d43571175` | | | `swarm-72` | `d9e4162cf` |
-| | | | | `swarm-74` | `dbf1ba576` |
+| `swarm-06` | `28cb02cd0` | `swarm-20` | `0c1d951e4` | `swarm-65` | `03064aae7` |
+| `swarm-07` | `a2cf7360e` | `swarm-21` | `528ca6313` | `swarm-66` | `1b275bf2b` |
+| `swarm-08` | `cca994f3a` | `swarm-23` | `241d8f0cb` | `swarm-67` | `f0796fb75` |
+| `swarm-10` | `68f6f81a0` | `swarm-24` | `45aba7f69` | `swarm-69` | `ffcb95d06` |
+| `swarm-11` | `41f2af30b` | `swarm-25` | `2ad1f7072` | `swarm-71` | `1e7ffbd58` |
+| `swarm-12` | `d43571175` | | | `swarm-72` | `9f91fe576` |
+| | | | | `swarm-74` | `7c0348da2` |
 | | | | | `swarm-75` | `858c2496d` |
 
-**Branches read:** **34** (`swarm-01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30, 64, 65, 66, 67, 69, 71, 72, 74, 75`).
-**Findings synthesised:** **2,353** — **2,332** from table rows, plus **9** prose findings in `swarm-75`, **7** in
-`swarm-64` and **7** in `swarm-74`, which record findings as prose sections rather than table rows and so are
-invisible to a row count. **2,372 rows in total across the finding-bearing branches**; 21 are re-runs recorded under
-an existing id.
+**Branches read:** **31 that carry a `FINDINGS.md`** — of **63** `swarm-NN` branches on the remote. The other 32 have
+no findings file, so their content is cited from `evidence/*.txt`, `STATUS.md` or scripts where used.
+**Findings synthesised:** **2,380** = **2,371 distinct table-row ids** + **9 prose findings in `swarm-75`.** There are
+**2,392 raw rows**; **21 are re-runs recorded under an existing id**, which is why the row count and the finding count
+differ.
 
-That count is a count of *findings I read*, not a claim that 2,353 separate claims are each correct. The consolidated
-report cites about ten of them by id. The rest I used to license, bound, or contradict the recommendations below.
+**Both totals above were re-derived from the branch files at the tips named here, not carried forward** — the previous
+draft said 2,353, and the difference is not an error in either count but five more rounds of swarm output. `swarm-64`,
+`swarm-65` and `swarm-74` record findings as **prose sections**, and an **entry count is not a finding count**: those
+files contain context sections and summaries too, so only the 9 explicitly-id'd findings in `swarm-75` are counted,
+and `swarm-64/65/74` contribute none to this total.
 
-**Findings synthesised:** **2,328** — **2,312** from table rows, **9** prose findings in `swarm-75` and **7** in
-`swarm-64`, both of which record findings as prose sections rather than table rows and so are invisible to a row
-count. 2,333 table rows in total; 21 are re-runs recorded under an existing id.
-
-That count is a count of *findings I read*, not a claim that 2,328 separate claims are each correct. The consolidated
+That count is a count of *findings I read*, not a claim that 2,380 separate claims are each correct. The consolidated
 report cites about ten of them by id. The rest I used to license, bound, or contradict the recommendations below.
 
 Two builds appear throughout and every number names one:
@@ -361,7 +360,34 @@ first half is what "safe" means, the second is what would rescue the product mod
 **What would settle the score-change question:** a comparison on sets of comparable size — the published one is
 underpowered at p = 0.0712 and the replication's strata are 4.7× smaller than its own, so **neither settles it.**
 
-### 1.8 Discard mate labels whose PV is too short for the score — **ship** (necessary, not sufficient)
+### 1.8 If you have any labelled data, check it for `go mate N` rows — **ship** (as a data audit)
+
+**This sits high in the document because it silently corrupts a training set, and it applies to any row the owner
+produced with a mate limit.** If none of your data came from `go mate N`, nothing to do — but check rather than assume,
+because the label looks clean.
+
+**`go mate N` is NOT a depth cap with a few extras — it is a DIFFERENT SEARCH, and its labels are not comparable with
+`go depth` labels.** It **reports** depth `2N−1`, but `mate_moves_ > 0` **switches off seven heuristics plus the TT
+cutoff**, so a `go mate N` search and a `go depth 2N−1` search are not the same search at the same depth.
+
+| measurement | result |
+|---|---|
+| 12 real positions, `go mate N` vs `go depth 2N−1` | **11 of 12 cells differ** |
+| one board, `c2c3` at depth 3 | **`go mate 2` gives cp −53, `go depth 3` gives cp +117** — **sign flip at identical reported depth, same move** |
+| one board, `go mate 4` vs `go depth 7` | **556,387 vs 3,411 nodes — a 163× ratio at the same reported depth** |
+
+**The owner-facing line: a corpus labelled under `go mate N` is labelled by a mate-hunting search, not by depth
+`2N−1`, and mixing those labels with `go depth` labels mixes two incomparable searches. If any of your training data
+came from a mate limit, those rows are NOT depth-matched to the rest.**
+
+**And a caller expecting "search until you find a mate in N" gets a truncated search:** `go mate 1` on startpos
+returns `d2d4` at depth 1, a non-mate. The reported depths are last-depth **1, 3, 5, 7, 9** for N = 1…5 — exactly
+`2N−1` — so the *reported* number is honest about the cap and dishonest about the search.
+
+**What would overturn it:** a board where `go mate N` and `go depth 2N−1` agree in score, move and nodes. Eleven of
+twelve cells disagree, one flips sign, and one differs by 163× in nodes.
+
+### 1.9 Discard mate labels whose PV is too short for the score — **ship** (necessary, not sufficient)
 
 Rule: a mate label is valid iff PV length is `2|N|−1` for a win and `2|N|` for a loss.
 
@@ -384,7 +410,7 @@ engine-independent search settled each true distance. **A PV that passes the len
 **What would overturn it:** a board where the filter admits a label that is wrong in a *consistent* direction across
 ≥ 5 boards. Two boards, opposite directions, cannot establish one.
 
-### 1.9 Self-play variety comes only from openings — **ship**
+### 1.10 Self-play variety comes only from openings — **ship**
 
 Ten games from one start produce **one** distinct game, on both builds, at fixed limits. **1,000 openings × 2 colours
 = 1,000 independent pairs (2,000 games), not 2,000 samples.**
@@ -392,7 +418,7 @@ Ten games from one start produce **one** distinct game, on both builds, at fixed
 **What would overturn it:** ≥ 2 distinct games from one start at fixed `Threads 1` limits. None observed on either
 build.
 
-### 1.10 Do not spend effort on a v3 micro-patch — **do-not-ship**
+### 1.11 Do not spend effort on a v3 micro-patch — **do-not-ship**
 
 `gprof`, bench 13, PC20 + test net, Threads 1. The instrumented `-pg` build reproduces bench 13 = `3,652,372`
 exactly, so the profiler does not measure itself.
@@ -456,12 +482,12 @@ acceptance criterion for v3 inherited it anyway.
 
 **And this advice has one measured exception, which is worth reading because it shows where the rule does not
 apply.** "No v3 micro-patch" is a rule about **shares being too small to justify work**; it is not a claim that no v3
-work can pay. **§1.19's pair-count dispatch patch is measurably faster (1.2–1.6 %) and identity-exact** — the win came
+work can pay. **§1.20's pair-count dispatch patch is measurably faster (1.2–1.6 %) and identity-exact** — the win came
 **not from the share being large but from the function's work being removable without touching the identity.**
 So: **do not chase the percentages, but do check whether a specific piece of per-node work can be eliminated outright.
 Those are different questions, and this run answered the second one positively.**
 
-### 1.11 PC20's net speed is a small LOSS on the full population — **do-not-ship** (as a speed win); the components are real
+### 1.12 PC20's net speed is a small LOSS on the full population — **do-not-ship** (as a speed win); the components are real
 
 **The headline changed, and this is the version to use: the node saving is real, the per-node tax is real, and on the
 full population the tax outweighs the saving — so the best estimate is a small loss.**
@@ -523,7 +549,7 @@ not be carried by its mean** (§4 rule).
 **What would overturn it:** a population-scale wall run whose interval excludes 1.0 *on the fast side*. The current
 evidence is a 3.5 % loss with the identity closing, so the burden has shifted to anyone claiming a gain.
 
-### 1.12 PC20's "+3 ply at 20,000 nodes" is wrong by 8× per position — **do-not-ship** (that figure, and any match planned on it)
+### 1.13 PC20's "+3 ply at 20,000 nodes" is wrong by 8× per position — **do-not-ship** (that figure, and any match planned on it)
 
 | budget | PC20 deeper | tie | shallower | ply/position | wins/decided |
 |---|---|---|---|---|---|
@@ -539,7 +565,7 @@ about a third, shallower on about a sixth, deeper-or-equal on ~84 % while averag
 **What would overturn it:** a median depth difference materially above 0 at n ≥ 130. Half of all pairs are exact ties
 because depth is an integer, so this needs a share, not a mean.
 
-### 1.13 Keep or drop `CorrHistV2` — nothing measured changes — **needs-more-evidence** (it is neutral, not beneficial)
+### 1.14 Keep or drop `CorrHistV2` — nothing measured changes — **needs-more-evidence** (it is neutral, not beneficial)
 
 Both ablation designs run on the same 120 positions, PC r15 + PC20, depth 12:
 
@@ -556,7 +582,7 @@ true answers, and two seats' 5 % and 10 % figures were never in conflict — the
 **What would overturn it:** a bundle ablation that keeps CorrHistV2 and one that drops it, on the same positions, with
 a wall-time or depth difference whose CI excludes zero.
 
-### 1.14 `searchmoves` — three distinct uses, only one of which is sound — **ship** (as a harness rule)
+### 1.15 `searchmoves` — three distinct uses, one of which is sound only under a narrow condition — **ship** (as a harness rule)
 
 25 PC20 positions, depth 10, three arms (free search / all legal moves named / the single bestmove pinned):
 
@@ -564,16 +590,32 @@ a wall-time or depth difference whose CI excludes zero.
 |---|---|
 | recording an **absolute** score | **unusable** — wrong 25/25, \|Δ\| ≥ 10 cp in 14 of 25, range −32 to +31 |
 | verifying that a **move** is best | **vacuous** — the restriction makes it the only option (same bestmove 25/25 by construction) |
-| **comparing two candidates, both pinned identically** | **usable** — rank order preserved 8 of 8 |
+| **comparing two candidates, both pinned identically, at a gap ≥ 100 cp** | **usable** — 313/317 = **0.987** |
+| comparing **three** candidates, both pinned | **not established** — 142/159 = 0.893, CI **0.835–0.932** |
+| comparing **five** candidates, both pinned | **not established** — 486/530 = 0.917, CI **0.890–0.938** |
+| comparing two candidates at a gap of only **10 cp** | **not established** — 478/511 = 0.935, and the k=2 interval reaches 0.959, so a true 0.95 is **not excluded** |
+
+**A correction to an earlier version of this table, which said "rank order preserved 8 of 8" as a general property.**
+**That was a large-gap sample.** Measured properly, **pinning does NOT preserve rank order beyond two candidates** —
+both the 3-candidate and 5-candidate intervals **exclude 1.0**, so the effect is real and the direction is worse than
+chance.
+
+**The usable rule is therefore narrow and it has two conditions: TWO candidates, both pinned, at a gap of at least
+100 cp.** Anything wider — more candidates, or a smaller gap — is not established.
+
+**And there is no "pin just the winner" escape.** One pin alone is already fully distorted: pinning each of the top 5
+alone makes the plain bestmove the top-scoring candidate in only **49 of 60**, and in **11 of 60** some other candidate
+beats it. So the distortion is not avoided by restricting what you compare to — it is only **cancelled** when both arms
+carry the identical pin and the gap is wide.
 
 **`searchmoves <all legal moves>` is not a no-op control.** It changed the reported best move in **6 of 25 at depth
 10 and 5 of 15 (33 %) at depth 12** — the effect grows with depth — and two of the depth-10 cases were score-tied and
 still picked differently. Its failure is silent: the baseline *looks* like the unrestricted search and is not.
 
-**What would overturn it:** an all-legal-moves arm that returns the unrestricted bestmove and score on ≥ 25/25
-positions at depth 12.
+**What would overturn it:** a 3- or 5-candidate arm whose agreement interval includes 1.0, or a two-candidate arm at a
+10 cp gap that clears 0.95 with an interval excluding it. Neither was observed.
 
-### 1.15 `softnodes` — a soft budget is bounded by the tree on both ends — **ship** (as a harness rule)
+### 1.16 `softnodes` — a soft budget is bounded by the tree on both ends — **ship** (as a harness rule)
 
 > The ratio is bounded by the tree: 0.07x to 3.50x across the populations measured. On 60 real-game positions at
 > softnodes 2000 it never undershot (min 1.022), and the floor only appears on sparse/mating boards where the
@@ -596,7 +638,7 @@ measure no change.
 **What would overturn the scope half:** a real-game position at `softnodes 2000` reporting fewer than 2,000 nodes.
 **What would overturn the floor half:** a sparse board where a budget above 1,344 still returns more nodes.
 
-### 1.16 Do not compare a hard-budget result with a soft-budget result — **ship**
+### 1.17 Do not compare a hard-budget result with a soft-budget result — **ship**
 
 - `go nodes N` picks the last completed iteration **at or below** N; median spend **74 %** of N.
 - `go softnodes N` picks the first iteration **at or above** N; hard cap 4N.
@@ -608,10 +650,11 @@ and you report a time ratio under a per-node label.
 **What would overturn it:** a position where `go nodes N` and `go softnodes N` return the same node count and the same
 depth. They pick different iterations by construction.
 
-### 1.17 Fix `is_insufficient_material()` for two knights — **ship** (the smaller, surgical change); the bare-minor scale factor — **needs-more-evidence**
+### 1.18 Two evaluation defects: a bare-minor score inversion, and a wrong score in a playable ending — **needs-more-evidence** (both)
 
-Two evaluation defects, measured separately. **One reaches search; the other does not, and the one that does not is the
-larger.**
+**A withdrawn recommendation is corrected here, and the correction is the actionable part.** An earlier version of this
+section recommended fixing `is_insufficient_material()` for two knights — **do not do that.** The engine is right and
+the recommendation was wrong.
 
 **The headline: adding a bishop to a bare king LOSES 149 centipawns.** Build `6b98f2170`, `g++-13`, `Threads 1`,
 Hash 16, `OwnBook false`, one fresh process per measurement, `DeadMaterial false`, measured on the engine's own `eval`
@@ -637,41 +680,52 @@ the stronger side has no pawns and leads by at most a bishop, which nearly erase
 (`18 → 434 → 461 → 859 → 1614`), and in a real middlegame removing Black's f8 bishop from the standard array moves
 the score from **+16 to +493 — a normal +477 for a bishop.**
 
-**Why I split the verdict:** the static inversion is real and reproducible, but **search adjudicates KB vs K and
-KN vs K as draws**, so the wrong number never reaches play. **A patch to `scale_factor()` therefore changes no game
-outcome that was measured** — and its blast radius is every pawnless ending, which is a much larger surface than the
-one defect that does reach search. **Fix the search-reachable one; leave the scale factor alone until someone measures
-a game-level effect.**
+**Why both verdicts are needs-more-evidence rather than ship, and the reason is the same for each:** the static
+inversion is real and reproducible, but **search adjudicates KB vs K and KN vs K as draws**, so the wrong number never
+reaches play there. **A patch to `scale_factor()` therefore changes no game outcome that was measured** — and its blast
+radius is every pawnless ending. **Neither defect has a measured game-level cost**, so **neither is worth a surgical
+change until someone measures one** — and the KNN case below is the reason "fix the search-reachable one" is not the
+right framing either: what reaches search there is a **wrong score**, not a wrong verdict.
 
-**The one that reaches search: KNN vs K is a draw, but `is_insufficient_material()` (`src/board.cpp:1250-1258`)
-requires `knights == 0`**, so two knights are never adjudicated:
+**The one that reaches search is a wrong static score in a genuinely playable position — NOT a missed adjudication.**
+**An earlier version of this summary said KNN vs K is a draw and the engine was wrong to decline to adjudicate it. That
+is withdrawn, and the withdrawal is itself the lesson.**
 
-| ending | theory | static | search d6 | `is_insufficient_material()` |
+**Two knights CAN mate.** I verified the witness independently:
+`8/8/8/8/8/1N2N3/8/K1k5 b - - 0 1` is **valid, checkmate, and not insufficient material** — `result 1-0`. **FIDE 5.2.2
+draws only when neither side can mate by any legal series, and here a legal mate exists**, so the engine's
+`knights == 0` requirement (`src/board.cpp:1250-1258`) is **correct**. Nine material sets were decided by **searching
+for a mate witness** rather than by argument, and **all nine agree with the engine** — KNN vs KN, KB vs KN and
+KNN vs KB included.
+
+**So the sentence to carry is this: the static score for two knights is wrong, and because there is correctly no draw
+verdict, that wrong score reaches search unmasked.**
+
+| ending | theory | static | search d6 | adjudicated as draw? |
 |---|---|---|---|---|
-| K vs K | draw | +2 | **cp 0** | true |
-| KB vs K | draw | −147 | **cp 0** | true |
-| KN vs K | draw | **−104** | **cp 0** | true |
-| **KNN vs K** | **draw** | **+187** | **cp 251** | **false** |
-| KBN vs K | win | +237 | cp 272 | false |
+| K vs K | draw | +2 | **cp 0** | yes |
+| KB vs K | draw | −147 | **cp 0** | yes |
+| KN vs K | draw | **−104** | **cp 0** | yes |
+| **KNN vs K** | **not a draw — it is playable** | **+187** | **cp 251** | **no, correctly** |
+| KBN vs K | win | +237 | cp 272 | no |
 
 **Read the two KN rows as different placements, not a contradiction — and note that the source does not say so.**
 The first table's KN is on `b1` (FEN given, **−144**); this table's is **−104** and **names no square**. That is a
-**−40 cp spread from the knight's square alone**, which is a small instance of the same bare-minor instability the
-bishop sweep shows. **The row I rely on for the verdict is KNN vs K** — `+187` static reaching **`cp 251`** in a real
-depth-6 search — and both tables agree on that one.
+**−40 cp spread from the knight's square alone**, a small instance of the same bare-minor instability the bishop sweep
+shows.
 
-**So `+187` static becomes `cp 251` in a real depth-6 search.** Every other wrong bare-minor static is masked by the
-insufficient-material verdict; **this one is not.** The engine believes a drawn KNN vs K is a quarter-pawn-plus win and
-will steer toward it. **The `DeadMaterial` option does not cover it either**, so enabling that option does not fix it.
-KBN vs K is the control proving the tests can tell a win from a draw: a real win, scored +237 static / cp 272 at depth
-6, correct.
+**What the defect is not, and why the distinction matters for what you fix.** It is **not** that the engine fails to
+declare a draw — declaring one would be wrong, and the `knights == 0` test is right. It is that **a playable position
+carries a static score 187 cp from the truth (cp 251 in a depth-6 search)**, so the engine will steer toward a
+dead-drawn ending believing it is winning. **`DeadMaterial` does not cover it**, so enabling that option does not fix
+it. **KBN vs K is the control that shows the tests can tell the two apart:** a real win, +237 static / cp 272 at depth
+6.
 
-**What would overturn the KNN verdict:** a search that returns cp 0 for KNN vs K at depth 6 under default options — the
-measured value is cp 251 with the verdict `false`. **What would turn the scale-factor item into a ship:**
-a game-level measurement — self-play or SPRT — showing the inverted bare-minor score changes move choice or result
-often enough to matter. **None was run** (§3).
+**What would overturn the re-scoping:** a legal series of moves in which Black mates — there is none, because the
+witness above is already mate. **What would turn the score item into a ship:** a game-level measurement showing the
+187 cp error changes move choice or result often enough to matter. **None was run** (§3).
 
-### 1.18 A warm transposition table changes fixed-depth scores — **ship** (as a harness rule)
+### 1.19 A warm transposition table changes fixed-depth scores — **ship** (as a harness rule)
 
 Search scores are **not reproducible when several positions are searched in one engine process.** The same KBN-vs-K
 board, depth 6:
@@ -693,7 +747,7 @@ one that does. **Every measurement in this report that compares depths uses one 
 **What would overturn it:** three in-process searches on one board returning identical scores. They returned
 274 / 285 / 293.
 
-### 1.19 Time the v3 pair-count dispatch patch on your own build — **needs-more-evidence**
+### 1.20 Time the v3 pair-count dispatch patch on your own build — **needs-more-evidence**
 
 **This is the first positive performance recommendation in the run**, and its verdict is *not* ship. The patch is
 small, identity-exact, and measurably faster on the author's build — and the author's build is not yours.
@@ -718,9 +772,9 @@ g++ 13.3.0:
 | **200-opening node sum** | **27,944,084** | **27,944,084** |
 
 **Note the build: this is file 5's tree — `6b98f217` + `pc_r15.patch` — where all twenty PC20 options DO exist.**
-That is why the PC20 rows and the `27,944,084` sum reproduce here and not on `combo29` (§1.10). **The two statements
+That is why the PC20 rows and the `27,944,084` sum reproduce here and not on `combo29` (§1.11). **The two statements
 are consistent, and the difference is exactly the four missing options** — so this table is the positive control for
-§1.10's caveat rather than a contradiction of it.
+§1.11's caveat rather than a contradiction of it.
 
 **Speed, two arms:**
 
@@ -750,7 +804,7 @@ case this run's own buggy sign test saturated on at p = 1.000.**
 **And what it does not claim:** **no strength claim.** Node counts are identical by construction, so any strength
 difference would be noise.
 
-### 1.20 A second v3 patch was REJECTED with numbers — and the reason is a transferable distinction — **do-not-ship**
+### 1.21 A second v3 patch was REJECTED with numbers — and the reason is a transferable distinction — **do-not-ship**
 
 **Recorded because a rejection with numbers is worth as much as a ship, and because it corrects a category the shipped
 patch could easily have created.**
@@ -771,7 +825,7 @@ at 0.3 ns each — **3.3 adds/ns, which corresponds to no real machine limit.** 
 **So "removable per-lane work" is NOT one category, and this is the sentence to keep:** a per-lane **BRANCH** with
 misprediction and dispatch overhead — which is what the shipped patch removes, dispatching once on the count 1..4 — is
 worth **orders of magnitude more** than a per-lane **ADD** on independent lanes, which is a few cycles of a 4-wide
-port. **The shipped patch's success (§1.19) does not generalise to "remove per-lane work"; it generalises to "remove
+port. **The shipped patch's success (§1.20) does not generalise to "remove per-lane work"; it generalises to "remove
 per-lane CONTROL flow."**
 
 **And the first attempt at that rejected patch was NOT bit-identical** — bench `965,454` → `201,580` — because a
@@ -782,7 +836,7 @@ different engine** — which is the strongest argument in this document for runn
 **What would overturn the rejection:** a timing on your build where the CI excludes 1.0 and clears 0.5 %. The measured
 headroom is 0.26–0.40 % even under ideal assumptions, so this is unlikely to be worth the attempt.
 
-### 1.20 Opening book: set `OwnBook false` only when it can fire, and know that it pre-empts draw adjudication — **ship** (as a harness rule)
+### 1.22 Opening book: set `OwnBook false` only when it can fire, and know that it pre-empts draw adjudication — **ship** (as a harness rule)
 
 The book's own soundness is clean (§7); **what it does to a harness and to a caller is three separate hazards.**
 **All three were re-verified on the base commit `6b98f217` with the pin checked (bench 11 = 312,866) on the same
@@ -870,6 +924,34 @@ occurrences searches (7,581 nodes); 3, 4, 5 and 6 all bail at 0. Confirmed at a 
 middlegame, ~30 legal moves: 2 → **29,994 nodes**; 3 and 4 → 0) and on a 10-ply preamble (2 → **17,399 nodes**;
 3/4/5 → 0). **List length and root position are irrelevant.**
 
+**The trigger is THREE occurrences, not two — and an ordinary twofold is harmless.** At exactly **2** prior
+occurrences both builds agree with the FEN form; at **3** they diverge. So a twofold repetition in a move list — the
+common case in any real game — does not expose you. **This matters because "repetition" sounds like one condition and
+is two.**
+
+**And the exposure is MIDDLEGAMES, not endgames — which corrects the impression every earlier fixture gave.** A real
+opening (`e2e4…e8g8`) plus a legal knight-and-queen cycle, **32 pieces still on the board at 24 plies**: the base
+answers **`0 nodes`, `cp 0`, `a2a3`** at `go depth 8`, `12`, `14` **and at `go nodes 50000` and `500000`**. **The same
+board as a bare FEN answers `b3e6` / cp 32 on both builds, and the repaired build answers `b3e6` from the move list
+too.** So **the base is 32 cp out and playing the wrong move in a position nobody would call an endgame** —
+deterministic, 1 distinct result across 3 runs per build.** **Every earlier fixture in this report was sparse, which
+is exactly why the endgame impression formed.**
+
+**Who is actually exposed — and it is narrower than "any harness", so say it precisely.** **0 threefolds in 600 random
+games** (60/120/200 plies) **and 0 in 4,000 further 160-ply seeds.** So:
+- **A harness sampling random positions is essentially never affected.** This is not a general hazard.
+- **A harness REPLAYING REAL GAMES to a threefold IS affected**, and gets **a silently wrong move with no error.**
+  That is the exposure: game replay, silent when it hits.
+- **The self-play figure is not in tension with the 0-in-600 and the two must be read apart:** **8 of 10** clock
+  self-play games reached a genuine threefold **over up to 250 plies with ten distinct openings** — self-play seeks
+  draws where random play mates first. **Different populations, different rates: "common among long engine games,
+  essentially never among random ones."**
+
+**And the defect is DETECTABLE rather than merely discoverable — this is the check to use.** The bail's signature is
+**64 `info` lines all scoring `cp 0` with `nodes 0` and an empty `pv`, climbing to depth 64.** A real search emits
+**about 11 lines with populated nodes and a `pv`.** **So `nodes 0` plus an empty `pv` means discard the cell** — no
+need to reason about repetition counts at all.
+
 **The cost is in the MOVE, and it is a forfeited mate, not just material.** On a genuine threefold root where the side
 to move has mate in one, the base reports `cp 0`, searches nothing and plays `f2f3` — **forfeiting the mate** — while
 PC r15 reports `mate 1` and mates. Verified as one chain on **6 of 6** boards: `go perft 1` on the searched position
@@ -908,13 +990,56 @@ missed forced mate.
 - **On one of two measured boards the repair is material-neutral**, so what the repair demonstrably buys is **the
   removal of the 0-node path**, not reliable material safety.
 
-**How often, honestly:** **8 of 10** clock self-play games reached a genuine third occurrence — but the 95 % Wilson
-interval is **49 % to 94 %**, so quote the interval. The frequency is "common", not "four in five".
+**The self-play rate, with its interval, because the point estimate over-claims:** **8 of 10** clock self-play games
+reached a genuine third occurrence, but the 95 % Wilson interval is **49 % to 94 %** — so quote the interval. The
+frequency is **"common", not "four in five"**, and it is a **self-play** rate over up to 250 plies, not a rate you
+should project onto any other population (§ above, where random play gives 0 in 600).
 
-**Counterweight that bounds who is exposed: an organised match never plays the move.** The match program ends the game
-at the third occurrence. **The exposure is to analysis tools and other front ends** that ask the engine about a
-position and play what comes back. Quoting the mate-in-one forfeit without this reads as a playing-strength defect,
-which it is not.
+**And a counterweight that bounds who is exposed, which belongs with the forfeit rather than after it:** **an organised
+match never plays the move**, because the match program ends the game at the third occurrence. **So the exposure is not
+match play — it is tooling:** analysis front ends and game-replay harnesses that ask the engine about a position and
+use what comes back. **Quoting the mate-in-one forfeit without this reads as a playing-strength defect, which it is
+not** — and the honest version is narrower and more actionable: **a silent wrong move in a replay pipeline.**
+
+### 2.1b A waivable draw claim suppresses a deliverable mate — **broken, and this one IS a strength loss**
+
+**A separate defect from §2.1, and the more serious of the two**, because it costs a win the engine already has rather
+than an answer about a position it did not search. **The threshold is right; the consequence is wrong.**
+
+**FIDE 9.2 (threefold) and 9.3 (fifty moves) are CLAIMS belonging to the player to move**, and **5.1.1 ends the game the
+moment a mate is delivered.** A player who can mate declines the claim and mates. **The engine instead returns 0 before
+generating a single move, so it cannot see the mate at all** (`swarm-72`):
+
+| position | halfmove | mate available | engine score | engine move |
+|---|---|---|---|---|
+| `7k/8/6K1/8/8/8/8/R7 w - - 0 60` | 0 | `a1a8` | `mate 1` | **`a1a8`** |
+| same | 98 | `a1a8` | `mate 1` | **`a1a8`** |
+| same | 99 | `a1a8` | `mate 1` | **`a1a8`** |
+| same | **100** | `a1a8` | **`cp 0`** | **`a1a2`** |
+| same | 101 | `a1a8` | **`cp 0`** | **`a1a2`** |
+| same | 149 | `a1a8` | **`cp 0`** | **`a1a2`** |
+| **threefold root** (`a1a8` available) | 8 | `a1a8` | **`cp 0`** | **`a1a2`** |
+
+**The break lands exactly at the documented 99 → 100 boundary**, which is what shows the trigger is right and only the
+consequence is wrong. **And it is not confined to the fifty-move rule**: a threefold root with the mate available does
+the same thing, so **both claim types suppress it**.
+
+**Independent confirmation that these are claims and not terminal states** — python-chess:
+`Board('7k/8/6K1/8/8/8/8/R7 w - - 0 1').outcome()` → `None`; the same at halfmove 100 → `None`, while
+**`can_claim_fifty_moves()` → `True`.** So the position is **not over**, and an engine returning `cp 0` is reporting a
+result that has not happened.
+
+**A correct engine may still treat a repetition it can force as a draw when it is the weaker side**, and may treat a
+fifty-move position as a draw when no progress is possible — **but it must not do so when a mate is deliverable.** The
+minimal fix is at the root only: **do not return 0 at `ply == 0` before generating moves, or check for an immediate
+mate first.**
+
+**Impact: in any won position that reaches halfmove 100 or a threefold, the engine stops converting and starts
+shuffling.** That is a genuine strength loss, not a bookkeeping nit — and it is the opposite classification from §2.1,
+where the match counterweight bounds the damage. **Here there is no counterweight: a won game is thrown away.**
+
+**What would overturn it:** an engine score of `mate 1` and a mating move at halfmove 100 in the table above. It
+returns `cp 0` and `a1a2`.
 
 ### 2.2 At halfmove 99 the draw rule fires one ply too early — **broken, and no repair fixes it yet**
 
@@ -979,7 +1104,7 @@ positions with a legal move available is to fail on any `0000`; a GUI needs the 
   with an **18-ply PV that does not end in checkmate**. Plain minimax proves White is mated in exactly **4** moves
   (and not 3). The engine's own depth-22+ answer is correctly `mate −4`. **The depth-12 score is wrong by 8 moves.**
   - PC r15: no options `mate −7` (14/14 plies, consistent); S14 `mate −9` (14 of 18 plies, **inconsistent**).
-- A separate class at the right PV length, §1.8: two boards, opposite directions.
+- A separate class at the right PV length, §1.9: two boards, opposite directions.
 
 ### 2.6 Multi-threaded scores are not reproducible — **broken for any consumer of the score**
 
@@ -1123,11 +1248,11 @@ Each item with the reason it could not be settled. **Do not read a closed behavi
 - **The material-key cache.** 0.7 % on real positions (not the 1.5–3.5 % predicted). Not worth shipping; the
   per-node-cost question it answered is superseded because **your PC evaluates through the v3 path.**
 
-**From the evaluation audit (§1.17), stated as the measuring seat states it**
+**From the evaluation audit (§1.18), stated as the measuring seat states it**
 - **The bare-minor material inversion has no measured game-level cost.** The static inversion is real and the
   KNN-vs-K case reaches search, but **no game-level cost was measured: no SPRT, no Elo claim.** Anyone who wants to
   prioritise the `scale_factor()` fix over the `is_insufficient_material()` fix has no measurement to prioritise on —
-  which is why §1.17 ships one and holds the other.
+  which is why §1.18 ships one and holds the other.
 - **Evaluation symmetry is now verified on BOTH evaluation paths, and that is stronger than either half alone.**
   - **Built-in net: 0 asymmetric pairs of 420** (20 hand-picked + 400 seeded), `hce` and `nnue` separately, measured on
     the static evaluator so no movegen is involved.
@@ -1220,7 +1345,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
    against **cp 272 three times** cold. The TT carried from the previous search changes move ordering, which changes
    which reductions fire, so a fixed *nominal* depth is not a fixed *effective* search. **This would manufacture a
    fake depth trend** — and hide a real one — which is why every depth comparison in this report uses a fresh process
-   per cell (§1.18). **At every Hash size, 40 of 40 warm-vs-fresh cells differ**, so a larger table does not rescue it.
+   per cell (§1.19). **At every Hash size, 40 of 40 warm-vs-fresh cells differ**, so a larger table does not rescue it.
 9. **An unknown `go` token is silently ignored, with nothing printed — so `go` is not a place to set an option.**
     `go depth 16 multipv 3` means **MultiPV 1**, because MultiPV is a `setoption` on this engine and the trailing
     token is discarded. **The report's supporting measurement is that `go depth 10` and
@@ -1376,6 +1501,27 @@ These are the transferable output. Each is a rule the run paid for with a defect
 31. **A control must be demonstrated to fail when the input is wrong**, not merely to pass when it is right. Three
     natural ways to write one all pass vacuously: `max()` of nothing, `all()` of nothing, a lookup falling through to
     a default. **A control that returns a plausible wrong number is worse than one that crashes.**
+31a. **An ABSENCE in the engine's favour needs the same proof as a defect — find the WITNESS.** A claim that the engine
+   is *wrong not to do something* is a claim that the thing cannot be done, and it is proved or disproved by
+   **exhibiting a case**, not by reading a rule.
+   - **The case, and I verified it independently:** "KNN vs K is a draw and the engine should adjudicate it" was
+     **false**. `8/8/8/8/8/1N2N3/8/K1k5 b - - 0 1` is **valid, checkmate, and not insufficient material**
+     (`result 1-0`). **FIDE 5.2.2 draws only when neither side can mate by any legal series, and here a legal mate
+     exists** — so the engine's `knights == 0` requirement is correct and the finding was wrong.
+   - **It took an exhaustive placement search, and the instrument is the point:** nine material sets were settled by
+     **searching for a mate witness**, and all nine agreed with the engine. **An argument about what FIDE means is not
+     a proof; a position is.**
+   - **The general form: "X cannot happen here" is a universally quantified claim**, and one example refutes it. **Ask
+     for the witness before accepting the absence** — the same standard a defect claim has to meet, which is what makes
+     absences so easy to get wrong: nobody asks a claim that flatters the engine for its evidence.
+31b. **A perpetual-repetition fixture must keep MATERIAL constant, or the line is a winning capture rather than a
+   repetition.** A cycle that lets one side win material is not a repetition of the same position at all — the
+   material changes, so the FENs differ, so it is not a threefold.
+   - **This is a fixture-validity rule, not a measurement rule:** a "repetition" line that changes material will
+     produce plausible node counts and a confident result about a position that never recurred. **Assert material
+     constant across the cycle, and assert the occurrence count with `is_repetition(n)` rather than a hand count.**
+   - **The same family as the ep fixture that loses its edge (rule 13):** a generator or a hand-built line can silently
+     delete the condition under test, and the measurement runs cleanly on the wrong thing.
 32. **A control cell proves only what its axis can see.** When you quote one, **say which axis it controls for.**
 33. **A cap test needs a rising-series control.** "Respected the cap" is equally consistent with "ignored the budget
     and searched a fixed amount" unless rising budgets produce rising work.
@@ -1431,7 +1577,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
       position variation."* **That is a category error.** The spread describes how positions differ from **each
       other**; a paired ABBA design **cancels exactly that**, because each position is its own control. The right
       question is *"does the patch win within positions?"* — a sign test on the paired outcomes. It won **107 of 120**,
-      p = 1.5e-19 (§1.19).
+      p = 1.5e-19 (§1.20).
     - **Rejecting a result looks like rigour, which is why this error survives review.** The seat called it the
       seventh reasoning failure of its night and **the first that would have discarded a true finding rather than
       overstated one** — the safe-sounding direction. **A conservative error is still an error, and it costs a real
@@ -1479,7 +1625,8 @@ These are the transferable output. Each is a rule the run paid for with a defect
      [1.0531, 1.0748]).
    - **The conclusion survived because every construction excludes 1.0**, so it was a pairing fault rather than a dead
      finding — **which is exactly why it could sit in a report unnoticed.**
-   - **The check is trivial and it is the same one §45 needs: ask whether the point estimate is inside the interval.**
+   - **The check is trivial and it is the same one §4 rule 47 needs: ask whether the point estimate is inside the
+     interval.**
      If it is not, you have two estimators in one row, not a surprising measurement. **Name the estimator in the row** —
      and bootstrap the estimate you actually quote.
 49. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
@@ -1558,7 +1705,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
 
 Every numeric token in the consolidated report — **284** distinct percentage, ratio, large-integer and fraction
 forms — was checked against a corpus of **167 MB**: every tracked `.md` **and `.txt`** under
-`forge-combo29/swarm/NN/` for the **34** branches read, **plus `internal/swarm/tally.md`**. **The audit is against the
+`forge-combo29/swarm/NN/` for the **31** finding-bearing branches read, **plus `internal/swarm/tally.md`**. **The audit is against the
 branch tips named in the header**, which is the only form of this claim that stays checkable: a timestamp says when I
 looked, a commit says what I looked at.
 
@@ -1634,7 +1781,7 @@ this section measures.
 **What the committed evidence does support, and it is enough for the recommendation:** single-shot wall times of
 **0.1–0.4 ms** for book moves against **91–346 ms** off-book, with **0 `info depth` lines** on the book arm
 (`evidence/cost_deadlock.txt`, `go_matrix.txt`). **Four orders of magnitude and the reader hazard are both
-established; the percentile figures are not**, so §1.20 quotes the committed times.
+established; the percentile figures are not**, so §1.22 quotes the committed times.
 
 ### Cause 2: `929` and `42` — one unsourceable, one contradicted, both flattering
 
@@ -1746,7 +1893,7 @@ clean verdict.** That is rule 57.
 |---|---|---|---|---|
 | first | 226 | 52 | 0 | report as it stood at the start |
 | after the three-population table | 228 | 34 | 0 | 2 **derived** values (`0.067`, `0.672`) the report had introduced |
-| after §9b + the v3 patch | 231 | 32 | 0 | **the derived category emptied** — the seat recorded the arithmetic on the branch |
+| after the report's §9b + the v3 patch | 231 | 32 | 0 | **the derived category emptied** — the seat recorded the arithmetic on the branch |
 | after the book + MultiPV rewrite | 252 | 38 | 4 → **0** | I reported four; **all four were sourced** and `swarm-64` had simply not landed |
 | corpus widened to `.txt` evidence | 252 | 26 | 3 | `2,429` and the book block resolved; three latency percentiles did not |
 | **cold-read of the new book section** | **252** | **26** | **5** | **`929` and `42` added by reading, not by the instrument** |
@@ -1894,7 +2041,7 @@ to any patch**, and the report does not say so (`swarm-71`):
 **A gate that fails for a reason unrelated to the thing it gates is worse than no gate**, because the first false
 failure teaches the operator to ignore the check — the same class as a control that fires on correct usage (§4
 rule 24). **The instruction should be an S14-configuration identity, and the PC20 figures should be marked
-unavailable here.** My §1.10 says this and carries the caveat with the number, as requested.
+unavailable here.** My §1.11 says this and carries the caveat with the number, as requested.
 
 **And the harness trap landed on the run's own acceptance criterion.** A `setoption` naming an unadvertised option is
 **silently ignored** unless the reply is read — rule 9 and §4 — and two seats recorded it. **The v3 acceptance test
@@ -1933,7 +2080,7 @@ applied is the one that can be read.**
 ## 7. What the book gets right — the soundness result
 
 Recorded in the closing section rather than the recommendations, because **it is a clean bill and the defects around
-it (§1.20, §2.8) are about signalling rather than about the moves.**
+it (§1.22, §2.8) are about signalling rather than about the moves.**
 
 **No book move is illegal, and none loses material.** Build `/tmp/build65/forge`, `swarm-65`. Every row cites the
 committed evidence file, so each is checkable without re-running anything:
@@ -2142,7 +2289,7 @@ it is the sharper instance, because 353 of 353 sounds like a universal while 19 
   quoted from a branch, its evidence files, or the tally, with that source's conditions.
 - **No other seat's branch was modified.** `swarm-27` `S-C88` is stale (§6.3) and was left alone, at the coordinator's
   direction, for the owning seat to amend.
-- **Counts printed as literals, from the artifact:** **34** branches read, **2,353** distinct findings synthesised,
+- **Counts printed as literals, re-derived from the branch files at the tips named in the header:** **31** branches with a `FINDINGS.md` (of 63 `swarm-NN` branches), **2,380** distinct findings,
   **9** unsourced figures from **284** numeric tokens, **7** mis-pairings or contradictions found, **3** sourcing
   defects of which **2 are now fixed upstream**.
 
