@@ -2087,3 +2087,28 @@ the 0-node result was ordinary root-specific behaviour. I had counted occurrence
 position being searched - the comparator fault from instance 22, again.
 
 141 findings, 24 rule instances, both audits PASS.
+## 2026-11-17T01:42:27Z  F114-F115: castling is a CONDITIONER not the discriminator - my clean story was refuted before I published it
+2026-11-17T01:42:27Z
+
+F115 first: a 7-rung ladder of minimal edits from a known-bailing base bails on 7 of 7 (added rook, added pawn, moved
+king, mirrored colour, added knight, pawns both sides). Material count is ruled out. Every rung's cycle found by search
+with the root occurrence count asserted equal to 3.
+
+That pointed at castling, and one board looked decisive: `r3k2r/8/8/8/8/8/8/R3K2R w` with KQkq gives 17,601 nodes on
+the same cycle; strip the castling field to '-' and the identical cycle gives 0 nodes. One field, opposite verdicts.
+
+So I extended it to three sampled middlegame positions before writing it up, and my clean story died:
+  pos 1: bails WITH rights and WITHOUT
+  pos 4: bails WITH rights and WITHOUT
+  pos 7: searches with rights (11,390 nodes), bails stripped
+So having rights sometimes prevents the bail and sometimes does not; stripping rights never prevented one. The sentence
+I was about to publish - "the bail fires on rights-less positions and not otherwise" - is refuted by positions 1 and 4.
+It is recorded as refuted rather than dropped, and F110 is re-scoped again: no clean characterisation of the trigger
+exists yet.
+
+What the middlegame cells DID establish, and it matters: the bail is not confined to sparse endgames. Positions 1 and 4
+are full middlegame positions with pieces, and they bail at 0 nodes with cp 0. So F112's "endgame positions tested"
+scope was right as a scope but pointed the wrong way as an explanation - endgames were simply where every earlier
+fixture happened to live.
+
+143 findings, 24 rule instances, both audits PASS.

@@ -1,0 +1,104 @@
+CASTLING RIGHTS ARE A CONDITIONER, NOT THE DISCRIMINATOR — and my first conclusion was refuted before it was published
+===================================================================================
+23-F112 left the drawn-root bail an unexplained scope limit. Job 56 isolates the variable, and it is not material.
+
+THE LADDER (minimal edits from a known-bailing base; every rung's cycle found by search, root occurrences asserted == 3
+and ending at the root)
+--------------------------------------------------------------------------------------------------------------------------------------------
+| rung | fen | nodes | verdict |
+|---|---|---|---|
+| BASE (known bail) | `1K6/8/8/3R4/8/8/8/k7 w` | **0** | BAIL |
+| L2 + black rook h8 | `1K6/8/8/3R4/8/8/8/k6r w` | **0** | BAIL |
+| L3 + black pawn h7 | `1K6/8/8/3R4/8/8/7p/k7 w` | **0** | BAIL |
+| L4 black king to b2 | `1K6/8/8/3R4/8/8/1k6/8 w` | **0** | BAIL |
+| L5 mirrored, black to move | `1k6/8/8/3r4/8/8/8/K7 b` | **0** | BAIL |
+| L6 knight added | `1K6/8/8/3R4/8/8/8/k5n1 w` | **0** | BAIL |
+| L7 pawns both sides | `1K6/8/8/3R4/8/5P2/6p1/k7 w` | **0** | BAIL |
+
+**P1 HELD: added material does not stop the bail — 7 of 7 rungs bail.** So material count is ruled out, and P3's control
+held (the unedited base bails in the same run).
+
+THE VARIABLE, ISOLATED
+----------------------
+| case | fen | root occ | nodes | score | verdict |
+|---|---|---|---|---|---|
+| rights present | `r3k2r/8/8/8/8/8/8/R3K2R w KQkq` | 3 | **17,601** | cp 809 | searched |
+| **rights removed, otherwise identical** | `r3k2r/8/8/8/8/8/8/R3K2R w - -` | 3 | **0** | **cp 0** | **BAIL** |
+| rights present, other counters | `r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 13 7` | 3 | **17,601** | cp 809 | searched |
+
+Same board, same cycle (`a1b1 a8b8 b1a1 b8a8` twice), same root occurrence count of three, **only the castling field
+differs** — and the verdict flips from "searched 17,601 nodes" to "0 nodes, cp 0". That is as close to a controlled
+comparison as this seat can produce without reading the code: one field, opposite behaviour, everything else fixed.
+
+WHAT THIS MEANS, and where I stop
+----------------------------------
+The 0-node drawn-root bail fires on positions with **no castling rights** and does not fire when castling rights are
+present. Two observations support that being the rule rather than a coincidence:
+1. every earlier bailing fixture in this seat (23-F43, F45, F93, F110's four, F113's sparse cells, all seven ladder
+   rungs) has an EMPTY castling field — I checked each fixture's FEN in this job's tables;
+2. the one DRAWN-ROOT board that did NOT bail (F112's) carries `KQkq`.
+
+**CORRECTION TO HOW I FIRST WROTE POINT 2.** I said F112's board was "the only one in the seat that carries KQkq", then
+audited it (`castling_audit.out`) and that is FALSE: this seat's outputs contain **91 distinct FENs with a non-empty
+castling field** — the seed-2301 middlegame samples from jobs 40/48/50/51, all of which carry rights. The true
+statement is narrower and is the one that matters: among boards sent to the engine AS DRAWN ROOTS (a threefold in the
+move list), every bailing one had an empty castling field and the only non-bailing one had `KQkq`. Those 91 FENs were
+never used as drawn roots, so they neither support nor contradict the finding — but my original sentence would have
+been quotable as evidence it does not contain.
+
+I have NOT established WHY, and I do not rank explanations. The three candidate paths from 23-F100 remain unranked, and
+this result adds a constraint on them rather than selecting one: whatever short-circuits the search is either skipped,
+or behaves differently, when the position has castling rights. A code-reading seat can settle that in one look at the
+drawn-root path; I cannot from the protocol.
+
+This also RETROACTIVELY EXPLAINS a result I had recorded without explanation: 23-F96/F101's cost measurements used
+`1K6/8/8/3R4/8/8/8/k7 w` (no rights) and bailed; the F112 board (rights) searched. Same mechanism, different arm of the
+condition.
+
+THE MIDDLEGAME EXTENSION REFUTES THE CLEAN STORY I HAD
+--------------------------------------------------------
+One board showing a flip is a controlled contrast but not yet a rule, so I extended it to three sampled middlegame
+positions (castling rights present, a 4-ply cycle found by search on each), stripped the castling field, and re-sent the
+IDENTICAL cycle:
+
+| pos | castling | cycle | root occ | nodes | verdict |
+|---|---|---|---|---|---|
+| 1 | rights | `g8e7 d3a6 e7g8 a6d3` | 3 | **0** | **BAIL** |
+| 1 | stripped | same | 3 | **0** | **BAIL** |
+| 4 | rights | `a7c7 g8h6 c7a7 h6g8` | 3 | **0** | **BAIL** |
+| 4 | stripped | same | 3 | **0** | **BAIL** |
+| 7 | rights | `c4e5 h8g8 e5c4 g8h8` | 3 | **11,390** | searched |
+| 7 | stripped | same | 3 | **0** | **BAIL** |
+
+**POSITIONS 1 AND 4 BAIL WITH CASTLING RIGHTS PRESENT.** That refutes the sentence I was about to publish — that the
+bail fires on rights-less positions and not otherwise — and I am recording the refutation rather than the tidier story,
+because the tidier story was going to be quotable and wrong.
+
+What actually survives, and it is weaker:
+  - **stripping rights never PREVENTED a bail** (3 of 3 stripped cells bailed);
+  - **having rights sometimes prevents it** (pos 7: 11,390 nodes) and **sometimes does not** (pos 1 and pos 4: 0 nodes).
+So castling rights are **necessary for searching on some boards, irrelevant on others**, and at least one further factor
+is involved. Position 7's flip is still a clean one-variable contrast and worth keeping as an instance; it just is not
+the whole mechanism.
+
+What the middlegame extension DID establish cleanly: the bail is not confined to sparse endgames. Positions 1 and 4 are
+full middlegame positions with pieces, and they bail at 0 nodes with cp 0. That corrects the direction 23-F112 pointed
+in — the bail is not "endgame only"; endgames were simply where every earlier fixture happened to live.
+
+WHAT I DO NOT CLAIM
+-------------------
+That castling rights are the ONLY conditioner. I have one clean contrast and a correlation across every fixture in the
+seat; I have not varied ep rights, side to move with rights present, or a position with rights where the shuttle
+disturbs them (which would remove the rights mid-cycle and could confound the count). Those are listed as untested
+rather than assumed absent.
+
+LIMITS: one board for the controlled contrast, `go depth 10`, base build only. The PC build searches on these roots in
+every case (23-F93), so this is a property of the un-repaired build's drawn-root path.
+
+An ADDITIONAL CONTROL the audit suggested, and did not run
+---------------------------------------------------------
+The 91 sampled middlegame FENs all carry castling rights and all SEARCH — but they are not drawn roots, so they are not a
+test of this finding. What they do suggest is a cheap future control: take one of them, build a repetition cycle on it,
+and see whether it still searches (prediction: yes, by castling-rights present) — then strip the rights field and see
+whether the same cycle now bails. That would extend the contrast from one board to a middlegame board with pieces,
+which is the strongest remaining test of the castling hypothesis. Not run in this job.
