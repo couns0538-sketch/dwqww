@@ -760,3 +760,15 @@ UNRESOLVED tonight (recorded as such, not dressed up): clock class ordering (19-
   (19-C16/C33), 2-piece DTM (19-C17), mirror rate beyond 8 positions, and this speed comparison.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:03:40Z
+
+NOTE_floor_is_workload_property.md: a noise floor belongs to the WORKLOAD, not the machine.
+  My two attempts: 10 rounds on an 8.3 s/sample sweep -> +/-2.29%% ; 60 rounds on a 73 ms/sample search
+  -> +/-15.2%%. 48x more runs, 7x worse resolution, because fixed per-run costs dominate short samples.
+  Correct procedure (one extra run): A-vs-A, compute the half-width, scale rounds by (current/target)^2,
+  and if the count is unreasonable for that duration say 'not resolvable' instead of quoting a number.
+  Generalised with trap 10 (floor depends on depth) and trap 11 (a maximum does not validate a table):
+  a number measured on one thing is not evidence about another.
+
+next command: continue at cadence.
