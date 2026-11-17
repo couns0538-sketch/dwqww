@@ -1,0 +1,20 @@
+Job 11 Timing (2) Prediction — `r15d` vs `bundle 5` BOTH with the SP Profile (committed ALONE before any Job 11 build or timed run)
+===================================================================================================================================
+Comparison: `A = r15d` built with the SP profile (`bench 11 / 13 / 16` + `60` disjoint self-play games, `2` `.profraw` files merged) vs `B = bundle 5` (`forge-combo29/carbon2/job9/bundle5.patch.txt` on `r15d`, `2,388` lines: `S1..S7p1p2 + S5 assert + G1..G4 + W1 + W2 + P1`, zero `O2`, zero `S7p3`) ALSO built with the exact same SP profile, both compiled with `clang++-18` (`18.1.3`) + GCC 13 `libstdc++` + ThinLTO (`lld-18`) + `-march=sapphirerapids` + all six `FORGE_SPD_*` / `FORGE_SEARCH_SPEED2` switches of File 10 fact `(c)`.
+
+What `bundle 5` changes relative to SP-profiled `r15d` and its committed counts / prior PGO figures:
+- Once `r15d` itself has the SP profile, LLVM already sees `node_limit_specified_ == true` (`32,930,134` `should_stop()` calls per 60 games in `forge-combo29/carbon2/job9/counts_hash16.txt` line 14) and `uci.cpp` (`7,670` `position` commands) as hot, reducing the PGO-cold advantage of `P1` and `S7`, while `bundle 5` still carries `S1..S3` (which measured `0.9822x`, `0.9908x`, `0.9835x` alone on bench-profiled PGO in `forge-combo29/carbon2/job10/pgo_bundle1_steps_alone_6x60_hash16_raw.txt` lines 62–64).
+- On bench-profiled Clang 18 ThinLTO + PGO (`forge-combo29/carbon2/job10/pgo_r15d_vs_bundle4_12x60_hash16_raw.txt` lines 66–67), `bundle 4` (`bundle 5` minus `P1` plus unused `O2`) measured `1.0147x` (`+1.47%`, `12/12` faster) paired CPU (`1.0104x` pooled).
+- Remaining true work reductions in `bundle 5` that SP-profiled PGO cannot synthesize on `r15d`:
+  * `S4`: `MovePicker` stack reduction (`-2,568 B/ply`), `S5`: `precomputed_key` reuse in `Board::make_move`, `S7`: zero-allocation `std::string_view` `position` parsing.
+  * `G1..G4`: cached `material_corr_key`, `see_ge` fast no-recapture, `known_gives_check` + off-ray pawn `has_legal_move()` fast-return, `v3_active_net_` snapshot.
+  * `W1 + W2`: fused `MovePicker` generation without `picker_scratch_`, single-pass `QuietMoves` pin-legality (`5,893,419` unpinned non-king quiets/60 games in `forge-combo29/carbon2/job8/wasted_work_counts_hash16.txt`), lazy/selective `b4::lesser_threats` (`1,399,941` unread threat maps skipped/60 games), direct 1D continuation row pointers.
+  * `P1`: register-only `local_nodes_ < node_limit_` stop check (still avoiding `total_nodes()` vector loop + atomic store even when inlined by SP-profiled PGO) and no-copy `TranspositionTable::probe_body` miss fast-path (`14,942,337` [`46.75%`] misses in `forge-combo29/carbon2/job9/counts_hash16.txt` line 15).
+
+Predicted self-play gain at `Hash 16` (`A = r15d` SP-profile, `B = bundle 5` SP-profile, 12 rounds x 60 games ABBA, two independent builds of each):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+1.0%` to `+2.8%` (`1.010x` to `1.028x`)**, with **`>= 9 / 12`** paired rounds faster (testing whether `bundle 5` clears File 11's `>= 1.0%` keep gate once both trees have the SP profile).
+- Wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+0.8%` to `+2.8%` (`1.008x` to `1.028x`)**.
+
+Kill range (aligned directly with File 11's `1%` decision gate):
+- Any Step 0 mismatch or divergence from `ee465caeff9c0fcf` (`7,670` searches, `25,641,316` nodes) across the 48 runs kills immediately.
+- If `bundle5_sp / r15d_sp` `median_of_paired_round_ratios` on `getrusage` engine CPU is `< 1.0100x` (`< +1.00%`) OR fewer than `9 / 12` paired rounds are faster on `getrusage` engine CPU, `prediction_timing2_bundle5_sp` is graded **KILLED** (`< 1%` kept -> proceed to File 11's SP-profiled `r15d` time profile + top-15 + 3-ideas analysis; otherwise `>= 1%` kept -> proceed to leave-one-out `bundle 5 minus step` ablation).
