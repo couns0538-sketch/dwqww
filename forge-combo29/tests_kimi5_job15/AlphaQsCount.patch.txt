@@ -1,0 +1,117 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -34,10 +34,53 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// FORGE_ALQ_CHECK (kimi5 job 15; default 0 = the code before it): AlphaQs
++// counters, observe only. 1 = one ALQ counter line per UCI search.
++#ifndef FORGE_ALQ_CHECK
++#define FORGE_ALQ_CHECK 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_ALQ_CHECK
++// AlphaQs counters (kimi5 job 15). Observe only: no value, control flow or
++// table entry of the search changes. All runs of this job use Threads 1, so
++// plain counters. One counter set per UCI search: reset where the search's own
++// counters reset, one ALQ line printed where the search result returns.
++namespace alqc {
++// raised[0] PV node, raised[1] non-PV node: alpha raised without a cutoff (the
++// alpha = score line in the main search, today's code as well as patched).
++std::uint64_t raised[2] = {};
++// reduced[d]: A7 depth reductions applied, by depth before the reduction
++// (d = 3..11 possible under AlphaRaiseMaxDepth 12; bin 0 = any other depth).
++std::uint64_t reduced[12] = {};
++// qs_seen[k]: moves reaching the A8 test point with move_count == k (k = 1..16;
++// bin 0 holds move_count >= 17).
++std::uint64_t qs_seen[17] = {};
++// qs_skipped: the A8 continue fired. qs_kept_recapture: the first three A8
++// tests were true (would be skipped) but the move lands on the square the
++// opponent's last move moved to.
++std::uint64_t qs_skipped = 0;
++std::uint64_t qs_kept_recapture = 0;
++void reset() {
++    std::memset(raised, 0, sizeof(raised));
++    std::memset(reduced, 0, sizeof(reduced));
++    std::memset(qs_seen, 0, sizeof(qs_seen));
++    qs_skipped = qs_kept_recapture = 0;
++}
++void print() {
++    std::cout << "info string ALQ v1 raised_pv " << raised[0] << " raised_nonpv " << raised[1] << " reduced";
++    for (int d = 3; d <= 11; ++d) std::cout << ' ' << reduced[d];
++    std::cout << " reduced_other " << reduced[0] << " qs_seen";
++    for (int k = 1; k <= 16; ++k) std::cout << ' ' << qs_seen[k];
++    std::cout << " qs_seen_17plus " << qs_seen[0] << " qs_skipped " << qs_skipped
++              << " qs_kept_recapture " << qs_kept_recapture << std::endl;
++}
++} // namespace alqc
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -1500,8 +1543,22 @@
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++#if FORGE_ALQ_CHECK
++            ++alqc::qs_seen[move_count <= 16 ? move_count : 0];
++#endif
+             if (tune::QsLateMoves > 0 && move_count > tune::QsLateMoves && !gives_check && !move.is_promotion()
+-                && ((ss - 1)->current_move.is_none() || move.to != (ss - 1)->current_move.to)) continue;
++                && ((ss - 1)->current_move.is_none() || move.to != (ss - 1)->current_move.to)) {
++#if FORGE_ALQ_CHECK
++                ++alqc::qs_skipped;
++#endif
++                continue;
++            }
++#if FORGE_ALQ_CHECK
++            else if (tune::QsLateMoves > 0 && move_count > tune::QsLateMoves && !gives_check && !move.is_promotion()
++                     && !(ss - 1)->current_move.is_none() && move.to == (ss - 1)->current_move.to) {
++                ++alqc::qs_kept_recapture;
++            }
++#endif
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+@@ -2066,8 +2123,15 @@
+                     break;
+                 }
+                 alpha = score;
+-                if (tune::AlphaRaiseReduce > 0 && !root_node && depth > 2 && depth < tune::AlphaRaiseMaxDepth && !is_mate_score(score))
++#if FORGE_ALQ_CHECK
++                ++alqc::raised[pv_node ? 0 : 1];
++#endif
++                if (tune::AlphaRaiseReduce > 0 && !root_node && depth > 2 && depth < tune::AlphaRaiseMaxDepth && !is_mate_score(score)) {
++#if FORGE_ALQ_CHECK
++                    ++alqc::reduced[(depth >= 3 && depth <= 11) ? depth : 0];
++#endif
+                     depth = std::max(1, depth - tune::AlphaRaiseReduce);
++                }
+             }
+         }
+         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
+@@ -2173,6 +2237,9 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++#if FORGE_ALQ_CHECK
++    alqc::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+@@ -2764,6 +2831,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_ALQ_CHECK
++    alqc::print(); // one ALQ counter line per UCI search
++#endif
+     return result;
+ }
+ 

@@ -1,0 +1,23 @@
+kimi5 job 15 prediction (own commit before Step 1, never edited). 2026-11-17.
+
+Step 3 tree ratios on O (ratio to I2 = S14 on the patched build), each with the
+range that kills it (outside = my model of the code is wrong):
+- T_a1 (AlphaRaiseReduce 1): about 0.96. Killed outside [0.88, 1.03].
+  Reason: A7 fires only at non-root PV nodes when alpha rises without a cutoff;
+  PV nodes are a small share of the tree, but the reduction also shortens the
+  remaining moves of the node and the TT store depth, so a small shrink.
+- T_a2 (AlphaRaiseReduce 2): about 0.93. Killed outside [0.82, 1.03].
+- T_q2 (QsLateMoves 2): about 0.98. Killed outside [0.93, 1.03].
+  Reason: most quiescence nodes have 1-2 legal captures; the 3rd+ capture is
+  rare and often a check/promotion/recapture anyway, so a small shrink.
+- T_q3 (QsLateMoves 3): about 0.99. Killed outside [0.95, 1.03].
+- T_aq (AlphaRaiseReduce 1 + QsLateMoves 3): about 0.95. Killed outside [0.86, 1.04].
+
+Step 2 counters:
+- raised splits ~100% PV / 0 non-PV (known answer: non-PV is 0; the
+  beta = alpha + 1 window turns every rise into a cutoff first).
+- Share of raised (PV) that is reduced under AlphaRaiseReduce 1: about 70%
+  (only raises with depth before in 3..11 count; raises at depth <= 2 and at
+  the root do not). Killed outside [45%, 90%].
+- Share of qs_seen beyond the second move (k >= 3 of all k): about 15%.
+  Killed outside [5%, 35%].
