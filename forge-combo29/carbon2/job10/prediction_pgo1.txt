@@ -1,0 +1,23 @@
+Step `PGO1` Prediction (committed ALONE before creating `pgo1` or running any `pgo1` build/timing)
+==================================================================================================
+Step name: `PGO1` (`pgo1_curated_pgo_winners_and_hot_stop_tt_stalemate.patch.txt`, unified diff directly against `r15d`)
+
+Evidence from `pgo_bundle1_steps_alone_6x60_hash16_raw.txt` and `pgo_time_profile_raw.txt` that decided `PGO1`:
+1. Standalone PGO isolation of `bundle 1` (`6` palindromic rounds x `60` games at `Hash 16` on Clang 18 ThinLTO + PGO):
+   - **PGO losers dropped (`S1`: `-1.78%` [`1/6`], `S2`: `-0.92%` [`1/6`], `S3`: `-1.65%` [`1/6`], `S6`: `+0.03%` [`3/6`], plus `W1/W2` `noinline` and `O2`):** `pgo_time_profile_raw.txt` shows `S1` bloated `MovePicker::next(bool)` out of `Worker::search` (`0.93%` -> `10.33%` self CPU) and replaced `refresh_from_pieces + evaluate` (`5.12% + 2.33% = 7.45%`) with `refresh_one_and_evaluate` (`6.25% + 2.13% + 1.62% = 10.00%`, `-2.55%` loss!).
+   - **PGO winners kept (`S4_alone` + `S5_alone` + `S5` debug assert + `S7_p1p2_alone`):**
+     * `S4_alone`: **`+0.77%` CPU (`5/6` faster), `+0.90%` wall (`5/6`)** — shrinks `sizeof(MovePicker)` `4,832 -> 2,240 B` (`-2,592 B/ply`) while keeping `MovePicker::next` inlined inside `Worker::search`.
+     * `S5_alone` (+ `#ifndef NDEBUG` key assert): **`+0.42%` CPU (`4/6`), `+0.71%` wall (`5/6`)** — cuts `Board::make_move` from **`2.87%` (`6.216 ms/game`) to `1.71%` (`3.597 ms/game`)** in `pgo_time_profile_raw.txt`.
+     * `S7_p1p2_alone` (+ `[[gnu::hot]]` on `apply_position_sv` so `bench`-trained PGO does not cold-throttle self-play's `position` handler): **`+1.09%` CPU (`6/6` faster!)** — eliminates `~1.15M` `std::istringstream`/`std::string` allocations per 60 games in PGO-cold `uci.cpp` and lowers `Worker::clear()` via explicit `memset`.
+2. Additional PGO-time-profile-backed speedups stacked cleanly onto `r15d + S4 + S5 + S7` (without touching `MovePicker::next` inlining or `nnue_v3`):
+   - **`TranspositionTable::probe_owned` (`4.19%` = `9.066 ms/game` in `r15d` `SIGPROF` profile; `31,963,180` calls, `14,942,337` [`46.75%`] misses in `job9/counts_hash16.txt`):** packed 56-byte `TTProbe`, `EmptyLock`, no-copy miss fast-path, and empty-slot-0 fast exit.
+   - **`Board::has_legal_move` (`1.56%` = `3.367 ms/game`) + `Board::make_move` (`2.87%`) + `Board::is_legal_complete` (`1.02%` = `2.202 ms/game`):** `G3`'s off-king-ray pawn push/capture fast-return in `has_legal_move()`, `known_gives_check == 0` checker-scan skip in `Board::make_move`, `ensure_king_lines()` reuse, and table-free `(moving != WK && moving != BK)` in `Board::is_legal` / `is_legal_complete`.
+   - **`Worker::should_stop_with` (`0.54%` = `1.166 ms/game` self + `should_stop`/`total_nodes` caller chain; `32,930,134` PGO-cold per-node calls in `job9/counts_hash16.txt`):** `[[gnu::always_inline]]` `Worker::check_node_or_periodic_stop()` eliminating `99.90%` (`32,897,975`) of `should_stop()` chains.
+
+Predicted self-play gain on Clang 18 ThinLTO + PGO at `Hash 16` (`A = r15d`, `B = r15d + PGO1`, 12 rounds x 60 games ABBA):
+- Engine CPU (`getrusage` ns, `median_of_paired_round_ratios`): **`+2.0%` to `+4.5%` (`1.020x` to `1.045x`)**, with **`>= 10 / 12`** paired rounds faster (exceeding both `bundle 1` `1.0199x` and `bundle 4` `1.0147x` without `S1/S2/S3` PGO drag).
+- Wall clock (`perf_counter_ns`, `median_of_paired_round_ratios`): **`+1.5%` to `+4.5%` (`1.015x` to `1.045x`)**, with **`>= 10 / 12`** paired rounds faster.
+
+Kill range:
+- Any mismatch on the identity suite (`bench 11/13/16` both nets, `250/250` depth-9 rows, `1,000` evals, both 6-game traces), the 48-run `Hash 16` FNV trace (`ee465caeff9c0fcf`), the `500,000`-op TT + stop oracle, the `55,868`-sequence evasion oracle, the `-UNDEBUG` `S5` assert check, or failure to catch `pgo1_planted_fault.patch.txt` kills `PGO1` immediately.
+- If `PGO1 / r15d` `median_of_paired_round_ratios` on Clang 18 ThinLTO + PGO `getrusage` engine CPU is `< 1.020x` (`< +2.0%`) OR fewer than `10 / 12` paired rounds are faster on `getrusage` engine CPU, `prediction_pgo1` is graded **KILLED**.
