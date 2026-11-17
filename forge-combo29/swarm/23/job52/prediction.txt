@@ -1,0 +1,36 @@
+PREDICTION — SW-23 job 52 (can I name the 0-node move IN ADVANCE from 23-F103's rules alone?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F103 gives a rule for generator order: piece types block in the order P,N,B,R,Q,K (absent types skipped), and within
+pawns the class order is single push, then double push, then capture. This job turns that into a PREDICTOR and tests it
+prospectively — a stronger test than the retrospective holdout, because the prediction is written down first and the
+engine is asked afterwards.
+
+FIXTURES — new drawn roots, none used in F98/F100/F103, all with halfmove 100+ so the fifty-move rule makes the root
+drawn (23-F43's mechanism). Chosen so that the predictor's candidate set is SMALL, which makes the test sharp:
+
+  P1 `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 120 1`   (pawns both sides; rook a1)
+  P2 `r5k1/5ppp/8/8/8/8/5PPP/6K1 b - - 120 1`   (black to move, mirrored; pawns both sides)
+  P3 `8/8/8/8/8/5k2/6pp/7K w - - 120 1`         (white: king + no pawns vs black pawns -> white has NO pawn moves)
+  P4 `7k/8/8/8/8/8/6PP/7K b - - 120 1`          (black: king only vs white pawns -> black has NO pawn moves)
+  P5 `8/8/8/8/8/8/5PPP/R5K1 w - - 120 1`        (white has pawns AND a rook; black has only a king)
+
+The predictor, implemented INDEPENDENTLY in python-chess (not by asking the engine): generate all legal moves, classify
+each as pawn-single / pawn-double / pawn-capture / knight / bishop / rook / queen / king, and return the first class
+present with all its members. Predicted move = the sole member if the class has one, else the class SET.
+
+Prediction (each with the range that kills it):
+  P1  On EVERY fixture the engine returns a move at 0 nodes (all are drawn roots by the fifty-move rule).
+                                                                              KILLED if any fixture searches.
+  P2  THE ENGINE'S MOVE IS ALWAYS INSIDE THE PREDICTED SET on all five. KILLED if any engine move is outside the set —
+      which would mean F103's rule is wrong at the board level even though it held statistically on 25 positions, and
+      F103 must be re-scoped from "fully specified" to "holds in aggregate".
+  P3  THE PREDICTED SET IS A SINGLETON ON AT LEAST THREE of the five, so the test is sharp rather than trivially passed
+      by a large class. KILLED as a sharpness claim if fewer than three are singletons (the test would still be valid
+      but weaker, and I must say so).
+  P4  A CONTROL ON THE PREDICTOR: on a NON-drawn position the engine will SEARCH and its move will usually NOT be the
+      predicted index-0 (23-F101: g0 == searched best on 0 of 12). If the control's move equals the prediction every
+      time, my predictor is probably just predicting "the engine always plays this", which would be wrong.
+
+If P1-P4 hold, the claim becomes: the drawn-root move is nameable in advance from the generator rule, which is what a
+tool author needs to detect or work around it.
