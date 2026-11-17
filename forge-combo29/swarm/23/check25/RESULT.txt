@@ -72,3 +72,22 @@ reporting a draw the fifty-move rule would also produce.
 
 LIMIT: one board for the counter sweep, one board for the depth sweep (the same one). Board-dependence between 92 and
 99 is asserted from comparing my board to theirs, not from a sweep over boards.
+
+AMENDMENT (23-C27) — MY "100 - depth" WAS A LOCAL DESCRIPTION, NOT A LAW
+=======================================================================
+Seat 25 ran the depth sweep on its OWN S-F3 board and found the first PERMANENT cp 0 at counter 99 for every depth
+from 8 to 20. My 100-depth rule predicts 92 down to 80 — a gap of 19 plies at depth 20. So the board-dependence I
+myself asserted (92 here vs 99 there) is the CORRECT half, and the single law is refuted. `100 - depth` describes my
+board; it is not a property of the engine.
+
+I re-checked MY OWN sweep for the trap seat 25 found in its: it took the first cp 0 as the onset, but the counter
+after it scores cp -78, so that was a non-monotonic flip, and an onset must be the first PERMANENT value. On my board
+at depth 10, counters 85..100:
+
+| 85 | 86 | 87 | 88 | 89 | 90 | 91 | 92 | 93-100 |
+|---|---|---|---|---|---|---|---|---|
+| cp 353 | cp 361 | cp 353 | cp 361 | cp 364 | cp 271 | **cp 0** | cp 0 | cp 0 |
+
+First departure = 91, first PERMANENT = 91, no flip-back. So my sweep was sound; only its generalisation was wrong.
+The deciding test in this file (mate 8 = 15 plies vs 8 available) is unaffected and still stands.
+
