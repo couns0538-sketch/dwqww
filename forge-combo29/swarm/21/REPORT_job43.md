@@ -61,8 +61,15 @@ PC build, with all pins exact. This is the check a fix should be judged by.
 3. My bench pin reader let a `Timeout` escape instead of reading one line, killing the run.
 4. The perft pin was routed through the bench reader, which stops at `bestmove` — perft has none.
 
-Each was caught by the script failing loudly rather than by the numbers looking wrong, which is the
-behaviour the premise assertions are there to produce.
+**This is the argument for premise assertions, stated plainly.** All four of those errors produced a
+loud failure — a parse error, an assertion firing, an exception killing the run — and **not one produced a
+number**. That is the whole point: the script's premise assertions (a mate really is available for S1/S4,
+really is not for S2/S5, the S4/S5 roots really are threefolds, S3 really is insufficient material) and its
+assertion that a FEN was accepted mean that a broken premise **stops the run** instead of yielding a PASS
+or FAIL computed from a position that was never the one under test. A silent metric is worse than a crash:
+it enters the record looking like evidence. The same discipline is why 21-F12 now states its legality
+requirement and its FEN in the finding line — three seats produced a plausible `0000` result from an
+illegal move, and only the assertion of "the named move must be legal" distinguishes that from the repair.
 
 ## Suspicions, not proven
 
