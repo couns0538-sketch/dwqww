@@ -40,6 +40,42 @@ preamble the matrix uses (`setoption`, `ucinewgame`) gave `d2d4`. **The differen
 `a2a3` run omitted `ucinewgame`, which is a different state. Third time tonight that a discrepancy I was about to report
 turned out to be my own instrument.
 
+## The better description: ONE rule, "the last valid board"
+
+The four cells read as two fallbacks — startpos when nothing was set, the predecessor when something was. **They are one
+rule with a default**, which is a better sentence than either version:
+
+> **The engine searches the last VALID board. In a fresh session there is none, so "last valid" is the initial
+> position — startpos.**
+
+Startpos is not a separate fallback; it is what "last valid" means when nothing has been established.
+
+### Tested, and the test itself was wrong first
+
+The hypothesis makes a sharp prediction: **an invalid FEN must not become the "last valid" board**, so two *consecutive*
+invalid FENs should both answer the predecessor.
+
+**First attempt: it failed.** After a legal position, invalid #1 answered `a1a8` (the predecessor, as predicted) but
+invalid #2 answered `f5f4` — which looked like a third behaviour. **It was not: my "invalid #2" was a legal board.**
+`8/8/8/3k1K2/8/8/8/8` puts kings on **d5 and f1**, which are not adjacent, and python-chess confirms it is valid. The
+engine had simply searched the board I sent.
+
+**Redone with two verified-invalid FENs** (adjacent kings d5/e5, and a1/b1):
+
+| step | answer |
+|---|---|
+| 1. legal predecessor | `a1a8` |
+| 2. invalid (kings d5/e5) | **`a1a8`** |
+| 3. invalid (kings a1/b1) | **`a1a8`** |
+
+**Both invalid steps answer the same as the legal predecessor**, so an invalid FEN never displaces the last valid board.
+The one-rule description holds.
+
+**And this is the fourth time tonight a discrepancy I was about to report was my own instrument** — here the "invalid"
+input was not invalid. **The check that catches it is cheap and I skipped it on the first attempt: verify the input is
+what you believe before interpreting the engine's response to it.** `perft_fingerprint.py` and python-chess both do that
+in one line, and my earlier invalid-FEN tests did it, which is why they were right.
+
 ## The record correction, stated precisely
 
 The request was to record four cases **and** retract an absolute. I have recorded the four cases, measured on this

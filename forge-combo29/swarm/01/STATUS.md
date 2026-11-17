@@ -3075,3 +3075,25 @@ difference was an omitted ucinewgame, not the engine. THIRD TIME TONIGHT A DISCR
 INSTRUMENT.
 Gates: 229 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:58:21Z — tested your one-rule reframing, and my first test of it was wrong (S-C60, extended)
+YOUR SENTENCE IS BETTER THAN EITHER VERSION: "the previous position" describes one cell, "the last valid board" describes
+both, with startpos being what "last valid" means in a fresh session. I TESTED IT RATHER THAN ADOPTING IT.
+THE HYPOTHESIS MAKES A SHARP PREDICTION: an invalid FEN must not displace the last valid board, so TWO CONSECUTIVE INVALID
+FENS should both answer the predecessor.
+FIRST ATTEMPT SEEMED TO REFUTE IT. After a legal position, invalid #1 answered a1a8 as predicted, but invalid #2 answered
+f5f4 - which looked like a third behaviour. IT WAS NOT: MY "INVALID #2" WAS A LEGAL BOARD. 8/8/8/3k1K2/8/8/8/8 puts kings
+on d5 and f1, which are not adjacent; python-chess confirms it valid, and the engine had simply searched the board I sent.
+REDONE WITH TWO VERIFIED-INVALID FENS (adjacent kings d5/e5, and a1/b1):
+    legal predecessor -> a1a8
+    invalid d5/e5     -> a1a8
+    invalid a1/b1     -> a1a8
+Both invalid steps answer the same as the legal predecessor, so an invalid FEN never displaces the last valid board. THE
+ONE-RULE DESCRIPTION HOLDS, and it is now in S-C60 and on the page.
+FOURTH TIME TONIGHT A DISCREPANCY I WAS ABOUT TO REPORT WAS MY OWN INSTRUMENT - here the "invalid" input was not invalid.
+The check I skipped on the first attempt costs one line and I have used it elsewhere all night: VERIFY THE INPUT IS WHAT
+YOU BELIEVE BEFORE INTERPRETING THE ENGINE'S RESPONSE TO IT. perft_fingerprint and python-chess both do it; my earlier
+invalid-FEN tests did it, which is why those were right.
+And the legal control in every cell of the original matrix is what made "always emitted" safe: it separates "absent
+because the position was fine" from "absent because the check never fires".
+Gates: 229 rows, 0 wrong pipe counts, page updated with the failed test and the one-rule description, gate rc=0 across 66.
+Next: continue at cadence to the 10:20Z close.
