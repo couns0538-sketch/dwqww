@@ -1,0 +1,39 @@
+PREDICTION — SW-23 job 50 (how much does playing generator index 0 COST, quantified across positions?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F98/F100 established WHAT the 0-node move is: generator index 0. 23-F60 and 23-F96 measured what it cost on two
+particular boards (a hung piece; a discarded mate). Nobody has measured the COST DISTRIBUTION — and that is the number a
+tool author or a match designer would actually want, because it converts "index 0 can be bad" into "index 0 costs this
+much, this often".
+
+DESIGN — 12 positions, sampled deterministically (no hand-picking, which is what bit me in job 44 and job 47):
+positions from a random legal game, SEED 2301, one every 7 plies, taking the first 12 that are legal and non-terminal.
+For each position, base build, Threads 1, Hash 16, OwnBook false:
+  (a) `go perft 1` -> the engine's generation order. Take the INDEX-0 move, call it g0.
+  (b) `go depth 12` on the position -> the searched best move, call it best.
+  (c) score the position AFTER g0 and AFTER best on the PC build at `go depth 12`, from the mover's point of view
+      (negate black-to-move scores so positive always means "good for the side that moved").
+Cost(g0) = score(after best) - score(after g0), in centipawns, floored at 0 for mate scores (report separately).
+Controls, all printed: python-chess must confirm every g0 and best is legal; parsed divide lines must equal the node
+total; and a PLANTED case — for one position I substitute a deliberately bad move (a rook given away if one exists) and
+confirm the cost measure registers a large positive number, so a near-zero result cannot come from a measure that cannot
+detect damage.
+
+Prediction (each with the range that kills it):
+  P1  THE MEDIAN COST IS SMALL BUT NON-ZERO: median cost in 0-60 cp. If the median were 0 on most positions, the
+      hazard would be rare and F60/F96 would be outlier showcases, which is the reading I would then have to give.
+                                                                           KILLED if the median is exactly 0.
+  P2  THE DISTRIBUTION IS HEAVILY SKEWED: at least ONE position shows a cost >= 300 cp while the median stays under 60.
+      KILLED if no position exceeds 150 cp, in which case index 0 is mildly bad everywhere and never catastrophic, and
+      I must say so plainly.
+  P3  g0 IS FREQUENTLY NOT THE SEARCHED BEST MOVE — on at least 10 of 12. (It should be ~always, since a depth-12 search
+      reorders; the point is to confirm the measure is comparing different moves rather than trivially the same one.)
+                                                                           KILLED if g0 == best on 3 or more, which
+                                                                           would make the cost measure mostly zero by
+                                                                           construction.
+  P4  THE PLANTED BAD MOVE REGISTERS A LARGE COST (>= 200 cp) on the position where it is plantable. KILLED if the
+      planted damage reads as small — which would mean the scoring method cannot see damage and no cost number here is
+      usable.
+
+If P1-P4 hold: "playing generator index 0 costs a median of X cp with a tail to Y cp on N of 12 positions" becomes a
+quotable sentence with its own denominator, which is what F60 and F96 each lacked individually.
