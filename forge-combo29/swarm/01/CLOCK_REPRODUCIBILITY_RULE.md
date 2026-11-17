@@ -5,8 +5,16 @@ seat 28's S-F43.**
 
 > ## THE RULE (put this at the top of any clock-harness notes)
 >
-> **A clock budget is reproducible only to a PLATEAU. Sweep the clock to find one, then confirm with two or
-> three repeats that the budget is not sitting on an iteration boundary.**
+> **Sweep once to identify the rung, then certify a run with a single node count.**
+>
+> A clock budget is reproducible only to a **plateau** — a band of clocks that all give the same answer. So:
+> sweep the clock once to find the plateau, and thereafter check any run against it by comparing its **node
+> count**. An equal node count means an equal move, so a matching count certifies the whole search without
+> re-running it (17 of 17 equal-node pairs shared their bestmove, 0 disagreements across 780 comparisons —
+> S-C26 / S-F83).
+>
+> The sweep is a **one-off cost**, not a per-run one: that is what turns this from a procedure nobody follows
+> into one that costs a single number per run.
 
 ## Why
 

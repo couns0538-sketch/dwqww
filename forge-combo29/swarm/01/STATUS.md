@@ -877,3 +877,23 @@ now carries it as a numbered step:
 So the rule is no longer "sweep and repeat 2-3 times every time"; it is "sweep once, then verify cheaply against
 a node count". That is the difference between a procedure nobody follows and one that costs a single number per
 run.
+
+### EIGHTH UPDATE — the clock rule now leads with the operational sentence
+
+`CLOCK_REPRODUCIBILITY_RULE.md` opens with:
+
+> **Sweep once to identify the rung, then certify a run with a single node count.**
+>
+> A clock budget is reproducible only to a **plateau** — a band of clocks that all give the same answer. Sweep
+> once to find it, then check any run against it by comparing its **node count**. An equal node count means an
+> equal move, so a matching count certifies the whole search without re-running it (17 of 17 equal-node pairs,
+> 0 disagreements across 780 comparisons — S-C26 / S-F83).
+>
+> The sweep is a **one-off cost**, not a per-run one.
+
+The licence for that sentence is the measurement behind it: **780 pairwise comparisons, 17 equal-node pairs,
+17 identical bestmoves, 0 groups disagreeing**, across five position types and eight clocks. Without that zero,
+the sentence would be a suggestion; with it, a harness can trust one number instead of re-running a search.
+
+That is the shape most of tonight's useful results ended in — a measurement first, then the sentence that makes
+it usable — which is why the rule pages and the evidence files are kept together on the branch.
