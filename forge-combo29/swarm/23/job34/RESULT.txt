@@ -1,0 +1,37 @@
+AUDIT OF THE DRIVER PAGE's OTHER TWO RULES — both hold, and rule 4's failure mode is the fabricated move
+=====================================================================================================
+Finding one hole in my own page (23-F76, the drawn root) made the other rules worth testing the same way. Base build,
+Threads 1, Hash 16, OwnBook false.
+
+RULE 1 — "ucinewgame before the first position, never between a position and its search":
+
+| ordering | go depth 10 answer |
+|---|---|
+| position, then **ucinewgame** | **d2d4** |
+| ucinewgame, then position | **b1c3** |
+| position alone | b1c3 |
+| startpos alone | d2d4 |
+
+The position-then-ucinewgame answer is IDENTICAL to the bare-startpos answer (d2d4), and the correct ordering gives the
+position's own move (b1c3). So the rule holds exactly as written: `ucinewgame` after a position discards it. P1 and P2
+both held.
+
+RULE 4 — "read to bestmove before sending the next command":
+
+| pattern | first bestmove | nodes on first info line |
+|---|---|---|
+| ordered (drain to bestmove) | **f1b5** | 89,103 |
+| pipelined (send `position startpos` straight after `go`, no drain) | **a2a3** | **0** |
+
+So pipelining does not merely perturb the answer — it replaces it with the fabricated `bestmove a2a3` at **0 nodes**,
+which is seat 19's 19-F12 fault seen from the driver's side. Rule 4 holds and its failure mode is the worst kind: a
+legal-looking move from no search at all. P3 and P4 held.
+
+CONCLUSION OF THE AUDIT: of the driver page's four original rules, all four hold on measurement — rule 1 and rule 4
+re-confirmed here, rules 2 and 3 in 23-C20/23-F67 — and the page needed exactly one addition, the 0-node check of
+23-F76, for the drawn-root case those four cannot see. So the page's structure is right; it was one rule short, not
+wrong.
+
+MY SCRIPT BUG, recorded: my "reading" column in the pipelining table compared the pipelined move against itself, so it
+printed "see below" instead of a verdict. The numbers are unaffected and are what the conclusion rests on; the label
+was wrong, and I am noting it rather than quietly fixing a table that has already been read.
