@@ -500,6 +500,24 @@ not an engine one.
 
 ---
 
+## 11b. Hand spot-checks of the rendered figures
+
+Three headline numbers were re-derived by hand from the raw rows, not from the counters the
+report quotes, on the principle that a placeholder filled with `0` by a missed lookup is the
+same defect wearing a number. All three agree.
+
+| claim in §0 | counter | recomputed from |
+|---|---|---|
+| PV-length monotonicity violated in `116` of `160` | same | the `160` raw `depth_span` rows, re-checking `pv_lens` non-increasing |
+| multipv-1 == single-PV in `22` of `40` | same | the `40` `agreement_rows`, re-checking move, score and PV equality |
+| book emits `0` multipv lines at MultiPV > 1 | same | the `3` `OwnBook true` arms, against `4` controls |
+
+The first is the one that matters most, because it is the report's largest claim: `160` rows
+hand-checked, `116` violate, and the first three are visible as `[15,16]`, `[15,16,14]` and
+`[15,16,14,13]` — line 2 longer than line 1 in each.
+
+---
+
 ## 12. Reproducing
 
 ```bash

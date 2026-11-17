@@ -3,25 +3,33 @@
 Audit seat for the MultiPV **output** of `forge-combo29` at base `6b98f217`. Read
 [`FINDINGS.md`](FINDINGS.md) for the report and [`STATUS.md`](STATUS.md) for the scorecard.
 
-**Engine source is unmodified.** `src/` and `include/` here are the base commit's files, byte for
-byte, so the four honesty pins can be checked against this branch.
+**Engine source is unmodified.** No file under `src/` or `include/` is touched by this seat, and the
+four honesty pins are checked on the build every number comes from.
 
-## Why this tree is trimmed
+## What this branch contains, and why
 
-The base commit's `forge-combo29/` is 4.0 GB, almost all of it unrelated test transcripts
-(`tests_astra_parity`, `tests_astra_mateguard`, …). This branch carries only what is needed to
-build the engine and reproduce every number:
+The PR diff is deliberately **this folder and nothing else** — 31 files. The base commit's
+`forge-combo29/` is 4.0 GB, almost all of it unrelated test transcripts (`tests_astra_parity`,
+`tests_astra_mateguard`, …), and none of it belongs in a review of this seat's work.
 
 ```
-forge-combo29/
-  src/  include/  CMakeLists.txt     the engine, unmodified from 6b98f217
-  tests_r3fu_12/positions.txt        the corpus this audit draws from
-  scripts/check_pins.sh  LOCK.md  README.md
-  swarm/multipv/                     this seat's deliverable
+forge-combo29/swarm/multipv/     this seat's deliverable, and the whole diff
 ```
 
-Nothing is missing for reproduction: the audit reads `tests_r3fu_12/positions.txt` and the built
-binary, and nothing else.
+**To build and reproduce**, check out the audit base, which is where the engine source and the
+corpus live:
+
+```bash
+git checkout 6b98f217
+cd forge-combo29
+# then, with this seat's folder copied in or merged from this branch:
+./swarm/multipv/scripts/00_build_and_pins.sh .
+./swarm/multipv/scripts/run_all.sh build/forge
+```
+
+The audit reads `tests_r3fu_12/positions.txt` and the built binary, and nothing else. Both are at
+`6b98f217`. Every measurement in `FINDINGS.md` was taken on that base; nothing here depends on files
+that this branch adds.
 
 ## Build
 

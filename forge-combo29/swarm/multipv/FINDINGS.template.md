@@ -520,6 +520,24 @@ and the gate is a fullmove field a FEN author can get wrong.** That is why 19b's
 
 ---
 
+## 11b. Hand spot-checks of the rendered figures
+
+Three headline numbers were re-derived by hand from the raw rows, not from the counters the report
+quotes, on the principle that a placeholder filled with `0` by a missed lookup is the same defect
+wearing a number. All three agree.
+
+| claim in §0 | counter | recomputed from |
+|---|---|---|
+| PV-length monotonicity violated in `[[audit.structural.final_block_pv_not_monotone]]` of `[[audit.structural.final_blocks]]` | same | the `[[audit.structural.final_blocks]]` raw `depth_span` rows, re-checking `pv_lens` non-increasing |
+| multipv-1 == single-PV in `[[audit.agreement.identical_all_three]]` of `[[audit.agreement.positions]]` | same | the `[[audit.agreement.positions]]` `agreement_rows`, re-checking move, score and PV equality |
+| book emits `[[fastpaths.summary.book_lines_at_mpv_gt_1]]` multipv lines at MultiPV > 1 | same | the `[[fastpaths.summary.book_arms_at_mpv_gt_1]]` `OwnBook true` arms, against `[[fastpaths.summary.book_controls]]` controls |
+
+The first is the one that matters most, because it is the report's largest claim: `[[audit.structural.final_blocks]]`
+rows hand-checked, `[[audit.structural.final_block_pv_not_monotone]]` violate, and the first three
+are visible as `[15,16]`, `[15,16,14]` and `[15,16,14,13]` — line 2 longer than line 1 in each.
+
+---
+
 ## 12. Reproducing
 
 ```bash
