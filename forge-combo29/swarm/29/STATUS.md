@@ -434,3 +434,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N38 in the FINAL beside the five-instance table, explaining why the error was SYSTEMATIC: every inflated magnitude ran in the direction of a STRONGER story - the match-depth saving overstated in all three cells (19.5->11.9, 14.1->11.0, 12.7->10.7) and the cell that looked like a COST was a wash (2.3->0.3).
 - Small samples did not scatter my errors; they biased every number toward the more interesting claim, because a large effect is what makes a measurement feel worth reporting. So the sample-size rule is not merely precision - it is what stops the interesting-looking result from becoming the published one.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:34:45 AM UTC 2026
+- 29-F54: ran F44 at an ADEQUATE sample for the first time (200 positions, depth 10, Threads 1, Hash 16): 170/200 same bestmove (85.0%), 30 disagreements, judged under the neutral S14 regime at depth 13 -> PC20 better 13, S14 better 13, TIE 4. An exact dead heat.
+- Combined with the earlier 7-7-3: 43 disagreements across two independent samples, 20-20-7 combined, no advantage either way. So at depth 10 PC20's reduced tree costs NOTHING detectable in move quality - and this vindicates withdrawing the n=3 '3-0 against PC20'.
+- 29-N39 state update: F42 settled (n>=60 all cells), F44 settled AT DEPTH 10, F45 confirmed-and-scoped by seat 07. The one residual is F44 above depth 12 (depth-14 evidence is 8-4 pro-PC20 on only 13 outcomes; combined 28-24-8).
+- next: continuing at cadence.
