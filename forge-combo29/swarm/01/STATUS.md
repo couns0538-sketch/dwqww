@@ -2119,3 +2119,23 @@ move having spent nothing, so that region tests only that a search which does no
 positions is a HARDER sample, not a larger one. It adds coverage of the expensive region, not statistical weight.
 Gates: 183 rows, 0 wrong pipe counts, page shape OK, stamps in order.
 Next: continue at cadence.
+## 2026-11-17T01:39:02Z — the extremum rule now runs in the gate, and enforcing it indicted my own artifact (S-C45)
+1. THE GENERALISATION IS ON THE S-F126 RULE PAGE, not only in a finding row: "when a summary pairs an extremum with a
+   single reference value, the reference must belong to the same row", with the worked instance (max(spend) 70 ms over
+   a whole game paired against the ply-0 clock of 1 ms) and the one-line test that refutes it - SUBSTITUTE THE PAIR
+   BACK INTO THE ARITHMETIC: 1-70+60 = -9 is negative, so "the clock never went negative" was impossible. I nearly
+   skipped that division because the sentence sounded like a result.
+2. THEN I MADE IT RUN RATHER THAN BE REMEMBERED, and the check immediately indicted my own earlier work. gate.sh now
+   requires every clock artifact row that carries an extremum (max_spend, lowest) to also carry a per-move trace with
+   clock_before/spent/overrun. IT FAILED ON S-C43's SWEEP: that artifact recorded `lowest` - a MIN over all plies - with
+   no trace, so its reference row was never recorded. The claim itself was sound (0 forfeits is a fact about runs), but
+   the artifact could not support ANY statement pairing a spend with a clock.
+   FIXED BY FIXING THE ARTIFACT, NOT THE CHECK: re-ran the 12-clock sweep with traces - 12 of 12 rows traced, 0
+   overruns, 0 forfeits reproduced across 60 plies. Then proved the check in both directions: stripping the traces
+   fails it (exit 1), restoring them passes (exit 0).
+   A detail worth keeping: my first version of the check flaggged EVERY row without a trace, including ones that made
+   no extremum claim at all. Refined it to the real distinction - a row without a trace can support "did it forfeit",
+   which is a fact about the run; what it cannot support is a pairing. A check that fires on the innocent case teaches
+   people to ignore it.
+Gates: 184 rows, 0 wrong pipe counts, trace check proven both ways, page shape OK, stamps in order, 48 checks ok.
+Next: continue at cadence.

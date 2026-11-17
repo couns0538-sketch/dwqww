@@ -87,6 +87,7 @@ def play(exe, start_ms, plies, pc20=True):
 
     w, b = start_ms, start_ms
     lowest = start_ms
+    trace = []
     forfeited = None
     played = 0
     for ply in range(plies):
@@ -112,6 +113,8 @@ def play(exe, start_ms, plies, pc20=True):
             m = re.search(r"time (\d+)", info)
             if m:
                 spent = int(m.group(1))
+        trace.append({"ply": ply, "clock_before": my_clock, "spent": spent,
+                      "overrun": spent > my_clock + INC})
         new_clock = my_clock - spent + INC
         if white:
             w = new_clock
@@ -131,7 +134,11 @@ def play(exe, start_ms, plies, pc20=True):
     except Exception:
         p.kill()
     return {"start": start_ms, "plies": played, "final_w": w, "final_b": b,
-            "lowest": lowest, "forfeited": forfeited}
+            "lowest": lowest, "forfeited": forfeited,
+            # the per-move trace: without it the `lowest` extremum cannot be tied to the row it came from (S-C44)
+            "trace": trace,
+            "max_spend": max((e["spent"] for e in trace), default=None),
+            "max_overrun_ply": next((e for e in trace if e["overrun"]), None)}
 
 
 def main():

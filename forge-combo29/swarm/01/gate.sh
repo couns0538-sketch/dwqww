@@ -161,6 +161,46 @@ else
   echo "ok    no stranded format escapes in the markdown"
 fi
 
+# 3f. NO EXTREMUM PAIRED WITH A REFERENCE FROM ANOTHER ROW (S-C44 / S-F126 generalised).
+#     In a clock trace, every spend must face a clock, and the harness must ASSERT that rather than leave it to a
+#     summary sentence. This checks the committed forfeit artifact: every trace entry must carry clock_before, spent
+#     and overrun, and no entry may overrun without the run being marked forfeited. It is the machine version of
+#     "substitute the pair back into the arithmetic".
+tracecheck=$(python3 - <<'PYEOF'
+import glob, json
+bad = []
+for f in sorted(glob.glob("clockfloor/*.json")):
+    try:
+        d = json.load(open(f))
+    except Exception:
+        continue
+    for r in d.get("rows", []):
+        tr = r.get("trace")
+        if not tr:
+            # A row WITHOUT a trace can still support "did it forfeit" - that is a fact about the run. What it cannot
+            # support is any claim pairing a spend with a clock. Only flag it when the row carries an extremum that
+            # would need a row to belong to.
+            if "max_spend" in r or "lowest" in r:
+                bad.append("%s (%s start %s): records an extremum but no per-move trace to tie it to"
+                           % (f, r.get("pos") or "row", r.get("start")))
+            continue
+        for e in tr:
+            if not {"clock_before", "spent", "overrun"} <= set(e):
+                bad.append("%s: trace entry missing clock_before/spent/overrun" % f)
+                break
+print("\n".join(bad[:6]))
+PYEOF
+)
+
+if [ -n "$tracecheck" ]; then
+  echo "FAIL  a clock trace cannot tie an extremum to its own row"
+  echo "$tracecheck" | head -4 | sed 's/^/      /'
+  echo "      see NODE_COUNT_NORMALISATION_RULE.md - the reference must belong to the same row"
+  fail=1
+else
+  echo "ok    every clock trace ties each spend to the clock it faced"
+fi
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

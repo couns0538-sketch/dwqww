@@ -116,6 +116,27 @@ I found this by trying to verify this very page against my own artifact and fail
 same instinct as Trap 11 and Trap 10 — **make the output prove it looked at the right thing** — applied to a line of
 reporting rather than to a harness.
 
+### The same rule where the extrema live (S-C44)
+
+The rule above is about a *published* line. The identical failure bit me when nothing was being published — I was
+summarising my own experiment, and wrote:
+
+> "a move spent **70 ms** from a clock holding **1 ms**." That would have been a genuine defect. It was false.
+
+`70 ms` was `max(spend)` over a twelve-move game. **`1 ms` was the clock at ply 0.** Two numbers from different rows,
+placed in one sentence where they read as a single event. The spend actually happened at ply 11, with **161 ms** on the
+clock.
+
+> **When a summary pairs an extremum with a single reference value, the reference must belong to the same row.**
+
+This is `S-F126` in a place the original check could not reach: the artifact was correct, every trace entry was
+correct, and only the *sentence about them* was wrong. It is also why the fix was to add a per-move trace and an
+`overrun` flag — so the pairing came from the data rather than from my memory of two columns.
+
+The cheap test, which costs one division: **substitute the pair back into the arithmetic.** 1 − 70 + 60 = −9 is
+negative, so "and the clock never went negative" was impossible. The sentence refuted itself and I nearly skipped the
+check because it sounded like a result.
+
 ### The boundary of the enforced check, stated as a boundary rather than a bug
 
 `gate.sh` scans the result files for `A -> B = Rx` lines whose arithmetic does not hold. **That check verifies
