@@ -1357,3 +1357,15 @@ That improves on the earlier wording, which warned only about library predicates
 each level sounds more like the real thing than the last, and both are silent when wrong.
 F70 kept amended in place with the F71 pointer, so a reader sees what I first concluded and why it was wrong.
 98 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 57 m remain.
+## 2026-11-17T00:26:46Z  23-F72: on strictly-qualifying repetitions, base 0 nodes and a WORSE move in 5 of 5 - one is mate -5
+2026-11-17T00:26:46Z
+
+Five strictly-qualifying games (3 actual occurrences, is_insufficient_material() FALSE, halfmove 9-16, 13-30 pieces):
+  base 0 nodes in ALL FIVE; PC searched 532k-1.6M nodes in all five; moves differed in all five.
+  base move alone @16: cp -805 | **mate -5** | **cp -1858** | cp -31 | cp -39   (PC move: cp 0 every time)
+So on genuine repetitions the defect is universal in the sample (5 of 5, replacing F70's "general but not universal")
+and it can LOSE the game - game 2 walks into a forced mate in 5 against itself, game 3 into cp -1858 - while the
+cp 0 it reports hides it.
+Limits: five games, one settings combination, all self-play of this build; one opening reached no repetition in 202
+plies so frequency unmeasured; "worse" measured at depth 16 on the PC build as the common yardstick.
+99 findings, 18 confirmations. 9 h 55 m remain.
