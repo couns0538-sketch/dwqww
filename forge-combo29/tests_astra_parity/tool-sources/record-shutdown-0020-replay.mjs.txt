@@ -1,0 +1,34 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const run='/workspace/work/parity-run',sf=run+'/state.json',hash=f=>crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+const beforeHash=hash(sf),s=JSON.parse(fs.readFileSync(sf));
+const file=run+'/logs/asan-shutdown-0020-audit-full-001.stdout.txt',a=JSON.parse(fs.readFileSync(file));
+assert.equal(hash(file),'c43b65fe6a60c8984cb061fcc198b8714ec5cca7da6d7f5e849a8a109c4379df');
+assert.equal(a.diagnosticSuccess,true);assert.equal(a.fullReplayCompleted,true);assert.equal(a.soakCredit,0);
+assert.equal(a.trace.commands,24994);assert.equal(a.checks,8291);assert.equal(a.result.matched_searches,8291);assert.equal(a.result.tuple_drifts,0);
+assert.equal(a.engineStderrBytes,0);assert.deepEqual(a.errors,[]);assert.deepEqual(a.diagnostics,[]);
+assert.equal(a.shutdown.exit,0);assert.equal(a.shutdown.signal,0);assert.equal(a.shutdown.driver_sigterm,0);assert.equal(a.shutdown.driver_sigkill,0);
+assert.equal(a.shutdown.natural_grace_ms,5000);assert.equal(a.shutdown.quit_to_exit_ms,38.103431);
+assert.equal(s.asanShutdownFault0020.resolved,false);assert.equal(s.jobAClosure.acceptedGames,846);assert.equal(s.jobAClosure.acceptedSearches,120313);
+assert.equal(s.shutdownReplay0020,undefined);assert.equal(s.resumeScope0020.jobBReleaseMayResume,true);
+const rel='tests_astra_parity/asan-shutdown-0020-replay-report.md',report=s.repo+'/forge-combo29/'+rel;
+const text=['# Shutdown finding0020: one full retained-input replay','',
+ 'The authorized replay completed on 2026-11-15 at04:42:51 UTC. All24,994 recorded commands and8,291 searches were replayed in one process, preserving56 game resets and28 pairs. Every completed search matched the retained stable tuple; independent trace verification repeated legality, score and label checks. There were zero tuple differences.',
+ '', 'The unchanged ASan/UBSan engine exited naturally with code0, signal0, no driver signal and no sanitizer diagnostic. Complete engine stderr contained0 bytes (SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855). Quit-to-observed-reap was38.103431ms. The declared natural grace was5000ms; no TERM/KILL was sent.',
+ '', 'The original shutdown failure did not recur in this single replay. This observation does not support the proposed explanation that exit work exceeded250ms. Original command timing, scheduler/allocator state and concurrent sibling load were not recreated. The original cause and recurrence frequency remain unresolved; this is one diagnostic, not ten repetitions.',
+ '', 'The original batch remains a failed shutdown with zero clean credit. This diagnostic also receives zero soak credit. Job A remains closed at846 accepted games and120,313 searches. Release Job B continues under the explicit prior Fable0020 decision; this report does not reinterpret the original audit or grant any new test authority.',
+ '', '[Actual audit and full shutdown fields](logs/asan-shutdown-0020-audit-full-001.stdout.txt)',
+ '[Complete raw replay, process metadata and hashes](asan-shutdown-diagnostic-0020-full-001)',
+ '[Frozen implementation](asan-shutdown-implementation-0020/PREPARED.md)',
+ '[Independent implementation review](asan-shutdown-implementation-review-0020/native-review.md)',
+ '[Original full fault](faults/asan-shutdown-0020.txt)',
+ '[Fable0020 decision](inputs/FABLE_ANSWER_0020.md.txt)',
+ '', 'Audit SHA256 c43b65fe6a60c8984cb061fcc198b8714ec5cca7da6d7f5e849a8a109c4379df.',
+ 'Raw replay stdout SHA256 5fe8b02e5cdd9ee2718b78b37bee3f058dfcf990895de35c579fcd05b415c1c8.',
+ 'Source d9a8587df8ad4d0ff1231632cb1ac72b590c04bf; ASan binary SHA256 4c34f8384318b1f23a4ce9ffac3cbfb81169cbf5b2ce120f8021237eb2200090.',''].join('\n');
+fs.writeFileSync(report,text,{flag:'wx'});
+s.shutdownReplay0020={recordedUTC:new Date().toISOString(),report:rel,reportSha256:hash(report),audit:file,auditSha256:hash(file),rawStdoutSha256:a.inputSha256[run+'/asan-shutdown-diagnostic-0020/full-001/stdout.txt'],commands:a.trace.commands,searches:a.checks,matched:a.result.matched_searches,tupleDrifts:0,diagnosticSuccess:true,shutdown:a.shutdown,stderrBytes:0,diagnostics:0,soakCredit:0,repetitions:1,classification:'Original shutdown finding not reproduced by one full retained-input replay; cause unresolved',originalFailureUnchanged:true,jobAClosureUnchanged:true};
+s.phase='Job A closed; full shutdown replay clean but original cause unresolved; Job B continues';
+s.checkpointNote='One authorized full replay matched8291searches and exited0 naturally in38.103431ms, with0stderrbytes/reports/signals. Original shutdown remains unresolved and zero-credit; no >250ms exit-work explanation established. JobA846games/120313searches unchanged. JobB continues under0020.';
+s.progressBatch='Diagnostic0020 full-001, retained seed202611171101; JobB next batches';s.commitMessage='Record complete shutdown replay without changing original failure';
+assert.equal(hash(sf),beforeHash);fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');
+console.log(JSON.stringify(s.shutdownReplay0020,null,2));

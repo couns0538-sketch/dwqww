@@ -1,0 +1,22 @@
+{
+  "label": "declare-sanitizer-execution-order",
+  "started": "2026-11-15T01:22:12.080Z",
+  "cwd": "/workspace/work/dwqww-parity",
+  "argv": [
+    "timeout",
+    "-k",
+    "2",
+    "440",
+    "node",
+    "-e",
+    "const fs=require(\"fs\"),assert=require(\"assert/strict\"),r=\"/workspace/work/parity-run\",plan=JSON.parse(fs.readFileSync(\"/workspace/work/parity-softnodes-depth64-v2-preparation/plan.txt\")),groups=[[0,6],[1,7],[2,8],[3,9],[4,10],[5],[11]],rows=groups.map(indices=>({indices,totalEngineThreads:indices.reduce((n,i)=>n+plan.batches[i].threads,0),batches:indices.map(i=>plan.batches[i])}));for(const x of rows)assert.ok(x.totalEngineThreads<=4);const out={utc:new Date().toISOString(),mode:\"independent concurrent sanitizer groups after corpus gate; no match overlap\",cpuQuota:fs.readFileSync(\"/sys/fs/cgroup/cpu.max\",\"utf8\").trim(),groups:rows,policy:\"Separate engine processes, seeds, pipes and immutable output directories. No native corpus or match overlaps. At most4 aggregateengineThreads. Audit and state recording sequential. Any failure stops additionallaunches; preserve allpartialoutput if an activepeer is interrupted. Same frozen180second perbatchtarget and440second externalbound; deadline unchanged. This schedule changes noengine, limits, expectedvalues or seeds.\"};fs.writeFileSync(r+\"/inputs/sanitizer-execution-order.txt\",JSON.stringify(out,null,2)+\"\\n\",{flag:\"wx\"});console.log(JSON.stringify(out,null,2));"
+  ],
+  "inputFile": null,
+  "ended": "2026-11-15T01:22:12.139Z",
+  "exit": 0,
+  "signal": null,
+  "stdoutFile": "/workspace/work/parity-run/logs/declare-sanitizer-execution-order.stdout.txt",
+  "stderrFile": "/workspace/work/parity-run/logs/declare-sanitizer-execution-order.stderr.txt",
+  "stdoutSha256": "c6317296ad373bc00dfd52eabbd8522eccb468c58fa1c01fcf2866ab1292316f",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

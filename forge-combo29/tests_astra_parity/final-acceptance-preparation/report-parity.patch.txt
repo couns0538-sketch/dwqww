@@ -1,0 +1,32 @@
+--- report-parity.mjs (reviewed base)
++++ report-parity.mjs (suggested)
+@@ -1,6 +1,6 @@
+ export function renderReport(s,now){
+  const step1=s.validation?.step1??{},eq=s.equalityTotals?.step1??{},step2=s.validation?.step2??{},pre=s.soakTotals?.preliminaryStep1??{},final=s.soakTotals?.finalTree??{};
+- const observed=final.pairedSoftnodes?.observedIncludingPartialPair;
++ const observed=final.pairedSoftnodes?.observedIncludingPartialPair, strict=final.depth64v2PairedSoftnodes??s.depth64v2PairedSoftnodes, acceptance=s.step2Acceptance;
+  const e=typeof eq==='object'?eq:{};
+  return ['# Requested source integration and cloud validation','',
+  `Started ${s.start}; Job A deadline ${s.deadline}. Updated ${now}. Cloud VM only. Branch: \`${s.branch}\`. Base: \`${s.base}\`.`,
+@@ -14,15 +14,18 @@
+  `| Step 2 default pins | ${step2.pins?`${step2.pins.bench11} / ${step2.pins.bench13} / ${step2.pins.perft5}`:'Pending'} |`,
+  `| Step 2 option checks and unit rows | ${step2.options?`${step2.options.passed}/16 option counts; ${step2.unit?.cases??0} unit rows, ${step2.unit?.failures??0} failures`:'Pending'} |`,
+  `| Step 2 targeted position | ${step2.targetPosition?`${step2.targetPosition.move}, mate ${step2.targetPosition.score}, ${step2.targetPosition.nodes} nodes; depth9, Threads1`:'Pending'} |`,
+- `| Step 2 exact corpus | ${step2.equality?.completed??0}/100000; ${step2.equality?.differences??0} differences; ${step2.equality?.gatePassed?'gate passed':'completion/attribution pending'} |`,
++ `| Step 2 exact corpus | ${step2.equality?.completed??0}/100000; ${step2.equality?.differences??0} differences; ${acceptance?.effectiveGatePassed?'effective gate accepted with listed same-clock attribution; strict audit retained':step2.equality?.gatePassed?'strict gate passed':'completion/attribution pending'} |`,
+  `| Preliminary step 1 sanitizers | ${pre.games??0} games / ${pre.searches??0} searches; ${pre.faults??0} findings |`,
+  `| Preliminary paired UCI check | ${s.preliminarySoftnodes?`${s.preliminarySoftnodes.usualSearches} ordinary / ${s.preliminarySoftnodes.softSearches} soft-node searches; ${s.preliminarySoftnodes.hardCaps} cap cases; ${s.preliminarySoftnodes.labelFaults} label faults`:'Not run'} |`,
+- `| Final-tree sanitizer observations | ${observed?`${observed.usual.games+observed.soft.games} finished games / ${observed.usual.searches+observed.soft.searches} searches`:'0 games / 0 searches'}; ${final.faults??0} batches with findings |`,
+- `| Final-tree accepted clean batches | ${final.pairedSoftnodes?.passedBatches??0}; ${final.games??0} games / ${final.searches??0} searches; ${s.softnodesResolution?'Original contract finding retained; amended protocol authorized':final.status??'Pending'} |`,
++ `| Final-tree original protocol | ${observed?`${observed.usual.games+observed.soft.games} finished games / ${observed.usual.searches+observed.soft.searches} searches observed`:'Not run'}; ${final.pairedSoftnodes?.passedBatches??0} accepted batches; ${final.pairedSoftnodes?.faultBatches??0} historical contract-failure batches retained |`,
++ `| Final-tree strict depth64 v2 | ${strict?`${strict.passedBatches}/12 groups passed; ${strict.games} accepted games / ${strict.searches} searches; ${strict.diagnosticLines} diagnostic lines; ${strict.faultBatches} new finding batches`:'Not started; no new coverage claimed'} |`,
++ `| Strict-v2 paired labels | ${strict?`${strict.usual.games} ordinary / ${strict.soft.games} soft-node games; soft X ${strict.softXSum}/${strict.softXCount}, mean ${strict.softMeanX??'unavailable'}; ${strict.softHardCaps} hard-cap cases`:'Pending'} |`,
+  `| HindsightDepth match | ${s.matchTotals?.games??0} games; ${s.matchTotals?.status??'Not started'} |`,
+  '','| Imported source branch | Source commit | Applied commit | Conflicts |','|---|---|---|---|',
+  ...s.sourceCommits.map(x=>`| ${x.sourceBranch} | ${x.source} | ${x.commit} | ${x.conflicts} |`),
+  '',
++ ...(strict?['| Strict-v2 sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |','|---|---|---|---|---|---|',...Object.entries(strict.groups).map(([name,g])=>`| ${name} | ${g.passed}/${g.batches} | ${g.usual.games}/${g.usual.searches} | ${g.soft.games}/${g.soft.searches} | ${g.soft.soft_hard_cap_reached} | ${g.diagnosticLines}/${g.faultRows} |`),'','Only strict-v2 accepted coverage appears in that table. The original failed contract batch is retained separately. The first depth64 amendment declaration was unused; strict parsing of whole decimal depth values and rejection of duplicate depth fields were frozen before v2 runs.']:[]),
++ ...(acceptance?.effectiveGatePassed?['',`The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/${acceptance.file.split('/').at(-1)}).`,'']:[]),
+  'Each source change has its own commit. The three merges use e04556dd as their per-file ancestor. Full base/ours/theirs/output snapshots are in [merge evidence](tests_astra_parity/merges).',
+  '',
+  '| Option alone at bench13 | Value | Frozen expected | Step1 | Step2 |',

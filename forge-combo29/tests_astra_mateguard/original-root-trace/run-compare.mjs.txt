@@ -1,0 +1,59 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+import readline from 'node:readline';
+const dir='/workspace/work/r4-guard-peer/original-root-trace';
+const binaries={plain:'/workspace/work/r4-run/builds/guard-enabled/forge',observed:dir+'/forge-observed'};
+const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+async function run(kind,on){
+ const label=kind+'-'+(on?'on':'off'),out=path.join(dir,'runs',label);
+ fs.mkdirSync(out,{recursive:true});
+ if(fs.existsSync(out+'/summary.json'))throw Error('Fresh run required');
+ const binary=binaries[kind],argv=[binary],started=new Date().toISOString();
+ const binarySha256=sha(fs.readFileSync(binary));
+ const child=spawn(binary,[],{cwd:dir,stdio:['pipe','pipe','pipe']});
+ let stdout='',stderr='',traffic='',searched=false,completed=false,timedOut=false,spawnError=null,killTimer;
+ const commands=[];
+ const send=line=>{commands.push(line);traffic+=new Date().toISOString()+' > '+line+'\n';child.stdin.write(line+'\n');};
+ child.on('error',e=>{spawnError=String(e);});
+ child.stdin.on('error',e=>{traffic+='STDIN_ERROR '+String(e)+'\n';});
+ child.stdout.on('data',d=>{stdout+=d;});child.stderr.on('data',d=>{stderr+=d;});
+ readline.createInterface({input:child.stdout}).on('line',line=>{
+  if(line==='readyok'&&!searched){searched=true;send('ucinewgame');send('position fen 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1');send('go depth 13');}
+  else if(line.startsWith('bestmove ')&&searched&&!completed){completed=true;send('quit');child.stdin.end();}
+ });
+ child.once('spawn',()=>{send('uci');for(const [name,value] of Object.entries({Threads:1,Hash:16,OwnBook:false,UseNNUE:false,MateAlphaGuard:on}))send('setoption name '+name+' value '+value);send('isready');});
+ const timer=setTimeout(()=>{timedOut=true;child.kill('SIGTERM');killTimer=setTimeout(()=>child.kill('SIGKILL'),2000);},45000);
+ const result=await new Promise(resolve=>child.once('close',(code,signal)=>resolve({code,signal})));
+ clearTimeout(timer);if(killTimer)clearTimeout(killTimer);
+ const summary={label,argv,cwd:dir,started,ended:new Date().toISOString(),binarySha256,commands,...result,searched,completed,timedOut,spawnError,stdoutSha256:sha(stdout),stderrSha256:sha(stderr)};
+ for(const [name,value] of Object.entries({stdout,stderr,traffic}))fs.writeFileSync(out+'/'+name+'.txt',value,{flag:'wx'});
+ fs.writeFileSync(out+'/summary.json',JSON.stringify(summary,null,2)+'\n',{flag:'wx'});
+ if(result.code!==0||result.signal||!completed||timedOut||spawnError)throw Error('Run failed '+label);
+ if(kind==='plain'&&stderr!=='')throw Error('Unexpected plain stderr');
+ return {summary,stdout,stderr};
+}
+const normalize=s=>s.replace(/ (?:time|nps) \d+/g,'');
+const events=s=>s.trim().split('\n').filter(Boolean).map(line=>{
+ if(!line.startsWith('MATE_GUARD_TRACE '))throw Error('Unexpected trace stderr '+line);
+ return Object.fromEntries([...line.matchAll(/(\w+)=("[^"]*"|\S+)/g)].map(m=>[m[1],m[2].startsWith('"')?JSON.parse(m[2]):m[2]]));
+});
+const expectedPath='b3f3,c2b2,f1e2,b2c2,f3d3,c2b2,e2d1,b2a1';
+const report={normalization:'Only space-prefixed time and nps numeric fields are removed; all other stdout bytes retained.',modes:{}};
+for(const on of [false,true]){
+ const plain=await run('plain',on),observed=await run('observed',on);
+ const a=normalize(plain.stdout),b=normalize(observed.stdout);
+ fs.writeFileSync(dir+'/runs/'+plain.summary.label+'/stdout.normalized.txt',a,{flag:'wx'});
+ fs.writeFileSync(dir+'/runs/'+observed.summary.label+'/stdout.normalized.txt',b,{flag:'wx'});
+ const parsed=events(observed.stderr),strict=parsed.filter(e=>e.ply==='8'&&e.entry_depth==='5'&&e.ancestry===expectedPath);
+ const lastInfo=plain.stdout.split('\n').filter(l=>l.startsWith('info depth 13 ')).at(-1);
+ const result={normalizedStdoutIdentical:a===b,normalizedSha256:sha(a),lastInfo,bestmove:plain.stdout.split('\n').find(l=>l.startsWith('bestmove ')),totalEvents:parsed.length,semanticEntries:parsed.filter(e=>e.kind==='NODE_ENTER').length,strictDepth5Entries:strict.filter(e=>e.kind==='NODE_ENTER').length,strictD1c1BeforePruning:strict.filter(e=>e.kind==='BEFORE_PRUNING'&&e.move==='d1c1'),strictD1c1FutilitySkips:strict.filter(e=>e.kind==='QUIET_FUTILITY_SKIP'&&e.move==='d1c1'),strictD1c1ChildCalls:strict.filter(e=>e.kind.startsWith('D1C1_CALL_')),actualChildEntries:parsed.filter(e=>e.kind==='D1C1_CHILD_ENTER'&&e.ancestry===expectedPath+',d1c1')};
+ report.modes[on?'on':'off']=result;
+ fs.writeFileSync(dir+'/events-'+(on?'on':'off')+'.json',JSON.stringify(parsed,null,2)+'\n',{flag:'wx'});
+ console.log(JSON.stringify({mode:on?'on':'off',normalizedStdoutIdentical:result.normalizedStdoutIdentical,lastInfo,bestmove:result.bestmove,totalEvents:result.totalEvents,semanticEntries:result.semanticEntries,strictDepth5Entries:result.strictDepth5Entries,beforePruning:result.strictD1c1BeforePruning.length,futilitySkips:result.strictD1c1FutilitySkips.length,childCalls:result.strictD1c1ChildCalls.length,actualChildEntries:result.actualChildEntries.length}));
+ if(a!==b)throw Error('Observation changed normalized stdout');
+}
+report.nonvacuousOnDepth5=report.modes.on.strictDepth5Entries>0&&report.modes.on.strictD1c1ChildCalls.length>0&&report.modes.on.actualChildEntries.length>0&&report.modes.on.strictD1c1FutilitySkips.length===0;
+fs.writeFileSync(dir+'/comparison.json',JSON.stringify(report,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({nonvacuousOnDepth5:report.nonvacuousOnDepth5}));

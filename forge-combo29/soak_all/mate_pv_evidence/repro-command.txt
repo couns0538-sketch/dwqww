@@ -1,0 +1,47 @@
+node <<'NODE'
+const {spawn} = require('child_process');
+const readline = require('readline');
+const fs = require('fs');
+const fen = '8/8/8/8/8/1R6/2k5/5K2 w - - 0 1';
+const useNNUE = process.env.FORGE_REPRO_NNUE !== 'false';
+async function run(label, binary) {
+  if (!useNNUE) label += '-nnue-off';
+  console.log('BEGIN ' + label + ' ' + binary);
+  const child = spawn(binary, [], {stdio:['pipe','pipe','pipe']});
+  let output = '', stderr = '', searched = false, completed = false;
+  function send(line) { console.log(label + ' > ' + line); child.stdin.write(line + '\n'); }
+  const timer = setTimeout(() => {console.log(label + ' TIMEOUT after 45 seconds'); child.kill('SIGTERM');}, 45000);
+  child.stderr.on('data', data => {stderr += data; process.stdout.write(label + ' STDERR ' + data);});
+  readline.createInterface({input:child.stdout}).on('line', line => {
+    output += line + '\n'; console.log(label + ' < ' + line);
+    if (line === 'readyok' && !searched) {
+      searched = true;
+      send('ucinewgame');
+      send('position fen ' + fen);
+      send('go depth 13');
+    } else if (line.startsWith('bestmove ') && searched && !completed) {
+      completed = true; send('quit'); child.stdin.end();
+    }
+  });
+  send('uci');
+  send('setoption name Threads value 1');
+  send('setoption name Hash value 16');
+  send('setoption name OwnBook value false');
+  if (!useNNUE) send('setoption name UseNNUE value false');
+  send('isready');
+  const result = await new Promise(resolve => child.once('close', (code,signal) => resolve({code,signal})));
+  clearTimeout(timer);
+  fs.writeFileSync('/workspace/work/all-run/part4-review/' + label + '-stdout.txt', output);
+  fs.writeFileSync('/workspace/work/all-run/part4-review/' + label + '-stderr.txt', stderr);
+  console.log('END ' + label + ' ' + JSON.stringify({...result, completed, stderrBytes:Buffer.byteLength(stderr)}));
+  if (result.code !== 0 || !completed) process.exitCode = 1;
+}
+(async () => {
+  if (process.env.FORGE_REPRO_SINGLE_BINARY) {
+    await run('instrumented', process.env.FORGE_REPRO_SINGLE_BINARY);
+    return;
+  }
+  await run('lock', '/workspace/work/soak-run/build-lock-rel/forge');
+  await run('merged', '/workspace/work/all-run/builds/release/forge');
+})();
+NODE

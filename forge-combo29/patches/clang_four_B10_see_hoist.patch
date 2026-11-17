@@ -1,0 +1,77 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -6,6 +6,13 @@
+ #include <cstdlib>
+ #include <sstream>
+ 
++// FORGE_SDK_SEE_HOIST (SDK long job 2026-11-06; default 0 = the code before it): see_ge() builds each side's
++// king-contact and king-line slider sets once per call instead of at every exchange step, and skips the pin
++// filter when both are empty after masking. Same sets, same pop order: bit-exact.
++#ifndef FORGE_SDK_SEE_HOIST
++#define FORGE_SDK_SEE_HOIST 0
++#endif
++
+ namespace forge {
+ namespace {
+ 
+@@ -1152,6 +1159,14 @@
+     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+     const Bitboard lines = pieces(Rook) | pieces(Queen);
+     int result = 1;
++#if FORGE_SDK_SEE_HOIST
++    // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
++    // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
++    // exchange; only `live` loses bits, so `set & live` is exactly what the loop used to rebuild at every step.
++    std::array<Bitboard, 2> contact{};
++    std::array<Bitboard, 2> snipers{};
++    unsigned prepared = 0;
++#endif
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+@@ -1160,6 +1175,36 @@
+         // Existing checks reject every non-king; singleton ray blockers identify
+         // exactly the origins whose departure would expose a live enemy slider.
+         const Bitboard king_attackers = stm_attackers & pieces(stm, King);
++#if FORGE_SDK_SEE_HOIST
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const std::size_t side = static_cast<std::size_t>(stm);
++            const int king = king_square(stm);
++            if ((prepared & (1U << side)) == 0U) {
++                const Color enemy = opposite(stm);
++                const Bitboard queens = pieces(enemy, Queen);
++                contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
++                                (attacks::knight(king) & pieces(enemy, Knight)) |
++                                (attacks::king(king) & pieces(enemy, King));
++                snipers[side] = (attacks::bishop(king, 0) & (pieces(enemy, Bishop) | queens)) |
++                                (attacks::rook(king, 0) & (pieces(enemy, Rook) | queens));
++                prepared |= 1U << side;
++            }
++            const Bitboard live = occupancy & ~square_bb(to);
++            bool checked = (contact[side] & live) != 0;
++            Bitboard pinners = snipers[side] & live;
++            // Neither a contact check nor a live slider on a king line: nothing to filter (the common case).
++            if (checked || pinners != 0) {
++                Bitboard forbidden = 0;
++                while (!checked && pinners != 0) {
++                    const int pinner = pop_lsb(pinners);
++                    const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                    if (blockers == 0) checked = true;
++                    else if (!more_than_one(blockers)) forbidden |= blockers;
++                }
++                stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++            }
++        }
++#else
+         if ((stm_attackers & ~king_attackers) != 0) {
+             const Color enemy = opposite(stm);
+             const int king = king_square(stm);
+@@ -1181,6 +1226,7 @@
+             }
+             stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
+         }
++#endif
+         if (stm_attackers == 0) break;
+         result ^= 1;
+         Bitboard bb = 0;

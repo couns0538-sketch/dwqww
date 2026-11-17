@@ -1,0 +1,55 @@
+import fs from 'node:fs';import crypto from 'node:crypto';
+const repo='/workspace/work/dwqww-r4-guard',src=repo+'/forge-combo29',run='/workspace/work/r4-run',out='/workspace/work/r4-krk-validation/test-plan';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const sourceFiles=fs.readdirSync(src).filter(x=>/^tests_(t\d+|r3_\d+|r4_01)$/.test(x)).sort().flatMap(d=>fs.readdirSync(src+'/'+d).filter(x=>x.endsWith('.cpp')).sort().map(n=>d+'/'+n));
+const inventory=sourceFiles.map(p=>{const text=fs.readFileSync(src+'/'+p,'utf8'),lines=text.split('\n'),main=lines.findIndex(x=>/^int main\(/.test(x));return {source:src+'/'+p,relative:p,sha256:hash(src+'/'+p),hasMain:main>=0,mainLine:main<0?null:main+1,signature:main<0?null:lines[main],argvLines:lines.filter(x=>/argc|argv\[/.test(x)),needsUciLoop:/uci_loop/.test(text),standalone:!/#include "forge\//.test(text),slowOrClockSensitive:/sleep_for|steady_clock|kRounds = 20000/.test(text)};});
+fs.writeFileSync(out+'/inventory.json.txt',JSON.stringify({utc:new Date().toISOString(),nativeTestsRun:false,sourceFiles:inventory.length,executables:inventory.filter(x=>x.hasMain).length,inventory},null,2)+'\n');
+for(const mode of ['enabled','asan','tsan']){
+ const build=run+'/builds/guard-'+mode,dir=run+'/existing-suite-'+mode,bin=dir+'/bin',data=dir+'/data',logs=dir+'/logs';
+ const defs=['-DFORGE_MATE_ALPHA_GUARD=1','-DFORGE_EXPOSE_TUNABLES=1','-DFORGE_NNUE_HIDDEN=256','-DFORGE_SEARCH_SPEED2=1','-DFORGE_SPD_NNUE_ZMM=1','-DFORGE_SPD_NO_ZERO_MOVELISTS=2','-DFORGE_SPD_PREFETCH_EARLY=1','-DFORGE_SPD_SLIDER_PEXT=1','-DFORGE_SPD_TT_NOTLS=1'];
+ const common=['-std=c++20','-pthread','-O3','-ffp-contract=off','-fno-fast-math','-march=x86-64-v4','-I'+src+'/include','-I'+src+'/src',...defs,'-UNDEBUG'];
+ if(mode!=='enabled')common.push('-g','-fsanitize='+(mode==='asan'?'address,undefined':'thread'),'-fno-omit-frame-pointer');
+ const core=['bitboard','board','book','eval','eval_params','nnue','search'].map(n=>build+'/CMakeFiles/forge.dir/src/'+n+'.cpp.o');
+ const engine=build+'/forge';const env=mode==='asan'?{ASAN_OPTIONS:'detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS:'halt_on_error=1:print_stacktrace=1'}:mode==='tsan'?{TSAN_OPTIONS:'halt_on_error=0:exitcode=66'}:{};
+ const builds=[],runs=[];
+ function compile(id,argv,notes=[]){builds.push({id,cwd:repo,argv:['timeout','-k','2','120','g++',...argv],outerTimeoutMs:125000,stdoutFile:logs+'/build-'+id+'.stdout.txt',stderrFile:logs+'/build-'+id+'.stderr.txt',notes});}
+ function test(id,argv,extras={}){runs.push({id,cwd:repo,argv:['timeout','-k','2','440',...argv],outerTimeoutMs:450000,env,stdoutFile:logs+'/'+id+'.stdout.txt',stderrFile:logs+'/'+id+'.stderr.txt',expectedExit:0,...extras});}
+ compile('uci-loop',[...common,'-DFORGE_UCI_NO_MAIN=1','-c',src+'/src/uci.cpp','-o',dir+'/uci-loop.o']);
+ const wide=common.filter(x=>x!=='-DFORGE_NNUE_HIDDEN=256').concat(['-DFORGE_NNUE_HIDDEN=512','-Dnnue=nnue512']);
+ compile('nnue512',[...wide,'-DFORGE_NNUE_WEIGHTS="'+src+'/tests_t19/nnue_weights_512.inc"','-c',src+'/src/nnue.cpp','-o',dir+'/nnue512.o']);
+ compile('wide-eval512',[...wide,'-c',src+'/tests_t19/wide_eval.cpp','-o',dir+'/wide_eval512.o']);
+ const executables={};
+ for(const row of inventory.filter(x=>x.hasMain)){
+  const id=row.relative.replace(/^tests_/,'').replace(/\.cpp$/,'').replace('/','-'),exe=bin+'/'+id;executables[row.relative]=exe;
+  const extra=row.needsUciLoop?[dir+'/uci-loop.o']:[];if(row.relative==='tests_t19/eval_parity.cpp')extra.push(dir+'/nnue512.o',dir+'/wide_eval512.o');
+  compile(id,[...common,row.source,...extra,...(row.standalone?[]:core),'-o',exe],row.standalone?['No engine objects required.']:[]);
+ }
+ // The converter must run before file tests; both binary outputs and damaged variants stay in VM scratch.
+ test('t8-nnue-convert',[executables['tests_t8/nnue_convert.cpp'],data+'/lock.nnue'],{writesScratch:[data+'/lock.nnue']});
+ test('t8-nnue-file-test',[executables['tests_t8/nnue_file_test.cpp'],data+'/lock.nnue'],{dependsOn:['t8-nnue-convert'],writesScratch:[data+'/lock.nnue.*']});
+ test('t19-widen-nnue',[executables['tests_t19/widen_nnue.cpp'],src+'/src/nnue_weights.inc',data+'/nnue_weights_512.inc'],{writesScratch:[data+'/nnue_weights_512.inc']});
+ test('t19-wide-net-compare',['cmp',src+'/tests_t19/nnue_weights_512.inc',data+'/nnue_weights_512.inc'],{dependsOn:['t19-widen-nnue']});
+ for(const row of inventory.filter(x=>x.hasMain)){
+  const rel=row.relative,id=rel.replace(/^tests_/,'').replace(/\.cpp$/,'').replace('/','-'),exe=executables[rel];
+  if(['tests_t8/nnue_convert.cpp','tests_t8/nnue_file_test.cpp','tests_t19/widen_nnue.cpp','tests_t16/check_lines.cpp'].includes(rel))continue;
+  if(rel==='tests_r3_12/softnodes_test.cpp'){for(const sub of ['softnodes','depth10','edges'])test(id+'-'+sub,[exe,engine,sub],{notes:['POSIX child engine process; inherited sanitizer environment also applies to engine. Kill whole timeout process group on failure.']});continue;}
+  let args=[],notes=[];
+  if(rel==='tests_t12/krk_mate_test.cpp'){args=['40','10','2','16','14','1'];notes=['Six argv values are target positions, repetitions per position, threads, hash MB, depth, clear_all. Prior full ASan invocation exceeded 440s; timeout remains incomplete, never a pass. No offset selector exists.'];}
+  if(rel==='tests_t13/race_driver.cpp')args=['10','20'];
+  if(rel==='tests_t14/test_eval.cpp')args=[src+'/tests_t14/eval_cases.txt'];
+  if(rel==='tests_t18/uci_fuzz.cpp')args=['200000'];
+  if(rel==='tests_r3_15/tm_finish_test.cpp')notes=['No argv gives full 200 depth10 checks. Existing --no-deep omits them and is only a reduced supplemental run.'];
+  if(row.slowOrClockSensitive)notes.push('Keep full output; timing-sensitive assertion or large loop present. Do not tune thresholds to pass.');
+  test(id,[exe,...args],{notes});
+ }
+ for(const name of ['search','ownbook','options','clamp']){
+  test('t16-'+name,[engine],{stdinFile:src+'/tests_t16/'+name+'.in.txt',notes:['Repository-root cwd is required for the book path containing spaces. Inputs remain unchanged.']});
+  if(name==='search'||name==='ownbook')test('t16-'+name+'-check',[executables['tests_t16/check_lines.cpp'],logs+'/t16-'+name+'.stdout.txt',src+'/tests_t16/'+name+'.spec.txt'],{dependsOn:['t16-'+name]});
+  else test('t16-'+name+'-diff',['diff','-u',src+'/tests_t16/'+name+'.expected.txt',logs+'/t16-'+name+'.stdout.txt'],{dependsOn:['t16-'+name],knownHistoricalFailure:true,notes:['Historical Release and ASan options/clamp exact diffs exited1 due additional UCI options: four comparisons total, not four distinct fixtures. Preserve expected text; capture actual new-tree result. Never relabel as a passing assertion.']});
+ }
+ test('t22-uci-candidates',[engine],{stdinFile:src+'/tests_t22/uci_candidates.txt',notes:['Existing synchronous bench/perft option transcript; preserve complete real output, including bench16. Native search_candidates_test supplies assertions.']});
+ test('r3-17-command-transcript',[engine],{stdinFile:src+'/tests_r3_17/commands.txt',notes:['expected.txt is explanatory prose, not a literal stdout golden file. Assert nodes totals [0,20,600,400,600,600,400] in order, or retain as supplemental only; position_prefix.cpp is the executable proof.'],expectedPerftNodes:[0,20,600,400,600,600,400]});
+ const plan={schemaVersion:1,created:new Date().toISOString(),mode,nativeTestsRun:false,placeholderPolicy:'All argv, cwd, stdin and output paths are literal absolute paths; no shell or placeholder interpolation needed. Make listed output directories first. Commands are plans, not execution evidence.',scope:'Existing tests_t*, tests_r3_*, tests_r4_01; sources and expected values unchanged',sourceRoot:src,engine,build,outputDirectories:[dir,bin,data,logs],coreObjects:core,commonFlags:common,builds,runs,notDirectCommands:[{path:src+'/tests_t3/clock_commands.txt',reason:'Manual timing cases include multi-billion-ms clocks and require stop after150ms; do not pipe naively. clock_parse_test executable covers parser cases; timing handoffs need deliberate UCI controller.'},{path:src+'/tests_t8/expected_uci.txt',reason:'Descriptive output with <path-to-converted-lock-net> placeholder, not literal stdin or full golden stdout.'}],runSemantics:['Execute each bounded command separately; do not wrap the entire plan in one multi-hour command.','Do not start until root authorizes successor phase/budget.','For each process retain exact argv, environment, start/end, exit/signal and full stdout/stderr.','No runtime option forced globally: existing tests start MateAlphaGuard false and independently toggle their own tested options.','Compiler -UNDEBUG is for test translation units; engine objects must remain frozen.','Libraries, generated net files, binaries and executable scripts stay in VM scratch; publish source/log text only.']};
+ fs.writeFileSync(out+'/plan-'+mode+'.json.txt',JSON.stringify(plan,null,2)+'\n');
+ console.log(JSON.stringify({mode,buildCommands:builds.length,runs:runs.length,uciTests:inventory.filter(x=>x.needsUciLoop).map(x=>x.relative)}));
+}

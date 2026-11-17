@@ -1,0 +1,13 @@
+# Equality evidence-tool repair verification
+
+Changed only recorder, aggregate audit, and their new evidence-integrity helper. No engine processes, engine/source edits, real recorder invocation, or state writes were performed. No Git operations or subagents were used.
+
+`node /workspace/work/r4-equality-review/verify-tools.mjs` completed 14 checks. Final actual stdout/stderr are in `verification-final.stdout.txt` and `verification-final.stderr.txt`; each synthetic aggregate subprocess command, exit, stdout, and stderr is retained under its fixture directory. Syntax-check commands and exit codes are in `syntax-checks.txt`. Diff and final hashes are in `tool-diff.patch.txt` and `tool-sha256.txt`. Publish inert tools from `after/*.mjs.txt`; the test runner also has an identical inert twin.
+
+Verified retained read-only C-0003: ten observed differences each preserve attempts 0–10 with both transcript sections and END markers; four deadline-only partials produce zero operational findings. Fixtures reject hash tampering, duplicate attempt IDs, missing transcript/end markers, changed immutable faults, incomplete packages, and changed package bytes. Identical fault and completed package retries verify successfully. A partial crash/SAN before interrupted reproduction gates the aggregate at exit 3 while counting zero positions; expected deadline cleanup alone produces zero operational faults. A natural crash in the same budget-interrupted attempt remains visible.
+
+The first test found a parser defect when raw text began directly with CASE rather than CONFIG; it was fixed, and the original failure output is retained. Final checks pass.
+
+Recorder now pins prior summaries and audits, verifies a per-batch transaction against summary/tool hashes, reuses byte-identical deterministic aggregate output, validates every immutable fault, writes immutable files through atomic hard-link publication, packages into a fresh staging directory, reconstructs/verifies all package bytes, and atomically renames the verified package. A failed package stage remains retained and does not obstruct a fresh retry. State is updated only after verified publication and an unchanged-state check.
+
+Limits: no real recorder or engine was run. The package CLI was not executed; package reconstruction/retry checks used isolated manifest fixtures. Interrupted/crashed whole-driver files with malformed evidence cause audit failure and require review rather than silently passing. Existing corrupted immutable final files fail closed and require explicit recovery; they are never overwritten. Partial observed differences are separately retained and require attribution, without contributing positions or pretending to have eleven completed attempts.

@@ -1,0 +1,14 @@
+// Synthetic accounting only; no engine processes.
+import assert from 'node:assert/strict';import {finishedDepths,aggregate} from './audit-core.mjs';
+const marker='EVENT {"event":"pre_quit_snapshot_frozen","elapsed_ms":1}\n';let checks=0;const test=(name,f)=>{f();checks++;console.log('PASS '+name);};
+test('exact depth retained',()=>assert.deepEqual(finishedDepths('< stdout info depth 9 score cp -2 nodes 123 time 7 pv e1f1\n'+marker).map(x=>[x.depth,x.nodes,x.timeMs]),[[9,123,7]]));
+test('bounded info omitted',()=>assert.equal(finishedDepths('< stdout info depth 9 score cp 2 lowerbound nodes 123 time 7 pv e1f1\n'+marker).length,0));
+test('post-quit depth omitted',()=>assert.equal(finishedDepths(marker+'< stdout info depth 12 score cp 2 nodes 456 time 8 pv e1f1\n').length,0));
+test('all finished depths retained',()=>assert.deepEqual(finishedDepths('< stdout info depth 1 score cp 2 nodes 10 time 0 pv e1f1\n< stdout info depth 9 score mate -3 nodes 123 time 7 pv e1f1\n'+marker).map(x=>x.depth),[1,9]));
+for(const [name,line]of [['missing time','info depth 9 score cp 2 nodes 123 pv e1f1'],['duplicate time','info depth 9 score cp 2 nodes 123 time 7 time 8 pv e1f1'],['partial integer','info depth 9 score cp 2 nodes 123junk time 7 pv e1f1'],['unsafe integer','info depth 9 score cp 2 nodes 9007199254740993 time 7 pv e1f1']])test(name,()=>assert.throws(()=>finishedDepths('< stdout '+line+'\n'+marker)));
+test('snapshot mandatory',()=>assert.throws(()=>finishedDepths('< stdout info depth 9 score cp 2 nodes 123 time 7 pv e1f1\n')));
+const row={id:'R-001',row:{caseIndex:4,threads:1,depth:9,repeat:1},searchCompletedBeforeQuit:true,result:{response_timed_out:0,normal_exit:1},finishedDepths:[],diagnostics:[],evidenceFinalized:true};
+test('natural completion separate',()=>{const x=aggregate([row]);assert.equal(x.naturalTargetCompletions,1);assert.equal(x.soakCredit,0);});
+test('timeout gets no target credit',()=>{const x=aggregate([{...row,searchCompletedBeforeQuit:false,result:{response_timed_out:1,normal_exit:1}}]);assert.equal(x.naturalTargetCompletions,0);assert.equal(x.timeouts,1);});
+test('empty remains empty',()=>assert.equal(aggregate([]).recorded,0));
+console.log(JSON.stringify({checks,passed:checks,engineRuns:0}));

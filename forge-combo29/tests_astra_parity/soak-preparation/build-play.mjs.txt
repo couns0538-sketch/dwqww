@@ -1,0 +1,38 @@
+// Prepared only. Root invokes after accepting the final source tree and building it.
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const [mode,authorization,stage='final']=process.argv.slice(2);
+assert.ok(['asan','tsan'].includes(mode));
+assert.ok(['final','step1'].includes(stage));
+assert.equal(authorization,'--execute-build-authorized');
+const run='/workspace/work/parity-run',src='/workspace/work/dwqww-parity/forge-combo29';
+const preparation='/workspace/work/parity-soak-preparation';
+const build=run+'/builds/'+stage+'-'+mode,out=run+'/tests-'+(stage==='final'?'':stage+'-')+mode;
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const write=(p,x)=>fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n',{flag:'wx'});
+const origin=JSON.parse(fs.readFileSync(preparation+'/harness-origin.txt'));
+const driver=preparation+'/play_driver.cpp';
+assert.equal(hash(driver),origin.sha256);
+assert.ok(!fs.existsSync(out+'/play_driver')&&!fs.existsSync(out+'/provenance.json.txt'),'Fresh build output required');
+const defs=['-DFORGE_MATE_ALPHA_GUARD=1','-DFORGE_EXPOSE_TUNABLES=1','-DFORGE_NNUE_HIDDEN=256','-DFORGE_SEARCH_SPEED2=1','-DFORGE_SPD_NNUE_ZMM=1','-DFORGE_SPD_NO_ZERO_MOVELISTS=2','-DFORGE_SPD_PREFETCH_EARLY=1','-DFORGE_SPD_SLIDER_PEXT=1','-DFORGE_SPD_TT_NOTLS=1'];
+const sanitizer='-fsanitize='+(mode==='asan'?'address,undefined':'thread');
+const flags=['-std=c++20','-pthread','-O3','-ffp-contract=off','-fno-fast-math','-march=x86-64-v4','-I'+src+'/include',...defs,'-UNDEBUG','-g',sanitizer,'-fno-omit-frame-pointer'];
+const flagsFile=build+'/CMakeFiles/forge.dir/flags.make',flagsText=fs.readFileSync(flagsFile,'utf8');
+for(const flag of [...defs,sanitizer,'-march=x86-64-v4','-ffp-contract=off','-fno-fast-math'])assert.ok(flagsText.includes(flag),'Core build missing '+flag);
+const objectDir=build+'/CMakeFiles/forge.dir/src',objects=fs.readdirSync(objectDir).filter(x=>x.endsWith('.cpp.o')&&x!=='uci.cpp.o').sort().map(x=>objectDir+'/'+x);
+assert.equal(objects.length,7,'Expected seven core objects excluding UCI main');
+const sourcePins={};
+function pinTree(dir){for(const x of fs.readdirSync(dir,{withFileTypes:true})){const p=dir+'/'+x.name;if(x.isDirectory())pinTree(p);else sourcePins[p]=hash(p);}}
+pinTree(src+'/src');pinTree(src+'/include');sourcePins[src+'/CMakeLists.txt']=hash(src+'/CMakeLists.txt');
+const inputPins=Object.fromEntries([...objects,driver,flagsFile].map(p=>[p,hash(p)]));
+fs.mkdirSync(out,{recursive:true});
+const argv=['timeout','-k','2','120','g++',...flags,driver,...objects,'-o',out+'/play_driver'];
+const started=new Date().toISOString();
+const result=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:125000,maxBuffer:8*1024*1024});
+write(out+'/build-records.json.txt',{mode,started,ended:new Date().toISOString(),argv,exit:result.status,signal:result.signal,error:result.error?.message??null,stdout:result.stdout,stderr:result.stderr});
+console.log(JSON.stringify({mode,exit:result.status,signal:result.signal,buildRecord:out+'/build-records.json.txt'}));
+assert.equal(result.status,0,'Build failed; preserve output and do not run');
+for(const [p,pin]of Object.entries({...inputPins,...sourcePins}))assert.equal(hash(p),pin,'Input changed during build '+p);
+write(out+'/provenance.json.txt',{stage,mode,flags,sourcePins,inputPins,driverOrigin:origin,binary:out+'/play_driver',binarySha256:hash(out+'/play_driver'),nativeExecutions:0});

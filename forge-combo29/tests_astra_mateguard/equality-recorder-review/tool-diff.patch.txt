@@ -1,0 +1,266 @@
+--- before/record-equality.mjs
++++ after/record-equality.mjs
+@@ -1,40 +1,59 @@
+ import fs from 'node:fs';
+ import cp from 'node:child_process';
+-import crypto from 'node:crypto';
++import {hashFile, check, differenceTranscripts, writeImmutable, verifyPackage} from './equality-tools/evidence-integrity.mjs';
+ const id=process.argv[2],r='/workspace/work/r4-run',stateFile=r+'/state.json';
+ if(!/^E-\d{4}$/.test(id??''))throw Error('batch id');
+-const s=JSON.parse(fs.readFileSync(stateFile)),prior=s.equalityBatches??[];
++const statePin=hashFile(stateFile),s=JSON.parse(fs.readFileSync(stateFile)),prior=s.equalityBatches??[];
+ if(prior.some(x=>x.id===id)||id!=='E-'+String(prior.length+1).padStart(4,'0'))throw Error('unique sequential batch required');
+-const summary=r+'/equality-batches/'+id+'/summary.txt',b=JSON.parse(fs.readFileSync(summary));
+-const files=[...prior.map(x=>x.summary),summary],auditPrefix=r+'/equality-batches/'+id+'/all-differences-audit';
+-if(fs.existsSync(auditPrefix+'.txt'))throw Error('audit already exists');
++for(const previous of prior){
++ check(previous.summarySha256&&hashFile(previous.summary)===previous.summarySha256,'prior summary pin mismatch: '+previous.id);
++ check(previous.auditSha256&&hashFile(previous.audit)===previous.auditSha256,'prior audit pin mismatch: '+previous.id);
++}
++const source=r+'/equality-batches/'+id,summary=source+'/summary.txt',b=JSON.parse(fs.readFileSync(summary));
++const files=[...prior.map(x=>x.summary),summary],auditPrefix=source+'/all-differences-audit';
++const transaction={schema:1,id,summaries:files.map(file=>({file,sha256:hashFile(file)})),tools:['equality-tools/audit-all-differences.mjs','equality-tools/evidence-integrity.mjs','package-evidence.mjs'].map(name=>({name,sha256:hashFile(r+'/'+name)}))};
++writeImmutable(source+'/record-equality-transaction.txt',JSON.stringify(transaction,null,2)+'\n');
+ const argv=['node',r+'/equality-tools/audit-all-differences.mjs',...files],started=new Date().toISOString();
+ const a=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:64*1024*1024});
+-fs.writeFileSync(auditPrefix+'.txt',a.stdout??'',{flag:'wx'});
+-fs.writeFileSync(auditPrefix+'.stderr.txt',a.stderr??'',{flag:'wx'});
+-fs.writeFileSync(auditPrefix+'.command.txt',JSON.stringify({argv,started,ended:new Date().toISOString(),exit:a.status,signal:a.signal,error:a.error?.message},null,2)+'\n',{flag:'wx'});
+-if(![0,1,3].includes(a.status)||!a.stdout)throw Error('aggregate failed; inspect retained output');
++const attempt=r+'/logs/record-equality-'+id+'-'+Date.now()+'-'+process.pid;
++fs.mkdirSync(r+'/logs',{recursive:true});
++const command=JSON.stringify({argv,started,ended:new Date().toISOString(),exit:a.status,signal:a.signal,error:a.error?.message},null,2)+'\n';
++writeImmutable(attempt+'.audit.txt',a.stdout??'');writeImmutable(attempt+'.stderr.txt',a.stderr??'');writeImmutable(attempt+'.command.txt',command);
++if(![0,1,3].includes(a.status)||!a.stdout)throw Error('aggregate failed; inspect '+attempt);
+ const audit=JSON.parse(a.stdout),tests=s.repo+'/forge-combo29/tests_astra_mateguard',faults=tests+'/faults';
+-fs.mkdirSync(faults,{recursive:true});
+-for(const d of audit.differences){
++const faultFiles=audit.differences.map(d=>{
++ const manifest=JSON.parse(fs.readFileSync(d.artifactManifest));
++ const selected=differenceTranscripts(d,manifest);
+  const dest=faults+'/equality-'+String(d.globalRecordIndex).padStart(6,'0')+'.txt';
+- if(fs.existsSync(dest))continue;
+- const raw=fs.readFileSync(d.evidence,'utf8'),blocks=raw.split(/(?=^CASE \{)/m),selected=[];
+- for(const block of blocks){const m=block.match(/^CASE (\{[^\n]*\})/);if(m&&JSON.parse(m[1]).index===d.localIndex)selected.push(block);}
+- if(selected.length!==d.reproductionsCompleted+1)throw Error('exact transcript blocks missing for '+d.globalRecordIndex);
+- const text='Observed depth-9 difference; attribution pending. Legacy clock gate does not waive this record.\n'+JSON.stringify({reference:audit.reference,candidate:audit.candidate,...d},null,2)+'\n\nFULL ORIGINAL AND REPEAT TRANSCRIPTS\n'+selected.join('');
+- fs.writeFileSync(dest,text,{flag:'wx'});
++ const text='Observed depth-9 difference; attribution pending. Legacy clock gate does not waive this record.\n'+JSON.stringify({reference:audit.reference,candidate:audit.candidate,...d},null,2)+'\n\nFULL ORIGINAL AND REPEAT TRANSCRIPTS\n'+selected;
++ if(fs.existsSync(dest))check(fs.readFileSync(dest).equals(Buffer.from(text)),'existing immutable fault differs: '+dest);
++ return {dest,text};
++});
++// All evidence and existing faults are verified before publishing new immutable files.
++fs.mkdirSync(faults,{recursive:true});for(const {dest,text}of faultFiles)writeImmutable(dest,text);
++writeImmutable(auditPrefix+'.txt',a.stdout);
++writeImmutable(auditPrefix+'.stderr.txt',a.stderr??'');
++if(fs.existsSync(auditPrefix+'.command.txt')){
++ const old=JSON.parse(fs.readFileSync(auditPrefix+'.command.txt'));
++ check(JSON.stringify(old.argv)===JSON.stringify(argv)&&old.exit===a.status&&!old.signal&&!old.error,'existing audit command mismatch');
++}else writeImmutable(auditPrefix+'.command.txt',command);
++const destination=tests+'/equality/'+id;
++if(fs.existsSync(destination))verifyPackage(source,destination);
++else {
++ const stage=destination+'.stage-'+Date.now()+'-'+process.pid;
++ const packArgv=['node',r+'/package-evidence.mjs',source,stage];
++ const p=cp.spawnSync(packArgv[0],packArgv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:1024*1024});
++ writeImmutable(attempt+'.package.txt',JSON.stringify({argv:packArgv,exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr},null,2)+'\n');
++ if(p.status!==0)throw Error('package failed; retained staging directory '+stage+'; retry uses a fresh stage');
++ verifyPackage(source,stage);fs.renameSync(stage,destination);
++ verifyPackage(source,destination);
+ }
+-const destination=tests+'/equality/'+id,packArgv=['node',r+'/package-evidence.mjs',r+'/equality-batches/'+id,destination];
+-const p=cp.spawnSync(packArgv[0],packArgv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:1024*1024});
+-fs.writeFileSync(r+'/logs/package-equality-'+id+'.txt',JSON.stringify({argv:packArgv,exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr},null,2)+'\n');
+-if(p.status!==0)throw Error('package failed; preserve state for review');
+-const hash=x=>crypto.createHash('sha256').update(fs.readFileSync(x)).digest('hex');
+-prior.push({id,summary,summarySha256:hash(summary),counts:b.counts,partial:b.partial,validationFailed:b.validationFailed,allTargetsMet:b.allTargetsMet,audit:auditPrefix+'.txt',auditSha256:hash(auditPrefix+'.txt'),auditExit:a.status});
+-s.equalityBatches=prior;s.equalityTotals={...audit.counts,totalDifferencePositions:audit.totalDifferences,unattributedDifferences:audit.unattributedDifferences,targetMet:audit.targetMet,selection:audit.selection,operationalFaults:audit.operationalFaults,validationErrors:audit.validationErrors.length,equalityAcceptedWithoutAttribution:audit.equalityAcceptedWithoutAttribution};
++check(hashFile(stateFile)===statePin,'state changed during recording; verified publication retained for retry');
++prior.push({id,summary,summarySha256:hashFile(summary),counts:b.counts,partial:b.partial,validationFailed:b.validationFailed,allTargetsMet:b.allTargetsMet,audit:auditPrefix+'.txt',auditSha256:hashFile(auditPrefix+'.txt'),auditExit:a.status});
++s.equalityBatches=prior;s.equalityTotals={...audit.counts,totalDifferencePositions:audit.totalDifferences,unattributedDifferences:audit.unattributedDifferences,targetMet:audit.targetMet,selection:audit.selection,operationalFaults:audit.operationalFaults,committedOperationalFaults:audit.committedOperationalFaults,partialOperationalFaults:audit.partialOperationalFaults,partialDifferenceObservations:audit.partialDifferenceObservations.length,validationErrors:audit.validationErrors.length,equalityAcceptedWithoutAttribution:audit.equalityAcceptedWithoutAttribution};
+ s.phase='Successor soak: depth-9 equality against e04556dd';s.progressBatch=id+'; seed '+b.seed;
+-s.checkpointNote='Batch '+id+' counts '+JSON.stringify(b.counts)+'. Cumulative '+audit.counts.positions+' positions; '+audit.totalDifferences+' low/high-clock differences require attribution; operational faults '+audit.operationalFaults+'. Full inputs, output, partial boundaries and every difference retained. Original100k selection verified only when targetMet.';
++s.checkpointNote='Batch '+id+' counts '+JSON.stringify(b.counts)+'. Cumulative '+audit.counts.positions+' positions; '+audit.unattributedDifferences+' low/high-clock observations require attribution; operational faults '+audit.operationalFaults+' including '+audit.partialOperationalFaults+' partial findings. Full inputs, output, partial boundaries and every difference retained. Original100k selection verified only when targetMet.';
+ s.commitMessage='Checkpoint successor equality batch '+id;
+-fs.writeFileSync(stateFile,JSON.stringify(s,null,2)+'\n');
++const next=stateFile+'.record-'+process.pid;writeImmutable(next,JSON.stringify(s,null,2)+'\n');fs.renameSync(next,stateFile);
+ console.log(JSON.stringify({id,auditExit:a.status,counts:s.equalityTotals,published:destination}));
+ process.exitCode=audit.operationalFaults||audit.validationErrors.length?3:0;
+
+--- before/audit-all-differences.mjs
++++ after/audit-all-differences.mjs
+@@ -5,13 +5,14 @@
+ import readline from 'node:readline';
+ import path from 'node:path';
+ import {COUNT_FIELDS} from './compare4.mjs';
++import {verifyArtifact, parseAttempts, partialOperationalFindings, differenceTranscripts} from './evidence-integrity.mjs';
+ const files=process.argv.slice(2);if(!files.length)throw Error('at least one completed batch summary required');
+ const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+ const expected=JSON.parse(fs.readFileSync(new URL('./original-selection.json.txt',import.meta.url)));
+ const reference='/workspace/work/all-run/builds/release/forge',candidate='/workspace/work/r4-run/builds/guard-enabled/forge';
+ const pins={[reference]:'e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e',[candidate]:'710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc'};
+ const workers=[0,1,2,3].map(worker=>({worker,cursor:0,positions:0,digest:crypto.createHash('sha256')}));
+-const totals=Object.fromEntries(COUNT_FIELDS.map(k=>[k,0])),differences=[],partials=[],errors=[],seen=new Set(),batches=[];
++const totals=Object.fromEntries(COUNT_FIELDS.map(k=>[k,0])),differences=[],partials=[],partialFindings=[],partialDifferences=[],errors=[],seen=new Set(),batches=[];
+ function require(ok,message){if(!ok)throw Error(message);}
+ for(const file of files){
+  const s=JSON.parse(fs.readFileSync(file));require(s.type==='comparison_sharded_summary','summary type');
+@@ -19,23 +20,33 @@
+  require(s.sourceSha256===expected.sourceSha256,'wrong corpus');
+  const local=Object.fromEntries(COUNT_FIELDS.map(k=>[k,0]));
+  const artifactHashes=JSON.parse(fs.readFileSync(s.artifactEvidence.manifest));
+- require(artifactHashes['summary.txt']?.sha256===sha(file),'summary artifact hash mismatch');
++ verifyArtifact(file,artifactHashes);
+  for(const w of s.workers){
+   const st=workers[w.worker];require(!!st&&w.offset===st.cursor,'cursor discontinuity');
+   require(w.remainingEligibleBefore===25000-st.positions,'remaining target discontinuity');
+-  if(!w.accepted){if(!w.skipped)partials.push({batch:file,worker:w.worker,accepted:false,reason:w.uncommittedReason,process:w.process});continue;}
++  const evidence=(w.outputPrefix??path.join(path.dirname(file),'worker-'+w.worker))+'.jsonl.evidence.txt';
++  const attempts=!w.skipped&&(w.accepted||artifactHashes[path.basename(evidence)]||fs.existsSync(evidence))?parseAttempts(verifyArtifact(evidence,artifactHashes).toString('utf8')):[];
++  const committed=new Set();
++  const retainPartial=()=>{
++   const uncommitted=attempts.filter(a=>!committed.has(a.context.index));
++   partialFindings.push(...partialOperationalFindings(uncommitted).map(x=>({batch:file,worker:w.worker,evidence,...x})));
++   for(const a of uncommitted)if(a.pair.different)partialDifferences.push({batch:file,worker:w.worker,evidence,localIndex:a.context.index,fen:a.context.fen,attempt:a.attempt,requiresAttribution:true,counted:false});
++  };
++  if(!w.accepted){if(!w.skipped)partials.push({batch:file,worker:w.worker,accepted:false,reason:w.uncommittedReason,process:w.process});retainPartial();continue;}
+   require(!w.validationErrors.length,'accepted validation error');
+   let positions=0,lowDiff=0,highDiff=0;
+-  const jsonl=w.outputPrefix+'.jsonl';require(artifactHashes[path.basename(jsonl)]?.sha256===sha(jsonl),'JSONL artifact hash mismatch');
++  const jsonl=w.outputPrefix+'.jsonl';verifyArtifact(jsonl,artifactHashes);
+   for await(const line of readline.createInterface({input:fs.createReadStream(w.outputPrefix+'.jsonl'),crlfDelay:Infinity})){
+    if(!line.trim())continue;const r=JSON.parse(line);if(r.type!=='position')continue;
+-   const i=r.context.index,key=w.worker+':'+i;require(!seen.has(key),'duplicate committed position');seen.add(key);
++   const i=r.context.index,key=w.worker+':'+i;require(!seen.has(key),'duplicate committed position');seen.add(key);committed.add(i);
+    st.digest.update(i+'\t'+r.context.fen+'\n');positions++;
+    if(r.initial.different){if(r.context.halfmove<80)lowDiff++;else highDiff++;}
+    if(r.initial.different||r.reproduction_difference_frequency>0){
+-    differences.push({globalRecordIndex:4*i+w.worker,worker:w.worker,localIndex:i,fen:r.context.fen,halfmove:r.context.halfmove,requiresAttribution:true,legacyRequiredEquality:r.context.required_equality,initial:r.initial,reproductionsCompleted:r.reproductions_completed,reproductionDifferenceFrequency:r.reproduction_difference_frequency,reproductionOriginalSignatureFrequency:r.reproduction_original_signature_frequency,evidence:w.outputPrefix+'.jsonl.evidence.txt',pendingFile:r.pending_file,batch:file});
++    differences.push({globalRecordIndex:4*i+w.worker,worker:w.worker,localIndex:i,fen:r.context.fen,halfmove:r.context.halfmove,requiresAttribution:true,legacyRequiredEquality:r.context.required_equality,initial:r.initial,reproductionsCompleted:r.reproductions_completed,reproductionDifferenceFrequency:r.reproduction_difference_frequency,reproductionOriginalSignatureFrequency:r.reproduction_original_signature_frequency,evidence,evidenceSha256:artifactHashes[path.basename(evidence)]?.sha256,artifactManifest:s.artifactEvidence.manifest,pendingFile:r.pending_file,batch:file});
+    }
+   }
++  retainPartial();
++  for(const d of differences.filter(d=>d.batch===file&&d.worker===w.worker))differenceTranscripts(d,artifactHashes);
+   require(positions===w.counts.positions&&lowDiff===w.counts.differences_low_clock&&highDiff===w.counts.differences_high_clock,'independent difference/count mismatch');
+   for(const k of COUNT_FIELDS)local[k]+=w.counts[k];
+   st.positions+=positions;st.cursor=w.next_offset;
+@@ -51,6 +62,8 @@
+ const initialDifferencePositions=differences.filter(d=>d.initial.different).length;
+ require(initialDifferencePositions===totals.differences_low_clock+totals.differences_high_clock,'all initial difference count');
+ const operationalFields=['invalid_fens','illegal','missing','missing_info','wrong_depth','sanitizer_issues','transport_issues','crashes','nonzero_exits','shutdown_timeouts'];
+-const operationalFaults=operationalFields.reduce((n,k)=>n+totals[k],0);
+-console.log(JSON.stringify({utc:new Date().toISOString(),reference,candidate,batches,counts:totals,totalDifferences:differences.length,initialDifferencePositions,reproductionOnlyDifferencePositions:differences.length-initialDifferencePositions,allDifferencesRequireAttribution:true,unattributedDifferences: differences.length,targetMet,selection,operationalFaults,partialEvidence:partials,validationErrors:errors,differences,equalityAcceptedWithoutAttribution:targetMet&&differences.length===0&&operationalFaults===0&&errors.length===0,note:'Legacy fault_positions and exit0 do not waive high-clock differences. Every entry in differences must be independently explained. Partial attempts are retained but excluded; earlier valid partial boundaries do not prevent a later complete corpus.'},null,2));
+-process.exitCode=errors.length||operationalFaults?3:(!targetMet||differences.length)?1:0;
++const committedOperationalFaults=operationalFields.reduce((n,k)=>n+totals[k],0);
++const partialOperationalFaults=partialFindings.reduce((n,f)=>n+Object.values(f.faults).reduce((a,b)=>a+b,0),0);
++const operationalFaults=committedOperationalFaults+partialOperationalFaults;
++console.log(JSON.stringify({utc:JSON.parse(fs.readFileSync(files.at(-1))).finishedUTC??null,reference,candidate,batches,counts:totals,totalDifferences:differences.length,initialDifferencePositions,reproductionOnlyDifferencePositions:differences.length-initialDifferencePositions,allDifferencesRequireAttribution:true,unattributedDifferences: differences.length+partialDifferences.length,targetMet,selection,operationalFaults,committedOperationalFaults,partialOperationalFaults,partialOperationalFindings:partialFindings,partialDifferenceObservations:partialDifferences,partialEvidence:partials,validationErrors:errors,differences,equalityAcceptedWithoutAttribution:targetMet&&differences.length===0&&partialDifferences.length===0&&operationalFaults===0&&errors.length===0,note:'Legacy fault_positions and exit0 do not waive high-clock differences. Every entry in differences must be independently explained. Partial positions are excluded from corpus counts; partial operational findings and observed differences independently block acceptance; earlier valid partial boundaries do not prevent a later complete corpus.'},null,2));
++process.exitCode=errors.length||operationalFaults?3:(!targetMet||differences.length||partialDifferences.length)?1:0;
+
+--- before/evidence-integrity.mjs
++++ after/evidence-integrity.mjs
+@@ -0,0 +1,104 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import crypto from 'node:crypto';
++export const sha256 = data => crypto.createHash('sha256').update(data).digest('hex');
++export const hashFile = file => sha256(fs.readFileSync(file));
++export function check(ok, message) { if (!ok) throw Error(message); }
++export function verifyArtifact(file, manifest) {
++  const data = fs.readFileSync(file), pin = manifest[path.basename(file)];
++  check(pin && pin.sha256 === sha256(data) && pin.bytes === data.length, 'artifact hash/size mismatch: ' + file);
++  return data;
++}
++export function parseAttempts(raw) {
++  const blocks = raw.split(/(?=^CASE \{)/m).filter(block => block.startsWith('CASE '));
++  return blocks.map(block => {
++    const header = block.match(/^CASE (\{[^\n]*\})\nATTEMPT (\d+) (\{[^\n]*\})\n/);
++    check(header, 'malformed CASE/ATTEMPT header');
++    const merged = '\n=== MERGED FULL TRANSCRIPT ===\n', lock = '\n=== LOCK FULL TRANSCRIPT ===\n', end = '\n=== END ATTEMPT ===\n';
++    const m = block.indexOf(merged), l = block.indexOf(lock), e = block.indexOf(end);
++    check(m === header[0].length - 1 && l > m && e > l, 'missing or reordered transcript sections/END ATTEMPT');
++    check(block.indexOf(merged, m + 1) < 0 && block.indexOf(lock, l + 1) < 0 && block.indexOf(end, e + 1) < 0, 'duplicate transcript markers');
++    return {context: JSON.parse(header[1]), attempt: Number(header[2]), pair: JSON.parse(header[3]),
++      mergedTrace: block.slice(m + merged.length, l), lockTrace: block.slice(l + lock.length, e), raw: block.slice(0, e + end.length)};
++  });
++}
++export function differenceTranscripts(d, manifest) {
++  const raw = verifyArtifact(d.evidence, manifest);
++  if (d.evidenceSha256) check(sha256(raw) === d.evidenceSha256, 'audit evidence pin mismatch');
++  const selected = parseAttempts(raw.toString('utf8')).filter(a => a.context.index === d.localIndex);
++  check(d.reproductionsCompleted === 10 && selected.length === 11, 'difference needs exactly eleven attempts');
++  selected.forEach((a, i) => {
++    check(a.attempt === i, 'attempt sequence must be exactly 0..10');
++    check(JSON.stringify(a.context) === JSON.stringify(selected[0].context), 'CASE contexts differ across attempts');
++    check(a.context.fen === d.fen && a.context.halfmove === d.halfmove && a.context.depth === 9, 'CASE context mismatch');
++    check(a.pair.complete && a.pair.merged.attempted && a.pair.lock.attempted && !a.pair.merged.budget_interrupted && !a.pair.lock.budget_interrupted, 'incomplete difference attempt');
++    check(a.mergedTrace.trim() && a.lockTrace.trim(), 'empty full transcript');
++  });
++  check(JSON.stringify(selected[0].pair) === JSON.stringify(d.initial), 'initial pair differs from position record');
++  check(selected.slice(1).filter(a => a.pair.different).length === d.reproductionDifferenceFrequency, 'reproduction difference frequency mismatch');
++  return selected.map(a => a.raw).join('');
++}
++export function writeImmutable(file, bytes) {
++  bytes = Buffer.from(bytes);
++  if (fs.existsSync(file)) { check(fs.readFileSync(file).equals(bytes), 'existing immutable file differs: ' + file); return false; }
++  const stage = file + '.stage-' + process.pid + '-' + crypto.randomBytes(8).toString('hex');
++  fs.writeFileSync(stage, bytes, {flag: 'wx'});
++  try {
++    try { fs.linkSync(stage, file); }
++    catch (error) { if (error.code !== 'EEXIST') throw error; check(fs.readFileSync(file).equals(bytes), 'existing immutable file differs: ' + file); return false; }
++    return true;
++  } finally { fs.unlinkSync(stage); }
++}
++export function partialOperationalFindings(attempts) {
++  const findings = [];
++  for (const a of attempts) for (const engine of ['merged', 'lock']) {
++    const r = a.pair[engine]; if (!r?.attempted) continue;
++    const faults = {};
++    // Explicit diagnostics/illegal results survive a later deadline interruption.
++    for (const k of ['illegal', 'missing', 'missing_info', 'wrong_depth', 'sanitizer_issues', 'transport_issues', 'crashes', 'nonzero_exits', 'shutdown_timeouts'])
++      if (r[k] > 0) faults[k] = r[k];
++    const shutdown = r.shutdown ?? {};
++    const forced = shutdown.signal === 15 && shutdown.driver_sigterm || shutdown.signal === 9 && shutdown.driver_sigkill;
++    if (shutdown.signal > 0 && !forced) faults.crashes = Math.max(faults.crashes ?? 0, 1);
++    if (shutdown.exit_code > 0) faults.nonzero_exits = Math.max(faults.nonzero_exits ?? 0, 1);
++    const trace = a[engine + 'Trace'] ?? '';
++    if (/AddressSanitizer|UndefinedBehaviorSanitizer|LeakSanitizer|ThreadSanitizer|MemorySanitizer|runtime error:/.test(trace)) faults.sanitizer_issues = Math.max(faults.sanitizer_issues ?? 0, 1);
++    // Budget cleanup signals/timeouts alone are expected and do not become faults.
++    if (!r.budget_interrupted && shutdown.observed) {
++      if (shutdown.timed_out) faults.shutdown_timeouts = Math.max(faults.shutdown_timeouts ?? 0, 1);
++      if (!shutdown.reaped || shutdown.error) faults.transport_issues = Math.max(faults.transport_issues ?? 0, 1);
++    }
++    if (Object.keys(faults).length) findings.push({localIndex: a.context.index, fen: a.context.fen, attempt: a.attempt, engine, budgetInterrupted: !!r.budget_interrupted, faults});
++  }
++  return findings;
++}
++export function verifyPackage(source, destination) {
++  const manifest = JSON.parse(fs.readFileSync(path.join(destination, 'MANIFEST.txt')));
++  check(path.resolve(manifest.source) === path.resolve(source), 'package source mismatch');
++  const expected = [];
++  function walk(dir) { for (const e of fs.readdirSync(dir, {withFileTypes: true})) {
++    const file = path.join(dir, e.name);
++    if (e.isDirectory()) walk(file);
++    else if (/\.(cpp|hpp|md|txt|json|jsonl|mjs|pgn|log|ndjson|reserved)$/.test(e.name)) {
++      if (e.name.endsWith('.mjs') && fs.existsSync(file + '.txt')) { check(fs.readFileSync(file).equals(fs.readFileSync(file + '.txt')), 'inert twin differs'); continue; }
++      expected.push(file);
++    }
++  }}
++  walk(source);
++  check(manifest.files.length === expected.length && new Set(manifest.files.map(e => e.source)).size === expected.length, 'package file count mismatch');
++  for (const entry of manifest.files) {
++    check(expected.includes(entry.source), 'unexpected package source');
++    check(Array.isArray(entry.chunks) && entry.chunks.length > 0, 'missing package chunks');
++    const original = fs.readFileSync(entry.source), pieces = [];
++    let offset = 0;
++    for (const chunk of entry.chunks) {
++      const file = path.resolve(destination, chunk.path);
++      check(file.startsWith(path.resolve(destination) + '/'), 'package chunk escapes destination');
++      const bytes = fs.readFileSync(file);
++      check(chunk.offset === offset && chunk.bytes === bytes.length && chunk.sha256 === sha256(bytes), 'package chunk mismatch');
++      pieces.push(bytes); offset += bytes.length;
++    }
++    check(original.length === entry.bytes && sha256(original) === entry.sha256 && Buffer.concat(pieces).equals(original), 'package source/reconstruction mismatch');
++  }
++  return manifest;
++}

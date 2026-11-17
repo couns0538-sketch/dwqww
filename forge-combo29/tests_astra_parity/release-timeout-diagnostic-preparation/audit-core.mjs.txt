@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+export function finishedDepths(stdout){
+ const snapshot='EVENT {"event":"pre_quit_snapshot_frozen"';const at=stdout.indexOf(snapshot);assert.ok(at>=0,'No pre-quit snapshot marker');const before=stdout.slice(0,at),rows=[];
+ for(const line of before.split('\n')){
+  if(!line.startsWith('< stdout info ')||!line.includes(' score '))continue;
+  const raw=line.slice('< stdout '.length),words=raw.split(/\s+/),pv=words.indexOf('pv'),tokens=words.slice(0,pv<0?undefined:pv);
+  if(tokens.includes('lowerbound')||tokens.includes('upperbound'))continue;
+  const integer=name=>{const at=tokens.indexOf(name);assert.ok(at>=0&&tokens.lastIndexOf(name)===at,'Missing/duplicate '+name);const s=tokens[at+1];assert.match(s??'',/^\d+$/);const n=Number(s);assert.ok(Number.isSafeInteger(n));return n;};
+  const depth=integer('depth'),nodes=integer('nodes'),timeMs=integer('time'),scoreAt=tokens.indexOf('score');assert.equal(tokens.lastIndexOf('score'),scoreAt);const scoreKind=tokens[scoreAt+1];assert.ok(['cp','mate'].includes(scoreKind));assert.match(tokens[scoreAt+2]??'',/^-?\d+$/);const score=Number(tokens[scoreAt+2]);assert.ok(Number.isSafeInteger(score));rows.push({depth,nodes,timeMs,scoreKind,score,raw});
+ }
+ return rows;
+}
+export function aggregate(rows){
+ const groups={};for(const x of rows){const k=`case${x.row.caseIndex}/t${x.row.threads}/d${x.row.depth}`;const g=groups[k]??={searches:0,naturalTargetCompletions:0,timeouts:0,normalExits:0,diagnostics:0,results:[]};g.searches++;g.naturalTargetCompletions+=Number(x.searchCompletedBeforeQuit);g.timeouts+=Number(!!x.result?.response_timed_out);g.normalExits+=Number(!!x.result?.normal_exit);g.diagnostics+=x.diagnostics.length;g.results.push({id:x.id,repeat:x.row.repeat,result:x.result,finishedDepths:x.finishedDepths});}
+ return{recorded:rows.length,naturalTargetCompletions:rows.filter(x=>x.searchCompletedBeforeQuit).length,timeouts:rows.filter(x=>x.result?.response_timed_out).length,diagnosticReports:rows.reduce((n,x)=>n+x.diagnostics.length,0),incompleteEvidence:rows.filter(x=>!x.evidenceFinalized).length,soakCredit:0,warmTtReproduced:false,groups};
+}

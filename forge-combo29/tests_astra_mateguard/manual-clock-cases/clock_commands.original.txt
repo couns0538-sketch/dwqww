@@ -1,0 +1,29 @@
+# UCI clock cases. Times are what the fixed engine does with
+# Threads 1, Hash 16, OwnBook false, Move Overhead 10 (the default).
+# The lock engine parses every one of these numbers as 0 and answers bestmove
+# in about 1 ms.
+
+# 3000000000 does not fit in a signed 32-bit int. The search must still be
+# running 150 ms later. Stop it; do not wait out the clock.
+position startpos
+go wtime 3000000000 btime 3000000000
+
+# A leading plus is 80 ms, not zero. The hard limit is 80 - overhead = 70 ms.
+position startpos
+go movetime +80
+
+# A negative clock clamps to 0. The hard limit becomes 1 ms.
+position startpos
+go movetime -5
+
+# A token that is not an integer is 0. The hard limit becomes 1 ms.
+# A second sign and overflow with trailing junk are the same, not a huge clock.
+position startpos
+go movetime abc
+go movetime +-80
+go movetime 999999999999999999999abc
+
+# Black to move uses btime. 3000000000 must not collapse to 0 just because
+# it is the black clock. wtime 1 is white's clock and is ignored here.
+position startpos moves e2e4
+go wtime 1 btime 3000000000

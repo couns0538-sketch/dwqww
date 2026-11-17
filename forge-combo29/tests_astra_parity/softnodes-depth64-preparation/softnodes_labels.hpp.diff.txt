@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "diff",
+    "-u",
+    "/workspace/work/parity-softnodes-preparation/softnodes_labels.hpp",
+    "/workspace/work/parity-softnodes-depth64-preparation/softnodes_labels.hpp"
+  ],
+  "exit": 1,
+  "stdout": "--- /workspace/work/parity-softnodes-preparation/softnodes_labels.hpp\t2026-11-14 16:20:56.787726189 -0800\n+++ /workspace/work/parity-softnodes-depth64-preparation/softnodes_labels.hpp\t2026-11-14 17:07:42.889065643 -0800\n@@ -80,7 +80,7 @@\n     if (soft) {\n         r.item2 = r.item2 && r.soft_lines == 1 && r.x_valid;\n         r.item3 = r.exact && !r.pv_first.empty() && r.bestmove == r.pv_first;\n-        r.item4 = r.exact && r.has_nodes && (r.nodes >= 2500 || r.kind == \"mate\" || (r.x_valid && r.x >= 10000));\n+        r.item4 = r.exact && r.has_nodes && (r.nodes >= 2500 || r.kind == \"mate\" || (r.has_depth && r.depth == 64) || (r.x_valid && r.x >= 10000));\n     } else if (r.soft_lines != 0) r.error = \"softnodes_line_on_usual_search\";\n     return r;\n }\n",
+  "stderr": ""
+}
