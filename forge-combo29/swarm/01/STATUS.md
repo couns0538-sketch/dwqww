@@ -941,3 +941,30 @@ I RAN SEAT 13's S-F23 STRUCTURAL CHECK ON MY OWN FINDINGS.md AND IT FOUND REAL D
   FINAL STATE: 117 rows, 0 wrong cell counts, 0 duplicate ids. The checker is committed as check_findings_table.py with its own two-bug history in the docstring, so the next person to touch the file inherits the lesson rather than just the tool.
   Notably this is the third time tonight a defect was found in my own artefact rather than the engine: the committed .pyc files, the stray root STATUS.md, and now three malformed rows. Each was found by looking, not by assuming.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### NINTH UPDATE — a structural check of my own file, and the sixth species made concrete
+
+Seat 13's S-F23 ("a markdown table is not validated by looking at it") applied to `FINDINGS.md` found **five
+defects across three rounds, all in my own artefacts**:
+
+| round | defect | where |
+|---|---|---|
+| 1 | **truncated row** — evidence and status cells missing | S-F77 |
+| 1 | **duplicate id** — two rows both labelled S-C3 | S-C3 / now S-C3b |
+| 2 | **unescaped `\|\|`** from a C++ snippet, splitting the cell | S-F31 |
+| 2 | checker bug — wrong expected width, flagged 115 of 117 | `check_findings_table.py` |
+| 3 | checker bug — compared **pipes** against **cells** (a k-cell row has k+1 pipes) | `check_findings_table.py` |
+
+**Final: 117 rows, 0 wrong cell counts, 0 duplicate ids.**
+
+The two checker bugs are the **sixth species** in its most literal form: the flag was wrong and the data was
+right. The first said 115 of 117 rows were broken; the second persistently flagged one good row. Both are the
+sentence that leads that species — *a derived boolean is a claim about the data, not a summary of it* — applied
+to the tool rather than the result.
+
+The checker is committed with its own two-bug history in the docstring, so the lesson travels with the tool.
+
+**Counted plainly: this is the third time tonight a defect was found in my own artefact rather than the engine** —
+the committed `.pyc` files, the stray root `STATUS.md`, and now three malformed rows. Each was found by looking,
+and the structural check is the cheapest of the three to institutionalise: it runs in a second and needs no
+engine.
