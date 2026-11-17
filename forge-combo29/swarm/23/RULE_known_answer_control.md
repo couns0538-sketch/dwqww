@@ -595,11 +595,23 @@ sentence feels like editing. Two of the three stale items found in `GUI_HAZARDS.
 - an eval gap of `+20` that reproduced on **none of five** boards once tested, because the row never named the position
   it came from.
 
-**MECHANICAL CONSEQUENCE (the check, not the intention): every number in a summary carries the position and the command
-that produced it, in the same cell or the same line.** A number with provenance can be re-run in seconds; a number
-without provenance cannot be wrong-and-discovered, only wrong. And when a claim is CORRECTED, re-run every number that
-sits inside the corrected passage in the same edit — the correction is exactly the moment when a figure is least likely
-to be looked at again.
+**MECHANICAL CONSEQUENCE (the check, not the intention): when a claim is CORRECTED, re-run every number inside the
+corrected passage in the same edit, and re-read every sentence inside it too — because the correction is exactly the
+moment when nothing in that passage is likely to be looked at again.** Every number in a summary also carries the
+position and command that produced it, in the same cell or line: a number with provenance can be re-run in seconds,
+while one without cannot be wrong-and-discovered, only wrong.
+
+**The failure is symmetric, and the mirrored direction is worth naming because it is the one I have committed.** It runs
+both ways and both happen at the same instant:
+  - **claim corrected, number left stale** — the prose moves, the figure stays (the two cases above);
+  - **number corrected, sentence left stale** — the figure is replaced and the surrounding clause still describes the OLD
+    behaviour, so the correction is in place and the passage still says the wrong thing. The concrete instance from this
+    seat: in `GUI_HAZARDS.md` the insufficient-material row was corrected from `+20` to `+76`/`+17`, and the sentence
+    BELOW the table still read "the two interfaces nearly agree" without the qualifier the new figures require — the
+    number was fixed and the prose still generalised from it, and I had to edit both in one pass (23-F136).
+
+So the check is one pass over the corrected passage asking two questions: **is every number produced by something I could
+re-run, and does every sentence still describe what the number now says?**
 
 ## The fix, in one line each
 
