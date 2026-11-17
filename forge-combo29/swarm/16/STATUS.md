@@ -759,3 +759,15 @@ seed: 1601
   first-two-rows check before trusting the sum.
 - check_folder.py ALL CHECKS PASS (474 files, 53 findings rows). Next: Step 2 patch aimed at the shared accumulator
   walk, then ABBA (Threads 1, n>=120, per-position spread).
+
+## 2026-11-17T04:15Z  (hourly check: pushing STATUS)
+- WHERE STEP 2 STANDS, precisely: the BASELINE is done and reconciled (identity 27,944,084, exact on seat 08's
+  OG200 both in sum and in the first three rows). The PATCH is NOT yet written. The ABBA TIMING is NOT yet run.
+- So as of this block: no patch exists to measure, and no timing number has been produced. Nothing is ambiguous
+  about that state — Step 2 is between "baseline established" and "patch written".
+- Plan for the remaining ~6 hours: (1) read the v3 accumulator walk and write ONE speed patch as a .patch.txt
+  against file 5's tree; (2) verify its identity rows against ident_OG200.txt (all 200 rows + the 8 benches + the 3
+  evals); (3) ABBA timing, fixed `go nodes`, Threads 1, n>=120, per-position spread reported.
+- If the patch or its timing is still incomplete nearer the close, the FINDINGS line will say UNMEASURED plainly
+  rather than carry a number I did not earn.
+- check_folder.py ALL CHECKS PASS (474 files, 53 findings rows).
