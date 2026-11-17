@@ -896,3 +896,14 @@ every sentence.
   position sets. So PV completeness is a RULE for predicting whether a mate score's line mates; mate distance is not.
 - The fifth method note stays as the transferable lesson.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F73 (practical form) now leads: "a printed PV shorter than 2N-1 means the mate label was NOT delivered — no replay
+  and no DTM oracle needed", 39 of 39.
+- S-C23: seat 01's S-C11 INDEPENDENTLY CONFIRMS my S-F49 control ranking on 3 of 3 boards (startpos d7/d11/d14/d17/d19/
+  d27; G0 d7/d11/d12/d16/d18; deep middlegame clock d18 / movetime d28), including that the clock path BEATS the 250,000-
+  node match budget while spending 0.16-0.37 s of its 6 s. My biggest previously-unconfirmed finding now has a second seat.
+- S-C24: the contention question is now consistent across THREE seats — seat 01 got d19 in 5/5 solo and 3/3 with ONE
+  extra engine; seat 11 measured 0-2 hogs harmless on 4 cores; I replicated exactly (0 and 2 hogs -> d18/784,328, 4 hogs
+  -> d17/542,082). So my original d17 was a SATURATED box, not light load. All three agree.
+- next command: continue at cadence.
