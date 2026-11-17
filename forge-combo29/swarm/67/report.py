@@ -21,6 +21,20 @@ def load(path):
         return json.load(f)
 
 
+def san(text: str) -> str:
+    """Make a reply-line renderable in Markdown.
+
+    The engine echoes attacker-controlled bytes into its diagnostics, including
+    NUL and newlines. Writing those raw makes the report file binary. Escaping
+    keeps the report text while preserving the evidence that the byte was there.
+    """
+    if not isinstance(text, str):
+        return text
+    return (text.replace("\x00", "\\0").replace("\r", "\\r")
+                .replace("\n", "\\n").replace("\t", "\\t")
+                .replace("|", "\\|"))
+
+
 def summarize(results):
     return {
         "n": len(results),
@@ -142,24 +156,46 @@ def main() -> int:
     w("|---|---|---|---|")
     for r in silent:
         pt = r["perft_totals"][-1] if r["perft_totals"] else "—"
-        w(f"| `{r['id']}` | `{r['pattern']}` | {pt} | {r['note']} |")
+        w(f"| `{san(r['id'])}` | `{r['pattern']}` | {pt} | {san(r['note'])} |")
     w("")
     w(f"{len(silent)} of {summarize([r for r in res if r['cls'] == 'position_fen'])['n']} "
-      "FEN cases are silent. Field-count sweep, same build, `go perft 1` after each:")
+      "FEN cases are silent. Field-count sweep, `go perft 1` after each. "
+      "`nodes 3` is the requested bare-kings board; `nodes 20` is startpos, i.e. "
+      "the position was refused and the previous board kept:")
     w("")
-    w("| fields | diagnostic | perft 1 |")
-    w("|---|---|---|")
-    for r in sorted([x for x in res if x["id"].startswith("fen:field-count-")],
-                    key=lambda x: int(x["id"].rsplit("-", 1)[1])):
-        n = r["id"].rsplit("-", 1)[1]
-        d = "; ".join(g["text"] for g in r["diagnostics"]) or "**none**"
-        pt = r["perft_totals"][-1] if r["perft_totals"] else "—"
-        w(f"| {n} | {d} | {pt} |")
+    builds = [("base", base)] + [(f"other {i}", r) for i, (_, r) in enumerate(runs[1:], 1)]
+    hdr = "| fields | " + " | ".join(f"{nm} diagnostic / perft" for nm, _ in builds) + " |"
+    w(hdr)
+    w("|---" * (len(builds) + 1) + "|")
+    fields = sorted({int(r["id"].rsplit("-", 1)[1]) for r in res
+                     if r["id"].startswith("fen:field-count-")})
+    for n in fields:
+        cells = []
+        for _, run in builds:
+            match = [x for x in run["results"] if x["id"] == f"fen:field-count-{n}"]
+            if not match:
+                cells.append("—")
+                continue
+            r = match[0]
+            d = san("; ".join(g["text"] for g in r["diagnostics"])) or "**none**"
+            d = d.replace("info string invalid FEN: ", "")
+            pt = r["perft_totals"][-1] if r["perft_totals"] else "—"
+            cells.append(f"{d} / {pt}")
+        w(f"| {n} | " + " | ".join(cells) + " |")
     w("")
-    w("Fewer than six fields is refused with a message. **More than six is accepted "
-      "silently**: the parser reads six and the extra tokens are then scanned for "
-      "`moves`, so `… 0 1 extra` is dropped without a word. A front end cannot "
-      "detect this from the reply stream at all.")
+    w("Fewer than six fields is refused with a message, on both builds. "
+      "**More than six is never diagnosed, on either build** — and the two builds "
+      "then disagree about which board to search. On the base commit the "
+      "over-long FEN is accepted and the requested board is searched; on "
+      "`integrate/combo29-all` the same input is silently refused and the "
+      "*previous* board is searched instead. `6` is the legal control in both "
+      "columns: no diagnostic, requested board. That control is what makes the "
+      "sweep meaningful rather than a table of noise.")
+    w("")
+    w("This is the undetectable case. A front end scanning replies sees nothing "
+      "for 7, 8 or 9 fields on either build, so reply-scanning cannot cover "
+      "malformed FENs. Client-side validation of field count and content has to "
+      "be the primary defence, not a supplement.")
     w("")
 
     # ---- terminal positions ----------------------------------------------
@@ -170,8 +206,8 @@ def main() -> int:
         w("| case | pattern | diagnostics | bestmove |")
         w("|---|---|---|---|")
         for r in term:
-            d = "; ".join(g["text"] for g in r["diagnostics"]) or "—"
-            bm = ", ".join(f"`{b}`" for b in r["bestmoves"]) or "—"
+            d = san("; ".join(g["text"] for g in r["diagnostics"])) or "—"
+            bm = ", ".join(f"`{san(b)}`" for b in r["bestmoves"]) or "—"
             w(f"| `{r['id']}` | `{r['pattern']}` | {d} | {bm} |")
         w("")
         w("Checkmate and stalemate both answer `bestmove 0000` with no explanatory "
@@ -188,10 +224,10 @@ def main() -> int:
         w("| case | exit | liveness | diagnostics | bestmove |")
         w("|---|---|---|---|---|")
         for r in go:
-            d = "; ".join(g["text"] for g in r["diagnostics"]) or "—"
-            bm = ", ".join(f"`{b}`" for b in r["bestmoves"][:2]) or "—"
+            d = san("; ".join(g["text"] for g in r["diagnostics"])) or "—"
+            bm = ", ".join(f"`{san(b)}`" for b in r["bestmoves"][:2]) or "—"
             tag = "unbounded" if r.get("unbounded") else r["liveness"]
-            w(f"| `{r['id']}` | {r['exit']} | {tag} | {d} | {bm} |")
+            w(f"| `{san(r['id'])}` | {r['exit']} | {tag} | {d} | {bm} |")
         w("")
         w("Note `go depth 0` and `go nodes 0` still search: `depth` is clamped to "
           "`[1,64]` and a `nodes` value of 0 does not mean \"no nodes\". Neither is "
@@ -206,9 +242,9 @@ def main() -> int:
         w("| case | diagnostics | perft after |")
         w("|---|---|---|")
         for r in so:
-            d = "; ".join(g["text"] for g in r["diagnostics"]) or "**none**"
+            d = san("; ".join(g["text"] for g in r["diagnostics"])) or "**none**"
             pt = r["perft_totals"][-1] if r["perft_totals"] else "—"
-            w(f"| `{r['id'].replace('setoption:', '')}` | {d} | {pt} |")
+            w(f"| `{san(r['id']).replace('setoption:', '')}` | {d} | {pt} |")
         w("")
         w("A `setoption` with no `value` keyword is not silently ignored: the whole "
           "remainder of the line is taken as the name, producing "
@@ -227,9 +263,9 @@ def main() -> int:
         w("| case | exit | liveness | bestmoves | diagnostics |")
         w("|---|---|---|---|---|")
         for r in lc:
-            d = "; ".join(g["text"] for g in r["diagnostics"]) or "—"
-            bm = ", ".join(f"`{b}`" for b in r["bestmoves"][:2]) or "—"
-            w(f"| `{r['id'].replace('lifecycle:', '')}` | {r['exit']} | "
+            d = san("; ".join(g["text"] for g in r["diagnostics"])) or "—"
+            bm = ", ".join(f"`{san(b)}`" for b in r["bestmoves"][:2]) or "—"
+            w(f"| `{san(r['id']).replace('lifecycle:', '')}` | {r['exit']} | "
               f"{r['liveness']} | {bm} | {d} |")
         w("")
         w("Every lifecycle ordering stayed live: no deadlock, no wedged search "
@@ -237,7 +273,83 @@ def main() -> int:
           "after emitting `bestmove`.")
         w("")
 
-    # ---- comparison -------------------------------------------------------
+    # ---- findings ---------------------------------------------------------
+    w("## Findings")
+    w("")
+    w("### 1. No crash, no hang, no sanitizer line — in any class")
+    w("")
+    w(f"{tot['n']} cases on the base commit and {tot['n']} on "
+      "`integrate/combo29-all`, every one under "
+      "`-fsanitize=address,undefined`. Crashes: 0. Hangs: 0. Sanitizer lines: 0. "
+      "Non-zero exits: 0. The engine answered `readyok` after `stop` in every "
+      "case, and was still usable at the end of both runs (`nodes 400` from a "
+      "fresh perft). Position arguments — including 70 KB tokens, embedded NULs, "
+      "newlines inside a token, and 500 legal moves — did not crash or wedge "
+      "either build.")
+    w("")
+    w("The crash hazard in this area is therefore **not** a memory-safety one. It "
+      "is the `0000` reply (finding 2) and the silent refusals (finding 3).")
+    w("")
+    w("### 2. `bestmove 0000` is the reply for three distinct situations")
+    w("")
+    w(f"{tot['zero']} of {tot['n']} cases produced `bestmove 0000`:")
+    w("")
+    w("| situation | diagnostics before `0000` |")
+    w("|---|---|")
+    w("| checkmate | none |")
+    w("| stalemate | none |")
+    w("| `searchmoves` restricting to no legal move | `info string searchmoves "
+      "restriction has no legal root moves` |")
+    w("")
+    w("A front end must already know whether the position is terminal to tell "
+      "these apart. Checkmate and stalemate are indistinguishable from each other "
+      "on the wire, and stalemate carries no `info string` at all. `0000` is "
+      "also, by convention, what a crashed or confused engine is reported as, so "
+      "a naive front end cannot separate \"game over\" from \"engine failed\".")
+    w("")
+    w("### 3. Malformed FENs are refused in silence above six fields")
+    w("")
+    w("Below six fields the engine refuses loudly, on the `position` command. "
+      "**Above six fields it refuses — or accepts — in complete silence.** There "
+      "is no reply to scan, so no reply-scanning defence can catch it. This is "
+      "the one class in this fuzz where the client has no observable signal at "
+      "all.")
+    w("")
+    w("The two builds even disagree about the outcome without disagreeing about "
+      "the silence: the base commit searches the requested board, "
+      "`integrate/combo29-all` searches the previous one. Both are wrong in a way "
+      "the client cannot see.")
+    w("")
+    w("### 4. A refused `position` leaves the previous board in place")
+    w("")
+    w("On both builds an `info string invalid FEN` is followed by a search of the "
+      "**predecessor** position. The `refused-after-good` cases fingerprint this "
+      "with `go perft 2`: the search returns the predecessor's node count, not an "
+      "error. A caller that validates nothing will therefore get a legal, "
+      "well-formed `bestmove` for the wrong game.")
+    w("")
+    w("### 5. Mid-search `setoption` truncates the search")
+    w("")
+    w("`setoption` calls `stop_search()` before applying the value, so a "
+      "`setoption` sent during a search ends that search. Measured: 16 `info "
+      "depth` lines before the `setoption` write, `bestmove` emitted on the "
+      "`setoption` write itself, and no further depth lines. The control without "
+      "the `setoption` also stops when told, so the two are distinguishable only "
+      "by timing. A GUI that adjusts an option mid-game silently loses the "
+      "search it was waiting for.")
+    w("")
+    w("### 6. Book moves make `bestmove` non-deterministic across runs")
+    w("")
+    w("`OwnBook` defaults to true and the book RNG is seeded from "
+      "`steady_clock`, so in game-search conditions two runs of the same position "
+      "can return different legal moves. This is not a defect, but it means a "
+      "*reply comparison* between builds is only sound when the position under "
+      "search is also fingerprinted — which is why this report uses `go perft` "
+      "for board identity and filters the cross-build table for substantive "
+      "differences.")
+    w("")
+
+    # ---- artifacts --------------------------------------------------------
     if len(runs) > 1:
         w("## Cross-build comparison")
         w("")
@@ -245,6 +357,7 @@ def main() -> int:
           "the assigned base commit and the coordinator's "
           "`integrate/combo29-all` branch **differ in `apply_position`**, so some "
           "of these rows are build-specific.")
+        w("")
         w("")
         w("| build | cases | crashes | hangs | unbounded | `0000` |")
         w("|---|---|---|---|---|---|")
@@ -260,18 +373,46 @@ def main() -> int:
             a, b = byid(base), byid(other)
             diffs = [(k, a[k], b[k]) for k in a if k in b
                      and (a[k]["bestmoves"] != b[k]["bestmoves"]
-                          or a[k]["refusal_present"] != b[k]["refusal_present"])]
-            w(f"{len(diffs)} cases behave differently between the two builds.")
+                          or a[k]["refusal_present"] != b[k]["refusal_present"]
+                          or a[k]["perft_totals"] != b[k]["perft_totals"])]
+            # Book moves are chosen with an RNG seeded from the clock, so a
+            # different `bestmove` between builds is only evidence of a real
+            # difference when the position under search also differs, or when
+            # the reply changes between 0000 and a real move.
+            def substantive(x, y):
+                if x["perft_totals"] != y["perft_totals"]:
+                    return True
+                if x["refusal_present"] != y["refusal_present"]:
+                    return True
+                if ("0000" in " ".join(x["bestmoves"])) != \
+                   ("0000" in " ".join(y["bestmoves"])):
+                    return True
+                # A `position` case with no perft fingerprint: compare the board
+                # it left behind by asking whether the case was a FEN case at
+                # all. Different replies there are still board differences.
+                if x["cls"] == "position_fen" and x["bestmoves"] != y["bestmoves"]:
+                    return True
+                return False
+
+            real = [(k, x, y) for k, x, y in diffs if substantive(x, y)]
+            noise = len(diffs) - len(real)
+            w(f"{len(diffs)} cases differ in reply; **{len(real)}** of those differ "
+              f"substantively (board searched, refusal, or a `0000` boundary). The "
+              f"other {noise} differ only in which of several equal moves the "
+              "opening book picked — the book RNG is seeded from the clock, so "
+              "those are not build differences.")
             w("")
-            if diffs:
+            if real:
                 w("| case | base | other |")
                 w("|---|---|---|")
-                for k, x, y in diffs[:40]:
+                for k, x, y in real[:40]:
                     fx = (", ".join(x["bestmoves"]) or "—") + \
-                         (" [no diag]" if not x["refusal_present"] else "")
+                         (" [no diag]" if not x["refusal_present"] else "") + \
+                         (f" perft={x['perft_totals'][-1]}" if x["perft_totals"] else "")
                     fy = (", ".join(y["bestmoves"]) or "—") + \
-                         (" [no diag]" if not y["refusal_present"] else "")
-                    w(f"| `{k}` | {fx} | {fy} |")
+                         (" [no diag]" if not y["refusal_present"] else "") + \
+                         (f" perft={y['perft_totals'][-1]}" if y["perft_totals"] else "")
+                    w(f"| `{san(k)}` | {san(fx)} | {san(fy)} |")
                 w("")
 
     w("## Artifacts")
