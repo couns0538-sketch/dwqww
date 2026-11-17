@@ -188,6 +188,17 @@ a front end combines the two answers (23-F78).
 So the contradiction you must guard against is repetition and the fifty-move rule — the two a static evaluator
 cannot see. For insufficient material the two interfaces nearly agree (23-F79).
 
+**Where the contradiction appears, as a curve.** Sweeping the fifty-move counter on a won K+R v K board (base build,
+`go depth 10`), the gap between `eval` and `go` is not constant — it opens at the search horizon:
+
+| counter | 40 | 60 | 80 | 88 | 90 | **92** | 95 | 99 | 100 |
+|---|---|---|---|---|---|---|---|---|---|
+| gap (cp) | 25 | 25 | 32 | 45 | 135 | **406** | 406 | 406 | 406 |
+
+`eval` stayed at exactly 406 across all nine counters (0 cp spread — it genuinely has no move counter). So near the
+end of the fifty-move count the two interfaces diverge completely, and earlier in the game they roughly agree: a GUI
+showing `eval` is most misleading exactly when a game is heading for a counter draw (23-F80).
+
 ## Why this is safe for the owner's PC games
 
 The match program drives the engine directly and sends well-formed positions, so neither hazard arises in the PC's
