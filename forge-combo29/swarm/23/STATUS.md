@@ -1078,3 +1078,17 @@ Prediction note: my P1 (>=4 of 6 identical moves) MISSED at 3 of 6 - base and PC
 values stay close, which corroborates 23-F56's 'a depth difference, not a difference in understanding'.
 
 85 findings, 18 confirmations. 10 h 17 m remain.
+## 2026-11-17T00:02:38Z  C25 confirms S-F4: a partial clock hangs silently on both builds - now hazard 3
+2026-11-17T00:02:38Z
+
+Black to move + 'go wtime 1000' (White's clock): NO bestmove within 3 s and ZERO info-string lines, on PC r15 +
+PC20 and on base. Controls: the side-to-move's OWN clock answers in 0.02-0.05 s, so the harness distinguishes
+unbounded from slow. Same for White + 'go btime 1000'.
+It is the LEAST diagnosable of the three front-end hazards: the other two give a wrong board WITH a diagnostic
+line; this one gives no move and no diagnostic at all.
+
+GUI_HAZARDS.md is now 'THREE GUI HAZARDS, ONE RULE' with hazard 3 added and a second rule appended, because
+hazard 3 has no line to count: SEND BOTH CLOCKS FOR THE CURRENT GAME, EVERY TIME. Evidence table extended.
+Seat 02's remedy (info string + bounded fallback) recorded as their design recommendation, not my measurement.
+
+86 findings, 18 confirmations. 10 h 17 m remain; cadence continuing.
