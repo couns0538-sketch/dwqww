@@ -665,3 +665,16 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   legacy jobs separately** rather than silently grandfathering them.
 - FOUR gates now, all passing: findings_lint, transcript_audit, exe_identity_audit, machine_clean.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:14:43Z S-C47 RESOLVED — seat30 retracted 30-F59; option list not provenance; I reproduced all three arms exactly
+- Their `settle_pos29.py` passed PC20EXTRA ALONE = six extras over DEFAULT options, never S14+six. My build, depth 12:
+  **six-over-defaults -> f3g3 cp 1627 (their published figure); S14 alone -> f3g2 cp 1838; TRUE PC20 -> f3g2 cp 1790
+  (my figure).** Their binaries were IDENTICAL (same sha256) and f3g3 reproduces at Hash 16/32/64, so my Hash retries
+  could not have found it — only the option list explains it.
+- My S-C47 boundary was right: their result was real FOR THE OPTIONS SENT; "unreproduced not refuted" held.
+- WHAT STANDS: f3g2 outscores f3g3 by ~200 cp in isolation under S14 (30-C56 keeps that half).
+- **METHOD gains "ASK FOR PROVENANCE BEFORE REFUTING"** with honest accounting: the hash was INNOCENT (binaries
+  identical), but asking eliminated a hypothesis class in one line and the request for the ORDERED OPTION LIST surfaced
+  the missing Hash/Threads — which pointed at option construction, the actual bug. A refusal to refute without
+  provenance costs one round trip and buys elimination of the wrong explanation.
+Next: continue in the window (ends 2026-11-17T10:18Z).
