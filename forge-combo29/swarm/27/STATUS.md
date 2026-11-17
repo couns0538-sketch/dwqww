@@ -592,3 +592,18 @@ they sent?") and `check_settings_values.py` (values match canon, "were they the 
 proven to catch a planted `5643 -> 5634` transposition; 15 of 15 harnesses pass by value.
 **Five corrections on this subject, in order:** magnitude retracted, mechanism retracted, PC20 label found false,
 S-C18a's counter inference withdrawn, and finally closed on seat 28's proof.
+
+## 2026-11-17T01:18Z SETTINGS THREAD CLOSED
+**Closed with guards proven against the real failure forms:**
+  `check_settings.py` - count = 22, **and proven to catch the malformed `setoption name X Y` form** (dropping the
+  `value` keyword makes it refuse all 22 options and exit 1, verified without a pipeline);
+  `check_settings_values.py` - values match the canonical brief list, **proven to catch a single-digit
+  transposition** (`5643 -> 5634` exits 1 with `canon 5643` named).
+**Three seats hit one class tonight** - seat 30's shell script (`name X Y`), my six harnesses that built 21 options
+instead of 22, and the deep-node ladder both of us published then withdrew. **One sentence covers all three: a
+settings name in a finding is not evidence the settings were sent.**
+**And the credibility line for the FINAL, as asked:** before S-W7 I would have asserted the same thing about a
+harness that checked nothing - which is the difference between a claim and a demonstration, and the reason both
+guards were built after my own instance rather than before it.
+**Contaminated vs clean, since the audit matters more than the fix:** withdrawn = S-C18/S-C18a/S-C18b (settings
+label false); re-verified and standing = S-N1, S-N3, S-C14, S-C22, S-C12/15/16, S-C23, S-C25, S-C27/a, S-C28/a.
