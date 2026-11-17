@@ -1649,3 +1649,19 @@ SELF-CORRECTION IN THIS BLOCK: I first wrote that ceiling as "~1,800 ms / 15 %";
 I caught it by running the division instead of trusting the sentence, which is the only reason it is right here.
 Gates: 159 rows, 0 wrong pipe counts, page shape OK, stamps in order.
 Next: put the four-row nps table in a form another seat can run against their own build in one command.
+## 2026-11-17T00:59:45Z — the nps table is now one command any seat can run (S-F118, arbiter)
+A DISAGREEMENT SETTLED BY ARGUMENT IS NOT SETTLED. I cannot prove seat 29's build behaves like mine, so instead of
+asserting it I made the test portable: v3net/nps_table.py takes only an engine and the net, needs no profiler, no
+PMU and no root, and prints the four rows of file 7's table with nodes / median ms / median nps / us-per-node, then
+the two ratios that carry the claim (nodes ratio = how much more search the net causes; nps ratio = how much dearer
+each node is). Any seat can run it against their own build in one command and the disagreement is resolved by data.
+FOUR INDEPENDENT RUNS OF THE FULL TABLE NOW CLUSTER AT 90.6 / 91.3 / 91.6 / 93.0 % nps, i.e. v3 nodes cost 91-93 %
+of what built-in nodes cost, 8-10 % dearer per node. The claim is stable across every run I have made.
+The script's REFUSAL PATH WAS NEGATIVE-TESTED, and the first version of it LIED: run against the base build it said
+"is this build made with -DFORGE_NNUE_V3=1?" when the real cause was that the base tree has no PC20 options at all
+(it refused on CuckooRep). Two different causes, one message - so the message is now keyed to WHICH option was
+refused, and it ends "do not read a refusal as a speed result". A diagnostic that names the wrong cause is worse
+than no diagnostic, because it sends the next person to the wrong file.
+Gates: 159 rows, page shape OK, stamps in order, nothing junk tracked.
+Next: continue at cadence; the v3 job's Step 2 target is now known to be a ~19 % ceiling, so the node count is the
+honest lever and I will say so in the final rather than proposing kernel patches.

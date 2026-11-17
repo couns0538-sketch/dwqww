@@ -18,8 +18,9 @@ the node count had to be identical in every run before any timing was kept.
 
 * nodes **6.22×**
 * time **6.79×**
-* nps **91.6 %** of the built-in figure (two full runs: 91.3 %, 91.6 %)
-* per-node cost **1.09×** — **9 % dearer**
+* nps **91.6 %** of the built-in figure — and across four independent runs of the full table the spread is
+  **90.6 / 91.3 / 91.6 / 93.0 %**, i.e. the net's nodes cost **91–93 %** of what built-in nodes cost
+* per-node cost **1.08–1.10×** — **8–10 % dearer**
 
 So the v3 evaluation is **not slow**. It is within 9 % of the built-in net per node. The 6.8× wall-clock cost is
 almost entirely **6.2× more nodes**, which is the net's opinion changing which moves the search selects — the search
