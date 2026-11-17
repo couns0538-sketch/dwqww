@@ -1,0 +1,44 @@
+`go mate N` IS NOT EQUIVALENT TO `go depth 2N-1` - AND THE SCORE CAN FLIP SIGN AT THE SAME DEPTH
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, fresh process per cell
+
+=== A. TWELVE REAL POSITIONS, N=2 and N=4 vs go depth 3 and 7 ===
+  #  N  go mate N                go depth 2N-1            label identical?
+  0  2  c7c5 d3 cp  71           b4d5 d3 cp  30           False
+  0  4  c7c5 d7 cp  44           d6d5 d7 cp  -1           False
+  1  2  c2c3 d3 cp -53           c2c3 d3 cp 117           False   <- SIGN FLIP, same move, same depth
+  1  4  c2c3 d7 cp -40           c2c3 d7 cp -58           False
+  2  2  b4c6 d3 cp  53           b4c6 d3 cp  66           False
+  2  4  b4c6 d7 cp  46           b4c6 d7 cp  26           False
+  3  2  e2e3 d3 cp -52           e2e3 d3 cp -52           TRUE
+  3  4  e2e3 d7 cp -36           d4c5 d7 cp -33           False
+  4  2  c5d4 d3 cp  44           e6f5 d3 cp  35           False
+  4  4  c5d4 d7 cp  48           c5d4 d7 cp  16           False
+  5  2  e2e4 d3 cp  50           e2e4 d3 cp 203           False
+  5  4  e2e4 d7 cp  79           d4d5 d7 cp  62           False
+
+  11 of 12 cells differ. One cell differs by a SIGN FLIP at identical depth and identical move.
+
+=== B. MECHANISM, FROM SOURCE (src/search.cpp) ===
+  `mate_moves_ > 0` does NOT merely set a depth. It:
+    * NARROWS THE WINDOW to [mated_in(ply), mate_in(ply+1)] and returns alpha if it empties
+      (search.cpp:1431-1435);
+    * DISABLES THE TT CUTOFF unless alpha/beta are already mate scores (1452);
+    * DISABLES null-move / reverse-futility (1493, 1639);
+    * DISABLES IIR (1784), quiet extinction (1805), the sound-mate case (1841),
+      singular extensions (1929), and check extensions (1955).
+  So `mate_moves_ > 0` is a DIFFERENT SEARCH, not a depth bound with extras.
+
+=== C. REPEATABILITY AND COST, one board (r2qkbnr/pp2pppp/2npb3/2p5/...), fresh process each ===
+  command          bestmove  depth  score        nodes
+  go depth 3       e2e3      3      cp -52       186
+  go mate 2        e2e3      3      cp -52       1740       <- 9.4x the nodes for the same answer
+  go depth 7       d4c5      7      cp -33       3411
+  go mate 4        e2e3      7      cp -36       556387     <- 163x nodes AND A DIFFERENT MOVE
+  (each pair repeated: bit-identical, so this is deterministic, not noise)
+
+CONCLUSION: a corpus labelled under `go mate N` is labelled by a search that would have:
+  - disabled seven heuristics and the TT cutoff,
+  - cost up to 163x more nodes for the same depth,
+  - and returned a different bestmove in roughly half the positions tested.
+The labels are not "depth 2N-1 labels". They are labels from a mate-hunting search, and if the
+owner ever mixed them with `go depth` labels the two are not comparable.
