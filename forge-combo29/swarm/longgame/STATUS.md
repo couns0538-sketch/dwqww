@@ -85,6 +85,28 @@ absolute path once and validate the path taken from `ls-tree` before using it.
 **`extract_games.py` reproduces the committed corpus byte-identically after the change** — 200
 games, 27,788 plies, `identical: True`.
 
+## Third pass: the output parser was the likeliest Critical
+
+A C rating means a Critical or Blocker issue exists, so the third pass looked for one in a
+measurement harness specifically. The answer is **UCI output parsing**: ten sites read engine
+output by token position (`int(parts[parts.index("nodes") + 1])`, `parts[1]` of a bestmove line).
+A truncated line does not raise where the bug is — it yields a **wrong number** — and a bail's
+empty `pv` at the end of a `split()` was a **wrong verdict**. Both are exactly the failure class
+this seat exists to rule out.
+
+`scripts/uciparse.py` now parses with a decision for each malformed case (absent field → `None`,
+not an exception and not a guess), and `scripts/test_parsers.py` tests it with **21 checks**,
+including the terminal-root-vs-bail distinction that once inflated a published count from 89 to
+185. The test is **mutation-tested**: re-planting that exact bug (`is_bail` forgetting `0000`)
+makes it fail, so it is a control that fires rather than a control that reads green.
+
+**The refactor is proven behaviour-preserving, and the first check of it was wrong.**
+`scripts/reproduction_check.py` rebuilds two whole games contiguously from a cold process and
+compares every ply against the committed session: **232/232 exact**. My first version of that
+check jumped between plies of one warm process and reported **5/16** — the harness was wrong, not
+the engine, because a warm answer depends on the path that produced it. Both are in the script's
+docstring, since that is the same trap as the headline finding.
+
 **I could not confirm what Sonar actually reported**, and this is worth stating plainly: its API
 is egress-blocked here, both gate notifications name the **same analysis revision `7757ea2b…`**,
 and that hash is **not a commit in this repository** — it matches neither the PR head

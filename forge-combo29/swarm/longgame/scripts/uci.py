@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Minimal UCI client: line reader thread, never sends anything before a bestmove arrives."""
-import subprocess, threading, queue, time
+import subprocess, threading, queue, time, sys, os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from uciparse import info_record
 
 
 class Engine:
@@ -64,35 +67,12 @@ class Engine:
 
 
 def parse_info_lines(lines):
-    """Return per-depth records from info lines; last one is the deepest completed iteration."""
-    recs = []
-    for line in lines:
-        if not line.startswith("info depth"):
-            continue
-        d = {"depth": None, "seldepth": None, "score": None, "nodes": None,
-             "hashfull": None, "time": None, "pv": [], "raw": line}
-        toks = line.split()
-        i = 0
-        while i < len(toks):
-            t = toks[i]
-            if t == "depth" and i + 1 < len(toks):
-                d["depth"] = int(toks[i + 1]); i += 2
-            elif t == "seldepth" and i + 1 < len(toks):
-                d["seldepth"] = int(toks[i + 1]); i += 2
-            elif t == "score" and i + 2 < len(toks):
-                d["score"] = f"{toks[i+1]} {toks[i+2]}"; i += 3
-            elif t == "nodes" and i + 1 < len(toks):
-                d["nodes"] = int(toks[i + 1]); i += 2
-            elif t == "hashfull" and i + 1 < len(toks):
-                d["hashfull"] = int(toks[i + 1]); i += 2
-            elif t == "time" and i + 1 < len(toks):
-                d["time"] = int(toks[i + 1]); i += 2
-            elif t == "pv":
-                d["pv"] = toks[i + 1:]; break
-            else:
-                i += 1
-        recs.append(d)
-    return recs
+    """Per-depth records from the info lines; the last one is the deepest completed iteration.
+
+    Delegates to uciparse.info_record, which returns None for a field the line does not carry
+    rather than an index error or a guess.
+    """
+    return [rec for rec in (info_record(line) for line in lines) if rec is not None]
 
 
 def search(eng, position_cmd, go_cmd="go depth 8", timeout=600.0):

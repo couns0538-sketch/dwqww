@@ -322,6 +322,20 @@ both ways: `python3 -O` on `assert False` prints "ASSERT WAS STRIPPED", while `r
 still blocks. **`summary.py` produces byte-identical output under `-O` and normal execution**, so
 no guard was load-bearing and silently off in the runs already reported.
 
+## Output parsing: where a truncated line became a wrong number
+
+Ten sites in these scripts read engine output by token position. That is the one place in a
+counting harness where a malformed input does not raise — it quietly yields a different count, and
+a bail's empty `pv` at the end of a `split()` yields a different **verdict**. `scripts/uciparse.py`
+replaces them, with 21 regression checks in `scripts/test_parsers.py` (mutation-tested: re-planting
+the `is_bail`/`0000` bug makes the suite fail).
+
+The refactor is behaviour-preserving, checked by replaying **two whole games contiguously from a
+cold process: 232 / 232 plies reproduce the committed records exactly.** The first version of that
+check sampled plies inside one warm process and reported 5/16; it was measuring its own warm path,
+which is this report's headline finding turned on the harness. See
+`scripts/reproduction_check.py`.
+
 ## Reproduce
 
 ```bash
