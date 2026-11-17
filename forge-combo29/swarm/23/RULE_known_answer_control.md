@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-EIGHT instances plus ten named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-EIGHT instances plus eleven named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -785,6 +785,36 @@ repair is the only difference between the two builds.
 
 This is instance 22's comparator fault one level up: there the COMPARISON OPERAND was wrong, here the FIXTURE could not
 separate the hypotheses being compared. In both cases the measurement was correct and the inference was unsupported.
+
+## Named pattern — ADJACENCY IS A CHECK
+
+The cheapest structural check in this seat, found by accident: **reordering a document so that a claim and its
+qualification sit next to each other exposes contradictions that separation was hiding.**
+
+23-F181 reordered `FINAL_CHAIN_LINE.txt` from nine appended sections into three load-bearing ones (defect, mechanism,
+cost), each with its qualification directly beneath. Three contradictions surfaced immediately, none of which reading the
+file had caught in the preceding hours:
+
+1. a single median figure ("~625 cp") still standing where the corrected version was a **range** across two samples;
+2. a threshold note that stopped at nine boards and had never absorbed two later extensions;
+3. **"a policy difference, consistent across two boards" surviving after the policy reading had been refuted** — the worst
+   of the three, because a reader of the judgement section would have carried away a claim already withdrawn.
+
+**The mechanism, and why it is the same technique at every scale:** co-location makes disagreement visible. A validator in
+the same script as its fixture (23-F167) cannot silently disagree with it; a claim beside its qualification cannot quietly
+outlive it; a figure beside its correction cannot stay wrong. Sections that are far apart are not checked against each
+other, because nothing brings them into contact.
+
+**MECHANICAL CONSEQUENCE: a claim and its correction must be ADJACENT, never separated by sections.** When a finding is
+superseded, the correction goes where the original is read, not into a later section; when a summary is assembled, the
+qualifications travel with their claims rather than gathering at the end. If a document is long enough that a claim and
+its correction can drift apart, it is a document that needs reordering.
+
+**AND A LIMIT, learned by trying to mechanise it (23-F182):** a scripted consistency check that greps for figures and
+corrected phrases took three tuning passes to fall from 8 false positives to 3, and the remaining 3 were all correct
+text — it cannot distinguish a stale figure from a legitimate second one, or a corrected phrase from a correct use of that
+phrase describing the defect it names. So this check stays a READING DISCIPLINE, not a gate. Not every good check
+automates.
 
 ## The fix, in one line each
 
