@@ -351,6 +351,38 @@ the score is wrong. On all three sightings the score was either correct or unpro
 So: **PV length is not proof of a mate score in either direction.** Screen with the length, decide with the
 replay-and-ask.
 
+### A FALLING `mate N` needs two tests, and neither one alone is enough
+
+Separate question, same board family, and the one where a seat is most likely to make a false accusation. A
+mate distance that **decreases** with depth (say `mate 13` at depth 14, `mate 10` at depth 16) has two
+completely different explanations, and they demand different tests:
+
+| explanation | what it looks like | the test that identifies it |
+|---|---|---|
+| the engine found a **faster mate** | one move, its distance shrinking toward the true DTM | compute the **true DTM** and see if the sequence converges to it |
+| the engine **changed which move it prefers** | a *different bestmove* at the later depth, each move's own distance constant | **pin the move with `searchmoves`** and ladder the depths |
+
+**Neither test alone is sufficient, and each produces a specific wrong conclusion when used alone:**
+
+- **`searchmoves` pinning alone** correctly shows a drop was move choice — but says nothing about whether the
+  final number is right. You can pin a move, watch it report `mate 4` forever, and still not know whether
+  mate-in-4 exists.
+- **True-DTM alone** correctly shows the final number is right — but **mislabels a move-choice drop as genuine
+  distance revision.** This is exactly the error 23-F90 made: they saw `mate 13 → mate 10` on an unpinned free
+  search, assumed one move's distance was being revised, and concluded "the DISTANCE can be wrong". On their
+  board the engine was converging to the true DTM (mate 6), so the accusation was wrong in a way that a DTM
+  check alone would have confirmed-as-improvement *without revealing that the same shape also occurs for a
+  completely innocent reason*.
+
+**The procedure: pin the move, then check the pinned number against the true DTM.** On seat 25's board 103
+that gives mate 6 and mate 4, both real by replay, and the drop dissolves into a move choice. On seat 23's W2
+it gives one move whose distance converges 13 → 10 → **6 = the true DTM**.
+
+**And name the configuration.** On seat 25's board the whole sequence is a *base + S14* behaviour: **under
+PC20 the same board reports `mate 4` from depth 12 and never shows `mate 6` at all.** A "falling mate
+number" report that does not state build and settings is not reproducible in one direction, and PC20 reaching
+the shorter mate two plies earlier is a better-ordering result hiding inside what looks like a defect.
+
 ## Four content-level catches tonight
 
 **Read the file as a reader would, not as its author.** All four of these looked correct at the moment of writing,

@@ -749,3 +749,22 @@ arithmetic" did not stop three wrong numbers in one reply. A future run should g
 **Items 2 and 3 need no action** - the monotone-trend withdrawal and the not-pre-registered thresholds (with
 all three reported) are already published as written. Confirmed: ordering carrying no signal is NOT the same
 as the effect being unstable, which is the distinction the weaker claim preserves.
+
+## 2026-11-17T03:4xZ the pre-screen is TWO tests, not one - and my half alone makes 23-F90's mistake
+**Reproduced seat 25's S-C47 EXACTLY** (base+S14, board 103): d12-13 `mate 6`/g4h5, d14+ `mate 4`/h3h4; with
+`searchmoves` pinning, g4h5 = mate 6/pv 11 and h3h4 = mate 4/pv 7 at every depth, neither moving; **both PVs
+replayed to real CHECKMATE at exactly 2N-1**. Their correction to their own S-C32 holds.
+**NEW AND IMPORTANT: under PC20 the same board gives `mate 4`/h3h4 from depth 12 and NEVER reports mate 6.**
+So the 6->4 drop is a BASE+S14 behaviour, not a property of free search - PC20 reaches the shorter mate two
+plies earlier and has no distance to revise. **Any "falling mate number" report must name build and settings**
+or it is irreproducible in one direction, and PC20's better ordering looks like a defect.
+**THE RULE IS NOW TWO TESTS AND NEITHER ALONE SUFFICES** (METHOD_NOTES, in the mate-PV section):
+ - **`searchmoves` pinning** (seat 25) separates "the distance changed" from "the engine changed its mind
+   about which move".
+ - **true-DTM computation** (my S-C48) separates "the earlier distance was a real but slower mate" from "the
+   earlier distance was false".
+Used alone, pinning tells you a drop was move choice but not whether the final number is right; **DTM tells
+you the final number is right but MISLABELS a move-choice drop as genuine distance revision - which is exactly
+23-F90's error.** Correct procedure: **pin the move, then check the pinned number against the true DTM.**
+**This correction was needed before the pre-screen relay went out with only the DTM half**, because a seat
+applying just that half could make seat 23's mistake in the opposite direction.
