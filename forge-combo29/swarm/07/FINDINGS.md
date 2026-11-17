@@ -82,6 +82,11 @@ cheapest to apply and caught me three separate times tonight:**
 > `job65/BINARY_PROVENANCE.md`: **base `e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83`**,
 > **PC r15 `068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4`**, plus all seven auxiliary
 > builds. Cite the hash or the claim cannot be re-checked by anyone, including me (07-C67).
+> **THIS IS NOT BOOKKEEPING FOR ITS OWN SAKE — IT IS THE DIFFERENCE BETWEEN A DISCREPANCY AND A MYSTERY.**
+> Two seats disagreed by ~26× on node counts for the same board and the same counters; with the binary
+> unnamed it read as a dispute about node accounting and cost a seat a whole investigation, and with the
+> builds named it was a two-minute comparison — one seat's figures matched the PC arm **to the digit** and
+> the other's matched neither build (07-C72).
 
 > **A DEEP SEARCH ON A HIGH-HALFMOVE-COUNTER POSITION NEEDS A NODE BUDGET OR A TIMEOUT.** An untimed
 > `go depth 20` on a high-counter board can take ~250 M nodes and look hung (10-F65). This seat's own

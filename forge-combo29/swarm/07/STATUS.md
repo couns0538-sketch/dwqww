@@ -873,3 +873,7 @@ That distinction is the useful part: a miscount means the list was wrong, double
   Seat 10's figures (23,174,968 and 250,077,687) match the PC arm TO THE DIGIT. Seat 27's 599,407,784 matches NEITHER build -- and on my runs depths 15 AND 16 completed, where seat 27 reported never reaching 15 in ~62 s.
   SO: the ~26x gap is a BUILD/SETTINGS difference, not 'node accounting or sampling' as 30-F66 concluded. Seat 10 was on the PC build under PC20; seat 27 was not on any configuration I can reproduce.
   The general caution is the useful part: a node count is only comparable when the build AND the option set are named -- which is exactly the rule from 07-C67. Three seats compared numbers without pinning the binary, and the discrepancy looked like a mystery rather than a citation gap.
+
+## 2026-11-17T00:39:25Z
+Put the justifying sentence into the provenance rule itself, in both FINDINGS and FINAL, because it is the argument for the rule rather than a remark about one case:
+  > THIS IS NOT BOOKKEEPING FOR ITS OWN SAKE -- IT IS THE DIFFERENCE BETWEEN A DISCREPANCY AND A MYSTERY. Two seats disagreed by ~26x on node counts for the same board and the same counters; with the binary unnamed it read as a dispute about node accounting and cost a seat a whole investigation, and with the builds named it was a two-minute comparison -- one seat's figures matched the PC arm to the digit and the other's matched neither build (07-C72).

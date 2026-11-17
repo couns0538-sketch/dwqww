@@ -181,7 +181,11 @@ the wrong order to read them in. Grouped by what they are for:
 
 - **Regime plus binary is a complete citation; settings alone are half of one.** Nine of my own jobs
   cited settings with no `sha256` — the gap was in the record, not the work, and it is now closed in
-  `job65/BINARY_PROVENANCE.md`.
+  `job65/BINARY_PROVENANCE.md`. **This is the difference between a discrepancy and a mystery**: two seats
+  disagreed by ~26× on the same board with the same counters, and because neither named its binary it read
+  as a dispute about node accounting and cost a seat a full investigation. With the builds named it was a
+  two-minute comparison — one seat's figures matched the PC arm to the digit, the other's matched neither
+  (07-C72).
 - **A convenient listing is not the tool for the question you asked.** `git ls-files` cannot tell you what
   a branch contains; `git ls-tree -r --name-only origin/<branch>` can.
 - **A warning from a harness that has not validated its own input is not a finding.** Five of my controls
