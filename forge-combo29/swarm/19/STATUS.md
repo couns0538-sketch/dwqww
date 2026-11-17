@@ -1432,8 +1432,10 @@ and `checks/<job>/RESULT.md` + `PREDICTION.md` for every job.
 - **Trap 18** — mechanism intuition about the mean does not transfer to variance.
 - **Trap 19** — a helper silent on half its inputs; **when failures cluster on one side of a threshold, the passing
   case is the one to interrogate.**
-- **Trap 20** — **a sign-share from a timer is a share of the timer's resolution**; report wins/ties/losses and
-  lengthen the measurement rather than redefine the share.
+- **Trap 20** — **a sign-share from a QUANTISED measure is a share of that measure's granularity**; report
+  wins/ties/losses and prefer the share over a sum. Two quantities hit it in one night — **wall time** (1 ms on
+  19 ms searches → 64.6 % ties) and **integer depth** (50.0 % ties at 20k nodes, no timer involved) — so the rule
+  is scoped to quantisation, not to clocks.
 - **The meta-rule:** a rule that sorts claims is itself an unclassified claim until applied — **so sort the sentence
   you just wrote with it.** This caught five of my own summaries, including the owner sentence twice.
 
