@@ -119,6 +119,22 @@ def run(exe, pos_cmd, go_cmd, timeout=60, expect=None, opts=None):
             p.kill()
 
 
+def assert_base_has_no_pc20():
+    """Structural fact that makes the base cells a valid control for the PC switches, and ONLY for them:
+    the base build does not ADVERTISE the PC20 options, so a PC20 list cannot even be applied to it.
+
+    This is a stronger statement than "base is base". A base cell that agrees across S14 and PC20 agrees
+    because the PC switches do not exist on that build - not because the position happens to be insensitive.
+    It follows that the agreement is silent about any difference the cell COULD see (Hash, depth, board).
+    """
+    r = run(BASE, "position startpos", "go depth 1", expect=22, opts=SETTINGS["PC20"])
+    refused = "error" in r and "not advertised" in str(r["error"])
+    print("  %-56s %s" % ("base does NOT advertise the PC20 options", "PASS" if refused else "FAIL"))
+    if refused:
+        print("      (%s)" % r["error"])
+    return refused
+
+
 def preflight():
     ok = True
 
@@ -151,6 +167,9 @@ def preflight():
     chk("after the half list startpos has occurred TWICE (control)",
         b3.is_repetition(2) and not b3.is_repetition(3),
         "(rep2=%s rep3=%s)" % (b3.is_repetition(2), b3.is_repetition(3)))
+    # structural fact that BOUNDS what the base cells control for
+    if not assert_base_has_no_pc20():
+        ok = False
     return ok
 
 
