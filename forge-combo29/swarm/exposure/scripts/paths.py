@@ -17,7 +17,7 @@ The root is `FORGE_EXPOSURE_ROOT` when set, otherwise the directory above `scrip
 """
 from __future__ import annotations
 
-import glob as _glob
+import fnmatch
 import os
 
 ROOT = os.environ.get(
@@ -49,19 +49,26 @@ def under_root(path: str, *, must_exist: bool = False) -> str:
 
 
 def glob_under_root(pattern: str) -> list[str]:
-    """Glob a pattern, refusing patterns whose fixed part escapes the root.
+    """Expand a glob pattern, confined to the evidence root.
 
-    The wildcard-free prefix is what decides where matches can live, so it is the part
-    that must be contained; each match is then re-checked with `under_root`.
+    `glob.glob` is deliberately NOT used on the caller's string: the pattern is
+    caller-controlled, so handing it to the glob engine would keep tainted data in the
+    filesystem call. Instead the pattern is split into a directory and a leaf, the
+    DIRECTORY is sanitised through `under_root` (which returns a resolved absolute path
+    proven to be inside the root), and the leaf is matched against the real directory
+    listing with `fnmatch`. The caller's string never reaches a path-building call.
     """
     if not pattern:
         raise ValueError("empty pattern")
-    absolute = pattern if os.path.isabs(pattern) else os.path.join(_root(), pattern)
-    fixed = absolute.split("*", 1)[0].split("?", 1)[0].split("[", 1)[0]
-    # `fixed` may be a partial file name; contain its directory instead.
-    parent = fixed if os.path.isdir(fixed) else os.path.dirname(fixed) or _root()
-    under_root(parent)
-    return [p for p in sorted(_glob.glob(absolute)) if _is_under(p)]
+    leaf = os.path.basename(pattern)
+    if not leaf:
+        raise ValueError(f"pattern has no leaf component: {pattern!r}")
+    parent_input = os.path.dirname(pattern) or "."
+    parent = under_root(parent_input)
+    if not os.path.isdir(parent):
+        return []
+    return [os.path.join(parent, name) for name in sorted(os.listdir(parent))
+            if fnmatch.fnmatchcase(name, leaf)]
 
 
 def _is_under(path: str) -> bool:
