@@ -1910,3 +1910,26 @@ indistinguishable from a finding. Driver now asserts parsed move lines == nodes 
 row. Third time in this seat a parse failure would have read as a result (instances 1, 15, 18).
 
 127 findings, 20 rule instances, both audits PASS.
+## 2026-11-17T01:35:46Z  F100: F60's losing move is generator index 0 on a MIDDLEGAME board - F98 is a mechanism
+2026-11-17T01:35:46Z
+
+Job 49 connected two findings that were joined only by the phrase "0-node move". F98 was five endgame roots; F60 was a
+middlegame board where the 0-node move hung a piece (cp -805). Same mechanism, now confirmed:
+
+On F60's exact position, e6e5 is INDEX 0 of the engine's own `go perft 1` divide - 0 of 42 moves. Divide parsed 42 lines
+with node total 42 (equal, so no unparsed-divide ambiguity). First six generated: e6e5, h6h5, a7a6, a7a5, f6e4, f6g4.
+
+Controls BEFORE the measurement: python-chess confirms the FEN is legal, black to move, 42 legal moves, e6e5 legal - so
+F60's quoted position and move are consistent and the cross-check had a valid subject.
+
+And the sharpening: `go depth 16` on the BARE FEN searches normally (cp 0, 176,711 nodes, bestmove b6d8). Consistent
+with F60 (the zero came from the third-occurrence context, not the FEN) and it makes the point better than F60 did - the
+engine has 176,711 nodes of analysis available on this board and, on the drawn-root path, spends none of them on a move
+that is simply the first one generated.
+
+Handoff to area 7 is now precise: index 0 is returned unsearched where the same board without the draw gets a real
+search. I list the three consistent explanations (early return before root ordering; draw test after generation
+publishing the unmodified list head; root ordering skipped when the draw short-circuits) as OPEN ALTERNATIVES, not
+ranked - ranking them without reading the code would be an invented cause.
+
+128 findings, 20 rule instances, both audits PASS.

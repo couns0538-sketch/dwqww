@@ -1,0 +1,51 @@
+F98'S GENERATOR-ORDER RULE EXPLAINS 23-F60's LOSING MOVE ON A MIDDLEGAME BOARD — index 0 of 42
+==================================================================================================
+Two findings were joined only by the phrase "0-node move": F98 (five endgame roots, index 0) and F60 (a middlegame
+board reached by real self-play, where the 0-node move hung a piece). Job 49 asks whether they are the same mechanism.
+
+CONTROLS FIRST, BEFORE THE MEASUREMENT
+---------------------------------------
+python-chess on F60's exact position `rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16`:
+FEN legal, **black to move**, **42 legal moves**, and **e6e5 is legal**. So F60's quoted position and quoted move are
+consistent — P3 held, and the cross-check has a valid subject.
+
+THE MEASUREMENT (base build, Threads 1, Hash 16, OwnBook false)
+----------------------------------------------------------------
+Divide from `go perft 1` in the engine's own order:
+
+    parsed move lines = 42 | nodes total = 42   (equal — 23-F99's assertion, so an unparsed divide cannot read as a result)
+    first six generated: e6e5, h6h5, a7a6, a7a5, f6e4, f6g4
+    e6e5 index = 0 of 42
+
+P1 HELD, and this is the substantive result: **e6e5 — the move F60 measured as hanging a piece at cp -805 — is the FIRST
+move the engine generates on that position.** P2 HELD (42 = 42, plausible middlegame population).
+P4 as predicted, informational: `go depth 16` on the BARE FEN searches normally — cp 0, **176,711 nodes**, bestmove
+`b6d8`. That is consistent with everything in F60: the 0-node behaviour came from the third-occurrence CONTEXT, not from
+this FEN, and a search of the bare FEN is not a drawn root. It also sharpens F60's own point — the engine has 176,711
+nodes of analysis available on this board and, in the drawn-root path, spends NONE of them on a move that is simply the
+first one generated.
+
+WHAT THIS CHANGES
+-----------------
+F98 was an endgame observation (five drawn roots, three draw kinds). It is now a mechanism with a **confirmed
+non-endgame instance on a board where a real piece was lost**, and the two findings are connected rather than merely
+similar: F60's cost is the cost of playing generator index 0, and F98 is why index 0 is played. The phrase "its first
+legal move" in the brief was an accurate description all along; what was missing is that "first" means first **in the
+engine's generation order**, which is not the same as the first move a human or python-chess would list.
+
+THE HANDOFF, stated precisely because it is the piece an area-7 code-reading seat can act on
+-------------------------------------------------------------------------------------------
+The observation is: on the drawn-root path the engine returns index 0 of its generated list, unsearched, with cp 0,
+while on the same board without the draw it searches 176,711 nodes and returns a different move. What I have NOT done
+is read the code, so I do not know which of these is true — and each implies a different fix:
+  - an early RETURN before any root ordering or TT probe happens to hand back the head of the list;
+  - a draw test placed after generation but before the search, whose failure path publishes the unmodified list head;
+  - a root-ordering step that is itself skipped when the draw short-circuits, leaving the generated order untouched.
+I list them as open alternatives, not hypotheses I can rank, because ranking them without reading the code would be
+exactly the "invented cause" this seat has been careful not to produce (23-F82's standing rule).
+
+LIMITS: one middlegame position, base build only; the PC build searches on these roots (104 / 56,153 nodes) and so has
+no 0-node move for this mechanism to explain. The divide's order is `go perft 1` order, which I have NOT shown to be
+identical to the order a search's root move list would have — the control (a different move when searching) shows the
+0-node path is distinct, but the identification of "the 0-node move" with "perft index 0" is an equality I measured on
+six positions now, not a proof of a shared code path.
