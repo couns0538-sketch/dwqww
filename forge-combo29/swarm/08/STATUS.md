@@ -856,3 +856,16 @@ next: cadence.
 **39 findings, 33 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:37Z — FILE 7 / v3 path STARTED (my area is done, and file 7 extends the job to seats whose plan is done)
+- **Step 0 PASSES COMPLETELY.** All eight bench numbers exact (312866/862329 none; 278024/587276 PC20; 965454/4151906
+  test net; 625258/3652372 PC20+net), all three eval lines exact (968/1176/31), and the test net's three checksums
+  exact (6,309,096 bytes, fnv1a64 fdff70de72e4ca82, sha256 1db8525e…). Load line checksum + max|w1|=64/b1=96/w2=16
+  match, **kernel avx512** (my CPU is AVX-512). Build `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, g++ 13.3.0.
+- **Prediction committed and pushed ALONE before Step 1**: incremental UPDATE dominates 35-50 %, forward pass 15-30 %,
+  refresh 5-20 %; kills: refresh >40 % means the incremental path is failing (that would be the finding), search >50 %
+  means the bench is not exercising the net (harness problem first). Second prediction: at most one patch, likely
+  <5 % or rejected.
+- Working folder `forge-combo29/swarm/08/v3/`; `*.fnn3` in `.gitignore` so the net is NEVER committed.
+
+next: Step 1 — profile `bench 13` + 200 openings under PC20 + test net, Threads 1.
