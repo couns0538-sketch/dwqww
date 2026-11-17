@@ -29,19 +29,11 @@ import re
 import sys
 from collections import Counter
 
-DEFAULT = [
-    "REFUSED_FEN_TRAP_AND_GUARD.md",
-    "MEASUREMENT_TRAPS.md",
-    "TWO_GUARDS_CHECKER_AND_SAMPLE.md",
-    "CLOCK_REPRODUCIBILITY_RULE.md",
-    "ATTRIBUTION_RULE.md",
-    "MOVESTOGO_RULE.md",
-    "THREE_VERDICTS_NOT_TWO.md",
-    "TERMINAL_ROOT_MECHANISM.md",
-    "FILE6_APPLIED_TO_MY_FINDINGS.md",
-    "CHECKMATE_ROOT_MATE0_CLOSED.md",
-    "HISTREWORK_DISAGREEMENT_RESOLVED.md",
-]
+# DEFAULT derives from a glob rather than being a hand-maintained list. It WAS a hand-written list of 11 pages,
+# which meant a page added later was invisible to a manual run - the generated-list omission of Trap 14 in its
+# mildest form. The gate passes explicit paths so it was never affected; this fixes the manual-invocation default.
+DEFAULT = sorted(str(p) for p in pathlib.Path(__file__).parent.glob("*.md")
+                 if p.name != "STATUS.md")  # STATUS.md is an append-only log; the page rule does not apply
 # headings that read as closing material: nothing new should follow them
 CLOSING = re.compile(r"(the guard|one-minute version|checklist|the rule for a harness|consequence in one line|"
                      r"why this is worth a page|what it costs a harness)", re.I)

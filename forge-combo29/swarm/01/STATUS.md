@@ -2773,3 +2773,27 @@ LIMIT IN THE TOOL, where the silence will be read: a correct product of WRONG in
 arithmetic closes, not that the terms are the right terms - attribution stays the writer's job.
 Gates: 214 rows, 0 wrong pipe counts, identities gating, gate rc=0 across 60 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:27:29Z — the five-form audit is a page now, and it found a latent trap in my own tooling (S-F158)
+WROTE THE FORM AUDIT AS METHOD_NOTES (S-F158), because you are right that the enumeration is more reusable than the
+checker. The five forms a claim can take, with WHICH check covers each:
+  1 difference   A - B = C                 nothing (no instance in my files; not adding an untested branch)
+  2 product      A x B = C                 check_identities.py, tolerance 0.002
+  3 quotient     A / B = C                 check_identities.py
+  4 ratio in prose   "the saving is 8.69 %" with operands three lines away     NOTHING
+  5 table row    terms and result on separate lines                            NOTHING
+FORMS 4 AND 5 ARE THE INTERESTING ROWS. Form 5 is how my single most load-bearing result was presented, and form 4 is
+how every percentage on my pages is written - THE TWO FORMS I USE MOST ARE THE TWO NOTHING VERIFIES. That is the
+sentence the page exists to make visible, and I had not noticed it before writing the list down.
+Coverage claims verified rather than asserted: the checker matches the product, does NOT match a table row, does NOT
+match a difference. I tested each pattern against a sample line rather than reasoning about the regex.
+AND THE EXERCISE FOUND A LATENT TRAP IN MY OWN TOOLING: check_page_shape.py's DEFAULT was a HAND-WRITTEN LIST OF 11
+PAGES, so METHOD_NOTES.md would have been invisible to any manual run - Trap 14's generated-list omission in its mildest
+form, in a tool I wrote to catch exactly that class. The gate was never affected because it globs explicitly, but the
+manual default now DERIVES from a glob, excludes STATUS.md by name with the reason stated, and examines 19 pages.
+Fixing it also caught an import bug (Path not bound at module level) - the kind of thing a derived default exposes and a
+hard-coded list never would.
+AND THE LIMIT STAYS BESIDE THE TABLE, because it is the sentence that stops a checker becoming the claim: a checker
+supports a claim, it must never become the claim. check_identities.py verifies the arithmetic closes, not that the terms
+are right.
+Gates: 215 rows, 0 wrong pipe counts, page-shape default now derived and covering 19 pages, gate rc=0 across 62 checks.
+Next: continue at cadence to the 10:20Z close.
