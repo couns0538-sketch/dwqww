@@ -775,3 +775,8 @@ Two more standing rules in the FINDINGS header (12 now, 65 rows in the table):
   REFINEMENT: their quoted pair was g1e2 vs f1e2, which must be a different position; on startpos it is a2a3, which is the FIRST LEGAL MOVE IN GENERATION ORDER.
   THE CONNECTION WORTH MAKING: that is the same fallback as the fabricated bestmove (19-F12, root_candidates.front() at search.cpp:3017) and the shared zero-node report path (07-C54). go nodes 0 is DELIBERATE (documented as 'an immediate bounded answer'); the other two are defects -- but they share the mechanism, which is why a harness sees them as looking alike.
   Also confirmed: only nodes honours 0 literally; depth and movetime clamp up. That is the practical rule for any harness that tries to express 'do nothing' with a zero.
+
+## 2026-11-17T00:14:01Z
+Made the deliberate-vs-defect distinction standalone in 07-C60 so it cannot be skimmed past: **go nodes 0 IS DELIBERATE AND DOCUMENTED -- DO NOT FILE IT AS A BUG.** It is the source's own 'an explicit zero node budget is an immediate bounded answer', and answering at once with the first legal move is the intended behaviour of that command.
+  The other two -- the fabricated bestmove on an aborted search (19-F12) and the per-depth fabricated report lines (07-C54) -- ARE defects. All three share the root_candidates.front() mechanism, which is why a harness inspecting only the MOVE cannot tell a deliberate bounded answer from a fabricated one; the difference is in the COMMAND and in the REPORT LINES, not in the move.
+That is also why the shared-path patch (07-C55) is safe for nodes 0: it changes how many report lines are printed, not the fallback move the command is documented to give.
