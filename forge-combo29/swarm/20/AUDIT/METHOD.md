@@ -44,9 +44,15 @@ unfinished search, and a huge winning score with no mate claim misleads nobody. 
   informed. Reporting +4000 cp for a won position whose mate you have not proven is correct behaviour.
 
 To apply it you must find **the depth at which the mate claim first appears** and test the PV *there* — not compare a
-budget-limited score against a deeper one and call the difference a fault. That was my S-C48b error, and it is RULE 0
-(«check the reference is working») applied to your own comparison: ask whether the shallow arm had any right to know
-the answer before you call its answer wrong.
+budget-limited score against a deeper one and call the difference a fault. That was my S-C48b error. The sentence that generalises it, past mates to ANY
+budget-versus-depth comparison:
+
+> **Ask whether the shallow arm had any right to know the answer before you call its answer wrong.**
+
+A search given 20,000 nodes and one given 250,000 are not two measurements of the same thing; the cheap one is
+*allowed* to be less informed. Comparing them and labelling the difference a defect mistakes **a budget for a bug**.
+This is RULE 0 in its general form: check that the reference is working — here, check that the reference was even
+*entitled* to the result you are comparing against.
 
 ## NAME THE CONSTRUCTION, WITH ITS OPTION COUNT
 
