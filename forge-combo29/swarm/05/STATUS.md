@@ -778,3 +778,13 @@ every sentence.
   different score and a short PV; depth- and time-limited stops at comparable depth do not. This matters because the owner's
   matches use `go nodes`.
 - next command: continue at cadence.
+
+## $(date -u)
+- METHOD_finding_rare_defects.md written (mate_truncation/): states plainly that every real instance came from following
+  a KNOWN-violating position and varying one variable, with the sampling numbers beside it — a mate score at all is
+  ~1 in 30-60 (1-2 of 60 G positions), a long mate (|N|>=8) is ~1 in 200 (2 of 400). Lists how each of the five
+  instances was found and the four variables that produced S-F27, S-F62, S-F29/S-C21 and S-F17. Generalises: any defect
+  needing a rare precondition is found by constructing the precondition first; a rate counts only when the sample
+  contained it.
+- I corrected my own "roughly 1 in 100" to the measured 1-in-30-60 / 1-in-200 ranges rather than leave a rounded guess.
+- next command: continue at cadence.
