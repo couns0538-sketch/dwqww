@@ -75,6 +75,42 @@ researcher who reads one stream misses the engine. Both are cured by collecting 
 of the collection. **The reason the seat-01 cross-check worked in both directions is that neither of us had to
 know the answer to a placement question to be right about the mechanism.**
 
+## Before shipping a bound, measure the population where it might NOT bind
+
+A bound is a claim about the ends of a distribution, and the sample that produced it usually contains the middle.
+**Both directions of this error appeared tonight, on one quantity, within the hour** — which is the closest thing
+to a controlled demonstration a method rule is going to get.
+
+**Direction 1 — too high a ceiling.** S-N1 published *"`go softnodes N` overshoots N by 1.02x to 1.95x"* from
+**4 positions**. On 40 positions the range was **1.008x to 3.503x**, with **29 of 80 cells outside the band**.
+The four boards could not show the ceiling because an iteration boundary landing late in a large tree is what
+produces it, and none of them had a large enough tree.
+
+**Direction 2 — too low a floor, which the same quantity also has.** After the correction I found
+`softnodes 20000` returning **1,344 nodes on a K+R v K board** — a **14.9x under-shoot** — because the engine
+reaches the **depth-64 clamp** and stops. Had I shipped that unscoped, the owner-facing sentence would have
+been *"a soft budget is unreliable"*, which is **false** for his actual use: on **60 real-game positions at
+`softnodes 2000` nothing undershot at all (min ratio 1.022, 0 of 60)**.
+
+**So the same quantity was mis-bounded once from above and nearly mis-bounded once from below, in one night.**
+The rule that covers both:
+
+> **Before shipping a bound, measure the population where it might not bind.**
+> A ceiling needs a sample that can reach high; a floor needs a sample that can reach low.
+> If your sample cannot contain the extreme, you have not measured the bound — you have measured the middle and
+> extrapolated, in whichever direction the phrase happens to point.
+
+**The practical form: name the two extremes of the population, and check that the sample contains cases near
+each.** For the softnodes ratio: the small tree (fast to depth 64) and the large tree (late iteration boundary).
+Four middlegame boards contained neither. Sixty real positions contained the second but not the first — which is
+why the floor needed one mating board, and the ceiling needed forty positions, and **neither sample was
+sufficient for both.**
+
+**And the scoping is not optional garnish.** A bound published without the population where it does not bind is
+not a weaker claim than a wrong one — it is a claim a reader will apply where it fails, and *"a soft budget is
+unreliable"* would have been a real harm to an owner deciding whether to trust his self-play labels. S-C101's
+60-position distribution is what makes the floor finding usable rather than alarming.
+
 ## Test the CLAUSE, not the claim
 
 The most useful catch of the last hour was not a wrong finding. It was **one wrong clause inside a correct
