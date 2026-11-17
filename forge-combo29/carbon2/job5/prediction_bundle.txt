@@ -1,0 +1,25 @@
+Job 5 Bundle Prediction (committed BEFORE any Bundle timed run)
+===============================================================
+Target: `forge-combo29/carbon2/job5/bundle.patch.txt` — unified diff against the Job 4 base
+(`6b98f217 + pc_r15.patch + carbon2/a_speed_pc20_v3.patch.txt + carbon2/job3/e1_legal_check_evasions.patch.txt`)
+combining all seven proven-identical steps of Jobs 4 and 5 (`S1 + S2 + S3 + S4 + S5 + S6 + S7`):
+- `S1`: Cache-tiled refresh accumulator pass (`kRefreshTileInputs = 32`) + single-add/single-sub AVX-512 forward fusion.
+- `S2`: AVX-512 `VPERMT2D` quiet-move history gather (`main/rework` + `cont1/2/4`) + unboxed `Board::is_pseudo_legal`.
+- `S3`: Early L1 `_mm_prefetch` of all 6 static-eval correction tables + 4-way unrolled `non_pawn_key`.
+- `S4`: Slim `MovePicker` (`-2,552 B` struct, `-2,608 B/ply` recursive `Worker::search` stack frame with S7) + `qsearch` `odd_idx16` load guard.
+- `S5`: `Board::make_move` precomputed `early_key` reuse + conditional 72-byte `KingLines` save/restore on `Undo`.
+- `S6`: `Board::see_ge` unpinned enemy-pawn recapture fast-exit before `attackers_to_fast`.
+- `S7`: Zero-allocation `std::string_view` UCI `position` / `go` fast-path (`O(L)` `canonical_moves` prefix skip), persistent `SearchTask` `Board` capacity reuse, and dirty-tracked `Worker::clear()` on `ucinewgame`.
+
+Predicted speedup vs Job 4 base on this cloud CPU (Intel Xeon @ 2.60GHz, g++ 13.3 AVX-512, `PC20 + net768`):
+- 12-round ABBA (`A1 B1 B2 A2`) x 60-game FEN-root self-play (`positions_250.txt` indices `0, 4, ..., 236`, `go softnodes 2000`):
+  `+2.5%` to `+5.5%` (`1.025x` to `1.055x`) in `median_of_paired_round_ratios` on both `getrusage` engine CPU nanoseconds and wall clock.
+- 4-round ABBA `bench 13` (`PC20 + net768`):
+  `+2.0%` to `+5.0%` (`1.020x` to `1.050x`) in `median_of_paired_round_ratios`.
+- Stack frame sizes (`base_j4 -> bundle`):
+  `sizeof(MovePicker): 4792 -> 2240 B (-2552 B)`, `Worker::search: 7104 -> 4496 B (-2608 B)`, `Worker::qsearch: 5248 -> 2704 B (-2544 B)`.
+- Identity: 100% bit-exact across all `bench 11/13/16` (`net512` & `net768`), 250-pos depth-9, 1000-pos evals, 6-game traces (`4560d7c3afdeba2e`, `9ed22c1193ab96de`), and ONE identical 64-bit FNV-1a trace across all 48 runs of the 12-round x 60-game self-play benchmark.
+
+Kill condition:
+- Any identity or 48-run FNV trace divergence kills the bundle immediately.
+- If the 12-round x 60-game self-play `median_of_paired_round_ratios` is `<= 1.015x` (`<= +1.5%`) on both wall clock and `getrusage` engine CPU OR fails to exceed the A/A build-noise spread (`not measured`), the bundle speed prediction is killed.
