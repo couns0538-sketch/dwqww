@@ -1,0 +1,22 @@
+PREDICTION — settle_pos29 (one contained question), committed BEFORE measuring
+
+The disagreement: at depth 10, S14 picked f3g2 scoring cp +1744 while PC20 picked f3g3 scoring
+cp +1541 (30-F58). Both see a large White advantage, so this is not a blunder-versus-save case.
+
+P1. Scoring each move ALONE at increasing depth (root restricted with searchmoves), the two moves
+    will converge: I predict their scores differ by less than 50 cp at depth 18, because a 203 cp
+    gap at a +1700 evaluation is more likely two different views of the same win than one move being
+    genuinely two pawns better.
+    Killed if the two isolated scores still differ by more than 100 cp at depth 18.
+
+P2. The unrestricted best move will converge to ONE of the two candidates by depth 18 on BOTH arms.
+    Killed if the arms still pick different moves at depth 18.
+
+P3. If either score becomes "mate N", the PV will verify as a real checkmate in exactly 2N-1 plies
+    (mate checks are cheap here since the position is already winning).
+    Killed by any mate score whose PV does not mate or has the wrong length.
+
+P4. I predict the converged winner is f3g3 (the PC20 choice), because PC20's four switches reduced
+    the tree but agreed with S14 on 36 of 40 positions in my sample (30-C55), so on a winning
+    position it should be the side that found the better move.
+    Killed if the converged winner is f3g2.
