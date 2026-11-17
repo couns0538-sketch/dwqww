@@ -1,0 +1,12 @@
+Step: s6_see_fast_unpinned_pawn_recapture
+Stacked on: Job 4 base (r15c + E1) + S1 + S2 + S3 + S4 + S5
+
+Functions and profile share attacked:
+- forge::Board::see_ge(Move const&, int) const: 4.55% self in post-E1 self-play profile (6.00% in Job 3 Sec 1 profile; 12,300,134 calls across 24 FEN-root games)
+
+Mechanism (100% bit-exact):
+When `swap = attacker_value - swap > SeeValue[Pawn]` (`SeeValue[Pawn] - swap < 0`, e.g. any non-pawn quiet or capture move stepping onto a pawn-defended square under SEE >= 0 or shallow quiet SEE pruning), checks in register-only bitboard ops whether a live enemy pawn attacks `to` (`attacks::pawn(us, to) & pieces(them, Pawn) & live`) and the enemy king has neither contact checks nor slider rays in `live`. Whenever both hold, ply 1 of `see_ge`'s exchange loop is guaranteed to capture with that enemy pawn and break immediately with `result == 0` (`false`), skipping the full 6-piece PEXT `attackers_to_fast(to, occupancy)` gather and loop setup.
+
+Predicted bench 13 gain (stacked on S1..S5, PC20 + 768 test net):
+- Predicted median of paired round bench 13 ratios (B / A): 1.006x to 1.025x (+0.6% to +2.5%).
+- Kill criterion (range that kills this prediction): median of paired round bench 13 ratios < 1.004x (< +0.4%).
