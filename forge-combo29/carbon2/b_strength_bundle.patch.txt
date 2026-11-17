@@ -1,0 +1,88 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 09:35:28.953143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 10:49:36.713143771 +0000
+@@ -318,6 +318,8 @@
+ extern int HistRework;               // 0 = off; 1..3: threat-keyed quiet history twin + pawn x material correction
+ extern bool TtPruneV2;               // TT-move pruning guards, cut-node IIR, opponent-worsening RFP, margins (false = off)
+ extern bool CorrHistV2;              // static-eval correction keyed by the last two moves (false = off)
++extern bool FastLegalEvasions;       // filter non-evasion pseudo-legal moves in check before scoring/sorting (false = off)
++extern bool NoisyHistoryLmr;         // scale noisy LMR by capture history and +1 ply on non-checking SEE<0 captures (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 09:35:28.957143771 +0000
++++ b/src/search.cpp	2026-11-17 10:49:45.981143771 +0000
+@@ -179,6 +179,8 @@
+ int HistRework = 0;
+ bool TtPruneV2 = false;
+ bool CorrHistV2 = false;
++bool FastLegalEvasions = false;
++bool NoisyHistoryLmr = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -1063,7 +1065,18 @@
+         // above both quiet history and the legacy promotion scores (captures first).
+         // Quiet evasions keep the same mix generate_quiets uses.
+         const bool history_evasions = tune::EvasionOrdering;
++        const bool filter_evasions = tune::FastLegalEvasions;
++        const int own_king = filter_evasions ? board_.king_square(board_.side_to_move()) : -1;
++        const Bitboard checkers = filter_evasions ? board_.checkers() : 0;
++        const bool double_check = filter_evasions && more_than_one(checkers);
++        const Bitboard evasion_targets = (filter_evasions && !double_check && checkers != 0)
++            ? (attacks::between(own_king, lsb(checkers)) | checkers)
++            : 0;
+         for (const Move move : buffer_) {
++            if (filter_evasions && move.from != own_king && (move.flags & EnPassant) == 0U &&
++                (double_check || (square_bb(move.to) & evasion_targets) == 0)) {
++                continue;
++            }
+             int score;
+             if (history_evasions && move.is_capture()) {
+                 const int victim =
+@@ -2263,6 +2276,10 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            else if (tune::NoisyHistoryLmr) {
++                r -= std::clamp(history / 8192, -1, 1);
++                if (capture && !gives_check && !picker.last_move_see_nonnegative()) r += 1;
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 09:35:28.957143771 +0000
++++ b/src/uci.cpp	2026-11-17 10:49:51.353143771 +0000
+@@ -352,7 +352,9 @@
+                          "option name CuckooRep type check default false\n"
+                          "option name HistRework type spin default 0 min 0 max 3\n"
+                          "option name TtPruneV2 type check default false\n"
+-                         "option name CorrHistV2 type check default false\n";
++                         "option name CorrHistV2 type check default false\n"
++                         "option name FastLegalEvasions type check default false\n"
++                         "option name NoisyHistoryLmr type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -600,11 +602,14 @@
+                     note_invalid();
+                 }
+ #endif
+-            } else if (name == "CuckooRep" || name == "TtPruneV2" || name == "CorrHistV2") {
+-                // B4 bundle (forge/r9): registration only; the search reads the values between searches.
+-                bool* target = name == "CuckooRep" ? &forge::tune::CuckooRep
+-                             : name == "TtPruneV2" ? &forge::tune::TtPruneV2
+-                                                   : &forge::tune::CorrHistV2;
++            } else if (name == "CuckooRep" || name == "TtPruneV2" || name == "CorrHistV2" ||
++                       name == "FastLegalEvasions" || name == "NoisyHistoryLmr") {
++                // B4 bundle (forge/r9) + carbon2 default-off strength options.
++                bool* target = name == "CuckooRep"         ? &forge::tune::CuckooRep
++                             : name == "TtPruneV2"         ? &forge::tune::TtPruneV2
++                             : name == "CorrHistV2"        ? &forge::tune::CorrHistV2
++                             : name == "FastLegalEvasions" ? &forge::tune::FastLegalEvasions
++                                                           : &forge::tune::NoisyHistoryLmr;
+                 if (value_text == "true" || value_text == "false") *target = value_text == "true";
+                 else note_invalid();
+             } else if (name == "HistRework") {

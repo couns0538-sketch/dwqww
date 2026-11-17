@@ -1,4 +1,4 @@
-diff -ruN base_r15/include/forge/nnue_v3.hpp var_speed/include/forge/nnue_v3.hpp
+diff -ruN a/include/forge/nnue_v3.hpp b/include/forge/nnue_v3.hpp
 --- a/include/forge/nnue_v3.hpp	2026-11-17 09:35:28.953143771 +0000
 +++ b/include/forge/nnue_v3.hpp	2026-11-17 10:11:11.705143771 +0000
 @@ -48,6 +48,7 @@
@@ -57,7 +57,7 @@ diff -ruN base_r15/include/forge/nnue_v3.hpp var_speed/include/forge/nnue_v3.hpp
          return;
      }
      for (int k = ancestor + 1; k <= index; ++k) replay_ply(net, state, k, board, index, dirty_of);
-diff -ruN base_r15/include/forge/search.hpp var_speed/include/forge/search.hpp
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
 --- a/include/forge/search.hpp	2026-11-17 09:35:28.953143771 +0000
 +++ b/include/forge/search.hpp	2026-11-17 10:16:21.465143771 +0000
 @@ -172,6 +172,7 @@
@@ -106,7 +106,7 @@ diff -ruN base_r15/include/forge/search.hpp var_speed/include/forge/search.hpp
      // B4 HistRework: the twin's slot of a quiet move at the node of `ss` (its maps are threat_maps_[ss->ply]), the
      // change of a quiet move's score when part of its butterfly term comes from the twin, and the twin's update.
      [[nodiscard]] std::int16_t& rework_entry(const Board& board, const SearchStack* ss, Move move) const;
-diff -ruN base_r15/src/board.cpp var_speed/src/board.cpp
+diff -ruN a/src/board.cpp b/src/board.cpp
 --- a/src/board.cpp	2026-11-17 09:35:28.953143771 +0000
 +++ b/src/board.cpp	2026-11-17 10:05:01.141143771 +0000
 @@ -719,16 +719,57 @@
@@ -241,7 +241,7 @@ diff -ruN base_r15/src/board.cpp var_speed/src/board.cpp
      return std::nullopt;
  }
  
-diff -ruN base_r15/src/nnue_v3.cpp var_speed/src/nnue_v3.cpp
+diff -ruN a/src/nnue_v3.cpp b/src/nnue_v3.cpp
 --- a/src/nnue_v3.cpp	2026-11-17 09:35:28.957143771 +0000
 +++ b/src/nnue_v3.cpp	2026-11-17 10:14:32.509143771 +0000
 @@ -118,55 +118,80 @@
@@ -635,7 +635,7 @@ diff -ruN base_r15/src/nnue_v3.cpp var_speed/src/nnue_v3.cpp
  }
  
  void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator) {
-diff -ruN base_r15/src/search.cpp var_speed/src/search.cpp
+diff -ruN a/src/search.cpp b/src/search.cpp
 --- a/src/search.cpp	2026-11-17 09:35:28.957143771 +0000
 +++ b/src/search.cpp	2026-11-17 10:27:25.849143771 +0000
 @@ -5,6 +5,7 @@
@@ -1312,7 +1312,7 @@ diff -ruN base_r15/src/search.cpp var_speed/src/search.cpp
  #if FORGE_NNUE_V3_VERIFY
      // Test builds only (-DFORGE_NNUE_V3_VERIFY=1): every evaluation of the search is compared with the value from
      // fresh accumulators and the scalar output sum. A difference ends the program with exit code 3.
-diff -ruN base_r15/src/uci.cpp var_speed/src/uci.cpp
+diff -ruN a/src/uci.cpp b/src/uci.cpp
 --- a/src/uci.cpp	2026-11-17 09:35:28.957143771 +0000
 +++ b/src/uci.cpp	2026-11-17 10:10:56.821143771 +0000
 @@ -40,50 +40,76 @@
