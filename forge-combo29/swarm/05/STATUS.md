@@ -866,3 +866,15 @@ every sentence.
   reproduce 5.5 and 52.5 from the real data. Noted that even counts are the common case in my tables, so the bias
   recurs, and that it moved the middlegame figure a third of the way toward seat 15's 12 cp.
 - next command: continue at cadence.
+
+## $(date -u) — SUGGESTED JOB DONE: sparse label test with a real denominator
+- S-F67: 30 sparse endgames + 30 middlegames (my construction, seeded), PC20, Threads 1, Hash 16, OwnBook false, COLD,
+  clock 6s+0.06 then `go depth D+4`, every mate REPLAYED.
+  * SPARSE: mate LABEL gained **6/30 (20%)**; PV genuinely mates **3**; label NOT delivered **3**; median movement on the
+    24 that stayed cp = **2.0 cp**.
+  * MIDDLEGAME: label gained **0/30 (0%)**; median movement **41.0 cp** (n=30).
+  => class direction holds at a real denominator (6/30 vs 0/30), AND the truncation defect inflates the label rate
+  twofold — a training label from the deeper search would record 6 mates where 3 are real.
+- S-F68: the three seats' rates differ by POSITION SET not by seat (2/5, 4/8, 6/30). My hand-built set gave 50%, my
+  randomly-generated set 20%. Middlegame arm stable across all three: 0/5, 0/8, 0/30.
+- next command: reconcile the contention relay with my own S-F49 explanation.
