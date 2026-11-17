@@ -82,3 +82,21 @@ The three rules that follow it, also verbatim:
 
 Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-move and insufficient material each give
 10 lines / 0 nodes / empty pv / a legal move, so the drawn-root row is not a threefold-only observation.
+
+SEVENTH LINE — THE ONE COMMAND THAT CHECKED THE REPORT'S CENTRAL CLAIMS (put this in the FINAL):
+
+**Every number quoted above was re-measured in one run, 11 of 11 agreeing, and the reader can repeat it:**
+
+```
+cd forge-combo29/swarm/23/job68 && python3 final_recheck.py
+```
+
+That single script validates its own fixture at the top (`counted=3 python-chess=3 expect=3`) and then measures all eleven
+cells the report relies on: 2 occurrences searching at 7,581 nodes, 3 bailing at 0, ten info lines with an empty PV on the
+bail, an 11-ply PV when searching, halfmove 99 searching and 100 bailing, bare kings bailing, the bail unchanged at
+MultiPV 3, the PC searching at 27,390 nodes, and perft 5 = 4,865,609. A reproducible report, not a report that says it is
+reproducible.
+
+One qualification the report should carry: those PC scores were taken at `go depth 10`, and at a real clock the PC answers
+differently on the same drawn root (`mate 8` at a one-second movetime, 23-F168), while the base's bail is identical under
+every budget. So build comparisons in this report are depth-matched, not strength-matched.

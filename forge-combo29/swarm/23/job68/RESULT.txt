@@ -99,3 +99,36 @@ handling, not of the drawn-root repair or of the base tree — and it reaches th
 That matters for how it is described in the write-up. The other three hazards on the GUI page are also present on the PC
 build, but they were each demonstrated on it; this one now is too. A front end written against the PC build needs
 `bestmove 0000` handled exactly as a front end written against the base does.
+
+CLOCK AND MOVETIME BUDGETS — the bail is budget-independent, and the PC's SCORE is not
+-----------------------------------------------------------------------------------------
+Every drawn-root measurement in this seat used `go depth`. A front end sends a clock, so this tests whether the family's
+statement survives the budgets real tools use. Base and PC, validated fixture.
+
+| build | root | budget | info lines | nodes | score | pv | bestmove | elapsed |
+|---|---|---|---|---|---|---|---|---|
+| base | drawn | `go depth 10` | 10 | **0** | cp 0 | empty | d5d1 | 1 ms |
+| base | drawn | `go movetime 1000` | 64 | **0** | cp 0 | empty | d5d1 | **0 ms** |
+| base | drawn | `go wtime 6000 btime 6000` | 64 | **0** | cp 0 | empty | d5d1 | **0 ms** |
+| base | bare (searches) | `go movetime 1000` | 46 | 5,371,409 | mate 8 | 15 | d5b5 | 990 ms |
+| base | bare (searches) | `go wtime 6000 btime 6000` | 33 | 1,120,458 | mate 8 | 15 | d5b5 | 227 ms |
+| **PC** | drawn | `go depth 10` | 10 | 27,390 | **cp 377** | 11 | d5b5 | 8 ms |
+| **PC** | drawn | `go movetime 1000` | 34 | 5,164,204 | **mate 8** | 15 | d5b5 | 990 ms |
+| **PC** | drawn | `go wtime 6000 btime 6000` | 23 | 1,299,859 | **mate 9** | 17 | d5b5 | 280 ms |
+
+**The bail is identical under all three budgets on the base**: 0 nodes, `cp 0`, empty PV, `d5d1`, and it returns
+essentially instantly (0 ms) rather than spending the budget. So the family's statement is budget-independent for the
+build that has the defect, which is the sentence a tool author needs.
+
+**And the PC row shows something the `go depth` measurements understated.** With a real budget the repaired build does not
+report `cp 0` or `cp 377` — it finds **mate 8 / mate 9** on the drawn root, in 990 ms and 280 ms respectively. That is
+consistent with 23-F131: the PC does not claim a repetition draw, and given enough time it finds the forced mate that
+makes the claim moot. But it means **the PC's score on a drawn root is a function of the budget, while the base's is not**
+— `cp 377` at depth 10 against `mate 8` at a one-second clock on the same position.
+
+That is worth stating plainly in the write-up rather than leaving the PC described by its depth-10 number: on a position
+drawn by repetition the repaired build's answer depends on how long you give it, and at a real clock it answers with the
+mate. Nothing here is a defect — it is the claim policy again — but a reader comparing builds needs to know the scores
+were taken at different effective strengths.
+
+LIMIT: one board, one setting per budget, base + PC; no repetition of the clock cells.
