@@ -30,7 +30,7 @@ start here if you want the reasoning.
 | 7 | `AspirationDelta` and the two aspiration switches | **leave the delta at 18 and do not enable either switch without re-screening.** Changing the delta moves the score on **126 of 133** positions and the move on **95 of 133** for a **12–15% median node saving**; one position's `cp 517` becomes a **true `mate 2`** at delta 200, so the default window misses a forced mate a wider one finds. Both switches lose a mate the default finds at fixed depth | §3 |
 | 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it on the evidence so far** — it costs **2–3 plies of effective depth** on forced mates and is **the only thing on this engine measured to lose a mate the default finds**. On 30 verified fixtures it changes 9 verdicts, helps 4, **harms 5**. **It does converge**: every harm recovers by depth 9 or 10, so the cost is depth-efficiency, not soundness | §3 |
 | 9 | `ContHist4PlyRead` | **never enable it for anything that reads mate scores** — it reports **`mate 12` for a mate in 5 plies**, a claim 7 plies wrong whose printed PV cannot deliver it. **Default is `false` and the default build is correct on the same position**, so this is a hazard for whoever turns it on, not a live defect. Scope 1 of 30 mate fixtures; mechanism unknown | §1b |
-| 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 167 of 192 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Zero of the 37 attributable failures involved the bail**, so patching the bail fixes none of them | §10 |
+| 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 167 of 192 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Zero of the 37 attributable failures involved the bail**, so patching the bail fixes none of them | §9c |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
 question that was not asked, in **five** distinct ways, and three of the five are indistinguishable from
@@ -4637,6 +4637,61 @@ wrong score is carried into the search.**
   identically**. **A warm table changes fixed-depth scores, which would manufacture a fake depth trend.**
   Every measurement in this report that compares depths uses one fresh process per cell.
 
+## 9c. The engine cannot reliably convert won endings — and the cause is the clock, not the bail
+
+**This is the single most consequential finding in the report for anyone who plays the engine**, and it
+moved here from §10 because it is a measured defect with a named mechanism, not an open question.
+
+Measured with an **exact-table oracle as the control, which converts 20 of 20 in KQK, 20 of 20 in KRK and
+192 of 192 won KPK cells** — so the harness is proven able to convert. The engine does not
+come close, and the pattern is not random:
+
+| family | engine, depth 12 | engine, `nodes 12000` | oracle |
+|---|---|---|---|
+| KQK | **18 / 20** | 19 / 20 | **20 / 20** |
+| KRK | **10 / 20** | **8 / 20** | **20 / 20** |
+| KBNK | **3 / 20** | **3 / 20** | not run (no 4-piece table) |
+| KPK (192 won cells) | 142 / 192 | **167 / 192** | **192 / 192** |
+
+- **Every attributable failure ends in a fifty-move claim with ZERO drawn-root bails**: 2 KQK + 10 KRK +
+   25 KPK = **37 failures, `n_bails = 0` on all 37.** So **a repair aimed at the bail would fix none of
+   them**, and that negative is the most useful part of the result — it contradicts the natural hypothesis.
+- **The mechanism is the already-documented leaf band, and I verified it independently on the seat's own
+   board.** `8/8/8/8/8/2k5/8/KQ6 w - - H 1` at `go depth 12`:
+
+  | halfmove clock | score | nodes |
+|---|---|---|
+  | 0 and 60 | **cp 1220** | 93,585 |
+  | 80 | cp 1129 | 711,846 |
+  | 85 | cp 1085 | 18,784,716 |
+  | **90** | **cp 0** | **101,428,235** |
+  | 95 | cp 0 | 156,416 |
+
+   **The band is at clock 90 and the score there is exactly `cp 0` — not "small", the same value a real
+   draw returns**, which is why the engine cannot distinguish a won position from a drawn one at that
+   clock. **And the node count to answer a question it answered in 93,585 nodes at clock 60 is 101
+   million.** The engine does not fail to see the win; **it decides the position is drawn and then
+   shuffles correctly for a drawn position.**
+- **The seat is careful about what it proves**: it **did not instrument the leaf**, so this is
+   "consistent with the documented `H > 100 − p` rule", not a proof. **KBNK is a measurement without a
+   mechanism** — 3 of 20, 17 ended in a fifty-move claim, and **the seat explicitly refuses to attribute it
+   to the bare-minor inversion because it built no KBNK table**. That refusal is the right call.
+- **The bare-minor inversion's game-level cost is SMALLER than the static number suggests, and that is a
+   second null**: as the defender the engine **held 20 of 20 in both KBK and KNK**, because
+   `is_insufficient_material()` short-circuits the root and it plays the generator's first move. **The
+   −147/−144 score never costs a draw.** What it does cost is a **bail storm**: **2,152 bails across 20 KBK
+   games and 2,064 across 20 KNK games**, about 100 per game, and 100+ plies of shuffling a bare minor.
+   **So the defect is "it cannot win a won ending" and "it makes a drawn one tedious", not "it loses drawn
+   ones".**
+- **One KRK game shows the two mechanisms compounding, which is why they must be described separately**:
+   the engine held the win for 100 plies, the clock reached 99, its score collapsed to `cp 0` in 320
+   nodes, it played **`Kxh3`, giving up the rook**, and the remainder is K vs K with the bail firing every
+   ply. **The clock defect created the material bail, not the reverse.**
+- **Horizon does not rescue it**, and the ladder belongs with the numbers: at depth 12 the exact KQK
+   positions that fail need depths in the tens to convert, and the node counts at clock 90 (101 million on
+   a three-piece board) show why that is not a practical answer. **The report's §2 band repair is the
+   relevant fix, not more depth and not the bail patch.**
+
 ## 10. What is not established
 
 Every claim above is calibrated where it is stated, but the open items are scattered across sections.
@@ -4681,56 +4736,6 @@ Collected here so a reader does not mistake a closed behaviour for a closed mech
   *magnitude* is not.
 
 **Known scope limits that a reader might otherwise over-read**
-- **The engine cannot reliably convert won endings, and the cause is the FIFTY-MOVE CLOCK, not the
-  bare-minor inversion — this is the single most consequential finding in the report for anyone who plays
-  the engine.** Measured with an **exact-table oracle as the control, which converts 20 of 20 in KQK and 20
-  of 20 in KRK and 192 of 192 won KPK cells**, so the harness is proven able to convert:
-
-  | family | engine, depth 12 | engine, `nodes 12000` | oracle |
-  |---|---|---|---|
-  | KQK | **18 / 20** | 19 / 20 | **20 / 20** |
-  | KRK | **10 / 20** | **8 / 20** | **20 / 20** |
-  | KBNK | **3 / 20** | **3 / 20** | not run (no 4-piece table) |
-  | KPK (192 won cells) | 142 / 192 | **167 / 192** | **192 / 192** |
-
-  - **Every attributable failure ends in a fifty-move claim with ZERO drawn-root bails**: 2 KQK + 10 KRK +
-    25 KPK = **37 failures, `n_bails = 0` on all 37.** So **a repair aimed at the bail would fix none of
-    them**, and that negative is the most useful part of the result — it contradicts the natural hypothesis.
-  - **The mechanism is the already-documented leaf band, and I verified it independently on the seat's own
-    board.** `8/8/8/8/8/2k5/8/KQ6 w - - H 1` at `go depth 12`:
-
-    | halfmove clock | score | nodes |
-    |---|---|---|
-    | 0 and 60 | **cp 1220** | 93,585 |
-    | 80 | cp 1129 | 711,846 |
-    | 85 | cp 1085 | 18,784,716 |
-    | **90** | **cp 0** | **101,428,235** |
-    | 95 | cp 0 | 156,416 |
-
-    **The band is at clock 90 and the score there is exactly `cp 0` — not "small", the same value a real
-    draw returns**, which is why the engine cannot distinguish a won position from a drawn one at that
-    clock. **And the node count to answer a question it answered in 93,585 nodes at clock 60 is 101
-    million.** The engine does not fail to see the win; **it decides the position is drawn and then
-    shuffles correctly for a drawn position.**
-  - **The seat is careful about what it proves**: it **did not instrument the leaf**, so this is
-    "consistent with the documented `H > 100 − p` rule", not a proof. **KBNK is a measurement without a
-    mechanism** — 3 of 20, 17 ended in a fifty-move claim, and **the seat explicitly refuses to attribute it
-    to the bare-minor inversion because it built no KBNK table**. That refusal is the right call.
-  - **The bare-minor inversion's game-level cost is SMALLER than the static number suggests, and that is a
-    second null**: as the defender the engine **held 20 of 20 in both KBK and KNK**, because
-    `is_insufficient_material()` short-circuits the root and it plays the generator's first move. **The
-    −147/−144 score never costs a draw.** What it does cost is a **bail storm**: **2,152 bails across 20 KBK
-    games and 2,064 across 20 KNK games**, about 100 per game, and 100+ plies of shuffling a bare minor.
-    **So the defect is "it cannot win a won ending" and "it makes a drawn one tedious", not "it loses drawn
-    ones".**
-  - **One KRK game shows the two mechanisms compounding, which is why they must be described separately**:
-    the engine held the win for 100 plies, the clock reached 99, its score collapsed to `cp 0` in 320
-    nodes, it played **`Kxh3`, giving up the rook**, and the remainder is K vs K with the bail firing every
-    ply. **The clock defect created the material bail, not the reverse.**
-  - **Horizon does not rescue it**, and the ladder belongs with the numbers: at depth 12 the exact KQK
-    positions that fail need depths in the tens to convert, and the node counts at clock 90 (101 million on
-    a three-piece board) show why that is not a practical answer. **The report's §2 band repair is the
-    relevant fix, not more depth and not the bail patch.**
 - **The mate-in-one forfeit breadth.** 6 of 6 fixtures, two mate types — and all six have Black's king on
   g8/h8 with pawns intact. Breadth beyond two structures was not tested.
 - **The MultiPV instability split.** The rate held when the stratum nearly doubled, and the interval is
