@@ -1,0 +1,20 @@
+PREDICTION — SW-23 job 24 (does any LONE-KING board also hide a cost behind an equal score?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+The method that exposed the drawn-root cost was: score each CANDIDATE MOVE ALONE, because the root score can hide a
+difference. 23-F60 found the base's cp 0 at the root concealed a -805 move. This asks the same question of the
+lone-king boards: on the six boards of 23-C11/F45/F47, is the base's chosen move (the one it plays while reporting
+cp instead of mate) objectively WORSE than the PC's, or merely a different move at the same value?
+
+Method: for each of the six boards, take the base's bestmove B and the PC's bestmove P at `go depth 12` (both
+builds, PC20 for the PC), then score B and P ALONE at fixed depth 16 on the PC build. Report the gap.
+
+Prediction (each number with the range that kills it):
+  P1  on at least 4 of the 6 boards B and P will be the SAME move, so there is no move-quality cost. KILLED if < 2.
+  P2  where B differs from P, B will score WORSE at fixed depth 16 on at least 2 of those boards. KILLED if 0.
+  P3  the largest gap will be under 100 cp (the lone-king defect is about missing the MATE, not about losing
+      material). KILLED if any gap is >= 300 cp.
+
+Reasoning: unlike the drawn-root case, the base here is SEARCHING (it reports cp 400-1160), so its move should be
+reasonable — the defect is that it fails to convert, not that it blunders. If P3 is killed, that is a much more
+serious finding: the base would be losing material while reporting a won score.
