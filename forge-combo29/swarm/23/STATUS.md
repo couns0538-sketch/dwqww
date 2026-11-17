@@ -1032,3 +1032,18 @@ Instance 11 also joined the lead block beside 7 and 9, since all three are 'look
 
 Heading count re-verified against the subtitle again (11 headings, ELEVEN instances) - the check that has now
 caught me twice. 82 findings, 18 confirmations. 10 h 19 m remain.
+## 2026-11-17T00:00:58Z  23-F60: the 0-node move is a LOSING move (-805 cp), not merely different
+2026-11-17T00:00:58Z
+
+Chain now complete and each link measured:
+  23-F44 the defect exists (constructed repetition, base 0 nodes)
+  23-F57 it holds on the clock and softnodes paths, not just fixed depth
+  23-F58 it fires on a repetition ARRIVED by a real clock game (ply 31, halfmove 11)
+  23-F60 the move it plays is LOSING: e6e5 = cp -805 (hangs a piece) vs b6b4 = cp 0, each scored alone at
+        depth 16; reproduced in a second game (c6c5 = -39 vs e4b1 = 0 after 1.6M nodes).
+Both engines report cp 0 at the root, which HIDES the cost - the reason earlier findings could only say
+'a different move'.
+
+Counterweight kept: a real match ends at the third occurrence, so this move is never played there; the cost
+lands on analysis, other GUIs and human play - where it is a losing move, not a cosmetic difference.
+83 findings, 18 confirmations. 10 h 19 m remain.
