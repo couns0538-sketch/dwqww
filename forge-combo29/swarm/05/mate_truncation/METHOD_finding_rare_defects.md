@@ -219,3 +219,45 @@ This is the third time in this session that sorting data by a plausible variable
 probe then dissolved. The pattern: a tidy split from a small pooled sample should be treated as a HYPOTHESIS to attack,
 not a result to report — which is exactly what the coordinator asked for when they called the 14/15 gap "the one number
 in your result that has no second sample".
+
+---
+
+# Sixth note: "can I re-run this myself?" — the test before relaying anyone's claim
+
+**Twice in one session I relayed a claim I could not reproduce, because it strengthened my own finding.** Both times it
+was wrong, and both times the question I failed to ask first was the same:
+
+> **Can I re-run this measurement myself, with a tool I can check?**
+
+The two cases:
+
+| claim | why I relayed it | could I re-run it? | outcome |
+|---|---|---|---|
+| "the trigger is the NODE LIMIT, not a shallow search" (my own S-F62) | it pointed at the owner's match path | yes — but I tested the clock, not the depth | wrong; `go depth 11` reproduced it exactly (S-W10) |
+| "two of your mate scores are arithmetically impossible" (seat 19's DTM oracle) | it escalated my defect from "unbacked" to "impossible" | **no — I had no DTM solver** | wrong; the solver itself was later found incorrect (S-W12) |
+
+The second is the instructive one. The claim was stronger than anything I could produce, it came from a seat with a
+tool I lacked, and it made my finding look better. **All three of those are reasons to slow down, not to relay.**
+I recorded it and passed it on within a minute.
+
+## The rule
+
+Before relaying a claim from another seat (or my own) into a report or a message upward:
+
+1. **Can I re-run it?** If yes, re-run it before relaying — that is what turned S-F66 from an assertion into a
+   measurement I could defend, and likewise S-C21 and S-F73.
+2. **If I cannot re-run it**, relay it only with all three of: the tool named, the fact that I did not verify it, and
+   what would falsify it. "Seat 19's solver says X; I have not reproduced it and have no DTM solver" is a safe form.
+   "Seat 19 has validated the oracle, so X is proven" is not — that is what I actually wrote.
+3. **Never let a claim's usefulness be its credential.** A claim that makes my result stronger is the one most worth
+   doubting, because I am least motivated to check it.
+
+## Why this is the same lesson as the vacuity trap
+
+The vacuity trap is a number that came from nowhere being read as a result. This is a number that came from somewhere
+*I could not inspect* being read as a result. Both are the same failure of evidence hygiene: accepting a value without
+establishing its provenance. The fix is likewise the same in spirit — make the absence of verification explicit and
+visible rather than letting the number stand alone.
+
+This note is the one I would most want the next swarm to read, because it is the error I made twice and it cost the
+coordinator a relayed correction both times.

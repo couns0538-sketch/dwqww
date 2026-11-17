@@ -949,3 +949,15 @@ every sentence.
   re-run, never an unvalidated solver.
 - My PV-replay evidence and all other findings are untouched — none depended on that solver.
 - next command: continue at cadence.
+
+## $(date -u)
+- Method note gains a SIXTH section: "can I re-run this myself?" — the test before relaying any claim, with the two cases
+  (my own S-F62 and seat 19's oracle) side by side and the rule: relay only with the tool named, the fact I did not
+  verify it, and what would falsify it. Plus "never let a claim's usefulness be its credential".
+- S-F74 NEW — THE MECHANISM. Scanning depth 6..20 on four mate positions: the truncation is EXACTLY the first iteration
+  that reports a mate, and it clears the very next depth. S-F58 violator first mate at d11 (18/21, truncated) -> d12
+  complete; G/192 d8 (10/14, truncated) -> d9 complete; G/59 d6 (6/7, truncated) -> d7 complete; G/306 d9 already
+  complete. 3 of 4 truncated at their first mate line, 0 of 4 truncated at any later depth.
+  => the defect is the iteration that first promotes a bound into a mate score, one ply before the PV can carry it.
+  This explains S-W10 (go nodes 50000 == go depth 11: both stop at that iteration) and why the clock search at d12 is clean.
+- next command: continue at cadence.
