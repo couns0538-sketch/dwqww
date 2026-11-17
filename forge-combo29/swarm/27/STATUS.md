@@ -477,3 +477,14 @@ as a reporting/score defect; on this board it **costs the game**, because the mo
 the position has one. The luck cases are why this needed care - their earlier `8/P7/...` boards were NOT decisive
 because `a7a8q` happens to be first in generation order there, so the base played the right move with a 0-node
 score; I verified the mate set before running the engine, so this row cannot be a luck case.
+
+## 2026-11-17T00:22Z S-C16 now states WHY the row is decisive, not just that it was checked
+The argument, in the finding and the evidence file: **the mate set was computed with python-chess BEFORE the
+engine ran** - all 11 legal moves scanned, only `b7a8q` and `b7a8r` mate, `b7b8q` does not - so the verdict does
+not depend on where the generator places the promotions. **The excluded failure mode is precise: a board whose
+first generated move happens to be mating cannot distinguish a fallback that picks a good move from one that
+picks a lucky one.** Here first-in-order (`b7b8q`) and mating (`b7a8q`) are different moves, which is what makes
+it decisive; their earlier `8/P7/...` boards fail exactly that test (`a7a8q` is both), so the base build passes
+them while proving nothing.
+**Softnodes reason stays stated once**, as asked: it lands on an iteration boundary, so the reported score is
+always one the PV backs up, at the cost of the 2-95 % over-budget S-N1 measured.
