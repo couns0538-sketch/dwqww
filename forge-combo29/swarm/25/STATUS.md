@@ -263,6 +263,24 @@ that was mate-in-1, a ladder likewise, and a queen line likewise - plus a budget
 every correct PV look unforced. That is the eleventh through fourteenth instance of the control-error pattern; none
 was caught by reading.
 
+**A fifteenth, and a new KIND: my own text edit wrote ACROSS a line boundary and corrupted line 1 of FINDINGS.md.**
+Appending the S-C50 row with a string replace, the anchor text I matched (`... measures the engine, not a blind
+harness.`) was not unique in the intent I assumed - the replacement landed inside the first row of the file, splicing
+a new finding into the middle of S-F1. **Nothing failed. `compliance_check.sh` passed, `audit_final.py` reported 0
+mismatches, and the row count stayed at 96** - because a spliced row is still one line with the right number of
+pipes. I caught it only by grepping for the new id and seeing it on line 1. Restored with `git checkout --` and
+re-appended by **appending to the end of the file** rather than matching an anchor. This is the sharpest instance of
+COPYING_RULE lesson 4 (verify the content written, not the exit status): the file was structurally valid and
+semantically ruined. The mechanical fix is the one now in use - append, never anchor-match, in an append-only file.
+
+**S-C50 answers the question S-C48 raises and cannot:** for the 47 boards where the two settings chose different
+moves, I scored BOTH candidates at depth 20 with each pinned by `searchmoves`, so neither gets the free search's
+preference. Result: **27 boards where MultiPV 1's move is stronger, 20 where MultiPV 3's is - a coin flip (p=0.38),
+and I claim no direction** - while the gaps are large (median **43 cp**, 18 of 46 above 50 cp, 12 above 100 cp, none
+equal). So MultiPV is not an accuracy fix; it is a second sample from an equally good search. A pipeline wanting the
+stronger move must spend depth or breadth, not MultiPV. Ceiling: depth 20 is a stronger judge than depth 12 but still
+a search, and it sits below the depth-24 region where S-F8's score changed again.
+
 ## 2026-11-16T23:59Z - S-C37 statement kept verbatim; third guard re-run all green
 
 S-C37 in the FINAL reads: "two distinct but CORRELATED samples, so the effective size lies BETWEEN N AND 2N openings -
