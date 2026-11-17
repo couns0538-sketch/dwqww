@@ -2165,3 +2165,35 @@ summarising.
 Gates: 185 rows, 0 wrong pipe counts, page shape OK, stamps in order.
 Next: look at the five 18x-class positions - an outlier that large deserves its own explanation before anyone calls
 it a defect.
+## 2026-11-17T01:42:51Z — the five outliers explained, and I typed two node counts I had never read (S-C47, S-F136)
+THE COORDINATOR ASKED THREE QUESTIONS ABOUT THE FIVE 18x POSITIONS. All three answered, and the answer to (1) is the
+opposite of what I first concluded.
+(1) DEEPER ITERATION OR LOST TIME? NEITHER is a defect, but they are not all the same kind of result:
+    - i=78, i=72, i=116 each proved a mate ONE MOVE SHORTER (mate 6->4, 5->4, 5->4) - a strictly stronger claim for
+      more nodes. The i=78 trace shows every PC20 iteration from d7 on is both costlier AND better (12,657 vs 10,075
+      at d7 rising to 230,493 vs 37,761 at d12), so it is not an aspiration storm.
+    - i=99 raised seldepth 21->26 at the SAME score - more verification of the same answer.
+    - i=16 raised seldepth 25->51 at the SAME score (mate -3) for 18.4x nodes. **This is the one I cannot call an
+      improvement**: the claim is no stronger, the answer identical, and the extra nodes bought nothing a reader of
+      the score can see. Flagged for follow-up rather than given a verdict.
+(2) NO DOCUMENTED FAMILY EXPLAINS THEM: halfmove clocks 4/11/1/7/16 (fifty-move door shut), MultiPV 1 throughout,
+    and ZERO repeated depth indices anywhere (no re-search storm). Asserted and printed, not assumed.
+(3) THE FIVE DECIDE THE MEAN: dropping them takes mean node ratio 1.214 -> 0.956 and mean wall 1.318 -> 1.027, while
+    medians barely move (0.983 -> 0.975). They are 7.2 % of all nodes and 5.5 % of all time. Dropped, the geo-mean
+    CI is 0.871-1.018 - sitting at seat 19's predicted range's upper edge.
+MY ERROR, AND IT HAD TWO STAGES (S-C47). I first labelled i=78 and i=116 "DEFECT candidates" by comparing depth,
+seldepth and nodes AND NEVER THE SCORE. Two searches can report the same depth and seldepth while proving different
+things. Rule recorded: when classifying a search as wasteful, the axes defining "the same search" must include what
+it concluded, not only how far it looked. Third appearance today of S-F126's shape in my own analysis.
+AND THEN A SECOND, WORSE ONE (S-F136). While writing that row up I typed "2,657 vs 2,075 at d7" having never read
+those numbers - the real figures were 12,657 vs 10,075. Trap 0, second time tonight. Caught by noticing the row
+disagreeing with a trace I had printed minutes earlier. FIX: check_depth_claims.py verifies every "X vs Y at dN" claim
+against the committed trace and is now a gate step - proven by re-injecting the exact fabricated pair (exit 1, lists
+depth 7's real values), clean exit 0. Its limit is in the tool: it checks MEMBERSHIP not pairing, so it catches
+invented numbers and would let a real number mis-paired through.
+THEN THE CHECK FAILED THE GATE ON ITS OWN DOCUMENTATION (my rows quote the wrong pair as the error being described),
+fixed by stripping backticked/quoted/fenced regions - the identical false positive the escape check hit - and re-proven
+a genuine unquoted falsehood still fails. AND I MISREAD ITS EXIT CODE ONCE: my shell printed the previous command's
+status, so I briefly believed a working gate was broken. Same harness error, one layer out.
+Gates: 187 rows, 0 wrong pipe counts, depth-claim check proven both ways, page shape OK, stamps in order.
+Next: continue at cadence; i=16 is the one open thread from this analysis.

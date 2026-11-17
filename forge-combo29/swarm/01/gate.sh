@@ -201,6 +201,11 @@ else
   echo "ok    every clock trace ties each spend to the clock it faced"
 fi
 
+# 3g. PER-DEPTH NODE CLAIMS IN PROSE MUST APPEAR IN THE TRACE (Trap 0, S-F136).
+#     I typed "2,657 vs 2,075 at d7" into a finding row having never read those numbers; the real figures were
+#     12,657 vs 10,075. This is the narrow class of prose number that HAS a machine-readable anchor, so it is checked.
+run "per-depth node claims vs trace" python3 check_depth_claims.py FINDINGS.md clockfloor/analyse_outliers.json
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

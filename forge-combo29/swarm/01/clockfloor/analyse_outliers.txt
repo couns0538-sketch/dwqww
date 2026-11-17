@@ -1,0 +1,25 @@
+S-C47: what IS the outlier - a deeper iteration or lost time at the same depth?
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+S14 vs PC20, go depth 12, Threads 1, Hash 16, full per-iteration trace.
+MultiPV is 1 throughout, so the MultiPV family is excluded by construction.
+
+per position
+i	fen	halfmove	S14 depth/seldepth/nodes	PC20 depth/seldepth/nodes	depth gain	same bestmove?	repeats
+16	5k2/2Q5/p3Kn2/P7/N4r2/5P1R/R	4	12/25/12957	12/51/238009	+0	yes	S14 none PC20 none
+78	8/8/4B3/RP2k3/6K1/8/7R/1R6 w	11	12/18/37761	12/18/230493	+0	yes	S14 none PC20 none
+99	3Q4/7p/8/2P1P1bk/P1K2p2/5P2/	1	12/21/4711	12/26/17936	+0	NO	S14 none PC20 none
+72	8/7k/2b4P/b3p3/2p3N1/1p1r4/3	7	12/18/7411	12/20/25883	+0	yes	S14 none PC20 none
+116	6RB/8/5P2/p3b1p1/P2k2P1/7P/3	16	12/26/11101	12/26/32733	+0	yes	S14 none PC20 none
+
+VERDICT PER POSITION - (a) deeper search, not a defect; (b) lost time at same depth, a defect
+  i=16   18.4x nodes -> SAME depth, DEEPER seldepth (+26) - an extension; stronger search, NOT a defect
+  i=78   6.1x nodes -> SAME depth, but a SHORTER MATE (mate 6 -> mate 4): proved a stronger claim with 6.1x the nodes - NOT a defect
+  i=99   3.8x nodes -> SAME depth, DEEPER seldepth (+5) - an extension; stronger search, NOT a defect
+  i=72   3.5x nodes -> SAME depth, but a SHORTER MATE (mate 5 -> mate 4): proved a stronger claim with 3.5x the nodes - NOT a defect
+  i=116  2.9x nodes -> SAME depth, but a SHORTER MATE (mate 5 -> mate 4): proved a stronger claim with 2.9x the nodes - NOT a defect
+
+FAMILY CHECK (the coordinator's question 2)
+  halfmove clocks: [4, 11, 1, 7, 16]
+  all far from 100 -> the fifty-move / drawn-root door is SHUT for every one of these
+  MultiPV: 1 throughout -> that family is excluded by construction
