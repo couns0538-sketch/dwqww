@@ -1,0 +1,38 @@
+## seat 03 S-F13 — does the PC-vs-base move divergence happen ONLY at lone-king roots?
+
+Both builds, default options + Threads 1 + Hash 16 + OwnBook false, `go depth 8`.
+
+| class | boards | differing moves |
+|---|---|---|
+| lone king at the root | 40 | **11** |
+| no lone king | 60 | **0** |
+
+| class | boards | differing | rate |
+|---|---|---|---|
+| lone king at the root | 40 | 11 | 27.5 % |
+| no lone king | 60 | 0 | 0.0 % |
+
+### the differing boards, listed
+| class | fen | base bestmove | PC bestmove |
+|---|---|---|---|
+| lone king at the root | 8/8/2B1k3/8/3PP3/P7/4K3/7R b - - 11 95 | e6d6 | e6e7 |
+| lone king at the root | 8/8/2k5/4P3/3P4/P7/4K3/7R w - - 1 106 | e2d3 | h1c1 |
+| lone king at the root | 8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0 109 | c7d8 | c7c6 |
+| lone king at the root | 8/4k3/8/6R1/8/P7/3K4/8 b - - 1 116 | e7d7 | e7d6 |
+| lone king at the root | 1R6/8/k7/8/8/P7/8/2K5 b - - 15 123 | a6a7 | a6a5 |
+| lone king at the root | 8/8/8/4R3/2k5/P7/8/2K5 w - - 22 127 | a3a4 | c1c2 |
+| lone king at the root | 8/8/8/1R6/1K6/P7/3k4/8 b - - 57 144 | d2e3 | d2e1 |
+| lone king at the root | 8/8/P7/8/8/4K3/1k6/8 b - - 18 186 | b2b3 | b2c2 |
+| lone king at the root | 6K1/2b5/p1k5/8/8/8/8/b7 b - - 5 137 | a6a5 | a1d4 |
+| lone king at the root | 8/2k5/p7/8/8/7K/1b6/b7 w - - 26 148 | h3g4 | h3g2 |
+| lone king at the root | 2k5/8/p7/6b1/8/2b4K/8/8 b - - 47 158 | a6a5 | g5f6 |
+
+## The claim, tested
+
+| their statement | my measurement |
+|---|---|
+| lone-king roots DO diverge | **11 of 40** |
+| no non-lone-king position diverges | **0 of 60** |
+
+**SUPPORTS the exclusivity**: every divergence I found is at a lone-king root, and none of the 60 non-lone
+positions differed. Their predicate holds on my independent sample.
