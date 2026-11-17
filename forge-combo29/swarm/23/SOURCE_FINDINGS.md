@@ -639,7 +639,8 @@ into a forced mate in 5 against itself while reporting `cp 0` with `nodes 0`.
 3. **Check `0000` next, but do not read it as "game over".** A null move is printed as `0000` by `uci.cpp:562-563`.
    Two different things produce it: a genuinely terminal root (checkmate or stalemate, where `legal` is empty), and
    a `searchmoves` restriction that names no legal move, which shares this branch through
-   `root_candidates.empty()` at `:2253` and sets `restricted_root_empty` at `:2210`. Measured:
+   `root_candidates.empty()` at `:2253` and sets `restricted_root_empty` at `:2210`. Measured — and independently
+   measured by the measuring seat as `23-F153`, which is the row to cite for this half of the advice:
 
    ```
    go depth 4 searchmoves a1a2      (on a board where a1a2 is not legal)
@@ -701,9 +702,16 @@ all**. `nodes == 0`, by contrast, is also true of three other paths that are not
 ## B2. FILED FINDING — MultiPV silently degrades to one line per depth on the bail path
 
 *(Filed as its own finding rather than as a footnote to the discriminator. It has its own cause, its own symptom,
-and its own caller-visible failure. **Numbering note:** I am the source-reading seat and `23-F153` onward belongs to
-the measuring seat's sequence, so I am not minting an F-number here — I have called it `23-SRC-B2` and left the
-F-assignment to the coordinator rather than take a number that would collide.)*
+and its own caller-visible failure.)*
+
+> **Cross-reference added after the fact — 23-F154 independently measures the same two facts and is the row to cite.**
+> While I was restructuring this section the measuring seat filed `23-F154`, which reaches the same two conclusions
+> from its own fixtures: an empty PV is unconditional across MultiPV, **and** "line count == depth regardless of
+> MultiPV" is a second detector independent of the PV. It also filed `23-F153`, which measures the `searchmoves` half
+> of B1's `0000` row (including `searchmoves e2e4` → `0000` with the diagnostic string). These arrived independently —
+> neither seat saw the other's measurement — and both agree with what is below. **The F-numbers are theirs; I am not
+> minting competing ids.** What this section adds to F154 is the *cause* (the `:2384` / `:2271` / `:2462` ordering)
+> and the caller-side failure mode, which are source facts rather than measurements.
 
 **The finding.** With `MultiPV N > 1` on a root that the drawn-root branch adjudicates, the engine emits **one line
 per depth, with only `multipv 1` ever appearing**, instead of `N` lines per depth. A caller that asked for three
@@ -773,6 +781,6 @@ PV, and no searching cell does. The caveat I raised in the first addendum (`:252
 | bare-kings case | leads B1 — legal `d1c1`, `cp 0`, `nodes 0`, empty `pv`, nothing on the wire saying the game is over |
 | GUI advice | four wire shapes in B1; standardise on the empty `pv`, use `0000` + score to split terminal from `searchmoves`, treat zero info lines as a harness fault |
 | `pv`-empty discriminator under MultiPV | **holds** — 10 of 10 bailing cells across 2 boards × MultiPV 1/2/3, no searching cell; survives the mid-iteration `stop` sweep |
-| MultiPV on the bail path | **filed as `23-SRC-B2`** — one line per depth instead of `multipv`; `alt_worker` built at `:2384`, bail returns at `:2271`, `:2462` gate false on both halves |
+| MultiPV on the bail path | **measured as `23-F154`** (mine and the measuring seat's, independently) — one line per depth instead of `multipv`; this document adds the cause: `alt_worker` built at `:2384`, bail returns at `:2271`, `:2462` gate false on both halves |
 
 No new files; appended to `forge-combo29/swarm/23/SOURCE_FINDINGS.md`.
