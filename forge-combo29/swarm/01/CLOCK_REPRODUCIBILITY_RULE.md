@@ -50,5 +50,9 @@ instrument works.
    the budget and repeat.
 4. **Report the plateau**, not a single reading: "clocks 900–1150 all give depth 14 / 97,289 nodes" is a
    reproducible statement; "clock 1000 gives depth 14" is not, because it hides where the next rung is.
-5. For exact reproducibility use `go nodes N` instead — but remember it reports only completed iterations, so
+5. **Certify a run with its node count, not by re-running it (S-F83).** An identical node count means an
+   identical MOVE — 17 of 17 equal-node pairs shared their bestmove, 0 groups disagreed (S-C26, seat 13's S-F22).
+   So sweep once to identify the plateau, then check any later run against it by comparing node counts; if the
+   count matches, the whole search matches. This makes the sweep a one-off cost rather than a per-run one.
+6. For exact reproducibility use `go nodes N` instead — but remember it reports only completed iterations, so
    add the same allowance on both sides of any cost comparison (S-F57).

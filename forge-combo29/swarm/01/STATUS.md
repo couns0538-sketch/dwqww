@@ -856,3 +856,24 @@ SEAT 13's S-F21 AND S-F22 CONFIRMED (S-C26), and S-F22 turns out to be the stron
   THE STRONGER FORM (S-F83): I showed the plateau EXISTS (S-C15); seat 13 shows what it MEANS. Practical consequence for a match harness - you do NOT need to re-run to confirm a clock result is on the same rung; compare the NODE COUNT, and if it matches, the move and therefore the whole search matches too. That makes the S-F64 sweep cheaper than it looked: the sweep identifies the rung, the node count certifies any later run as being on it.
   ALSO: moved the build-vs-net scope note UP so it sits directly beside the 120/120 result rather than in a later section, as you asked, with the eval decomposition note (UseNNUE false gives hce -42 / nnue 0 / total -42, so the three numbers are hand-written plus net contributions, not independent) beside it.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### SEVENTH UPDATE — the clock rule made operable
+
+Two confirmations this stretch, both of seat 13's:
+
+- **S-C26 / S-F21:** the plateau is **general across position types** — 8 clock values × 5 types (startpos,
+  middlegame, tactical, rook endgame, queen endgame) give **5 / 6 / 5 / 6 / 4 distinct node counts out of 8**.
+  Every type plateaus, so it is an allocator property, not a coincidence.
+- **S-C26 / S-F22 → S-F83:** **an equal node count means an equal move** — 17 of 17 equal-node pairs shared
+  their bestmove, 0 groups disagreed across 780 pairwise comparisons.
+
+**The second one turns my clock rule into something a harness can act on**, and `CLOCK_REPRODUCIBILITY_RULE.md`
+now carries it as a numbered step:
+
+> Sweep once to identify the plateau, then **certify any later run by comparing its node count** — if the count
+> matches the plateau, the move and the whole search match too. The sweep becomes a one-off cost, not a per-run
+> one.
+
+So the rule is no longer "sweep and repeat 2-3 times every time"; it is "sweep once, then verify cheaply against
+a node count". That is the difference between a procedure nobody follows and one that costs a single number per
+run.
