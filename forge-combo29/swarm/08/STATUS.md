@@ -540,3 +540,15 @@ next: cadence.
 Tally: 34 findings, 22 checks/plants, 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:35Z
+- **08-F35: staged the residual risk from 08-F34 — 0 flags in 21 worst-case cells.** The three slowest boards from
+  the shape sweep (1585/1225/1164 ms at a 6 s clock) re-run at clocks 6000/3000/1600/1200/800/400/200 ms:
+  **no pair exceeded its remaining clock.** The 1585 ms board given 1600 ms took only **218 ms** (depth 15 not 18)
+  because **the time manager shrinks the plan with the clock**, so the expensive iteration no longer fits.
+- **The clock line is now closed from both ends:** it stabilises in a long game (F34, 600 moves, 0 flags) and does
+  not flag on the worst boards down to 200 ms (F35, 21 cells, 0 flags). The only thing unmeasured is a real game.
+
+Tally: 35 findings, 22 checks/plants, 3 method lines, 1 withdrawal.
+
+next: cadence.
