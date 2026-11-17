@@ -18,10 +18,10 @@ the book is walked through complete two-sided games.
 |---|---|
 | Does the book produce legal, terminating games? | **Yes.** 920 games over four completed arms, **0 illegal moves, 0 engine errors**, and 0 non-rule terminations beyond 7 harness ply-cap stops |
 | Does any game leave the book into an illegal or lost-on-the-spot position? | **No.** 0 illegal moves; 0 of 63 exit positions below −200 cp (worst −50); **0 of 63 exit positions is a drawn root** |
-| How deep does the book take games? | **Ply 16, always.** All 520 book-playing games exit at exactly ply 16 — the book's own deepest leaf (see §2) |
+| How deep does the book take games? | **As deep as the data goes, and no further.** At the default `Book Depth`, **520 of 520** games exit at exactly ply 16 — the book's own deepest leaf (§2). Lowering `Book Depth` to 6 or 0 caps it exactly (exit at ply 6 and 0); raising it cannot extend it. Full dose-response in §4 |
 | Can book play reach a repetition or 50-move draw? | **Not inside the book** — the book's position graph is acyclic, so no book line revisits a position; worst halfmove clock at exit is 6. **But a book position can recur after leaving the book, and the engine then books a threefold root — see §9.** Not observed in 920 games |
 | Does the book disagree with the engine at depth 18 and lose material? | **13 of 589 played book moves concede material; 0 are condemned at depth 18.** Largest gap 51 cp against a measured 18 cp noise floor |
-| Does the book fire from the opponent's clock alone on the patched build? | **Yes**, and games played that way behave identically to both-clocks games |
+| Does the book fire from the opponent's clock alone on the patched build? | **Yes** — all six clock forms answer, and a *no-book* position with only the opponent's clock answers in 0.466 s where the lock is unbounded (§7). Games on the patched build were still running, so no game-level claim is made |
 
 **Nothing in this audit condemns the book, and nothing in it withdraws a prior
 finding.** `Book Depth` was not re-litigated: it is correct and untouched (§6).
@@ -59,8 +59,10 @@ branching: 199 positions with no book move, 1988 with one, 196 with two,
 Three consequences, each established rather than argued:
 
 1. **The book has exactly one exit depth.** Every one of the 199 leaves is at
-   ply 16. So "how deep does the book take games" has a single answer, and the
-   game data below reproduces it exactly (520 of 520 book-playing games exit at 16).
+   ply 16. So at the default `Book Depth` the answer is a single value, and the
+   game data below reproduces it exactly (520 of 520 games at `Book Depth` 30 or
+   100 exit at ply 16). At a LOWER `Book Depth` the gate binds first and the exit
+   ply is that setting — measured as a dose-response in §4, not folded in here.
 2. **No book line can repeat a position.** The position graph is acyclic. A
    repetition needs the same position three times, which requires a cycle. So a
    game that stays in book cannot reach a threefold, and cannot reach a 50-move
@@ -126,12 +128,12 @@ Counts are per arm; `evidence/games-*-summary.json` holds the full breakdown.
 | `depth100` | 100 (max) | 30 | 200 | 40 | 133 | 8 | 17 | 1 | 1 | **0** | **0** |
 | `depth0` | 0 | 30 | 200 | 45 | 124 | 17 | 13 | 0 | 1 | **0** | **0** |
 | `depth6var100` | 6 | 100 (max) | 200 | 51 | 113 | 13 | 19 | 1 | 3 | **0** | **0** |
-| `depth6var100` | 6 | 100 (max) | 200 | 51 | 113 | 13 | 19 | 1 | 3 | **0** | **0** |
 | `patched` | 30 | 30 | 200 | *(running)* | | | | | | **0** | **0** |
 
-**Every game terminated by a chess rule or by mate, except 4 ply-cap stops.** A
-ply-cap stop is not counted as a termination: the engine did not end that game,
-the harness did at 400 plies. The two inspected by hand:
+**Every game terminated by a chess rule or by mate, except 7 ply-cap stops**
+(2 + 1 + 1 + 3 across the four arms). A ply-cap stop is not counted as a
+termination: the engine did not end that game, the harness did at 400 plies. The
+two from the `default` arm were inspected by hand:
 
 * game 40 of `default` — 400 plies, `b7/8/8/8/5k2/8/7P/4K3 w` — K+P vs K, drawn
   by insufficient material in practice but never *claimed*, because the engine's
@@ -139,7 +141,9 @@ the harness did at 400 plies. The two inspected by hand:
   adjudicator, not of the book, and it is 400 plies after book exit.
 * game 144 of `default` — 400 plies, Q+P vs Q, a genuine long manoeuvring phase.
 
-Neither was in the book: both games left the book at ply 16.
+Neither was in the book: both games left the book at ply 16. **The other five were
+not inspected individually** — they are reported as a count, and no claim in this
+report depends on them beyond the fact that they were not rule terminations.
 
 ### Book exit ply
 
@@ -165,8 +169,9 @@ Checked two ways, and the second is the one that could fail:
   is the check that the book really had ended rather than the harness having lost
   track of it.
 
-The 71 + 40 mates in the table above are mates *delivered*, not suffered at ply 17:
-the games average 130 plies, and no exit position is near a mate score.
+The mates in the table above are mates *delivered*, not suffered at ply 17: games
+average **137 plies** (median 127), and the exit scores span **−50 to +76 cp** — no
+exit position is anywhere near a mate score.
 
 ### Repetition stayed inside the rule
 
@@ -204,8 +209,9 @@ the zeros above are "looked and found none", not "could not have found one".
 `book_reentry_plies` counts the book firing again *after* a non-book move. **0
 events in 920 games.** This matters because §2's acyclicity argument covers
 book-to-book paths only; a re-entry would be the one route around it. The games
-close that route empirically and `scripts/reentry_drawn.py` closes most of it
-structurally — see §7, which is where the honest limit is.
+close that route empirically in the games, and `scripts/reentry_drawn.py` closes
+most of it structurally — but **not all of it**: see §9, which is where the honest
+limit is and where the reachable exception lives.
 
 ---
 
@@ -231,6 +237,18 @@ ply follows the setting exactly until the setting exceeds the data: `0 -> 0`,
 left to play. 920 games, 0 illegal, 0 over threefold, 0 drawn-root book events,
 0 re-entries in every arm.
 
+Raising `Book Depth` from 30 to 100 changed **nothing**: still 16 plies and still
+0 drawn roots, over **53 distinct 16-ply lines** in that arm (63 in the `default`
+arm, from more games). That is the expected result once §2
+is known — the gate was never the binding constraint, the data was — and it is
+asserted rather than assumed so a future book with deeper entries cannot quietly
+change the picture.
+
+Lowering it to 0 disables book play entirely (the gate `game_ply(board) < 0` is
+never true), which is the correct reading of the option and makes that arm a
+**working negative control**: `exit_ply = 0` and `book_plies = 0` in all 200 games
+is what the harness must report if it is not inventing book play. It does.
+
 ### The arms are comparable, and that is checked rather than assumed
 
 Because the book RNG is per-process (§7), two arms played at `Book Variety 30`
@@ -252,17 +270,6 @@ out at 200+ games; it does not at one game, which is why the probe tables in §7
 played at all** — that "first move" is the engine's search choice, and the fact
 that it is constant while the book arms are not is itself a check that the book,
 not the search, was producing the variety.)
-
-Raising `Book Depth` from 30 to 100 changed **nothing**: still 16 plies, still 53
-distinct opening lines, still 0 drawn roots. That is the expected result once §2
-is known — the gate was never the binding constraint, the data was — and it is
-asserted rather than assumed so a future book with deeper entries cannot quietly
-change the picture.
-
-Lowering it to 0 disables book play entirely (the gate `game_ply(board) < 0` is
-never true), which is the correct reading of the option and makes that arm a
-**working negative control**: `exit_ply = 0` and `book_plies = 0` in all 200 games
-is what the harness must report if it is not inventing book play. It does.
 
 ### Why no 50-move draw can arise in book, independent of the games
 
@@ -314,8 +321,10 @@ i.e. moves the book really played, not the book's own catalogue.
 
 The gap distribution is `-4, 2, 9, 13, 14, 23, 28, 30, 34, 34, 39, 39, 51` cp.
 One book move scores *better* than the engine's top choice (−4). Five are inside
-the measured noise floor. **The worst is half a pawn and is a deliberate gambit**,
-not a defect.
+the measured noise floor. **The worst gap is 51 cp — about half a pawn — and no
+gap reaches a pawn.** Whether a given one is a sacrifice or a small inaccuracy is
+not decided here: the claim is only that none clears the depth-18 bar that the
+brief sets for calling anything a defect.
 
 ### The case that shows why the two questions must be separate
 
@@ -418,10 +427,11 @@ does not answer at all — which is the actual claim.
 ### The games, played that way
 
 The `patched` arm plays 200 games on the patched build with the same clock form.
-Its termination and book-exit numbers are in §3 and `evidence/games-patched-summary.json`;
-they match the lock arms. **Playing from the opponent's clock alone changes nothing
-about how the book behaves**, which is the expected result — the patch changes how
-the budget is read, not what the book plays.
+**It had not finished at push time**, so this audit makes no claim from it. The
+expected result is that its book behaviour matches the lock arms, because the patch
+changes how the budget is read and not what the book plays — but that is an
+expectation, not a measurement, and it is labelled as one. `STATUS.md` records the
+final figures.
 
 ### Two probe positions I had to fix, which is why they are now asserted
 
