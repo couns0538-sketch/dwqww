@@ -1067,3 +1067,9 @@ $ git status --short
 
 ## 2026-11-17T01:13:38Z — independent re-verification of the deliverable (3rd clean build)
 Fresh copy of PC r15 -> v3 applies --fuzz=0 -> from-scratch build -> **byte-identical 2db028fa…** again. All eight pins OK, seven zero-node paths 0 failures. The patch alone determines the binary; nothing in any of my scratch trees is load-bearing.
+
+## 2026-11-17T01:14:00Z — note on job69 (the inert-build attempt), recorded for the chronological log
+
+job69 holds the **first, failed** mirror-order replication: stock 34/120 vs canonicalised 34/120, which I nearly filed as a REFUTATION of 16-S-F35. The canonicalised arm was compiled **stock** because the patch gates its code behind `#ifndef FORGE_EXPERIMENT_MIRROR_ORDER / #define ... 0`. Kept on disk deliberately, with the run log beside it, so the mistake is auditable rather than tidied away. The corrected run is job70 — same harness, same positions, rebuilt with the switch on: **34/120 → 120/120, residue zero** (07-C74, REPORT_job70.md).
+
+Recording it here because job69 otherwise appeared only as an untracked-directory line in a git-status snapshot, which would leave the chronological log looking as though the mirror replication succeeded first time.
