@@ -53,7 +53,8 @@ pinned to `/usr/bin/g++` with `LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13`.
 | bench 16 | 3024920 | `3024920` |
 | perft 5 startpos | 4865609 | `4865609` |
 
-`true` is not 0, so all four match. Binary md5 `ecf97f8c071a91149c38dc1a193433f9`.
+`true` is not 0, so all four match. Binary sha256
+`e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83`.
 
 Threads 1 and an explicit `Hash 16` on every search; `OwnBook false` unless the case is the
 book.

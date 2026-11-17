@@ -22,10 +22,8 @@ stage() {  # name, then the command
 
 [[ -x "$EXE" ]] || { echo "no such engine: $EXE  (run 00_build_and_pins.sh first)"; exit 2; }
 echo "engine: $EXE"
-# Build LABEL, not a security control: md5 so a reader can match this report to a binary that was
-# described elsewhere, sha256 beside it for collision resistance. Nothing authenticates against it.
+# Build LABEL so a reader can match this report to a binary described elsewhere. sha256 only.
 sha256sum "$EXE" | tee "$EV/wire/engine.sha256"
-md5sum    "$EXE" | tee "$EV/wire/engine.md5"
 
 # --- pins, the gate every other number depends on --------------------------------------------
 stage "pins" bash -c '

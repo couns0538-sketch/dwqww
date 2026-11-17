@@ -11,10 +11,9 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++
   || { echo "CONFIGURE FAILED"; tail -20 /tmp/mp_cfg.log; exit 2; }
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13 cmake --build build -j"$(nproc)" >/tmp/mp_build.log 2>&1 \
   || { echo "BUILD FAILED"; tail -30 /tmp/mp_build.log; exit 2; }
-# md5 here only LABELS a build so two reports can be shown to share a binary. It is not a
-# security control and nothing authenticates against it; sha256 is recorded alongside for anyone
-# who wants a collision-resistant identifier.
-echo "build ok: $(stat -c%s build/forge) bytes  md5 $(md5sum build/forge | cut -d' ' -f1)  sha256 $(sha256sum build/forge | cut -d' ' -f1)"
+# sha256 labels the binary so two reports can be shown to share one. It was md5, which added no
+# information sha256 lacks and drew a weak-hash finding on every scan.
+echo "build ok: $(stat -c%s build/forge) bytes  sha256 $(sha256sum build/forge | cut -d' ' -f1)"
 
 bench() {  # depth -> nodes, fresh process, Threads 1, Hash 16
   printf 'uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name UseNNUE value %s\nbench %s\nquit\n' "$2" "$1" \

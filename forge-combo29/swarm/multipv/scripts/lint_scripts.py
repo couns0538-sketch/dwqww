@@ -6,8 +6,8 @@ Each check below exists because a real finding was raised against this seat's fi
   A  a conditional expression whose two branches are equal (`i += 2 if k == "cp" else 2`) — the
      Sonar finding that was a genuine, if harmless, smell.
   B  a shell `[ ... ]` test — `[[ ... ]]` is the safer construct and the lint asked for it.
-  C  an md5sum with no comment saying it is a build label, not a security control.  The hash is
-     correct for its purpose; the code has to say so, or the next reader has to guess.
+  C  an md5sum at all.  sha256 does the same job with no weak-hash finding; md5 was dropped after
+     SonarCloud flagged it twice, so this rule keeps it from coming back.
   D  an unvalidated path passed straight to subprocess — the engine path comes from argv, so it
      is resolved and checked as a regular executable first.
 
@@ -69,16 +69,14 @@ def rule_b_single_bracket(text):
     return out
 
 
-def rule_c_md5_unexplained(text):
-    """md5sum with no adjacent comment saying what the hash is for."""
+def rule_c_weak_hash(text):
+    """md5sum in a build script. sha256 costs nothing and draws no finding."""
     out = []
-    lines = text.split("\n")
-    for i, line in enumerate(lines):
-        if "md5sum" not in line or line.strip().startswith("#"):
+    for i, line in enumerate(text.split("\n"), 1):
+        if line.strip().startswith("#"):
             continue
-        window = "\n".join(lines[max(0, i - 4):i + 1]).lower()
-        if not any(w in window for w in ("label", "not a security", "build label")):
-            out.append((i + 1, "md5sum with no comment saying it is a build label"))
+        if "md5sum" in line:
+            out.append((i, "uses md5sum; use sha256sum"))
     return out
 
 
@@ -98,7 +96,7 @@ def rule_d_unvalidated_exec(text):
 RULES = [
     ("A equal conditional branches", rule_a_equal_branches, (".py",)),
     ("B single-bracket test", rule_b_single_bracket, (".sh",)),
-    ("C unexplained md5", rule_c_md5_unexplained, (".sh",)),
+    ("C weak hash", rule_c_weak_hash, (".sh",)),
     ("D unvalidated exec", rule_d_unvalidated_exec, (".py",)),
 ]
 
@@ -133,7 +131,7 @@ def selftest():
     plants = [
         ("A equal conditional branches", "x.py", "def f(k):\n    i = 0\n    i += 2 if k else 2\n", True),
         ("B single-bracket test", "x.sh", 'if [ "$a" = "$b" ]; then echo y; fi\n', True),
-        ("C unexplained md5", "x.sh", "md5sum build/forge\n", True),
+        ("C weak hash", "x.sh", "md5sum build/forge\n", True),
         ("D unvalidated exec", "x.py",
          "import subprocess\ndef g(exe):\n    return subprocess.Popen([exe])\n", True),
     ]
@@ -147,7 +145,7 @@ def selftest():
     cleans = [
         ("A equal conditional branches", "x.py", "def f():\n    i = 0\n    i += 2\n"),
         ("B single-bracket test", "x.sh", 'if [[ "$a" == "$b" ]]; then echo y; fi\n'),
-        ("C unexplained md5", "x.sh", "# build label, not a security control\nmd5sum build/forge\n"),
+        ("C weak hash", "x.sh", "sha256sum build/forge\n"),
         ("D unvalidated exec", "x.py",
          "import subprocess\ndef _validated_exe(p):\n    return p\ndef g(exe):\n    return subprocess.Popen([_validated_exe(exe)])\n"),
     ]

@@ -75,7 +75,7 @@ forge-combo29/swarm/multipv/
    pins.json                  the four honesty pins
    selftest.json              checker selftest counts, lifted from its own output
    wire_control.json          wire-control counts, lifted from its own output
-   wire/                      raw stdout: pins.txt, selftest.txt, wire_control.txt, engine.md5
+   wire/                      raw stdout: pins.txt, selftest.txt, wire_control.txt, engine.sha256
 ```
 
 ## Build
@@ -88,7 +88,7 @@ LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13 cmake --build build -j4
 ```
 
 Pins on this build: bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 —
-**4/4**. Binary md5 `ecf97f8c071a91149c38dc1a193433f9`.
+**4/4**. Binary sha256 `e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83`.
 
 ## Hardening from the CI gate
 
@@ -102,7 +102,7 @@ real and what was policy:
 | argv path straight into `open(..., "w")`, 7 sites | **real**, a traversal sink | one `write_json` validator; non-`.json` and missing directories are refused |
 | argv path straight into `Popen` | **real**, an exec sink | `_validated_exe` resolves it and requires a regular executable |
 | two regexes with nested quantifiers | **real**, super-linear | replaced with linear string parsing |
-| md5sum flagged as a weak hash, 2 sites | **policy** — it labels a build, nothing authenticates against it | documented at the site, sha256 recorded beside it |
+| md5sum flagged as a weak hash, 2 sites | not a defect, but sha256 does the job with no finding | md5 dropped; the build label is sha256 only |
 
 Reliability rating moved **R → A** after the first round. All seven sinks now validate input.
 
