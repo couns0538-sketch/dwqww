@@ -468,6 +468,28 @@ workload for per-node cost. That is the measurement behind the workload rule abo
 > is *three instruments pointed at this result, one of which has fired*, and a reader should weigh it by that rather than
 > by how many checks stand behind it.
 
+### SIX CLAIMS OF MY OWN, CORRECTED BY MY OWN MEASUREMENTS
+
+The property that matters is not that they were wrong. **It is that every one was caught by a measurement I ran myself,
+after the claim had already been written** — and five of the six came from building the instrument that then disagreed
+with me.
+
+| the claim | what caught it |
+|---|---|
+| the 50 % identical-search fraction | a sweep on 200 positions gave 44.0 % (`S-C42`) |
+| the node ratio's mean of 1.214 | the population gave 1.094, and a same-size resample gave 0.971 (`S-C64`) |
+| "only the per-node factor moves with phase" | six slices: per-node varies 0.29 %, node 1.36 % (`S-C65`) |
+| my convergence test showed monotone drift | it was a PREFIX of a game sequence, i.e. a phase (`S-C63`) |
+| "2,657 vs 2,075 at d7" | the trace said 12,657 vs 10,075 (`S-F136`) |
+| seat 75 had no symmetry work | `git show --name-only` is one commit, not a tree (`S-F171`) |
+
+**The instruments that caught me were, five times out of six, ones I had just built for another purpose.** That is the
+argument for building checks rather than for being careful: a check built to test the engine will eventually test its
+author, because the author's numbers pass through it.
+
+**And the one that did not come from my own tool — the branch check — failed because the tool was the wrong one, not
+because no tool existed.** `git ls-tree` was available the whole time; I used `git show`.
+
 ### THE MOVE-GENERATION CLEAN BILL — population scale, not a sample
 
 **353 of 353 positions in `set_G`, both builds, perft depth 4, zero disagreements with python-chess, zero skips.**
