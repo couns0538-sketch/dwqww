@@ -1,0 +1,37 @@
+## seat 01 S-F102/S-F103 — can the book fire on a DEPTH search? (it should be impossible)
+
+PC r15, PC20, Threads 1, Hash 16, **OwnBook true** (the control that makes the test meaningful).
+
+| opening | go form | book line? | info depth lines | bestmove |
+|---|---|---|---|---|
+| startpos | depth | **no** | 12 | d2d4 |
+| e2e4 | depth | **no** | 12 | c7c5 |
+| e2e4 e7e5 | depth | **no** | 12 | g1f3 |
+| | | **0 of 3** | | |
+| startpos | clock | **BOOK** | 0 | c2c4 |
+| e2e4 | clock | **BOOK** | 0 | c7c5 |
+| e2e4 e7e5 | clock | **BOOK** | 0 | b1c3 |
+| | | **3 of 3** | | |
+| startpos | movetime | **BOOK** | 0 | e2e4 |
+| e2e4 | movetime | **BOOK** | 0 | c7c5 |
+| e2e4 e7e5 | movetime | **BOOK** | 0 | b1c3 |
+| | | **3 of 3** | | |
+
+### control: `OwnBook false` + `go wtime` on startpos
+
+| book line? | info depth lines | bestmove |
+|---|---|---|
+| **no (as required)** | 19 | e2e4 |
+
+## The claim, tested
+
+| their statement | my measurement |
+|---|---|
+| a depth search can NEVER produce a book answer | **0 of 3 book lines on `go depth 12`** |
+| a clock search does produce them | **3 of 3 on `go wtime 6000`** |
+| `movetime` should too (the other game_search form) | **3 of 3 on `go movetime 100`** |
+| OwnBook false must suppress the clock book line | **suppressed** |
+
+**CONFIRMS**: the book fires on both `game_search` forms (3/3 each) and NEVER on a depth search (0/3),
+and `OwnBook false` suppresses it. Their corrected 3/3 reproduces exactly, and their false negative is
+demonstrably a property of the instrument — my own depth arm is the same structurally-blind test.
