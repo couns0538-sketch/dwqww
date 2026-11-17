@@ -224,6 +224,9 @@ in your result that has no second sample".
 
 # Sixth note: "can I re-run this myself?" — the test before relaying anyone's claim
 
+> **Never let a claim's usefulness be its credential.** The stronger a claim makes my result look, the more it needs
+> "can I re-run this myself?" answered BEFORE I relay it — and if the answer is no, that fact travels with the claim.
+
 **Twice in one session I relayed a claim I could not reproduce, because it strengthened my own finding.** Both times it
 was wrong, and both times the question I failed to ask first was the same:
 

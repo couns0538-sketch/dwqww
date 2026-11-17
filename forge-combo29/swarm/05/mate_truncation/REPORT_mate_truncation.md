@@ -125,6 +125,31 @@ still on the owner's path because 50,000 nodes is one of their match budgets. Wh
 - **S-F30**: my own |N| ≥ 10 rule rests on 3 qualifying positions, and my independent sample has |N| ≤ 4 — it cannot
   test the rule. Stated rather than glossed.
 
+## The mechanism: the first iteration that reports a mate
+
+Scanning `go depth 6..20` on four mate positions (PC r15 + PC20, Threads 1, Hash 16, OwnBook false, fresh process per
+depth) shows the defect is one iteration wide:
+
+| position | first depth reporting a mate | that line | first complete mate line | truncated at any **later** depth? |
+|---|---|---|---|---|
+| S-F58 violator | 11 | **18 of 21 — TRUNCATED** | 12 | **no** |
+| G/192 | 8 | **10 of 14 — TRUNCATED** | 9 | **no** |
+| G/59 | 6 | **6 of 7 — TRUNCATED** | 7 | **no** |
+| G/306 | 9 | 3 of 3 — already complete | 9 | **no** |
+
+**3 of 4 positions truncate at their first mate line; 0 of 4 truncate at any later depth.** The defect is exactly the
+first iteration that promotes a bound into a mate score, one ply before the PV can carry it.
+
+One sentence, four observations explained:
+
+- why `go nodes 50000` gave the same result as `go depth 11` — both stop at that iteration (S-W10);
+- why a clock search reaching depth 12 looked clean — one ply past it;
+- why PV completeness predicts delivery 63 of 63 — the incomplete PVs *are* those lines (S-F73);
+- why mate distance looked causal — long mates have their first mate iteration at a depth where the PV cannot be
+  carried, so they meet the defect more often (S-W9).
+
+Neither the budget type nor the mate distance is causal.
+
 ## The rule, and how to use it: PV completeness predicts delivery, 39 of 39
 
 Across every mate score I have measured — **39 of them**, over two builds (base 6b98f217, PC r15), three settings (S14 at
