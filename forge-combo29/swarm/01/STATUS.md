@@ -905,3 +905,23 @@ SEAT 20's S-F50 PARTIALLY CONFIRMED, AND THE SHAPE OF IT CORRECTED (S-C27, S-F84
   BUT THE SHAPE IS DIFFERENT FROM '0-node': what I observe is 143-220 nodes with a DIFFERENT MOVE, and only one run had no readable node line at all. So the pathological cell returns a move with essentially no search behind it - the same hazard whether it prints 0 or 220. My checker counted only exact zeros and would have said 'no collapse in any cell', which would have been a wrong reading of my own data until I looked at the node counts.
   THE USEFUL SIGNAL FOR THE OWNER (S-F84): healthy cells print 165k-289k nodes and always g7g6; pathological cells print 143-220 nodes and a different move. A user does not need to wait for a printed 0 - a THREE-DIGIT NODE COUNT on a 5-second search is the signature, and the move has already changed. Action unchanged: MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### THE CLOCK THREAD, CLOSED ON FOUR LEGS
+
+Summarised here because it is the one thread that ran end to end, and it shows the method working:
+
+1. **The fixed point, derived from the engine's own constants.** `floor = MoveOverhead + increment*100 /
+   TmHardPercent` = **110 ms** (111 with integer division), reached independently by seat 28's S-F44 and by the
+   coordinator's argument (S-C12b, S-C14). My earlier 493 ms is corrected — it iterated with the observed spend
+   rather than the cap the bound is defined over.
+2. **The fixed point, seen live in a game.** Black's clock fell to **673 ms at ply 179 and rose to 822 ms by ply
+   190** — a negative net drain at low clock (S-F76).
+3. **A forfeit shown impossible from any starting clock.** Four starts (600/300/150/**100** ms), **4 of 4 rose,
+   0 forfeits** — the 100 ms case sitting *below* the floor and still climbing (S-F77, S-F79).
+4. **The plateau generalised and made certifiable.** 5 position types × 8 clocks give **5/6/5/6/4 distinct
+   outcomes**; and **an equal node count means an equal move** (17 of 17 pairs, 0 disagreements in 780), so a
+   run is certified by one number instead of a repeat (S-C15, S-C26, S-F83, S-F64).
+
+**"A measurement first, then the sentence that makes it usable"** is the shape those four legs share, and it is
+the shape most of tonight's useful results ended in — which is why every rule page on this branch sits beside
+the evidence file that licenses it rather than standing alone.
