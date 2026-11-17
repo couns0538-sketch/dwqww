@@ -28,7 +28,6 @@ def _dir_from_env(var, default):
     value = os.environ.get(var)
     return pathlib.Path(value) if value else default
 
-
 BUILD_ROOT = _dir_from_env("ASP_BUILD_ROOT", AUDIT_ROOT / "builds")
 EVIDENCE = _dir_from_env("ASP_EVIDENCE", AUDIT_ROOT / "evidence")
 
@@ -40,6 +39,12 @@ BUILD_FLAGS = {
     "fault": "-DFORGE_ASP_TRACE=1 -DFORGE_ASP_FAULT=1 -DFORGE_ASP_OFF=0",
     "noasp": "-DFORGE_ASP_TRACE=0 -DFORGE_ASP_FAULT=0 -DFORGE_ASP_OFF=1",
 }
+
+# Every measurement passes these. `OwnBook false` is a habit, NOT a requirement:
+# `bench` never consults the book (it is a separate uci.cpp branch with its own
+# Searcher), and the book gate lives in the `go` handler where it also needs a
+# clock. Measured: bench 11 = 312866 with the option true, false, and never sent.
+BASE_ENGINE_OPTIONS = {"OwnBook": "false"}
 
 
 def binary(name):

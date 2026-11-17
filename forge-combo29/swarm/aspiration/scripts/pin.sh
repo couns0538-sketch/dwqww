@@ -4,10 +4,17 @@
 # Two traps this avoids:
 #   * `bench N` must arrive on STDIN. `./forge bench 11` as argv prints NOTHING
 #     and exits 0 -- a silent way to record no number.
-#   * `OwnBook` defaults to true. With the book on, bench 11 reads 1,919,423, a
-#     plausible-looking wrong number. Every pin sets it false.
-# The bench line is `... nodes <n> time <t> nps <r>`; the token after `nodes` is
-# taken explicitly, because grabbing the LAST field yields `nps` instead.
+#   * The bench line is `... nodes <n> time <t> nps <r>`; the token after
+#     `nodes` is taken explicitly, because grabbing the LAST field yields `nps`.
+#
+# `OwnBook false` is still set below, but it is NOT required for these pins and
+# an earlier version of this script wrongly said so. `bench` never consults the
+# book: the book is gated inside the `go` handler (uci.cpp:523-542; game_search at 525,
+# probe at 527) where
+# `game_search` also requires a clock, and `bench` is a separate branch
+# (uci.cpp:590) with its own Searcher. Measured: bench 11 = 312866 with OwnBook
+# true, with OwnBook false, and with the option never sent. Setting it is a
+# harmless habit, not a precondition.
 set -u
 B=${1:?usage: pin.sh <path-to-forge>}
 

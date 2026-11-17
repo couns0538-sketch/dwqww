@@ -10,9 +10,11 @@ root iterations (133 positions × depth 10 × four deltas) every published score
 inside its final window, so every published score was an exact value. The dangerous case —
 a mate window — is also clean: 190 positive mate claims, 180 of them long enough to test,
 and **not one** fails to mate. But the switches are not cosmetic. `AspirationDelta` moves
-the published score on **126 of 133** positions, and turning `AspCappedReopen` or
-`AspArmLate` on **loses a mate the default finds** (2 of 8 mate fixtures). Aspiration here is
-**not** a pure speed optimisation.
+the published score on **126 of 133** positions, and each of the two switches moves it on a
+different set: **`AspCappedReopen` on 114 of 141** and **`AspArmLate` on 111 of 141** (141 =
+133 depth positions + 8 mate fixtures; the two sets overlap in 103 positions, with 10 moved
+by `AspCappedReopen` alone and 7 by `AspArmLate` alone). Each switch also **loses a mate the
+default finds** (2 of 8 mate fixtures). Aspiration here is **not** a pure speed optimisation.
 
 ## What I measured
 
@@ -21,7 +23,8 @@ the published score on **126 of 133** positions, and turning `AspCappedReopen` o
 | Bound published as a value | **0** in 5,320 traced iterations |
 | Mate window clean | **0** false mates in 180 testable claims; PV always mates |
 | `AspCappedReopen` bound-publishing break | **0** firings in 448 iterations, and provably unreachable in arithmetic |
-| `AspArmLate` | Fires, changes nothing about soundness, **loses mates** at fixed depth |
+| `AspCappedReopen` effect on scores | moves the score on **114 of 141** positions; reopen path runs (5 tries → 13 on one board) |
+| `AspArmLate` | fires, **0** bounds, moves the score on **111 of 141**; **loses mates** at fixed depth |
 | `AspirationDelta` changes the answer | **yes** — score on 126/133, move on 95/133 |
 | Score jumps that come back (bound artefact) | **0** in the traced build |
 
@@ -111,12 +114,14 @@ Measured: **0** `high_break` / `low_break` exits in 448 iterations with the swit
 against a **live** counter (the planted-fault build registered **15** `high_fault` exits in
 the same channel). But the switch is **not** inert — its *reopen* path does run and changes
 the windows materially: on one board, depth 7 needed **5** tries with the switch off and
-**13** with it on, with a different window sequence. So `AspCappedReopen` is "a switch that
-changes the work but cannot change the verdict by construction" — which is worth knowing
-before anyone else spends a day measuring it.
+**13** with it on, with a different window sequence. So `AspCappedReopen` is best described
+narrowly: **its bound-publishing break cannot fire** (that is the arithmetic above), while its
+reopen path still changes *which* search you run.
 
-It does still move published scores (114 of 141 positions) and it **loses a mate** at fixed
-depth (§4), so "cannot publish a bound" is not the same as "does not change the answer".
+The distinction matters, so both halves are measured separately: **114 of 141 positions**
+have a different published score with the switch on, and it **loses a mate** at fixed depth
+(§4). "Cannot publish a bound" is not the same claim as "cannot change the answer", and only
+the first one is proved by the arithmetic.
 
 ### `AspArmLate` — fires, sound, and loses mates
 
@@ -184,6 +189,17 @@ nothing in the output would reveal it if that changed.
 3. **A claimed pin mismatch on all builds.** My bench parser read the last field of
    `... nodes N time T nps R`, which is `nps`, not `nodes`. The pins were correct all along;
    the parser was not. Fixed to read the token after `nodes`.
+4. **A claim that the pins require `OwnBook false`, and that the book changes bench.**
+   Withdrawn after the coordinator checked it against the source and the binary. `bench`
+   never touches the book: the book is gated in the **`go`** handler (`uci.cpp:523-542`,
+   `game_search` at 525, the probe at 527, and `game_search` also requires a clock) and `bench` is a separate branch
+   (`uci.cpp:590`). Measured on the audit base, bench 11 = **312,866** with `OwnBook true`,
+   with `OwnBook false`, and with the option never sent. The 1,919,423 I attributed to the
+   book was the `nps` field from the same parser bug as item 3
+   (`312866 * 1000 / 163 = 1919423`). The pins are unconditional; `OwnBook false` is a
+   harmless habit, not a precondition. This is the same failure mode as item 3 — a harness
+   bug restated as a property of the engine — and it had reached three files plus a shell
+   comment before it was caught.
 
 ## What is left untested, and why
 
@@ -233,5 +249,30 @@ clean checkout reproduces the files byte-for-byte except for fields that record 
 *path*, which were deliberately replaced with build *names* for that reason.
 
 Pins on the analysis build: bench 11 = 312,866; bench 13 = 862,329; bench 16 = 3,024,920;
-`go perft 5` = 4,865,609. `bench N` sent on **stdin**, `OwnBook false` (it defaults true, and
-a bench with the book on gives 1,919,423 at depth 11 — a wrong number that looks plausible).
+`go perft 5` = 4,865,609. `bench N` sent on **stdin**, because `./forge bench 11` as argv
+prints nothing and exits 0.
+
+**Correction — `bench` does not consult the book, and the pins do not depend on `OwnBook`.**
+An earlier version of this section claimed `OwnBook false` was required and that "a bench
+with the book on gives 1,919,423 at depth 11". That is false, and it was corrected against
+the source and the binary. Measured on the audit base, three ways:
+
+| setting | bench 11 nodes |
+|---|---|
+| `setoption name OwnBook value true` | 312,866 |
+| `setoption name OwnBook value false` | 312,866 |
+| option never sent | 312,866 |
+
+The source agrees. The book is gated inside the **`go`** handler (`uci.cpp:523-542`: `game_search` at 525,
+probe at 527), where
+`game_search` additionally requires `time_ms >= 0 || movetime_ms >= 0`, so the book applies
+only to clocked game play — never to `go depth`, and never to analysis or pondering. `bench`
+is a separate branch (`uci.cpp:590`) that builds its own `Searcher(16)`, its own `Board` per
+FEN and its own `SearchLimits`, with no book call on the path. In this build the book is
+empty anyway (`Book File` is `<empty>`), so the `!book.empty()` conjunct cannot hold.
+
+**What actually produced 1,919,423:** my own bench parser read the *last* field of
+`... nodes 312866 time 163 nps 1919423`, which is `nps`, not `nodes` — and `312866 * 1000 /
+163 = 1919423` exactly. It was a units bug in the harness, not a different search. The same
+bug is the third item in "What I withdrew". Setting `OwnBook false` remains harmless and the
+scripts still do it, but it is a belt-and-braces habit, **not** a precondition of the pins.

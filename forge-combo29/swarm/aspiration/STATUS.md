@@ -30,8 +30,16 @@ The trace build is **bit-identical to stock** — instrumentation does not pertu
 The never-narrow build must differ on bench (it does; that is proof the flag took effect) and
 must match on perft (it does; movegen untouched).
 
-`bench N` on **stdin**, `OwnBook false`. With the book on, bench 11 reads 1,919,423 — a wrong
-number that looks plausible.
+`bench N` on **stdin** (`./forge bench 11` as argv prints nothing and exits 0).
+
+**Correction:** an earlier version of this file said `OwnBook false` was needed and that the
+book changed bench 11 to 1,919,423. Both parts are wrong. `bench` never calls the book — it
+is a separate branch (`uci.cpp:590`) with its own `Searcher`, and the book is gated inside
+the **`go`** handler (`uci.cpp:523-542`; `game_search` at 525, probe at 527), which
+additionally requires a clock. bench 11
+reads **312,866** with `OwnBook true`, with `OwnBook false`, and with the option never sent.
+The 1,919,423 was my parser reading the `nps` field instead of `nodes`
+(`312866 * 1000 / 163 = 1919423`). The pins are unconditional.
 
 ## Files
 
