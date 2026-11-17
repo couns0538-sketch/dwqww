@@ -541,3 +541,14 @@ dashes, not missing data).
 **a forfeit at ply 78**, versus my earlier 18.6 / 21.7. Control at 6 s + 0.5 s: 381.2 ms, -118.8 ms/move, no
 forfeit. **So the honest figure is a range: 19-32 ms/move drained, zero at 188-322 plies, and two forfeits seen
 now (plies 106 and 78).** S-C11c records this and keeps the earlier runs visible as samples.
+
+## 2026-11-17T00:32Z clock thread closed; S-C18 confirms 10-F64 with a higher node count
+**Clock thread closed** per the coordinator: the engine's time management is consistent with its own plan at the
+owner's control, every apparent hard-limit overrun is 0-1 ms of integer rounding, and no measurement shows a clock
+defect. The internal-bookkeeping question stays open and labelled unmeasured.
+**S-C18: seat 10's 10-F64 confirmed** - board `5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1`, `go depth 22`, PC r15/PC20/
+Threads 1: depth advances **5 -> 14 monotonically** with nodes climbing 1,448 -> **599,407,784** in ~62 s. So it is
+a slow progressing search, not an infinite loop, and their advice to CAP THE TIME on high-counter boards is sound.
+**My node count is 2.4x theirs at the same depth** (they report depth 14 at 23.2 M; I get 599.4 M and never reach
+depth 15). Recorded as a difference, not a contradiction - both single runs, same build and settings, and I have
+their sentence rather than their raw file.
