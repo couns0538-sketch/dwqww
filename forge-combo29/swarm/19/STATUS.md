@@ -699,3 +699,15 @@ next command: continue at cadence.
   C13 (read the files), F9 (23.5 %% detected).
 
 next command: continue at cadence.
+
+## 2026-11-17T00:49:47Z
+
+19-C32 systematic self-audit FINISHED: 58 F-findings -> 43 positive (self-evident), 15 null-shaped.
+  Of the 15: 4 real absences (F54, C26, F9 - all planted; F19 withdrawn), 11 were my filter's false
+  alarms (F17's stability claim carries its contrast in stable_sort; F22/F23 contrast warm vs cold).
+  GENERALISABLE: soft nulls hide better than hard zeros. '0 of 40' announces itself and got Rule 1;
+  'not measurably faster' reads like a finding and escaped the question entirely.
+  Also kept: my first F9 control (bench at Threads 1 vs 4, 0.988) would have produced a FALSE NEGATIVE
+  about my own instrument - bench builds its own Searcher(16) so Threads never reaches it (19-F37).
+
+next command: continue at cadence.
