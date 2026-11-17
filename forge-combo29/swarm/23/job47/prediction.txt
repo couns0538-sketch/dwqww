@@ -1,0 +1,30 @@
+PREDICTION — SW-23 job 47 (is F96's "threw away the mate" general, or one unlucky rook placement?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F96 rests on ONE fixture and ONE unsearched move: the base returned d5d1 on the threefold root and white's mate 10
+became a capped +529 that never recovered through depth 20. That is exactly the shape of result I have twice had to
+retract today (a one-cell comparison presented as a pattern), so it gets a breadth test before it is quoted anywhere.
+
+DESIGN — three DIFFERENT threefold roots, same material, deliberately different geometry, base build. Each root is
+reached by a validated 8-ply shuffle (illegal-move check + occurrence count in python-chess BEFORE any engine call).
+  R1 `1K6/8/8/3R4/8/8/8/k7 w`   (the F96 board: rook on d5, kings b8/a1 — rook can reach the first rank)
+  R2 `8/8/8/8/8/1K6/8/R6k w`    (rook on a1, kings b3/h1 — rook already on the first rank)
+  R3 `7k/8/8/8/8/8/8/K1R5 w`    (rook on c1, kings a1/h8 — rook on the first rank, king boxed on h8)
+For each: ask the base for its move on the threefold root (expect 0 nodes), push that move with python-chess, then ask
+the PC at depth 16 for white's score, AND ask the PC for the root's own score as the control ("how good was the
+position before the move").
+
+Prediction (each number with the range that kills it):
+  P1  THE BASE RETURNS 0 NODES WITH cp 0 ON ALL THREE ROOTS (it is the same rule; if any root searches, the rule is
+      narrower than F93 claims and F93 must be re-scoped).                    KILLED if any of R1-R3 searches.
+  P2  THE MATE IS THROWN AWAY ON AT LEAST TWO OF THE THREE: on at least two roots the PC scores the ROOT as a mate
+      but scores the position AFTER the base's move as cp (no mate) at depth 16.  KILLED if it happens on only R1 —
+      in which case F96 must be re-scoped to "one fixture" and the general sentence removed.
+  P3  THE WIN ITSELF IS NEVER LOST on any root (white still >= +100 cp after every unsearched move). KILLED if any
+      root's post-move score for white is <= 100 cp or negative, which would put this family in 23-F60's class.
+  P4  A CONTROL ON THE METHOD: each root's PC score at depth 16 must be a mate (not cp). If a root is only cp-winning
+      then "threw away the mate" is vacuous there and that root is excluded from P2 — printed so the exclusion is
+      visible rather than silent.
+
+If P1-P3 hold: F96 upgrades from "measured on one fixture" to "reproduced on N of 3 geometrically distinct roots",
+which is what would let the GUI page's sentence stand. If P2 fails, I re-scope F96 down and say so in the row.
