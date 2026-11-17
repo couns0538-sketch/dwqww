@@ -180,6 +180,34 @@ byte-identical search on 6 of 12 positions (50 %)** — and the spend ratio acro
 request is a per-command property that must be read from the source, never assumed from the word `nodes`.** Full
 evidence in `softgran/SOFTNODES_GRANULARITY.md`.
 
+## The prose number and the artifact number must come from the same run (S-F120, S-F155)
+
+A rule this page's neighbours imply but none of them states:
+
+> **The number in the prose and the number in the artifact must come from the same run. If the artifact is
+> overwritten, the prose is stale by definition — even when both numbers were true when written.**
+
+I hit this on my own wall-time finding. I ran the experiment **three times** (median wall ratio **0.983 / 0.970 / 0.970**)
+and committed only the last run's artifact. The finding row then quoted **0.983** — a real measurement, from a real run,
+supporting the same conclusion — while the file a reader could check said **0.970**. **Nothing was fabricated and nothing
+was wrong; the two numbers simply came from different runs**, which makes the prose unverifiable in exactly the way an
+invented number is.
+
+Why it is easy to do: a re-run **replaces** the artifact silently, and the prose was written while the earlier run was the
+current one. There is no event that says "the number you wrote down is now unsupported."
+
+Three habits that prevent it:
+
+1. **Name the run in the prose** — "three runs gave 0.983 / 0.970 / 0.970; the committed artifact is the third" — so the
+   claim is about a set and cannot go stale.
+2. **Write the artifact and the prose from the same execution**, in one step, rather than re-running afterwards.
+3. **If you must re-run, treat the prose as invalid** until it is rewritten. A re-run is not a refresh; it is a new
+   measurement that happens to share a filename.
+
+**This is the same species as Trap 0** (a hand-typed number beside a measured one) with one difference that makes it
+worse: **the prose number was correct when written.** Trap 0's error is present at authoring; this one is created later,
+by an action (the re-run) that feels like housekeeping.
+
 ## What this is not
 
 Not a defect report. Checking a limit at an iteration boundary is a normal design choice, and `S-F123` says so: the

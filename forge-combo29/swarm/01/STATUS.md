@@ -431,6 +431,35 @@ Seat 01, area 1 (FEN input under ASan+UBSan, then the PC r15 build and the softn
 Branch for-fable-and-opus/swarm-01. Every result is Threads 1. PC20 = S14 + CuckooRep true, HistRework 2,
 TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false, Threads 1, Hash 16.
 
+### THE PERFORMANCE DECOMPOSITION — the one place a mechanism is fully accounted for arithmetically
+
+> **`wall_ratio = node_ratio × per_node_ratio`**
+
+All three terms measured independently, so the identity is a check rather than a tautology:
+
+| term | value | how measured |
+|---|---|---|
+| **node ratio** | **0.9090** (12.4 % fewer nodes under PC20) | fixed depth 12, n=119, ABBA, fresh process |
+| **per-node ratio** | **1.0693** (7 % dearer per node) | fixed `go nodes 50000`, n=180, per-position ln-ratio 1.0773 CI [1.0670, 1.0876] |
+| **product** | **0.9720** | arithmetic |
+| **observed wall ratio** | **0.9728** | the same depth-12 run |
+
+**Agreement to 0.1 %.** When a product of two independently measured terms predicts a third to a tenth of a percent, that
+is a decomposition, not a fit.
+
+**Replicated on a second build and harness** — my `S-C46` run (n=116) gives median node 0.9261, median wall 0.9698, so
+**implied per-node 1.0472** against their directly measured 1.0693: **within 2.1 %**.
+
+**What it settles.** PC20's wall cost is **a uniform per-node tax multiplied by a bimodal node count**. The per-node term
+is nearly constant (162 of 180 positions above 1.0, one peak at 1.05–1.10 covering 117); the node term is not (median
+0.926, mean 1.214, tail to 18.4×). **So the five extreme positions I documented were never a per-node phenomenon — they
+are the tail of the factor that varies**, which is why removing them moved the mean node ratio from 1.214 to 0.956 while
+the medians barely moved, and why i=16's later convergence is a node-count story rather than a cost story.
+
+**And it corrects a bench generalisation.** Per-node cost measured on `bench 16` was **1.0119** CI [0.9997, 1.0241]; on
+real positions it is **1.0773** CI [1.0670, 1.0876] — **the intervals do not overlap**, so bench is not a representative
+workload for per-node cost. That is the measurement behind the workload rule above.
+
 ### THE POSITIVE RESULT FOR THE PC BUILD — do not lose this among the retirements
 
 **The counter-resetting mate is CORRECT on PC r15 and WRONG on base 6b98f217.** Board
@@ -2653,4 +2682,31 @@ wrote about a number in prose with no artifact behind it, violated in the row th
 PC20_WALL_TIME.md now state the THREE-RUN SPREAD (medians 0.983 / 0.970 / 0.970; geo-mean CIs 0.916-1.125 / 0.918-1.133
 / 0.921-1.130) and name the committed run as the verifiable one.
 Gates: 209 rows, 0 wrong pipe counts, stale figures corrected to the committed artifact, stamps in order, gate rc=0.
+Next: continue at cadence to the window close.
+## 2026-11-17T02:01:18Z — the decomposition is the FINAL's headline, and the same-run rule is stated (S-F155, S-C55)
+1. THE SAME-RUN RULE IS NOW A PRINCIPLE ON THE NORMALISATION PAGE (S-F155):
+     "The number in the prose and the number in the artifact must come from the same run. If the artifact is
+      overwritten, the prose is stale by definition - even when both numbers were true when written."
+   The instance: three runs gave 0.983 / 0.970 / 0.970, the committed artifact was the third, and the prose quoted the
+   first. NOTHING WAS FABRICATED AND NOTHING WAS WRONG - the two numbers came from different runs, which makes the prose
+   unverifiable in exactly the way an invented number is. Why it is easy: a re-run REPLACES the artifact silently and no
+   event says "the number you wrote down is now unsupported".
+   Three habits recorded: name the run in the prose so the claim is about a set and cannot go stale; write artifact and
+   prose from ONE execution; treat a re-run as INVALIDATING the prose rather than refreshing it.
+   And the distinction from Trap 0 is stated because it makes this one worse: Trap 0's error is present at authoring,
+   this one is CREATED AFTERWARDS by an action that feels like housekeeping.
+2. THE DECOMPOSITION IS THE FINAL's HEADLINE PERFORMANCE RESULT (S-C55), with all three terms and their measurements:
+     wall_ratio = node_ratio x per_node_ratio
+       node     0.9090  (n=119, depth 12, ABBA, fresh process)
+       per-node 1.0693  (n=180, fixed go nodes 50000; per-position ln-ratio 1.0773 CI [1.0670,1.0876])
+       product  0.9720  vs OBSERVED WALL 0.9728  -> 0.1 per cent agreement
+   Replicated on my build and harness: median node 0.9261, median wall 0.9698, implied per-node 1.0472 against their
+   measured 1.0693, within 2.1 %.
+   AND THE FINAL STATES WHAT IT SETTLES, because that is why it belongs at the top: PC20's wall cost is a UNIFORM
+   per-node tax multiplied by a BIMODAL node count, so the five extreme positions were never a per-node phenomenon -
+   they are the tail of the factor that varies. That is the sentence S-C46 could not write, and it also carries the
+   measurement behind the workload rule (bench 1.0119 CI [0.9997,1.0241] vs real 1.0773 [1.0670,1.0876], non-overlapping).
+   Verified every figure against the committed JSON before writing it: 0.9090 x 1.0693 = 0.9720, 0.9698 / 0.9261 = 1.0472,
+   medians 0.9261 and 0.9698. Arithmetic checked, not transcribed.
+Gates: 211 rows, 0 wrong pipe counts, FINAL arithmetic verified, same-run rule stated, stamps in order, gate rc=0.
 Next: continue at cadence to the window close.
