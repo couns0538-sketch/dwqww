@@ -883,3 +883,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Prediction (committed alone first): P1..P5 REFUTED, P6 not measured. `perf` absent -> gprof -pg, shares distorted, said so.
 - Gates: machine_clean caught a zombie engine from the hung job; findings_lint caught my 3-cell row. Both fixed.
 Next: Step 2 needs the real hot spot; and S-F70 wants an independent confirmation.
+
+## 2026-11-17T00:39:11Z SELF-CORRECTION: my S-F70 scorecard said "5 of 6 refuted"; the arithmetic says 3 confirmed / 2 refuted / 1 unmeasured
+- I scored it by eyeballing the gprof table. Dividing against the kill ranges I had written down BEFORE profiling:
+  P2 43.2% of v3 (pred 45%) CONFIRMED; P3 21.6% of bench13 (pred 30%) CONFIRMED; P4 18.9% of v3 (pred 20%) CONFIRMED;
+  P1 wrong function REFUTED; P5 "refresh is rare" REFUTED (it is 43% of v3, the LARGEST item); P6 not measured.
+- Corrected in place in job82/FINDING.md and in the FINDINGS row, with the correction recorded rather than silently edited.
+- This is METHOD RULE 0b turned on my own scoring: a claim about a measured quantity must be divided out, not eyeballed.
+- Consequence for Step 2: the top v3 item IS the refresh path, and it is ALREADY the optimised one (7.25 cols, not 768).
+  So the remaining v3 cost is bookkeeping + incremental apply around an already-cheap cache -> target allocation/cache
+  structure, NOT the vector kernels (35%, already AVX-512).

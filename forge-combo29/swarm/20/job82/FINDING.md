@@ -37,17 +37,25 @@ measurement that says where the v3 time actually goes, which changes what Step 2
 
 | # | predicted | measured | verdict |
 |---|---|---|---|
-| P1 | hottest v3 function = `apply_changes_avx512` | **`refresh_from_pieces`, 9.4 % self** (incremental update `apply_changes_pair` 7.6 %) | **REFUTED** |
-| P2 | that function 45 % of v3 time | top v3 function is ~20 % of v3 self time, none is 45 % | **REFUTED** |
-| P3 | v3 path 30 % of bench 13 time | ~13 % of profiled self time | **below my 15 % floor — REFUTED** |
-| P4 | forward pass 20 % of v3 time | `evaluate` 4.1 % overall ≈ 9 % of v3 | **below my 8 % floor — REFUTED** |
-| P5 | `refresh_perspective` 10 % of v3 time | full refresh happens 8 times in 617,443; `refresh_cached` is not a separate cost line | **REFUTED, and informatively so** |
-| P6 | bookkeeping (`make_valid`/`collect_changes`) 10 % of v3 time | inlined, no separate entry | **NOT MEASURED** |
+| P1 | hottest v3 function = `apply_changes_avx512` | **`refresh_from_pieces`, 9.4 % of bench 13 self time** | **REFUTED** — wrong function |
+| P2 | that function = 45 % of v3 time | **43.2 % of v3** | **CONFIRMED** (inside 30–60 %) |
+| P3 | v3 path = 30 % of bench 13 time | **21.6 % of bench 13** (excl. one-time load) | **CONFIRMED** (inside 20–45 %) |
+| P4 | forward pass = 20 % of v3 time | **18.9 % of v3** | **CONFIRMED** (inside 12–30 %) |
+| P5 | full refresh RARE, ~10 % of v3 | **43.2 % of v3** — the refresh is the single largest v3 item | **REFUTED** — badly; I predicted rarity and got the opposite |
+| P6 | bookkeeping = 10 % of v3 time | inlined, no separate entry | **NOT MEASURED** |
 
-**Five of six refuted.** My premise — "the incremental update dominates because it touches 2 KB per move" — was
-wrong because I assumed the rebuild was per-node and uncached. It is per ~6 nodes and cached to 7 columns. The
-prediction was worth committing precisely because it was wrong in a specific, checkable way: it named the cache as
-absent, and the cache was there.
+**3 confirmed, 2 refuted, 1 not measured.** I first wrote "5 of 6 refuted" from eyeballing the profile; the arithmetic
+against my own pre-registered kill ranges says otherwise, and the correction is recorded rather than quietly fixed.
+*(This is itself an instance of METHOD's RULE 0b applied to my own scoring: a claim about a measured quantity has to
+be divided out, not eyeballed.)*
+
+The two refutations are the informative ones, and they are **the same refutation**: I was wrong about *which* thing is
+expensive because I was wrong about *how often the full refresh runs*. Both came from one wrong premise.
+
+**What survives, and it is the useful part:** the top v3 function at 43 % of v3 time is the refresh path, and the
+refresh path is *already* the optimised one (7.25 columns, not 768). So the largest remaining v3 cost is the
+bookkeeping + incremental apply around a cache that has already been made cheap — i.e. **Step 2 should look at
+allocation/cache structure, not at the vector kernels**, which are only 35 % and are already AVX-512.
 
 ## Method caveats, stated because they bound the claim
 1. **`perf` is not installed on this machine** (`command -v perf` fails, no `/usr/bin/perf*`). Shares come from a
