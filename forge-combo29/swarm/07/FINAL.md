@@ -187,7 +187,7 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
-## The twenty-three standing rules, grouped by the question they answer
+## The twenty-four standing rules, grouped by the question they answer
 
 The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
 the wrong order to read them in. Grouped by what they are for:
@@ -242,6 +242,15 @@ the wrong order to read them in. Grouped by what they are for:
 
 ### Can anyone re-check what I claimed?
 
+- **A correction stated in a message does not propagate into the document by itself — so after
+  correcting anything, grep the deliverables for the old claim.** At 00:50 I measured and reported
+  that only one of my two defects was live on the ship build; at 01:10 FINAL still labelled **both**
+  07-F3 and 07-F4 `OPEN`, seventeen minutes of the document contradicting its author in the field a
+  reader would act on. The same pass caught a superseded patch path and a stale "three defects"
+  count. **The measurement was right and the record was left behind — the worst combination, because
+  the wrong claim survives while the right one lives only in conversation.** When a result changes a
+  conclusion, the job ends when every document stating the old conclusion has been searched for it;
+  the changed number and the changed *sentence* are two edits, and only the first happens by itself.
 - **Before citing a library function as your evidence, read what it actually computes.** I said
   `python-chess`'s `is_fifty_moves()` was False on the boards proving 07-F3, in two findings. It
   returns **True** — its body is only `halfmove_clock >= n and any(legal_moves)`, with no test for a
