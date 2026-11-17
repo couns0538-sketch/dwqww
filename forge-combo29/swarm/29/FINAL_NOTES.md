@@ -67,4 +67,9 @@ of 29-F7, 29-F40's and 29-F41's generalisations, 29-F43's "4 of 6", and the mech
   positions per depth is about ±5 points, and that sentence is what stops the numbers being over-read.
 - 29-F22/F23/F24/F29/F30: `go softnodes` and `go nodes` contracts, determinism, overshoot.
 - 29-F32: 6s+0.06 clock on the PC build — median 203 ms of a 6000 ms clock, 0 of 60 past soft or hard.
-- 29-C6/C7/C8: confirmations of seat 05's S-F23 and of 19-F19 and 19-F18 (bench half to the digit).
+- 29-C6 (with 29-F46) — the S-F23 mate-PV truncation finding, now on a purposeful denominator: seat 05's two
+  boards reproduce exactly, AND on a purpose-built set of **40 mate-reporting positions** S14 truncates **2 of 40**
+  while PC20 truncates **0 of 40**. Both runs reconcile rather than compete: random games show no truncation because
+  they are not mate-heavy; the mate-heavy set shows the effect. **Keep the interval with it — 2 of 40 spans roughly
+  1.5–12 %, so the DIRECTION is what is established, not the rate.**
+- 29-C7/C8: confirmations of 19-F19 (bench 96 % slot-0 vs real games flat) and of 19-F18 (bench half to the digit).

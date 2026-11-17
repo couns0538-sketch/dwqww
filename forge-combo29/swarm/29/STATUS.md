@@ -344,3 +344,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Both runs now stand and are reconciled in the table: random games show no truncation either side (not mate-heavy); mate-heavy shows S14 5%, PC20 0%. Truncation is a property of mate-heavy positions, and PC20 removes it there.
 - Caveat kept: 2 of 40 spans roughly 1.5-12%, so the RATE is imprecise; the DIRECTION is the claim.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:07:16 AM UTC 2026
+- Verified both requested forms are in the committed files: FINDINGS carries the interval ('2 of 40 spans roughly 1.5-12 %') and 'the DIRECTION is what this establishes'; the raw table carries the reconciliation section stating both runs stand and why neither contradicts the other.
+- FINAL_NOTES updated: the C6 line now reads as 'seat 05's two boards reproduce exactly, AND on a purpose-built set of 40 mate-reporting positions S14 truncates 2 of 40 while PC20 truncates 0 of 40', with the instruction to keep the interval and treat direction (not rate) as the claim.
+- next: continuing at cadence.
