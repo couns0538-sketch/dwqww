@@ -12,7 +12,7 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
 |---|---|
 | `CLOCK_HEADLINE.md` (in `pc20/`) | **the clock work, headline.** Five shape classes, medians 161–853 ms, worst 1585 ms = the hard plan. Supersedes the three-position figures. |
 | `OWNER_PAGE_clock.md` (in `pc20/`) | one page for the owner: four cases, each with a verdict and what was not measured |
-| `FINDINGS.md` | 33 findings, 22 checks/plants, 3 method lines, 1 withdrawal — the authoritative list |
+| `FINDINGS.md` | 36 findings, 24 checks/audits/plants, 4 method lines, 1 withdrawal — the authoritative list |
 | `STATUS.md` | the running log, newest last |
 
 ## THE HEADLINE NUMBERS (all Threads 1)
@@ -37,10 +37,13 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
    stable clock floor, and the worst boards give 0 overruns even at 200 ms because the plan shrinks with the clock
    (`pc20/REPORT_drain_to_flag.md`).
 
-## THE THREE METHOD RULES (top of `FINDINGS.md`, each with its instance)
+## THE FOUR METHOD RULES (top of `FINDINGS.md`, each with its instance)
 1. A summary I typed is not evidence, and a small sample is not a population (3 instances, 08-N1).
 2. A timeout mechanism must be proved against a case known to return quickly before it may declare a hang (08-N2).
-3. A count from a different scale is not a cost (mate ≠ 30000 cp; 08-F30/F31).
+3. A count from a different scale is not a cost (mate ≠ 30000 cp; and the 72/360 vs 117/585 case where both numbers
+   were right but the REGIME was missing: `pc20/PLAN_TABLE.md`).
+4. A static analyser of your own code is a heuristic; open the flagged file before believing it (08-N4 — my ordering
+   audit gave two false positives).
 
 ## FOLDER MAP
 | folder | contents |
@@ -51,7 +54,7 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
 | `job4/` | the two stop paths reconciled (with seat 16), undershoot by depth ladder |
 | `job5/` | the clock-tail sweep 200 ms…30 s, overshoot-vs-one-iteration, cold-vs-warm |
 | `job6/` | opening book width, book contamination audit, honesty pins under both OwnBook settings |
-| `pc20/` | **the PC build's work**: build report, the re-run of every finding under PC20, all confirmations of other seats, all plants, the owner page |
+| `pc20/` | **the PC build's work**: build report, the re-run of every finding under PC20, all confirmations of other seats, all plants, the owner page, `PLAN_TABLE.md` (computed plan numbers), `INDEX`-linked reports |
 | `pcbuild/` | the patch application and the 8 known numbers |
 | `softnodes/` | `go softnodes N` determinism and overshoot |
 | `honesty/` | the original four pins |
