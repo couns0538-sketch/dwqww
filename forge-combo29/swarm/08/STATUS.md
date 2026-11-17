@@ -799,3 +799,18 @@ file holds 29) — which is the gate working: two checks (C29, C30) were added a
 the generated line; quote only what the gate prints.
 
 next: cadence.
+
+## 2026-11-17T02:26Z
+- **08-C31: seat 12's S-F22 SUPPORTS.** Fixed node budget (`go nodes 200000`), full Hash 16/64/256 x MultiPV 1..4
+  grid: **113 ms fastest to 557 ms slowest = 4.9x**, with **six cells slower than 1.5x the fastest spanning two Hash
+  and three MultiPV values** — a diagonal boundary, not a single bad cell. On their sub-claim: (256,3) IS the slowest
+  cell (557 ms) but not isolated (256,4 = 550, 256,2 = 384), so worst-but-not-singular — both halves of their framing
+  hold. Timing only; a slow cell is not a wrong cell.
+- **Pre-commit hook: NOT started, per instruction.** The remaining risk (forgetting to run the gate) stands as stated
+  rather than being covered by an untested guard at this hour.
+
+## 2026-11-17T02:26Z — TALLY (generated, not maintained)
+**39 findings, 30 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
+The gate caught its own drift again — the previous block claimed 29, C31 made it 30. Quote only what the gate prints.
+
+next: cadence.

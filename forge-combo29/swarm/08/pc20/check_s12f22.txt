@@ -1,0 +1,22 @@
+## seat 12 S-F22 — Hash x MultiPV: a curve, or a single bad cell?
+
+`go nodes 200000`, PC r15 PC20, Threads 1, fixed node budget so the WORK is constant and the time is the variable.
+
+| Hash | MultiPV 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| 16 | 116 | 140 | 146 | 145 |
+| 64 | 113 | 193 | 200 | 227 |
+| 256 | 132 | 384 | 557 | 550 |
+
+## The claim, tested
+
+| question | answer |
+|---|---|
+| fastest cell | 113 ms |
+| slowest cell | 557 ms |
+| spread | **4.9x** |
+| cells slower than 1.5x the fastest | **6** [(64, 2), (64, 3), (64, 4), (256, 2), (256, 3), (256, 4)] |
+| spread across more than one Hash or MultiPV value (a curve, not a cell) | **YES** |
+
+**SUPPORTS the curve claim**: the slow region is more than one cell and spans more than one Hash or
+MultiPV value, so it is a boundary rather than a single bad combination.
