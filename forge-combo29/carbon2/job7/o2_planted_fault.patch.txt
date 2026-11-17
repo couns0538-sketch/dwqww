@@ -1,0 +1,24 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 17:17:30.697143771 +0000
++++ b/src/search.cpp	2026-11-17 17:23:23.521143771 +0000
+@@ -2915,17 +2915,18 @@
+     };
+ 
+     struct InfoOnceFlushGuard {
++        const Worker* this_ptr;
+         const SavedInfoLine& saved;
+         decltype(write_info_line)& writer;
+         ~InfoOnceFlushGuard() {
+             if (saved.has_value) {
+                 const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+                 writer(saved.depth, saved.pv_index, saved.score, saved.shown_seldepth,
+-                       saved.nodes, saved.nps, saved.shown_hash, saved.elapsed,
++                       this_ptr->total_nodes() /* PLANTED FAULT: read post-abort total_nodes instead of emit snapshot */, saved.nps, saved.shown_hash, saved.elapsed,
+                        saved.pv.data(), saved.pv_len);
+             }
+         }
+-    } info_once_guard{saved_info, write_info_line};
++    } info_once_guard{this, saved_info, write_info_line};
+ 
+     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
+         if (!emit_info) return;
