@@ -1,13 +1,20 @@
-# The five things that silently change what a harness measures
+# The six things that silently change what a harness measures
 
 **Seat 01, 2026-11-17. One page, ready for the brief. Every trap below is confirmed by me on PC r15 + PC20,
-Threads 1, Hash 16. Four are settings and one is a timer, and all five share one shape: the default is fine, a plausible
+Threads 1, Hash 16. Four are settings, one is a timer and one is a command whose safety depends on the
+position, and all six share one shape: the default is fine, a plausible
 non-default or a careless measurement silently changes the number, and nothing warns you.**
 
 > ## THE RULE
 >
-> **Assert and record `Threads 1` and `MultiPV 1`; to mean "no limit" OMIT the token — never send 0; and time
-> from immediately before `go` on a warmed process, verified with a `time 0` search.**
+> **Assert and record `Threads 1` and `MultiPV 1`; to mean "no limit" OMIT the token — never send 0; time from
+> immediately before `go` on a warmed process, verified with a `time 0` search; and put a wall cap and a node cap
+> on every fixed-depth command.**
+
+**A note on this page's own shape.** I appended Trap 3 and Trap 5 after the closing sections before this was
+corrected — twice — and the row checker reported the file clean each time, because it counts table cells and not
+section order. `check_page_shape.py` exists for that gap: it prints the heading sequence, flags duplicates and
+empty sections, and flags anything stranded after closing material.
 
 ## Trap 1 — `MultiPV` above 1 divides a node budget (S-C21)
 
@@ -70,6 +77,22 @@ engine's own field agree to tens of milliseconds, and the zero-time control prov
 A rule phrased as "never use caller-measured wall" would forbid a method that is demonstrably fine; the control is
 what distinguishes the two cases.
 
+## Trap 6 — a fixed-depth command needs a wall cap AND a node cap, because safety is a property of the POSITION
+
+`go depth 20` untimed finished in **0.0 s** on my mate boards and **did not finish in 90 s** on a K+Q board at
+halfmove 80, where it reached **depth 15 at 250,077,687 nodes** (seat 10's 10-F65, confirmed as S-C34).
+
+**The mechanism: a short forced mate breaks the iterative loop early** — the loop exits as soon as a mate is found,
+so the search never grinds to the requested depth. **A high-halfmove bare-queen endgame has no short mate and both a
+long mate search and the fifty-move horizon active**, so it grinds through hundreds of millions of nodes to
+complete one depth.
+
+So the same command is safe on one board and a grind on another, and **the trigger is the board, not the call**:
+
+> **Any `go depth N` in a harness gets a wall cap and a node cap. Whether it is safe is a property of the position.**
+
+A harness without a cap cannot tell "slow" from "hung", which is exactly how this reads when it happens.
+
 ## The family of four settings, and why one rule covers all of them
 
 **To mean no limit, omit the token.**
@@ -97,17 +120,3 @@ omit the field.**
    setting and the fifth was the measurement itself — none was a search defect.
 
 This is the same family as the attribution rule: the failure is never in the number, and it is never announced.
-
-## A note on this page's own history, which is a trap of a different kind
-
-I appended Trap 3 and later Trap 5 **after** the page's closing sections — the same ordering mistake twice — and
-my first attempt to fix the second one duplicated the family-table heading, so the page took three passes to be
-correct. Nothing in the content was wrong at any point; the **shape** was.
-
-The structural checker on FINDINGS.md (`check_findings_table.py`) catches malformed table rows but **not
-out-of-order or duplicated sections** — so a page can pass every automated check and still read badly. The guard
-is the plainest one available: **after adding a section, read the page's headings in order.** One command:
-
-    grep -E "^## " <file>
-
-If the sequence is not what you intended, the page is not finished, whatever the checker said.
