@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty-three** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-four** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-THREE instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-FOUR instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty-three faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-four faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -472,6 +472,20 @@ mechanism depends on and see whether the behaviour changes. Here it changed from
 This one is worse than the others on this page because the rule was already mine. Knowing a rule does not install it;
 only a harness that cannot express the mistake does — which is why every drawn-root fixture in this seat now carries its
 move list as data rather than as a FEN.
+
+## Instance 24 — a numeric threshold inside a prediction is an expected value in disguise (23-F111)
+
+I wrote a prediction clause as "S1 and S3 both SEARCH (> 1000 nodes)". The measurement gave 3 of 4, because one bare-FEN
+control searched **210** nodes. 210 is plainly a real search — the cell passes and my threshold was the defect: a number
+I wrote without deriving it, deciding a pass/fail verdict in advance.
+
+I did NOT move the threshold afterwards, because that would be fitting after the fact. The claim is restated
+qualitatively — "S1 and S3 both returned nonzero node counts on 4 of 4, minimum 210" — which is what the data supports
+and what a reader can check.
+
+**The rule: a number that decides pass or fail is an expected value, and expected values must be derived or avoided.**
+Instance 17 said this about control expectations; it applies equally to thresholds embedded in predictions, where it is
+easier to miss because the threshold looks like rigour rather than like an assumption.
 
 ## The fix, in one line each
 
