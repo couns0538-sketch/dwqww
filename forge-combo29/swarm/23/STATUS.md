@@ -1316,3 +1316,19 @@ engine REFUSED them leaving the previous position - give-away was two different 
 My own exposure: depth-13+ endgame work was six lone-king boards at 12/20/24 (200 s total) and depth 16 on two
 repetition boards (seconds) - no hang, and every reported number finished in the time stated.
 95 findings, 18 confirmations. 9 h 57 m remain.
+## 2026-11-17T00:22:31Z  23-F70 (blunder general, 3 of 4 games, but game 4 BOTH builds 0-node) + identical-counts heuristic on the page
+2026-11-17T00:22:31Z
+
+23-F70: four clock games reached an ACTUAL third occurrence (own key, not python-chess's claimable predicate).
+  base: 0 nodes every time; unsearched move worth cp -805 / -39 / -805 / 0 at depth 16
+  PC  : searched three of them (1.38M / 1.60M / 1.38M nodes) -> cp 0
+  GAME 4 (c2c4, third occurrence at ply 142): BOTH builds answered 0 nodes with the SAME move d1c1.
+So the defect is general but NOT universal - that is the case file 3's "repaired on the PC" does not cover, and it is
+only visible by playing games to their own third occurrence. Two of six openings reached no repetition in 200 plies,
+so frequency is NOT measured here.
+
+HEURISTIC now on GUI_HAZARDS (fired twice against me, both times the only warning): if two DIFFERENT boards report
+the SAME node count, suspect a refused position - different positions never share a count, so an exact match means
+the same previous board was searched twice. Instances: 23-C14/C23 and 23-F69 (56,720 / 72,062 identical on two
+invalid boards).
+96 findings, 18 confirmations. 9 h 57 m remain.
