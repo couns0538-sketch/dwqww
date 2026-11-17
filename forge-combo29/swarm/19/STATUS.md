@@ -1169,3 +1169,28 @@ never a result.**
 gain is ~2.8 % — and at matched NODES it spends ~7 % more time for the same count. The switches are a small,
 uniform, consistent cost, not a set of pathological positions — though individual positions vary a lot
 (node ratios span 0.34 to 2.73).**
+
+## 2026-11-17T02:25Z — cadence
+
+Both items confirmed in place and unchanged:
+  1. `checks/prefetchreal/RESULT.md` opens the control section with the pin table (bench 11 312,866 / 13 862,329 /
+     16 3,024,920 / perft5 4,865,609, IDENTICAL both builds) and the sentence "the patched build walks the same
+     tree as the control and reaches the same node count, so every millisecond of the difference is per-node
+     cost, with no node-count difference to confound it". Kept verbatim.
+  2. `NOTE_bench_bias_is_patch_specific.md` keeps all three revisions with what killed each, and the line
+     "each revision was forced by a measurement, not by a preference for caution" plus the distinction that
+     three cases "kill version 2 without confirming the strong form".
+
+CURRENT STATE OF THE SPEED THREAD (all committed):
+  19-C53 node saving 12.4 % but only ~2.8 % wall time
+  19-C54 per-node median 1.071 IQR [1.044,1.110], 90 % of 180 pairs, tail contributes nothing
+  19-C55 bench node-effect SIGN flips across benches 11/13/16
+  19-C56 CorrHistV2 4.3 %->5.2 % transfers, but 54.2 % coin flip per position
+  19-C57 audit of every bench-based node claim
+  19-C58 prefetch 9.80 % on real positions - GENERAL, my prediction wrong
+  19-C59 coin flip is a property of the switch; two smokes are n=2, not a rate
+
+next command: continue at cadence. Remaining area-9 surface: the two open items from the audit that no seat has
+  picked up - (a) whether the 54.2 % coin-flip shape holds for TtPruneV2/CuckooRep/HistRework individually or is
+  specific to CorrHistV2, and (b) a real-position re-check of the ONE remaining bench-only speed claim in my
+  record, 19-F9's material-key cache ("not measurably faster", null with a plant).
