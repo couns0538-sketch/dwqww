@@ -515,3 +515,16 @@ Oracle thread closed: covers KQvK/KRvK/KPvK; found 19-F55 and 19-F58; cannot rea
 
 next command: continue at cadence on area 9 (speed) - the picker/TT lines are exhausted, so the
   remaining PC-relevant lever is quiescence bookkeeping or move generation.
+
+## 2026-11-17T00:21:44Z
+
+19-C19 CONFIRMS seat 29's 29-F4 exactly: refresh_king_lines runs 804,371 times per bench 13 with
+  779,027 (96.8 %%) from has_legal_move - seat 29's own integers, digit for digit.
+  NEW: bench 16 = 2,826,465/2,731,439 (96.6 %%), bench 13 PC20 = 547,691/532,093 (97.2 %%).
+  So the redundancy is marginally WORSE under the owner's settings, and the ratio is unchanged across
+  depths = a per-node constant (contrast: the TT grows with depth, 19-F35).
+  Could NOT re-check its 0.056 %% instruction figure (valgrind cannot run this build, 19-F41) - only
+  the call counts it rests on, and I say so.
+
+next command: continue at cadence; area 9's remaining levers are all measured and the picker/TT/king-lines
+  lines are closed. Next is another seat's open finding where my counters or oracle add something.
