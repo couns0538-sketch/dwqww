@@ -1126,3 +1126,32 @@ Every other mate PV replayed to real mate — including the pawn-reset board at 
 match budgets are unfillable" sounds alarming; "0 of 120 ordinary middlegame cells claim a mate" sounds harmless.
 The defect is **confined to positions where a forced mate exists**, which in the owner's matches means
 **endgames** — and that is the actionable sentence.
+
+### SIXTEENTH UPDATE — the rate restated with its population leading
+
+**A rate is a statement about a population, so it needs its population named.**
+
+That is the line the finding rests on, because the truncation defect has two very different rates depending on
+where you look, and quoting either alone would mislead:
+
+| the population | cells | mate claims | truncated | rate |
+|---|---|---|---|---|
+| **positions with a forced mate**, × the three match budgets | 18 | 14 | **2** | **14 % of mate claims** |
+| **ordinary set_G positions**, × the three match budgets | **120** | **0** | 0 | **no opportunity** |
+
+So: **where a forced mate exists, 14 % of the mate claims at a match budget cannot be filled by their own PV. In
+ordinary middlegame positions at those budgets, no mate is claimed at all, so the defect has no opportunity
+there.** In the owner's matches that means **endgames**.
+
+### APPENDIX — the replay proof behind every one of the 14 mate cells
+
+The rate is only trustworthy because each of the 14 mate cells was **individually** checked, not sampled:
+
+- every mate score's PV was **sliced from the engine's `info` line** and **replayed with python-chess**;
+- **12 of 14 replayed to real checkmate** (including the pawn-reset board at all three budgets, and `KQ_mate3`
+  at all three);
+- **2 of 14 did not**, and those are the two reported: `r2r4/pB2kpp1/…` at 50,000 nodes (`mate 11`, 18 of 21
+  plies) and `8/8/1p6/8/p3p3/8/2Kpk3/8` at 20,000 nodes (`mate -7`, 10 of 14 plies).
+
+So the denominator is not assumed: **14 mate cells, each one replayed, 2 failures.** A rate from a sample of
+mate claims that were *not* individually replayed would be a different and weaker number.
