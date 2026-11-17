@@ -14,6 +14,23 @@
 > you keep declaring is usually the answer.** This is RULE 0's sibling: check the reference is working, *and* check
 > the regime you did not test.
 
+## ASK FOR PROVENANCE BEFORE REFUTING (learned from a near-miss)
+
+When another seat's number did not reproduce for me, the instinct that mattered was: **ask for the executable's
+identity and the exact ordered option list before saying "refuted"**. I recorded "NOT REPRODUCED, not refuted" and
+requested both. That was the right call, and here is the honest accounting of what it bought.
+
+**What it did not do:** provenance was *not* the cause. Their binary turned out to be identical to mine (same sha256).
+
+**What it did:** it removed a whole hypothesis class for one line of work — with the hash in hand "different build" was
+off the table — and the request for the **ordered option list** is what surfaced that their S14 list carried no `Hash`
+or `Threads`. That pointed at option *construction*, which was the actual bug: they passed the six PC20 extras **alone**
+over default options, never S14+six. Six-over-defaults reproduces their `f3g3 / cp 1627` exactly; true PC20 gives
+`f3g2 / cp 1790`, exactly mine.
+
+So: **the asking is what narrowed the search to the bug, even though the thing I asked about was innocent.** A refusal
+to refute without provenance costs one round trip and buys the elimination of the wrong explanation.
+
 ## THE BINARY RULE (found while failing to re-check another seat)
 
 **A behavioural claim needs the EXECUTABLE'S IDENTITY in the file — sha256 and `id name` — not just its settings.
