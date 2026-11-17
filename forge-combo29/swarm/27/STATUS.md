@@ -465,3 +465,15 @@ be trusted:** my first run of the S-C15 harness crashed on a formatting bug (`pl
 score) - **after** the control had already passed. The control's result was still valid, the crash was in the
 target-row printing, and I fixed it and re-ran before recording any target number. So the sequence was: control
 verified, target formatting failed, target re-run on the fixed script, only then recorded.
+
+## 2026-11-17T00:20Z S-C16: the base build plays a WRONG move at halfmove 100 - strongest base-vs-PC difference yet
+Seat 17's decisive board `r7/1P6/8/8/8/8/8/k1K5 w - - 100 1`, verified with python-chess first: of 11 legal moves
+**only `b7a8q` and `b7a8r` mate**; `b7b8q` - the engine's first generated promotion - is **not** mate.
+  **base `e06310ec` at hm=100: `b7b8q`, `cp 0 nodes 0` - the WRONG move, from the drawn-root fallback.**
+  base at hm=99: `b7a8q`, `mate 1`, 96 nodes.   **PC r15 at hm=100: `b7a8q`, `mate 1`, 96 nodes** (same as its
+  own hm=99 row).
+So the PC's root repair turns a lost win into the mate. **This matters for my own S-F1:** I recorded the fallback
+as a reporting/score defect; on this board it **costs the game**, because the move it plays is not a mate while
+the position has one. The luck cases are why this needed care - their earlier `8/P7/...` boards were NOT decisive
+because `a7a8q` happens to be first in generation order there, so the base played the right move with a 0-node
+score; I verified the mate set before running the engine, so this row cannot be a luck case.
