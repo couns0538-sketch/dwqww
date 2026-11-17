@@ -88,8 +88,13 @@ the FEN.
 
 | run | positions | budget | nodes | mismatches | abnormal exits |
 |---|---|---|---|---|---|
-| `verify200_d12.json` | 200 | `depth 12` | 37,475,198 | **0** | 0 |
-| `verify_deep800.json` | 800 | `depth 13` | (see `out/`) | **0 so far** | 0 |
+| `verify200_d12.json` | 200 | `depth 12` | 37,475,198 | **0** | **0** |
+| `verify_deep800.json` | 800 | `depth 13` | **834,563,168** | **0** | **0** |
+
+Both runs **completed**; `verify_deep800.json` ends with
+`VERIFY searched 800 refused 0 mismatches 0 abnormal 0 total_nodes 834563168 budget depth 13`.
+That is 872 million nodes of real search in which every single incremental evaluation was
+checked against a fresh reference, with no disagreement and no abnormal exit.
 
 This arm is worth having separately because it exercises the *search's* control flow — its ply
 stack, its null-move frames, its TT cutoffs — rather than a harness's idea of a move sequence.

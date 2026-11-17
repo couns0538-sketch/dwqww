@@ -53,8 +53,9 @@ for an unrelated reason.
 ## 2. The incremental v3 accumulator is exact, including on the one branch a normal game never reaches
 
 **54,379 distinct positions compared against a fresh refresh: 0 mismatches.** Also 0 eval
-disagreements, and 200 positions at depth 12 under the engine's own in-search verifier
-(37.5M nodes), 0 mismatches.
+disagreements, and **872 million nodes of real search under the engine's own in-search
+verifier** — 200 positions at depth 12 (37,475,198 nodes) and 800 positions at depth 13
+(**834,563,168 nodes**), both 0 mismatches and 0 abnormal exits.
 
 The count is not the interesting part. This is: **`replay_ply` has a branch that quiet games
 essentially never take.**

@@ -35,6 +35,12 @@ note "Q1e distinct positions compared (fixtures overlap; this is the honest deno
 python3 count_distinct.py fixtures/seq_deep.tsv fixtures/seq_large.tsv fixtures/seq_small.tsv \
   fixtures/kingwalk.tsv 2>&1 | tee -a out/run_all.log || fail=1
 
+note "Q1f kernel equality: scalar == avx2 == avx512 (a kernel diff would masquerade as an accumulator bug)"
+g++ -O2 -std=c++20 -march=x86-64-v4 -DFORGE_NNUE_V3=1 -DFORGE_NNUE_HIDDEN=256 -I../../include \
+  -o kernprobe kernprobe.cpp ../../src/nnue_v3.cpp ../../src/board.cpp ../../src/bitboard.cpp ../../src/nnue.cpp \
+  >> out/run_all.log 2>&1 || fail=1
+./kernprobe "$NET" fixtures/deep800.fens 2>&1 | tee -a out/run_all.log || fail=1
+
 note "Q2 colour mirror, 1000 positions"
 ./netpath mirror "$NET" fixtures/mirror1000.fens 2>&1 | tee -a out/run_all.log || fail=1
 
