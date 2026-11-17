@@ -341,11 +341,46 @@ confident and wrong report:
    carried forward in my own prose. The general rule: the number that drifts is
    the one in the prose, and re-deriving it from the artefacts is the only check
    that catches drift in either direction.
+10. **A dangling cross-reference that shipped.** `STATUS.md` cited "§3c" for the
+    move-identity walk; the section is §3b. A pointer is a claim, and nothing
+    compares a pointer against its target, so it survived every check and every
+    re-read. Found only when writing `verify_totals.py`, which now resolves every
+    `§N` against the headings that exist.
+11. **A checker that silently skipped the files it existed to check.**
+    `verify_totals.py`'s first version skipped any document with no numbered
+    sections of its own — which is exactly `STATUS.md` and `PERFT_TABLE.md`, the
+    two files that use bare `§N` references. The check was structurally unable to
+    reach the code path it named, and would have reported clean forever. Caught
+    because the planted-`§3c` self-test failed to go red, which is what a
+    must-fail test is for.
+12. **A stale assertion inside a self-test.** After the check above was
+    corrected, the self-test still asserted on the old message string and
+    crashed rather than passing. The rule was right and the test was wrong —
+    the same shape as entry 7.
+13. **An exemption that shielded the very fault it was exempting.** Quoting a bad
+    pointer in backticks (legitimate when writing *about* a broken reference) was
+    added as an exemption, and it immediately made the self-test's planted `§3c`
+    invisible, because the real documents already contained that string so
+    quoted. The self-test went green for the wrong reason. Fixed by planting an
+    unresolvable number (`§99`) that no document mentions, plus a separate probe
+    that the shipped `§3c` is still reported when it is *not* quoted. A gate that
+    can be silenced by the text it is checking is not a gate.
 
-That is nine numbered entries covering eleven distinct faults (entries 4 and 6
-each describe a pair). Every one was caught by a gate rather than by luck, and
-the last was caught by a gate I had to build — re-deriving a total from its
-inputs.
+14. **The exemption was written as a shape, not a rule.** When quoting the bad
+    pointer in prose, I first wrote it in backticks and then in double-backticks —
+    neither matched the exemption's exact `` `§N` `` form, so the verifier kept
+    flagging my own fault report. The gate was right each time; the *exemption*
+    was too narrow to express "this is a mention, not a reference", and I patched
+    the prose to satisfy the checker rather than asking whether the checker's rule
+    was the right one. Worth stating plainly: three consecutive edits to prose
+    because a linter disagreed is the moment to re-examine the linter.
+
+That is fourteen faults. `verify_totals.py` is the gate for this whole class: it
+re-derives every headline figure from the saved JSON and asserts the documents
+agree, in both directions. Its own self-test plants an underclaim, an overclaim,
+a dangling `FINDINGS.md §N`, a dangling bare `§N`, and a superseded total, and
+requires all of them to go red — plus a probe that the exemption above cannot
+silence the shipped case.
 
 Every one of these was caught by a gate, which is the point: the gates are the
 finding, not just the numbers.
