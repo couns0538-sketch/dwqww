@@ -584,6 +584,23 @@ reader takes the headline, and so does the FINAL.
 Mechanical consequence: **before a general sentence reaches anyone, name the second fixture that would break it and run
 it.** If no second fixture exists, the sentence is written as "on this board" and nothing more.
 
+## Named pattern — A NUMBER CAN OUTLIVE THE CORRECTION OF THE CLAIM AROUND IT
+
+The most durable kind of wrong, observed three times in this seat in one hour. When a claim is revised, the prose around
+a number changes and **the number stays**, because revising a figure feels like changing evidence while revising the
+sentence feels like editing. Two of the three stale items found in `GUI_HAZARDS.md` had survived exactly that:
+
+- a table whose build/options label was already known to be conflated (23-F82), where the node count beside it was never
+  re-run after the label was questioned;
+- an eval gap of `+20` that reproduced on **none of five** boards once tested, because the row never named the position
+  it came from.
+
+**MECHANICAL CONSEQUENCE (the check, not the intention): every number in a summary carries the position and the command
+that produced it, in the same cell or the same line.** A number with provenance can be re-run in seconds; a number
+without provenance cannot be wrong-and-discovered, only wrong. And when a claim is CORRECTED, re-run every number that
+sits inside the corrected passage in the same edit — the correction is exactly the moment when a figure is least likely
+to be looked at again.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if

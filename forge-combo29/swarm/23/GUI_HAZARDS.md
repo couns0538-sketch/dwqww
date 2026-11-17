@@ -215,9 +215,12 @@ a front end combines the two answers (23-F78).
 | insufficient material, `8/8/8/8/8/8/8/K6k w` | **+76** | cp 0 | **76 cp** |
 | insufficient material, `k7/8/8/8/8/8/8/7K w` | +17 | cp 0 | 17 cp |
 
-**RE-MEASURED (23-F135/F136).** The insufficient-material row previously read `+20`; re-measuring it against the board it
-names gives **+76**, and a second bare-king board gives **+17**. The old `+20` reproduces on NONE of five bare-king
-positions tried (76, −5, 17, −50, 9), so it was a number from a board the row does not name. **The CONCLUSION is
+**RE-MEASURED (23-F135/F136) — and the change of figure is itself the point.** The insufficient-material row previously
+read `+20`, and **that `+20` had NO PROVENANCE**: the row never named the position it came from, and it reproduces on
+NONE of five bare-king positions tried (76, −5, 17, −50, 9). So `+20` was a real measurement from some board that was
+never recorded, and by the time it reached this page there was no way to check it — which is why it survived: nobody
+re-runs a claim they already believe. Re-measured against named boards it is **+76** for `8/8/8/8/8/8/8/K6k w` and
+**+17** for `k7/8/8/8/8/8/8/7K w`. **The number changed because it was uncitable, not because the finding did.** **The CONCLUSION is
 unchanged and is what the table is for: for insufficient material the eval/go gap is small (tens of cp) while for
 history draws it is the whole eval total (406) — but the specific figure a reader might quote was wrong, and quoting it
 would have been quoting an unattributable number.**
