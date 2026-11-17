@@ -1,0 +1,18 @@
+SAMPLE AVAILABILITY for the mate-truncation rate (why a rate claim is hard)
+===========================================================================
+The defect only shows on positions that (a) carry a mate score at the search depth used, and (b) have a LONG mate
+(|N| >= ~8) so the PV requirement exceeds what the depth carries. Both are rare in game-like positions.
+
+Measured, PC r15 + PC20, Threads 1, Hash 16, OwnBook false:
+  - 600 random-play positions screened at depth 12: only 6 report |N| >= 6, and ALL SIX are consistent (pv == 2|N|-1).
+  - 400 random-play positions screened at depth 14 for |N| >= 8: only 2 qualify (recorded in positions/longmates.epd).
+  - 60 G-set positions at depths 12/14/16: only 1, 1 and 2 mate scores respectively.
+
+So:
+  * A random sample of a few hundred positions yields a handful of mate scores and almost no long ones, which is why my
+    earlier "0 truncated at 50,000 nodes" (S-F57) was sampling luck and why the rate-by-depth test was inconclusive (S-W8).
+  * The defects I did find (G/192, R/120, G/59, the S-F58 position, seat 15's 15-F9) were all located by following a
+    specific position, not by random sampling.
+  * Consequence for anyone chasing this: do not sample. Start from a known-violating position and vary one thing
+    (depth, budget, settings). That is how S-F27 (|N| >= 10), S-F29 (PC20 shrinks the window), S-C21 (PC20 closes
+    15-F9) and S-F58 (present at 50,000 nodes) were all established.

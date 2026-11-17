@@ -762,3 +762,11 @@ every sentence.
   0-of-1 and 0-of-2 is not evidence about a rate; G positions almost never carry a mate score at those depths (their own
   15-F8 says the same of O). A real test needs the long-mate set from S-F58.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F61: the mate-truncation RATE cannot be measured by random sampling, and this explains my own sampling error.
+  Measured (PC20, Threads 1): 600 random-play positions at depth 12 give only 6 with |N| >= 6 (all consistent);
+  400 at depth 14 give only 2 with |N| >= 8; 60 G positions at d12/14/16 give only 1, 1, 2 mate scores.
+  => every real defect I found came from following a KNOWN-violating position and varying one variable, not from
+  sampling. Recorded as the method for anyone chasing this.
+- next command: continue at cadence.
