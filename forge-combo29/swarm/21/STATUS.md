@@ -1,35 +1,33 @@
-## 2026-11-17T00:29:29Z (from `date -u`)
+## 2026-11-17T00:42:15Z (from `date -u`)
 seat 21. **Threads 1 in every run.** PC build r15 under PC20 unless stated.
 
-**1. 21-F12 / seat 20's correction — a BOARD MISMATCH, not an error.**
-Seat 20 says `e1e8` is illegal on my board. It is not: my board is rook-on-**e1**
-(`6k1/5ppp/8/8/8/8/5PPP/4R1K1`, 20 legal moves, `e1e8` legal and mating) and my recorded output for it
-is **8 nodes** on the PC build. Seat 20's board has the rook on **d1** (`…/3R2K1`), where `d1d8` is the
-mating move and `e1e8` is illegal. Both measured just now side by side:
+**1. 21-F12 line fixed as asked** — it now says, before anything else, that any reproduction MUST name a
+**legal** mating move and MUST state the board by its **full FEN**, because three seats (21, 20, 25) have
+now quoted it with an illegal move in the restriction and got `0000`/0 nodes instead of the repair. The
+decisive case names both boards: `…/4R1K1` rook e1 → `e1e8` legal and mating, PC **8 nodes** `mate 1` vs
+base **0 nodes** `cp 0`; `…/3R2K1` rook d1 → the same only for `d1d8`. Seats 20 and 25 are credited, and
+seat 25's unrestricted measurement (PC 84 nodes `mate 1`, base 0 nodes `f2f3` at counter 100) is recorded.
+The split is stated: a restriction naming at least one legal move is repaired; an empty or all-illegal one
+is not.
 
-| board | mating move | base | PC20 |
-|---|---|---|---|
-| mine, rook e1 | `e1e8` | 0 nodes | **8 nodes** |
-| seat 20's, rook d1 | `d1d8` | 0 nodes | **8 nodes** |
+**2. NEW: 21-C20 — the drawn-root design note is now a RUNNABLE acceptance spec**, and it is the cleanest
+result of the session because neither build passes it and each fails a **different half**:
 
-I did **not** change the move — that would describe a position I never measured. The finding line now
-names the FEN. `21-C19`. The split we agree on is recorded: a restriction naming at least one legal move
-is repaired by the PC patch; an empty or all-illegal restriction is not (still `0000`, 0 nodes — which I
-verified independently in job23).
+| case | base | PC20 |
+|---|---|---|
+| S1 drawn root + mate in 1 | **FAIL** (`cp 0`, f2f3) | PASS (`mate 1`, e1e8) |
+| S2 drawn root, no mate | PASS (`cp 0`) | **FAIL** (`cp 368`) |
+| S3 insufficient material | PASS | PASS |
+| S4 threefold + mate in 1 | **FAIL** (`cp 0`, f2f3) | PASS (`mate 1`, e1e8) |
+| S5 threefold, no mate | PASS (`cp 0`) | **FAIL** (`cp 292`) |
+| pins | 4/4 exact | 4/4 exact |
 
-**2. 21-F22 call-out to seat 03** is in the finding line, addressed, with what its existing four switch
-variants could settle that I did not (WHICH switch carries the node explosion). I have no channel to
-seat 03 and write nothing to its branch.
+One command judges any future fix: `python3 job43/acceptance.py <exe> <outdir> <label>` — exit 0 only if
+all five pass with pins exact. The design note's rule is the unique rule that would pass all five.
 
-**3. Job40 is now DONE — 21-F23.** Wider window (counters 85–94) via `go nodes` only, so 21-F22 cannot
-poison it: **0 hits** on the **52.6 %** of move-pairs decided exactly (182 of 346). All **13** positions
-offering a draw-saving move had it taken at both `go nodes 20000` and `100000`. The **7 undecided**
-positions are labelled undecided, never no-hit.
-Combined with 21-F21 (0 of 50 in the 1–5 window): **no position has produced a move whose forced result
-was worse than an available alternative.**
-Three failed runs before it are recorded in `job40/stamps.txt` (500 s wall; the 21-F22 timeout; a
-`KeyError` from my own rename). None yielded a claim.
+**Four of my own errors in this job, all recorded**: `pass=ok)` (reserved word), an inverted S4 premise
+assertion, a bench reader that let Timeout escape, and the perft pin routed through the bench reader. Each
+failed loudly rather than producing wrong numbers — which is why the premise assertions exist.
 
-**Next**: the design note's acceptance test as a runnable spec — a drawn root with a mate must report
-`mate 1`, a drawn root without one must report `cp 0`, pins unmoved — so the owner can apply
-`DESIGN_drawn_root.md` and check it in one command.
+**Next**: add a longer-mate case to the spec (S1/S4 use mate in 1 only) with a verified mate-N board, since
+that is the remaining gap the spec itself names.
