@@ -2959,3 +2959,29 @@ EVIDENCE, WHAT THEY HAVE DONE IS. A result surrounded by three verified-but-unfi
 instrument and two proofs of function, and saying so is more useful than implying three.
 Gates: 223 rows, 0 wrong pipe counts, decomposition section states the distinction, gate rc=0 across 64 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:40:04Z — audited the three relied-on things, and then spent four rounds fixing the wrong thing (S-F167, S-F168)
+1. THE THREE AUDITS (S-F167), all with the S-F166 rule, and they are in THREE DIFFERENT STATES:
+   - the DECOMPOSITION: two identity checkers with 0 real catches each, one ratio checker with 1 -> proof of function,
+     already stated in the FINAL;
+   - the GATE SELF-TEST: ten assertions, and its three recorded fires were ALL MY OWN DELIBERATE REGRESSIONS (a checker
+     forced to exit 0, a zero-guard disabled, a stamp guard removed) - so it has DEMONSTRABLY WORKED THREE TIMES AND
+     NEVER BEEN NECESSARY. I would not have said that before checking, because it feels like the most battle-tested
+     thing in the gate;
+   - the BENCH RULES: ENFORCED BY NOTHING. The FINAL states bench is valid for pins/determinism/direction/counters/one
+     toggle and NOT for per-node cost or the aggregate set, and NO CHECK READS A BENCH CLAIM. The gate's only bench step
+     is the opt-in honesty pin run, which is a determinism check on the build; check_pooled_spread never mentions bench.
+   THE GENERALISABLE PART: RELIANCE AND VERIFICATION ARE INDEPENDENT. The bench rule is CORRECT - I measured the sign
+   flip myself (S-C51, reproducing to a tenth of a point) - and it is enforced by zero checks. Not building the
+   enforcement: it would need the intent-parsing that failed three times tonight. Recording the gap is honest.
+2. THEN I SPENT FOUR ROUNDS FIXING THE WRONG THING (S-F168). check_page_shape.py flagged my new page because its heading
+   "2. The guard self-test" contains "the guard". I tried to tighten the regex four ways - end-anchor, start-anchor, dash
+   lookahead, explicit subject list - and each failed, because every attempt was a judgement about MEANING dressed as a
+   pattern. WORSE, one attempt REGRESSED an existing page (REFUSED_FEN_TRAP_AND_GUARD.md stopped passing), which I caught
+   only by running the gate over ALL pages rather than the new one.
+   THE CORRECT FIX WAS TO RENAME MY HEADING. The rule was fine; my heading collided with its vocabulary; changing the
+   input is honest when the rule's over-match is documented and cheap to work around. Original pattern restored exactly,
+   heading renamed to "The gate self-test", all pages pass, genuine-stranding case still fires.
+   THE LESSON: WHEN A CHECKER MISFIRES ON MY TEXT, THE FIRST QUESTION IS WHETHER MY TEXT IS THE PROBLEM. I spent four
+   rounds assuming the rule was.
+Gates: 225 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
