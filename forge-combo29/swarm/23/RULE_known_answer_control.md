@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-EIGHT instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-EIGHT instances plus six named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -685,6 +685,31 @@ Three consequences worth installing:
 - **the column's most useful value is the surprising one**: True where you expected False is the signal, and it is
   visible without comparing anything to anything;
 - **keep the column even when the fixture is fixed**, because the next person to edit the fixture gets the check free.
+
+## Named pattern — AN `&&` CHAIN IS A CLAIM THAT EVERY STEP RAN, AND IT CAN BE TRUE BY OMISSION
+
+The false pass that nearly went into the record, and it did not involve the thing under test at all.
+
+Testing whether the seat's gate survives a clone, I ran:
+
+```bash
+git clone --depth 1 -b <branch> /local/path gtest && cd gtest && git config core.hooksPath ... \
+  && git commit -q -m test; git log --oneline -1 | grep -q test && echo LANDED || echo BLOCKED
+```
+
+The clone FAILED — a local-path clone cannot see a remote-only branch. `&&` short-circuited, so `cd`, `git config` and
+`git commit` never ran; the trailing `git log ... || echo BLOCKED` then reported **BLOCKED**, which read as "the gate
+worked". The pass was produced by the absence of a repository.
+
+**The shape: a chain that reports success because a step did not run is indistinguishable from one where every step
+passed.** This is the same family as a checker that examines zero rows (instance 1) and a counter capped at five
+(instance 27) — a result that looks like evidence and is actually silence — but it arises from the SHELL rather than
+from the checker, which is why it is worth its own entry.
+
+**MECHANICAL CONSEQUENCE: print what ran, not merely whether anything failed.** In a test chain, echo the intermediate
+facts (`git rev-parse --is-inside-work-tree`, the branch actually checked out, the config value read back) before the
+verdict; then a short-circuit is visible as a missing line rather than as a confident negative. And when a chain's
+verdict is `BLOCKED` or `PASS`, ask which step produced it — here the answer was "the one before the first `&&`".
 
 ## The fix, in one line each
 

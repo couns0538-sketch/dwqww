@@ -44,7 +44,12 @@ case is in the self-test.
    dropped one is a hole. **A sample of two with one exclusion stated is honest; the same sample with the exclusion
    silent is a sample of two that a reader will assume was chosen.** State WHICH case dropped and WHY it could not
    answer (no cycle exists / it is confounded / it fails validation), every time.
-8. **Separate a confound from a refutation before reporting either.** 23-F132's bare-kings cell returned 0 nodes at two
+8. **A test chain prints what ran, not just whether anything failed.** An `&&` chain is a claim that every step ran, and
+   it can be true by omission: a clone that fails short-circuits the `cd`, the config and the command under test, and a
+   trailing `|| echo BLOCKED` then reports a pass produced by the ABSENCE of a repository (23-F152). Echo the
+   intermediate facts — are we inside a work tree, which branch, what did the config read back — so a short-circuit
+   shows as a missing line rather than as a confident negative.
+9. **Separate a confound from a refutation before reporting either.** 23-F132's bare-kings cell returned 0 nodes at two
    occurrences and looked like a counter-example to the "only if" half; it also returns 0 nodes with NO history at all,
    because insufficient material is an automatic draw. The zero came from a different rule. The test is: run the same
    cell with the variable under test REMOVED (here, no move list) and see whether the outcome persists — if it does,
