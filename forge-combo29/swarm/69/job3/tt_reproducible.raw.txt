@@ -1,0 +1,13 @@
+=== JOB 3b: is carried state reproducible?  go nodes 50000 ===
+positions: 4, replays per process: 2, independent processes: 3
+
+reset=clearhash   3 processes identical: True    replay1==replay2 in each: [False, False, False]
+reset=none        3 processes identical: True    replay1==replay2 in each: [False, False, False]
+reset=ucinewgame  3 processes identical: True    replay1==replay2 in each: [True, True, True]
+
+-- same position four times in one process --
+reset=clearhash   stable: False  cells: [(37135, 'f1e2', 'cp 72', 13), (41762, 'f1e2', 'cp 37', 12), (39116, 'f1e2', 'cp 44', 13), (30366, 'f1e2', 'cp 35', 12)]
+reset=none        stable: False  cells: [(37135, 'f1e2', 'cp 72', 13), (35939, 'f1e2', 'cp 44', 13), (22411, 'f1e2', 'cp 38', 13), (44706, 'f1e2', 'cp 35', 16)]
+reset=ucinewgame  stable: True   cells: [(37135, 'f1e2', 'cp 72', 13), (37135, 'f1e2', 'cp 72', 13), (37135, 'f1e2', 'cp 72', 13), (37135, 'f1e2', 'cp 72', 13)]
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job3/tt_reproducible.json

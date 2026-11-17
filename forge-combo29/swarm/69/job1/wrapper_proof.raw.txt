@@ -1,0 +1,13 @@
+exe: /home/ubuntu/builds/base-build/forge
+W1 taskset -c 0 pins the process                           OK  Cpus_allowed_list:	0
+W1 taskset -c 2 pins the process                           OK  Cpus_allowed_list:	2
+W1 control: no wrapper lists all cores                     OK  Cpus_allowed_list:	0-3
+W2 nice -n 19 changes the child's nice value               OK  nice='19' vs unwrapped='0'
+W4 ulimit -s 8192 is visible to the child                  OK  8192
+W3 Hash 512 succeeds with no cap (control)                 OK  bestmove e2e4
+W3 Hash 512 FAILS under ulimit -v 65536                    OK  EngineError: engine closed stdout while waiting for 'readyok'
+W3 Hash 16 fits under ulimit -v 65536                      OK  bestmove e2e4 nodes 404
+W5 ulimit -v 4096 kills the engine (cap is enforced)       OK  EngineError: engine closed stdout while waiting for 'uciok'
+
+9 checks, 0 failed
+exit=0
