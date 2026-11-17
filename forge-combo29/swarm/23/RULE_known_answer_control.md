@@ -601,8 +601,10 @@ sentence feels like editing. Two of the three stale items found in `GUI_HAZARDS.
 - an eval gap of `+20` that reproduced on **none of five** boards once tested, because the row never named the position
   it came from.
 
-**MECHANICAL CONSEQUENCE (the check, not the intention): when a claim is CORRECTED, re-run every number inside the
-corrected passage in the same edit, and re-read every sentence inside it too — because the correction is exactly the
+**MECHANICAL CONSEQUENCE (the check, not the intention): when a claim CORRECTS ITSELF, do the numbers in that passage and
+the DEPENDENT sentences in other documents in the same pass — and find the dependants by listing them, not by grepping
+for the old wording, because a phrase search finds the words you changed and not the sentences that relied on them.**
+Within the corrected passage: re-run every number — because the correction is exactly the
 moment when nothing in that passage is likely to be looked at again.** Every number in a summary also carries the
 position and command that produced it, in the same cell or line: a number with provenance can be re-run in seconds,
 while one without cannot be wrong-and-discovered, only wrong.

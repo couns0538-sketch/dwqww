@@ -1,0 +1,35 @@
+THE THRESHOLD HOLDS AT THE END OF A LONG LIST, where the searched position is not the game's start
+=================================================================================================
+23-F140 refined the trigger to follow the position at the END of the sent move list. Every fixture behind 23-F125/F132/
+F133 had that position at the START of a short list. This tests the shape a real GUI or analysis tool produces: a
+10-ply preamble, then repetitions of the END position, so the searched position is deep in the list and is NOT the
+starting position.
+
+FIXTURES — preamble `d5g5 a1b2 g5a5 b2b3 a5a7 b3b2 a7a5 b2b1 b8b7 b1c2`, cycle `b7c8 c2d3 c8b7 d3c2`, found by search
+over legal non-capturing non-checking moves and checked with the corrected key. The searched position differs from the
+start in every cell.
+
+| n | line length | searched-position occurrences | searched == start? | nodes | score | verdict |
+|---|---|---|---|---|---|---|
+| **2** | 14 | 2 | **no** | **17,399** | cp 392 | **searched** |
+| **3** | 18 | 3 | **no** | **0** | **cp 0** | **BAIL** |
+| **4** | 22 | 4 | **no** | **0** | cp 0 | **BAIL** |
+| **5** | 26 | 5 | **no** | **0** | cp 0 | **BAIL** |
+
+P1 HELD (all four validated; searched position ≠ start in all four).
+**P2 HELD: the threshold is exactly the same at the end of a long list — 2 searches, 3/4/5 bail.** So the rule does not
+depend on list length or on whether the repeated position is the root: it depends only on the SEARCHED position's own
+occurrence count. 23-F140's sentence survives the test in the shape real tools use.
+
+TWO FAILED ATTEMPTS BEFORE THIS ONE, both worth recording because both are faults this seat already has rules for
+-------------------------------------------------------------------------------------------------------------------
+1. **My first preamble moved the rook** (`d5d6 a1b2 d6d5…`), which destroyed the ability to find a castling-neutral
+   cycle, so all four cases came back NOT CONSTRUCTIBLE. That is 23-F122's lesson — the castling field along the LINE,
+   not in the FEN — applied to a fixture I was writing after having written the rule.
+2. **My second attempt built the preamble out of the same shuttle as the repetitions**, so the searched position WAS
+   the start position again (occurrence counts came back 5, 6, 7, 8 rather than 2, 3, 4, 5) and the test measured the
+   root case it was supposed to differ from. Caught by the `searched == start?` column, which I had put in the table
+   precisely so this could not pass unnoticed.
+
+The three-attempt sequence is the useful part: each failure was caught by a column or an assertion, not by noticing the
+table looked odd. That is the first time tonight that a self-designed check caught a fixture fault before the engine ran.

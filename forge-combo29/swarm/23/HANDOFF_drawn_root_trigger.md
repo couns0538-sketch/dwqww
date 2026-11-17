@@ -102,33 +102,31 @@ engine was called. A rung failing either assertion would have been excluded and 
 
 ---
 
-## 3. What is ruled out, and by which cells
+## 3. What these cells show — measured facts, NOT engine explanations ruled out
 
-| explanation | killed by |
+**Reframed (23-F122).** The rows below were originally headed "what is ruled out", which implied they eliminated candidate
+causes inside the engine. They do not: each is a fact about MY fixtures, and the reason none of them explains anything is
+that the boards in question were not all threefolds. Kept because the measurements are correct and a reader may want them.
+
+| observation | how it was established |
 |---|---|
 | **Material count / sparse endgame** | M1 (32 pieces), M4 (30) and the ladder's 7 of 7 — pieces added, still bails |
 | **Castling rights alone** | M1 and M4 bail **with** rights present (M1 `KQkq`, M4 `Kkq`), while M7 and C1 search with rights |
 | **Halfmove clock** | M7 searches at halfmove **0, 1 and 2**; M1/M4 bail at **0, 1 and 2** — the field was varied alone, board and cycle fixed (`halfmove_probe.out`) |
 | **"No history" vs "history"** | every bare-FEN control searches; every threefold-in-the-list cell bails or searches as tabled |
 
-## 4. The one asymmetry a source reader should explain
+## 4. The asymmetry a source reader should explain — REWRITTEN (it was never an engine asymmetry)
 
-- **Stripping castling rights never prevented a bail**: 3 of 3 stripped cells (M1s, M4s, M7s) plus C1s bail, and all
-  seven ladder rungs have an empty castling field and bail.
-- **Having castling rights sometimes prevents it and sometimes does not**: M7 and C1 search with rights; M1 and M4 bail
-  with rights.
+The original text here described castling rights as a "conditioner": rights present sometimes prevented the bail, sometimes
+not. **That framing was wrong and is replaced.** What was actually happening is ordinary correctness:
 
-So castling rights are **necessary-but-not-sufficient for the searching behaviour**, which means the code contains at
-least two conditions, one of them involving castling rights. That is the most useful single observation here.
+- a cycle that destroys a castling right does not produce a repetition at all, because the castling field is part of
+  position identity (FIDE), and the engine correctly sees ONE occurrence rather than three (23-F122);
+- a cycle that preserves the field produces a genuine threefold and the engine bails (23-F125).
 
-**And the closest pair in the table is M1 vs M7** — both middlegame, both rights present, opposite verdicts — with one
-further measured difference that cuts against the simplest remaining story: **M7 SEARCHED and its move `d5e6` is at
-index 5 of its divide (head `b2b3`), so on a searching cell the move is an ordinary search result, not a list head.**
-That is consistent with the bail path publishing the list head (23-F98) while the non-bail path orders and searches
-normally — which is why the search is for the CONDITION that selects between the two paths, not for two different
-move-selection rules.
-
----
+So there is no asymmetry in the engine to explain, and **the only thing a source reader needs from this section is the
+confirmation that the engine's repetition key includes the castling field** — which is correct behaviour and needs no
+investigation (23-F122, job 59).
 
 ## 5. SUPERSEDED — the six candidate mechanisms below answered a question that does not exist
 
@@ -165,7 +163,7 @@ measured does that, which is why shape 1 survives.
 
 ### Original §5, retained unedited as the record of what was tried and why it was wrong
 
-## 5. Candidate mechanisms, and the cell that would kill each
+## 5b. ORIGINAL candidate mechanisms — retained as the record of what was tried
 
 I have not read the source. These are listed so you can look for the one that matches, not because I can rank them. For
 each: what it predicts, and what in my table (or one cheap extra cell) would refute it.
@@ -206,16 +204,20 @@ Predicts a nonzero node count with cp 0. **No cell shows that** — every bailin
 unlikely, and its absence is one of the firmer facts here.
 
 
-## 6. What I would measure next, if measuring were the tool
+## 6. What is still worth measuring — rewritten, because the original three items are settled
 
-1. **Distance axis (E):** root at plies 0/4/8 vs 0/8/16 vs 0/4/12 — the only axis every current cell holds constant.
-   **ATTEMPTED AND COULD NOT BE CONSTRUCTED (job 57):** varying the spacing needs a FILLER shuttle that returns to a
-   NON-root position, and search found none on either M1 or M7 — the same "few pieces, every shuttle returns where it
-   started" obstruction that made 23-F113's T1 impossible. So this axis is **UNTESTED, not tested-and-negative**; it
-   needs a board busy enough to admit a non-root 4-ply loop.
-2. **Rights-history mismatch (C):** root sent with `-` inside a game whose history carried rights.
-3. **A rights-present board that bails:** already have two (M1, M4) — a source reader should start by diffing
-   **M1 vs M7**, which are the closest pair in the table (both middlegame, both rights present, opposite verdicts).
+**The original list asked a source reader to diff M1 vs M7 and to chase a rights-history mismatch. Both are answered.**
+
+1. **What was measured instead, and settles the question:** the threshold at the END of a LONG list — 10-ply preamble plus
+   repetitions, searched position never the start position — gives **2 → searches (17,399 nodes), 3/4/5 → bails**
+   (23-F141). So list length and root position are irrelevant; only the searched position's own count matters.
+2. **Distance axis:** still UNTESTED and still unbuildable with my fixtures (23-F120) — it needs a board admitting a
+   non-root 4-ply loop. If anybody tests it, the prediction to kill is: "the spacing of the three occurrences changes
+   nothing, because only the count matters" (23-F125/F140/F141).
+3. **The only live question for a source reader:** *why does the bail publish the generator's first move rather than
+   searching?* §5 states it, and the discriminating observation from outside remains: a bailing root whose returned move
+   is NOT the generator's first move would rule out the "early return publishes the head" shape. None of the nine bailing
+   cells measured does that.
 
 ## 7. Reproduce
 
