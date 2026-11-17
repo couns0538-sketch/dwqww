@@ -478,3 +478,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N44 METHOD NOTE (transferable): 'absent from the repository' is not 'impossible'. My F9 reasoned from no .nnue/.bin file to no seat can reproduce the v3 path - missing the step that a deterministically GENERATED file is available to everyone. General form: before declaring work impossible, ask whether the missing input is absent or merely NOT COMMITTED (generated, derivable, fetchable, or constructible from a spec).
 - 29-N45: the per-node-cost measurement is SUPERSEDED, not abandoned - it answers a real question (which PC20 switch carries per-node cost at fixed node budget) and slots/per_node_cost.py stands ready; but file 7 shows the PC evaluates through the v3 path, so built-in-net per-node cost is not where the PC's time goes.
 - next: starting file 7's v3 speed job (profile the v3 path on the PC build).
+
+## Tue Nov 17 12:55:29 AM UTC 2026
+- 29-F57: FILE 7 STEP 0 PASSED on my build. All EIGHT bench numbers match exactly (none 312866/862329; PC20 278024/587276; net-only 965454/4151906; PC20+net 625258/3652372) and all THREE eval lines match under PC20+net (nnue 968 / 1176 / 31, hce 0 in each). Build: file 5 tree + -DFORGE_NNUE_V3=1, g++ 13.3.0, -march=x86-64-v4, kernel avx512; net 6,309,096 bytes / fdff70de72e4ca82.
+- The gate confirms by measurement what 29-N43 argued: the v3 path IS reproducible by a seat, and the job is open.
+- Next: the mandatory PREDICTION committed alone before any profiling, then Step 1 profiling.
