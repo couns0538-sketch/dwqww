@@ -171,22 +171,22 @@ counts separately and let him compare what he cares about.
    "UNSAFE if median depth < half healthy" rule for the Hash boundary, were both written before the numbers.
 
 ## MEASURING
-7. **Cold or warm — always say which.** A fresh process per search and one long-lived process differ by ~2 plies at a
+1. **Cold or warm — always say which.** A fresh process per search and one long-lived process differ by ~2 plies at a
    fixed clock (S-F51). Any clock table without that word is not a number.
-8. **Check the machine before and after a timing or depth run**: `machine_clean.sh` (exit 0 = fit to measure). A leaked
+2. **Check the machine before and after a timing or depth run**: `machine_clean.sh` (exit 0 = fit to measure). A leaked
    engine process of mine held a core for 3,400 s and produced one bogus probe, which I withdrew.
-9. **Both clocks in every `go` line.** A one-sided clock hangs when the OMITTED clock is the side to move's (S-C39).
-10. **Never add a timing number I measured badly.** I declined to re-quote seat 30's speed table because this shared-but-
+3. **Both clocks in every `go` line.** A one-sided clock hangs when the OMITTED clock is the side to move's (S-C39).
+4. **Never add a timing number I measured badly.** I declined to re-quote seat 30's speed table because this shared-but-
    single-tenant box needs their interleaved method; a weak number in an owner-facing page is worse than none.
 
 ## Correcting myself
-10. **Withdraw in place, and make the retraction visible in column one.** The retracted row keeps its original text with
+1. **Withdraw in place, and make the retraction visible in column one.** The retracted row keeps its original text with
     the wrong reasoning struck through; the withdrawal row's id cell reads `S-X WITHDRAWN`. Both lead with the
     retraction so neither can be quoted out of context.
-11. **A confirmation of "X is wrong" is only as good as the definition of "right" behind it.** S-C20 was withdrawn for
+2. **A confirmation of "X is wrong" is only as good as the definition of "right" behind it.** S-C20 was withdrawn for
     confirming a UCI-semantics claim I never looked up: `mate y` is for the side to move, so y = 0 means already mated.
     For protocol semantics the definition is checkable text, not intuition.
-12. **Do not let a self-correction disappear into a later paragraph.** S-F49's cold depth figure got its own qualifier
+3. **Do not let a self-correction disappear into a later paragraph.** S-F49's cold depth figure got its own qualifier
     line (S-F49a) rather than an edit, because FINDINGS is add-only and a reader may quote the original.
 
 ## The tools

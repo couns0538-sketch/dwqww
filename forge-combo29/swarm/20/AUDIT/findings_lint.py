@@ -76,9 +76,54 @@ for r in ret:
     print(f"  line {r['line']}: {r['id_cell'][:78]}")
 print(f"  {len(ret)} retraction row(s)")
 
+# --- METHOD.md structural check (added after a rule insertion silently overwrote a heading) --------------------
+import os as _os
+# METHOD.md lives beside THIS SCRIPT (AUDIT/), not beside FINDINGS.md — my first version looked in the wrong place
+# and silently skipped the whole check, which is the same silent-skip class the check exists to catch.
+method = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "METHOD.md")
+if not _os.path.exists(method):
+    print(f"\n  FATAL: METHOD.md not found at {method} — the structure check cannot run, refusing to report CLEAN")
+    fail = 1
+if _os.path.exists(method):
+    print("\n== METHOD.md: duplicate section headings and list numbering")
+    mlines = open(method, encoding="utf-8").read().split("\n")
+    heads = [(i + 1, l[3:].strip()) for i, l in enumerate(mlines) if l.startswith("## ")]
+    seen = {}
+    dup_heads = 0
+    for ln, h in heads:
+        key = h.upper()
+        if key in seen:
+            print(f"  DUPLICATE heading line {ln}: {h!r} (first at line {seen[key]})")
+            dup_heads += 1
+        seen[key] = ln
+    if not dup_heads:
+        print(f"  no duplicate headings ({len(heads)} sections)")
+    # numbered list must not restart or skip within a section
+    num_bad = 0
+    expect = 1
+    for i, l in enumerate(mlines):
+        m = re.match(r"^(\d+)\. \*\*", l)
+        if m:
+            n = int(m.group(1))
+            if n != expect:
+                print(f"  NUMBERING line {i+1}: expected {expect}, found {n}")
+                num_bad += 1
+            expect = n + 1
+        elif l.startswith("## "):
+            expect = 1
+        elif l.strip() == "":
+            pass
+        elif not l.startswith((" ", "\t")):
+            # a non-indented, non-list paragraph line begins a NEW list; a restart to 1 is legitimate
+            expect = 1
+    if not num_bad:
+        print("  numbered lists are sequential within each section")
+    if dup_heads or num_bad:
+        fail = 1
+
 print()
 if fail == 0:
-    print("CLEAN: FINDINGS.md holds together.")
+    print("CLEAN: FINDINGS.md and METHOD.md hold together.")
 else:
     print("PROBLEMS FOUND (see above).")
 sys.exit(fail)
