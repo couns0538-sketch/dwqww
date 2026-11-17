@@ -1,0 +1,71 @@
+# PER-SEARCH scan: aborted searches inside files that also contain good ones
+
+A block = the engine output between bestmoves. GOOD = it contained an `info depth` line.
+Caveat: a deliberate zero-node answer (checkmated root, no legal `searchmoves`, insufficient
+material) legitimately has no `info depth`, so some 'aborted' blocks are correct behaviour.
+
+| seat | files with search blocks | files with >=1 aborted block | total aborted blocks |
+|---|---|---|---|
+| 27 | 132 | **69** | **728** |
+| 10 | 902 | **692** | **695** |
+| 19 | 32 | **17** | **620** |
+| 07 | 58 | **48** | **240** |
+| 20 | 87 | **87** | **87** |
+| 21 | 290 | **32** | **61** |
+| 24 | 52 | **20** | **45** |
+| 02 | 31 | **24** | **44** |
+| 17 | 234 | **19** | **19** |
+| 06 | 6 | **6** | **13** |
+| 16 | 5 | **5** | **12** |
+| 11 | 6 | **6** | **8** |
+| 25 | 131 | **6** | **7** |
+| 30 | 11 | **7** | **7** |
+| 13 | 13 | **6** | **6** |
+| 01 | 6 | **4** | **4** |
+| 12 | 3 | **3** | **4** |
+| 23 | 3 | **3** | **3** |
+
+## files with a MIX of good and aborted (the shape 19-C14 could not see), first 40
+
+- seat 27: `forge-combo29/swarm/27/job1/san/real/sess_003.out.txt` — 11 good, **89 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/real/sess_004.out.txt` — 27 good, **73 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/real/sess_000.out.txt` — 46 good, **54 aborted**
+- seat 24: `forge-combo29/swarm/24/pc_build/pc_inf16.raw` — 134 good, **16 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_011.out.txt` — 1 good, **6 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_031.out.txt` — 1 good, **6 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_035.out.txt` — 1 good, **6 aborted**
+- seat 02: `forge-combo29/swarm/02/job1/smoke2/bad/seq0002.txt` — 1 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_012.out.txt` — 1 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_016.out.txt` — 1 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_017.out.txt` — 1 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_021.out.txt` — 1 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_023.out.txt` — 2 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_024.out.txt` — 2 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_029.out.txt` — 1 good, **5 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_037.out.txt` — 1 good, **5 aborted**
+- seat 02: `forge-combo29/swarm/02/job1/out3/bad/seq0494.txt` — 4 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_00_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_01_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_02_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_03_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_04_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_05_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_06_raw.txt` — 1 good, **4 aborted**
+- seat 21: `forge-combo29/swarm/21/job10/out/pos_07_raw.txt` — 1 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_001.out.txt` — 2 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_004.out.txt` — 1 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_009.out.txt` — 2 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_013.out.txt` — 1 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_015.out.txt` — 1 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_018.out.txt` — 1 good, **4 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_027.out.txt` — 2 good, **4 aborted**
+- seat 02: `forge-combo29/swarm/02/job1/smoke2/bad/seq0006.txt` — 2 good, **3 aborted**
+- seat 24: `forge-combo29/swarm/24/job3/planted3.raw` — 5 good, **3 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_014.out.txt` — 1 good, **3 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_019.out.txt` — 2 good, **3 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_022.out.txt` — 3 good, **3 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_025.out.txt` — 2 good, **3 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_032.out.txt` — 1 good, **3 aborted**
+- seat 27: `forge-combo29/swarm/27/job1/san/stress/stress_033.out.txt` — 1 good, **3 aborted**
+
+files with any aborted block: 1054 of 2508 scanned
