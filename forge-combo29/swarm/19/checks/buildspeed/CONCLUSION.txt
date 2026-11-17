@@ -1,0 +1,36 @@
+# Is the PC build (r15) faster or slower than the base tree? — attempted, NOT resolved
+
+## What was asked (by me, not by anyone else): a like-for-like speed comparison of the two builds.
+
+## What I established, with certainty
+**The two builds do the SAME WORK at a given depth on these positions**: node counts were **identical at every
+position** (723,141 / 1,119,081 / 299,476 / 196,793 ...). So this is a genuine like-for-like comparison, not
+"two different searches of the same depth" — my first printed caveat said otherwise and was **wrong**.
+
+## What I could NOT establish
+**Whether one is faster.** The measurements:
+
+| design | result |
+|---|---|
+| 6 positions, depth 18, one pair each | ratio **1.017** (PC 1.7 % slower) |
+| 5 positions, depth 14, **12 alternating rounds = 60 runs each** | ratio **1.0040**, 95 % CI **[0.8517, 1.1564]** |
+
+**The CI is ±15 %, so nothing is resolved.** The cause is the workload, not the design: at depth 14 these
+searches take **73 ms**, so the per-run spread is dominated by timer jitter and process startup, and 60 runs are
+not enough. My measured floor for a *deep* workload was ±2.29 % at 10 rounds (19-F21) — **but that was on
+sweeps of 200 positions taking 8 s each**, i.e. ~100× more work per sample.
+
+## So the honest answer
+**The PC build and the base tree do identical work at identical depth, and I have no measurement that can say
+which is faster.** The 1.7 % seen once and the 1.004 seen on 60 runs are both inside what this workload can
+resolve.
+
+## The mistake worth recording
+My first run printed "note the NODE counts differ, so this is two different searches" — **without checking**.
+They were identical. That is trap 11's shape again (asserting a property of the data without looking at it), and
+it was caught only because I read the table I had just printed.
+
+## What a proper version needs
+Either a much deeper workload (depth 20+, where a search takes seconds so timer noise is negligible) or the
+`bench`-style repeated workload with the protocol from `METHOD_timing_tt.md` — and in both cases the round count
+must be set from a **measured** noise floor for that specific workload, not assumed.

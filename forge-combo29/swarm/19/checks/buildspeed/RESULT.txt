@@ -1,0 +1,26 @@
+PC build (r15) vs BASE tree, default options, Threads 1, Hash 16, OwnBook false, depth 14
+pos  base ms    pc ms  pc/base
+  0       66       67    1.019
+  1      111      114    1.029
+  2       97       98    1.007
+  3       47       48    1.007
+  4       29       29    1.016
+  5       10       10    1.034
+  6      103      103    0.999
+  7       64       64    1.001
+
+total 527 ms base vs 533 ms pc  -> ratio 1.012
+=> the PC build is -1.2 % slower on this workload
+
+--- deeper workload: depth 18, 6 G positions, ALTERNATING base/pc (my own paired discipline)
+pos   base ms     pc ms  base nodes   pc nodes  pc/base
+  0       301       318      610261     610261    1.057
+  1       388       390      715991     715991    1.007
+  2       372       376      723141     723141    1.009
+  3       443       448     1119081    1119081    1.011
+  4       137       138      299476     299476    1.004
+  5        63        63      196793     196793    1.002
+
+total 1704 ms base vs 1733 ms pc -> ratio 1.017
+=> PC build -1.7 % SLOWER at depth 18, but note the NODE
+   counts differ, so this is two different searches of the same DEPTH, not the same work.
