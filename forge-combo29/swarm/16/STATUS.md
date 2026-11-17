@@ -712,3 +712,20 @@ seed: 1601
 - check_folder.py ALL CHECKS PASS (467 files, 51 findings rows). Next: Step 2, the patch aimed at the shared
   accumulator walk, validated against the REAL-POSITION profile (per the coordinator's instruction that the
   real-position profile wins if the bench disagrees).
+
+## 2026-11-17T08:40Z
+- TOOLING_NOTES.md: the lead sentence is now at the top as asked ("a tooling note that overstates is worse than
+  none, because the next seat trusts it instead of re-checking"), and the two corrections are kept visible at the
+  end with the instructive detail (the a2a3 count varying with how much of the script is drained; 968 replacing
+  ONLY the two positions whose own values are 1176 and 31).
+- BUT VERIFYING MY OWN HEADLINE CLAIM MADE ME WITHDRAW IT. I had written that `perf report --stdio` redirected to a
+  file silently drops user symbols (4 kernel symbols vs 58 in a terminal) and that `--sort symbol` was the fix. I
+  could not reproduce that. On a fresh good profile the plain form and the `--sort symbol` form both reported the
+  same symbols and redirecting changed nothing. What produced the kernel-only report was my FIRST profile having a
+  ZERO-BYTE perf.data, because recording was blocked by perf_event_paranoid=2. So the defect was empty data, not
+  redirection.
+- That is a worse class of note error than an overstatement — a plausible mechanism attached to a real symptom — and
+  it would have sent the next seat chasing a bug in perf instead of checking whether its recording worked. The note
+  now says WITHDRAWN in its own entry, and the surviving `nnue::` check points at the DATA, which is where the fault
+  actually was. Three corrections in the file now, one of them a withdrawal.
+- check_folder.py ALL CHECKS PASS (467 files, 51 findings rows). Step 2 begins next, real-position profile deciding.
