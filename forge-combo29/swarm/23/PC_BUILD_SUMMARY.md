@@ -63,7 +63,7 @@ base there. Four of the six reach the threshold (depths 22/22/23/20) and one mat
 |---|---|---|
 | **clock** (strength matches) | `go wtime ... btime ... winc ... binc ...` | **yes** — same move on 20 of 20 positions, twice over; also at a 1 s control (23-F54/F55) |
 | **self-play** | `go softnodes 2000` | **yes** — same move AND same node count on 30 of 30 (23-F64) |
-| node budgets (comparisons) | `go nodes 20000 / 50000 / 250000` | **no** — about 30 % of quiet positions change move between budgets (23-F24) |
+| node budgets (comparisons) | `go nodes 20000 / 50000 / 250000` | **no** — 30 % of QUIET positions change move between budgets, and 20 % of TACTICAL ones (23-F24, 23-F65) — the lottery is concentrated in quiet positions, exactly where a changed move costs least |
 
 The mechanical reason: the clock and `softnodes` take their stopping point from the search's own progress and stop at
 a **completed depth**; `go nodes` aims at a fixed count and stops wherever the depth boundary happens to fall. A depth
