@@ -113,6 +113,9 @@ is exactly the defect.)
 3. **Verify with an escaped-pipe-aware counter**, not `awk -F'|'`.
 4. **Treat the table as a data format**: a row with the wrong column count is a defect in the deliverable, exactly as a
    missing value is a defect in a measurement.
+5. **Re-run the check after every EDIT, not only when writing.** I broke a clean file twice: once when I first wrote the
+   `|N|` notation, and again later when I edited a *different* row and re-introduced a literal `|` in the process. A
+   check you run once is a check that goes stale; put it in the same breath as the edit.
 
 ## The general form
 
