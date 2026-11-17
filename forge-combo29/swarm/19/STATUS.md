@@ -989,3 +989,32 @@ SELF-CORRECTION: my first degenerate-position demo was a SHELL artefact (printf 
 
 next command: continue at cadence - carry 19-C49's softnodes granularity to the seats using softnodes, and
 re-examine which of my remaining PC20 claims used softnodes rather than `go nodes`.
+
+## 2026-11-17T01:58Z
+
+19-C51 (seat 01's catch): 19-C49 cited seat 29's `R_2911.fens`, which is NOT on my branch - not reproducible
+  from my branch as written. FIXED: committed `checks/softgran/positions_used_200.fens` (exact 200) and re-ran
+  from my branch alone - every number reproduced exactly. Seat 01's independent 44.0 % [37.3, 50.9] agrees.
+  THREE position sets now give the identical-search fraction: 46.5/47.0 (mine), 44.0 (seat 01), 44.5/44.7
+  (seat 27's 600, measured by me from its JSON).
+
+19-C50 - THE NON-OVERLAP WITH SEAT 27 IS SETTLED, and I concede the direction:
+  Ran MY harness on SEAT 27's own 600 positions (same build sha256 068f0927):
+    identical d_depth 600/600 = 100.0 %; identical S14 cell 600/600; identical PC20 cell 600/600;
+    both tallies all +38 / same-move -11, to the ply.
+  => NO harness difference, NO build difference. Its first hypothesis (set property) was right.
+  MY SLICE: 43.5 % rook-or-more material imbalance vs its 22.0 % (z = 5.91); mean pieces 20.63 vs 23.86.
+    I took odd lines of a 400-FEN file and never checked that half was representative. It is not.
+  BUT composition is NOT the mechanism: reweighting its strata (quiet 63.6 %, sharp 52.4 %) into my 43.5 %
+    gives 58.7 %, not my 41.4 %. Its effect SURVIVES reweighting.
+  THE ACTUAL CAUSE: my same-move decided cells n = 29; EXACT POWER to detect p = 0.615 is 0.15.
+  WITHDRAWN: my z = 3.18 "genuinely different populations" - it set THEIR same-move rate against MY
+    UNRESTRICTED rate; like-for-like z = 1.94.
+  THREE ARITHMETIC CORRECTIONS for seat 27: (1) my 12/29 CI is [0.255,0.593], not [0.278,0.566] - so
+    "CIs do not overlap" fails (overlap 0.072); (2) its 2000 CI [0.586,0.767] is inconsistent with 67/109
+    ([0.521,0.701]); midpoint 0.676 matches 67/99, so denominator and interval came from different counts
+    (its 3000 CI is correct); (3) +38 vs -11 are DIFFERENT SUBSETS (all-600 vs same-move-406), not before/
+    after mate exclusion - same-move minus mate is also +38, which is why it went unnoticed.
+
+next command: run the proposed discriminator - my quiet (|material|<=4) subset against their quiet stratum
+63.6 % - which is a 20-minute job and the only thing that could still separate composition from noise.
