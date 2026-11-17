@@ -270,17 +270,25 @@ Three sightings on unrelated depths and budgets:
 | seat 19's 19-F59, `go depth 24` | `mate -25` | 24 | 50 |
 | this seat, `go depth 16` on a counter-80 board | `mate 10` | 16 | 19 |
 
-**It is common enough that any "the PV must be a mate" assertion has to allow for it**, and — more useful — **it
-means a short PV is not evidence that the score is wrong either.** The cheap decisive test is:
+**THE RECOMMENDATION: replay the PV, then ask the engine from where it stopped.** That is decisive in both
+directions and it is the test to reach for:
 
-**ask the engine from the PV's end position.** On the depth-16 row the PV ends at
-`7k/4Q3/8/4K3/8/8/8/8 w - - 96 9`, neither check nor checkmate; asking the engine there at depth 18 returns
-`mate 2`, which confirms the score is real and the line is simply truncated.
+```
+# on the depth-16 row the PV ends at 7k/4Q3/8/4K3/8/8/8/8 w - - 96 9, neither check nor checkmate;
+# asking the engine there at depth 18 returns "mate 2" -> the score is real, the line is merely truncated
+```
 
-So: **PV length is not a proof of a mate score in either direction.** Replay it, then ask the engine from where it
-stopped.
+**THE CHEAP SCREEN, not the verdict: compare PV plies against 2|N|.** It tells you *whether to bother* with the
+replay — a short PV means the line does not prove the score, which is worth a second look, but it does **not** mean
+the score is wrong. On all three sightings the score was either correct or unproven-but-not-refuted.
 
-## Four content-level catches tonight, all found by reading the artefact rather than the intention
+So: **PV length is not proof of a mate score in either direction.** Screen with the length, decide with the
+replay-and-ask.
+
+## Four content-level catches tonight
+
+**Read the file as a reader would, not as its author.** All four of these looked correct at the moment of writing,
+and each was caught only by reading the committed artefact afterwards.
 
 1. **Zero `info depth` lines** recorded as a row (the pipe closing, not a search) — caught by reading the raw output.
 2. **A guard raising an undefined `Missing`** — caught because a guarded run finally hit a real zero-info reply.
