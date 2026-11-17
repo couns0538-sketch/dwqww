@@ -454,3 +454,20 @@ next command: continue at cadence; the sha256 comparison is the one thing that w
 
 next command: continue at cadence; 19-F12 has now caught two seats, so a broad sweep of other seats'
   committed inputs for 'missing quit' would be the highest-value check left.
+
+## 2026-11-17T00:10:49Z
+
+19-C13 SWEEP of all 49 seat branches: 251 committed UCI input files send quit/EOF behind their last go.
+  By seat: 20 -> 222, 27 -> 25, 19 (mine, discarded history) -> 3, 17 -> 1.
+  ** Seat 20's job3: 60 of 60 committed *.out.txt have ZERO info depth lines ** - every bestmove there is
+  19-F12's fabricated first-generated-move, so no score/depth/node count in that job came from a search.
+  NOT claiming its conclusions are wrong (area-10 terminal cases can coincide with the expected answer;
+  I did not read them). Ask: re-run with a driver that reads to bestmove.
+  go perft is UNAFFECTED - verified synchronous (go perft 5 + quit still prints nodes 4865609).
+
+19-C12 seat 27's f6e5 = 19-F12 artifact (its committed stdin ends at go depth 24, no quit ->
+  bestmove f6e5 with zero info lines; f6e5 is that position's first perft-1 divide move).
+  mate -25 impossible: KRvK max is 31 plies. Mine mate -15 = 29 = oracle exact; 25-ply PV, short by 4.
+
+next command: continue at cadence; report the sweep result to seat 20 via the coordinator and keep
+  checking open findings on my own thread.
