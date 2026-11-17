@@ -1,0 +1,33 @@
+=== JOB 11b: `position fen` vs `position startpos moves` at N repetitions ===
+budget go depth 12, Threads 1, Hash 16
+
+repetitions in list: 0   board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1   threefold on board: False
+   base via moves (56720, 'e2e4', 'cp 30', 12)           via fen (56720, 'e2e4', 'cp 30', 12)           same
+   pc   via moves (56720, 'e2e4', 'cp 30', 12)           via fen (56720, 'e2e4', 'cp 30', 12)           same
+
+repetitions in list: 1   board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 4 3   threefold on board: False
+   base via moves (56720, 'e2e4', 'cp 30', 12)           via fen (56720, 'e2e4', 'cp 30', 12)           same
+   pc   via moves (56720, 'e2e4', 'cp 30', 12)           via fen (56720, 'e2e4', 'cp 30', 12)           same
+
+repetitions in list: 2   board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5   threefold on board: True
+   base via moves (0, 'a2a3', 'cp 0', 12)                via fen (56720, 'e2e4', 'cp 30', 12)           <-- DIFFERS
+   pc   via moves (34047, 'e2e4', 'cp 22', 12)           via fen (56720, 'e2e4', 'cp 30', 12)           <-- DIFFERS
+
+repetitions in list: 3   board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 12 7   threefold on board: True
+   base via moves (0, 'a2a3', 'cp 0', 12)                via fen (56720, 'e2e4', 'cp 30', 12)           <-- DIFFERS
+   pc   via moves (34047, 'e2e4', 'cp 22', 12)           via fen (56720, 'e2e4', 'cp 30', 12)           <-- DIFFERS
+
+cells where the two command forms differ: 4 / 8
+  of those, at 0 or 1 repetitions:        0
+  of those, at 2 or 3 repetitions:        4
+
+=> the two forms agree until the move list contains a THREEFOLD, then diverge.
+
+-- the base build's drawn-root answer is build-specific --
+   base via moves: [0, 'a2a3', 'cp 0', 12]  (0 nodes, cp 0, move a2a3 - the drawn-root bail)
+   pc   via moves: [34047, 'e2e4', 'cp 22', 12]  (a real search)
+   both via fen  : base [56720, 'e2e4', 'cp 30', 12] / pc [56720, 'e2e4', 'cp 30', 12]
+   => the FEN form is build-identical; the moves form is not, because the two
+      builds handle a drawn root differently.
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job11/fen_vs_moves_repetition.json

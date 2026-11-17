@@ -1,0 +1,46 @@
+=== JOB 9: does the reuse drift move the BESTMOVE?  go nodes 50000 ===
+positions: 200, Threads 1, Hash 16
+
+reset=clearhash
+   any field differs:      199 / 200
+   BESTMOVE differs:       70 / 200   <-- the question
+   score differs:          195 / 200
+   depth differs:          132 / 200
+   nodes differ, move same:129 / 200
+
+   -- bestmove changes (first 10) --
+      r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R fresh c1f4 cp 42  warm e1g1 cp 53
+      rn1qkb1r/ppp2ppp/4bn2/8/8/5N2/PPPP1PPP/RNBQK fresh d2d4 cp 111  warm g2g3 cp 111
+      r1bqkbnr/ppp1pppp/3p4/3Pn3/4P3/8/PPP2PPP/RNB fresh f2f4 cp 45  warm g1f3 cp 33
+      rn2kbnr/ppp1pppp/8/q7/6b1/2N2N2/PPPP1PPP/R1B fresh h2h3 cp 54  warm d2d4 cp 54
+      r1b1kbnr/ppppqppp/2n5/4p3/2B1P3/5N2/PPPP1PPP fresh e1g1 cp 108  warm b1c3 cp 81
+      rnbqkbnr/p1pppppp/8/1p6/3P4/8/PPP1PPPP/RNBQK fresh b1d2 cp 73  warm e2e4 cp 60
+      rnbqk1nr/p1ppppbp/1p4p1/8/3PP3/5N2/PPP2PPP/R fresh f1d3 cp 50  warm b1c3 cp 36
+      rnbqkbnr/ppp3pp/4p3/3p1p2/2PP4/2N5/PP2PPPP/R fresh c1f4 cp 77  warm g1f3 cp 55
+      rnbqkbnr/ppp1pppp/8/3p4/8/4PQ2/PPPP1PPP/RNB1 fresh e7e5 cp 71  warm g8f6 cp 83
+      r1bqkbnr/ppp1nppp/3p4/3Pp3/2P1P3/5N2/PP3PPP/ fresh e7g6 cp -26  warm g8f6 cp -14
+
+reset=ucinewgame
+   any field differs:      0 / 200
+   BESTMOVE differs:       0 / 200   <-- the question
+   score differs:          0 / 200
+   depth differs:          0 / 200
+   nodes differ, move same:0 / 200
+
+-- sequential: the same position 12 times in one process --
+   fresh reference: (37135, 'f1e2', 'cp 72', 13)
+    0: (37135, 'f1e2', 'cp 72', 13) 
+    1: (41762, 'f1e2', 'cp 37', 12) <-- differs
+    2: (39116, 'f1e2', 'cp 44', 13) <-- differs
+    3: (30366, 'f1e2', 'cp 35', 12) <-- differs
+    4: (25836, 'f1e2', 'cp 34', 13) <-- differs
+    5: (27083, 'f1e2', 'cp 31', 13) <-- differs
+    6: (45865, 'f1e2', 'cp 40', 14) <-- differs
+    7: (33064, 'f1e2', 'cp 38', 12) <-- differs
+    8: (48585, 'f1e2', 'cp 38', 14) <-- differs
+    9: (46913, 'f1e2', 'cp 39', 13) <-- differs
+   10: (38768, 'f1e2', 'cp 44', 13) <-- differs
+   11: (39634, 'f1e2', 'cp 37', 13) <-- differs
+   distinct bestmoves in the sequence: 1 ['f1e2']
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job9/clearhash_bestmove.json

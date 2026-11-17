@@ -268,7 +268,7 @@ Fixed-budget answer = (nodes, bestmove, score, depth). `Threads 1` throughout.
 | **process reuse + `Clear Hash`** | **YES** | 24 / 25 cells |
 | **process reuse + no reset** | **YES** | 24 / 25 cells |
 | **process reuse + `ucinewgame`** | no | 0 / 25 (fen), 0 / 6 (game walk) |
-| **`position fen` vs `position startpos moves`** | no | 0 / 6 |
+| **`position fen` vs `position startpos moves`** | **YES, once a threefold is in the move list** | 0 / 4 at 0–1 repetitions, 4 / 4 at 2–3 |
 | **Hash 16 vs 64, ≥ 200k nodes** | **YES** | 17 / 24 at 500k, 24 / 24 at 1M, 40 / 40 at 2M |
 | **Hash 16 vs 1, any budget** | **YES** | 11 / 24 at 50k, 24 / 24 above |
 | **PC build, lone-king root** | **YES** | 12 / 12 |

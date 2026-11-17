@@ -1,0 +1,22 @@
+=== JOB 11: history leakage across ucinewgame ===
+budget go depth 12, Threads 1, Hash 16
+
+repetition move list (8 plies) reaches rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5
+  python-chess is_repetition(3) asserted True
+
+-- P1: does a repetition in the move list change the score? --
+   via moves (3rd occurrence in list): (0, 'a2a3', 'cp 0', 12)
+   via fen   (same board, no history): (56720, 'e2e4', 'cp 30', 12)
+   the two agree: False
+   control (no repetition): moves (89103, 'f1b5', 'cp 33', 12) / fen (89103, 'f1b5', 'cp 33', 12) -> agree True
+
+-- P2/P3: target position searched after a repetition, with ucinewgame between --
+   fresh reference for the target: (64000, 'e5d4', 'cp -37', 12)
+   repetition(moves) -> ucinewgame -> target  (64000, 'e5d4', 'cp -37', 12)  same
+   repetition(fen)   -> ucinewgame -> target  (64000, 'e5d4', 'cp -37', 12)  same
+   target            -> ucinewgame -> target  (64000, 'e5d4', 'cp -37', 12)  same
+
+-- P3b: same sequence WITHOUT ucinewgame (the leak, if any) --
+   repetition(moves) -> target, no reset: (64000, 'e5d4', 'cp -37', 12)  same
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job11/history_leak.json

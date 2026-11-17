@@ -1,0 +1,19 @@
+=== JOB 8: is the piped-EOF fabricated bestmove detectable? ===
+budget go depth 8, 60 positions, Threads 1, Hash 16
+
+positions:                                   60
+fabrications with 0 `info depth` lines:      60 / 60
+distinct fabricated moves across positions:  13  ['a2a3', 'a6a5', 'a7a6', 'b1d2', 'b6b5', 'c3c2', 'c5c4', 'd5d4']
+distinct REAL moves across positions:        37  ['b1c3', 'b1d2', 'b2e5', 'c1f4', 'c2c4', 'c3b2', 'c3d4', 'c3e4']
+fabrication equals the real answer:          0 / 60
+fabrication equals python-chess first legal: 0 / 60
+
+=> H2: the fabrication VARIES by position (13 distinct). A harness that
+   checks only that bestmove is legal would accept it.
+
+fabrications that a legality check would REJECT: 0 / 60
+fabrications that a legality check would ACCEPT: 60 / 60
+
+the ONLY reliable detector is `info depth` line count == 0: 60 / 60
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job8/piped_fabrication.json

@@ -1,0 +1,32 @@
+=== JOB 7: python-chess vs engine acceptance, one mutation per FEN ===
+seed 6917, mutants generated 2000 from 553 real positions (O+G)
+
+mutants:                                   2000
+python-chess VALID:                        1086
+  of those, engine REFUSES (DIRECTION A):  249   <-- the dangerous class
+python-chess INVALID or raises:            914
+  of those, engine ACCEPTS (DIRECTION B):  0   <-- harmless if you filter
+
+DIRECTION A rate among python-chess-valid mutants: 249 / 1086 = 22.93%
+
+-- DIRECTION A by mutation --
+   fullmove_zero        249
+
+-- every DIRECTION A example (first 12) --
+   fullmove_zero      rnbqkbnr/p1pppppp/8/1p6/3P4/8/PPP1PPPP/RNBQKBNR w KQkq engine: invalid FEN fields
+   fullmove_zero      6k1/p3rp2/1b4p1/7p/5R1P/P4RP1/3r1PK1/8 w - - 0 0       engine: invalid FEN fields
+   fullmove_zero      r1b2rk1/1p1nbpp1/1qn1p2p/p1ppP3/P2P4/2P1BN1P/1P1NBPP1/ engine: invalid FEN fields
+   fullmove_zero      r1bqk1nr/ppp2ppp/2n5/3p4/1b1PP3/2N2N2/PP3PPP/R1BQKB1R  engine: invalid FEN fields
+   fullmove_zero      rnbqk2r/ppp2ppp/3b1n2/3p4/3P1P2/3B1N2/PPP3PP/RNBQK2R b engine: invalid FEN fields
+   fullmove_zero      rnbq2nr/pppp1kpp/8/2b4Q/3pP3/8/PPP2PPP/RNB1K1NR b KQ - engine: invalid FEN fields
+   fullmove_zero      R7/8/8/5p1p/5K1P/1kpr2n1/8/8 b - - 0 0                 engine: invalid FEN fields
+   fullmove_zero      rnbqkbnr/ppp2ppp/8/3pp3/7P/2P3P1/PP1PPP2/RNBQKBNR b KQ engine: invalid FEN fields
+   fullmove_zero      r1bqkb1r/pp1n1ppp/2p1pn2/8/2BP4/2N1PN2/PP3PPP/R1BQ1RK1 engine: invalid FEN fields
+   fullmove_zero      8/pp2k3/4ppp1/1b5p/2N4R/2r4P/5PPK/8 w - - 0 0          engine: invalid FEN fields
+   fullmove_zero      rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq engine: invalid FEN fields
+   fullmove_zero      1k4r1/bpp2Q1p/p2p4/8/PP5P/6q1/5PP1/1R3RK1 w - - 0 0    engine: invalid FEN fields
+
+-- control: the real positions themselves --
+   real positions where the engine refuses: 0 / 553
+
+raw: /agent/repos/dwqww/forge-combo29/swarm/69/job7/fen_gate_gap.json
