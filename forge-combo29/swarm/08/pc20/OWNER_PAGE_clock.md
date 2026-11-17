@@ -119,6 +119,6 @@ measurement says is a weak move and not a lost position.
 
 The mechanism: once the engine's spend drops below the 60 ms increment the clock is a random walk with positive
 drift, and the time manager shortens as the clock approaches its floor — so the clock has a stable equilibrium
-rather than a slow decline. And on small clocks the plan itself shrinks (at 200 ms: soft 8 / hard 40 ms), so the
+rather than a slow decline. And on small clocks the plan itself shrinks (at 200 ms: soft 53 / hard 114 ms), so the
 expensive iteration that caused a 1585 ms move at a 6 s clock no longer fits.
 **Not measured: a real game.** Both tests re-search fixed positions with falling clocks; no game is played.

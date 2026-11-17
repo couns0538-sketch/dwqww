@@ -146,8 +146,8 @@ emit("")
 if flags == 0:
     emit("**No flag even on the worst boards at 200 ms.** The time manager handles the bare-endgame case across the")
     emit("whole clock range, because the plan shrinks with the clock: at 200 ms the `available` is 190 and the plan")
-    emit("(soft 8 / hard 40 ms) is small enough that even an expensive iteration fits. So the residual risk I flagged")
-    emit("in 08-F34 does NOT materialise on these boards.")
+    emit("(soft 53 / hard 114 ms) is small enough that an expensive iteration no longer fits, so the residual risk")
+    emit("flagged in 08-F34 does NOT materialise on these boards.")
 else:
     emit("**%d flags found** — this is the case 08-F34 could not stage, and it is real. See the list." % flags)
 
