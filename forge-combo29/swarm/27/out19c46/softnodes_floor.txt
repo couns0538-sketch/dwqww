@@ -1,0 +1,27 @@
+SOFTNODES HAS A FLOOR AS WELL AS AN OVERSHOOT - and the floor is the depth-64 clamp
+PC r15 068f0927, PC20 (22 opts asserted), Threads 1, Hash 16, OwnBook false
+board: 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 60   (K+R v K, mate in 1)
+
+softnodes      nodes     depth  score
+200            210       10     ('mate', 1)
+500            504       24     ('mate', 1)
+1000           1008      48     ('mate', 1)
+1344           1344      64     ('mate', 1)
+1345           1344      64     ('mate', 1)
+1500           1344      64     ('mate', 1)
+2000           1344      64     ('mate', 1)
+5000           1344      64     ('mate', 1)
+20000          1344      64     ('mate', 1)
+100000         1344      64     ('mate', 1)
+
+The engine reaches depth 64 at 1,344 nodes and STOPS - max_depth is clamped to 64.
+Any budget above 1,344 therefore produces FEWER nodes than requested:
+  softnodes 20000 -> 1,344 nodes = a 14.9x UNDER-shoot, not an overshoot.
+
+AND THE ANSWER IS CORRECT: mate 1, a1a8, at every budget.
+So this is NOT a wrong answer - it is that 'go softnodes N' is bounded above by
+the work needed to reach depth 64, and on a small tree that is far below N.
+
+CONSEQUENCE FOR S-N1: its claim 'overshoots N by 1.02x to 1.95x' assumed the search
+always wants MORE nodes than N. It does not. The ratio is bounded by the tree, so it
+runs from 0.07x (depth-64 clamp, small tree) to 3.50x (iteration boundary in a big tree).
