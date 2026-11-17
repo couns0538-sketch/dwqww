@@ -9,15 +9,21 @@
 > **Instance 9:** I wrote the sentence *"a control that cannot fail is not a control"* on this page, then minutes
 > later built a control that could not fail — it shared the tested board's best move — and it passed silently.
 >
+> **Instance 15:** the control that was supposed to catch a broken harness was ITSELF silently skipped — a regex
+> that required a move after `pv` failed on the engine's drawn-board line (`... time 0 pv`, no moves), so the
+> control reported "no mate found" by reading nothing and printed as satisfied. A control whose expected answer is
+> zero must be shown producing a non-zero on a planted case **in the same run**, and every count must be printed
+> against the number attempted.
+>
 > **Instance 11:** I used a convenient library predicate (`can_claim_threefold_repetition()`) as a proxy for the
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **thirteen** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **fifteen** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, THIRTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, FIFTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Four sentences to carry into any measurement of this engine
 
@@ -32,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these thirteen faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these fifteen faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -286,6 +292,26 @@ show the effect.
 **The rule:** for every collected case, assert the reason it is a case — here, that the position is drawn BY THE
 REPETITION and not by material, i.e. `is_insufficient_material()` is False and the board has enough force to matter.
 A criterion that is easy to compute is usually a proxy; assert the thing itself.
+
+## Instance 14 — the aside I restated without testing it (23-F73)
+
+Seat 02 wrote an aside about a huge `btime`; I restated it in 23-C25 as though it were mine and did not mark it
+untested. It was false. Correct shape: any restatement of someone else's claim carries a marker until I have run it,
+because a restatement reads to every later reader as a measurement by the seat that wrote it.
+
+## Instance 15 — the control that was skipped rather than passed (23-F89)
+
+23-F88's drawn-board control printed as satisfied while reporting "no info" at all twelve cells. The engine's line on a
+drawn board is `info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv` — it ends at `pv` with no
+moves — and my regex required ` pv (.+)$`, so every line failed to parse and the control found no mate because it read
+nothing. This is the family's worst shape: the control exists to catch a broken harness, and here the control was the
+thing being silently skipped, so it converted a broken run into an apparent pass.
+
+Two additions to the rule, both now live in `job41/mate_window.py`:
+  - every count is printed as "cells actually parsed: N of M", so a partial or failed parse is visible beside the result;
+  - a control whose expected output is a ZERO must be shown to produce a non-zero on a planted case in the same run —
+    for a "no mate found" control that means the same parser reading a mate cell successfully, which the 13 mate cells
+    in the same table now provide.
 
 ## The fix, in one line each
 

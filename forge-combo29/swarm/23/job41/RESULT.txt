@@ -1,0 +1,64 @@
+HOW WIDE IS THE mate-with-truncated-PV WINDOW? (job 41 — and a control that silently passed when it should not)
+================================================================================================================
+23-F86 rested on two cells per build and said so. This sweeps it: three won boards, six depths, both builds, every
+`mate N` cell's PV replayed in python-chess. Threads 1, Hash 16, OwnBook false, no PC20 switches. 48 of 48 cells parsed.
+
+| board | build | depth | score | pv plies | needs | replay |
+|---|---|---|---|---|---|---|
+| W1 K+RvK | base | 16 | mate 10 | 17 | 19 | NO-MATE |
+| W1 K+RvK | base | 18 | mate 10 | 19 | 19 | MATE |
+| W1 K+RvK | PC r15 | 14 | mate 8 | 14 | 15 | NO-MATE |
+| W1 K+RvK | PC r15 | 16 | mate 8 | 15 | 15 | MATE |
+| W1 K+RvK | PC r15 | 18 | mate 8 | 15 | 15 | MATE |
+| W2 K+QvK | PC r15 | 14 | **mate 13** | 17 | **25** | NO-MATE |
+| W2 K+QvK | PC r15 | 16 | mate 10 | 19 | 19 | MATE |
+| W2 K+QvK | PC r15 | 18 | mate 10 | 19 | 19 | MATE |
+| W3 K+RvK c60 | base | 16 | mate 10 | 17 | 19 | NO-MATE |
+| W3 K+RvK c60 | base | 18 | mate 10 | 19 | 19 | MATE |
+| W3 K+RvK c60 | PC r15 | 14 | mate 8 | 14 | 15 | NO-MATE |
+| W3 K+RvK c60 | PC r15 | 16 | mate 8 | 15 | 15 | MATE |
+| W3 K+RvK c60 | PC r15 | 18 | mate 8 | 15 | 15 | MATE |
+
+13 mate cells, 5 whose PV does not mate. Every short cell is at the FIRST depth that reports a mate on that
+board/build; every one of them is repaired one depth later.
+
+P1 HELD: at most two short depths per board/build — in fact exactly one everywhere.
+P2 HELD: every depth-18 mate cell replays to MATE on every board and both builds. The hazard does not persist.
+P3 **KILLED, and this is the informative failure.** I predicted every short PV would be exactly 2 plies short (one ply
+    optimistic). Two cells are — W1/W3 PC depth 14: mate 8 with a 14-ply PV (needs 15); W1/W3 base depth 16: mate 10
+    with 17 (needs 19). But **W2 K+QvK PC depth 14 reports `mate 13` with a 17-ply PV, where 2N-1 = 25 — EIGHT plies
+    short.** So the score can be far more optimistic than one ply about its own PV. The bounded claim I wanted
+    ("one ply, at most two depths") is not what the data says: the window is at most one depth, but the SHORTFALL in
+    that depth is not bounded by one ply — it is whatever the search had completed, and on W2 it was 8.
+P4 HELD ONLY AFTER A REPAIR — see below.
+
+A CONTROL THAT PASSED FOR THE WRONG REASON, AND THE FAULT INSTANCE
+------------------------------------------------------------------
+On the first run the drawn board (`8/8/8/8/8/8/8/K6k w`) reported "no info" at all six depths on both builds, and the
+script's own P4 line printed as though satisfied. The raw output shows why:
+
+    info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove a1b1
+
+The line ENDS at `pv` with nothing after it. My regex required ` pv (.+)$`, so every drawn-board line failed to parse
+and the control "found no mate" because it read nothing at all. That is **instance 15 of the missing-parse-reads-as-a-pass
+family** (23-F3 is the rule, 23-F73 was the last instance) — and it is the more dangerous shape of it, because the
+control that was supposed to catch a broken harness was itself the thing being silently skipped.
+
+Repaired, and proved rather than asserted: the parser now accepts a trailing `pv` with no moves, prints "cells actually
+parsed: N of 48", and prints `HARD FAILURE` plus a non-result warning if any cell fails to parse. Re-run: **48 of 48
+parsed**, and the drawn board then genuinely produces cp 0 cells with empty PVs and no mate on either build. The first
+run's output is kept as `result_FIRSTPARSE_BROKEN.out` rather than deleted.
+
+WHAT F86 SHOULD NOW SAY, in place of what it said
+--------------------------------------------------
+A `mate N` score does not guarantee the PV in that line is long enough to deliver mate, the shortfall can be large
+(8 plies on one board, not merely one), and it is confined to the FIRST depth that reports the mate — one depth later
+the PV completes and replays to a real mate. So a GUI or tool that replays PVs needs the replay check on the first
+mate line it sees and can trust later ones more; a tool that trusts PV LENGTH as a proxy for the mate being delivered
+is wrong exactly where the mate is newly discovered, which is the moment a user is most likely to be looking.
+
+LIMITS: three boards, six depths, K+R/K+Q endgames only — all forced wins of the same family, so nothing here says how
+this behaves in a middlegame where the "mate" is 20 plies out. Both builds at default options only. The one-ply-short
+cells and the eight-ply-short cell are all reported above; I did not attempt to explain WHY the W2 cell is shorter,
+which would need the search's PV-extension code and is not something this harness can see.

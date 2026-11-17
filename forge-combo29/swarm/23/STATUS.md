@@ -1709,3 +1709,23 @@ mate. Both builds report the score one depth before the PV completes (PC 12-ply 
 10), and the verifier's control accepts fool's mate while rejecting the same line truncated by one move.
 
 115 findings. Real time 01:20Z. PC counter-89 depth 18/20 still running in the background.
+## 2026-11-17T01:20:22Z  F88-F89: the mate-PV window is one depth but an unbounded shortfall; my control passed by reading nothing
+2026-11-17T01:20:22Z
+
+Job 41 swept the F86 hazard over three won boards, six depths, both builds, 48/48 cells parsed. 13 mate cells, 5 with
+a PV that does not mate - every one at the FIRST depth reporting a mate, repaired one depth later; every depth-18 cell
+replays to a real mate. So the window is narrow, as predicted.
+
+P3 KILLED, informatively: I predicted the short PV is always one ply optimistic. W2 K+QvK on the PC reports "mate 13"
+with a 17-ply PV where 25 plies are needed - EIGHT short. The window is one depth; the shortfall is unbounded. That is
+a worse hazard for a tool that uses PV length as a proxy, and F86's scope is corrected in place to say so.
+
+F89 is mine: the drawn-board control printed as satisfied while reporting "no info" at all twelve cells. The engine's
+line ends at "pv" with no moves (), my regex required a move after it, so the control found no mate BY
+READING NOTHING. Instance 15 of the missing-parse family, and its worst shape - the control existed to catch a broken
+harness and was itself the thing skipped. Repaired: parser accepts a bare trailing pv, prints "cells actually parsed:
+N of 48", prints HARD FAILURE otherwise. Re-run 48 of 48 and the drawn board genuinely gives cp 0, empty PV, no mate.
+Broken run kept as result_FIRSTPARSE_BROKEN.out.
+
+Rule page updated to fifteen instances with new lead case and two live additions (parsed-vs-attempted beside every
+count; a zero-expecting control must show its non-zero in the same run). 117 findings. Real time 01:29Z.
