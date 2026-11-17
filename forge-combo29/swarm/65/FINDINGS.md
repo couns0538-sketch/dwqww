@@ -297,6 +297,29 @@ So "the clock form reaches the book" is false as stated; only the mover's own
 clock does. An asymmetric harness sees the book on one colour and not the other,
 which reads as nondeterminism and is not.
 
+#### 4.3.1 The consequence is worse than "does not book": no time limit at all
+
+The same root cause has a second effect that matters more. `limits.time_ms` staying
+`-1` does not only fail the book gate — it leaves the search with **no budget**. A
+harness that sends only the opponent's clock and waits for `bestmove` hangs.
+
+Measured on a book position, white to move, `go btime 10000 binc 100`
+(`evidence/trap1-effect.txt`): no `bestmove` after **25 s**, 22–33 `info depth`
+lines and climbing, answering only when an explicit `stop` is sent. On a
+**no-book** position it is the same — no answer in 25 s — which confirms the cause
+is the missing time limit rather than the book gate.
+
+This is the case where the two halves of the bug have to be separated: on a book
+position the patch makes it answer in 0.0 s (through the book gate), which by
+itself does *not* prove the search is bounded. The no-book position is the test
+that proves it: **0.33 s on the patched build versus unbounded on the lock**, matching
+the both-clocks control at 0.35 s.
+
+The fix is written up in **`TRAP1_PATCH.md`**: record both clocks, prefer the
+mover's, fall back to the opponent's. All 11 documented pins are identical on both
+builds, traps 2 and 3 are unchanged by it, and it composes with the trap-2 patch
+(`evidence/trap1-combined.txt`).
+
 Clock *magnitude* is irrelevant: `wtime 0 btime 0 winc 1` and `movetime 0` both
 book (`evidence/interactions.txt` block C). The book fires before any time
 management is consulted, which is consistent with `continue`.
@@ -612,8 +635,8 @@ is not a near miss, it is a 929-versus-0 reversal that would have been reported 
 
 | # | finding | severity | where |
 | --- | --- | --- | --- |
-| 1 | Gate uses the mover's own clock, so `go btime` with White to move does not book | medium — harness-visible asymmetry, reads as nondeterminism | `src/uci.cpp:525`, `121-122` |
-| 2 | Book pre-empts the drawn-root bail wherever the position has a book entry (2/2 entry-bearing roots; 0/4 without), removing the `score cp 0` / empty-pv signal | medium — callers lose the only in-band draw signal, and it fires on exactly the positions the book targets | `src/uci.cpp:527` vs `src/search.cpp:2251` |
+| 1 | Clock gate reads only the mover's clock, so `go btime` with White to move does not book **and the search has no time limit at all** | **high** — an asymmetric harness hangs; patched and measured in `TRAP1_PATCH.md` | `src/uci.cpp:525`, `121-122` |
+| 2 | Book pre-empts the drawn-root bail wherever the position has a book entry (2/2 entry-bearing roots; 0/4 without), removing the `score cp 0` / empty-pv signal | medium — callers lose the only in-band draw signal, and it fires on exactly the positions the book targets; patched and measured in `TRAP2_PATCH.md` | `src/uci.cpp:527` vs `src/search.cpp:2251` |
 | 3 | Book move carries no score at all | low — by convention, but it is the reason §4.1 is silent | `src/uci.cpp:539-540` |
 | 4 | Default `Book Variety 30` makes the default book nondeterministic, within and across processes | low — intended feature, surprising default | `src/uci.cpp:160`, `src/book.cpp:160-179` |
 | 5 | MultiPV mode gets no `multipv` lines on the book path | low | `src/uci.cpp:539-540` |
@@ -624,6 +647,18 @@ is not a near miss, it is a 929-versus-0 reversal that would have been reported 
 
 None of this is applied — this seat measures. Every number below comes from a
 built binary, not an estimate.
+
+**Defect 1 (clock gate, and the unbounded search).** Patch written and measured:
+`patches/trap1-clock-gate-both-clocks.patch`, full write-up in **`TRAP1_PATCH.md`**,
+evidence in `evidence/trap1-*`. Both clocks are recorded and the budget resolved at
+the end of `parse_limits`: the mover's clock if given, else the opponent's.
+Result: both colours book from whichever single clock is supplied, the asymmetry is
+gone, and — the part that matters — an unbounded search becomes bounded.
+Measured on a **no-book** position so only the time manager can answer:
+**25.00 s with no answer on the lock, 0.33 s on the patched build**, against a
+both-clocks control of 0.35 s. All 11 documented pins identical on both builds.
+Traps 2 and 3 unchanged by it, and it composes with the trap-2 patch
+(`evidence/trap1-combined.txt`).
 
 **Defect 2 (drawn-root pre-emption).** Patch written and measured:
 `patches/trap2-drawn-root-before-book.patch`, full write-up in **`TRAP2_PATCH.md`**,

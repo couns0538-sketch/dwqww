@@ -1,0 +1,19 @@
+patched binary /tmp/sw65-trap1-fix-6b98f217/forge
+
+TRAP 2 — book pre-empts a drawn root (must be UNCHANGED)
+    fifty-move + book entry      book=True  depth=0   e2e4
+  [PASS] fifty-move + book entry: pre-emption still present (trap 2 not fixed here): book=True (expected True)
+    repetition + book entry      book=True  depth=0   e2e4
+  [PASS] repetition + book entry: pre-emption still present (trap 2 not fixed here): book=True (expected True)
+    insufficient material        book=False depth=64  e2d1
+  [PASS] insufficient material: pre-emption still present (trap 2 not fixed here): book=False (expected False)
+
+TRAP 3 — Book Depth counter dependence (must be UNCHANGED)
+    fullmove=1   Depth40 book=True  Depth41 book=True 
+  [PASS] fullmove 1: Depth 40 unchanged: book=True
+  [PASS] fullmove 1: Depth 41 unchanged: book=True
+    fullmove=21  Depth40 book=False Depth41 book=True 
+  [PASS] fullmove 21: Depth 40 unchanged: book=False
+  [PASS] fullmove 21: Depth 41 unchanged: book=True
+
+Traps 2 and 3 behave exactly as on the lock.

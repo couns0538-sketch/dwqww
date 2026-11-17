@@ -1,0 +1,43 @@
+lock    /tmp/sw65-trap1-lock-6b98f217/forge
+patched /tmp/sw65-trap1-fix-6b98f217/forge
+window  25 s for 'did it answer on its own'
+
+HARNESS CONTROL — a form that definitely has a clock must answer alone
+    lock, both clocks: answered=True in 0.00 s, book=True, bestmove=e2e4
+  [PASS] control answered: 0.00 s
+
+| case | lock | patched |
+| --- | --- | --- |
+| white, ONLY btime | NO bestmove in 25s (unbounded) | answers in 0.0s, BOOK e2e4 |
+| white, ONLY wtime | answers in 0.0s, BOOK e2e4 | answers in 0.0s, BOOK e2e4 |
+| black, ONLY btime | answers in 0.0s, BOOK e7e5 | answers in 0.0s, BOOK c7c5 |
+| black, ONLY wtime | NO bestmove in 25s (unbounded) | answers in 0.0s, BOOK e7e5 |
+| white, both clocks | answers in 0.0s, BOOK c2c4 | answers in 0.0s, BOOK e2e4 |
+| black, both clocks | answers in 0.0s, BOOK e7e5 | answers in 0.0s, BOOK c7c5 |
+
+  white, ONLY btime: lock book=False -> patched book=True
+  [PASS] white, ONLY btime now books: was searched on the lock
+  black, ONLY btime: lock book=True -> patched book=True
+  [PASS] black, ONLY btime now books: was searched on the lock
+
+  The unbounded-search case, measured as wall-clock time:
+    white, ONLY btime: lock answered_alone=False (25.0s), patched answered_alone=True (0.0s)
+  [PASS] white, ONLY btime: lock is unbounded: no bestmove in 25s
+  [PASS] white, ONLY btime: patched is bounded: answered in 0.00s
+    black, ONLY wtime: lock answered_alone=False (25.0s), patched answered_alone=True (0.0s)
+  [PASS] black, ONLY wtime: lock is unbounded: no bestmove in 25s
+  [PASS] black, ONLY wtime: patched is bounded: answered in 0.00s
+
+  The same question on a NO-BOOK position, where only the time limit can answer:
+    white, ONLY btime                  lock 25.00s (NO answer) | patched 0.33s (answered)
+  [PASS] no-book position: lock has NO time limit: no bestmove in 25s
+  [PASS] no-book position: patched IS time-limited: answered in 0.33s, i.e. the clock reached the time manager and not only the book gate
+    white, both clocks (control)       lock 0.35s (answered) | patched 0.36s (answered)
+  [PASS] no-book control answers on both builds: white, both clocks (control): lock 0.35s, patched 0.36s
+
+  [PASS] white, both clocks: still books, unchanged: lock True -> patched True
+  [PASS] black, both clocks: still books, unchanged: lock True -> patched True
+    own clock must win: wtime 50 / btime 600000 -> answered in 0.00s, book=True
+  [PASS] own clock still takes priority over the opponent's: 0.00s (a huge opponent clock did not extend it)
+
+Trap 1 verified: both clocks reach the gate, and the unbounded search is gone.

@@ -29,7 +29,8 @@ Deliverables in `forge-combo29/swarm/65/`:
 | file | content |
 | --- | --- |
 | `BASE.md` | **which commit every number came from, the pin, and what was re-verified** |
-| `TRAP2_PATCH.md` | the one-hunk drawn-root fix: patch, pin verification, before/after measurement, and the decisions left to the owner |
+| `TRAP2_PATCH.md` | the drawn-root fix: patch, pin verification, before/after measurement, and the decisions left to the owner |
+| `TRAP1_PATCH.md` | the clock-gate fix: patch, pin verification, the unbounded→bounded measurement, and patch composition |
 | `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic, and one retraction |
 | `BOOK_WIRE.md` | exact reply shapes, the deadlock proof, the `go`-form matrix, harness rules |
 | `STATUS.md` | this file: claim → command index, what is not done |
@@ -42,20 +43,33 @@ Two pipelines, both self-checking:
 
 ```bash
 cd forge-combo29
-bash swarm/65/scripts/reverify_6b98f217.sh   # ~1.5 min: builds the audit base, checks the pin, re-verifies every finding
+bash swarm/65/scripts/reverify_6b98f217.sh       # ~1.5 min: builds the audit base, checks pins, re-verifies every finding
+bash swarm/65/scripts/patch_trap1_clock_gate.sh  # ~3 min: applies and verifies the clock-gate patch
 bash swarm/65/scripts/patch_trap2_drawn_root.sh  # ~2 min: applies and verifies the drawn-root patch
-bash swarm/65/scripts/run_all.sh             # ~5 min: the full audit, including three patched game_ply builds
+bash swarm/65/scripts/run_all.sh                 # ~5 min: the full audit, including three patched game_ply builds
 ```
 
 `reverify_6b98f217.sh` **aborts before recording anything** unless `bench 11`
-prints 312866. `patch_trap2_drawn_root.sh` aborts unless all 11 documented pins
-match on the unpatched build, and again if the patched build differs. Both runners
-abort on a failed SEE self-test, score-absence check, or drawn-root check.
+prints 312866. Both patch scripts abort unless all 11 documented pins match on the
+unpatched build, and again if the patched build differs. All runners abort on a
+failed SEE self-test, score-absence check, or drawn-root check.
+`q18_combined_patches.py` applies both diffs to a fresh worktree and verifies they
+compose.
 
 ## Claim → command index
 
 Every claim in `FINDINGS.md` and `BOOK_WIRE.md`, with the exact thing that
 produces it. All commands run from `forge-combo29/`.
+
+### Trap-1 patch (measured, not merged)
+
+| claim | command | evidence |
+| --- | --- | --- |
+| both clocks reach the gate; both colours book from one clock | `bash swarm/65/scripts/patch_trap1_clock_gate.sh` | `evidence/trap1-effect.txt` |
+| unbounded search becomes bounded: 25 s no answer → **0.33 s**, on a NO-BOOK position | same script, `q16_trap1_patch_effect.py` | `evidence/trap1-effect.txt` |
+| all 11 documented pins identical on both builds | same script, `q13_pins.py` | `evidence/trap1-pins-{lock,fix}.txt` |
+| traps 2 and 3 unaffected by the patch | same script, `q17_traps_2_3_after_trap1.py` | `evidence/trap1-trap2-3.txt` |
+| the two patches compose: pins identical, both fixes live | `python3 swarm/65/scripts/q18_combined_patches.py` | `evidence/trap1-combined.txt` |
 
 ### Trap-2 patch (measured, not merged)
 
@@ -178,16 +192,20 @@ produces it. All commands run from `forge-combo29/`.
   `patch_trap2_drawn_root.sh` builds a patched copy for `TRAP2_PATCH.md`. All are
   comparison artifacts in `/tmp`; the patch lives in `patches/` as a diff and is
   **not applied** to the engine tree.
-* The trap-2 patch is verified for node-neutrality against LOCK.md's 11 pins
-  (five depths × two net settings, plus perft 5). That is a strong signal and not
-  a proof: a change that alters play without altering a pinned bench would not be
-  caught. It is also verified only on this host and compiler.
+* Both patches are verified for node-neutrality against LOCK.md's 11 pins (five
+  depths × two net settings, plus perft 5). That is a strong signal and not a
+  proof: a change that alters play without altering a pinned bench would not be
+  caught. Both are also verified only on this host and compiler.
 * The trap-2 patch keeps two copies of the drawn-root conditions (one in
   `uci.cpp`, one in `search.cpp`). They agree at `6b98f217`; nothing enforces that
   they keep agreeing. `TRAP2_PATCH.md` flags this.
-* Trap 1 (the mover's-clock gate, and the resulting unbounded search) is **not**
-  patched. It was outside what was asked for and the fix has its own behavioural
-  consequence worth measuring separately.
+* The trap-1 patch changes which clock the time manager receives, so it is the one
+  patch here that could in principle alter how a timed search spends its budget.
+  It was checked on the pins and on six clock forms across both colours
+  (`evidence/trap1-effect.txt`), but not on a long game or a movestogo control.
+* Trap 1's `movestogo` interaction is unmeasured. With two clocks and
+  `movestogo`, the budget formula divides the fallback clock by `moves_to_go`; that
+  is almost certainly right, and it is not verified here.
 * The `game_ply` matrix covers 14 cases: both counter directions, all three
   `position` forms, at depths either side of the gate. It does not test a
   mid-game FEN whose counter is wrong *and* whose position is absent from the
