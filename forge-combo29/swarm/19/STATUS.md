@@ -1164,6 +1164,33 @@ said without overreaching: **6-position smoke tests in this harness erred upward
 and both were caught only because the full run was already queued. Treat any n<10 speed number as a hypothesis,
 never a result.**
 
+## MANDATORY for every effect claim: a sign-share beside the pooled figure
+**Rule: a pooled effect size says nothing about the fraction of cases sharing its sign. Report both, or state that
+a sign-share is unavailable and why.** Every claim in this record, audited against that requirement:
+
+| claim | pooled figure | **sign-share (cases agreeing)** | verdict |
+|---|---|---|---|
+| **19-C54** PC20 per-node cost | **+7.1 %** (median 1.071) | **90.0 %** (162/180 dearer) | **UNIFORM** — a real per-node tax |
+| **19-C58** prefetch slowdown | **+9.80 %** | **93.1 %** (121/130 slower) | **UNIFORM** — present on nearly every position |
+| **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — a weak lean, not a per-position fact |
+| **19-C54** PC20 fewer nodes, fixed 50k | **−1.9 %** (0.9807) | **50.6 %** (91/180) | **COIN FLIP** — no per-position content at all |
+| **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728) | **52.9 %** (63/119) | **COIN FLIP** |
+| **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %** | **54.2 %** (65/120) | **COIN FLIP** |
+| **19-C60** TtPruneV2 | −4.7 % | 60.8 % (73/120) | weak lean, p = 1.000 |
+| **19-C60** CuckooRep | −0.9 % | 52.5 % (63/120) | coin flip, p = 1.000 |
+| **19-C60** HistRework | +3.1 % | 46.7 % (56/120) | coin flip, p = 0.523 |
+| **19-C35** bench per-node | +1.2 % | **not computable** | only 10 whole-bench samples, not per-position — **no sign-share is obtainable, and that is itself a reason to distrust it** |
+| **19-C55** bench node sign flip | +14.5 / −10.6 / +8.7 % | **not computable** | three deterministic single numbers (pins), no distribution |
+| **19-C44/45** PC20 +3 ply at 20k | +3 ply | **not computable from the 6-position set** — and with 19-C60's finding, the per-position depth sign should be reported when re-run | **session-level** |
+| **19-C19 / 19-F42** counters | counts, not effects | n/a | counters are counts; the requirement does not apply |
+
+**What the column immediately shows: the two claims with high sign-shares (90.0 %, 93.1 %) are the two I would
+defend per position; the three headline efficiency claims (12.4 % fewer nodes, 2.7 % faster, 5.2 % saving) are all
+session-level or coin flips.** No amount of pooled precision makes them per-position facts.
+
+**And the "not computable" rows are informative, not a gap:** 19-C35 measured whole-bench runs, so it never had a
+per-position distribution to report — which is a further reason bench-based per-node figures should not be trusted.
+
 ## What the owner should be told about PC20, in one line
 **PC20 searches ~12 % fewer nodes at matched depth but pays ~7 % more per node everywhere, so the net wall-time
 gain is ~2.8 % — and at matched NODES it spends ~7 % more time for the same count. The switches are a small,
