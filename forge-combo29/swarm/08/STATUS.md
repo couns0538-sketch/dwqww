@@ -355,3 +355,16 @@ seed-specific, then continue confirming other seats.
 - 08-F31 restated in FINDINGS with the rate explicitly withdrawn.
 
 next: cadence + confirmations. Continuing.
+
+## 2026-11-17T00:39Z
+- Lead claim restructured: **13 of 56 sparse boards vs 0 of 60 full-material** now leads REPLICATION_seed902.md,
+  both denominators kept, no pooled rate.
+- **08-F32: my near-mate guess is REFUTED.** Independent deep `go depth 18` per board: mate-appearing targets in
+  **3 of 18 near-mate boards (17 %)** but **10 of 38 not-near boards (26 %)** — opposite direction to my hypothesis.
+  Real but separate fact: my hand-picked seed-801 set was 52 % mate-bearing (14/27) vs 14 % (4/29) in the random
+  seed-902 set, so the samples differ in composition, but that does not carry the error rate.
+- Cause of the rate gap: UNMEASURED. I name three untested candidates and claim none.
+- Findings now 08-F1..F32, checks 08-C1..C9, method lines 08-N1/N2, one withdrawal (08-C6W).
+
+next: cadence; then confirmations of other seats' unchecked findings (seat 07's 07-F1 is the only single-finding
+seat left unchecked; everything else I sampled has a C line).
