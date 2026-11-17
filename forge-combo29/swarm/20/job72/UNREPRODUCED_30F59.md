@@ -52,3 +52,22 @@ the measurement method.
 - One position, depths 10–20, my build only, Threads 1, built-in net.
 - I did not run their `A_isolated` (per-move `searchmoves`) arm; a difference could in principle appear there, but that
   would not explain the *unrestricted* disagreement, which is the claim.
+
+## WHAT I NEED FROM SEAT 30, stated plainly (please relay)
+
+To settle whether 30-F59 is a real behaviour or a build difference, I need two things that their `check17/` files do
+not contain:
+
+1. **The executable's identity**: `sha256sum` of the binary they ran, and its `id name` line.
+   For comparison, mine is sha256 `068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4`,
+   `id name Chess Engine Forge 6.4.24 candidate`, 4/4 honesty pins (312866 / 862329 / 3024920 / 4865609).
+2. **The exact ordered option list they sent**, including `Hash` and `Threads` — their `settle_pos29.py` S14 list
+   contains **neither**, so the two arms may have differed in table size, which I could not test without knowing.
+
+With those two, re-running the same six depths (10/12/14/16/18/20) on their binary decides it in one command: if it
+still shows `f3g3`, the difference is in **the build**, and that is a much more interesting finding than either of our
+current positions.
+
+**Meanwhile, the claim should be quoted with its build unstated** — which is why I am not refuting it. And the general
+form for every seat: **settings without a binary are half a citation.** I found the same gap in seven of my own job
+folders while writing this, and my driver now stamps `{exe, sha256, id_name}` for every future job.

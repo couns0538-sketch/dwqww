@@ -14,6 +14,20 @@
 > you keep declaring is usually the answer.** This is RULE 0's sibling: check the reference is working, *and* check
 > the regime you did not test.
 
+## THE BINARY RULE (found while failing to re-check another seat)
+
+**A behavioural claim needs the EXECUTABLE'S IDENTITY in the file — sha256 and `id name` — not just its settings.**
+
+Why: I could not reproduce seat 30's 30-F59 (PC20 playing a 200 cp worse move). I ruled out the option list and the
+Hash, but their `check17/` files record **no exe hash and no `id name`**, so I cannot show their binary is mine. That
+turns a possible refutation into a bare "unreproduced", which is much weaker than either verdict.
+
+**And the check caught me too:** auditing my own folder, **none of job55, job61, job64, job66, job69, job70 or job71
+recorded the exe sha256** — the same gap I was about to criticise. Settings without a binary are half a citation.
+
+The fix is mechanical: `AUDIT/hardened.py` now exposes `exe_identity(exe)` returning `{exe, sha256, id_name}`, to be
+dumped into every job's meta/JSON. Regime (S-F44) plus binary is a complete citation.
+
 ## THE DRIVER RULE (hard rule; seat 19's sweep found 222 of my files that violated it)
 
 **Every engine interaction must read stdout until `bestmove` before sending anything else — and every row whose

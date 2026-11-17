@@ -22,6 +22,33 @@ import time
 
 DEFAULT_TIMEOUT = 180.0
 
+# Seat 19's sweep and my own S-C47 both turned on the same gap: a claimed behaviour cannot be re-checked if the file
+# does not say WHICH BINARY produced it. This helper exists so every job can stamp its exe identity in one line.
+import hashlib as _hashlib
+
+
+def exe_identity(exe):
+    """sha256 + `id name` for the executable, as a dict ready to dump into any job's meta/json."""
+    h = _hashlib.sha256()
+    try:
+        with open(exe, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+    except OSError:
+        return {"exe": exe, "sha256": None, "id_name": None}
+    eng = Engine(exe) if "Engine" in globals() else None
+    name = None
+    if eng is not None:
+        try:
+            with eng.lock:
+                for line in eng.lines:
+                    if line.startswith("id name "):
+                        name = line[len("id name "):]
+                        break
+        finally:
+            eng.close()
+    return {"exe": exe, "sha256": h.hexdigest(), "id_name": name}
+
 
 class Engine:
     def __init__(self, exe, opts=(), uci_name=True):
