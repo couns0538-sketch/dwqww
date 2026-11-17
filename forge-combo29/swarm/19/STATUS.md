@@ -640,3 +640,13 @@ confirmed-for-others tally (all exact integers): 19-C19 king-lines 804,371/779,0
 HARNESS_TRAPS.md = twelve traps; the closing check is nodes>0 AND non-empty PV.
 
 next command: continue at cadence with counter/reproduction confirmations.
+
+## 2026-11-17T00:46:45Z
+
+TALLY_confirmations.md written: five exact-integer confirmations (19-C19 29-F4 king lines, 19-C23 counter
+  2x nodes, 19-C25 21-F12 searchmoves, 19-C26 24-F31 Threads-1 40/40, 19-C27 05's S-F58 five figures).
+  None depends on a derived table - deliberate, after my oracle retraction (19-R2).
+19-C26 restated as the strongest reproducibility result of the night: it supports my own 19-F24 (Threads-1)
+  from the OTHER direction - two seats, two harnesses, same conclusion, so 'assumed' became 'verified'.
+
+next command: continue at cadence, adding to the tally with counter/reproduction work only.
