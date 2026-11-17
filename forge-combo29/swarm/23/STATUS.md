@@ -1551,3 +1551,14 @@ Repaired-behaviour contrast kept: on the fifty-move root the PC answers cp 0 aft
 instantly - the PC searched briefly and then reported the draw, which shows the repair is a search rather than a
 bypass. A distinction I would have missed without measuring both builds.
 107 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 17 m remain.
+## 2026-11-17T01:01:56Z  23-F80: the eval/go gap is a CURVE that steps to 406 at the search horizon (25 -> 32 -> 45 -> 135 -> 406)
+2026-11-17T01:01:56Z
+
+Won KRvK, base build. eval CONSTANT at 406 across all nine counters (spread 0 cp - direct evidence the static
+evaluator has no counter); go depth 10:
+  c40/c60 cp 381 (gap 25) | c80 cp 374 (32) | c88 cp 361 (45) | c90 cp 271 (135) | c92..100 cp 0 (gap 406)
+The gap creeps up as the win tightens and STEPS to 406 exactly at the horizon onset - the same onset 23-C26 found by
+sweeping the counter (91 at depth 10 here, this run 92, within +/-4). So 23-C26 and F79/F80 are ONE mechanism seen from
+two directions: the search's own onset, and the gap between two interfaces. All 4 predictions held.
+Limit: one board, one depth, one build; the onset moves with depth (23-C26: 95/92/91/89/89 at depths 6-14) so the step
+would too. 108 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 17 m remain.
