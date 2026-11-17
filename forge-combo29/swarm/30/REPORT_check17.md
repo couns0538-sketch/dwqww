@@ -1,5 +1,15 @@
 # REPORT — settle_pos29: which move is better at the 203 cp disagreement
 
+> **PARTLY WITHDRAWN — 30-C57.** The "PC20" arm in this report was MIS-BUILT: `settle_pos29.py`
+> applies Threads, Hash and then the list it is given, and I passed `PC20EXTRA` (the six extra
+> switches) ALONE, so that arm measured the six switches on top of DEFAULT options, not on top of
+> S14. Seat 20 could not reproduce my `f3g3` / cp 1627 and was right; with the TRUE PC20 arm
+> (S14 + the six) the engine gives **`f3g2` cp 1790** — the same move S14 gives. Provenance,
+> including the sha256 (068f0927…, identical to seat 20's) and the FEN actually run, is in
+> `check17/PROVENANCE.txt`. **What survives:** `f3g2` outscores `f3g3` by ~200 cp in isolation, so
+> "f3g2 is the better move" stands; **what is withdrawn:** the claim that PC20 prefers `f3g3` and
+> needs depth 18 to correct. The unmodified text below is kept for the record.
+
 Seat 30, area 10. Build: **PC r15** (base `6b98f217` + the `FABLE_TO_swarm_5.md` patch,
 `-DFORGE_MATE_ALPHA_GUARD=1`), Threads 1, Hash 64 for this job, OwnBook false, fresh process per row,
 every setoption confirmed by `readyok`.

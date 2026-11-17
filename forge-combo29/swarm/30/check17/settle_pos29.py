@@ -78,6 +78,13 @@ def search(settings, go, timeout=600.0):
     for n, v in settings:
         send("setoption name %s value %s" % (n, v))
         ready()
+    # ARM SANITY (added after 30-C57): a caller that passes the SIX extra switches alone is NOT
+    # testing PC20 -- PC20 is S14 + those six. Fail loudly instead of silently measuring defaults.
+    _names = {n for n, _ in settings}
+    if _names and _names <= {n for n, _ in PC20EXTRA}:
+        raise SystemExit(
+            "REFUSING: this option list is only the PC20 extras on top of DEFAULT options. "
+            "The PC20 arm must be S14 + PC20EXTRA (20 options). See 30-C57.")
     send("ucinewgame")
     ready()
     send("position fen " + FEN)
