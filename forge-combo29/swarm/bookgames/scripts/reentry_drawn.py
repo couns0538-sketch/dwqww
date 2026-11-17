@@ -217,6 +217,10 @@ def main() -> int:
         "examples_of_zero_case": examples,
         "revisit_found": len(hits) > 0,
         "hits": hits[:10],
+        "hits_total": len(hits),
+        "hits_note": "the list above is truncated to the first 10; hits_total is the "
+                     "full count. `revisit_found` is set from hits_total, not the "
+                     "truncated list.",
         "bounded_search": {
             "depth_limit": depth_limit,
             "move_budget_per_leaf": moves_per_leaf,
@@ -236,7 +240,7 @@ def main() -> int:
         + (" and found no revisit of a book position"
            if not hits else f" and found {len(hits)} revisit(s)")
         + f". {nodes_total} positions examined. The bounded part is a bounded result, "
-        "not a proof; the 320-game set is the unbounded evidence."
+        "not a proof; the two-sided game set is the unbounded evidence."
     )
     json.dump(report, open(out_path, "w"), indent=1)
     print(json.dumps({k: v for k, v in report.items() if k != "hits"}, indent=1))
