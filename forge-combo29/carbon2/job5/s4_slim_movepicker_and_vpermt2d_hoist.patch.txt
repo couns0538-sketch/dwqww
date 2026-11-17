@@ -1,0 +1,248 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 13:58:41.037143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 14:07:58.309143771 +0000
+@@ -565,6 +565,8 @@
+     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
++    mutable MoveList picker_scratch_;
++    mutable MoveList evasion_scratch_;
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
+ 
+ #if FORGE_SPD_TT_NOTLS
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 13:58:41.037143771 +0000
++++ b/src/search.cpp	2026-11-17 14:09:11.677143771 +0000
+@@ -21,7 +21,7 @@
+ // behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
+ // never outgrow its storage (it only reuses slots of moves it has already handed out).
+ #ifndef FORGE_SDK_BADCAP_PREFIX
+-#define FORGE_SDK_BADCAP_PREFIX 0
++#define FORGE_SDK_BADCAP_PREFIX 1
+ #endif
+ 
+ #ifndef FORGE_BARE_KING_MATE_FIX
+@@ -796,8 +796,7 @@
+             case Evasions:
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+-                    if (move == tt_move_) continue;
+-                    if (evasion_tie_filter_ && (legal_to_by_from_[move.from] & square_bb(move.to)) == 0) continue;
++                    if (move.is_none() || move == tt_move_) continue;
+                     return move;
+                 }
+                 return Move::none();
+@@ -862,18 +861,14 @@
+ #endif
+     std::size_t bad_count_ = 0;
+     std::size_t bad_index_ = 0;
+-    MoveList buffer_;
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
+-    bool evasion_tie_filter_ = false;
+     std::uint64_t quiet_gen_epoch_ = 0;
+     int last_quiet_history_ = 0;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+-    std::array<Bitboard, 64> legal_to_by_from_;
+     std::array<Bitboard, 7> check_squares_;
+ #else
+-    std::array<Bitboard, 64> legal_to_by_from_{};
+     std::array<Bitboard, 7> check_squares_{};
+ #endif
+ 
+@@ -985,35 +980,37 @@
+                 const std::size_t n = count_;
+ #if defined(__AVX512F__)
+                 static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
+-                const __m512i odd_idx16 = _mm512_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
+-                while (i + 16 <= n) {
+-                    const __m512i lo = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i]));
+-                    const __m512i hi = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i + 8]));
+-                    const __m512i scores16 = _mm512_permutex2var_epi32(lo, odd_idx16, hi);
+-                    const int chunk_max = _mm512_reduce_max_epi32(scores16);
+-                    if (chunk_max > best_score) {
+-                        const __mmask16 eq = _mm512_cmpeq_epi32_mask(scores16, _mm512_set1_epi32(chunk_max));
+-                        best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(eq)));
+-                        best_score = chunk_max;
+-                    }
+-                    i += 16;
+-                }
+                 if (i + 8 <= n) {
+-                    const __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i]));
+-                    const __m256i scores8 = _mm512_castsi512_si256(_mm512_permutexvar_epi32(odd_idx16, v));
+-                    const __m128i s_lo = _mm256_castsi256_si128(scores8);
+-                    const __m128i s_hi = _mm256_extracti128_si256(scores8, 1);
+-                    __m128i m4 = _mm_max_epi32(s_lo, s_hi);
+-                    m4 = _mm_max_epi32(m4, _mm_shuffle_epi32(m4, _MM_SHUFFLE(1, 0, 3, 2)));
+-                    m4 = _mm_max_epi32(m4, _mm_shuffle_epi32(m4, _MM_SHUFFLE(2, 3, 0, 1)));
+-                    const int chunk_max = _mm_cvtsi128_si32(m4);
+-                    if (chunk_max > best_score) {
+-                        const __m256i eq = _mm256_cmpeq_epi32(scores8, _mm256_set1_epi32(chunk_max));
+-                        const int mask = _mm256_movemask_ps(_mm256_castsi256_ps(eq));
+-                        best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(mask)));
+-                        best_score = chunk_max;
++                    const __m512i odd_idx16 = _mm512_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
++                    while (i + 16 <= n) {
++                        const __m512i lo = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i]));
++                        const __m512i hi = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i + 8]));
++                        const __m512i scores16 = _mm512_permutex2var_epi32(lo, odd_idx16, hi);
++                        const int chunk_max = _mm512_reduce_max_epi32(scores16);
++                        if (chunk_max > best_score) {
++                            const __mmask16 eq = _mm512_cmpeq_epi32_mask(scores16, _mm512_set1_epi32(chunk_max));
++                            best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(eq)));
++                            best_score = chunk_max;
++                        }
++                        i += 16;
++                    }
++                    if (i + 8 <= n) {
++                        const __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i]));
++                        const __m256i scores8 = _mm512_castsi512_si256(_mm512_permutexvar_epi32(odd_idx16, v));
++                        const __m128i s_lo = _mm256_castsi256_si128(scores8);
++                        const __m128i s_hi = _mm256_extracti128_si256(scores8, 1);
++                        __m128i m4 = _mm_max_epi32(s_lo, s_hi);
++                        m4 = _mm_max_epi32(m4, _mm_shuffle_epi32(m4, _MM_SHUFFLE(1, 0, 3, 2)));
++                        m4 = _mm_max_epi32(m4, _mm_shuffle_epi32(m4, _MM_SHUFFLE(2, 3, 0, 1)));
++                        const int chunk_max = _mm_cvtsi128_si32(m4);
++                        if (chunk_max > best_score) {
++                            const __m256i eq = _mm256_cmpeq_epi32(scores8, _mm256_set1_epi32(chunk_max));
++                            const int mask = _mm256_movemask_ps(_mm256_castsi256_ps(eq));
++                            best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(mask)));
++                            best_score = chunk_max;
++                        }
++                        i += 8;
+                     }
+-                    i += 8;
+                 }
+ #endif
+ #if defined(__AVX2__)
+@@ -1079,15 +1076,16 @@
+     }
+ 
+     void generate_captures() {
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, true);
++        MoveList& buf = searcher_.picker_scratch_;
++        buf.clear();
++        board_.generate_pseudo_legal(buf, true);
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const CaptureHistory& capture_history = *searcher_.capture_history_;
+ #endif
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+ #if FORGE_SEARCH_SPEED2
+             const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
+             const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
+@@ -1105,22 +1103,23 @@
+ 
+     void generate_quiets() {
+         quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
++        MoveList& buf = searcher_.picker_scratch_;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+         // The quiets-only list is the full list minus every capture and
+         // promotion, in the same order, so the filter is gone.
+         init_check_squares();
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++        buf.clear();
++        board_.generate_pseudo_legal(buf, Board::GenMode::Quiets);
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+@@ -1129,19 +1128,19 @@
+         sort_moves();
+ #else
+         init_check_squares();
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, false);
++        buf.clear();
++        board_.generate_pseudo_legal(buf, false);
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+@@ -1152,15 +1151,16 @@
+ #endif
+     }
+ 
+-    void generate_evasions() {
+-        buffer_.clear();
+-        board_.generate_legal_evasions(buffer_);
+-        MoveList non_tt;
+-        for (const Move move : buffer_) {
++    [[gnu::noinline]] void generate_evasions() {
++        MoveList& buf = searcher_.picker_scratch_;
++        MoveList& non_tt = searcher_.evasion_scratch_;
++        buf.clear();
++        board_.generate_legal_evasions(buf);
++        non_tt.clear();
++        for (const Move move : buf) {
+             if (!(move == tt_move_)) non_tt.push_back(move);
+         }
+         index_ = 0;
+-        evasion_tie_filter_ = false;
+         if (non_tt.empty()) {
+             count_ = 0;
+             sorted_ = true;
+@@ -1218,23 +1218,24 @@
+             return;
+         }
+ 
+-        // Score tie among legal evasions: pick_best()'s 4 selection swaps + unstable std::sort
+-        // depend on the full pseudo-legal buffer; pre-populate the 64-square legal target mask
+-        // so illegal moves are filtered in O(1) inside MovePicker without calling is_legal_complete.
+-        legal_to_by_from_.fill(0);
++        // Score tie among legal evasions: preserve pick_best()'s exact 4-selection + std::sort
++        // swaps via the full pseudo-legal score array, and mark illegal slots Move::none() in place
++        // so MovePicker carries zero extra stack arrays across recursive plies.
++        std::array<Bitboard, 64> legal_mask{};
+         for (std::size_t i = 0; i < n; ++i) {
+-            legal_to_by_from_[non_tt[i].from] |= square_bb(non_tt[i].to);
++            legal_mask[non_tt[i].from] |= square_bb(non_tt[i].to);
+         }
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, false);
++        buf.clear();
++        board_.generate_pseudo_legal(buf, false);
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+-        for (const Move move : buffer_) {
+-            push_scored(move, score_evasion(move));
++        for (const Move move : buf) {
++            const int sc = score_evasion(move);
++            const Move tagged = (legal_mask[move.from] & square_bb(move.to)) != 0 ? move : Move::none();
++            push_scored(tagged, sc);
+         }
+         sort_moves();
+-        evasion_tie_filter_ = true;
+     }
+ };
+ 

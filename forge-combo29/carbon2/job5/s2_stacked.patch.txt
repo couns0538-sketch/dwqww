@@ -1,0 +1,195 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 13:58:41.025143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 13:58:41.033143771 +0000
+@@ -219,6 +219,9 @@
+     [[nodiscard]] bool in_check(Color color) const;
+     [[nodiscard]] bool in_check() const { return checkers_ != 0; }
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
++#if FORGE_SPD_KING_LINES
++    [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
++#endif
+ 
+     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
+     [[nodiscard]] static std::string move_to_uci(const Move& move);
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 13:58:41.021143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 13:58:41.033143771 +0000
+@@ -544,6 +544,7 @@
+ #endif
+     int seldepth_ = 0;
+     int stack_dirty_limit_ = MaxPly + 7;
++    std::uint64_t quiet_hist_epoch_ = 0;
+     int root_depth_ = 0;
+     int mate_moves_ = 0;
+     std::size_t root_history_index_ = 0;
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 13:58:41.025143771 +0000
++++ b/src/search.cpp	2026-11-17 13:58:41.033143771 +0000
+@@ -755,10 +755,14 @@
+             case QuietMoves:
+                 if (!skip_quiets) {
+                     while (index_ < count_) {
+-                        const Move move = pick_best();
++                        const Scored picked = pick_best_scored();
++                        const Move move = picked.move;
+                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
+                         // A closed tail keeps quiet checks, including discovered checks.
+                         if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
++                        const int pt = piece_type(board_.piece_at(move.from));
++                        last_quiet_history_ = picked.score -
++                            ((check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0 ? 12000 : 0);
+                         return move;
+                     }
+                 }
+@@ -806,6 +810,10 @@
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+     // Every move yielded from the Evasions stage (not EvasionTT) was produced by Board::generate_legal_evasions.
+     [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions; }
++    [[nodiscard]] bool has_cached_quiet_history(std::uint64_t current_epoch) const {
++        return stage_ == QuietMoves && current_epoch == quiet_gen_epoch_;
++    }
++    [[nodiscard]] int cached_quiet_history() const { return last_quiet_history_; }
+ 
+     // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
+     void close_quiet_tail() { quiet_tail_closed_ = true; }
+@@ -859,6 +867,8 @@
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
+     bool evasion_tie_filter_ = false;
++    std::uint64_t quiet_gen_epoch_ = 0;
++    int last_quiet_history_ = 0;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Bitboard, 64> legal_to_by_from_;
+     std::array<Bitboard, 7> check_squares_;
+@@ -869,6 +879,12 @@
+ 
+     // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+     void init_check_squares() {
++#if FORGE_SPD_KING_LINES
++        if (board_.cached_king_lines().valid) {
++            check_squares_ = board_.cached_king_lines().check_squares;
++            return;
++        }
++#endif
+         const Color them = opposite(board_.side_to_move());
+         const int enemy_king = board_.king_square(them);
+         const Bitboard occupancy = board_.occupied();
+@@ -955,18 +971,51 @@
+     // The selection keeps the lowest index on a tie (`>`), which is what the
+     // following move order depends on. Chunks of four compare inside the chunk
+     // first so the running best is not a loop-carried load on every move.
+-    [[nodiscard]] Move pick_best() {
++    [[nodiscard]] Scored pick_best_scored() {
+         if (!sorted_) {
+             if (index_ - list_start_ < 4) {
+                 if (seeded_ && index_ == list_start_) {
+                     if (seeded_at_ != index_) std::swap(moves_[index_], moves_[seeded_at_]);
+                     seeded_ = false;
+-                    return moves_[index_++].move;
++                    return moves_[index_++];
+                 }
+                 std::size_t best = index_;
+                 int best_score = moves_[best].score;
+                 std::size_t i = index_ + 1;
+                 const std::size_t n = count_;
++#if defined(__AVX512F__)
++                static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
++                const __m512i odd_idx16 = _mm512_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
++                while (i + 16 <= n) {
++                    const __m512i lo = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i]));
++                    const __m512i hi = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i + 8]));
++                    const __m512i scores16 = _mm512_permutex2var_epi32(lo, odd_idx16, hi);
++                    const int chunk_max = _mm512_reduce_max_epi32(scores16);
++                    if (chunk_max > best_score) {
++                        const __mmask16 eq = _mm512_cmpeq_epi32_mask(scores16, _mm512_set1_epi32(chunk_max));
++                        best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(eq)));
++                        best_score = chunk_max;
++                    }
++                    i += 16;
++                }
++                if (i + 8 <= n) {
++                    const __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(&moves_[i]));
++                    const __m256i scores8 = _mm512_castsi512_si256(_mm512_permutexvar_epi32(odd_idx16, v));
++                    const __m128i s_lo = _mm256_castsi256_si128(scores8);
++                    const __m128i s_hi = _mm256_extracti128_si256(scores8, 1);
++                    __m128i m4 = _mm_max_epi32(s_lo, s_hi);
++                    m4 = _mm_max_epi32(m4, _mm_shuffle_epi32(m4, _MM_SHUFFLE(1, 0, 3, 2)));
++                    m4 = _mm_max_epi32(m4, _mm_shuffle_epi32(m4, _MM_SHUFFLE(2, 3, 0, 1)));
++                    const int chunk_max = _mm_cvtsi128_si32(m4);
++                    if (chunk_max > best_score) {
++                        const __m256i eq = _mm256_cmpeq_epi32(scores8, _mm256_set1_epi32(chunk_max));
++                        const int mask = _mm256_movemask_ps(_mm256_castsi256_ps(eq));
++                        best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(mask)));
++                        best_score = chunk_max;
++                    }
++                    i += 8;
++                }
++#endif
+ #if defined(__AVX2__)
+                 static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
+                 while (i + 4 <= n) {
+@@ -1001,9 +1050,11 @@
+                 sorted_ = true;
+             }
+         }
+-        return moves_[index_++].move;
++        return moves_[index_++];
+     }
+ 
++    [[nodiscard]] Move pick_best() { return pick_best_scored().move; }
++
+     void push_scored(Move move, int score) {
+         if (!seeded_ || score > seeded_score_) {
+             seeded_ = true;
+@@ -1053,6 +1104,7 @@
+     }
+ 
+     void generate_quiets() {
++        quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+         // The quiets-only list is the full list minus every capture and
+         // promotion, in the same order, so the filter is gone.
+@@ -1703,6 +1755,7 @@
+ }
+ 
+ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
++    ++quiet_hist_epoch_;
+     for (const int back : {1, 2, 4}) {
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+@@ -1713,6 +1766,7 @@
+ 
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+                                   int quiet_count) {
++    ++quiet_hist_epoch_;
+     const int bonus = history_bonus(depth);
+     const Color us = board.side_to_move();
+     if (ss->killers[0] != move) {
+@@ -2043,6 +2097,7 @@
+         if (parent->static_eval != ValueNone && ss->static_eval != ValueNone && !parent->in_check &&
+             !parent->current_move.is_none() && !parent->current_move.is_capture() && !parent->current_move.is_promotion()) {
+             const int swing = std::clamp(-(ss->static_eval + parent->static_eval), -tune::EvalSwingMax, tune::EvalSwingMax);
++            ++quiet_hist_epoch_;
+             apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))]
+                                           [parent->current_move.from][parent->current_move.to],
+                           swing * tune::EvalSwingMult / 16);
+@@ -2232,7 +2287,10 @@
+         const bool quiet = !capture && !move.is_promotion();
+         const bool gives_check = board.gives_check(move);
+         const Piece moved = board.moved_piece(move);
+-        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
++        const int history = quiet
++            ? (picker.has_cached_quiet_history(quiet_hist_epoch_) ? picker.cached_quiet_history()
++                                                                  : quiet_history(board, ss, move))
++            : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+         // Off by default, so the predicate below is the historical guard.
+@@ -2497,6 +2555,7 @@
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
++        ++quiet_hist_epoch_;
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);

@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 14:09:11.677143771 +0000
++++ b/src/search.cpp	2026-11-17 14:11:03.601143771 +0000
+@@ -1232,7 +1232,7 @@
+         seeded_ = false;
+         for (const Move move : buf) {
+             const int sc = score_evasion(move);
+-            const Move tagged = (legal_mask[move.from] & square_bb(move.to)) != 0 ? move : Move::none();
++            const Move tagged = move; /* PLANTED FAULT: fail to tag illegal tie-path evasions as Move::none() */
+             push_scored(tagged, sc);
+         }
+         sort_moves();
