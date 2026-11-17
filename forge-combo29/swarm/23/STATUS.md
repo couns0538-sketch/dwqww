@@ -1146,3 +1146,13 @@ Practical upshot: both paths the owner's engine is DRIVEN on are reproducible mo
 lottery is confined to the comparison path.
 Limit: quiet middlegames, one build/settings combo, 30 positions; no claim about tactical positions.
 89 findings, 18 confirmations. 10 h 10 m remain.
+## 2026-11-17T00:09:26Z  PC page now carries the three-path reproducibility table
+2026-11-17T00:09:26Z
+
+PC_BUILD_SUMMARY.md gained 'Is the engine reproducible in play? Yes on both paths the owner uses': clock
+stable (20/20 twice, and at 1 s), self-play stable (30/30 move AND nodes), node budgets unstable (~30 %).
+With the mechanical reason (completed depth vs fixed count) and the practical meaning (the two driven paths are
+repeatable; node-budget results are not reproducible move-for-move and not interchangeable with clock results).
+The PC page is now complete for a reader: the build, what it fixes, what it does not, reproducibility, caveats.
+
+89 findings, 18 confirmations, eleven named faults, six reference pages. 10 h 10 m remain.
