@@ -1164,32 +1164,57 @@ said without overreaching: **6-position smoke tests in this harness erred upward
 and both were caught only because the full run was already queued. Treat any n<10 speed number as a hypothesis,
 never a result.**
 
-## MANDATORY for every effect claim: a sign-share beside the pooled figure
-**Rule: a pooled effect size says nothing about the fraction of cases sharing its sign. Report both, or state that
-a sign-share is unavailable and why.** Every claim in this record, audited against that requirement:
+## PREREQUISITE (read this first): check that the comparison CAN vary
+> **Before demanding a sign-share, confirm the measurement can differ between the two arms at all.**
 
-| claim | pooled figure | **sign-share (cases agreeing)** | verdict |
+**The case that taught me this, caught inside this very table (19-C54).** I had listed as an efficiency claim:
+*"PC20 fewer nodes at a fixed 50k node budget — 1.9 % fewer, 50.6 % sign-share."*
+**That cannot be an efficiency claim. At a fixed node budget both engines stop in the same place by construction**,
+so any residual node difference is the **stopping rule's granularity**, not a saving. **The 50.6 % was a correct
+measurement of an effect that does not exist.**
+
+**A sign-share of 50 % is ambiguous in two opposite ways:** it can mean "a real effect that is per-position random"
+or "no effect, and this is the noise floor." **The prerequisite distinguishes them; the sign-share alone cannot.**
+
+**So the two rules form an ordered pair:**
+1. **Can the comparison vary?** (fixed budgets, pinned node counts, identical searches → it cannot, and no share is
+   meaningful.)
+2. **If it can vary, report the sign-share beside the pooled figure.**
+
+## REQUIREMENT (after the prerequisite): a sign-share beside every pooled effect
+**Rule: a pooled effect size says nothing about the fraction of cases sharing its sign. Report both, or state that
+a sign-share is unavailable and why.**
+
+| claim | pooled figure | **sign-share (cases agreeing)** | class |
 |---|---|---|---|
-| **19-C54** PC20 per-node cost | **+7.1 %** (median 1.071) | **90.0 %** (162/180 dearer) | **UNIFORM** — a real per-node tax |
-| **19-C58** prefetch slowdown | **+9.80 %** | **93.1 %** (121/130 slower) | **UNIFORM** — present on nearly every position |
-| **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — a weak lean, not a per-position fact |
-| ~~19-C54 PC20 fewer nodes, fixed 50k~~ | ~~−1.9 %~~ | ~~50.6 %~~ | **WITHDRAWN AS A ROW — category error.** At a fixed 50k node budget **both engines stop at the same place by construction**, so a residual node difference is stopping-granularity, not a saving. The 50.6 % is exactly what a coin flip looks like when there is no effect to measure. **Listing it as an efficiency claim was wrong.** |
+| **19-C54** PC20 per-node cost | **+7.1 %** (median 1.071) | **90.0 %** (162/180 dearer) | **PER-POSITION, a tax** |
+| **19-C58** prefetch slowdown | **+9.80 %** | **93.1 %** (121/130 slower) | **PER-POSITION, a tax** |
+| **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — weak lean |
 | **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728) | **52.9 %** (63/119) | **COIN FLIP** |
 | **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %** | **54.2 %** (65/120) | **COIN FLIP** |
 | **19-C60** TtPruneV2 | −4.7 % | 60.8 % (73/120) | weak lean, p = 1.000 |
 | **19-C60** CuckooRep | −0.9 % | 52.5 % (63/120) | coin flip, p = 1.000 |
 | **19-C60** HistRework | +3.1 % | 46.7 % (56/120) | coin flip, p = 0.523 |
-| **19-C35** bench per-node | +1.2 % | **not computable** | only 10 whole-bench samples, not per-position — **no sign-share is obtainable, and that is itself a reason to distrust it** |
-| **19-C55** bench node sign flip | +14.5 / −10.6 / +8.7 % | **not computable** | three deterministic single numbers (pins), no distribution |
-| **19-C44/45** PC20 +3 ply at 20k | +3 ply | **not computable from the 6-position set** — and with 19-C60's finding, the per-position depth sign should be reported when re-run | **session-level** |
-| **19-C19 / 19-F42** counters | counts, not effects | n/a | counters are counts; the requirement does not apply |
+| **19-C35** bench per-node | +1.2 % | *not computable* | see caption |
+| **19-C55** bench node sign flip | +14.5 / −10.6 / +8.7 % | *not computable* | see caption |
+| **19-C44/45** PC20 +3 ply at 20k | +3 ply | *not computable from 6 positions* | **session-level** |
+| **19-C19 / 19-F42** counters | counts, not effects | n/a | the requirement does not apply |
 
-**What the column immediately shows: the two claims with high sign-shares (90.0 %, 93.1 %) are the two I would
-defend per position; the three headline efficiency claims (12.4 % fewer nodes, 2.7 % faster, 5.2 % saving) are all
-session-level or coin flips.** No amount of pooled precision makes them per-position facts.
+**Caption — the "not computable" rows are structural, not missing values.** They are not gaps to be filled in:
+**19-C35 measured whole-bench runs and therefore never had a per-position distribution to report at all.** That is
+**a reason to distrust the figure, not a shortcoming of the table** — a per-node cost claim that cannot produce a
+sign-share was never a per-position measurement. Likewise 19-C55's three bench numbers are **deterministic pins**,
+single values with no distribution, and 19-C44/45 ran on six positions. **An effect claim that cannot produce a
+sign-share should say so, and the absence is evidence about the claim.**
 
-**And the "not computable" rows are informative, not a gap:** 19-C35 measured whole-bench runs, so it never had a
-per-position distribution to report — which is a further reason bench-based per-node figures should not be trusted.
+**What the column reorders — and this is the opposite of what the earlier findings implied:** the two claims that
+survive **per position** are both **taxes** (per-node cost 90.0 %, prefetch 93.1 %). **Every headline EFFICIENCY
+claim — 12.4 % fewer nodes, 2.7 % faster, CorrHistV2's 5.2 % saving — is session-level or a coin flip.** A reader
+of the earlier findings would assume the reverse. **No amount of pooled precision makes a session-level figure a
+per-position fact.**
+
+**Requirement doing real work on the document that states it:** applying this rule caught the category error in its
+own table (see the prerequisite above). **That is the strongest evidence that the rule is worth having.**
 
 ## What the owner should be told about PC20, in one line
 **PC20 searches ~12 % fewer nodes at matched depth but pays ~7 % more per node everywhere, so the net wall-time
