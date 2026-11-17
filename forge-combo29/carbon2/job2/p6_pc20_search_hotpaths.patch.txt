@@ -1,0 +1,348 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 11:49:49.617143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 11:56:56.781143771 +0000
+@@ -452,6 +452,9 @@
+     std::uint8_t entered_side = 0;
+     bool entered_null = false;
+     bool diff_known = false;
++    mutable std::array<std::uint16_t, 2> corr_np_idx{};
++    mutable std::uint64_t corr_mat_mix = 0;
++    mutable std::uint8_t corr_valid = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -490,6 +493,7 @@
+     friend class MovePicker;
+ #if FORGE_SPD_TT_NOTLS
+     friend class Searcher;
++    friend struct TTTestProbe;
+ #endif
+ 
+     SharedSearchState& shared_;
+@@ -580,8 +584,8 @@
+     // B4 CuckooRep: every child search goes through these; with CuckooRep off they are the plain calls.
+     int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+     int qsearch_child(Board& board, SearchStack* ss, int alpha, int beta);
+-    [[gnu::cold]] int search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+-    [[gnu::cold]] int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta);
++    int search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta);
+     // B4 HistRework: the twin's slot of a quiet move at the node of `ss` (its maps are threat_maps_[ss->ply]), the
+     // change of a quiet move's score when part of its butterfly term comes from the twin, and the twin's update.
+     [[nodiscard]] std::int16_t& rework_entry(const Board& board, const SearchStack* ss, Move move) const;
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 11:51:23.589143771 +0000
++++ b/src/search.cpp	2026-11-17 11:56:56.777143771 +0000
+@@ -403,6 +403,8 @@
+         gate_.lock();
+         table_.exclusive_requested_.store(true, std::memory_order_seq_cst);
+         try {
++            // Only drain the 1,024 stripe mutexes when a non-exclusive caller has
++            // touched a stripe since the previous exclusive lease.
+             if (table_.stripes_dirty_.exchange(false, std::memory_order_seq_cst)) {
+                 for (std::size_t i = 0; i < StripeCount; ++i) {
+                     const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
+@@ -887,8 +889,11 @@
+         const PieceToHistory* cont4;
+         const Board& board;
+         const Worker& worker;
+-        const SearchStack* frame;  // B4 HistRework: the node whose maps the twin reads
+-        bool rework;               // B4 HistRework on (and a node to read the maps of)
++        const LesserThreatHistory::value_type* rework_side;
++        const b4::LesserThreats* threats;
++        int quarters;
++        bool rework;
++        bool use_threat_hist;
+ 
+         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+@@ -898,17 +903,35 @@
+                         ? (ss - 4)->continuation : nullptr),
+               board(b),
+               worker(searcher),
+-              frame(ss),
+-              rework(tune::HistRework != 0 && ss != nullptr) {}
++              rework_side(tune::HistRework != 0 && ss != nullptr
++                              ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
++                              : nullptr),
++              threats(tune::HistRework != 0 && ss != nullptr
++                          ? &searcher.threat_maps_[static_cast<std::size_t>(ss->ply)]
++                          : nullptr),
++              quarters(tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0),
++              rework(tune::HistRework != 0 && ss != nullptr),
++              use_threat_hist(tune::ThreatHistory) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            const std::size_t pt = static_cast<std::size_t>(piece_type(piece));
++            const std::size_t p = static_cast<std::size_t>(piece);
++            const int plain = main[move.from][move.to];
++            int value = plain;
++            if (rework) {
++                const Bitboard set = threats->by_type[pt];
++                const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
++                value = b4::blend(plain, twin, quarters);
++            }
++            if (cont1 != nullptr) value += (*cont1)[p][move.to];
++            if (cont2 != nullptr) value += (*cont2)[p][move.to];
++            if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
++            if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+ #endif
+-            if (rework) [[unlikely]] value += worker.rework_quiet_delta(board, frame, move);
+-            if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
++            if ((check_squares[pt] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+     };
+@@ -1256,14 +1279,27 @@
+ }
+ 
+ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+-    // Called before make_move. The change list is ready, but the feature
+-    // columns are added only when this position is evaluated.
+-    if (!nnue::enabled || !nnue::available()) return;
+     SearchStack* child = ss + 1;
++    const Piece moved = board.piece_at(move.from);
++    const Piece captured = board.captured_piece(move);
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const bool mover_nonpawn = piece_type(moved) != Pawn || move.is_promotion();
++    const bool cap_nonpawn = captured != Empty && piece_type(captured) != Pawn;
++    std::uint8_t keep = ss->corr_valid;
++    if (mover_nonpawn) keep &= static_cast<std::uint8_t>(~(1U << static_cast<unsigned>(us)));
++    else child->corr_np_idx[static_cast<std::size_t>(us)] = ss->corr_np_idx[static_cast<std::size_t>(us)];
++    if (cap_nonpawn) keep &= static_cast<std::uint8_t>(~(1U << static_cast<unsigned>(them)));
++    else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast<std::size_t>(them)];
++    if (cap_nonpawn || move.is_promotion()) keep &= static_cast<std::uint8_t>(~4U);
++    else child->corr_mat_mix = ss->corr_mat_mix;
++    child->corr_valid = keep;
++
++    if (!nnue::enabled || !nnue::available()) return;
+     child->entered_move = move;
+-    child->entered_piece = board.piece_at(move.from);
+-    child->entered_capture = board.captured_piece(move);
+-    child->entered_side = static_cast<std::uint8_t>(board.side_to_move());
++    child->entered_piece = moved;
++    child->entered_capture = captured;
++    child->entered_side = static_cast<std::uint8_t>(us);
+     child->entered_null = false;
+     child->diff_known = false;
+ #if FORGE_NNUE_V3
+@@ -1302,6 +1338,9 @@
+ 
+ void Worker::record_null_move(SearchStack* ss) {
+     SearchStack* child = ss + 1;
++    child->corr_np_idx = ss->corr_np_idx;
++    child->corr_mat_mix = ss->corr_mat_mix;
++    child->corr_valid = ss->corr_valid;
+     child->entered_null = true;
+     child->diff_known = true;
+     child->dirty.count = 0;
+@@ -1327,18 +1366,45 @@
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
+     if (tune::NonPawnCorrection) {
+-        const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+-        const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
++        std::size_t idx_w;
++        std::size_t idx_b;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 1U) == 0U) {
++                ss->corr_np_idx[0] = static_cast<std::uint16_t>(non_pawn_key(board, White) & (CorrectionSize - 1U));
++                ss->corr_valid |= 1U;
++            }
++            if ((ss->corr_valid & 2U) == 0U) {
++                ss->corr_np_idx[1] = static_cast<std::uint16_t>(non_pawn_key(board, Black) & (CorrectionSize - 1U));
++                ss->corr_valid |= 2U;
++            }
++            idx_w = ss->corr_np_idx[0];
++            idx_b = ss->corr_np_idx[1];
++        } else {
++            idx_w = non_pawn_key(board, White) & (CorrectionSize - 1U);
++            idx_b = non_pawn_key(board, Black) & (CorrectionSize - 1U);
++        }
++        const std::int32_t np_w = (*non_pawn_white_correction_)[side][idx_w];
++        const std::int32_t np_b = (*non_pawn_black_correction_)[side][idx_b];
+         correction += (np_w + np_b) / 2;
+     }
+     // B4 HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+-    if (const int level = tune::HistRework; level != 0) [[unlikely]] {
+-        correction += (*joint_correction_)[side][b4::joint_key(board) & (CorrectionSize - 1U)] *
++    if (const int level = tune::HistRework; level != 0) {
++        std::uint64_t jkey;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 4U) == 0U) {
++                ss->corr_mat_mix = b4::mix64(static_cast<std::uint64_t>(b4::non_pawn_material(board)) + 1U);
++                ss->corr_valid |= 4U;
++            }
++            jkey = board.pawn_key() ^ ss->corr_mat_mix;
++        } else {
++            jkey = b4::joint_key(board);
++        }
++        correction += (*joint_correction_)[side][jkey & (CorrectionSize - 1U)] *
+                       b4::joint_weight(level) / 100;
+     }
+     // B4 CorrHistV2: the corrections of the move that led here and of the move before it (none after a null move
+     // or next to the root). ADDED to every term above, NonPawnCorrection's included: it replaces nothing.
+-    if (tune::CorrHistV2 && ss != nullptr) [[unlikely]] {
++    if (tune::CorrHistV2 && ss != nullptr) {
+         if (ss->ply >= 1 && (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_none()) {
+             correction += (*continuation_correction_)[0][static_cast<std::size_t>((ss - 1)->moved_piece)]
+                                                      [static_cast<std::size_t>((ss - 1)->current_move.to)];
+@@ -1361,17 +1427,26 @@
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+     if (tune::NonPawnCorrection) {
+-        apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+-        apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
++        const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_np_idx[0])
++            : (non_pawn_key(board, White) & (CorrectionSize - 1U));
++        const std::size_t idx_b = (ss != nullptr && (ss->corr_valid & 2U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_np_idx[1])
++            : (non_pawn_key(board, Black) & (CorrectionSize - 1U));
++        apply((*non_pawn_white_correction_)[side][idx_w]);
++        apply((*non_pawn_black_correction_)[side][idx_b]);
+     }
+     // B4 HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+     // self-damping update instead of the add-and-clamp above.
+-    if (tune::HistRework != 0) [[unlikely]] {
+-        std::int32_t& entry = (*joint_correction_)[side][b4::joint_key(board) & (CorrectionSize - 1U)];
++    if (tune::HistRework != 0) {
++        const std::uint64_t jkey = (ss != nullptr && (ss->corr_valid & 4U) != 0U)
++            ? (board.pawn_key() ^ ss->corr_mat_mix)
++            : b4::joint_key(board);
++        std::int32_t& entry = (*joint_correction_)[side][jkey & (CorrectionSize - 1U)];
+         entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
+     }
+     // B4 CorrHistV2: the two continuation entries take the same step as the tables above.
+-    if (tune::CorrHistV2 && ss != nullptr) [[unlikely]] {
++    if (tune::CorrHistV2 && ss != nullptr) {
+         if (ss->ply >= 1 && (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_none()) {
+             apply((*continuation_correction_)[0][static_cast<std::size_t>((ss - 1)->moved_piece)]
+                                              [static_cast<std::size_t>((ss - 1)->current_move.to)]);
+@@ -1474,35 +1549,28 @@
+ }
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+-    // B4 HistRework: part of the butterfly term comes from the threat-keyed twin (0 with the option off).
+-    const int rework = tune::HistRework != 0 && ss != nullptr ? rework_quiet_delta(board, ss, move) : 0;
+-#if FORGE_SEARCH_SPEED2
+-    return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+-                             ss != nullptr ? (ss - 1)->continuation : nullptr,
+-                             ss != nullptr ? (ss - 2)->continuation : nullptr,
+-                             tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                                 ? (ss - 4)->continuation : nullptr,
+-                             board.moved_piece(move), move) +
+-           threat_quiet_bonus(board, move) +
+-#if FORGE_PAWN_HISTORY
+-           pawn_history_value(board, board.moved_piece(move), move) +
+-#endif
+-           rework;
+-#else
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const Piece piece = board.moved_piece(move);
+-    int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
++    const std::size_t p = static_cast<std::size_t>(piece);
++    const int plain = (*main_history_)[side][move.from][move.to];
++    int score = plain;
++    if (tune::HistRework != 0 && ss != nullptr) {
++        const Bitboard set = threat_maps_[static_cast<std::size_t>(ss->ply)].by_type[static_cast<std::size_t>(piece_type(piece))];
++        const int twin = (*rework_history_)[side][b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
++        score = b4::blend(plain, twin, b4::threat_quarters(tune::HistRework));
++    }
+     if (ss != nullptr) {
+-        if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+-        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
++        if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[p][move.to];
++        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[p][move.to];
+         if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+-            score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
++            score += (*(ss - 4)->continuation)[p][move.to] / 2;
+         }
+     }
++    if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+     score += pawn_history_value(board, piece, move);
+ #endif
+-    return score + threat_quiet_bonus(board, move) + rework;
+-#endif
++    return score;
+ }
+ 
+ // B4 HistRework (forge/r9): the twin's slot of a quiet move at the node of `ss`, whose lesser-attacker maps are
+@@ -1618,7 +1686,7 @@
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+     // B4 HistRework: the threat-keyed twin learns the same bonus and maluses.
+-    if (tune::HistRework != 0) [[unlikely]] update_rework_history(board, ss, move, bonus, quiets, quiet_count);
++    if (tune::HistRework != 0) update_rework_history(board, ss, move, bonus, quiets, quiet_count);
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -1714,7 +1782,7 @@
+     }
+ 
+     // B4 HistRework: check evasions score quiet moves with the twin, which reads this node's maps.
+-    if (in_check && tune::HistRework != 0) [[unlikely]] {
++    if (in_check && tune::HistRework != 0) {
+         threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+     }
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+@@ -2065,7 +2133,7 @@
+              !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+-    if (tune::HistRework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
++    if (tune::HistRework != 0) threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+@@ -2383,7 +2451,7 @@
+         }
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+-        if (tune::HistRework != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++        if (tune::HistRework != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+@@ -2422,12 +2490,25 @@
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+-    if (tune::CuckooRep) [[unlikely]] return search_cuckoo(board, ss, depth, alpha, beta, cut_node);
++    if (tune::CuckooRep) {
++        constexpr int DrawScore = 0;
++        if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
++            board.upcoming_repetition(root_history_index_)) {
++            if (beta <= DrawScore) return DrawScore;
++            return std::max(search(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
++        }
++    }
+     return search(board, ss, depth, alpha, beta, cut_node);
+ }
+ 
+ int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
+-    if (tune::CuckooRep) [[unlikely]] return qsearch_cuckoo(board, ss, alpha, beta);
++    if (tune::CuckooRep) {
++        constexpr int DrawScore = 0;
++        if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
++            if (beta <= DrawScore) return DrawScore;
++            return std::max(qsearch(board, ss, DrawScore, beta), DrawScore);
++        }
++    }
+     return qsearch(board, ss, alpha, beta);
+ }
+ 
+@@ -2775,6 +2856,7 @@
+         entry.diff_known = false;
+         entry.entered_null = false;
+         entry.dirty.count = 0;
++        entry.corr_valid = 0;
+     }
+     SearchStack* ss = &stack_[4];
+ #if FORGE_NNUE_V3

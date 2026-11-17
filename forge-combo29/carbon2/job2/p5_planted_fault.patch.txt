@@ -1,0 +1,12 @@
+diff -ruN a/src/nnue_v3.cpp b/src/nnue_v3.cpp
+--- a/src/nnue_v3.cpp	2026-11-17 11:49:49.621143771 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 11:52:20.037143771 +0000
+@@ -443,7 +443,7 @@
+                                        const Changes& c1, Color us, int bucket) {
+     const int hidden = net.hidden;
+     const std::int16_t* const w2_base = net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
+-    const std::int16_t* const w0 = us == White ? w2_base : (w2_base + hidden);
++    const std::int16_t* const w0 = us == Black ? w2_base : (w2_base + hidden); /* PLANTED FAULT */
+     const std::int16_t* const w1 = us == White ? (w2_base + hidden) : w2_base;
+     const __m512i zero = _mm512_setzero_si512();
+     const __m512i qa = _mm512_set1_epi16(static_cast<short>(QA));

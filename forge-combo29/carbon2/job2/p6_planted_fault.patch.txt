@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 11:56:56.845143771 +0000
++++ b/src/search.cpp	2026-11-17 11:58:23.633143771 +0000
+@@ -1284,7 +1284,7 @@
+     const Piece captured = board.captured_piece(move);
+     const Color us = board.side_to_move();
+     const Color them = opposite(us);
+-    const bool mover_nonpawn = piece_type(moved) != Pawn || move.is_promotion();
++    const bool mover_nonpawn = piece_type(moved) != Pawn; /* PLANTED FAULT: miss promotion */
+     const bool cap_nonpawn = captured != Empty && piece_type(captured) != Pawn;
+     std::uint8_t keep = ss->corr_valid;
+     if (mover_nonpawn) keep &= static_cast<std::uint8_t>(~(1U << static_cast<unsigned>(us)));
