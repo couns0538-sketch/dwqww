@@ -13,6 +13,7 @@ number.** Each entry below produced, or nearly produced, a wrong result that loo
 | **A. No search happened** (four disguises) | 1 (no `info` lines), 1b (`nodes 0` + empty PV), 13 (zero in output can't be classified without input), 14 (identical answers from unrelated inputs) | *is the move legal on THAT board, and did a positive node count with a non-empty PV precede it?* |
 | **B. A number that is not evidence about what you think** | 10 (counter changes the question), 11 (a maximum does not validate a table), 12 (a zero feels like evidence) | *what would this look like if it were an artifact of my instrument?* |
 | **C. Auditing the wrong thing** | 8 (`ls-files` vs `ls-tree`), 9 (committed ≠ currently used) | *did I check the thing I actually meant to check?* |
+| **E. The code says why** | 15 (a uniform result is a reason to read the source) — with 5 and 19-F23 as its other instances | *what line does this setting control, and can its guard be true on my inputs?* |
 | **D. Harness mechanics** | 2 (`select` on a buffered pipe), 3 (warm state), 4 (malformed `setoption`), 5 (`bench` hardcodes 16 MB), 6 (play-out is not a solver), 7 (oracle missing the halfmove window) | fixed by the specific test in each entry |
 
 **Family A is the one that produces plausible output most reliably** — in every one of the four, the engine prints
@@ -342,6 +343,33 @@ independent inputs agree more than they should, suspect the input before the eng
 
 **The test:** for each row of a multi-board comparison, assert the engine's move is legal in that row's position.
 My severity script now does exactly that.
+
+---
+
+## 15. A uniform result is a reason to READ THE CODE, not to sample more (19-C42)
+
+**The trap:** an option, setting or condition that changes **nothing** across every input. The reflex is to call it
+"an effect below resolution" and plan a bigger experiment.
+
+**Three times tonight that reflex was wrong and the source said why:**
+
+| uniform result | what the code said |
+|---|---|
+| `MateAlphaGuard` exactly **1.000** on four unrelated positions | it gates futility pruning only when **`alpha` is a MATE score** (`search.cpp:2134, 2159`) — an **unexecuted branch**, so it will keep returning 1.000 forever |
+| **identical** counters at Hash 16 / 64 / 256 / 1024 (19-F37) | `bench` builds its own `Searcher(16)`; the `Hash` option never reaches it |
+| five `bench 13` lines in one process all giving **862,329** (19-F23) | `bench` calls `clear()` before each position, so it is self-clearing |
+
+**In all three the uniform number was correct and the *interpretation* would have been wrong.** A bigger sample
+would have confirmed the uniformity and taught nothing.
+
+**The tell:** a result that is **exactly** the same — to the last digit, not approximately — across inputs that
+should differ.
+
+**The test:** find the line of code the setting controls. If the condition guarding it cannot be true on your
+inputs, you have your answer and no experiment will improve it.
+
+**The fix:** for any uniform result, spend the next two minutes in the source before spending twenty in the sample.
+**An unexecuted branch and a sub-resolution effect look identical in data and are opposite in meaning.**
 
 ---
 
