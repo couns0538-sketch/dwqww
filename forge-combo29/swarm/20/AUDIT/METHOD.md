@@ -31,6 +31,23 @@ over default options, never S14+six. Six-over-defaults reproduces their `f3g3 / 
 So: **the asking is what narrowed the search to the bug, even though the thing I asked about was innocent.** A refusal
 to refute without provenance costs one round trip and buys the elimination of the wrong explanation.
 
+## NAME THE CONSTRUCTION, WITH ITS OPTION COUNT
+
+**A config that is wrong by construction looks exactly like a config that is right.** Seat 30's retracted 30-F59 came
+from a "PC20 arm" that passed the six extra switches **alone** over default options instead of on top of S14 — and it
+still produced a plausible score and a legal move, so nothing downstream could tell. It was catchable only by asking
+for the ordered option list.
+
+Two practices, both cheap:
+
+1. **Name the construction in the finding line, with the count.** Mine reads `S14 (17 options) + 6 extras`, not
+   "PC20". A count is checkable at a glance: 17 = the 14 S14 settings + Threads + Hash + OwnBook false. If someone
+   claims "PC20", 17+5 is the number that must appear.
+2. **Assert it where the config is built.** `AUDIT/hardened.py` now has
+   `assert_regime(opts, "PC20")`, which raises if the S14 settings, the five extra switches or Threads/Hash are
+   missing. Tested both ways: a true PC20 passes, an extras-only list is rejected with the missing names listed. This
+   is the check that would have caught the bug at the moment it was written, rather than two hours later by inference.
+
 ## THE BINARY RULE (found while failing to re-check another seat)
 
 **A behavioural claim needs the EXECUTABLE'S IDENTITY in the file — sha256 and `id name` — not just its settings.

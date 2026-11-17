@@ -163,3 +163,33 @@ def run_search(exe, fen, go, opts=(), timeout=DEFAULT_TIMEOUT):
         e.close()
     r["fen"], r["go"] = fen, go
     return r
+
+
+# --- regime guards (added after seat 30's extras-only bug, S-F65) -------------------------------------------------
+# A settings list that is wrong-by-construction produces a plausible score and a legal move, so nothing downstream
+# catches it. These assertions name what a regime MUST contain, so a config is checked where it is built.
+REGIME_REQUIRED = {
+    "S14": ["LmrQuietBase", "LmrQuietDivisor", "LmrNoisyBase", "LmrNoisyDivisor", "LmrHistoryDivisor",
+            "NullMoveBase", "LmpBase", "HistoryPruneMultiplier", "HistoryBonusQuadratic", "HistoryBonusLinear",
+            "HistoryBonusMax", "SingularDepth", "IirDepth", "NonPawnCorrection"],
+    "PC20": ["CuckooRep", "HistRework", "TtPruneV2", "CorrHistV2", "MateAlphaGuard"],
+    "base": ["Threads", "Hash"],
+}
+
+
+def assert_regime(opts, name):
+    """Fail loudly if `opts` does not actually contain the settings that `name` claims.
+
+    assert_regime(pc20_list, "PC20")  ->  raises if S14's 14 settings, the 5 extra switches or Threads/Hash are missing.
+    This is the check that would have caught an extras-only "PC20" at the moment it was built.
+    """
+    have = {k for k, _ in opts}
+    missing = []
+    if name in ("S14", "PC20"):
+        missing += [k for k in REGIME_REQUIRED["S14"] if k not in have]
+    if name == "PC20":
+        missing += [k for k in REGIME_REQUIRED["PC20"] if k not in have]
+    missing += [k for k in REGIME_REQUIRED["base"] if k not in have]
+    if missing:
+        raise AssertionError(f"regime {name!r} is missing {missing} — this config does not mean what its name says")
+    return True
