@@ -790,6 +790,15 @@ Next: continue confirming while the window runs to 2026-11-17T10:18Z.
 120 positions, `hce` / `nnue` / `total` equal, 0 differing.** Identical FENs only, so the side-to-move eval trap
 cannot arise.
 
+**Scope, immediately: this is BUILD-independent, not NET-independent.** The 120/120 used the **built-in net**.
+File 2 records that the owner's PC plays with **its own trained net** (`NNUEArch true`, king-bucket), where the
+search returns through `static_evaluate_v3` before the hand-written evaluation — and **no net file is shared
+with the swarm** (a search for `.nnue`/`.bin` under both trees finds none), so **that mode is untestable on this
+machine by any seat.** Read "evaluation transfers" as *between builds on the same net*.
+
+Also worth knowing when reading an `eval` line: `UseNNUE false` gives `hce -42  nnue 0  total -42`, so the three
+numbers decompose as **hand-written plus net contributions**, not three independent measurements.
+
 That single fact sorts every finding in the swarm:
 
 | class | reaches the engine the owner plays? | evidence |
@@ -838,4 +847,12 @@ BOTH POINTS KEPT, AND ONE LIMIT I HAD TO ADD BEFORE THE SPLIT IS OVER-READ (S-F8
   (b) THE PATCH-QUALITY POINT, said plainly rather than as a control note: the PC r15 patch changes 11 files and about 1,200 lines, and after it the evaluation of 120 positions is BIT-FOR-BIT unchanged in hce, nnue and total. A patch that large leaving evaluation exactly intact is doing its work where it says it does, in the search.
   (c) THE LIMIT: my 120/120 used the BUILT-IN net. File 2 records that the owner plays with HIS OWN trained net, where the search returns through static_evaluate_v3 before the hand-written evaluation - and NO NET FILE is shared with the swarm (a search for .nnue/.bin under both trees finds none), so that mode is untestable here by me or by any seat. So the honest form is: EVALUATION FINDINGS TRANSFER BETWEEN BUILDS ON THE SAME NET, and the owner's net is a different net. 'Transfers' means BUILD-INDEPENDENT, not NET-INDEPENDENT.
   Also noted: UseNNUE false gives 'hce -42 nnue 0 total -42', so the three numbers decompose as hand-written plus net contributions rather than being independent - worth knowing when reading an eval line.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-17T00:03:27Z — 25-minute cadence
+SEAT 13's S-F21 AND S-F22 CONFIRMED (S-C26), and S-F22 turns out to be the stronger form of my own clock rule (S-F83).
+  S-F21: 8 clock values (1 s to 12 s) x 5 position types, fresh process per cell - distinct node counts per position are 5/6/5/6/4 out of 8 (startpos, middlegame, tactical, rook endgame, queen endgame). EVERY position type plateaus, so it is an allocator property and not a coincidence, exactly as seat 13 concluded.
+  S-F22: of 780 pairwise comparisons, 17 had equal node counts and ALL 17 had the same bestmove; 0 groups had more than one distinct move. So an equal node count identifies the same search.
+  THE STRONGER FORM (S-F83): I showed the plateau EXISTS (S-C15); seat 13 shows what it MEANS. Practical consequence for a match harness - you do NOT need to re-run to confirm a clock result is on the same rung; compare the NODE COUNT, and if it matches, the move and therefore the whole search matches too. That makes the S-F64 sweep cheaper than it looked: the sweep identifies the rung, the node count certifies any later run as being on it.
+  ALSO: moved the build-vs-net scope note UP so it sits directly beside the 120/120 result rather than in a later section, as you asked, with the eval decomposition note (UseNNUE false gives hce -42 / nnue 0 / total -42, so the three numbers are hand-written plus net contributions, not independent) beside it.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.

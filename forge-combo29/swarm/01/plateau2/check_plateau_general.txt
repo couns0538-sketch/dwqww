@@ -1,0 +1,59 @@
+CHECK of seat 13's S-F21 (plateau is general) and S-F22 (identical nodes ⇒ identical move)
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, winc=binc=60, fresh process per cell
+clocks: [1000, 1500, 2000, 3000, 4000, 6000, 8000, 12000]
+
+startpos: 8 cells -> 5 distinct (depth,nodes), 5 distinct nodes
+   clock 1000  depth 15  nodes 78579    d2d4
+   clock 1500  depth 16  nodes 104892   d2d4
+   clock 2000  depth 17  nodes 166281   d2d4
+   clock 3000  depth 19  nodes 650246   e2e4
+   clock 4000  depth 19  nodes 650246   e2e4
+   clock 6000  depth 19  nodes 650246   e2e4
+   clock 8000  depth 20  nodes 925222   e2e4
+   clock 12000 depth 20  nodes 925222   e2e4
+middlegame: 8 cells -> 6 distinct (depth,nodes), 6 distinct nodes
+   clock 1000  depth 14  nodes 97289    g7g6
+   clock 1500  depth 15  nodes 121306   g7g6
+   clock 2000  depth 15  nodes 121306   g7g6
+   clock 3000  depth 16  nodes 170070   g7g6
+   clock 4000  depth 17  nodes 288912   g7g6
+   clock 6000  depth 18  nodes 314239   g7g6
+   clock 8000  depth 23  nodes 1520334  e5e4
+   clock 12000 depth 23  nodes 1520334  e5e4
+tactical: 8 cells -> 5 distinct (depth,nodes), 5 distinct nodes
+   clock 1000  depth 14  nodes 105070   b6b5
+   clock 1500  depth 14  nodes 105070   b6b5
+   clock 2000  depth 15  nodes 142785   b6b5
+   clock 3000  depth 16  nodes 170639   b6b5
+   clock 4000  depth 17  nodes 237233   b6b5
+   clock 6000  depth 18  nodes 514093   b6b5
+   clock 8000  depth 18  nodes 514093   b6b5
+   clock 12000 depth 18  nodes 514093   b6b5
+rook_endgame: 8 cells -> 6 distinct (depth,nodes), 6 distinct nodes
+   clock 1000  depth 14  nodes 298156   e2e3
+   clock 1500  depth 15  nodes 379036   e2e3
+   clock 2000  depth 16  nodes 387029   e2e3
+   clock 3000  depth 17  nodes 1068314  e2d3
+   clock 4000  depth 17  nodes 1068314  e2d3
+   clock 6000  depth 18  nodes 1663952  e2d3
+   clock 8000  depth 18  nodes 1663952  e2d3
+   clock 12000 depth 21  nodes 8123101  e2e3
+queen_endgame: 8 cells -> 4 distinct (depth,nodes), 4 distinct nodes
+   clock 1000  depth 13  nodes 229304   h6h4
+   clock 1500  depth 13  nodes 229304   h6h4
+   clock 2000  depth 13  nodes 229304   h6h4
+   clock 3000  depth 14  nodes 358225   h6h4
+   clock 4000  depth 14  nodes 358225   h6h4
+   clock 6000  depth 15  nodes 948714   h6h4
+   clock 8000  depth 15  nodes 948714   h6h4
+   clock 12000 depth 16  nodes 1466041  h6h4
+
+S-F21 (plateau is general): distinct node counts per position = [5, 6, 5, 6, 4] out of 8 clock values.
+  -> GENERAL: every position plateaus (fewer distinct outcomes than clocks)
+
+S-F22 (identical nodes ⇒ identical move): 17 of the 780 pairwise comparisons had equal node counts,
+  and 17 of those 17 had the same bestmove. Groups with more than one distinct move: 0.
+  -> CONFIRMS S-F22 on my boards: an identical node count always came with an identical move,
+     so a node count is a sufficient identifier for the search result here.
