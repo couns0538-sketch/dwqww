@@ -836,3 +836,19 @@ seed: 1601
 - Discipline note: the figures in that report were COMPUTED and printed by the script, not typed by hand — the
   deliberate fix for the retyping habit that failed twice today.
 - check_folder.py ALL CHECKS PASS (490 files, 57 findings rows). Continuing to the close at 10:18:40Z.
+
+## 2026-11-17T05:30Z
+- FINAL now carries the WHOLE v3 account as one block (PART 4c, replacing the older PART 4c+4d duplication): the
+  ceiling (nnue 20.85 % bench / 20.65 % real, so ~1.26x max), the hottest-symbol flip between the two arms and why
+  the real-position arm governs, and the four-lever table — branch-dispatch SHIPPED +1.2 %, my straight-line patch
+  NULL with perfect identity (ABBA n=120, ratio 0.9694, CI [0.9418, 1.0297]), fold struct capped by latency, picker
+  ordering-dependent, plus the tie-order calibration (1.5865 % vs 5.0547 %).
+- EVERY NUMBER IN THAT BLOCK IS GENERATED, not typed: I wrote v3/write_v3_block.py, which reads the sums from
+  ident_*.txt, the ABBA figures from abba_out/abba.txt, and the profile shares from perf_shares.py output. That is the
+  mechanical fix for the retyping habit — and it immediately caught something: my hand-typed "~37 %" for the picker
+  was really 40.27 % on the bench and 34.17 % on real positions, and the block now states both.
+- I also found and QUARANTINED a stale trap: v3/prof_open/summary.txt recorded nnue 0.00 % because it came from the
+  first profile whose perf.data was EMPTY (the paranoid block). Renamed to summary_BROKEN_emptyperfdata.txt so nobody
+  reads it, and wrote v3/perf_shares.py as the one correct parser (perf's demangled names wrap onto following lines,
+  so naive parses gave me 0.96 % and 2.06 % before this).
+- check_folder.py ALL CHECKS PASS (494 files, 57 findings rows). Continuing to the close at 10:18:40Z.
