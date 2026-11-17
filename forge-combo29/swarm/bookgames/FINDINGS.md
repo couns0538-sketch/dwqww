@@ -544,7 +544,8 @@ where it goes afterwards. `scripts/reentry_drawn.py` asks the precise question:
 > from a book leaf, can play reach a position that (a) is **in the book** and
 > (b) **already occurred** on that book line?
 
-**Yes, on all 77 leaves where it is possible at all** (122 of 199 cannot, §9.3).
+**Yes, on all 77 leaves where it is possible at all** (the other 122 of 199 cannot — see
+point 2 under "Why it did not happen" below).
 A concrete case, confirmed by hand and reproduced end-to-end by
 `scripts/q2b_shuffle.py` (`evidence/q2b-shuffle.json`):
 
@@ -591,7 +592,7 @@ Three reasons, and only the third is empirical:
 1. **The shuffle needs the opponent to cooperate.** After the leaf the book has no
    entry, so both sides search — and a search does not volunteer a 3-ply
    repetition. The state is reachable but neither engine walks into it unaided.
-2. **122 of 199 leaves cannot do it at all** (§9.3): every earlier position is
+2. **122 of 199 leaves cannot do it at all**: every earlier position is
    separated forever by an irreversible move.
 3. **0 re-entries and 0 drawn-root book events in 920 games** confirm (1)
    empirically, and that is the unbounded evidence — a bounded search cannot
