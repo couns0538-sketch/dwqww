@@ -1,0 +1,34 @@
+ROOT-DISTANCE AXIS: NOT CONSTRUCTIBLE on either board, so the axis is UNTESTED and the handoff must say so
+=========================================================================================================
+23-F117 named root distance in the history as the cheapest untested axis: every cell in the seat has the root occurring
+at plies 0, 4 and 8, so no cell distinguishes spacing from content. Job 57 tried to vary it.
+
+WHY IT COULD NOT RUN
+--------------------
+The design needed a FILLER shuttle: a 4-ply sequence that returns to a NON-root position, so the two occurrences of the
+root could be pushed apart without adding a fourth occurrence of it. Search over legal non-capturing non-checking moves
+found **no such filler on M1 and no such filler on M7**:
+
+| board | filler found | patterns attempted | result |
+|---|---|---|---|
+| M1 | **none** | A 0/4/8, B 0/8/16, C 0/4/12 | **all three NOT CONSTRUCTIBLE** |
+| M7 | **none** | A 0/4/8, B 0/8/16, C 0/4/12 | **all three NOT CONSTRUCTIBLE** |
+
+This is the same structural obstruction as 23-F113's T1: on a board with few pieces, a 4-ply shuttle that returns
+ANYWHERE returns to the position it started from, so a non-root loop cannot exist alongside a root loop. Varying spacing
+requires a busier board — the same "more than one return path" property named in F113 as the thing that would settle the
+root-specific question.
+
+WHAT THIS MEANS FOR THE HANDOFF
+-------------------------------
+The axis remains untested. It is NOT evidence that spacing is irrelevant — it is a report that my fixtures could not
+test it, which is the distinction F104 (eligible count before evaluating a prediction) exists to keep straight. The
+handoff is corrected to say "untested, and why", so the source reader does not read a negative where there is an
+absence.
+
+WHAT I DID NOT DO, and why
+--------------------------
+I did not hand-build a filler by eye. The job-44 typo and the F109 history drop both came from hand-built move lists,
+and a filler constructed by hand would be exactly the class of artefact this seat has been bitten by three times. If the
+axis matters, it needs a board where the search FINDS a filler — which is a fixture-selection problem, not a typing
+problem, and is the honest next step for whoever continues this line.

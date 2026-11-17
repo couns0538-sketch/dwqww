@@ -142,8 +142,11 @@ unlikely, and its absence is one of the firmer facts here.
 
 ## 6. What I would measure next, if measuring were the tool
 
-1. **Distance axis (E):** root at plies 0/4/8 vs 0/8/16 vs 0/4/12 — cheap, and the only axis every current cell holds
-   constant.
+1. **Distance axis (E):** root at plies 0/4/8 vs 0/8/16 vs 0/4/12 — the only axis every current cell holds constant.
+   **ATTEMPTED AND COULD NOT BE CONSTRUCTED (job 57):** varying the spacing needs a FILLER shuttle that returns to a
+   NON-root position, and search found none on either M1 or M7 — the same "few pieces, every shuttle returns where it
+   started" obstruction that made 23-F113's T1 impossible. So this axis is **UNTESTED, not tested-and-negative**; it
+   needs a board busy enough to admit a non-root 4-ply loop.
 2. **Rights-history mismatch (C):** root sent with `-` inside a game whose history carried rights.
 3. **A rights-present board that bails:** already have two (M1, M4) — a source reader should start by diffing
    **M1 vs M7**, which are the closest pair in the table (both middlegame, both rights present, opposite verdicts).
