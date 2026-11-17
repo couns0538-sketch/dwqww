@@ -1,0 +1,15 @@
+Step: s3_correction_prefetch_and_unroll
+Base: 6b98f217 + pc_r15.patch + a_speed_pc20_v3.patch.txt + e1_legal_check_evasions.patch.txt
+
+Functions and profile share attacked:
+- forge::Worker::corrected_eval: 6.83% self in post-E1 self-play profile (4.35% in Job 3 Sec 1 profile; 9,784,391 calls across 24 FEN-root games)
+- forge::Worker::update_correction: 0.76% self in post-E1 self-play profile (0.21% in Job 3 Sec 1 profile; 1,097,435 calls)
+Total profile share attacked: 7.59% of post-E1 self-play profile (4.56% of Job 3 Sec 1 profile).
+
+Mechanism (100% search- and eval-identical):
+1. Early cache-line prefetching (`Worker::prefetch_correction`) right after `make_move` / `make_null_move` (alongside TT prefetch, 150-300 cycles before `corrected_eval` runs): prefetches the exact target cache lines in the four 128 KiB random-access correction tables (`correction_history_`, `joint_correction_`, `non_pawn_white_correction_`, `non_pawn_black_correction_` = 512 KiB working set) for `board.pawn_key()` and all valid inherited `child->corr_valid` keys.
+2. Compile-time-constant unrolled `non_pawn_key(board, color)` over contiguous `piece_bitboards()` (eliminating the 5-step loop and runtime `0x9E37... + type * 0xBF58...` constant arithmetic on the 50% of moves where one side's non-pawn bitboard changed).
+
+Predicted wall-time gain on the self-play driver (FEN roots, 768 test net, PC20):
+- Predicted median of paired round wall-time ratios (B / A): 1.010x to 1.035x (+1.0% to +3.5%).
+- Kill criterion (range that kills this prediction): median of paired round wall-time ratios < 1.007x (< +0.7%).
