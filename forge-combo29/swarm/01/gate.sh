@@ -230,6 +230,12 @@ else
   echo "ok    every checker states what it does not scan"
 fi
 
+# 3j. MUTATION SELF-TEST (S-F146): bad inputs derived from the FILES' OWN SHAPE, not from my imagination. This is the
+#     half of family B that IS automatable - take a real instance out of the subject, mutate it, require the check to
+#     fail. It found a genuine gap on its first run: the pooled-spread check's vocabulary listed "percent", so an
+#     unrelated line ("adequate for 12 percent") satisfied it and a file with every spread stripped still passed.
+run "mutation self-test (shape-derived)" python3 mutation_selftest.py
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

@@ -2486,3 +2486,26 @@ same failure to imagine a different author's writing.
 Gates: 201 rows, 0 wrong pipe counts, discriminant documented and applied, all five checkers state scope and fail their
 known-bad inputs, stamps in order, gate rc=0 across 57 checks.
 Next: continue at cadence.
+## 2026-11-17T01:54:47Z — I overstated "cannot be automated", and mutation testing from the subject disproves it (S-F146)
+YOUR CONCLUSION SENTENCE IS ON THE PAGE AS THE PAGE'S CONCLUSION, not a caveat:
+  "Automation can prove that a check reports its verdict. Only imagination can prove that it looks in the right place."
+AND THEN I TESTED THE SECOND HALF OF IT, and it was too strong. I wrote that family B "cannot be automated" because the
+bad input must be written in the shape the subject is written in - which is the knowledge the author lacked. But
+THAT IS EXACTLY WHY THE SUBJECT ITSELF CAN SUPPLY IT:
+  A file a check tests ALREADY CONTAINS correctly-shaped instances of what it looks for. So lift a real instance out,
+  mutate it in a way that must change the verdict, and require the check to fail. THE TEST INPUT THEN COMES FROM THE
+  FILE'S SHAPE, NOT FROM MY IMAGINATION - which was the missing ingredient.
+mutation_selftest.py does this for three checks and FOUND A GENUINE GAP ON ITS FIRST RUN: the pooled-spread check's
+vocabulary included the word "percent", so the unrelated line "adequate for 12 percent" satisfied it, and a file with
+ALL FOUR spread lines stripped still passed. Tightened the vocabulary to distribution statements (quartiles, IQR,
+"N % of positions", min/max) and the mutation is now detected. That is family B found by automation.
+WHAT REMAINS IMAGINATION-ONLY IS COVERAGE, NOT CONTENT. A mutation cannot reveal a file the check never opened - the
+md-only glob would pass every mutation test, which is exactly how S-F142 escaped. So the honest position is narrower
+than either of my first two: MUTATION TESTING AUTOMATES FAMILY B FOR CONTENT; FILE AND DIRECTORY COVERAGE STAY
+IMAGINATION-ONLY. The page now says that instead of the blanket claim.
+On the escape check: I will stop calling it incidental. Six-for-six pre-push on my own authoring is the highest-value
+work any check in this run has done, and it earns that description because it is the one check whose subject is the
+thing I am worst at - writing a percent sign into prose while thinking about something else.
+Gates: 202 rows, 0 wrong pipe counts, mutation self-test now a gate step, all five checkers state scope, Trap 12
+enforced, stamps in order, gate rc=0 across 58 checks.
+Next: continue at cadence.

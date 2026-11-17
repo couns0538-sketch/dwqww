@@ -37,8 +37,15 @@ POOLED = re.compile(
     r"((?:pooled|aggregate|total nodes|overall)[^.\n]{0,60}?[0-9]+\.[0-9]+)"
     r"|((?:median|mean|geometric mean)[^.\n]{0,40}?ratio[^.\n]{0,20}?[0-9]+\.[0-9]+)",
     re.I)
-SPREAD = re.compile(r"(quartile|Q1|Q3|IQR|interquartile|sd\s*[0-9]|stdev|standard deviation|min\s*[0-9]|\bmin\b.*\bmax\b"
-                    r"|range\s*[0-9]|win[s]? on|favou?r the|% of positions|percent of positions|per-position)", re.I)
+# A spread marker must be a DISTRIBUTION STATEMENT, not any occurrence of a word like "percent". My first version
+# listed "percent", which matched the unrelated line "n>=120 is adequate for 12 percent" - so a file with every spread
+# stripped still passed. Found by mutation testing (S-F146), which is what that tool is for: the check's own vocabulary
+# was too loose to notice its subject was gone.
+SPREAD = re.compile(
+    r"(quartile|\bQ1\b|\bQ3\b|\bIQR\b|sd\s*[0-9]|stdev|standard deviation"
+    r"|\bmin\s*[0-9]|\bmin\b[^\n]*\bmax\b|range\s*[0-9]"
+    r"|win[s]? on\s+\*?\*?[0-9]|favou?r[s]? the|\b[0-9.]+\s*% of positions"
+    r"|per-position spread|PER-POSITION SPREAD)", re.I)
 
 
 def main():

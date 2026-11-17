@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""swarm seat 01: a MUTATION self-test for shape-sensitive checks (extends Trap 13's family B, S-F146).
+
+Trap 13 concluded that family B "cannot be automated" because a bad input must be written in the shape the subject is
+actually written in - the shape its author failed to imagine. That conclusion is too strong, and this tool narrows it.
+
+The insight: **the subject already contains correctly-shaped instances of whatever the check looks for.** So instead of
+hand-writing a bad input from my mental model, take a REAL instance out of the file, mutate it in a way that must
+change the verdict, and confirm the check fails. The test input then comes from the file's own shape, not from my
+imagination - which is exactly the missing ingredient.
+
+Scope and limit, stated up front:
+  * this works where a check reads TEXT and its subject has extractable instances (depth claims, spreads, stamps);
+  * it does NOT work where the question is whether the check looks at a FILE AT ALL (the `*.md` glob) - a mutation of a
+    file's content cannot reveal a file the check never opened. That part of family B stays imagination-only.
+  * so the honest position is: **mutation testing automates family B for CONTENT, not for COVERAGE.**
+
+Usage: mutation_selftest.py [--keep]
+"""
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+FINDINGS = ROOT / "FINDINGS.md"
+TRACE = ROOT / "clockfloor" / "analyse_outliers.json"
+
+
+def run(args, env=None):
+    import os
+    e = dict(os.environ)
+    if env:
+        e.update(env)
+    r = subprocess.run(args, capture_output=True, text=True, cwd=str(ROOT), env=e)
+    return r.returncode, r.stdout + r.stderr
+
+
+def mutate_number(claim, group_index):
+    """Change one number inside the claim by +1, keeping its formatting (commas)."""
+    nums = re.findall(r"[0-9][0-9,]*", claim)
+    if len(nums) <= group_index:
+        return None
+    old = nums[group_index]
+    new = "{:,}".format(int(old.replace(",", "")) + 1)
+    return claim.replace(old, new, 1), old, new
+
+
+def test_depth_claims(tmp):
+    """Shape-adaptive: lift a REAL claim from FINDINGS, corrupt one number, expect failure."""
+    text = FINDINGS.read_text()
+    pat = re.compile(r"[0-9][0-9,]*\s+vs\s+[0-9][0-9,]*\s+(?:nodes\s+)?at\s+d\d+")
+    m = pat.search(text)
+    if not m:
+        return ("SKIP", "no claim of that shape present in FINDINGS.md - nothing to mutate. The check cannot be "
+                        "tested this way, which is itself information: the selector may be looking for a shape the "
+                        "file does not use. (Trap 12.)")
+    claim = m.group(0)
+    res = mutate_number(claim, 0)
+    if not res:
+        return ("SKIP", "could not mutate %r" % claim)
+    mutated, old, new = res
+    bad = tmp / "mutated_findings.md"
+    bad.write_text(text.replace(claim, mutated, 1))
+    rc, out = run([sys.executable, "check_depth_claims.py", str(bad), str(TRACE)])
+    if rc == 0:
+        return ("FAIL", "check passed on a claim mutated %s -> %s; it does not detect a wrong number in the shape it "
+                        "claims to check" % (old, new))
+    return ("OK", "real claim %r mutated %s -> %s, check failed as required" % (claim, old, new))
+
+
+def test_findings_table(tmp):
+    """Shape-adaptive: take a REAL well-formed row, add a cell, expect failure."""
+    lines = [l for l in FINDINGS.read_text().splitlines() if l.startswith("| S-F")]
+    if not lines:
+        return ("SKIP", "no finding rows to mutate")
+    row = lines[0]
+    mutated = row + " extra cell |"
+    bad = tmp / "mutated_table.md"
+    bad.write_text(mutated + "\n")
+    rc, _ = run([sys.executable, "check_findings_table.py", str(bad)],
+                env={"FINDINGS_ARTIFACT": str(tmp / "art.txt")})
+    if rc == 0:
+        return ("FAIL", "table check passed on a real row with an extra cell")
+    return ("OK", "real row + one extra cell, check failed as required")
+
+
+def test_pooled_spread(tmp):
+    """Shape-adaptive: take a REAL pooled line, strip its spread, expect failure."""
+    txt = ROOT / "clockfloor" / "wall_time_pc20.txt"
+    if not txt.exists():
+        return ("SKIP", "no pooled artifact present")
+    body = txt.read_text()
+    # strip everything that looks like a spread marker
+    out, removed = [], 0
+    for line in body.splitlines():
+        if re.search(r"Q1|quartile|IQR|PER-POSITION SPREAD|percent|% of positions|min .* max", line, re.I) \
+                and re.search(r"ratio|[0-9]\.[0-9]", line):
+            removed += 1
+            continue
+        out.append(line)
+    if not removed:
+        return ("SKIP", "could not identify spread lines to remove - the check's own marker vocabulary may be wrong")
+    d = tmp / "clockfloor"
+    d.mkdir(exist_ok=True)
+    (d / "stripped.txt").write_text("\n".join(out) + "\n")
+    rc, _ = run([sys.executable, "check_pooled_spread.py", str(d)])
+    if rc == 0:
+        return ("FAIL", "pooled check passed with %d spread lines removed" % removed)
+    return ("OK", "%d spread lines removed from a real file, check failed as required" % removed)
+
+
+def main():
+    tmp = Path(tempfile.mkdtemp())
+    results = [
+        ("depth claims vs trace", test_depth_claims(tmp)),
+        ("findings table shape", test_findings_table(tmp)),
+        ("pooled ratios carry spread", test_pooled_spread(tmp)),
+    ]
+    print("MUTATION SELF-TEST - bad inputs derived from the files' own shape, not from my imagination\n")
+    bad = 0
+    for name, (status, detail) in results:
+        print("  %-4s %-28s %s" % (status, name, detail))
+        if status == "FAIL":
+            bad += 1
+    print()
+    if bad:
+        print("VERDICT: %d mutation(s) went undetected - that check's selector does not cover the shape its own file"
+              % bad)
+        print("uses, which is exactly the family-B failure this tool exists to find.")
+        return 1
+    print("VERDICT: every mutation derived from a real instance was detected.")
+    print("LIMIT: this automates family B for CONTENT, not COVERAGE. A mutation cannot reveal a file the check never")
+    print("opened - the `*.md`-only glob would still pass every test here. That part remains imagination-only.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

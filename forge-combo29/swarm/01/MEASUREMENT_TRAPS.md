@@ -336,8 +336,7 @@ not arrive. If it fails, the family is **scope** — the check never looked, or 
 
 **This is why `gate.sh`'s self-test exists and why it runs on every invocation**: it is the bad-input test, applied to
 every checker in the gate. A checker that stops failing on a known-bad input fails the gate, so family A cannot come
-back unnoticed. Family B is harder to automate, because the known-bad input must be written *in the shape the subject is
-actually written in* — which is the third question.
+back unnoticed. **The self-test is not a nice-to-have beside the gate; it is the discriminant, running continuously.**
 
 **Family B is fixed by the three questions below.** Of its three members, **one is the first question** (the escape
 scan globbed `*.md` while the evidence is `*.txt` — a file-type miss, answerable by looking) and **two are the
@@ -358,6 +357,34 @@ that needed imagining another author rather than reading a directory listing.
 **And name the exclusions.** "This check does not scan `.json` because node counts only appear in `.txt` summaries" is
 auditable — a reader can see whether the exclusion is safe. An unstated exclusion is indistinguishable from an
 oversight, and mine were all oversights.
+
+### The conclusion of this page
+
+> **Automation can prove that a check reports its verdict. Only imagination can prove that it looks in the right place.**
+
+That asymmetry is the whole content of Trap 13, and it explains why the two families behave so differently:
+
+* **Family A is fully automatable.** The bad-input test needs only input you know is wrong — any shape will do, because
+  the question is whether the *status* arrives. The gate self-test therefore runs it on every invocation, and family A
+  cannot return unnoticed.
+**A correction to my own conclusion, added after building the test:** I first wrote here that family B "cannot be automated". **That is too strong, and `mutation_selftest.py` disproves it for one half of the family.**
+
+* **Family B is PARTLY automatable, and the trick is to take the bad input from the subject itself.** A file that a check tests already contains correctly-shaped instances of what it looks for. So lift a real instance out of the file, mutate it in a way that must change the verdict, and require the check to fail — **the test input then comes from the file's shape, not from my imagination**, which was the missing ingredient. On its first run this found a genuine gap: the pooled-spread check's vocabulary listed `percent`, so an unrelated line ("adequate for 12 percent") satisfied it, and a file with every spread stripped still passed.
+* **What remains imagination-only is COVERAGE, not content.** A mutation cannot reveal a file the check never opened — the `*.md`-only glob would pass every mutation test. So the honest position is narrower than either of my first two: **mutation testing automates family B for content; file and directory coverage stay imagination-only.**
+
+**Family B's residual is not automatable, and that is a property of the problem rather than a gap in my tooling.** To test whether
+  a selector looks in the right place, the bad input must be written **in the shape the subject is actually written
+  in** — which is precisely the knowledge the check's author lacked. A self-test written by me would use my mental model
+  of the file, which is the same model that produced the wrong selector. **The test cannot supply the imagination its
+  author does not have.**
+
+So family B keeps recurring not because I keep forgetting a rule, but because **the only defence is to imagine a
+different author reading the file** — and that is a habit, not a mechanism. The three questions earlier on this page are
+an attempt to make the habit routine; they cannot make it automatic.
+
+**Which is why the stated exclusion list matters more than any check's logic.** It is the one artefact that lets *another
+person* supply the imagination the author lacked: they can read "does not scan `.json` because node counts only appear in
+`.txt`" and see at once whether that exclusion is safe.
 
 ## The shape the harness traps share
 
