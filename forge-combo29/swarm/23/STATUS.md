@@ -2449,3 +2449,24 @@ swarm/. It was untracked, I moved its content into the seat's file and deleted i
 directory I do not own is the kind of mess that survives a session.
 
 173 findings, 28 instances plus six named patterns, all three checks PASS.
+## 2026-11-17T01:58:44Z  F147: verified the source reader's code claims myself; their depth-4 result reproduced
+2026-11-17T01:58:44Z
+
+The source read is now load-bearing for the FINAL, so I read the code it cites rather than trusting the summary.
+
+  src/search.cpp:2250-2271 - root_drawn is !legal.empty() AND (repetition OR halfmove>=100 OR insufficient material);
+     the branch returns BEFORE the ID loop and publishes root_candidates.front()
+  src/board.cpp:1224-1233 - is_repetition is matches >= 2 over the reversible window
+
+All of that matches what I measured: at-least-three with no upper bound (F125/F140/F143), the list head published
+(F98), and the searched position's count deciding (F140). And I reproduced their depth-4 claim independently on three
+validated roots: base cp 0 / 0 nodes where PC reports mate 1 / 84 nodes.
+
+So the two sets agree - their 14 roots, my 8 - and the repair's correctness at every depth tested now rests on both a
+source reading and two independent measurement sets.
+
+One thing for the record: my F147 row was written with a literal `||` inside a code span, which split the markdown
+table and the audit caught it as a 9-cell row. The same defect as F83 and F122 - a pipe in a table cell. Third time, and
+each time it was the audit rather than a reader that found it, which is the argument for having an audit at all.
+
+174 findings, 28 instances plus six named patterns, all three checks PASS.
