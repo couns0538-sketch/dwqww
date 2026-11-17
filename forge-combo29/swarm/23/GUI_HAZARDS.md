@@ -197,7 +197,7 @@ cannot see. For insufficient material the two interfaces nearly agree (23-F79).
 
 `eval` stayed at exactly 406 across all nine counters (0 cp spread — it genuinely has no move counter). So near the
 end of the fifty-move count the two interfaces diverge completely, and earlier in the game they roughly agree: a GUI
-showing `eval` is most misleading exactly when a game is heading for a counter draw (23-F80).
+showing `eval` is most misleading exactly when a game is heading for a counter draw (23-F80). The onset in that table is the same one found independently by sweeping the counter directly (23-C26) — **one mechanism seen from two directions**: the search's own horizon, and the gap between two interfaces.
 
 ## Why this is safe for the owner's PC games
 
