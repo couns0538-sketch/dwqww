@@ -270,6 +270,15 @@ Three sightings on unrelated depths and budgets:
 | seat 19's 19-F59, `go depth 24` | `mate -25` | 24 | 50 |
 | this seat, `go depth 16` on a counter-80 board | `mate 10` | 16 | 19 |
 
+**And the counter-example, so this is not over-read in the pessimistic direction:** board
+`8/8/8/3k4/8/6Q1/8/6K1 w - - 0 1` at `go depth 20` gives `mate 13` with a **25-ply PV where 2N-1 = 25** —
+exactly consistent, replaying to `8/8/8/kQ6/2K5/8/8/8 b - - 25 13` which is **checkmate**, and the engine from
+that position returns `mate 0`. **When the PV is long enough it IS proof, and both tests agree.**
+
+**The short-PV observation is a screening tool, not a claim that mate PVs are generally unreliable.** It is a
+screen in front of the decisive test, never a verdict on its own — and the counter-example below is what it
+looks like when the screen passes and the test confirms.
+
 **THE RECOMMENDATION: replay the PV, then ask the engine from where it stopped.** That is decisive in both
 directions and it is the test to reach for:
 
