@@ -734,3 +734,14 @@ next command: continue at cadence on counter/reproduction work.
   this one sound but blind. Sweep line CLOSED.
 
 next command: continue at cadence on counter/reproduction work only.
+
+## 2026-11-17T00:55:21Z
+
+trap 13 added: a zero in an output file cannot be classified without the input (drawn root and aborted
+  search are byte-identical: nodes 0 + empty PV). Tell: the sweep's LARGEST count was seat 21, the
+  terminal-position seat - if the biggest cluster of 'defects' sits on the expert, you are measuring the
+  expertise. Closing line: 'a sweep of outputs can tell you where to look; only a replay can tell you what
+  you found.'
+HARNESS_TRAPS.md = fourteen traps; the three sweep failures are recorded in sequence inside trap 13.
+
+next command: continue at cadence on counter/reproduction work.
