@@ -1478,3 +1478,29 @@ SEAT 02's S-F4 CONFIRMED ON ITS MAIN HALF, REFUTED ON ITS NARROWER ASIDE (S-C37,
   REFUTED, its aside that 'a huge btime DOES bound a White-to-move search': go btime 6000000 with White to move did not answer in 8 s, and a 20 s standalone re-run reached depth 27 at 31 M nodes STILL SEARCHING - it stopped only because I sent stop. So 'send the opponent a big number' is not a workaround, and the finding is slightly broader than it claimed.
   THE RECOMMENDATION stands and is now stated plainly: since the engine correctly cannot know when the opponent will move, the right behaviour is to print ONE info string and fall back to a bounded default.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+## 2026-11-17T00:47:32Z — the huge-clock refutation now has a file that names its stopping condition
+THE 20 s RUN IS NOW AN ARTEFACT, NOT A SENTENCE. The refutation of seat 02's aside existed only as a claim in my
+chat and as prose in S-C37. That is the exact shape Trap 9 names: a number in a document whose command was never
+written down. Fixed by a second checker, partialclock/check_partial_clock_long.py, whose two legs differ ONLY in
+the stopping condition:
+  D1  no stop sent at all, process killed at 8 s  -> 0 bestmove lines, still deepening at depth 26 / 6,330,884 nodes.
+      THIS IS THE DECISIVE LEG: a bounded search answers. Nothing bounded this one.
+  D2  the same command, stop sent at 20 s          -> depth 30 / 22,399,089 nodes / ~13.9 s of search, and the
+      bestmove appears ONLY after the stop. No info string in either leg.
+  Three complete runs gave IDENTICAL node counts (22,399,089 and 6,330,884) - so this is a fixed point (S-C26 /
+  S-F83 again), not a lucky draw.
+WHY THE 8 s CAP ALONE COULD NOT SETTLE IT: "did not finish in 8 s" fits both a slow-but-bounded search and the
+absence of any bound - and the aside asserts the first. Only the no-stop leg distinguishes them.
+A NUMBER I DECLINED TO QUOTE AGAINST ANOTHER: the 20 s standalone capture runs DEFAULT options and reached
+depth 27 / 31,011,772 nodes; the PC20 legs reach depth 30 / 22,399,089. Different search parameters, so the two
+are NOT numerically comparable and the page says so. Both are kept: the raw default-options capture as
+standalone_D_huge_btime_20s.txt, the PC20 legs as the quotable ones.
+THE FIX STATEMENT, now carrying its own reason rather than just its conclusion: the engine cannot know when the
+opponent will move, so it will never receive the information a bound would need. Hence one info string plus a
+bounded default, and never a limit derived from the opponent's clock. A recommendation whose mechanism is written
+down is testable; one that is only asserted is not.
+ALSO CORRECTED: check_partial_clock.py printed, in the branch where D does not answer, nothing about the refutation
+- so its own output understated what it had shown. It now prints it, and points at the long checker for the why.
+Gates: 150 rows, table shape OK, page shape OK, four honesty pins PASS, integrity audit PASS with its synthetic
+negative test firing. Page: partialclock/HUGE_CLOCK_IS_NOT_A_BOUND.md.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

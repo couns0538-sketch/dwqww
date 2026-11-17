@@ -123,6 +123,10 @@ def main():
         v.append("  the part that makes it a GUI hang rather than an error: the protocol reports nothing wrong.")
         if d["answered"]:
             v.append("  D also confirms its narrower point: a HUGE opponent clock does bound the search.")
+        else:
+            v.append("  D REFUTES the narrower point: a HUGE opponent clock did NOT bound it. An 8 s cap cannot say")
+            v.append("  whether that is slowness or the absence of any bound, so see check_partial_clock_long.py,")
+            v.append("  whose D1 leg sends no stop at all.")
     elif a["answered"] and b["answered"]:
         v.append("VERDICT: does NOT reproduce - a partial opponent clock was bounded here; see the timings.")
     else:
