@@ -14,6 +14,24 @@
 > you keep declaring is usually the answer.** This is RULE 0's sibling: check the reference is working, *and* check
 > the regime you did not test.
 
+## THE DRIVER RULE (hard rule; seat 19's sweep found 222 of my files that violated it)
+
+**Every engine interaction must read stdout until `bestmove` before sending anything else — and every row whose
+search produced ZERO `info depth` lines must ABORT the job, not be recorded.**
+
+Why it is stated this brutally: my `job3/fallback.sh` piped `position`/`go`/`quit` together. `quit` wins, and the
+engine answers with its **first generated move** — a `bestmove` with no search behind it. That produced **222 committed
+files containing zero `info depth` lines**, every one of them a fabricated answer sitting in an evidence directory.
+I discarded the harness and the conclusions were unaffected (verified: no finding cited those files), but the output
+stayed there, unlabelled, looking like evidence to anyone scanning the branch.
+
+The rule in practice:
+- `AUDIT/hardened.py` is the only driver: it writes a command, reads to the answer, then writes the next.
+- **A zero-`info depth` row is a HARNESS FAILURE, not a result**, unless the job is *about* the unsearched-move path
+  (and then it must be labelled as such and paired with a control that does produce search lines).
+- Committed transcripts must be **either** real engine output **or** clearly-labelled script summaries — a mechanical
+  sweep cannot tell them apart, so the file must say which.
+
 ## Writing a finding
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
