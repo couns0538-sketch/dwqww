@@ -1,0 +1,22 @@
+## seat 21's 21-F8b — is `fullmove 0` refused, and does it leave the stale board?
+
+| quantity | value |
+|---|---|
+| python-chess accepts the `fullmove 0` FEN? | **yes** |
+| its legal-move count (python-chess) | 33 |
+| the PREVIOUS position's legal-move count | 20 |
+
+## The measurement
+
+| step | result |
+|---|---|
+| `position fen` with `fullmove 0` | **info string invalid FEN: invalid FEN fields** |
+| `go perft 1` afterwards | **20 nodes** |
+
+| their claim | my measurement |
+|---|---|
+| `fullmove 0` is still REFUSED on the PC build | **YES** |
+| the refusal leaves the STALE board | **YES** (perft 1 = 20; the previous board gives 20, the refused one would give 33) |
+
+**CONFIRMS**: the engine is stricter than python-chess on `fullmove 0`, refuses it, and keeps the previous
+board. Synchronous perft proves the stale-board half, so no reader pattern can have influenced it.
