@@ -1145,3 +1145,25 @@ new qualified text - I had fixed the sentence named and left its twin three sent
 duplicate signature" inside the clause explaining why that phrase is wrong, so it flagged itself; the qualifier
 set now includes self-rejecting forms (`not ... none`, `often no`, `only N of M`). Final: 0 candidates, all three
 controls passing.
+
+## 2026-11-17T13:0xZ S-C107/108 — new defect (unknown go token ignored) and a caveat on a live cross-seat claim
+**S-C107 NEW DEFECT: AN UNKNOWN `go` TOKEN IS SILENTLY IGNORED, WITH NO WARNING.** Fresh process each:
+  go depth 10                  -> depth 10, 9575 nodes, cp 21
+  go depth 10 nonsense_token 3 -> depth 10, 9575 nodes, cp 21   (nothing printed)
+**This is the mechanism behind `go depth 16 multipv 3` meaning MultiPV 1** - MultiPV is a `setoption` here, the
+`go` token is discarded without comment, both arms of my first replication ran identical config, and it produced
+**0 disagreements in all three strata**. Only the "must be non-zero" SENSITIVITY control caught it; without it I
+would have published "MultiPV never changes the move". **FOURTH instance tonight of a well-formed reply to a
+question that was not asked** - worth naming as a property of the engine, alongside `bestmove 0000`, empty
+`info depth`, and the refused FEN searching the previous position.
+**S-C108 REPLICATES 25-C56's MOVE HALF AND FINDS ITS "INVERTED" HALF UNDERPOWERED IN THEIR OWN DATA.**
+My 100 S14 positions: move-unstable 8/24 = 33.3% MultiPV disagreement; score-unstable 4/23 = 17.4%; neither
+7/53 = 13.2%. Their move-vs-remainder Fisher **p < 1e-6** - not in doubt.
+**BUT their headline comparison, score 7/109 vs remainder 21/156, is EXACT FISHER p = 0.0712 - NOT SIGNIFICANT
+at 0.05, with overlapping intervals.** Mine (4/23 vs 7/53, p=0.726) points the OTHER way but my strata are 4.7x
+smaller, so the honest statement is **"my sample could not detect an inversion of their magnitude", NOT "the
+inversion fails to reproduce."**
+**Their practical consequence - "enriching by score-change would have been worse than no criterion at all" - is
+a specific ORDERING that 7/109 vs 21/156 cannot establish.** Defensible version sent to them: **select on move
+change (overwhelming); do not rely on score change in either direction.** Framed as a caveat, not a
+contradiction - their design and mechanism are sound; only one comparison's strength is overstated.
