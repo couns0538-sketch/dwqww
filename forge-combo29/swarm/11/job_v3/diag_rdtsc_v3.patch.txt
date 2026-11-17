@@ -1,0 +1,47 @@
+--- a/src/search.cpp	2026-11-17 00:00:35.103068183 +0000
++++ b/src/search.cpp	2026-11-17 00:07:03.011068183 +0000
+@@ -3136,7 +3136,28 @@
+ // changes that record_move and record_null_move left on the stack are replayed, and a perspective whose king
+ // key changed is refreshed through the per-worker cache. Only stand-alone v3 nets are accepted (the UCI code
+ // refuses a residual one), so the value returned is the net's alone.
++// SEAT 11 DIAGNOSTIC (not a speed patch): count calls and rdtsc cycles spent in the v3 evaluator,
++// so the v3 share can be measured WITHOUT -pg distorting every other function. Printed by `bench`.
++unsigned long long g_diag_v3_calls = 0;
++unsigned long long g_diag_v3_cycles = 0;
++namespace diag {
++inline unsigned long long& v3_calls() { return g_diag_v3_calls; }
++inline unsigned long long& v3_cycles() { return g_diag_v3_cycles; }
++inline unsigned long long rdtsc_now() {
++#if defined(__x86_64__)
++  unsigned int lo = 0, hi = 0;
++  __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
++  return (static_cast<unsigned long long>(hi) << 32) | lo;
++#else
++  return 0;
++#endif
++}
++}  // namespace diag
++
+ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
++    const unsigned long long diag_t0 = diag::rdtsc_now();
++    ++diag::v3_calls();
++    struct DiagScope { unsigned long long t0; ~DiagScope() { diag::v3_cycles() += diag::rdtsc_now() - t0; } } diag_scope{diag_t0};
+     const nnue::v3::Net& net = *nnue::v3::loaded();
+     if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
+     nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
+--- a/src/uci.cpp	2026-11-17 00:00:35.103068183 +0000
++++ b/src/uci.cpp	2026-11-17 00:07:03.019068183 +0000
+@@ -786,6 +786,13 @@
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++            {
++                // SEAT 11 DIAGNOSTIC: v3 evaluator cost measured with rdtsc, independent of -pg.
++                extern unsigned long long g_diag_v3_calls;
++                extern unsigned long long g_diag_v3_cycles;
++                std::cout << "info string DIAG v3_calls " << g_diag_v3_calls
++                          << " v3_cycles " << g_diag_v3_cycles << std::endl;
++            }
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();
