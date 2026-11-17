@@ -1,0 +1,64 @@
+## Static audit: is any `setoption` sent between `go` and `bestmove` in this seat's harnesses?
+
+| file | setoption sends | go sends | bestmove waits | setoption between go and bestmove? |
+|---|---|---|---|---|
+| check_s03f1.py | 0 | 1 | 0 | no |
+| check_s21f2_v2.py | 3 | 1 | 0 | no |
+| check_s27f2.py | 2 | 0 | 0 | no |
+| job1/clock_latency.py | 3 | 1 | 1 | no |
+| job1/count_book.py | 3 | 1 | 0 | no |
+| job1b/clock_latency2.py | 4 | 1 | 1 | no |
+| job6/ownbook_effect_on_OG.py | 4 | 1 | 0 | no |
+| pc20/audit_harness_ordering.py | 1 | 0 | 2 | no |
+| pc20/blowup_band.py | 1 | 1 | 0 | no |
+| pc20/check_04f10.py | 3 | 1 | 0 | no |
+| pc20/check_fifty_defect.py | 1 | 1 | 0 | no |
+| pc20/check_s03f22.py | 2 | 2 | 1 | no |
+| pc20/check_s05f3.py | 1 | 1 | 0 | no |
+| pc20/check_s06f28.py | 1 | 1 | 1 | no |
+| pc20/check_s06f6.py | 1 | 1 | 1 | no |
+| pc20/check_s07f1.py | 1 | 0 | 1 | no |
+| pc20/check_s12f12.py | 1 | 1 | 1 | no |
+| pc20/check_s12f14.py | 1 | 1 | 0 | no |
+| pc20/check_s13f10.py | 1 | 0 | 1 | no |
+| pc20/check_s17f9.py | 2 | 1 | 0 | no |
+| pc20/check_s20f38.py | 3 | 1 | 0 | no |
+| pc20/check_s21f12.py | 1 | 0 | 0 | no |
+| pc20/check_switches.py | 1 | 1 | 0 | no |
+| pc20/drain_to_flag.py | 1 | 1 | 1 | no |
+| pc20/f5_pc20.py | 1 | 0 | 0 | no |
+| pc20/fifty_real_clock.py | 1 | 0 | 0 | no |
+| pc20/flag_risk_staged.py | 1 | 1 | 1 | no |
+| pc20/move_distribution.py | 1 | 1 | 0 | no |
+| pc20/nearness_test.py | 1 | 1 | 1 | no |
+| pc20/pc20_timing.py | 3 | 1 | 1 | no |
+| pc20/plant_check.py | 1 | 0 | 1 | no |
+| pc20/plant_tiny_clock.py | 1 | 1 | 0 | no |
+| pc20/plant_zeros.py | 1 | 0 | 0 | no |
+| pc20/quiet_tactics.py | 1 | 0 | 0 | no |
+| pc20/quiet_tactics_eval.py | 1 | 1 | 0 | no |
+| pc20/real_clock.py | 1 | 1 | 0 | no |
+| pc20/reconcile_s28.py | 1 | 0 | 0 | no |
+| pc20/score_volatility.py | 1 | 0 | 0 | no |
+| pc20/shape_rate.py | 1 | 0 | 1 | no |
+| pc20/switch_clock.py | 1 | 1 | 1 | no |
+| pc20/tail_by_shape.py | 1 | 0 | 0 | no |
+| pc20/tail_frequency.py | 1 | 0 | 0 | no |
+| pc20/tenms_capture.py | 3 | 0 | 0 | no |
+| pc20/volatility_rate.py | 1 | 0 | 1 | no |
+| pc20/what_the_switch_covers.py | 3 | 0 | 0 | no |
+| softnodes/softnodes.py | 1 | 1 | 0 | no |
+| job1/run_job1.sh | 1 | 0 | 0 | no |
+| job6/honesty_book_pins.sh | 2 | 0 | 0 | no |
+| pcbuild/pc_pins.sh | 1 | 0 | 0 | no |
+
+## Verdict
+
+| quantity | value |
+|---|---|
+| python/shell harnesses scanned | 57 |
+| files with a setoption between go and bestmove | **0**  |
+| shell files needing manual review (ordering not provable statically) | 0 |
+
+**No Python harness of this seat sends a setoption between `go` and `bestmove`.** The 08-C17 assertion holds
+for every Python harness, checked mechanically rather than by reading.
