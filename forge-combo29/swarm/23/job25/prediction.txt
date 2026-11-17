@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 25 (is the SELF-PLAY path stable? softnodes 2000 across fresh processes)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+The gap: I established that the three NODE budgets (20000/50000/250000) are unstable across positions (~30 %, 23-F24)
+and that the CLOCK path is stable (23-F54/55), and that softnodes overshoots N by one depth (23-F14). But the
+self-play path — `go softnodes 2000`, the one file 6 says the PC's self-play uses — has never been tested for
+run-to-run stability on a set of positions. 23-F13 tested 10 positions at N=2000 across 5 fresh processes and found
+them identical; this repeats that on 30 positions and asks whether the MOVE can differ between two fresh processes.
+
+Method: 30 fresh quiet positions (seed-2401 stream, excluding every FEN used in jobs 10/17/18/19), PC r15 + PC20,
+Threads 1, Hash 16, OwnBook false, `go softnodes 2000`, TWO independent processes per position.
+
+Prediction (each number with the range that kills it):
+  P1  move disagreements between the two processes: 0 of 30.            KILLED if >= 1.
+  P2  node-count disagreements: 0 of 30.                                KILLED if >= 1.
+  P3  the reported node count will exceed 2000 on at least 25 of 30 (the overshoot of 23-F14). KILLED if < 15.
+  P4  the depth reached will be the SAME on every run for a given position (i.e. deterministic), and I will report
+      the distribution of depths across positions.                     KILLED if any position varies in depth.
+
+If P1 or P2 is killed, the self-play path has a lottery like the node-budget path and that is worth knowing before
+anyone treats self-play games as a fixed reference.
