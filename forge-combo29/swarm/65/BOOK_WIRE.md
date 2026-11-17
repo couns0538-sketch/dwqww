@@ -22,9 +22,9 @@ info string book move e2e4
 bestmove e2e4
 ```
 
-That is the whole reply. Emitted at `src/uci.cpp:385-386`:
+That is the whole reply. Emitted at `src/uci.cpp:539-540`:
 
-```385:386:forge-combo29/src/uci.cpp
+```539:540:forge-combo29/src/uci.cpp
                         std::cout << "info string book move " << forge::Board::move_to_uci(book_move) << std::endl;
                         std::cout << "bestmove " << forge::Board::move_to_uci(book_move) << prediction << std::endl;
 ```
@@ -51,7 +51,7 @@ bestmove d2d4
 
 Shape B always has at least one `info depth` line carrying `score`. Shape A never
 does. There is no third shape and no hybrid: the book path `continue`s past the
-whole search-and-report block (`src/uci.cpp:387`).
+whole search-and-report block (`src/uci.cpp:541`).
 
 ---
 
@@ -128,7 +128,7 @@ with `<uci>` in the engine's own move string form (`src/board.cpp:1156-1166`):
 from-square, to-square, and a promotion letter `n`/`b`/`r`/`q` when the move
 promotes. Castling is emitted as the king's two-square move (`e1g1`, `e8c8`),
 never in the Polyglot king-takes-rook encoding the book stores. The string is
-produced by one emit site in the whole engine (`src/uci.cpp:385`), so the literal
+produced by one emit site in the whole engine (`src/uci.cpp:539`), so the literal
 `info string book move ` cannot appear from anywhere else.
 
 The promotion branch of that formatter is unreachable from the embedded book:
@@ -140,7 +140,7 @@ castling.
 ### 2.4 The `ponder` suffix on a book move comes from the book
 
 When `Ponder` is true, the `bestmove` line gains a `ponder` field whose move is
-looked up in the **book**, not produced by a search (`src/uci.cpp:376-383`):
+looked up in the **book**, not produced by a search (`src/uci.cpp:530-537`):
 
 ```
 info string book move c2c4
@@ -174,9 +174,9 @@ before use.
 | NOBOOK | `go infinite` (+ `stop`) | no | 18 | a4c6 | no |
 
 The five-way split in the brief reproduces exactly. The cause is one boolean at
-`src/uci.cpp:371-372`:
+`src/uci.cpp:525-526`:
 
-```371:372:forge-combo29/src/uci.cpp
+```525:526:forge-combo29/src/uci.cpp
                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
                                          !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
 ```
@@ -188,9 +188,9 @@ brief did not mention.
 ### 3.1 A sixth exclusion the brief did not have: the wrong clock
 
 `limits.time_ms` is populated only from **the side to move's** clock
-(`src/uci.cpp:108-109`):
+(`src/uci.cpp:121-122`):
 
-```108:109:forge-combo29/src/uci.cpp
+```121:122:forge-combo29/src/uci.cpp
         else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
         else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
 ```

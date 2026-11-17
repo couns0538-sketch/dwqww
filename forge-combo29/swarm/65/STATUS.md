@@ -1,8 +1,20 @@
 # STATUS.md — swarm/65, opening-book characterisation
 
 Branch `for-fable-and-opus/swarm-65`, work in `forge-combo29/swarm/65/`.
-Base `origin/integrate/combo29-all`. Engine build: `-DCMAKE_BUILD_TYPE=Release
--DFORGE_MARCH=native`, g++ 13.3.0, x86-64 with AVX-512F/BMI2.
+
+## Base and provenance — read this first
+
+**Audit base: `6b98f217`** ("Checkpoint standalone NNUE v3 work and evidence").
+Build: `-DCMAKE_BUILD_TYPE=Release -DFORGE_MARCH=native
+-DCMAKE_CXX_COMPILER=/usr/bin/g++` with
+`LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13`, g++ 13.3.0.
+**Pin verified: `bench 11` = 312866**, checked before any result was recorded.
+
+The first pass measured `6020972d3` (`integrate/combo29-all`), which is **not**
+the audit base. Every finding was re-verified on `6b98f217`; all reproduce.
+Full provenance, including the correction to the "disjoint trees" description I
+was given, is in **`BASE.md`**. `uci.cpp` line citations moved as a result
+(book emit is now `539-540`, not `385-386`).
 
 ## State
 
@@ -16,28 +28,42 @@ Deliverables in `forge-combo29/swarm/65/`:
 
 | file | content |
 | --- | --- |
+| `BASE.md` | **which commit every number came from, the pin, and what was re-verified** |
 | `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic, and one retraction |
 | `BOOK_WIRE.md` | exact reply shapes, the deadlock proof, the `go`-form matrix, harness rules |
 | `STATUS.md` | this file: claim → command index, what is not done |
-| `scripts/` | 27 files: 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 1 pipeline runner, 1 `.gitignore`, and 20 Python scripts (several are imported as helpers by the others) |
-| `evidence/` | 26 captured outputs, one per step of `run_all.sh` |
+| `scripts/` | 30 files: 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 2 pipeline runners (the main audit and the base re-verification), 1 `.gitignore`, and Python measurement scripts (several imported as helpers) |
+| `evidence/` | 34 captured outputs: one per step of `run_all.sh`, plus the `reverify-*` set for `6b98f217` |
 
 ## Reproduce
 
+Two pipelines, both self-checking:
+
 ```bash
 cd forge-combo29
-bash swarm/65/scripts/run_all.sh          # ~5 min, includes building three patched binaries
+bash swarm/65/scripts/reverify_6b98f217.sh   # ~1.5 min: builds the audit base, checks the pin, re-verifies every finding
+bash swarm/65/scripts/run_all.sh             # ~5 min: the full audit, including three patched game_ply builds
 ```
 
-The runner builds the engine, the three C++ probes, and three patched copies of
-the tree (for the `game_ply` comparison), then runs every measurement in order. It
-**aborts** on a failed SEE self-test, a failed score-absence check, or a failed
-drawn-root check, so a green run means those three load-bearing assertions held.
+`reverify_6b98f217.sh` **aborts before recording anything** unless `bench 11`
+prints 312866. Both runners abort on a failed SEE self-test, score-absence check,
+or drawn-root check, so a green run means those assertions held.
 
 ## Claim → command index
 
 Every claim in `FINDINGS.md` and `BOOK_WIRE.md`, with the exact thing that
 produces it. All commands run from `forge-combo29/`.
+
+### Re-verified on the audit base (`6b98f217`)
+
+| claim | command | evidence |
+| --- | --- | --- |
+| every finding reproduces on `6b98f217`, pin `bench 11` = 312866 | `bash swarm/65/scripts/reverify_6b98f217.sh` | `evidence/reverify-*.txt` |
+| the three traps, asserted (exits 1 on any failure) | `python3 swarm/65/scripts/q10_traps_on_base.py <binary>` | `evidence/reverify-traps.txt` |
+| variety 30 nondeterministic, MultiPV ignored, asserted | `python3 swarm/65/scripts/q11_variety_multipv_on_base.py <binary>` | `evidence/reverify-variety-multipv.txt` |
+| book reply is two lines; single emit site at `uci.cpp:539` | `python3 swarm/65/scripts/q12_wire_on_base.py <binary> <uci.cpp>` | `evidence/reverify-wire.txt` |
+| book walk byte-identical across both bases; 0/2520 illegal | `probe_book` against each tree + `q7_soundness.py` | `evidence/reverify-book-walk.tsv`, `evidence/reverify-soundness.txt` |
+| pin value on the target build | `printf 'uci\nisready\nbench 11\nquit\n' \| <binary>` | `evidence/reverify-pin.txt` |
 
 ### Book exists, where, keyed how
 
@@ -92,7 +118,7 @@ produces it. All commands run from `forge-combo29/`.
 ## Traps for other seats (measured here, in rank order)
 
 1. **`go btime` with White to move does not book.** The gate tests the mover's own
-   clock (`src/uci.cpp:108-109`, `371`). Any asymmetric clock harness sees the book
+   clock (`src/uci.cpp:121-122`, `371`). Any asymmetric clock harness sees the book
    on one colour only. This is why "the clock form hits the book" is not safe to
    tell a seat as a rule.
 2. **The book pre-empts drawn-root detection.** A drawn root with the book on emits
@@ -133,7 +159,7 @@ produces it. All commands run from `forge-combo29/`.
 * Latency was measured on this host only (4 vCPU, no contention control). The
   order-of-magnitude claim is safe; the individual percentiles are host-specific.
 * `Book File` with a path containing spaces is handled by a `getline`+`value_text`
-  concatenation (`src/uci.cpp:260-265`); it works for the repo's own
+  concatenation (`src/uci.cpp:310-314`); it works for the repo's own
   `tests_t16/start h2h4.book` but was not audited further, as it is outside the
   book-behaviour question.
 * No code was changed in the tree under test. The `q8*` scripts build three

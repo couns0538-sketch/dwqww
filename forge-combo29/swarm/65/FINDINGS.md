@@ -1,13 +1,21 @@
 # FINDINGS.md — the Forge opening book, read and measured
 
-Scope: `forge-combo29/` at `origin/integrate/combo29-all`. Engine built with
-`cmake -DCMAKE_BUILD_TYPE=Release -DFORGE_MARCH=native`, g++ 13.3.0.
+**Base: `6b98f217`** ("Checkpoint standalone NNUE v3 work and evidence"), pin
+`bench 11` = 312866. Every result below was re-verified on a build of that commit;
+provenance and the re-verification table are in **`BASE.md`**. Line numbers are
+for `6b98f217` — the book emit is at `src/uci.cpp:539-540`, not the `385-386` an
+earlier revision cited from a different tree.
+
+Engine built with `cmake -DCMAKE_BUILD_TYPE=Release -DFORGE_MARCH=native
+-DCMAKE_CXX_COMPILER=/usr/bin/g++` and
+`LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13`, g++ 13.3.0.
 
 Reproduce everything:
 
 ```bash
 cd forge-combo29
-bash swarm/65/scripts/run_all.sh        # ~4 minutes, writes swarm/65/evidence/
+bash swarm/65/scripts/reverify_6b98f217.sh   # builds the base, checks the pin, re-verifies the findings
+bash swarm/65/scripts/run_all.sh             # the full audit
 ```
 
 Every number below has a named command and a file in `swarm/65/evidence/`.
@@ -18,15 +26,15 @@ Every number below has a named command and a file in `swarm/65/evidence/`.
 
 The book is compiled into the binary as 2616 Polyglot-format entries
 (`src/book_data.inc`, included by `src/book.cpp:9`). It is loaded once at UCI
-startup (`src/uci.cpp:141-142`) into a `forge::book::Book` that holds a
+startup (`src/uci.cpp:155-156`) into a `forge::book::Book` that holds a
 key-sorted `std::vector<Entry>`, and can be replaced at runtime by a `.bin` file
-(`src/uci.cpp:260-276` → `book.load_file`, `src/book.cpp:100-119`). It is
-consulted in exactly one place, the `go` handler (`src/uci.cpp:373-388`), and
+(`src/uci.cpp:310-326` → `book.load_file`, `src/book.cpp:100-119`). It is
+consulted in exactly one place, the `go` handler (`src/uci.cpp:527-542`), and
 nowhere in the search. The key is the Polyglot Zobrist key
 (`polyglot_key`, `src/book.cpp:38-62`), a `lower_bound` on the sorted key
 (`src/book.cpp:142-154`). Priority against a real search is absolute: when the
 gate passes and a book move decodes, the handler prints two lines and `continue`s
-(`src/uci.cpp:387`), so no search is ever started. There is no fallback from the
+(`src/uci.cpp:541`), so no search is ever started. There is no fallback from the
 book into search and no scoring of the book move.
 
 ---
@@ -37,20 +45,20 @@ book into search and no scoring of the book move.
 
 | what | where | notes |
 | --- | --- | --- |
-| embedded data → memory, once | `src/uci.cpp:141-142` | `book.load_embedded()` |
+| embedded data → memory, once | `src/uci.cpp:155-156` | `book.load_embedded()` |
 | format read of the embedded table | `src/book.cpp:121-131` | `Entry{BookKeys[i], BookMoves[i], BookWeights[i], 0}` |
 | external `.bin` → memory | `src/book.cpp:100-119` | 16 bytes per entry, big-endian, Polyglot layout |
 | sort invariant the lookup needs | `src/book.cpp:135` | `stable_sort` by key, on load |
-| reload embedded after a file was loaded | `src/uci.cpp:266-267` | `Book File` set to empty or `<empty>` |
-| failed file load keeps the old book | `src/uci.cpp:272-275` | prints `cannot load book`, book untouched |
+| reload embedded after a file was loaded | `src/uci.cpp:315-317` | `Book File` set to empty or `<empty>` |
+| failed file load keeps the old book | `src/uci.cpp:322-325` | prints `cannot load book`, book untouched |
 
 `OwnBook` defaults to *on* whenever a book is compiled in
-(`src/uci.cpp:143`, advertised at `src/uci.cpp:181`), so the book is live unless
+(`src/uci.cpp:157`, advertised at `src/uci.cpp:205`), so the book is live unless
 something turns it off.
 
 ### 1.2 The single consult site
 
-```371:388:forge-combo29/src/uci.cpp
+```525:542:forge-combo29/src/uci.cpp
                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
                                          !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
                 if (game_search && own_book && !book.empty() && game_ply(board) < book_depth) {
@@ -170,12 +178,12 @@ the ambiguity §4 makes dangerous.
 
 ### 4.1 The book pre-empts drawn-root detection — the sharpest finding
 
-`src/search.cpp:1686-1703` has a drawn-root bail: if the root is a repetition, has
+`src/search.cpp:2251-2268` has a drawn-root bail: if the root is a repetition, has
 a halfmove clock ≥ 100, or is insufficient material, the search returns without
 searching, emitting `info depth 1..64` with `score cp 0` and an **empty pv**. That
 empty pv plus `cp 0` is the only in-band signal that the root is drawn.
 
-The book check is at `src/uci.cpp:373`, before the search is entered, so on a
+The book check is at `src/uci.cpp:527`, before the search is entered, so on a
 drawn root the book answers first and that signal never appears
 (`evidence/drawn_root.txt`, `q4c_drawn_root.py`):
 
@@ -250,7 +258,7 @@ carrying `multipv 3`.
 ### 4.3 The clock: the gate reads the *mover's own* clock
 
 This is the important correction to the audit's own framing. `limits.time_ms` is
-filled only from the side to move's clock (`src/uci.cpp:108-109`), so
+filled only from the side to move's clock (`src/uci.cpp:121-122`), so
 `game_search` is really "the mover's clock was given, or movetime was given":
 
 ```
@@ -321,9 +329,9 @@ derivation a defect: "whether the book fires depends on metadata rather than
 chess". That was wrong. It is retracted here with the measurements that
 overturned it, because the correction is worth more than the original claim.
 
-What the code does (`src/uci.cpp:127-129`):
+What the code does (`src/uci.cpp:140-142`):
 
-```127:129:forge-combo29/src/uci.cpp
+```140:142:forge-combo29/src/uci.cpp
 int game_ply(const forge::Board& board) {
     return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
 }
@@ -425,7 +433,7 @@ distinct moves* is the stable result, not the exact split.)
 Deterministic **only at variety 0**. The default is 30, so the default book is
 nondeterministic by design. The mechanism: `Book::probe` advances a xorshift64\*
 state (`src/book.cpp:170-179`) seeded once from `steady_clock` at process start
-(`src/uci.cpp:147-148`). Two consequences worth stating separately:
+(`src/uci.cpp:161-162`). Two consequences worth stating separately:
 
 * Across processes, the seed differs, so outcomes differ — that is what the
   brief's "ten fresh processes" question is about, and the answer is no.
@@ -586,11 +594,11 @@ is not a near miss, it is a 929-versus-0 reversal that would have been reported 
 
 | # | finding | severity | where |
 | --- | --- | --- | --- |
-| 1 | Gate uses the mover's own clock, so `go btime` with White to move does not book | medium — harness-visible asymmetry, reads as nondeterminism | `src/uci.cpp:371`, `108-109` |
-| 2 | Book pre-empts the drawn-root bail wherever the position has a book entry (2/2 entry-bearing roots; 0/4 without), removing the `score cp 0` / empty-pv signal | medium — callers lose the only in-band draw signal, and it fires on exactly the positions the book targets | `src/uci.cpp:373` vs `src/search.cpp:1686` |
-| 3 | Book move carries no score at all | low — by convention, but it is the reason §4.1 is silent | `src/uci.cpp:385-386` |
-| 4 | Default `Book Variety 30` makes the default book nondeterministic, within and across processes | low — intended feature, surprising default | `src/uci.cpp:146`, `src/book.cpp:160-179` |
-| 5 | MultiPV mode gets no `multipv` lines on the book path | low | `src/uci.cpp:385-386` |
+| 1 | Gate uses the mover's own clock, so `go btime` with White to move does not book | medium — harness-visible asymmetry, reads as nondeterminism | `src/uci.cpp:525`, `121-122` |
+| 2 | Book pre-empts the drawn-root bail wherever the position has a book entry (2/2 entry-bearing roots; 0/4 without), removing the `score cp 0` / empty-pv signal | medium — callers lose the only in-band draw signal, and it fires on exactly the positions the book targets | `src/uci.cpp:527` vs `src/search.cpp:2251` |
+| 3 | Book move carries no score at all | low — by convention, but it is the reason §4.1 is silent | `src/uci.cpp:539-540` |
+| 4 | Default `Book Variety 30` makes the default book nondeterministic, within and across processes | low — intended feature, surprising default | `src/uci.cpp:160`, `src/book.cpp:160-179` |
+| 5 | MultiPV mode gets no `multipv` lines on the book path | low | `src/uci.cpp:539-540` |
 | 6 | Book data itself | **none** — 2520/2520 legal, 0 material losses, 2230/2230 keys covered | — |
 | — | ~~`Book Depth` derivation depends on metadata~~ | **RETRACTED** — the lock is correct 14/14; both candidate fixes are worse. See §5.3. | — |
 
