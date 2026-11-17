@@ -123,3 +123,42 @@ the same way the fix for a missing measurement is "raise on absence" rather than
 
 Seat 16's own audit found three forms of the vacuity bug; this is the formatting-side analogue, and the repair is the
 same in spirit: make the check explicit and loud rather than trusting that it looks right.
+
+---
+
+# Third method: replay the line — prove it, do not infer it
+
+**Adopted after seat 15 used it to upgrade my S-F63 from an inference to a proof.**
+
+## The two tests, and why one is better
+
+| test | what it establishes | what it assumes |
+|---|---|---|
+| compare the PV's ply count against 2\|N\|-1 | the PV is *long enough* for the score it sits beside | that "long enough" implies "is a mate" — it does not |
+| **replay every PV move in python-chess** | the line **does or does not end in checkmate**, and at which ply | only the rules of chess |
+
+The second is strictly better. A PV of exactly 2N−1 plies could still not be a mate (wrong move, stalemate instead of
+mate, a move illegal in the position). A PV shorter than 2N−1 that replays into checkmate is, by contrast, a mate
+delivered early — a different finding. Counting plies measures the *shape* of the evidence; replaying it measures the
+thing itself.
+
+## What it showed on my own cases
+
+| board | budget | score | PV | replayed verdict |
+|---|---|---|---|---|
+| S-F58 board `r2r4/pB2kpp1/…` | 50,000 | mate +11 (promises 21 plies) | 18 plies, all legal | final position **NOT checkmate** |
+| same | 80,000 / 250,000 | mate +7 | 13 plies | **mates at ply 13** exactly |
+| G/192 `8/8/1p6/…` | 20,000 | mate −7 (promises 14) | 10 plies, all legal | final position **NOT checkmate** |
+| same | 30,000 / 50,000 | mate −4 | 8 plies | **mates at ply 8** |
+
+Note the useful side-effect: the replay also proves the PV is *legal* (each move was accepted by python-chess in the
+position it was played). So one test answers both "is this line playable" and "does it deliver the mate".
+
+## The general form
+
+This is the same instinct as the house rule in `CHECKER_RULE.md`: **do not accept a proxy for the thing when the thing
+itself is checkable.** A ply count is a proxy for "is a mate"; a sanitizer symbol count is a proxy for "is instrumented";
+a parsed number is a proxy for "was measured". In each case the proxy is cheap and usually right — and the case that
+matters is the one where it is not.
+
+`replay_pv.py` in this folder does it; it is 100 lines and takes an engine, a FEN and a list of budgets.
