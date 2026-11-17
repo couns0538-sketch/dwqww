@@ -30,6 +30,11 @@
 >
 > **A proxy for the condition is not the condition.** Assert it in the same terms the system under test uses; a
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
+> **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
+> "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
+> "this position is drawn BY the repetition and not by material".** Three of these thirteen faults were proxies
+> stated at the wrong level of description, so the check is to name the level as well as the predicate
+> (instances 11, 13).
 >
 > **A fixture is part of the control.** Before believing a result, check the fixture makes the outcomes
 > DISTINGUISHABLE — an input that corrupts nothing, or a reference board that is itself the broken one, will show
