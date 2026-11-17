@@ -1,0 +1,30 @@
+ON  /tmp/bld_movescapON/forge
+OFF /tmp/bld_movescapOFF/forge
+go depth 10  Threads 1 Hash 16 OwnBook false
+
+board                                        cls  d_div ply_mv ply_key            order  mv_ON mv_OFF
+-----------------------------------------------------------------------------------------------------
+8/8/2B1k3/8/3PP3/P7/4K3/7R b - - 11 95       pred     4      2       2         same-ply     31     40
+8/8/2k5/4P3/3P4/P7/4K3/7R w - - 1 106        pred     5      2       2         same-ply     64     19
+8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0 109        CNTR     5   None       4  positions-first      -      -
+8/4k3/8/6R1/8/P7/3K4/8 b - - 1 116           pred     4      1       3      MOVES-first     14     13
+1R6/8/k7/8/8/P7/8/2K5 b - - 15 123           pred     5      1       1         same-ply     31     55
+8/8/8/4R3/2k5/P7/8/2K5 w - - 22 127          CNTR     4      1       1         same-ply      2      0
+8/8/8/1R6/1K6/P7/3k4/8 b - - 57 144          pred     4      2       2         same-ply     38     33
+8/8/P7/8/8/4K3/1k6/8 b - - 18 186            pred     6      2       2         same-ply     33     19
+6K1/2b5/p1k5/8/8/8/8/b7 b - - 5 137          pred     6      3       4      MOVES-first     36     32
+8/2k5/p7/8/8/7K/1b6/b7 w - - 26 148          pred     5   None       3  positions-first      -      -
+2k5/8/p7/6b1/8/2b4K/8/8 b - - 47 158         pred     4      0       0         same-ply     46     24
+
+ordering of the two divergences (n=11): {'same-ply': 7, 'positions-first': 2, 'MOVES-first': 2}
+counter-cases:
+  8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0 109: reduced-move ply None, position ply 4 -> positions-first
+  8/8/8/4R3/2k5/P7/8/2K5 w - - 22 127: reduced-move ply 1, position ply 1 -> same-ply
+
+distinct verdicts produced: ['MOVES-first', 'positions-first', 'same-ply']
+CONTROL OK: the comparison produced 11 rows, so at least one build pair genuinely differed and the
+            per-ply fingerprints were read for each of them.
+
+RESULT: on at least one board the two builds reduce DIFFERENT MOVES at a ply
+where they still visit the SAME positions. There the reduction decision itself
+is the earliest observable difference.

@@ -1,0 +1,27 @@
+board                                          cls    flips
+--------------------------------------------------------------
+8/8/2B1k3/8/3PP3/P7/4K3/7R b - - 11 95         pred     YES
+8/8/2k5/4P3/3P4/P7/4K3/7R w - - 1 106          pred      no
+8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0 109          CNTR     YES
+8/4k3/8/6R1/8/P7/3K4/8 b - - 1 116             pred      no
+1R6/8/k7/8/8/P7/8/2K5 b - - 15 123             pred      no
+8/8/8/4R3/2k5/P7/8/2K5 w - - 22 127            CNTR     YES
+8/8/8/1R6/1K6/P7/3k4/8 b - - 57 144            pred      no
+8/8/P7/8/8/4K3/1k6/8 b - - 18 186              pred      no
+6K1/2b5/p1k5/8/8/8/8/b7 b - - 5 137            pred      no
+8/2k5/p7/8/8/7K/1b6/b7 w - - 26 148            pred      no
+2k5/8/p7/6b1/8/2b4K/8/8 b - - 47 158           pred      no
+
+counter-cases that flip     2 of 2
+predicted boards that flip  1 of 9
+2x2 [[2,0],[1,8]]  two-sided Fisher p = 0.0545
+
+FALSE POSITIVES — predicted boards that also flip: ['8/8/2B1k3/8/3PP3/P7/4K3/7R b - - 11 95']
+So 'flips' is NOT a rule that isolates the counter-cases. It is a lead: the
+rate is 2/2 against 1/9, which with n=11 does not
+clear a 0.05 bar and would be a weak classifier even if it did.
+
+What IS solid regardless of the classification: at the first divergence depth the
+clamp makes cap-ON's tree larger in the same direction on the counter-cases as on
+the predicted boards. The clamp's immediate behaviour does not differ; only the
+later evolution does. That statement does not depend on this table's p-value.
