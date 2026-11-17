@@ -118,6 +118,13 @@ gradual decay, and below the cliff there is still a gentle gradient: MultiPV 3 g
 3. **Never Hash ≥ 256 MB with MultiPV > 1** — that is where analysis becomes depth 1–4 and, on a busy machine, can
    return a move with no search at all.
 
+## Related, and worth knowing if you use restrictions: two different `searchmoves` answers
+
+- **A satisfiable restriction is repaired** on the PC build: `searchmoves <legal mating move>` at halfmove 100 finds the mate (8 nodes) where the base tree gives `cp 0` / 0 nodes.
+- **An empty or illegal restriction is NOT**: `go searchmoves` naming nothing legal still answers `0000` with 0 nodes, on the PC build too.
+
+**Quote these together.** Either alone misleads: the first would suggest the `0000` case is fixed, the second would deny a repair that works.
+
 ## Your matches are NOT affected
 The matches run **MultiPV 1**, so none of this applies to game play. It is an **analysis-path** problem only.
 
