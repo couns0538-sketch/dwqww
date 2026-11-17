@@ -276,6 +276,9 @@ branches, and the merge decision is yours.
 - **And the two repair patches are self-contained**, so nothing about this depends on merging anything:
   `swarm/12/job1/two_doors_mate.patch.txt` and `swarm/27/job1/drawn_root_reporting.patch.txt`, applied
   `-p1` from the repo root and from inside `forge-combo29/` respectively, give a verified `search.cpp`.
+  **Both live on the earlier `for-fable-and-opus/swarm-12` and `.../swarm-27` branches, under
+  `forge-combo29/`** — the paths are given relative to the engine folder because that is how they apply,
+  but a reader looking for the branch needs the earlier lineage named.
 
 ---
 
@@ -3438,7 +3441,7 @@ silently while leaving "the reference resolves" true.
    `go infinite` behaviour, not a fuzz finding.
    - **The denominator was wrong in the safe direction and that is why it survived.** This entry said
      **142** cases; the evidence files say **167 on each build**, with 167 result rows each, and **the number
-     142 appears nowhere in `swarm/67`** — not in `FUZZ.md`, not in `STATUS.md`, not in a script. **Every
+     142 appears nowhere in `swarm/67`** (branch `for-fable-and-opus/swarm-67`, an earlier lineage) — not in `FUZZ.md`, not in `STATUS.md`, not in a script. **Every
      guard in this run is built to catch an overclaim, so an UNDERSTATEMENT passes all of them** — and it
      still matters, because **a reader planning a fuzz corpus will size it from this number.** It is the
      cleanest case in the report of a wrong figure that no check was looking for.
