@@ -2131,6 +2131,26 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
 
 ## 6. Measurement rules worth keeping
 
+- **Agreement between two models is evidence only if they do not share a shortcut — check for the shortcut,
+  do not count the models.** I published a "−620 truth value" on the strength of "two independent models
+  agree", and they were not independent: **both used a material-only leaf, and both return the same value for
+  the two halfmove clocks being compared at every depth.** A model that cannot distinguish the inputs cannot
+  adjudicate which output is right. **The check is to vary an input the models are supposed to respond to and
+  see whether either of them does** — one depth sweep would have shown both flat.
+  - **And the shared shortcut hid a specific bug in both**: a `if (depth <= 0) return material` branch placed
+    **before** the fifty-move claim was honoured, so a node landing exactly on the horizon returned material
+    instead of `max(0, material)`. That produced a **parity artefact** — −620 at even depths, −520 at odd —
+    which both models reproduced identically because both had it. **Two implementations of one leaf are one
+    opinion, and a number that alternates with depth parity is the tell.**
+- **"This move is legal" is not "this move is forced".** A published mechanism claimed White forced a clock
+  reset; the line is legal and does reset the clock, but the final capture **takes a pawn defended by a king**,
+  so it is a rook for a pawn and about −400. **Legal-move availability is not a plan**, the same way a legal
+  `bestmove` is not a searched move (§1b) and a resolvable pointer is not a correct one.
+- **A universal claim needs a counterexample test, not a sample.** "A correct search must return the same
+  verdict for both clocks" is **false** — clocks 94 and 95 share a 6-ply window and legitimately differ by 7 cp.
+  **Only a pair with an IDENTICAL claim window is a contradiction**, and stating the rule that way is what
+  turned a false universal into a real defect.
+
 - **A verifier must be pointed at the document it is verifying, and you prove that by planting a fault in
   that document.** I wrote a seven-check script for this report's own close: tables, trap references,
   section references, citations, row counts, decision rows. It passed cleanly. **Then I planted seven faults
@@ -3443,8 +3463,8 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
 
 **Read this section by NUMBER, not by position: the numbers run in discovery order and the inserted
 suffixes (`3a000`, `5a0`, `14b`, `19a`–`19e`, `19c0`, `20a00`, `21a`) are later findings attached to the
-family they belong to, so they sit beside their parent rather than at the end.** There are **64 numbered
-traps: base numbers 1–30 with 34 suffixed variants.** Renumbering is deliberately avoided —
+family they belong to, so they sit beside their parent rather than at the end.** There are **65 numbered
+traps: base numbers 1–30 with 35 suffixed variants.** Renumbering is deliberately avoided —
 a renumber breaks every cross-reference in this document and in the branch reports, and it breaks them
 silently while leaving "the reference resolves" true. **A mechanical check confirms every `trap N`
 reference in this document resolves to a definition here.**
@@ -4215,6 +4235,20 @@ reference in this document resolves to a definition here.**
       consulted — which is a harness fact, not an engine defect.**
 19c. **MultiPV is ignored on the book path**: a book reply carries no `multipv` line even at MultiPV 2
     or 3, so a caller expecting `MultiPV` lines on every search must handle the book case separately.
+19c1. **The book can fire on a genuine threefold root IN REAL PLAY, and the trap-2 patch closes it —
+    reached through play rather than constructed.** A book line ends at a position whose last book move can be
+    **undone** (`...f8e7` at ply 16 answered by `...e7f8`), so a 3-ply shuffle returns to the ply-15 position,
+    **which is in the book**; drive it twice and the third occurrence is a threefold the book covers.
+    - **Measured**: at **ply 23** the position is a threefold, is in the book, and the engine emits
+      `info string book move f8e7` with **zero `info depth` lines** — trap 19a's exact signature, **reached by
+      playing chess rather than by building a FEN**.
+    - **And the trap-2 patch fixes it without disabling anything**: on identical frozen positions the lock
+      books the threefold while trap-2 returns the drawn-root bail (`cp 0 / nodes 0 / empty pv`) **and still
+      books the non-drawn cycle-1 position and an ordinary position.**
+    - **Reachable, not automatic**: 0 re-entries and 0 drawn-root book events in 1,240 games, because the
+      shuffle needs the opponent to cooperate. **So "sound in isolation" stands**, and this adds a
+      **reachability** fact to the open policy question of whether a drawn root should ever book at all.
+      **Recommendation: nothing new to patch** — note it beside trap 19a.
 19c0. **The book is NONDETERMINISTIC across processes, and no harness in this run accounted for it.**
     `uci.cpp:161-162` seeds the book RNG from the wall clock (`steady_clock::now()... | 1ULL`), so the same
     command returns **different opening moves in different processes**. Measured: `go wtime 1000` on
@@ -4806,6 +4840,9 @@ come close, and the pattern is not random:
    "consistent with the documented `H > 100 − p` rule", not a proof. **KBNK is a measurement without a
    mechanism** — 3 of 20, 17 ended in a fifty-move claim, and **the seat explicitly refuses to attribute it
    to the bare-minor inversion because it built no KBNK table**. That refusal is the right call.
+- **And as the DEFENDER it is a clean null**: **20 of 20 held in KBK and 20 of 20 in KNK, 0 failures in 80
+  defender games over 100+ plies against a table oracle.** So the −147/−144 static inversion **never costs a
+  draw**; its real cost is the ~100 bails per game that make the ending tedious rather than lost.
 - **The bare-minor inversion's game-level cost is SMALLER than the static number suggests, and that is a
    second null**: as the defender the engine **held 20 of 20 in both KBK and KNK**, because
    `is_insufficient_material()` short-circuits the root and it plays the generator's first move. **The
@@ -4837,6 +4874,11 @@ come close, and the pattern is not random:
 - **The fix indicated is the §2 band repair, not more depth and not the bail patch** — for KQK because the
   depth needed is 4× the mate, for KBNK because more depth makes it worse, and for both because **the node
   counts at clock 90 (101 million on a three-piece board) show depth is not a practical answer anyway.**
+- **And the drawn half of KPK is the WORSE half, which a conversion-only report would hide**: **66 of 640
+  (depth 12) and 69 of 640 (nodes 12000) drawn cells are LOST BY CHECKMATE while defending** — the engine
+  walks into mate in positions it should hold. **So the engine is worse at holding a drawn pawn ending than at
+  converting a won one**, and any summary that quotes only the 80.9%/88.9% conversion rate is quoting the
+  better half of the result.
 - **And I reproduced the KRK case end to end on my own build, which is worth more than the rate**: from
   `8/8/8/8/8/5k2/8/K3R3 w - - 0 1` (KR vs K, white winning) the engine plays **both sides** at
   `go depth 12` and **draws in 21 plies with zero 0-node replies** — it shuffles the rook **a5 ↔ a3 for ten
