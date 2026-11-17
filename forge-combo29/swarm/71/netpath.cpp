@@ -301,7 +301,12 @@ int cmd_mirror(const Net& net, const std::string& fens_path) {
     long long refused = 0;
     long long max_delta = 0;
     std::string first;
-    for (const std::string& fen : lines) {
+    for (const std::string& raw : lines) {
+        // Accept either a bare FEN or a "<fen> | <moves>" sequence line.
+        std::string fen = raw;
+        const std::size_t bar = fen.find('|');
+        if (bar != std::string::npos) fen = fen.substr(0, bar);
+        while (!fen.empty() && (fen.back() == ' ' || fen.back() == '\t')) fen.pop_back();
         Board a;
         if (!a.set_fen(fen)) {
             ++refused;
