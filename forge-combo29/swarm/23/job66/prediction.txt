@@ -1,0 +1,32 @@
+PREDICTION — SW-23 job 66 (the DISTANCE axis, on a board busy enough to admit it)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F120 recorded the distance axis as UNTESTED and unbuildable: varying the spacing of the three occurrences needs a
+FILLER shuttle returning to a NON-root position, and search found none on the sparse boards. 23-F141 then established that
+only the searched position's COUNT matters, not list length or root position — which makes a clear prediction for this
+axis, and makes it worth finally testing rather than leaving as an absence.
+
+BOARD: `r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1` — a full board with knights, bishops and pawns, so a non-root
+4-ply loop should exist somewhere. NOTE: castling rights are present here, so every cycle must be checked for
+castling-neutrality along the LINE, not merely in the FEN (23-F122). If no castling-neutral pair of loops exists, I report
+that and stop rather than testing a confounded fixture.
+
+DESIGN — three lists where the searched position's own count is 3 in all three, but the SPACING differs:
+  D1 occurrences at plies 0/4/8    (adjacent cycles)
+  D2 occurrences at plies 0/8/16   (with a filler loop between)
+  D3 occurrences at plies 0/4/12   (uneven)
+All must end at the repeated position so the searched position's count is 3.
+
+Prediction (each with the range that kills it):
+  P1  ALL THREE ARE CONSTRUCTIBLE and validated: searched position occurs exactly 3 times, castling field constant along
+      the line. KILLED if not — reported as still-unbuildable, which is a legitimate outcome and the fourth attempt at
+      this axis.
+  P2  **ALL THREE BAIL (0 nodes).** This is the prediction that follows from 23-F141: if only the count matters, spacing
+      cannot matter, and any cell that searches would REFUTE the "count only" rule. KILLED by a single searching cell —
+      and that would be a significant finding, since it would mean the engine's repetition search has a WINDOW (it looks
+      back only so far), which is a real property a tool author needs to know.
+  P3  A control on the same board: the same final position reached with the searched position occurring only TWICE must
+      SEARCH, confirming the fixture family behaves as the rest of the seat's do. KILLED if it bails.
+
+This is the last untested axis I named, and P2 is a direct consequence of a rule established after I first failed to build
+it — which is the right reason to try again.
