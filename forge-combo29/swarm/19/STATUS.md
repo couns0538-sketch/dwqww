@@ -711,3 +711,13 @@ next command: continue at cadence.
   about my own instrument - bench builds its own Searcher(16) so Threads never reaches it (19-F37).
 
 next command: continue at cadence.
+
+## 2026-11-17T00:50:03Z
+
+trap 12 now LEADS with 'the nulls that hide best are the ones phrased as conclusions', with the
+  58-findings / 15 null-shaped / 4 real / 11 false-alarms classification behind it, and the hard-zero
+  case (seat 08's unplanted 0-of-60) following as the weaker instance.
+HARNESS_TRAPS.md = twelve traps; traps 11 and 12 each carry their own failure as the specimen; closing
+  line pairs Rule 1's purpose with the one check every harness needs (nodes>0 and non-empty PV).
+
+next command: continue at cadence on counter/reproduction work.
