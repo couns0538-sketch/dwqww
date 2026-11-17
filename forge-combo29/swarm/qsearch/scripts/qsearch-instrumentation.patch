@@ -1,0 +1,115 @@
+--- base/forge-combo29/src/search.cpp	2026-11-17 06:09:38.016946820 +0000
++++ inst2/src/search.cpp	2026-11-17 06:51:09.372946820 +0000
+@@ -37,6 +37,9 @@
+ namespace forge {
+ 
+ int DrawJitter = 0;
++#if FORGE_QS_TRACE
++QsTrace qs_trace{};
++#endif
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -1416,6 +1419,25 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
++#if FORGE_QS_TRACE
++    ++qs_trace.nodes;
++    if (ply > qs_trace.max_ply) qs_trace.max_ply = ply;
++    if (board.in_check()) ++qs_trace.in_check_nodes;
++    if (board.halfmove_clock() >= 100) {
++        ++qs_trace.clock100_nodes;
++        if (board.in_check()) ++qs_trace.clock100_in_check; else ++qs_trace.clock100_not_in_check;
++    }
++    if (board.halfmove_clock() > qs_trace.max_clock) qs_trace.max_clock = board.halfmove_clock();
++    if (board.halfmove_clock() < qs_trace.min_clock) qs_trace.min_clock = board.halfmove_clock();
++    {
++        const MoveList all = board.legal_moves(false);
++        const MoveList caps = board.legal_moves(true);
++        if (all.size() == 0 && board.in_check()) ++qs_trace.terminal_checkmate;
++        if (all.size() == 0 && !board.in_check()) ++qs_trace.terminal_stalemate;
++        if (board.in_check() && caps.size() == 0 && all.size() > 0) ++qs_trace.in_check_no_captures;
++        if (!board.in_check() && caps.size() == 0) ++qs_trace.leaf_no_capture_nodes;
++    }
++#endif
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
+@@ -1452,6 +1474,9 @@
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++#if FORGE_QS_TRACE
++        ++qs_trace.tt_cutoffs;
++#endif
+         return tt_score;
+     }
+ 
+@@ -1477,6 +1502,9 @@
+ #else
+             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #endif
++#if FORGE_QS_TRACE
++            ++qs_trace.standpat_returns;
++#endif
+             return best_score;
+         }
+         if (best_score > alpha) alpha = best_score;
+@@ -1534,7 +1562,12 @@
+             }
+         }
+     }
+-    if (in_check && move_count == 0) return mated_in(ply);
++    if (in_check && move_count == 0) {
++#if FORGE_QS_TRACE
++        ++qs_trace.mated_returns;
++#endif
++        return mated_in(ply);
++    }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+@@ -1542,6 +1575,9 @@
+ #else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #endif
++#if FORGE_QS_TRACE
++    ++qs_trace.stores;
++#endif
+     return best_score;
+ }
+ 
+--- base/forge-combo29/include/forge/search.hpp	2026-11-17 06:09:37.908946820 +0000
++++ inst2/include/forge/search.hpp	2026-11-17 06:51:09.372946820 +0000
+@@ -83,6 +83,30 @@
+ constexpr int DrawJitterMax = 8;
+ extern int DrawJitter;
+ 
++#if FORGE_QS_TRACE
++// qsearch instrumentation: compiled in only for the audit build.
++struct QsTrace {
++    std::uint64_t nodes = 0;
++    std::uint64_t in_check_nodes = 0;
++    std::uint64_t clock100_nodes = 0;
++    std::uint64_t clock100_in_check = 0;
++    std::uint64_t clock100_not_in_check = 0;
++    std::uint64_t terminal_checkmate = 0;
++    std::uint64_t terminal_stalemate = 0;
++    std::uint64_t in_check_no_captures = 0;
++    std::uint64_t tt_cutoffs = 0;
++    std::uint64_t standpat_returns = 0;
++    std::uint64_t mated_returns = 0;
++    std::uint64_t stores = 0;
++    std::uint64_t leaf_no_capture_nodes = 0;
++    int max_ply = 0;
++    int max_clock = 0;
++    int min_clock = 1000;
++};
++extern QsTrace qs_trace;
++#endif
++
++
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+ 
+ struct TTEntry {

@@ -1,0 +1,19 @@
+=== independent FIDE claim model (scripts/claim_model.cpp) vs engine ===
+Position A: 6k1/5ppp/8/8/8/8/8/R5NK b - - H 40   (Black down a rook, HAS pawn moves)
+            pawn moves reset the clock, so no draw is claimable at any H here EXCEPT
+            via a king move into a clock-100 node.
+
+  H  model(d4)   base d12  base nodes  repair d12  repair nodes
+ 95       -620       -507       80489        -507         80489
+ 96       -620       -531      106852        -531        106852
+ 97       -620          0        1061        -525         86268
+ 98          0          0         487           0           487
+ 99          0          0         227           0           238
+
+Position B: 6k1/8/5PPP/8/8/8/8/R6K b - - H 40    (Black mated in 2, NO pawn moves)
+  H  model(d4)   base d12  base nodes  repair d12  repair nodes
+ 96     -29874         -1          63          -1            63
+ 97     -29874         -1          63          -1            63
+ 98     -29874         -1          63          -1            63
+ 99     -29874          0          36          -1            63
+100          0          0           0           0             0
