@@ -180,10 +180,53 @@ and the block that landed has blanks where the backticked words should be (`posi
 
 Same shape as Trap 8: **a step that fails silently reports success.**
 
-## The shape the three harness traps share
+## Trap 10 — a profiler's output is a measurement: read the sample count first (S-F111)
 
-Trap 0 (typing), Trap 8 (tests that cannot fire), and Trap 9 (shell writing) are not three separate lessons; they
-are one:
+> **A profile with 22 samples prints the same table shape as a profile with 43,000, and both say they succeeded.**
+
+`gprofng collect app -p high` on this VM returned exit 0 and a full functions table sorted by percentage. The
+experiment overview said `Duration : 2.208 Seconds` and `Total CPU Time : 0.022 Seconds`. The engine had run 2.15 s
+of search and produced 3,652,372 nodes; the profiler had attributed **0.022 s** of it. It had sampled the **bash
+wrapper**, not the engine child, and `-F on` did not change that.
+
+Twenty-two samples over 70 symbols is not a distribution. Two runs of it disagreed with each other in ways that look
+like findings and are not: one put `is_legal_complete` at 19.05 % and `generate_evasions` at 14.29 %; the other put
+`fill_pseudo_legal` at 18.18 % and `apply_changes_pair` at 9.09 %. **Both would have been reported as "the profile
+says".**
+
+The check that catches it is one line: **the sample count, before any percentage.**
+
+```
+perf report -i <data> --stdio | grep -E "^# Samples"
+```
+
+43,000 samples at 3,999 Hz across five runs gave shares stable to a few tenths, and five `bench 13` timings of
+2,168 / 2,166 / 2,161 / 2,163 / 2,161 ms agreed — that pair of facts is what makes a profile quotable. Percentages
+alone are not.
+
+Two traps inside this one, both of which cost me time here:
+
+1. **`perf` is a wrapper stub here.** `/usr/bin/perf` prints `WARNING: perf not found for kernel 6.12.113+` and exits
+   2, because the installed tools are for 6.8.0. The real binary is
+   `/usr/lib/linux-tools/6.8.0-149-generic/perf` (version 6.8.12) and it works fine. Note the path: the symlinks
+   under `/usr/lib/linux-tools/6.8.0-149/` are **dangling**, so that "obvious" path does not exist.
+2. **`perf_event_paranoid` was 2**, which blocks userspace sampling. It is now `-1` on this VM
+   (`sudo sysctl -w kernel.perf_event_paranoid=-1`). Without that, a sampler can run and produce nothing, or
+   produce a wrapper-only profile exactly like the one above.
+
+**And the substitute evidence is not available either**: `perf stat` on this VM reports `<not supported>` for
+`cycles`, `instructions`, `L1-dcache-loads/misses`, `LLC-loads/misses` and `cache-misses`. Only `task-clock` works.
+So a claim about *why* a function is expensive — cache misses, instruction count — cannot be made here at all, and
+the honest move is to say so rather than to argue from footprint arithmetic. A 6.00 MiB weight matrix *should* miss
+L2; "should" is not a counter.
+
+**The rule, stated so it transfers: a tool that measures must be asked what it measured.** Profilers, like
+benchmarks, return a success status and a plausible table whether or not they looked at the thing you named.
+
+## The shape the harness traps share
+
+Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), and Trap 10 (a profile that never looked
+at the program) are not four separate lessons; they are one:
 
 > **A check is a claim, and claims get tested.** A step that fails silently reports success.
 
@@ -194,10 +237,15 @@ Each of the three, in my own session, produced a confident output that was wrong
 | 0 — typing | a number in a finding | the sweep had printed a different one |
 | 8 — cannot-fire test | a clean "0 of 3" | the test was incapable of a positive |
 | 9 — shell writing | an exit code of 0 | the block had holes in it |
+| 10 — profiler | a table sorted by percentage | 22 samples, of the shell wrapper |
 
 And the same shape recurred in my **checks of my own checks**: a table checker that compared pipes against cells, a
 zero-node flag that scored 220-node cells "healthy", and an evidence command that returned three commits while
 claiming none. **Three times a check of mine turned out to be the thing that was wrong.**
+
+The fourth instance is Trap 10, and it is the purest: the tool did not merely fail to check the right thing, it
+**checked a different program entirely** and reported the result under my program's name. Its 22 samples disagreed
+with each other run to run, and each disagreement looked like a finding about the engine.
 
 The only defence that worked, every time, was **running the thing and reading the output** — not reasoning about
 what it should do.

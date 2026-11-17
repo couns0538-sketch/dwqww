@@ -1504,7 +1504,7 @@ ALSO CORRECTED: check_partial_clock.py printed, in the branch where D does not a
 Gates: 150 rows, table shape OK, page shape OK, four honesty pins PASS, integrity audit PASS with its synthetic
 negative test firing. Page: partialclock/HUGE_CLOCK_IS_NOT_A_BOUND.md.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
-## 2026-11-17T00:52:10Z — file 7 Step 0: 11 of 11, my S-F82 caveat is now addressable (S-F109, S-F110)
+## 2026-11-17T00:49:08Z — file 7 Step 0: 11 of 11, my S-F82 caveat is now addressable (S-F109, S-F110)
 FILE 7 REMOVES THE EXCUSE I HAD BEEN RECORDING UNDER. My S-F82 scope limit said my findings are
 build-independent but NOT net-independent: the owner plays with a trained FORGENN3 net loaded, and I had no net
 file. File 7 publishes a deterministic net (same bytes everywhere) with known answers for it. So Step 0 became the
@@ -1526,3 +1526,31 @@ published) rather than text, and a missing number now prints HARNESS FAULT, not 
 Also: check_findings_table.py caught literal pipes in my new rows (`max|w1|`) that would have split cells on render.
 Gates: 152 rows, 0 wrong pipe counts, no duplicate ids. Artifacts: v3net/ (script, checker, both outputs).
 Next: Step 1 profiling of the v3 path under PC20 + the test net, with the prediction committed BEFORE measuring.
+(Stamp corrected: I first wrote 00:52:10Z, which is ahead of the real clock; this block carries the real one.)
+## 2026-11-17T00:53:20Z — Step 1 profiled and scored against the prediction (S-F111, S-F112, S-F113)
+THE PROFILE EXISTS AND THE PREDICTION WAS ALREADY IN GIT (79eb23c98, before any sample).
+  build 227aae56ef1678, PC20 + test net, Threads 1, Hash 16, bench 13 = 3,652,372 nodes
+  43,000 task-clock samples at 3,999 Hz; five runs at 2,168/2,166/2,161/2,163/2,161 ms (+/-0.3 %)
+  v3 path = 19.05 % of bench 13. Inside it: apply_changes_pair 7.41, refresh_from_pieces 4.79, evaluate 4.62,
+  apply_changes 0.83, king_key 0.67, prepare 0.43. Search around it: pick_best 10.08, Worker::search 8.28,
+  qsearch 6.59, generate_evasions 6.52, MovePicker::next 6.33, see_ge 4.95, corrected_eval 4.77.
+SCORED HONESTLY, INCLUDING THE MISS: P2 PASS (forward pass 24.3 % of v3, my range 10-25, at the top). P3 PASS
+(v3 19.05 %, range 15-40). P1 - I said the update would be 40-65 % of v3; it is 68.4 %. The ITEM and the DIRECTION
+were right, the MAGNITUDE was outside my own range, and it is recorded as outside rather than rounded into place.
+P4 (memory-bound) NOT TESTED and I will not claim it: my K4 test needed a small net and FORGENN3 fixes hidden=512,
+and the substitute failed because perf stat reports <not supported> for cycles, instructions, L1-dcache and LLC on
+this VM. A 6.00 MiB matrix SHOULD miss L2; should is not a counter.
+TRAP 10, AND IT IS THE PUREST ONE YET: gprofng returned exit 0 and a full percentage table built from 22 samples -
+it profiled the bash wrapper, not the engine, and -F on did not change that. Two such runs disagreed with each
+other in ways that read as findings. The check is the SAMPLE COUNT, read before any percentage. Also: /usr/bin/perf
+is a stub that exits 2 for kernel 6.12.113+, the real binary is /usr/lib/linux-tools/6.8.0-149-generic/perf and the
+6.8.0-149/ symlinks are dangling; perf_event_paranoid was 2 and is now -1. Trap 10 joined the shared-shape section,
+whose count went from three to four.
+A DEAD COUNTER THAT MATTERS (S-F113): RefreshCache::refreshes and ::columns are incremented at nnue_v3.cpp:694 and
+:702/:707, reset at :644-645, and READ BY NOTHING - grep -rln finds 13 files, only two are code, the rest are the
+English verb or archived copies. refresh_from_pieces is 4.79 % of the whole benchmark, so the engine is already
+collecting exactly the refresh-vs-columns ratio Step 2 needs and throwing it away. Cheapest next step: one info
+string. Instrumentation first, so the patch aims at a measured cost.
+Gates: 155 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on MEASUREMENT_TRAPS.md after moving Trap 10
+ahead of the closing material (the checker caught it appended after "The guard").
+Next: emit the refresh/columns ratio, then Step 3 timing if a patch follows.
