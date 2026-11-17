@@ -11,11 +11,18 @@ import select
 import subprocess
 import time
 
+import paths
+
 
 class Engine:
     def __init__(self, exe, hash_mb=16, threads=1, nnue=True, book=False, extra=()):
-        self.proc = subprocess.Popen(
-            [exe],
+        # The executable is validated before it reaches Popen: it must exist, be a
+        # regular file, and carry the execute bit. Passing an unvalidated argv
+        # straight into a process launch is what turns a typo in a variant name
+        # into an unexplained empty result.
+        self.exe = paths.engine_arg(exe)
+        self.proc = subprocess.Popen(  # noqa: S603 - argv is a list, exe was validated above
+            [self.exe],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,

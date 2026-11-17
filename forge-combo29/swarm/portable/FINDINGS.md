@@ -297,17 +297,24 @@ AVX2 *is* emulated and correctly reported absent there.
 
 ```bash
 export LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13
+export PORTABLE_WORK=/tmp/build          # absolute; every script reads this
 git worktree add /tmp/wt/base 6b98f217
 
-scripts/build_all.sh                       # builds native, v2, v3, v4both + 2 controls
+scripts/build_all.sh                     # builds native, v2, v3, v4both + 2 controls
 scripts/check_pins.sh /tmp/build/native/forge    # the gate; must pass before comparing
 
-python3 scripts/identity.py                # §3 correctness sweep
-python3 scripts/bail.py                    # §5 drawn-root bail
+python3 scripts/identity.py              # §3 correctness sweep
+python3 scripts/bail.py                  # §5 drawn-root bail
 python3 scripts/abba.py <A> <B> <fens> "go nodes 200000" out.json   # one arm
 #   ... run both arms (A,B) and (B,A), then:
-python3 scripts/final_table.py             # §4 corrected ratios
+python3 scripts/final_table.py           # §4 corrected ratios
+python3 scripts/validate.py              # slot-bias correction check
 ```
 
-The scripts expect `/tmp/build/<name>/forge`; `PORTABLE_WORK` in `abba.py`'s caller and the
-`SRC`/`OUT` env vars in `build_all.sh` relocate them.
+Paths are confined to `PORTABLE_WORK`: a bare filename resolves inside it, and a path that
+escapes it is refused rather than opened. `build_all.sh` also takes `SRC` for the source
+tree and marks each build directory it creates, so it will not replace a directory it did
+not make.
+
+`evidence/logs/post-refactor-reverify.txt` records a full clean rebuild in a fresh work
+directory producing the same pins and the same table.

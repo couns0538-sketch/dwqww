@@ -51,8 +51,18 @@
 
 ```bash
 export LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13
+export PORTABLE_WORK=/tmp/build
 git worktree add /tmp/wt/base 6b98f217
 scripts/build_all.sh
 scripts/check_pins.sh /tmp/build/native/forge    # gate
 python3 scripts/identity.py && python3 scripts/bail.py
 ```
+
+## Post-review change
+
+SonarCloud failed the first push (Security Rating D on New Code, 43 annotations, all in
+this folder's own scripts). Fixed without changing any measurement: a shared `scripts/paths.py`
+validates the executable, the FEN corpus and every read/write path; the bash scripts use
+`[[`; `build_all.sh` only removes build dirs it marked as its own. Re-verified with a clean
+rebuild in a fresh work dir — same pins, same table
+(`evidence/logs/post-refactor-reverify.txt`).

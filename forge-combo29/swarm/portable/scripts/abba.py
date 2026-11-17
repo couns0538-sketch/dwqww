@@ -9,11 +9,13 @@ direction share").
 """
 
 import json
+import os
 import statistics
 import sys
-import time
 
-sys.path.insert(0, "/tmp/build")
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+import paths
 from harness import Engine, parse_info
 
 
@@ -51,12 +53,20 @@ def bootstrap_ci(values, n=10000, seed=12345):
     return meds[int(0.025 * n)], meds[int(0.975 * n)]
 
 
-def main():
-    exeA = sys.argv[1]   # reference (native)
-    exeB = sys.argv[2]   # candidate (v2 / v3)
-    fens = [l.strip() for l in open(sys.argv[3]) if l.strip()]
-    limit = sys.argv[4] if len(sys.argv) > 4 else "go nodes 200000"
-    out_path = sys.argv[5] if len(sys.argv) > 5 else "/tmp/build/abba.json"
+def main(argv):
+    if len(argv) < 4:
+        print(__doc__.strip())
+        print("\nusage: abba.py <engineA> <engineB> <fens> [limit] [out.json]", file=sys.stderr)
+        return 2
+    try:
+        exeA = argv[1]   # reference (native)
+        exeB = argv[2]   # candidate (v2 / v3)
+        fen_path, fens = paths.fen_file(argv[3])
+        limit = argv[4] if len(argv) > 4 else "go nodes 200000"
+        out_path = paths.out_path(argv[5] if len(argv) > 5 else "abba.json")
+    except paths.InputError as exc:
+        print(f"abba.py: {exc}", file=sys.stderr)
+        return 2
     timeout = 600.0
 
     engA = Engine(exeA, hash_mb=16, threads=1, nnue=True, book=False)
@@ -99,6 +109,7 @@ def main():
 
     summary = {
         "exeA": exeA, "exeB": exeB, "limit": limit, "n_positions": len(rows),
+        "fens": fen_path,
         "median_ratio": med, "ci95": [lo, hi],
         "B_faster_count": faster, "B_slower_count": slower,
         "sign_test_two_sided_p": p,
@@ -114,4 +125,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main(sys.argv))

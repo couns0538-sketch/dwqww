@@ -12,16 +12,15 @@ builds agree on what they *are*:
 """
 
 import json
+import os
 import sys
 
-sys.path.insert(0, "/tmp/build")
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+import paths
 from harness import Engine, parse_info
 
-BUILDS = {
-    "native": "/tmp/build/native/forge",
-    "v2": "/tmp/build/v2/forge",
-    "v3": "/tmp/build/v3/forge",
-}
+BUILDS = {name: paths.engine_path(name) for name in ("native", "v2", "v3")}
 
 PERTF_POSITIONS = [
     ("startpos", "position startpos"),
@@ -58,8 +57,17 @@ def main():
     for e in engines.values():
         e.close()
 
-    fens = [l.strip() for l in open("/tmp/build/corpus/pos120.fens") if l.strip()]
-    print(f"\n=== go depth 12 sweep, {len(fens)} positions ===")
+    # The corpus is the same 120 positions kept in this branch's evidence/, so the
+    # numbers cannot be separated from the set that produced them.
+    corpus = os.environ.get("PORTABLE_FENS")
+    if not corpus:
+        corpus = os.path.join(paths.script_dir(), os.pardir, "evidence", "pos120.fens")
+    try:
+        fen_path, fens = paths.fen_file(corpus)
+    except paths.InputError as exc:
+        print(f"identity.py: {exc}", file=sys.stderr)
+        return 2
+    print(f"\n=== go depth 12 sweep, {len(fens)} positions from {fen_path} ===")
     engines = {k: Engine(v, hash_mb=16, threads=1, nnue=True, book=False) for k, v in BUILDS.items()}
     mismatches = []
     try:
@@ -90,8 +98,11 @@ def main():
           f"(bestmove, nodes, score, score-kind, depth)")
     print(f"positions with any mismatch: {len(mismatches)}")
     out["mismatches"] = mismatches
-    json.dump(out, open("/tmp/build/identity-sweep.json", "w"), indent=1)
+    json.dump(out, open(paths.out_path("identity-sweep.json"), "w"), indent=1)
+    # A mismatch is a real cross-build disagreement, so the exit status carries it:
+    # a caller chaining these scripts must not read a disagreement as success.
+    return 1 if mismatches else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -14,16 +14,15 @@ Cases, all from forge-findings.md sections 1b and 2:
 """
 
 import json
+import os
 import sys
 
-sys.path.insert(0, "/tmp/build")
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+import paths
 from harness import Engine, parse_info
 
-BUILDS = {
-    "native": "/tmp/build/native/forge",
-    "v2": "/tmp/build/v2/forge",
-    "v3": "/tmp/build/v3/forge",
-}
+BUILDS = {name: paths.engine_path(name) for name in ("native", "v2", "v3")}
 
 # A legal knight shuttle from startpos: after 8 plies the startpos has occurred
 # three times, which is the documented trigger.
@@ -122,7 +121,7 @@ def main():
           f"nodes50k={out['native']['T4_budget_nodes50k']['nodes']}, "
           f"nodes500k={out['native']['T4_budget_nodes500k']['nodes']}")
     print(f"\nALL CASES IDENTICAL ACROSS THE THREE BUILDS: {all_agree}")
-    json.dump(out, open("/tmp/build/bail.json", "w"), indent=1)
+    json.dump(out, open(paths.out_path("bail.json"), "w"), indent=1)
 
 
 if __name__ == "__main__":

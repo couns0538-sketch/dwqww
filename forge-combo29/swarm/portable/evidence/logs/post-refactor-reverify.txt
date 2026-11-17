@@ -1,0 +1,35 @@
+### post-refactor re-verification
+### The scripts were rewritten for the SonarCloud findings (validated inputs,
+### no hard-coded /tmp, [[ in bash). These runs re-establish that the
+### rewrite changed no measurement.
+
+## fresh build in a clean work dir (/tmp/build2), full variant set
+=== native: -march=native FORGE_PORTABLE=OFF ===
+  ok: 786696 bytes
+=== v2: -march=x86-64-v2 FORGE_PORTABLE=ON ===
+  ok: 782984 bytes
+=== v3: -march=x86-64-v3 FORGE_PORTABLE=ON ===
+  ok: 787232 bytes
+=== v4both: -march=x86-64-v4 FORGE_PORTABLE=OFF ===
+  ok: 794888 bytes
+=== v2-switchon: -march=x86-64-v2 FORGE_PORTABLE=OFF ===
+  BUILD FAILED -- this is the recorded result, not a script error:
+=== v3-switchon: -march=x86-64-v3 FORGE_PORTABLE=OFF ===
+  BUILD FAILED -- this is the recorded result, not a script error:
+
+## pins on the freshly built binaries
+native   PINS MATCH combo29 (depths: 11 13 16)
+v2       PINS MATCH combo29 (depths: 11 13 16)
+v3       PINS MATCH combo29 (depths: 11 13 16)
+
+## final_table.py on the original work dir -- must match evidence/logs/final-table.txt
+slot bias measured by the A/A control: s = 0.9890 (B slot 1.10% faster than A slot, same binary both slots)
+
+build                                              ratio     cost              CI95     faster  implied s  vs A/A
+-----------------------------------------------------------------------------------------------------------------
+x86-64-v2, FORGE_PORTABLE=ON                      1.1614  +16.14% [1.1572,1.1671]    0/120       0.9857   0.34%
+x86-64-v3, FORGE_PORTABLE=ON                      1.0422   +4.22% [1.0372,1.0450]   14/120       0.9892   0.01%
+x86-64-v3, PEXT=1 ZMM=0 (hand-built)              1.0143   +1.43% [1.0090,1.0202]   32/120       0.9887   0.04%
+x86-64-v4, PEXT=1 ZMM=1 (CMake default, closest to native)  1.0228   +2.28% [1.0142,1.0337]   36/120       0.9929   0.39%
+x86-64-v4, PEXT=0 ZMM=0 (v4 ISA, no switches)     1.0384   +3.84% [1.0310,1.0446]   19/120       0.9864   0.27%
+x86-64-v4, PEXT=1 ZMM=0 (only ZMM off)            1.0286   +2.86% [1.0217,1.0318]   28/120       0.9892   0.02%

@@ -9,15 +9,34 @@
 #     keeps going so the evidence file shows what happened.
 set -uo pipefail
 
+WORK="${PORTABLE_WORK:-/tmp/build}"
 SRC="${SRC:-/tmp/wt/base/forge-combo29}"
-OUT="${OUT:-/tmp/build}"
+OUT="${OUT:-$WORK}"
 export LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13
+
+if [[ ! -f "$SRC/CMakeLists.txt" ]]; then
+  printf 'build_all.sh: no CMakeLists.txt at %s\n' "$SRC" >&2
+  printf '  set SRC to a forge-combo29 checkout (e.g. from git worktree add)\n' >&2
+  exit 2
+fi
+if [[ ! -d "$OUT" ]]; then
+  printf 'build_all.sh: output dir %s does not exist\n' "$OUT" >&2
+  exit 2
+fi
 
 build() {
   local name="$1" march="$2" portable="$3"
   local dir="$OUT/$name"
-  rm -rf "$dir"
   echo "=== $name: -march=$march FORGE_PORTABLE=$portable ==="
+  # Only ever remove a directory this script created: the marker below is written
+  # into every build dir it makes, so a mistyped OUT cannot delete anything else.
+  if [[ -d "$dir" && ! -f "$dir/.portable-build-dir" ]]; then
+    printf '  refusing to replace %s: not a directory this script created\n' "$dir" >&2
+    return 1
+  fi
+  rm -rf "$dir"
+  mkdir -p "$dir"
+  : > "$dir/.portable-build-dir"
   if ! cmake -S "$SRC" -B "$dir" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
