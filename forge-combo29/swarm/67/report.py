@@ -271,12 +271,12 @@ def main() -> int:
       "instructive than the findings, and because a report that only shows the "
       "surviving numbers gives no way to judge how they were arrived at.")
     w("")
-    w("Nine items, enumerated rather than estimated: **five wrong claims about "
-      "the engine** (four from the coordinator, one from this seat) and **four "
-      "defects in this harness** (all this seat). An earlier count of six, and a "
-      "later guess of eight, both failed to survive enumeration — the tally is "
-      "reported as counted because a wrong total in a section about wrong totals "
-      "would be its own joke.")
+    w("Ten items, enumerated rather than estimated: **five wrong claims about "
+      "the engine** (four from the coordinator, one from this seat) and **five "
+      "defects in this harness** (all this seat). Two earlier counts, six and "
+      "eight, both failed to survive enumeration — the tally is reported as "
+      "counted because a wrong total in a section about wrong totals would be its "
+      "own joke.")
     w("")
     w("Wrong claims about engine behaviour:")
     w("")
@@ -311,15 +311,18 @@ def main() -> int:
       "table that looked complete | this seat |")
     w("| H4 | report text written raw from engine output | a NUL echoed in a "
       "diagnostic made `FUZZ.md` a binary file | this seat |")
+    w("| H5 | prose counts typed by hand beside computed tables | a stale "
+      "literal survived two regenerations after the corpus grew | "
+      "`check_consistency.py` |")
     w("")
     w("Two patterns are worth carrying forward. C3 and C4 are the same error "
       "twice — a fingerprint used without first asking what it would return if "
       "the hypothesis were false — and C5 shows the error being inherited by the "
       "person who diagnosed it in someone else, which is the usual way a bad "
       "method spreads. H1 and H2 would have manufactured findings out of harness "
-      "bugs; H3 and H4 damage the *report* rather than the *measurement*, and are "
-      "the more dangerous pair because a generated artifact looks authoritative "
-      "whether or not it is complete.")
+      "bugs; H3, H4 and H5 damage the *report* rather than the *measurement*, and "
+      "are the more dangerous group because a generated artifact looks "
+      "authoritative whether or not it is complete.")
     w("")
 
     w("## Corpus identity is an input, not a detail")
