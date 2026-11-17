@@ -962,3 +962,30 @@ next command: continue at cadence - pick the next area-9 job (speed), or cross-c
 
 next command: continue at cadence - next cross-check or area-9 job; candidates are seats 07/21's fifty-move
 lines or a fresh speed measurement on the v3 path (seat 29's file 7 work).
+
+## 2026-11-17T02:30Z
+
+19-C49: RECONCILIATION with seat 27. Answer in three quantities, not one (200 positions, guarded harness):
+  1. S14 vs PC20 @ softnodes 2000: PC20 deeper 17 / S14 deeper 24 / equal 159 -> +9 for S14, p = 0.349. NULL.
+  2. S14 vs PC20 @ softnodes 3000: +10 for S14, p = 0.392. NULL.
+  3. 2000 -> 3000 WITHIN an engine: S14 +134 ply, PC20 +133 ply. REAL, LARGE, ENGINE-INDEPENDENT.
+  => **the flip I attributed to PC20 was the BUDGET. 19-C46's attribution WITHDRAWN.**
+     Budget is worth +0.67 ply/pos to BOTH engines at ~1.45x the nodes per move. That is the trade.
+
+MECHANISM (new, applies to every seat using softnodes): softnodes N is NOT a budget of N.
+  hard cap 4N (search.cpp:2499); soft test only after a COMPLETED iteration (search.cpp:2932).
+  mean spend @2000 = 3185/3234 (59-62 % overrun); @3000 = 4711/4536; ratio 1.40-1.48 not 1.5.
+  **46.5-47.0 % of positions return the IDENTICAL search at both budgets** - the 2000-vs-3000 question is
+  ill-posed on half the sample. 1/200 degenerate (4N cap, no completed iteration, unsearched bestmove).
+
+SEAT 27'S CONTROL POINT APPLIED: same-move restriction does NOT collapse the budget effect - it absorbs 84 % of
+  it (+112 of +134). It DOES dissolve the engine comparison (+5 of +9). Right instrument, other conclusion.
+
+STILL DISAGREE: seat 27 67.9 % PC20-favoured (127/187) vs my 41.5 % (17/41); z = 3.18 -> genuinely different
+  populations, not just sample size. A +0.063-ply mean is inside the sub-one-ply band needing the restriction.
+
+SELF-CORRECTION: my first degenerate-position demo was a SHELL artefact (printf dropped the FEN -> malformed
+  position -> nodes 0). The 0 was mine, not the engine's. Recorded in the report.
+
+next command: continue at cadence - carry 19-C49's softnodes granularity to the seats using softnodes, and
+re-examine which of my remaining PC20 claims used softnodes rather than `go nodes`.
