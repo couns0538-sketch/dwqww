@@ -516,3 +516,13 @@ next: cadence.
 Tally: 33 findings, 22 checks/plants (C1..C22), 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:16Z
+- **INDEX.md written** — a one-page map of this area's 373 files: read-first list, the headline numbers table with
+  the source file for each, the five most useful single results, the three method rules, the folder map, and a
+  **WHAT IS NOT HERE** section (no game played, no sanitizer build of the PC engine, no PC net). That last section
+  is the honest boundary of what the area can claim.
+
+Tally: 33 findings, 22 checks/plants, 3 method lines, 1 withdrawal, 46 report/analysis files.
+
+next: cadence.
