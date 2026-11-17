@@ -1,0 +1,27 @@
+kimi5 job 20 prediction (own commit before Step 1; no times, no commit ids).
+Settings short names: all3 = CaptureFutilityBase 230 + SeeNoisyHistDiv 32 + GoodCaptureHistDiv 32.
+
+P1: ratio all3 / base, node sums, G, depth 14.
+    Guess 0.950 (smaller tree). KILLED if outside [0.905, 0.995].
+    Reasoning: at depth 12 the bundle is 0.9641 on G, far below the
+    multiplicative combination of its parts (~0.998): the pruning parts
+    (capture futility; bad captures deferred by the history split) reinforce
+    each other, and pruning effects amplify with depth while snd32's
+    anti-pruning grows only modestly.
+
+P2: share of good captures handed out with the flag false (t > 0) under
+    GoodCaptureHistDiv 32, O, depth 12 (Step 3 counter: good_flagfalse / good handed out).
+    Guess 0.55. KILLED if outside [0.40, 0.70].
+    Reasoning: the flag is false exactly when capture history >= 32, and a
+    capture history grows exactly on captures that cut off before, so the
+    repeatedly-handed-out good captures skew strongly positive; but every
+    search starts at zero history and the early plies hand out many t = 0
+    captures, so the share stays well under 1.
+
+P3: SeeNoisyHistDiv 32 alone makes the tree LARGER on G at depth 14.
+    Guess ratio 1.030. KILLED if outside [1.005, 1.060].
+    Reasoning: positive capture history lowers the noisy SEE threshold, so
+    good captures survive pruning (bigger tree); negative history prunes more
+    bad captures (smaller). On G at depth 12 the survival side already wins
+    (1.0180), and surviving captures compound with depth while the extra
+    pruning of bad captures saves shallow subtrees only.
