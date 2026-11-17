@@ -842,3 +842,17 @@ next: cadence.
 **39 findings, 32 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:33Z
+- **08-C34: the last cell of the 08-C33 matrix closes — the THIRD-OCCURRENCE door CONFIRMS.** Move list
+  `g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8` (python-chess verifies the startpos occurred THREE times):
+  **two-occurrence CONTROL — base 701 nodes / PC 412, neither drawn**; **THREE occurrences — base plays `a2a3` at
+  0 nodes (drawn), PC searches `d2d4` at 389 nodes**. So the boundary is the third occurrence specifically, and the
+  PC repair reaches this door as well as the halfmove door.
+- **The drawn-root matrix is now complete on both doors** (halfmove in 08-C33, repetition here), plus 08-W1 (correct
+  draw) and 08-C21 (one-ply-down miss) bounding the same boundary from other angles.
+
+## 2026-11-17T02:33Z — TALLY (generated, not maintained)
+**39 findings, 33 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
+
+next: cadence.

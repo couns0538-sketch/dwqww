@@ -1,0 +1,23 @@
+## The THIRD-OCCURRENCE root — the cell 08-C33 left untested
+
+Control: after `g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8`, python-chess says the position has occurred three times: **True**
+
+| build | move list | bestmove | nodes | score | drawn root? |
+|---|---|---|---|---|---|
+| base 6b98f217 | two occurrences (CONTROL) | c2c3 | 701 | cp 12 | no |
+| base 6b98f217 | THREE occurrences | a2a3 | 0 | cp 0 | **YES (0 nodes)** |
+| PC r15 | two occurrences (CONTROL) | d2d4 | 412 | cp 8 | no |
+| PC r15 | THREE occurrences | d2d4 | 389 | cp 8 | no |
+
+## The claim, tested
+
+| question | answer |
+|---|---|
+| base does NOT draw TWO occurrences (control) | **correct** (701 nodes) |
+| base DRAWS the third occurrence | **YES** (0 nodes) |
+| PC does NOT draw TWO occurrences (control) | **correct** (412 nodes) |
+| PC finds a real search on the third occurrence | **YES** (389 nodes) |
+
+**CONFIRMS the repetition door of S-F17 exactly**: the base build adjudicates a genuine THIRD occurrence as
+drawn (0 nodes) while the PC build searches it, and BOTH builds search the two-occurrence control — so the
+boundary is the third occurrence, not repetition in general. That closes the last cell of the matrix.
