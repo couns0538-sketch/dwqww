@@ -18,3 +18,52 @@ Each line: id | area | claim | file with the command that shows it again | statu
 | 62-F14 | real play | Engine self-play reaches clock >= 93 easily (11 positions in 2 games) but never with a mate available (0 of 11). | `job4/REAL_PLAY.md` | NEW |
 | 62-F15 | measurement | A first scan reported 1 "hit" at H=100 that was already checkmate (`mate 0`, 0 nodes). Two filter bugs: terminal boards were not excluded, and j0=0 (the side to move can claim the draw itself) was counted. Fixed; honest count is 0. The label was wrong and measuring the hit caught it. | `job4/WIDE_BAND.md` | NEW |
 | 62-F16 | settings | Under the PC's own S14 options at depth 24 the defect reproduces exactly: H=98 `mate -1`, H=99 `cp 0`. DrawJitter turns the `cp 0` into `cp -2`/`cp +1` (sign follows node count), i.e. a fabricated evaluation that looks real -- so a check must not rely on the score being exactly 0. | `job2/S14_AND_JITTER.md` | NEW |
+
+---
+
+# The four questions, answered
+
+## 1. Which path produces cp 0 at halfmove 99, and why no depth fixes it
+
+NOT the root guard (`search.cpp:2251`) -- measured, `root_drawn=0` at H=99. It is
+the leaf rule at `search.cpp:1302-1304`, reached one ply down. At H=99 every child
+sits at clock exactly 100, is not checkmate, and `!in_check() || has_legal_move()`
+returns true, so the child returns 0 and ply 2 (where `Ra8#` lives) is never
+generated. Depth cannot help because both children return before expansion:
+nodes grow by exactly 3 per depth step, and depth 24 and 32 both still say cp 0.
+
+## 2. Blast radius
+
+80 (position, clock) pairs measured, prediction matched 80/80. The exposed cell is
+`H > 100 - p`, not "98-99":
+
+| mate length | first clock missed | boundary clock (found) |
+|---|---|---|
+| p=2 (mate in 1 against loser) | H=99 | H=98 |
+| p=4 (mate in 2 against loser) | H=97 | H=96 |
+| p=6 (mate in 3 against loser) | H=95 (derived) | H=94 |
+
+Misses reproduced: 8/8 at p=2, 24/24 at p=4. Control class: a bare-king cp 0 is
+the ROOT GUARD (0 nodes) and proves nothing here; the real control (a drawn
+position with a reset available) searches 23k-99k nodes and returns a real score,
+which is the contrast that makes `cp 0` at ~40 nodes diagnostic.
+
+## 3. Is it reachable in real play?
+
+Not observed. 5,689 real tournament games, 792,081 plies, 1,220 distinct FENs
+tested: **0 exposed**. The 3 real positions that did have a mate all sit exactly
+on the working boundary cell (`p == j0`) and are all answered correctly -- because
+a real converter mates at the first opportunity. The defect needs a winner that
+delays the mate by exactly one ply past the clock crossing.
+
+## 4. Do the existing repairs fix it?
+
+No, and not partially either. Seat 12 `two_doors_mate` and seat 27
+`drawn_root_reporting` are **node-for-node identical to base** on all 18 cells
+measured, at both mate lengths. Both pass all four honesty pins. The comparison
+harness is proven live: `--plant-fault` produces 9 mismatches and exit 1.
+
+Seat 12 patches the root, and the root guard is not what fires. Seat 27 changes
+how many info lines a drawn root prints, and on this board the root guard does not
+fire at all. The line that must change is 1304: it asks "is this node checkmate?"
+when the rule needs "can the side to move deliver mate now?".
