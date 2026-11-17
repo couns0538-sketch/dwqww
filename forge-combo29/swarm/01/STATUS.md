@@ -968,3 +968,22 @@ The checker is committed with its own two-bug history in the docstring, so the l
 the committed `.pyc` files, the stray root `STATUS.md`, and now three malformed rows. Each was found by looking,
 and the structural check is the cheapest of the three to institutionalise: it runs in a second and needs no
 engine.
+
+### TENTH UPDATE — three defects in my own artefacts, counted and each verified fixed
+
+Not engine defects — **defects in my own working artefacts**, which is a different and worth-stating category:
+
+| # | defect | found by | fixed, and verified |
+|---|---|---|---|
+| 1 | **four committed `.pyc` bytecode files** — the rules say text only | listing every non-text extension on the branch | removed with `git rm --cached`, deleted from the tree, `.gitignore` (`__pycache__/`, `*.pyc`) added; **`ls .gitignore` confirms it is present and the branch is text-only** |
+| 2 | **a stray `STATUS.md` in the repository root** — outside my folder | checking `git status` before a push | untracked, so never in history; deleted; **`ls /agent/repos/dwqww/STATUS.md` → no such file** |
+| 3 | **three malformed rows in `FINDINGS.md`** — a truncated row, a duplicate id, an unescaped `\|\|` | seat 13's S-F23 structural check, applied to my own file | repaired; **checker reports 118 rows, 0 wrong cell counts, 0 duplicate ids** |
+
+**Why this category is worth a line in a report about an engine:** an agent's output is only as trustworthy as its
+artefacts, and all three were invisible from the engine's side. A node count can be perfect while the report that
+carries it is malformed, contains a binary, or sits in the wrong folder — and none of the engine tests would ever
+notice. Each was found by **looking at the artefact**, not by assuming it was fine.
+
+The pattern across all three: the defect was in something I had created and not re-read. The structural checker
+is the cheapest of the three to institutionalise — it runs in a second and needs no engine — which is why it is
+committed alongside the findings rather than kept as a personal habit.
