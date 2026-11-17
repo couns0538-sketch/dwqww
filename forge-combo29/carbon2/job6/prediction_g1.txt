@@ -1,0 +1,23 @@
+Step G1 Prediction (committed BEFORE any Step G1 timed run)
+===========================================================
+Step name: `G1` (`g1_cached_material_corr_and_inline_dead_mat.patch.txt`, stacked on Job 5 `bundle.patch.txt`)
+
+Functions and `profile_bundle1.txt` self-time share attacked:
+- `forge::Worker::corrected_eval` (`8.07%` self, `9,784,391` calls — Rank #3 in `profile_bundle1.txt`)
+- `forge::Worker::record_move` (`1.06%` self, `14,126,707` calls — Rank #21)
+- `forge::Worker::update_correction` (`1.06%` self, `1,097,435` calls — Rank #24)
+- `forge::Worker::static_evaluate` (`0.42%` self, `5,839,471` calls — Rank #35)
+- Total attacked share: `10.61%` of `profile_bundle1.txt` self samples.
+- Why not already done in Jobs 1-5: Job 1 cached `NonPawnCorrection` (`corr_np_idx`) and `HistRework` (`corr_mat_mix`), and Job 4 `S3` unrolled `non_pawn_key`, but `material_key(board)` (`MaterialCorrectionWeight == 100` in `PC20`) was still recomputed from scratch (10 `popcount`s + 11 serial 64-bit multiplies) on all `10,881,826` calls to `corrected_eval` + `update_correction`, and `dead_material_score` made `15,623,862` cross-TU calls before checking `(pieces(Pawn) | pieces(Rook) | pieces(Queen)) != 0`.
+
+Work removed:
+1. Cache `corr_mat_idx` (`material_key(board) & (CorrectionSize - 1U)`, `corr_valid` bit `8U`) on `SearchStack`, propagate across every non-capture, non-promotion move in `Worker::record_move` and every null move in `Worker::record_null_move`, reuse in both `corrected_eval` and `update_correction` (~85% of `10.88M` `material_key` chains removed), and prefetch `&(*material_correction_)[side][child->corr_mat_idx]` in `prefetch_correction`.
+2. Inline `has_dead_material_candidates(const Board&)` (`(pieces(Pawn) | pieces(Rook) | pieces(Queen)) == 0`) in `include/forge/eval.hpp` before calling `dead_material_score` in `static_evaluate` and `corrected_eval`.
+
+Predicted `bench 13` gain on this cloud CPU (Intel Xeon @ 2.60GHz, g++ 13.3 AVX-512, `PC20 + net768`):
+- Predicted `bench 13` `median_of_paired_round_ratios`: `+0.8%` to `+2.5%` (`1.008x` to `1.025x`) on both `getrusage` CPU NPS and wall NPS.
+- Stack sizes (`bundle1 -> G1`): `sizeof(MovePicker) = 2240 -> 2240 B (+0 B)`, `Worker::search` unchanged (`~4496 B`), `Worker::qsearch` unchanged (`~2704 B`).
+
+Kill range:
+- Any identity mismatch kills the step immediately.
+- If `bench 13` `median_of_paired_round_ratios` (on both `getrusage` CPU and wall) is `<= 1.005x` (`<= +0.5%`) OR does not exceed the A/A build-noise spread (`not measured`), the standalone `bench 13` speed prediction is killed (while keeping the proven-identical step in `bundle2.patch.txt` per the bundle rule).
