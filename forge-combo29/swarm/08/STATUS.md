@@ -814,3 +814,17 @@ next: cadence.
 The gate caught its own drift again — the previous block claimed 29, C31 made it 30. Quote only what the gate prints.
 
 next: cadence.
+
+## 2026-11-17T02:28Z
+- **08-C32: seat 01 S-F15 — the ORDER confirms, the "within 0.3 points" does NOT reproduce.** My own mutations, my
+  R seed-801 positions, 120/kind at two seeds: refusal ORDER identical at both seeds, and **drop/delete/insert are
+  100 % at both** (so "a property of set_FEN" is supported), but **swap moved 13.3 points between seeds** (60.0 vs
+  46.7), so the 0.3-point band fails on my sample. Likely cause visible in the data: swap preserves the rank
+  character multiset, so the adjacent-digit tolerance often accepts it — position-dependent by construction. My
+  ranking differs too: **replace 91.7/82.5 % ABOVE swap 60.0/46.7 %**, where they list swap above replace. Not
+  claimed: that their figure is wrong.
+
+## 2026-11-17T02:28Z — TALLY (generated, not maintained)
+**39 findings, 31 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
+
+next: cadence.
