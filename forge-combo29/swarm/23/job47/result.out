@@ -1,0 +1,14 @@
+== fixture construction: a validated cycle per root, no hand-typed moves ==
+R1  rook d5, kings b8/a1       cycle b8c8 a1b2 c8b8 b2a1    plies=8 | root occurrences=3 OK
+R2  rook a1, kings b3/h1       NO CYCLE FOUND within 6 plies -> root EXCLUDED
+R3  rook c1, kings a1/h8       cycle c1c7 h8g8 c7c1 g8h8    plies=8 | root occurrences=3 OK
+
+== measurement ==
+| root | build/step | score | nodes | move |
+|---|---|---|---|---|
+| R1  rook d5, kings b8/a1 | base on root | cp 0 | 0 | d5d1 |
+| R3  rook c1, kings a1/h8 | base on root | cp 0 | 0 | c1b1 |
+| R1  rook d5, kings b8/a1 | PC on ROOT (control) | mate 9 | 76919 | d5b5 |
+| R1  rook d5, kings b8/a1 | PC AFTER base's d5d1 | cp -529 | 311633 | a1b2 |
+| R3  rook c1, kings a1/h8 | PC on ROOT (control) | cp 430 | 489434 | a1a2 |
+| R3  rook c1, kings a1/h8 | PC AFTER base's c1b1 | cp -489 | 256308 | h8g7 |

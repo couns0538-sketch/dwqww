@@ -112,10 +112,14 @@ So add a fifth check, for tooling that may run on the un-repaired build:
 
 The second half is measured (23-F93, 23-F96): on a threefold-repetition root the un-repaired build answers `cp 0` with
 **0 nodes** on EITHER side to move, and its `bestmove` is chosen without a search. On a won endgame that unsearched
-move still wins — but it turned a **mate in 10** into a capped `+529` that stayed capped at depths 16, 18 and 20, so
-the RESULT survived while the METHOD degraded. On the board where 23-F60 caught it, the same kind of unsearched move
-LOST. So for a tool: the score is not a search result, and the move is not a analysed move. If the root may be drawn,
-search the resulting position (or refuse the root) before showing either.
+move still wins — but on ONE measured root it turned a **mate in 10** into a capped `+529` that stayed capped at
+depths 16, 18 and 20, so the RESULT survived while the METHOD degraded. **That mate loss is a ONE-ROOT result and must
+not be generalised: a breadth test over three geometrically distinct threefold roots found no second instance (one root
+had no short cycle at all, the other was a cp win with no mate available at any depth tested) — see 23-F97.** On the
+board where 23-F60 caught it, the same kind of unsearched move LOST, which is a third distinct outcome and the worst
+one. So for a tool the safe reading is the general one, which holds on every root tested: **the score is not a search
+result and the move is not an analysed move.** If the root may be drawn, search the resulting position (or refuse the
+root) before showing either.
 
 The 2-vs-3 occurrence control is what makes this a statement about the repetition rule rather than the fifty-move
 counter: the same board and side to move, one more cycle of the same shuffle, 22,108 nodes become 0.

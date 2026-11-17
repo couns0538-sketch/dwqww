@@ -1,0 +1,64 @@
+THE BREADTH TEST FAILED — 23-F96 is re-scoped to ONE root, and the exclusion rule is what failed it
+=======================================================================================================
+F96 rested on one fixture and said so. This job asked whether "the unsearched move throws away the mate" reproduces
+across geometrically different threefold roots. **It does not reproduce, and the reason is my own prediction's
+structure, not the engine.** Reporting that plainly is the only honest use of the measurement.
+
+FIXTURE CONSTRUCTION — derived by search, nothing hand-typed (the job-44 lesson)
+----------------------------------------------------------------------------------
+Each root got a cycle found by depth-limited DFS over legal non-capturing, non-checking moves, asserting legality at
+every ply and counting the ROOT's occurrences in python-chess before any engine call:
+
+| root | cycle found | plies | root occurrences |
+|---|---|---|---|
+| R1 `1K6/8/8/3R4/8/8/8/k7 w` (rook d5, kings b8/a1) | `b8c8 a1b2 c8b8 b2a1` | 8 | 3 ✓ |
+| R2 `8/8/8/8/8/1K6/8/R6k w` (rook a1, kings b3/h1) | **none within 6 plies** | — | **EXCLUDED** |
+| R3 `7k/8/8/8/8/8/8/K1R5 w` (rook c1, kings a1/h8) | `c1c7 h8g8 c7c1 g8h8` | 8 | 3 ✓ |
+
+R2 was excluded because no short cycle exists there — with a rook on a1 and the white king on b3, every shuffle
+changes the position, so there is no repetition to build. That is a fixture-construction limit, recorded rather than
+worked around.
+
+THE MEASUREMENT
+---------------
+| root | step | score | nodes |
+|---|---|---|---|
+| R1 | base on the threefold root | **cp 0** | **0** (move d5d1) |
+| R3 | base on the threefold root | **cp 0** | **0** (move c1b1) |
+| R1 | PC on ROOT (control) | **mate 9** | 76,919 |
+| R1 | PC AFTER base's d5d1 | **cp -529** | 311,633 |
+| R3 | PC on ROOT (control) | **cp 430** | 489,434 |
+| R3 | PC AFTER base's c1b1 | **cp -489** | 256,308 |
+
+P1 HELD: the base returns **0 nodes with cp 0 on both roots** — the rule from 23-F93 is not narrower than claimed.
+P4 DID ITS JOB: R3's root scores **cp 430, not a mate**, so "threw away the mate" is vacuous there and R3 is excluded
+from P2 by the rule I printed in advance. And this exclusion is NOT a depth artefact — I checked R3's root at depths
+16, 18, 20 and 22 and it stays cp 430 / 427 / 427 / 427 (489k → 1.26M nodes). So R3 is a genuine long win with no
+mate inside four extra plies of search.
+**P2 FAILED: with R2 excluded by construction and R3 excluded by P4, only ONE root qualifies — the same root F96
+already had. The breadth test found no second instance, so it cannot support a general sentence.**
+P3 is untested as a consequence (there was no second qualifying root to test it on); on R3 white goes from cp 430 to
+cp -489, still winning, so the win-preservation half is consistent there but that root is outside P2's scope.
+
+WHAT HAPPENS TO F96: it is re-scoped, in place, to a single-fixture result
+--------------------------------------------------------------------------
+The sentence "the base's unsearched move throws away the mate" stands ONLY for R1 (`1K6/8/8/3R4/8/8/8/k7 w`, rook d5,
+kings b8/a1). What survives generally, on two roots, is the weaker and still useful pair:
+  - the base returns cp 0 with 0 nodes on a threefold root (P1, now 2 of 2 roots tested);
+  - its move is not a searched move, and on the one root where a mate was available it discarded it.
+I am NOT entitled to say the mate loss is typical, and the GUI page's wording ("on a won endgame that unsearched move
+still wins — but it turned a mate in 10 into a capped +529") must be read as one measured case, which is what that
+page already says; I checked the phrasing against this result and it does not overclaim.
+
+A NOTE ON WHAT THIS JOB WAS WORTH, since it produced a negative
+---------------------------------------------------------------
+It took twelve minutes and it converted "measured on one fixture, flagged as such" into "tested for reproduction on
+three, found on one, and here is exactly why the other two could not answer". That is a different epistemic state from
+either an unqualified general claim or an untested caveat, and it cost one prediction file to get.
+
+INSTANCE 20, and it is a NEW shape: my P2 was written as "at least two of three roots", which SILENTLY ASSUMED all
+three roots would yield valid fixtures and that all three would have a mate available. Both assumptions were about my
+own fixtures, not about the engine — I predicted the engine's behaviour while leaving my fixtures' viability
+unpredicted. The rule it earns: **when a prediction is phrased over N fixtures, the number of fixtures that will
+actually be measurable is itself a claim, and it needs checking before the prediction means anything.** Print the
+eligible count, then evaluate the prediction against it.
