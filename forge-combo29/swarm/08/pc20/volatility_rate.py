@@ -93,26 +93,26 @@ def search(fen, go):
     pre = sync()
     if any("invalid FEN" in l for l in pre):
         return {"err": "refused"}
+    import threading
     t0 = time.monotonic()
     send(go)
-    import select as _sel
     lines = []
-    timed_out = False
-    while True:
-        if time.monotonic() - t0 > 90.0:
-            timed_out = True
-            break
-        r_, _, _ = _sel.select([p.stdout], [], [], 1.0)
-        if not r_:
-            continue
-        l = p.stdout.readline()
-        if not l:
-            raise EOFError
-        l = l.rstrip("\n")
-        lines.append(l)
-        if l.startswith("bestmove"):
-            break
+    done = threading.Event()
+    def _reader():
+        while True:
+            l = p.stdout.readline()
+            if not l:
+                break
+            l = l.rstrip("\n")
+            lines.append(l)
+            if l.startswith("bestmove"):
+                break
+        done.set()
+    th = threading.Thread(target=_reader, daemon=True)
+    th.start()
+    finished = done.wait(90.0)
     wall = (time.monotonic() - t0) * 1000.0
+    timed_out = not finished
     if timed_out:
         p.kill()
         return {"timeout": True, "wall": wall}
@@ -174,23 +174,42 @@ for cname, fens in CLASSES:
         r = search(fen, CLOCK)
         if r.get("timeout"):
             clock_timeouts += 1
+            with open(OUT + ".skip", "a") as fh:
+                fh.write("clock_timeout %s\n" % fen)
             continue
         if "err" in r or r.get("depth", 0) < 3:
+            with open(OUT + ".skip", "a") as fh:
+                fh.write("clock_bad depth=%s err=%s %s\n" % (r.get("depth"), r.get("err"), fen))
             continue
         r2 = search(fen, "go depth %d" % (r["depth"] + 4))
         if r2.get("timeout"):
             timeouts += 1
+            with open(OUT + ".skip", "a") as fh:
+                fh.write("ref_timeout %s\n" % fen)
             continue
         if "err" in r2:
             continue
         used += 1
         a, b = r["score"], r2["score"]
         if a is None or b is None:
+            with open(OUT + ".skip", "a") as fh:
+                fh.write("unparsable a=%s b=%s %s\n" % (a, b, fen))
             continue
         if a.startswith("cp") and b.startswith("mate"):
             mates += 1
+            kind = "mate_appeared"
+            delta = None
         elif a.startswith("cp") and b.startswith("cp"):
-            cpdel.append(abs(cp(b) - cp(a)))
+            delta = abs(cp(b) - cp(a))
+            cpdel.append(delta)
+            kind = "cp_moved" if delta else "cp_same"
+        else:
+            delta = None
+            kind = "other"
+        with open(OUT + ".jsonl", "a") as fh:
+            fh.write(json.dumps({"class": cname, "fen": fen, "D": r["depth"], "score_D": a,
+                                 "score_D4": b, "kind": kind, "delta": delta,
+                                 "wall_clock": r["wall"]}) + "\n")
     queen = sum(1 for x in cpdel if x >= 900)
     twohun = sum(1 for x in cpdel if x >= 200)
     summary[cname] = (used, mates, cpdel, queen, twohun, timeouts, clock_timeouts)
