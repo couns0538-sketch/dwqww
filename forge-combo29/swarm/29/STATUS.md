@@ -429,3 +429,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Final verified picture: match depths PC20 searches 10.7-11.9% FEWER nodes on both sets; at depth 10 it is SET-DEPENDENT (R_2911 approx neutral +0.3%, G clearly better -15.3%); NOTHING supports PC20 being slower anywhere.
 - Three of five magnitudes had been inflated by small samples, every one in the direction of a stronger story (R d12 by 7.6 points, d14 by 3.1, G d12 by 2.0), and the one cell that looked like a COST (+2.3%) was a wash (+0.3%).
 - next: continuing at cadence.
+
+## Tue Nov 17 12:25:29 AM UTC 2026
+- 29-N38 in the FINAL beside the five-instance table, explaining why the error was SYSTEMATIC: every inflated magnitude ran in the direction of a STRONGER story - the match-depth saving overstated in all three cells (19.5->11.9, 14.1->11.0, 12.7->10.7) and the cell that looked like a COST was a wash (2.3->0.3).
+- Small samples did not scatter my errors; they biased every number toward the more interesting claim, because a large effect is what makes a measurement feel worth reporting. So the sample-size rule is not merely precision - it is what stops the interesting-looking result from becoming the published one.
+- next: continuing at cadence.

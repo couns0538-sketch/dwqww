@@ -102,6 +102,13 @@ moved toward a smaller effect as the sample grew:
 **So: quote the direction with confidence, and quote a magnitude only with the n it came from.** The old numbers are
 kept in FINDINGS beside the new ones rather than deleted, so the shrinkage is visible rather than tidied away.
 
+**WHY THIS IS SYSTEMATIC AND NOT RANDOM, which is the part that matters:** every inflated magnitude ran in the
+direction of a stronger story. The match-depth saving was overstated (19.5 % -> 11.9 %, 14.1 % -> 11.0 %, 12.7 % ->
+10.7 %) and the one cell that looked like a COST turned out to be a wash (2.3 % -> 0.3 %). Small samples did not
+scatter my errors at random — they biased every number toward the more interesting claim, because a large effect is
+what makes a measurement feel worth reporting. So the sample-size rule is not merely about precision: it is what
+stops the interesting-looking result from being the published one.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F42/29-F52/29-F53 (tree size, EVERY CELL NOW AT n >= 60): **PC20 searches a smaller tree at match depths on
