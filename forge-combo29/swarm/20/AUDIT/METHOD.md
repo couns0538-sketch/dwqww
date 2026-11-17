@@ -119,9 +119,22 @@ measurement could not:
 **The rule: when a number contradicts a hard bound, the bound wins and the measurement is over.** State the bound, cite
 how it was computed, and stop — do not spend an hour re-running a harness to explain a number that cannot be true.
 
-**Bounds worth checking before reporting a score:** mate distance versus material (K+R/K+Q v K ≤ 16 moves; K+B/B+N v K
-is not a forced win); node count against the budget given; depth against the depth limit; a score against the score
-range of the position's material.
+**THE PRE-CHECK — one line anyone can run before reporting a mate, with python-chess and arithmetic:**
+
+1. **Material maximum:** `K+R` or `K+Q` versus a lone king is **at most 16 moves (31 plies)**. **`K+B` or `K+N` alone
+   versus a lone king is NOT a forced win at all.** Two bishops or B+N can force mate but need far more than a shallow
+   search.
+2. **The arithmetic:** a `mate N` score claims **2|N| plies** (N<0) or **2N−1** (N>0). If that number **exceeds the
+   material's maximum**, the score is impossible — full stop.
+3. **So the check is:** read the material, write down the maximum, compare plies. Ten seconds, no harness.
+
+**Why this is the preferred route: a withdrawal by bound is STRONGER than any re-run would have been.** A re-run shows
+*that* a number did not come out again and invites "different build, different harness, different machine". A bound
+shows that the number **could not have come out of any engine on that material** — it is a statement about the position,
+not about the measurement, and it cannot be argued with.
+
+Also worth checking: node count against the budget given; depth against the depth limit; a score against the score
+range the position's material allows.
 
 ## MEASURING
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
