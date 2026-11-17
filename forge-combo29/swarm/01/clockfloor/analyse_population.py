@@ -124,7 +124,14 @@ def main():
              % (pop["node_mean"], smp["node_mean"], smp["node_mean"] - pop["node_mean"]))
     L.append("")
     dmed = abs(smp["node_median"] - pop["node_median"])
-    if dmed <= 0.02:
+    dmed_wall = abs(smp["wall_median"] - pop["wall_median"])
+    if dmed <= 0.02 and dmed_wall > 0.02:
+        L.append("VERDICT: the NODE median reproduces (%.4f vs %.4f), but THE WALL MEDIAN DOES NOT (%.4f vs %.4f)."
+                 % (smp["node_median"], pop["node_median"], smp["wall_median"], pop["wall_median"]))
+        L.append("  That is the consequential difference: a sample can get the node figure right and still get the")
+        L.append("  TIME figure wrong, because wall = node x per-node and the per-node factor is where the cost is.")
+        L.append("  The population number (%0.4f) is the one to quote." % pop["wall_median"])
+    elif dmed <= 0.02:
         L.append("VERDICT: the sample's median REPRODUCES at population scale (within 0.02), so S-C46's median stands.")
     else:
         L.append("VERDICT: the sample's median DOES NOT reproduce - it is off by %.3f, which is the S-C42 failure"

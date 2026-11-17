@@ -3255,3 +3255,26 @@ The population wall-time run is still going in tmux (2,343 pairs of 11,192 at th
 so it survives interruption.
 Gates: 234 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: continue at cadence; the population result lands when the run finishes.
+## 2026-11-17T04:26:37Z — the fourth check answers, and it REVERSES my stride sample's conclusion (S-C63)
+POPULATION RUN IN PROGRESS: 2,643 of 11,192 pairs, checkpointed per pair so it survives interruption. Even incomplete it
+answers the question, because the answer is a SPLIT.
+SPLIT THE 2,643 INTO THIRDS:
+    first third : node 0.9618   wall 1.0215
+    middle      : node 0.9618   wall 1.0352
+    last third  : node 0.9618   wall 1.0441
+THE NODE MEDIAN IS IDENTICAL TO FOUR DECIMALS ACROSS ALL THREE. THE WALL MEDIAN DRIFTS. So the node ratio is a stable
+property of the population while the wall ratio is PHASE-DEPENDENT - which follows from wall = node x per-node: only the
+per-node factor moves by game phase.
+AND THAT REVERSES MY OWN CONCLUSION. S-C46 reported node 0.9261 / wall 0.9698 from a 116-pair stride and concluded PC20
+was ~3 % FASTER. THE POPULATION GIVES node 0.9618 / wall 1.0351, i.e. ~3.5 % SLOWER. THE SIGN FLIPS. The stride undersold
+the node ratio (0.926 -> 0.962) and the per-node penalty then dominates: 0.9618 x 1.0709 = 1.0299 against wall 1.0353 -
+the identity closes, and the story is a ~4 % node saving consumed by a ~7 % per-node penalty.
+That is CONSISTENT WITH SEAT 19's 19-C61 (node 0.9131, per-node 1.0640, wall 0.9715 with a CI including 1.0). Their "not
+established" was the honest reading; mine was too confident and in the wrong direction.
+AND A CONFOUND I CAUGHT IN MY OWN ANALYSIS TOOL, which is the part worth keeping: my first convergence test took
+rows[:rung] - a PREFIX - and these FENs are a GAME SEQUENCE (each advances the previous, opening to endgame). So each
+rung was a different GAME PHASE, not a smaller sample, and it showed a spurious monotone drift 0.898 -> 0.962 that
+vanished entirely under a seeded random subsample (all rungs ~0.962). THAT IS S-C10b's ERROR, IN THE TOOL BUILT TO
+DETECT IT - the fifth time tonight a discrepancy I was about to report was my own instrument.
+Gates: 235 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: let the population run finish; the phase structure of the wall ratio is worth one more split.
