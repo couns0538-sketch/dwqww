@@ -57,20 +57,20 @@ print(len([x for x in seen if "ThreadSanitizer" in x]))
 
 
 def main():
-    # Write the fake engine into a private temp dir the program creates itself,
-    # not into the scripts folder: owner-only and unpredictable, so the 0o755
-    # below cannot be aimed at a pre-existing file.
+    # Write the fake engine into a private temp dir the program creates itself
+    # (owner-only, unpredictable name). It is run through the Python
+    # interpreter rather than executed directly, so no exec bit is set and
+    # there is no chmod to aim at a pre-existing file.
     tmpdir = tempfile.mkdtemp(prefix="tsan-drain-selftest-")
     fake = os.path.join(tmpdir, "fake_engine_exit_report.py")
     with open(fake, "w", encoding="utf-8") as f:
         f.write(FAKE)
-    os.chmod(fake, 0o755)
 
     sys.path.insert(0, HERE)
     from tsan_driver import Engine, races
 
     print("== fixed driver (drains to EOF) ==")
-    e = Engine(fake)
+    e = Engine([sys.executable, fake])
     e.sync()
     e.go("go depth 1", 30)
     log = e.close()

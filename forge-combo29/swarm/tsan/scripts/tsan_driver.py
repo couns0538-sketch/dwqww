@@ -21,13 +21,22 @@ BESTMOVE = re.compile(r"^bestmove\b")
 
 class Engine:
     def __init__(self, exe, env=None):
+        """`exe` is a command: either a path string or a list of argv strings.
+
+        subprocess is never given a shell, so the argv is not re-parsed; the
+        list form exists so the driver tests can prepend an interpreter
+        without building a string.
+        """
+        argv = [exe] if isinstance(exe, (str, os.PathLike)) else [str(a) for a in exe]
+        if not argv:
+            raise ValueError("Engine needs a command")
         e = dict(os.environ)
         e.setdefault("TSAN_OPTIONS", "halt_on_error=0 second_deadlock_stack=1 history_size=4")
         if env:
             e.update(env)
         self.proc = subprocess.Popen(
-            [exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, text=True, bufsize=1, env=e)
+            argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True, bufsize=1, env=e, shell=False)
         self.log = []
         self._send("uci")
         self._wait("uciok", 60)

@@ -105,14 +105,25 @@ def resolve_dir_in(raw, what="input directory") -> Path:
 
 
 def resolve_dir_out(raw, what="output directory") -> Path:
-    """A directory we will create, empty, or copy into."""
+    """A directory we will create, empty, or copy into.
+
+    This is the argument that reaches shutil.rmtree(), so it needs more than
+    "inside a root": it must be strictly BELOW a root, and must not be one of
+    the directories whose loss is unrecoverable regardless of configuration.
+    """
     target = resolve_out(raw, what)
     if target.exists() and not target.is_dir():
         raise UnsafePath("%s %r exists and is not a directory" % (what, str(target)))
-    # rmtree on "/" or a top-level dir would be catastrophic even if a caller
-    # widened the root by accident.
-    if target == target.anchor or len(target.parts) < 3:
-        raise UnsafePath("%s %r is too shallow to delete" % (what, str(target)))
+    # Strictly below a root: a root itself is too valuable to be an rmtree target.
+    if not any(target != r and _inside(target, r) for r in audit_roots()):
+        raise UnsafePath("%s %r is not strictly inside an allowed root" % (what, str(target)))
+    # Named refusals, independent of how the roots are configured. These are
+    # checked by resolved path so a symlink or a ".." cannot smuggle them past.
+    forbidden = {Path("/"), Path("/tmp"), Path("/home"), Path("/usr"),
+                 Path("/etc"), Path("/var"), Path.home().resolve(),
+                 Path.home().resolve() / "work"}
+    if target in forbidden:
+        raise UnsafePath("%s %r is a protected directory" % (what, str(target)))
     return target
 
 
@@ -148,6 +159,20 @@ if __name__ == "__main__":
     expect_refusal(resolve_dir_out, "/tmp")
     expect_refusal(resolve_exe, "/etc/hostname")
     expect_refusal(resolve_in, "/nonexistent/file")
+
+    # A protected directory must stay refused even when a caller widens the
+    # roots to include it -- otherwise FORGE_AUDIT_ROOT=/ would re-enable
+    # rmtree("/").
+    saved = os.environ.get("FORGE_AUDIT_ROOT")
+    try:
+        for protected in ("/", "/tmp", "/etc", "/home"):
+            os.environ["FORGE_AUDIT_ROOT"] = protected
+            expect_refusal(resolve_dir_out, protected)
+    finally:
+        if saved is None:
+            os.environ.pop("FORGE_AUDIT_ROOT", None)
+        else:
+            os.environ["FORGE_AUDIT_ROOT"] = saved
 
     expect_ok(resolve_out, str(root / "evidence" / "x.json"))
     expect_ok(resolve_dir_out, str(root / "evidence" / "sub"))
