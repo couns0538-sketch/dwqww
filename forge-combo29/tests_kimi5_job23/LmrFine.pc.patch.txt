@@ -1,0 +1,61 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -131,6 +131,18 @@
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++// A1 (kimi5 job 23): the late-move reduction recomputed in 1/1024 ply, with a
++// continuous history term. LmrFine 0 = today's whole-ply reduction (the default).
++int LmrFine = 0;
++int LmrTtPvF = 1024;
++int LmrNotImprovingF = 1024;
++int LmrCutNodeF = 2048;
++int LmrTtCaptureF = 1024;
++int LmrGiveCheckF = 1024;
++int LmrInCheckF = 1024;
++int LmrCutoffAddF = 1024;
++int LmrFineHistory = 0;
++int LmrRoundF = 0;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -209,6 +221,11 @@
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"LmrFine", &LmrFine, 0, 1},                     {"LmrTtPvF", &LmrTtPvF, 0, 4096},
++        {"LmrNotImprovingF", &LmrNotImprovingF, 0, 4096}, {"LmrCutNodeF", &LmrCutNodeF, 0, 4096},
++        {"LmrTtCaptureF", &LmrTtCaptureF, 0, 4096},      {"LmrGiveCheckF", &LmrGiveCheckF, 0, 4096},
++        {"LmrInCheckF", &LmrInCheckF, 0, 4096},          {"LmrCutoffAddF", &LmrCutoffAddF, 0, 4096},
++        {"LmrFineHistory", &LmrFineHistory, 0, 1},       {"LmrRoundF", &LmrRoundF, 0, 1023},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -2263,6 +2280,27 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::LmrFine) {
++                // A1: the same reduction recomputed in units of 1/1024 ply. Every term
++                // mirrors its whole-ply twin above; the arithmetic shift floors, also
++                // for a negative f (C++20 right shift on a signed negative value).
++                int f = 1024 * reduction(quiet, depth, move_count);
++                if (ss->tt_pv) f -= tune::LmrTtPvF;
++                if (!improving) f += tune::LmrNotImprovingF;
++                if (cut_node) f += tune::LmrCutNodeF;
++                if (tt_capture && quiet) f += tune::LmrTtCaptureF;
++                if (gives_check) f -= tune::LmrGiveCheckF;
++                if (in_check) f -= tune::LmrInCheckF;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold)
++                    f += tune::LmrCutoffAddF;
++                if (quiet) {
++                    if (tune::LmrFineHistory)
++                        f -= std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048);
++                    else
++                        f -= 1024 * std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++                }
++                r = (f + tune::LmrRoundF) >> 10;
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;

@@ -1,0 +1,80 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <array>
+ #include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+@@ -229,6 +230,15 @@
+ }
+ } // namespace tune
+ 
++// kimi5 job 23 counting build (observe-only; no search change). One slot per class,
++// filled at every computed quiet late-move reduction, one LMRF line printed per search.
++// Layout: [0] total counted; [1..12] fh classes (r-1, r, r+1, other) x history sign
++// (neg, zero, pos); [13..24] fhr classes, same order; [25..27] fh r-1 by history band
++// (+6..+5642, +5649..+11285, outside); [28..30] fhr r-1 by band (+2828..+5642,
++// +8471..+11285, outside); [31..33] fhr r+1 by band (-5642..-2822, -11285..-8465,
++// outside). Threads 1 only: helper workers would add into the same array.
++std::array<std::int64_t, 34> g_lmrf{};
++
+ // Kings are left out: this engine's SEE value for a king is 0, so a king is
+ // neither a material attacker nor a material victim.
+ bool cheaper_enemy_attacks_dearer(const Board& board) {
+@@ -2263,6 +2273,32 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (quiet) {
++                // kimi5 job 23 counting (observe-only): today's r exists here. Compute
++                // apart the r that fh (fine history, round 0) and fhr (round 512) would
++                // give under LmrFine 1 and classify both against r. Nothing is used.
++                const int f_fine = 1024 * reduction(true, depth, move_count) - (ss->tt_pv ? 1024 : 0) +
++                    (!improving ? 1024 : 0) + (cut_node ? 2048 : 0) + (tt_capture ? 1024 : 0) -
++                    (gives_check ? 1024 : 0) - (in_check ? 1024 : 0) +
++                    ((tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) ? 1024 : 0) -
++                    std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048);
++                const int r_fh = f_fine >> 10;
++                const int r_fhr = (f_fine + 512) >> 10;
++                const int hs = (history > 0) - (history < 0) + 1;
++                const int d_fh = r_fh - r;
++                const int c_fh = d_fh == -1 ? 0 : d_fh == 0 ? 1 : d_fh == 1 ? 2 : 3;
++                const int d_fhr = r_fhr - r;
++                const int c_fhr = d_fhr == -1 ? 0 : d_fhr == 0 ? 1 : d_fhr == 1 ? 2 : 3;
++                ++g_lmrf[0];
++                ++g_lmrf[1 + c_fh * 3 + hs];
++                ++g_lmrf[13 + c_fhr * 3 + hs];
++                if (c_fh == 0)
++                    ++g_lmrf[history >= 6 && history <= 5642 ? 25 : history >= 5649 && history <= 11285 ? 26 : 27];
++                if (c_fhr == 0)
++                    ++g_lmrf[history >= 2828 && history <= 5642 ? 28 : history >= 8471 && history <= 11285 ? 29 : 30];
++                if (c_fhr == 2)
++                    ++g_lmrf[history >= -5642 && history <= -2822 ? 31 : history >= -11285 && history <= -8465 ? 32 : 33];
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -3107,6 +3143,7 @@
+     // thread first. MultiPV leaves the extra workers idle; clearing them does
+     // not change the main-worker total.
+     for (auto& worker : workers_) worker->reset_node_count();
++    g_lmrf.fill(0);  // kimi5 job 23 counting: one LMRF line per search (Threads 1)
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+@@ -3124,6 +3161,12 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    if (emit_info) {  // kimi5 job 23 counting: one LMRF line per search
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "LMRF";
++        for (std::size_t i = 0; i < g_lmrf.size(); ++i) std::cout << ' ' << g_lmrf[i];
++        std::cout << std::endl;
++    }
+     return result;
+ }
+ 
