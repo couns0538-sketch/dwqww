@@ -41,3 +41,7 @@ All ten Carbon2 stack prefixes matched both PC20 bench pins and every node-count
 ## Job 4 — 2026-11-18T09:05:36Z
 
 Opus’s Job 4 reply independently confirmed Job 3. For Job 4, k10 and k11 matched all 389 rows in each of five PC20 cells spanning embedded AL1 s198, standalone net768, hard and soft node limits, and an untimed depth control. The requested planted hard-node row gate stopped at zero mismatches. Existing raw soft-mode final totals exposed five 8000 → 8001 overruns under the exact fault, while last-iteration labels remained equal. [Job 4 report](REPORT_sol3_job4.md) · [Control readback](sol3/job4/control_gate.txt)
+
+## Job 5 — 2026-11-18T09:31:30Z
+
+The unchanged r15d whole-game workload matched its three pins. The strict final-count driver stopped twice at game 0 ply 83 because the terminal root returned before printing the final softnodes line. The cold hard-node probe passed: k10f and k11f were exactly 20000 nodes in all 778 B2/N2 searches, while Pf was 20001 in each. The asserting k11 build completed the original workload and matched r15d’s legacy trace. [Job 5 report](REPORT_sol3_job5.md) · [Evidence](sol3/job5)
