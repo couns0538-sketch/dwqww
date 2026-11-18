@@ -1,0 +1,97 @@
+--- a/selfplay_driver.py
++++ b/driver_final.py
+@@ -15,6 +15,7 @@
+       50-move rule (100 reversible halfmoves), threefold repetition, or ply == max_plies.
+ - Emits total searches, total nodes, searches/sec, effective nps, and an FNV-1a 64-bit
+   hash over every (game, ply, bestmove, nodes, score) tuple to verify bit-exact search identity.
++- Records final softnodes totals and a separate FNV-1a hash over (game, ply, final nodes).
+ - Optionally dumps sampled FENs / move-lists for position test suites.
+ """
+ 
+@@ -184,6 +185,16 @@
+     return h
+ 
+ 
++def parse_final_nodes(line: str, previous: int | None, context: str) -> int:
++    if previous is not None:
++        raise RuntimeError(f"Duplicate softnodes final count during {context}: {line.strip()}")
++    parts = line.split()
++    if (len(parts) != 5 or parts[:4] != ["info", "string", "softnodes", "nodes"]
++            or not parts[4].isascii() or not parts[4].isdecimal()):
++        raise RuntimeError(f"Malformed softnodes final count during {context}: {line.strip()}")
++    return int(parts[4])
++
++
+ def send(proc: subprocess.Popen, text: str):
+     assert proc.stdin is not None
+     proc.stdin.write(text)
+@@ -276,15 +287,26 @@
+         wait_ready(proc, check_errors=True)
+         send(proc, f"position startpos moves {' '.join(openings[0])}\ngo softnodes {softnodes}\n")
+         assert proc.stdout is not None
++        warm_final_nodes = None
+         while True:
+             ln = proc.stdout.readline()
+-            if not ln or ln.startswith("bestmove "):
++            if not ln:
++                raise RuntimeError("Engine EOF during warm-up search")
++            if ln.startswith("info string softnodes nodes"):
++                warm_final_nodes = parse_final_nodes(ln, warm_final_nodes, "warm-up")
++            elif ln.startswith("bestmove "):
++                if warm_final_nodes is None:
++                    raise RuntimeError(f"Missing softnodes final count during warm-up: {ln.strip()}")
+                 break
+ 
+         collected_fens: list[str] = []
+         total_searches = 0
+         total_nodes = 0
+         trace_hash = 14695981039346656037
++        final_sum = 0
++        at_cap = 0
++        final_hash = trace_hash
++        hard_cap = 4 * softnodes
+ 
+         t0 = time.perf_counter_ns()
+         for g_idx, opening in enumerate(openings):
+@@ -307,7 +329,9 @@
+ 
+                 last_nodes = 0
+                 last_score = ""
++                final_nodes = None
+                 bestmove = "0000"
++                context = f"game {g_idx}, ply {ply}"
+                 while True:
+                     line = proc.stdout.readline()
+                     if not line:
+@@ -319,13 +343,21 @@
+                                 last_nodes = int(parts[i + 1])
+                             elif tok == "score" and i + 2 < len(parts):
+                                 last_score = f"{parts[i + 1]}:{parts[i + 2]}"
++                    elif line.startswith("info string softnodes nodes"):
++                        final_nodes = parse_final_nodes(line, final_nodes, context)
+                     elif line.startswith("bestmove "):
+                         bestmove = line.split()[1]
++                        if final_nodes is None:
++                            raise RuntimeError(f"Missing softnodes final count during {context}: "
++                                               f"bestmove {bestmove}, last info nodes {last_nodes}")
+                         break
+ 
+                 total_searches += 1
+                 total_nodes += last_nodes
+                 trace_hash = fnv1a64_str(trace_hash, f"{g_idx},{ply},{bestmove},{last_nodes},{last_score};")
++                final_sum += final_nodes
++                at_cap += final_nodes == hard_cap
++                final_hash = fnv1a64_str(final_hash, f"{g_idx},{ply},{final_nodes};")
+ 
+                 if bestmove == "0000" or last_nodes == 0:
+                     break
+@@ -353,6 +385,9 @@
+         "searches_per_sec": round(total_searches / elapsed_s, 2),
+         "effective_nps": round(total_nodes / elapsed_s, 1),
+         "trace_fnv1a64": f"{trace_hash:016x}",
++        "final_sum": final_sum,
++        "at_cap": at_cap,
++        "final_fnv1a64": f"{final_hash:016x}",
+     }
+ 
+ 
