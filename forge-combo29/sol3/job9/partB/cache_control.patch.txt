@@ -1,0 +1,11 @@
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -116,7 +116,7 @@
+             matched_prefix = true;
+             tail_sv = moves_sv;
+         } else if (moves_sv.size() >= canon.size() &&
+-                   moves_sv.substr(0, canon.size()) == canon &&
++                   (moves_sv.size() == canon.size() || moves_sv.substr(0, canon.size()) == canon) &&
+                    (moves_sv.size() == canon.size() || is_uci_ws(moves_sv[canon.size()]))) {
+             matched_prefix = true;
+             tail_sv = moves_sv.substr(canon.size());
