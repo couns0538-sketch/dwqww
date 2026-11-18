@@ -1,0 +1,219 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-18 07:11:13.850998850 +0000
++++ b/include/forge/search.hpp	2026-11-18 06:53:21.438998850 +0000
+@@ -567,7 +567,6 @@
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     mutable std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{}; // HistRework: maps of the node at each ply
+     mutable std::array<std::uint8_t, MaxPly + 8> threat_map_ready_{};
+-    alignas(64) mutable std::array<std::int32_t, 64> quiet_base_to_{};
+     mutable MoveList picker_scratch_;
+     mutable MoveList evasion_scratch_;
+ 
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 07:14:10.474998850 +0000
++++ b/src/search.cpp	2026-11-18 06:53:21.438998850 +0000
+@@ -1106,7 +1106,7 @@
+ #endif
+     }
+ 
+-    void generate_captures() {
++    [[gnu::noinline]] void generate_captures() {
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+@@ -1219,7 +1219,7 @@
+ #endif
+     }
+ 
+-    void generate_quiets() {
++    [[gnu::noinline]] void generate_quiets() {
+         quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
+         init_check_squares();
+@@ -1238,6 +1238,7 @@
+             return;
+         }
+ 
++        static constexpr std::array<std::int16_t, 64> kZeroContRow{};
+         const Color us = board_.side_to_move();
+         const Color them = opposite(us);
+         const Bitboard own = board_.occupied(us);
+@@ -1245,41 +1246,29 @@
+         const Bitboard occ = own | enemy;
+         const Bitboard empty = ~occ;
+         const int up = pawn_push_delta(us);
+-        std::int32_t* const base_to = searcher_.quiet_base_to_.data();
+         const int quarters = scorer.quarters;
+         const int inv_quarters = 4 - quarters;
+ 
+-        auto build_base_to = [&](int pt) {
+-            const std::size_t p = static_cast<std::size_t>(make_piece(us, pt));
+-            const Bitboard chk = check_squares_[static_cast<std::size_t>(pt)];
+-#if defined(__AVX512F__) && defined(__AVX512BW__)
+-            const __m512i v12000 = _mm512_set1_epi32(12000);
+-            for (int q = 0; q < 64; q += 16) {
+-                __m512i acc = _mm512_maskz_mov_epi32(static_cast<__mmask16>(chk >> q), v12000);
+-                if (scorer.cont1 != nullptr) {
+-                    acc = _mm512_add_epi32(acc, _mm512_cvtepi16_epi32(
+-                        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&(*scorer.cont1)[p][static_cast<std::size_t>(q)]))));
+-                }
+-                if (scorer.cont2 != nullptr) {
+-                    acc = _mm512_add_epi32(acc, _mm512_cvtepi16_epi32(
+-                        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&(*scorer.cont2)[p][static_cast<std::size_t>(q)]))));
+-                }
+-                if (scorer.cont4 != nullptr) {
+-                    const __m512i v4 = _mm512_cvtepi16_epi32(
+-                        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&(*scorer.cont4)[p][static_cast<std::size_t>(q)])));
+-                    acc = _mm512_add_epi32(acc, _mm512_srai_epi32(_mm512_add_epi32(v4, _mm512_srli_epi32(v4, 31)), 1));
+-                }
+-                _mm512_store_si512(reinterpret_cast<__m512i*>(base_to + q), acc);
+-            }
+-#else
+-            for (int sq = 0; sq < 64; ++sq) {
+-                int v = ((chk >> sq) & 1ULL) != 0 ? 12000 : 0;
+-                if (scorer.cont1 != nullptr) v += (*scorer.cont1)[p][static_cast<std::size_t>(sq)];
+-                if (scorer.cont2 != nullptr) v += (*scorer.cont2)[p][static_cast<std::size_t>(sq)];
+-                if (scorer.cont4 != nullptr) v += (*scorer.cont4)[p][static_cast<std::size_t>(sq)] / 2;
+-                base_to[sq] = v;
++        struct PieceContRows {
++            const std::int16_t* c1;
++            const std::int16_t* c2;
++            const std::int16_t* c4;
++            Bitboard chk;
++            [[gnu::always_inline]] int extra(int to) const noexcept {
++                int v = static_cast<int>(c1[to]) + static_cast<int>(c2[to]);
++                if (c4 != nullptr) [[unlikely]] v += static_cast<int>(c4[to]) / 2;
++                if (((chk >> to) & 1ULL) != 0) v += 12000;
++                return v;
+             }
+-#endif
++        };
++        auto rows_for = [&](int pt) noexcept -> PieceContRows {
++            const std::size_t p = static_cast<std::size_t>(make_piece(us, pt));
++            return PieceContRows{
++                scorer.cont1 != nullptr ? (*scorer.cont1)[p].data() : kZeroContRow.data(),
++                scorer.cont2 != nullptr ? (*scorer.cont2)[p].data() : kZeroContRow.data(),
++                scorer.cont4 != nullptr ? (*scorer.cont4)[p].data() : nullptr,
++                check_squares_[static_cast<std::size_t>(pt)],
++            };
+         };
+ 
+         const Bitboard pawns = board_.pieces(us, Pawn);
+@@ -1289,7 +1278,7 @@
+         Bitboard single = pawn_push(us, regular) & empty;
+         Bitboard twice = pawn_push(us, single & third) & empty;
+         if ((single | twice) != 0) {
+-            build_base_to(Pawn);
++            const PieceContRows pr = rows_for(Pawn);
+             if (scorer.rework) {
+                 const Bitboard pset = scorer.threats->by_type[static_cast<std::size_t>(Pawn)];
+                 while (single != 0) {
+@@ -1299,7 +1288,7 @@
+                     const int twin = (*scorer.rework_side)[b4::square_bit(pset, from)][b4::square_bit(pset, to)]
+                                                           [static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+                     push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Quiet},
+-                                ((plain * inv_quarters + twin * quarters) / 4) + base_to[to]);
++                                ((plain * inv_quarters + twin * quarters) / 4) + pr.extra(to));
+                 }
+                 while (twice != 0) {
+                     const int to = pop_lsb(twice);
+@@ -1308,25 +1297,25 @@
+                     const int twin = (*scorer.rework_side)[b4::square_bit(pset, from)][b4::square_bit(pset, to)]
+                                                           [static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+                     push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, DoublePush},
+-                                ((plain * inv_quarters + twin * quarters) / 4) + base_to[to]);
++                                ((plain * inv_quarters + twin * quarters) / 4) + pr.extra(to));
+                 }
+             } else {
+                 while (single != 0) {
+                     const int to = pop_lsb(single);
+                     const int from = to - up;
+                     push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Quiet},
+-                                scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)] + base_to[to]);
++                                scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)] + pr.extra(to));
+                 }
+                 while (twice != 0) {
+                     const int to = pop_lsb(twice);
+                     const int from = to - 2 * up;
+                     push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, DoublePush},
+-                                scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)] + base_to[to]);
++                                scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)] + pr.extra(to));
+                 }
+             }
+         }
+ 
+-        auto emit_quiets_from = [&](int pt, int from, Bitboard targets) {
++        auto emit_quiets_from = [&](int pt, const PieceContRows& rows, int from, Bitboard targets) {
+             if (targets == 0) return;
+             const auto f8 = static_cast<std::uint8_t>(from);
+             const std::int16_t* const m_row = scorer.main[static_cast<std::size_t>(from)].data();
+@@ -1340,48 +1329,48 @@
+                     const int plain = m_row[to];
+                     const int twin = ((tset >> to) & 1ULL) != 0 ? rw1[to] : rw0[to];
+                     push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Quiet},
+-                                ((plain * inv_quarters + twin * quarters) / 4) + base_to[to]);
++                                ((plain * inv_quarters + twin * quarters) / 4) + rows.extra(to));
+                 }
+             } else {
+                 while (targets != 0) {
+                     const int to = pop_lsb(targets);
+-                    push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Quiet}, m_row[to] + base_to[to]);
++                    push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Quiet}, m_row[to] + rows.extra(to));
+                 }
+             }
+         };
+ 
+         if (Bitboard knights = board_.pieces(us, Knight); knights != 0) {
+-            build_base_to(Knight);
++            const PieceContRows rows = rows_for(Knight);
+             while (knights != 0) {
+                 const int from = pop_lsb(knights);
+-                emit_quiets_from(Knight, from, attacks::knight(from) & empty);
++                emit_quiets_from(Knight, rows, from, attacks::knight(from) & empty);
+             }
+         }
+         if (Bitboard bishops = board_.pieces(us, Bishop); bishops != 0) {
+-            build_base_to(Bishop);
++            const PieceContRows rows = rows_for(Bishop);
+             while (bishops != 0) {
+                 const int from = pop_lsb(bishops);
+-                emit_quiets_from(Bishop, from, attacks::bishop(from, occ) & empty);
++                emit_quiets_from(Bishop, rows, from, attacks::bishop(from, occ) & empty);
+             }
+         }
+         if (Bitboard rooks = board_.pieces(us, Rook); rooks != 0) {
+-            build_base_to(Rook);
++            const PieceContRows rows = rows_for(Rook);
+             while (rooks != 0) {
+                 const int from = pop_lsb(rooks);
+-                emit_quiets_from(Rook, from, attacks::rook(from, occ) & empty);
++                emit_quiets_from(Rook, rows, from, attacks::rook(from, occ) & empty);
+             }
+         }
+         if (Bitboard queens = board_.pieces(us, Queen); queens != 0) {
+-            build_base_to(Queen);
++            const PieceContRows rows = rows_for(Queen);
+             while (queens != 0) {
+                 const int from = pop_lsb(queens);
+-                emit_quiets_from(Queen, from, attacks::queen(from, occ) & empty);
++                emit_quiets_from(Queen, rows, from, attacks::queen(from, occ) & empty);
+             }
+         }
+ 
+         const int king = board_.king_square(us);
+-        build_base_to(King);
+-        emit_quiets_from(King, king, attacks::king(king) & empty);
++        const PieceContRows krows = rows_for(King);
++        emit_quiets_from(King, krows, king, attacks::king(king) & empty);
+ 
+         if (board_.checkers() == 0) {
+             constexpr std::uint8_t kWKS = 1, kWQS = 2, kBKS = 4, kBQS = 8;
+@@ -1393,7 +1382,7 @@
+                     const int twin = (*scorer.rework_side)[0][0][static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+                     val = (plain * inv_quarters + twin * quarters) / 4;
+                 }
+-                push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flag}, val + base_to[to]);
++                push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flag}, val + krows.extra(to));
+             };
+             if (us == White && king == 4) {
+                 if ((rights & kWKS) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&

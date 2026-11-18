@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Read and verify the exact Carbon2 kF patch series from the local Git object store."""
+
+from datetime import datetime, timezone
+import hashlib
+from pathlib import Path, PurePosixPath
+import subprocess
+
+
+JOB = Path(__file__).resolve().parent
+REPO = JOB.parent / 'sol2-repo'
+CARBON_COMMIT = 'dfb88772b71ea25b81988030c0953a8a32fa581a'
+SERIES = (
+    (13, '01_S4'), (13, '02_S5'), (13, '03_S5_assert'), (13, '04_S7'),
+    (13, '05_G1'), (13, '06_G2'), (13, '07_G3'), (13, '08_G4'),
+    (13, '09_W1'), (13, '10_W2'), (14, '11_stop_hot'),
+    (15, '12_v3_refresh_fuse'), (16, '13_tt_avx512_fast_probe'), (17, 'tidy'),
+)
+
+
+def git(*args, raw=None):
+    return subprocess.check_output(['git', '-C', str(REPO), *args], input=raw)
+
+
+def targets(raw):
+    before = []
+    after = []
+    for line in raw.decode('utf-8').splitlines():
+        if line.startswith('--- a/'):
+            before.append(line.split('\t', 1)[0][6:])
+        elif line.startswith('+++ b/'):
+            after.append(line.split('\t', 1)[0][6:])
+    if not before or before != after or len(before) != len(set(before)):
+        raise ValueError('Patch target headers missing, conflicting or duplicated')
+    for name in before:
+        parts = PurePosixPath(name).parts
+        if (not parts or '..' in parts or (parts[0] != 'src' and parts[:2] != ('include', 'forge'))):
+            raise ValueError(f'Patch target outside permitted source scope: {name}')
+    return before
+
+
+def main():
+    saved = JOB / 'patches'
+    saved.mkdir()
+    receipt = JOB / 'prefix-patch-provenance.raw.txt'
+    with receipt.open('x', encoding='utf-8') as log, (saved / 'series.txt').open('x', encoding='utf-8') as series:
+        print(f'Retrieved {datetime.now(timezone.utc).isoformat()} from the existing local Git object store.', file=log)
+        print('Repository couns0538-sketch/dwqww', file=log)
+        print(f'Carbon2 immutable commit {CARBON_COMMIT}', file=log)
+        print('Fields: position, path, Git blob SHA-1, content SHA-256, lines, targets, prior comparison.', file=log)
+        for index, (job, stem) in enumerate(SERIES, 1):
+            name = stem + '.patch.txt'
+            remote = f'forge-combo29/carbon2/job{job}/stack/{name}'
+            spec = f'{CARBON_COMMIT}:{remote}'
+            blob = git('rev-parse', '--verify', spec).decode().strip()
+            raw = git('show', spec)
+            if git('hash-object', '--stdin', raw=raw).decode().strip() != blob:
+                raise ValueError(f'Scratch patch does not match Git blob: {remote}')
+            if not raw.endswith(b'\n') or b'\0' in raw:
+                raise ValueError(f'Patch must be LF-terminated text: {remote}')
+            if index <= 11:
+                prior = JOB.parent / 'sol2-job5' / 'patches' / name
+            elif index in (12, 13):
+                prior = JOB.parent / f'sol2-job{index - 5}' / name
+            else:
+                prior = None
+            if prior is not None and prior.read_bytes() != raw:
+                raise ValueError(f'Pinned patch disagrees with earlier verified artifact: {prior}')
+            (saved / name).write_bytes(raw)
+            sha = hashlib.sha256(raw).hexdigest()
+            print(name, file=series)
+            print(f'{index:02d}  {remote}  {blob}  {sha}  {raw.count(bytes([10]))}  '
+                  f'{",".join(targets(raw))}  {str(prior) if prior else "newly recovered at pin"}', file=log)
+
+
+if __name__ == '__main__':
+    main()

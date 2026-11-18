@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job18
+out=forge-combo29/sol2/job18
+start=$(date -u -d "$(cat "$job/read-at.txt")" +%s)
+export PYTHONPATH=/workspace/work/sol2-job12/python
+mkdir -p "$out/build-checks"
+for label in "$@"; do
+    build_status=0
+    gate_status=0
+    left=$((start + 80*60 - $(date -u +%s)))
+    if test "$left" -le 0; then break; fi
+    if ! test -f "$job/prefix-source/$label-source-sha256.raw.txt"; then
+        mkdir "$job/step1-$label"
+        printf '%s\n' 'Prefix source preparation failed or did not finish.' > "$job/step1-$label/commands.raw.txt"
+        build_status=2
+    else
+        timeout "$left" bash "$job/build_selfplay_clang.sh" "$label" || build_status=$?
+    fi
+    cp -r "$job/step1-$label" "$out/"
+    if test "$build_status" -eq 0; then
+        engine="$job/build-clang-selfplay-$label/forge"
+        left=$((start + 80*60 - $(date -u +%s)))
+        if test "$left" -gt 0; then
+            (
+                set -x
+                timeout "$left" taskset -c 2 python3 -B "$job/check_build.py" "$engine" "$out/build-checks/$label" "$out/known-answer.txt"
+            ) > "$out/$label-gate-command.raw.txt" 2>&1 || gate_status=$?
+        else
+            gate_status=124
+        fi
+    fi
+    phase=PASS
+    if test "$build_status" -ne 0 || test "$gate_status" -ne 0; then phase=FAIL; fi
+    printf '%s Step 1 %s %s, build exit %s, gate exit %s\n' "$(date -u +%FT%TZ)" "$label" "$phase" "$build_status" "$gate_status" >> "$out/stamps.txt"
+    printf 'Build exit %s\nGate exit %s\n' "$build_status" "$gate_status" > "$out/step1-$label/outcome.raw.txt"
+    git add -- "$out"
+    git -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+    git -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "Record sol2 Job 18 $label build and exact gates $phase"
+    GIT_TERMINAL_PROMPT=0 timeout 25s git push origin HEAD:refs/heads/for-fable-and-opus/sol2-work
+    test "$(git rev-parse HEAD)" = "$(git ls-remote --exit-code --refs origin refs/heads/for-fable-and-opus/sol2-work | cut -f1)"
+    printf '%s %s\n' "$label" "$phase"
+done
