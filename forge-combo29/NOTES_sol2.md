@@ -115,3 +115,7 @@ Completed 5 of 5 comparisons on one pinned cloud CPU with the Clang 19.1.7 recip
 ## Job 17 — 2026-11-18T21:14:48Z
 
 Completed 3 of 3 comparisons with the frozen Clang 19.1.7 builds and three pinned W workers per run. The r15d floor includes parity on engine CPU with a mean B/A of 1.0001 and a 95% interval of 0.9736–1.0267. kF pays on engine CPU with a mean B/A of 0.9566 and a 95% interval of 0.9427–0.9705. Group G falls short of the declared speed criterion on engine CPU with a mean B/A of 0.9913 and a 95% interval of 0.9602–1.0223. [Job 17 report](REPORT_sol2_job17.md)
+
+## Job 18 — 2026-11-18T21:56:33Z
+
+Completed 4 of 4 prefix comparisons using one pinned CPU, the Clang 19.1.7 self-play profile recipe and W. L1 NOT SEEN with pooled CPU B/A of 0.9999. L2 NOT SEEN with pooled CPU B/A of 0.9957. L3 PAYS with pooled CPU B/A of 0.9714. L4 PAYS with pooled CPU B/A of 0.9756. The pooled CPU product was 0.9436. [Job 18 report](REPORT_sol2_job18.md)
