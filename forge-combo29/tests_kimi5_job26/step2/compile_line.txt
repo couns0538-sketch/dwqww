@@ -1,0 +1,5 @@
+# sanitizer build compile line (cmake, in $HOME/build/job26/san)
+cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE= -DCMAKE_CXX_FLAGS="-DFORGE_MATE_ALPHA_GUARD=1 -DNDEBUG -fsanitize=address,undefined -fno-sanitize-recover=undefined -O1 -g -fno-omit-frame-pointer"
+cmake --build build -j4
+# plain PC build (in $HOME/build/job26/pc): cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+# plant control build: same as sanitizer, in $HOME/build/job26/plant, + one planted line at search.cpp:2460
