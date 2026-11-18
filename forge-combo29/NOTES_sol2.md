@@ -71,3 +71,7 @@ All 120 PC20/net768 warm timing passes reproduced 8,612 searches, 29,333,343 las
 ## Job 7 — 2026-11-18T11:59:56Z
 
 All three GCC LTO+PGO builds passed the held-out PC20/net768 trace, with disjoint training and timing openings. The 24 identical-binary control runs gave a CPU floor of 0.9921–1.0517. In 48 runs per comparison, k11-pgo/r15d-pgo pooled 0.9392 CPU with 12/12 blocks below one, measured by the predeclared rule. Carbon2's refresh patch on k11v-pgo pooled 0.9726 CPU against k11-pgo, measured. All 120 timing runs kept 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. These are cloud GCC results. GitHub connector checkpoints had the same tree hashes as the local commits after the CLI authentication failure. [Job 7 report](REPORT_sol2_job7.md)
+
+## Job 8 — 2026-11-18T12:53:01Z
+
+The exact Carbon2 TT patch and k13 Release/PGO passed their node and trace gates. All 120 PC20/net768 timing passes reproduced 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. The k11v-pgo copy CPU floor was 0.9456–0.9924. Pooled CPU was 0.9812 for k13-pgo/k11v-pgo, not measurable here, and 0.9119 for k13-pgo/r15d-pgo, measured. The adjacent ratios composed to 0.8963 using the pinned Job 7 factor. These results apply to the single-threaded cloud GCC/net768 workload. [Job 8 report](REPORT_sol2_job8.md)
