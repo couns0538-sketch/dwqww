@@ -2,18 +2,33 @@
 from collections import defaultdict
 from itertools import zip_longest
 from pathlib import Path
-import csv,sys
-from audit import read_pgn, FINISHED
+import argparse,csv,sys
+try:
+    from audit import read_pgn, FINISHED
+except ModuleNotFoundError:
+    # Accept the standalone pair checker one directory above an A13 result folder.
+    sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+    from audit import read_pgn, FINISHED
 HERE=Path(__file__).resolve().parent
 WORK=HERE.parent
-sys.path.insert(0,str(WORK/'j10fens/vendor'))
-import chess
 
 def main():
-    raw=WORK/'j13match/results'
-    out=HERE/'A13'
-    games=read_pgn(raw/'A13.pgn')
-    finished={int(i):(w,b,r) for i,w,b,r,why in FINISHED.findall((raw/'A13.out').read_text())}
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--pgn',type=Path,default=WORK/'j13match/results/A13.pgn')
+    parser.add_argument('--match-out','--stdout',type=Path,default=WORK/'j13match/results/A13.out')
+    parser.add_argument('--output-dir',type=Path,default=HERE/'A13')
+    parser.add_argument('--chess-dir',type=Path,help='optional directory containing the chess package')
+    args=parser.parse_args()
+    if args.chess_dir: sys.path.insert(0,str(args.chess_dir.resolve()))
+    try:
+        import chess
+    except ModuleNotFoundError:
+        sys.path.insert(0,str(WORK/'j10fens/vendor'))
+        import chess
+    out=args.output_dir
+    out.mkdir(parents=True,exist_ok=True)
+    games=read_pgn(args.pgn)
+    finished={int(i):(w,b,r) for i,w,b,r,why in FINISHED.findall(args.match_out.read_text())}
     pairing=defaultdict(list)
     for g in games:pairing[int(g['tags']['Round'])].append(g)
     same=[];diff=[];score_exceptions=[];both=[];evidence=[];first=None
