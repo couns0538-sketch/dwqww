@@ -1,0 +1,95 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-18 07:02:20.950998850 +0000
++++ b/src/board.cpp	2026-11-18 07:02:20.966998850 +0000
+@@ -2,6 +2,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <cassert>
+ #include <cctype>
+ #include <cstdlib>
+ #include <sstream>
+@@ -1174,6 +1175,12 @@
+     else undo.king_lines.valid = false;
+ #endif
+ 
++#ifndef NDEBUG
++    std::uint64_t dbg_key = key_;
++    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++        dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++    }
++#endif
+     if (precomputed_key == nullptr && ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+@@ -1183,16 +1190,25 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
++#ifndef NDEBUG
++        dbg_key ^= piece_key(captured_square, undo.captured);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, undo.captured);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
++#ifndef NDEBUG
++    dbg_key ^= piece_key(move.from, moving);
++#endif
+     if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+@@ -1200,8 +1216,14 @@
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, promoted);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, moving);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+     }
+@@ -1212,16 +1234,29 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
++#ifndef NDEBUG
++        dbg_key ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
++#ifndef NDEBUG
++    dbg_key ^= Z.castling[castling_];
++#endif
+     if (precomputed_key != nullptr) {
+         castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+         if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
+         if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+         side_ = them;
+         key_ = *precomputed_key;
++#ifndef NDEBUG
++        dbg_key ^= Z.castling[castling_] ^ Z.side;
++        if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++            dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++        }
++        assert(key_ == dbg_key);
++#endif
+     } else {
+         key_ ^= Z.castling[castling_];
+         castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);

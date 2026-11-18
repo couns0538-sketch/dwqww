@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Build fresh source-only Carbon2 prefix trees and retain every git apply receipt."""
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import os
+from pathlib import Path
+import shlex
+import shutil
+import subprocess
+
+from recover_prefix_patches import targets
+
+
+JOB = Path(__file__).resolve().parent
+BASE = JOB.parent / 'sol2-job2' / 'r15d'
+PRIOR = JOB.parent / 'sol2-job18'
+PINS = JOB.parent / 'sol2-job13'
+OUTPUT = JOB / 'prefix-source'
+PREFIXES = {'P4_2': ('P4', 4), 'P8_2': ('P8', 8), 'P10_2': ('P10', 10)}
+
+
+def inventory(root):
+    paths = sorted(root.rglob('*'))
+    if any(path.is_symlink() for path in paths):
+        raise ValueError(f'Unexpected source symlink in {root}')
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in paths if path.is_file()}
+
+
+def parse_manifest(path):
+    pairs = [line.split(' *', 1) for line in path.read_text().splitlines()]
+    result = {name: digest for digest, name in pairs}
+    if len(pairs) != 29 or len(result) != 29:
+        raise ValueError(f'Invalid 29-file source manifest {path}')
+    return result
+
+
+def execute(cwd, log, *args):
+    print(f'$ {shlex.join(args)}', file=log, flush=True)
+    completed = subprocess.run(args, cwd=cwd, stdout=log, stderr=subprocess.STDOUT)
+    print(f'exit={completed.returncode}', file=log, flush=True)
+    completed.check_returncode()
+
+
+def prepare(name, series):
+    base_pin = PINS / 'job9-r15d-29.sha256.txt'
+    first_name, piece_count = PREFIXES[name]
+    first_tree = PRIOR / first_name
+    first_manifest = PRIOR / 'prefix-source' / f'{first_name}-source-sha256.raw.txt'
+    destination = JOB / name
+    incomplete = JOB / f'.{name}.partial'
+    if destination.exists() or incomplete.exists():
+        raise ValueError(f'Refusing to overwrite a previous source tree for {name}')
+    with (OUTPUT / f'{name}.git-apply.raw.txt').open('x', encoding='utf-8') as log:
+        print(f'Start {datetime.now(timezone.utc).isoformat()}', file=log)
+        print(f'$ cd {BASE}', file=log)
+        execute(BASE, log, 'sha256sum', '-c', str(base_pin))
+        baseline = parse_manifest(base_pin)
+        if inventory(BASE) != baseline:
+            raise ValueError('Source r15d does not match its exact 29-file inventory')
+        shutil.copytree(BASE, incomplete)
+        print(f'$ cd {incomplete}', file=log, flush=True)
+        before = inventory(incomplete)
+        if before != baseline:
+            raise ValueError('Fresh prefix does not match pinned r15d')
+        for number, name_in_series in enumerate(series[:piece_count], 1):
+            patch = JOB / 'patches' / name_in_series
+            expected_targets = sorted(targets(patch.read_bytes()))
+            print(f'Piece {number:02d} {patch.name}', file=log)
+            print(f'Expected targets: {", ".join(expected_targets)}', file=log)
+            options = ('git', 'apply', '--no-index', '-p1', '--whitespace=nowarn')
+            execute(incomplete, log, *options, '--stat', str(patch))
+            execute(incomplete, log, *options, '--check', '--verbose', str(patch))
+            execute(incomplete, log, *options, '--verbose', str(patch))
+            after = inventory(incomplete)
+            if set(before) != set(after):
+                raise ValueError(f'Patch changed the 29-file inventory: {patch.name}')
+            actual_targets = sorted(path for path in before if before[path] != after[path])
+            if actual_targets != expected_targets:
+                raise ValueError(f'Patch targets differ: {actual_targets} vs {expected_targets}')
+            print(f'Changed targets verified: {", ".join(actual_targets)}', file=log, flush=True)
+            before = after
+        expected = parse_manifest(first_manifest)
+        print(f'$ cd {first_tree}', file=log, flush=True)
+        execute(first_tree, log, 'sha256sum', '-c', str(first_manifest))
+        print(f'$ cd {incomplete}', file=log, flush=True)
+        execute(incomplete, log, 'sha256sum', '-c', str(first_manifest))
+        if before != expected or inventory(first_tree) != expected:
+            raise ValueError(f'{name} and {first_name} do not match the exact Job 18 source inventory')
+        for path in expected:
+            if (incomplete / path).read_bytes() != (first_tree / path).read_bytes():
+                raise ValueError(f'Source bytes differ from Job 18: {path}')
+        print(f'All {len(expected)} files match Job 18 {first_name} byte for byte.', file=log, flush=True)
+        manifest = OUTPUT / f'{name}-source-sha256.raw.txt'
+        with manifest.open('x', encoding='utf-8') as receipt:
+            for path, digest in before.items():
+                print(f'{digest} *{path}', file=receipt)
+        execute(incomplete, log, 'sha256sum', '-c', str(manifest))
+        execute(incomplete, log, 'cmp', str(manifest), str(first_manifest))
+        incomplete.rename(destination)
+        print(f'Published scratch source directory {destination}', file=log)
+        print(f'End {datetime.now(timezone.utc).isoformat()}', file=log)
+    print(f'{name} ready at {destination}', flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('prefix', nargs='+', choices=tuple(PREFIXES))
+    args = parser.parse_args()
+    series = (JOB / 'patches' / 'series.txt').read_text().splitlines()
+    if len(series) != 14:
+        raise ValueError('Expected 13 numbered pieces and final tidy')
+    OUTPUT.mkdir(exist_ok=True)
+    for prefix in args.prefix:
+        prepare(prefix, series)
+
+
+if __name__ == '__main__':
+    main()
