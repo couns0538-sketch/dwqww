@@ -1,0 +1,69 @@
+diff -ruw /workspace/work/sol3-job10/tree_13/src/search.cpp /workspace/work/sol3-job12/tree_F/src/search.cpp
+--- /workspace/work/sol3-job10/tree_13/src/search.cpp	2026-11-18 03:53:43.555580667 -0800
++++ /workspace/work/sol3-job12/tree_F/src/search.cpp	2026-11-18 05:27:32.638032655 -0800
+@@ -903,7 +903,6 @@
+ #endif
+                         const int pt = piece_type(board_.piece_at(move.from));
+                         const bool direct_chk = (check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0;
+-                        last_quiet_history_ = picked.score - (direct_chk ? 12000 : 0);
+ #if FORGE_SPD_KING_LINES
+                         last_quiet_gives_check_ = direct_chk ||
+                             (move.is_castle() ? board_.gives_check(move)
+@@ -960,10 +959,6 @@
+     [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions || stage_ == QuietMoves; }
+     [[nodiscard]] bool has_cached_gives_check() const { return stage_ == QuietMoves; }
+     [[nodiscard]] bool cached_gives_check() const { return last_quiet_gives_check_; }
+-    [[nodiscard]] bool has_cached_quiet_history(std::uint64_t current_epoch) const {
+-        return stage_ == QuietMoves && current_epoch == quiet_gen_epoch_;
+-    }
+-    [[nodiscard]] int cached_quiet_history() const { return last_quiet_history_; }
+ 
+     // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
+     void close_quiet_tail() { quiet_tail_closed_ = true; }
+@@ -1016,8 +1011,6 @@
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
+     bool last_quiet_gives_check_ = false;
+-    std::uint64_t quiet_gen_epoch_ = 0;
+-    int last_quiet_history_ = 0;
+ #if FORGE_SPD_KING_LINES
+     Bitboard pinned_ = 0;
+     Bitboard discoverers_ = 0;
+@@ -1351,7 +1344,6 @@
+     }
+ 
+     [[gnu::noinline]] void generate_quiets() {
+-        quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
+         init_check_squares();
+         index_ = quiet_start();
+diff -ruw /workspace/work/sol3-job10/tree_13/include/forge/board.hpp /workspace/work/sol3-job12/tree_F/include/forge/board.hpp
+--- /workspace/work/sol3-job10/tree_13/include/forge/board.hpp	2026-11-18 00:52:10.387960760 -0800
++++ /workspace/work/sol3-job12/tree_F/include/forge/board.hpp	2026-11-18 05:27:32.634667555 -0800
+@@ -221,7 +221,6 @@
+     [[nodiscard]] bool in_check() const { return checkers_ != 0; }
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
+ #if FORGE_SPD_KING_LINES
+-    [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
+     const KingLines& ensure_king_lines() const {
+         if (!king_lines_.valid) refresh_king_lines();
+         return king_lines_;
+diff -ruw /workspace/work/sol3-job10/tree_13/include/forge/search.hpp /workspace/work/sol3-job12/tree_F/include/forge/search.hpp
+--- /workspace/work/sol3-job10/tree_13/include/forge/search.hpp	2026-11-18 03:53:43.553684725 -0800
++++ /workspace/work/sol3-job12/tree_F/include/forge/search.hpp	2026-11-18 05:27:32.636359833 -0800
+@@ -218,7 +218,6 @@
+     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+     // without it and are only for the Worker on the lease's thread (tt_owned_).
+     friend class Worker;
+-    friend struct S13TTTestAccess;
+     template <bool TakeLock>
+     [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
+     template <bool TakeLock>
+@@ -627,7 +626,6 @@
+ #endif
+     int seldepth_ = 0;
+     int stack_dirty_limit_ = MaxPly + 7;
+-    std::uint64_t quiet_hist_epoch_ = 0;
+     int root_depth_ = 0;
+     int mate_moves_ = 0;
+     std::size_t root_history_index_ = 0;
