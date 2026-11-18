@@ -1,0 +1,33 @@
+--- src/search.cpp	2026-11-18 12:07:03.956192413 +0000
++++ src/search.cpp	2026-11-18 12:08:26.016192413 +0000
+@@ -1966,11 +1980,27 @@
+         const int rfp_corr = tune::RfpCorrMul != 0
+                                  ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16
+                                  : 0;
++        // A25C counting: today's step apart (today's margin, none of the three conditions), so a
++        // node where it would return lands in exactly one of the four classes. The taken return
++        // is iff today's condition and the three conditions all hold.
++        const int rfp_margin_today = tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening;
++        const bool rfp_would_today = !bare_king_mode && depth <= tune::RfpDepth &&
++                                     eval - rfp_margin_today >= beta && eval < MateInMaxPly;
++        const bool rfp_refused_pv = tune::RfpNoTtPv != 0 && ss->tt_pv;
++        const bool rfp_refused_tt = tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture();
++        const bool rfp_refused_corr = eval - (rfp_margin_today + rfp_corr) < beta;
++        if (rfp_would_today) {
++            ++g_a25[15];
++            if (!rfp_refused_pv && !rfp_refused_tt && !rfp_refused_corr) ++g_a25[11];
++            else if (rfp_refused_pv) ++g_a25[12];
++            else if (rfp_refused_tt) ++g_a25[13];
++            else ++g_a25[14];
++        }
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+-            !(tune::RfpNoTtPv != 0 && ss->tt_pv) &&
+-            !(tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture()) &&
+-            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
++            !rfp_refused_pv && !rfp_refused_tt &&
++            eval - (rfp_margin_today + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
++            ++g_a25[10];  // A25C: rfp return
+             return (tune::FailHighBlend & 1) != 0 && !is_mate_score(eval) && !is_mate_score(beta)
+                        ? beta + (eval - beta) / 3
+                        : eval;
