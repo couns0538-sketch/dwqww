@@ -111,3 +111,7 @@ Completed 8 of 8 timing comparisons using the frozen Clang self-play-profiled bu
 ## Job 16 — 2026-11-18T20:44:09Z
 
 Completed 5 of 5 comparisons on one pinned cloud CPU with the Clang 19.1.7 recipe, fixed 72-character launch paths and W. The declared CPU reading was PAYS for the rest of kF and NOT SEEN for G alone against r15d. The swapped G/kF CPU time ratio was 1.0433. F1: interval contains 1. [Job 16 report](REPORT_sol2_job16.md)
+
+## Job 17 — 2026-11-18T21:14:48Z
+
+Completed 3 of 3 comparisons with the frozen Clang 19.1.7 builds and three pinned W workers per run. The r15d floor includes parity on engine CPU with a mean B/A of 1.0001 and a 95% interval of 0.9736–1.0267. kF pays on engine CPU with a mean B/A of 0.9566 and a 95% interval of 0.9427–0.9705. Group G falls short of the declared speed criterion on engine CPU with a mean B/A of 0.9913 and a 95% interval of 0.9602–1.0223. [Job 17 report](REPORT_sol2_job17.md)
