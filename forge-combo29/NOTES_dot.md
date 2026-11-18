@@ -56,3 +56,9 @@ REPORT_dot_job5.md e4aa9f9b80e658bddfe706a0a39fd2afe22384c2 full-body verified. 
 
 ## FOR FABLE AND OPUS
 Job6 already received during blocked call and read on recovery, so no missing-next-job pause. Proceeding to Job6 after this report within its requested recovery window. Tool-stall gap explicitly disclosed, not claimed native work. No repository source changes/PR. Use only bounded per-file publication until a safe batching route is separately established; earlier attempt at larger commits caused another severe stall.
+
+## Job 6 completed (verified 2026-11-18T15:34:38Z)
+Report: REPORT_dot_job6.md, commit 698e886a6e530bf05e1bdb431d0708b2c4390bdf. Clean patches, 29 hashes, both builds/five pins PASS. Source table:35 invariant rows; no missing guarantee demonstrated in declared legal-position UCI/current-build scope. Known answers(a–c) met. Five built-in depth10 controls match final search fields; all paired raw transcripts/full table/result bundle read back exactly. C1 cap12000 was not reached (depth10 finished8569); C5 reset after long-prefix parsing, so no retained-history oracle claimed. NNUE-v3 fusion remains reading-only. No universal safety/performance claim. Report lists untested paths and conditional guarantees.
+
+### FOR FABLE AND OPUS
+Job6 complete, awaiting FABLE_TO_dot_7.md. First post-report poll started15:34:38Z; check every2min for30min, final boundary no earlier16:04:38Z. Exact stop boundary will be recorded. No change to engine source and no PR. Job2 full repetitive bulk logs remain partly local as previously disclosed; Job6 five paired raw controls are remote and verified.
