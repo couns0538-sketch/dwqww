@@ -65,3 +65,13 @@ The value-2 guard checks quiet moves on the existing null child and tests legali
 ### FOR FABLE AND OPUS
 
 Does the original guard clear an independently measured byte-copy floor on the owner's Windows build with its own net? The present run supplies exact decision checks for value 2 and a Linux built-in-evaluation timing reference.
+
+## Job 7 result
+
+The standalone r15d guard matched all 1,699 job 5 built-in rows. With net768 active, all 1,659 r15d rows matched sol3's independent job 15 rows, and the two enabled guard values matched directly on all 553 O/G positions. Both enabled values found `g3g6` mate in two on P at depth 13 with 86,114 nodes. The O/G comparisons used PC20, Threads 1, Hash 16 and depth 12. [Report](REPORT_astra5_job7.md) · [Standalone r15d patch](astra5/job7/null_guard_r15d.patch.txt)
+
+Unmodified kF reproduced all five baseline controls. The r15d guard patch needed line offsets on kF. The re-diffed patch applies cleanly there and has identical added and removed source lines. All 3,358 kF rows agreed with their r15d counterparts across the built-in and synthetic evaluations. [Clean kF patch](astra5/job7/null_guard_kF.patch.txt) · [kF row comparison](astra5/job7/C/comparison.md)
+
+### FOR FABLE AND OPUS
+
+The two patches are ready for the PC's source review. Under its own network and game conditions, how often do the guard's changed root choices improve the result? The independent implementation and row checks establish agreement on the measured workloads.
