@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Run Carbon2's warm workload and account for Forge child CPU time."""
+
+import argparse
+from contextlib import redirect_stdout
+import hashlib
+import io
+import json
+from pathlib import Path
+import resource
+import runpy
+import sys
+import time
+
+
+JOB2 = Path(__file__).resolve().parent.parent / "sol2-job2"
+DRIVER = JOB2 / "carbon2" / "selfplay_driver.py"
+ENGINE_SHA256 = "bb37ed7c50e1716c5fc38f1b2fb92293c18e98f6131bf2be2b13d668603b4fc6"
+NET_SHA256 = "c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7"
+DRIVER_SHA256 = "c79b95bf45762fa9869d23140ed7f946cfaf0cb6bc4f74325a18d5f934bf1c45"
+EXPECTED = (8612, 29333343, "5c705841c3ea17b4")
+
+
+def pinned_identity(path, expected):
+    path = path.resolve(strict=True)
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != expected:
+        raise ValueError(f"SHA-256 mismatch for {path}: expected {expected}, got {actual}")
+    return {"path": str(path), "sha256": actual}
+
+
+def write_json(path, data):
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def trace_matches(row):
+    return (row["searches"], row["total_nodes"], row["trace_fnv1a64"]) == EXPECTED
+
+
+def measure_driver(main, argv, raw_path):
+    old_argv = sys.argv
+    raw = io.StringIO()
+    sys.argv = argv
+    try:
+        before = resource.getrusage(resource.RUSAGE_CHILDREN)
+        start = time.monotonic_ns()
+        with redirect_stdout(raw):
+            main()
+        finished = time.monotonic_ns()
+        after = resource.getrusage(resource.RUSAGE_CHILDREN)
+    finally:
+        sys.argv = old_argv
+        raw_path.write_text(raw.getvalue(), encoding="utf-8")
+    row = json.loads(raw.getvalue())
+    user = after.ru_utime - before.ru_utime
+    system = after.ru_stime - before.ru_stime
+    return {**row, "trace_matches": trace_matches(row), "engine_user_s": user,
+            "engine_system_s": system, "engine_cpu_s": user + system,
+            "wall_start_monotonic_ns": start, "wall_end_monotonic_ns": finished,
+            "total_wall_ns": finished - start}
+
+
+def reset_shares(reset_blocks, runs):
+    values = []
+    for reset in reset_blocks:
+        for run in runs:
+            share = 100 * 60 * reset["cpu_s_per_reset"] / run["engine_cpu_s"]
+            values.append({"reset_repeat": reset["repeat"], "workload_repeat": run["repeat"],
+                           "trace_fnv1a64": run["trace_fnv1a64"], "share_percent": share})
+    shares = [row["share_percent"] for row in values]
+    return {"combinations": values, "minimum_percent": min(shares), "maximum_percent": max(shares)}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("engine", type=Path)
+    parser.add_argument("net", type=Path)
+    parser.add_argument("output", type=Path, help="new output directory")
+    parser.add_argument("--driver", type=Path, default=DRIVER)
+    parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--reset-summary", type=Path, help="reset harness summary for the six share calculations")
+    args = parser.parse_args()
+    if args.runs < 1:
+        parser.error("--runs must be positive")
+    args.output.mkdir(parents=True, exist_ok=False)
+    engine = pinned_identity(args.engine, ENGINE_SHA256)
+    net = pinned_identity(args.net, NET_SHA256)
+    driver = pinned_identity(args.driver, DRIVER_SHA256)
+    argv = [driver["path"], "--engine", engine["path"], "--net", net["path"],
+            "--games", "60", "--softnodes", "2000", "--random-plies", "8", "--max-plies", "300",
+            "--seed", "20261117", "--json"]
+    write_json(args.output / "inputs.txt", {"engine": engine, "net": net, "driver": driver,
+                                             "argv": ["python3", *argv], "runs_requested": args.runs,
+                                             "expected_searches_nodes_trace": EXPECTED,
+                                             "cpu_scope": "Forge whole process, including setup, opening generation, warmup and exit"})
+    driver_main = runpy.run_path(driver["path"])["main"]
+    runs = []
+    with (args.output / "runs.jsonl.txt").open("x", encoding="utf-8") as log:
+        for repeat in range(1, args.runs + 1):
+            row = {"repeat": repeat, **measure_driver(driver_main, argv, args.output / f"run-{repeat}.driver.stdout.txt")}
+            runs.append(row)
+            log.write(json.dumps(row) + "\n")
+            log.flush()
+            print(json.dumps(row), flush=True)
+            if not row["trace_matches"]:
+                raise RuntimeError(f"workload trace changed on repeat {repeat}; result excluded")
+    if args.reset_summary:
+        reset_blocks = json.loads(args.reset_summary.read_text(encoding="utf-8"))["per_reset"]
+        shares = reset_shares(reset_blocks, runs)
+        write_json(args.output / "reset-shares.txt", shares)
+        print(json.dumps(shares), flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (KeyError, OSError, RuntimeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

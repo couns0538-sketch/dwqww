@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Measure per-game reset cost in one configured Forge process."""
+
+import argparse
+from dataclasses import asdict, dataclass
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import sys
+import time
+
+from workload_cpu import DRIVER, DRIVER_SHA256, ENGINE_SHA256, JOB2, NET_SHA256, pinned_identity, write_json
+
+
+UCI_HARNESS = JOB2 / "step2_compare.py"
+V3_EXPECTED = re.compile(r"^info string NNUE v3 active:.*\bhidden 768\b.*\bchecksum 30ab43b4ba5db5f3\b")
+
+
+@dataclass(frozen=True)
+class CpuTicks:
+    utime: int
+    stime: int
+    starttime: int
+
+
+def parse_stat(stat_line):
+    # Field two is a process name in parentheses and can itself contain spaces or a right paren.
+    end = stat_line.rfind(")")
+    if end < 0:
+        raise ValueError("malformed /proc/<pid>/stat process name")
+    fields = stat_line[end + 1 :].split()
+    if len(fields) < 20:
+        raise ValueError("missing /proc/<pid>/stat fields")
+    return CpuTicks(utime=int(fields[11]), stime=int(fields[12]), starttime=int(fields[19]))
+
+
+def snapshot(path):
+    raw = path.read_text(encoding="utf-8")
+    return raw.rstrip("\n"), parse_stat(raw)
+
+
+def set_up(uci, options, net_path):
+    uci.send("uci")
+    advertised = uci.until("uciok")
+    names = set(re.findall(r"^option name (.+?) type ", "\n".join(advertised), re.MULTILINE))
+    settings = [*options, ("NNUEArchFile", net_path), ("NNUEArch", "true")]
+    missing = [name for name, _ in settings if name not in names]
+    if missing:
+        raise RuntimeError(f"UCI options not advertised: {', '.join(missing)}")
+    for name, value in settings:
+        uci.send(f"setoption name {name} value {value}")
+    uci.send("isready")
+    responses = uci.until("readyok")
+    uci.check_responses(responses)
+    active = [line for line in responses if line.startswith("info string NNUE v3 active:")]
+    if len(active) != 1 or not V3_EXPECTED.search(active[0]):
+        raise RuntimeError(f"missing or unexpected NNUE v3 active line: {active!r}")
+
+
+def measure_phase(uci, stat_path, count, command, hz):
+    stat_before, before = snapshot(stat_path)
+    start = time.monotonic_ns()
+    for _ in range(count):
+        uci.send(command)
+        uci.check_responses(uci.until("readyok"))
+    end = time.monotonic_ns()
+    stat_after, after = snapshot(stat_path)
+    if before.starttime != after.starttime or before.utime > after.utime or before.stime > after.stime:
+        raise RuntimeError("Forge process identity changed or CPU counter decreased")
+    delta_ticks = after.utime - before.utime + after.stime - before.stime
+    return {"pid": uci.process.pid, "command_batch": command, "round_trips": count, "clock_ticks_per_s": hz,
+            "proc_stat_before": stat_before, "proc_stat_after": stat_after,
+            "before": asdict(before), "after": asdict(after), "delta_ticks": delta_ticks,
+            "cpu_s": delta_ticks / hz, "wall_start_monotonic_ns": start,
+            "wall_end_monotonic_ns": end, "wall_ns": end - start}
+
+
+def per_reset(repeat, reset, ready):
+    count = reset["round_trips"]
+    if ready["round_trips"] != count or ready["pid"] != reset["pid"]:
+        raise ValueError("reset and control must have equal counts in the same process")
+    difference = reset["delta_ticks"] - ready["delta_ticks"]
+    hz = reset["clock_ticks_per_s"]
+    return {"repeat": repeat, "difference_ticks": difference, "cpu_s_per_reset": difference / (hz * count),
+            "wall_ns_per_reset": (reset["wall_ns"] - ready["wall_ns"]) / count}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("engine", type=Path)
+    parser.add_argument("net", type=Path)
+    parser.add_argument("output", type=Path, help="new output directory")
+    parser.add_argument("--driver", type=Path, default=DRIVER)
+    parser.add_argument("--uci-harness", type=Path, default=UCI_HARNESS)
+    parser.add_argument("--timeout", type=float, default=20, help="seconds allowed for an individual readyok")
+    args = parser.parse_args()
+    if args.timeout <= 0:
+        parser.error("--timeout must be positive")
+    args.output.mkdir(parents=True, exist_ok=False)
+    engine = pinned_identity(args.engine, ENGINE_SHA256)
+    net = pinned_identity(args.net, NET_SHA256)
+    driver = pinned_identity(args.driver, DRIVER_SHA256)
+    io_path = args.uci_harness.resolve(strict=True)
+    uci_factory = runpy.run_path(str(io_path))["Uci"]
+    options = runpy.run_path(driver["path"])["PC20_OPTIONS"]
+    hz = os.sysconf("SC_CLK_TCK")
+    write_json(args.output / "inputs.txt", {"engine": engine, "net": net, "pc20_source": driver,
+                                             "pc20_ordered_options": options, "uci_harness": str(io_path),
+                                             "clock_ticks_per_s": hz, "round_trips_per_phase": 1000,
+                                             "phases": ["reset", "ready", "reset", "ready"]})
+    differences = []
+    with (args.output / "blocks.jsonl.txt").open("x", encoding="utf-8") as blocks:
+        with uci_factory(Path(engine["path"]), args.output / "reset", args.timeout) as uci:
+            set_up(uci, options, net["path"])
+            stat_path = Path(f"/proc/{uci.process.pid}/stat")
+            for repeat in (1, 2):
+                phases = {}
+                for label, command in (("reset", "ucinewgame\nisready"), ("ready", "isready")):
+                    phase = measure_phase(uci, stat_path, 1000, command, hz)
+                    phases[label] = phase
+                    row = {"repeat": repeat, "phase": label, **phase}
+                    blocks.write(json.dumps(row) + "\n")
+                    blocks.flush()
+                    print(json.dumps(row), flush=True)
+                differences.append(per_reset(repeat, phases["reset"], phases["ready"]))
+    first, second = differences
+    summary = {"per_reset": differences,
+               "cpu_s_per_reset_absolute_spread": abs(first["cpu_s_per_reset"] - second["cpu_s_per_reset"]),
+               "wall_ns_per_reset_absolute_spread": abs(first["wall_ns_per_reset"] - second["wall_ns_per_reset"])}
+    write_json(args.output / "summary.txt", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, RuntimeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)
