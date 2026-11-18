@@ -1,0 +1,15 @@
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -278,6 +278,12 @@
+             auto apply_spin = [&](int minimum, int maximum, auto&& assign) {
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec == std::errc::result_out_of_range &&
++                    parsed.ptr == value_text.data() + value_text.size()) {
++                    note_invalid();
++                    assign(!value_text.empty() && value_text.front() == '-' ? minimum : maximum);
++                    return;
++                }
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     note_invalid();
+                     return;
