@@ -1,0 +1,61 @@
+=== JOB 21 STEP 0 & PART A0: EXACT SP-PGO RECIPE AND KNOWN ANSWERS FOR ALL FOUR BUILDS ===
+Compiler: Ubuntu clang version 18.1.3 (1ubuntu1)
+Linker:   Ubuntu LLD 18.1.3 (compatible with GNU linkers)
+Pinned timing CPU configuration: 4 physical Xeon Sapphire Rapids cores (0..3, 1 thread/core);
+  timed engine processes pinned to CPU 3, Python harness pinned to CPU 1.
+
+--- Exact Build Recipe Commands (identical across bld_sp_r15d_{1,2} and kF_sp_{1,2}) ---
+1. Phase 1 (-fprofile-instr-generate):
+   clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -std=c++20 -O3 -DNDEBUG \
+     -DFORGE_NNUE_HIDDEN=256 -DFORGE_NNUE_WEIGHTS="$SRC/src/nnue_weights.inc" \
+     -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 \
+     -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 \
+     -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 \
+     -ffp-contract=off -fno-fast-math -march=sapphirerapids -flto=thin -pthread \
+     -I"$SRC/include" -fprofile-instr-generate -c "$SRC/src/<tu>.cpp" -o "$BLD/obj_gen/<tu>.o"
+   clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -O3 -march=sapphirerapids \
+     -flto=thin -fuse-ld=lld-18 -Wl,--thinlto-jobs=1 -fprofile-instr-generate -pthread \
+     "$BLD/obj_gen"/*.o -o "$BLD/forge_prof"
+2. Phase 2a (bench 11, bench 13, bench 16 in 1 process -> prof_<pid1>.profraw):
+   Options set in Phase 2a: ONLY NNUEArchFile=/tmp/carbon2_work/net768.fnn3, NNUEArch=true,
+   CuckooRep=true, HistRework=2, TtPruneV2=true, CorrHistV2=true (NO other options set).
+3. Phase 2b (60 disjoint self-play games in 1 process -> prof_<pid2>.profraw):
+   run_sp_profile_60games.py: PC20 + net768.fnn3, Hash 16, Threads 1, go softnodes 2000,
+   60 roots sp_candidates[-60:] -> searches=5531, nodes=18059934, trace=1646ce4566de2f40.
+   (Note vs PC's 1-process bench+SP run: our recipe runs Phase 2a bench and Phase 2b 60-game SP as
+   two separate invocations of forge_prof and merges both prof_*.profraw files with unweighted
+   llvm-profdata-18 merge, which sums raw counter arrays identically to one combined process; both
+   r15d and kF arms use this exact same 2-.profraw recipe.)
+4. Phase 3 & 4 (merge + -fprofile-instr-use):
+   llvm-profdata-18 merge -output="$BLD/forge.profdata" "$BLD"/prof_*.profraw
+   clang++-18 ... [same flags] -fprofile-instr-use="$BLD/forge.profdata" -Wno-profile-instr-unprofiled ... -o "$BLD/forge"
+
+--- A0 Known Answers on All Four Builds (Fresh Process for Every Check) ---
+[bld_sp_r15d_1] exe=/tmp/carbon2_job11/bld_sp_r15d_1/forge sha256=794589082e8a63f5ae5edb089191102f844dc00eae019d6464e11bfa7e4580c7
+  no_opts bench 11:     info string bench depth 11 nodes 312866 time 165 nps 1896157
+  no_opts bench 13:     info string bench depth 13 nodes 862329 time 426 nps 2024246
+  no_opts perft 5:      nodes 4865609
+  PC20+net768 bench 11: info string bench depth 11 nodes 882074 time 381 nps 2315154
+  PC20+net768 bench 13: info string bench depth 13 nodes 4275906 time 1866 nps 2291482
+  Job 20 60 games:      searches=7670 info_nodes=25641316 trace=ee465caeff9c0fcf
+[bld_sp_r15d_2] exe=/tmp/carbon2_job11/bld_sp_r15d_2/forge sha256=00b44d65d596a8894b0f4f376cc355800453dbfd86024458dccb8f25c757ee62
+  no_opts bench 11:     info string bench depth 11 nodes 312866 time 171 nps 1829625
+  no_opts bench 13:     info string bench depth 13 nodes 862329 time 421 nps 2048287
+  no_opts perft 5:      nodes 4865609
+  PC20+net768 bench 11: info string bench depth 11 nodes 882074 time 394 nps 2238766
+  PC20+net768 bench 13: info string bench depth 13 nodes 4275906 time 1858 nps 2301348
+  Job 20 60 games:      searches=7670 info_nodes=25641316 trace=ee465caeff9c0fcf
+[kF_sp_1] exe=/tmp/carbon2_job17/bld_sp_tidy_1/forge sha256=6ac9c36ceae1c8c79721b84bd5d395dd967c41723586a0b3e3cdcc1a7b5f7091
+  no_opts bench 11:     info string bench depth 11 nodes 312866 time 155 nps 2018490
+  no_opts bench 13:     info string bench depth 13 nodes 862329 time 412 nps 2093031
+  no_opts perft 5:      nodes 4865609
+  PC20+net768 bench 11: info string bench depth 11 nodes 882074 time 359 nps 2457030
+  PC20+net768 bench 13: info string bench depth 13 nodes 4275906 time 1768 nps 2418498
+  Job 20 60 games:      searches=7670 info_nodes=25641316 trace=ee465caeff9c0fcf
+[kF_sp_2] exe=/tmp/carbon2_job17/bld_sp_tidy_2/forge sha256=7ef7c7e32820eb30757cdcde8b292860dda4d1f499b842e4537bfbebbd9104de
+  no_opts bench 11:     info string bench depth 11 nodes 312866 time 159 nps 1967710
+  no_opts bench 13:     info string bench depth 13 nodes 862329 time 410 nps 2103241
+  no_opts perft 5:      nodes 4865609
+  PC20+net768 bench 11: info string bench depth 11 nodes 882074 time 363 nps 2429955
+  PC20+net768 bench 13: info string bench depth 13 nodes 4275906 time 1799 nps 2376823
+  Job 20 60 games:      searches=7670 info_nodes=25641316 trace=ee465caeff9c0fcf
