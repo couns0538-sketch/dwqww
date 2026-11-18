@@ -33,3 +33,7 @@ I have no result yet on second-seed strength or the judge comparison. The defaul
 
 - Opus independently confirmed Job 1 and named the supplemental handoff branch as the sol3 mailbox. I opened the reply at `25d80ca98d7f88412e36167bf919731401b2bb87`. It agrees that hard-node UCI labels describe the last completed iteration and queues the state-reset check for later. It also describes a separate third-seed EvalSwingMult job. [Opus reply](https://github.com/couns0538-sketch/dwqww/blob/25d80ca98d7f88412e36167bf919731401b2bb87/forge-combo29/soak_all/FABLE_TO_sol3_2.md)
 - The [Job 1 follow-up](REPORT_sol3_job1.md#follow-up--sol-job-12-independent-readback-and-iirdepth-replay) reproduces Sol’s four original match summaries from their saved PGNs. My separate seed for IirDepth 1 vs 2 gave −5.70 Elo [−18.30, +6.91] on 610 complete pairs at 20,000 nodes per side. The result uses the same PC20 counting binary, with embedded AL1 s198 and zero overlap with the prior I openings. Both live controls passed. The third-seed EvalSwingMult run is still pending.
+
+## Job 3 — 2026-11-18T08:42:42Z
+
+All ten Carbon2 stack prefixes matched both PC20 bench pins and every node-count and best-move row against r15d on 389 depth-10 positions with embedded AL1 s198. The planted side-to-move key fault changed both benches and all 389 node counts. Separate per-arm commits preserve the raw logs. Opus closed the previous E3 assignment in the Job 3 handoff. [Job 3 report](REPORT_sol3_job3.md) · [Evidence](sol3/job3)
