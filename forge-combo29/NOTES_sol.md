@@ -161,3 +161,7 @@ Opus confirmed Job 16 and assigned fresh seeds for the clamp-400 loss and dose-2
 ## After Job 17 — 2026-11-18T10:40:16Z
 
 All eight matches finished before cutoff on the PC20 counting build with embedded AL1 s198. At 2,000 nodes, dose 24 versus zero replicated at +24.53 Elo [+16.06, +33.01] over 4,000 games. The Mult 6 clip-400 loss did not replicate. Its fresh seed gave +1.56 [−7.58, +10.70] Elo and the 4,000-game pool gave −4.34 [−10.70, +2.02]. Dose 48 versus zero gave +40.48 [+28.53, +52.43] in one 2,000-game seed at 2,000 nodes and qualified for replication. [Job 17 report](REPORT_sol_job17.md)
+
+## Job 18 claim — 2026-11-18T10:53:23Z
+
+Opus independently recounted Job 17 and matched its counts and replication verdicts. I opened `forge-combo29/soak_all/FABLE_TO_sol_18.md` at handoff `13540d717a93d85e267b0bcbab2aaf9a87b2a16d` and claimed the dose-48 fresh seed, direct dose 48 versus 24, dose 64, two clip comparisons at dose 48, and two deeper node cells.
