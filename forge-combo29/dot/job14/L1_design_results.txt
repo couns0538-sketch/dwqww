@@ -1,0 +1,29 @@
+Job14 Step4 session differential; execution complete observed date -u19:45:23 UTC on2026-11-18.
+
+Source ambiguity and interpretation fixed before running
+Literal L1 maps five stated transitions to searches11,21,31,41,51 respectively: Hash1;ucinewgame;HistRework0;HistRework2+NNUEArchFile net768+NNUEArch true;Hash16. L1c then says HistRework0 before31 'instead of the reload step', although reload is literally at41, not31. No script can simultaneously satisfy both descriptions. Therefore run1=L1 exactly as written; run2=L1c_literal31 implements the explicitly numbered31 command, which already exists and changes nothing; run3=L1c_exploratory41 instead changes the actual reload transition at41, explicitly exploratory and not a substitute for the numbered31 control.
+
+Method
+Each of the three comparisons launches one fresh unchanged r15d process and one fresh unchanged kF process, six processes total. Each process runs W1 positions1-60 sequentially at depth9, PC20 plus active net768 checksum30ab43b4ba5db5f3, Threads1, initial Hash16. Only the specified search21 transition sends ucinewgame; isready before every search. Search41 baseline emits loaded+active net confirmation with the same checksum (verified in raw transcript). All UCI commands and complete engine stdout retained. No source/instrumentation changes and no local run script committed.
+
+Results (nodes always sum of last completed-depth info nodes)
+L1:60searches/program;734524nodes each. All60bestmove lines equal; all60final-info lines equal after removing only time and nps. Hashfull retained and equal in all60. Exact unnormalized final-info lines differ37/60, firstsearch1; every difference disappears after removing only time/nps. Thus the assignment's literal byte-identical final-info demand is NOT met, but deterministic search fields agree.
+L1c_literal31:60searches/program;734524nodes each. All60bestmoves and canonical final-info lines equal, including all before31. Exact final-info lines differ30/60, firstsearch1, solelytime/nps. No behavioral difference at or after31. Requested numbered31 liveness control therefore does NOT show Step4 live. This is the stated stop condition for interpreting Step4, not a reason to silently substitute another control.
+L1c_exploratory41:60searches/program;r15d734524nodes,kF637868nodes. First40bestmoves/canonical final-info lines equal. First behavioral difference41;12bestmove differences,20canonical final-info/node differences,17hashfull differences. Exact final-info lines differ44/60 including volatile differences before41. This demonstrates responsiveness to withholding the actual HistRework2+reload transition, but does not repair or pass the literal31 control.
+
+Exact first L1 final-info pair
+r15d: info depth 9 seldepth 19 score cp -74 nodes 7372 nps 1843000 hashfull 1 time 4 pv d8a5 d1e1 g7g6 e5g4 f6g4 e2g4 d7f6 g4e6 e7d8 e6c8
+kF: info depth 9 seldepth 19 score cp -74 nodes 7372 nps 1474400 hashfull 1 time 5 pv d8a5 d1e1 g7g6 e5g4 f6g4 e2g4 d7f6 g4e6 e7d8 e6c8
+
+Exploratory41 first difference (deliberate different script, not engine bug)
+Before search41 r15d gets HistRework2, NNUEArchFile same net, NNUEArch true; kF gets HistRework0 and no reload.
+FEN: r5k1/pQ3p2/2prb1pp/2q1N3/P5P1/2P4P/2P2P2/R3R1K1 b - - 0 26
+r15d: info depth 9 seldepth 25 score cp 77 nodes 18786 nps 1565500 hashfull 127 time 12 pv c5f2 g1f2 f7f6 b7a8 e6c8 e5g6 d6d2 f2e3 d2d3 e3d3 a7a6 a8c6
+r15d: bestmove c5f2
+kF: info depth 9 seldepth 22 score cp -125 nodes 21425 nps 1947727 hashfull 144 time 11 pv a8f8 b7f7 f8f7 e1e2 e6d5 a1b1 c5c3 b1b8 f7f8 e5g6 c3h3 g6f8
+kF: bestmove a8f8
+
+Evidence files: L1_r15d.raw.txt,L1_kf.raw.txt,L1c_literal31_r15d.raw.txt,L1c_literal31_kf.raw.txt,L1c_exploratory41_r15d.raw.txt,L1c_exploratory41_kf.raw.txt. Derived per-search *.rows.local.json and L1_comparison.local.json remain local, not publication candidates. Full raw transcript chunks and this prose are the evidence to preserve.
+
+Limits
+Positions and sessions these scripts do not reach; the PC's net, compiler and build; more than one search thread; Hash sizes other than1and16. The compound transition does not isolate net reload from HistRework changes. L1's equality is observed only for deterministic fields; exact transcript/time/nps equality was not achieved. Step4 is not shown live under the literal requested control, so row85 must retain this limitation rather than be marked unconditionally covered.
