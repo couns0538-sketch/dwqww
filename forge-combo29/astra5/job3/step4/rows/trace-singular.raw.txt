@@ -1,0 +1,764 @@
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> setoption name OwnBook value false
+> setoption name SingularDepth value 20
+> isready
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1
+> go depth 16
+< AS3TRACE id=1 event=enter path=root kind=search iteration=1 depth=1 alpha=-32001 beta=32001 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=1 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=1 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=1 event=move_number move=g3g6 value=27
+< AS3TRACE id=1 event=full_null_window move=g3g6 value=0
+< AS3TRACE id=2 event=enter path=g3g6 kind=search iteration=1 depth=0 alpha=28 beta=29 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=3 event=enter path=g3g6 kind=qsearch iteration=1 depth=0 alpha=28 beta=29 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=3 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=3 event=q_capture_picker move=0000 value=0
+< AS3TRACE id=3 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=3 event=q_recurse move=f7g6 value=0
+< AS3TRACE id=4 event=enter path=g3g6/f7g6 kind=qsearch iteration=1 depth=0 alpha=-29 beta=-28 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=4 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=4 event=q_capture_picker move=0000 value=0
+< AS3TRACE id=4 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=4 event=q_recurse move=e5g6 value=0
+< AS3TRACE id=5 event=enter path=g3g6/f7g6/e5g6 kind=qsearch iteration=1 depth=0 alpha=28 beta=29 raw_static=1243 in_check=1 excluded=0000
+< AS3TRACE id=5 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=5 event=return reason=checkmate score=-31997 exit_alpha=28 exit_beta=29 search_static=NA
+< AS3TRACE id=4 event=beta_cutoff move=e5g6 value=31997
+< AS3TRACE id=4 event=return reason=beta_cutoff score=31997 exit_alpha=-29 exit_beta=-28 search_static=-1321
+< AS3TRACE id=3 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=3 event=q_recurse move=c6e5 value=0
+< AS3TRACE id=6 event=enter path=g3g6/c6e5 kind=qsearch iteration=1 depth=0 alpha=-29 beta=-28 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=6 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=6 event=q_capture_picker move=0000 value=0
+< AS3TRACE id=6 event=return reason=exhausted score=-49 exit_alpha=-29 exit_beta=-28 search_static=-309
+< AS3TRACE id=3 event=beta_cutoff move=c6e5 value=49
+< AS3TRACE id=3 event=return reason=beta_cutoff score=49 exit_alpha=28 exit_beta=29 search_static=-57
+< AS3TRACE id=2 event=return reason=horizon_to_qsearch score=49 exit_alpha=28 exit_beta=29 search_static=NA
+< AS3TRACE id=1 event=return reason=exhausted score=78 exit_alpha=78 exit_beta=32001 search_static=16
+< info depth 1 seldepth 7 score cp 78 nodes 262 nps 131000 hashfull 0 time 2 pv f6h5
+< AS3TRACE id=7 event=enter path=root kind=search iteration=2 depth=2 alpha=-32001 beta=32001 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=7 event=tt hit=1 move=f6h5 bound=exact tt_score=78 tt_depth=1
+< AS3TRACE id=7 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=7 event=move_number move=g3g6 value=27
+< AS3TRACE id=7 event=lmr_recurse move=g3g6 value=1
+< AS3TRACE id=8 event=enter path=g3g6 kind=search iteration=2 depth=1 alpha=-38 beta=-37 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=8 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=8 event=return reason=reverse_futility score=49 exit_alpha=-38 exit_beta=-37 search_static=-57
+< AS3TRACE id=7 event=return reason=exhausted score=89 exit_alpha=89 exit_beta=32001 search_static=16
+< info depth 2 seldepth 8 score cp 89 nodes 408 nps 204000 hashfull 0 time 2 pv f6e8 d6f8
+< AS3TRACE id=9 event=enter path=root kind=search iteration=3 depth=3 alpha=-32001 beta=32001 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=9 event=tt hit=1 move=f6e8 bound=exact tt_score=89 tt_depth=2
+< AS3TRACE id=9 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=9 event=move_number move=g3g6 value=27
+< AS3TRACE id=9 event=lmr_recurse move=g3g6 value=1
+< AS3TRACE id=10 event=enter path=g3g6 kind=search iteration=3 depth=1 alpha=3 beta=4 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=10 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=10 event=return reason=reverse_futility score=49 exit_alpha=3 exit_beta=4 search_static=-57
+< AS3TRACE id=9 event=return reason=exhausted score=-4 exit_alpha=-4 exit_beta=32001 search_static=16
+< info depth 3 seldepth 9 score cp -4 nodes 658 nps 219333 hashfull 0 time 3 pv f6h5 d6f8 e5c6 c8c6
+< AS3TRACE id=11 event=enter path=root kind=search iteration=4 depth=4 alpha=-22 beta=14 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=11 event=tt hit=1 move=f6h5 bound=exact tt_score=-4 tt_depth=3
+< AS3TRACE id=11 event=beta_cutoff move=f6h5 value=89
+< AS3TRACE id=11 event=return reason=beta_cutoff score=89 exit_alpha=-22 exit_beta=14 search_static=16
+< AS3TRACE id=12 event=enter path=root kind=search iteration=4 depth=4 alpha=-22 beta=107 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=12 event=tt hit=1 move=f6h5 bound=lower tt_score=89 tt_depth=4
+< AS3TRACE id=12 event=beta_cutoff move=f6h5 value=108
+< AS3TRACE id=12 event=return reason=beta_cutoff score=108 exit_alpha=-22 exit_beta=107 search_static=16
+< AS3TRACE id=13 event=enter path=root kind=search iteration=4 depth=4 alpha=-22 beta=139 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=13 event=tt hit=1 move=f6h5 bound=lower tt_score=108 tt_depth=4
+< AS3TRACE id=13 event=beta_cutoff move=f6h5 value=146
+< AS3TRACE id=13 event=return reason=beta_cutoff score=146 exit_alpha=-22 exit_beta=139 search_static=17
+< AS3TRACE id=14 event=enter path=root kind=search iteration=4 depth=4 alpha=-22 beta=196 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=14 event=tt hit=1 move=f6h5 bound=lower tt_score=146 tt_depth=4
+< AS3TRACE id=14 event=beta_cutoff move=f6h5 value=209
+< AS3TRACE id=14 event=return reason=beta_cutoff score=209 exit_alpha=-22 exit_beta=196 search_static=18
+< AS3TRACE id=15 event=enter path=root kind=search iteration=4 depth=4 alpha=-22 beta=288 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=15 event=tt hit=1 move=f6h5 bound=lower tt_score=209 tt_depth=4
+< AS3TRACE id=15 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=15 event=move_number move=g3g6 value=27
+< AS3TRACE id=15 event=lmr_recurse move=g3g6 value=1
+< AS3TRACE id=16 event=enter path=g3g6 kind=search iteration=4 depth=1 alpha=-221 beta=-220 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=16 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=16 event=return reason=reverse_futility score=49 exit_alpha=-221 exit_beta=-220 search_static=-58
+< AS3TRACE id=15 event=return reason=exhausted score=220 exit_alpha=220 exit_beta=288 search_static=19
+< info depth 4 seldepth 9 score cp 220 nodes 961 nps 240250 hashfull 0 time 4 pv f6h5 g7g6 e5g6 f7g6 g3g6
+< AS3TRACE id=17 event=enter path=root kind=search iteration=5 depth=5 alpha=202 beta=238 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=17 event=tt hit=1 move=f6h5 bound=exact tt_score=220 tt_depth=4
+< AS3TRACE id=17 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=17 event=move_number move=g3g6 value=27
+< AS3TRACE id=17 event=lmr_recurse move=g3g6 value=2
+< AS3TRACE id=18 event=enter path=g3g6 kind=search iteration=5 depth=2 alpha=-221 beta=-220 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=18 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=18 event=return reason=reverse_futility score=49 exit_alpha=-221 exit_beta=-220 search_static=-59
+< AS3TRACE id=17 event=return reason=exhausted score=220 exit_alpha=220 exit_beta=238 search_static=19
+< info depth 5 seldepth 9 score cp 220 nodes 1100 nps 275000 hashfull 0 time 4 pv f6h5 g7g6 e5g6 f7g6 g3g6
+< AS3TRACE id=19 event=enter path=root kind=search iteration=6 depth=6 alpha=202 beta=238 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=19 event=tt hit=1 move=f6h5 bound=exact tt_score=220 tt_depth=5
+< AS3TRACE id=19 event=beta_cutoff move=f6h5 value=262
+< AS3TRACE id=19 event=return reason=beta_cutoff score=262 exit_alpha=202 exit_beta=238 search_static=20
+< AS3TRACE id=20 event=enter path=root kind=search iteration=6 depth=6 alpha=202 beta=280 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=20 event=tt hit=1 move=f6h5 bound=lower tt_score=262 tt_depth=6
+< AS3TRACE id=20 event=beta_cutoff move=f6h5 value=290
+< AS3TRACE id=20 event=return reason=beta_cutoff score=290 exit_alpha=202 exit_beta=280 search_static=22
+< AS3TRACE id=21 event=enter path=root kind=search iteration=6 depth=6 alpha=202 beta=321 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=21 event=tt hit=1 move=f6h5 bound=lower tt_score=290 tt_depth=6
+< AS3TRACE id=21 event=beta_cutoff move=f6h5 value=337
+< AS3TRACE id=21 event=return reason=beta_cutoff score=337 exit_alpha=202 exit_beta=321 search_static=22
+< AS3TRACE id=22 event=enter path=root kind=search iteration=6 depth=6 alpha=202 beta=387 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=22 event=tt hit=1 move=f6h5 bound=lower tt_score=337 tt_depth=6
+< AS3TRACE id=22 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=22 event=move_number move=g3g6 value=27
+< AS3TRACE id=22 event=lmr_recurse move=g3g6 value=3
+< AS3TRACE id=23 event=enter path=g3g6 kind=search iteration=6 depth=3 alpha=-338 beta=-337 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=23 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=23 event=return reason=reverse_futility score=49 exit_alpha=-338 exit_beta=-337 search_static=-61
+< AS3TRACE id=22 event=return reason=exhausted score=337 exit_alpha=337 exit_beta=387 search_static=23
+< info depth 6 seldepth 10 score cp 337 nodes 1562 nps 312400 hashfull 0 time 5 pv f6h5 d6f8 e5g6 f7g6 f1f8 d8f8 g3g6
+< AS3TRACE id=24 event=enter path=root kind=search iteration=7 depth=7 alpha=319 beta=355 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=24 event=tt hit=1 move=f6h5 bound=exact tt_score=337 tt_depth=6
+< AS3TRACE id=24 event=beta_cutoff move=f6h5 value=359
+< AS3TRACE id=24 event=return reason=beta_cutoff score=359 exit_alpha=319 exit_beta=355 search_static=25
+< AS3TRACE id=25 event=enter path=root kind=search iteration=7 depth=7 alpha=319 beta=377 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=25 event=tt hit=1 move=f6h5 bound=lower tt_score=359 tt_depth=7
+< AS3TRACE id=25 event=beta_cutoff move=f6h5 value=378
+< AS3TRACE id=25 event=return reason=beta_cutoff score=378 exit_alpha=319 exit_beta=377 search_static=26
+< AS3TRACE id=26 event=enter path=root kind=search iteration=7 depth=7 alpha=319 beta=409 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=26 event=tt hit=1 move=f6h5 bound=lower tt_score=378 tt_depth=7
+< AS3TRACE id=26 event=beta_cutoff move=f6h5 value=412
+< AS3TRACE id=26 event=return reason=beta_cutoff score=412 exit_alpha=319 exit_beta=409 search_static=27
+< AS3TRACE id=27 event=enter path=root kind=search iteration=7 depth=7 alpha=319 beta=462 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=27 event=tt hit=1 move=f6h5 bound=lower tt_score=412 tt_depth=7
+< AS3TRACE id=27 event=beta_cutoff move=f6h5 value=465
+< AS3TRACE id=27 event=return reason=beta_cutoff score=465 exit_alpha=319 exit_beta=462 search_static=29
+< AS3TRACE id=28 event=enter path=root kind=search iteration=7 depth=7 alpha=319 beta=544 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=28 event=tt hit=1 move=f6h5 bound=lower tt_score=465 tt_depth=7
+< AS3TRACE id=28 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=28 event=move_number move=g3g6 value=27
+< AS3TRACE id=28 event=lmr_recurse move=g3g6 value=3
+< AS3TRACE id=29 event=enter path=g3g6 kind=search iteration=7 depth=3 alpha=-466 beta=-465 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=29 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=29 event=return reason=reverse_futility score=49 exit_alpha=-466 exit_beta=-465 search_static=-66
+< AS3TRACE id=28 event=return reason=exhausted score=465 exit_alpha=465 exit_beta=544 search_static=30
+< info depth 7 seldepth 16 score cp 465 nodes 2423 nps 346142 hashfull 0 time 7 pv f6h5 g7g5 f1f7 c6e5 f7h7 h8g8 d4e5 d6f8
+< AS3TRACE id=30 event=enter path=root kind=search iteration=8 depth=8 alpha=447 beta=483 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=30 event=tt hit=1 move=f6h5 bound=exact tt_score=465 tt_depth=7
+< AS3TRACE id=30 event=beta_cutoff move=f6h5 value=491
+< AS3TRACE id=30 event=return reason=beta_cutoff score=491 exit_alpha=447 exit_beta=483 search_static=32
+< AS3TRACE id=31 event=enter path=root kind=search iteration=8 depth=8 alpha=447 beta=509 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=31 event=tt hit=1 move=f6h5 bound=lower tt_score=491 tt_depth=8
+< AS3TRACE id=31 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=31 event=move_number move=g3g6 value=27
+< AS3TRACE id=31 event=lmr_recurse move=g3g6 value=4
+< AS3TRACE id=32 event=enter path=g3g6 kind=search iteration=8 depth=4 alpha=-448 beta=-447 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=32 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=32 event=return reason=reverse_futility score=49 exit_alpha=-448 exit_beta=-447 search_static=-67
+< AS3TRACE id=31 event=return reason=exhausted score=243 exit_alpha=447 exit_beta=509 search_static=34
+< AS3TRACE id=33 event=enter path=root kind=search iteration=8 depth=8 alpha=212 beta=478 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=33 event=tt hit=1 move=f6h5 bound=upper tt_score=243 tt_depth=8
+< AS3TRACE id=33 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=33 event=move_number move=g3g6 value=27
+< AS3TRACE id=33 event=lmr_recurse move=g3g6 value=4
+< AS3TRACE id=34 event=enter path=g3g6 kind=search iteration=8 depth=4 alpha=-213 beta=-212 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=34 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=34 event=return reason=reverse_futility score=49 exit_alpha=-213 exit_beta=-212 search_static=-68
+< AS3TRACE id=33 event=return reason=exhausted score=212 exit_alpha=212 exit_beta=478 search_static=34
+< AS3TRACE id=35 event=enter path=root kind=search iteration=8 depth=8 alpha=162 beta=345 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=35 event=tt hit=1 move=f6h5 bound=upper tt_score=212 tt_depth=8
+< AS3TRACE id=35 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=35 event=move_number move=g3g6 value=27
+< AS3TRACE id=35 event=lmr_recurse move=g3g6 value=4
+< AS3TRACE id=36 event=enter path=g3g6 kind=search iteration=8 depth=4 alpha=-194 beta=-193 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=36 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=36 event=null_probe_depth move=0000 value=-3
+< AS3TRACE id=37 event=enter path=g3g6/null kind=search iteration=8 depth=-3 alpha=193 beta=194 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=38 event=enter path=g3g6/null kind=qsearch iteration=8 depth=0 alpha=193 beta=194 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=38 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=38 event=q_capture_picker move=0000 value=0
+< AS3TRACE id=38 event=return reason=exhausted score=138 exit_alpha=193 exit_beta=194 search_static=138
+< AS3TRACE id=37 event=return reason=horizon_to_qsearch score=138 exit_alpha=193 exit_beta=194 search_static=NA
+< AS3TRACE id=36 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=36 event=return reason=null_cutoff score=-138 exit_alpha=-194 exit_beta=-193 search_static=-70
+< AS3TRACE id=35 event=return reason=exhausted score=193 exit_alpha=193 exit_beta=345 search_static=34
+< info depth 8 seldepth 16 score cp 193 nodes 4485 nps 498333 hashfull 1 time 9 pv f6e8 d6e5 d4e5 d8e8 a1d1 e8e7 a2a3
+< AS3TRACE id=39 event=enter path=root kind=search iteration=9 depth=9 alpha=175 beta=211 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=39 event=tt hit=1 move=f6e8 bound=exact tt_score=193 tt_depth=8
+< AS3TRACE id=39 event=beta_cutoff move=f6h5 value=238
+< AS3TRACE id=39 event=return reason=beta_cutoff score=238 exit_alpha=206 exit_beta=211 search_static=36
+< AS3TRACE id=40 event=enter path=root kind=search iteration=9 depth=9 alpha=175 beta=256 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=40 event=tt hit=1 move=f6h5 bound=lower tt_score=238 tt_depth=9
+< AS3TRACE id=40 event=beta_cutoff move=f6h5 value=263
+< AS3TRACE id=40 event=return reason=beta_cutoff score=263 exit_alpha=175 exit_beta=256 search_static=38
+< AS3TRACE id=41 event=enter path=root kind=search iteration=9 depth=9 alpha=175 beta=294 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=41 event=tt hit=1 move=f6h5 bound=lower tt_score=263 tt_depth=9
+< AS3TRACE id=41 event=beta_cutoff move=f6h5 value=294
+< AS3TRACE id=41 event=return reason=beta_cutoff score=294 exit_alpha=175 exit_beta=294 search_static=39
+< AS3TRACE id=42 event=enter path=root kind=search iteration=9 depth=9 alpha=175 beta=344 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=42 event=tt hit=1 move=f6h5 bound=lower tt_score=294 tt_depth=9
+< AS3TRACE id=42 event=beta_cutoff move=f6h5 value=351
+< AS3TRACE id=42 event=return reason=beta_cutoff score=351 exit_alpha=175 exit_beta=344 search_static=41
+< AS3TRACE id=43 event=enter path=root kind=search iteration=9 depth=9 alpha=175 beta=430 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=43 event=tt hit=1 move=f6h5 bound=lower tt_score=351 tt_depth=9
+< AS3TRACE id=43 event=beta_cutoff move=f6h5 value=432
+< AS3TRACE id=43 event=return reason=beta_cutoff score=432 exit_alpha=175 exit_beta=430 search_static=42
+< AS3TRACE id=44 event=enter path=root kind=search iteration=9 depth=9 alpha=175 beta=554 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=44 event=tt hit=1 move=f6h5 bound=lower tt_score=432 tt_depth=9
+< AS3TRACE id=44 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=44 event=move_number move=g3g6 value=24
+< AS3TRACE id=44 event=lmr_recurse move=g3g6 value=5
+< AS3TRACE id=45 event=enter path=g3g6 kind=search iteration=9 depth=5 alpha=-439 beta=-438 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=45 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=45 event=return reason=reverse_futility score=49 exit_alpha=-439 exit_beta=-438 search_static=-79
+< AS3TRACE id=44 event=return reason=exhausted score=438 exit_alpha=438 exit_beta=554 search_static=44
+< info depth 9 seldepth 16 score cp 438 nodes 6492 nps 541000 hashfull 2 time 12 pv f6h5 g7g6 g3e3 g6g5 f1f7 c6e5 f7h7 h8g8 d4e5
+< AS3TRACE id=46 event=enter path=root kind=search iteration=10 depth=10 alpha=420 beta=456 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=46 event=tt hit=1 move=f6h5 bound=exact tt_score=438 tt_depth=9
+< AS3TRACE id=46 event=beta_cutoff move=f6h5 value=462
+< AS3TRACE id=46 event=return reason=beta_cutoff score=462 exit_alpha=420 exit_beta=456 search_static=45
+< AS3TRACE id=47 event=enter path=root kind=search iteration=10 depth=10 alpha=420 beta=480 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=47 event=tt hit=1 move=f6h5 bound=lower tt_score=462 tt_depth=10
+< AS3TRACE id=47 event=beta_cutoff move=f6h5 value=482
+< AS3TRACE id=47 event=return reason=beta_cutoff score=482 exit_alpha=420 exit_beta=480 search_static=48
+< AS3TRACE id=48 event=enter path=root kind=search iteration=10 depth=10 alpha=420 beta=513 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=48 event=tt hit=1 move=f6h5 bound=lower tt_score=482 tt_depth=10
+< AS3TRACE id=48 event=beta_cutoff move=f6h5 value=514
+< AS3TRACE id=48 event=return reason=beta_cutoff score=514 exit_alpha=420 exit_beta=513 search_static=49
+< AS3TRACE id=49 event=enter path=root kind=search iteration=10 depth=10 alpha=420 beta=564 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=49 event=tt hit=1 move=f6h5 bound=lower tt_score=514 tt_depth=10
+< AS3TRACE id=49 event=beta_cutoff move=f6h5 value=564
+< AS3TRACE id=49 event=return reason=beta_cutoff score=564 exit_alpha=420 exit_beta=564 search_static=51
+< AS3TRACE id=50 event=enter path=root kind=search iteration=10 depth=10 alpha=420 beta=643 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=50 event=tt hit=1 move=f6h5 bound=lower tt_score=564 tt_depth=10
+< AS3TRACE id=50 event=beta_cutoff move=f6h5 value=643
+< AS3TRACE id=50 event=return reason=beta_cutoff score=643 exit_alpha=420 exit_beta=643 search_static=53
+< AS3TRACE id=51 event=enter path=root kind=search iteration=10 depth=10 alpha=420 beta=765 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=51 event=tt hit=1 move=f6h5 bound=lower tt_score=643 tt_depth=10
+< AS3TRACE id=51 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=51 event=move_number move=g3g6 value=24
+< AS3TRACE id=51 event=lmr_recurse move=g3g6 value=6
+< AS3TRACE id=52 event=enter path=g3g6 kind=search iteration=10 depth=6 alpha=-683 beta=-682 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=52 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=52 event=return reason=reverse_futility score=49 exit_alpha=-683 exit_beta=-682 search_static=-88
+< AS3TRACE id=51 event=return reason=exhausted score=682 exit_alpha=682 exit_beta=765 search_static=54
+< info depth 10 seldepth 16 score cp 682 nodes 9766 nps 610375 hashfull 3 time 16 pv f6h5 g7g6 g3e3 g6g5 f1f7 c8c7 e5g6 h8g8 f7c7 d6c7 e3e6 c7f7
+< AS3TRACE id=53 event=enter path=root kind=search iteration=11 depth=11 alpha=664 beta=700 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=53 event=tt hit=1 move=f6h5 bound=exact tt_score=682 tt_depth=10
+< AS3TRACE id=53 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=53 event=move_number move=g3g6 value=24
+< AS3TRACE id=53 event=lmr_recurse move=g3g6 value=7
+< AS3TRACE id=54 event=enter path=g3g6 kind=search iteration=11 depth=7 alpha=-665 beta=-664 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=54 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=54 event=return reason=reverse_futility score=49 exit_alpha=-665 exit_beta=-664 search_static=-88
+< AS3TRACE id=53 event=return reason=exhausted score=657 exit_alpha=664 exit_beta=700 search_static=57
+< AS3TRACE id=55 event=enter path=root kind=search iteration=11 depth=11 alpha=639 beta=682 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=55 event=tt hit=1 move=f6h5 bound=upper tt_score=657 tt_depth=11
+< AS3TRACE id=55 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=55 event=move_number move=g3g6 value=30
+< AS3TRACE id=55 event=lmr_recurse move=g3g6 value=7
+< AS3TRACE id=56 event=enter path=g3g6 kind=search iteration=11 depth=7 alpha=-668 beta=-667 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=56 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=56 event=return reason=reverse_futility score=49 exit_alpha=-668 exit_beta=-667 search_static=-89
+< AS3TRACE id=55 event=return reason=exhausted score=667 exit_alpha=667 exit_beta=682 search_static=57
+< info depth 11 seldepth 20 score cp 667 nodes 11443 nps 635722 hashfull 4 time 18 pv f6h5 d6e5 d4e5 d8g8 a1d1 c8e8 f1f2 e8e7 a2a3
+< AS3TRACE id=57 event=enter path=root kind=search iteration=12 depth=12 alpha=649 beta=685 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=57 event=tt hit=1 move=f6h5 bound=exact tt_score=667 tt_depth=11
+< AS3TRACE id=57 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=57 event=move_number move=g3g6 value=6
+< AS3TRACE id=57 event=lmr_recurse move=g3g6 value=9
+< AS3TRACE id=58 event=enter path=g3g6 kind=search iteration=12 depth=9 alpha=-650 beta=-649 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=58 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=58 event=null_probe_depth move=0000 value=-2
+< AS3TRACE id=59 event=enter path=g3g6/null kind=search iteration=12 depth=-2 alpha=649 beta=650 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=60 event=enter path=g3g6/null kind=qsearch iteration=12 depth=0 alpha=649 beta=650 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=60 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=60 event=return reason=tt_cutoff score=138 exit_alpha=649 exit_beta=650 search_static=NA
+< AS3TRACE id=59 event=return reason=horizon_to_qsearch score=138 exit_alpha=649 exit_beta=650 search_static=NA
+< AS3TRACE id=58 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=58 event=return reason=null_cutoff score=-138 exit_alpha=-650 exit_beta=-649 search_static=-89
+< AS3TRACE id=57 event=return reason=exhausted score=647 exit_alpha=649 exit_beta=685 search_static=59
+< AS3TRACE id=61 event=enter path=root kind=search iteration=12 depth=12 alpha=629 beta=667 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=61 event=tt hit=1 move=f6h5 bound=upper tt_score=647 tt_depth=12
+< AS3TRACE id=61 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=61 event=move_number move=g3g6 value=7
+< AS3TRACE id=61 event=lmr_recurse move=g3g6 value=9
+< AS3TRACE id=62 event=enter path=g3g6 kind=search iteration=12 depth=9 alpha=-648 beta=-647 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=62 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=62 event=null_probe_depth move=0000 value=-2
+< AS3TRACE id=63 event=enter path=g3g6/null kind=search iteration=12 depth=-2 alpha=647 beta=648 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=64 event=enter path=g3g6/null kind=qsearch iteration=12 depth=0 alpha=647 beta=648 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=64 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=64 event=return reason=tt_cutoff score=138 exit_alpha=647 exit_beta=648 search_static=NA
+< AS3TRACE id=63 event=return reason=horizon_to_qsearch score=138 exit_alpha=647 exit_beta=648 search_static=NA
+< AS3TRACE id=62 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=62 event=return reason=null_cutoff score=-138 exit_alpha=-648 exit_beta=-647 search_static=-89
+< AS3TRACE id=61 event=return reason=exhausted score=647 exit_alpha=647 exit_beta=667 search_static=59
+< info depth 12 seldepth 20 score cp 647 nodes 14091 nps 671000 hashfull 5 time 21 pv f6h5 d6e5 d4e5 d8g8 c2f5 c8e8 f5e6 f7e6 g1h1 b6d7
+< AS3TRACE id=65 event=enter path=root kind=search iteration=13 depth=13 alpha=629 beta=665 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=65 event=tt hit=1 move=f6h5 bound=exact tt_score=647 tt_depth=12
+< AS3TRACE id=65 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=65 event=move_number move=g3g6 value=6
+< AS3TRACE id=65 event=lmr_recurse move=g3g6 value=10
+< AS3TRACE id=66 event=enter path=g3g6 kind=search iteration=13 depth=10 alpha=-630 beta=-629 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=66 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=66 event=null_probe_depth move=0000 value=-1
+< AS3TRACE id=67 event=enter path=g3g6/null kind=search iteration=13 depth=-1 alpha=629 beta=630 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=68 event=enter path=g3g6/null kind=qsearch iteration=13 depth=0 alpha=629 beta=630 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=68 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=68 event=return reason=tt_cutoff score=138 exit_alpha=629 exit_beta=630 search_static=NA
+< AS3TRACE id=67 event=return reason=horizon_to_qsearch score=138 exit_alpha=629 exit_beta=630 search_static=NA
+< AS3TRACE id=66 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=66 event=return reason=null_cutoff score=-138 exit_alpha=-630 exit_beta=-629 search_static=-89
+< AS3TRACE id=65 event=return reason=exhausted score=628 exit_alpha=629 exit_beta=665 search_static=61
+< AS3TRACE id=69 event=enter path=root kind=search iteration=13 depth=13 alpha=610 beta=647 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=69 event=tt hit=1 move=f6h5 bound=upper tt_score=628 tt_depth=13
+< AS3TRACE id=69 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=69 event=move_number move=g3g6 value=6
+< AS3TRACE id=69 event=lmr_recurse move=g3g6 value=10
+< AS3TRACE id=70 event=enter path=g3g6 kind=search iteration=13 depth=10 alpha=-624 beta=-623 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=70 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=70 event=null_probe_depth move=0000 value=-1
+< AS3TRACE id=71 event=enter path=g3g6/null kind=search iteration=13 depth=-1 alpha=623 beta=624 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=72 event=enter path=g3g6/null kind=qsearch iteration=13 depth=0 alpha=623 beta=624 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=72 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=72 event=return reason=tt_cutoff score=138 exit_alpha=623 exit_beta=624 search_static=NA
+< AS3TRACE id=71 event=return reason=horizon_to_qsearch score=138 exit_alpha=623 exit_beta=624 search_static=NA
+< AS3TRACE id=70 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=70 event=return reason=null_cutoff score=-138 exit_alpha=-624 exit_beta=-623 search_static=-90
+< AS3TRACE id=69 event=return reason=exhausted score=623 exit_alpha=623 exit_beta=647 search_static=61
+< info depth 13 seldepth 20 score cp 623 nodes 17852 nps 714080 hashfull 5 time 25 pv f6h5 d6e5 d4e5 d8g8 c2f5 b6d7 f5e6 f7e6 f1f7 d7e5 f7g7 c8f8 g7g8 f8g8
+< AS3TRACE id=73 event=enter path=root kind=search iteration=14 depth=14 alpha=605 beta=641 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=73 event=tt hit=1 move=f6h5 bound=exact tt_score=623 tt_depth=13
+< AS3TRACE id=73 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=73 event=move_number move=g3g6 value=7
+< AS3TRACE id=73 event=lmr_recurse move=g3g6 value=11
+< AS3TRACE id=74 event=enter path=g3g6 kind=search iteration=14 depth=11 alpha=-628 beta=-627 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=74 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=74 event=null_probe_depth move=0000 value=0
+< AS3TRACE id=75 event=enter path=g3g6/null kind=search iteration=14 depth=0 alpha=627 beta=628 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=76 event=enter path=g3g6/null kind=qsearch iteration=14 depth=0 alpha=627 beta=628 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=76 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=76 event=return reason=tt_cutoff score=138 exit_alpha=627 exit_beta=628 search_static=NA
+< AS3TRACE id=75 event=return reason=horizon_to_qsearch score=138 exit_alpha=627 exit_beta=628 search_static=NA
+< AS3TRACE id=74 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=74 event=return reason=null_cutoff score=-138 exit_alpha=-628 exit_beta=-627 search_static=-90
+< AS3TRACE id=73 event=return reason=exhausted score=627 exit_alpha=627 exit_beta=641 search_static=65
+< info depth 14 seldepth 20 score cp 627 nodes 20153 nps 719750 hashfull 6 time 28 pv f6h5 d6e5 d4e5 d8g8 c2f5 b6d7 f5e6 f7e6 a1e1 c8e8 e1e2 d5d4 c3d4
+< AS3TRACE id=77 event=enter path=root kind=search iteration=15 depth=15 alpha=609 beta=645 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=77 event=tt hit=1 move=f6h5 bound=exact tt_score=627 tt_depth=14
+< AS3TRACE id=77 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=77 event=move_number move=g3g6 value=8
+< AS3TRACE id=77 event=lmr_recurse move=g3g6 value=12
+< AS3TRACE id=78 event=enter path=g3g6 kind=search iteration=15 depth=12 alpha=-610 beta=-609 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=78 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=78 event=null_probe_depth move=0000 value=0
+< AS3TRACE id=79 event=enter path=g3g6/null kind=search iteration=15 depth=0 alpha=609 beta=610 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=80 event=enter path=g3g6/null kind=qsearch iteration=15 depth=0 alpha=609 beta=610 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=80 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=80 event=return reason=tt_cutoff score=138 exit_alpha=609 exit_beta=610 search_static=NA
+< AS3TRACE id=79 event=return reason=horizon_to_qsearch score=138 exit_alpha=609 exit_beta=610 search_static=NA
+< AS3TRACE id=78 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=78 event=return reason=null_cutoff score=-138 exit_alpha=-610 exit_beta=-609 search_static=-92
+< AS3TRACE id=77 event=return reason=exhausted score=609 exit_alpha=609 exit_beta=645 search_static=68
+< AS3TRACE id=81 event=enter path=root kind=search iteration=15 depth=15 alpha=591 beta=627 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=81 event=tt hit=1 move=f6h5 bound=upper tt_score=609 tt_depth=15
+< AS3TRACE id=81 event=beta_cutoff move=f6h5 value=629
+< AS3TRACE id=81 event=return reason=beta_cutoff score=629 exit_alpha=591 exit_beta=627 search_static=70
+< AS3TRACE id=82 event=enter path=root kind=search iteration=15 depth=15 alpha=591 beta=660 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=82 event=tt hit=1 move=f6h5 bound=lower tt_score=629 tt_depth=15
+< AS3TRACE id=82 event=beta_cutoff move=f6h5 value=660
+< AS3TRACE id=82 event=return reason=beta_cutoff score=660 exit_alpha=591 exit_beta=660 search_static=74
+< AS3TRACE id=83 event=enter path=root kind=search iteration=15 depth=15 alpha=591 beta=710 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=83 event=tt hit=1 move=f6h5 bound=lower tt_score=660 tt_depth=15
+< AS3TRACE id=83 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=83 event=move_number move=g3g6 value=7
+< AS3TRACE id=83 event=lmr_recurse move=g3g6 value=12
+< AS3TRACE id=84 event=enter path=g3g6 kind=search iteration=15 depth=12 alpha=-657 beta=-656 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=84 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=84 event=null_probe_depth move=0000 value=0
+< AS3TRACE id=85 event=enter path=g3g6/null kind=search iteration=15 depth=0 alpha=656 beta=657 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=86 event=enter path=g3g6/null kind=qsearch iteration=15 depth=0 alpha=656 beta=657 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=86 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=86 event=return reason=tt_cutoff score=138 exit_alpha=656 exit_beta=657 search_static=NA
+< AS3TRACE id=85 event=return reason=horizon_to_qsearch score=138 exit_alpha=656 exit_beta=657 search_static=NA
+< AS3TRACE id=84 event=null_probe_score move=0000 value=-138
+< AS3TRACE id=84 event=return reason=null_cutoff score=-138 exit_alpha=-657 exit_beta=-656 search_static=-103
+< AS3TRACE id=83 event=return reason=exhausted score=656 exit_alpha=656 exit_beta=710 search_static=79
+< info depth 15 seldepth 27 score cp 656 nodes 54633 nps 867190 hashfull 20 time 63 pv f6h5 d6e5 d4e5 d8g8 h5f4 b6d7 f4e6 f7e6 a1e1 d5d4 f1f7 d4d3 c2d3 c6e5
+< AS3TRACE id=87 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=674 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=87 event=tt hit=1 move=f6h5 bound=exact tt_score=656 tt_depth=15
+< AS3TRACE id=87 event=beta_cutoff move=f6h5 value=675
+< AS3TRACE id=87 event=return reason=beta_cutoff score=675 exit_alpha=638 exit_beta=674 search_static=85
+< AS3TRACE id=88 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=693 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=88 event=tt hit=1 move=f6h5 bound=lower tt_score=675 tt_depth=16
+< AS3TRACE id=88 event=beta_cutoff move=f6h5 value=693
+< AS3TRACE id=88 event=return reason=beta_cutoff score=693 exit_alpha=638 exit_beta=693 search_static=88
+< AS3TRACE id=89 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=724 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=89 event=tt hit=1 move=f6h5 bound=lower tt_score=693 tt_depth=16
+< AS3TRACE id=89 event=beta_cutoff move=f6h5 value=724
+< AS3TRACE id=89 event=return reason=beta_cutoff score=724 exit_alpha=638 exit_beta=724 search_static=90
+< AS3TRACE id=90 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=774 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=90 event=tt hit=1 move=f6h5 bound=lower tt_score=724 tt_depth=16
+< AS3TRACE id=90 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=90 event=move_number move=g3g6 value=4
+< AS3TRACE id=90 event=lmr_recurse move=g3g6 value=14
+< AS3TRACE id=91 event=enter path=g3g6 kind=search iteration=16 depth=14 alpha=-639 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=91 event=tt hit=1 move=c6e5 bound=lower tt_score=49 tt_depth=0
+< AS3TRACE id=91 event=null_probe_depth move=0000 value=2
+< AS3TRACE id=92 event=enter path=g3g6/null kind=search iteration=16 depth=2 alpha=638 beta=639 raw_static=121 in_check=0 excluded=0000
+< AS3TRACE id=92 event=tt hit=1 move=0000 bound=upper tt_score=138 tt_depth=0
+< AS3TRACE id=92 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=92 event=move_number move=g6h7 value=3
+< AS3TRACE id=92 event=lmr_recurse move=g6h7 value=2
+< AS3TRACE id=93 event=enter path=g3g6/null/g6h7 kind=search iteration=16 depth=2 alpha=-639 beta=-638 raw_static=-162 in_check=1 excluded=0000
+< AS3TRACE id=93 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=93 event=return reason=checkmate score=-31997 exit_alpha=-639 exit_beta=-638 search_static=NA
+< AS3TRACE id=92 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=92 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=639 search_static=193
+< AS3TRACE id=91 event=null_probe_score move=0000 value=-31997
+< AS3TRACE id=91 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=91 event=probcut_q_recurse move=c6e5 value=0
+< AS3TRACE id=94 event=enter path=g3g6/c6e5 kind=qsearch iteration=16 depth=0 alpha=508 beta=509 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=94 event=tt hit=1 move=0000 bound=upper tt_score=-49 tt_depth=0
+< AS3TRACE id=94 event=return reason=tt_cutoff score=-49 exit_alpha=508 exit_beta=509 search_static=NA
+< AS3TRACE id=91 event=probcut_verify move=c6e5 value=10
+< AS3TRACE id=95 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=10 alpha=508 beta=509 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=95 event=tt hit=1 move=0000 bound=upper tt_score=-49 tt_depth=0
+< AS3TRACE id=95 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=95 event=move_number move=g6h7 value=2
+< AS3TRACE id=95 event=lmr_recurse move=g6h7 value=10
+< AS3TRACE id=96 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=10 alpha=-509 beta=-508 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=96 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=96 event=return reason=checkmate score=-31997 exit_alpha=-509 exit_beta=-508 search_static=NA
+< AS3TRACE id=95 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=95 event=return reason=beta_cutoff score=31997 exit_alpha=508 exit_beta=509 search_static=-289
+< AS3TRACE id=91 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=91 event=probcut_q_recurse move=f7g6 value=0
+< AS3TRACE id=97 event=enter path=g3g6/f7g6 kind=qsearch iteration=16 depth=0 alpha=508 beta=509 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=97 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=0
+< AS3TRACE id=97 event=return reason=tt_cutoff score=31997 exit_alpha=508 exit_beta=509 search_static=NA
+< AS3TRACE id=91 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=91 event=move_number move=c6e5 value=1
+< AS3TRACE id=91 event=full_null_window move=c6e5 value=13
+< AS3TRACE id=98 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=13 alpha=638 beta=639 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=98 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=10
+< AS3TRACE id=98 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=98 event=move_number move=g6h7 value=1
+< AS3TRACE id=98 event=full_null_window move=g6h7 value=13
+< AS3TRACE id=99 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=13 alpha=-639 beta=-638 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=99 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=99 event=return reason=checkmate score=-31997 exit_alpha=-639 exit_beta=-638 search_static=NA
+< AS3TRACE id=98 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=98 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=639 search_static=-289
+< AS3TRACE id=91 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=91 event=move_number move=f7g6 value=2
+< AS3TRACE id=91 event=lmr_recurse move=f7g6 value=10
+< AS3TRACE id=100 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=10 alpha=638 beta=639 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=100 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=0
+< AS3TRACE id=100 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=100 event=skip_probcut_see move=e5g6 value=0
+< AS3TRACE id=100 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=100 event=move_number move=e5g6 value=1
+< AS3TRACE id=100 event=full_null_window move=e5g6 value=10
+< AS3TRACE id=101 event=enter path=g3g6/f7g6/e5g6 kind=search iteration=16 depth=10 alpha=-639 beta=-638 raw_static=1243 in_check=1 excluded=0000
+< AS3TRACE id=101 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=101 event=return reason=checkmate score=-31997 exit_alpha=-639 exit_beta=-638 search_static=NA
+< AS3TRACE id=100 event=beta_cutoff move=e5g6 value=31997
+< AS3TRACE id=100 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=639 search_static=-1306
+< AS3TRACE id=91 event=return reason=exhausted score=-986 exit_alpha=-639 exit_beta=-638 search_static=-117
+< AS3TRACE id=90 event=lmr_research move=g3g6 value=15
+< AS3TRACE id=102 event=enter path=g3g6 kind=search iteration=16 depth=15 alpha=-639 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=102 event=tt hit=1 move=c6e5 bound=upper tt_score=-986 tt_depth=14
+< AS3TRACE id=102 event=iir_upper_tt move=c6e5 value=14
+< AS3TRACE id=102 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=102 event=move_number move=c6e5 value=1
+< AS3TRACE id=102 event=full_null_window move=c6e5 value=13
+< AS3TRACE id=103 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=13 alpha=638 beta=639 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=103 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=13
+< AS3TRACE id=103 event=return reason=tt_cutoff score=31997 exit_alpha=638 exit_beta=639 search_static=NA
+< AS3TRACE id=102 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=102 event=move_number move=f7g6 value=2
+< AS3TRACE id=102 event=lmr_recurse move=f7g6 value=11
+< AS3TRACE id=104 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=11 alpha=638 beta=639 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=104 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=10
+< AS3TRACE id=104 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=104 event=skip_probcut_see move=e5g6 value=0
+< AS3TRACE id=104 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=104 event=move_number move=e5g6 value=1
+< AS3TRACE id=104 event=full_null_window move=e5g6 value=11
+< AS3TRACE id=105 event=enter path=g3g6/f7g6/e5g6 kind=search iteration=16 depth=11 alpha=-639 beta=-638 raw_static=1243 in_check=1 excluded=0000
+< AS3TRACE id=105 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=105 event=return reason=checkmate score=-31997 exit_alpha=-639 exit_beta=-638 search_static=NA
+< AS3TRACE id=104 event=beta_cutoff move=e5g6 value=31997
+< AS3TRACE id=104 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=639 search_static=-1306
+< AS3TRACE id=102 event=return reason=exhausted score=-986 exit_alpha=-639 exit_beta=-638 search_static=-119
+< AS3TRACE id=90 event=full_pv_window move=g3g6 value=15
+< AS3TRACE id=106 event=enter path=g3g6 kind=search iteration=16 depth=15 alpha=-774 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=106 event=tt hit=1 move=c6e5 bound=upper tt_score=-986 tt_depth=14
+< AS3TRACE id=106 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=106 event=move_number move=c6e5 value=1
+< AS3TRACE id=106 event=full_pv_window move=c6e5 value=14
+< AS3TRACE id=107 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=14 alpha=638 beta=774 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=107 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=13
+< AS3TRACE id=107 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=107 event=move_number move=g6h7 value=1
+< AS3TRACE id=107 event=full_pv_window move=g6h7 value=14
+< AS3TRACE id=108 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=14 alpha=-774 beta=-638 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=108 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=108 event=return reason=checkmate score=-31997 exit_alpha=-774 exit_beta=-638 search_static=NA
+< AS3TRACE id=107 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=107 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=774 search_static=-289
+< AS3TRACE id=106 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=106 event=move_number move=f7g6 value=2
+< AS3TRACE id=106 event=full_null_window move=f7g6 value=14
+< AS3TRACE id=109 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=14 alpha=773 beta=774 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=109 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=11
+< AS3TRACE id=109 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=109 event=skip_probcut_see move=e5g6 value=0
+< AS3TRACE id=109 event=picker_yield move=e5g6 value=0
+< AS3TRACE id=109 event=move_number move=e5g6 value=1
+< AS3TRACE id=109 event=full_null_window move=e5g6 value=14
+< AS3TRACE id=110 event=enter path=g3g6/f7g6/e5g6 kind=search iteration=16 depth=14 alpha=-774 beta=-773 raw_static=1243 in_check=1 excluded=0000
+< AS3TRACE id=110 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=110 event=return reason=checkmate score=-31997 exit_alpha=-774 exit_beta=-773 search_static=NA
+< AS3TRACE id=109 event=beta_cutoff move=e5g6 value=31997
+< AS3TRACE id=109 event=return reason=beta_cutoff score=31997 exit_alpha=773 exit_beta=774 search_static=-1306
+< AS3TRACE id=106 event=return reason=exhausted score=-906 exit_alpha=-774 exit_beta=-638 search_static=-121
+< AS3TRACE id=90 event=beta_cutoff move=g3g6 value=906
+< AS3TRACE id=90 event=return reason=beta_cutoff score=906 exit_alpha=638 exit_beta=774 search_static=95
+< AS3TRACE id=111 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=985 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=111 event=tt hit=1 move=g3g6 bound=lower tt_score=906 tt_depth=16
+< AS3TRACE id=111 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=111 event=move_number move=g3g6 value=1
+< AS3TRACE id=111 event=full_pv_window move=g3g6 value=15
+< AS3TRACE id=112 event=enter path=g3g6 kind=search iteration=16 depth=15 alpha=-985 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=112 event=tt hit=1 move=c6e5 bound=upper tt_score=-906 tt_depth=15
+< AS3TRACE id=112 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=112 event=move_number move=c6e5 value=1
+< AS3TRACE id=112 event=full_pv_window move=c6e5 value=14
+< AS3TRACE id=113 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=14 alpha=638 beta=985 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=113 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=113 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=113 event=move_number move=g6h7 value=1
+< AS3TRACE id=113 event=full_pv_window move=g6h7 value=14
+< AS3TRACE id=114 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=14 alpha=-985 beta=-638 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=114 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=114 event=return reason=checkmate score=-31997 exit_alpha=-985 exit_beta=-638 search_static=NA
+< AS3TRACE id=113 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=113 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=985 search_static=-288
+< AS3TRACE id=112 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=112 event=move_number move=f7g6 value=2
+< AS3TRACE id=112 event=full_null_window move=f7g6 value=14
+< AS3TRACE id=115 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=14 alpha=984 beta=985 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=115 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=115 event=return reason=tt_cutoff score=31997 exit_alpha=984 exit_beta=985 search_static=NA
+< AS3TRACE id=112 event=return reason=exhausted score=-1115 exit_alpha=-985 exit_beta=-638 search_static=-123
+< AS3TRACE id=111 event=beta_cutoff move=g3g6 value=1115
+< AS3TRACE id=111 event=return reason=beta_cutoff score=1115 exit_alpha=638 exit_beta=985 search_static=97
+< AS3TRACE id=116 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=1237 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=116 event=tt hit=1 move=g3g6 bound=lower tt_score=1115 tt_depth=16
+< AS3TRACE id=116 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=116 event=move_number move=g3g6 value=1
+< AS3TRACE id=116 event=full_pv_window move=g3g6 value=15
+< AS3TRACE id=117 event=enter path=g3g6 kind=search iteration=16 depth=15 alpha=-1237 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=117 event=tt hit=1 move=c6e5 bound=upper tt_score=-1115 tt_depth=15
+< AS3TRACE id=117 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=117 event=move_number move=c6e5 value=1
+< AS3TRACE id=117 event=full_pv_window move=c6e5 value=14
+< AS3TRACE id=118 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=14 alpha=638 beta=1237 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=118 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=118 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=118 event=move_number move=g6h7 value=1
+< AS3TRACE id=118 event=full_pv_window move=g6h7 value=14
+< AS3TRACE id=119 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=14 alpha=-1237 beta=-638 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=119 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=119 event=return reason=checkmate score=-31997 exit_alpha=-1237 exit_beta=-638 search_static=NA
+< AS3TRACE id=118 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=118 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=1237 search_static=-288
+< AS3TRACE id=117 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=117 event=move_number move=f7g6 value=2
+< AS3TRACE id=117 event=full_null_window move=f7g6 value=14
+< AS3TRACE id=120 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=14 alpha=1236 beta=1237 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=120 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=120 event=return reason=tt_cutoff score=31997 exit_alpha=1236 exit_beta=1237 search_static=NA
+< AS3TRACE id=117 event=return reason=exhausted score=-1303 exit_alpha=-1237 exit_beta=-638 search_static=-126
+< AS3TRACE id=116 event=beta_cutoff move=g3g6 value=1303
+< AS3TRACE id=116 event=return reason=beta_cutoff score=1303 exit_alpha=638 exit_beta=1237 search_static=98
+< AS3TRACE id=121 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=1490 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=121 event=tt hit=1 move=g3g6 bound=lower tt_score=1303 tt_depth=16
+< AS3TRACE id=121 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=121 event=move_number move=g3g6 value=1
+< AS3TRACE id=121 event=full_pv_window move=g3g6 value=15
+< AS3TRACE id=122 event=enter path=g3g6 kind=search iteration=16 depth=15 alpha=-1490 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=122 event=tt hit=1 move=c6e5 bound=upper tt_score=-1303 tt_depth=15
+< AS3TRACE id=122 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=122 event=move_number move=c6e5 value=1
+< AS3TRACE id=122 event=full_pv_window move=c6e5 value=14
+< AS3TRACE id=123 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=14 alpha=638 beta=1490 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=123 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=123 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=123 event=move_number move=g6h7 value=1
+< AS3TRACE id=123 event=full_pv_window move=g6h7 value=14
+< AS3TRACE id=124 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=14 alpha=-1490 beta=-638 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=124 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=124 event=return reason=checkmate score=-31997 exit_alpha=-1490 exit_beta=-638 search_static=NA
+< AS3TRACE id=123 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=123 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=1490 search_static=-287
+< AS3TRACE id=122 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=122 event=move_number move=f7g6 value=2
+< AS3TRACE id=122 event=full_null_window move=f7g6 value=14
+< AS3TRACE id=125 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=14 alpha=1489 beta=1490 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=125 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=125 event=return reason=tt_cutoff score=31997 exit_alpha=1489 exit_beta=1490 search_static=NA
+< AS3TRACE id=122 event=return reason=exhausted score=-31987 exit_alpha=-1490 exit_beta=-638 search_static=-128
+< AS3TRACE id=121 event=beta_cutoff move=g3g6 value=31987
+< AS3TRACE id=121 event=return reason=beta_cutoff score=31987 exit_alpha=638 exit_beta=1490 search_static=99
+< AS3TRACE id=126 event=enter path=root kind=search iteration=16 depth=16 alpha=638 beta=32001 raw_static=16 in_check=0 excluded=0000
+< AS3TRACE id=126 event=tt hit=1 move=g3g6 bound=lower tt_score=31987 tt_depth=16
+< AS3TRACE id=126 event=picker_yield move=g3g6 value=0
+< AS3TRACE id=126 event=move_number move=g3g6 value=1
+< AS3TRACE id=126 event=full_pv_window move=g3g6 value=15
+< AS3TRACE id=127 event=enter path=g3g6 kind=search iteration=16 depth=15 alpha=-32001 beta=-638 raw_static=-57 in_check=0 excluded=0000
+< AS3TRACE id=127 event=tt hit=1 move=c6e5 bound=upper tt_score=-31987 tt_depth=15
+< AS3TRACE id=127 event=picker_yield move=c6e5 value=0
+< AS3TRACE id=127 event=move_number move=c6e5 value=1
+< AS3TRACE id=127 event=full_pv_window move=c6e5 value=14
+< AS3TRACE id=128 event=enter path=g3g6/c6e5 kind=search iteration=16 depth=14 alpha=638 beta=31999 raw_static=-309 in_check=0 excluded=0000
+< AS3TRACE id=128 event=tt hit=1 move=g6h7 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=128 event=picker_yield move=g6h7 value=0
+< AS3TRACE id=128 event=move_number move=g6h7 value=1
+< AS3TRACE id=128 event=full_pv_window move=g6h7 value=14
+< AS3TRACE id=129 event=enter path=g3g6/c6e5/g6h7 kind=search iteration=16 depth=14 alpha=-31997 beta=-638 raw_static=319 in_check=1 excluded=0000
+< AS3TRACE id=129 event=tt hit=0 move=0000 bound=none tt_score=32002 tt_depth=-1
+< AS3TRACE id=129 event=return reason=checkmate score=-31997 exit_alpha=-31997 exit_beta=-638 search_static=NA
+< AS3TRACE id=128 event=beta_cutoff move=g6h7 value=31997
+< AS3TRACE id=128 event=return reason=beta_cutoff score=31997 exit_alpha=638 exit_beta=31997 search_static=-287
+< AS3TRACE id=127 event=picker_yield move=f7g6 value=0
+< AS3TRACE id=127 event=move_number move=f7g6 value=2
+< AS3TRACE id=127 event=full_null_window move=f7g6 value=14
+< AS3TRACE id=130 event=enter path=g3g6/f7g6 kind=search iteration=16 depth=14 alpha=31996 beta=31997 raw_static=-1321 in_check=0 excluded=0000
+< AS3TRACE id=130 event=tt hit=1 move=e5g6 bound=lower tt_score=31997 tt_depth=14
+< AS3TRACE id=130 event=return reason=tt_cutoff score=31997 exit_alpha=31996 exit_beta=31997 search_static=NA
+< AS3TRACE id=127 event=return reason=exhausted score=-31997 exit_alpha=-31997 exit_beta=-638 search_static=-128
+< AS3TRACE id=126 event=return reason=exhausted score=31997 exit_alpha=31997 exit_beta=32001 search_static=99
+< info depth 16 seldepth 27 score mate 2 nodes 71678 nps 907316 hashfull 23 time 79 pv g3g6 c6e5 g6h7
+< bestmove g3g6
+> quit

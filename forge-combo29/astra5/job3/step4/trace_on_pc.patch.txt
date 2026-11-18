@@ -1,0 +1,590 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1610,22 +1610,103 @@
+ }
+ 
+ // ---------------------------------------------------------------------------
++namespace {
++// This diagnostic applies to one single-threaded fixed-depth search of position P.
++// Path identity comes from the actual moves on the stack, including null moves.
++thread_local bool trace_position = false;
++thread_local int trace_serial = 0;
++
++const char* mate_trace_path(const SearchStack* ss) {
++    if (!trace_position || ss->ply > 3) return nullptr;
++    if (ss->ply == 0) return "root";
++    const SearchStack* root = ss - ss->ply;
++    if (Board::move_to_uci(root[0].current_move) != "g3g6") return nullptr;
++    if (ss->ply == 1) return "g3g6";
++    const auto reply = Board::move_to_uci(root[1].current_move);
++    if (root[1].current_move.is_none()) {
++        if (ss->ply == 2) return "g3g6/null";
++        if (Board::move_to_uci(root[2].current_move) == "g6h7") return "g3g6/null/g6h7";
++    } else if (reply == "f7g6") {
++        if (ss->ply == 2) return "g3g6/f7g6";
++        if (Board::move_to_uci(root[2].current_move) == "e5g6") return "g3g6/f7g6/e5g6";
++    } else if (reply == "c6e5") {
++        if (ss->ply == 2) return "g3g6/c6e5";
++        if (Board::move_to_uci(root[2].current_move) == "g6h7") return "g3g6/c6e5/g6h7";
++    }
++    return nullptr;
++}
++
++struct MateTrace {
++    const char* path;
++    const int& live_alpha;
++    const int& live_beta;
++    int id = 0;
++    int searched_static = ValueNone;
++    const char* termination = "exhausted";
++
++    MateTrace(const Board& board, SearchStack* ss, const char* kind, int iteration, int depth, const int& alpha, const int& beta)
++        : path(mate_trace_path(ss)), live_alpha(alpha), live_beta(beta) {
++        if (!path) return;
++        id = ++trace_serial;
++        // A fresh evaluator gives an independent raw static score even when a TT hit
++        // returns before the engine evaluates. Keep this separate from its actual score.
++        const auto parts = Evaluator::static_eval_components(board);
++        std::cout << "AS3TRACE id=" << id << " event=enter path=" << path << " kind=" << kind
++                  << " iteration=" << iteration << " depth=" << depth << " alpha=" << alpha << " beta=" << beta
++                  << " raw_static=" << parts.total << " in_check=" << parts.in_check
++                  << " excluded=" << Board::move_to_uci(ss->excluded_move) << '\n';
++    }
++
++    void move_event(Move move, const char* event, int amount = 0, bool all = false) const {
++        if (!path) return;
++        const auto name = Board::move_to_uci(move);
++        const std::string_view prefix(path);
++        if (!all && !((prefix == "root" && name == "g3g6") ||
++                      (prefix == "g3g6" && (name == "f7g6" || name == "c6e5")) ||
++                      (prefix == "g3g6/f7g6" && name == "e5g6") ||
++                      ((prefix == "g3g6/c6e5" || prefix == "g3g6/null") && name == "g6h7"))) return;
++        std::cout << "AS3TRACE id=" << id << " event=" << event << " move=" << name << " value=" << amount << '\n';
++    }
++
++    void tt(bool hit, Bound bound, Move move, int score, int depth) const {
++        if (!path) return;
++        std::cout << "AS3TRACE id=" << id << " event=tt hit=" << hit << " move=" << Board::move_to_uci(move)
++                  << " bound=" << (bound == BoundLower ? "lower" : bound == BoundUpper ? "upper" :
++                                   bound == BoundExact ? "exact" : "none")
++                  << " tt_score=" << score << " tt_depth=" << depth << '\n';
++    }
++
++    int finish(const char* reason, int score) const {
++        if (path) {
++            std::cout << "AS3TRACE id=" << id << " event=return reason=" << reason << " score=" << score
++                      << " exit_alpha=" << live_alpha << " exit_beta=" << live_beta << " search_static=";
++            if (searched_static == ValueNone) std::cout << "NA";
++            else std::cout << searched_static;
++            std::cout << '\n';
++        }
++        return score;
++    }
++};
++} // namespace
++
++
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
++    MateTrace trace(board, ss, "qsearch", root_depth_, 0, alpha, beta);
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+-    if (aborted_) return 0;
++    if (aborted_) return trace.finish("abort", 0);
+     ++local_nodes_;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+-    if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
++    if (is_draw(board, ply)) return trace.finish("draw", DrawJitter <= 0 ? 0 : draw_leaf_score(board));
++    if (ply >= MaxPly) return trace.finish("max_ply", board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock()));
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+@@ -1633,7 +1714,7 @@
+     if (mate_moves_ > 0) {
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) return trace.finish("mate_distance", alpha);
+     }
+ 
+ #if FORGE_SPD_TT_NOTLS
+@@ -1650,11 +1731,12 @@
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
++    trace.tt(tt_hit, tt_bound, tt_move, tt_score, tt_hit ? tte.depth : -1);
+     if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+-        return tt_score;
++        return trace.finish("tt_cutoff", tt_score);
+     }
+ 
+     int best_score;
+@@ -1667,6 +1749,7 @@
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
++        trace.searched_static = ss->static_eval;
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1679,7 +1762,7 @@
+ #else
+             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #endif
+-            return best_score;
++            return trace.finish("stand_pat", best_score);
+         }
+         if (best_score > alpha) alpha = best_score;
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+@@ -1689,21 +1772,23 @@
+     if (in_check && tune::HistRework != 0) [[unlikely]] {
+         threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+     }
++    if (trace.path && !in_check) trace.move_event(Move::none(), "q_capture_picker", 0, true);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+-        if (!board.is_legal(move)) continue;
++        trace.move_event(move, "picker_yield");
++        if (!board.is_legal(move)) { trace.move_event(move, "skip_illegal"); continue; }
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+-                continue;
++                { trace.move_event(move, "skip_q_futility"); continue; }
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            if (!board.see_ge(move, -tune::QsSeeMargin)) { trace.move_event(move, "skip_q_see"); continue; }
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1723,9 +1808,10 @@
+ #else
+         shared_.tt.prefetch(board.key());
+ #endif
++        trace.move_event(move, "q_recurse", 0);
+         const int score = -qsearch_child(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+-        if (aborted_) return 0;
++        if (aborted_) return trace.finish("abort", 0);
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
+@@ -1735,12 +1821,12 @@
+                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+-                if (score >= beta) break;
++                if (score >= beta) { trace.termination = "beta_cutoff"; trace.move_event(move, "beta_cutoff", score, true); break; }
+                 alpha = score;
+             }
+         }
+     }
+-    if (in_check && move_count == 0) return mated_in(ply);
++    if (in_check && move_count == 0) return trace.finish("checkmate", mated_in(ply));
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+@@ -1748,18 +1834,19 @@
+ #else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #endif
+-    return best_score;
++    return trace.finish(trace.termination, best_score);
+ }
+ 
+ // ---------------------------------------------------------------------------
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    MateTrace trace(board, ss, "search", root_depth_, depth, alpha, beta);
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
+-    if (depth <= 0) return qsearch_child(board, ss, alpha, beta);
++    if (depth <= 0) return trace.finish("horizon_to_qsearch", qsearch_child(board, ss, alpha, beta));
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -1768,19 +1855,19 @@
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+-    if (aborted_) return 0;
++    if (aborted_) return trace.finish("abort", 0);
+     ++local_nodes_;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+-        if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
++        if (is_draw(board, ply)) return trace.finish("draw", DrawJitter <= 0 ? 0 : draw_leaf_score(board));
++        if (ply >= MaxPly) return trace.finish("max_ply", board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock()));
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) return trace.finish("mate_distance", alpha);
+     }
+ 
+     const bool in_check = board.in_check();
+@@ -1809,6 +1896,7 @@
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+     ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
++    trace.tt(tt_hit, tt_bound, tt_move, tt_score, tt_depth);
+ 
+     // HindsightDepth: the parent already reduced this move. If the mover's static
+     // eval fell by a pawn or more, search one ply less; if it did not fall and
+@@ -1837,7 +1925,7 @@
+                     depth = proposed;
+                     if (depth <= 0) {
+                         --local_nodes_;
+-                        return qsearch_child(board, ss, alpha, beta);
++                        return trace.finish("hindsight_to_qsearch", qsearch_child(board, ss, alpha, beta));
+                     }
+                 }
+             }
+@@ -1856,7 +1944,7 @@
+             apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][tt_move.from][tt_move.to], bonus);
+             update_continuation(ss, board.moved_piece(tt_move), tt_move.to, bonus);
+         }
+-        return tt_score;
++        return trace.finish("tt_cutoff", tt_score);
+     }
+ 
+     // Static evaluation. reuse_raw is the hindsight eval of this position.
+@@ -1878,6 +1966,7 @@
+     }
+ 
+     bool improving = false;
++    trace.searched_static = ss->static_eval;
+     if (!in_check) {
+         if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+         else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
+@@ -1925,8 +2014,8 @@
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch_child(board, ss, alpha - 1, alpha);
+-            if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (aborted_) return trace.finish("abort", 0);
++            if (razor < alpha) return trace.finish("razor", razor);
+         }
+         // Reverse futility pruning.
+         // B4 TtPruneV2: when the opponent's static eval fell on their move ("opponent worsening"), the fail high is a
+@@ -1937,7 +2026,7 @@
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return trace.finish("reverse_futility", eval);
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -1960,9 +2049,11 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
++            trace.move_event(Move::none(), "null_probe_depth", depth - reduction, true);
+             int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            trace.move_event(Move::none(), "null_probe_score", null_score, true);
+             board.unmake_null_move(undo);
+-            if (aborted_) return 0;
++            if (aborted_) return trace.finish("abort", 0);
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+@@ -1973,21 +2064,23 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return trace.finish("null_cutoff", null_score);
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+                 // confirmation also refuses null moves in that whole search.
+                 const bool saved_block = null_blocked_;
+                 if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
++                trace.move_event(Move::none(), "null_verify_depth", depth - reduction, true);
+                 const int verification = search_child(board, ss, depth - reduction, beta - 1, beta, false);
++                trace.move_event(Move::none(), "null_verify_score", verification, true);
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+-                if (aborted_) return 0;
++                if (aborted_) return trace.finish("abort", 0);
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return trace.finish("verified_null_cutoff", null_score);
+                 }
+             }
+         }
+@@ -1998,8 +2091,9 @@
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+-                if (move == excluded || !board.is_legal(move)) continue;
+-                if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
++                trace.move_event(move, "picker_yield");
++                if (move == excluded || !board.is_legal(move)) { trace.move_event(move, "skip_probcut_excluded_or_illegal"); continue; }
++                if (!board.see_ge(move, probcut_beta - ss->static_eval)) { trace.move_event(move, "skip_probcut_see"); continue; }
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -2011,30 +2105,32 @@
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
++                trace.move_event(move, "probcut_q_recurse", 0);
+                 int value = -qsearch_child(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
++                    trace.move_event(move, "probcut_verify", depth - 4);
+                     value = -search_child(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+-                if (aborted_) return 0;
++                if (aborted_) return trace.finish("abort", 0);
+                 if (value >= probcut_beta) {
+ #if FORGE_SPD_TT_NOTLS
+                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+-                    return value;
++                    return trace.finish("probcut", value);
+                 }
+             }
+         }
+     }
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+-    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) { --depth; trace.move_event(Move::none(), "iir_no_tt", depth, true); }
+     // B4 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
+     // (Exclusive with the IIR above: that one needs no TT move, this one a TT move; mate search left alone as above.)
+     else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
+-             !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
++             !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) { --depth; trace.move_event(tt_move, "iir_upper_tt", depth, true); }
+ 
+     // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+     if (tune::HistRework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+@@ -2069,14 +2165,16 @@
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+-        if (move == excluded) continue;
++        trace.move_event(move, "picker_yield");
++        if (move == excluded) { trace.move_event(move, "skip_excluded"); continue; }
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+-            continue;
++            { trace.move_event(move, "skip_root_restriction"); continue; }
+         }
+-        if (!board.is_legal(move)) continue;
++        if (!board.is_legal(move)) { trace.move_event(move, "skip_illegal"); continue; }
+         ++move_count;
+         ss->move_count = move_count;
++        trace.move_event(move, "move_number", move_count);
+         const bool capture = move.is_capture();
+         const bool quiet = !capture && !move.is_promotion();
+         const bool gives_check = board.gives_check(move);
+@@ -2118,7 +2216,7 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) { skip_quiets = true; trace.move_event(move, "stop_quiet_generation_lmp", move_count, true); }
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+@@ -2136,19 +2234,20 @@
+                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
++                    if (!skip_quiets) trace.move_event(move, "stop_quiet_generation_futility", move_count, true);
+                     skip_quiets = true;
+                     note_deferred_quiet_checks();
+-                    continue;
++                    { trace.move_event(move, "skip_quiet_futility"); continue; }
+                 }
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+                     trace_case();
+                     quiet_fail = true;
+-                    continue;
++                    { trace.move_event(move, "skip_history"); continue; }
+                 }
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
+                     quiet_fail = true;
+-                    continue;
++                    { trace.move_event(move, "skip_quiet_see"); continue; }
+                 }
+             } else if (prunable) {
+                 // Futility pruning for captures: even winning the piece cannot
+@@ -2161,7 +2260,7 @@
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
+-                    continue;
++                    { trace.move_event(move, "skip_capture_futility"); continue; }
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+@@ -2173,7 +2272,7 @@
+                         if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
+                         if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                     }
+-                    continue;
++                    { trace.move_event(move, "skip_noisy_see"); continue; }
+                 }
+             }
+         }
+@@ -2183,7 +2282,7 @@
+             const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
+             if (tight_depth <= tune::FutilityDepth) {
+                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+-                if (ss->static_eval + tight_margin <= alpha) continue;
++                if (ss->static_eval + tight_margin <= alpha) { trace.move_event(move, "skip_tight_futility"); continue; }
+             }
+         }
+ 
+@@ -2202,14 +2301,14 @@
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+-            if (aborted_) return 0;
++            if (aborted_) return trace.finish("abort", 0);
+             if (singular_score < singular_beta) {
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+-                return singular_beta;
++                return trace.finish("singular_multicut", singular_beta);
+             } else if (tt_score >= beta) {
+                 extension = -2;
+             } else if (cut_node) {
+@@ -2274,6 +2373,7 @@
+             if (bare_king_lmr_cap) r = std::min(r, 1);
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            trace.move_event(move, "lmr_recurse", reduced_depth);
+             score = -search_child(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -2284,6 +2384,7 @@
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++                    trace.move_event(move, "lmr_research", new_depth);
+                     score = -search_child(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                 }
+                 full_depth_needed = false;
+@@ -2294,13 +2395,15 @@
+             }
+         }
+         if (full_depth_needed && !aborted_) {
++            trace.move_event(move, "full_null_window", new_depth);
+             score = -search_child(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
++            trace.move_event(move, "full_pv_window", new_depth);
+             score = -search_child(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+-        if (aborted_) return 0;
++        if (aborted_) return trace.finish("abort", 0);
+ #if FORGE_FIX_ABORT_PUBLISH
+         if (root_node && move == root_prev_best_) root_prev_best_done_ = true;
+ #endif
+@@ -2318,6 +2421,8 @@
+                 }
+                 if (score >= beta) {
+                     ++ss->cutoff_count;
++                    trace.termination = "beta_cutoff";
++                    trace.move_event(move, "beta_cutoff", score, true);
+                     break;
+                 }
+                 alpha = score;
+@@ -2327,16 +2432,16 @@
+         if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
+             ++wide_quiet_misses;
+             if (wide_quiet_misses == 1) futility_tight = true;
+-            if (wide_quiet_misses >= 2) picker.close_quiet_tail();
++            if (wide_quiet_misses >= 2) { picker.close_quiet_tail(); trace.move_event(move, "close_quiet_tail", move_count, true); }
+         }
+         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
+         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+     }
+ 
+     if (move_count == 0) {
+-        if (!excluded.is_none()) return alpha;
+-        if (root_node && root_restricted_) return 0;
+-        return in_check ? mated_in(ply) : 0;
++        if (!excluded.is_none()) return trace.finish("excluded_no_reply", alpha);
++        if (root_node && root_restricted_) return trace.finish("restricted_root_no_move", 0);
++        return trace.finish(in_check ? "checkmate" : "stalemate", in_check ? mated_in(ply) : 0);
+     }
+ 
+     if (best_score >= beta) {
+@@ -2379,7 +2484,7 @@
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+         update_correction(board, depth, best_score, ss->static_eval, ss);
+     }
+-    return best_score;
++    return trace.finish(trace.termination, best_score);
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -2409,7 +2514,7 @@
+     // singular verification search of a node (excluded move set), are left alone.
+     if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
+         board.upcoming_repetition(root_history_index_)) {
+-        if (beta <= DrawScore) return DrawScore;
++        if (beta <= DrawScore) { MateTrace trace(board, ss, "search_cuckoo", root_depth_, depth, alpha, beta); return trace.finish("cuckoo_repetition", DrawScore); }
+         return std::max(search(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
+     }
+     return search(board, ss, depth, alpha, beta, cut_node);
+@@ -2418,7 +2523,7 @@
+ int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
+     constexpr int DrawScore = 0;
+     if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+-        if (beta <= DrawScore) return DrawScore;
++        if (beta <= DrawScore) { MateTrace trace(board, ss, "qsearch_cuckoo", root_depth_, 0, alpha, beta); return trace.finish("cuckoo_repetition", DrawScore); }
+         return std::max(qsearch(board, ss, DrawScore, beta), DrawScore);
+     }
+     return qsearch(board, ss, alpha, beta);
+@@ -2457,6 +2562,10 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    const char* trace_flag = std::getenv("ASTRA5_TRACE");
++    trace_position = trace_flag && std::strcmp(trace_flag, "1") == 0 &&
++                     board.fen() == "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1";
++    trace_serial = 0;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
