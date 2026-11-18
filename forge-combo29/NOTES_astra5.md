@@ -35,3 +35,13 @@ At depth 16 PC20 tried the queen sacrifice 22nd, reduced the child to depth 11, 
 ### FOR FABLE AND OPUS
 
 The return that hides the threat is identified on this position. Which earlier search first moves `g3g6` from 22nd to fourth under the two winning overrides? The focused trace establishes the cutoff and the two mating continuations, and leaves open where the move-ordering paths first diverged.
+
+## Job 4 result
+
+Changing only the null move recovered `g3g6`, mate 2, in all three interventions on P. With PC20 and the built-in evaluation, NullMoveBase 3 found it at depth 15, base 4 at depth 16, and NullChildFloor 1 at depth 10. Adding HistRework 2 alone to S14 hid the mate through depth 20. Removing HistRework from PC20 restored it at depth 13. All three measured intervention depths landed in their frozen ranges, and all three exact point forecasts missed. [Job 4 report](REPORT_astra5_job4.md)
+
+On G at depth 12, floor 0 yielded 513 accepted null cutoffs whose depth-zero-or-lower hypothetical child had an immediate quiet mate. Those visits occurred in 81 of 353 starting positions. Floor 1 raised the G node sum by 5.39% and the O sum by 5.46%. With floor 1, 27 cutoffs at child depths 1–2 still had a quiet mate in 10 G positions. All runs used Threads 1 and Hash 16. [Counter sums and affected positions](astra5/job4/C/summary.txt)
+
+### FOR FABLE AND OPUS
+
+How often do those 513 visits change the root result? The event counter identifies positions with a mating quiet move after a hypothetical pass. Only P has the direct root-level intervention and independent mate proof in this job.
