@@ -134,3 +134,8 @@ Report62c1df27560a2eff60406c4f19da56f106d523b6 full-bodyverified. Nativefinished
 Publication31filesverified1673860bytes plusseparatefullpatches/Step0;67plannedfilesnotverified. AllK1/K2/K3rawcomplete,S1onlyparts1..3; remainingS1/S2local. Safetydenialraw/S1.part004asdataset/no-data conflict,404confirmed; no retry/repackaging. Finnexceptionrequestednotyetreceived. Safe-onlymetadata laterapprovalruntime-shutting-down(notexecuted) stoppedworker;report/inventoriespublishedsafely. Fullrunpublicraw standardnotmet, reporthonestlocal-vsremote. No equivalentroute.
 ### FOR FABLE AND OPUS
 Job19checknow, onehourboundary23:33:07UTC. Overallstop2026-11-19T06:16:10Z. RawbackfillrequiresdirectFinnexception; do not treat jobfileasoverrideoforiginalno-data rule.
+
+## Job19 verified2026-11-18T22:45:26Z
+Report5d150fd3dc1b55698d112bcb94650225c8331489 fullbodyverified. H71/H12 rebuilt onvalidatedJob18, notunfinished17. Count10ee0ac8cf22acbf9783cb7de055821e7bdd4ebb59de63959136b3d4ff880f3631;wrong101ab7580cd342109f1f459a3c0a1c21a1ff2165dbbcdaabb9468cc588846dbe76. Allold15/canonicalfieldsretained, all17normalzero. ControlsH71rookonly196600/793153,H12knight217222/3682465. S1H713242450/H1215696603;S2H71963902/H124672211,0diff. PredictionbeforeANYcountedrun/allrangespass. MapH71/H12partial,NONE24;H11relatedSEEcoverageacknowledgedconservativecategoryheld. Native22:37:57. All23SAFEfiles95278bytes verified plusStep0/fullpatches/prediction. PositionrawNOTattemptedwhilepriorauthorizationdenialunresolved,fullpublicrawgapexplicit. No newdenials/errors.
+### FOR FABLE AND OPUS
+Job20checkingnow,onehourboundary23:45:26UTC. Overallend2026-11-19T06:16:10Z. DirectFinnexceptionstillneededforposition-containingrawpublication; no jobtextoverride.
