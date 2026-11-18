@@ -1,0 +1,27 @@
+--- a/driver_final.py
++++ b/driver_hlm.py
+@@ -345,6 +345,7 @@
+                 last_info_line = None
+                 final_line = None
+                 hlm_counts = None
++                hlm_raw = None
+                 hlm_first = None
+                 bestmove = "0000"
+                 context = f"game {g_idx}, ply {ply}"
+@@ -369,6 +370,7 @@
+                         if count := HLM_COUNTS.fullmatch(detail):
+                             if hlm_counts is not None:
+                                 raise RuntimeError(f"Duplicate HLM counts during {context}: {detail}")
++                            hlm_raw = detail
+                             hlm_counts = dict(zip(HLM_FIELDS, map(int, count.groups())))
+                             if any(hlm_counts[field] > hlm_counts["calls"] for field in HLM_FIELDS[1:]):
+                                 raise RuntimeError(f"Inconsistent HLM counts during {context}: {detail}")
+@@ -415,7 +417,7 @@
+                               "terminal": terminal_fallback, "last_info": last_info_line,
+                               "final_line": final_line, "bestmove_line": bestmove_line}
+                     if check_hlm:
+-                        record.update(hlm=hlm_counts, hlm_first_mismatch=hlm_first)
++                        record.update(hlm=hlm_counts, hlm_raw=hlm_raw, hlm_first_mismatch=hlm_first)
+                     trace.write(json.dumps(record, separators=(",", ":")) + "\n")
+ 
+                 if bestmove == "0000" or last_nodes == 0:

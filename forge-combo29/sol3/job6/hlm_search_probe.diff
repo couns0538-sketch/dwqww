@@ -1,0 +1,86 @@
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -299,6 +299,7 @@
+     mutable KingLines king_lines_;
+     void refresh_king_lines() const;
+ #endif
++    [[nodiscard]] bool has_legal_move_unprobed() const;
+     [[nodiscard]] bool has_legal_move_slow() const;
+     [[nodiscard]] bool is_legal_complete(const Move& move) const;
+     [[nodiscard]] bool gives_check_complete(const Move& move) const;
+@@ -358,7 +359,7 @@
+     return gives_check_complete(move);
+ }
+ 
+-inline bool Board::has_legal_move() const {
++inline bool Board::has_legal_move_unprobed() const {
+ #if FORGE_SPD_KING_LINES
+     if (checkers_ == 0) {
+         const Color us = side_;
+--- a/include/forge/hlm_probe.hpp
++++ b/include/forge/hlm_probe.hpp
+@@ -31,6 +31,8 @@
+     std::optional<HlmProbeMismatch> first_mismatch;
+ };
+ 
++inline thread_local HlmProbeStats hlm_search_stats;
++
+ inline HlmProbeResult record_hlm_comparison(const Board& board, bool fast, HlmProbeStats& stats,
+                                            MoveList* generated = nullptr) {
+     // The full generator may populate mutable king lines. Keep the live board's cache untouched.
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/board.hpp"
++#include "forge/hlm_probe.hpp"
+ 
+ #include <algorithm>
+ #include <array>
+@@ -844,6 +845,12 @@
+     }
+ }
+ 
++bool Board::has_legal_move() const {
++    const bool fast = has_legal_move_unprobed();
++    (void)record_hlm_comparison(*this, fast, hlm_search_stats);
++    return fast;
++}
++
+ bool Board::has_legal_move_slow() const {
+     if (checkers_ == 0) {
+         const Color us = side_;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,5 +1,6 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
++#include "forge/hlm_probe.hpp"
+ #include "forge/nnue.hpp"
+ #if FORGE_NNUE_V3
+ #include "forge/nnue_v3.hpp"
+@@ -427,6 +428,7 @@
+                 task.ponder_enabled = pending_task.ponder_enabled;
+                 has_task = false;
+             }
++            forge::hlm_search_stats = {};
+             const forge::SearchInfo result = searcher.search(
+                 task.board, task.limits, true, forge::Searcher::TTAccess::Exclusive);
+             if (task.limits.infinite || task.limits.ponder) {
+@@ -446,6 +448,17 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                const forge::HlmProbeStats& stats = forge::hlm_search_stats;
++                if (stats.first_mismatch) {
++                    const forge::HlmProbeMismatch& mismatch = *stats.first_mismatch;
++                    std::cout << "info string hlm first_mismatch fast=" << static_cast<int>(mismatch.result.fast)
++                              << " full=" << static_cast<int>(mismatch.result.full)
++                              << " fen=" << mismatch.fen << '\n';
++                }
++                std::cout << "info string hlm calls=" << (stats.checked.calls + stats.unchecked.calls)
++                          << " incheck=" << stats.checked.calls
++                          << " nomove=" << (stats.checked.nomove + stats.unchecked.nomove)
++                          << " mismatch=" << (stats.checked.mismatch + stats.unchecked.mismatch) << '\n';
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {
