@@ -1,0 +1,12 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 16:02:34.157143771 +0000
++++ b/src/board.cpp	2026-11-17 16:04:47.345143771 +0000
+@@ -852,7 +852,7 @@
+         const Bitboard them_occ = occupied(them);
+         const int ksq = king_square(us);
+         const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
+-        const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
++        const Bitboard safe_pawns = pieces(us, Pawn); /* PLANTED FAULT: omit ~k_rays pin exclusion */
+         if (((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
+             return true;
+         }
