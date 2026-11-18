@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job4
+base=/workspace/work/sol2-job2
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job4
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+tag=$1
+case "$tag" in
+  probe) source="$base/r15d";;
+  control) source="$job/probe-materialized";;
+  *) exit 2;;
+esac
+materialized="$job/$tag-materialized"
+mkdir "$materialized"
+cp -a "$source/." "$materialized/"
+patch --batch --fuzz=0 -p1 -d "$materialized" < "$out/$tag.patch.txt"
+for dir in src include; do diff -r "$materialized/$dir" "$job/$tag-tree/$dir"; done
+if [ "$tag" = probe ]; then
+  cp "$base/carbon2/selfplay_driver.py" "$job/selfplay_driver.py"
+  patch --batch --fuzz=0 -p1 -d "$job" < "$out/driver.patch.txt"
+  cmp "$job/selfplay_driver.py" "$job/count_driver.py"
+fi
+"$cmake" -S "$materialized" -B "$job/build-$tag" -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+"$cmake" --build "$job/build-$tag" --parallel 3 --verbose > "$out/$tag-build.raw.txt" 2>&1
+sha256sum "$job/build-$tag/forge" "$base/net768.fnn3" "$job/selfplay_driver.py"
+date -u +'%FT%TZ'
+timeout 240 taskset -c 2 python -B "$job/selfplay_driver.py" --engine "$job/build-$tag/forge" --net "$base/net768.fnn3" --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json --trace-jsonl "$out/$tag-trace.jsonl.txt" > "$out/$tag-run.raw.txt" 2> "$out/$tag-stderr.raw.txt"
+date -u +'%FT%TZ'
+python -B "$job/readback.py" "$out" "$tag" | tee "$out/$tag-readback.raw.txt"

@@ -1,0 +1,53 @@
++ job=/workspace/work/sol2-job4
++ base=/workspace/work/sol2-job2
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job4
++ cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
++ tag=probe
++ case "$tag" in
++ source=/workspace/work/sol2-job2/r15d
++ materialized=/workspace/work/sol2-job4/probe-materialized
++ mkdir /workspace/work/sol2-job4/probe-materialized
++ cp -a /workspace/work/sol2-job2/r15d/. /workspace/work/sol2-job4/probe-materialized/
++ patch --batch --fuzz=0 -p1 -d /workspace/work/sol2-job4/probe-materialized
+patching file include/forge/nnue_v3.hpp
+patching file include/forge/search.hpp
+patching file src/nnue_v3.cpp
+patching file src/search.cpp
+patching file src/uci.cpp
++ for dir in src include
++ diff -r /workspace/work/sol2-job4/probe-materialized/src /workspace/work/sol2-job4/probe-tree/src
++ for dir in src include
++ diff -r /workspace/work/sol2-job4/probe-materialized/include /workspace/work/sol2-job4/probe-tree/include
++ '[' probe = probe ']'
++ cp /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job4/selfplay_driver.py
++ patch --batch --fuzz=0 -p1 -d /workspace/work/sol2-job4
+patching file selfplay_driver.py
++ cmp /workspace/work/sol2-job4/selfplay_driver.py /workspace/work/sol2-job4/count_driver.py
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job4/probe-materialized -B /workspace/work/sol2-job4/build-probe -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job4/build-probe
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job4/build-probe --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job4/build-probe/forge /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-job4/selfplay_driver.py
+4a36e9bcae45ef5bf9262d91ad6736e841813073fd513ed89fbe21fadd3a7055  /workspace/work/sol2-job4/build-probe/forge
+c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7  /workspace/work/sol2-job2/net768.fnn3
+128841e643c8d8f0d4887f40d4d0d9639b62704074898d4698af30a8f8f1463e  /workspace/work/sol2-job4/selfplay_driver.py
++ date -u +%FT%TZ
+2026-11-18T09:23:46Z
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job4/selfplay_driver.py --engine /workspace/work/sol2-job4/build-probe/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json --trace-jsonl /workspace/work/sol2-repo/forge-combo29/sol2/job4/probe-trace.jsonl.txt
++ date -u +%FT%TZ
+2026-11-18T09:24:09Z
++ python -B /workspace/work/sol2-job4/readback.py /workspace/work/sol2-repo/forge-combo29/sol2/job4 probe
++ tee /workspace/work/sol2-repo/forge-combo29/sol2/job4/probe-readback.raw.txt
+probe native replay (8612, 29333343, '5c705841c3ea17b4') known answer True
+probe reconciliation [True, True, True, True, True, True] summed events 4923792 refreshes 4923792
+{"columns": 24333354, "eval_after_refresh_or_replay": 5620667, "eval_forced": 0, "eval_fused": 9071977, "eval_fused_null": 76061, "eval_valid": 534502, "forced_updates": 0, "refresh_bucket": 3967217, "refresh_bucket_mirror": 472000, "refresh_forced": 0, "refresh_mirror": 467435, "refresh_no_ancestor": 0, "refresh_root": 17140, "refresh_zero_columns": 299245, "refreshes": 4923792, "update_pair": 5349295, "update_pair_null": 74860, "update_single": 4906652}
