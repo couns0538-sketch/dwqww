@@ -1,0 +1,110 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-18 14:05:18.259590837 +0100
++++ b/include/forge/search.hpp	2026-11-18 14:25:53.787115256 +0100
+@@ -518,6 +518,7 @@
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+     std::uint64_t local_nodes_ = 0;
++    int dot_singular_nesting_ = 0; // per-worker, includes nested excluded searches
+     const std::vector<Worker*>* all_workers_ = nullptr;
+     std::uint64_t node_limit_ = 0;
+     bool node_limit_specified_ = false;
+@@ -575,6 +576,7 @@
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    bool dot_blend_allowed() const;
+     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+     // B4 CuckooRep: every child search goes through these; with CuckooRep off they are the plain calls.
+     int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 14:05:18.259303312 +0100
++++ b/src/search.cpp	2026-11-18 14:25:53.786998975 +0100
+@@ -107,6 +107,7 @@
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+ // A2A5 (kimi5 job 25): fail-high blending and three reverse-futility conditions. All 0 = today's search.
++int DotSingularBlendMode = 0; // 0=PCA, 1=outside singular verification only, 2=inside only
+ int FailHighBlend = 0;  // bit 1: rfp return blend; bit 2: qsearch fail-high blends; bit 4: main-search non-PV blend
+ int RfpNoTtPv = 0;      // 1: the rfp step is skipped at a node whose tt-pv flag is set
+ int RfpTtGuard = 0;     // 1: the rfp step is skipped when there is a TT move and it is not a capture
+@@ -197,6 +198,7 @@
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"DotSingularBlendMode", &DotSingularBlendMode, 0, 2},
+         {"FailHighBlend", &FailHighBlend, 0, 7},         {"RfpNoTtPv", &RfpNoTtPv, 0, 1},
+         {"RfpTtGuard", &RfpTtGuard, 0, 1},               {"RfpCorrMul", &RfpCorrMul, 0, 64},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -1619,6 +1621,11 @@
+ // ---------------------------------------------------------------------------
+ // Quiescence search
+ 
++bool Worker::dot_blend_allowed() const {
++    return tune::DotSingularBlendMode == 0 ||
++           (tune::DotSingularBlendMode == 1 ? dot_singular_nesting_ == 0 : dot_singular_nesting_ > 0);
++}
++
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+@@ -1682,7 +1689,7 @@
+         best_score = eval;
+         if (best_score >= beta) {
+             // A2A5 bit 2 (a): the stand-pat fail high is blended toward beta before the store and the return.
+-            if ((tune::FailHighBlend & 2) != 0 && !is_mate_score(best_score) && !is_mate_score(beta))
++            if ((tune::FailHighBlend & 2) != 0 && dot_blend_allowed() && !is_mate_score(best_score) && !is_mate_score(beta))
+                 best_score = (best_score + beta) / 2;
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+@@ -1753,7 +1760,7 @@
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+     // A2A5 bit 2 (b): a fail-high best value is blended toward beta before the bound, the store and the return.
+-    if ((tune::FailHighBlend & 2) != 0 && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta))
++    if ((tune::FailHighBlend & 2) != 0 && dot_blend_allowed() && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta))
+         best_score = (best_score + beta) / 2;
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+@@ -1957,7 +1964,7 @@
+             !(tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture()) &&
+             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
+-            return (tune::FailHighBlend & 1) != 0 && !is_mate_score(eval) && !is_mate_score(beta)
++            return (tune::FailHighBlend & 1) != 0 && dot_blend_allowed() && !is_mate_score(eval) && !is_mate_score(beta)
+                        ? beta + (eval - beta) / 3
+                        : eval;
+         }
+@@ -2220,7 +2227,14 @@
+             const int singular_depth = std::max(1, (depth - 1) / 2);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+-            const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            const int singular_score = [&] {
++                struct Scope {
++                    int& nesting;
++                    explicit Scope(int& value) : nesting(value) { ++nesting; }
++                    ~Scope() { --nesting; }
++                } scope(dot_singular_nesting_);
++                return search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            }();
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -2389,7 +2403,7 @@
+     // bound is chosen, the entry is stored and the value returned. The correction-history update
+     // below keeps the raw value.
+     const int raw_best_score = best_score;
+-    if ((tune::FailHighBlend & 4) != 0 && !pv_node && best_score >= beta && !is_mate_score(best_score) &&
++    if ((tune::FailHighBlend & 4) != 0 && dot_blend_allowed() && !pv_node && best_score >= beta && !is_mate_score(best_score) &&
+         !is_mate_score(beta))
+         best_score = (best_score * depth + beta) / (depth + 1);
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+@@ -2486,6 +2500,7 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    dot_singular_nesting_ = 0;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
