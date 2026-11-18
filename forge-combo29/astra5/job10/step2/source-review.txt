@@ -1,0 +1,9 @@
+C10 source semantic readback
+Inspected guard10_counts.patch.txt, the freshly patched src/search.cpp and the original r15d+guard source and board undo.
+- src/search.cpp:2215 counts one N immediately before the real null child search. An interrupted child remains a started N; after an abort its sentinel return is not eligible for F, M, A or B.
+- src/search.cpp:2217 checks the completed raw null return against the parent's beta. M tests is_mate_score before normal search clips a mate return to beta. F is a candidate cutoff, not a count of actually returned null cutoffs.
+- src/search.cpp:2222 copies the null child before applying the value-2 diagnostic. src/search.cpp:2231 uses the original by-value reference helper after restoring the parent. Both have the shallow-child gate, run for all option values, and leave the original action branches intact.
+- src/search.cpp:2232 classifies A using occupied piece count at the guard site (both colors and kings included) and remaining parent depth. The twelve joint bins are the sole class accumulator. Their row and column sums produce the printed marginals.
+- src/search.cpp:3456 resets thread-local totals per top-level search. Helpers reset their own counters and return them on completion. src/search.cpp:3479 prints after helper join. The requested workload has one thread.
+- The guard10nodes total is SearchInfo.nodes at top-level return. Original src/search.cpp:3067 abandons a hard-cap-interrupted iteration. Its last published depth info can report fewer nodes than the returned total. Terminal or early-return searches can end well below the cap.
+- Readback covers source behavior. Exported tests compare observable nodes/moves. Agreement on those rows alone is not proof of every possible internal state or chess strength.
