@@ -1,0 +1,1376 @@
+UTC 2026-11-18T20:49:22.081045+00:00
+EXECUTABLE_SHA256 340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea
+SCRIPT_SHA256 74b8bb5b83f53d5782cf90fd2e69109f753ffc5195c43760a85a1a3d17a12b99
+SCRIPT_COMMENT 1 # UCI transcript recipe: comments are driver instructions, not engine input.
+SCRIPT_LINE 2
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+SCRIPT_COMMENT 3 # Wait for uciok.
+SCRIPT_LINE 4
+> setoption name Threads value 1
+SCRIPT_LINE 5
+> setoption name Hash value 16
+SCRIPT_LINE 6
+> setoption name OwnBook value false
+SCRIPT_LINE 7
+> setoption name LmrQuietBase value 93
+SCRIPT_LINE 8
+> setoption name LmrQuietDivisor value 205
+SCRIPT_LINE 9
+> setoption name LmrNoisyBase value 13
+SCRIPT_LINE 10
+> setoption name LmrNoisyDivisor value 333
+SCRIPT_LINE 11
+> setoption name LmrHistoryDivisor value 5643
+SCRIPT_LINE 12
+> setoption name NullMoveBase value 5
+SCRIPT_LINE 13
+> setoption name LmpBase value 8
+SCRIPT_LINE 14
+> setoption name HistoryPruneMultiplier value 2220
+SCRIPT_LINE 15
+> setoption name HistoryBonusQuadratic value 24
+SCRIPT_LINE 16
+> setoption name HistoryBonusLinear value 54
+SCRIPT_LINE 17
+> setoption name HistoryBonusMax value 2212
+SCRIPT_LINE 18
+> setoption name SingularDepth value 6
+SCRIPT_LINE 19
+> setoption name IirDepth value 2
+SCRIPT_LINE 20
+> setoption name NonPawnCorrection value true
+SCRIPT_LINE 21
+> setoption name CuckooRep value true
+SCRIPT_LINE 22
+> setoption name HistRework value 2
+SCRIPT_LINE 23
+> setoption name TtPruneV2 value true
+SCRIPT_LINE 24
+> setoption name CorrHistV2 value true
+SCRIPT_LINE 25
+> setoption name MateAlphaGuard value true
+SCRIPT_LINE 26
+> isready
+< readyok
+SCRIPT_COMMENT 27 # Wait for readyok.
+SCRIPT_LINE 28
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+SCRIPT_LINE 29
+> setoption name NNUEArch value true
+SCRIPT_LINE 30
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+SCRIPT_COMMENT 31 # Wait for readyok and require loaded/active net checksum30ab43b4ba5db5f3.
+SCRIPT_COMMENT 32 # SEARCH 1; W1 line 61.
+SCRIPT_LINE 33
+> isready
+< readyok
+SCRIPT_COMMENT 34 # Wait for readyok.
+SCRIPT_LINE 35
+> position fen 2kr1b1r/1bq2ppp/p3p3/1p1n4/3BN3/1Q3PP1/PPP1N2P/1K1R3R w - - 7 19
+SCRIPT_LINE 36
+> go depth 9
+< info depth 1 seldepth 3 score cp 816 nodes 61 nps 0 hashfull 0 time 0 pv b1c1
+< info depth 2 seldepth 7 score cp 247 nodes 229 nps 0 hashfull 0 time 0 pv h1e1 a6a5
+< info depth 3 seldepth 7 score cp 447 nodes 345 nps 345000 hashfull 0 time 1 pv h1e1 f7f6 b1c1
+< info depth 4 seldepth 7 score cp 162 nodes 634 nps 634000 hashfull 0 time 1 pv h1e1 f7f6 b1c1 f6f5
+< info depth 5 seldepth 7 score cp 116 nodes 1049 nps 1049000 hashfull 0 time 1 pv h1e1 f7f6 b1c1 d8e8 d1d2
+< info depth 6 seldepth 10 score cp 90 nodes 2231 nps 1115500 hashfull 1 time 2 pv a2a4 c7e7 a4b5 a6b5 b3b5
+< info depth 7 seldepth 14 score cp 85 nodes 3994 nps 1331333 hashfull 3 time 3 pv h1e1 d8d6 a2a3 d5c3 b3c3 c7c3
+< info depth 8 seldepth 19 score cp 69 nodes 10603 nps 1325375 hashfull 6 time 8 pv a2a4 d8d6 b1a1 d5b4 d4g7 b4c2 b3c2 d6d7 e2c1
+< info depth 9 seldepth 22 score cp 111 nodes 19924 nps 1423142 hashfull 12 time 14 pv b1a1 d5b4 b3b4 b7e4 d4e3 d8d1 e2c1 c7d6
+< bestmove b1a1
+SCRIPT_COMMENT 37 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 38 # SEARCH 2; W1 line 62.
+SCRIPT_LINE 39
+> isready
+< readyok
+SCRIPT_COMMENT 40 # Wait for readyok.
+SCRIPT_LINE 41
+> position fen 1k1r1b1r/1bq2ppp/p3p3/3n4/Q2BN3/5PP1/1PP1N2P/1K1R1R2 b - - 0 21
+SCRIPT_LINE 42
+> go depth 9
+< info depth 1 seldepth 4 score cp 1005 nodes 69 nps 0 hashfull 0 time 0 pv a6a5
+< info depth 2 seldepth 9 score cp 351 nodes 258 nps 0 hashfull 0 time 0 pv a6a5 e2c3
+< info depth 3 seldepth 9 score cp 498 nodes 346 nps 0 hashfull 0 time 0 pv a6a5 b1a1 b7a6
+< info depth 4 seldepth 9 score cp 454 nodes 608 nps 0 hashfull 0 time 0 pv c7c2 b1c2 h8g8 e2c3
+< info depth 5 seldepth 12 score cp 206 nodes 1643 nps 1643000 hashfull 1 time 1 pv a6a5 b1a1 b7a6 d4a7 c7a7
+< info depth 6 seldepth 18 score cp 167 nodes 2607 nps 2607000 hashfull 1 time 1 pv c7c8 e2c3 f7f5 d4a7 b8c7 c3d5 e6d5
+< info depth 7 seldepth 18 score cp 303 nodes 5077 nps 1269250 hashfull 3 time 4 pv c7c2 b1c2 d5c7 a4c4 b8c8 d4a7 d8d1 f1d1
+< info depth 8 seldepth 24 score cp 161 nodes 14689 nps 1335363 hashfull 8 time 11 pv c7c2 b1c2 d5e3 c2c3 d8c8 c3b3 e3d1 e2c3 b7d5 c3d5
+< info depth 9 seldepth 30 score cp 175 nodes 28206 nps 1343142 hashfull 17 time 21 pv c7c2 b1c2 d5e3 c2b1 f8e7 d4g7 b8c8 b1a1
+< bestmove c7c2
+SCRIPT_COMMENT 43 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 44 # SEARCH 3; W1 line 63.
+SCRIPT_LINE 45
+> isready
+< readyok
+SCRIPT_COMMENT 46 # Wait for readyok.
+SCRIPT_LINE 47
+> position fen 1kr2b1r/1bqn1ppp/p3p3/8/3BN3/1QN2PP1/1PP4P/1K1R1R2 w - - 5 24
+SCRIPT_LINE 48
+> go depth 9
+< info depth 1 seldepth 4 score cp 1478 nodes 55 nps 0 hashfull 0 time 0 pv b1a2
+< info depth 2 seldepth 4 score cp -2 nodes 150 nps 0 hashfull 0 time 0 pv b1a1 c7a5 c3a4
+< info depth 3 seldepth 6 score cp 775 nodes 226 nps 0 hashfull 0 time 0 pv d4a7 b8a8 b1a2 a8a7
+< info depth 4 seldepth 7 score cp 104 nodes 452 nps 0 hashfull 0 time 0 pv d4a7 b8a8 b1a2 f7f5 b3e6
+< info depth 5 seldepth 12 score cp 383 nodes 654 nps 0 hashfull 0 time 0 pv b3b7 c7b7 d4e5 d7e5 b1a1
+< info depth 6 seldepth 18 score cp -28 nodes 2210 nps 2210000 hashfull 0 time 1 pv d4a7 b8a8 b1a2 c7a5 b3a4 h7h6 a4a5 b7e4 a5a6
+< info depth 7 seldepth 18 score cp 614 nodes 2850 nps 2850000 hashfull 0 time 1 pv d4a7 b8a8 b1a1 c7a5 c3a4 a8a7 f1f2
+< info depth 8 seldepth 18 score cp 132 nodes 4491 nps 2245500 hashfull 0 time 2 pv d4a7 b8a8 b1a1 c7a5 c3a4 b7e4 a7e3 e4c2 d1d7 c2b3
+< info depth 9 seldepth 22 score cp 110 nodes 11668 nps 1666857 hashfull 2 time 7 pv e4d2 e6e5 d4a7 b8a8 b3f7 g7g5 b1a1
+< bestmove e4d2
+SCRIPT_COMMENT 49 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 50 # SEARCH 4; W1 line 64.
+SCRIPT_LINE 51
+> isready
+< readyok
+SCRIPT_COMMENT 52 # Wait for readyok.
+SCRIPT_LINE 53
+> position fen 1kr2b1r/1b1n1pp1/p1q1p2p/8/N1PBN3/1Q3PP1/1P5P/1K1RR3 b - - 0 26
+SCRIPT_LINE 54
+> go depth 9
+< info depth 1 seldepth 4 score cp 1504 nodes 43 nps 0 hashfull 0 time 0 pv e6e5
+< info depth 2 seldepth 8 score cp 786 nodes 205 nps 0 hashfull 0 time 0 pv e6e5 b1a1 c6c4
+< info depth 3 seldepth 8 score cp 786 nodes 250 nps 0 hashfull 0 time 0 pv e6e5 b1a1 c6c4
+< info depth 4 seldepth 11 score cp 775 nodes 538 nps 0 hashfull 0 time 0 pv c8d8 b3c3 c6a4 d4g7
+< info depth 5 seldepth 16 score cp 417 nodes 1688 nps 0 hashfull 0 time 0 pv c6b5 c4b5 a6b5 b3b5
+< info depth 6 seldepth 16 score cp 219 nodes 3859 nps 1929500 hashfull 1 time 2 pv c8d8 b1a1 c6a4 b3a4 h8h7 d4e5 d7e5 d1d8 b7c8 a4a6
+< info depth 7 seldepth 16 score cp 262 nodes 7183 nps 1795750 hashfull 3 time 4 pv c6b5 c4b5 b7e4 e1e4 c8c5 d4e5 c5e5 d1d7 e5b5
+< info depth 8 seldepth 17 score cp 168 nodes 11830 nps 1690000 hashfull 7 time 7 pv c6b5 c4b5 c8c4 b5a6 c4c7 d4a7 b8a8 a6b7 a8a7
+< info depth 9 seldepth 22 score cp 142 nodes 19144 nps 1595333 hashfull 13 time 12 pv c6b5 c4b5 c8c7 d4a7 b8a8 a4b6 d7b6 d1d8 c7c8 e1e3 c8d8
+< bestmove c6b5
+SCRIPT_COMMENT 55 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 56 # SEARCH 5; W1 line 65.
+SCRIPT_LINE 57
+> isready
+< readyok
+SCRIPT_COMMENT 58 # Wait for readyok.
+SCRIPT_LINE 59
+> position fen 1k3b1r/1b1n1pp1/p3p2p/8/Nr1BN3/1P3PP1/7P/1K1RR3 w - - 1 29
+SCRIPT_LINE 60
+> go depth 9
+< info depth 1 seldepth 5 score cp 1210 nodes 67 nps 0 hashfull 0 time 0 pv b1c2 b7e4 f3e4
+< info depth 2 seldepth 5 score cp -125 nodes 160 nps 0 hashfull 0 time 0 pv d4a7 b8c8
+< info depth 3 seldepth 9 score cp -331 nodes 366 nps 0 hashfull 0 time 0 pv d4a7 b8c8 e4c3
+< info depth 4 seldepth 9 score cp -169 nodes 465 nps 0 hashfull 0 time 0 pv d4a7 b8c8 a4b6 b4b6
+< info depth 5 seldepth 10 score cp -106 nodes 874 nps 0 hashfull 0 time 0 pv d4a7 b8c8 a4b6 d7b6 b1c2
+< info depth 6 seldepth 13 score cp -224 nodes 1258 nps 0 hashfull 0 time 0 pv d4a7 b8c8 a4b6 b4b6 e4d6 f8d6
+< info depth 7 seldepth 15 score cp 69 nodes 2494 nps 2494000 hashfull 0 time 1 pv d4a7 b8c8 a4b6 d7b6 e4d6 f8d6 d1d6 b6a4
+< info depth 8 seldepth 22 score cp 54 nodes 12552 nps 1569000 hashfull 7 time 8 pv d4a7 b8c8 d1c1 b7c6 e4d6 f8d6 c1c6 d6c7 a4c3 d7f8
+< info depth 9 seldepth 24 score cp 0 nodes 19376 nps 1614666 hashfull 11 time 12 pv d4a7 b8c8 d1c1 d7c5 a4c5 b7c6 e4d6 f8d6 c5e6 f7e6
+< bestmove d4a7
+SCRIPT_COMMENT 61 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 62 # SEARCH 6; W1 line 66.
+SCRIPT_LINE 63
+> isready
+< readyok
+SCRIPT_COMMENT 64 # Wait for readyok.
+SCRIPT_LINE 65
+> position fen 1k5r/5Rb1/p1b1p2p/8/Nr2N3/1P3PP1/7P/1K2R3 b - - 0 31
+SCRIPT_LINE 66
+> go depth 9
+< info depth 1 seldepth 6 score cp 698 nodes 55 nps 0 hashfull 0 time 0 pv g7f8
+< info depth 2 seldepth 12 score cp 14 nodes 361 nps 0 hashfull 0 time 0 pv g7f6 e4f6 c6a4 e1e6 b4b3 b1a1
+< info depth 3 seldepth 12 score cp 127 nodes 430 nps 0 hashfull 0 time 0 pv g7f6 f7f6 c6a4
+< info depth 4 seldepth 12 score cp -57 nodes 850 nps 0 hashfull 0 time 0 pv g7f6 f7f6 b8c8 e1c1
+< info depth 5 seldepth 12 score cp -152 nodes 1898 nps 1898000 hashfull 0 time 1 pv g7b2 b1b2 b4e4 a4b6 e4e1
+< info depth 6 seldepth 12 score cp -162 nodes 2176 nps 2176000 hashfull 0 time 1 pv c6e4 b1a2 e4b1 a2b1 b4a4 f7g7
+< info depth 7 seldepth 12 score cp -104 nodes 2853 nps 2853000 hashfull 1 time 1 pv c6e4 b1a2 e4b1 e1b1 b4a4 b3a4 b8a8 a2b3
+< info depth 8 seldepth 18 score cp 52 nodes 11434 nps 1429250 hashfull 6 time 8 pv h8f8 b1a2 b4a4 b3a4 c6d5 a2b1 d5e4 b1a2 f8f7 a2a3 f7f3 a3b4
+< info depth 9 seldepth 28 score cp 17 nodes 33381 nps 1390875 hashfull 16 time 24 pv c6e4 b1a2 b4a4 b3a4 e4d5 a2a3 g7f8 f7f8 h8f8 e1e6 d5e6 a3b4 b8a8 g3g4
+< bestmove c6e4
+SCRIPT_COMMENT 67 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 68 # SEARCH 7; W1 line 67.
+SCRIPT_LINE 69
+> isready
+< readyok
+SCRIPT_COMMENT 70 # Wait for readyok.
+SCRIPT_LINE 71
+> position fen 1kr5/6R1/p3p2p/8/b3N3/1r3PP1/K6P/4R3 w - - 1 34
+SCRIPT_LINE 72
+> go depth 9
+< info depth 1 seldepth 2 score cp 1550 nodes 64 nps 0 hashfull 0 time 0 pv e1f1
+< info depth 2 seldepth 3 score cp 1157 nodes 113 nps 0 hashfull 0 time 0 pv e1f1 b3a3 a2b2
+< info depth 3 seldepth 3 score cp 1157 nodes 152 nps 0 hashfull 0 time 0 pv e1f1 b3a3 a2b2
+< info depth 4 seldepth 5 score cp 415 nodes 555 nps 0 hashfull 0 time 0 pv e1f1 b3a3 a2b1 b8a8
+< info depth 5 seldepth 6 score cp 466 nodes 612 nps 0 hashfull 0 time 0 pv e1f1 b3a3 a2b1 b8a8 g7h7
+< info depth 6 seldepth 11 score cp 183 nodes 1224 nps 0 hashfull 0 time 0 pv e1f1 b3a3 a2b1 b8a8 g7g6 c8d8
+< info depth 7 seldepth 11 score cp 317 nodes 1572 nps 1572000 hashfull 0 time 1 pv g7g6 b3f3 g6e6 f3a3 a2b2 b8a8 e6a6 a8b7
+< info depth 8 seldepth 13 score cp 258 nodes 2617 nps 2617000 hashfull 0 time 1 pv g7g6 b3f3 g6e6 b8a8 e6a6 a8b7 e4c5 b7c7 c5a4
+< info depth 9 seldepth 22 score cp 626 nodes 10639 nps 1519857 hashfull 6 time 7 pv a2a1 b3f3 e4c3 b8a8 e1e6 f3f1 c3b1
+< bestmove a2a1
+SCRIPT_COMMENT 73 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 74 # SEARCH 8; W1 line 68.
+SCRIPT_LINE 75
+> isready
+< readyok
+SCRIPT_COMMENT 76 # Wait for readyok.
+SCRIPT_LINE 77
+> position fen 1k6/6R1/p3p2p/8/b3N3/5PP1/2r4P/1K6 b - - 0 36
+SCRIPT_LINE 78
+> go depth 9
+< info depth 1 seldepth 2 score cp 308 nodes 34 nps 0 hashfull 0 time 0 pv c2c1 b1c1
+< info depth 2 seldepth 2 score cp 308 nodes 63 nps 0 hashfull 0 time 0 pv c2c1 b1c1
+< info depth 3 seldepth 3 score cp 163 nodes 99 nps 0 hashfull 0 time 0 pv c2c1 b1c1 b8a8
+< info depth 4 seldepth 7 score cp 239 nodes 291 nps 0 hashfull 0 time 0 pv c2c1 b1c1 a4b3 c1d2
+< info depth 5 seldepth 8 score cp 139 nodes 436 nps 0 hashfull 0 time 0 pv c2c1 b1c1 a4c6 c1c2
+< info depth 6 seldepth 10 score cp 0 nodes 748 nps 0 hashfull 0 time 0 pv c2c1 b1c1 a4c6 g7g8 b8a7 g8g7
+< info depth 7 seldepth 12 score cp 161 nodes 1039 nps 0 hashfull 0 time 0 pv c2c1 b1c1 a4c6 g7g8 b8a7 g8g7 c6b7 c1d2
+< info depth 8 seldepth 14 score cp 0 nodes 2526 nps 2526000 hashfull 1 time 1 pv c2b2 b1c1 b2c2
+< info depth 9 seldepth 19 score cp 0 nodes 4320 nps 2160000 hashfull 1 time 2 pv c2b2 b1c1 b2c2
+< bestmove c2b2
+SCRIPT_COMMENT 79 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 80 # SEARCH 9; W1 line 69.
+SCRIPT_LINE 81
+> isready
+< readyok
+SCRIPT_COMMENT 82 # Wait for readyok.
+SCRIPT_LINE 83
+> position fen 1k6/6R1/p3N2p/8/8/3b1PP1/7r/1K6 w - - 1 39
+SCRIPT_LINE 84
+> go depth 9
+< info depth 1 seldepth 1 score cp 410 nodes 3 nps 0 hashfull 0 time 0 pv b1a1
+< info depth 2 seldepth 3 score cp -677 nodes 17 nps 0 hashfull 0 time 0 pv b1a1 h2h1 a1b2
+< info depth 3 seldepth 5 score cp -764 nodes 33 nps 0 hashfull 0 time 0 pv b1a1 h2h1 a1b2 b8a8
+< info depth 4 seldepth 7 score cp -144 nodes 137 nps 0 hashfull 0 time 0 pv b1a1 h2h1 a1b2 h1f1 b2a3
+< info depth 5 seldepth 9 score cp 85 nodes 413 nps 0 hashfull 0 time 0 pv b1a1 h2h1 a1b2 h1f1 g7g8 b8a7 e6c5
+< info depth 6 seldepth 11 score cp 98 nodes 829 nps 0 hashfull 0 time 0 pv b1a1 h2a2 a1a2 d3b1 a2a1 b8a8
+< info depth 7 seldepth 18 score cp 13 nodes 1949 nps 1949000 hashfull 0 time 1 pv b1a1 h2h1 a1b2 h1f1 b2a3 f1f3 g7g8 b8a7 e6c5
+< info depth 8 seldepth 18 score cp 0 nodes 3498 nps 1749000 hashfull 0 time 2 pv b1a1 h2h1 a1b2 h1f1 g7b7 b8a8 b7a7 a8b8
+< info depth 9 seldepth 18 score cp 0 nodes 4517 nps 1505666 hashfull 0 time 3 pv b1a1 h2h1 a1b2 h1f1 g7b7 b8a8 b7a7 a8b8
+< bestmove b1a1
+SCRIPT_COMMENT 85 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 86 # SEARCH 10; W1 line 70.
+SCRIPT_LINE 87
+> isready
+< readyok
+SCRIPT_COMMENT 88 # Wait for readyok.
+SCRIPT_LINE 89
+> position fen 2k5/6R1/p3N2p/8/5PP1/3b4/2r5/K7 b - - 0 41
+SCRIPT_LINE 90
+> go depth 9
+< info depth 1 seldepth 2 score cp 866 nodes 30 nps 0 hashfull 0 time 0 pv c2a2 a1a2
+< info depth 2 seldepth 2 score cp 866 nodes 57 nps 0 hashfull 0 time 0 pv c2a2 a1a2
+< info depth 3 seldepth 5 score cp 616 nodes 97 nps 0 hashfull 0 time 0 pv c2a2 a1a2 d3c4 a2b1 c4e6
+< info depth 4 seldepth 5 score cp 616 nodes 141 nps 0 hashfull 0 time 0 pv c2a2 a1a2 d3c4 a2b1 c4e6
+< info depth 5 seldepth 7 score cp 539 nodes 239 nps 0 hashfull 0 time 0 pv c2a2 a1a2 d3c4 a2b1 c4e6 g4g5
+< info depth 6 seldepth 9 score cp 208 nodes 644 nps 0 hashfull 0 time 0 pv c2a2 a1a2 d3c4 a2b1 c4e6 g4g5 e6f5 b1a1
+< info depth 7 seldepth 13 score cp 0 nodes 2283 nps 2283000 hashfull 1 time 1 pv c2c1 a1b2 c1c2
+< info depth 8 seldepth 14 score cp 0 nodes 3476 nps 3476000 hashfull 2 time 1 pv c2c1 a1b2 c1c2
+< info depth 9 seldepth 14 score cp 33 nodes 4026 nps 2013000 hashfull 2 time 2 pv c2a2 a1a2 d3c4 a2b1 c4e6 g7c7 c8c7 b1c2 e6f5 c2b3
+< bestmove c2a2
+SCRIPT_COMMENT 91 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 92 # SEARCH 11; W1 line 71.
+SCRIPT_LINE 93
+> setoption name Hash value 1
+SCRIPT_LINE 94
+> isready
+< readyok
+SCRIPT_COMMENT 95 # Wait for readyok.
+SCRIPT_LINE 96
+> position fen 2k5/6R1/p3N2p/8/2b2PP1/K7/2r5/8 w - - 5 44
+SCRIPT_LINE 97
+> go depth 9
+< info depth 1 seldepth 2 score cp 354 nodes 35 nps 0 hashfull 0 time 0 pv a3b4
+< info depth 2 seldepth 5 score cp 332 nodes 90 nps 0 hashfull 1 time 0 pv a3a4 c4e6
+< info depth 3 seldepth 5 score cp 323 nodes 126 nps 0 hashfull 1 time 0 pv a3a4 c4e6 g7g8 e6g8
+< info depth 4 seldepth 5 score cp 323 nodes 174 nps 0 hashfull 1 time 0 pv a3a4 c4e6 g7g8 e6g8
+< info depth 5 seldepth 7 score cp -180 nodes 1021 nps 0 hashfull 6 time 0 pv g7c7 c8b8 a3a4 c2a2 a4b4
+< info depth 6 seldepth 10 score cp 0 nodes 1291 nps 0 hashfull 8 time 0 pv g7c7 c8b8 c7b7 b8a8 b7a7 a8b8
+< info depth 7 seldepth 17 score cp 0 nodes 3300 nps 3300000 hashfull 24 time 1 pv g7g8 c8b7 g8g7
+< info depth 8 seldepth 17 score cp 0 nodes 4242 nps 2121000 hashfull 29 time 2 pv g7g8 c8b7 g8g7
+< info depth 9 seldepth 17 score cp 0 nodes 5906 nps 1968666 hashfull 38 time 3 pv g7g8 c8b7 g8g7
+< bestmove g7g8
+SCRIPT_COMMENT 98 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 99 # SEARCH 12; W1 line 72.
+SCRIPT_LINE 100
+> isready
+< readyok
+SCRIPT_COMMENT 101 # Wait for readyok.
+SCRIPT_LINE 102
+> position fen 2k5/4N1R1/p6p/1b6/5PP1/K7/3r4/8 b - - 10 46
+SCRIPT_LINE 103
+> go depth 9
+< info depth 1 seldepth 1 score cp 226 nodes 7 nps 0 hashfull 0 time 0 pv c8b7
+< info depth 2 seldepth 6 score cp 440 nodes 60 nps 0 hashfull 0 time 0 pv c8d8 e7g8
+< info depth 3 seldepth 6 score cp -39 nodes 104 nps 0 hashfull 0 time 0 pv c8b7 f4f5 b5e8
+< info depth 4 seldepth 6 score cp 45 nodes 282 nps 0 hashfull 1 time 0 pv c8d8 e7c6 b5c6 g7g8 c6e8
+< info depth 5 seldepth 9 score cp 170 nodes 685 nps 0 hashfull 3 time 0 pv c8d8 g7g8 d8e7 g8g7 e7f8 g7c7 d2e2
+< info depth 6 seldepth 11 score cp -162 nodes 1391 nps 0 hashfull 7 time 0 pv c8b7 e7c6 b7c6 a3b4 d2b2 b4a5
+< info depth 7 seldepth 18 score cp -18 nodes 4925 nps 1641666 hashfull 31 time 3 pv c8b7 e7c8 b5d7 g7d7 b7c8 d7d2 h6h5
+< info depth 8 seldepth 18 score cp 0 nodes 6391 nps 1597750 hashfull 40 time 4 pv c8b7 e7f5 b7a8 g7g8 a8a7 g8g7
+< info depth 9 seldepth 18 score cp 0 nodes 7931 nps 1982750 hashfull 52 time 4 pv c8b7 e7f5 b7a8 g7g8 a8a7 g8g7
+< bestmove c8b7
+SCRIPT_COMMENT 104 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 105 # SEARCH 13; W1 line 73.
+SCRIPT_LINE 106
+> isready
+< readyok
+SCRIPT_COMMENT 107 # Wait for readyok.
+SCRIPT_LINE 108
+> position fen 8/6R1/p1k4N/1b6/5PP1/K2r4/8/8 w - - 1 49
+SCRIPT_LINE 109
+> go depth 9
+< info depth 1 seldepth 1 score cp -325 nodes 4 nps 0 hashfull 0 time 0 pv a3b4
+< info depth 2 seldepth 4 score cp -33 nodes 27 nps 0 hashfull 0 time 0 pv a3b4 d3d4 b4a5
+< info depth 3 seldepth 6 score cp -354 nodes 74 nps 0 hashfull 0 time 0 pv a3b4 d3d4 b4c3 c6c5
+< info depth 4 seldepth 8 score cp -193 nodes 278 nps 0 hashfull 1 time 0 pv a3b4 d3d4 b4c3 d4c4 c3b2 c4f4
+< info depth 5 seldepth 11 score cp -333 nodes 570 nps 0 hashfull 3 time 0 pv a3b4 a6a5 b4a5 d3a3 a5b4 a3a4 b4b3
+< info depth 6 seldepth 11 score cp -440 nodes 850 nps 0 hashfull 4 time 0 pv a3b4 d3b3 b4b3 c6b6 b3c3 b5c6
+< info depth 7 seldepth 15 score cp -133 nodes 2164 nps 2164000 hashfull 11 time 1 pv a3b4 d3d4 b4c3 d4c4 c3d2 c4f4 d2e3 f4f3 e3f3
+< info depth 8 seldepth 19 score cp -146 nodes 6056 nps 2018666 hashfull 31 time 3 pv a3b4 d3d4 b4c3 d4c4 c3b3 c6c5 g7c7 b5c6 f4f5 c4b4 b3a2 c5b5
+< info depth 9 seldepth 22 score cp -319 nodes 9421 nps 2355250 hashfull 51 time 4 pv a3b4 d3d4 b4c3 d4c4 c3d2 c4c2 d2e3 c2c3 e3f2 c3f3 f2f3 c6c5
+< bestmove a3b4
+SCRIPT_COMMENT 110 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 111 # SEARCH 14; W1 line 74.
+SCRIPT_LINE 112
+> isready
+< readyok
+SCRIPT_COMMENT 113 # Wait for readyok.
+SCRIPT_LINE 114
+> position fen 8/6R1/p1k4N/1b4P1/5P2/8/7r/2K5 b - - 0 51
+SCRIPT_LINE 115
+> go depth 9
+< info depth 1 seldepth 2 score cp 399 nodes 31 nps 0 hashfull 1 time 0 pv b5f1
+< info depth 2 seldepth 3 score cp 250 nodes 73 nps 0 hashfull 1 time 0 pv h2h1 c1d2
+< info depth 3 seldepth 4 score cp 195 nodes 111 nps 0 hashfull 1 time 0 pv h2h1 c1d2 h1f1
+< info depth 4 seldepth 5 score cp 52 nodes 258 nps 0 hashfull 2 time 0 pv h2h1 c1d2 a6a5 d2e3
+< info depth 5 seldepth 6 score cp 233 nodes 386 nps 0 hashfull 2 time 0 pv h2c2 c1d1 c2c1 d1c1 b5e2
+< info depth 6 seldepth 8 score cp 250 nodes 705 nps 0 hashfull 2 time 0 pv h2h1 c1d2 a6a5 h6g4 c6c5 d2e3
+< info depth 7 seldepth 13 score cp 371 nodes 1686 nps 0 hashfull 8 time 0 pv h2h1 c1c2 c6c5 g7c7 c5d5 c7d7 d5c4 d7d8
+< info depth 8 seldepth 16 score cp 349 nodes 3897 nps 1948500 hashfull 20 time 2 pv h2h1 c1d2 c6c5 d2e3 h1h6 g7c7 c5b4 c7g7 b4a5
+< info depth 9 seldepth 33 score cp 390 nodes 13617 nps 1945285 hashfull 87 time 7 pv c6c5 h6f7 h2h1 c1c2 b5a4 c2d2 h1h2 d2e3 c5b5 g5g6
+< bestmove c6c5
+SCRIPT_COMMENT 116 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 117 # SEARCH 15; W1 line 75.
+SCRIPT_LINE 118
+> isready
+< readyok
+SCRIPT_COMMENT 119 # Wait for readyok.
+SCRIPT_LINE 120
+> position fen 8/6R1/2k4N/1b3PP1/p7/8/3K4/7r w - - 0 54
+SCRIPT_LINE 121
+> go depth 9
+< info depth 1 seldepth 2 score cp -21 nodes 34 nps 0 hashfull 0 time 0 pv g7g6 c6d7
+< info depth 2 seldepth 2 score cp -21 nodes 57 nps 0 hashfull 0 time 0 pv g7g6 c6d7
+< info depth 3 seldepth 5 score cp -59 nodes 168 nps 0 hashfull 1 time 0 pv d2e3 h1e1 e3d4
+< info depth 4 seldepth 8 score cp -100 nodes 322 nps 0 hashfull 1 time 0 pv g7g6 c6c7 g6g7 c7b8 g7g8 b5e8
+< info depth 5 seldepth 8 score cp -57 nodes 432 nps 0 hashfull 2 time 0 pv g7c7 c6c7 h6f7 c7b8
+< info depth 6 seldepth 8 score cp 0 nodes 581 nps 0 hashfull 3 time 0 pv g7c7 c6c7 h6f7 h1h2 d2c3 h2h1
+< info depth 7 seldepth 14 score cp -118 nodes 1666 nps 1666000 hashfull 11 time 1 pv g7c7 c6c7 h6f7 c7b8 d2c3 b8a8 c3b4
+< info depth 8 seldepth 15 score cp -105 nodes 3152 nps 3152000 hashfull 16 time 1 pv h6g4 c6c5 g7c7 c5b4 c7c4 b4a3 c4a4 a3b3 g4f6 b5a4
+< info depth 9 seldepth 19 score cp 0 nodes 6024 nps 2008000 hashfull 30 time 3 pv h6g4 c6c5 g7c7 c5b4 c7c4 b4a3 c4c3 a3b4
+< bestmove h6g4
+SCRIPT_COMMENT 122 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 123 # SEARCH 16; W1 line 76.
+SCRIPT_LINE 124
+> isready
+< readyok
+SCRIPT_COMMENT 125 # Wait for readyok.
+SCRIPT_LINE 126
+> position fen 8/R4P2/2k4N/1b4P1/8/8/p2K4/7r b - - 0 56
+SCRIPT_LINE 127
+> go depth 9
+< info depth 1 seldepth 3 score cp 559 nodes 59 nps 0 hashfull 0 time 0 pv a2a1b
+< info depth 2 seldepth 3 score cp 449 nodes 97 nps 0 hashfull 0 time 0 pv a2a1b d2e3
+< info depth 3 seldepth 7 score cp 164 nodes 277 nps 0 hashfull 1 time 0 pv h1h2 d2e1 c6c5 f7f8b c5c4
+< info depth 4 seldepth 9 score cp 497 nodes 599 nps 0 hashfull 4 time 0 pv h1d1 d2e3 d1d3 e3e2 d3f3 e2f3
+< info depth 5 seldepth 11 score cp 497 nodes 786 nps 0 hashfull 5 time 0 pv h1d1 d2e3 d1d3 e3e2 d3f3 e2f3
+< info depth 6 seldepth 12 score cp 402 nodes 1426 nps 0 hashfull 6 time 0 pv h1d1 d2e3 d1d3 e3e2 d3f3 e2f3 c6d5
+< info depth 7 seldepth 21 score cp 313 nodes 7526 nps 1881500 hashfull 42 time 4 pv h1h2 d2e3 a2a1r f7f8q a1e1 e3f3 b5e2 f3g3
+< info depth 8 seldepth 27 score cp 166 nodes 23266 nps 1938833 hashfull 133 time 12 pv h1d1 d2e3 d1e1 e3f2 a2a1q a7a1 e1e7 f2g3
+< info depth 9 seldepth 27 score cp 169 nodes 35111 nps 1847947 hashfull 224 time 19 pv h1h3 a7a6 c6b7 a6a7 b7b6 d2e1 b6a7 f7f8q
+< bestmove h1h3
+SCRIPT_COMMENT 128 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 129 # SEARCH 17; W1 line 77.
+SCRIPT_LINE 130
+> isready
+< readyok
+SCRIPT_COMMENT 131 # Wait for readyok.
+SCRIPT_LINE 132
+> position fen R7/5P2/3k3N/1b4P1/8/8/3K4/5r2 w - - 3 59
+SCRIPT_LINE 133
+> go depth 9
+< info depth 1 seldepth 5 score cp -160 nodes 100 nps 0 hashfull 1 time 0 pv a8d8 d6e6
+< info depth 2 seldepth 5 score cp -160 nodes 141 nps 0 hashfull 1 time 0 pv a8d8 d6e6
+< info depth 3 seldepth 7 score cp -224 nodes 343 nps 0 hashfull 2 time 0 pv f7f8b d6d7 a8a7 d7c8
+< info depth 4 seldepth 9 score cp -264 nodes 529 nps 0 hashfull 2 time 0 pv f7f8b d6c7 d2e3
+< info depth 5 seldepth 11 score cp -75 nodes 1014 nps 0 hashfull 4 time 0 pv f7f8q d6d5 a8d8 d5c4 f8f1 c4b3 f1b5 b3a2
+< info depth 6 seldepth 11 score cp 0 nodes 1586 nps 0 hashfull 8 time 0 pv f7f8q d6c6 f8c8 c6d6
+< info depth 7 seldepth 20 score cp -35 nodes 3444 nps 3444000 hashfull 18 time 1 pv f7f8q f1f8 a8f8 d6c6 f8f6 c6c5 d2d1
+< info depth 8 seldepth 20 score cp -16 nodes 6340 nps 2113333 hashfull 34 time 3 pv f7f8q f1f8 a8f8 d6c5 f8f5 c5c6 d2d1 b5e2 d1e1
+< info depth 9 seldepth 20 score cp -26 nodes 10371 nps 2074200 hashfull 61 time 5 pv f7f8q f1f8 a8f8 d6d7 f8d8 d7e7 h6g8 e7d8 d2e1
+< bestmove f7f8q
+SCRIPT_COMMENT 134 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 135 # SEARCH 18; W1 line 78.
+SCRIPT_LINE 136
+> isready
+< readyok
+SCRIPT_COMMENT 137 # Wait for readyok.
+SCRIPT_LINE 138
+> position fen 5R2/3b4/3k3N/6P1/8/4K3/8/8 b - - 2 61
+SCRIPT_LINE 139
+> go depth 9
+< info depth 1 seldepth 3 score cp 477 nodes 29 nps 0 hashfull 0 time 0 pv d6e7
+< info depth 2 seldepth 5 score cp 152 nodes 95 nps 0 hashfull 0 time 0 pv d6e7 h6g8 e7f8
+< info depth 3 seldepth 5 score cp 421 nodes 163 nps 0 hashfull 1 time 0 pv d6c6 f8f6 c6b5
+< info depth 4 seldepth 7 score cp 70 nodes 890 nps 0 hashfull 6 time 0 pv d6c6 f8f6 c6b7 e3f4 b7b8
+< info depth 5 seldepth 7 score cp -23 nodes 1358 nps 0 hashfull 9 time 0 pv d6c6 f8f6 c6d5 e3f4 d5c5 f6f8
+< info depth 6 seldepth 9 score cp -76 nodes 1898 nps 0 hashfull 10 time 0 pv d6c6 f8f6 c6c5 e3f4 c5b5 f6f5 b5a4
+< info depth 7 seldepth 11 score cp 18 nodes 3382 nps 3382000 hashfull 16 time 1 pv d6c6 f8d8 d7e6 e3f3 c6b7
+< info depth 8 seldepth 14 score cp -68 nodes 11599 nps 2319800 hashfull 66 time 5 pv d6e5 f8d8 d7c8 h6g4 c8g4 d8b8
+< info depth 9 seldepth 17 score cp -132 nodes 17891 nps 2236375 hashfull 103 time 8 pv d6e5 f8d8 d7f5 h6f7 e5e6 e3f4 e6f7 f4f5 f7g7 d8g8 g7g8
+< bestmove d6e5
+SCRIPT_COMMENT 140 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 141 # SEARCH 19; W1 line 79.
+SCRIPT_LINE 142
+> isready
+< readyok
+SCRIPT_COMMENT 143 # Wait for readyok.
+SCRIPT_LINE 144
+> position fen 4b3/8/5R1N/3k2P1/5K2/8/8/8 w - - 7 64
+SCRIPT_LINE 145
+> go depth 9
+< info depth 1 seldepth 2 score cp 648 nodes 31 nps 0 hashfull 0 time 0 pv f6f8
+< info depth 2 seldepth 3 score cp 383 nodes 89 nps 0 hashfull 0 time 0 pv f6f7 d5c5
+< info depth 3 seldepth 4 score cp 392 nodes 146 nps 0 hashfull 1 time 0 pv f6f7 d5c5 f7f8
+< info depth 4 seldepth 6 score cp 139 nodes 440 nps 0 hashfull 3 time 0 pv h6g8 d5c4 f6f8 c4b3 f8e8
+< info depth 5 seldepth 6 score cp 401 nodes 639 nps 0 hashfull 3 time 0 pv f6f5 d5c6 h6g8 c6b6
+< info depth 6 seldepth 8 score cp 273 nodes 1769 nps 0 hashfull 9 time 0 pv h6g4 e8h5 f6f5 d5d4 f5d5 d4d5
+< info depth 7 seldepth 11 score cp 287 nodes 2591 nps 2591000 hashfull 14 time 1 pv f6f5 d5c6 h6g8 c6c7 f5d5 e8g6 g8e7
+< info depth 8 seldepth 15 score cp 345 nodes 6027 nps 3013500 hashfull 34 time 2 pv f6f5 d5c6 h6g4 c6b6 f5f6 b6b5 f6b6 b5b6 g4f2
+< info depth 9 seldepth 19 score cp 263 nodes 19983 nps 1998300 hashfull 103 time 10 pv h6g8 d5d4 f6b6 e8g6 g8e7 d4c5 e7g6 c5d5
+< bestmove h6g8
+SCRIPT_COMMENT 146 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 147 # SEARCH 20; W1 line 80.
+SCRIPT_LINE 148
+> isready
+< readyok
+SCRIPT_COMMENT 149 # Wait for readyok.
+SCRIPT_LINE 150
+> position fen 8/8/7R/2k2NPb/5K2/8/8/8 b - - 12 66
+SCRIPT_LINE 151
+> go depth 9
+< info depth 1 seldepth 2 score cp 526 nodes 16 nps 0 hashfull 0 time 0 pv c5b5
+< info depth 2 seldepth 4 score cp 252 nodes 79 nps 0 hashfull 0 time 0 pv h5d1 h6e6
+< info depth 3 seldepth 4 score cp 236 nodes 139 nps 0 hashfull 0 time 0 pv h5d1 f5d6 d1e2
+< info depth 4 seldepth 5 score cp 244 nodes 554 nps 0 hashfull 2 time 0 pv h5e2 f5d6 e2d3 d6e4 c5b5
+< info depth 5 seldepth 7 score cp -21 nodes 1092 nps 0 hashfull 4 time 0 pv h5e2 f5d6 e2a6 h6h8
+< info depth 6 seldepth 10 score cp 4 nodes 2589 nps 2589000 hashfull 11 time 1 pv h5e2 h6c6 c5b4 c6b6 e2b5 f5d6
+< info depth 7 seldepth 10 score cp -83 nodes 3529 nps 3529000 hashfull 16 time 1 pv h5d1 f5d6 d1e2 h6h8 e2d3 h8c8 c5b4
+< info depth 8 seldepth 17 score cp -122 nodes 11437 nps 2287400 hashfull 62 time 5 pv h5e2 h6c6 c5b4 c6c4 b4a3 c4c3 a3a4 f5d6 e2d3
+< info depth 9 seldepth 20 score cp -217 nodes 21485 nps 2387222 hashfull 124 time 9 pv h5g4 h6h8 g4e2 h8c8 c5b4 c8b8 b4a3 b8b3 a3a4 b3b1 e2d3
+< bestmove h5g4
+SCRIPT_COMMENT 152 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 153 # SEARCH 21; W1 line 81.
+SCRIPT_LINE 154
+> ucinewgame
+SCRIPT_LINE 155
+> isready
+< readyok
+SCRIPT_COMMENT 156 # Wait for readyok.
+SCRIPT_LINE 157
+> position fen 8/7R/6P1/2k2N2/5K2/3b4/8/8 w - - 3 69
+SCRIPT_LINE 158
+> go depth 9
+< info depth 1 seldepth 2 score cp 286 nodes 45 nps 0 hashfull 1 time 0 pv g6g7
+< info depth 2 seldepth 4 score cp 60 nodes 119 nps 0 hashfull 1 time 0 pv g6g7 d3c4
+< info depth 3 seldepth 6 score cp 167 nodes 222 nps 0 hashfull 1 time 0 pv g6g7 d3b5 f5e3
+< info depth 4 seldepth 6 score cp 19 nodes 398 nps 0 hashfull 2 time 0 pv f5d4 c5b6 g6g7
+< info depth 5 seldepth 7 score cp 0 nodes 685 nps 0 hashfull 4 time 0 pv h7c7 c5b6 g6g7 b6b5 f5d4 b5b6
+< info depth 6 seldepth 10 score cp 121 nodes 1275 nps 0 hashfull 8 time 0 pv g6g7 c5b6 g7g8r b6c5 g8f8
+< info depth 7 seldepth 16 score cp 218 nodes 3013 nps 3013000 hashfull 18 time 1 pv g6g7 c5b4 g7g8r b4c5 f5h6 c5b5
+< info depth 8 seldepth 16 score cp 249 nodes 8733 nps 2911000 hashfull 53 time 3 pv g6g7 c5b6 g7g8r b6c5 g8c8 c5b6 c8b8 b6a6 h7h6 a6a5 h6a6 a5a6
+< info depth 9 seldepth 18 score cp 311 nodes 19736 nps 2192888 hashfull 131 time 9 pv g6g7 c5c6 f5e7 c6b6 e7d5 b6c5 g7g8q d3h7 g8f8 c5c6
+< bestmove g6g7
+SCRIPT_COMMENT 159 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 160 # SEARCH 22; W1 line 82.
+SCRIPT_LINE 161
+> isready
+< readyok
+SCRIPT_COMMENT 162 # Wait for readyok.
+SCRIPT_LINE 163
+> position fen 8/3R4/6P1/1k2KN2/8/3b4/8/8 b - - 8 71
+SCRIPT_LINE 164
+> go depth 9
+< info depth 1 seldepth 2 score cp 585 nodes 32 nps 0 hashfull 0 time 0 pv d3e4 e5e4
+< info depth 2 seldepth 5 score cp 246 nodes 116 nps 0 hashfull 1 time 0 pv d3e4 f5d6 b5a4 e5e4
+< info depth 3 seldepth 7 score cp 82 nodes 328 nps 0 hashfull 2 time 0 pv b5a4 d7d4 a4b3
+< info depth 4 seldepth 8 score cp -10 nodes 573 nps 0 hashfull 3 time 0 pv d3b1 d7b7 b5a6 b7b1
+< info depth 5 seldepth 9 score cp 33 nodes 1085 nps 0 hashfull 5 time 0 pv b5c6 d7d3 c6b7 f5d6 b7a7
+< info depth 6 seldepth 9 score cp -99 nodes 2335 nps 2335000 hashfull 12 time 1 pv d3f5 d7b7 b5a6 e5f5 a6b7
+< info depth 7 seldepth 13 score cp -168 nodes 3122 nps 3122000 hashfull 16 time 1 pv d3f5 d7b7 b5c6 b7f7 f5g6 f7f6 c6d7 f6d6 d7c8 d6g6
+< info depth 8 seldepth 23 score cp -83 nodes 5972 nps 1990666 hashfull 32 time 3 pv d3f5 d7b7 b5c6 b7f7 f5g6 f7f6 c6d7 f6d6 d7c8 d6g6 c8d7 g6g7 d7e8
+< info depth 9 seldepth 23 score cp -190 nodes 16513 nps 2064125 hashfull 94 time 8 pv d3e4 f5d6 b5b4 d7f7 e4g6 f7f4 b4c3 f4f8 g6d3
+< bestmove d3e4
+SCRIPT_COMMENT 165 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 166 # SEARCH 23; W1 line 83.
+SCRIPT_LINE 167
+> isready
+< readyok
+SCRIPT_COMMENT 168 # Wait for readyok.
+SCRIPT_LINE 169
+> position fen 8/2R5/6P1/4KN2/k7/8/b7/8 w - - 13 74
+SCRIPT_LINE 170
+> go depth 9
+< info depth 1 seldepth 2 score cp 418 nodes 42 nps 0 hashfull 0 time 0 pv c7c3
+< info depth 2 seldepth 5 score cp 141 nodes 131 nps 0 hashfull 1 time 0 pv c7b7 a2g8
+< info depth 3 seldepth 5 score cp 234 nodes 189 nps 0 hashfull 1 time 0 pv c7b7 a2g8 g6g7
+< info depth 4 seldepth 6 score cp 124 nodes 427 nps 0 hashfull 3 time 0 pv c7a7 a4b5 a7b7 b5c5 b7b5 c5c6
+< info depth 5 seldepth 8 score cp 294 nodes 792 nps 0 hashfull 4 time 0 pv f5h4 a4b5 c7b7 b5c6 g6g7 c6b7
+< info depth 6 seldepth 10 score cp 293 nodes 1421 nps 0 hashfull 8 time 0 pv c7c4 a4a3 c4c3 a3a4 f5h4 a4b5
+< info depth 7 seldepth 16 score cp 293 nodes 4783 nps 2391500 hashfull 27 time 2 pv f5h4 a4b5 c7h7 b5b6 g6g7 b6c7 g7g8q c7b6
+< info depth 8 seldepth 18 score cp 347 nodes 7288 nps 2429333 hashfull 40 time 3 pv f5h4 a4a5 c7h7 a5b6 g6g7 b6c7 g7g8q a2f7
+< info depth 9 seldepth 20 score cp 416 nodes 12996 nps 2599200 hashfull 64 time 5 pv f5h4 a4b5 c7b7 b5c5 b7h7 a2c4 g6g7 c4d3 e5f4 c5b6
+< bestmove f5h4
+SCRIPT_COMMENT 171 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 172 # SEARCH 24; W1 line 84.
+SCRIPT_LINE 173
+> isready
+< readyok
+SCRIPT_COMMENT 174 # Wait for readyok.
+SCRIPT_LINE 175
+> position fen 8/6P1/8/4KN2/8/8/k7/8 b - - 0 76
+SCRIPT_LINE 176
+> go depth 9
+< info depth 1 seldepth 2 score cp -384 nodes 19 nps 0 hashfull 0 time 0 pv a2b2
+< info depth 2 seldepth 2 score cp -60 nodes 35 nps 0 hashfull 0 time 0 pv a2b2 g7g8r
+< info depth 3 seldepth 4 score cp -436 nodes 82 nps 0 hashfull 0 time 0 pv a2b2 f5d6 b2c1
+< info depth 4 seldepth 4 score cp -323 nodes 150 nps 0 hashfull 0 time 0 pv a2b2 f5d6 b2c1 g7g8r
+< info depth 5 seldepth 5 score cp -241 nodes 373 nps 0 hashfull 1 time 0 pv a2b1 g7g8r b1c2 f5h4
+< info depth 6 seldepth 9 score cp -177 nodes 967 nps 0 hashfull 4 time 0 pv a2b1 g7g8r b1b2 g8b8 b2c1 b8c8 c1b2 f5d6
+< info depth 7 seldepth 15 score cp -265 nodes 2153 nps 0 hashfull 11 time 0 pv a2a3 g7g8q a3b2 g8b8 b2c1
+< info depth 8 seldepth 19 score cp -362 nodes 9799 nps 2449750 hashfull 58 time 4 pv a2a1 g7g8q a1b1 g8b3 b1a1 b3d1 a1b2 d1d2 b2b1 d2e1 b1b2
+< info depth 9 seldepth 25 score cp -413 nodes 28961 nps 2227769 hashfull 157 time 13 pv a2b1 f5d4 b1a1 d4b3 a1b1 b3d2 b1c1 d2c4 c1d1 g7g8q d1c2 g8g6 c2d1 g6b1 d1e2
+< bestmove a2b1
+SCRIPT_COMMENT 177 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 178 # SEARCH 25; W1 line 85.
+SCRIPT_LINE 179
+> isready
+< readyok
+SCRIPT_COMMENT 180 # Wait for readyok.
+SCRIPT_LINE 181
+> position fen 3Q4/8/8/4KN2/8/1k6/8/8 w - - 3 79
+SCRIPT_LINE 182
+> go depth 9
+< info depth 1 seldepth 2 score cp 432 nodes 58 nps 0 hashfull 0 time 0 pv f5d4 b3b2
+< info depth 2 seldepth 2 score cp 431 nodes 108 nps 0 hashfull 0 time 0 pv f5d4 b3b2
+< info depth 3 seldepth 4 score cp 352 nodes 213 nps 0 hashfull 2 time 0 pv d8b8 b3a2 b8a7 a2b2
+< info depth 4 seldepth 6 score cp 341 nodes 497 nps 0 hashfull 3 time 0 pv d8d3 b3b2 d3d4 b2c1 d4a1 c1d2
+< info depth 5 seldepth 8 score cp 498 nodes 913 nps 0 hashfull 6 time 0 pv f5d4 b3a2 d8g8 a2a1 g8g1 a1a2
+< info depth 6 seldepth 10 score cp 679 nodes 1285 nps 0 hashfull 7 time 0 pv f5d4 b3a2 d8g8 a2a1 g8g1 a1a2 g1f2 a2a1 f2e1 a1b2
+< info depth 7 seldepth 36 score cp 679 nodes 7670 nps 2556666 hashfull 46 time 3 pv f5d4 b3a2 d8g8 a2a1 g8g1 a1a2 g1f2 a2a1 f2e1 a1b2 e1e2 b2a1
+< info depth 8 seldepth 36 score mate 5 nodes 17083 nps 2847166 hashfull 122 time 6 pv f5d4 b3a2 d8g8 a2a1 g8f7 a1b2 f7b3 b2c1 b3c2
+< info depth 9 seldepth 36 score mate 5 nodes 35693 nps 2549500 hashfull 252 time 14 pv f5d4 b3a2 d8g8 a2a1 g8f7 a1b2 f7b3 b2c1 b3c2
+< bestmove f5d4
+SCRIPT_COMMENT 183 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 184 # SEARCH 26; W1 line 86.
+SCRIPT_LINE 185
+> isready
+< readyok
+SCRIPT_COMMENT 186 # Wait for readyok.
+SCRIPT_LINE 187
+> position fen 4Q3/8/8/8/3NK3/8/3k4/8 b - - 8 81
+SCRIPT_LINE 188
+> go depth 9
+< info depth 1 seldepth 1 score cp 283 nodes 7 nps 0 hashfull 0 time 0 pv d2c1
+< info depth 2 seldepth 3 score cp -76 nodes 93 nps 0 hashfull 0 time 0 pv d2e1 e8g8
+< info depth 3 seldepth 5 score cp -127 nodes 207 nps 0 hashfull 2 time 0 pv d2e1 e8f7 e1d1
+< info depth 4 seldepth 6 score cp -245 nodes 337 nps 0 hashfull 3 time 0 pv d2c1 e8d8 c1d1 e4f3
+< info depth 5 seldepth 9 score cp -177 nodes 1268 nps 0 hashfull 9 time 0 pv d2d1 e8b8 d1e1 b8b1 e1f2 b1a1
+< info depth 6 seldepth 11 score cp -469 nodes 2469 nps 0 hashfull 12 time 0 pv d2d1 e8h5 d1d2 h5a5 d2d1 a5a4 d1e1 d4f3 e1e2 a4a2 e2f1
+< info depth 7 seldepth 19 score mate -4 nodes 7100 nps 3550000 hashfull 50 time 2 pv d2d1 e8b5 d1c1 b5c5 c1b2 c5c2 b2a1 d4b3
+< info depth 8 seldepth 19 score mate -3 nodes 17314 nps 2885666 hashfull 104 time 6 pv d2d1 e4d3 d1c1 e8b8 c1d1 b8b1
+< info depth 9 seldepth 19 score mate -3 nodes 18427 nps 3071166 hashfull 106 time 6 pv d2d1 e4d3 d1c1 e8b8 c1d1 b8b1
+< bestmove d2d1
+SCRIPT_COMMENT 189 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 190 # SEARCH 27; W1 line 87.
+SCRIPT_LINE 191
+> isready
+< readyok
+SCRIPT_COMMENT 192 # Wait for readyok.
+SCRIPT_LINE 193
+> position fen 4Q3/8/8/3K4/3N4/8/3k4/8 w - - 13 84
+SCRIPT_LINE 194
+> go depth 9
+< info depth 1 seldepth 2 score mate 4 nodes 46 nps 0 hashfull 0 time 0 pv d5e4
+< info depth 2 seldepth 2 score mate 4 nodes 122 nps 0 hashfull 1 time 0 pv d5e4 d2d1
+< info depth 3 seldepth 4 score mate 4 nodes 195 nps 0 hashfull 1 time 0 pv d5e4 d2d1 e4d3
+< info depth 4 seldepth 6 score mate 4 nodes 483 nps 0 hashfull 3 time 0 pv d5e4 d2d1 e4d3 d1c1
+< info depth 5 seldepth 6 score mate 4 nodes 1224 nps 0 hashfull 10 time 0 pv d5e4 d2d1 e4d3 d1c1 e8b8
+< info depth 6 seldepth 6 score mate 4 nodes 2654 nps 2654000 hashfull 21 time 1 pv d5e4 d2d1 e4d3 d1c1 e8b8 c1d1
+< info depth 7 seldepth 7 score mate 4 nodes 6152 nps 3076000 hashfull 45 time 2 pv d5e4 d2d1 e4d3 d1c1 e8b8 c1d1 b8b1
+< info depth 8 seldepth 8 score mate 4 nodes 12538 nps 3134500 hashfull 74 time 4 pv d5e4 d2d1 e4d3 d1c1 e8b8 c1d1 b8b1
+< info depth 9 seldepth 9 score mate 4 nodes 23376 nps 3339428 hashfull 118 time 7 pv d5e4 d2d1 e4d3 d1c1 e8b8 c1d1 b8b1
+< bestmove d5e4
+SCRIPT_COMMENT 195 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 196 # SEARCH 28; W1 line 88.
+SCRIPT_LINE 197
+> isready
+< readyok
+SCRIPT_COMMENT 198 # Wait for readyok.
+SCRIPT_LINE 199
+> position fen 4Q3/8/8/8/3N4/3K4/1k6/8 b - - 18 86
+SCRIPT_LINE 200
+> go depth 9
+< info depth 1 seldepth 1 score cp 119 nodes 7 nps 0 hashfull 0 time 0 pv b2b1
+< info depth 2 seldepth 3 score cp -264 nodes 71 nps 0 hashfull 0 time 0 pv b2a2 e8e2 a2b1
+< info depth 3 seldepth 5 score cp -176 nodes 148 nps 0 hashfull 1 time 0 pv b2a1 d4c2 a1b2
+< info depth 4 seldepth 7 score cp -481 nodes 779 nps 0 hashfull 4 time 0 pv b2a3 d4c2 a3b2 e8h8 b2b3 c2a1 b3a2
+< info depth 5 seldepth 9 score cp -514 nodes 1332 nps 0 hashfull 6 time 0 pv b2a3 d4c2 a3b3 c2a1 b3b2 e8e2 b2b1
+< info depth 6 seldepth 11 score mate -3 nodes 3824 nps 3824000 hashfull 25 time 1 pv b2a2 e8a4 a2b2 a4c2 b2a3 c2b3
+< info depth 7 seldepth 11 score mate -3 nodes 4884 nps 4884000 hashfull 31 time 1 pv b2a2 e8a4 a2b2 a4c2 b2a3 c2b3
+< info depth 8 seldepth 11 score mate -3 nodes 6216 nps 3108000 hashfull 33 time 2 pv b2a2 e8a4 a2b2 a4c2 b2a3 c2b3
+< info depth 9 seldepth 11 score mate -3 nodes 8003 nps 4001500 hashfull 35 time 2 pv b2a2 e8a4 a2b2 a4c2 b2a3 c2b3
+< bestmove b2a2
+SCRIPT_COMMENT 201 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 202 # SEARCH 29; W1 line 89.
+SCRIPT_LINE 203
+> isready
+< readyok
+SCRIPT_COMMENT 204 # Wait for readyok.
+SCRIPT_LINE 205
+> position fen 8/8/8/8/3N4/1Q1K4/8/k7 w - - 23 89
+SCRIPT_LINE 206
+> go depth 9
+< info depth 1 seldepth 2 score mate 1 nodes 35 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 2 seldepth 2 score mate 1 nodes 68 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 3 seldepth 3 score mate 1 nodes 101 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 4 seldepth 4 score mate 1 nodes 134 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 5 seldepth 5 score mate 1 nodes 167 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 6 seldepth 6 score mate 1 nodes 200 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 7 seldepth 7 score mate 1 nodes 233 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 8 seldepth 8 score mate 1 nodes 266 nps 0 hashfull 0 time 0 pv d4c2
+< info depth 9 seldepth 9 score mate 1 nodes 299 nps 0 hashfull 0 time 0 pv d4c2
+< bestmove d4c2
+SCRIPT_COMMENT 207 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 208 # SEARCH 30; W1 line 90.
+SCRIPT_LINE 209
+> isready
+< readyok
+SCRIPT_COMMENT 210 # Wait for readyok.
+SCRIPT_LINE 211
+> position fen rnb2k1r/pp2bpp1/2pp1n1p/2q5/P1BNP3/2NQ4/1PP2PPP/R1B2RK1 b - - 2 11
+SCRIPT_LINE 212
+> go depth 9
+< info depth 1 seldepth 1 score cp 405 nodes 43 nps 0 hashfull 0 time 0 pv f8e8
+< info depth 2 seldepth 3 score cp 1191 nodes 95 nps 0 hashfull 0 time 0 pv f8e8 a1b1
+< info depth 3 seldepth 3 score cp 669 nodes 165 nps 0 hashfull 0 time 0 pv f8e8 a1b1 c8d7
+< info depth 4 seldepth 5 score cp 559 nodes 514 nps 0 hashfull 1 time 0 pv g7g6 d4e6 f8e8
+< info depth 5 seldepth 7 score cp 300 nodes 724 nps 0 hashfull 2 time 0 pv f8e8 d4c6 c5b6 g1h1 e7f8 c6b8
+< info depth 6 seldepth 10 score cp 232 nodes 1266 nps 0 hashfull 5 time 0 pv f8e8 d4c6 c5b6 g1h1 e7f8 a1b1
+< info depth 7 seldepth 13 score cp 291 nodes 2171 nps 2171000 hashfull 12 time 1 pv f8e8 d4c6 h8f8 c4f7 f8f7 c6e7
+< info depth 8 seldepth 18 score cp 333 nodes 4706 nps 1568666 hashfull 33 time 3 pv g7g5 d4e6 f7e6 g1h1 f6e4 c3e4
+< info depth 9 seldepth 18 score cp 288 nodes 7446 nps 1861500 hashfull 50 time 4 pv g7g5 d4e6 f7e6 g1h1 f6d7 a1a3 c5a3 c4b3
+< bestmove g7g5
+SCRIPT_COMMENT 213 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 214 # SEARCH 31; W1 line 91.
+SCRIPT_LINE 215
+> setoption name HistRework value 0
+SCRIPT_LINE 216
+> isready
+< readyok
+SCRIPT_COMMENT 217 # Wait for readyok.
+SCRIPT_LINE 218
+> position fen rnbq2kr/pp2bpp1/2pp1n1p/P7/2BNP3/2NQ3P/1PP2PP1/R1B2RK1 w - - 1 14
+SCRIPT_LINE 219
+> go depth 9
+< info depth 1 seldepth 2 score cp 1157 nodes 58 nps 0 hashfull 0 time 0 pv d3e2
+< info depth 2 seldepth 3 score cp 879 nodes 124 nps 0 hashfull 1 time 0 pv d3e2 g8h7
+< info depth 3 seldepth 3 score cp 923 nodes 274 nps 0 hashfull 1 time 0 pv d3d2 g8h7
+< info depth 4 seldepth 10 score cp 247 nodes 1654 nps 0 hashfull 8 time 0 pv d3e2 f6e4 c3e4 g7g5
+< info depth 5 seldepth 10 score cp 317 nodes 2389 nps 2389000 hashfull 11 time 1 pv c3e2 g8h7 e2g3 g7g5 c4f7
+< info depth 6 seldepth 11 score cp 156 nodes 2787 nps 2787000 hashfull 12 time 1 pv d3e2 c8h3 g2h3 g8h7 c4f7
+< info depth 7 seldepth 17 score cp 130 nodes 5507 nps 2753500 hashfull 29 time 2 pv c3b1 d8a5 g1h1 a5a1 c1h6 h8h6
+< info depth 8 seldepth 17 score cp 245 nodes 8247 nps 2061750 hashfull 46 time 4 pv c3b1 g8h7 g1h1 g7g5 c4f7 d8f8 c1g5 h7g7
+< info depth 9 seldepth 19 score cp 244 nodes 11054 nps 1842333 hashfull 69 time 6 pv c3b1 c8h3 g1h1 h3g2 h1g2 f6e4 c4f7 g8f8 d3e4
+< bestmove c3b1
+SCRIPT_COMMENT 220 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 221 # SEARCH 32; W1 line 92.
+SCRIPT_LINE 222
+> isready
+< readyok
+SCRIPT_COMMENT 223 # Wait for readyok.
+SCRIPT_LINE 224
+> position fen r1bq2kr/pp2bpp1/2pp1n1p/P1n5/2BQP3/2N2N1P/1PP2PP1/R1BR2K1 b - - 6 16
+SCRIPT_LINE 225
+> go depth 9
+< info depth 1 seldepth 4 score cp -283 nodes 50 nps 0 hashfull 1 time 0 pv f6e4 c3e4 c5e4
+< info depth 2 seldepth 4 score cp -283 nodes 90 nps 0 hashfull 1 time 0 pv f6e4 c3e4
+< info depth 3 seldepth 4 score cp -283 nodes 149 nps 0 hashfull 1 time 0 pv f6e4 c3e4 c5e4
+< info depth 4 seldepth 11 score cp -156 nodes 469 nps 0 hashfull 2 time 0 pv d8a5 a1a5 g8h7 c4f7
+< info depth 5 seldepth 11 score cp 61 nodes 696 nps 0 hashfull 2 time 0 pv d8a5 d4f6 e7f6 c4f7 g8f7
+< info depth 6 seldepth 11 score cp 43 nodes 1225 nps 0 hashfull 7 time 0 pv d8a5 c1h6 c5e4 d1d3 g7h6 a1a5
+< info depth 7 seldepth 16 score cp -9 nodes 3364 nps 1682000 hashfull 23 time 2 pv d8a5 d4f6 g8h7 c4f7 e7d8 f6d6 a5a1
+< info depth 8 seldepth 16 score cp -135 nodes 6594 nps 1648500 hashfull 51 time 4 pv d8a5 g1h1 a5a1 h3h4 g8h7 c1h6 g7h6
+< info depth 9 seldepth 25 score cp -149 nodes 24859 nps 1553687 hashfull 209 time 16 pv d8a5 a1a5 d6d5 g1h1 g8h7 c1h6 e7d8 e4d5 c8f5 a5c5 h7h6
+< bestmove d8a5
+SCRIPT_COMMENT 226 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 227 # SEARCH 33; W1 line 93.
+SCRIPT_LINE 228
+> isready
+< readyok
+SCRIPT_COMMENT 229 # Wait for readyok.
+SCRIPT_LINE 230
+> position fen r1bq2kr/pp2b1p1/2ppp2p/P2nP3/3Q4/2N2N1P/1PP2PP1/R1BR2K1 w - - 1 19
+SCRIPT_LINE 231
+> go depth 9
+< info depth 1 seldepth 10 score cp 305 nodes 141 nps 0 hashfull 2 time 0 pv d4g4
+< info depth 2 seldepth 10 score cp 397 nodes 298 nps 0 hashfull 3 time 0 pv g1f1 d6e5
+< info depth 3 seldepth 11 score cp 351 nodes 393 nps 0 hashfull 3 time 0 pv g1f1 d6e5 d4e5 d5c3 d1d8 e7f8
+< info depth 4 seldepth 11 score cp 351 nodes 457 nps 0 hashfull 3 time 0 pv g1f1 d6e5 d4e5 d5c3
+< info depth 5 seldepth 11 score cp 351 nodes 555 nps 0 hashfull 3 time 0 pv g1f1 d6e5 d4e5 d5c3 d1d8 e7f8
+< info depth 6 seldepth 12 score cp 127 nodes 1879 nps 1879000 hashfull 9 time 1 pv g1f1 d6e5 c3e4 d5e3 f1e2 e5d4 f2e3 d4e3 c1e3
+< info depth 7 seldepth 19 score cp 325 nodes 6695 nps 1673750 hashfull 54 time 4 pv g1h2 d5c3 b2c3 d6e5 d4c4 g8f8 d1d8 f8f7
+< info depth 8 seldepth 19 score cp 140 nodes 13759 nps 1965571 hashfull 103 time 7 pv g1h2 d5c3 c1f4 d6e5 f3e5 c3d1 d4d8 e7d8 e5d3
+< info depth 9 seldepth 20 score cp 230 nodes 21851 nps 1680846 hashfull 172 time 13 pv g1h2 d5c3 c1f4 d6e5 d4d8 e7f8 f4e5 g7g5 e5c3
+< bestmove g1h2
+SCRIPT_COMMENT 232 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 233 # SEARCH 34; W1 line 94.
+SCRIPT_LINE 234
+> isready
+< readyok
+SCRIPT_COMMENT 235 # Wait for readyok.
+SCRIPT_LINE 236
+> position fen r1b3kr/p3b1p1/p1pqp2p/3n4/3Q4/2N2N1P/1PPB1PP1/R2R2K1 b - - 1 21
+SCRIPT_LINE 237
+> go depth 9
+< info depth 1 seldepth 6 score cp 733 nodes 60 nps 0 hashfull 0 time 0 pv h6h5 c3d5 d6d5
+< info depth 2 seldepth 9 score cp 178 nodes 377 nps 0 hashfull 3 time 0 pv a8b8 d1b1
+< info depth 3 seldepth 9 score cp 324 nodes 508 nps 0 hashfull 3 time 0 pv a8b8 d2h6 g7g6 d4a7
+< info depth 4 seldepth 9 score cp 324 nodes 581 nps 0 hashfull 3 time 0 pv a8b8 d2h6 g7g6 d4a7
+< info depth 5 seldepth 10 score cp 384 nodes 780 nps 0 hashfull 4 time 0 pv a8b8 d1b1 h6h5 d2g5 d5c3
+< info depth 6 seldepth 10 score cp 296 nodes 1104 nps 0 hashfull 5 time 0 pv a8b8 d1b1 h6h5 f3g5 d5c3 d2c3
+< info depth 7 seldepth 16 score cp 160 nodes 4088 nps 2044000 hashfull 27 time 2 pv a8b8 d1b1 c6c5 h3h4 c5d4 c3d5 e6d5
+< info depth 8 seldepth 18 score cp 270 nodes 8670 nps 1734000 hashfull 64 time 5 pv d6h2 g1h2 h6h5 d1g1 c6c5 f3e5
+< info depth 9 seldepth 23 score cp -54 nodes 33557 nps 1766157 hashfull 272 time 19 pv d5c7 d1b1 c6c5 h3h4 c5d4 g1f1 d4c3
+< bestmove d5c7
+SCRIPT_COMMENT 238 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 239 # SEARCH 35; W1 line 95.
+SCRIPT_LINE 240
+> isready
+< readyok
+SCRIPT_COMMENT 241 # Wait for readyok.
+SCRIPT_LINE 242
+> position fen 3r2kr/pb2b1p1/p2qp2p/2pnN3/4Q3/2N4P/1PPB1PP1/R2R2K1 w - - 4 24
+SCRIPT_LINE 243
+> go depth 9
+< info depth 1 seldepth 4 score cp 999 nodes 90 nps 0 hashfull 1 time 0 pv c3a4
+< info depth 2 seldepth 6 score cp 125 nodes 241 nps 0 hashfull 2 time 0 pv e4h7 g8h7
+< info depth 3 seldepth 7 score cp 751 nodes 313 nps 0 hashfull 2 time 0 pv e4h7 g8h7 d1b1 d6e5
+< info depth 4 seldepth 7 score cp 751 nodes 587 nps 0 hashfull 2 time 0 pv e4h7 g8h7 d1b1 d6e5
+< info depth 5 seldepth 7 score cp 713 nodes 732 nps 0 hashfull 2 time 0 pv e4h7 g8h7 d1b1 d6e5 c3d5
+< info depth 6 seldepth 7 score cp 713 nodes 812 nps 0 hashfull 2 time 0 pv e4h7 g8h7 d1b1 d6e5 c3d5 d8d5
+< info depth 7 seldepth 14 score cp 553 nodes 2255 nps 0 hashfull 12 time 0 pv e4h7 g8h7 d1b1 h6h5 a1a5 d6e5
+< info depth 8 seldepth 15 score cp 265 nodes 6179 nps 3089500 hashfull 34 time 2 pv e4h7 g8h7 c3a4 d6e5 d1b1 h7g6 h3h4
+< info depth 9 seldepth 19 score cp 123 nodes 14062 nps 2343666 hashfull 93 time 6 pv e4h7 g8h7 d2e3 d6e5 h3h4 h7g8 d1b1 d5c3
+< bestmove e4h7
+SCRIPT_COMMENT 244 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 245 # SEARCH 36; W1 line 96.
+SCRIPT_LINE 246
+> isready
+< readyok
+SCRIPT_COMMENT 247 # Wait for readyok.
+SCRIPT_LINE 248
+> position fen 3r2kN/pb4p1/p1q1pb1p/2pn4/6Q1/2N4P/1PPB1PP1/R2R2K1 b - - 0 26
+SCRIPT_LINE 249
+> go depth 9
+< info depth 1 seldepth 8 score cp 917 nodes 130 nps 0 hashfull 2 time 0 pv h6h5
+< info depth 2 seldepth 12 score cp 366 nodes 441 nps 0 hashfull 5 time 0 pv d5e7 d2h6 g8h8
+< info depth 3 seldepth 12 score cp 366 nodes 490 nps 0 hashfull 6 time 0 pv d5e7 d2h6 g8h8
+< info depth 4 seldepth 12 score cp 42 nodes 1275 nps 0 hashfull 11 time 0 pv h6h5 d1b1 d8b8 h3h4 f6c3 d2c3
+< info depth 5 seldepth 12 score cp 42 nodes 1525 nps 0 hashfull 13 time 0 pv h6h5 d1b1 d8b8 h3h4 f6c3 d2c3
+< info depth 6 seldepth 12 score cp 285 nodes 1737 nps 0 hashfull 14 time 0 pv h6h5 d1b1 d8d6 h3h4 d5c3 b2c3 h5g4
+< info depth 7 seldepth 18 score cp -119 nodes 15229 nps 1903625 hashfull 126 time 8 pv d5c7 g4g7 f6g7 f2f3 d8d4 g1f1 g7h8 d2h6 d4d1 c3d1
+< info depth 8 seldepth 18 score cp -246 nodes 19885 nps 1807727 hashfull 164 time 11 pv d5c7 g4e6 c7e6 f2f3 f6c3 h8g6 c3b2 h3h4 b2a1
+< info depth 9 seldepth 18 score cp -67 nodes 24191 nps 1860846 hashfull 191 time 13 pv d5c7 g4e6 c7e6 f2f3 f6d4 g1f1 c6f3 g2f3 b7f3 d1b1
+< bestmove d5c7
+SCRIPT_COMMENT 250 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 251 # SEARCH 37; W1 line 97.
+SCRIPT_LINE 252
+> isready
+< readyok
+SCRIPT_COMMENT 253 # Wait for readyok.
+SCRIPT_LINE 254
+> position fen 2r4k/pb4p1/p1q1pb1p/3n4/2p1N1Q1/7P/1PP2PP1/R1BR2K1 w - - 0 29
+SCRIPT_LINE 255
+> go depth 9
+< info depth 1 seldepth 3 score cp 477 nodes 65 nps 0 hashfull 1 time 0 pv g1f1
+< info depth 2 seldepth 6 score cp 636 nodes 128 nps 0 hashfull 1 time 0 pv g1f1 c4c3
+< info depth 3 seldepth 10 score cp 419 nodes 245 nps 0 hashfull 1 time 0 pv g1f1 d5e3 c1e3 c6e4 g4e4
+< info depth 4 seldepth 10 score cp 322 nodes 549 nps 0 hashfull 2 time 0 pv g4g7 h8g7 f2f3 g7g8
+< info depth 5 seldepth 10 score cp 541 nodes 695 nps 0 hashfull 4 time 0 pv g4g7 h8g7 a1a6 c6a6
+< info depth 6 seldepth 13 score cp 242 nodes 1440 nps 0 hashfull 8 time 0 pv g4g7 h8g7 e4g3 g7g8 c1h6 f6b2
+< info depth 7 seldepth 13 score cp 385 nodes 1864 nps 0 hashfull 13 time 0 pv g4g7 h8g7 b2b3 g7g8 b3c4 c6c4
+< info depth 8 seldepth 17 score cp 323 nodes 5492 nps 2746000 hashfull 39 time 2 pv g1f1 d5e3 f2e3 c6e4 g4e4 b7e4
+< info depth 9 seldepth 17 score cp 464 nodes 13748 nps 1964000 hashfull 100 time 7 pv g1f1 c4c3 e4c3 c6b5 d1d3 h8h7 g4e4 h7g8 c3d5 b7d5
+< bestmove g1f1
+SCRIPT_COMMENT 256 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 257 # SEARCH 38; W1 line 98.
+SCRIPT_LINE 258
+> isready
+< readyok
+SCRIPT_COMMENT 259 # Wait for readyok.
+SCRIPT_LINE 260
+> position fen 2r4k/pb4p1/p1q1p1QB/3n4/2p5/7P/1PP2PP1/R2R2K1 b - - 0 31
+SCRIPT_LINE 261
+> go depth 9
+< info depth 1 seldepth 3 score cp 667 nodes 46 nps 0 hashfull 0 time 0 pv c8c7
+< info depth 2 seldepth 3 score cp 11 nodes 110 nps 0 hashfull 0 time 0 pv c8c7 g1f1
+< info depth 3 seldepth 7 score cp -410 nodes 211 nps 0 hashfull 0 time 0 pv c6d7 f2f3 g7h6
+< info depth 4 seldepth 11 score cp -378 nodes 378 nps 0 hashfull 2 time 0 pv c6d7 g6e4 g7h6 d1b1
+< info depth 5 seldepth 11 score cp -285 nodes 756 nps 0 hashfull 2 time 0 pv c6d7 a1c1 b7a8 g1f1
+< info depth 6 seldepth 11 score cp -574 nodes 1335 nps 0 hashfull 4 time 0 pv c6d7 a1c1 b7a8 g1f1 d7c7
+< info depth 7 seldepth 15 score cp -296 nodes 2604 nps 2604000 hashfull 9 time 1 pv c6d7 a1c1 b7a8 f2f3 d7e7 c1b1
+< info depth 8 seldepth 17 score cp -342 nodes 6397 nps 3198500 hashfull 29 time 2 pv c6d7 f2f3 c8c7 h3h4 d7f7 g6f7 c7f7 g1f1 g7h6
+< info depth 9 seldepth 28 score cp -350 nodes 15160 nps 2165714 hashfull 95 time 7 pv c8c7 f2f3 c6b6 g1h1 b6b2 g6e8 h8h7 h6g7 d5e3 g7b2 e3d1 a1d1
+< bestmove c8c7
+SCRIPT_COMMENT 262 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 263 # SEARCH 39; W1 line 99.
+SCRIPT_LINE 264
+> isready
+< readyok
+SCRIPT_COMMENT 265 # Wait for readyok.
+SCRIPT_LINE 266
+> position fen 2r5/pb3k2/p1q1p2Q/3n4/2pR4/7P/1PP2PP1/R5K1 w - - 3 34
+SCRIPT_LINE 267
+> go depth 9
+< info depth 1 seldepth 4 score cp 103 nodes 73 nps 0 hashfull 1 time 0 pv f2f3
+< info depth 2 seldepth 5 score cp -280 nodes 188 nps 0 hashfull 2 time 0 pv a1b1 f7g8
+< info depth 3 seldepth 5 score cp -261 nodes 284 nps 0 hashfull 2 time 0 pv h6f8 f7g6 f2f3
+< info depth 4 seldepth 6 score cp -158 nodes 684 nps 0 hashfull 3 time 0 pv a1b1 c8c7 f2f3 c6d7
+< info depth 5 seldepth 9 score cp 429 nodes 1499 nps 0 hashfull 6 time 0 pv h6h7 f7e8 h7h4 e8d7
+< info depth 6 seldepth 9 score cp 89 nodes 1983 nps 0 hashfull 7 time 0 pv h6h7 f7e8 h7h4 c6d7 d4c4
+< info depth 7 seldepth 14 score cp 270 nodes 2979 nps 2979000 hashfull 11 time 1 pv h6h7 f7e8 a1c1 c6d7 h7d7 e8d7 f2f3
+< info depth 8 seldepth 14 score cp 372 nodes 4702 nps 2351000 hashfull 23 time 2 pv h6h7 f7e8 h7g8 e8e7 g8g7 e7d8 g7b7 c6b7 a1e1 b7b2
+< info depth 9 seldepth 17 score cp 499 nodes 5672 nps 2836000 hashfull 27 time 2 pv h6h7 f7e8 h7g8 e8e7 g8g7 e7d8 g7b7 c6b7 g2g3 b7b2
+< bestmove h6h7
+SCRIPT_COMMENT 268 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 269 # SEARCH 40; W1 line 100.
+SCRIPT_LINE 270
+> isready
+< readyok
+SCRIPT_COMMENT 271 # Wait for readyok.
+SCRIPT_LINE 272
+> position fen 2r5/pb5Q/p1q1p3/3nk3/2p1R3/7P/1PP2PP1/R5K1 b - - 8 36
+SCRIPT_LINE 273
+> go depth 9
+< info depth 1 seldepth 1 score cp 584 nodes 4 nps 0 hashfull 0 time 0 pv e5f6
+< info depth 2 seldepth 3 score cp 594 nodes 30 nps 0 hashfull 0 time 0 pv e5f6 h7h6 f6f5
+< info depth 3 seldepth 5 score cp 441 nodes 49 nps 0 hashfull 0 time 0 pv e5f6 h7h6 f6f5 h6h7 f5g5
+< info depth 4 seldepth 16 score cp 104 nodes 461 nps 0 hashfull 5 time 0 pv e5d6 e4c4 c6c4 h7b7 c4c2 a1a6 d6e5
+< info depth 5 seldepth 16 score cp 104 nodes 740 nps 0 hashfull 5 time 0 pv e5d6 e4c4 c6c4 h7b7 c4c2 a1a6 d6e5
+< info depth 6 seldepth 16 score cp -846 nodes 917 nps 0 hashfull 6 time 0 pv e5d6 g2g3 c8c7 h7g8
+< info depth 7 seldepth 16 score cp -336 nodes 1762 nps 1762000 hashfull 12 time 1 pv e5d6 g2g3 c8c7 h7g6 c6d7 f2f3 d7f7
+< info depth 8 seldepth 18 score cp -216 nodes 3814 nps 1907000 hashfull 23 time 2 pv e5d6 a1f1 c8c7 f1b1 c7h7 f2f3 d6c5 h3h4
+< info depth 9 seldepth 20 score cp -271 nodes 5685 nps 1895000 hashfull 40 time 3 pv e5d6 a1f1 c8c7 e4e2 c7h7 f1e1 c6d7
+< bestmove e5d6
+SCRIPT_COMMENT 274 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 275 # SEARCH 41; W1 line 101.
+SCRIPT_LINE 276
+> setoption name HistRework value 0
+SCRIPT_LINE 277
+> isready
+< readyok
+SCRIPT_COMMENT 278 # Wait for readyok.
+SCRIPT_LINE 279
+> position fen 4r3/pb6/p1qkpn2/8/2p1R1Q1/7P/1PP2PP1/R5K1 w - - 13 39
+SCRIPT_LINE 280
+> go depth 9
+< info depth 1 seldepth 7 score cp 168 nodes 180 nps 0 hashfull 2 time 0 pv a1e1 c6e4
+< info depth 2 seldepth 7 score cp -9 nodes 305 nps 0 hashfull 3 time 0 pv e4e2 f6g4
+< info depth 3 seldepth 10 score cp 52 nodes 499 nps 0 hashfull 5 time 0 pv f2f3 f6e4 f3e4 c6e4 g4e4 b7e4
+< info depth 4 seldepth 10 score cp 52 nodes 567 nps 0 hashfull 5 time 0 pv f2f3 f6e4 f3e4 c6e4
+< info depth 5 seldepth 12 score cp 51 nodes 971 nps 0 hashfull 9 time 0 pv f2f3 f6e4 g4e4 c6e4 f3e4 b7e4
+< info depth 6 seldepth 12 score cp 51 nodes 1184 nps 0 hashfull 9 time 0 pv f2f3 f6e4 g4e4 c6e4 f3e4 b7e4
+< info depth 7 seldepth 17 score cp 137 nodes 2381 nps 2381000 hashfull 22 time 1 pv f2f3 f6e4 g4e4 c6e4 f3e4 b7e4 g1h2 e4c2
+< info depth 8 seldepth 18 score cp 160 nodes 4755 nps 2377500 hashfull 39 time 2 pv g4e6 d6c7 e6c6 b7c6 a1a6 f6e4 g1h1 e4f2 h1h2 f2g4 h2g1
+< info depth 9 seldepth 18 score cp 195 nodes 6881 nps 2293666 hashfull 51 time 3 pv g4e6 d6c7 e6c6 b7c6 a1a6 f6e4 g2g4 e8e7 f2f3 e4g3
+< bestmove g4e6
+SCRIPT_COMMENT 281 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 282 # SEARCH 42; W1 line 102.
+SCRIPT_LINE 283
+> isready
+< readyok
+SCRIPT_COMMENT 284 # Wait for readyok.
+SCRIPT_LINE 285
+> position fen 4r3/pb4Q1/p1qkpn2/8/2p1R3/7P/1PP2PP1/3R2K1 b - - 18 41
+SCRIPT_LINE 286
+> go depth 9
+< info depth 1 seldepth 3 score cp 1260 nodes 6 nps 0 hashfull 0 time 0 pv d6c5 g7f6 c6e4
+< info depth 2 seldepth 5 score cp 1059 nodes 25 nps 0 hashfull 0 time 0 pv d6c5 g7g5 f6d5
+< info depth 3 seldepth 7 score cp 70 nodes 85 nps 0 hashfull 1 time 0 pv d6c5 g7g5 f6d5 g1h1
+< info depth 4 seldepth 7 score cp 457 nodes 126 nps 0 hashfull 1 time 0 pv d6c5 g7g5 f6d5 g1h1 e8e7
+< info depth 5 seldepth 11 score cp 374 nodes 442 nps 0 hashfull 3 time 0 pv d6c5 g7g5 f6d5 g1h1 e8f8 f2f3
+< info depth 6 seldepth 11 score cp 224 nodes 568 nps 0 hashfull 3 time 0 pv d6c5 g7g5 f6d5 g1h1 c6c7 e4d4
+< info depth 7 seldepth 13 score cp 191 nodes 1570 nps 0 hashfull 12 time 0 pv d6c5 g7g5 f6d5 g1h1 c6c7 g5h4 c5c6 d1g1 e8e7
+< info depth 8 seldepth 19 score cp -12 nodes 5457 nps 1819000 hashfull 40 time 3 pv d6c5 g7g5 f6d5 g2g4 c6d6 e4e2 e8e7 g5d2
+< info depth 9 seldepth 20 score cp -153 nodes 9472 nps 1894400 hashfull 75 time 5 pv f6d5 g1h1 d6c5 g7d4 c5b4 g2g4 b4a4 e4e2 c6b6
+< bestmove f6d5
+SCRIPT_COMMENT 287 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 288 # SEARCH 43; W1 line 103.
+SCRIPT_LINE 289
+> isready
+< readyok
+SCRIPT_COMMENT 290 # Wait for readyok.
+SCRIPT_LINE 291
+> position fen 4r3/pbk5/p1q1pn2/8/2p1R3/4Q2P/1PP2PP1/3R2K1 w - - 23 44
+SCRIPT_LINE 292
+> go depth 9
+< info depth 1 seldepth 12 score cp -15 nodes 216 nps 0 hashfull 2 time 0 pv d1d8 c6e4 e3e4 b7e4 d8e8 f6e8
+< info depth 2 seldepth 12 score cp 76 nodes 313 nps 0 hashfull 3 time 0 pv g2g4 f6e4
+< info depth 3 seldepth 12 score cp 336 nodes 382 nps 0 hashfull 3 time 0 pv g2g4 f6e4 e3a7
+< info depth 4 seldepth 12 score cp -491 nodes 1040 nps 0 hashfull 4 time 0 pv d1d8 c7d8 g1h1 c6e4
+< info depth 5 seldepth 12 score cp -264 nodes 1490 nps 0 hashfull 8 time 0 pv d1d8 c7d8 e3d4 d8e7 d4c4 c6e4
+< info depth 6 seldepth 12 score cp -199 nodes 1984 nps 0 hashfull 11 time 0 pv e3b6 c7b8 d1d8 e8d8 f2f3 a7b6
+< info depth 7 seldepth 14 score cp 139 nodes 2857 nps 2857000 hashfull 15 time 1 pv e3b6 c7b6 e4e6 c6e6 d1d8 b7g2 g1g2
+< info depth 8 seldepth 15 score cp 0 nodes 5398 nps 1799333 hashfull 31 time 3 pv e3g3 c7b6 g3e3
+< info depth 9 seldepth 19 score cp 45 nodes 9684 nps 1936800 hashfull 64 time 5 pv e3b6 c7b6 e4e6 c6e6 d1d7 e6e1 g1h2 e1f2 d7g7 f2c2 g7g5 c2b2
+< bestmove e3b6
+SCRIPT_COMMENT 293 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 294 # SEARCH 44; W1 line 104.
+SCRIPT_LINE 295
+> isready
+< readyok
+SCRIPT_COMMENT 296 # Wait for readyok.
+SCRIPT_LINE 297
+> position fen 2k3r1/pb6/p1qRpn2/8/2p5/6QP/1PP2PP1/3R2K1 b - - 28 46
+SCRIPT_LINE 298
+> go depth 9
+< info depth 1 seldepth 11 score cp 1012 nodes 129 nps 0 hashfull 1 time 0 pv c6e8
+< info depth 2 seldepth 11 score cp 750 nodes 325 nps 0 hashfull 1 time 0 pv g8e8 d6c6 b7c6
+< info depth 3 seldepth 11 score cp 881 nodes 449 nps 0 hashfull 2 time 0 pv c6d7 d6d7 f6d7 g3g8 d7f8 g8f8 c8c7
+< info depth 4 seldepth 13 score cp 122 nodes 1297 nps 0 hashfull 7 time 0 pv c6d6 g3d6 b7g2 d6e6 c8b7 e6f6
+< info depth 5 seldepth 13 score cp 275 nodes 1463 nps 1463000 hashfull 8 time 1 pv c6g2 g3g2 f6d5 d1d5 e6d5 g2g8 c8c7
+< info depth 6 seldepth 13 score cp 275 nodes 1537 nps 1537000 hashfull 8 time 1 pv c6g2 g3g2 f6d5 d1d5 e6d5 g2g8 c8c7
+< info depth 7 seldepth 16 score cp 175 nodes 2688 nps 2688000 hashfull 17 time 1 pv c6e4 d6d8 g8d8 d1d8 c8d8 g3g7 e4c2
+< info depth 8 seldepth 20 score cp 20 nodes 6057 nps 2019000 hashfull 40 time 3 pv g8g3 d6c6 c8b8 c6e6 g3g2 g1f1 g2g1 f1g1 f6h5 e6e7
+< info depth 9 seldepth 20 score cp 5 nodes 9031 nps 1806200 hashfull 63 time 5 pv c6g2 g3g2 g8g2 g1f1 c8c7 d1b1 c7d6 f1e2 d6c5 e2e1 g2g1 e1e2
+< bestmove c6g2
+SCRIPT_COMMENT 299 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 300 # SEARCH 45; W1 line 105.
+SCRIPT_LINE 301
+> isready
+< readyok
+SCRIPT_COMMENT 302 # Wait for readyok.
+SCRIPT_LINE 303
+> position fen 6r1/pk6/p2Rpn2/8/2pR4/7P/1PP2Pb1/6K1 w - - 2 49
+SCRIPT_LINE 304
+> go depth 9
+< info depth 1 seldepth 5 score cp 629 nodes 38 nps 0 hashfull 0 time 0 pv d6e6 g2h3 d4g4
+< info depth 2 seldepth 5 score cp 629 nodes 76 nps 0 hashfull 0 time 0 pv d6e6 g2h3 d4g4
+< info depth 3 seldepth 6 score cp 389 nodes 160 nps 0 hashfull 1 time 0 pv d6e6 g2h3 d4g4 b7b8
+< info depth 4 seldepth 10 score cp 178 nodes 548 nps 0 hashfull 4 time 0 pv d6d7 b7c8 d4c4 c8d7 f2f3
+< info depth 5 seldepth 10 score cp 134 nodes 904 nps 0 hashfull 5 time 0 pv d6d7 b7c8 d4c4 c8d7 c4f4 d7c7
+< info depth 6 seldepth 12 score cp 34 nodes 1775 nps 1775000 hashfull 9 time 1 pv d6e6 g2h3 g1h1 h3g2 h1h2 b7b8 e6f6 g2f1
+< info depth 7 seldepth 16 score cp 314 nodes 4961 nps 2480500 hashfull 38 time 2 pv f2f3 g8g5 d4g4 f6g4 h3g4 b7c7
+< info depth 8 seldepth 25 score cp 208 nodes 16141 nps 2017625 hashfull 132 time 8 pv g1h2 g2f3 d6d7 b7c8 d4c4 c8b8 d7d4 g8g2 h2h1 g2f2 h1g1
+< info depth 9 seldepth 25 score cp 243 nodes 29904 nps 1869000 hashfull 244 time 16 pv d6d7 b7c8 f2f3 c4c3 d7d6 g2f3 g1f2 c3b2 f2f3
+< bestmove d6d7
+SCRIPT_COMMENT 305 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 306 # SEARCH 46; W1 line 106.
+SCRIPT_LINE 307
+> isready
+< readyok
+SCRIPT_COMMENT 308 # Wait for readyok.
+SCRIPT_LINE 309
+> position fen 6r1/pk1R4/p3p3/3b4/2pRn2P/8/1PP2P2/5K2 b - - 4 51
+SCRIPT_LINE 310
+> go depth 9
+< info depth 1 seldepth 2 score cp 803 nodes 11 nps 0 hashfull 0 time 0 pv b7b6
+< info depth 2 seldepth 5 score cp 289 nodes 43 nps 0 hashfull 0 time 0 pv b7c6 d7a7
+< info depth 3 seldepth 5 score cp -147 nodes 88 nps 0 hashfull 1 time 0 pv b7c6 f2f3 c6c5 d4e4
+< info depth 4 seldepth 5 score cp -150 nodes 134 nps 0 hashfull 1 time 0 pv b7c6 f2f3 c6d7 d4e4
+< info depth 5 seldepth 6 score cp -207 nodes 256 nps 0 hashfull 2 time 0 pv b7c6 f2f3 c6d7 d4e4 d7c7
+< info depth 6 seldepth 12 score cp -333 nodes 789 nps 0 hashfull 7 time 0 pv b7c6 f2f3 c6d7 d4c4 e4g3 f1f2 d5c4
+< info depth 7 seldepth 13 score cp -110 nodes 1788 nps 1788000 hashfull 14 time 1 pv b7c6 f2f3 c6d7 d4e4 d7c7 f1e1 d5e4 f3e4
+< info depth 8 seldepth 15 score cp -29 nodes 6874 nps 2291333 hashfull 49 time 3 pv b7c6 d7d5 g8g7 d4e4 c6d5 e4c4 g7e7 f2f3 d5c4
+< info depth 9 seldepth 16 score cp 0 nodes 9591 nps 1918200 hashfull 64 time 5 pv b7c6 d7d5 g8g7 d4c4 c6d5 c4e4 g7g1 f1g1 d5c5 g1h1 c5d5
+< bestmove b7c6
+SCRIPT_COMMENT 311 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 312 # SEARCH 47; W1 line 107.
+SCRIPT_LINE 313
+> isready
+< readyok
+SCRIPT_COMMENT 314 # Wait for readyok.
+SCRIPT_LINE 315
+> position fen 8/p2R4/pk2p3/3b1r2/1PpRn2P/8/2P2P2/4K3 w - - 3 54
+SCRIPT_LINE 316
+> go depth 9
+< info depth 1 seldepth 4 score cp 661 nodes 79 nps 0 hashfull 1 time 0 pv d7d5 f5f2
+< info depth 2 seldepth 5 score cp 381 nodes 127 nps 0 hashfull 1 time 0 pv d7d5 e6d5
+< info depth 3 seldepth 5 score cp 478 nodes 174 nps 0 hashfull 1 time 0 pv d7d5 e4f2 d5f5
+< info depth 4 seldepth 8 score cp 504 nodes 485 nps 0 hashfull 2 time 0 pv d7d5 e4f2 e1f1 f5d5
+< info depth 5 seldepth 8 score cp 459 nodes 819 nps 0 hashfull 4 time 0 pv d7g7 f5f2 g7g4 f2c2
+< info depth 6 seldepth 9 score cp 374 nodes 1521 nps 0 hashfull 8 time 0 pv d7b7 b6c6 f2f3 f5f3 b7a7
+< info depth 7 seldepth 15 score cp 512 nodes 2344 nps 2344000 hashfull 13 time 1 pv d7b7 b6c6 h4h5 f5f2 b7a7 f2c2
+< info depth 8 seldepth 20 score cp 336 nodes 7827 nps 2609000 hashfull 50 time 3 pv d7b7 b6c6 f2f3 f5f3 b4b5 c6c5 d4c4 c5c4 b7c7 e4c5
+< info depth 9 seldepth 21 score cp 186 nodes 41540 nps 1978095 hashfull 285 time 21 pv d7d5 e4f2 d5f5 e6f5 b4b5 f2d3 e1f1 b6b5
+< bestmove d7d5
+SCRIPT_COMMENT 317 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 318 # SEARCH 48; W1 line 108.
+SCRIPT_LINE 319
+> isready
+< readyok
+SCRIPT_COMMENT 320 # Wait for readyok.
+SCRIPT_LINE 321
+> position fen 8/p7/pk2R3/5r2/1P2b2P/2p5/2P2P2/4K3 b - - 0 56
+SCRIPT_LINE 322
+> go depth 9
+< info depth 1 seldepth 5 score cp 585 nodes 17 nps 0 hashfull 0 time 0 pv e4c6
+< info depth 2 seldepth 5 score cp 220 nodes 25 nps 0 hashfull 0 time 0 pv e4c6 f2f3
+< info depth 3 seldepth 5 score cp 103 nodes 84 nps 0 hashfull 0 time 0 pv b6c7 e6e7 c7d8 e7e4
+< info depth 4 seldepth 5 score cp 190 nodes 130 nps 0 hashfull 0 time 0 pv b6c7 e6a6 e4c2 a6a7 c7b6
+< info depth 5 seldepth 7 score cp 285 nodes 199 nps 0 hashfull 0 time 0 pv b6c7 e6a6 c7b7 a6e6 e4c2
+< info depth 6 seldepth 8 score cp 36 nodes 393 nps 0 hashfull 2 time 0 pv b6c7 e6a6 f5f7 a6a5 e4c2
+< info depth 7 seldepth 20 score cp 0 nodes 2774 nps 2774000 hashfull 20 time 1 pv b6c7 e6e7 c7c6 e7e6
+< info depth 8 seldepth 20 score cp 0 nodes 5135 nps 1711666 hashfull 38 time 3 pv b6b7 e6e7 b7c6 e7e6
+< info depth 9 seldepth 20 score cp 25 nodes 11544 nps 1924000 hashfull 90 time 6 pv b6b5 e6b6 b5b6 f2f3 f5f3 h4h5 f3e3 e1f1 b6b7
+< bestmove b6b5
+SCRIPT_COMMENT 323 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 324 # SEARCH 49; W1 line 109.
+SCRIPT_LINE 325
+> isready
+< readyok
+SCRIPT_COMMENT 326 # Wait for readyok.
+SCRIPT_LINE 327
+> position fen 8/p7/pkb1R3/7P/1P6/2p5/2PrKP2/8 w - - 1 59
+SCRIPT_LINE 328
+> go depth 9
+< info depth 1 seldepth 2 score cp 71 nodes 7 nps 0 hashfull 0 time 0 pv e2f1
+< info depth 2 seldepth 3 score cp -419 nodes 21 nps 0 hashfull 0 time 0 pv e2e1 d2c2
+< info depth 3 seldepth 4 score cp -162 nodes 38 nps 0 hashfull 0 time 0 pv e2e1 d2c2 e1d1
+< info depth 4 seldepth 5 score cp 157 nodes 99 nps 0 hashfull 0 time 0 pv e2e1 d2c2 e1d1 b6c7
+< info depth 5 seldepth 7 score cp -7 nodes 150 nps 0 hashfull 0 time 0 pv e2e1 d2c2 e1d1 b6c7 e6f6
+< info depth 6 seldepth 7 score cp 0 nodes 216 nps 0 hashfull 1 time 0 pv e2e1 d2c2 e1d1 c2d2 d1e1
+< info depth 7 seldepth 13 score cp -237 nodes 1769 nps 1769000 hashfull 12 time 1 pv e2e3 d2c2 e3d4 b6b5 e6e7 b5b4
+< info depth 8 seldepth 16 score cp -175 nodes 3731 nps 1865500 hashfull 24 time 2 pv e2e1 d2c2 e6c6 b6b5 c6c5 b5b4 c5c3 c2a2 e1f1
+< info depth 9 seldepth 17 score cp -176 nodes 12143 nps 1349222 hashfull 86 time 9 pv e2f1 d2d1 f1e2 b6b5 e6e5 d1d5 e5d5 c6d5 e2e3 b5a4 e3d4 d5f7 d4c3
+< bestmove e2f1
+SCRIPT_COMMENT 329 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 330 # SEARCH 50; W1 line 110.
+SCRIPT_LINE 331
+> isready
+< readyok
+SCRIPT_COMMENT 332 # Wait for readyok.
+SCRIPT_LINE 333
+> position fen 8/p7/pkb1R2P/8/1P6/2pK4/5P2/2r5 b - - 0 61
+SCRIPT_LINE 334
+> go depth 9
+< info depth 1 seldepth 2 score cp 275 nodes 24 nps 0 hashfull 0 time 0 pv c1c2 d3c2
+< info depth 2 seldepth 2 score cp 275 nodes 47 nps 0 hashfull 0 time 0 pv c1c2 d3c2
+< info depth 3 seldepth 5 score cp -57 nodes 124 nps 0 hashfull 0 time 0 pv b6b5 e6e5 b5b6
+< info depth 4 seldepth 5 score cp 0 nodes 188 nps 0 hashfull 0 time 0 pv c1d1 d3c2 d1c1
+< info depth 5 seldepth 5 score cp 0 nodes 232 nps 0 hashfull 0 time 0 pv c1d1 d3c2 d1c1
+< info depth 6 seldepth 9 score cp 200 nodes 455 nps 0 hashfull 1 time 0 pv c1d1 d3c3 d1d2 c3c4 d2c2 c4d4
+< info depth 7 seldepth 12 score cp 277 nodes 946 nps 0 hashfull 6 time 0 pv c1d1 d3c3 b6b5 h6h7 c6d7 e6e5 d1d5 e5d5 b5c6
+< info depth 8 seldepth 18 score cp 146 nodes 4690 nps 2345000 hashfull 34 time 2 pv c3c2 d3c4 c1d1 e6c6 b6c6 f2f4 c2c1q c4b3 c1f4
+< info depth 9 seldepth 21 score cp 273 nodes 11006 nps 1834333 hashfull 76 time 6 pv c1d1 d3c3 b6b7 c3c2 c6e4 c2b2 d1b1 b2a3 b1a1 a3b3
+< bestmove c1d1
+SCRIPT_COMMENT 335 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 336 # SEARCH 51; W1 line 111.
+SCRIPT_LINE 337
+> setoption name Hash value 16
+SCRIPT_LINE 338
+> isready
+< readyok
+SCRIPT_COMMENT 339 # Wait for readyok.
+SCRIPT_LINE 340
+> position fen 8/p7/pkb2R1P/8/1PK5/8/2p2P2/2r5 w - - 0 64
+SCRIPT_LINE 341
+> go depth 9
+< info depth 1 seldepth 2 score cp 333 nodes 21 nps 0 hashfull 0 time 0 pv f6e6
+< info depth 2 seldepth 4 score cp 154 nodes 71 nps 0 hashfull 0 time 0 pv f6c6 b6c6
+< info depth 3 seldepth 5 score cp 557 nodes 118 nps 0 hashfull 0 time 0 pv f6c6 b6c6 f2f4
+< info depth 4 seldepth 5 score cp 253 nodes 287 nps 0 hashfull 0 time 0 pv f6c6 b6c6 f2f4 c1f1
+< info depth 5 seldepth 10 score cp 110 nodes 691 nps 0 hashfull 0 time 0 pv f6c6 b6c6 f2f4 c1f1 h6h7
+< info depth 6 seldepth 10 score cp 160 nodes 832 nps 0 hashfull 0 time 0 pv f6c6 b6c6 f2f4 c1f1 h6h7 f1f4 c4d3
+< info depth 7 seldepth 13 score cp -17 nodes 2453 nps 2453000 hashfull 1 time 1 pv f6c6 b6c6 f2f4 c1f1 h6h7 f1f4 c4d3 c2c1n d3e3 f4b4
+< info depth 8 seldepth 21 score cp -84 nodes 10680 nps 1780000 hashfull 4 time 6 pv f6c6 b6c6 f2f4 c1f1 c4c3 c2c1n h6h7 f1e1 f4f5
+< info depth 9 seldepth 24 score cp -148 nodes 20681 nps 1723416 hashfull 10 time 12 pv f6c6 b6c6 f2f3 c1h1 h6h7 h1h4 c4d3 c2c1q b4b5 c6b5 d3e2
+< bestmove f6c6
+SCRIPT_COMMENT 342 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 343 # SEARCH 52; W1 line 112.
+SCRIPT_LINE 344
+> isready
+< readyok
+SCRIPT_COMMENT 345 # Wait for readyok.
+SCRIPT_LINE 346
+> position fen 8/p7/pkb2R1P/8/1P6/5P1r/2K5/8 b - - 0 66
+SCRIPT_LINE 347
+> go depth 9
+< info depth 1 seldepth 3 score cp 854 nodes 16 nps 0 hashfull 0 time 0 pv h3f3
+< info depth 2 seldepth 4 score cp 438 nodes 67 nps 0 hashfull 0 time 0 pv h3h1 f6d6
+< info depth 3 seldepth 7 score cp 506 nodes 164 nps 0 hashfull 0 time 0 pv h3h2 c2d1 h2h1 d1c2
+< info depth 4 seldepth 7 score cp 227 nodes 231 nps 0 hashfull 0 time 0 pv h3f3 h6h7 b6b5 h7h8q
+< info depth 5 seldepth 7 score cp 227 nodes 273 nps 0 hashfull 0 time 0 pv h3f3 h6h7 b6b5 h7h8q f3f6
+< info depth 6 seldepth 7 score cp 227 nodes 348 nps 0 hashfull 0 time 0 pv h3f3 h6h7 b6b5 h7h8q f3f6 h8f6
+< info depth 7 seldepth 17 score cp 526 nodes 982 nps 0 hashfull 0 time 0 pv h3h2 c2d1 h2h1 d1c2 h1f1 c2b2 b6c7
+< info depth 8 seldepth 19 score cp 91 nodes 5129 nps 2564500 hashfull 1 time 2 pv h3h2 c2d1 h2h1 d1c2 h1c1 c2c1 b6b5 h6h7 c6f3 f6f5 f3d5 h7h8n
+< info depth 9 seldepth 20 score cp 109 nodes 6769 nps 2256333 hashfull 1 time 3 pv h3h2 c2d1 h2h1 d1c2 h1f1 f6c6 b6b5 c6c5 b5a4 c5a5 a4b4 h6h7 b4a5
+< bestmove h3h2
+SCRIPT_COMMENT 348 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 349 # SEARCH 53; W1 line 113.
+SCRIPT_LINE 350
+> isready
+< readyok
+SCRIPT_COMMENT 351 # Wait for readyok.
+SCRIPT_LINE 352
+> position fen 8/p7/p1k4P/5R2/1P6/2K2b1r/8/8 w - - 2 69
+SCRIPT_LINE 353
+> go depth 9
+< info depth 1 seldepth 3 score cp 348 nodes 53 nps 0 hashfull 0 time 0 pv c3d3
+< info depth 2 seldepth 5 score cp -85 nodes 204 nps 0 hashfull 0 time 0 pv c3d4 f3e2
+< info depth 3 seldepth 7 score cp -129 nodes 316 nps 0 hashfull 0 time 0 pv c3b3 c6d6 h6h7 h3h7 f5f3
+< info depth 4 seldepth 8 score cp -126 nodes 436 nps 0 hashfull 0 time 0 pv b4b5 c6d6 f5f3 h3h6
+< info depth 5 seldepth 9 score cp 47 nodes 666 nps 0 hashfull 0 time 0 pv b4b5 c6d6 f5f3 h3h6 c3b2 a6b5
+< info depth 6 seldepth 9 score cp -73 nodes 1267 nps 0 hashfull 0 time 0 pv b4b5 c6d6 f5f3 h3h6 c3c2 a6b5
+< info depth 7 seldepth 13 score cp 56 nodes 3284 nps 3284000 hashfull 2 time 1 pv b4b5 c6d6 c3b4 h3h4 b4a5 f3e2 a5a6
+< info depth 8 seldepth 14 score cp 0 nodes 6821 nps 1705250 hashfull 4 time 4 pv c3d4 f3e2 d4e4 e2d3 e4f4 h3h6 f4g4 d3e2 g4f4
+< info depth 9 seldepth 21 score cp -54 nodes 18628 nps 1862800 hashfull 8 time 10 pv b4b5 c6b7 b5a6 b7a6 c3d4 h3h4 d4e3 f3d5 f5f1 h4h3 e3f4 h3f3 f4g4 d5e6 g4h5
+< bestmove b4b5
+SCRIPT_COMMENT 354 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 355 # SEARCH 54; W1 line 114.
+SCRIPT_LINE 356
+> isready
+< readyok
+SCRIPT_COMMENT 357 # Wait for readyok.
+SCRIPT_LINE 358
+> position fen 8/p7/p4R1P/3k4/1P6/7r/K3b3/8 b - - 7 71
+SCRIPT_LINE 359
+> go depth 9
+< info depth 1 seldepth 2 score cp 625 nodes 36 nps 0 hashfull 0 time 0 pv h3a3 a2b1
+< info depth 2 seldepth 2 score cp 625 nodes 65 nps 0 hashfull 0 time 0 pv h3a3 a2b1
+< info depth 3 seldepth 4 score cp 532 nodes 127 nps 0 hashfull 0 time 0 pv h3a3 a2b1 e2d3 b1c1
+< info depth 4 seldepth 5 score cp 818 nodes 187 nps 0 hashfull 0 time 0 pv h3a3 a2b1 e2d3 b1c1 a3a2
+< info depth 5 seldepth 8 score cp 598 nodes 434 nps 0 hashfull 0 time 0 pv h3a3 a2b1 e2d3 b1c1 a3a2 f6d6 d5c4
+< info depth 6 seldepth 10 score cp 614 nodes 787 nps 0 hashfull 0 time 0 pv e2c4 a2a1 h3a3 a1b2 a3a2 b2c1 c4b3 f6f7
+< info depth 7 seldepth 17 score cp 603 nodes 2963 nps 2963000 hashfull 0 time 1 pv e2c4 a2a1 h3a3 a1b2 a3a2 b2c1 c4b5 f6d6 d5c4
+< info depth 8 seldepth 23 score cp 627 nodes 8126 nps 2031500 hashfull 2 time 4 pv h3a3 a2b2 a3a2 b2c1 e2d1 f6d6 d5c4 d6g6 a2c2 c1d1
+< info depth 9 seldepth 27 score cp 597 nodes 17222 nps 1722200 hashfull 6 time 10 pv h3a3 a2b2 a3a2 b2c1 e2d3 f6d6 d5c4 c1d1 d3h7 d1c1 c4b4
+< bestmove h3a3
+SCRIPT_COMMENT 360 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 361 # SEARCH 55; W1 line 115.
+SCRIPT_LINE 362
+> isready
+< readyok
+SCRIPT_COMMENT 363 # Wait for readyok.
+SCRIPT_LINE 364
+> position fen 8/p4R2/p6r/1b2k3/1P6/8/1K6/8 w - - 0 74
+SCRIPT_LINE 365
+> go depth 9
+< info depth 1 seldepth 2 score cp 53 nodes 26 nps 0 hashfull 0 time 0 pv f7a7
+< info depth 2 seldepth 4 score cp -122 nodes 123 nps 0 hashfull 0 time 0 pv f7b7 h6h2 b2a1
+< info depth 3 seldepth 5 score cp -51 nodes 255 nps 0 hashfull 0 time 0 pv f7e7 e5f4 e7a7
+< info depth 4 seldepth 9 score cp -250 nodes 494 nps 0 hashfull 0 time 0 pv f7b7 h6h2 b2c1 e5d6 b7a7
+< info depth 5 seldepth 9 score cp -220 nodes 752 nps 0 hashfull 0 time 0 pv f7b7 b5e2 b2c2 e2d3 c2d2
+< info depth 6 seldepth 10 score cp -30 nodes 1156 nps 0 hashfull 0 time 0 pv f7e7 e5f4 e7f7 f4g4 f7b7 h6c6 b7a7
+< info depth 7 seldepth 12 score cp -46 nodes 3164 nps 3164000 hashfull 0 time 1 pv f7e7 e5f4 e7a7 h6h2 b2b3 b5a4 b3c4 h2c2 c4d5
+< info depth 8 seldepth 15 score cp -102 nodes 4267 nps 2133500 hashfull 0 time 2 pv f7e7 e5f4 e7a7 h6h2 b2b3 h2b2 b3b2 b5e2 b2c2 e2d3 c2c3
+< info depth 9 seldepth 16 score cp -167 nodes 6361 nps 2120333 hashfull 2 time 3 pv f7e7 e5f5 e7f7 f5g4 f7g7 g4h3 g7a7 b5c4 b2a1 h3h2
+< bestmove f7e7
+SCRIPT_COMMENT 366 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 367 # SEARCH 56; W1 line 116.
+SCRIPT_LINE 368
+> isready
+< readyok
+SCRIPT_COMMENT 369 # Wait for readyok.
+SCRIPT_LINE 370
+> position fen 8/R7/p7/1b2k3/1P6/7r/1K6/8 b - - 4 76
+SCRIPT_LINE 371
+> go depth 9
+< info depth 1 seldepth 2 score cp 499 nodes 39 nps 0 hashfull 0 time 0 pv h3h2 b2c1
+< info depth 2 seldepth 3 score cp 371 nodes 98 nps 0 hashfull 0 time 0 pv h3b3 b2a1
+< info depth 3 seldepth 4 score cp 499 nodes 160 nps 0 hashfull 0 time 0 pv h3h2 b2c1 e5d6
+< info depth 4 seldepth 5 score cp 380 nodes 422 nps 0 hashfull 0 time 0 pv e5d4 a7e7 h3h2 b2a1
+< info depth 5 seldepth 7 score cp 191 nodes 1049 nps 0 hashfull 0 time 0 pv h3h2 b2c1 e5d6 c1d1 d6d5
+< info depth 6 seldepth 9 score cp 390 nodes 1532 nps 0 hashfull 1 time 0 pv e5d5 a7a6 h3h2 b2b1 b5d3 b1a1 h2h1 a1a2
+< info depth 7 seldepth 14 score cp 452 nodes 2365 nps 2365000 hashfull 1 time 1 pv h3h2 b2b3 b5c4 b3c4 h2c2 c4b3
+< info depth 8 seldepth 22 score cp 252 nodes 9710 nps 2427500 hashfull 2 time 4 pv b5c4 b2c1 h3h2 a7d7 c4e2 c1d2
+< info depth 9 seldepth 22 score cp 281 nodes 15021 nps 2145857 hashfull 5 time 7 pv e5e4 a7e7 e4d3 e7e3 d3d4 e3h3 b5c6 h3c3
+< bestmove e5e4
+SCRIPT_COMMENT 372 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 373 # SEARCH 57; W1 line 117.
+SCRIPT_LINE 374
+> isready
+< readyok
+SCRIPT_COMMENT 375 # Wait for readyok.
+SCRIPT_LINE 376
+> position fen 8/R7/p2k4/8/1Pb5/1r6/1K6/8 w - - 9 79
+SCRIPT_LINE 377
+> go depth 9
+< info depth 1 seldepth 3 score cp 84 nodes 15 nps 0 hashfull 0 time 0 pv b2a1
+< info depth 2 seldepth 3 score cp -262 nodes 35 nps 0 hashfull 0 time 0 pv b2a1 d6d5
+< info depth 3 seldepth 5 score cp -39 nodes 116 nps 0 hashfull 0 time 0 pv b2c1 b3b4 a7d7 d6c5
+< info depth 4 seldepth 5 score cp -39 nodes 128 nps 0 hashfull 0 time 0 pv b2c1 b3b4 a7d7 d6c5
+< info depth 5 seldepth 9 score cp -231 nodes 798 nps 0 hashfull 0 time 0 pv b2a2 d6d5 a7a6 d5e5
+< info depth 6 seldepth 9 score cp -74 nodes 1263 nps 1263000 hashfull 0 time 1 pv b2c1 b3g3 a7d7 d6c6 c1c2 c6d7
+< info depth 7 seldepth 15 score cp -167 nodes 4044 nps 1348000 hashfull 2 time 3 pv b2a1 b3a3 a1b2 d6d5 a7d7 d5e4 b2c2 a3a2 c2c1 c4d5
+< info depth 8 seldepth 17 score cp -190 nodes 6374 nps 1274800 hashfull 3 time 5 pv b2a1 b3a3 a1b2 d6d5 a7d7 d5e5 d7d5 e5e6 b2a3 c4f1
+< info depth 9 seldepth 22 score cp -165 nodes 11703 nps 1300333 hashfull 5 time 9 pv b2c1 c4b5 a7a6 d6d5 a6d6 d5c4 d6c6 c4d3 c6d6 d3c3
+< bestmove b2c1
+SCRIPT_COMMENT 378 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 379 # SEARCH 58; W1 line 118.
+SCRIPT_LINE 380
+> isready
+< readyok
+SCRIPT_COMMENT 381 # Wait for readyok.
+SCRIPT_LINE 382
+> position fen 8/R7/p2k4/8/K1b5/8/8/1r6 b - - 3 81
+SCRIPT_LINE 383
+> go depth 9
+< info depth 1 seldepth 2 score cp 50 nodes 40 nps 0 hashfull 0 time 0 pv c4f1
+< info depth 2 seldepth 3 score cp -37 nodes 112 nps 0 hashfull 0 time 0 pv b1e1 a4a5
+< info depth 3 seldepth 4 score cp 66 nodes 196 nps 0 hashfull 0 time 0 pv b1a1 a4b4 a6a5 b4c4
+< info depth 4 seldepth 6 score cp 66 nodes 269 nps 0 hashfull 0 time 0 pv b1a1 a4b4 a6a5 b4c4
+< info depth 5 seldepth 6 score cp 130 nodes 366 nps 0 hashfull 0 time 0 pv b1a1 a4b4 a6a5 b4c4 a1g1
+< info depth 6 seldepth 8 score cp 25 nodes 785 nps 0 hashfull 0 time 0 pv b1a1 a4b4 a6a5 b4c4 d6e5 c4c3
+< info depth 7 seldepth 15 score cp 63 nodes 1310 nps 0 hashfull 0 time 0 pv c4b5 a4a5 d6c5 a7c7 b5c6 c7c6 c5d5 a5a6 d5c6
+< info depth 8 seldepth 15 score cp 192 nodes 1876 nps 0 hashfull 1 time 0 pv c4b5 a4a5 d6c5 a7c7 b5c6 c7c6 c5d5 c6d6 d5d6 a5a4 b1b2
+< info depth 9 seldepth 18 score cp 276 nodes 3318 nps 3318000 hashfull 1 time 1 pv c4b5 a4a5 d6c5 a7c7 b5c6 c7c6 c5d5 a5a4 d5c6 a4a5 c6c5
+< bestmove c4b5
+SCRIPT_COMMENT 384 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 385 # SEARCH 59; W1 line 119.
+SCRIPT_LINE 386
+> isready
+< readyok
+SCRIPT_COMMENT 387 # Wait for readyok.
+SCRIPT_LINE 388
+> position fen R7/8/p2k4/1b6/rK6/8/8/8 w - - 8 84
+SCRIPT_LINE 389
+> go depth 9
+< info depth 1 seldepth 1 score cp -422 nodes 4 nps 0 hashfull 0 time 0 pv b4b3
+< info depth 2 seldepth 3 score cp -592 nodes 31 nps 0 hashfull 0 time 0 pv b4b3 a4a5
+< info depth 3 seldepth 5 score cp -571 nodes 94 nps 0 hashfull 0 time 0 pv b4b3 d6c5 a8d8
+< info depth 4 seldepth 6 score cp -274 nodes 192 nps 0 hashfull 0 time 0 pv b4c3 d6c5 a8c8 b5c6
+< info depth 5 seldepth 11 score cp -143 nodes 686 nps 0 hashfull 0 time 0 pv b4c3 d6d5 a8d8 d5e4 d8d4 a4d4
+< info depth 6 seldepth 11 score cp -116 nodes 1563 nps 0 hashfull 0 time 0 pv b4c3 a4a1 c3d4 a1d1 d4e4 d6c5
+< info depth 7 seldepth 18 score cp -190 nodes 4121 nps 2060500 hashfull 0 time 2 pv b4c3 a4a2 a8a6 d6d5 c3b4 a2b2 b4c3
+< info depth 8 seldepth 18 score cp -244 nodes 8086 nps 2021500 hashfull 1 time 4 pv b4c3 a4c4 c3b2 c4b4 b2c1 d6d5 a8d8 d5c4 d8c8 c4d4 c8d8 d4e5 d8e8 e5f5
+< info depth 9 seldepth 23 score cp -200 nodes 24433 nps 2036083 hashfull 6 time 12 pv b4c3 a4c4 c3b2 c4b4 b2c2 b5a4 c2d2 d6c5 a8a6 b4d4 d2c3 d4c4 c3b2 c4c2 b2a3 c2c3 a3a4
+< bestmove b4c3
+SCRIPT_COMMENT 390 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 391 # SEARCH 60; W1 line 120.
+SCRIPT_LINE 392
+> isready
+< readyok
+SCRIPT_COMMENT 393 # Wait for readyok.
+SCRIPT_LINE 394
+> position fen 5R2/2k5/p7/1b6/6r1/K7/8/8 b - - 13 86
+SCRIPT_LINE 395
+> go depth 9
+< info depth 1 seldepth 2 score cp 399 nodes 40 nps 0 hashfull 0 time 0 pv g4g3 a3b2
+< info depth 2 seldepth 2 score cp 398 nodes 73 nps 0 hashfull 0 time 0 pv g4g3 a3b2
+< info depth 3 seldepth 4 score cp 277 nodes 165 nps 0 hashfull 0 time 0 pv g4f4 f8f4
+< info depth 4 seldepth 8 score cp 161 nodes 395 nps 0 hashfull 0 time 0 pv g4f4 f8f4 c7b6
+< info depth 5 seldepth 8 score cp 160 nodes 570 nps 0 hashfull 0 time 0 pv g4a4 a3b3 b5c4 b3c2 a4a2 c2d1 c4b3 d1c1
+< info depth 6 seldepth 10 score cp 301 nodes 877 nps 0 hashfull 0 time 0 pv g4a4 a3b3 a4a3 b3a3 b5c4 a3b2
+< info depth 7 seldepth 18 score cp 213 nodes 2662 nps 1331000 hashfull 1 time 2 pv g4a4 a3b3 b5c4 b3c3 a4a3 c3d2 a3d3 d2e2 d3d8 e2f3 d8f8 f3g3
+< info depth 8 seldepth 25 score cp 116 nodes 13083 nps 1453666 hashfull 4 time 9 pv g4a4 a3b3 b5c4 b3c3 a4a3 c3d2 a3d3 d2e2 d3d4 e2e1 d4d8 f8f7 c7b6 f7f6 b6b5 f6f5 c4d5 e1f2
+< info depth 9 seldepth 30 score cp 165 nodes 31169 nps 1731611 hashfull 10 time 18 pv g4d4 f8c8 c7b7 a3b2 d4d2 b2a1 b7c8 a1b1 b5d3 b1a1
+< bestmove g4d4
+SCRIPT_COMMENT 396 # Wait for bestmove before proceeding.
+SCRIPT_COMMENT 397 # All searches completed; only now quit.
+SCRIPT_LINE 398
+> quit
+UTC 2026-11-18T20:49:22.726563+00:00
