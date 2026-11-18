@@ -1,0 +1,77 @@
+=== 1. UNMODIFIED SP-PROFILED CURATED BINARY (5 x 60 = 300 GAMES AT HASH 16) ===
+Executable: /tmp/carbon2_job13/bld_sp_cur13/forge (SP-profiled Clang 18.1.3 ThinLTO+PGO -march=sapphirerapids, 2 .profraw merged)
+  pass 1/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=11521.88 (192.031 ms/game, 665.69 sps) samples=3063 trace=ee465caeff9c0fcf
+  pass 2/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=12391.47 (206.525 ms/game, 618.97 sps) samples=3251 trace=ee465caeff9c0fcf
+  pass 3/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=12399.41 (206.657 ms/game, 618.58 sps) samples=3284 trace=ee465caeff9c0fcf
+  pass 4/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=12126.21 (202.104 ms/game, 632.51 sps) samples=3201 trace=ee465caeff9c0fcf
+  pass 5/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=12510.70 (208.512 ms/game, 613.08 sps) samples=3217 trace=ee465caeff9c0fcf
+Aggregate (300 games = 38350 searches): mean_engine_cpu = 203.166 ms/game | total_SIGPROF_samples = 16016
+
+--- A. Inlining-Invariant Subsystem Breakdown on Unmodified SP-Profiled Curated Binary (ms/game & % of Engine CPU) ---
+ Samples   Share%    ms/game  Subsystem (Caller + Outlined Callees Grouped)
+    7172   44.78%     90.978  8. Search Control, Pruning & History Updates (Worker::search + qsearch + should_stop + corr/history)
+    3582   22.37%     45.438  1. NNUE v3 Eval (static_evaluate_v3 + refresh + apply_pair + evaluate)
+    1849   11.54%     23.455  2. Move Generation, Ordering & Threat Maps (MovePicker + movegen + lesser_threats)
+    1133    7.07%     14.372  4. Transposition Table (probe_owned + store_owned + clear)
+     977    6.10%     12.393  5. Board State, Legality & Repetition (make/unmake + is_legal + has_legal_move + upcoming_rep)
+     677    4.23%      8.588  7. C/C++ Runtime & Syscalls (libc / libstdc++ / stdio / futex / memset)
+     616    3.85%      7.814  3. Static Exchange Evaluation (Board::see_ge + attackers)
+      10    0.06%      0.127  6. UCI Protocol & I/O (uci_loop + apply_position_sv + info formatting)
+
+--- B. Top 20 Leaf Symbols on Unmodified SP-Profiled Curated Binary ---
+ Samples    Self%  Self_ms/g  Symbol
+    5900   36.84%     74.842  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+    2003   12.51%     25.408  forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+    1099    6.86%     13.941  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+    1013    6.32%     12.850  forge::TranspositionTable::probe_owned(unsigned long) const
+     879    5.49%     11.150  forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+     677    4.23%      8.588  [libc / libstdc++ / kernel]
+     616    3.85%      7.814  forge::Board::see_ge(forge::Move const&, int) const
+     424    2.65%      5.379  forge::MovePicker::generate_captures()
+     380    2.37%      4.820  forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)
+     378    2.36%      4.795  forge::MovePicker::generate_quiets()::{lambda(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long)#1}::operator()(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long) const
+     334    2.09%      4.237  forge::Board::has_legal_move() const
+     302    1.89%      3.831  forge::Board::generate_legal_evasions(forge::MoveList&) const
+     281    1.75%      3.565  forge::MovePicker::generate_evasions()
+     233    1.45%      2.956  forge::Board::upcoming_repetition(unsigned long) const
+     232    1.45%      2.943  void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+     202    1.26%      2.562  forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)
+     186    1.16%      2.359  forge::MovePicker::generate_quiets()
+     120    0.75%      1.522  forge::TranspositionTable::clear()
+     120    0.75%      1.522  forge::Board::is_legal_complete(forge::Move const&) const
+     118    0.74%      1.497  forge::Board::is_pseudo_legal(forge::Move const&) const
+
+=== 2. CALL-STACK-WALKED SP-PROFILED CURATED BINARY (-fno-omit-frame-pointer, SAME forge.profdata, 5 x 60 = 300 GAMES) ===
+Executable: /tmp/carbon2_job13/bld_sp_cur13_fp/forge (SP-profiled Clang 18.1.3 ThinLTO+PGO -march=sapphirerapids, 2 .profraw merged)
+  pass 1/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=12343.79 (205.730 ms/game, 621.37 sps) samples=3201 trace=ee465caeff9c0fcf
+  pass 2/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=11711.92 (195.199 ms/game, 654.89 sps) samples=3063 trace=ee465caeff9c0fcf
+  pass 3/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=11591.27 (193.188 ms/game, 661.70 sps) samples=3065 trace=ee465caeff9c0fcf
+  pass 4/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=12245.32 (204.089 ms/game, 626.36 sps) samples=3229 trace=ee465caeff9c0fcf
+  pass 5/5 (60 games, Hash 16): searches=7670 nodes=25641316 cpu_ms=11620.21 (193.670 ms/game, 660.06 sps) samples=3072 trace=ee465caeff9c0fcf
+Aggregate (300 games = 38350 searches): mean_engine_cpu = 198.375 ms/game | total_SIGPROF_samples = 15630
+
+--- C. Caller-Inclusive Call-Tree Table (Function Together With Everything It Calls, Recursion-Deduplicated) ---
+Incl_Samp    Incl%  Incl_ms/g    Self%  Self_ms/g  Function & Primary Callers
+    15599   99.80%    197.982    4.20%      8.326  [libc / libstdc++ / kernel]  <-- [_start (507), forge::uci_loop (335)]
+    15089   96.54%    191.509    0.01%      0.025  forge::uci_loop(std::istream&)::$_9::operator()() const  <-- [[libc / libstdc++ / kernel] (15082)]
+    15061   96.36%    191.153    0.08%      0.165  forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)  <-- [forge::Searcher::search (15057)]
+    15059   96.35%    191.128    0.00%      0.000  forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)  <-- [forge::uci_loop (15050)]
+    14862   95.09%    188.628   37.16%     73.715  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)  <-- [forge::Worker::search (14849), forge::Worker::search_child (83)]
+     4042   25.86%     51.301    7.01%     13.898  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)  <-- [forge::Worker::search (4042)]
+     3698   23.66%     46.935   13.84%     27.453  forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)  <-- [forge::Worker::search (1851), forge::Worker::qsearch (1839)]
+      917    5.87%     11.639    5.87%     11.639  forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)  <-- [forge::Worker::static_evaluate_v3 (913), forge::Worker::search (2)]
+      634    4.06%      8.047    1.89%      3.744  forge::MovePicker::generate_evasions()  <-- [forge::Worker::search (322), forge::Worker::qsearch (312)]
+      595    3.81%      7.552    3.81%      7.552  forge::TranspositionTable::probe_owned(unsigned long) const  <-- [forge::Worker::search (381), forge::Worker::qsearch (214)]
+      584    3.74%      7.412    3.74%      7.412  forge::Board::see_ge(forge::Move const&, int) const  <-- [forge::Worker::search (517), forge::Worker::qsearch (67)]
+      547    3.50%      6.942    1.27%      2.513  forge::MovePicker::generate_quiets()  <-- [forge::Worker::search (546), forge::Worker::search (1)]
+      507    3.24%      6.435    0.00%      0.000  _start  <-- [root/thread-entry]
+      502    3.21%      6.371    0.01%      0.013  forge::uci_loop(std::istream&)  <-- [[libc / libstdc++ / kernel] (502)]
+      457    2.92%      5.800    2.91%      5.775  forge::MovePicker::generate_captures()  <-- [forge::Worker::qsearch (230), forge::Worker::search (227)]
+      388    2.48%      4.924    2.47%      4.899  forge::Board::has_legal_move() const  <-- [forge::Worker::search (306), forge::Worker::qsearch (82)]
+      381    2.44%      4.836    2.44%      4.836  forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)  <-- [forge::Worker::static_evaluate_v3 (340), forge::Worker::qsearch (35)]
+      340    2.18%      4.315    2.18%      4.315  forge::MovePicker::generate_quiets()::{lambda(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long)#1}::operator()(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long) const  <-- [forge::MovePicker::generate_quiets (333), forge::Worker::search (7)]
+      290    1.86%      3.681    1.86%      3.681  forge::Board::generate_legal_evasions(forge::MoveList&) const  <-- [forge::MovePicker::generate_evasions (288), forge::Worker::qsearch (1)]
+      273    1.75%      3.465    1.75%      3.465  forge::Board::upcoming_repetition(unsigned long) const  <-- [forge::Worker::search (261), forge::Worker::search_child (7)]
+      213    1.36%      2.703    1.36%      2.703  void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)  <-- [forge::Worker::search (206), forge::Worker::qsearch (7)]
+      175    1.12%      2.221    1.12%      2.221  forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)  <-- [forge::Worker::static_evaluate_v3 (173), forge::Worker::search (2)]
+
