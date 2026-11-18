@@ -1,5 +1,7 @@
 # NOTES_kimi5 (kimi5, the strong reader/writer; partners: deepseek5, glmflash5)
 
+KNOWN-RIGHT BUILD LINE (the PC build, proven jobs 17-25): `git show <handoff>:forge-combo29/soak_all/FABLE_TO_swarm_5.md | sed -n '56,2374p' > pc_r15.patch` (sha256 d6bd72c531f7...); `cp -r <repo>/forge-combo29/{src,include,CMakeLists.txt} pc/ && cd pc && patch -p1 -s -F0 < ../pc_r15.patch && cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 && cmake --build build -j4` (the guard ONLY via CMAKE_CXX_FLAGS, never -DFORGE_MATE_ALPHA_GUARD as a cmake variable; pins none 312866, PC20 278024). This VM: 4 cores, g++ 13.3, build ~90 s, 553 positions d12 in ~30 s.
+
 ## after job 1, Mon Nov 16 04:05:00 AM UTC 2026
 - LEARNED: read the clock code FIRST, measure second — the invariant `hard <= time - Move Overhead` (clock_plan.hpp:34,46) made the 720-search result predictable to within a millisecond before I ran it. Also: wrapper scripts need chmod +x before subprocess can exec them (my control 2 failed once on PermissionError).
 - FOR deepseek5: your movetime-reserve question is settled — hard = movetime - overhead (search.cpp:2191); measured 40.45 vs 50.46 ms median at overhead 10 vs 0 (my k5_overhead_probe.json). No overshoot exists at default overhead; if your job-2 repair targets wtime safety, re-read clock_plan.hpp:32-48 first — your patch may be fixing what is already clamped.
@@ -183,3 +185,9 @@
   find the surprise, and bundle, per the owner's rule.
 - NEXT RUN: job 25 (A2A5) is open and is the same shape on the same base; reuse tests_kimi5_job24
   verbatim, and read the wrapper note in REPORT_kimi5_job24 before writing its refusal counters.
+
+## after job 25, Wed Nov 18 12:11:09 PM UTC 2026
+- LEARNED: the counter classes must be designed from the OUTCOME BRANCHES of the current source, not from a previous job's class names - my P3 prior misread job 22's "b2 10,247" as extension 2 (it was ext -2; job 22's "sing" lumped ext1+ext2). The lumped sum still landed inside the kill range, but the reasoning was wrong; grade your own prediction's reasoning, not only its number. Also: the whole job (2 builds + 32 row sets + counters) fits in ~10 min on this VM - the 40-minute line was never near.
+- FOR deepseek5: the A2A5 counting build's base-G singular classes reproduce job 22's recounted numbers EXACTLY (tests 176,423, ext1+ext2 111,221, mcut 31,604, ext-2 10,247, ext-1 15,219, none 8,132) - an independent re-count you can trust as a known answer. Test idea: under fhb7 the double-extension count collapses -42 % while ext1 RISES +11 % (G d12) - a planted singular_beta offset of +24 should move ext1 events into ext2; that is the cheap positive control for any future singular counter.
+- FOR glmflash5: (you stopped; for whoever measures next) the blend's tree shrink WEAKENS with depth (fhb7 G: 0.9016 d12 -> 0.9305 d14; a2a5 -> 0.9924) - it does not compound, so fixed-node matches price it at its d14+ value, not its d12 one.
+- NEXT RUN: job 26 (the 40 tuned settings at range ends) is open and is the lowest open job next run; its base is the same PC build (recipe is the first line of this file) and Step 2 wants a sanitizer build (-fsanitize=address,undefined -fno-sanitize-recover=undefined -O1 -g) with a planted-overflow positive control FIRST. My job-25 harness (tests_kimi5_job25/) runs 553 positions in ~30 s; reuse it.

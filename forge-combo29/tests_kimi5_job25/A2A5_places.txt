@@ -1,0 +1,16 @@
+A2A5.pc.patch.txt: the five places in the PC build (6b98f217 + pc_r15.patch,
+-DFORGE_MATE_ALPHA_GUARD=1; line numbers of /tmp/k25/pc = the unpatched PC build)
+
+1. option declarations: src/search.cpp after line 108 (tune definitions), after line 194
+   (parameters table); include/forge/search.hpp after line 257 (externs).
+2. FailHighBlend bit 2 (a), qsearch stand-pat fail high: src/search.cpp line 1676
+   (the `if (best_score >= beta) {` before the depth-0 BoundLower store at 1678).
+3. FailHighBlend bit 2 (b), qsearch end: src/search.cpp line 1745
+   (the `const Bound bound = ...` line; blend inserted before it).
+4. FailHighBlend bit 1 + RfpNoTtPv + RfpTtGuard + RfpCorrMul, the reverse futility step:
+   src/search.cpp lines 1937-1940 (the `if (!bare_king_mode && depth <= tune::RfpDepth ...`
+   and its `return eval;`). ss->tt_pv set at line 1811, tt_move/tt_capture at 1804-1810,
+   ss->static_eval / ss->raw_eval at 1869-1872.
+5. FailHighBlend bit 4, main search end (non-PV): src/search.cpp line 2366
+   (the `const Bound bound = ...` line; blend inserted before it). The correction-history
+   update that keeps the raw value: lines 2376-2381.

@@ -1,0 +1,117 @@
+diff -ruN port/src/search.cpp cnt/src/search.cpp
+--- port/src/search.cpp	2026-11-18 12:07:03.956192413 +0000
++++ cnt/src/search.cpp	2026-11-18 12:08:26.016192413 +0000
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <array>
+ #include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+@@ -236,6 +237,18 @@
+ }
+ } // namespace tune
+ 
++// kimi5 job 25 counting build (observe-only; no search change). One A25C line per
++// search. Slots: [0] singular tests (verification search run); [1..6] its outcomes:
++// extension 1, extension 2, multi-cut return (singular_beta >= beta), extension -2
++// (TT score >= beta), extension -1 (cut node), none. Closure: [0] = [1]+...+[6].
++// [7..9] taken main-search TT cutoffs by stored bound (lower, upper, exact).
++// [10] reverse-futility returns. [15] nodes where TODAY's rfp step would return
++// (today's margin, none of the three conditions); [11..14] exactly one class each:
++// returned, refused by RfpNoTtPv, refused by RfpTtGuard and not by RfpNoTtPv,
++// refused only by the larger margin of RfpCorrMul. Closure: [15] = [11]+...+[14].
++// Threads 1 only.
++std::array<std::int64_t, 16> g_a25{};
++
+ // Kings are left out: this engine's SEE value for a king is 0, so a king is
+ // neither a material attacker nor a material victim.
+ bool cheaper_enemy_attacks_dearer(const Board& board) {
+@@ -1862,6 +1875,7 @@
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        ++g_a25[tt_bound == BoundLower ? 7 : (tt_bound == BoundUpper ? 8 : 9)];  // A25C: taken TT cutoff by stored bound
+         // packc28, TtCutoffHistory: a stored fail-high by a quiet move teaches the ordering tables.
+         if (tune::TtCutoffHistory != 0 && tt_score >= beta && !tt_move.is_none() && !tt_move.is_capture() &&
+             !tt_move.is_promotion() && board.is_pseudo_legal(tt_move)) {
+@@ -1952,11 +1966,27 @@
+         const int rfp_corr = tune::RfpCorrMul != 0
+                                  ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16
+                                  : 0;
++        // A25C counting: today's step apart (today's margin, none of the three conditions), so a
++        // node where it would return lands in exactly one of the four classes. The taken return
++        // is iff today's condition and the three conditions all hold.
++        const int rfp_margin_today = tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening;
++        const bool rfp_would_today = !bare_king_mode && depth <= tune::RfpDepth &&
++                                     eval - rfp_margin_today >= beta && eval < MateInMaxPly;
++        const bool rfp_refused_pv = tune::RfpNoTtPv != 0 && ss->tt_pv;
++        const bool rfp_refused_tt = tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture();
++        const bool rfp_refused_corr = eval - (rfp_margin_today + rfp_corr) < beta;
++        if (rfp_would_today) {
++            ++g_a25[15];
++            if (!rfp_refused_pv && !rfp_refused_tt && !rfp_refused_corr) ++g_a25[11];
++            else if (rfp_refused_pv) ++g_a25[12];
++            else if (rfp_refused_tt) ++g_a25[13];
++            else ++g_a25[14];
++        }
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+-            !(tune::RfpNoTtPv != 0 && ss->tt_pv) &&
+-            !(tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture()) &&
+-            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
++            !rfp_refused_pv && !rfp_refused_tt &&
++            eval - (rfp_margin_today + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
++            ++g_a25[10];  // A25C: rfp return
+             return (tune::FailHighBlend & 1) != 0 && !is_mate_score(eval) && !is_mate_score(beta)
+                        ? beta + (eval - beta) / 3
+                        : eval;
+@@ -2213,6 +2243,7 @@
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++            ++g_a25[0];  // A25C: singular test (the verification search below runs)
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             // grok47/r4-08 (audit finding 7): (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch,
+             // which never reads excluded_move, so the singular search would cut off on this node's own
+@@ -2230,12 +2261,18 @@
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                 }
++                ++g_a25[extension == 2 ? 2 : 1];  // A25C: extension 1 or 2
+             } else if (singular_beta >= beta) {
++                ++g_a25[3];  // A25C: multi-cut return
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
++                ++g_a25[4];  // A25C: extension -2
+             } else if (cut_node) {
+                 extension = -1;
++                ++g_a25[5];  // A25C: extension -1
++            } else {
++                ++g_a25[6];  // A25C: no extension
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+@@ -3136,6 +3173,7 @@
+     // thread first. MultiPV leaves the extra workers idle; clearing them does
+     // not change the main-worker total.
+     for (auto& worker : workers_) worker->reset_node_count();
++    g_a25.fill(0);  // kimi5 job 25 counting: one A25C line per search (Threads 1)
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+@@ -3153,6 +3191,12 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    if (emit_info) {  // kimi5 job 25 counting: one A25C line per search
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "A25C";
++        for (std::size_t i = 0; i < g_a25.size(); ++i) std::cout << ' ' << g_a25[i];
++        std::cout << std::endl;
++    }
+     return result;
+ }
+ 
