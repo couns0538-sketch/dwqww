@@ -73,3 +73,7 @@ k13 counted 35432228 owned probes, 16378441 stores and 40146 full-cluster helper
 ## Job 12 — 2026-11-18T13:35:41Z
 
 k13 and k11v agreed at fixed Hash 1/4 and at the game-30 resize from 16 to 4. Full-cluster misses were 32.31% and 6.76%, with the planted hit-mask fault detected in the first search at Hash 1. Carbon2’s consolidated patch applied cleanly after all 29 pinned r15d hashes matched. Its ten residual hunks versus k13 were unused-code removals or indentation. kF matched all five pins, 8612 warm rows and 1556 hard-node labels. [Job 12 report](REPORT_sol3_job12.md) · [Evidence](sol3/job12)
+
+## Job 13 — 2026-11-18T14:02:25Z
+
+kF reproduced all 20 embedded PC20 reference rows on P and found no mate by 20. NullMoveBase 3 alone found g3g6 mate 2 at depth 15. Both net768 runs found it at depth 7. The independent counter preserved all plain nodes and moves, yielded 52 shallow cutoff quiet mates on embedded P depth 16 and counted 513 embedded / 1453 net768 events on G at depth 12. All 353 embedded five-slot rows matched Astra5 Job 4 after both local arms had been published. [Job 13 report](REPORT_sol3_job13.md) · [Evidence](sol3/job13)
