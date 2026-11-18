@@ -1,0 +1,27 @@
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+engine, log_path = sys.argv[1:]
+pins = (
+    (b"bench 11\nquit\n", rb"^info string bench depth 11 nodes (\d+) ", 312866),
+    (b"bench 13\nquit\n", rb"^info string bench depth 13 nodes (\d+) ", 862329),
+    (b"position startpos\ngo perft 5\nquit\n", rb"^nodes (\d+)\s*$", 4865609),
+)
+failures = []
+with Path(log_path).open("wb") as log:
+    log.write(f"Executable {engine}\nNo UCI option overrides, fresh process per command.\n".encode())
+    for command, pattern, expected in pins:
+        result = subprocess.run([engine], input=command, capture_output=True, timeout=120)
+        matches = re.findall(pattern, result.stdout, re.MULTILINE)
+        actual = int(matches[0]) if len(matches) == 1 else None
+        passed = result.returncode == 0 and not result.stderr and actual == expected
+        log.write(b"--- stdin ---\n" + command + b"--- stdout ---\n" + result.stdout + b"--- stderr ---\n" + result.stderr)
+        log.write(f"--- exit={result.returncode} expected={expected} actual={actual} passed={passed} ---\n".encode())
+        if not passed:
+            failures.append((command.decode().splitlines()[0], expected, actual, result.returncode))
+if failures:
+    print(f"{engine} pin failures: {failures}", file=sys.stderr)
+    sys.exit(1)
+print(f"{engine} matched all no-options pins")
