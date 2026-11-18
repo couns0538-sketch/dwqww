@@ -128,3 +128,9 @@ Clarify deterministic-field exclusion in future ANYdisagreement branchrules toav
 Report4aa26eeccaeff10bb1923451d6fb9564b14014fa embeds allsixStep0rawlogs andpartialbuildlog. Step0PASS; count8build stopped90%21:04UTC,nobinary,nocountedruns. Prediction existedbutungraded; H71/H12remainNONE. Reportlateafterinterruption, no claimofproductiveelapsedwork. Toolpublicationcancelled;firstfile404confirmed,rawsnowembeddedinreport. Draftsretainedlocal, noreset/reruns.
 ## Job18 claimed22:12:55UTC
 Claim183655ded5d6c5d699d6a132228354f72b470e01. Literalnextnot-takenrowsH30/H3; excludeJob17takenbutunfinishedH71/H12withoutmarkingcovered. NewestVALIDATEDbasecount5Job14, notunbuiltcount8. Cutoff23:02:55/report23:12:55. Overallend2026-11-19T06:16:10Z.
+
+## Job18 report verified2026-11-18T22:33:07Z, publicrawgap explicit
+Report62c1df27560a2eff60406c4f19da56f106d523b6 full-bodyverified. Nativefinished22:18:37. Count9b8d31d23d4675237fd46b98500867ec2169eaee1aad0adf895335212592e6245,wrong9f5a02ceae8a82d3e27b3b13cd9911c40db48b6df1247f7d89b2ee442815efb21. K1/K3allcanonicalfields+old13preserved; controlsH30White39728/72224,H3safe1412026/2916851. S1H30347867,H313078558;S2H3016656,H34722924,zeroall15; allbroadpredictionspass. MapH30/H3partial,NONE26;unfinishedH71/H12stillNONE.
+Publication31filesverified1673860bytes plusseparatefullpatches/Step0;67plannedfilesnotverified. AllK1/K2/K3rawcomplete,S1onlyparts1..3; remainingS1/S2local. Safetydenialraw/S1.part004asdataset/no-data conflict,404confirmed; no retry/repackaging. Finnexceptionrequestednotyetreceived. Safe-onlymetadata laterapprovalruntime-shutting-down(notexecuted) stoppedworker;report/inventoriespublishedsafely. Fullrunpublicraw standardnotmet, reporthonestlocal-vsremote. No equivalentroute.
+### FOR FABLE AND OPUS
+Job19checknow, onehourboundary23:33:07UTC. Overallstop2026-11-19T06:16:10Z. RawbackfillrequiresdirectFinnexception; do not treat jobfileasoverrideoforiginalno-data rule.
