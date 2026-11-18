@@ -1,0 +1,260 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -5,22 +5,22 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6"};
+-inline std::atomic<unsigned long long> uses[4]{}, differs[4]{}, diagnostics{0};
+-inline void reset() { for (int i=0;i<4;++i) { uses[i]=0; differs[i]=0; } }
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7"};
++inline std::atomic<unsigned long long> uses[8]{}, differs[8]{}, diagnostics{0};
++inline void reset() { for (int i=0;i<8;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<4 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==4) return;
++    int i=0; while(i<8 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==8) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+     if(diagnostics.fetch_add(1,std::memory_order_relaxed)<5) {
+         const std::lock_guard<std::mutex> lock(uci_output_mutex());
+-        std::cout << "info string shortcut disagreement " << name << (i>=2 ? " postmove_fen " : " fen ") << board.fen()
+-                  << " move " << Board::move_to_uci(move) << std::endl;
++        std::cout << "info string shortcut disagreement " << name << (i==2 || i==3 ? " postmove_fen " : i==7 ? " postunmake_fen " : " premove_fen ") << board.fen()
++                  << " move " << (move.is_none() ? "0000" : Board::move_to_uci(move)) << std::endl;
+     }
+ }
+ // Caller holds the output mutex, after workers have joined.
+-inline void summary() { for(int i=0;i<4;++i) std::cout << "info string shortcut " << names[i]
++inline void summary() { for(int i=0;i<8;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl; }
+ }
+--- /dev/null
++++ b/include/forge/piece_reference.hpp
+@@ -0,0 +1,145 @@
++#pragma once
++#include "forge/board.hpp"
++#include <array>
++#include <cstdlib>
++
++namespace forge::piece_reference {
++// Independent square-array diagnostic oracle. Caller supplies a generated
++// pseudo-legal move; this is an attack/king-safety test, not a move generator.
++using Position = std::array<Piece, 64>;
++inline int kind(Piece p) { return p == Empty ? 0 : (static_cast<int>(p) - 1) % 6 + 1; }
++inline Color team(Piece p) { return p >= BP ? Black : White; }
++inline int sign(int n) { return (n > 0) - (n < 0); }
++inline Position copy(const Board& b) {
++    Position p{};
++    for (int s = 0; s < 64; ++s) p[static_cast<std::size_t>(s)] = b.piece_at(s);
++    return p;
++}
++inline int monarch(const Position& p, Color c) {
++    for (int s = 0; s < 64; ++s)
++        if (p[static_cast<std::size_t>(s)] != Empty && team(p[static_cast<std::size_t>(s)]) == c &&
++            kind(p[static_cast<std::size_t>(s)]) == King) return s;
++    return -1;
++}
++inline bool attack(const Position& p, int from, int to, int type, Color c) {
++    if (from < 0 || to < 0 || from == to) return false;
++    const int dx = (to & 7) - (from & 7), dy = (to >> 3) - (from >> 3);
++    const int ax = std::abs(dx), ay = std::abs(dy);
++    if (type == Pawn) return ax == 1 && dy == (c == White ? 1 : -1);
++    if (type == Knight) return (ax == 1 && ay == 2) || (ax == 2 && ay == 1);
++    if (type == King) return ax <= 1 && ay <= 1;
++    const bool diagonal = ax == ay && ax != 0;
++    const bool straight = (dx == 0) != (dy == 0);
++    if (!((type == Bishop && diagonal) || (type == Rook && straight) ||
++          (type == Queen && (diagonal || straight)))) return false;
++    const int sx = sign(dx), sy = sign(dy);
++    for (int x = (from & 7) + sx, y = (from >> 3) + sy; x != (to & 7) || y != (to >> 3); x += sx, y += sy)
++        if (p[static_cast<std::size_t>(8 * y + x)] != Empty) return false;
++    return true;
++}
++inline bool threatened(const Position& p, int target, Color by) {
++    if (target < 0) return false;
++    for (int s = 0; s < 64; ++s) {
++        const Piece piece = p[static_cast<std::size_t>(s)];
++        if (piece != Empty && team(piece) == by && attack(p, s, target, kind(piece), by)) return true;
++    }
++    return false;
++}
++inline Position after(Position p, const Move& m, Color us) {
++    const Piece moving = p[m.from];
++    p[m.from] = Empty;
++    if ((m.flags & EnPassant) != 0U) p[static_cast<std::size_t>(static_cast<int>(m.to) + (us == White ? -8 : 8))] = Empty;
++    p[m.to] = m.is_promotion() ? static_cast<Piece>((us == White ? 0 : 6) + m.promotion) : moving;
++    if (m.is_castle()) {
++        const bool ks = (m.flags & KingCastle) != 0U;
++        const int home = us == White ? 0 : 56;
++        p[static_cast<std::size_t>(home + (ks ? 5 : 3))] = p[static_cast<std::size_t>(home + (ks ? 7 : 0))];
++        p[static_cast<std::size_t>(home + (ks ? 7 : 0))] = Empty;
++    }
++    return p;
++}
++inline bool gives_check(const Board& b, const Move& m) {
++    const Color us = b.side_to_move();
++    const Position p = after(copy(b), m, us);
++    return threatened(p, monarch(p, opposite(us)), us);
++}
++inline bool direct_check(const Board& b, const Move& m) {
++    // Deliberate control: only the piece arriving on m.to counts. In castling
++    // this is the king; rook checks are intentionally omitted with discoveries.
++    const Color us = b.side_to_move();
++    const Position p = after(copy(b), m, us);
++    return attack(p, m.to, monarch(p, opposite(us)), kind(p[m.to]), us);
++}
++inline bool legal(const Board& b, const Move& m) {
++    const Color us = b.side_to_move(), them = opposite(us);
++    const Position before = copy(b);
++    if (m.is_castle()) {
++        if (threatened(before, m.from, them)) return false;
++        Position transit = before;
++        const int through = static_cast<int>(m.from) + sign(static_cast<int>(m.to) - static_cast<int>(m.from));
++        transit[static_cast<std::size_t>(through)] = transit[m.from];
++        transit[m.from] = Empty;
++        if (threatened(transit, through, them)) return false;
++    }
++    const Position p = after(before, m, us);
++    return !threatened(p, monarch(p, us), them);
++}
++struct Lines {
++    std::array<Bitboard, 7> checks{};
++    Bitboard pins = 0;
++    Bitboard discoveries = 0;
++};
++inline Bitboard blockers(const Position& p, int target, Color slider_side, Color blocker_side) {
++    if (target < 0) return 0;
++    Bitboard result = 0;
++    for (int dx = -1; dx <= 1; ++dx) for (int dy = -1; dy <= 1; ++dy) {
++        if (dx == 0 && dy == 0) continue;
++        int first = -1;
++        for (int x = (target & 7) + dx, y = (target >> 3) + dy;
++             x >= 0 && x < 8 && y >= 0 && y < 8; x += dx, y += dy) {
++            const int square = y * 8 + x;
++            const Piece piece = p[static_cast<std::size_t>(square)];
++            if (piece == Empty) continue;
++            if (first < 0) { first = square; continue; }
++            const int type = kind(piece);
++            const bool slider = type == Queen || ((dx != 0 && dy != 0) ? type == Bishop : type == Rook);
++            if (slider && team(piece) == slider_side && team(p[static_cast<std::size_t>(first)]) == blocker_side)
++                result |= Bitboard{1} << first;
++            break;
++        }
++    }
++    return result;
++}
++inline Lines reconstruct(const Board& b) {
++    const Position p = copy(b);
++    const Color us = b.side_to_move(), them = opposite(us);
++    const int enemy = monarch(p, them), own = monarch(p, us);
++    Lines result;
++    if (enemy >= 0) {
++        const int ex = enemy & 7, ey = enemy >> 3;
++        const int pawn_rank = ey + (us == White ? -1 : 1);
++        for (int dx : {-1, 1}) if (ex + dx >= 0 && ex + dx < 8 && pawn_rank >= 0 && pawn_rank < 8)
++            result.checks[Pawn] |= Bitboard{1} << (pawn_rank * 8 + ex + dx);
++        for (int dx = -2; dx <= 2; ++dx) for (int dy = -2; dy <= 2; ++dy) {
++            if (std::abs(dx) * std::abs(dy) != 2) continue;
++            const int x = ex + dx, y = ey + dy;
++            if (x >= 0 && x < 8 && y >= 0 && y < 8) result.checks[Knight] |= Bitboard{1} << (8 * y + x);
++        }
++        for (int dx = -1; dx <= 1; ++dx) for (int dy = -1; dy <= 1; ++dy) {
++            if (dx == 0 && dy == 0) continue;
++            const int type = dx != 0 && dy != 0 ? Bishop : Rook;
++            for (int x = ex + dx, y = ey + dy; x >= 0 && x < 8 && y >= 0 && y < 8; x += dx, y += dy) {
++                const int square = y * 8 + x;
++                result.checks[static_cast<std::size_t>(type)] |= Bitboard{1} << square;
++                if (p[static_cast<std::size_t>(square)] != Empty) break;
++            }
++        }
++        result.checks[Queen] = result.checks[Bishop] | result.checks[Rook];
++    }
++    // NoPieceType and King entries intentionally remain zero, matching the
++    // represented geometry contract, not because kings lack real attacks.
++    result.pins = blockers(p, own, them, us);
++    result.discoveries = blockers(p, enemy, us, us);
++    return result;
++}
++} // namespace forge::piece_reference
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,5 +1,6 @@
+ #if FORGE_SHORTCUT_COUNT
+ #include "forge/shortcut_count.hpp"
++#include "forge/piece_reference.hpp"
+ #endif
+ #include "forge/clock_plan.hpp"
+ #include "forge/search.hpp"
+@@ -900,6 +901,7 @@
+                         const bool shortcut_legal = move.from == own_king_sq_ ? board_.is_legal(move) :
+                             (((pinned_ >> move.from) & 1ULL) == 0 || attacks::aligned(own_king_sq_, move.from, move.to));
+                         shortcut_count::record("B2", shortcut_legal != board_.is_legal(move), board_, move);
++                        shortcut_count::record("S-B2", shortcut_legal != piece_reference::legal(board_, move), board_, move);
+ #endif
+                         if (move.from == own_king_sq_) {
+                             if (!board_.is_legal(move)) continue;
+@@ -927,6 +929,20 @@
+                         const bool reference_check = board_.gives_check(move);
+ #endif
+                         shortcut_count::record("B1", last_quiet_gives_check_ != reference_check, board_, move);
++#if FORGE_SHORTCUT_WRONG2
++                        const bool piece_check = piece_reference::direct_check(board_, move);
++#else
++                        const bool piece_check = piece_reference::gives_check(board_, move);
++#endif
++                        shortcut_count::record("S-B1", last_quiet_gives_check_ != piece_check, board_, move);
++#if FORGE_SPD_KING_LINES
++                        const auto piece_lines = piece_reference::reconstruct(board_);
++                        bool copies_differ = pinned_ != piece_lines.pins || discoverers_ != piece_lines.discoveries;
++                        // Compare all seven copied slots, including the initialized empty slot.
++                        for (int type = 0; type <= King; ++type)
++                            copies_differ = copies_differ || check_squares_[type] != piece_lines.checks[type];
++                        shortcut_count::record("S-B4", copies_differ, board_, move);
++#endif
+ #endif
+                         return move;
+                     }
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1,5 +1,6 @@
+ #if FORGE_SHORTCUT_COUNT
+ #include "forge/shortcut_count.hpp"
++#include "forge/piece_reference.hpp"
+ #endif
+ #include "forge/board.hpp"
+ 
+@@ -1342,6 +1343,15 @@
+ #if FORGE_SPD_KING_LINES
+     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+     else king_lines_.valid = false;
++#if FORGE_SHORTCUT_COUNT
++    if (king_lines_.valid) {
++        const auto piece_lines = piece_reference::reconstruct(*this);
++        bool restored_differ = king_lines_.pinned != piece_lines.pins || king_lines_.discoverers != piece_lines.discoveries;
++        for (int type = 0; type <= King; ++type)
++            restored_differ = restored_differ || king_lines_.check_squares[type] != piece_lines.checks[type];
++        shortcut_count::record("S-B7", restored_differ, *this, move);
++    }
++#endif
+ #endif
+ }
+ 
+@@ -1381,6 +1391,15 @@
+ #if FORGE_SPD_KING_LINES
+     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+     else king_lines_.valid = false;
++#if FORGE_SHORTCUT_COUNT
++    if (king_lines_.valid) {
++        const auto piece_lines = piece_reference::reconstruct(*this);
++        bool restored_differ = king_lines_.pinned != piece_lines.pins || king_lines_.discoverers != piece_lines.discoveries;
++        for (int type = 0; type <= King; ++type)
++            restored_differ = restored_differ || king_lines_.check_squares[type] != piece_lines.checks[type];
++        shortcut_count::record("S-B7", restored_differ, *this, Move::none());
++    }
++#endif
+ #endif
+ }
+ 
