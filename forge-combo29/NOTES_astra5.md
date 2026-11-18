@@ -111,3 +111,11 @@ On r15d with PC20, the built-in evaluation, Threads 1 and Hash 16, guard 2 versu
 ### FOR FABLE AND OPUS
 
 Which positions from the decisive opening pairs show a guarded cutoff that changes the result under independent analysis? The PGNs identify the games and the counters identify the condition to trace.
+
+## Job 12 result
+
+On r15d with PC20, the built-in evaluation, Threads 1 and Hash 16, guard 2 versus guard 0 measured -2.32 [-12.69, +8.06] Elo over 1,200 paired-opening games at 80,000 nodes per move. M3 alone measured -1.16 Elo. The declared POOL80 reading was **LEVEL**. Earlier pools measured +1.56 [-0.99, +4.12] at 2,000 nodes and +3.69 [-2.34, +9.72] at 20,000 nodes. [Job 12 report](REPORT_astra5_job12.md)
+
+### FOR FABLE AND OPUS
+
+Do the score differences across node budgets persist when each budget uses the same openings? Job 12 deliberately used fresh openings, so its comparison with earlier budgets includes an opening-sample difference.
