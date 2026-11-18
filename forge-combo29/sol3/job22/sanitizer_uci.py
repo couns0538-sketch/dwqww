@@ -307,13 +307,14 @@ class Workload:
                                  'result': outcome.result() if outcome else '*', 'moves': ' '.join(moves)})
             self.completed_games += 1
 
-    def run(self, part, count):
+    def run(self, part, count, control_position):
         if part == 'au-d9':
             self.fixed('au-d9', 1, 1, count, 'go depth 9', reset_each=True)
         elif part == 'au-games':
             self.play('au-games', 201, 210)
         elif part == 't-control':
-            self.fixed('t-control', 2, 1, 5, 'go nodes 50000')
+            first, last = (control_position, control_position) if control_position else (1, 5)
+            self.fixed('t-control', 2, first, last, 'go nodes 50000')
         else:
             for threads, first in ((1, 1), (2, 31), (4, 61)):
                 if threads != 1:
@@ -339,6 +340,8 @@ def run(args):
         raise ValueError('timeout must be positive and at most 300 seconds')
     if args.count is not None and args.part != 'au-d9':
         raise ValueError('--count applies to au-d9 only')
+    if args.control_position is not None and args.part != 't-control':
+        raise ValueError('--control-position applies to T controls only')
     if args.setarch_r and not args.part.startswith('t-'):
         raise ValueError('--setarch-r applies to T runs only')
     executable, fixture, net = (path.resolve(strict=True) for path in (args.engine, args.fixture, args.net))
@@ -368,7 +371,7 @@ def run(args):
         try:
             child.launch()
             active = child.setup(net, options)
-            work.run(args.part, count)
+            work.run(args.part, count, args.control_position)
         except (OSError, RuntimeError, ValueError, KeyboardInterrupt) as err:
             error = f'{type(err).__name__}: {err}'
         finally:
@@ -381,7 +384,7 @@ def run(args):
     with (output / 'engine.stdout.txt').open('rb') as raw_stdout:
         raw_bestmoves = sum(line.startswith(b'bestmove ') for line in raw_stdout)
     summary = {
-        'label': args.label, 'part': args.part, 'argv': argv, 'engine_sha256': args.exe_sha256,
+         'label': args.label, 'part': args.part, 'control_position': args.control_position, 'argv': argv, 'engine_sha256': args.exe_sha256,
         'net_sha256': identity.NET_SHA, 'fixture_sha256': FIXTURE_SHA, 'identity_helper_sha256': HELPER_SHA,
         'runner_sha256': digest(Path(__file__)), 'python_chess': PYTHON_CHESS, 'initial_uci_options': options,
         'net_active': active, 'net_path': str(net), 'startup_complete': active is not None,
@@ -416,6 +419,7 @@ def main():
         cli.add_argument('--' + option, type=Path, required=True)
     cli.add_argument('--count', choices=(1, 200), type=int)
     cli.add_argument('--setarch-r', action='store_true')
+    cli.add_argument('--control-position', type=int, choices=range(1, 6))
     cli.add_argument('--timeout', default=60.0, type=float)
     args = cli.parse_args()
     signal.signal(signal.SIGTERM, terminate)

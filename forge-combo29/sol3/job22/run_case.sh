@@ -19,6 +19,7 @@ args=(python3 -B "$job/sanitizer_uci.py" --part "$part" --engine "$engine"
       --output "$dir/$label" --timeout 120 "$@")
 {
   cat "$job/sanitizer.env.txt"
+  if [[ "$label" == C-T-pos-* ]]; then printf '%s\n' 'TSAN_OPTIONS=halt_on_error=1:exitcode=66'; fi
   printf 'PYTHONPATH=%q ' /workspace/work/sol3-replay/python
   printf '%q ' "${args[@]}"
   printf '\n'
@@ -29,6 +30,7 @@ if ((remaining > 0)); then
     set -a
     source "$job/sanitizer.env.txt"
     set +a
+    if [[ "$label" == C-T-pos-* ]]; then export TSAN_OPTIONS=halt_on_error=1:exitcode=66; fi
     PYTHONPATH=/workspace/work/sol3-replay/python timeout --kill-after=3s "$remaining" "${args[@]}"
   ) > "$dir/$label.driver.stdout.txt" 2> "$dir/$label.driver.stderr.txt" || code=$?
 else
