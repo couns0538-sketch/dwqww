@@ -1,0 +1,26 @@
+Job 25 Pre-Committed Prediction (CPU of B over A on Held-Out Workload T)
+========================================================================
+
+Declared row thresholds (A = larger stack, B = smaller stack):
+  - PAYS:     pooled CPU ratio > 1.0116 and at least 10 of 12 blocks > 1.0000
+  - COSTS:    pooled CPU ratio < 0.9884 and at least 10 of 12 blocks < 1.0000
+  - NOT SEEN: otherwise
+
+Part N (N = M + 10_W2 with its minimal whole-piece chain {01_S4, 02_S5, 07_G3, 09_W1} + tidy;
+omits only 03_S5_assert, 05_G1, and 06_G2 relative to kF):
+  1. N1 (A = kF_sp_1, B = N_1 on T):
+     Predicted pooled CPU ratio range: [0.9980, 1.0115]
+     Expected row reading: NOT SEEN
+
+  2. N2 (A = kF_sp_2, B = N_2 on T):
+     Predicted pooled CPU ratio range: [0.9980, 1.0115]
+     Expected row reading: NOT SEEN
+
+  3. Expected Part N reading:
+     N KEEPS kF's speed (both N1 and N2 read NOT SEEN or COSTS).
+
+Part W (10_W2 second build):
+  4. Part W row (A = kF_sp_2, B = kF_2_minus_10_W2 on T):
+     Predicted pooled CPU ratio range: [1.0000, 1.0115]
+     Expected row reading: NOT SEEN
+     Expected reading of the 10_W2 pair: NOT SEEN (neither row reads PAYS).
