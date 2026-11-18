@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job9
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job9
+base=/workspace/work/sol2-job2/r15d
+patchfile="$job/stack_r15d_to_final.patch.txt"
+(
+  cd "$base"
+  sha256sum -c --strict "$job/r15d-pc-29.sha256"
+) > "$out/step3-base29-check.raw.txt" 2>&1
+cat "$out/step3-base29-check.raw.txt"
+expected_sha=$(awk '/^SHA-256 / {print $2}' "$job/patch-source.raw.txt")
+printf '%s  %s\n' "$expected_sha" "$patchfile" | sha256sum -c -
+sha256sum "$patchfile"
+mkdir "$job/kF"
+cp -a "$base/." "$job/kF/"
+patch --batch -p1 -F0 -d "$job/kF" < "$patchfile" > "$out/step3-patch.raw.txt" 2>&1
+cat "$out/step3-patch.raw.txt"
+if rg -qi '\bfuzz\b|\boffset\b|\bfailed\b|reject|skipping|reversed' "$out/step3-patch.raw.txt"; then exit 3; fi
+test -z "$(find "$job/kF" -name '*.rej' -print -quit)"
+bash "$job/build_kF_pgo.sh" > "$out/kF-step1-command.raw.txt" 2>&1
+taskset -c 2 python3 -B "$job/no_options_pins.py" "$job/build-pgo-kF/forge" "$out/step3-kF-pgo-pins.raw.txt"
+sha256sum "$job/build-pgo-kF/forge" | tee "$out/step3-kF-sha256.raw.txt"

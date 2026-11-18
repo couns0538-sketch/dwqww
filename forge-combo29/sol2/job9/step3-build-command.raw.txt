@@ -1,0 +1,65 @@
++ job=/workspace/work/sol2-job9
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job9
++ base=/workspace/work/sol2-job2/r15d
++ patchfile=/workspace/work/sol2-job9/stack_r15d_to_final.patch.txt
++ cat /workspace/work/sol2-repo/forge-combo29/sol2/job9/step3-base29-check.raw.txt
++ cd /workspace/work/sol2-job2/r15d
++ sha256sum -c --strict /workspace/work/sol2-job9/r15d-pc-29.sha256
+CMakeLists.txt: OK
+include/forge/b4.hpp: OK
+include/forge/bitboard.hpp: OK
+include/forge/board.hpp: OK
+include/forge/book.hpp: OK
+include/forge/clock_plan.hpp: OK
+include/forge/eval.hpp: OK
+include/forge/eval_params.hpp: OK
+include/forge/nnue.hpp: OK
+include/forge/nnue_v3.hpp: OK
+include/forge/search.hpp: OK
+include/forge/tm_finish.hpp: OK
+include/forge/tm_node_share.hpp: OK
+include/forge/uci.hpp: OK
+include/forge/uci_clock.hpp: OK
+include/forge/uci_output.hpp: OK
+src/bitboard.cpp: OK
+src/board.cpp: OK
+src/book.cpp: OK
+src/book_data.inc: OK
+src/eval.cpp: OK
+src/eval_params.cpp: OK
+src/eval_params_table.inc: OK
+src/nnue.cpp: OK
+src/nnue_v3.cpp: OK
+src/nnue_weights.inc: OK
+src/polyglot_keys.inc: OK
+src/search.cpp: OK
+src/uci.cpp: OK
+++ awk '/^SHA-256 / {print $2}' /workspace/work/sol2-job9/patch-source.raw.txt
++ expected_sha=3d2ce085a8b76478942d4e29d7a74512eb3ecd2d328d224e27f711a48e46cb30
++ printf '%s  %s\n' 3d2ce085a8b76478942d4e29d7a74512eb3ecd2d328d224e27f711a48e46cb30 /workspace/work/sol2-job9/stack_r15d_to_final.patch.txt
++ sha256sum -c -
+/workspace/work/sol2-job9/stack_r15d_to_final.patch.txt: OK
++ sha256sum /workspace/work/sol2-job9/stack_r15d_to_final.patch.txt
+3d2ce085a8b76478942d4e29d7a74512eb3ecd2d328d224e27f711a48e46cb30  /workspace/work/sol2-job9/stack_r15d_to_final.patch.txt
++ mkdir /workspace/work/sol2-job9/kF
++ cp -a /workspace/work/sol2-job2/r15d/. /workspace/work/sol2-job9/kF/
++ patch --batch -p1 -F0 -d /workspace/work/sol2-job9/kF
++ cat /workspace/work/sol2-repo/forge-combo29/sol2/job9/step3-patch.raw.txt
+patching file include/forge/b4.hpp
+patching file include/forge/board.hpp
+patching file include/forge/eval.hpp
+patching file include/forge/nnue_v3.hpp
+patching file include/forge/search.hpp
+patching file src/board.cpp
+patching file src/nnue_v3.cpp
+patching file src/search.cpp
+patching file src/uci.cpp
++ rg -qi '\bfuzz\b|\boffset\b|\bfailed\b|reject|skipping|reversed' /workspace/work/sol2-repo/forge-combo29/sol2/job9/step3-patch.raw.txt
+++ find /workspace/work/sol2-job9/kF -name '*.rej' -print -quit
++ test -z ''
++ bash /workspace/work/sol2-job9/build_kF_pgo.sh
++ taskset -c 2 python3 -B /workspace/work/sol2-job9/no_options_pins.py /workspace/work/sol2-job9/build-pgo-kF/forge /workspace/work/sol2-repo/forge-combo29/sol2/job9/step3-kF-pgo-pins.raw.txt
+/workspace/work/sol2-job9/build-pgo-kF/forge matched all no-options pins
++ sha256sum /workspace/work/sol2-job9/build-pgo-kF/forge
++ tee /workspace/work/sol2-repo/forge-combo29/sol2/job9/step3-kF-sha256.raw.txt
+90413337a79410b49b76cbec4b2e1a77344bcc2385fecd5950f1f2ababd1539a  /workspace/work/sol2-job9/build-pgo-kF/forge
