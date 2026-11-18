@@ -1,0 +1,15 @@
++ printf '%s  %s\n' 79ef1d4b038499990fa3fc0392324a321f4444dca43b7ee0e248e14f8493ce76 /workspace/work/sol2-job16/group_G_on_r15d.patch.txt
++ sha256sum -c -
+/workspace/work/sol2-job16/group_G_on_r15d.patch.txt: OK
++ wc -l /workspace/work/sol2-job16/group_G_on_r15d.patch.txt
+842 /workspace/work/sol2-job16/group_G_on_r15d.patch.txt
++ cd /workspace/work/sol2-job2/r15d
++ sha256sum -c /workspace/work/sol2-repo/forge-combo29/sol2/job13/job9-r15d-29.sha256.txt
++ mkdir /workspace/work/sol2-job16/G
++ cp -a /workspace/work/sol2-job2/r15d/. /workspace/work/sol2-job16/G/
++ patch -d /workspace/work/sol2-job16/G -p1 -F0
++ rg -i 'offset|fuzz|FAILED|reject' /workspace/work/sol2-job16/group-source/patch.raw.txt
++ cd /workspace/work/sol2-job16/G
++ find src include CMakeLists.txt -type f -print0
++ sort -z
++ xargs -0 sha256sum

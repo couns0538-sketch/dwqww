@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Record the three default UCI counts and held-out W proof for one new build."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import re
+import runpy
+import subprocess
+
+from arm_timing import ENGINE_ENV, SIGNATURE_FIELDS, measure_driver, write_json
+
+BASE = Path('/workspace/work/sol2-job2')
+REPLAY = Path('/workspace/work/sol2-job13/soft_book_driver.py')
+PINS = (
+    ('bench11', b'bench 11\nquit\n', rb'^info string bench depth 11 nodes (\d+) ', 312866),
+    ('bench13', b'bench 13\nquit\n', rb'^info string bench depth 13 nodes (\d+) ', 862329),
+    ('perft5', b'position startpos\ngo perft 5\nquit\n', rb'^nodes (\d+)\s*$', 4865609),
+)
+
+
+def default_pins(engine, output):
+    rows = {}
+    with (output / 'default-pins.raw.txt').open('x', encoding='utf-8') as log:
+        print(f'Executable: {engine}', file=log)
+        print('Fresh process per command, no UCI option overrides, LC_ALL=C and TZ=UTC.', file=log)
+        for label, command, pattern, expected in PINS:
+            try:
+                result = subprocess.run([str(engine)], input=command, capture_output=True,
+                                        env=ENGINE_ENV, timeout=90, check=False)
+                stdout, stderr, exit_status = result.stdout, result.stderr, result.returncode
+            except subprocess.TimeoutExpired as exc:
+                stdout, stderr, exit_status = exc.stdout or b'', exc.stderr or b'', None
+            matches = re.findall(pattern, stdout, re.MULTILINE)
+            actual = int(matches[0]) if len(matches) == 1 else None
+            passed = exit_status == 0 and not stderr and actual == expected
+            rows[label] = {'expected': expected, 'actual': actual, 'exit_status': exit_status, 'passes': passed}
+            for name, content in [('stdin', command), ('stdout', stdout), ('stderr', stderr)]:
+                print(f'--- {label} {name} ---', file=log)
+                print(content.decode('utf-8', errors='backslashreplace'), end='', file=log)
+            print(json.dumps(rows[label]), file=log)
+    return rows
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('engine', type=Path)
+    parser.add_argument('output', type=Path)
+    parser.add_argument('known', type=Path)
+    args = parser.parse_args()
+    engine = args.engine.resolve(strict=True)
+    args.output.mkdir(exist_ok=False)
+    with engine.open('rb') as source:
+        sha = hashlib.file_digest(source, 'sha256').hexdigest()
+    pins = default_pins(engine, args.output)
+    known = json.loads(args.known.read_text())
+    expected = tuple(known[field] for field in SIGNATURE_FIELDS)
+    driver_main = runpy.run_path(str(REPLAY))['main']
+    argv = [str(REPLAY), '--engine', str(engine), '--net', str(BASE / 'net768.fnn3'),
+            '--book', str(BASE / 'UHO_Lichess_4852_v1.epd'), '--start', '7001',
+            '--games', '20', '--softnodes', '2000', '--max-plies', '300', '--json']
+    w = measure_driver(driver_main, argv, args.output, 'W', expected)
+    write_json(args.output / 'W.result.raw.txt', w)
+    passes = all(pin['passes'] for pin in pins.values()) and w['eligible']
+    record = {'path': str(engine), 'sha256': sha, 'passes': passes, 'pins': pins,
+              'W': {field: w.get(field) for field in SIGNATURE_FIELDS}, 'W_passes': w['eligible']}
+    write_json(args.output / 'checks.raw.txt', record)
+    print(json.dumps(record, indent=2))
+    return 0 if passes else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job16
+source_tree=/workspace/work/sol2-job2/r15d
+previous=/workspace/work/sol2-repo/forge-combo29/sol2/job13
+patch_file="$job/group_G_on_r15d.patch.txt"
+patched="$job/G"
+out="$job/group-source"
+mkdir "$out"
+exec > "$out/commands.raw.txt" 2>&1
+set -x
+printf '%s  %s\n' 79ef1d4b038499990fa3fc0392324a321f4444dca43b7ee0e248e14f8493ce76 "$patch_file" | sha256sum -c -
+wc -l "$patch_file"
+(cd "$source_tree" && sha256sum -c "$previous/job9-r15d-29.sha256.txt") > "$out/r15d-source-check.raw.txt"
+mkdir "$patched"
+cp -a "$source_tree/." "$patched/"
+patch -d "$patched" -p1 -F0 < "$patch_file" > "$out/patch.raw.txt" 2>&1
+if rg -i 'offset|fuzz|FAILED|reject' "$out/patch.raw.txt"; then
+    printf 'Group G patch did not apply at the exact hunks\n' >&2
+    exit 1
+fi
+(cd "$patched" && find src include CMakeLists.txt -type f -print0 | sort -z | xargs -0 sha256sum) > "$out/G-source-sha256.raw.txt"
