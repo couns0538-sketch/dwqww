@@ -1,0 +1,38 @@
+Job 24 source sites (reproduced A-kF2 tree)
+
+Quiet moves
+src/search.cpp:916–918 computes the scratch move reference before the
+legality rejection, so both accepted and rejected generated quiet moves
+get A2s. Duplicate/closed-tail moves remain ordering or pruning skips.
+src/search.cpp:937–942 compares the cached gives-check value with the
+independent result (A1s) and checks the three copied fields (A4) before
+returning each quiet. The Job 23 checks and A3 remain enabled.
+
+Independent reference
+src/board.cpp:1130–1275 contains integer coordinate steps, reverse pawn
+and knight contacts, local slider rays and position-only field masks.
+The reference uses no cached rays, checkers field, or move-making API.
+src/board.cpp:1279–1306 copies only the 64 piece slots on the stack,
+then updates the mover and destination, including en passant, promotion and
+castling rook placement. It locates both kings from their direct piece
+bitboards, or the moving king from its destination. The after-move attack
+test handles the destination of a generated castle; transit safety remains
+part of quiet generation.
+src/board.cpp:1317–1336 compares the actual bitmasks to a pure field scan
+using the isolated piece layout and raw king piece bitboards. Diagonal and
+orthogonal destination masks include the first occupied square. Blocker
+candidates require exactly one intervening piece owned by the side to
+move, then an appropriate slider of the required color.
+src/board.cpp:1553 and :1598 invoke the same field check on every
+valid cache restoration, after normal and null unmake respectively.
+Null unmake recomputes with the restored side to move and uses 0000.
+
+Controls
+A-wrong2 selects only the attacker occupying the moved piece's destination
+from the raw after-move scan. This intentionally excludes discovered checks.
+The pinned-empty patch sets the stored mask to zero in Board::ensure_king_lines
+after refresh, immediately before returning the cache. Its sole production
+caller is MovePicker::init_check_squares; root Board::is_legal uses refresh
+directly. Poisoning the explicit publication preserves the same shared-mask
+defect for A-kF-blind and A-kF2-blind while leaving earlier legal generation
+and A7's restoration checks alone.
