@@ -1,0 +1,27 @@
+=== JOB 19 PART A: CALLS & CALLS-PER-NODE FOR TOP SHARES OF 01..13+tidy OVER 60 HASH-16 SP GAMES ===
+Workload: 60 Hash-16 SP games (PC20 + net768.fnn3, go softnodes 2000, 60 roots of positions_250.txt)
+Verified run: searches=7670 total_nodes=25641316 trace=ee465caeff9c0fcf
+Raw counter line: PARTA_COUNTS search_entries=28164976 search_handoff_qs=5625743 search_nodes=22538302 search_tt_cutoffs=4403372 search_moves_made=93507 qsearch_entries=10326949 qsearch_nodes=10326604 qsearch_tt_cutoffs=1749060 qsearch_standpat_cutoffs=3088273 qsearch_moves_made=4197666 static_eval_v3=13172445 v3_already_valid=458035 v3_pair_same_sq=6834074 v3_pair_same_key=1010187 v3_one_refresh_one=2389507 v3_fallback=2480642
+
+--- Calls & Calls per Node (denominator = 25,641,316 counted engine nodes) ---
+1. Worker::search(Board&, SearchStack*, int, int, int, bool) [39.74% self / 94.94% incl]:
+   - Total function entries:           28,164,976  (1.098422 calls/node)
+   - Immediate depth<=0 -> qsearch:     5,625,743  (0.219401 calls/node)
+   - Interior depth>0 nodes (++nodes): 22,538,302  (0.878984 calls/node; 47.41% of all nodes)
+   - Non-PV TT cutoffs:                 4,403,372  (0.171730 per node)
+   - Child moves made in move loop:        93,507  (0.003647 per node; 0.004 moves/interior-search-node)
+
+2. Worker::static_evaluate_v3(const Board&, SearchStack*) [12.95% self / 23.00% incl]:
+   - Total calls:                      13,172,445  (0.513720 calls/node)
+   - Already valid -> evaluate:           458,035  (0.017863 per node; 3.48% of evals)
+   - Same king sq -> apply_pair:        6,834,074  (0.266526 per node; 51.88% of evals)
+   - Same king key -> apply_pair:       1,010,187  (0.039397 per node; 7.67% of evals)
+   - 1 key changed -> apply_one_ref:    2,389,507  (0.093190 per node; 18.14% of evals)  [#4 self share: 5.20%]
+   - Fallback make_valid + evaluate:    2,480,642  (0.096744 per node; 18.83% of evals)
+
+3. Worker::qsearch(Board&, SearchStack*, int, int) [8.22% self / 25.52% incl]:
+   - Total calls:                      10,326,949  (0.402746 calls/node)
+   - Counted qsearch nodes (++nodes):  10,326,604  (0.402733 calls/node; 52.59% of all nodes)
+   - Non-PV TT cutoffs:                 1,749,060  (0.068213 per node)
+   - Stand-pat beta cutoffs:            3,088,273  (0.120441 per node)
+   - Child captures/evasions made:      4,197,666  (0.163707 per node; 0.406 moves/qsearch-node)
