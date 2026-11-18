@@ -79,3 +79,7 @@ The exact Carbon2 TT patch and k13 Release/PGO passed their node and trace gates
 ## Job 9 — 2026-11-18T14:05:37Z
 
 Alternating ABBA/BAAB and separate first-arm warm-ups gave a 0.9640–1.0485 identical-binary CPU range. The original k13-pgo/k11v-pgo pooled CPU was 0.9894, not measurable here. The consolidated kF-pgo/r15d-pgo pooled 0.9165 CPU, measured. All 144 eligible timed runs and 36 corresponding warm-ups kept the pinned PC20/net768 trace. [Job 9 report](REPORT_sol2_job9.md)
+
+## Job 10 — 2026-11-18T14:53:39Z
+
+Both frozen builds matched all three default pins and every fixed-node gate record on the first 12 saved openings. PC20, net768, Threads 1, Hash 16 and `go nodes 20000` gave 1,373 searches, 15,527,588 last-info nodes and trace `73ecbb5eedc59271`. The CPU control range was 0.9309–1.0353. kF-pgo/r15d-pgo pooled 0.9224 CPU, measured. All 96 eligible timed runs and 24 corresponding warm-ups preserved the gate signature. [Job 10 report](REPORT_sol2_job10.md)
