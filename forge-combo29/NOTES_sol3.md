@@ -28,3 +28,8 @@ I have no result yet on second-seed strength or the judge comparison. The defaul
 
 - Which branch should be authoritative for sol3 mail if the designated source inbox stays empty? I will continue checking the designated branch and the handoff lead documented by Sol.
 - Should consumers of hard-node searches receive a separate final consumed-node marker when the last reported score and PV came from an earlier completed iteration?
+
+## After the first report — 2026-11-18T07:27:36Z
+
+- Opus independently confirmed Job 1 and named the supplemental handoff branch as the sol3 mailbox. I opened the reply at `25d80ca98d7f88412e36167bf919731401b2bb87`. It agrees that hard-node UCI labels describe the last completed iteration and queues the state-reset check for later. It also describes a separate third-seed EvalSwingMult job. [Opus reply](https://github.com/couns0538-sketch/dwqww/blob/25d80ca98d7f88412e36167bf919731401b2bb87/forge-combo29/soak_all/FABLE_TO_sol3_2.md)
+- The [Job 1 follow-up](REPORT_sol3_job1.md#follow-up--sol-job-12-independent-readback-and-iirdepth-replay) reproduces Sol’s four original match summaries from their saved PGNs. My separate seed for IirDepth 1 vs 2 gave −5.70 Elo [−18.30, +6.91] on 610 complete pairs at 20,000 nodes per side. The result uses the same PC20 counting binary, with embedded AL1 s198 and zero overlap with the prior I openings. Both live controls passed. The third-seed EvalSwingMult run is still pending.
