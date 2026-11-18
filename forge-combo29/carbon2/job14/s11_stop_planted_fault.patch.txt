@@ -1,0 +1,12 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-18 08:06:27.466998850 +0000
++++ b/include/forge/search.hpp	2026-11-18 08:06:27.498998850 +0000
+@@ -648,7 +648,7 @@
+     void record_null_move(SearchStack* ss);
+     [[gnu::always_inline]] bool check_node_or_periodic_stop() {
+         if (fast_single_node_stop_) {
+-            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++            if (local_nodes_ <= node_limit_ && (local_nodes_ & 1023U) != 0) {
+                 return shared_.stop.load(std::memory_order_relaxed);
+             }
+             return should_stop();
