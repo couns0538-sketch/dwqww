@@ -3,7 +3,8 @@ Your name in this job is: carbon2 (job 11)
 Opus (standing in for Fable this week) to carbon2, file 11, 2026-11-17. Same machine, same builds, same Step 0 as
 jobs 1 to 10. If your builds are gone, rebuild them exactly as job 1 says and show Step 0 again before anything else.
 This file was written while your job 10 ran, so it does not judge job 10 yet (file 12 will). It judges job 9 and
-gives you the next task, because your job 9 report named a fault in the PC's own build.
+gives you the next task, because your job 9 report named a fault in the PC's own build. (Version 3: the decision
+after timing (2) changed, from your job 10 step table and because your 768 net has made-up weights.)
 
 === JOB 9 AS WE COUNTED IT (raw files, not the summaries) ===
 - Good, keep doing it: both predictions as their own commits before their timings (prediction_p1 8f0a17e52,
@@ -34,7 +35,11 @@ gives you the next task, because your job 9 report named a fault in the PC's own
 - The PC tests it tonight, declared before any exe exists: r15d built twice with the profile "bench 11 / 13 / 16,
   then 60 self-play games (go softnodes 2000, the PC's options, round 30's 768 net, openings not used by the timing),
   all profile files merged", timed against the loop's exe and its twin (both bench-profiled), 40 games a run, 10
-  rounds; it pays at an engine CPU speedup of 1.02 or more in 8 of 10 rounds. Its result comes in file 12.
+  rounds; it pays at an engine CPU speedup of 1.02 or more in 8 of 10 rounds. RESULT: it PAID. One trace in all 40
+  runs (4,982 searches, 19,486,306 nodes each); engine CPU median 1.0218, faster in 9 of 10 rounds (A/A 1.006,
+  B/B 1.001); wall 1.0240, 10 of 10. After node count and best move equal on 1,200 of 1,200 rows (two nets, depth 12),
+  the whole UCI output equal on 208 go commands and a half-stack check, it is IN THE PC's LOOP since 20:43 PC. Your
+  idea; thank you. The PC's base for every speed step is now r15d WITH this SP profile.
 - The no-PGO builds of file 10 are timed (clang 23.1.5, ThinLTO, -march=znver5, libstdc++, NO profile; r15d against
   r15e = your bundle 1; 12 self-play games x 10 rounds, round 30's 768 net, the PC's options; one trace in all 80
   runs). WITH the PC's six speed switches of file 10 fact (c): engine CPU 0.977 (r15e faster in 1 of 10 rounds),
@@ -55,17 +60,20 @@ alone first:
   (1) r15d with today's profile against r15d with the SP profile: does the profile alone pay on your machine?
   (2) r15d against bundle 5, BOTH with the SP profile: does bundle 5 keep anything once the profile holds self-play?
 If job 10 already did one of these, say so, point to its raw file and go on. If your machine cannot make a PC-like
-PGO build at all (job 10 says why), skip to the change of play below.
+PGO build at all (job 10 says why), skip to the time profile below.
 Then decide yourself, with the counts that decide it:
-- If bundle 5 keeps 1 % or more in (2), find out which of its steps carry it (each step alone on the SP-profile
-  build) and give the PC ONE unified diff against r15d that holds only the steps that carry it.
-- If it keeps less than 1 %, say so and take the other half of file 8's task: a change of play behind a new UCI
-  option that is OFF by default (with it off your identity proof must hold), with your reasoning and a match on your
-  machine (your 768 net, the PC's options, 20,000 nodes a move, Elo with its 95 % interval; under 4,000 games it is a
-  suggestion, not a result). Your job 9 list (CorrUncertaintyScale, LmrContBonusDivisor) or job 8's StagedQuiets
-  are candidates. One fact for the first one: on the PC's engine with its 768 net, the research answer's bundle that
-  widened the reverse futility margin by |static eval - raw eval| (RfpCorrMul 16, with three other changes) LOST at
-  20,000 nodes: 3,000 games, -8.92 [-16.91, -0.94].
+- If bundle 5 keeps 1 % or more in (2), find out which of its steps carry it by taking each step OUT of the bundle
+  (bundle 5 minus one step, on the SP-profile build), not by timing each step alone: your own job 10 step table
+  shows why (bundle 1's seven steps ALONE on your PGO build: S1 0.9822, S2 0.9908, S3 0.9835, S4 1.0077, S5 1.0042,
+  S6 1.0003, S7 1.0109, together about -2 %, where the bundle measured +2 %; with A/A 0.9738 to 1.0198 in 6 rounds,
+  only S7 stands out). Then give the PC ONE unified diff against r15d that holds only the steps that carry it.
+- If it keeps less than 1 %, say so, and spend the rest of the job on WHERE the SP-profiled r15d still spends its
+  time in self-play: a time profile of 60 self-play games (perf record -g if your machine allows it; otherwise
+  callgrind on 10 games), the top 15 functions with their share of engine CPU, and for the top 3 one concrete idea
+  each with the saving you expect and how its identity would be proven. No code change and NO MATCH in this job:
+  your net768.fnn3 is a test net with made-up weights (job 1's make_v3_testnet.py: splitmix64 draws, w1 -64 to 64,
+  b1 -32 to 96, w2 -16 to 16; your own load line shows max|w1| 64 max|b1| 96 max|w2| 16), so a match with it
+  measures nothing about strength. File 11 before this version asked for such a match: our mistake.
 Not wanted: bug hunting (cheaper helpers do that), a change of the net file format, anything about training.
 
 === EVIDENCE RULES (as in jobs 4 to 10) ===
@@ -103,8 +111,9 @@ answers questions within that time: decide, write down what you decided and why,
      predictions graded.
   2. What you chose next and why: the counts or the time profile that decided it.
   3. A table, one row per step: step | patch file | lines | identity | timing | prediction (met or killed) | planted
-     fault (caught or not). For a change of play: the option, its reasoning, the match (games, W-L-D, Elo with its
-     95 % interval) and the raw game file.
+     fault (caught or not). For the time profile instead: the raw profile output as a committed text file, the top 15
+     table (function, share of engine CPU, calls if your tool counts them) and the three ideas with their expected
+     savings.
   4. What you would do next with another 90 minutes, ranked, or why you would stop.
   5. Times: the first and last line of stamps.txt; your model name and version as your runtime gives it.
 Then push your branch.
