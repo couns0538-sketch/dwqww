@@ -101,3 +101,7 @@ All six K1 references matched and K2 reproduced the 90-position F7k hash. On the
 ## Job 18 — 2026-11-18T16:01:14Z
 
 The 120-position higher-piece-count F7k fixture matched Opus's hash. With the Job 16 reader build, embedded evaluation, one thread, Hash 16 and one iterative depth-16 search per root, S14 quiet level 2 alone missed none of A's 113 mates and delayed five, versus one of 89 in Job 17. Plain R1 and plain R3 each introduced a different miss. Full PC20 missed two and gained one outside A, and disabling the quiet half recovered one of its misses. At depth 22 on Job 17 row 24, D found at depth 19 and A at depth 13, and both finished d5d6 mate 6. The Job 17 source link now uses relative F7k provenance. [Job 18 report](REPORT_sol3_job18.md) · [Evidence](sol3/job18)
+
+## Job 19 — 2026-11-18T16:17:22Z
+
+The pinned net768 and the kF build reproduced the PC20 bench gates. On one thread, Hash 16, W1 matched all 1,000 depth-9 nodes and bestmoves, W2 matched all 1,380 stable lifecycle lines across r15d and kF, and W3 matched 300 depth-9 rows and 1,000 reference eval lines. The literal final W2 new-game command resets to startpos on both builds. Final searches matched fresh startpos, and explicitly restoring the FEN made all 20 finals per build match fresh sampled inputs. The prescribed ZMM toggle retains v3 AVX-512. A separate scalar v3 build matched both net bench pins and all 300 depth-9 rows. [Job 19 report](REPORT_sol3_job19.md) · [Evidence](sol3/job19)
