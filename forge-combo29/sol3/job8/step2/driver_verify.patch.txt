@@ -1,0 +1,157 @@
+--- a/driver_final.py
++++ b/driver_final.py
+@@ -20,7 +20,7 @@
+ """
+ 
+ import argparse
+-from contextlib import nullcontext
++from contextlib import ExitStack, nullcontext
+ import json
+ import pathlib
+ import random
+@@ -59,6 +59,32 @@
+ HLM_FIRST = re.compile(r"info string hlm first_mismatch fast=([01]) full=([01]) fen=(.+)")
+ 
+ 
++class EngineAudit:
++    def __init__(self, stdout, stderr, status):
++        self.stdout, self.stderr, self.status = stdout, stderr, status
++        self.context = {"phase": "setup"}
++        self.failures = []
++        self.active = []
++        self.returncode = None
++
++    def set_root(self, phase, game, ply, position):
++        self.context = {"phase": phase, "game": game, "game_ply": ply, "position": position}
++
++    def readline(self):
++        line = self.source.readline()
++        self.stdout.write(line)
++        if line.startswith("info string NNUE v3 active: "):
++            self.active.append(line.rstrip())
++        if "V3 VERIFY FAILED" in line:
++            self.failures.append(self.context | {"line": line.rstrip()})
++        return line
++
++    def finish(self, returncode):
++        self.returncode = returncode
++        print(json.dumps({"engine_exit": returncode, "failure_count": len(self.failures),
++                          "failures": self.failures, "active_net": self.active}), file=self.status)
++
++
+ class MinimalBoardTracker:
+     """Tracks board placement, castling, ep, halfmove clock, and 3-fold repetition for UCI moves."""
+ 
+@@ -268,15 +294,18 @@
+     dump_fens_path: str | None = None,
+     trace=None,
+     check_hlm: bool = False,
++    audit=None,
+ ):
+     proc = subprocess.Popen(
+         [engine_path],
+         stdin=subprocess.PIPE,
+         stdout=subprocess.PIPE,
+-        stderr=subprocess.PIPE,
++        stderr=audit.stderr if audit else subprocess.PIPE,
+         text=True,
+         bufsize=1,
+     )
++    if audit:
++        audit.source, proc.stdout = proc.stdout, audit
+     try:
+         cfg_lines = ["uci\n"]
+         for k, v in PC20_OPTIONS:
+@@ -293,7 +322,10 @@
+         # Warm up 1 game untimed so OS pages and allocator are faulted in before timing.
+         send(proc, "ucinewgame\nisready\n")
+         wait_ready(proc, check_errors=True)
+-        send(proc, f"position startpos moves {' '.join(openings[0])}\ngo softnodes {softnodes}\n")
++        warm_position = f"position startpos moves {' '.join(openings[0])}"
++        if audit:
++            audit.set_root("warm-up", 0, random_plies, warm_position)
++        send(proc, f"{warm_position}\ngo softnodes {softnodes}\n")
+         assert proc.stdout is not None
+         warm_final_nodes = None
+         while True:
+@@ -336,6 +368,8 @@
+                     collected_fens.append(tracker.fen())
+ 
+                 position = f"position startpos moves {' '.join(moves)}"
++                if audit:
++                    audit.set_root("workload", g_idx, ply, position)
+                 send(proc, f"{position}\ngo softnodes {softnodes}\n")
+ 
+                 last_nodes = 0
+@@ -427,8 +461,15 @@
+         send(proc, "quit\n")
+         proc.wait(timeout=5)
+     finally:
++        if audit and audit.failures:
++            proc.wait(timeout=5)
+         if proc.poll() is None:
+             proc.kill()
++            proc.wait(timeout=5)
++        if audit:
++            while audit.readline():
++                pass
++            audit.finish(proc.returncode)
+ 
+     if dump_fens_path is not None:
+         pathlib.Path(dump_fens_path).write_text("\n".join(collected_fens) + "\n")
+@@ -466,6 +507,7 @@
+     ap.add_argument("--option", action="append", default=[], help="Extra UCI option Name=Value")
+     ap.add_argument("--dump-fens", default=None, help="Optional output file for visited FENs")
+     ap.add_argument("--trace", type=pathlib.Path, help="Create a JSONL file of measured search evidence")
++    ap.add_argument("--audit", type=pathlib.Path, required=True, help="Write observed UCI output and child exit")
+     ap.add_argument("--hlm", action="store_true", help="Require and sum per-search has_legal_move probe counts")
+     ap.add_argument("--json", action="store_true", help="Print JSON summary line")
+     args = ap.parse_args()
+@@ -478,20 +520,33 @@
+         extra.append((k, v))
+ 
+     trace_context = args.trace.open("x", encoding="ascii", buffering=1) if args.trace else nullcontext()
+-    with trace_context as trace:
+-        summary = run_selfplay(
+-            engine_path=args.engine,
+-            net_path=args.net,
+-            num_games=args.games,
+-            softnodes=args.softnodes,
+-            random_plies=args.random_plies,
+-            max_plies=args.max_plies,
+-            seed=args.seed,
+-            extra_options=extra,
+-            dump_fens_path=args.dump_fens,
+-            trace=trace,
+-            check_hlm=args.hlm,
+-        )
++    with trace_context as trace, ExitStack() as output:
++        def open_audit(suffix):
++            return output.enter_context(pathlib.Path(str(args.audit) + suffix).open("x", encoding="ascii"))
++
++        audit = EngineAudit(open_audit(".engine.stdout.txt"), open_audit(".engine.stderr.txt"),
++                            open_audit(".engine_status.json"))
++        try:
++            summary = run_selfplay(
++                engine_path=args.engine,
++                net_path=args.net,
++                num_games=args.games,
++                softnodes=args.softnodes,
++                random_plies=args.random_plies,
++                max_plies=args.max_plies,
++                seed=args.seed,
++                extra_options=extra,
++                dump_fens_path=args.dump_fens,
++                trace=trace,
++                check_hlm=args.hlm,
++                audit=audit,
++            )
++        except RuntimeError:
++            if audit.returncode == 3 and len(audit.failures) == 1:
++                raise SystemExit(3)
++            raise
++        if audit.returncode != 0 or audit.failures:
++            raise RuntimeError(f"engine exit {audit.returncode}, verification failures {audit.failures}")
+     if args.json:
+         print(json.dumps(summary))
+     else:

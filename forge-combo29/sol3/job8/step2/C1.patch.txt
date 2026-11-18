@@ -1,0 +1,11 @@
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -1009,7 +1009,7 @@
+             v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 3] + h)));
+         }
+         for (; a < n_add; ++a) {
+-            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
+         }
+         if ((n_sub | n_add) != 0) {
+             _mm512_store_si512(reinterpret_cast<__m512i*>(acc_ref + h), v_ref);
