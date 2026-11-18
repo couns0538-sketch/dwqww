@@ -1,0 +1,18 @@
+from pathlib import Path
+import hashlib,json,os,runpy,sys
+
+sys.path.insert(0, '/workspace/work/sol2-job5')
+from abba_timing import measure_driver, write_json
+
+engine,prefix,output=map(Path,sys.argv[1:4]); label=sys.argv[4]
+expected=(8612,29333343,'5c705841c3ea17b4')
+base=Path('/workspace/work/sol2-job2'); driver=base/'carbon2/selfplay_driver.py'; net=base/'net768.fnn3'
+wrapper=Path('/workspace/work/sol2-job3/profiler/profile_engine.sh')
+os.environ['SOL2_PROFILE_EXE']=str(engine)
+os.environ['SOL2_PROFILE_PREFIX']=str(prefix)
+argv=[str(driver),'--engine',str(wrapper),'--net',str(net),'--games','60','--softnodes','2000','--random-plies','8','--max-plies','300','--seed','20261117','--json']
+identity={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (engine,driver,net,wrapper)}
+row=measure_driver(runpy.run_path(driver)['main'],argv,output,label)
+write_json(output/f'{label}.cpu.json.txt',{**row,'identities':identity,'argv':argv})
+print(json.dumps(row),flush=True)
+assert row['eligible'] and (row['searches'],row['total_nodes'],row['trace_fnv1a64'])==expected

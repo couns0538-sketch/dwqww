@@ -1,0 +1,44 @@
+--- step1/abba_timing.py
++++ steps2_3/abba_timing.py
+@@ -129,7 +129,7 @@
+             block[key] = (b_first[key] + b_last[key]) / (a_first[key] + a_last[key])
+         blocks.append(block)
+         complete_runs.extend(group)
+-    complete = len(blocks) == requested_blocks
++    complete = len(blocks) == requested_blocks and len(runs) == requested_blocks * len(ORDER)
+     metrics = {}
+     for key in METRICS:
+         if not blocks:
+@@ -147,10 +147,11 @@
+             low, high = min(floor[key]), max(floor[key])
+             outside = middle < low or middle > high
+             signs_agree = max(faster, slower) >= 10
++            decision = "incomplete"
++            if complete and requested_blocks == 12:
++                decision = "MEASURED" if outside and signs_agree else "not measurable here"
+             result.update({"floor_min": low, "floor_max": high, "median_outside_floor": outside,
+-                           "at_least_10_on_one_side": signs_agree,
+-                           "decision": ("MEASURED" if outside and signs_agree else "not measurable here")
+-                           if complete and requested_blocks == 12 else "incomplete"})
++                           "at_least_10_on_one_side": signs_agree, "decision": decision})
+         metrics[key] = result
+     return {"schema": SCHEMA, "order": ORDER, "comparison_direction": "B / A, less than 1 is faster",
+             "requested_blocks": requested_blocks, "completed_blocks": len(blocks),
+@@ -163,6 +164,8 @@
+     data = source.read_bytes()
+     metadata = {"path": str(source), "sha256": hashlib.sha256(data).hexdigest()}
+     floor = json.loads(data)
++    if not isinstance(floor, dict):
++        raise ValueError("Expected one ABBA summary object")
+     if (floor.get("schema") != SCHEMA or floor.get("order") != list(ORDER)
+             or not floor.get("identical_floor") or not floor.get("complete") or floor.get("error") is not None
+             or floor.get("requested_blocks") != 6 or floor.get("completed_blocks") != 6
+@@ -183,7 +186,7 @@
+             raise ValueError("Unexpected floor block ordering")
+         for key in METRICS:
+             ratio = block[key]
+-            if not math.isfinite(ratio) or ratio <= 0:
++            if type(ratio) not in (int, float) or not math.isfinite(ratio) or ratio <= 0:
+                 raise ValueError("Nonpositive or nonfinite floor ratio")
+             checked[key].append(ratio)
+     return checked, metadata

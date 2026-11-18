@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Compare three clean Forge profiles per build on their matched CPU receipts."""
+
+import argparse
+from collections import Counter, defaultdict
+import csv
+from dataclasses import dataclass
+import json
+import math
+from pathlib import Path
+import re
+import runpy
+from statistics import fmean
+
+
+JOB3_GROUPS = Path(__file__).resolve().parent.parent / "sol2-job3" / "profiler" / "profile_groups.py"
+TRACE = (8612, 29333343, "5c705841c3ea17b4")
+PICK_BEST = "MovePicker::pick_best / pick_best_scored"
+MAKE_MOVE = "Board::make_move"
+MOVE_GENERATION = "MovePicker::next and capture/quiet generation"
+PICK_PATTERN = re.compile(r"^forge::MovePicker::pick_best(?:_scored)?\(")
+FILL_PATTERN = re.compile(r"^(?:void )?forge::fill_pseudo_legal<\(forge::Board::GenMode\)[12]>\(")
+
+
+def canonical_function(symbol, build):
+    if PICK_PATTERN.match(symbol):
+        return PICK_BEST
+    if symbol.startswith("forge::Board::make_move("):
+        return MAKE_MOVE
+    is_next = symbol.startswith("forge::MovePicker::next(")
+    r15d_generator = build == "r15d" and FILL_PATTERN.match(symbol)
+    k11_generator = build == "k11" and symbol.startswith((
+        "forge::MovePicker::generate_captures(", "forge::MovePicker::generate_quiets(",
+    ))
+    if is_next or r15d_generator or k11_generator:
+        return MOVE_GENERATION
+    return symbol
+
+
+@dataclass
+class Run:
+    symbols: Path
+    receipt: Path
+    cpu_s: float
+    total: int
+    groups: Counter
+    functions: Counter
+    lines: dict
+    members: Counter
+
+
+def read_run(symbols, receipt, build, classify):
+    record = json.loads(receipt.read_text(encoding="utf-8"))
+    received_trace = (record["searches"], record["total_nodes"], record["trace_fnv1a64"])
+    if received_trace != TRACE or record.get("status", 0) != 0 or record.get("trace_matches") is False:
+        raise ValueError(f"invalid workload receipt {receipt}: {received_trace!r}")
+    cpu_s = float(record["engine_cpu_s"])
+    if not math.isfinite(cpu_s) or cpu_s <= 0:
+        raise ValueError(f"invalid engine CPU seconds in {receipt}: {cpu_s}")
+
+    groups = Counter()
+    functions = Counter()
+    lines = defaultdict(Counter)
+    members = Counter()
+    with symbols.open(newline="", encoding="utf-8") as stream:
+        for row in csv.DictReader(stream, delimiter="\t"):
+            count = int(row["samples"])
+            if count <= 0:
+                raise ValueError(f"invalid sample count in {symbols}: {count}")
+            groups[classify(row["inline_frames"], row["image"])] += count
+            original = row["outer_function"]
+            if original == "??":
+                continue
+            function = canonical_function(original, build)
+            image = Path(row["image"]).name
+            key = (function, image)
+            functions[key] += count
+            lines[key][row["outer_source"]] += count
+            members[function, image, original] += count
+    total = sum(groups.values())
+    if total <= 0:
+        raise ValueError(f"no accounted samples in {symbols}")
+    return Run(symbols, receipt, cpu_s, total, groups, functions, lines, members)
+
+
+def pooled_counts(runs, field):
+    pooled = Counter()
+    for run in runs:
+        pooled.update(getattr(run, field))
+    return pooled
+
+
+def modal_line(runs, key):
+    sources = Counter()
+    for run in runs:
+        sources.update(run.lines.get(key, {}))
+    return sources.most_common(1)[0][0] if sources else ""
+
+
+def save_table(path, header, rows):
+    with path.open("x", newline="", encoding="utf-8") as stream:
+        report = csv.writer(stream, delimiter="\t", lineterminator="\n")
+        report.writerow(header)
+        report.writerows(rows)
+
+
+def percent(samples, total):
+    return f"{100 * samples / total:.6f}"
+
+
+def seconds(run, group):
+    return run.cpu_s * run.groups[group] / run.total
+
+
+def write_reports(output, baseline, candidate):
+    left_total = sum(run.total for run in baseline)
+    right_total = sum(run.total for run in candidate)
+    left_counts = pooled_counts(baseline, "functions")
+    right_counts = pooled_counts(candidate, "functions")
+    all_keys = left_counts.keys() | right_counts.keys()
+    ranked = sorted(right_counts, key=lambda key: (-right_counts[key], key))
+
+    def function_rows(keys):
+        for index, key in enumerate(keys, 1):
+            function, image = key
+            yield (index, function, image, modal_line(baseline, key), modal_line(candidate, key),
+                   left_counts[key], right_counts[key], percent(left_counts[key], left_total),
+                   percent(right_counts[key], right_total),
+                   f"{100 * (right_counts[key] / right_total - left_counts[key] / left_total):.6f}")
+
+    columns = ("rank", "function", "image", "r15d_modal_source", "k11_modal_source", "r15d_samples",
+               "k11_samples", "r15d_pooled_pct", "k11_pooled_pct", "k11_minus_r15d_pp")
+    save_table(output / "top15-mapped.tsv.txt", columns, function_rows(ranked[:15]))
+    save_table(output / "all-mapped-functions.tsv.txt", columns,
+               function_rows([*ranked, *sorted(all_keys - right_counts.keys())]))
+
+    left_groups = pooled_counts(baseline, "groups")
+    right_groups = pooled_counts(candidate, "groups")
+    groups = sorted(left_groups.keys() | right_groups.keys(), key=lambda group: (-right_groups[group], group))
+    subgroup = []
+    for group in groups:
+        left_mean = fmean(seconds(run, group) for run in baseline)
+        right_mean = fmean(seconds(run, group) for run in candidate)
+        subgroup.append((group, left_groups[group], right_groups[group], percent(left_groups[group], left_total),
+                         percent(right_groups[group], right_total), f"{left_mean:.9f}", f"{right_mean:.9f}",
+                         f"{right_mean - left_mean:.9f}"))
+    group_columns = ("subsystem", "r15d_samples", "k11_samples", "r15d_pooled_pct", "k11_pooled_pct",
+                     "r15d_mean_cpu_s_per_run", "k11_mean_cpu_s_per_run", "k11_minus_r15d_mean_cpu_s")
+    save_table(output / "subsystems.tsv.txt", group_columns, subgroup)
+    run_groups = []
+    member_rows = []
+    profiles = []
+    for build, runs in (("r15d", baseline), ("k11", candidate)):
+        for index, run in enumerate(runs, 1):
+            profiles.append((build, index, str(run.symbols), str(run.receipt), run.total, f"{run.cpu_s:.9f}", *TRACE))
+            for group in groups:
+                run_groups.append((build, index, group, run.groups[group], run.total, percent(run.groups[group], run.total),
+                                   f"{run.cpu_s:.9f}", f"{seconds(run, group):.9f}"))
+        for (family, image, member), n in sorted(pooled_counts(runs, "members").items()):
+            if family in {PICK_BEST, MAKE_MOVE, MOVE_GENERATION}:
+                member_rows.append((build, family, image, member, n))
+    save_table(output / "profiles.tsv.txt", ("build", "run", "symbols", "cpu_receipt", "samples", "engine_cpu_s",
+               "searches", "nodes", "trace"), profiles)
+    save_table(output / "subsystems-per-run.tsv.txt", ("build", "run", "subsystem", "subsystem_samples", "all_samples",
+               "share_pct", "engine_cpu_s", "subsystem_cpu_s"), run_groups)
+    save_table(output / "merged-symbol-members.tsv.txt", ("build", "family", "image", "raw_symbol", "samples"), member_rows)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--r15d", nargs=2, action="append", metavar=("SYMBOLS_TSV", "CPU_RECORD_JSON"), required=True)
+    parser.add_argument("--k11", nargs=2, action="append", metavar=("SYMBOLS_TSV", "CPU_RECORD_JSON"), required=True)
+    parser.add_argument("--output", type=Path, required=True, help="new output directory")
+    parser.add_argument("--grouping", type=Path, default=JOB3_GROUPS, help="Job 3 profile_groups.py path")
+    args = parser.parse_args()
+    if len(args.r15d) != 3 or len(args.k11) != 3:
+        parser.error("provide exactly three clean profile runs for each build")
+    pairs = [tuple(Path(path).resolve(strict=True) for path in pair) for pair in (*args.r15d, *args.k11)]
+    if len(set(pairs)) != len(pairs) or len({symbols for symbols, _ in pairs}) != len(pairs) or len({receipt for _, receipt in pairs}) != len(pairs):
+        parser.error("each profile and CPU receipt must identify a separate run")
+    classify = runpy.run_path(str(args.grouping))["group"]
+    baseline = [read_run(*pair, "r15d", classify) for pair in pairs[:3]]
+    candidate = [read_run(*pair, "k11", classify) for pair in pairs[3:]]
+    args.output.mkdir(parents=True, exist_ok=False)
+    write_reports(args.output, baseline, candidate)
+
+
+if __name__ == "__main__":
+    main()
