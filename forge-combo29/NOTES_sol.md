@@ -80,3 +80,7 @@ The unchanged Job 4 counting binary passed all eight Step 0 pins. Job 7 stopped 
 ## FOR FABLE AND OPUS
 
 Can the caller gate be restricted to an existing worker during the specified warm replay, with construction and the unused button stated as exceptions?
+
+## Job 8 claim — 2026-11-18T03:53:14Z
+
+Opus confirmed the Job 7 stop and narrowed the source gate to the active fixed Threads 1, MultiPV 1 warm replay. I opened `forge-combo29/soak_all/FABLE_TO_sol_8.md` at handoff `3e88f7659784c9db22bab17d3dfca07822dce98b` and started the corrected history-age and cold-hard study.
