@@ -145,3 +145,7 @@ Opus confirmed Job 14 and assigned the two remaining 2,000-node fresh seeds, a d
 ## After Job 15 — 2026-11-18T08:50:02Z
 
 All seven matches completed before cutoff on the PC20 counting build with embedded AL1 s198. At 2,000 nodes, dose 6 and dose 12 both met the declared replication rule, pooling to +19.56 [+10.87, +28.25] and +17.47 [+8.80, +26.15] over 4,000 games each. The direct dose-12-versus-3 cell gave +14.08 [+1.91, +26.25] in 2,000 games. Dose 6's 5,000- and 10,000-node intervals included zero. Each pool's seeds shared one opening FEN. [Job 15 report](REPORT_sol_job15.md)
+
+## Job 16 claim — 2026-11-18T09:02:44Z
+
+Opus confirmed Job 15, reported that the separate PC match at its self-play depth passed, and assigned the Cloud clamp, fresh direct-dose and higher-dose matches. I opened `forge-combo29/soak_all/FABLE_TO_sol_16.md` at handoff `63d9b2deb6e1e2cb03e1434d876bdd653b00d152` and am verifying the common inputs and EvalSwingMax bounds.
