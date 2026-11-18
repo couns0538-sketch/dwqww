@@ -1,0 +1,72 @@
+# Job3 Part A — committed before Part B
+PCA = base6b98f217 + PCr15 patch d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a + A2A5 patch0bcb88c59fe3659f4ab71a4fededd453f4713e6dd4d86e6e0c45b557ba86b991. All line numbers below are in PCA src/search.cpp, personally opened. Step0 PASS, executable49b56941b2acc0c2b9272c4e14992f2561c9ef71dbaf3da74a8a684ae8bc416a. This is reading and hypotheses, not PartB/C evidence.
+
+## A1 — exactly where scores change
+- Bit1, reverse futility, lines1936-1937 outer gate:
+  `if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 && board.halfmove_clock() + depth < 100)`.
+  Lines1955-1959 require !bare_king_mode, depth<=RfpDepth, the optional RFP guard predicates, and eval minus its margin>=beta, with eval<MateInMaxPly. Lines1960-1962:
+  `return (tune::FailHighBlend & 1) != 0 && !is_mate_score(eval) && !is_mate_score(beta) ? beta + (eval - beta) / 3 : eval;`
+  This touches the RFP early RETURN, not a local TT store.
+- Bit2, qsearch non-check stand-pat fail high, lines1669-1672 distinguish in-check from stand-pat. Lines1683-1686:
+  `if (best_score >= beta) {`
+  `if ((tune::FailHighBlend & 2) != 0 && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;`
+  It can act at PV or non-PV qsearch nodes. Store occurs only on !tt_hit at1688/1690, then return1692.
+- Bit2, qsearch after its move loop, lines1753-1764:
+  `if (in_check && move_count == 0) return mated_in(ply);`
+  `if ((tune::FailHighBlend & 2) != 0 && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;`
+  Then bound and depth0 store1760/1762, return1764. No non-PV restriction, no explicit excluded-move guard at either qsearch blend.
+- Bit4, positive-depth main search after its move loop, lines2391-2394:
+  `const int raw_best_score = best_score;`
+  `if ((tune::FailHighBlend & 4) != 0 && !pv_node && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score * depth + beta) / (depth + 1);`
+  Main depth<=0 already goes to qsearch_child at1775. There is no excluded.is_none guard on this blend: an excluded-move verification can blend its return, but cannot store here because2396 guards the store.
+- TT cutoff returns do NOT receive a fresh blend: qsearch1660-1664 returns tt_score; main1860-1872 returns tt_score. They may already contain a blended stored value. Null returns1998/2012, ProbCut2048, singular early return2234, terminal/draw/maxply paths1791-1796 do not directly execute an FHB formula, though child values can already be affected.
+- All formulas are integer arithmetic (C++ truncation toward zero); finite fail-high values remain at/above beta, so the local blend does not turn a fail high into a fail low.
+
+## A2 — singular step and outcomes
+Lines1818-1822:
+`const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) && rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock()) ? score_from_tt(tte.score, ply) : ValueNone;`
+`const int tt_depth = tt_hit ? tte.depth : -1;`
+`const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;`
+
+Lines2214-2216:
+`if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {`
+`const int singular_beta = tt_score - tune::SingularMargin * depth;`
+
+It reads the usable stored SEARCH SCORE, not tte.eval/raw static evaluation. PC20 SingularDepth=6. Lines2220-2226:
+`const int singular_depth = std::max(1, (depth - 1) / 2);`
+`ss->excluded_move = move;`
+`const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);`
+It is same board/same stack ply, null window, original tt_move excluded; tt_pv and inherited_double_extensions restored, exclusion cleared afterward. Move loop2094 says `if (move == excluded) continue;`. Main TT cutoff1860 and forward-pruning1936 require excluded.is_none, so this verification bypasses those shortcuts. CuckooRep wrapper2437-2444 also explicitly leaves the singular verification alone.
+
+Lines2228-2239:
+`if (singular_score < singular_beta) { extension = 1;`
+`if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) { extension = 2; }`
+`} else if (singular_beta >= beta) { return singular_beta;`
+`} else if (tt_score >= beta) { extension = -2;`
+`} else if (cut_node) { extension = -1; }`
+Otherwise extension stays0. Thus a strict24cp gap plus non-PV and path-budget gate makes the double extension. Check extension2240-2242 is an else-if alternative, not added on top of this branch. Lines2244-2245:
+`ss->double_extensions = inherited_double_extensions + (extension == 2);`
+`int new_depth = depth - 1 + extension;`
+
+## A3 — stored payload and downstream readers
+Main-loop lines2391-2401 first save raw_best_score, then overwrite best_score with the bit4 blend, choose bound, and store:
+`store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());`
+Both compile-time TT arms2398/2400 use BLENDED best_score. The pre-local-blend value is used only for correction-history gates/update2405-2409:
+`update_correction(board, depth, raw_best_score, ss->static_eval, ss);`
+Return2411 is `return best_score;`.
+Raw here means before THIS node's bit4 blend, not an imaginary score from a wholly unblended subtree.
+
+Later readers of the stored score include:
+- main cutoff1860-1872 and qsearch cutoff1660-1664;
+- singular threshold2216 and negative-extension branch2235;
+- bound-aware evaluation substitution1886-1889 and1677-1680;
+- null-move upper-bound guard1969 and ProbCut veto2019.
+They all read tt_score decoded from tte.score, subject to their separate usability/depth/clock gates. Qsearch bit2 stores blended depth0 payload too; that depth0 payload cannot itself satisfy a SingularDepth6 test's required tt_depth>=depth-3, though it changes descendant searches and subsequent main entries. RFP bit1 has no store at its own early-return site.
+
+## A4 — ranked hypotheses, fixed before any PartB run
+1. **Main bit4 store -> lower tt_score -> lower singular_beta -> harder double-gap test.** Compressing a finite fail-high stored score toward beta lowers or preserves the candidate move's reference bound. With the alternatives fixed, singular_score < singular_beta-24 becomes harder to satisfy, so double extensions fall. This is the shortest explicit data path and my first-ranked explanation.
+   Cut chosen: keep the return blended but store raw_best_score at the MAIN post-loop store behind a new default0 spin. Expect the FHB7 tree to GROW relative to uncut FHB7, moving toward the FHB0 tree, because some reference thresholds and double extensions recover. FHB0 must remain exactly identical since raw_best_score==best_score when bit4 is off. No numeric prediction yet; PartC will commit it alone after wiring checks.
+2. **Descendant return/window path.** Bit1/bit2 and bit4 child returns alter the excluded-alternative search as well as the original move search; negation can turn a smaller child fail-high into a larger parent alternative score. This can narrow the double-extension gap even if a local main TT store is restored.
+3. **Feedback through other TT consumers, move ordering and changed tree/history.** Changed stored bounds affect cutoffs, eval substitution, pruning and future entries; changed trees also change correction/history updates despite the local raw correction value. These interactions can dominate a simple arithmetic direction.
+
+Crucial limit: storing raw at the main site cuts one major transmission route, but changes ALL later consumers of that payload, not only singular_beta; it also leaves descendant and qsearch-store blending intact. An increased node sum would support contribution of this route, not prove it is the unique cause or directly count recovered double extensions. A contrary result would reject my directional prediction rather than be relabeled success.
