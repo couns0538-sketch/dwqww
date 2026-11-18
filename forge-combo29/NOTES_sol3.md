@@ -93,3 +93,7 @@ Job 15 forecast follow-up — For a comparable synthetic net768 Guard1 depth-12 
 ## Job 16 — 2026-11-18T15:06:58Z
 
 All five retained pins and all 80 Astra5 S14 reference rows matched. On P, HistRework's quiet part by itself hid the mate through depth 20. The all-plain control matched the both-off ladder, including a supplemental scalar build. Restoring plain quiet move ordering or the plain LMR history term separately recovered the mate in both S14 and PC20. Plain history pruning by itself left the miss. The point forecast hit 6/12 and its range covered 10/12. [Job 16 report](REPORT_sol3_job16.md) · [Evidence](sol3/job16)
+
+## Job 17 — 2026-11-18T15:36:39Z
+
+All six K1 references matched and K2 reproduced the 90-position F7k hash. On the Job 16 reader build with built-in evaluation, Threads 1, Hash 16 and one iterative depth-16 search per root, S14 A found 89 mates. S14 quiet level 2 alone missed none, delayed one, and found two earlier. Plain R1 restored all 89 A first depths. Plain R3 instead introduced one miss, game 8 at seven plies before checkmate. PC20 found all 89, with 19 later than S14 A. Within PC20, plain R3 advanced one mate and keeping the whole quiet half off changed four first depths. Job 16 resets each requested depth; Job 17 keeps the iterative search state inside its one depth-16 command. First depths belong to their own protocol. [Job 17 report](REPORT_sol3_job17.md) · [Evidence](sol3/job17)
