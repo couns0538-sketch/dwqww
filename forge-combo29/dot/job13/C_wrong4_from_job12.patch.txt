@@ -1,0 +1,153 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -1,3 +1,6 @@
++#ifndef FORGE_SHORTCUT_WRONG4
++#define FORGE_SHORTCUT_WRONG4 1
++#endif
+ #pragma once
+ #include "forge/board.hpp"
+ #include "forge/uci_output.hpp"
+@@ -5,12 +8,13 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18"};
+-inline std::atomic<unsigned long long> uses[10]{}, differs[10]{}, diagnostics{0};
+-inline void reset() { for (int i=0;i<10;++i) { uses[i]=0; differs[i]=0; } }
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27"};
++inline std::atomic<unsigned long long> uses[12]{}, differs[12]{}, diagnostics{0};
++inline std::atomic<unsigned long long> h25_paths[7]{};
++inline void reset() { for(auto& n:h25_paths) n=0; for (int i=0;i<12;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<10 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==10) return;
++    int i=0; while(i<12 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==12) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -32,6 +36,11 @@
+     if (tt_board != nullptr) record("H18", different, *tt_board, move);
+ }
+ // Caller holds the output mutex, after workers have joined.
+-inline void summary() { for(int i=0;i<10;++i) std::cout << "info string shortcut " << names[i]
+-    << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl; }
++inline void summary() { for(int i=0;i<12;++i) std::cout << "info string shortcut " << names[i]
++    << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
++    std::cout << "info string h25_paths seeded " << h25_paths[0].load() << " scan16 " << h25_paths[1].load()
++              << " scan8 " << h25_paths[2].load() << " scan4 " << h25_paths[3].load()
++              << " scalar_tail " << h25_paths[4].load() << " sort_transition " << h25_paths[5].load()
++              << " sorted_tail " << h25_paths[6].load() << std::endl;
+ }
++}
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1253,6 +1253,48 @@
+     // following move order depends on. Chunks of four compare inside the chunk
+     // first so the running best is not a loop-carried load on every move.
+     [[nodiscard]] Scored pick_best_scored() {
++#if FORGE_SHORTCUT_COUNT
++        // r15d selects the first maximum for the first four picks. On the
++        // fifth pick it instead sorts the tail with this identical comparator.
++        // Reproduce that transition on private storage before the plain scan.
++        const bool transition = !sorted_ && index_ - list_start_ >= 4;
++        const bool seed_path = !sorted_ && !transition && seeded_ && index_ == list_start_;
++        std::array<Scored,256> reference_list;
++        for(std::size_t i=index_; i<count_; ++i) reference_list[i]=moves_[i];
++        if(transition) std::sort(reference_list.begin()+static_cast<std::ptrdiff_t>(index_),
++                                 reference_list.begin()+static_cast<std::ptrdiff_t>(count_),
++                                 [](const Scored& a,const Scored& b){return a.score>b.score;});
++        std::size_t ref_best=index_;
++        for(std::size_t i=index_+1;i<count_;++i) {
++#if FORGE_SHORTCUT_WRONG4
++            if(reference_list[i].score >= reference_list[ref_best].score) ref_best=i; // Fault only on maximal-score ties.
++#else
++            if(reference_list[i].score > reference_list[ref_best].score) ref_best=i;
++#endif
++        }
++        const Scored expected=reference_list[ref_best];
++        if(seed_path) ++shortcut_count::h25_paths[0];
++        else if(transition) ++shortcut_count::h25_paths[5];
++        else if(sorted_) ++shortcut_count::h25_paths[6];
++        else {
++            std::size_t remaining=count_-(index_+1);
++#if defined(__AVX512F__)
++            if(remaining>=16) {++shortcut_count::h25_paths[1]; remaining%=16;}
++            if(remaining>=8) {++shortcut_count::h25_paths[2];remaining-=8;}
++#endif
++#if defined(__AVX2__)
++            if(remaining>=4) {++shortcut_count::h25_paths[3];remaining%=4;}
++#endif
++            if(remaining>0) ++shortcut_count::h25_paths[4];
++        }
++        const Scored actual=pick_best_scored_impl();
++        shortcut_count::record("H25",actual.move!=expected.move || actual.score!=expected.score,board_,actual.move);
++        return actual;
++#else
++        return pick_best_scored_impl();
++#endif
++    }
++    [[nodiscard]] Scored pick_best_scored_impl() {
+         if (!sorted_) {
+             if (index_ - list_start_ < 4) {
+                 if (seeded_ && index_ == list_start_) {
+@@ -1361,7 +1403,59 @@
+ #endif
+     }
+ 
++#if FORGE_SHORTCUT_COUNT
++    void observe_capture_generation() const {
++        // r15d search.cpp1030-1053: separate pseudo-legal capture generation
++        // followed by scalar scoring. Local list; no picker/search mutation.
++        MoveList reference;
++        board_.generate_pseudo_legal(reference, true);
++#if FORGE_SEARCH_SPEED2
++        const CaptureHistory& capture_history = *searcher_.capture_history_;
++#endif
++        bool different = count_ != reference.size() || index_ != 0 || list_start_ != 0 || sorted_;
++        bool ref_seed = false;
++        int ref_seed_score = 0;
++        std::size_t ref_seed_at = 0;
++        Move first = Move::none();
++        for (std::size_t i = 0; i < reference.size(); ++i) {
++            const Move move = reference[i];
++#if FORGE_SEARCH_SPEED2
++            const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
++            const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
++            int value = SeePieceValue[victim];
++            if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
++            int score = 10 * value + capture_history[moved][move.to][victim];
++#else
++            int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
++#endif
++            if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++#if FORGE_SHORTCUT_WRONG4
++            // Class-specific positive control: only captures made BY a knight.
++            // Knight promotions are pawn moves and therefore not corrupted.
++            if (move.is_capture() && piece_type(board_.piece_at(move.from)) == Knight) ++score;
++#endif
++            if (!ref_seed || score > ref_seed_score) {
++                ref_seed = true;
++                ref_seed_score = score;
++                ref_seed_at = i;
++            }
++            if (i >= count_ || moves_[i].move != move || moves_[i].score != score) {
++                different = true;
++                if (first.is_none()) first = move;
++            }
++        }
++        different = different || seeded_ != ref_seed ||
++                    (ref_seed && (seeded_score_ != ref_seed_score || seeded_at_ != ref_seed_at));
++        shortcut_count::record("H27", different, board_, first);
++    }
++#endif
+     [[gnu::noinline]] void generate_captures() {
++        generate_captures_impl();
++#if FORGE_SHORTCUT_COUNT
++        observe_capture_generation();
++#endif
++    }
++    [[gnu::noinline]] void generate_captures_impl() {
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
