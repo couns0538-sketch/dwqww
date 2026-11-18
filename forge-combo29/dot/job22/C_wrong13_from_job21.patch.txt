@@ -1,0 +1,135 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -1,3 +1,6 @@
++#ifndef FORGE_SHORTCUT_WRONG13
++#define FORGE_SHORTCUT_WRONG13 1
++#endif
+ #pragma once
+ #include "forge/board.hpp"
+ #include "forge/uci_output.hpp"
+@@ -5,8 +8,8 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12", "H36", "H11", "H29", "H86"};
+-inline std::atomic<unsigned long long> uses[21]{}, differs[21]{}, diagnostics{0};
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12", "H36", "H11", "H29", "H86", "H37", "H32"};
++inline std::atomic<unsigned long long> uses[23]{}, differs[23]{}, diagnostics{0};
+ inline std::atomic<unsigned long long> h25_paths[7]{};
+ inline std::atomic<unsigned long long> h82_classes[6]{};
+ inline std::atomic<unsigned long long> h30_classes[4]{}, h3_classes[4]{};
+@@ -14,10 +17,12 @@
+ inline std::atomic<unsigned long long> h36_classes[7]{}, h11_classes[2]{};
+ inline std::atomic<unsigned long long> h86_classes[8]{}, h86_skips[2]{};
+ inline std::atomic<unsigned long long> h29_classes[4]{};
+-inline void reset() { for(auto& n:h29_classes)n=0; for(auto& n:h86_classes)n=0; for(auto& n:h86_skips)n=0; for(auto& n:h36_classes)n=0; for(auto& n:h11_classes)n=0; for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<21;++i) { uses[i]=0; differs[i]=0; } }
++inline std::atomic<unsigned long long> h37_classes[5]{};
++inline std::atomic<unsigned long long> h32_classes[10]{};
++inline void reset() { for(auto& n:h32_classes)n=0; for(auto& n:h37_classes)n=0; for(auto& n:h29_classes)n=0; for(auto& n:h86_classes)n=0; for(auto& n:h86_skips)n=0; for(auto& n:h36_classes)n=0; for(auto& n:h11_classes)n=0; for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<23;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<21 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==21) return;
++    int i=0; while(i<23 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==23) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -72,8 +77,16 @@
+  ++h86_classes[odd?0:1]; ++h86_classes[2+path]; ++h86_classes[actual?6:7];
+  record("H86",different,*tt_board,Move::none());
+ }
++inline void record_h37(bool different,bool white,int cls,const Board& board) {
++ ++h37_classes[white?0:1]; ++h37_classes[2+cls]; record("H37",different,board,Move::none());
++}
++inline void record_h32(bool different,bool white,int deadclass,int backend,const Board& board) {
++ ++h32_classes[white?0:1]; ++h32_classes[2+deadclass]; ++h32_classes[6+backend]; record("H32",different,board,Move::none());
++}
+ // Caller holds the output mutex, after workers have joined.
+ inline void summary() {
++ std::cout << "info string h32_classes white " << h32_classes[0].load() << " black " << h32_classes[1].load() << " disabled " << h32_classes[2].load() << " guard_rejected " << h32_classes[3].load() << " candidate_unrecognized " << h32_classes[4].load() << " recognized " << h32_classes[5].load() << " dead_return " << h32_classes[6].load() << " inactive " << h32_classes[7].load() << " v1 " << h32_classes[8].load() << " v3 " << h32_classes[9].load() << std::endl;
++ std::cout << "info string h37_classes white " << h37_classes[0].load() << " black " << h37_classes[1].load() << " cache_valid " << h37_classes[2].load() << " cache_invalid " << h37_classes[3].load() << " no_stack " << h37_classes[4].load() << std::endl;
+  std::cout << "info string h29_classes white " << h29_classes[0].load() << " black " << h29_classes[1].load() << " legal " << h29_classes[2].load() << " pseudo " << h29_classes[3].load() << std::endl;
+  std::cout << "info string h86_classes odd " << h86_classes[0].load() << " even " << h86_classes[1].load() << " fast_direct " << h86_classes[2].load() << " fast_fallback " << h86_classes[3].load() << " ordinary_periodic " << h86_classes[4].load() << " ordinary_nonperiodic " << h86_classes[5].load() << " stopped " << h86_classes[6].load() << " continued " << h86_classes[7].load() << std::endl;
+  std::cout << "info string h86_skips unsupported " << h86_skips[0].load() << " unstable_stop " << h86_skips[1].load() << std::endl;
+@@ -83,7 +96,7 @@
+  std::cout << "info string h12_classes moving_knight " << h12_classes[0].load() << " other_mover " << h12_classes[1].load() << " prefix_return " << h12_classes[2].load() << " ray_empty " << h12_classes[3].load() << " actual_empty " << h12_classes[4].load() << " exchange_loop " << h12_classes[5].load() << std::endl;
+ 
+  std::cout << "info string h30_classes white_generation " << h30_classes[0].load() << " black_generation " << h30_classes[1].load() << " illegal_source " << h30_classes[2].load() << " promotion_source " << h30_classes[3].load() << std::endl;
+- std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<21;++i) std::cout << "info string shortcut " << names[i]
++ std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<23;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
+     std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
+               << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2179,10 +2179,40 @@
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     // Score recognized endings before any accumulator refresh or network call.
++#if FORGE_SHORTCUT_COUNT
++    int h32_actual_score=0;
++    const bool h32_enabled=dead_material_enabled;
++    const bool h32_candidate=h32_enabled && has_dead_material_candidates(board);
++    const bool h32_actual_dead=h32_candidate && dead_material_score(board,h32_actual_score);
++    int h32_reference_score=0;
++    // Old r15d does not consult the candidate guard.
++    bool h32_reference_dead=h32_enabled && dead_material_score(board,h32_reference_score);
++    const int h32_dead_class=!h32_enabled?0:(!h32_candidate?1:(h32_actual_dead?3:2));
++    bool h32_dispatch_diff=false;
++    int h32_backend=0;
++    if(!h32_actual_dead) {
++        const bool h32_reference_active=nnue::enabled && nnue::available();
++        h32_dispatch_diff=nnue_active_!=h32_reference_active;
++        h32_backend=nnue_active_?2:1;
++#if FORGE_NNUE_V3
++        if(nnue_active_ && h32_reference_active)
++            h32_dispatch_diff |= (v3_active_net_!=nullptr)!=nnue::v3::active();
++        if(nnue_active_ && v3_active_net_!=nullptr)h32_backend=3;
++#endif
++    }
++#if FORGE_SHORTCUT_WRONG13
++    if(board.side_to_move()==White)h32_reference_dead=!h32_reference_dead;
++#endif
++    const bool h32_diff=h32_actual_dead!=h32_reference_dead ||
++        (h32_actual_dead && h32_reference_dead && h32_actual_score!=h32_reference_score) || h32_dispatch_diff;
++    shortcut_count::record_h32(h32_diff,board.side_to_move()==White,h32_dead_class,h32_backend,board);
++    if(h32_actual_dead)return h32_actual_score;
++#else
+     if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
++#endif
+     if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+     if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
+@@ -2428,7 +2458,29 @@
+ #endif
+         shortcut_count::record_h36(mat_idx != h36_ref, board.side_to_move() == White, h36_path, true, board);
+ #endif
++#if FORGE_SHORTCUT_COUNT
++        // H37: inspect the actual material-history write, not only index lookup.
++        std::uint64_t h37_key=0;
++        for(const Color c:{White,Black}) for(int t=Pawn;t<=Queen;++t)
++            h37_key=h37_key*1099511628211ULL+static_cast<std::uint64_t>(popcount(board.pieces(c,static_cast<PieceType>(t)))+1);
++        const std::size_t h37_ref_idx=(h37_key*0x9E3779B97F4A7C15ULL)&(CorrectionSize-1U);
++        const std::int32_t h37_before=(*material_correction_)[side][h37_ref_idx];
++        const int h37_diff=std::clamp((best_score-static_eval)*CorrectionGrain,-CorrectionLimit/4,CorrectionLimit/4);
++        const int h37_weight=std::min(depth+1,16);
++        std::int32_t h37_expected=std::clamp(h37_before+h37_diff*h37_weight/256,-CorrectionLimit,CorrectionLimit);
++#if FORGE_SHORTCUT_WRONG13
++        if(board.side_to_move()==White) h37_expected^=std::int32_t{1};
++#endif
++        const int h37_class=ss==nullptr?2:((ss->corr_valid&8U)?0:1);
++#endif
+         apply((*material_correction_)[side][mat_idx]);
++#if FORGE_SHORTCUT_COUNT
++        const bool h37_wrong_slot=mat_idx!=h37_ref_idx;
++        const bool h37_wrong_value=(*material_correction_)[side][mat_idx]!=h37_expected;
++        const bool h37_ref_untouched=!h37_wrong_slot || (*material_correction_)[side][h37_ref_idx]==h37_before;
++        const bool h37_different=h37_wrong_slot || h37_wrong_value || !h37_ref_untouched;
++        shortcut_count::record_h37(h37_different,board.side_to_move()==White,h37_class,board);
++#endif
+     }
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
