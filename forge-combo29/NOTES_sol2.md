@@ -91,3 +91,7 @@ The single-engine fixed-node control leaned toward the byte copy at 0.9838 poole
 ## Job 11 — 2026-11-18T15:41:22Z
 
 Three engines pinned to separate reported guest cores reused Job 10's PC20/net768, 12 openings, fixed 20,000-node command and exact per-worker trace. All 96 eligible timed groups and 24 associated warm-ups matched it on every engine. The run CPU control range was 0.9138–1.0998. kF-pgo/r15d-pgo pooled 0.9265 run CPU with 12/12 blocks below one, not measurable here. The single-engine pooled ratio was 0.9224. [Job 11 report](REPORT_sol2_job11.md)
+
+## Job 12 — 2026-11-18T16:52:33Z
+
+Both frozen GCC builds passed all five node pins and the Job 10 trace. The repeated control matched 20/20 and the planted LmrQuietBase 60 control differed in 20/20. kF matched all 1,500 soft-node and 300 fixed-node whole-game traces on the pinned UHO slices. Clang ThinLTO without PGO pooled 0.9369 CPU, not measurable here. Clang ThinLTO with PGO pooled 0.9777 CPU, not measurable here. The Clang runs used synthetic net768 and one cloud engine. [Job 12 report](REPORT_sol2_job12.md)

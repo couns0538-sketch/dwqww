@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""Independently read back the Clang Part B eight-block fixed-node campaigns."""
+
+import argparse
+from dataclasses import dataclass
+import json
+import math
+from pathlib import Path
+import runpy
+
+
+SCHEMA = "forge-warm-balanced-v1"
+ORDERS = ("ABBA", "BAAB")
+BLOCKS = 8
+LEGS = 5
+SIGN_GATE = 7
+METRICS = (("engine_cpu_s", "Engine CPU"), ("total_wall_ns", "Wall"))
+MODES = {"clang-plain": "Clang without PGO", "clang-pgo": "Clang with PGO"}
+
+
+@dataclass
+class Campaign:
+    directory: Path
+    manifest: dict
+    summary: dict | None
+    rows: list
+    blocks: list
+    metrics: dict
+    position_means: dict
+    complete: bool
+    truncated: bool
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def verify(actual, expected, where):
+    if isinstance(expected, dict):
+        require(isinstance(actual, dict) and expected.keys() <= actual.keys(), f"missing fields in {where}")
+        for key, value in expected.items():
+            verify(actual[key], value, f"{where}.{key}")
+    elif isinstance(expected, (list, tuple)):
+        require(isinstance(actual, (list, tuple)) and len(actual) == len(expected), f"wrong list size in {where}")
+        for index, (one, two) in enumerate(zip(actual, expected)):
+            verify(one, two, f"{where}[{index}]")
+    elif type(expected) is bool:
+        require(actual is expected, f"wrong {where}: {actual!r}, expected {expected!r}")
+    else:
+        equal = math.isclose(actual, expected, rel_tol=1e-10, abs_tol=1e-12) if type(expected) is float else actual == expected
+        require(equal, f"wrong {where}: {actual!r}, expected {expected!r}")
+
+
+def add_reading(metrics, blocks, floor):
+    if floor is None:
+        return
+    for metric, values in metrics.items():
+        low = floor.metrics[metric]["block_min"]
+        high = floor.metrics[metric]["block_max"]
+        outside = not low <= values["block_median"] <= high
+        same_side = max(values["below_one"], values["above_one"]) >= SIGN_GATE
+        decision = "incomplete"
+        if len(blocks) == BLOCKS:
+            decision = "MEASURED" if outside and same_side else "not measurable here"
+        values.update(floor_min=low, floor_max=high, median_outside_floor=outside,
+                      at_least_7_on_one_side=same_side, decision=decision)
+
+
+def audit(directory, prior_reader, workload, floor=None):
+    manifest = load(directory / "inputs.txt")
+    prior_reader["verify_manifest"](directory, manifest, BLOCKS, floor, workload)
+    affinity = manifest["worker_affinity"]
+    require(len(affinity) == 1 and type(affinity[0]) is int and affinity[0] >= 0,
+            f"campaign is not pinned to exactly one logical CPU in {directory}")
+    if floor is not None:
+        verify(manifest["inputs"]["A"]["sha256"], floor.manifest["inputs"]["A"]["sha256"], f"{directory} baseline SHA-256")
+    summary_path = directory / "summary.txt"
+    summary = load(summary_path) if summary_path.is_file() else None
+    rows, truncated = prior_reader["read_rows"](directory / "runs.jsonl.txt", summary is not None)
+    eligible = prior_reader["inspect_rows"](directory, manifest, rows, BLOCKS, workload.expected)
+    included = eligible[:len(eligible) - len(eligible) % LEGS]
+    if summary is not None and "verified_inputs_after" not in summary:
+        require(str(summary["error"]).startswith("Post-run identity failed:"), f"missing post-run identity in {directory}")
+        included = []
+    blocks, metrics, means = prior_reader["independent_summary"](included, BLOCKS, None)
+    add_reading(metrics, blocks, floor)
+    complete = len(blocks) == BLOCKS
+    if summary is not None:
+        verify(summary, {"schema": SCHEMA, "order": ORDERS, "requested_blocks": BLOCKS, "completed_blocks": len(blocks),
+                         "attempted_runs": len(rows), "included_runs": 4 * len(blocks), "included_warmups": len(blocks),
+                         "complete": complete, "blocks": blocks, "metrics": metrics, "order_position_means": means,
+                         "expected_games_searches_nodes_trace": workload.expected,
+                         **{key: manifest[key] for key in ("arm_labels", "identical_floor", "floor", "worker_affinity")}},
+               str(summary_path))
+        require(summary["metrics"].keys() == metrics.keys(), f"unexpected summary metric coverage in {directory}")
+        if "verified_inputs_after" in summary:
+            verify(summary["verified_inputs_after"], manifest["inputs"], f"{summary_path}.verified_inputs_after")
+        require(not complete or summary["error"] is None, f"completed campaign has an error in {summary_path}")
+    return Campaign(directory, manifest, summary, rows, blocks, metrics, means, complete and summary is not None, truncated)
+
+
+def report(mode, step, data):
+    caption = "identical-binary floor" if step == "stepF" else "Clang kF against Clang r15d"
+    label = "F" if step == "stepF" else "K"
+    print(f"#### Step {label} — {caption}\n")
+    print(f"Logical CPU {data.manifest['worker_affinity'][0]}. Arm B durations divided by arm A durations.\n")
+    for arm in "AB":
+        identity = data.manifest["inputs"][arm]
+        print(f"- {arm} `{data.manifest['arm_labels'][arm]}` (`{identity['sha256']}`)")
+    print("\n| Block | Leg | Engine | CPU (s) | Wall (s) | Trace | Exit | In ratios |")
+    print("|---:|---|---|---:|---:|---|---:|---|")
+    for index, row in enumerate(data.rows):
+        leg = "Warm-up" if row["warmup"] else row["order_index"]
+        included = "yes" if not row["warmup"] and index < LEGS * len(data.blocks) else "no"
+        print(f"| {row['block']} | {leg} | {row['engine']} | {row['engine_cpu_s']:.3f} | "
+              f"{row['total_wall_ns']/1e9:.3f} | `{row.get('trace_fnv1a64', 'pending')}` | {row['engine_exit']} | {included} |")
+    if data.blocks:
+        print("\n| Block | Timed order | B/A CPU | B/A wall |\n|---:|---|---:|---:|")
+        for block in data.blocks:
+            print(f"| {block['block']} | {block['order']} | {block['engine_cpu_s']:.4f} | {block['total_wall_ns']:.4f} |")
+        print("\n| Metric | Median | Pooled | Range | Below 1 | Above 1 | Reading |\n|---|---:|---:|---:|---:|---:|---|")
+        for metric, name in METRICS:
+            row = data.metrics[metric]
+            reading = row.get("decision", "Identical-binary floor") if data.complete else "Incomplete"
+            print(f"| {name} | {row['block_median']:.4f} | {row['pooled_b_over_a']:.4f} | {row['block_min']:.4f}–{row['block_max']:.4f} | "
+                  f"{row['below_one']}/{len(data.blocks)} | {row['above_one']}/{len(data.blocks)} | {reading} |")
+        print("\n| Block cohort | Metric | Leg 1 | Leg 2 | Leg 3 | Leg 4 |\n|---|---|---:|---:|---:|---:|")
+        for cohort, metrics in data.position_means.items():
+            for metric, name in METRICS:
+                if metrics[metric]:
+                    values = " | ".join(f"{value:.5f}" for value in metrics[metric])
+                    print(f"| {cohort.capitalize()} | {name} | {values} |")
+    else:
+        print("\nNo complete blocks were eligible.")
+    if data.summary is not None and data.summary["error"]:
+        print(f"\nRecorded error `{data.summary['error']}`")
+    if data.truncated:
+        print("\nThe last raw run record is partial. Complete preceding receipts appear above.")
+    base = f"sol2/job12/{mode}/{step}"
+    links = [f"[Inputs]({base}/inputs.txt)"]
+    if (data.directory / "runs.jsonl.txt").is_file():
+        links.append(f"[Raw runs]({base}/runs.jsonl.txt)")
+    if data.summary is not None:
+        links.append(f"[Summary]({base}/summary.txt)")
+    command = data.directory.parent / f"{step}-command.raw.txt"
+    if command.is_file():
+        links.append(f"[Command](sol2/job12/{mode}/{command.name})")
+    print("\n" + " · ".join(links) + "\n")
+
+
+def available(directory):
+    has_manifest = (directory / "inputs.txt").is_file()
+    require(has_manifest or not (directory / "runs.jsonl.txt").is_file(), f"raw runs lack inputs in {directory}")
+    return has_manifest
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("job12", type=Path, help="Job 12 receipts directory")
+    parser.add_argument("job10", type=Path, help="Job 10 receipts directory, alongside Job 9")
+    parser.add_argument("--mode", choices=("all", *MODES), default="all")
+    parser.add_argument("--through", choices=("F", "K"), default="K", help="last step to read within each selected mode")
+    args = parser.parse_args()
+    prior = runpy.run_path(str(args.job10 / "timing_readback.py.txt"))
+    workload = prior["fixed_workload"](args.job10, args.job10.parent / "job9")
+    games, searches, nodes, trace = workload.expected
+    print(f"Part B's protocol uses one engine on one logical CPU, PC20, Threads 1, Hash 16 MiB, net768 and `go nodes 20000`. "
+          f"Each eligible run records {games} games, {searches:,} searches, {nodes:,} last-info nodes and `{trace}`.\n")
+    print("Step K is MEASURED when its median is outside the corresponding Step F range and at least seven of eight blocks "
+          "are on one side of 1. Warm-ups are excluded. [Pinned workload](sol2/job10/known-answer.txt)\n")
+    modes = MODES if args.mode == "all" else (args.mode,)
+    for mode in modes:
+        root = args.job12 / mode
+        print(f"### {MODES[mode]}\n")
+        if not available(root / "stepF"):
+            print("Step F has no timing receipts.\n")
+            continue
+        floor = audit(root / "stepF", prior, workload)
+        report(mode, "stepF", floor)
+        if args.through == "K":
+            if not available(root / "stepK"):
+                print("Step K has no timing receipts.\n")
+                continue
+            require(floor.complete, f"Step K started without a completed Step F in {root}")
+            candidate = audit(root / "stepK", prior, workload, floor)
+            report(mode, "stepK", candidate)
+
+
+if __name__ == "__main__":
+    main()
