@@ -1,0 +1,74 @@
+PC r15 settings and decision sites
+
+Line numbers refer to forge-combo29/src/search.cpp in the plain PC r15 source:
+base 6b98f2170a3210e71beed04bbd2553972c253ed7 plus pc_r15.patch
+SHA-256 d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a.
+Tests below identify the original predicates and taking sites; lines are
+pre-instrumentation. A setting listed as an input can alter an intermediate
+value even when it is absent from the predicate itself.
+
+Event | Original test | Original taking site | Direct and immediate input settings
+Razoring | 1923–1926, qsearch result at 1929 | 1929 returns the fail-low result | RazorDepth, RazorBase, RazorMultiplier, MaterialCorrectionWeight via eval
+Reverse futility | 1923–1924, 1934–1939 | 1940 returns eval | RfpDepth, RfpMargin, RfpImproving, MaterialCorrectionWeight via eval and the worsening check
+Null move | 1923–1924, 1943–1948 | 1949/1963 try; 1975–1976 and 1988–1990 cut | NullMoveMinDepth, NullMoveBase, NullMoveDepthDivisor, NullMoveEvalDivisor, MaterialCorrectionWeight via eval/static eval
+ProbCut | 1923–1924, 1995–1997 and legal/SEE candidate gates at 2001–2002 | 2014 qsearch try; 2015–2016 deeper verification; 2020–2026 cut | ProbcutDepth, ProbcutMargin, MaterialCorrectionWeight via static eval and improving
+IIR, absent TT move | 2033, needs a PV or cut node | 2033 decrements depth | IirDepth
+IIR, upper-bound TT move | 2036–2037, TtPruneV2 only | 2037 decrements depth | IirDepth, with a threshold two plies higher
+Late-move pruning | 2096–2097, 2121 | 2121 changes skip_quiets from false to true | LmpBase via 319–320, MaterialCorrectionWeight via improving
+Quiet futility | 2131–2136; separate tight-quiet path 2181–2186 | 2137–2141 and 2186 skip the current move; 2139 also sets skip_quiets | FutilityDepth, FutilityBase, FutilityMultiplier, LmrQuietBase, LmrQuietDivisor, MaterialCorrectionWeight
+History pruning | 2128–2131, 2143 | 2144–2146 skip the current move | HistoryPruneDepth, HistoryPruneMultiplier, LmrQuietBase, LmrQuietDivisor, MaterialCorrectionWeight via improving, HistoryBonusQuadratic, HistoryBonusLinear, HistoryBonusMax via previously learned quiet history
+Quiet SEE pruning | 2131, 2148 | 2149–2151 skip the current move | SeeQuietMultiplier, LmrQuietBase, LmrQuietDivisor
+Capture futility | 2153–2162 | 2163–2164 skip the capture | CaptureFutilityBase, LmrNoisyBase, LmrNoisyDivisor, MaterialCorrectionWeight and learned capture history
+Noisy SEE pruning | 2153, 2166–2168, after capture futility | 2169–2176 skip the current move | SeeNoisyMultiplier
+Singular extension | 2192–2194 | 2201 tries; 2207 extends by one, 2209 by two; 2214 and 2216 give negative extensions; 2212 returns a bound in the separate multi-cut arm | SingularDepth, SingularMargin
+Check extension | 2218–2219 when singular eligibility is false | 2220 sets extension to one | CheckExtensionDepth
+Late-move reduction | 2254–2256 | 2275–2277 searches the clamped reduced depth; if reduced_depth < new_depth the actual reduction is new_depth - reduced_depth | LmrQuietBase, LmrQuietDivisor, LmrNoisyBase, LmrNoisyDivisor, LmrHistoryDivisor, LmrCutoffThreshold; previously learned history and improving also enter
+Aspiration re-search | 2743–2751 chooses a narrow window; 2777 and 2787 detect failure | 2799 reaches the next trial after early-break checks at 2783 and 2792 | AspirationDelta
+Quiescence futility | 1685, 1699–1702 | 1703–1704 update the bound and skip the move | QsFutilityMargin, MaterialCorrectionWeight
+Fail-low continuation bonus | 2359–2360 | 2362–2363 call the update | FailLowContinuationBonus, HistoryBonusQuadratic, HistoryBonusLinear, HistoryBonusMax
+Eval-swing history update | 1890–1893 | 1894–1897 call the update | EvalSwingMult, MaterialCorrectionWeight via child and parent static evals
+Draw jitter | 1627 (qsearch), 1777–1778 (main), and 2584–2586 only if the legacy root branch is compiled; 1438–1444 filter the kind of draw | 1445 computes a draw score; the taken event requires a nonzero result | DrawJitter
+
+Main nodes are credited at 1772 after the stop test and diverted to quiescence at
+1762 before the credit. HindsightDepth can retract the credit at 1839 before its
+own diversion. Qsearch nodes are credited at 1623. The CuckooRep literal-zero
+returns at 2412 and 2421 bypass these increments and jitter.
+
+Setting formulas and shared inputs
+
+- 302–306 builds integer quiet and noisy LMR tables from log(depth) × log(moves).
+  The configured bases and divisors are in hundredths. Lookup is 313–316.
+  Besides the actual reduction, 2122 and 2183 use the unadjusted value to obtain
+  depth inputs for pruning. Quiet history adjustment is 2265; the additional
+  cutoff-count adjustment is 2264.
+- 323–324 computes min(HistoryBonusMax, HistoryBonusQuadratic × depth² +
+  HistoryBonusLinear × depth − 32). Uses at 1565 and 1597 feed the quiet and
+  capture statistics. Other direct uses: TT-cutoff history (1855, optional),
+  late quiet continuation (2293), PV history (2350–2358), and fail-low
+  continuation (2363). These scale future move ordering and history inputs as
+  well as the fail-low update itself. The three settings do not independently
+  gate a search step.
+- 1298–1299 weights the material table contribution by MaterialCorrectionWeight
+  / 100; 1334 updates its entry only when the weight is positive, under the
+  correction-learning conditions at 2376–2380. The corrected static value is
+  consumed at 1669 and 1872 (optionally overridden in eval by the TT), and
+  drives improving at 1880–1884. This is a shared evaluation input, with no
+  dedicated prune or extension.
+- 1439–1445 uses width 2 × DrawJitter + 1 and the current local node count modulo
+  width. Even an eligible repetition/fifty-move draw can output zero. The
+  default DrawJitter = 0 at 95 means no jitter taken on PC20.
+
+Counter boundaries
+
+- Tested means arrival at the event predicate, except null move and ProbCut
+  count actual tries and singular counts actual verification attempts.
+- IIR is bucketed before decrement. LMR plies are the actual clamped
+  difference in starting depth. Singular double is a subset of positive
+  extensions. Negative extensions are separate; multi-cut is no extension.
+- Aspiration tested means a completed root trial with a finite bound. Taken
+  requires a retry after the fail and any capped-reopen exit checks.
+- Counts are enabled only for UCI searches with one worker and one PV.
+  Just before the bestmove line, the engine checks main + qsearch nodes
+  against its final result nodes and emits a refusal on any mismatch.
+- Capture futility, fail-low continuation bonus, eval swing and draw jitter
+  are taken zero times under PC20. They are collected in the raw rows.

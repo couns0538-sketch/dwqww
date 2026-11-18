@@ -1,0 +1,523 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -92,6 +92,148 @@
+ 
+ namespace forge {
+ 
++namespace {
++
++// This scratch build collects one row for single-thread, single-PV UCI searches.
++enum class CountEvent : std::size_t {
++    main_nodes,
++    q_nodes,
++    razor_tested,
++    razor_taken,
++    rfp_tested,
++    rfp_taken,
++    null_move_tested,
++    null_move_taken,
++    probcut_tested,
++    probcut_taken,
++    iir_no_tt_tested,
++    iir_no_tt_taken,
++    iir_tt_tested,
++    iir_tt_taken,
++    lmp_tested,
++    lmp_taken,
++    quiet_futility_tested,
++    quiet_futility_taken,
++    history_pruning_tested,
++    history_pruning_taken,
++    quiet_see_tested,
++    quiet_see_taken,
++    capture_futility_tested,
++    capture_futility_taken,
++    noisy_see_tested,
++    noisy_see_taken,
++    singular_tested,
++    singular_taken,
++    check_extension_tested,
++    check_extension_taken,
++    lmr_tested,
++    lmr_taken,
++    fail_low_bonus_tested,
++    fail_low_bonus_taken,
++    eval_swing_tested,
++    eval_swing_taken,
++    draw_jitter_tested,
++    draw_jitter_taken,
++    q_futility_tested,
++    q_futility_taken,
++    aspiration_tested,
++    aspiration_taken,
++    singular_double,
++    singular_negative,
++    lmr_plies,
++    size,
++};
++
++constexpr std::array<std::string_view, static_cast<std::size_t>(CountEvent::size)> job2_event_names{
++    "main_nodes",
++    "q_nodes",
++    "razor_tested",
++    "razor_taken",
++    "rfp_tested",
++    "rfp_taken",
++    "null_move_tested",
++    "null_move_taken",
++    "probcut_tested",
++    "probcut_taken",
++    "iir_no_tt_tested",
++    "iir_no_tt_taken",
++    "iir_tt_tested",
++    "iir_tt_taken",
++    "lmp_tested",
++    "lmp_taken",
++    "quiet_futility_tested",
++    "quiet_futility_taken",
++    "history_pruning_tested",
++    "history_pruning_taken",
++    "quiet_see_tested",
++    "quiet_see_taken",
++    "capture_futility_tested",
++    "capture_futility_taken",
++    "noisy_see_tested",
++    "noisy_see_taken",
++    "singular_tested",
++    "singular_taken",
++    "check_extension_tested",
++    "check_extension_taken",
++    "lmr_tested",
++    "lmr_taken",
++    "fail_low_bonus_tested",
++    "fail_low_bonus_taken",
++    "eval_swing_tested",
++    "eval_swing_taken",
++    "draw_jitter_tested",
++    "draw_jitter_taken",
++    "q_futility_tested",
++    "q_futility_taken",
++    "aspiration_tested",
++    "aspiration_taken",
++    "singular_double",
++    "singular_negative",
++    "lmr_plies",
++};
++
++using Job2Buckets = std::array<std::uint64_t, 32>;
++using Job2Counters = std::array<Job2Buckets, job2_event_names.size()>;
++
++thread_local Job2Counters* job2_counters = nullptr;
++
++void job2_count(CountEvent event, int depth, std::uint64_t amount = 1) {
++    if (job2_counters != nullptr) {
++        (*job2_counters)[static_cast<std::size_t>(event)][std::clamp(depth, 0, 31)] += amount;
++    }
++}
++
++void job2_uncount(CountEvent event, int depth) {
++    if (job2_counters != nullptr) {
++        --(*job2_counters)[static_cast<std::size_t>(event)][std::clamp(depth, 0, 31)];
++    }
++}
++
++void print_job2_counters(const Job2Counters& counters, std::uint64_t actual_nodes) {
++    std::uint64_t counted_nodes = 0;
++    for (const CountEvent event : {CountEvent::main_nodes, CountEvent::q_nodes}) {
++        for (const auto nodes : counters[static_cast<std::size_t>(event)]) counted_nodes += nodes;
++    }
++    const std::lock_guard<std::mutex> lock(uci_output_mutex());
++    if (counted_nodes != actual_nodes) {
++        std::cout << "info string ERROR CNT node accounting " << counted_nodes
++                  << " expected " << actual_nodes << std::endl;
++    }
++    std::cout << "info string CNT {";
++    for (std::size_t event = 0; event < counters.size(); ++event) {
++        if (event != 0) std::cout << ',';
++        std::cout << '"' << job2_event_names[event] << "\":[";
++        for (std::size_t bucket = 0; bucket < counters[event].size(); ++bucket) {
++            if (bucket != 0) std::cout << ',';
++            std::cout << counters[event][bucket];
++        }
++        std::cout << ']';
++    }
++    std::cout << '}' << std::endl;
++}
++
++} // namespace
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -1621,10 +1763,16 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    job2_count(CountEvent::q_nodes, 0);
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++    if (is_draw(board, ply)) {
++        job2_count(CountEvent::draw_jitter_tested, 0);
++        const int score = DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++        if (score != 0) job2_count(CountEvent::draw_jitter_taken, 0);
++        return score;
++    }
+     if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+ 
+     const bool in_check = board.in_check();
+@@ -1699,7 +1847,9 @@
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
++            job2_count(CountEvent::q_futility_tested, 0);
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++                job2_count(CountEvent::q_futility_taken, 0);
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
+@@ -1770,12 +1920,19 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    const int node_entry_depth = depth;
++    job2_count(CountEvent::main_nodes, node_entry_depth);
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++        if (is_draw(board, ply)) {
++            job2_count(CountEvent::draw_jitter_tested, depth);
++            const int draw_score = DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++            if (draw_score != 0) job2_count(CountEvent::draw_jitter_taken, depth);
++            return draw_score;
++        }
+         if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+@@ -1836,6 +1993,7 @@
+                 if (proposed != depth && !(tt_hit && tt_depth >= proposed)) {
+                     depth = proposed;
+                     if (depth <= 0) {
++                        job2_uncount(CountEvent::main_nodes, node_entry_depth);
+                         --local_nodes_;
+                         return qsearch_child(board, ss, alpha, beta);
+                     }
+@@ -1887,10 +2045,12 @@
+     // packc28, EvalSwing: the previous quiet move changed the static eval by `swing` (seen from its mover); that goes
+     // into the mover's butterfly history. Not in check, not in an excluded-move search, not after a capture,
+     // promotion or null move.
++    job2_count(CountEvent::eval_swing_tested, depth);
+     if (tune::EvalSwingMult != 0 && !in_check && excluded.is_none()) {
+         const SearchStack* parent = ss - 1;
+         if (parent->static_eval != ValueNone && ss->static_eval != ValueNone && !parent->in_check &&
+             !parent->current_move.is_none() && !parent->current_move.is_capture() && !parent->current_move.is_promotion()) {
++            job2_count(CountEvent::eval_swing_taken, depth);
+             const int swing = std::clamp(-(ss->static_eval + parent->static_eval), -tune::EvalSwingMax, tune::EvalSwingMax);
+             apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))]
+                                           [parent->current_move.from][parent->current_move.to],
+@@ -1923,10 +2083,14 @@
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+         board.halfmove_clock() + depth < 100) {
+         // Razoring: hopeless positions fall back to quiescence.
++        job2_count(CountEvent::razor_tested, depth);
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch_child(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor < alpha) {
++                job2_count(CountEvent::razor_taken, depth);
++                return razor;
++            }
+         }
+         // Reverse futility pruning.
+         // B4 TtPruneV2: when the opponent's static eval fell on their move ("opponent worsening"), the fail high is a
+@@ -1934,9 +2098,11 @@
+         const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+                                           ss->static_eval + (ss - 1)->static_eval > 2
+                                       ? tune::RfpMargin / 3 : 0;
++        job2_count(CountEvent::rfp_tested, depth);
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+             eval < MateInMaxPly) {
++            job2_count(CountEvent::rfp_taken, depth);
+             return eval;
+         }
+         // Null move pruning.
+@@ -1947,6 +2113,7 @@
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
++            job2_count(CountEvent::null_move_tested, depth);
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+             ss->current_move = Move::none();
+@@ -1973,6 +2140,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++                    job2_count(CountEvent::null_move_taken, depth);
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1987,6 +2155,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    job2_count(CountEvent::null_move_taken, depth);
+                     return null_score;
+                 }
+             }
+@@ -2000,6 +2169,7 @@
+             while (!(move = picker.next(false)).is_none()) {
+                 if (move == excluded || !board.is_legal(move)) continue;
+                 if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
++                job2_count(CountEvent::probcut_tested, depth);
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -2018,6 +2188,7 @@
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++                    job2_count(CountEvent::probcut_taken, depth);
+ #if FORGE_SPD_TT_NOTLS
+                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+@@ -2030,11 +2201,20 @@
+     }
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+-    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+-    // B4 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
+-    // (Exclusive with the IIR above: that one needs no TT move, this one a TT move; mate search left alone as above.)
+-    else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
+-             !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
++    job2_count(CountEvent::iir_no_tt_tested, depth);
++    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) {
++        job2_count(CountEvent::iir_no_tt_taken, depth);
++        --depth;
++    } else {
++        // B4 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
++        // (Exclusive with the IIR above: that one needs no TT move, this one a TT move; mate search left alone as above.)
++        job2_count(CountEvent::iir_tt_tested, depth);
++        if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
++            !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) {
++            job2_count(CountEvent::iir_tt_taken, depth);
++            --depth;
++        }
++    }
+ 
+     // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+     if (tune::HistRework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+@@ -2118,7 +2298,13 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets) {
++                job2_count(CountEvent::lmp_tested, depth);
++                if (move_count >= lmp_threshold(depth, improving)) {
++                    job2_count(CountEvent::lmp_taken, depth);
++                    skip_quiets = true;
++                }
++            }
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+@@ -2129,23 +2315,29 @@
+                                                     ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+                                                     : -tune::HistoryPruneMultiplier * depth;
+             if (quiet && !gives_check && prunable) {
++                job2_count(CountEvent::quiet_futility_tested, depth);
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    job2_count(CountEvent::quiet_futility_taken, depth);
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
++                job2_count(CountEvent::history_pruning_tested, depth);
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
++                    job2_count(CountEvent::history_pruning_taken, depth);
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+                 }
++                job2_count(CountEvent::quiet_see_tested, depth);
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    job2_count(CountEvent::quiet_see_taken, depth);
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+@@ -2153,6 +2345,7 @@
+             } else if (prunable) {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
++                job2_count(CountEvent::capture_futility_tested, depth);
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -2160,12 +2353,15 @@
+ #endif
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++                    job2_count(CountEvent::capture_futility_taken, depth);
+                     trace_case();
+                     continue;
+                 }
++                job2_count(CountEvent::noisy_see_tested, depth);
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
++                    job2_count(CountEvent::noisy_see_taken, depth);
+                     trace_case();
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+@@ -2180,10 +2376,14 @@
+         // One wide quiet miss halves the futility slack of later ordinary quiets.
+         if (may_extinguish && futility_tight && quiet && !gives_check && best_score > -MateInMaxPly &&
+             move != ss->killers[0] && move != ss->killers[1] && move != counter_move) {
++            job2_count(CountEvent::quiet_futility_tested, depth);
+             const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
+             if (tight_depth <= tune::FutilityDepth) {
+                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+-                if (ss->static_eval + tight_margin <= alpha) continue;
++                if (ss->static_eval + tight_margin <= alpha) {
++                    job2_count(CountEvent::quiet_futility_taken, depth);
++                    continue;
++                }
+             }
+         }
+ 
+@@ -2191,6 +2391,7 @@
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++            job2_count(CountEvent::singular_tested, depth);
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             // grok47/r4-08 (audit finding 7): (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch,
+             // which never reads excluded_move, so the singular search would cut off on this node's own
+@@ -2204,20 +2405,28 @@
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
++                job2_count(CountEvent::singular_taken, depth);
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++                    job2_count(CountEvent::singular_double, depth);
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+                 return singular_beta;
+             } else if (tt_score >= beta) {
++                job2_count(CountEvent::singular_negative, depth);
+                 extension = -2;
+             } else if (cut_node) {
++                job2_count(CountEvent::singular_negative, depth);
+                 extension = -1;
+             }
+-        } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+-                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+-            extension = 1;
++        } else {
++            job2_count(CountEvent::check_extension_tested, depth);
++            if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
++                (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
++                job2_count(CountEvent::check_extension_taken, depth);
++                extension = 1;
++            }
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
+@@ -2254,6 +2463,7 @@
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
++            job2_count(CountEvent::lmr_tested, depth);
+             int r = reduction(quiet, depth, move_count);
+             if (ss->tt_pv) r -= 1;
+             if (!improving) r += 1;
+@@ -2273,6 +2483,10 @@
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             if (bare_king_lmr_cap) r = std::min(r, 1);
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
++            if (reduced_depth < new_depth) {
++                job2_count(CountEvent::lmr_taken, depth);
++                job2_count(CountEvent::lmr_plies, depth, new_depth - reduced_depth);
++            }
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search_child(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+@@ -2356,11 +2570,15 @@
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+         if (tune::HistRework != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+-    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+-               (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+-        // Every move failed low: the parent's quiet move refuted this line.
+-        update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
+-                            history_bonus(depth) * tune::FailLowContinuationBonus / 100);
++    } else {
++        job2_count(CountEvent::fail_low_bonus_tested, depth);
++        if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
++            (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
++            job2_count(CountEvent::fail_low_bonus_taken, depth);
++            // Every move failed low: the parent's quiet move refuted this line.
++            update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
++                                history_bonus(depth) * tune::FailLowContinuationBonus / 100);
++        }
+     }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+@@ -2583,7 +2801,9 @@
+         if (legal.empty() && board.in_check()) score = -MateValue;
+ #if !FORGE_FIX_ROOT_DRAWN
+         else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
++            job2_count(CountEvent::draw_jitter_tested, 0);
+             score = draw_leaf_score(board);
++            if (score != 0) job2_count(CountEvent::draw_jitter_taken, 0);
+         }
+ #endif
+         for (int depth = 1; depth <= max_depth; ++depth) {
+@@ -2767,6 +2987,8 @@
+                 ? std::max(1, depth - std::min(asp_fail_highs, tune::AspFailHighMaxReduce)) : depth;
+             iteration_score = search(board, ss, search_depth, alpha, beta, false);
+             if (aborted_) break;
++            const bool aspiration_window = alpha > -Infinite || beta < Infinite;
++            if (aspiration_window) job2_count(CountEvent::aspiration_tested, search_depth);
+ #if FORGE_FIX_ABORT_PUBLISH
+             if (iteration_score >= beta && ss->pv_length > 0) {
+                 fail_high_pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+@@ -2796,6 +3018,7 @@
+             } else {
+                 break;
+             }
++            if (aspiration_window) job2_count(CountEvent::aspiration_taken, search_depth);
+             delta += delta / 2 + 4;
+         }
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+@@ -3118,7 +3341,15 @@
+             });
+         }
+     }
++    Job2Counters counters{};
++    const bool count_this_search = emit_info && all.size() == 1 && worker_limits.multipv == 1;
++    struct CounterScope {
++        Job2Counters* const previous = job2_counters;
++        explicit CounterScope(Job2Counters* active) { job2_counters = active; }
++        ~CounterScope() { job2_counters = previous; }
++    } counter_scope(count_this_search ? &counters : nullptr);
+     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++    if (count_this_search) print_job2_counters(counters, result.nodes);
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
