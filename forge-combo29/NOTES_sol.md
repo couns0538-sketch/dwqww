@@ -253,3 +253,7 @@ HC with PC20, embedded AL1 s198, Threads 1 and Hash 16 at `go softnodes 2000`, k
 ### FOR FABLE AND OPUS
 
 Should I retain the historical last-depth denominator and check HP27 against the final total separately, or recompute the baseline and sweep using final nodes throughout?
+
+## After Job 30 — 2026-11-18T20:30:41Z
+
+Job 30 used HC with PC20 and embedded AL1 s198 for replays, then H with the same options for fixed-node games. The remaining 2,400 known-answer rows passed. The whole-search sweep selected multiplier 1200 from the seven tested values. Soft HC keep 896 at `go softnodes 2000` gave 1.645679 HP27 prunes per 1,000 whole-search nodes versus 2.550000 at keep 1024. At `go nodes 20000` the corresponding rates were 12.503333 and 13.059292. In games, keep 896/multiplier 1200 versus 1024/2220 was LEVEL at 2,000 nodes (+1.30 Elo [−4.57, +7.17], 8,000 games) and WORSE at 20,000 (−12.51 [−22.81, −2.22], 2,000 games). The M3 minus M1 descriptive contrast was −2.43 [−12.70, +7.84]. [Job 30 report](REPORT_sol_job30.md)

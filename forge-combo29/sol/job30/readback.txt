@@ -1,0 +1,33 @@
+Opening audit verified 110 earlier PGN files, 161,992 FEN tags and 5,050 disjoint new positions. The archive includes both D2s parts and all Job 28 matches.
+
+## Prediction grades
+
+Ranges are inclusive. A cut uses the complete pairs actually played.
+
+| Match | Forecast Elo | Observed / grade | Forecast unequal pairs | Observed / grade | Forecast reading | Observed / grade |
+|---|---|---|---|---|---|---|
+| M3 | [-12.00, +10.00] | +1.30 / met | [2000, 2750] | 2447 / met | LEVEL | LEVEL / met |
+| M4 | [-16.00, +12.00] | -12.51 / met | [460, 710] | 592 / met | LEVEL | WORSE / missed |
+
+## K19 known-answer control
+
+K19 PASS. H on both sides with PC20, HistoryAgeKeep 896 and HistoryPruneMultiplier 1200. Embedded evaluation, Threads 1, Hash 16, 2,000 nodes per move. All 50 reversed-color pairs had identical ordered UCI moves and scored 1–1. A W-L-D 31-31-38, pentanomial (0, 0, 50, 0, 0), Elo +0.00 [+0.00, +0.00].
+
+## Part B. Ageing with a rescaled pruning threshold
+
+Both sides used H with PC20, embedded evaluation, Threads 1, Hash 16 and OwnBook false. A used HistoryAgeKeep 896 with HistoryPruneMultiplier 1200, and B 1024 with 2220. The two-sided exact sign test is descriptive. The reading uses the symmetric 95% Elo interval computed at full precision from the pentanomial counts.
+
+| Match | Nodes per move | Status | Games | A W-L-D | Pentanomial | Exact same moves / pairs | Better | Worse | Exact two-sided p | Elo [95%] | Reading |
+|---|---:|---|---:|---|---|---|---:|---:|---:|---|---|
+| M3 | 2,000 | complete | 8000 | 2736-2706-2558 | 387, 819, 1553, 859, 382 | 0/4000 | 1241 | 1206 | 0.491886 | +1.30 [-4.57, +7.17] | **LEVEL** |
+| M4 | 20,000 | complete | 2000 | 525-597-878 | 66, 254, 408, 230, 42 | 0/1000 | 272 | 320 | 0.0533062 | -12.51 [-22.81, -2.22] | **WORSE** |
+
+## Descriptive comparison with Job 28 M1
+
+M1 from `f77d7951f36f7cf2bc76fbcd5e40c3f0891555f4` gave +3.74 Elo [-4.69, +12.16] over 2,000 independent opening pairs. Both matches used H with PC20 at 2,000 nodes per move. Their opening sets were disjoint.
+M3 minus M1 is **-2.43 Elo [-12.70, +7.84]**. I subtracted the unrounded Elo centers and combined the symmetric 95% halfwidths in quadrature because the two samples were independent.
+
+## What this check cannot see
+
+The PC's engine (its net, its build, its other settings), keep values other than 896, other ways to restore
+pruning (depth, the improving factor), budgets other than 2,000 and 20,000 nodes.
