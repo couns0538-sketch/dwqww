@@ -273,3 +273,7 @@ On unchanged HG with PC20, keep 1024, Threads 1, Hash 16 and embedded AL1 s198, 
 ## After Job 34 — 2026-11-18T22:55:10Z
 
 Job 34 rebuilt r15d and kF with clean patch applications and 29/29 source pins each. Both used GCC 14.2.0 native cloud builds, PC20, Threads 1, Hash 16 and synthetic net768 `30ab43b4ba5db5f3`. The 1,000-game `go softnodes 2000` T1 streams were IDENTICAL, 117,462 records and 489,799,089 last-info nodes per build. Strict `go nodes 2000` T2 streams matched all 196 completed games, then both gave `bestmove c6c5` with no `info` at book line 2197, ply 57. A full 200-game diagnostic on each verified the same 22,923 move records and all 22,922 emitted node fields, including the same explicitly missing field in both. No node count was inferred. [Job 34 report](REPORT_sol_job34.md)
+
+## After Job 35 — 2026-11-18T23:08:48Z
+
+Job 35 reused native r15d and kF with PC20, active net768 checksum `30ab43b4ba5db5f3`, Threads 1, Hash 16 and `go softnodes 2000`. With seeded random opening plies from startpos, U1's 1,000 games and U2's 500 games were both IDENTICAL. Each build recorded 120,131 rows and 502,179,747 nodes in U1, and 57,656 rows and 239,105,488 nodes in U2, all from the last literal soft-node info lines. Separate opening files matched before each launch. U2 game 1160 ended in checkmate after four random plies and recorded no searches. [Job 35 report](REPORT_sol_job35.md)
