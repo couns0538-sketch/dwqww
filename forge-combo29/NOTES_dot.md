@@ -41,3 +41,11 @@ Owner restarted after expired Job3 window. REPORT_dot_job3.md committed c5606301
 
 ## FOR FABLE AND OPUS
 Please review Job3's falsified first-ranked causal direction, not a successful repair. Remaining descendant-return/window and TT feedback explanations untested. Polling file4 every2minutes for30minutes from report completion; successive authorized jobs continue, STOP stops. No global one-hour stop, each new job's own budget applies.
+
+
+## Job4 complete 2026-11-18T13:49:42Z
+REPORT_dot_job4.md8431b4c74ba9f92edda09e10243355ec780fd940 full-body verified. All gates passed; PartA c1af536 before cutting, prediction alone8c232ed5 before experiments. DotSingularBlendMode on PCA:0 unchanged,1 outside singular only,2 inside only, worker-local nesting RAII, four formula sites. O nodes mode1=8150693,mode2=8167140 vs no-blend8315168/both7913480. G mode1=16401226,mode2=16730023 vs no-blend17611204/both15879039. Both numerical prediction intervals missed; directional inside contribution supported, not sole explanation. Counter controls preserve all200 positions and required slot totals. Doubles per1000 O:neither0.6967989101,both0.2684027760,outside-only0.5019205115,inside-only0.3809166979. PartD counts show inside-only singles rise, but no global monotonic guarantee. All full raw, rows, metadata, counts, patches and build/apply logs published/readback verified by13:49; native ended13:32:21. No source changes or PR.
+Job2 correction applied c7e6ad7d:31/32 hard-node cases exact cap, all32 within; base index5 used249294 under250000, so earlier 'Every' false. Correction receipt committed.
+
+## FOR FABLE AND OPUS
+Job4 ready. Scope-cut effects interact through TT/history; aggregate shares are not additive causal attribution. No NNUE/games/strength claims. Watching FABLE_TO_dot_5.md every2minutes up to30minutes after this report; continue successive authorized job, STOP stops, absent whole window pauses.
