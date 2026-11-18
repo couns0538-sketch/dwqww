@@ -1,0 +1,242 @@
+
+DrawJitter
+search.cpp:95: int DrawJitter = 0;
+search.cpp:1446:     const int span = DrawJitter;
+search.cpp:1634:     if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+search.cpp:1791:         if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+search.cpp:2614:         else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+search.cpp:3080:     if (clamped == DrawJitter) return;
+search.cpp:3081:     DrawJitter = clamped;
+
+LmrQuietBase
+search.cpp:98: int LmrQuietBase = 85;
+search.cpp:193:         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+search.cpp:311:                     std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+
+LmrQuietDivisor
+search.cpp:99: int LmrQuietDivisor = 220;
+search.cpp:193:         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+search.cpp:311:                     std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+
+LmrNoisyBase
+search.cpp:100: int LmrNoisyBase = 10;
+search.cpp:194:         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+search.cpp:313:                     std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
+
+LmrNoisyDivisor
+search.cpp:101: int LmrNoisyDivisor = 340;
+search.cpp:194:         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+search.cpp:313:                     std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
+
+NullMoveMinDepth
+search.cpp:102: int NullMoveMinDepth = 3;
+search.cpp:195:         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+search.cpp:1965:         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+
+NullMoveBase
+search.cpp:103: int NullMoveBase = 3;
+search.cpp:195:         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+search.cpp:1972:             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+
+NullMoveDepthDivisor
+search.cpp:104: int NullMoveDepthDivisor = 3;
+search.cpp:196:         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+search.cpp:1972:             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+
+NullMoveEvalDivisor
+search.cpp:105: int NullMoveEvalDivisor = 200;
+search.cpp:197:         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+search.cpp:1973:                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+
+RfpDepth
+search.cpp:106: int RfpDepth = 8;
+search.cpp:198:         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+search.cpp:1955:         if (!bare_king_mode && depth <= tune::RfpDepth &&
+
+RfpMargin
+search.cpp:107: int RfpMargin = 72;
+search.cpp:198:         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+search.cpp:1949:                                       ? tune::RfpMargin / 3 : 0;
+search.cpp:1958:             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
+
+RfpImproving
+search.cpp:108: int RfpImproving = 40;
+search.cpp:199:         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+search.cpp:1958:             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
+
+RazorDepth
+search.cpp:114: int RazorDepth = 2;
+search.cpp:199:         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+search.cpp:1939:         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+
+RazorBase
+search.cpp:115: int RazorBase = 150;
+search.cpp:202:         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+search.cpp:1939:         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+
+RazorMultiplier
+search.cpp:116: int RazorMultiplier = 350;
+search.cpp:202:         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+search.cpp:1939:         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+
+FutilityDepth
+search.cpp:117: int FutilityDepth = 7;
+search.cpp:203:         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+search.cpp:2154:                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+search.cpp:2206:             if (tight_depth <= tune::FutilityDepth) {
+
+FutilityBase
+search.cpp:118: int FutilityBase = 100;
+search.cpp:203:         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+search.cpp:2149:             const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
+search.cpp:2158:                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+search.cpp:2207:                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+
+FutilityMultiplier
+search.cpp:119: int FutilityMultiplier = 110;
+search.cpp:204:         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+search.cpp:2158:                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+search.cpp:2207:                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+
+LmpBase
+search.cpp:120: int LmpBase = 4;
+search.cpp:205:         {"LmpBase", &LmpBase, 0, 20},                    {"HistoryPruneDepth", &HistoryPruneDepth, 0, 10},
+search.cpp:327:     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+
+HistoryPruneDepth
+search.cpp:121: int HistoryPruneDepth = 3;
+search.cpp:205:         {"LmpBase", &LmpBase, 0, 20},                    {"HistoryPruneDepth", &HistoryPruneDepth, 0, 10},
+search.cpp:2165:                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+
+HistoryPruneMultiplier
+search.cpp:122: int HistoryPruneMultiplier = 2048;
+search.cpp:206:         {"HistoryPruneMultiplier", &HistoryPruneMultiplier, 0, 20000},
+search.cpp:2151:                                                     ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+search.cpp:2152:                                                     : -tune::HistoryPruneMultiplier * depth;
+
+SeeQuietMultiplier
+search.cpp:123: int SeeQuietMultiplier = 24;
+search.cpp:207:         {"SeeQuietMultiplier", &SeeQuietMultiplier, 0, 200},
+search.cpp:2170:                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+
+SeeNoisyMultiplier
+search.cpp:124: int SeeNoisyMultiplier = 150;
+search.cpp:208:         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+search.cpp:2188:                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+
+SingularDepth
+search.cpp:125: int SingularDepth = 7;
+search.cpp:209:         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+search.cpp:2214:         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+search.cpp:2219:             // TT entry. Keep the verification in search(). No change at the default SingularDepth 7.
+
+SingularMargin
+search.cpp:126: int SingularMargin = 2;
+search.cpp:209:         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+search.cpp:2216:             const int singular_beta = tt_score - tune::SingularMargin * depth;
+
+IirDepth
+search.cpp:127: int IirDepth = 4;
+search.cpp:210:         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+search.cpp:2055:     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+search.cpp:2058:     else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
+
+ProbcutDepth
+search.cpp:128: int ProbcutDepth = 5;
+search.cpp:210:         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+search.cpp:2018:         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+
+ProbcutMargin
+search.cpp:129: int ProbcutMargin = 180;
+search.cpp:211:         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+search.cpp:2017:         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+
+QsFutilityMargin
+search.cpp:130: int QsFutilityMargin = 160;
+search.cpp:211:         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+search.cpp:1695:         futility_base = ss->static_eval + tune::QsFutilityMargin;
+
+QsSeeMargin
+search.cpp:131: int QsSeeMargin = 40;
+search.cpp:212:         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+search.cpp:1716:             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+
+AspirationDelta
+search.cpp:132: int AspirationDelta = 18;
+search.cpp:212:         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+search.cpp:2772:         int delta = tune::AspirationDelta;
+
+HistoryBonusQuadratic
+search.cpp:133: int HistoryBonusQuadratic = 20;
+search.cpp:213:         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+search.cpp:331:     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+
+HistoryBonusLinear
+search.cpp:134: int HistoryBonusLinear = 48;
+search.cpp:214:         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+search.cpp:331:     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+
+HistoryBonusMax
+search.cpp:135: int HistoryBonusMax = 2048;
+search.cpp:215:         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+search.cpp:331:     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+
+LmrHistoryDivisor
+search.cpp:136: int LmrHistoryDivisor = 6000;
+search.cpp:216:         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+search.cpp:2287:             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+
+CheckExtensionDepth
+search.cpp:137: int CheckExtensionDepth = 2;
+search.cpp:217:         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+search.cpp:2240:         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+
+LmrCutoffThreshold
+search.cpp:138: int LmrCutoffThreshold = 3;
+search.cpp:218:         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+search.cpp:2286:             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+
+MaterialCorrectionWeight
+search.cpp:139: int MaterialCorrectionWeight = 100;
+search.cpp:219:         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+search.cpp:1305:     if (tune::MaterialCorrectionWeight > 0) {
+search.cpp:1306:         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+search.cpp:1341:     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+
+CaptureFutilityBase
+search.cpp:150: int CaptureFutilityBase = 0;
+search.cpp:225:         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+search.cpp:2178:                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+search.cpp:2183:                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+
+CaptureFutilityMultiplier
+search.cpp:151: int CaptureFutilityMultiplier = 250;
+search.cpp:225:         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+search.cpp:2183:                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+
+CaptureFutilityDepth
+search.cpp:152: int CaptureFutilityDepth = 6;
+search.cpp:226:         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+search.cpp:2179:                     lmr_depth <= tune::CaptureFutilityDepth &&
+
+FailLowContinuationBonus
+search.cpp:153: int FailLowContinuationBonus = 0;
+search.cpp:226:         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+search.cpp:2381:     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+search.cpp:2385:                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+
+AspFailHighMaxReduce
+search.cpp:156: int AspFailHighMaxReduce = 3;   //    ... by at most this many plies
+search.cpp:227:         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+search.cpp:2796:                 ? std::max(1, depth - std::min(asp_fail_highs, tune::AspFailHighMaxReduce)) : depth;
+
+EvalSwingMult
+search.cpp:157: int EvalSwingMult = 0;          // > 0: the eval change caused by the previous quiet move goes into its history
+search.cpp:228:         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+search.cpp:1903:     if (tune::EvalSwingMult != 0 && !in_check && excluded.is_none()) {
+search.cpp:1910:                           swing * tune::EvalSwingMult / 16);
+
+EvalSwingMax
+search.cpp:158: int EvalSwingMax = 200;         //      ... clamped to this many centipawns
+search.cpp:228:         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+search.cpp:1907:             const int swing = std::clamp(-(ss->static_eval + parent->static_eval), -tune::EvalSwingMax, tune::EvalSwingMax);
