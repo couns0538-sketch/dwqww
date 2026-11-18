@@ -1,0 +1,47 @@
+import csv
+from collections import Counter, defaultdict
+from pathlib import Path
+import sys
+
+mode, root, output = sys.argv[1:]
+root, output = Path(root), Path(output)
+
+def rows(file):
+    with file.open() as handle:
+        return list(csv.DictReader(handle, delimiter='\t'))
+
+if mode == 'control':
+    def result(name):
+        data = rows(root / name / 'outer_functions.tsv')
+        eligible = [row for row in data if row['function'] != '??']
+        found = [(rank,row) for rank,row in enumerate(eligible, 1) if 'forge::Board::see_ge(' in row['function']]
+        assert len(found) == 1, found
+        rank, row = found[0]
+        share = float(row['percent_of_all_samples'])
+        print(name, 'Board::see_ge', 'rank', rank, 'samples', row['samples'], 'share_percent', share)
+        return rank, share
+    cr, cs = result('control')
+    rr, rs = result('clean-1')
+    passed = cs-rs >= 5 and (rr <= 2 or rr-cr >= 2)
+    print('SEE rank change', rr-cr, 'percentage-point change', cs-rs, 'PASS' if passed else 'FAIL')
+    sys.exit(0 if passed else 1)
+
+dest = output / 'symbolized_pcs.tsv'
+with dest.open('x') as result:
+    for index in range(1,4):
+        source=(root / f'clean-{index}' / 'symbolized_pcs.tsv').read_text().splitlines(keepends=True)
+        result.writelines(source if index == 1 else source[1:])
+callers = defaultdict(Counter)
+lines = defaultdict(Counter)
+for index in range(1,4):
+    for row in rows(root / f'clean-{index}' / 'watched_caller_lines.tsv'):
+        key = row['callee'], row['verified_return_site_function']
+        count = int(row['samples'])
+        callers[row['callee']][key[1]] += count
+        lines[key][row['call_site']] += count
+with (output/'all-callers.tsv').open('x') as stream:
+    print('callee\tcaller\tmodal_call_site\tsamples',file=stream)
+    for callee, group in sorted(callers.items()):
+        for caller, count in group.most_common():
+            modal = lines[callee,caller].most_common(1)[0][0]
+            print(callee,caller,modal,count,sep='\t',file=stream)
