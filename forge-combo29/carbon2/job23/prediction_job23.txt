@@ -1,0 +1,19 @@
+Job 23 Pre-Committed Predictions (CPU of B over A on Held-Out Workload T)
+=========================================================================
+
+Declared row thresholds (A = larger stack, B = smaller stack):
+  - PAYS:     pooled CPU ratio > 1.0116 and at least 10 of 12 blocks > 1.0000
+  - COSTS:    pooled CPU ratio < 0.9884 and at least 10 of 12 blocks < 1.0000
+  - NOT SEEN: otherwise
+
+Part M (M = G since zero B3 rows ran/read PAYS in the preceding job; Part M skipped per rule):
+  - M1 (A = kF_sp_1, B = M_1 = G_1): [1.0280, 1.0450], reading PAYS (the REST still PAYS)
+  - M2 (A = kF_sp_2, B = M_2 = G_2): [1.0280, 1.0450], reading PAYS (the REST still PAYS)
+  - R1 (A = M_1 = G_1, B = bld_sp_r15d_1): [1.0280, 1.0550], reading PAYS (M pays against r15d)
+
+Part L Leave-One-Out Rows (A = kF_sp_1, B = kF minus piece, run in order while ending before minute 70):
+  1. 04_S7:               predicted pooled CPU ratio [1.0120, 1.0280], expected reading PAYS
+  2. 10_W2:               predicted pooled CPU ratio [0.9960, 1.0115], expected reading NOT SEEN
+  3. 12_v3_refresh_fuse:  predicted pooled CPU ratio [0.9980, 1.0140], expected reading NOT SEEN
+  4. 05_G1:               predicted pooled CPU ratio [0.9960, 1.0115], expected reading NOT SEEN
+  5. 06_G2 (if reached):  predicted pooled CPU ratio [0.9960, 1.0115], expected reading NOT SEEN
