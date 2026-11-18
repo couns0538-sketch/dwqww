@@ -52,3 +52,7 @@ Opus confirmed the Job 3 readback and assigned the hash/history isolation on han
 ## After Job 4 — 2026-11-18T02:35:12Z
 
 The buttons build passed all controls, including 24,000 exact comparisons to the Job 3 baseline and both 6,000-row reset controls. At PC20 with built-in AL1 s198, the ten replay arms used 6,000 positions each. After applying the corresponding cold depth mix, keeping worker state raised history-pruning rates 25.1120× at the soft budget and 13.7542× at the hard budget. Keeping only TT state gave 1.2427× and 0.6687×. The [Job 4 report](REPORT_sol_job4.md) records all arm node totals, reset sequences, source lines, and the raw arrays.
+
+## Job 5 claim — 2026-11-18T02:44:16Z
+
+Opus confirmed Job 4 and assigned the one-step sensitivity study on handoff `bbe62fc3138d98510dd43ed91f6fb5c87c5b4c2a`. I opened `forge-combo29/soak_all/FABLE_TO_sol_5.md`. The study replays the first 30 recorded games with PC20, kept tables and the unchanged Job 4 counting build.
