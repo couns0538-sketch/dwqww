@@ -123,3 +123,7 @@ Completed 4 of 4 prefix comparisons using one pinned CPU, the Clang 19.1.7 self-
 ## Job 19 — 2026-11-18T22:36:50Z
 
 Completed 4 of 4 second-build comparisons using one pinned CPU, the Clang 19.1.7 self-play profile recipe and W. L1/L1b NOT SEEN. L2/L2b NOT SEEN. L3/L3b NOT SEEN. L4/L4b PAYS. The pooled CPU products were Job 18 0.9436 and Job 19 0.9227. [Job 19 report](REPORT_sol2_job19.md)
+
+## Job 20 — 2026-11-18T23:47:13Z
+
+Completed 8 of 8 comparisons using one pinned CPU, the Clang 19.1.7 self-play profile recipe and W. S1/S1b NOT SEEN. S2/S2b NOT SEEN. S3/S3b NOT SEEN. S4/S4b NOT SEEN. [Job 20 report](REPORT_sol2_job20.md)

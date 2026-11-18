@@ -1,0 +1,737 @@
+#!/usr/bin/env python3
+"""Independently reconcile the two split prefix ladders from raw W and build receipts."""
+
+import argparse
+from dataclasses import dataclass
+import hashlib
+import json
+import math
+from pathlib import Path
+import re
+from statistics import fmean, median, stdev
+
+
+SCHEMA = "forge-bal-arm-diagnostic-v1"
+ORDERS = ("ABBA", "BAAB")
+LEGS = 5
+BLOCKS = 16
+METRICS = (("engine_cpu_s", "Engine CPU"), ("total_wall_ns", "Wall"))
+TRACE_FIELDS = ("games", "searches", "total_nodes", "final_nodes", "trace_fnv1a64")
+NET_SHA256 = "c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7"
+BOOK_SHA256 = "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+WORKLOAD = ("--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json")
+T975 = 2.13144954556
+ENVIRONMENT = {"LC_ALL": "C", "TZ": "UTC"}
+W_SIGNATURE = (20, 2247, 7905938, 9189426, "7f78d3aec021ab01")
+REFERENCE_LABELS = ("P8", "P10", "K_1", "P8_2", "P10_2", "K_2")
+NEW_BUILDS = ("P9_1", "P12_1", "P9_2", "P12_2")
+ARMS = ("P8", "P9_1", "P10", "P12_1", "K_1", "P8_2", "P9_2", "P10_2", "P12_2", "K_2")
+DEFAULT_COUNTS = {
+    "bench11": (312866, "bench 11\nquit\n", r"^info string bench depth 11 nodes (\d+) "),
+    "bench13": (862329, "bench 13\nquit\n", r"^info string bench depth 13 nodes (\d+) "),
+    "perft5": (4865609, "position startpos\ngo perft 5\nquit\n", r"^nodes (\d+)\s*$"),
+}
+FIRST_LADDER_PAIRS = {"L3": ("P8", "P10"), "L4": ("P10", "K_1")}
+SECOND_LADDER_PAIRS = {"L3b": ("P8_2", "P10_2"), "L4b": ("P10_2", "K_2")}
+PAIRS = {
+    "S1": ("P8", "P9_1"),
+    "S2": ("P9_1", "P10"),
+    "S3": ("P10", "P12_1"),
+    "S4": ("P12_1", "K_1"),
+    "S1b": ("P8_2", "P9_2"),
+    "S2b": ("P9_2", "P10_2"),
+    "S3b": ("P10_2", "P12_2"),
+    "S4b": ("P12_2", "K_2"),
+}
+JOINT_STEPS = (
+    ("S1", "S1b", "09"),
+    ("S2", "S2b", "10"),
+    ("S3", "S3b", "11 and 12"),
+    ("S4", "S4b", "13 and tidy"),
+)
+
+
+@dataclass
+class Known:
+    signature: tuple
+    hashes: dict
+    clang_inputs: dict
+
+
+@dataclass
+class Campaign:
+    directory: Path
+    manifest: dict
+    rows: list
+    included_blocks: list
+    metrics: dict
+    position_means: dict
+    summary: dict | None
+    complete: bool
+    truncated: bool
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def signature(row):
+    return tuple(row.get(field) for field in TRACE_FIELDS)
+
+
+def check(actual, expected, where):
+    if isinstance(expected, dict):
+        require(isinstance(actual, dict) and expected.keys() <= actual.keys(), f"missing fields at {where}")
+        for key, value in expected.items():
+            check(actual[key], value, f"{where}.{key}")
+    elif isinstance(expected, (tuple, list)):
+        require(isinstance(actual, (tuple, list)) and len(actual) == len(expected), f"list shape differs at {where}")
+        for index, (one, two) in enumerate(zip(actual, expected)):
+            check(one, two, f"{where}[{index}]")
+    elif type(expected) is bool:
+        require(actual is expected, f"wrong {where}: {actual!r}, expected {expected!r}")
+    else:
+        equal = math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12) if type(expected) is float else actual == expected
+        require(equal, f"wrong {where}: {actual!r}, expected {expected!r}")
+
+
+def read_rows(path, finished):
+    if not path.is_file():
+        return [], False
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    rows = []
+    for index, line in enumerate(lines, 1):
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            if not finished and index == len(lines) and not line.endswith("\n"):
+                return rows, True
+            raise
+    return rows, False
+
+
+def validate_run(directory, stem, row, expected):
+    source = f"{directory}/{stem}"
+    stdout, stderr = f"{stem}.driver.stdout.txt", f"{stem}.engine.stderr.txt"
+    check(row, {"driver_stdout": stdout, "engine_stderr": stderr}, source)
+    require((directory / stdout).is_file() and (directory / stderr).is_file(), f"missing driver/engine receipts for {source}")
+    actual = signature(row)
+    check(row["trace_matches"], actual == expected, f"{source} signature flag")
+    start, end = row["wall_start_monotonic_ns"], row["wall_end_monotonic_ns"]
+    user, system = row["engine_user_s"], row["engine_system_s"]
+    check(row, {"total_wall_ns": end - start, "engine_cpu_s": user + system}, f"{source} durations")
+    if row["eligible"] or any(value is not None for value in actual):
+        driver = load(directory / stdout)
+        check(row, driver, f"{source} driver stdout")
+    if row["eligible"]:
+        require(actual == expected and row["engine_exit"] == 0 and row["error"] is None
+                and user >= 0 and system >= 0 and user + system > 0 and end > start,
+                f"{source} marked eligible without correct identity, status and durations")
+    else:
+        require(bool(row["error"]), f"{source} excluded without a recorded error")
+
+
+def validate_tape(path, receipt):
+    rows, _ = read_rows(path, True)
+    last_info_total = final_total = final_lines = zero_last = 0
+    hash_value = 14695981039346656037
+    current_book_line = 7000
+    current_ply = 0
+    seen = set()
+    for row in rows:
+        book_line = row["book_line"]
+        require(7001 <= book_line <= 7020 and book_line >= current_book_line, f"unordered book line in {path}")
+        current_ply = current_ply + 1 if book_line == current_book_line else 1
+        current_book_line = book_line
+        seen.add(book_line)
+        check(row["ply"], current_ply, f"{path} game {book_line} ply")
+        match = re.search(r"\bnodes (\d+)(?=\s|$)", row["last_info"] or "")
+        check(row["nodes"], int(match[1]) if match else 0, f"{path} game {book_line} last-info nodes")
+        move = row["bestmove_line"].split()
+        require(move[:2] == ["bestmove", row["bestmove"]], f"bestmove differs from its UCI line in {path}")
+        final = row["final_nodes"]
+        if final is None:
+            require(row["final_nodes_line"] is None and row["nodes"] == 0, f"missing final soft-node telemetry in {path}")
+        else:
+            require(final >= row["nodes"], f"final soft nodes below last-info nodes in {path}")
+            check(row["final_nodes_line"], f"info string softnodes nodes {final}", f"{path} final soft-node line")
+            final_lines += 1
+            final_total += final
+        last_info_total += row["nodes"]
+        zero_last += row["nodes"] == 0
+        wire = f"{row['bestmove']},{row['nodes']};"
+        check(row["trace_input"], wire, f"{path} trace input")
+        for byte in wire.encode("ascii"):
+            hash_value = (hash_value ^ byte) * 1099511628211 & ((1 << 64) - 1)
+        check(row["trace_fnv1a64"], f"{hash_value:016x}", f"{path} cumulative trace")
+    require(seen == set(range(7001, 7021)), f"wrong W book lines in {path}")
+    check(receipt, {"searches": len(rows), "total_nodes": last_info_total, "final_nodes": final_total,
+                    "trace_fnv1a64": f"{hash_value:016x}", "final_lines": final_lines,
+                    "missing_final_lines": len(rows) - final_lines, "zero_last_info_searches": zero_last},
+          f"{path} tape summary")
+
+
+def read_pins(path, labels="AB"):
+    lines = path.read_text(encoding="utf-8").splitlines()
+    require(len(lines) == len(labels), f"expected one executable receipt per engine in {path}")
+    pins = {}
+    for arm, line in zip(labels, lines, strict=True):
+        sha256, executable = line.split(maxsplit=1)
+        require(re.fullmatch(r"[0-9a-f]{64}", sha256), f"invalid executable digest in {path}")
+        pins[arm] = {"path": executable, "sha256": sha256}
+    return pins
+
+
+def known_workload(root):
+    path = root / "known-answer.txt"
+    source = load(path)
+    expected = signature(source)
+    require(source.keys() == set(TRACE_FIELDS) and expected[0] == 20
+            and all(type(value) is int and value > 0 for value in expected[:4])
+            and expected[3] >= expected[2]
+            and isinstance(expected[4], str) and re.fullmatch(r"[0-9a-f]{16}", expected[4]),
+            f"invalid W signature in {path}")
+    pins = read_pins(root / "clang-executables.raw.txt")
+    for key, arm in zip("AB", ("r15d", "kF")):
+        gate = root / "step2"
+        data = load(gate / f"{arm}.result.raw.txt")
+        validate_run(gate, arm, data, expected)
+        check(data["engine_sha256"], pins[key]["sha256"], f"Step 2 {arm} executable")
+        require(data["eligible"], f"Step 2 {arm} failed the W gate")
+        validate_tape(gate / f"{arm}.searches.raw.txt", data)
+    return Known(expected, {"net": NET_SHA256, "book": BOOK_SHA256, "known_answer": digest(path),
+                            "driver": digest(root / "soft_book_driver.py.txt")}, pins)
+
+
+def timing_math(groups):
+    blocks = []
+    positions = {cohort: {key: [] for key, _ in METRICS} for cohort in ("odd", "even")}
+    timed_runs = []
+    for group in groups:
+        measured = group[1:]
+        timed_runs.extend(measured)
+        block_index = group[0]["block"]
+        cohort = "odd" if block_index % 2 else "even"
+        block = {"block": block_index, "order": ORDERS[(block_index - 1) % len(ORDERS)]}
+        for key, _ in METRICS:
+            totals = {arm: math.fsum(row[key] for row in measured if row["arm"] == arm) for arm in "AB"}
+            block[key] = totals["B"] / totals["A"]
+            mean = fmean(row[key] for row in measured)
+            positions[cohort][key].append([row[key] / mean for row in measured])
+        blocks.append(block)
+    means = {cohort: {key: [fmean(position) for position in zip(*series)] for key, series in data.items()}
+             for cohort, data in positions.items()}
+    metrics = {}
+    count = len(blocks)
+    for key, _ in METRICS:
+        if count == 0:
+            break
+        values = [block[key] for block in blocks]
+        ordered = sorted(values)
+        block_mean = fmean(values)
+        df = count - 1
+        below, above = sum(value < 1 for value in values), sum(value > 1 for value in values)
+        totals = {arm: math.fsum(row[key] for row in timed_runs if row["arm"] == arm) for arm in "AB"}
+        data = {"block_mean": block_mean, "block_median": median(values), "block_min": ordered[0], "block_max": ordered[-1],
+                "pooled_b_over_a": totals["B"] / totals["A"], "below_one": below, "above_one": above,
+                "equal_one": count - below - above}
+        if count == BLOCKS:
+            halfwidth = T975 * stdev(values) / math.sqrt(count)
+            data.update(block_mean_ci95=[block_mean - halfwidth, block_mean + halfwidth], ci_df=df)
+        if count >= 3:
+            data.update(block_middle_min=ordered[1], block_middle_max=ordered[-2])
+        metrics[key] = data
+    return blocks, metrics, means
+
+
+def read_environment(record):
+    wire = b"".join(f"{key}={value}".encode("ascii") + b"\0" for key, value in ENVIRONMENT.items())
+    check(record, {"variables": ENVIRONMENT, "bytes": len(wire), "sha256": hashlib.sha256(wire).hexdigest()},
+          "fixed engine environment")
+    require(record["variables"] == ENVIRONMENT, "the engine environment must have just LC_ALL and TZ")
+    return record
+
+
+def verify_build_evidence(root, label, record, known):
+    directory = root / "build-checks" / label
+    receipt = directory / "checks.raw.txt"
+    if not receipt.is_file():
+        require(record["passes"] is False, f"eligible {label} has no checks receipt")
+        check(record, {"pins": None, "W": None}, f"unavailable build {label}")
+        return
+    raw = load(receipt)
+    check(record, raw, f"{label} build inventory against checks receipt")
+    require(record["sha256"] is not None and Path(record["path"]).is_absolute(), f"invalid {label} executable pin")
+    pins = raw["pins"]
+    require(set(pins) == set(DEFAULT_COUNTS), f"wrong default count labels in {receipt}")
+    default = directory / "default-pins.raw.txt"
+    listing = default.read_text(encoding="utf-8")
+    require(listing.startswith(f"Executable: {record['path']}\n"), f"wrong executable in {default}")
+    labels = tuple(DEFAULT_COUNTS)
+    for index, (name, (expected, command, pattern)) in enumerate(DEFAULT_COUNTS.items()):
+        _, start, excerpt = listing.partition(f"--- {name} stdin ---\n")
+        require(start, f"missing {name} input in {default}")
+        if index + 1 < len(labels):
+            excerpt = excerpt.partition(f"--- {labels[index + 1]} stdin ---\n")[0]
+        stdin, stdout_marker, outputs = excerpt.partition(f"--- {name} stdout ---\n")
+        stdout, stderr_marker, trailer = outputs.partition(f"--- {name} stderr ---\n")
+        require(stdout_marker and stderr_marker, f"missing raw {name} output in {default}")
+        check(stdin, command, f"{default} {name} command")
+        chunks = re.findall(pattern, stdout, re.MULTILINE)
+        actual = int(chunks[0]) if len(chunks) == 1 else None
+        payload = json.dumps(pins[name]) + "\n"
+        require(trailer.endswith(payload), f"raw {name} exit/summary differs in {default}")
+        stderr = trailer[:-len(payload)]
+        passes = pins[name]["exit_status"] == 0 and not stderr and actual == expected
+        check(pins[name], {"expected": expected, "actual": actual, "passes": passes}, f"{default} {name} count")
+    result = load(directory / "W.result.raw.txt")
+    validate_run(directory, "W", result, known.signature)
+    check(raw["W"], dict(zip(TRACE_FIELDS, signature(result))), f"{label} raw W")
+    check(raw["W_passes"], result["eligible"], f"{label} W gate")
+    if result["eligible"]:
+        wire = b"LC_ALL=C\0TZ=UTC\0"
+        check(result, {"engine_argv0": record["path"], "engine_argv0_length": len(record["path"]),
+                       "engine_environment_bytes": len(wire), "engine_environment_sha256": hashlib.sha256(wire).hexdigest()},
+              f"{label} W process launch")
+    check(raw["passes"], result["eligible"] and all(pin["passes"] for pin in pins.values()), f"{label} build gate")
+
+
+def verify_manifest(directory, manifest, known, pins, environment, pair):
+    check(manifest, {"schema": SCHEMA, "order": ORDERS, "blocks_requested": BLOCKS, "identical_floor": False,
+                     "floor": None, "expected_games_searches_nodes_trace": known.signature,
+                     "engine_environment": environment}, str(directory))
+    read_environment(manifest["engine_environment"])
+    affinity = manifest["worker_affinity"]
+    check(affinity, [2], f"{directory} Job 16 logical CPU")
+    identities = manifest["inputs"]
+    for key, sha256 in known.hashes.items():
+        check(identities[key]["sha256"], sha256, f"{directory} {key} SHA-256")
+    for arm, label in zip("AB", pair):
+        check(manifest["arm_labels"][arm], label, f"{directory} arm {arm} label")
+        pin = pins[label]
+        check(identities[arm], {key: pin[key] for key in ("path", "sha256")}, f"{directory} arm {arm} pin")
+        for key in ("length", "inode", "device"):
+            if key in identities[arm]:
+                check(identities[arm][key], pin[key], f"{directory} arm {arm} {key}")
+        argv = [identities["driver"]["path"], "--engine", pin["path"], "--net", identities["net"]["path"],
+                "--book", identities["book"]["path"], *WORKLOAD]
+        check(manifest["argv_by_arm"][arm], argv, f"{directory} arm {arm} argv")
+
+
+def engine_metadata(directory, stem, row, pin, environment):
+    where = f"{directory}/{stem} launch"
+    expected = {"engine_argv0": pin["path"], "engine_argv0_length": pin["length"],
+                "engine_environment_bytes": environment["bytes"], "engine_environment_sha256": environment["sha256"]}
+    if row["eligible"] or row["engine_pid"] is not None or not expected.keys().isdisjoint(row):
+        check(row, expected, where)
+    proc = row.get("engine_proc_receipt")
+    require(proc in (None, "verified", "unavailable"), f"unexpected procfs receipt at {where}")
+    if proc == "verified":
+        check(row, {"engine_inode": pin["inode"], "engine_device": pin["device"]}, f"{where} procfs")
+
+
+def verified_blocks(directory, manifest, rows, known, pins, environment):
+    require(len(rows) <= LEGS * BLOCKS, f"too many raw runs in {directory}")
+    end = 0
+    for index, row in enumerate(rows):
+        block, leg = divmod(index, LEGS)
+        order = ORDERS[block % len(ORDERS)]
+        arm = order[0] if leg == 0 else order[leg - 1]
+        stem = f"b{block + 1:02d}-r{leg}-{arm}"
+        label = manifest["arm_labels"][arm]
+        check(row, {"block": block + 1, "order_index": leg, "arm": arm, "warmup": leg == 0,
+                    "engine": label, "engine_sha256": pins[label]["sha256"]}, stem)
+        engine_metadata(directory, stem, row, pins[label], environment)
+        validate_run(directory, stem, row, known.signature)
+        require(row["wall_start_monotonic_ns"] >= end, f"overlapping run at {stem}")
+        end = row["wall_end_monotonic_ns"]
+    groups = [rows[offset:offset + LEGS] for offset in range(0, len(rows), LEGS)]
+    return [group for group in groups if len(group) == LEGS and all(row["eligible"] for row in group)]
+
+
+def audit(directory, known, pins, environment, pair):
+    manifest = load(directory / "inputs.txt")
+    verify_manifest(directory, manifest, known, pins, environment, pair)
+    summary_path = directory / "summary.txt"
+    summary = load(summary_path) if summary_path.is_file() else None
+    rows, truncated = read_rows(directory / "runs.jsonl.txt", summary is not None)
+    groups = verified_blocks(directory, manifest, rows, known, pins, environment)
+    if summary is not None and "verified_inputs_after" not in summary:
+        require(str(summary["error"]).startswith("Post-run identity failed:"), f"missing post-run identity in {directory}")
+        groups = []
+    blocks, metrics, means = timing_math(groups)
+    complete = len(blocks) == BLOCKS and len(rows) == BLOCKS * LEGS
+    if summary is not None:
+        check(summary, {"schema": SCHEMA, "order": ORDERS, "requested_blocks": BLOCKS, "completed_blocks": len(blocks),
+                        "comparison_direction": "B / A, less than 1 is faster",
+                        "attempted_runs": len(rows), "included_runs": 4 * len(blocks), "included_warmups": len(blocks),
+                        "complete": complete, "blocks": blocks, "order_position_means": means,
+                        "expected_games_searches_nodes_trace": known.signature,
+                        **{key: manifest[key] for key in ("arm_labels", "identical_floor", "floor", "worker_affinity")}},
+              str(summary_path))
+        require(summary["metrics"].keys() == metrics.keys(), f"unexpected metric coverage in {summary_path}")
+        for key, values in metrics.items():
+            optional = ("block_middle_min", "block_middle_max")
+            actual = summary["metrics"][key]
+            check(actual, {item: value for item, value in values.items() if item not in optional or item in actual},
+                  f"{summary_path} {key}")
+            require(complete or {"block_mean_ci95", "ci_df"}.isdisjoint(actual), f"incomplete {directory} has a 15-df CI")
+            require("decision" not in actual, f"unexpected per-campaign decision in {directory}")
+        if "engine_environment" in summary:
+            check(summary["engine_environment"], environment, f"{summary_path} environment")
+        if "verified_inputs_after" in summary:
+            check(summary["verified_inputs_after"], manifest["inputs"], f"{summary_path} post-run input pins")
+        require(not complete or summary["error"] is None, f"completed campaign records an error in {summary_path}")
+    return Campaign(directory, manifest, rows, blocks, metrics, means, summary, complete and summary is not None, truncated)
+
+
+def interval_direction(interval):
+    low, high = interval
+    if high < 1:
+        return "below"
+    if low > 1:
+        return "above"
+    return "includes"
+
+
+def completed_metric(campaigns, step, key):
+    data = campaigns.get(step)
+    return data.metrics[key] if data is not None and data.complete else None
+
+
+def show_arms(pins, environment):
+    print("\n| Arm | Engine argv[0] | Characters | Device | Inode | SHA-256 |")
+    print("|---|---|---:|---:|---:|---|")
+    for key in ARMS:
+        if key not in pins:
+            continue
+        pin = pins[key]
+        print(f"| {key} | `{pin['path']}` | {pin['length']} | {pin['device']} | {pin['inode']} | `{pin['sha256']}` |")
+    print(f"\nEach engine receives `LC_ALL=C` and `TZ=UTC`, {environment['bytes']} bytes, "
+          f"SHA-256 `{environment['sha256']}`. [Arms](sol2/job20/arms.txt)")
+
+
+def show_overview(campaigns, pairs, skips, through):
+    print("\n| Comparison | A | B | Metric | Blocks | Median | Pooled B/A | Mean | 95% t interval, df 15 | Below 1 |")
+    print("|---|---|---|---|---:|---:|---:|---:|---:|---:|")
+    for step, (a, b) in pairs.items():
+        data = campaigns.get(step)
+        for key, label in METRICS:
+            if data is None:
+                print(f"| {step} | {a} | {b} | {label} | Not run | — | — | — | — | — |")
+            elif key not in data.metrics:
+                print(f"| {step} | {a} | {b} | {label} | 0/{BLOCKS} | — | — | — | — | — |")
+            else:
+                values = data.metrics[key]
+                count = len(data.included_blocks)
+                interval = "—"
+                if data.complete:
+                    lo, hi = values["block_mean_ci95"]
+                    interval = f"[{lo:.4f}, {hi:.4f}]"
+                print(f"| {step} | {a} | {b} | {label} | {count}/{BLOCKS} | {values['block_median']:.4f} | "
+                      f"{values['pooled_b_over_a']:.4f} | {values['block_mean']:.4f} | {interval} | "
+                      f"{values['below_one']}/{count} |")
+        if step == through:
+            break
+    for step, reason in skips.items():
+        print(f"\n{step} was skipped. {reason}. [Build receipts](sol2/job20/builds.txt)")
+
+
+def show_campaign(step, data):
+    print(f"\n### {step}\n")
+    print(f"Logical CPU {data.manifest['worker_affinity'][0]}. {len(data.rows)} attempted runs, "
+          f"{len(data.included_blocks)} included blocks, {len(data.included_blocks) * 4} included timed runs.")
+    if data.included_blocks:
+        print("\n| Block | Timed order | B/A CPU | B/A wall |")
+        print("|---:|---|---:|---:|")
+        for row in data.included_blocks:
+            print(f"| {row['block']} | {row['order']} | {row['engine_cpu_s']:.4f} | {row['total_wall_ns']:.4f} |")
+    for row in data.rows:
+        if not row["eligible"]:
+            x = row["block"], row["order_index"], row["arm"]
+            stem = f"b{x[0]:02d}-r{x[1]}-{x[2]}"
+            base = f"sol2/job20/{step}/{stem}"
+            print(f"\nExcluded block {x[0]}, leg {x[1]}, arm {x[2]}. Observed `{signature(row)}`. "
+                  f"Recorded error `{row['error']}`. [Driver]({base}.driver.stdout.txt) · [Engine]({base}.engine.stderr.txt)")
+    if not data.complete:
+        print("\nThe campaign is incomplete.")
+    if data.summary and data.summary["error"]:
+        print(f"\nRecorded summary error `{data.summary['error']}`.")
+    if data.truncated:
+        print("\nThe last raw run record is partial. The preceding complete receipts were checked.")
+    base = f"sol2/job20/{step}"
+    links = [f"[Inputs]({base}/inputs.txt)"]
+    if (data.directory / "runs.jsonl.txt").is_file():
+        links.append(f"[Raw runs]({base}/runs.jsonl.txt)")
+    if data.summary is not None:
+        links.append(f"[Summary]({base}/summary.txt)")
+    command = data.directory.parent / f"{step}-command.raw.txt"
+    if command.is_file():
+        links.append(f"[Command](sol2/job20/{command.name})")
+    print("\n" + " · ".join(links))
+
+
+def read_builds(root, frozen, known, new_builds):
+    path = root / "builds.txt"
+    builds = load(path)["builds"]
+    require(set(builds) == set(frozen) | set(new_builds), f"wrong build labels in {path}")
+    for label in frozen:
+        # The frozen executable can be recorded under its original build path or its verified launch copy.
+        record = builds[label]
+        check(record, {"sha256": frozen[label]["sha256"], "passes": True, "pins": None,
+                       "W": dict(zip(TRACE_FIELDS, known.signature))}, f"{path} {label} frozen build")
+        require(Path(record["path"]).is_absolute(), f"invalid original path for {label}")
+    for label in new_builds:
+        record = builds[label]
+        require(type(record["passes"]) is bool, f"missing build eligibility for {label}")
+        sha = record["sha256"]
+        require(sha is not None or not record["passes"], f"no digest for eligible build {label}")
+        require(sha is None or re.fullmatch(r"[0-9a-f]{64}", sha), f"invalid digest for {label}")
+        require(record.get("twin") is None and record.get("byte_identical_to_twin") is None,
+                f"unexpected twin fields for {label}")
+        verify_build_evidence(root, label, record, known)
+    return builds
+
+
+def read_arms(root, builds, frozen, prior_environment):
+    path = root / "arms.txt"
+    document = load(path)
+    environment = read_environment(document["engine_environment"])
+    check(environment, prior_environment, "engine environment relative to Job 16")
+    pins = document["arms"]
+    expected = {name for name, record in builds.items() if record["passes"]}
+    require(set(pins) == expected, f"{path} arm names disagree with eligible builds")
+    for name, arm in pins.items():
+        require(Path(arm["path"]).is_absolute() and type(arm["inode"]) is int and arm["inode"] > 0
+                and type(arm["device"]) is int and arm["device"] >= 0, f"invalid path/inode/device for {name}")
+        check(arm["length"], 72, f"{path} {name} declared path length")
+        check(len(arm["path"]), 72, f"{path} {name} actual path length")
+        check(arm["sha256"], builds[name]["sha256"], f"{path} {name} build SHA-256")
+        if name in frozen:
+            check(arm, frozen[name], f"frozen launch identity {name}")
+    require(len({pin["path"] for pin in pins.values()}) == len(pins), "build arm paths must be distinct")
+    require(len({(pin["device"], pin["inode"]) for pin in pins.values()}) == len(pins),
+            "build arm inodes must be distinct")
+    return pins, environment
+
+
+def comparison_plan(root, pins, pairs, *, subset=False):
+    skips = {}
+    for step, pair in pairs.items():
+        unavailable = [label for label in pair if label not in pins]
+        if unavailable:
+            skips[step] = "Build gate unavailable or failed for " + ", ".join(f"`{label}`" for label in unavailable)
+    plan_path = root / "comparison-plan.txt"
+    if plan_path.is_file():
+        plan = load(plan_path)
+        check(plan["comparisons"], pairs, "declared ladder arm assignments")
+        recorded = set(plan["skips"])
+        check(recorded & pairs.keys() if subset else recorded, set(skips), "gate-based comparison skips in plan")
+    skipped_path = root / "skipped.txt"
+    if skipped_path.is_file():
+        recorded = set(load(skipped_path))
+        check(recorded & pairs.keys() if subset else recorded, set(skips), "gate-based comparison skips in receipt")
+    return skips
+
+
+def verify_gate(root, known, frozen, environment, receipt_labels, *, render=False):
+    pins = read_pins(root / "clang-executables.raw.txt", tuple(receipt_labels))
+    for label, pin in pins.items():
+        check(pin, {key: frozen[label][key] for key in ("path", "sha256")}, f"frozen launch pin {label} in {root}")
+        check(len(pin["path"]), 72, f"Step 0 {label} path length")
+    check(digest(root / "known-answer.txt"), known.hashes["known_answer"], f"{root} known-answer bytes")
+    entries = [line.split(maxsplit=1)
+               for line in (root / "workload-pins.raw.txt").read_text(encoding="utf-8").splitlines()]
+    intake = {Path(path).name: sha256 for sha256, path in entries}
+    require(len(intake) == len(entries) == 4, f"{root} must record the four workload input pins")
+    for name, key in (("soft_book_driver.py", "driver"), ("known-answer.txt", "known_answer"),
+                      ("UHO_Lichess_4852_v1.epd", "book"), ("net768.fnn3", "net")):
+        check(intake[name], known.hashes[key], f"{root} workload receipt {name}")
+    compiler = root / "step0-command.raw.txt"
+    compiler_ok = compiler.is_file() and re.search(r"\bclang version 19\.1\.7\b", compiler.read_text(encoding="utf-8"))
+    if not compiler_ok:
+        if render:
+            print("Step 0 clang 19.1.7 receipt is missing or did not pass. [Compiler and Step 0](sol2/job20/step0-command.raw.txt)")
+        return False
+    gate = root / "step0"
+    eligible = []
+    pids = []
+    for label, stored in receipt_labels.items():
+        path = gate / f"{stored}.result.raw.txt"
+        if not path.is_file():
+            if render:
+                print(f"Step 0 {label} receipt is missing.")
+            continue
+        row = load(path)
+        validate_run(gate, stored, row, known.signature)
+        check(row["engine_sha256"], pins[label]["sha256"], f"Step 0 {label} build")
+        engine_metadata(gate, stored, row, frozen[label], environment)
+        if not row["eligible"]:
+            if render:
+                print(f"Step 0 {label} failed with `{row['error']}`. [Receipt](sol2/job20/step0/{path.name})")
+            continue
+        pids.append(row["engine_pid"])
+        eligible.append(f"[{label}](sol2/job20/step0/{path.name}#L2-L6)")
+    if len(eligible) != len(receipt_labels):
+        return False
+    require(None not in pids and len(set(pids)) == len(receipt_labels), "Step 0 must use a fresh engine process per arm")
+    if render:
+        games, searches, nodes, final_nodes, trace = known.signature
+        print(f"All six Step 0 builds matched W with {games} games, {searches:,} searches, {nodes:,} last-info nodes, "
+              f"{final_nodes:,} final nodes and trace `{trace}`. W uses PC20, Threads 1, Hash 16 MiB, net768 and "
+              f"`go softnodes 2000` on book lines 7001–7020. {' · '.join(eligible)} · [W signature](sol2/job20/known-answer.txt#L2-L6)")
+    return True
+
+
+def interval_text(metric):
+    low, high = metric["block_mean_ci95"]
+    return f"[{low:.4f}, {high:.4f}]"
+
+
+def joint_reading(first_cpu, second_cpu):
+    """Return a reading only with two intervals. Label a lone interval as one build."""
+    if first_cpu is None and second_cpu is None:
+        return None
+    if first_cpu is None or second_cpu is None:
+        return f"one build: {interval_text(first_cpu if first_cpu is not None else second_cpu)}"
+    directions = tuple(interval_direction(row["block_mean_ci95"]) for row in (first_cpu, second_cpu))
+    return {("below", "below"): "PAYS", ("above", "above"): "COSTS"}.get(directions, "NOT SEEN")
+
+
+def metric_cell(campaigns, step, metric):
+    row = completed_metric(campaigns, step, metric)
+    if row is None:
+        return "Incomplete" if step in campaigns else "Not run"
+    return f"{row['pooled_b_over_a']:.4f} / {row['block_mean']:.4f} {interval_text(row)}"
+
+
+def summary_link(job, step):
+    return f"[{step}](sol2/job{job}/{step}/summary.txt#L112-L146)"
+
+
+def show_readings(campaigns, first_prior, second_prior):
+    print("\n## Declared readings and arithmetic")
+    print("\nEach step shows the pooled B/A ratio, the arithmetic mean and its 95% t interval. The joint reading uses CPU.")
+    print("\n| Piece | First → second build | First CPU | Second CPU | First wall | Second wall | Joint CPU reading or available interval |")
+    print("|---|---|---:|---:|---:|---:|---|")
+    for first, second, piece in JOINT_STEPS:
+        cpu_first = completed_metric(campaigns, first, "engine_cpu_s")
+        cpu_second = completed_metric(campaigns, second, "engine_cpu_s")
+        decision = joint_reading(cpu_first, cpu_second) or "—"
+        cells = [metric_cell(campaigns, step, key) for key, _ in METRICS for step in (first, second)]
+        first_label = summary_link(20, first) if cpu_first is not None else first
+        second_label = summary_link(20, second) if cpu_second is not None else second
+        print(f"| {piece} | {first_label} → {second_label} | {' | '.join(cells)} | {decision} |")
+    print("\nA step PAYS when both CPU intervals lie wholly below 1 and COSTS when both lie wholly above 1. "
+          "Other complete pairs give NOT SEEN. Wall intervals are descriptive.")
+    print("\n| Build | Split comparisons | Metric | Pooled factors | Product | Earlier pooled ratio | Product minus earlier | Sources |")
+    print("|---|---|---|---|---:|---:|---:|---|")
+    comparisons = (
+        ("First", "S1", "S2", 18, "L3", first_prior),
+        ("First", "S3", "S4", 18, "L4", first_prior),
+        ("Second", "S1b", "S2b", 19, "L3b", second_prior),
+        ("Second", "S3b", "S4b", 19, "L4b", second_prior),
+    )
+    for build, left, right, job, earlier, prior in comparisons:
+        for key, metric in METRICS:
+            factors = [completed_metric(campaigns, step, key) for step in (left, right)]
+            old = completed_metric(prior, earlier, key)
+            old_ratio = None if old is None else old["pooled_b_over_a"]
+            product = None
+            shown = [f"{row['pooled_b_over_a']:.9f}" if row is not None else "—" for row in factors]
+            links = [summary_link(20, step) for step, row in zip((left, right), factors, strict=True) if row is not None]
+            if all(row is not None for row in factors):
+                product = math.prod(row["pooled_b_over_a"] for row in factors)
+            if old_ratio is not None:
+                links.append(summary_link(job, earlier))
+            product_cell = "Incomplete or unrun" if product is None else f"{product:.9f}"
+            earlier_cell = "—" if old_ratio is None else f"{old_ratio:.9f}"
+            difference_cell = "—" if product is None or old_ratio is None else f"{product - old_ratio:+.9f}"
+            print(f"| {build} | {left} × {right} | {metric} | {' × '.join(shown)} | {product_cell} | "
+                  f"{earlier_cell} | {difference_cell} | {' · '.join(links) or '—'} |")
+    print("\nEach product uses the two completed split comparisons. Differences from the earlier ladder ratios are descriptive.")
+
+
+def read_campaigns(root, known, pins, environment, pairs, skips, through=None):
+    campaigns = {}
+    for step, pair in pairs.items():
+        directory = root / step
+        if (directory / "inputs.txt").is_file():
+            require(step not in skips, f"unexpected timed comparison {step}: {skips.get(step)}")
+            campaigns[step] = audit(directory, known, pins, environment, pair)
+        else:
+            require(not (directory / "runs.jsonl.txt").is_file(), f"raw runs lack a manifest in {directory}")
+        if step == through:
+            break
+    return campaigns
+
+
+def read_prior(root, known, frozen, environment, new_builds, pairs):
+    builds = read_builds(root, frozen, known, new_builds)
+    pins, run_environment = read_arms(root, builds, frozen, environment)
+    skips = comparison_plan(root, pins, pairs, subset=True)
+    campaigns = read_campaigns(root, known, pins, run_environment, pairs, skips)
+    return pins, campaigns
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("job20", type=Path, help="Job 20 raw receipts directory")
+    parser.add_argument("job19", type=Path, help="Job 19 second-ladder raw receipts")
+    parser.add_argument("--job18", type=Path, help="Job 18 first-ladder raw receipts, default beside Job 19")
+    parser.add_argument("--job16", type=Path, help="Job 16 frozen launch arms, default beside Job 19")
+    parser.add_argument("--job13", type=Path, help="Job 13 W receipts, default beside Job 19")
+    parser.add_argument("--through", choices=tuple(PAIRS), default="S4b", help="last Job 20 campaign to read")
+    args = parser.parse_args()
+    anchor = args.job19.parent
+    known = known_workload(args.job13 or anchor / "job13")
+    check(known.signature, W_SIGNATURE, "declared Job 20 W signature")
+    if not (args.job20 / "clang-executables.raw.txt").is_file():
+        print("Step 0 frozen executable receipts are unavailable.")
+        require(not any((args.job20 / step / "inputs.txt").is_file() for step in PAIRS), "timing without Step 0 pins")
+        return
+    job16 = load((args.job16 or anchor / "job16") / "arms.txt")
+    prior_environment = read_environment(job16["engine_environment"])
+    job18_path = args.job18 or anchor / "job18"
+    job18_base = {label: job16["arms"][label] for label in ("r15d", "K_1")}
+    job19_base = {label: job16["arms"][label] for label in ("r15d", "K_2")}
+    for label, arm in zip(job18_base, "AB", strict=True):
+        check(job18_base[label]["sha256"], known.clang_inputs[arm]["sha256"], f"Job 13 original frozen digest {label}")
+    job18_pins, first_prior = read_prior(job18_path, known, job18_base, prior_environment,
+                                        ("P4", "P8", "P10"), FIRST_LADDER_PAIRS)
+    job19_pins, second_prior = read_prior(args.job19, known, job19_base, prior_environment,
+                                         ("P4_2", "P8_2", "P10_2"), SECOND_LADDER_PAIRS)
+    prior_pins = job18_pins | job19_pins
+    frozen = {label: prior_pins[label] for label in REFERENCE_LABELS}
+    references = load(args.job20 / "reference-arms.txt")
+    check(set(references["arms"]), set(frozen), "Job 20 Step 0 reference arm inventory")
+    check(references["arms"], frozen, "Job 20 Step 0 reference launch receipts")
+    check(read_environment(references["engine_environment"]), prior_environment, "Job 20 reference launch environment")
+    gate_ok = verify_gate(args.job20, known, frozen, prior_environment,
+                          {label: label for label in REFERENCE_LABELS}, render=True)
+    if not gate_ok or not (args.job20 / "arms.txt").is_file():
+        require(not any((args.job20 / step / "inputs.txt").is_file() for step in PAIRS),
+                "timing manifests lack valid Step 0 and Step 1 pins")
+        return
+    builds = read_builds(args.job20, frozen, known, NEW_BUILDS)
+    pins, environment = read_arms(args.job20, builds, frozen, prior_environment)
+    skips = comparison_plan(args.job20, pins, PAIRS)
+    show_arms(pins, environment)
+    campaigns = read_campaigns(args.job20, known, pins, environment, PAIRS, skips, args.through)
+    show_overview(campaigns, PAIRS, skips, args.through)
+    show_readings(campaigns, first_prior, second_prior)
+    for step, data in campaigns.items():
+        show_campaign(step, data)
+
+
+if __name__ == "__main__":
+    main()
