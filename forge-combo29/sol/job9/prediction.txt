@@ -1,0 +1,30 @@
+# Sol Job 9 prediction
+# S mask budget pruning_ratio changed_vs_default_pct changed_vs_cold_pct
+S 1 soft 0.82 29 47
+S 1 hard 0.87 25 40
+S 2 soft 0.30 39 48
+S 2 hard 0.46 33 41
+S 5 soft 0.58 36 48
+S 5 hard 0.66 31 41
+
+# W arm budget changed_vs_warm_pct changed_vs_cold_pct
+W W1 soft 41.00 46.78
+W W1 hard 34.44 40.17
+W W2 soft 43.83 43.94
+W W2 hard 36.94 39.83
+
+# K configuration mode misses
+K default game 10
+K default stain 18
+K zero game 3
+
+# S: PC20 weights main history at one quarter of the butterfly term and reads
+# two continuation contexts. That makes ageing continuation alone my strongest
+# candidate for reducing the event rate. Job 8's all-table arms anchor the
+# predicted scale of bestmove changes.
+# W: The first 30 games of Job 4 E/EH and F/FH use the same binary, resets,
+# games and settings. Their historical differences against A2/B2 and C2/D2
+# are the direct forecasts for this replay.
+# K: Carbon's earlier STAIN result anchors the count of misses. I expect the
+# retained hash in GAME to improve move ordering and keep zero to reduce the
+# amount of carried quiet history. Both changes may leave other causes of misses.
