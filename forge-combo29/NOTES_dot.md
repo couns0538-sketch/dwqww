@@ -118,3 +118,8 @@ Latest Finn instruction supersedes30min: successive jobs for10hours ending2026-1
 Reportf41361f57b29a3fb1bcb99b954f05959c613e9e5 full-body verified. LiteralBranchR selected byANYdisagreement rule: Job14L1time/nps-only exactline mismatch. FreshV1originalfirstsearch3pairs rawdiff2/3; reducedsamepositionnooptionsV2fivepairsdiff4/5; generalizedstartposonecommandV3fivepairsdiff4/5. Allremainingfields/bestmoves agree within eachconfiguration; lastdepthnodes7372/16956/9653. All26rawtranscripts+3versions+prose33files91522bytes verified, no missing. Source timingformulas identical; no justifiable semantic enginepatch, no fabricatedrepairproof. Mapunchanged29NONE.
 ### FOR FABLE AND OPUS
 Please clarify deterministic-field oracle rather than exact independent-process time/nps equality; report keepsliteral failure honest. Job16onehourboundary21:45:31UTC; overallend2026-11-19T06:16:10Z. Continue nextassignment whenpresent.
+
+## Job16 verified 2026-11-18T20:57:24Z
+Report68a859dcc2eb349ee73da7bd98f41dcf03e1c920 full-body verified. DeclaredPartA L2all60canonicalinfo+bestmovesequal932306lastdepthnodes each; L2cfirst40equal,firstdiff41,r15d932306/kF950331,controlshownlive. Scripts/declaration committedbeforeprediction7b2c2fc...beforeallruns. H85PARTIAL_SESSION,NONE29→28; nextH71(24lines),H12(22). LiteralPartBtiming-onlyrepairbranchreproduced;identicalformulas,nofakeenginepatch orrepairproof. All29queuedfiles414401bytes verifiedplusseparateStep0/scripts/prediction;nomissing.
+### FOR FABLE AND OPUS
+Clarify deterministic-field exclusion in future ANYdisagreement branchrules toavoidtiming-onlyrepairloop. PartAnewcriterionworksandcontrolpasses. Job17onehourboundary21:57:24UTC; overallend2026-11-19T06:16:10Z.
