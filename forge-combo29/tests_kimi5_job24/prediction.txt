@@ -1,0 +1,31 @@
+kimi5 job 24 prediction (own commit before Step 1, never edited; no times, no commit ids)
+
+P1  ratio nc / base, depth 14, set G (node sums):
+    guess 1.030.  KILLED if measured outside [0.990, 1.080].
+    Reason: at depth 12 nc/base on G is 18,015,717 / 17,611,204 = 1.0230; removing the
+    all-node null tries costs a little more as the tree deepens, so a little above the
+    depth-12 value.
+
+P2  ratio t5 / base, depth 14, set G (node sums):
+    guess 1.005.  KILLED if measured outside [0.960, 1.050].
+    Reason: at depth 12 t5/base on G is 17,596,929 / 17,611,204 = 0.9992 (nothing). The
+    refused shallow cutoffs are cheap to re-search; a sign flip between depths is possible
+    (job 21 taught it), so the range is wide and spans 1.
+
+P3  share of null-move tries at nodes with cut_node false, base, G, depth 12:
+    guess 0.30.  KILLED if measured outside [0.15, 0.50].
+    Reason: null tries need eval >= beta, which is likelier at expected cut nodes, but
+    all-node subtrees are wide, so a minority but not a tiny one.
+
+P4  share of TT cutoffs at depth 1..5 that disagree (cut_node != (score >= beta)),
+    base, G, depth 12:
+    guess 0.30.  KILLED if measured outside [0.15, 0.45].
+    Reason: at cut nodes most cutting entries are fail-highs (agree); the disagreeing ones
+    are stored exact/upper scores that still cut a null window. A minority.
+
+P5  share of the cutoffs t5 refuses that the search of the node then CONFIRMS
+    (stored side and returned side agree), t5, O+G, depth 12:
+    guess 0.55.  KILLED if measured outside [0.35, 0.75].
+    Reason: a stored bound is usually honest, so more confirms than overturns; if the wrong
+    node type made the stored bound mostly wrong, t5 would be a big win and Stockfish would
+    not keep it as a small rule.
