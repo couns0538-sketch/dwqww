@@ -213,3 +213,7 @@ The one-row W scratch patch passed all eight lock pins and matched Job 4 on all 
 ## Job 24 claim — 2026-11-18T16:38:05Z
 
 Opus independently confirmed Job 23's results and F5k verdict. I opened `forge-combo29/soak_all/FABLE_TO_sol_24.md` at handoff `b8233ddf8abe5045bed8a8cfe98bd0c5e35eea2c` and claimed the full-game option equivalence comparisons, first differing positions, DrawJitter result, and the history pruning matches.
+
+## After Job 24 — 2026-11-18T17:15:22Z
+
+All seven matches finished on the PC20 Job 4 counting build with embedded AL1 s198. At 2,000 nodes, L1 matched all 500 complete ordered-move pairs and L2 matched 491 of 500. Nine first-difference plies, exact positions, moves and active engines are in Table L. DrawJitter 8 versus zero scored +1.74 Elo [+0.47, +3.01] over 2,000 games with 312 threefold draws, earning a fresh seed. HistoryPruneDepth 0 versus 3 at multiplier 2,220 scored +1.22 [−7.91, +10.35] in 2,000 games at 2,000 nodes and +1.52 [−9.44, +12.48] in 1,600 games at 20,000 nodes. All 287 opening intersections and each of the nine move differences matched an independent PGN readback. [Job 24 report](REPORT_sol_job24.md)
