@@ -87,3 +87,9 @@ Job 14 forecast follow-up — Synthetic net768 had 189 of 353 G positions flagge
 ## Job 15 — 2026-11-18T14:46:39Z
 
 The independently written exact guard matched all Astra5 O/G/P reference rows on embedded PC20. Guard1 kept every previously unflagged row’s nodes and bestmove in both evaluations and yielded zero accepted [4] events. On synthetic net768 it changed 82 flagged G moves at +2.446% nodes and 58 flagged O moves at +1.602%. The optional synthetic P ladder kept mate at depth 7. [Job 15 report](REPORT_sol3_job15.md) · [Evidence](sol3/job15)
+
+Job 15 forecast follow-up — For a comparable synthetic net768 Guard1 depth-12 O/G check I would forecast about 40–50% of flagged roots changing bestmove, anchored to 82/189 G and 58/118 O in Job 15, with the new fixture's flagged count measured separately.
+
+## Job 16 — 2026-11-18T15:06:58Z
+
+All five retained pins and all 80 Astra5 S14 reference rows matched. On P, HistRework's quiet part by itself hid the mate through depth 20. The all-plain control matched the both-off ladder, including a supplemental scalar build. Restoring plain quiet move ordering or the plain LMR history term separately recovered the mate in both S14 and PC20. Plain history pruning by itself left the miss. The point forecast hit 6/12 and its range covered 10/12. [Job 16 report](REPORT_sol3_job16.md) · [Evidence](sol3/job16)
