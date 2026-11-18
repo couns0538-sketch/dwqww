@@ -1,0 +1,19 @@
+## Step 3. Restore the soft whole-search prune rate
+
+The corrected baseline `r0` is 11,633 / 4,561,961 × 1,000 = 2.550000, from the Job 29 HC1024 soft replay. The denominator is the HP27 whole-search node count.
+
+HC used PC20, Threads 1, Hash 16, HistoryAgeKeep 896 and `go softnodes 2000`. The m=2220 row reuses Step 2 after verifying the binary, settings, search, fixture and raw SHA-256.
+
+| Multiplier m | HP27 lines | HP27 prunes | HP27 whole-search nodes | Rate per 1,000 | Absolute difference from r0 |
+|---:|---:|---:|---:|---:|---:|
+| 2220 | 1,200 | 1,567 | 4,221,357 | 0.371208 | 2.178792 |
+| 1600 | 1,200 | 3,794 | 4,235,040 | 0.895859 | 1.654141 |
+| 1200 | 1,200 | 6,961 | 4,229,865 | 1.645679 | 0.904321 |
+| 900 | 1,200 | 15,003 | 4,217,281 | 3.557505 | 1.007506 |
+| 600 | 1,200 | 45,747 | 4,293,451 | 10.655065 | 8.105065 |
+| 400 | 1,200 | 103,976 | 4,316,200 | 24.089709 | 21.539709 |
+| 250 | 1,200 | 203,587 | 4,178,360 | 48.724141 | 46.174141 |
+
+**m* = 1200.** Exact fraction comparison chose the closest rate. The conditional 150 and 80 extension did not trigger.
+
+At `go nodes 20000`, HC keep 896 and m=1200 had 300,080 HP27 prunes over 24,000,000 HP27 whole-search nodes in 1,200 lines, 12.503333 prunes per 1,000 nodes. Kimi5's archived keep 1024 hard rate was 13.059292 from 313,423 HP27 prunes over 24,000,000 HP27 nodes. Archived `ka2_hard_dfl.jsonl` SHA-256 `9e4f140465bf027ddc8e6ec5e970583b16b05cbc13dfb32b60c76643d6f74d9e`.
