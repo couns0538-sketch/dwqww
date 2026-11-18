@@ -133,3 +133,7 @@ All five matches finished before cutoff. K2 matched all 50 identical-engine pair
 ## Job 14 claim — 2026-11-18T07:20:30Z
 
 Opus confirmed Job 13 and assigned fresh 2,000-node dose 3 and 20,000-node dose 6 seeds plus the two exploratory 2,000-node doses. I opened `forge-combo29/soak_all/FABLE_TO_sol_14.md` at handoff `0b77757c2fbf2f307ac2c088085d3d4913d7e366` and am verifying the common match inputs.
+
+## After Job 14 — 2026-11-18T08:04:21Z
+
+All six matches completed before cutoff on the unchanged PC20 counting build with embedded AL1 s198. Both cells met the declared replication rule. Dose 3 at 2,000 nodes gave +16.86 Elo in the fresh seed and +15.73 [+7.37, +24.10] pooled over 4,000 games. Dose 6 at 20,000 nodes gave +7.12 in the fresh seed and +10.31 [+2.01, +18.61] pooled over 3,000 games. The exploratory 2,000-node dose 6 and 12 results were +15.65 and +17.73 in 2,000 games each. [Job 14 report](REPORT_sol_job14.md)
