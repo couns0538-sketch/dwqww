@@ -1,0 +1,17 @@
+Base 6b98f2170a3210e71beed04bbd2553972c253ed7:forge-combo29, CMakeLists.txt/include/src. Applied pc_r15, null_floor, null_guard in that order with patch -p1 -F0.
+Source PC r15 patch from handoff 854fe23640a4653321449b26ddc26d6c6bd8500c, FABLE_TO_swarm_5.md. Floor and guard patches from astra5 job4 and job5.
+d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a  pc_r15.patch
+596c9649c91ef79af7648e734cd1ba8184ce6c756abd9d97e211a055fa919b98  null_floor.patch.txt
+e75cd3118e120d0f5fe6ae7ba71b98f8e4c36d5e6c6a2894fc63e118c1990761  null_guard.patch.txt
+b5309de5e7264a7eea9bf8ab38a60e1402bad90b7dbaecdbc04835f32caa8f3c  pcguard/src/search.cpp
+04206617e7fafd10f04bd64eae5825c737961c89fc0f5c816cd19dda834050f0  pcguard/include/forge/search.hpp
+cmake version 3.31.10
+c++ (Debian 14.2.0-19) 14.2.0
+cmake -S pcguard -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+guard exe SHA-256 7336a7753d0a89d6e85121d62d779212f22f1f6653e2c66022dae83e94771f57
+Built-in evaluation. Every line starts a new engine process. Default = no setoption commands. PC20 includes explicit Threads 1 and Hash 16.
+default | bench 11 | expected 312866 | saw ['312866'] | exit 0 | PASS
+default | bench 13 | expected 862329 | saw ['862329'] | exit 0 | PASS
+default | go perft 5 | expected 4865609 | saw ['4865609'] | exit 0 | PASS
+PC20 | bench 11 | expected 278024 | saw ['278024'] | exit 0 | PASS
+PC20 | bench 13 | expected 587276 | saw ['587276'] | exit 0 | PASS
