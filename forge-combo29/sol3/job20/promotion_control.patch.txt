@@ -1,0 +1,12 @@
+diff -ruN applied_kF/src/nnue.cpp tree_plant/src/nnue.cpp
+--- applied_kF/src/nnue.cpp	2026-11-18 00:52:10.084008543 -0800
++++ tree_plant/src/nnue.cpp	2026-11-18 08:24:53.536392100 -0800
+@@ -534,7 +534,7 @@
+ 
+ DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side) {
+     DirtyPieces dirty;
+-    dirty.remove(moved, move.from);
++    if (!move.is_promotion()) dirty.remove(moved, move.from);
+     if (captured != Empty) {
+         const int captured_square = (move.flags & EnPassant) != 0U ? move.to - pawn_push_delta(side) : move.to;
+         dirty.remove(captured, captured_square);
