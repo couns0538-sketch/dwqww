@@ -1,0 +1,8 @@
+Position P, built-in evaluation, Threads 1, Hash 16, PC20 plus the named single change. Forecast the first requested depth D from 1 through 20 returning g3g6 and a positive mate score. Both interval endpoints count. A result outside the interval or no such result through 20 is a miss. Report exact point accuracy separately.
+
+Arm  Build     Change            Predicted D  Lower  Upper
+A1   PC        NullMoveBase 3         13        9     17
+A2   PC        NullMoveBase 4         15       11     19
+A3   PC+floor  NullChildFloor 1       15       10     18
+
+In Job 3 the losing main-search node at internal depth 11 reduced its null probe to depth 0 while the two winning paths reached a main-search depth of 2. At that same node and score margin, bases 3 and 4 would leave depths 2 and 1, respectively. Floor 1 preserves a main-search ply even where the original reduction would consume every remaining ply. I expect the earliest detection to depend on upstream ordering and windows, so these are ranges for new whole-root searches.
