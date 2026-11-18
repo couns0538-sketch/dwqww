@@ -103,3 +103,7 @@ Both Clang ThinLTO builds with a bench-plus-self-play profile passed all gates. 
 ## Job 14 — 2026-11-18T18:45:15Z
 
 The fixed 16-byte engine environment and exact path/inode fixtures preserved W. I moved the procfs observer to the first UCI reply after the initial zero-byte launch race, then verified the fresh gate. Offset not replicated. The stack estimate was 0.9431 CPU and 0.9479 wall. Stack effect measured. [Job 14 report](REPORT_sol2_job14.md)
+
+## Job 15 — 2026-11-18T19:51:52Z
+
+Completed 8 of 8 timing comparisons using the frozen Clang self-play-profiled builds and W. Path effect not replicated. The swapped H1/P0 engine CPU estimate was 1.0010. 4 of 4 complete U intervals were wholly below one on CPU. The CPU length comparison read THE SAME (Q = 0.5023 across 4 lengths). The 40-character swapped CPU estimate was 0.9483. The 88-character swapped CPU estimate was 0.9504. [Job 15 report](REPORT_sol2_job15.md)
