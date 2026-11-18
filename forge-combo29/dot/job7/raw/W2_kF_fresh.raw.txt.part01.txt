@@ -1,0 +1,1604 @@
+{"label": "kF W2 fresh row 1", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11
+> go depth 10
+< info depth 1 seldepth 2 score cp 6 nodes 38 nps 0 hashfull 0 time 0 pv d8a5
+< info depth 2 seldepth 6 score cp 350 nodes 100 nps 0 hashfull 0 time 0 pv d8a5 e2c4
+< info depth 3 seldepth 6 score cp 312 nodes 150 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6
+< info depth 4 seldepth 7 score cp 328 nodes 230 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6 f2f3 d5c4
+< info depth 5 seldepth 7 score cp 258 nodes 453 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6 g2g3 b6b5
+< info depth 6 seldepth 8 score cp 117 nodes 850 nps 0 hashfull 0 time 0 pv d8e8 d1e1 d7e5 f4e5
+< info depth 7 seldepth 8 score cp 83 nodes 1230 nps 0 hashfull 0 time 0 pv d8e8 d1e1 d7b6 a1d1 g7g6 f4h2
+< info depth 8 seldepth 19 score cp -61 nodes 5353 nps 2676500 hashfull 1 time 2 pv d8e8 d1e1 e7d8 e5d3 g7g6 d2c4 e8e7
+< info depth 9 seldepth 19 score cp -74 nodes 7372 nps 2457333 hashfull 1 time 3 pv d8a5 d1e1 g7g6 e5g4 f6g4 e2g4 d7f6 g4e6 e7d8 e6c8
+< info depth 10 seldepth 19 score cp -12 nodes 14301 nps 2043000 hashfull 2 time 7 pv d8e8 d1e1 e7d8 e5g4 f6g4 e2g4 e8e7 f2f3
+< bestmove d8e8
+> quit
+{"label": "kF W2 fresh row 2", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/4bppp/p3pn2/3pB3/PppP4/2P1P2P/1P1NBPP1/R2Q1RK1 w - - 0 14
+> go depth 10
+< info depth 1 seldepth 6 score cp -136 nodes 53 nps 0 hashfull 0 time 0 pv a4a5
+< info depth 2 seldepth 6 score cp -215 nodes 137 nps 0 hashfull 0 time 0 pv a4a5 b4b3 e5f6
+< info depth 3 seldepth 6 score cp -148 nodes 199 nps 0 hashfull 0 time 0 pv a4a5 b4b3 d2c4
+< info depth 4 seldepth 8 score cp -131 nodes 488 nps 0 hashfull 0 time 0 pv e2c4 d5c4 d1c1
+< info depth 5 seldepth 11 score cp -1 nodes 1009 nps 1009000 hashfull 0 time 1 pv e2c4 a6a5 d1b1 d8b6
+< info depth 6 seldepth 11 score cp -20 nodes 2208 nps 2208000 hashfull 0 time 1 pv e2c4 e7d6 c4d5 a6a5 a1b1
+< info depth 7 seldepth 11 score cp 56 nodes 3097 nps 1548500 hashfull 0 time 2 pv e2c4 g7g6 c4d5 b4c3 d5a8 c3b2
+< info depth 8 seldepth 18 score cp 192 nodes 5372 nps 1343000 hashfull 1 time 4 pv e2c4 g7g6 c4d5 b4c3 e5f6 c3b2 f2f3 d8d5 f6e7
+< info depth 9 seldepth 20 score cp 112 nodes 12540 nps 1393333 hashfull 4 time 9 pv e2c4 a6a5 a1b1 g8h8 g1h2 c8d7 e5f6 b4c3 f6e7 d8e7
+< info depth 10 seldepth 20 score cp 516 nodes 22108 nps 1381750 hashfull 6 time 16 pv g1h2 c8d7 c3b4 e7b4 e5f6 b4d2 f6g7 g8g7 d1d2
+< bestmove g1h2
+> quit
+{"label": "kF W2 fresh row 3", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/4bppp/p3p3/3p4/PppPP3/2P4P/1P1NBPP1/R2QR1K1 b - - 2 16
+> go depth 10
+< info depth 1 seldepth 4 score cp 384 nodes 59 nps 0 hashfull 0 time 0 pv g8h8
+< info depth 2 seldepth 8 score cp -15 nodes 400 nps 0 hashfull 0 time 0 pv e7h4 c3b4
+< info depth 3 seldepth 8 score cp -15 nodes 437 nps 0 hashfull 0 time 0 pv e7h4 c3b4 d5e4
+< info depth 4 seldepth 8 score cp -383 nodes 859 nps 0 hashfull 0 time 0 pv c8d7 g1h2 d8b8 e4e5 b4c3
+< info depth 5 seldepth 8 score cp -646 nodes 1106 nps 0 hashfull 0 time 0 pv f8e8 g1h2 d8d6 e4e5 c8d7
+< info depth 6 seldepth 14 score cp -417 nodes 1713 nps 1713000 hashfull 0 time 1 pv g8h8 g1h2 d8d6 f2f4 d6f4 g2g3 d5e4
+< info depth 7 seldepth 14 score cp -358 nodes 2449 nps 2449000 hashfull 0 time 1 pv g8h8 g1h2 d8d6 e4e5 b4c3 a1a3 c3d2 d1d2
+< info depth 8 seldepth 16 score cp -506 nodes 4399 nps 2199500 hashfull 2 time 2 pv g8h8 g1f1 b4c3 b2c3 d5e4 d2c4
+< info depth 9 seldepth 16 score cp -518 nodes 6144 nps 2048000 hashfull 2 time 3 pv g8h8 g1f1 b4c3 a4a5 c3d2 d1a4 d2e1b a1e1 d5e4
+< info depth 10 seldepth 16 score cp -533 nodes 10138 nps 2027600 hashfull 4 time 5 pv g8h8 g1f1 b4c3 e2f3 c3b2 a1b1 d5e4 e1e3 e4f3
+< bestmove g8h8
+> quit
+{"label": "kF W2 fresh row 4", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen r2qr1k1/4bppp/p3p3/3b4/PppP4/2P2B1P/1P1N1PP1/R2QR1K1 w - - 0 19
+> go depth 10
+< info depth 1 seldepth 6 score cp 327 nodes 50 nps 50000 hashfull 0 time 1 pv f3d5 e6d5 c3b4 e7b4
+< info depth 2 seldepth 7 score cp -38 nodes 212 nps 212000 hashfull 0 time 1 pv f3d5 d8d5
+< info depth 3 seldepth 7 score cp 327 nodes 263 nps 263000 hashfull 0 time 1 pv f3d5 e6d5 c3b4
+< info depth 4 seldepth 9 score cp 634 nodes 746 nps 373000 hashfull 0 time 2 pv g1h2 d8c7 g2g3 b4c3 b2c3
+< info depth 5 seldepth 9 score cp 552 nodes 1061 nps 530500 hashfull 0 time 2 pv f3d5 e6d5 g1h2 e7d6 g2g3
+< info depth 6 seldepth 9 score cp 120 nodes 1229 nps 614500 hashfull 0 time 2 pv f3d5 b4c3 b2c3 g8h8 g1f1 e6d5
+< info depth 7 seldepth 9 score cp 335 nodes 1393 nps 696500 hashfull 0 time 2 pv f3d5 b4c3 b2c3 g8h8 g1f1 d8c7 d2c4
+< info depth 8 seldepth 15 score cp -69 nodes 2752 nps 688000 hashfull 0 time 4 pv f3d5 b4c3 d5c4 c3b2 g1f1 b2b1b d2b1 g8f8
+< info depth 9 seldepth 18 score cp 89 nodes 6913 nps 987571 hashfull 2 time 7 pv g1h2 d8c7 g2g3 b4c3 b2b4 c7g3 f2g3 d5f3 h2g1 f3d1
+< info depth 10 seldepth 19 score cp 245 nodes 14741 nps 1052928 hashfull 6 time 14 pv g1f1 g8f8 e1e3 a8c8 f3d5 e6d5 c3b4 e7b4 e3e8 d8e8
+< bestmove g1f1
+> quit
+{"label": "kF W2 fresh row 5", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 2rqr1k1/4bppp/p7/P2p4/QppP4/2P4P/1P1N1PP1/R3R1K1 b - - 1 21
+> go depth 10
+< info depth 1 seldepth 3 score cp 591 nodes 38 nps 19000 hashfull 0 time 2 pv b4b3
+< info depth 2 seldepth 5 score cp 317 nodes 115 nps 57500 hashfull 0 time 2 pv g8f8 c3b4
+< info depth 3 seldepth 5 score cp 755 nodes 150 nps 75000 hashfull 0 time 2 pv g8f8 c3b4 c4c3 b2c3 c8c3
+< info depth 4 seldepth 7 score cp 536 nodes 282 nps 141000 hashfull 0 time 2 pv g8f8 c3b4 e7b4 e1e8 d8e8 a4e8 c8e8
+< info depth 5 seldepth 7 score cp 431 nodes 425 nps 141666 hashfull 0 time 3 pv g8f8 a4b4 e7b4 e1e8 d8e8
+< info depth 6 seldepth 13 score cp 523 nodes 596 nps 198666 hashfull 0 time 3 pv g8f8 a4b4 h7h5 f2f3 g7g5
+< info depth 7 seldepth 16 score cp 468 nodes 1356 nps 271200 hashfull 0 time 5 pv g8f8 c3b4 h7h5 a4e8 d8e8 g1f1 e7b4 e1e8 c8e8
+< info depth 8 seldepth 16 score cp 349 nodes 2699 nps 449833 hashfull 1 time 6 pv g8f8 c3b4 d8a5 b4a5 c4c3 a4e8 c8e8 e1e7 c3d2 e7e8 f8e8
+< info depth 9 seldepth 18 score cp 387 nodes 9010 nps 1001111 hashfull 5 time 9 pv g8f8 a4b4 h7h5 b4e7 e8e7 g1f1 c8b8 h3h4 e7e6 e1e3
+< info depth 10 seldepth 20 score cp -109 nodes 21954 nps 1219666 hashfull 12 time 18 pv g8f8 g1f1 c8c5 e1e7 d8e7 h3h4 b4c3 b2b3 c4b3
+< bestmove g8f8
+> quit
+{"label": "kF W2 fresh row 6", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 2rqr1k1/5p1p/p4bp1/P2p4/Q1pP4/2P3PP/3N1P2/R3R1K1 w - - 0 24
+> go depth 10
+< info depth 1 seldepth 4 score cp 707 nodes 54 nps 0 hashfull 0 time 0 pv e1e8 d8e8 a4e8 c8e8
+< info depth 2 seldepth 4 score cp 707 nodes 101 nps 0 hashfull 0 time 0 pv e1e8 d8e8
+< info depth 3 seldepth 4 score cp 707 nodes 158 nps 0 hashfull 0 time 0 pv e1e8 d8e8 a4e8 c8e8
+< info depth 4 seldepth 6 score cp -37 nodes 564 nps 0 hashfull 0 time 0 pv g1f1 e8e1 a1e1 g8f8
+< info depth 5 seldepth 9 score cp -107 nodes 929 nps 929000 hashfull 0 time 1 pv e1e8 d8e8 a4e8 c8e8 a1a4 e8e1 g1g2
+< info depth 6 seldepth 11 score cp 127 nodes 1417 nps 1417000 hashfull 0 time 1 pv e1e8 d8e8 g1f1 e8a4 a1e1
+< info depth 7 seldepth 12 score cp 283 nodes 2540 nps 1270000 hashfull 0 time 2 pv a4e8 d8e8 e1e8 c8e8 g1f1 g8h8 f2f4
+< info depth 8 seldepth 12 score cp 262 nodes 3309 nps 1654500 hashfull 0 time 2 pv a4e8 d8e8 e1e8 c8e8 g1f1 e8a8 f2f4 f6d4 f1g2
+< info depth 9 seldepth 18 score cp 0 nodes 7492 nps 1248666 hashfull 2 time 6 pv a4e8 d8e8 e1e8 c8e8 g1f1 e8a8 f1e1 a8e8
+< info depth 10 seldepth 18 score cp 265 nodes 10368 nps 1152000 hashfull 2 time 9 pv e1e8 d8e8 a4e8 c8e8 g1f1 e8a8 a1a3 f6g5 f2f4 h7h6
+< bestmove e1e8
+> quit
+{"label": "kF W2 fresh row 7", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 2rq2k1/5p2/p4bp1/P2p3p/Q1pP3P/2P2NP1/5P2/4R1K1 b - - 1 26
+> go depth 10
+< info depth 1 seldepth 2 score cp 445 nodes 36 nps 36000 hashfull 0 time 1 pv f6e7
+< info depth 2 seldepth 3 score cp 312 nodes 106 nps 106000 hashfull 0 time 1 pv f6h4 g1h2
+< info depth 3 seldepth 5 score cp 342 nodes 161 nps 161000 hashfull 0 time 1 pv f6h4 g1f1 f7f6
+< info depth 4 seldepth 5 score cp 416 nodes 222 nps 222000 hashfull 0 time 1 pv f6h4 g1f1 f7f6 f3h4
+< info depth 5 seldepth 6 score cp 387 nodes 590 nps 590000 hashfull 0 time 1 pv f6e5 g1f1 e5g3 f2g3
+< info depth 6 seldepth 6 score cp 376 nodes 706 nps 706000 hashfull 0 time 1 pv f6e5 g1f1 e5g3 f3e5 g3h4
+< info depth 7 seldepth 11 score cp 318 nodes 2299 nps 383166 hashfull 0 time 6 pv f6e7 a4e8 d8e8 f3e5 f7f6 g1f1
+< info depth 8 seldepth 15 score cp 78 nodes 5307 nps 408230 hashfull 1 time 13 pv f6e7 g1f1 c8a8 f3h2 e7f8 f2f4
+< info depth 9 seldepth 15 score cp 57 nodes 10741 nps 511476 hashfull 3 time 21 pv g8f8 a4e8 d8e8 e1e8 f8e8 g1g2 f6d4 c3d4
+< info depth 10 seldepth 22 score cp 147 nodes 19232 nps 565647 hashfull 8 time 34 pv f6e7 g1f1 d8d7 a4d7 e7f8 d7c8 g8g7 c8a6 g7h7 e1e5
+< bestmove f6e7
+> quit
+{"label": "kF W2 fresh row 8", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 2r5/1q3pk1/p4bp1/P2p3p/Q1pP3P/2P2NP1/5P2/4R1K1 w - - 6 29
+> go depth 10
+< info depth 1 seldepth 2 score cp 85 nodes 39 nps 0 hashfull 0 time 0 pv g1f1
+< info depth 2 seldepth 3 score cp -250 nodes 84 nps 0 hashfull 0 time 0 pv g1f1 g7f8
+< info depth 3 seldepth 6 score cp 9 nodes 155 nps 0 hashfull 0 time 0 pv g1f1 g7f8 e1e8 c8e8
+< info depth 4 seldepth 7 score cp -78 nodes 387 nps 0 hashfull 0 time 0 pv g1f1 f6e7 f3h2 b7c7
+< info depth 5 seldepth 7 score cp -71 nodes 489 nps 0 hashfull 0 time 0 pv g1f1 f6e7 f3h2 b7c7 f2f4
+< info depth 6 seldepth 10 score cp -247 nodes 1095 nps 1095000 hashfull 0 time 1 pv g1f1 f6e7 e1e7 b7b1 f1g2 b1f1 g2h2 f1f2 h2h3 f2f3
+< info depth 7 seldepth 17 score cp -193 nodes 1822 nps 911000 hashfull 0 time 2 pv g1f1 f6d8 e1e8 b7b3 f1e1 b3a4
+< info depth 8 seldepth 22 score cp -129 nodes 4491 nps 898200 hashfull 0 time 5 pv g1f1 f6e7 e1e7 b7b1 f3e1 b1b5 e7f7 g7f7 a4c2 b5a5
+< info depth 9 seldepth 29 score cp -18 nodes 10247 nps 931545 hashfull 3 time 11 pv g1f1 f6e7 e1e7 b7b5 a4b5 g7f8 e7f7 f8f7 b5b7 f7f8
+< info depth 10 seldepth 29 score cp 8 nodes 16893 nps 993705 hashfull 7 time 17 pv e1e8 c8e8 a4e8 b7b1 f3e1 b1d1 g1h2 g7h7 e8f7 h7h8 f7g6
+< bestmove e1e8
+> quit
+{"label": "kF W2 fresh row 9", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 1r6/2q2pk1/p4bp1/P2p3p/2pP3P/2P2NP1/5PK1/Q3R3 b - - 11 31
+> go depth 10
+< info depth 1 seldepth 2 score cp 1806 nodes 51 nps 0 hashfull 0 time 0 pv g7g8
+< info depth 2 seldepth 4 score cp 698 nodes 166 nps 0 hashfull 0 time 0 pv g7g8 e1e8 b8e8
+< info depth 3 seldepth 4 score cp 698 nodes 216 nps 0 hashfull 0 time 0 pv g7g8 e1e8 b8e8
+< info depth 4 seldepth 8 score cp 540 nodes 721 nps 0 hashfull 0 time 0 pv f6h4 g2h3 c7c8 g3g4 h4f2
+< info depth 5 seldepth 10 score cp 376 nodes 1028 nps 0 hashfull 0 time 0 pv c7b7 g2h3 b7c8 g3g4 h5g4 h3h2 g4f3
+< info depth 6 seldepth 12 score cp 671 nodes 1644 nps 1644000 hashfull 0 time 1 pv b8b7 f3g1 g7g8 g2f1 g8h7
+< info depth 7 seldepth 16 score cp 289 nodes 2627 nps 1313500 hashfull 1 time 2 pv c7b7 g2h3 b7c8 g3g4 h5g4 h3g3 c8c7 g3g2 g4f3 g2h3 b8b7
+< info depth 8 seldepth 18 score cp 355 nodes 5686 nps 947666 hashfull 2 time 6 pv b8b5 f3g1 f6h4 g2f1 c7c8 g3h4
+< info depth 9 seldepth 18 score cp 404 nodes 9820 nps 982000 hashfull 5 time 10 pv b8b5 f3g1 g6g5 h4g5 b5a5 g5f6 g7g6 g2f1
+< info depth 10 seldepth 18 score cp 121 nodes 27110 nps 695128 hashfull 11 time 39 pv c7d8 e1e8 g7h7 f3e5 d8e8 e5c4 d5c4 d4d5 f6g7
+< bestmove c7d8
+> quit
+{"label": "kF W2 fresh row 10", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 4R3/5pk1/p4bp1/q2p3p/2pP3P/1rP2NP1/5PK1/2Q5 w - - 2 34
+> go depth 10
+< info depth 1 seldepth 4 score cp 89 nodes 98 nps 0 hashfull 0 time 0 pv g2h3 b3c3
+< info depth 2 seldepth 4 score cp 89 nodes 144 nps 0 hashfull 0 time 0 pv g2h3 b3c3
+< info depth 3 seldepth 6 score cp 189 nodes 264 nps 0 hashfull 0 time 0 pv g2h3 f6d4 c1d2 d4c3
+< info depth 4 seldepth 6 score cp 249 nodes 361 nps 0 hashfull 0 time 0 pv g2h3 f6d4 c1f1 d4c3
+< info depth 5 seldepth 7 score cp 295 nodes 556 nps 0 hashfull 0 time 0 pv g2h3 f6d4 c1c2 d4c3
+< info depth 6 seldepth 8 score cp 224 nodes 900 nps 0 hashfull 0 time 0 pv g2h3 f6d4 f3g5 g7h6 g5f7 h6h7 c3d4
+< info depth 7 seldepth 13 score cp 184 nodes 2574 nps 1287000 hashfull 1 time 2 pv g2h1 a5c7 f3g5 b3b5 e8g8 g7h6 g5f7 h6h7
+< info depth 8 seldepth 13 score cp 334 nodes 4852 nps 1617333 hashfull 2 time 3 pv g2h1 b3b8 f3g5 b8d8 e8d8
+< info depth 9 seldepth 20 score cp 280 nodes 10625 nps 1517857 hashfull 4 time 7 pv g2h1 a5a2 f3g5 b3b8 c1e1 a2c2 e8b8 g7h6 g5f7 h6h7
+< info depth 10 seldepth 20 score cp 376 nodes 25628 nps 1601750 hashfull 11 time 16 pv g2h1 b3a3 e8g8 g7g8 c1a3 f6d4 f3d4 a5a3
+< bestmove g2h1
+> quit
+{"label": "kF W2 fresh row 11", "sha256": "340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen 4R3/1r3pk1/p4bp1/3pN2p/2pP1QPP/2q5/5PK1/8 b - - 0 36
+> go depth 10
+< info depth 1 seldepth 6 score cp -148 nodes 132 nps 0 hashfull 0 time 0 pv g7h7 f4f6 h5g4 e5g4
+< info depth 2 seldepth 6 score cp -148 nodes 184 nps 0 hashfull 0 time 0 pv g7h7 f4f6
+< info depth 3 seldepth 6 score cp -148 nodes 241 nps 0 hashfull 0 time 0 pv g7h7 f4f6 h5g4
+< info depth 4 seldepth 7 score cp -260 nodes 616 nps 0 hashfull 0 time 0 pv f6h4 f4e3 c3e3
+< info depth 5 seldepth 9 score cp -167 nodes 950 nps 0 hashfull 0 time 0 pv f6h4 g4h5 g7h7 f4h4 g6h5
+< info depth 6 seldepth 13 score cp -249 nodes 1614 nps 1614000 hashfull 0 time 1 pv f6e5 f4e5 f7f6 e5d5 h5g4 e8e2 c3h3 g2g1
+< info depth 7 seldepth 19 score cp -215 nodes 4474 nps 894800 hashfull 1 time 5 pv f6e5 f4e5 g7h7 e5d5 h5g4 d5e5 c3h3 g2g1
+< info depth 8 seldepth 19 score cp -250 nodes 7930 nps 660833 hashfull 3 time 12 pv f6e5 g4h5 c3d4 e8g8 g7h7 h5g6 f7g6 f4f7 e5g7
+< info depth 9 seldepth 20 score cp -203 nodes 23931 nps 854678 hashfull 9 time 28 pv c3f3 e5f3 f6h4 g4h5 h4f2 e8g8 g7h7 h5g6 f7g6 g2f2 b7b2 f4d2
+< info depth 10 seldepth 23 score cp -164 nodes 39105 nps 1002692 hashfull 17 time 39 pv c3f3 f4f3 f6e5 d4e5 b7c7 g4h5 g7h7 h5g6 h7g7 g6f7 c7f7 g2h1
