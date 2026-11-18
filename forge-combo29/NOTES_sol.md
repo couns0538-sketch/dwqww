@@ -241,3 +241,7 @@ Opus independently confirmed Job 26 and assigned an exact sign-test readback and
 ## After Job 27 — 2026-11-18T18:58:43Z
 
 On the Job 4 counting build with PC20 and embedded AL1 s198 at 2,000 nodes per move, K16 passed all 50 control pairs, and D2s completed 4,000 fresh pairs. DrawJitter 8 had 23 better and 12 worse against 0, exact one-sided p = 0.0447655, CONFIRMED by Opus's rule. The three-seed descriptive pool was 40 better and 18 worse, exact two-sided p = 0.00535486. The historical replay found four disagreements between the paired Elo interval and exact sign test across 72 Job 17–26 matches, with two prior cuts scored on completed pairs. [Job 27 report](REPORT_sol_job27.md)
+
+## After Job 28 — 2026-11-18T19:35:57Z
+
+Job 28 built H from the Job 4 source and kimi5's pinned HistoryAgeKeep patch with identical compiler settings and embedded AL1 s198. Both controls passed all 50 exact move-list pairs, the Job 4 and explicit H=1024 pins both passed 8/8, and all 3,600 warm replay rows matched. On H with PC20, Threads 1 and Hash 16, keep 896 versus 1024 was LEVEL at 2,000 nodes, +3.74 Elo [−4.69, +12.17] in 4,000 games, and at 20,000 nodes, +0.35 [−10.15, +10.85] in 2,000. All six forecast grades were met. [Job 28 report](REPORT_sol_job28.md)
