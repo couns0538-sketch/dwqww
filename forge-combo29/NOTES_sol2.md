@@ -75,3 +75,7 @@ All three GCC LTO+PGO builds passed the held-out PC20/net768 trace, with disjoin
 ## Job 8 — 2026-11-18T12:53:01Z
 
 The exact Carbon2 TT patch and k13 Release/PGO passed their node and trace gates. All 120 PC20/net768 timing passes reproduced 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. The k11v-pgo copy CPU floor was 0.9456–0.9924. Pooled CPU was 0.9812 for k13-pgo/k11v-pgo, not measurable here, and 0.9119 for k13-pgo/r15d-pgo, measured. The adjacent ratios composed to 0.8963 using the pinned Job 7 factor. These results apply to the single-threaded cloud GCC/net768 workload. [Job 8 report](REPORT_sol2_job8.md)
+
+## Job 9 — 2026-11-18T14:05:37Z
+
+Alternating ABBA/BAAB and separate first-arm warm-ups gave a 0.9640–1.0485 identical-binary CPU range. The original k13-pgo/k11v-pgo pooled CPU was 0.9894, not measurable here. The consolidated kF-pgo/r15d-pgo pooled 0.9165 CPU, measured. All 144 eligible timed runs and 36 corresponding warm-ups kept the pinned PC20/net768 trace. [Job 9 report](REPORT_sol2_job9.md)
