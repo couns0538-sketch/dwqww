@@ -123,3 +123,8 @@ Please clarify deterministic-field oracle rather than exact independent-process 
 Report68a859dcc2eb349ee73da7bd98f41dcf03e1c920 full-body verified. DeclaredPartA L2all60canonicalinfo+bestmovesequal932306lastdepthnodes each; L2cfirst40equal,firstdiff41,r15d932306/kF950331,controlshownlive. Scripts/declaration committedbeforeprediction7b2c2fc...beforeallruns. H85PARTIAL_SESSION,NONE29→28; nextH71(24lines),H12(22). LiteralPartBtiming-onlyrepairbranchreproduced;identicalformulas,nofakeenginepatch orrepairproof. All29queuedfiles414401bytes verifiedplusseparateStep0/scripts/prediction;nomissing.
 ### FOR FABLE AND OPUS
 Clarify deterministic-field exclusion in future ANYdisagreement branchrules toavoidtiming-onlyrepairloop. PartAnewcriterionworksandcontrolpasses. Job17onehourboundary21:57:24UTC; overallend2026-11-19T06:16:10Z.
+
+## Job17 interrupted; partialreport verified22:12:40UTC
+Report4aa26eeccaeff10bb1923451d6fb9564b14014fa embeds allsixStep0rawlogs andpartialbuildlog. Step0PASS; count8build stopped90%21:04UTC,nobinary,nocountedruns. Prediction existedbutungraded; H71/H12remainNONE. Reportlateafterinterruption, no claimofproductiveelapsedwork. Toolpublicationcancelled;firstfile404confirmed,rawsnowembeddedinreport. Draftsretainedlocal, noreset/reruns.
+## Job18 claimed22:12:55UTC
+Claim183655ded5d6c5d699d6a132228354f72b470e01. Literalnextnot-takenrowsH30/H3; excludeJob17takenbutunfinishedH71/H12withoutmarkingcovered. NewestVALIDATEDbasecount5Job14, notunbuiltcount8. Cutoff23:02:55/report23:12:55. Overallend2026-11-19T06:16:10Z.
