@@ -1,0 +1,57 @@
+=== JOB 17 PART 1 STANDALONE PREDICTION: stack/14_v3_apply_changes_fast.patch.txt ===
+Committed ALONE before creating, building, or timing stack/14_v3_apply_changes_fast.patch.txt.
+
+1. Base tree (the tree Part 0 leaves):
+   `r15d` + `01_S4..10_W2` + `11_stop_hot` + `12_v3_refresh_fuse` +
+   `13_tt_avx512_fast_probe` + `job17/stack/tidy.patch.txt` (`stack_r15d_to_final.patch.txt`).
+
+2. Target function & its exclusive share (the ceiling = most the step can save):
+   - Function: `forge::nnue::v3::apply_changes` (`apply_changes_avx512` in `src/nnue_v3.cpp`,
+     lines 347-376 and 837-847), untouched by any piece `01..11` and untouched by any step
+     of Job 15, Job 16, or Part 0 `tidy`.
+   - Note on higher untouched rows in `job13/curated_sp_time_profile_raw.txt`:
+     * `nnue::v3::evaluate` (`2.37%` / `2.44%` exclusive) already runs a 2x-unrolled
+       AVX-512 `vpdpwssd` loop (`src/nnue_v3.cpp:171-194`).
+     * `std::__introsort_loop` (`1.45%` / `1.36%` exclusive) runs inside `MovePicker::pick_best_scored`;
+       `probe_untouched_targets_raw.txt` shows `has_tie = 582,954 / 2,118,916` (`27.5%`) lists
+       have tied scores, and `libstdc++` `std::__insertion_sort` is stable while swap-selection
+       changes tie order (`src/search.cpp:1000`), so replacing `std::sort` without altering
+       tie order is unsafe.
+   - Exclusive share of `nnue::v3::apply_changes` in `job13/curated_sp_time_profile_raw.txt`:
+     * Unmodified SP-profiled `curated` (line 38): **`1.26%` exclusive (`2.562 ms/game`,
+       `202 / 16,016` samples)**.
+     * Frame-pointer SP-profiled `curated` (line 76): **`1.12%` exclusive (`2.221 ms/game`,
+       `175 / 15,630` samples)**.
+     * After Job 15 `12_v3_refresh_fuse` fused valid-parent 1-ply single-king-refresh calls,
+       `1,782,903` of the original `4,172,410` single-perspective `apply_changes` calls
+       (`42.73%`) remain during multi-ply `make_valid`, bounding the remaining ceiling at
+       roughly **`0.48%` to `0.55%`**.
+
+3. Exact counts (`forge-combo29/carbon2/job17/probe_untouched_targets_raw.txt` line 4, `60`
+   games, `Hash 16`, `searches=7670`, `nodes=25641316`, `trace=ee465caeff9c0fcf`) & what
+   the step removes:
+   - `nnue::v3::apply_changes` runs **`1,782,903` times**:
+     * `c2_sa = 1,415,741` (**`79.41%`**): `count == 2 && !adds[0] && adds[1]` (1 sub + 1 add).
+     * `c3_ssa = 366,476` (**`20.55%`**): `count == 3 && !adds[0] && !adds[1] && adds[2]`
+       (2 subs + 1 add).
+     * Combined `c2_sa + c3_ssa = 1,782,217 / 1,782,903` (**`99.9615%`**; `other = 686` only).
+   - Currently `apply_changes_avx512` executes a 1-vector (`h += 32`) generic loop with 4
+     `count > i` checks and 4 `add_i ? vpaddw : vpsubw` selects on every iteration (`24`
+     iterations per call on `hidden = 768` -> `42.79M` iterations).
+   - `stack/14_v3_apply_changes_fast.patch.txt` adds two specialized 2x-unrolled (`h += 64`)
+     branch-free AVX-512 fast paths (`c2_sa` and `c3_ssa`) in `apply_changes_avx512` (matching
+     `apply_changes_pair_avx512`), with **two separate planted faults** (one per path, per
+     File 17 New Rule 3).
+
+4. Why every node stays the same:
+   - Exact `int16_t` two's-complement `_mm512_sub_epi16` / `_mm512_add_epi16` lane-wise
+     arithmetic in the identical column order (`source - s0 + a0`, and `source - s0 - s1 + a0`).
+
+5. Predicted timing gain on 12 rounds x 60 games (`A1 B1 B2 A2`, `Hash 16`, SP-profiled
+   Clang 18.1.3 ThinLTO+PGO `-march=sapphirerapids`, `getrusage` engine CPU):
+   - Predicted `median_of_paired_round_ratios`: **`1.0015x` to `1.0065x` (`+0.15%` to `+0.65%`)**,
+     with **`>= 8/12`** paired rounds faster; we keep our strict declared adoption gate at
+     **`>= 1.0040x` (`+0.40%`) AND `>= 8/12` rounds faster** so a sub-`0.40%` micro-gain is
+     killed rather than growing the stack.
+   - Declared kill gate: PASSES GATE iff `median_of_paired_round_ratios >= 1.0040x` AND
+     `>= 8/12` paired rounds faster on `getrusage` engine CPU; KILLED if `< 1.0040x` or `< 8/12`.
