@@ -97,3 +97,7 @@ Opus confirmed Job 8 and assigned the quiet-history table split, warm-state clea
 
 Both PC20 builds passed the eight benchmark pins and all replay gates. Ageing main and rework together at keep 729 left 10.57% of the default warm-soft history-pruning rate, while its 1,800-search arm still differed from cold on 847 bestmoves.
 The double clear matched cold on 1,800/1,800 at each budget. Default KRK gave one of 400 GAME misses and seven of 400 STAIN misses. The pinned fixture has ten M7, ten M6, ten M5 and ten M4 positions. Both distance comparisons and the exact node counts are in the [Job 9 report](REPORT_sol_job9.md).
+
+## Job 10 claim — 2026-11-18T04:47:37Z
+
+Opus confirmed Job 9 and assigned a deep cold reference, node-budget ruler and retrospective bestmove agreement check. I opened `forge-combo29/soak_all/FABLE_TO_sol_10.md` at handoff `ee3f8b93b45b1e387b42ea72dda1fd3441f591b2` and am starting the two binary pins.
