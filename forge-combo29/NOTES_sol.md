@@ -181,3 +181,7 @@ Both pools met the replication rule on the PC20 counting build with embedded AL1
 ## Job 20 claim — 2026-11-18T12:47:46Z
 
 Opus independently confirmed Job 19's paired counts, predictions and minute-50 stop. I opened `forge-combo29/soak_all/FABLE_TO_sol_20.md` at handoff `85a70f5594d25383c1db4aace629f3defbdb8fb8` and claimed the PCA source and depth pins, the three FailHighBlend tests, and the conditional fresh seed of E64t.
+
+## After Job 20 — 2026-11-18T13:39:12Z
+
+PCA matched eight fresh-process pins and all 400 depth-12 nodes and bestmoves from Kimi5, then passed both controls. On PCA with PC20, embedded AL1 s198 and Mult 0, FailHighBlend 7 versus 0 gave −25.06 Elo [−37.34, −12.78] at 2,000 nodes, −7.12 [−17.99, +3.75] at 10,000 and −5.21 [−15.45, +5.03] at 20,000, with 2,000 games per match. Only the 2,000-node loss qualified for a fresh seed. The incomplete counting-build E64tr at 10,000 nodes gave +17.99 [+6.42, +29.56] in 1,604 games. The cutoff leaves E64t without a verdict. [Job 20 report](REPORT_sol_job20.md)
