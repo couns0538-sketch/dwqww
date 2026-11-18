@@ -1,0 +1,18 @@
+UTC readback 2026-11-18T19:43:01Z
+Pinned Kimi Job27 tree 7ccde908be2577964408256344c61a6944a1c111
+Reference artifact, rows, HP27 sum, last info depth nodes, HP27 final nodes, unequal rows
+keep1024_soft blob 2dd3c08fb0cf319eb8bf6c8135e801478969de71
+1200	11633	4294263	4561961	42
+First mismatching row {"index": 29, "game": 1, "ply": 28, "depth": 8, "nodes": 1965, "bestmove": "b4b5", "hp27": 9, "hp27_nodes": 8000, "info": "info depth 8 seldepth 16 score cp 8 nodes 1965 nps 1965000 hashfull 0 time 1 pv b4b5 h8e8 b5a6 e6a6 e2a6 b7a6 d1d5 d8d5 f3d5 e8e5 d5f7 f5c2 f7c4"}
+keep896_soft blob a752f5e1c61cb93e48f18c58b4afc48afec5b323
+1200	1567	4080162	4221357	22
+First mismatching row {"index": 177, "game": 3, "ply": 56, "depth": 9, "nodes": 696, "bestmove": "g8g7", "hp27": 4, "hp27_nodes": 8000, "info": "info depth 9 seldepth 16 score cp 178 nodes 696 nps 0 hashfull 1 time 0 pv g8g7 b8e5 f7f6 e5e7 g7h6 c1d2 g4g2 d2c1 g2f1 c1d2 f1f2 d2c3 h6g5 e7e6 f2e1 c3d3"}
+keep896_hard blob 70e3bc6c3c10a368d2ddf5562fbaf23f753027a0
+1200	63861	16285974	24000000	1200
+First mismatching row {"index": 1, "game": 1, "ply": 0, "depth": 11, "nodes": 9330, "bestmove": "f1e2", "hp27": 2, "hp27_nodes": 20000, "info": "info depth 11 seldepth 14 score cp 89 nodes 9330 nps 1866000 hashfull 4 time 5 pv f1e2 e5a5 g1f3 g8f6 d2d4 c8f5 f3h4 f5d7 e1g1 e7e6 h4f3 a7a6"}
+
+Kimi replay2_j27.py lines 104–121 stores the last `info depth` nodes and the HP27 final nodes in separate fields. Kimi step4_totals_j27.py lines 35–42 divides the pruning count by the former. Sol Job28 replay_known28.py lines 121–126 compares the last-depth nodes and best move against its reference. The supplied 4,294,263 baseline is the last-depth node sum.
+
+In H src/search.cpp lines 2726–2739 the 2,000 soft node target carries an internal cap four times larger. Lines 2787–2805 print the current node snapshot with a depth and PV. Lines 3045–3072 allow a hard-node abort to leave the completed depth as the last depth line. Lines 3173–3176 check the soft target only after an iteration finishes. Lines 3250–3265 overwrite the result with the final search total and emit that total in the soft diagnostic. In count27.patch.txt line 25 the HP27 diagnostic prints this final result.nodes. Thus the archived node inequality is expected under the pinned patch even when the exact replay matches. The soft diagnostic is a different field from the completed-depth count and does not supply the reference denominator. A hard-budget search emits no soft diagnostic.
+
+Kimi rows2/keep1024_soft.meta pins executable SHA-256 74c6b55b362e0821008b7d4008fe69d024334def15607756bedf1d02db4ab78d, PC20 multiplier 2220, Threads 1, Hash 16, and the first 20 games. The gate's soft and hard node settings are 2,000 and 20,000 respectively.

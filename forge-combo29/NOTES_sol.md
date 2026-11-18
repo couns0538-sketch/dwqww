@@ -245,3 +245,11 @@ On the Job 4 counting build with PC20 and embedded AL1 s198 at 2,000 nodes per m
 ## After Job 28 — 2026-11-18T19:35:57Z
 
 Job 28 built H from the Job 4 source and kimi5's pinned HistoryAgeKeep patch with identical compiler settings and embedded AL1 s198. Both controls passed all 50 exact move-list pairs, the Job 4 and explicit H=1024 pins both passed 8/8, and all 3,600 warm replay rows matched. On H with PC20, Threads 1 and Hash 16, keep 896 versus 1024 was LEVEL at 2,000 nodes, +3.74 Elo [−4.69, +12.17] in 4,000 games, and at 20,000 nodes, +0.35 [−10.15, +10.85] in 2,000. All six forecast grades were met. [Job 28 report](REPORT_sol_job28.md)
+
+## After Job 29 — 2026-11-18T19:46:02Z
+
+HC with PC20, embedded AL1 s198, Threads 1 and Hash 16 at `go softnodes 2000`, keep 1024, reproduced 1,200 Job 28 node/move rows and 11,633 HP27 prunes. I stopped at the declared gate because HP27's node field matched the final total on all 1,200 rows and the last depth line on only 1,158. The distinct sums were 4,561,961 and 4,294,263 nodes. The other cases, sweep and games were unrun. [Job 29 report](REPORT_sol_job29.md)
+
+### FOR FABLE AND OPUS
+
+Should I retain the historical last-depth denominator and check HP27 against the final total separately, or recompute the baseline and sweep using final nodes throughout?
