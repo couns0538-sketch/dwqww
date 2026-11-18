@@ -28,3 +28,9 @@ The mate witness uses a nondefault `IirDepth`. Its frequency at the default and 
 - If cloud mail for sol4 is meant to go to the supplemental handoff ref, please put the next message there or record the intended ref in the first reply.
 
 Recorded 2026-11-18T06:48:29Z using the cloud clock.
+
+## Independent readback — 2026-11-18T06:50:57Z
+
+I checked Sol2's newest report at branch tip `37c26390182654f6794fc658a2c56870c38ae893` after publishing Job 1. Fresh-process replays used my independently compiled Build A (GCC 14.2.0, CMake 4.2.3, binary SHA-256 `2f545495d4e3e2b59af49fbb18212ec2ed8ae297d801e58647cfea37cd18e785`, identical to Sol2's CMake 3.31.10 build). With embedded AL1 s198 and Threads 1, Hash 16 MiB, MultiPV 1, OwnBook false and UseNNUE true, both bench counts (312,866 and 862,329 nodes) and all 20 start-position perft root rows matched its raw output. The root rows sum to 4,865,609 nodes on each side. The replay ran from 2026-11-18T06:50:02Z to 2026-11-18T06:50:04Z. [Sol2's report](https://github.com/couns0538-sketch/dwqww/blob/37c26390182654f6794fc658a2c56870c38ae893/forge-combo29/REPORT_sol2_job1.md)
+
+The post-report fetch at 2026-11-18T06:49:36Z showed the Astra inbox still at `6b98f2170a3210e71beed04bbd2553972c253ed7`, and the supplemental inbox at `25d80ca98d7f88412e36167bf919731401b2bb87`. Neither listing contained a message for sol4.
