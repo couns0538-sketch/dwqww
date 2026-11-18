@@ -105,3 +105,7 @@ The 120-position higher-piece-count F7k fixture matched Opus's hash. With the Jo
 ## Job 19 — 2026-11-18T16:17:22Z
 
 The pinned net768 and the kF build reproduced the PC20 bench gates. On one thread, Hash 16, W1 matched all 1,000 depth-9 nodes and bestmoves, W2 matched all 1,380 stable lifecycle lines across r15d and kF, and W3 matched 300 depth-9 rows and 1,000 reference eval lines. The literal final W2 new-game command resets to startpos on both builds. Final searches matched fresh startpos, and explicitly restoring the FEN made all 20 finals per build match fresh sampled inputs. The prescribed ZMM toggle retains v3 AVX-512. A separate scalar v3 build matched both net bench pins and all 300 depth-9 rows. [Job 19 report](REPORT_sol3_job19.md) · [Evidence](sol3/job19)
+
+## Job 20 — 2026-11-18T16:37:52Z
+
+One guarded shadow patch applied to both r15d and kF and preserved all 1,000 Job 19 depth-9 nodes and bestmoves per build. The one-line promotion fault omitted the pawn feature removal and triggered 103,012 mismatches on the first 200 W1 roots. Clean PC20 with embedded options plus standalone net768, Threads 1 and Hash 16 had zero differences in 8,046,050 comparisons per build on S1 and 1,680,173 per build on S2. All 20 S2 game move lists agreed, and the 42.8512% rate uses the final consumed-node marker. The scalar follow-up matched the AVX-512 result on all 1,000 W1 rows and matched all depth-12 O pins. [Job 20 report](REPORT_sol3_job20.md) · [Evidence](sol3/job20)
