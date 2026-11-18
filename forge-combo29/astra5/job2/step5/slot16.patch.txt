@@ -1,0 +1,27 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -250,7 +250,9 @@
+ // returned, refused by RfpNoTtPv, refused by RfpTtGuard and not by RfpNoTtPv,
+ // refused only by the larger margin of RfpCorrMul. Closure: [15] = [11]+...+[14].
+ // Threads 1 only.
+-std::array<std::int64_t, 16> g_a25{};
++std::array<std::int64_t, 17> g_a25{};
++// Slot 16 counts the union of excluded-TT-move verification subtrees (Threads 1).
++thread_local bool inside_singular_verification = false;
+ 
+ // Kings are left out: this engine's SEE value for a king is 0, so a king is
+ // neither a material attacker nor a material victim.
+@@ -2254,7 +2256,13 @@
+             const int singular_depth = std::max(1, (depth - 1) / 2);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
++            const bool was_inside_verification = inside_singular_verification;
++            const std::uint64_t verification_start = local_nodes_;
++            inside_singular_verification = true;
+             const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            inside_singular_verification = was_inside_verification;
++            if (!was_inside_verification)
++                g_a25[16] += static_cast<std::int64_t>(local_nodes_ - verification_start);
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();

@@ -1,0 +1,17 @@
+Step 5 source references, after applying slot16.patch.txt on top of PCADC
+(src/search.cpp SHA-256 52a224df40233167b0d341b8771f04b8d081890ee4b36a817ad3383df00fab26).
+
+src/search.cpp:1648 and 1803 increment local_nodes_ on qsearch and main-search entry. At line
+1870, where a main search transfers a counted node to qsearch, the engine subtracts that node
+before qsearch counts it again. Slot 16 uses the net change in this same search counter.
+
+src/search.cpp:2249-2252 gate the singular test and increment test count slot 0.
+At lines 2256-2258, the verification depth is max(1, (depth - 1) / 2) and the current TT move
+is excluded. Lines 2259-2265 snapshot local_nodes_, remember an enclosing verification, call
+search_child with the reduced depth and null window, then restore the enclosure flag. Only
+the outermost call adds its local_nodes_ delta to counter 16. Descendants, including nested
+verification calls and qsearch, are covered once. The parent node already entered before the
+snapshot. The subsequent extended principal move search takes place after the call returns.
+
+src/search.cpp:3188 clears all 17 counters for each search; lines 3208-3209 emit them in order.
+Applies to Threads 1, MultiPV 1. Slot 16 records node visits, not a later search-tree change.
