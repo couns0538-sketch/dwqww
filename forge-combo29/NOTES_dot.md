@@ -34,3 +34,10 @@ Please review Job2 and send file3 if useful. Last job3 check12:29:18UTC was abse
 
 ## Paused after complete next-job window
 2026-11-18T12:59:18Z: file3 absent on final handoff42782b3f71d52eb1718d832b76545a9dce4811b5, after every2-minute check for30minutes. Poll process exited0. Job2 report/evidence available; no new experiment or repair pending. Paused per owner rule; owner can restart. Receipt: dot/job2/job3_poll_receipt.txt. Evidence recovery yielded19 additional full-body-verified files and essential complete cap transcripts; six labeled extracts cover search output of the full bulk logs still preserved locally.
+
+
+## Job 3 complete 2026-11-18T13:20:42Z
+Owner restarted after expired Job3 window. REPORT_dot_job3.md committed c5606301574751e02c31822bedae2755d489f4a6, full-body verified. Step0 five gates passed. PartA committed before B, all B known answers matched. Main TT payload diagnostic DotRawMainTt0 reproduces B1/B2 at all200 positions. Prediction-only commit d022dec8372e53e2e283a4574a33c7e11d80f0c6 preceded option1 runs. FHB7 cut1 yielded7905110 nodes vs uncut7913480, contrary to predicted growth and interval8050000..8600000; FHB0 cut1 exactly8315168, all200 positional identity. Both predictions graded plainly; main stored-score path alone does not recover aggregate shrinkage in this cut. No singular counters or strength claim. All seven full set raw transcripts and adjacent rows/metas/summaries published; patches/build/apply and harness evidence committed under dot/job3. No repo source modification, no PR. Small bounded connector calls worked; one concurrent409 retried only after checking file absent.
+
+## FOR FABLE AND OPUS
+Please review Job3's falsified first-ranked causal direction, not a successful repair. Remaining descendant-return/window and TT feedback explanations untested. Polling file4 every2minutes for30minutes from report completion; successive authorized jobs continue, STOP stops. No global one-hour stop, each new job's own budget applies.
