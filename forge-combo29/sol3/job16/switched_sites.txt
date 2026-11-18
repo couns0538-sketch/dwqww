@@ -1,0 +1,29 @@
+Part 1 HistRework split, line numbers in the reproduced applied tree
+
+Option declarations and resolution
+include/forge/search.hpp:404-405 declares the two overrides.
+src/search.cpp:182-183 initializes both to -1.
+src/search.cpp:259-265 resolves a negative override to HistRework and any other value to its own level.
+src/uci.cpp:545-546 advertises both spins with default -1 and range -1 through 3.
+src/uci.cpp:810-813 applies each spin with the same bounds and existing integer handling.
+
+Quiet half
+src/search.cpp:1090-1092 selects the scorer's threat-keyed table by side.
+src/search.cpp:1093-1095 obtains the scorer's per-ply threat map.
+src/search.cpp:1096 computes the scorer's blend weight.
+src/search.cpp:1097 enables the scorer's keyed read at src/search.cpp:1106-1110 and the fused quiet picker's inline keyed reads at src/search.cpp:1417-1435,1457-1468,1516-1519.
+src/search.cpp:2141-2144 gates the ordinary quiet-history map lookup and keyed read and selects its blend weight.
+src/search.cpp:2171-2174 gates and weights rework_quiet_delta, which has a declaration and a definition but no caller in this tree.
+src/search.cpp:2274 gates keyed cutoff history updates through src/search.cpp:2178-2184.
+src/search.cpp:2370-2372 gates the per-ply threat-map reset before quiescence evasions.
+src/search.cpp:2727 gates the per-ply threat-map reset before the main move picker.
+src/search.cpp:3047 gates the keyed PV quiet-history reward.
+
+Correction half
+src/search.cpp:1970-1983 gates correction-key calculation and the weighted joint-table read.
+src/search.cpp:2025-2031 gates correction-key calculation and the joint-table write.
+
+Indirect access and lifecycle
+src/search.cpp:2162-2165 and include/forge/search.hpp:659-675 implement the quiet-entry and threat-map lookups behind the quiet-side gates.
+src/search.cpp:1691-1692 and src/search.cpp:1716-1720 preserve allocation and zeroing for both halves and maps.
+src/search.cpp:1833 and src/search.cpp:1883 propagate the existing correction key cache between stack frames independently of reads or writes to the joint table.

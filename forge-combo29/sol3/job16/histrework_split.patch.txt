@@ -1,0 +1,160 @@
+diff -ruN base/include/forge/search.hpp tree/include/forge/search.hpp
+--- base/include/forge/search.hpp	2026-11-18 05:55:01.805536775 -0800
++++ tree/include/forge/search.hpp	2026-11-18 06:55:16.735438299 -0800
+@@ -401,6 +401,8 @@
+ // B4 bundle (forge/r9; R9_NOTE.txt). With all four at their defaults the search is r7's, node for node.
+ extern bool CuckooRep;               // upcoming-repetition draw bound before every child search (false = off)
+ extern int HistRework;               // 0 = off; 1..3: threat-keyed quiet history twin + pawn x material correction
++extern int HistReworkQuiet;          // -1 follows HistRework; 0..3 overrides the quiet-history twin
++extern int HistReworkCorrection;     // -1 follows HistRework; 0..3 overrides the pawn x material correction
+ extern bool TtPruneV2;               // TT-move pruning guards, cut-node IIR, opponent-worsening RFP, margins (false = off)
+ extern bool CorrHistV2;              // static-eval correction keyed by the last two moves (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+diff -ruN base/src/search.cpp tree/src/search.cpp
+--- base/src/search.cpp	2026-11-18 06:38:20.662882071 -0800
++++ tree/src/search.cpp	2026-11-18 06:55:17.583397395 -0800
+@@ -179,6 +179,8 @@
+ // B4 bundle (forge/r9; R9_NOTE.txt): the defaults keep r7's search.
+ bool CuckooRep = false;
+ int HistRework = 0;
++int HistReworkQuiet = -1;
++int HistReworkCorrection = -1;
+ bool TtPruneV2 = false;
+ bool CorrHistV2 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -254,6 +256,14 @@
+ 
+ namespace {
+ 
++[[nodiscard]] int hist_rework_quiet_level() {
++    return tune::HistReworkQuiet < 0 ? tune::HistRework : tune::HistReworkQuiet;
++}
++
++[[nodiscard]] int hist_rework_correction_level() {
++    return tune::HistReworkCorrection < 0 ? tune::HistRework : tune::HistReworkCorrection;
++}
++
+ constexpr int HistoryMax = 16384;
+ static_assert(b4::HistoryLimit == HistoryMax, "B4 HistRework bounds assume this history limit");
+ static_assert(b4::CorrectionEntryLimit == CorrectionLimit, "B4 HistRework bounds assume this correction limit");
+@@ -1077,14 +1087,14 @@
+                         ? (ss - 4)->continuation : nullptr),
+               board(b),
+               worker(searcher),
+-              rework_side(tune::HistRework != 0 && ss != nullptr
++              rework_side(hist_rework_quiet_level() != 0 && ss != nullptr
+                               ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
+                               : nullptr),
+-              threats(tune::HistRework != 0 && ss != nullptr
++              threats(hist_rework_quiet_level() != 0 && ss != nullptr
+                           ? &searcher.ensure_threat_map(b, ss->ply)
+                           : nullptr),
+-              quarters(tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0),
+-              rework(tune::HistRework != 0 && ss != nullptr),
++              quarters(hist_rework_quiet_level() != 0 ? b4::threat_quarters(hist_rework_quiet_level()) : 0),
++              rework(hist_rework_quiet_level() != 0 && ss != nullptr),
+               use_threat_hist(tune::ThreatHistory) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+@@ -1957,7 +1967,7 @@
+         correction += (np_w + np_b) / 2;
+     }
+     // B4 HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+-    if (const int level = tune::HistRework; level != 0) {
++    if (const int level = hist_rework_correction_level(); level != 0) {
+         std::uint64_t jkey;
+         if (ss != nullptr) {
+             if ((ss->corr_valid & 4U) == 0U) {
+@@ -2012,7 +2022,7 @@
+     }
+     // B4 HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+     // self-damping update instead of the add-and-clamp above.
+-    if (tune::HistRework != 0) {
++    if (hist_rework_correction_level() != 0) {
+         const std::uint64_t jkey = (ss != nullptr && (ss->corr_valid & 4U) != 0U)
+             ? (board.pawn_key() ^ ss->corr_mat_mix)
+             : b4::joint_key(board);
+@@ -2128,10 +2138,10 @@
+     const std::size_t p = static_cast<std::size_t>(piece);
+     const int plain = (*main_history_)[side][move.from][move.to];
+     int score = plain;
+-    if (tune::HistRework != 0 && ss != nullptr) {
++    if (const int level = hist_rework_quiet_level(); level != 0 && ss != nullptr) {
+         const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(piece));
+         const int twin = (*rework_history_)[side][b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+-        score = b4::blend(plain, twin, b4::threat_quarters(tune::HistRework));
++        score = b4::blend(plain, twin, b4::threat_quarters(level));
+     }
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[p][move.to];
+@@ -2158,8 +2168,10 @@
+ // The change of a quiet move's score when quarters/4 of its butterfly term come from the twin:
+ // blend(plain, twin) - plain. |result| <= 2 * 16384.
+ int Worker::rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const {
++    const int level = hist_rework_quiet_level();
++    if (level == 0) return 0;
+     const int plain = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+-    return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(tune::HistRework)) - plain;
++    return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(level)) - plain;
+ }
+ 
+ // The twin learns the same bonus and maluses as the butterfly table (the same apply_history).
+@@ -2259,7 +2271,7 @@
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+     // B4 HistRework: the threat-keyed twin learns the same bonus and maluses.
+-    if (tune::HistRework != 0) update_rework_history(board, ss, move, bonus, quiets, quiet_count);
++    if (hist_rework_quiet_level() != 0) update_rework_history(board, ss, move, bonus, quiets, quiet_count);
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -2355,7 +2367,7 @@
+     }
+ 
+     // B4 HistRework: built lazily on first read inside generate_evasions.
+-    if (in_check && tune::HistRework != 0) {
++    if (in_check && hist_rework_quiet_level() != 0) {
+         threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
+     }
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+@@ -2712,7 +2724,7 @@
+              !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // B4 HistRework: lesser-attacker maps of this node are built lazily on first read.
+-    if (tune::HistRework != 0) threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
++    if (hist_rework_quiet_level() != 0) threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+@@ -3032,7 +3044,7 @@
+         }
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+-        if (tune::HistRework != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++        if (hist_rework_quiet_level() != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff -ruN base/src/uci.cpp tree/src/uci.cpp
+--- base/src/uci.cpp	2026-11-18 05:55:01.808987941 -0800
++++ tree/src/uci.cpp	2026-11-18 06:55:18.247365366 -0800
+@@ -542,6 +542,8 @@
+                          // B4 bundle (forge/r9): all four default off = r7's search.
+                          "option name CuckooRep type check default false\n"
+                          "option name HistRework type spin default 0 min 0 max 3\n"
++                         "option name HistReworkQuiet type spin default -1 min -1 max 3\n"
++                         "option name HistReworkCorrection type spin default -1 min -1 max 3\n"
+                          "option name TtPruneV2 type check default false\n"
+                          "option name CorrHistV2 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -805,6 +807,10 @@
+                 else note_invalid();
+             } else if (name == "HistRework") {
+                 apply_spin(0, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistRework = clamped; });
++            } else if (name == "HistReworkQuiet") {
++                apply_spin(-1, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistReworkQuiet = clamped; });
++            } else if (name == "HistReworkCorrection") {
++                apply_spin(-1, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistReworkCorrection = clamped; });
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
