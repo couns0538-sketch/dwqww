@@ -1,0 +1,24 @@
+=== STEP 16 DIFFERENTIAL Board::see_ge ORACLE & PER-PATH PLANTED-FAULT CONTROLS ===
+Oracle coverage (exact match to loop in test_s16_see_pawn_exit_oracle.cpp):
+  - Positions: 1,008 FENs (1,000 from positions_1000.txt + 8 dedicated pinned-pawn/EP/promo-rank FENs)
+  - Moves per position: all pseudo-legal moves from Board::pseudo_legal_moves(false)
+  - Thresholds per move: 7 thresholds {-350, -100, -1, 0, 1, 100, 350}
+
+1. Differential oracle summary:
+  r15d (untouched):   POSITIONS=1008 MOVES=26944 CALLS=188608 HASH=a557282d3d4c5efe
+  01..13 + tidy:      POSITIONS=1008 MOVES=26944 CALLS=188608 HASH=a557282d3d4c5efe  (diffs vs r15d = 0)
+  + 16_see_pawn_exit: POSITIONS=1008 MOVES=26944 CALLS=188608 HASH=a557282d3d4c5efe  (diffs vs r15d = 0)
+
+2. Control 1 — Path 1 (early-exit branch): s16_control1_path1_early_exit.patch.txt
+  Planted fault: omits '| snipers[them_idx]' in early-exit condition:
+                 if ((contact[them_idx] & live0) == 0) return false;
+  Oracle result: POSITIONS=1008 MOVES=26944 CALLS=188608 HASH=1c24d61abc8f9d35
+  Move-mask mismatches caught vs r15d: 12 (first mismatch: r15d='246|c4e3|0f' vs c1='246|c4e3|01')
+  Full-engine PC20+net768 bench 11: clean='info string bench depth 11 nodes 882074 time 358 nps 2463893' vs c1='info string bench depth 11 nodes 738303 time 310 nps 2381622' -> CAUGHT
+
+3. Control 2 — Path 2 (prepared-bit cache reuse branch): s16_control2_path2_prepared_cache.patch.txt
+  Planted fault: Path 1 tests exact ((contact | sn_exact) & live0) == 0, then Path 2 leaves
+                 snipers[them_idx] = 0 while setting prepared = 1U << them_idx;
+  Oracle result: POSITIONS=1008 MOVES=26944 CALLS=188608 HASH=1c24d61abc8f9d35
+  Move-mask mismatches caught vs r15d: 12 (first mismatch: r15d='246|c4e3|0f' vs c2='246|c4e3|01')
+  Full-engine PC20+net768 bench 11: clean='info string bench depth 11 nodes 882074 time 358 nps 2463893' vs c2='info string bench depth 11 nodes 738303 time 331 nps 2230522' -> CAUGHT

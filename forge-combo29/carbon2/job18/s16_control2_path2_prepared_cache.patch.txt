@@ -1,0 +1,16 @@
+--- a/src/board.cpp	2026-11-18 14:58:11.036049697 +0000
++++ b/src/board.cpp	2026-11-18 15:01:16.360049697 +0000
+@@ -1543,9 +1543,10 @@
+         contact[them_idx] = (attacks::pawn(them, ek) & pieces(us, Pawn)) |
+                             (attacks::knight(ek) & pieces(us, Knight)) |
+                             (attacks::king(ek) & pieces(us, King));
+-        snipers[them_idx] = (attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
+-                            (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q));
+-        if (((contact[them_idx] | snipers[them_idx]) & live0) == 0) return false;
++        const Bitboard sn_exact = (attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
++                                  (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q));
++        if (((contact[them_idx] | sn_exact) & live0) == 0) return false;
++        snipers[them_idx] = 0;
+         prepared = 1U << them_idx;
+     }
+ #endif

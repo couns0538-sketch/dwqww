@@ -1,0 +1,36 @@
+=== JOB 18 STEP 16: FULL IDENTITY PROOF FOR stack/16_see_pawn_exit.patch.txt ON 01..13 + tidy ===
+
+--- 1. Engine's Own Verbatim Bench Lines ---
+[bld_sp_s16_1/forge : PC20 + net512.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 625258 time 250 nps 2501032
+info string bench depth 13 nodes 3652372 time 1445 nps 2527593
+info string bench depth 16 nodes 23891329 time 9354 nps 2554129
+[bld_sp_s16_1/forge : PC20 + net768.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 882074 time 362 nps 2436668
+info string bench depth 13 nodes 4275906 time 1779 nps 2403544
+info string bench depth 16 nodes 32374943 time 14034 nps 2306893
+[bld_sp_s16_2/forge : PC20 + net768.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 882074 time 361 nps 2443418
+info string bench depth 13 nodes 4275906 time 1779 nps 2403544
+info string bench depth 16 nodes 32374943 time 13990 nps 2314148
+
+--- 2. 250 Depth-9 Rows (PC20 + net768.fnn3, positions_250.txt, strict self-stop guard active) ---
+  (Row #088 is root checkmate bestmove=0000 nodes=0 score=mate 0; all 249 non-terminal rows verified nodes > 0 and all 250 verified non-empty score.)
+  s16 (bld_sp_s16_1): rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  row_001: 001 bestmove=c1b2 nodes=11089 score=cp -160
+  row_088: 088 bestmove=0000 nodes=0 score=mate 0
+  row_250: 250 bestmove=e7g5 nodes=5301 score=mate 3
+
+--- 3. 1,000 Static Evals (positions_1000.txt, engine's own info string eval lines) ---
+  net768 (1000 lines): sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 sample_0='info string eval hce 0 nnue 339 total 339'
+  net512 (1000 lines): sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d sample_0='info string eval hce 0 nnue 835 total 835'
+
+--- 4. Both 6-Game Self-Play Traces (softnodes 2000, Hash 128, PC20 + net768.fnn3) ---
+  startpos_6game: searches=846 nodes=2916466 trace=4560d7c3afdeba2e
+  fen_6game:      searches=745 nodes=2481101 trace=9ed22c1193ab96de
