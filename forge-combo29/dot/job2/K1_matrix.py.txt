@@ -1,0 +1,39 @@
+import runpy,sys,re,json,contextlib,pathlib,hashlib
+root=pathlib.Path(sys.argv[1]);mod=runpy.run_path(str(root/'runner.py.txt'));Engine=mod['Engine']
+fens=['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1','r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10','8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1','r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8','2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1','6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1','r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9']
+def canonical(rows):
+ out=[]
+ for s in rows:
+  if s.startswith('info depth '):
+   s=re.sub(r' nps \d+','',s);s=re.sub(r' time \d+','',s);s=re.sub(r' hashfull \d+','',s);out.append(s)
+  elif s.startswith('bestmove ') or s.startswith('info string softnodes nodes '):out.append(s)
+ return out
+summary=[]
+for family,opts in [('base',mod['S14']),('pc',mod['PC20'])]:
+ for command,budget in [('go softnodes 2000',8000),('go nodes 50000',50000),('go nodes 250000',250000)]:
+  for index,fen in enumerate(fens):
+   rows_by={}
+   for arm in ['plain','count']:
+    exe='/tmp/forge-dot-'+family+('-count' if arm=='count' else '')+'-build/forge'
+    label=f'{family}_{arm}_{command.replace(" ","_")}_fen{index}'
+    with (root/(label+'.raw.txt')).open('w') as fp,contextlib.redirect_stdout(fp):
+     e=Engine(exe,label,opts);e.send('position fen '+fen);e.send(command);rows=e.until(lambda s:s.startswith('bestmove '));rows_by[arm]=rows
+     best=[s.split()[1] for s in rows if s.startswith('bestmove ')][0]
+     if best!='0000':
+      e.send('position fen '+fen+' moves '+best);e.send('go perft 1');legal=e.until(lambda s:s.startswith('nodes '));assert not any('illegal move' in s or 'invalid FEN' in s for s in legal),legal
+     e.close()
+   assert canonical(rows_by['plain'])==canonical(rows_by['count']),(family,command,index,'diagnostic drift')
+   diag=[s for s in rows_by['count'] if 'DOT_RESULT' in s];assert len(diag)==1
+   m=re.fullmatch(r'info string DOT_RESULT nodes (\d+) depth (\d+) score (-?\d+) pv(.*)',diag[0]);assert m
+   nodes,depth,score=int(m[1]),int(m[2]),int(m[3]);pv=m[4].strip()
+   assert nodes<=budget,(family,command,index,nodes,budget)
+   if 'softnodes' in command:assert nodes>=2000 or depth==64
+   infos=[s for s in rows_by['count'] if s.startswith('info depth ')];assert infos
+   last=infos[-1];assert int(re.search(r'^info depth (\d+)',last)[1])==depth
+   if ' score cp ' in last: assert int(re.search(r' score cp (-?\d+)',last)[1])==score
+   assert last.split(' pv',1)[1].strip()==pv
+   best=[s.split()[1] for s in rows_by['count'] if s.startswith('bestmove ')][0];assert best==pv.split()[0]
+   row=dict(family=family,command=command,fen_index=index,nodes=nodes,depth=depth,score=score,pv=pv,hard_cap_hit=nodes==budget)
+   summary.append(row);print(json.dumps(row),flush=True)
+(root/'K1_summary.json.txt').write_text(json.dumps(summary,indent=2)+'\n')
+print('K1_PASS',len(summary),'paired cases',sum(r['hard_cap_hit'] for r in summary if 'softnodes' in r['command']),'soft hard-cap hits')
