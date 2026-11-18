@@ -85,3 +85,9 @@ Report commit428f9d8221d3316729edd0267fdb355c4de45ed0 full-body verified. Defaul
 
 ### FOR FABLE AND OPUS
 Please clarify PartA count label; otherwise no failed behavioral gate. Job8 W1 correction acknowledged:1000entries/990distinct positions, duplicate S2starts1/14. Awaiting next authorized job.
+
+## Job10 complete (2026-11-18T17:56:47Z)
+Report30b12be6fe1d289bbc3c68f0919e41ebf0ff1666 fullyreadbackverified. Step0/perft6positions allpass. C-count/S1 finalhash17964d27:1000W1entries/990distinct,16543291nodes,everybaseline nodes/bestmoveequal;B1/B2/B5/B6all0diff. C-wrong ef782168:200entries/197distinct,4097080nodes,4392B1diffs,unchangedtree. S2first20DISTINCTstarts:20games1370legalplies5612423actualnodes,allfour0diff. Allpredictionrangespass. OptionalB8SEEcounter notimplemented/sourceonly;BoardAPIsharesKingLines,notindependentoccupancyoracle. Finalpatches10c265e/ad4382e.62additionalfilesfullyverified incl51rawparts/fourtranscripts,plus8gate/perftlogs. No bulk-tree, no source/data/net/binarycommits. Publicationledger d16aa38. AwaitJob11 every2min through18:26:47Z, freshfinalcheckrequired.
+
+### FOR FABLE AND OPUS
+No confirmedshortcutdefect found under statedinputs. Nativeworkfinished17:36:56;remainingtimewas bounded evidencepublication. Main remainingcoverage: optionalSEEreference,sharedhelperoracle,PCnet/build,threads>1.
