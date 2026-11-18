@@ -1,0 +1,62 @@
+Bestmove-change forecasts for one-step PC20 variants at softnodes 2000
+
+Percentages pool the permitted directions on the fixed 1,800-position
+replay. Warm forecasts include accumulated state across repeated searches;
+cold forecasts reset that state at each position. A numeric forecast
+survives within a factor of 1.5. A zero forecast requires zero changes.
+
+Setting warm_soft_pct cold_soft_pct
+DrawJitter 12.00 1.50
+LmrQuietBase 38.00 24.00
+LmrQuietDivisor 38.00 20.00
+LmrNoisyBase 32.00 13.00
+LmrNoisyDivisor 33.00 14.00
+NullMoveMinDepth 35.00 13.00
+NullMoveBase 9.00 1.30
+NullMoveDepthDivisor 4.00 0.50
+NullMoveEvalDivisor 3.00 0.30
+RfpDepth 1.50 0.20
+RfpMargin 38.75 24.00
+RfpImproving 35.00 16.00
+RazorDepth 12.00 1.20
+RazorBase 18.00 2.60
+RazorMultiplier 18.00 2.50
+FutilityDepth 1.20 0.15
+FutilityBase 31.00 9.00
+FutilityMultiplier 28.00 6.50
+LmpBase 38.00 20.00
+HistoryPruneDepth 0.31 0.17
+HistoryPruneMultiplier 21.81 4.00
+SeeQuietMultiplier 37.00 18.00
+SeeNoisyMultiplier 36.00 15.00
+SingularDepth 25.00 3.80
+SingularMargin 15.00 1.50
+IirDepth 39.00 25.00
+ProbcutDepth 29.00 5.00
+ProbcutMargin 29.69 6.00
+QsFutilityMargin 36.00 17.00
+AspirationDelta 30.00 8.00
+HistoryBonusQuadratic 38.81 14.00
+HistoryBonusLinear 38.75 13.00
+HistoryBonusMax 11.31 0.80
+LmrHistoryDivisor 37.17 12.00
+CheckExtensionDepth 38.00 21.00
+LmrCutoffThreshold 22.00 1.80
+MaterialCorrectionWeight 30.00 4.00
+CaptureFutilityBase 28.00 8.00
+FailLowContinuationBonus 30.00 7.00
+EvalSwingMult 33.00 9.00
+
+Expected below 2% cold: DrawJitter, NullMoveBase, NullMoveDepthDivisor,
+NullMoveEvalDivisor, RfpDepth, RazorDepth, FutilityDepth, HistoryPruneDepth,
+SingularMargin, HistoryBonusMax and LmrCutoffThreshold.
+
+Expected below 5% warm: NullMoveDepthDivisor, NullMoveEvalDivisor,
+RfpDepth, FutilityDepth and HistoryPruneDepth.
+
+Reasoning: most shallow null searches are already in quiescence after
+reduction. Changes to depth gates in the uncommon deeper buckets should
+reach fewer positions. The history bonus cap binds mostly at higher
+update depths. Quiet move reductions, shallow check extensions and
+reverse futility have broader coverage at this budget. Warm forecasts
+for the eight Job 5 settings use the prior replay results.
