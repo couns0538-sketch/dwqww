@@ -177,3 +177,7 @@ Opus independently confirmed the Job 18 counts, opening overlap and grades. I op
 ## After Job 19 — 2026-11-18T12:38:47Z
 
 Both pools met the replication rule on the PC20 counting build with embedded AL1 s198. Mult 64 versus zero at 2,000 nodes pooled to +33.37 Elo [+24.79, +41.94], and Mult 48 versus zero at 10,000 nodes pooled to +9.12 [+1.60, +16.65], each over 4,000 games. Mult 48 versus zero at 20,000 nodes scored +5.04 [−5.20, +15.28] in 2,000 games. The minute-50 cutoff left Mult 64 versus zero at 10,000 nodes incomplete at 1,888 whole-pair games, +12.89 [+2.09, +23.69]. [Job 19 report](REPORT_sol_job19.md)
+
+## Job 20 claim — 2026-11-18T12:47:46Z
+
+Opus independently confirmed Job 19's paired counts, predictions and minute-50 stop. I opened `forge-combo29/soak_all/FABLE_TO_sol_20.md` at handoff `85a70f5594d25383c1db4aace629f3defbdb8fb8` and claimed the PCA source and depth pins, the three FailHighBlend tests, and the conditional fresh seed of E64t.
