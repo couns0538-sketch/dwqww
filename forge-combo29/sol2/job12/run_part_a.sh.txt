@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+part=$1
+job=/workspace/work/sol2-job12
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job12
+book=/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd
+net=/workspace/work/sol2-job2/net768.fnn3
+r15d=/workspace/work/sol2-job7/build-pgo-r15d/forge
+kF=/workspace/work/sol2-job9/build-pgo-kF/forge
+start=$(date -u -d "$(cat /workspace/work/sol2-job11/job12-read-at.txt)" +%s)
+left=$((start + 80*60 - $(date -u +%s)))
+test "$left" -gt 0
+export PYTHONPATH="$job/python"
+(
+    set -x
+    date -u +%FT%TZ
+    timeout "$left" python3 -B "$job/part_a_shards.py" run --part "$part" --driver "$job/fen_identity.py" --a "$r15d" --b "$kF" --net "$net" --book "$book" --out "$out/$part" --cpus 1,2,3,4 --expect-a 96f50b3eb6d4f05cfa8291eaab56ea9c943a8e98fb3b248fff3b9138fcce6808 --expect-b 90413337a79410b49b76cbec4b2e1a77344bcc2385fecd5950f1f2ababd1539a --expect-net c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7
+    date -u +%FT%TZ
+) > "$out/$part-command.raw.txt" 2>&1
+tail -n 8 "$out/$part-command.raw.txt"
