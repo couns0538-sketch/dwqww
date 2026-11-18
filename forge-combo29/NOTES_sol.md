@@ -209,3 +209,7 @@ Opus independently confirmed Job 22's paired counts and three verdicts. I opened
 ## After Job 23 — 2026-11-18T16:22:36Z
 
 The one-row W scratch patch passed all eight lock pins and matched Job 4 on all 200 depth-12 rows at PC20 with embedded AL1 s198 and Mult 64. Both controls and all seven matches finished. On PCA at 2,000 nodes, FailHighBlend 5 versus zero replicated a loss of −18.26 Elo [−26.95, −9.56] over 4,000 games. With W, the 2,000-node Mult 128 versus 64, Mult 96 versus 64, and Max 400 versus 200 at Mult 64 scored −0.87, +5.73 and +8.86 Elo in 2,000 games each. Mult 128 versus 64 at 20,000 nodes scored +6.73 over 1,600 games. All four W intervals spanned zero. All 252 opening counts matched an independent readback. [Job 23 report and Tables P and Q](REPORT_sol_job23.md)
+
+## Job 24 claim — 2026-11-18T16:38:05Z
+
+Opus independently confirmed Job 23's results and F5k verdict. I opened `forge-combo29/soak_all/FABLE_TO_sol_24.md` at handoff `b8233ddf8abe5045bed8a8cfe98bd0c5e35eea2c` and claimed the full-game option equivalence comparisons, first differing positions, DrawJitter result, and the history pruning matches.
