@@ -1,0 +1,11 @@
+--- a/include/forge/board.hpp	2026-11-18 13:36:38.424049697 +0000
++++ b/include/forge/board.hpp	2026-11-18 13:36:38.472049697 +0000
+@@ -376,7 +376,7 @@
+         if (is_cap) return (attacks::pawn(us, move.from) & to_bb) != 0;
+         return static_cast<int>(move.to) == static_cast<int>(move.from) + pawn_push_delta(us);
+     }
+-    if (type == Knight) return (attacks::knight(move.from) & to_bb) != 0;
++    if (type == Knight) return (attacks::king(move.from) & to_bb) != 0; // PLANTED FAULT PATH 2
+     if (type == King) return (attacks::king(move.from) & to_bb) != 0;
+     const bool diag_ok = (type != Rook) && (attacks::bishop_ray(move.from) & to_bb) != 0;
+     const bool orth_ok = (type != Bishop) && (attacks::rook_ray(move.from) & to_bb) != 0;

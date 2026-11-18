@@ -1,0 +1,11 @@
+--- a/include/forge/board.hpp	2026-11-18 13:36:38.424049697 +0000
++++ b/include/forge/board.hpp	2026-11-18 13:36:38.472049697 +0000
+@@ -372,7 +372,7 @@
+     const int type = piece_type(moving);
+     const Bitboard to_bb = square_bb(move.to);
+     if (type == Pawn) {
+-        if (relative_rank(us, move.from) == 6) return false;
++        // PLANTED FAULT PATH 1 (pawn)
+         if (is_cap) return (attacks::pawn(us, move.from) & to_bb) != 0;
+         return static_cast<int>(move.to) == static_cast<int>(move.from) + pawn_push_delta(us);
+     }
