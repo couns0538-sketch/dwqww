@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -584,7 +584,7 @@
+     const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
+     const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
+     if (hit_m != 0U) {
+-        entry = &cluster.entries[static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U];
++        entry = &cluster.entries[((static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U) + 1U) & 3U];
+     }
+ #else
+     for (TTEntry& candidate : cluster.entries) {

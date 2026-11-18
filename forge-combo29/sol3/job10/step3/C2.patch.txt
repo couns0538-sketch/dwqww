@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -539,7 +539,7 @@
+             replace_score = score;
+         }
+     }
+-    return replace_slot;
++    return static_cast<std::uint8_t>(replace_slot ^ 1U);
+ }
+ 
+ WorkerTTProbe TranspositionTable::probe_locked_fast(std::uint64_t key) const {
