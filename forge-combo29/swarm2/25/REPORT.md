@@ -184,3 +184,47 @@ HistRework value alone would predict**, and I do not have an explanation for it 
 - **My quiet/check/capture labels come from python-chess, not from the engine**, and "quiet" there means
   not a check and not a capture. The engine's own definition may also exclude promotions or include other
   terms, so my class boundary is an approximation of the engine's.
+
+## 7. The two commands the brief requires, pasted
+
+Captured immediately before the report commit (`git status --short` is empty, i.e. the tree was clean).
+
+```
+$ git status --short
+(no output)
+
+$ ls -R forge-combo29/swarm2/25
+forge-combo29/swarm2/25:
+census_A.json
+census_B.json
+census_E.json
+census_F.json
+ladder_B.txt
+ladder_PC20.txt
+ladder_S14.txt
+positions.tsv
+prediction.md
+quiet_oracle.json
+REPORT.md
+SEAT.txt
+stamps.txt
+step2.txt
+```
+
+Every file is text. No program, object file, net, book, PGN or archive of them is committed: the PGNs and
+all four trees (`r15d`, `kF`, the sanitiser copy, and `forge-combo29`) live only in `~/w` and were never
+added to the repository.
+
+## 8. What I would tell the next seat to do differently
+
+**Search the class, not the corpus.** The one valuable result here came from asking "is the mating move in
+this corpus actually the kind of move the rule can touch", and the answer was that on 24 of 83 resolvable
+positions it is exactly that kind of move, and the rule still never fails. **A zero on a corpus is only
+evidence about a rule if the corpus reaches the rule's trigger**, and the cheapest way to establish that is
+an independent oracle over the corpus positions, not more engine runs. My census had 120 rows and the
+control that made it interpretable had 84, and the control was worth more than the census.
+
+**A known answer that matches can still be misread.** All three ladders matched the brief exactly and it
+would be easy to report "HistRework 2 hides a mate in 2" as the finding. The ladder shows a mate that no
+setting below depth 16 finds and that two settings never find; that is a narrower and different claim, and
+it is the one the numbers support.
