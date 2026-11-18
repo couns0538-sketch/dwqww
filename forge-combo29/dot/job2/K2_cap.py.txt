@@ -1,0 +1,13 @@
+import pathlib,runpy,contextlib,re,json,hashlib
+root=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job2');m=runpy.run_path(str(root/'runner.py.txt'));positions=pathlib.Path('forge-dot-job-20261118/forge-combo29/tests_r3fu_12/positions.txt');fens=[s.strip() for s in positions.read_text().splitlines() if s and not s.startswith('#')][:200]
+print('fixture_sha256',hashlib.sha256(positions.read_bytes()).hexdigest());summary=[]
+for kind,opts in [('base',m['S14']),('pc',m['PC20'])]:
+ with (root/('K2_'+kind+'_raw.txt')).open('w') as fp,contextlib.redirect_stdout(fp):
+  for i,fen in enumerate(fens):
+   e=m['Engine']('/tmp/forge-dot-'+kind+'-count-build/forge',kind+'_count_cap_fen'+str(i),opts);e.send('position fen '+fen);e.send('go softnodes 2000');rows=e.until(lambda s:s.startswith('bestmove '));e.close()
+   diag=[x for x in rows if 'DOT_RESULT' in x];assert len(diag)==1
+   nodes=int(re.search(r'DOT_RESULT nodes (\d+)',diag[0])[1]);assert nodes<=8000
+   summary.append(dict(family=kind,index=i,fen=fen,nodes=nodes,output=rows))
+   if nodes==8000:break
+ print(kind,'tested',sum(x['family']==kind for x in summary),'hit',summary[-1]['nodes']==8000,'last_index',summary[-1]['index'])
+(root/'K2_summary.json.txt').write_text(json.dumps(summary,indent=2)+'\n')
