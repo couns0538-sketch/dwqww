@@ -49,3 +49,7 @@ The unchanged r15d whole-game workload matched its three pins. The strict final-
 ## Job 6 — 2026-11-18T10:27:22Z
 
 The corrected terminal rule produced 8612 warm searches and 971 hard-cap hits. r15d, k10, k11 and k12 matched in every captured legacy field and final count. The planted build first overran from 8000 to 8001 and changed a later legacy row on the same position. k12 agreed with the full generator on 407737 replayed positions and paths, and on all 30317580 instrumented warm calls, with no mismatches. GitHub 503s were worked around with the connector, which published and verified exact checkpoint trees on this branch. [Job 6 report](REPORT_sol3_job6.md) · [Evidence](sol3/job6)
+
+## Job 7 — 2026-11-18T11:01:17Z
+
+k10f and k11f had identical final-count, move and score rows in all 1556 hard-node tests at the loop’s 50000 and 250000 budgets with embedded AL1 s198 and net768. Pf was exactly one node later at each cap and matched the one sub-cap depth-64 result. The ordinary k10 and k11 movetime-100 runs each produced 100 legal bestmoves. [Job 7 report](REPORT_sol3_job7.md) · [Evidence](sol3/job7)
