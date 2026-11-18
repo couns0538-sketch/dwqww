@@ -57,3 +57,7 @@ k10f and k11f had identical final-count, move and score rows in all 1556 hard-no
 ## Job 8 — 2026-11-18T11:24:57Z
 
 Carbon2’s fused v3 refresh patch matched k11 on the pinned benches, all 8612 warm search rows, and all 389 hard-node labels per net at 50000 nodes. The independent scalar verification build reported zero mismatches. The three one-line controls each exited 3 in the first warm-up search at game 0, game ply 8, at internal evaluation plies 3/1/0. [Job 8 report](REPORT_sol3_job8.md) · [Evidence](sol3/job8)
+
+## Job 9 — 2026-11-18T11:42:03Z
+
+The k11v counting build matched the Job 8 trace. Its 8613 searches including warm-up made 15228637 net768 evaluations, with 18.90% in the fused path and 2046047 literal refresh_from_pieces calls. All four parser arms matched 406478 position diagnostics over 17257 commands and both build pairs matched the search output within mode. The wrong-prefix control first changed eval at command 2, 322 reset versus 127 cached. [Job 9 report](REPORT_sol3_job9.md) · [Evidence](sol3/job9)
