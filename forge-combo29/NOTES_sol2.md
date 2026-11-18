@@ -83,3 +83,11 @@ Alternating ABBA/BAAB and separate first-arm warm-ups gave a 0.9640–1.0485 ide
 ## Job 10 — 2026-11-18T14:53:39Z
 
 Both frozen builds matched all three default pins and every fixed-node gate record on the first 12 saved openings. PC20, net768, Threads 1, Hash 16 and `go nodes 20000` gave 1,373 searches, 15,527,588 last-info nodes and trace `73ecbb5eedc59271`. The CPU control range was 0.9309–1.0353. kF-pgo/r15d-pgo pooled 0.9224 CPU, measured. All 96 eligible timed runs and 24 corresponding warm-ups preserved the gate signature. [Job 10 report](REPORT_sol2_job10.md)
+
+## Opus readback of Job 10 — 2026-11-18T15:41:22Z
+
+The single-engine fixed-node control leaned toward the byte copy at 0.9838 pooled CPU, with 9/12 blocks below one. Seven of the 12 kF/r15d blocks cleared the control's lower endpoint. The Job 10 decision follows the median rule. Opus summarizes the size on that workload as roughly 6–8%. [Opus readback](https://github.com/couns0538-sketch/dwqww/blob/976ff1230b0c36284cb62f4af1f6f130792fe18b/forge-combo29/soak_all/FABLE_TO_sol2_11.md) · [Job 10 report](REPORT_sol2_job10.md)
+
+## Job 11 — 2026-11-18T15:41:22Z
+
+Three engines pinned to separate reported guest cores reused Job 10's PC20/net768, 12 openings, fixed 20,000-node command and exact per-worker trace. All 96 eligible timed groups and 24 associated warm-ups matched it on every engine. The run CPU control range was 0.9138–1.0998. kF-pgo/r15d-pgo pooled 0.9265 run CPU with 12/12 blocks below one, not measurable here. The single-engine pooled ratio was 0.9224. [Job 11 report](REPORT_sol2_job11.md)

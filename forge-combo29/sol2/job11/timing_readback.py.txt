@@ -1,0 +1,397 @@
+#!/usr/bin/env python3
+"""Audit concurrent fixed-node timing receipts against the one-engine result."""
+
+import argparse
+from dataclasses import dataclass
+import hashlib
+import json
+import math
+from pathlib import Path
+import runpy
+
+
+SCHEMA = "forge-balanced-concurrent-v1"
+ORDERS = ("ABBA", "BAAB")
+BLOCKS = 12
+LEGS = 5
+METRICS = (("engine_cpu_s", "Engine CPU"), ("total_wall_ns", "Wall"))
+TRACE_FIELDS = ("games", "searches", "total_nodes", "trace_fnv1a64")
+
+
+@dataclass
+class Audit:
+    directory: Path
+    manifest: dict
+    rows: list
+    blocks: list
+    metrics: dict
+    position_means: dict
+    summary: dict | None
+    complete: bool
+    truncated: bool
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def trace_of(row):
+    return tuple(row.get(field) for field in TRACE_FIELDS)
+
+
+def check(actual, expected, where):
+    if isinstance(expected, dict):
+        require(isinstance(actual, dict), f"expected an object at {where}")
+        for key, value in expected.items():
+            check(actual[key], value, f"{where}.{key}")
+    elif isinstance(expected, (list, tuple)):
+        require(isinstance(actual, (list, tuple)) and len(actual) == len(expected), f"invalid list at {where}")
+        for index, (one, two) in enumerate(zip(actual, expected)):
+            check(one, two, f"{where}[{index}]")
+    elif isinstance(expected, bool):
+        require(actual is expected, f"wrong {where}: got {actual!r}, expected {expected!r}")
+    else:
+        equal = math.isclose(actual, expected, rel_tol=1e-10, abs_tol=1e-12) if type(expected) is float else actual == expected
+        require(equal, f"wrong {where}: got {actual!r}, expected {expected!r}")
+
+
+def read_machine(root):
+    choice = load(root / "step0-worker-selection.txt")
+    logical = choice["nproc"]
+    cpus = choice["worker_cpus"]
+    count = 8 if logical >= 10 else max(2, logical - 2)
+    require(logical >= 2 and choice["worker_count"] == len(cpus) == count and len(set(cpus)) == count,
+            "worker count or CPU list differs from Step 0's rule")
+    require(set(cpus) <= set(choice["parent_affinity"]), "a worker CPU is outside the parent affinity")
+    shared = any(set(choice["worker_thread_siblings"][str(cpu)]) & set(cpus) - {cpu} for cpu in cpus)
+    require(shared == choice["shared_core"], "recorded core-sharing claim differs from the sibling lists")
+    return choice
+
+
+def verify_manifest(path, manifest, workload, machine, pins, floor):
+    check(manifest, {"schema": SCHEMA, "order": ORDERS, "blocks_requested": BLOCKS,
+                     "worker_count": machine["worker_count"], "worker_cpus": machine["worker_cpus"],
+                     "worker_affinity": machine["worker_cpus"],
+                     "expected_games_searches_nodes_trace": workload.expected, "identical_floor": floor is None},
+          str(path))
+    identities = manifest["inputs"]
+    for key, sha256 in workload.pinned_files.items():
+        check(identities[key]["sha256"], sha256, f"{path} {key} SHA-256")
+    for arm in "AB":
+        expected_pin = pins["A" if floor is None else arm]
+        check(identities[arm]["sha256"], expected_pin, f"{path} arm {arm} SHA-256")
+        expected_argv = [identities["driver"]["path"], "--engine", identities[arm]["path"], "--net", identities["net"]["path"],
+                         *workload.arguments(identities)]
+        check(manifest["argv_by_arm"][arm], expected_argv, f"{path} arm {arm} argv")
+    if floor is None:
+        require(manifest["floor"] is None and identities["A"]["path"] != identities["B"]["path"],
+                f"{path} requires identical bytes at two paths")
+    else:
+        require(floor.complete, f"{path} has no verified floor")
+        check(manifest["floor"]["sha256"], digest(floor.directory / "summary.txt"), f"{path} floor SHA-256")
+
+
+def verify_summary(recorded, manifest, blocks, metrics, means, rows, where):
+    check(recorded, {"schema": SCHEMA, "order": ORDERS, "requested_blocks": BLOCKS,
+                     "completed_blocks": len(blocks), "attempted_runs": len(rows),
+                     "included_runs": 4 * len(blocks), "included_warmups": len(blocks),
+                     "complete": len(blocks) == BLOCKS, "blocks": blocks, "metrics": metrics,
+                     "order_position_means": means}, where)
+    check(recorded, {key: manifest[key] for key in ("arm_labels", "identical_floor", "floor", "worker_count", "worker_cpus", "worker_affinity",
+                                                  "expected_games_searches_nodes_trace")}, where)
+    if "verified_inputs_after" in recorded:
+        check(recorded["verified_inputs_after"], manifest["inputs"], f"{where}.verified_inputs_after")
+    require(len(blocks) != BLOCKS or recorded["error"] is None, f"a complete campaign recorded an error in {where}")
+
+
+def parse_campaign(directory, manifest, rows, expected, machine):
+    require(len(rows) <= BLOCKS * LEGS, f"too many group rows in {directory}")
+    previous_end = 0
+    for index, row in enumerate(rows):
+        block, leg = divmod(index, LEGS)
+        order = ORDERS[block % len(ORDERS)]
+        arm = order[0] if leg == 0 else order[leg - 1]
+        stem = f"b{block + 1:02d}-r{leg}-{arm}"
+        check(row, {"block": block + 1, "order_index": leg, "arm": arm, "warmup": leg == 0,
+                    "engine": manifest["arm_labels"][arm], "engine_sha256": manifest["inputs"][arm]["sha256"]}, stem)
+        require(all(worker.get("trace_rows") is None for worker in row["workers"]),
+                f"{stem} timed a worker with gate-only trace capture")
+        verify_group(directory, row, expected, machine["worker_cpus"], stem)
+        start, end = row["wall_start_monotonic_ns"], row["wall_end_monotonic_ns"]
+        if start is not None:
+            require(start >= previous_end, f"group {stem} overlaps the preceding run")
+        if end is not None:
+            previous_end = end
+        if not row["eligible"]:
+            require(index == len(rows) - 1 and bool(row["error"]), f"run receipts extend past failed {stem}")
+            return rows[:index]
+    return rows
+
+
+def audit(directory, prior_reader, workload, machine, pins, floor=None):
+    manifest = load(directory / "inputs.txt")
+    verify_manifest(directory, manifest, workload, machine, pins, floor)
+    summary_path = directory / "summary.txt"
+    summary = load(summary_path) if summary_path.is_file() else None
+    rows, truncated = prior_reader["read_rows"](directory / "runs.jsonl.txt", summary is not None)
+    eligible = parse_campaign(directory, manifest, rows, workload.expected, machine)
+    eligible = eligible[:len(eligible) - len(eligible) % LEGS]
+    if summary and "verified_inputs_after" not in summary:
+        require(str(summary["error"]).startswith("Post-run identity failed:"), f"missing post-run authentication in {directory}")
+        eligible = []
+    blocks, metrics, means = prior_reader["independent_summary"](eligible, BLOCKS, floor)
+    if summary is not None:
+        verify_summary(summary, manifest, blocks, metrics, means, rows, str(summary_path))
+    return Audit(directory, manifest, rows, blocks, metrics, means, summary,
+                 len(blocks) == BLOCKS and summary is not None, truncated)
+
+
+def verify_worker(directory, worker, expected, cpu, stem):
+    prefix = f"{stem}-cpu{cpu}"
+    names = {"worker_result": f"{prefix}.worker.result.txt", "driver_stdout": f"{prefix}.driver.stdout.txt",
+             "engine_stderr": f"{prefix}.engine.stderr.txt", "worker_stdout": f"{prefix}.worker.stdout.txt",
+             "worker_stderr": f"{prefix}.worker.stderr.txt"}
+    check(worker, {"cpu": cpu, **names}, prefix)
+    paths = {field: directory / name for field, name in names.items()}
+    for field in ("worker_stdout", "worker_stderr"):
+        require(paths[field].is_file(), f"{prefix} is missing {field}")
+    try:
+        result = load(paths["worker_result"])
+    except (OSError, ValueError):
+        require(worker["eligible"] is False and worker["trace_matches"] is False
+                and worker["error"].startswith("Missing or invalid worker receipt:"), f"unexplained missing result for {prefix}")
+        return False
+    require(isinstance(result, dict), f"{prefix} worker result is not an object")
+    check(worker, result, f"{prefix} worker result")
+    trace_matches = trace_of(worker) == expected
+    check(worker["trace_matches"], trace_matches, f"{prefix} trace status")
+    if "wall_start_monotonic_ns" in worker:
+        user, system = worker["engine_user_s"], worker["engine_system_s"]
+        wall = worker["wall_end_monotonic_ns"] - worker["wall_start_monotonic_ns"]
+        check(worker, {"engine_cpu_s": user + system, "total_wall_ns": wall}, f"{prefix} measured durations")
+        require(paths["driver_stdout"].is_file() and paths["engine_stderr"].is_file(), f"{prefix} is missing engine/driver output")
+        if worker["eligible"] or any(value is not None for value in trace_of(worker)):
+            driver = load(paths["driver_stdout"])
+            check(worker, driver, f"{prefix} driver stdout")
+    else:
+        require(not worker["eligible"], f"{prefix} accepted without worker time receipts")
+    if worker["eligible"]:
+        check(worker, {"worker_affinity": [cpu], "engine_exit": 0, "error": None}, prefix)
+        require(trace_matches and user >= 0 and system >= 0 and user + system > 0 and wall > 0,
+                f"{prefix} accepted without a valid workload or timing")
+        return worker["worker_exit"] == 0
+    require(bool(worker["error"]) or worker["worker_exit"] != 0, f"{prefix} rejected without an error")
+    return False
+
+
+def verify_group(directory, group, expected, cpus, stem):
+    workers = group["workers"]
+    require(len(workers) <= len(cpus), f"too many worker results for {stem}")
+    valid = [verify_worker(directory, worker, expected, cpu, stem) for worker, cpu in zip(workers, cpus)]
+    starts = [worker for worker in workers if type(worker.get("wall_start_monotonic_ns")) is int]
+    ends = [worker for worker in workers if type(worker.get("wall_end_monotonic_ns")) is int]
+    first = min(starts, key=lambda worker: worker["wall_start_monotonic_ns"]) if starts else {}
+    last = max(ends, key=lambda worker: worker["wall_end_monotonic_ns"]) if ends else {}
+    start = first.get("wall_start_monotonic_ns")
+    end = last.get("wall_end_monotonic_ns")
+    last_start = max(worker["wall_start_monotonic_ns"] for worker in starts) if starts else None
+    user = math.fsum(worker.get("engine_user_s", 0) for worker in workers)
+    system = math.fsum(worker.get("engine_system_s", 0) for worker in workers)
+    traced = len(workers) == len(cpus) and all(trace_of(worker) == expected and worker["trace_matches"] for worker in workers)
+    group_eligible = group["error"] is None and len(workers) == len(cpus) and all(valid) and traced
+    check(group, {"worker_count": len(cpus), "trace_matches": traced, "eligible": group_eligible,
+                  "engine_exit": 0 if group_eligible else None,
+                  "engine_exits": [worker.get("engine_exit") for worker in workers],
+                  "engine_user_s": user, "engine_system_s": system, "engine_cpu_s": user + system,
+                  "wall_start_monotonic_ns": start, "wall_end_monotonic_ns": end,
+                  "total_wall_ns": None if start is None or end is None else end - start,
+                  "start_spread_ns": None if start is None else last_start - start,
+                  "utc_start": first.get("utc_start"), "utc_end": last.get("utc_end")}, stem)
+    check(trace_of(group), expected if traced else (None,) * len(TRACE_FIELDS), f"{stem} worker signature alias")
+    if group_eligible:
+        release = group.get("barrier_release_monotonic_ns")
+        first_end = min(worker["wall_end_monotonic_ns"] for worker in ends)
+        require(type(release) is int and release <= start <= last_start < first_end <= end,
+                f"{stem} lacks a common start barrier and overlapping worker intervals")
+        pids = [worker["engine_pid"] for worker in workers]
+        require(all(type(pid) is int and pid > 0 for pid in pids) and len(set(pids)) == len(cpus),
+                f"{stem} does not identify a distinct engine process for every worker")
+
+
+def canonical(row):
+    return tuple(row[field] for field in ("game", "ply", "nodes", "score", "bestmove"))
+
+
+def read_gate(root, prior_root, expected, cpus, prior_reader):
+    gate_root = root / "gate"
+    manifest = load(prior_root / "step2" / "inputs.txt")
+    frozen = {}
+    for line in (root / "pgo-executables.raw.txt").read_text(encoding="utf-8").splitlines():
+        sha256, path = line.split(maxsplit=1)
+        frozen[path] = sha256
+    commands = {}
+    for line in (root / "gate-command-and-readback.raw.txt").read_text(encoding="utf-8").splitlines():
+        if line.startswith("{"):
+            record = json.loads(line)
+            if "argv" in record:
+                arm = record["arm"]
+                require(arm not in commands, f"duplicate gate command for {arm}")
+                commands[arm] = record
+    baseline_rows, _ = prior_reader["read_rows"](prior_root / "gate-r15d-searches.raw.txt", True)
+    baseline = [canonical(row) for row in baseline_rows]
+    require(len(baseline) == expected[1] and sum(row[2] for row in baseline) == expected[2],
+            "Job 10 gate tape does not reproduce the known search/node counts")
+    gates = {}
+    for key in "AB":
+        arm = manifest["arm_labels"][key]
+        path = gate_root / f"{arm}.group.raw.txt"
+        if not path.is_file():
+            continue
+        identity = manifest["inputs"][key]
+        check(frozen.get(identity["path"]), identity["sha256"], f"gate {arm} frozen executable receipt")
+        check(commands[arm], {"worker_cpus": cpus, "argv": manifest["argv_by_arm"][key]}, f"gate {arm} command")
+        group = load(path)
+        verify_group(gate_root, group, expected, cpus, arm)
+        if group["eligible"]:
+            for worker in group["workers"]:
+                tape_name = f"{arm}-cpu{worker['cpu']}.searches.raw.txt"
+                check(worker["trace_rows"], tape_name, f"gate {arm} CPU {worker['cpu']} tape path")
+                observed, _ = prior_reader["read_rows"](gate_root / tape_name, True)
+                require([canonical(row) for row in observed] == baseline, f"gate {arm} CPU {worker['cpu']} tape differs from Job 10")
+        gates[arm] = group
+    return gates
+
+
+def report_gate(gates, machine):
+    cpus = ", ".join(map(str, machine["worker_cpus"]))
+    print(f"### Known-answer groups on logical CPUs {cpus}\n")
+    print("| Arm | CPU | Games | Searches | Last-info nodes | Trace | Engine exit | Worker exit |")
+    print("|---|---:|---:|---:|---:|---|---:|---:|")
+    for arm, group in gates.items():
+        for worker in group["workers"]:
+            games, searches, nodes, trace = trace_of(worker)
+            print(f"| {arm} | {worker['cpu']} | {games} | {searches} | {nodes} | `{trace}` | "
+                  f"{worker.get('engine_exit')} | {worker['worker_exit']} |")
+        if group["error"]:
+            print(f"\nRecorded group error `{group['error']}`\n")
+    print("\n[Machine and CPU selection](sol2/job11/step0-worker-selection.txt) · [Raw worker receipts](sol2/job11/gate)\n")
+
+
+def report_campaign(heading, data):
+    print(f"### {heading}\n")
+    inputs, labels = data.manifest["inputs"], data.manifest["arm_labels"]
+    print(f"B/A compares `{labels['B']}` (`{inputs['B']['sha256']}`) with `{labels['A']}` (`{inputs['A']['sha256']}`).\n")
+    print("| Block | Leg | Arm | Group CPU (s) | Group wall (s) | Workers matching | Engine exits | In ratios |")
+    print("|---:|---|---|---:|---:|---:|---|---|")
+    expected = tuple(data.manifest["expected_games_searches_nodes_trace"])
+    for index, row in enumerate(data.rows):
+        included = "yes" if index < LEGS * len(data.blocks) and not row["warmup"] else "no"
+        leg = "Warm-up" if row["warmup"] else row["order_index"]
+        matches = sum(trace_of(worker) == expected for worker in row["workers"])
+        wall = f"{row['total_wall_ns'] / 1e9:.3f}" if row["total_wall_ns"] is not None else "—"
+        exits = ", ".join(map(str, row["engine_exits"]))
+        print(f"| {row['block']} | {leg} | {row['engine']} | {row['engine_cpu_s']:.3f} | {wall} | "
+              f"{matches}/{row['worker_count']} | {exits} | {included} |")
+    if data.blocks:
+        print("\n| Block | Timed order | B/A CPU | B/A wall |\n|---:|---|---:|---:|")
+        for block in data.blocks:
+            print(f"| {block['block']} | {block['order']} | {block['engine_cpu_s']:.4f} | {block['total_wall_ns']:.4f} |")
+        print("\n| Metric | Median | Pooled | Block range | Below 1 | Above 1 | Reading |\n|---|---:|---:|---|---:|---:|---|")
+        for metric, label in METRICS:
+            row = data.metrics[metric]
+            decision = row.get("decision", "Identical-binary floor") if data.complete else "Incomplete"
+            print(f"| {label} | {row['block_median']:.4f} | {row['pooled_b_over_a']:.4f} | "
+                  f"{row['block_min']:.4f}–{row['block_max']:.4f} | {row['below_one']}/{len(data.blocks)} | "
+                  f"{row['above_one']}/{len(data.blocks)} | {decision} |")
+        print("\n| Block cohort | Metric | Leg 1 | Leg 2 | Leg 3 | Leg 4 |\n|---|---|---:|---:|---:|---:|")
+        for cohort, metrics in data.position_means.items():
+            for metric, label in METRICS:
+                if metrics[metric]:
+                    values = " | ".join(f"{value:.5f}" for value in metrics[metric])
+                    print(f"| {cohort.capitalize()} | {label} | {values} |")
+        print("\nThe position means divide each timed leg by its block's four-leg mean before averaging by cohort.")
+    else:
+        print("\nNo complete blocks were eligible.")
+    if data.summary and data.summary["error"]:
+        print(f"\nRecorded error `{data.summary['error']}`")
+    if data.truncated:
+        print("\nThe last raw group record is partial. Complete preceding records appear above.")
+    base = f"sol2/job11/{data.directory.name}"
+    links = [f"[Inputs]({base}/inputs.txt)", f"[Raw groups and workers]({base})"]
+    if data.summary:
+        links.append(f"[Summary]({base}/summary.txt)")
+    print("\n" + " · ".join(links) + "\n")
+
+
+def report_comparison(single, multiple, machine):
+    count = machine["worker_count"]
+    print("### kF-pgo against r15d-pgo at both engine counts\n")
+    print(f"| Metric | Job 10 Step 2, one engine | Job 11 Step 2, {count} engines |\n|---|---:|---:|")
+    for metric, label in METRICS:
+        fields = (
+            ("floor range", lambda r: f"{r['floor_min']:.4f}–{r['floor_max']:.4f}"),
+            ("block median", lambda r: f"{r['block_median']:.4f}"),
+            ("pooled B/A", lambda r: f"{r['pooled_b_over_a']:.4f}"),
+            ("blocks below 1", lambda r: f"{r['below_one']}/12"),
+            ("reading", lambda r: r["decision"]),
+        )
+        for title, formatter in fields:
+            one = formatter(single.metrics[metric])
+            many = formatter(multiple.metrics[metric]) if multiple.complete else "Incomplete"
+            print(f"| {label} {title} | {one} | {many} |")
+    print("\nBoth sessions used the same two executable hashes and identical fixed-node workloads per engine. "
+          "The concurrent session sums engine CPU and uses the enclosing monotonic wall interval. "
+          "[Job 10 raw comparison](sol2/job10/step2/runs.jsonl.txt) · [Job 11 raw comparison](sol2/job11/step2/runs.jsonl.txt)\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, epilog=(
+        "Use --through 0 for the two known-answer groups or --through 1 for those groups and the floor. "
+        "The default also reads Step 2 and compares its complete result with Job 10."
+    ))
+    parser.add_argument("job11", type=Path, help="Job 11 receipts directory")
+    parser.add_argument("job10", type=Path, help="Job 10 receipts directory, alongside Job 9's directory")
+    parser.add_argument("--through", type=int, choices=(0, 1, 2), default=2)
+    args = parser.parse_args()
+    prior_reader = runpy.run_path(str(args.job10 / "timing_readback.py.txt"))
+    workload = prior_reader["fixed_workload"](args.job10, args.job10.parent / "job9")
+    machine = read_machine(args.job11)
+    gates = read_gate(args.job11, args.job10, workload.expected, machine["worker_cpus"], prior_reader)
+    report_gate(gates, machine)
+    require(len(gates) == 2 and all(group["eligible"] for group in gates.values()),
+            "both known-answer groups did not pass")
+    if args.through == 0:
+        return
+    one_floor = prior_reader["audit"](args.job10 / "step1", BLOCKS, workload=workload)
+    one = prior_reader["audit"](args.job10 / "step2", BLOCKS, one_floor, workload)
+    require(one.complete and one_floor.complete, "Job 10's complete comparison is missing")
+    pins = {arm: one.manifest["inputs"][arm]["sha256"] for arm in "AB"}
+    games, searches, nodes, trace = workload.expected
+    print(f"Each worker uses PC20, Threads 1, Hash 16 MiB, net768 and `go nodes 20000`. "
+          f"The pinned {games}-game workload gives {searches:,} searches, {nodes:,} last-info nodes and `{trace}`.\n")
+    if not (args.job11 / "step1" / "inputs.txt").is_file():
+        print("Step 1 has no timing manifest.\n")
+        return
+    floor = audit(args.job11 / "step1", prior_reader, workload, machine, pins)
+    report_campaign("Step 1 — identical-binary concurrent floor", floor)
+    if args.through == 1 or not floor.complete:
+        return
+    if not (args.job11 / "step2" / "inputs.txt").is_file():
+        print("Step 2 has no timing manifest.\n")
+        return
+    candidate = audit(args.job11 / "step2", prior_reader, workload, machine, pins, floor)
+    report_campaign("Step 2 — kF-pgo against r15d-pgo", candidate)
+    report_comparison(one, candidate, machine)
+
+
+if __name__ == "__main__":
+    main()
