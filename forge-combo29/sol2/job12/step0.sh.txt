@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job12
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job12
+base=/workspace/work/sol2-job2
+prior=/workspace/work/sol2-repo/forge-combo29/sol2/job10
+sha256sum -c "$out/pgo-executables.raw.txt"
+sha256sum -c "$prior/workload-pins.raw.txt"
+printf '%s  %s\n' 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a "$base/UHO_Lichess_4852_v1.epd" | sha256sum -c -
+c++ --version | head -1
+getconf GNU_LIBC_VERSION
+readlink -f "$(g++ -print-file-name=libstdc++.so)"
+for arm in r15d kF; do
+  if [ "$arm" = r15d ]; then engine=/workspace/work/sol2-job7/build-pgo-r15d/forge; else engine=/workspace/work/sol2-job9/build-pgo-kF/forge; fi
+  taskset -c 2 python3 -B "$job/no_options_pins.py" "$engine" "$out/step0-$arm-default.raw.txt"
+  taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py "$engine" "$base/carbon2/selfplay_driver.py" "$base/net768.fnn3" "$out/step0-$arm-net768.raw.txt" required
+  timeout 180 taskset -c 2 python3 -B /workspace/work/sol2-job10/fixed_nodes_driver.py --engine "$engine" --net "$base/net768.fnn3" --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings "$prior/fixed-openings.txt" --json > "$out/step0-$arm-driver.raw.txt" 2> "$out/step0-$arm-engine.stderr.txt"
+  cat "$out/step0-$arm-driver.raw.txt"
+done
+python3 -B - "$out" "$prior" <<'PY'
+import json
+from pathlib import Path
+import sys
+out, old = map(Path, sys.argv[1:])
+expected=json.loads((old/"known-answer.txt").read_text())
+for arm in ("r15d","kF"):
+    summary=json.loads((out/f"step0-{arm}-driver.raw.txt").read_text())
+    assert all(summary[key]==value for key,value in expected.items()), (arm,summary,expected)
+    assert not (out/f"step0-{arm}-engine.stderr.txt").read_text()
+print("Both frozen GCC builds matched the 12-game known answer.")
+PY

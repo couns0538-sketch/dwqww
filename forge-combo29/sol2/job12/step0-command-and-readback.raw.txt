@@ -1,0 +1,47 @@
++ job=/workspace/work/sol2-job12
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job12
++ base=/workspace/work/sol2-job2
++ prior=/workspace/work/sol2-repo/forge-combo29/sol2/job10
++ sha256sum -c /workspace/work/sol2-repo/forge-combo29/sol2/job12/pgo-executables.raw.txt
+/workspace/work/sol2-job7/build-pgo-r15d/forge: OK
+/workspace/work/sol2-job9/build-pgo-kF/forge: OK
++ sha256sum -c /workspace/work/sol2-repo/forge-combo29/sol2/job10/workload-pins.raw.txt
+/workspace/work/sol2-job2/carbon2/selfplay_driver.py: OK
+forge-combo29/sol2/job9/kF-timing-openings.txt: OK
+/workspace/work/sol2-job10/fixed_nodes_driver.py: OK
+forge-combo29/sol2/job10/fixed-openings.txt: OK
+forge-combo29/sol2/job10/known-answer.txt: OK
+/workspace/work/sol2-job2/net768.fnn3: OK
++ printf '%s  %s\n' 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a /workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd
++ sha256sum -c -
+/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd: OK
++ c++ --version
++ head -1
+c++ (Debian 14.2.0-19) 14.2.0
++ getconf GNU_LIBC_VERSION
+glibc 2.41
+++ g++ -print-file-name=libstdc++.so
++ readlink -f /usr/lib/gcc/x86_64-linux-gnu/14/libstdc++.so
+/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33
++ for arm in r15d kF
++ '[' r15d = r15d ']'
++ engine=/workspace/work/sol2-job7/build-pgo-r15d/forge
++ taskset -c 2 python3 -B /workspace/work/sol2-job12/no_options_pins.py /workspace/work/sol2-job7/build-pgo-r15d/forge /workspace/work/sol2-repo/forge-combo29/sol2/job12/step0-r15d-default.raw.txt
+/workspace/work/sol2-job7/build-pgo-r15d/forge matched all no-options pins
++ taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job7/build-pgo-r15d/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job12/step0-r15d-net768.raw.txt required
+/workspace/work/sol2-job7/build-pgo-r15d/forge 882074 4275906
++ timeout 180 taskset -c 2 python3 -B /workspace/work/sol2-job10/fixed_nodes_driver.py --engine /workspace/work/sol2-job7/build-pgo-r15d/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings /workspace/work/sol2-repo/forge-combo29/sol2/job10/fixed-openings.txt --json
++ cat /workspace/work/sol2-repo/forge-combo29/sol2/job12/step0-r15d-driver.raw.txt
+{"games": 12, "searches": 1373, "total_nodes": 15527588, "avg_nodes_per_search": 11309.24, "avg_searches_per_game": 114.42, "elapsed_ms": 15439.809, "searches_per_sec": 88.93, "effective_nps": 1005685.2, "trace_fnv1a64": "73ecbb5eedc59271"}
++ for arm in r15d kF
++ '[' kF = r15d ']'
++ engine=/workspace/work/sol2-job9/build-pgo-kF/forge
++ taskset -c 2 python3 -B /workspace/work/sol2-job12/no_options_pins.py /workspace/work/sol2-job9/build-pgo-kF/forge /workspace/work/sol2-repo/forge-combo29/sol2/job12/step0-kF-default.raw.txt
+/workspace/work/sol2-job9/build-pgo-kF/forge matched all no-options pins
++ taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job9/build-pgo-kF/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job12/step0-kF-net768.raw.txt required
+/workspace/work/sol2-job9/build-pgo-kF/forge 882074 4275906
++ timeout 180 taskset -c 2 python3 -B /workspace/work/sol2-job10/fixed_nodes_driver.py --engine /workspace/work/sol2-job9/build-pgo-kF/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings /workspace/work/sol2-repo/forge-combo29/sol2/job10/fixed-openings.txt --json
++ cat /workspace/work/sol2-repo/forge-combo29/sol2/job12/step0-kF-driver.raw.txt
+{"games": 12, "searches": 1373, "total_nodes": 15527588, "avg_nodes_per_search": 11309.24, "avg_searches_per_game": 114.42, "elapsed_ms": 14996.826, "searches_per_sec": 91.55, "effective_nps": 1035391.7, "trace_fnv1a64": "73ecbb5eedc59271"}
++ python3 -B - /workspace/work/sol2-repo/forge-combo29/sol2/job12 /workspace/work/sol2-repo/forge-combo29/sol2/job10
+Both frozen GCC builds matched the 12-game known answer.

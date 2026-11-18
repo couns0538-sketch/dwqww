@@ -1,0 +1,25 @@
++ nproc
+5
++ LC_ALL=C
++ lscpu
++ rg '^(Model name|Thread\(s\) per core|Core\(s\) per socket|Socket\(s\)|L3 cache|CPU\(s\))'
+CPU(s):                                  5
+Model name:                              AMD EPYC 9V74 80-Core Processor
+Thread(s) per core:                      1
+Core(s) per socket:                      5
+Socket(s):                               1
+L3 cache:                                32 MiB (1 instance)
++ LC_ALL=C
++ lscpu -e=CPU,CORE,SOCKET,ONLINE
+CPU CORE SOCKET ONLINE
+  0    0      0    yes
+  1    1      0    yes
+  2    2      0    yes
+  3    3      0    yes
+  4    4      0    yes
++ taskset -pc 46920
+pid 46920's current affinity list: 0-4
++ cat /sys/fs/cgroup/cpu.max
+400000 100000
++ python3 --version
+Python 3.12.14
