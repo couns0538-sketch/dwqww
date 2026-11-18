@@ -1,0 +1,26 @@
+import csv
+from pathlib import Path
+import sys
+
+pool, correction, debug, helpers = [Path(arg) for arg in sys.argv[1:]]
+sys.path.insert(0, str(helpers))
+from symbolize import caller_frames
+
+with pool.open(newline='') as stream:
+    reader = csv.DictReader(stream, delimiter='\t')
+    names, rows = reader.fieldnames, list(reader)
+libc = [row for row in rows if Path(row['image']).name == 'libc.so.6' and row['link_address']]
+resolved = caller_frames(debug, {int(row['link_address'], 16) for row in libc})
+old_mcount = sum(int(row['samples']) for row in libc if row['outer_function'] == '_dl_mcount_wrapper')
+for row in libc:
+    frames = resolved[int(row['link_address'], 16)]
+    row['leaf_function'], row['leaf_source'] = frames[0]
+    row['outer_function'], row['outer_source'] = frames[-1]
+    row['inline_frames'] = ' | '.join(f'{name} @ {file}' for name, file in frames)
+with correction.open('x', newline='') as stream:
+    writer = csv.DictWriter(stream, fieldnames=names, delimiter='\t', lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+print(f'Resolved {len(resolved)} distinct sampled libc offsets ({sum(int(row["samples"]) for row in libc)} samples).')
+print(f'Stripped address lookup previously assigned {old_mcount} libc samples to _dl_mcount_wrapper.')
+print(f'That label now covers {sum(int(row["samples"]) for row in libc if row["outer_function"] == "_dl_mcount_wrapper")} libc samples.')
