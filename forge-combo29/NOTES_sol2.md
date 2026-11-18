@@ -55,3 +55,7 @@ On that cold net768 fallback, glibc `memset`, fused v3 update and evaluation, an
 ## Job 3 — 2026-11-18T09:11:06Z
 
 The pinned r15d warm replay reproduced 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4` on PC20/Threads 1/Hash 16/synthetic net768. A reset cost 0.380 ms engine CPU in both blocks, or 0.115–0.120% of CPU for the 60 game resets. This fell below the Step 4 threshold. The `see_ge` delay control moved from sixth to first in the sample table while keeping the trace exact. In the three clean passes, main search, TT probe, and fused v3 update/evaluation were the top three. [Job 3 report](REPORT_sol2_job3.md)
+
+## Job 4 — 2026-11-18T09:28:57Z
+
+The PC20/net768 warm probe preserved all 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. All 4,923,792 perspective refreshes reconciled event by event. The every-64th update control added exactly 603,996 refreshes for 301,998 replaced updates and kept the normalized search output exact. The zero-delta idea could skip preparation on 299,245 refresh calls. No speed effect from that idea was measured. [Job 4 report](REPORT_sol2_job4.md)
