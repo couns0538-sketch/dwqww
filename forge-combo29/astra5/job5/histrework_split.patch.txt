@@ -1,0 +1,112 @@
+diff -ruN before/src/search.cpp after/src/search.cpp
+--- before/src/search.cpp	2026-11-18 04:39:53.188700519 -0800
++++ after/src/search.cpp	2026-11-18 05:55:12.929503816 -0800
+@@ -177,6 +177,18 @@
+ // B4 bundle (forge/r9; R9_NOTE.txt): the defaults keep r7's search.
+ bool CuckooRep = false;
+ int HistRework = 0;
++// A negative override follows the existing UCI HistRework level.
++int HistReworkQuiet = -1;
++int HistReworkCorrection = -1;
++
++int rework_quiet_level() {
++    return HistReworkQuiet < 0 ? HistRework : HistReworkQuiet;
++}
++
++int rework_correction_level() {
++    return HistReworkCorrection < 0 ? HistRework : HistReworkCorrection;
++}
++
+ bool TtPruneV2 = false;
+ bool CorrHistV2 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -185,6 +197,8 @@
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
++        {"HistReworkQuiet", &HistReworkQuiet, -1, b4::MaxReworkLevel},
++        {"HistReworkCorrection", &HistReworkCorrection, -1, b4::MaxReworkLevel},
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+@@ -876,7 +890,7 @@
+               board(b),
+               worker(searcher),
+               frame(ss),
+-              rework(tune::HistRework != 0 && ss != nullptr) {}
++              rework(tune::rework_quiet_level() != 0 && ss != nullptr) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+@@ -1304,7 +1318,7 @@
+         correction += (np_w + np_b) / 2;
+     }
+     // B4 HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+-    if (const int level = tune::HistRework; level != 0) [[unlikely]] {
++    if (const int level = tune::rework_correction_level(); level != 0) [[unlikely]] {
+         correction += (*joint_correction_)[side][b4::joint_key(board) & (CorrectionSize - 1U)] *
+                       b4::joint_weight(level) / 100;
+     }
+@@ -1338,7 +1352,7 @@
+     }
+     // B4 HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+     // self-damping update instead of the add-and-clamp above.
+-    if (tune::HistRework != 0) [[unlikely]] {
++    if (tune::rework_correction_level() != 0) [[unlikely]] {
+         std::int32_t& entry = (*joint_correction_)[side][b4::joint_key(board) & (CorrectionSize - 1U)];
+         entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
+     }
+@@ -1447,7 +1461,7 @@
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+     // B4 HistRework: part of the butterfly term comes from the threat-keyed twin (0 with the option off).
+-    const int rework = tune::HistRework != 0 && ss != nullptr ? rework_quiet_delta(board, ss, move) : 0;
++    const int rework = tune::rework_quiet_level() != 0 && ss != nullptr ? rework_quiet_delta(board, ss, move) : 0;
+ #if FORGE_SEARCH_SPEED2
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+                              ss != nullptr ? (ss - 1)->continuation : nullptr,
+@@ -1490,7 +1504,7 @@
+ // blend(plain, twin) - plain. |result| <= 2 * 16384.
+ int Worker::rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const {
+     const int plain = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+-    return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(tune::HistRework)) - plain;
++    return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(tune::rework_quiet_level())) - plain;
+ }
+ 
+ // The twin learns the same bonus and maluses as the butterfly table (the same apply_history).
+@@ -1590,7 +1604,7 @@
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+     // B4 HistRework: the threat-keyed twin learns the same bonus and maluses.
+-    if (tune::HistRework != 0) [[unlikely]] update_rework_history(board, ss, move, bonus, quiets, quiet_count);
++    if (tune::rework_quiet_level() != 0) [[unlikely]] update_rework_history(board, ss, move, bonus, quiets, quiet_count);
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -1686,7 +1700,7 @@
+     }
+ 
+     // B4 HistRework: check evasions score quiet moves with the twin, which reads this node's maps.
+-    if (in_check && tune::HistRework != 0) [[unlikely]] {
++    if (in_check && tune::rework_quiet_level() != 0) [[unlikely]] {
+         threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+     }
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+@@ -2037,7 +2051,7 @@
+              !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+-    if (tune::HistRework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
++    if (tune::rework_quiet_level() != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+@@ -2355,7 +2369,7 @@
+         }
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+-        if (tune::HistRework != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++        if (tune::rework_quiet_level() != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.

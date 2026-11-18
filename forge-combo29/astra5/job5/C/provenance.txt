@@ -1,0 +1,22 @@
+Part C split build
+The before, after, and clean directories each started as an independent copy of src, include and CMakeLists.txt from the Job 1 noncounting PC tree. Only after/src/search.cpp was edited. The compiled source came from clean after applying the saved diff.
+
+diff -ruN before after > histrework_split.patch.txt
+diff exit status 1 (differences found)
+patch -p1 -F0 < histrework_split.patch.txt  # working directory clean
+patching file src/search.cpp
+diff -qr after clean  # exit 0 (no output)
+
+set -eu
+cmake=/workspace/work/cmake-tool/cmake/data/bin/cmake
+"$cmake" -S clean -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+"$cmake" --build build --parallel 2
+
+before/src/search.cpp sha256 b5209ea5e05d5b9221a59806f1f7620ce9edd5345840a4fcbca0b5cfece04d0c
+clean/src/search.cpp sha256 e28eb7d928ad806ea16fa974f104108cf17b3ef0eac32fbc6d4a87233c0cdb68
+out/histrework_split.patch.txt sha256 90acf41ef545879c8eaa5b064c94bfa4b5a5516cd05866286598725e0fed42b4
+build/forge sha256 4f6937f6f2000f11dbe8ea87eaa247aa0a4b4fb225edfd18ba310221a88a6f2f
+
+Reproduce from a fresh output directory with the built split executable EXE and the forge-combo29/astra5 directory LAB:
+python3 run_split.py "$EXE" "$LAB" rows
+See reading.txt for the two independent paths and source quotations.

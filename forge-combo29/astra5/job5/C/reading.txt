@@ -1,0 +1,115 @@
+Part C1. HistRework 2 versus 0, PC r15, built-in evaluation. All line references below are to the pre-split PC tree (job 1 PC patch on helper base 6b98f217). Excerpts following each heading are verbatim source lines.
+
+UCI and independent worker state
+HistRework is a 0–3 spin option. PC20 uses 2. S14 leaves the option at 0. Each worker allocates both new history tables and the per-ply maps regardless of the setting and clears them on a full reset. Level 2 enables the reads and writes below. Allocation and clearing therefore do not distinguish the two levels.
+
+src/uci.cpp
+ 353                          "option name HistRework type spin default 0 min 0 max 3\n"
+ 610             } else if (name == "HistRework") {
+ 611                 apply_spin(0, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistRework = clamped; });
+
+src/search.cpp
+ 179 int HistRework = 0;
+1108       rework_history_(std::make_unique<LesserThreatHistory>()),
+1109       joint_correction_(std::make_unique<CorrectionHistory>()),
+1132     *rework_history_ = LesserThreatHistory{};
+1133     *joint_correction_ = CorrectionHistory{};
+1135     threat_maps_ = {};
+
+include/forge/search.hpp
+ 556     std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
+ 557     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+ 559     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+
+Quiet-history reads: keyed table and ordering
+The main-search node computes a map before the picker. Quiescence computes it for check evasions. A map records attacks by enemy pawns for our pawns, knights and bishops, also knights and bishops for our rooks, and also rooks for our queens. King entries stay empty. Sliding attacks use current occupancy. The twin entry indexes side, attack flags on from and to for that piece class, and the two squares. At level 2, 3/4 of the butterfly term uses the twin, 1/4 the original, with C++ integer truncation. The code adds blend-minus-plain to the pre-existing score, preserving the continuation and checking bonuses. Both normal quiets and quiet evasions can receive this term. With 0 the extra term is skipped.
+
+include/forge/b4.hpp
+  28 [[nodiscard]] constexpr int threat_quarters(int level) { return clamp_level(level) + 1; }
+  41     const Bitboard occupancy = board.occupied();
+  42     const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
+  44     for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
+  45     for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
+  47     for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
+  49     threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
+  50     threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
+  51     threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
+  52     threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
+  53     threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
+  66     return (plain * (4 - quarters) + threat * quarters) / 4;
+ 104 // HistRework's twin: [side][from attacked by a lesser enemy][to attacked by a lesser enemy][from][to] (32 KiB).
+ 106     std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
+
+src/search.cpp
+ 879               rework(tune::HistRework != 0 && ss != nullptr) {}
+ 887             if (rework) [[unlikely]] value += worker.rework_quiet_delta(board, frame, move);
+1016             push_scored(move, scorer.score(move, check_squares_));
+1037             push_scored(move, scorer.score(move, check_squares_));
+1077                 score = scorer.score(move, check_squares_);
+1079                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+1450     const int rework = tune::HistRework != 0 && ss != nullptr ? rework_quiet_delta(board, ss, move) : 0;
+1462            rework;
+1476     return score + threat_quiet_bonus(board, move) + rework;
+1483     const b4::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
+1484     const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
+1485     return (*rework_history_)[static_cast<std::size_t>(board.side_to_move())][b4::square_bit(set, move.from)]
+1486                              [b4::square_bit(set, move.to)][move.from][move.to];
+1492     const int plain = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+1493     return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(tune::HistRework)) - plain;
+1689     if (in_check && tune::HistRework != 0) [[unlikely]] {
+1690         threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+2040     if (tune::HistRework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
+
+Quiet-history writes and other readers
+The winning quiet receives the history bonus while earlier tried quiets other than the winner receive maluses. A quiet PV best move that does not cut receives one quarter of the depth bonus. The twin uses the existing saturating history update. The resulting value feeds the static history-prune test and the history adjustment to late-move reductions as well as move ordering. Thus the history-only arm changes more than ordering.
+
+src/search.cpp
+ 328     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+ 329     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+1499     apply_history(rework_entry(board, ss, best), bonus);
+1501         if (quiets[i] == best) continue;
+1502         apply_history(rework_entry(board, ss, quiets[i]), -bonus);
+1593     if (tune::HistRework != 0) [[unlikely]] update_rework_history(board, ss, move, bonus, quiets, quiet_count);
+2084         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+2143                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+2265             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+2342     if (best_score >= beta) {
+2344             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
+2347     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+2358         if (tune::HistRework != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+
+Joint correction reads and writes
+The key combines the pawn structure and non-pawn piece counts by side and type, masking to the existing correction-table size. Level 2 reads 75% of that entry into the combined correction, which is divided by CorrectionGrain (256) before altering the evaluation. Level 0 skips it. At an eligible search end a depth-weighted, clamped evaluation residual supplies the update step. The joint table applies its own self-damping update at every enabled level. Static evaluation in main search and quiescence, and the optional hindsight calculation, use corrected_eval. The code can therefore change evaluations used in cutoffs or ordering downstream. The CorrHistV2 continuation correction is a separate option, and the split keeps S14’s inherited NonPawnCorrection active throughout.
+
+include/forge/b4.hpp
+  30 [[nodiscard]] constexpr int joint_weight(int level) { return 25 * clamp_level(level) + 25; }
+  73     const std::int32_t next = entry + step - entry * magnitude / limit;
+  74     return next < -limit ? -limit : (next > limit ? limit : next);
+  83             signature = (signature << 4U) | static_cast<std::uint32_t>(count < 15 ? count : 15);
+  98     return board.pawn_key() ^ mix64(static_cast<std::uint64_t>(non_pawn_material(board)) + 1U);
+
+include/forge/search.hpp
+ 411 constexpr int CorrectionGrain = 256;
+ 412 constexpr int CorrectionLimit = 32 * CorrectionGrain;
+
+src/search.cpp
+1307     if (const int level = tune::HistRework; level != 0) [[unlikely]] {
+1308         correction += (*joint_correction_)[side][b4::joint_key(board) & (CorrectionSize - 1U)] *
+1309                       b4::joint_weight(level) / 100;
+1313     if (tune::CorrHistV2 && ss != nullptr) [[unlikely]] {
+1323     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+1328     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+1329     const int weight = std::min(depth + 1, 16);
+1341     if (tune::HistRework != 0) [[unlikely]] {
+1342         std::int32_t& entry = (*joint_correction_)[side][b4::joint_key(board) & (CorrectionSize - 1U)];
+1343         entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
+1669         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+1832                 const int mover_loss = parent_eval + corrected_eval(board, raw, ss);
+1872         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+2376     if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+2377         (best_move.is_none() || !best_move.is_capture()) &&
+2378         !(bound == BoundLower && best_score <= ss->static_eval) &&
+2379         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+2380         update_correction(board, depth, best_score, ss->static_eval, ss);
+
+The two overrides added in the patch use -1 to follow HistRework and 0..3 to choose their own levels. The quiet override selects all seven quiet-side option accesses: the picker flag, the standalone history reader, the blend weight, the cutoff update, the qsearch map, the main-search map, and the quiet PV update. The correction override selects the joint-table read/weight and the joint-table update. The original HistRework parser and default stay in place.
