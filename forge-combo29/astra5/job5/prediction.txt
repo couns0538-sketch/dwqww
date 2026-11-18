@@ -1,0 +1,13 @@
+Position P uses PC20, built-in evaluation, Threads 1, Hash 16 and requested depths 1–20. Mate is the first depth with g3g6 and a positive mate score. The G ratio is the depth-12 node sum at value 1 divided by its own value-0 sum. Changed best moves compare value 1 against 0. The flagged group is fixed by Job 4 before these treatments (81 positions with slot [4] positive; 272 others). Endpoints are inclusive. A missing mate through depth 20 is outside both predicted mate ranges.
+
+Arm  Outcome    Point   Lower   Upper
+A    mate       14      10      18
+A    G_ratio    1.005   0.990   1.030
+A    flagged    6       1       18
+A    unflagged  0       0       0
+B    mate       13      8       18
+B    G_ratio    1.060   0.990   1.170
+B    flagged    16      5       32
+B    unflagged  25      5       60
+
+The exact guard can first diverge only where an eligible baseline null fail-high sees a quiet mate. On this profile the shallow probes do not require high-depth verification. I expect the 272 positions without a recorded event to keep their original move, and only a minority of the 81 to change theirs. Expanded quiescence also searches nonmating quiet checks after a pass and uses mode-specific TT bounds, so its effect can extend into the other group. Job 4's floor-one result anchors the order of magnitude, although this intervention searches a different move set.
