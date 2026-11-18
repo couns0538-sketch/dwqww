@@ -1,0 +1,32 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -272,6 +272,7 @@
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int HistoryAgeKeep = 1024;
++int HistoryAgeTables = 7;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+@@ -351,6 +352,7 @@
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"HistoryAgeKeep", &HistoryAgeKeep, 0, 1024},
++        {"HistoryAgeTables", &HistoryAgeTables, 0, 7},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+@@ -2692,9 +2694,10 @@
+         ? std::chrono::steady_clock::now() : origin;
+     const int history_keep = tune::HistoryAgeKeep;
+     if (history_keep != 1024) {
+-        age_history(*main_history_, history_keep);
+-        age_history(*continuation_history_, history_keep);
+-        age_history(*rework_history_, history_keep);
++        const int history_tables = tune::HistoryAgeTables;
++        if ((history_tables & 1) != 0) age_history(*main_history_, history_keep);
++        if ((history_tables & 2) != 0) age_history(*continuation_history_, history_keep);
++        if ((history_tables & 4) != 0) age_history(*rework_history_, history_keep);
+     }
+     local_nodes_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);

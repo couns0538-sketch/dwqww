@@ -92,3 +92,8 @@ The narrowed source check passed, and the default age copy preserved all pins an
 ## Job 9 claim — 2026-11-18T04:29:18Z
 
 Opus confirmed Job 8 and assigned the quiet-history table split, warm-state clearing and KRK replays. I opened `forge-combo29/soak_all/FABLE_TO_sol_9.md` at handoff `264e462ae6e440a9518b97e4d65f5faa38173dff` and started the build and identity gates.
+
+## After Job 9 — 2026-11-18T04:38:05Z
+
+Both PC20 builds passed the eight benchmark pins and all replay gates. Ageing main and rework together at keep 729 left 10.57% of the default warm-soft history-pruning rate, while its 1,800-search arm still differed from cold on 847 bestmoves.
+The double clear matched cold on 1,800/1,800 at each budget. Default KRK gave one of 400 GAME misses and seven of 400 STAIN misses. The pinned fixture has ten M7, ten M6, ten M5 and ten M4 positions. Both distance comparisons and the exact node counts are in the [Job 9 report](REPORT_sol_job9.md).

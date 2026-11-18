@@ -1,0 +1,74 @@
+Job 9 W0 source audit
+Read at 2026-11-18T04:33:14Z
+
+Source: Job 4 buttons scratch copy, built after applying the Job 2
+instrumentation and Job 4 buttons patches to PC r15. The Job 4 build receipt
+identifies executable SHA-256
+63356d12c5505ab657e71ddd020e3ca27c8e8c6b4b1632bae343c57deef33333.
+Citations below are relative to its forge-combo29 source tree.
+
+Clear and stop paths
+
+- src/uci.cpp:388–391 handles ucinewgame:
+      stop_search();
+      searcher.clear();
+      (void)board.set_fen(forge::Board::StandardStartFen);
+- src/uci.cpp:392–393 calls stop_search() for every setoption.
+  src/uci.cpp:433–438 dispatches empty-valued Clear Hash to
+  searcher.clear_hash() and empty-valued ClearWorkers to
+  searcher.clear_workers(). There is no board write in either case.
+- src/uci.cpp:294–303 defines stop_search(). It sets stop_requested, calls
+  searcher.stop(), notifies stop_cv, joins a joinable worker and sets
+  ponder_search_active=false. The same stop function is used by both paths.
+- src/search.cpp:3267–3274 defines clear_hash() as shared_.tt.clear() then
+  worker->clear_caches() for every worker. clear_workers() calls worker->clear()
+  for every worker. src/search.cpp:3287–3290 defines clear() as shared_.tt.clear()
+  then worker->clear() for every worker.
+- include/forge/search.hpp:474 defines clear_caches() as evaluator_.clear().
+  src/eval.cpp:569–571 defines that call as
+      std::fill(pawn_cache_.begin(), pawn_cache_.end(), PawnEntry{});
+  src/search.cpp:1258–1279 calls evaluator_.clear() at the beginning of
+  Worker::clear(), then resets the main, threat, capture, continuation, rework
+  and correction histories, countermoves, threat maps and stack. The optional
+  pawn-history clear uses the same compile/option gate in either path.
+  Clear Hash followed by ClearWorkers therefore clears the pawn cache twice
+  and reaches the same TT, active worker history and stack resets as clear().
+
+State before the next search
+
+- The extra UCI state expressly reset by ucinewgame is the controller board
+  (src/uci.cpp:391). W0 leaves that board in place until position. Both
+  protocols send the identical recorded start FEN and every played move up to
+  that ply before go (Job 9 run_replay.py:105–122 and Job 6 run_sweep.py:97–112).
+- src/uci.cpp:636–640 stops for position and go. src/uci.cpp:43–65 parses the
+  six FEN fields and commits the candidate for a bare FEN; lines 67–86 apply the
+  recorded moves and commit the candidate. src/board.cpp:339–367 rebuilds the
+  pieces, bitboards, occupancy, kings, side, castling, en-passant square, both
+  move clocks, hashes and checkers. It invalidates the optional king-line
+  cache, sets plies_from_null_ to 1024 and replaces the old key history with
+  just the starting key. src/board.cpp:1104–1107 updates the null distance,
+  appends each made position key and invalidates cached king lines as moves
+  are replayed. The intermediate StandardStartFen reset is overwritten before
+  either search receives the board.
+- src/uci.cpp:706–717 copies the reconstructed board, clears stop_requested
+  and ponder_hit_received, sets ponder_search_active from the new limits and
+  calls searcher.reset_stop() before dispatch. include/forge/search.hpp:630–634
+  resets the shared stop flag and ponder timestamp. Elapsed output can differ
+  between invocations. The node-budget path uses limits.nodes, with the soft
+  path's 4x cap and finished-iteration target in src/search.cpp:2701–2719.
+- W0 also clears once at each game boundary before the first per-ply buttons.
+  src/search.cpp:595–599 zeroes TT entries and generation and increments its
+  lifecycle epoch on every clear. src/search.cpp:3314–3315 advances the TT
+  once per search; include/forge/search.hpp:158 increments the epoch and the
+  generation. The extra boundary clear changes the absolute epoch, but the
+  opened TT probe/store code captures the current epoch and only tests
+  equality to reject stale handles (src/search.cpp:612–621, 666–675 and the
+  locked branch at 718–727, 751–758). Search keeps the TTProbe handles as
+  locals (src/search.cpp:1788–1790, 1954–1956, 2846–2848). No such handle
+  survives a joined search into the next replay.
+
+Source expectation: W0 and cold replay enter each matched go with the same
+position history, generation and emptied search tables. The duplicate
+pawn-cache zeroing and extra lifecycle epoch advance have no identified
+effect on that path. This is a source audit. The node, bestmove and CNT
+comparison is the separate empirical gate.
