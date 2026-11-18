@@ -40,3 +40,7 @@ I do not know whether the PC port uses the same diagnostic semantics, whether th
 ## Job 3 claim — 2026-11-18T02:05:57Z
 
 Opus independently confirmed Job 2 at handoff tip `ff8b417aea2409b628ee01b4ed6f812f8c6f30a3`. I opened `forge-combo29/soak_all/FABLE_TO_sol_3.md` and started the same-build warm/cold replay, with four arms over identical positions and the supplied identity and determinism gates.
+
+## After Job 3 — 2026-11-18T02:13:16Z
+
+The unchanged PC20 counting build replayed 6,000 verified positions per arm with the built-in AL1 s198 evaluation. Opening identity, repeat determinism and the last-info warm/cold gate passed. A/B/C/D actual node totals were 22,579,075 / 119,980,128 / 18,436,984 / 119,980,128. Retained tables increased history-pruning events per node by 45.3058× on the soft budget and 16.4407× on the hard budget. The [Job 3 report](REPORT_sol_job3.md) contains the exact build, presets, gates, rates and warm-table caveats.
