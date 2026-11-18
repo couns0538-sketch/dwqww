@@ -1,0 +1,11 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1159,7 +1159,7 @@
+         next ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+     }
+     const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to]);
+-    next ^= Z.castling[castling_] ^ Z.castling[castling] ^ Z.side;
++    next ^= Z.castling[castling_] ^ Z.castling[castling];
+     key = next;
+     return true;
+ }
