@@ -1,0 +1,348 @@
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -240,7 +240,8 @@
+     // B4 CuckooRep (forge/r9): true when the side to move has a legal reversible move after which
+     // is_repetition(root_index) holds, i.e. it can reach a search-level repetition draw at once. Answered from the
+     // key history and a table of reversible-move keys (board.cpp) without generating moves. Used only with CuckooRep.
+-    [[nodiscard]] bool upcoming_repetition(std::size_t root_index) const;
++    [[nodiscard]] bool upcoming_repetition(std::size_t root_index, int search_ply = -1) const;
++    [[nodiscard]] bool upcoming_repetition_legacy(std::size_t root_index) const;
+     [[nodiscard]] bool is_insufficient_material() const;
+     [[nodiscard]] bool has_non_pawn_material(Color color) const;
+ 
+@@ -278,6 +279,7 @@
+ private:
+     // Test probe: compares every field, including ones with no public accessor.
+     friend struct BoardStateProbe;
++    [[nodiscard]] bool upcoming_repetition_unchecked(std::size_t root_index) const;
+ 
+     std::array<Piece, 64> squares_{};
+     std::array<Bitboard, 13> bitboards_{};
+--- /dev/null
++++ b/include/forge/rep_oracle.hpp
+@@ -0,0 +1,35 @@
++#pragma once
++
++#include "forge/board.hpp"
++#include "forge/uci_output.hpp"
++
++#include <cstdint>
++#include <cstdlib>
++#include <iostream>
++#include <mutex>
++
++namespace forge {
++
++struct RepetitionOracleCounts {
++    std::uint64_t calls = 0;
++    std::uint64_t true_calls = 0;
++    std::uint64_t avx_calls = 0;
++    std::uint64_t avx_candidates = 0;
++    std::uint64_t tail_candidates = 0;
++    std::uint64_t prefilter_calls = 0;
++};
++
++inline thread_local RepetitionOracleCounts repetition_oracle_counts;
++
++[[noreturn]] inline void repetition_oracle_failure(const Board& board, std::size_t root_index,
++                                                    int search_ply, const char* reason,
++                                                    bool old_result, bool new_result) {
++    const std::lock_guard<std::mutex> lock(uci_output_mutex());
++    std::cout << "info string REP VERIFY FAILED reason=" << reason
++              << " old=" << static_cast<int>(old_result) << " new=" << static_cast<int>(new_result)
++              << " search_ply=" << search_ply << " root_history_index=" << root_index
++              << " fen=" << board.fen() << std::endl;
++    std::_Exit(3);
++}
++
++} // namespace forge
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/board.hpp"
++#include "forge/rep_oracle.hpp"
+ 
+ #include <algorithm>
+ #include <array>
+@@ -1805,7 +1806,149 @@
+ 
+ } // namespace
+ 
+-bool Board::upcoming_repetition(std::size_t root_index) const {
++namespace {
++namespace legacy_repetition {
++
++constexpr std::size_t CuckooSlots = 8192;
++
++struct CuckooMove {
++    std::uint8_t piece = 0;  // Piece (never a pawn); 0 = empty slot
++    std::uint8_t a = 0;      // lower square
++    std::uint8_t b = 0;      // higher square
++};
++
++struct CuckooTable {
++    std::array<std::uint64_t, CuckooSlots> keys{};  // 0 = empty slot
++    std::array<CuckooMove, CuckooSlots> moves{};
++    std::size_t entries = 0;
++    bool complete = true;  // every insertion found a slot
++};
++
++// Two independent 13-bit slot indices from different halves of the key.
++std::size_t cuckoo_slot_low(std::uint64_t key) { return static_cast<std::size_t>(key) & (CuckooSlots - 1); }
++std::size_t cuckoo_slot_high(std::uint64_t key) { return static_cast<std::size_t>(key >> 32U) & (CuckooSlots - 1); }
++
++// Whether a piece of this type connects squares a and b on an empty board.
++bool reversible_step(int type, int a, int b) {
++    const int df = file_of(a) - file_of(b);
++    const int dr = rank_of(a) - rank_of(b);
++    const int files = df < 0 ? -df : df;
++    const int ranks = dr < 0 ? -dr : dr;
++    const bool diagonal = files == ranks && files != 0;
++    const bool straight = (files == 0) != (ranks == 0);
++    switch (type) {
++    case Knight: return (files == 1 && ranks == 2) || (files == 2 && ranks == 1);
++    case Bishop: return diagonal;
++    case Rook: return straight;
++    case Queen: return diagonal || straight;
++    case King: return files <= 1 && ranks <= 1 && (files | ranks) != 0;
++    default: return false;
++    }
++}
++
++std::uint64_t reversible_move_key(int piece, int a, int b) {
++    return piece_key(a, static_cast<Piece>(piece)) ^ piece_key(b, static_cast<Piece>(piece)) ^ Z.side;
++}
++
++// Cuckoo hashing with two candidate slots per key: an insertion takes its first slot and evicts the occupant,
++// which moves to its other slot, and so on.
++CuckooTable build_cuckoo_table() {
++    CuckooTable table{};
++    for (int piece = WN; piece <= BK; ++piece) {
++        const int type = piece_type(static_cast<Piece>(piece));
++        if (type == Pawn) continue;
++        for (int a = 0; a < 64; ++a) {
++            for (int b = a + 1; b < 64; ++b) {
++                if (!reversible_step(type, a, b)) continue;
++                std::uint64_t key = reversible_move_key(piece, a, b);
++                CuckooMove move{static_cast<std::uint8_t>(piece), static_cast<std::uint8_t>(a),
++                                static_cast<std::uint8_t>(b)};
++                if (key == 0) table.complete = false;
++                std::size_t slot = cuckoo_slot_low(key);
++                for (int evictions = 0; key != 0; ++evictions) {
++                    if (evictions > 4096) {
++                        table.complete = false;
++                        break;
++                    }
++                    std::swap(table.keys[slot], key);
++                    std::swap(table.moves[slot], move);
++                    slot = slot == cuckoo_slot_low(key) ? cuckoo_slot_high(key) : cuckoo_slot_low(key);
++                }
++                ++table.entries;
++            }
++        }
++    }
++    return table;
++}
++
++// Built once at program start (Z is a constant, so it is ready before this runs).
++const CuckooTable CuckooMoves = build_cuckoo_table();
++// 2 colours x (N 168 + B 280 + R 448 + Q 728 + K 210) = 3,668 reversible moves.
++const bool CuckooOk = CuckooMoves.complete && CuckooMoves.entries == 3668;
++
++const CuckooMove* cuckoo_find(std::uint64_t key) {
++    if (key == 0) return nullptr;
++    std::size_t slot = cuckoo_slot_low(key);
++    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
++    slot = cuckoo_slot_high(key);
++    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
++    return nullptr;
++}
++
++} // namespace legacy_repetition
++} // namespace
++
++bool Board::upcoming_repetition_legacy(std::size_t root_index) const {
++    if (!legacy_repetition::CuckooOk) return false;
++    // After one more reversible move, is_repetition(root_index) of the new position scans its earlier positions at
++    // even distances 4 .. span, where span is the smaller of its halfmove clock, its plies since a null move (both
++    // one more than here, with the same saturation as make_move) and its number of earlier positions. Seen from
++    // here those are the odd distances 3 .. span-1.
++    const std::size_t size = key_history_.size();
++    const std::size_t clock = std::min<std::size_t>(static_cast<std::size_t>(halfmove_) + 1, 65535);
++    const std::size_t since_null = std::min<std::size_t>(static_cast<std::size_t>(plies_from_null_) + 1, 1024);
++    const std::size_t span = std::min(std::min(clock, since_null), size);
++    if (span < 4) return false;
++    const std::uint64_t* const keys = key_history_.data();
++    const std::size_t now = size - 1;
++    // Running XOR of the opponent's move deltas (one ply each, side key removed) between the candidate earlier
++    // position and now.
++    std::uint64_t opponent = keys[now] ^ keys[now - 1] ^ Z.side;
++    for (std::size_t distance = 3; distance < span; distance += 2) {
++        opponent ^= keys[now - distance + 1] ^ keys[now - distance] ^ Z.side;
++        if (opponent != 0) continue;
++        const std::uint64_t earlier = keys[now - distance];
++        const legacy_repetition::CuckooMove* const move = legacy_repetition::cuckoo_find(key_ ^ earlier);
++        if (move == nullptr) continue;
++        const Piece piece = static_cast<Piece>(move->piece);
++        if (color_of(piece) != side_) continue;
++        int from = move->a;
++        int to = move->b;
++        if (squares_[static_cast<std::size_t>(from)] != piece) std::swap(from, to);
++        if (squares_[static_cast<std::size_t>(from)] != piece || squares_[static_cast<std::size_t>(to)] != Empty ||
++            (attacks::between(from, to) & occupied()) != 0) {
++            continue;
++        }
++        // As in is_repetition(root_index): one occurrence at or after the root is a draw; before the root a second
++        // occurrence inside the window is needed.
++        if (now - distance >= root_index) return true;
++        for (std::size_t further = distance + 2; further < span; further += 2) {
++            if (keys[now - further] == earlier) return true;
++        }
++    }
++    return false;
++}
++
++bool Board::upcoming_repetition(std::size_t root_index, int search_ply) const {
++    ++repetition_oracle_counts.calls;
++    const bool current = upcoming_repetition_unchecked(root_index);
++    const bool prior = upcoming_repetition_legacy(root_index);
++    if (current != prior) repetition_oracle_failure(*this, root_index, search_ply, "scan", prior, current);
++    repetition_oracle_counts.true_calls += current;
++    return current;
++}
++
++bool Board::upcoming_repetition_unchecked(std::size_t root_index) const {
+     const std::size_t size = key_history_.size();
+     const std::size_t clock = std::min<std::size_t>(static_cast<std::size_t>(halfmove_) + 1, 65535);
+     const std::size_t since_null = std::min<std::size_t>(static_cast<std::size_t>(plies_from_null_) + 1, 1024);
+@@ -1823,7 +1966,9 @@
+     const std::ptrdiff_t r_lo = top_r - 1 - static_cast<std::ptrdiff_t>(max_steps);
+     const std::size_t earlier_parity = (now & 1U) ^ 1U;
+ 
++    std::uint64_t* checked_candidates = &repetition_oracle_counts.avx_candidates;
+     auto check_candidate = [&](std::ptrdiff_t r) -> bool {
++        ++*checked_candidates;
+         const std::size_t earlier_idx = (static_cast<std::size_t>(r) << 1U) | earlier_parity;
+         const std::uint64_t earlier = keys[earlier_idx];
+         const CuckooSlot* const slot = cuckoo_find(key_ ^ earlier);
+@@ -1848,6 +1993,7 @@
+     std::ptrdiff_t r = r_hi;
+ #if defined(__AVX512F__)
+     const __m512i v_target = _mm512_set1_epi64(static_cast<long long>(target));
++    if (r - r_lo >= 7) ++repetition_oracle_counts.avx_calls;
+     while (r - r_lo >= 7) {
+         const __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(pdata + (r - 7)));
+         unsigned mask = static_cast<unsigned>(_mm512_cmpeq_epi64_mask(v, v_target));
+@@ -1859,6 +2005,7 @@
+         r -= 8;
+     }
+ #endif
++    checked_candidates = &repetition_oracle_counts.tail_candidates;
+     for (; r >= r_lo; --r) {
+         if (pdata[r] == target && check_candidate(r)) return true;
+     }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/clock_plan.hpp"
++#include "forge/rep_oracle.hpp"
+ #include "forge/search.hpp"
+ #include "forge/tm_finish.hpp"
+ #include "forge/tm_node_share.hpp"
+@@ -3046,13 +3047,25 @@
+ [[nodiscard]] inline bool may_repeat(const Board& board) {
+     return board.halfmove_clock() >= 3 && board.plies_from_null() >= 3 && board.history_size() >= 4;
+ }
++
++[[nodiscard]] inline bool may_repeat_checked(const Board& board, std::size_t root_index, int search_ply) {
++    const bool current = may_repeat(board);
++    if (!current && board.halfmove_clock() >= 3) {
++        ++repetition_oracle_counts.prefilter_calls;
++        const bool prior = board.upcoming_repetition_legacy(root_index);
++        if (prior) repetition_oracle_failure(board, root_index, search_ply, "prefilter", prior, current);
++    }
++    return current;
++}
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     if (tune::CuckooRep) {
+         constexpr int DrawScore = 0;
+-        if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
+-            board.upcoming_repetition(root_history_index_)) {
++        const bool repetition_possible = may_repeat_checked(board, root_history_index_, ss->ply);
++        if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() &&
++            repetition_possible &&
++            board.upcoming_repetition(root_history_index_, ss->ply)) {
+             if (beta <= DrawScore) return DrawScore;
+             return std::max(search(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
+         }
+@@ -3063,7 +3076,9 @@
+ int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
+     if (tune::CuckooRep) {
+         constexpr int DrawScore = 0;
+-        if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
++        const bool repetition_possible = may_repeat_checked(board, root_history_index_, ss->ply);
++        if (alpha < DrawScore && repetition_possible &&
++            board.upcoming_repetition(root_history_index_, ss->ply)) {
+             if (beta <= DrawScore) return DrawScore;
+             return std::max(qsearch(board, ss, DrawScore, beta), DrawScore);
+         }
+@@ -3073,10 +3088,12 @@
+ 
+ int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     constexpr int DrawScore = 0;
++    const bool repetition_possible = may_repeat_checked(board, root_history_index_, ss->ply);
+     // depth <= 0 goes on to qsearch_cuckoo through search(), which applies the bound there; the root, and the
+     // singular verification search of a node (excluded move set), are left alone.
+-    if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
+-        board.upcoming_repetition(root_history_index_)) {
++    if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() &&
++        repetition_possible &&
++        board.upcoming_repetition(root_history_index_, ss->ply)) {
+         if (beta <= DrawScore) return DrawScore;
+         return std::max(search(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
+     }
+@@ -3085,7 +3102,9 @@
+ 
+ int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
+     constexpr int DrawScore = 0;
+-    if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
++    const bool repetition_possible = may_repeat_checked(board, root_history_index_, ss->ply);
++    if (alpha < DrawScore && repetition_possible &&
++        board.upcoming_repetition(root_history_index_, ss->ply)) {
+         if (beta <= DrawScore) return DrawScore;
+         return std::max(qsearch(board, ss, DrawScore, beta), DrawScore);
+     }
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,6 +1,7 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
++#include "forge/rep_oracle.hpp"
+ #if FORGE_NNUE_V3
+ #include "forge/nnue_v3.hpp"
+ #endif
+@@ -427,6 +428,7 @@
+                 task.ponder_enabled = pending_task.ponder_enabled;
+                 has_task = false;
+             }
++            forge::repetition_oracle_counts = {};
+             const forge::SearchInfo result = searcher.search(
+                 task.board, task.limits, true, forge::Searcher::TTAccess::Exclusive);
+             if (task.limits.infinite || task.limits.ponder) {
+@@ -446,6 +448,13 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                const forge::RepetitionOracleCounts& counts = forge::repetition_oracle_counts;
++                std::cout << "info string rep calls=" << counts.calls
++                          << " true=" << counts.true_calls
++                          << " avx_calls=" << counts.avx_calls
++                          << " avx_candidates=" << counts.avx_candidates
++                          << " tail_candidates=" << counts.tail_candidates
++                          << " prefilter_calls=" << counts.prefilter_calls << '\n';
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {
