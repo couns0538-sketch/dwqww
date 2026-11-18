@@ -1,0 +1,44 @@
+--- a/include/forge/b4.hpp
++++ b/include/forge/b4.hpp
+@@ -10,6 +10,9 @@
+ // Nothing here is used while the options are off.
+ #include "forge/bitboard.hpp"
+ #include "forge/board.hpp"
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ 
+ #include <array>
+ #include <cstddef>
+@@ -57,6 +60,31 @@
+             threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    // Old r15d unconditional computation on private masks. Never call the
++    // instrumented function recursively or modify the result search reads.
++    const Bitboard ref_occupancy = board.occupied();
++    const Bitboard ref_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard ref_minor = ref_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) ref_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) ref_minor |= attacks::bishop(pop_lsb(bb), ref_occupancy);
++    Bitboard ref_rook = ref_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) ref_rook |= attacks::rook(pop_lsb(bb), ref_occupancy);
++    const bool has_rook = board.pieces(us, Rook) != 0;
++    const bool has_queen = us_queens != 0;
++    const int material_class = (has_rook ? 1 : 0) + (has_queen ? 2 : 0);
++#if FORGE_SHORTCUT_WRONG10
++    // One reachable material class only; alter local rook-reference mask.
++    if (material_class == 1) ref_minor ^= Bitboard{1};
++#endif
++    bool different = threats.by_type[Pawn] != ref_pawn || threats.by_type[Knight] != ref_pawn ||
++                     threats.by_type[Bishop] != ref_pawn || threats.by_type[King] != 0 || threats.by_type[0] != 0;
++    // Absent own piece-type fields are deliberately omitted by kF and are not
++    // consumed for moves of that type in this position. Do not compare them.
++    if (has_rook) different = different || threats.by_type[Rook] != ref_minor;
++    if (has_queen) different = different || threats.by_type[Queen] != ref_rook;
++    shortcut_count::record_h71(different, material_class, board);
++#endif
+     return threats;
+ }
+ 
