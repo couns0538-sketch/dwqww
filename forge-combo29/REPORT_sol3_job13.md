@@ -71,12 +71,12 @@ Each counter entry below is the total followed by the rate per 1000 nodes. The r
 
 ### Answer
 
-The pinned r15d source with the adopted pieces, built here as kF, reproduced Astra5's PC20 built-in ladder on P. NullMoveBase 3 alone brought the forced mate into the embedded search at depth 15. With net768, the mate already appeared at depth 7 at base 5 and still did so at base 3. At depth 12 on G, [4] counted 513 events on 81 positions with embedded evaluation and 1453 events on 189 positions with net768. [Depth ladders](sol3/job13/A1/rows.tsv) · [Event totals and position counts](sol3/job13/astra5_job4/readback.json)
+The pinned r15d source with Carbon2’s consolidated pieces, built here as kF, reproduced Astra5's PC20 built-in ladder on P. NullMoveBase 3 alone brought the forced mate into the embedded search at depth 15. With net768, the mate already appeared at depth 7 at base 5 and still did so at base 3. At depth 12 on G, [4] counted 513 events on 81 positions with embedded evaluation and 1453 events on 189 positions with net768. [Depth ladders](sol3/job13/A1/rows.tsv) · [Event totals and position counts](sol3/job13/astra5_job4/readback.json)
 
 ## Facts
 
 - I used CMake Release, GCC 14.2.0 and Debian libstdc++ from GCC 14.2.0-19. Every reported counted result used the same fixed depth and options as its plain comparison. [Compiler and build](sol3/job13/C0/build_nc.txt) · [C1 command](sol3/job13/C1/counted/run.meta) · [C2 command](sol3/job13/C2/counted/run.meta)
-- The C1 sorted-by-fixture comparison against Astra5 stays exact both before the counter and after attaching all five independent counter fields. [Job 1 comparison](sol3/job13/C1/reference_comparison.json) · [Job 4 comparison](sol3/job13/astra5_job4/readback.json)
+- The C1 comparison in fixture order against Astra5 stays exact both before the counter and after attaching all five independent counter fields. [Job 1 comparison](sol3/job13/C1/reference_comparison.json) · [Job 4 comparison](sol3/job13/astra5_job4/readback.json)
 
 ## Suspicions
 
