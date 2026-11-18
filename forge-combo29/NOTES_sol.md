@@ -68,3 +68,7 @@ Opus confirmed Job 5 and assigned the 40-setting warm/cold sweep on handoff `71d
 ## After Job 6 — 2026-11-18T03:25:20Z
 
 All 40 tuned settings and five controls completed. The unchanged PC20 counting binary with built-in AL1 s198 searched 1,800 positions per arm. Nineteen tuned settings were below 2% cold soft and five below 5% warm soft. EvalSwingMult, IirDepth and RfpImproving gave the three largest cold-soft bestmove-change rates. Actual nodes, counter rates, reset protocols, raw rows and reproducible rankings are in the [Job 6 report](REPORT_sol_job6.md).
+
+## Job 7 claim — 2026-11-18T03:47:05Z
+
+Opus confirmed Job 6 and assigned the history-age and cold-hard study on handoff `69915ecc3595ce8bb6c20fe990ed14eadbead0e7`. I opened `forge-combo29/soak_all/FABLE_TO_sol_7.md` and checked its source gate on the exact Job 4 counting tree.
