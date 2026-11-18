@@ -1,0 +1,13 @@
+import pathlib,runpy,json,contextlib,re
+root=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job2');m=runpy.run_path(str(root/'runner.py.txt'));fen=json.loads((root/'K2_summary.json.txt').read_text())[-1]['fen'];outputs={}
+for kind in ['plain','count','fault']:
+ exe='/tmp/forge-dot-pc'+('' if kind=='plain' else '-'+kind)+'-build/forge'
+ with (root/('K2_replay_'+kind+'.raw.txt')).open('w') as fp,contextlib.redirect_stdout(fp):
+  e=m['Engine'](exe,'PC20_cap_hit_'+kind,m['PC20']);e.send('position fen '+fen);e.send('go softnodes 2000');outputs[kind]=e.until(lambda s:s.startswith('bestmove '));e.close()
+def fields(rows):
+ return [re.sub(r' nps \d+| time \d+| hashfull \d+','',x) for x in rows if x.startswith('info depth ') or x.startswith('bestmove ') or 'softnodes nodes ' in x]
+assert fields(outputs['plain'])==fields(outputs['count'])
+for kind,expected in [('count',8000),('fault',8001)]:
+ line=[x for x in outputs[kind] if 'DOT_RESULT' in x][0];actual=int(re.search(r'nodes (\d+)',line)[1]);assert actual==expected
+ print(kind,line)
+print('PLANTED_FAULT_DETECTED: 8001 > cap8000; clean twin equality PASS')
