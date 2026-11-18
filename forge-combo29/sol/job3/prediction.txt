@@ -1,0 +1,38 @@
+PC20 warm/cold rate predictions
+
+Rates use actual main plus quiescence nodes. A/B is A/C divided by B/D
+times C/D, with rounding only for display. A numerical guess survives
+within [guess / 1.5, guess × 1.5]. A zero guess requires both event counts
+to be zero. A numerical guess with a zero observed denominator is killed.
+
+Event A/C B/D A/B C/D
+razor_taken 1.05 1.00 0.735 0.70
+rfp_taken 1.00 0.98 1.020 1.00
+null_move_taken 1.15 1.05 0.471 0.43
+null_move_tested 1.15 1.05 0.427 0.39
+probcut_taken 1.20 1.08 0.233 0.21
+probcut_tested 1.15 1.08 0.234 0.22
+iir_no_tt_taken 0.72 0.84 0.763 0.89
+iir_tt_taken 1.30 1.15 0.859 0.76
+lmp_taken 1.15 1.07 1.129 1.05
+quiet_futility_taken 1.10 1.05 0.796 0.76
+history_pruning_taken 4.00 1.55 0.258 0.10
+quiet_see_taken 1.03 1.02 0.959 0.95
+capture_futility_taken zero zero zero zero
+noisy_see_taken 1.00 1.00 1.050 1.05
+singular_taken 1.75 1.25 0.560 0.40
+singular_double 1.60 1.25 0.410 0.32
+singular_negative 1.70 1.25 0.272 0.20
+check_extension_taken 1.02 1.00 0.918 0.90
+lmr_taken 1.12 1.06 0.919 0.87
+lmr_plies 1.18 1.08 0.787 0.72
+aspiration_taken 0.80 0.90 3.378 3.80
+q_futility_taken 1.00 1.00 0.820 0.82
+fail_low_bonus_taken zero zero zero zero
+eval_swing_taken zero zero zero zero
+draw_jitter_taken zero zero zero zero
+
+Largest expected increase from retained tables: history pruning, especially
+at the soft budget, followed by singular extensions. More inherited TT
+moves should reduce the no-TT IIR rate. The cold budget forecasts use the
+Job 2 rates as a guide, adjusted only for the mix of openings and later plies.
