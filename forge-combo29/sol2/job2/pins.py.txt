@@ -1,0 +1,24 @@
+import re
+from pathlib import Path
+import subprocess
+import sys
+
+exe, out = sys.argv[1:]
+path = Path(out)
+settings = ('setoption name Threads value 1\nsetoption name Hash value 16\n'
+            'setoption name MultiPV value 1\nsetoption name OwnBook value false\n'
+            'setoption name UseNNUE value true\nisready\n')
+checks = [('bench 11',rb'^info string bench depth 11 nodes (\d+) ',312866),
+          ('bench 13',rb'^info string bench depth 13 nodes (\d+) ',862329),
+          ('position startpos\ngo perft 5',rb'^nodes (\d+)$',4865609)]
+status = True
+with path.open('wb') as log:
+    for command, pattern, expected in checks:
+        query = (settings+command+'\nquit\n').encode()
+        run = subprocess.run([exe], input=query, capture_output=True, timeout=60)
+        observed = re.findall(pattern, run.stdout, flags=re.MULTILINE)
+        passed = run.returncode == 0 and not run.stderr and observed == [str(expected).encode()]
+        log.write(b'\n--- stdin ---\n'+query+b'--- stdout ---\n'+run.stdout+b'--- stderr ---\n'+run.stderr)
+        log.write(f'--- exit={run.returncode} expected={expected} passed={passed} ---\n'.encode())
+        status &= passed
+sys.exit(0 if status else 1)

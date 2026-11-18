@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job2
+repo=/workspace/work/sol2-repo
+out="$repo/forge-combo29/sol2/job2"
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+base=6b98f2170a3210e71beed04bbd2553972c253ed7
+cd "$repo"
+git diff --exit-code "$base" -- forge-combo29/src forge-combo29/include forge-combo29/CMakeLists.txt
+cd "$job"
+sha256sum -c <<'HASH'
+d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a  pc_r15.patch
+d26f09cf2c5f620d9a3293b787a2dacd8b386ea325d170509952662f71041558  make_v3_testnet.py
+034814873e2ffce7010b7b065d79b5aa0a57419cbb75cc8bfc4ff22208278cea  carbon2/a_speed_pc20_v3.patch.txt
+20cca10770a32af8d9b7b26b9fd9544fefb67e592b35177f68788cfd73ab7574  carbon2/job3/e1_legal_check_evasions.patch.txt
+HASH
+sha256sum pc_r15.patch make_v3_testnet.py carbon2/a_speed_pc20_v3.patch.txt carbon2/job3/e1_legal_check_evasions.patch.txt
+mkdir "$job/r15" "$job/r15d"
+cp -a "$repo/forge-combo29/src" "$repo/forge-combo29/include" "$repo/forge-combo29/CMakeLists.txt" "$job/r15/"
+patch --batch -d "$job/r15" -p1 --fuzz=0 < "$job/pc_r15.patch"
+cp -a "$job/r15/." "$job/r15d/"
+patch --batch -d "$job/r15d" -p1 --fuzz=0 < "$job/carbon2/a_speed_pc20_v3.patch.txt"
+patch --batch -d "$job/r15d" -p1 --fuzz=0 < "$job/carbon2/job3/e1_legal_check_evasions.patch.txt"
+for name in r15 r15d; do
+    source="$job/$name"
+    build="$job/build-$name"
+    (cd "$source" && rg --files src include | sort | xargs sha256sum) > "$out/step1-$name-source.sha256.txt"
+    "$cmake" -S "$source" -B "$build" -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+    "$cmake" --build "$build" --parallel 3 --verbose > "$out/step1-$name-build.raw.txt" 2>&1
+    c++ --version | head -1
+    getconf GNU_LIBC_VERSION
+    realpath "$(c++ -print-file-name=libstdc++.so.6)"
+    cat "$build/CMakeFiles/forge.dir/flags.make" "$build/CMakeFiles/forge.dir/link.txt"
+    sha256sum "$build/forge" "$source/src/nnue_weights.inc"
+    python "$job/pins.py" "$build/forge" "$out/step1-$name-pins.raw.txt"
+done
+sed 's/^HIDDEN, KB, OB = 512, 8, 8$/HIDDEN, KB, OB = 768, 8, 8/' make_v3_testnet.py > make_v3_testnet_768.py
+diff -u make_v3_testnet.py make_v3_testnet_768.py || test "$?" -eq 1
+python make_v3_testnet_768.py net768.fnn3
+sha256sum net768.fnn3
+for name in r15 r15d; do
+    inputs="$out/step1-$name-net.stdin.txt"
+    printf 'setoption name NNUEArchFile value %s\nsetoption name NNUEArch value true\nisready\nquit\n' "$job/net768.fnn3" > "$inputs"
+    "$job/build-$name/forge" < "$inputs" > "$out/step1-$name-net.raw.txt" 2> "$out/step1-$name-net.stderr.txt"
+    test ! -s "$out/step1-$name-net.stderr.txt"
+    rg -i 'NNUE v3 active.*hidden 768 .*checksum 30ab43b4ba5db5f3' "$out/step1-$name-net.raw.txt"
+done
