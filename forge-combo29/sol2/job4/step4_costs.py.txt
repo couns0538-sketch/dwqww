@@ -1,0 +1,30 @@
+import csv,json,sys
+from pathlib import Path
+out, old_profile = map(Path,sys.argv[1:])
+probe = json.loads((out/'probe-run.raw.txt').read_text())
+control = json.loads((out/'control-run.raw.txt').read_text())
+counts = probe['evalcount_totals']
+control_counts=control['evalcount_totals']
+cpu=json.loads((out/'step1/runs.jsonl.txt').read_text())['engine_cpu_s']
+searches=probe['searches']
+with old_profile.open() as f:
+    samples={x['function'].split('(')[0]:int(x['samples']) for x in csv.DictReader(f,delimiter='\t')}
+full_evals=sum(counts[x] for x in ('eval_fused','eval_valid','eval_after_refresh_or_replay','eval_forced'))
+metrics={
+    'engine_cpu_s_from_unprofiled_step1':cpu,
+    'samples_from_job3_profile':14389,
+    'searches':searches,
+    'total_network_evaluations':full_evals,
+    'network_evaluations_per_search':full_evals/searches,
+    'refresh_columns_per_call':counts['columns']/counts['refreshes'],
+    'zero_delta_refresh_share_percent':100*counts['refresh_zero_columns']/counts['refreshes'],
+    'per_search':{k:v/searches for k,v in counts.items()},
+    'refresh_event_shares_percent':{k:100*counts[k]/counts['refreshes'] for k in ('refresh_root','refresh_no_ancestor','refresh_bucket','refresh_mirror','refresh_bucket_mirror','refresh_forced')},
+    'costs':{},
+    'control_refresh_delta':control_counts['refreshes']-counts['refreshes'],
+    'control_forced_dispatches':control_counts['forced_updates'],
+}
+for function,label,key in [('refresh_from_pieces','per_refresh','refreshes'),('refresh_from_pieces','per_refresh_column','columns'),('apply_changes_pair','per_pair_update','update_pair'),('apply_changes','per_single_update','update_single'),('apply_pair_and_evaluate','per_fused_evaluation','eval_fused')]:
+    n=samples[f'forge::nnue::v3::{function}']
+    metrics['costs'][label]={'samples':n,'operations':counts[key], 'estimated_cpu_us':cpu*1e6*n/(14389*counts[key])}
+print(json.dumps(metrics,indent=2,sort_keys=True))
