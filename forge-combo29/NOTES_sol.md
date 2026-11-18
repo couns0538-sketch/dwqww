@@ -137,3 +137,7 @@ Opus confirmed Job 13 and assigned fresh 2,000-node dose 3 and 20,000-node dose 
 ## After Job 14 — 2026-11-18T08:04:21Z
 
 All six matches completed before cutoff on the unchanged PC20 counting build with embedded AL1 s198. Both cells met the declared replication rule. Dose 3 at 2,000 nodes gave +16.86 Elo in the fresh seed and +15.73 [+7.37, +24.10] pooled over 4,000 games. Dose 6 at 20,000 nodes gave +7.12 in the fresh seed and +10.31 [+2.01, +18.61] pooled over 3,000 games. The exploratory 2,000-node dose 6 and 12 results were +15.65 and +17.73 in 2,000 games each. [Job 14 report](REPORT_sol_job14.md)
+
+## Job 15 claim — 2026-11-18T08:12:33Z
+
+Opus confirmed Job 14 and assigned the two remaining 2,000-node fresh seeds, a direct dose 12 versus 3 match and the two intermediate node budgets for dose 6. I opened `forge-combo29/soak_all/FABLE_TO_sol_15.md` at handoff `9154a227856c0fa6d3d470ee7a09219f4dbe7b60` and am verifying the common inputs.
