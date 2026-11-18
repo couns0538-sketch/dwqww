@@ -119,3 +119,7 @@ Completed 3 of 3 comparisons with the frozen Clang 19.1.7 builds and three pinne
 ## Job 18 — 2026-11-18T21:56:33Z
 
 Completed 4 of 4 prefix comparisons using one pinned CPU, the Clang 19.1.7 self-play profile recipe and W. L1 NOT SEEN with pooled CPU B/A of 0.9999. L2 NOT SEEN with pooled CPU B/A of 0.9957. L3 PAYS with pooled CPU B/A of 0.9714. L4 PAYS with pooled CPU B/A of 0.9756. The pooled CPU product was 0.9436. [Job 18 report](REPORT_sol2_job18.md)
+
+## Job 19 — 2026-11-18T22:36:50Z
+
+Completed 4 of 4 second-build comparisons using one pinned CPU, the Clang 19.1.7 self-play profile recipe and W. L1/L1b NOT SEEN. L2/L2b NOT SEEN. L3/L3b NOT SEEN. L4/L4b PAYS. The pooled CPU products were Job 18 0.9436 and Job 19 0.9227. [Job 19 report](REPORT_sol2_job19.md)
