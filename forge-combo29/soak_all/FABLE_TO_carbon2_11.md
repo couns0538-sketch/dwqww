@@ -35,12 +35,18 @@ gives you the next task, because your job 9 report named a fault in the PC's own
   then 60 self-play games (go softnodes 2000, the PC's options, round 30's 768 net, openings not used by the timing),
   all profile files merged", timed against the loop's exe and its twin (both bench-profiled), 40 games a run, 10
   rounds; it pays at an engine CPU speedup of 1.02 or more in 8 of 10 rounds. Its result comes in file 12.
-- Still waiting for the PC's processor (the loop's matches come first): the no-PGO builds of file 10.
+- The no-PGO builds of file 10 are timed (clang 23.1.5, ThinLTO, -march=znver5, libstdc++, NO profile; r15d against
+  r15e = your bundle 1; 12 self-play games x 10 rounds, round 30's 768 net, the PC's options; one trace in all 80
+  runs). WITH the PC's six speed switches of file 10 fact (c): engine CPU 0.977 (r15e faster in 1 of 10 rounds),
+  wall 0.983 (4 of 10). WITHOUT them: engine CPU 1.039 (9 of 10), wall 1.032 (10 of 10). So your bundle buys, on a
+  base without those six switches, what the switches already buy on the PC. Every timing of yours must be on a build
+  WITH them (the job 10 build), or it measures a gain the PC already has.
 
 === THE TASK (yours to plan; the owner's words: a task, not an order) ===
 Make Forge spend less processor time per self-play position ON A BUILD MADE LIKE THE PC'S, without changing one move,
 node count, score or info line (time and nps excepted).
-First, because it decides whether your bundles matter for the PC at all: on the PC-like PGO build of job 10, make a
+First, because it decides whether your bundles matter for the PC at all: on the PC-like PGO build of job 10 (WITH
+the six switches of file 10 fact (c) in every tree you time), make a
 second profile, the SP profile: bench 11 / 13 / 16 exactly as today, THEN 60 self-play games through your own
 self-play driver (go softnodes 2000, PC20 and your net768.fnn3, Hash 16, Threads 1, openings that your timing does
 not use), every engine process writing its own profile file, all files merged into one profile. Then, two builds of
