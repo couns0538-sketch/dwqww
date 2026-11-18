@@ -1,0 +1,29 @@
+import json
+from pathlib import Path
+import runpy
+import sys
+
+from arm_timing import ENGINE_ENV_META, SIGNATURE_FIELDS, measure_driver, pinned_identity, write_json
+
+raw = Path(sys.argv[1]).resolve()
+gate = raw / "step0"
+gate.mkdir(exist_ok=False)
+driver = "/workspace/work/sol2-job13/soft_book_driver.py"
+pinned_identity(Path(driver), "4c97cffd88d25edaada125ab9cda3e580c0bdaf83ea45a2a09d1c0ef1cb6d659")
+driver_main = runpy.run_path(driver)["main"]
+expected_data = json.loads((raw / "known-answer.txt").read_text())
+expected = tuple(expected_data[key] for key in SIGNATURE_FIELDS)
+print(json.dumps({"engine_environment": ENGINE_ENV_META, "expected": expected}))
+for arm, line in zip(("P8", "P10", "K_1", "P8_2", "P10_2", "K_2"), (raw / "clang-executables.raw.txt").read_text().splitlines(), strict=True):
+    sha, executable = line.split()
+    engine = pinned_identity(Path(executable), sha)
+    argv = [driver, "--engine", engine["path"], "--net", "/workspace/work/sol2-job2/net768.fnn3",
+            "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001",
+            "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]
+    print(json.dumps({"arm": arm, "engine_sha256": sha, "argv": argv}), flush=True)
+    result = measure_driver(driver_main, argv, gate, arm, expected)
+    write_json(gate / f"{arm}.result.raw.txt", {**result, "engine_sha256": sha})
+    print(json.dumps({"arm": arm, **result}), flush=True)
+    if not result["eligible"]:
+        sys.exit(f"Frozen W signature failed for {arm}: {result['error']}")
+print("Frozen Clang signatures match W with the fixed environment.", flush=True)
