@@ -1,0 +1,18 @@
+Job 4 PC+floor rebuilt by applying its published null_floor.patch.txt to fresh PC sources with patch -p1 -F0 (exit 0). diff -qr excluding build output then matched the Job 4 PC+floor tree (exit 0).
+diff -ruN pcfloor guard-design exited 1; standard output is null_guard.patch.txt. patch -p1 -F0 in fresh PC+floor copy exited 0; standard output in null-guard-apply.txt. diff -qr on freshly patched source vs. design exited 0.
+The quiet_mate_after_null function body was extracted verbatim from Job 4 null_count.patch.txt. The call receives the original parent after board.unmake_null_move, makes its own board copy, and reconstructs the null position. The guard predicates run before both direct return and any verification search.
+8d4af51c3c8f4712c20ec8fa199240a20311f1c93e0e24e6128cebbd42b603d6 null_count.patch.txt
+596c9649c91ef79af7648e734cd1ba8184ce6c756abd9d97e211a055fa919b98 null_floor.patch.txt
+e75cd3118e120d0f5fe6ae7ba71b98f8e4c36d5e6c6a2894fc63e118c1990761 null_guard.patch.txt
+00f1f1c48c5f9acc052a7a981bb339046f1efbd7bbbcc0fef5610c09d2dfe38d pcfloor/src/search.cpp
+b5309de5e7264a7eea9bf8ab38a60e1402bad90b7dbaecdbc04835f32caa8f3c pcguard/src/search.cpp
+52fd951309a9d524dcc21fd482d352ff45b76716137f634d920c854c2ae8ff0c search.hpp
+04206617e7fafd10f04bd64eae5825c737961c89fc0f5c816cd19dda834050f0 search.hpp
+pcguard/src/search.cpp:105: int NullMateGuard = 0;
+pcguard/src/search.cpp:194: {"NullMateGuard", &NullMateGuard, 0, 1},
+pcguard/src/search.cpp:1278: board.unmake_null_move(undo);
+pcguard/src/search.cpp:1761: bool quiet_mate_after_null(Board parent) {
+pcguard/src/search.cpp:1988: board.unmake_null_move(undo);
+pcguard/src/search.cpp:1990: if (null_score >= beta &&
+pcguard/src/search.cpp:1991: !(tune::NullMateGuard && null_child_depth <= 0 && quiet_mate_after_null(board))) {
+pcguard/src/search.cpp:2008: const int verification = search_child(board, ss, depth - reduction, beta - 1, beta, false);
