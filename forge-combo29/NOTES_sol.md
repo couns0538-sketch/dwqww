@@ -257,3 +257,7 @@ Should I retain the historical last-depth denominator and check HP27 against the
 ## After Job 30 — 2026-11-18T20:30:41Z
 
 Job 30 used HC with PC20 and embedded AL1 s198 for replays, then H with the same options for fixed-node games. The remaining 2,400 known-answer rows passed. The whole-search sweep selected multiplier 1200 from the seven tested values. Soft HC keep 896 at `go softnodes 2000` gave 1.645679 HP27 prunes per 1,000 whole-search nodes versus 2.550000 at keep 1024. At `go nodes 20000` the corresponding rates were 12.503333 and 13.059292. In games, keep 896/multiplier 1200 versus 1024/2220 was LEVEL at 2,000 nodes (+1.30 Elo [−4.57, +7.17], 8,000 games) and WORSE at 20,000 (−12.51 [−22.81, −2.22], 2,000 games). The M3 minus M1 descriptive contrast was −2.43 [−12.70, +7.84]. [Job 30 report](REPORT_sol_job30.md)
+
+## After Job 31 — 2026-11-18T21:10:01Z
+
+On H with PC20, embedded AL1 s198, Threads 1 and Hash 16, keep 896/multiplier 1200 against 1024/2220 finished a second seed at both node budgets. M3b at 2,000 nodes per move scored +3.43 Elo [−2.48, +9.34], 8,000 games. Pooling M3 and M3b gave +2.37 [−1.80, +6.53], 16,000 games, LEVEL. M4b at 20,000 nodes scored −6.78 [−16.53, +2.98], 2,000 games. The M4 and M4b pool gave −9.64 [−16.73, −2.55], 4,000 games, WORSE by the predeclared rule with a negative fresh center. Both controls passed and all four forecast cells matched. [Job 31 report](REPORT_sol_job31.md)
