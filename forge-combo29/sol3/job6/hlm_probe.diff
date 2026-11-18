@@ -1,0 +1,66 @@
+--- /dev/null
++++ b/include/forge/hlm_probe.hpp
+@@ -0,0 +1,63 @@
++#pragma once
++
++#include "forge/board.hpp"
++
++#include <cstdint>
++#include <optional>
++#include <string>
++
++namespace forge {
++
++struct HlmProbeResult {
++    bool fast;
++    bool full;
++    bool in_check;
++};
++
++struct HlmProbeCounts {
++    std::uint64_t calls = 0;
++    std::uint64_t nomove = 0;
++    std::uint64_t mismatch = 0;
++};
++
++struct HlmProbeMismatch {
++    std::string fen;
++    HlmProbeResult result;
++};
++
++struct HlmProbeStats {
++    HlmProbeCounts checked;
++    HlmProbeCounts unchecked;
++    std::optional<HlmProbeMismatch> first_mismatch;
++};
++
++inline HlmProbeResult record_hlm_comparison(const Board& board, bool fast, HlmProbeStats& stats,
++                                           MoveList* generated = nullptr) {
++    // The full generator may populate mutable king lines. Keep the live board's cache untouched.
++    const Board reference = board;
++    const MoveList moves = reference.legal_moves();
++    const HlmProbeResult result{fast, !moves.empty(), board.in_check()};
++    HlmProbeCounts& counts = result.in_check ? stats.checked : stats.unchecked;
++    ++counts.calls;
++    counts.nomove += !result.full;
++    if (result.fast != result.full) {
++        ++counts.mismatch;
++        if (!stats.first_mismatch) {
++            stats.first_mismatch = HlmProbeMismatch{board.fen(), result};
++        }
++    }
++    if (generated != nullptr) {
++        generated->clear();
++        for (const Move move : moves) {
++            generated->push_back(move);
++        }
++    }
++    return result;
++}
++
++inline HlmProbeResult probe_has_legal_move(const Board& board, HlmProbeStats& stats,
++                                         MoveList* generated = nullptr) {
++    return record_hlm_comparison(board, board.has_legal_move(), stats, generated);
++}
++
++}  // namespace forge
