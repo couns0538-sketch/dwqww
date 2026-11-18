@@ -1,0 +1,18 @@
+from pathlib import Path
+import json,runpy,sys
+path,out,*args=sys.argv[1:]
+mod=runpy.run_path(path); glob=mod['run_selfplay'].__globals__
+original=glob['generate_openings']
+def capture(*params):
+    rows=original(*params)
+    records=[]
+    for row in rows:
+        tracker=mod['MinimalBoardTracker']()
+        for move in row: tracker.push_uci(move)
+        records.append({'moves':row,'position_side_castling':tracker.fen().split()[:3]})
+    with Path(out).open('x') as stream:
+        json.dump(records,stream,indent=2); stream.write('\n')
+    return rows
+glob['generate_openings']=capture
+sys.argv=[path,*args]
+mod['main']()
