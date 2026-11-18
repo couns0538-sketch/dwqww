@@ -1,0 +1,33 @@
+=== JOB 20 PART B: RULE R(k) EVALUATION FROM PART A'S 7,670 ROWS (NO NEW ENGINE RUNS) ===
+UPPER-BOUND NOTE: All node savings below are an UPPER BOUND — in real play, skipping an iteration
+also leaves fewer transposition-table entries in Hash 16 for the subsequent searches of that game.
+
+Rule R(k): after iteration j finishes with n_j < N (N = 2,000), do NOT start iteration j + 1 when:
+           n_j + k * (n_j - n_{j-1}) > 4N   (4N = 8,000, n_0 = 0).
+Extra row (pre-declared in commit f53dda121 before Part A ran): R(12) [k = 12].
+Baseline denominators from Part A:
+  - Total executed nodes sum(X):                         32,864,906
+  - Total discarded H-iteration nodes sum(X - n_d):      7,223,590 across 1,062 H searches
+  - Total finished iterations across 7,623 active roots: 67,450 (of which 59,827 are j >= 2)
+
+Rule    | H_Skip H_Saved_Nodes %of_7.22M %of_32.86M | Fin_Skip %AllFin %d>=2Fin  Fin_Nodes | early_j<=d-2 | Depths Reached by Skipped Finished Iterations
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+R(1)    |      0             0     0.00%      0.00% |        0  0.000%   0.000%          0 |            0 | none
+R(2)    |      0             0     0.00%      0.00% |        0  0.000%   0.000%          0 |            0 | none
+R(3)    |      0             0     0.00%      0.00% |        0  0.000%   0.000%          0 |            0 | none
+R(4)    |     22       134,082     1.86%      0.41% |       90  0.133%   0.150%    284,762 |            0 | min=6, med=8, max=11 {6: 3, 7: 7, 8: 58, 9: 18, 10: 2, 11: 2}
+R(6)    |    218     1,364,127    18.88%      4.15% |      845  1.253%   1.412%  2,324,826 |           14 | min=2, med=8, max=12 {2: 1, 3: 1, 4: 3, 5: 10, 6: 39, 7: 89, 8: 457, 9: 191, 10: 40, 11: 11, 12: 3}
+R(8)    |    404     2,567,974    35.55%      7.81% |    1,771  2.626%   2.960%  4,548,871 |           72 | min=2, med=8, max=13 {2: 3, 3: 6, 4: 13, 5: 32, 6: 89, 7: 235, 8: 856, 9: 401, 10: 98, 11: 29, 12: 5, 13: 4}
+R(12)*  |    616     3,990,695    55.25%     12.14% |    3,577  5.303%   5.979%  8,289,227 |          383 | min=2, med=8, max=16 {2: 12, 3: 17, 4: 36, 5: 106, 6: 283, 7: 602, 8: 1532, 9: 700, 10: 183, 11: 75, 12: 22, 13: 7, 14: 1, 16: 1}
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+*R(12) is the single pre-declared extra rule (partB_predeclared_extra_rule.txt, commit f53dda121).
+
+  Part C check R(1): H-waste saved = 0 (0.00% of 32,864,906; incl. skipped-fin = 0 = 0.00%), finished iters skipped = 0 (0.000% of all 67,450 finished iters; 0.000% of 59,827 d>=2 finished iters; 0.00% of 7,670 searches)
+  Part C check R(2): H-waste saved = 0 (0.00% of 32,864,906; incl. skipped-fin = 0 = 0.00%), finished iters skipped = 0 (0.000% of all 67,450 finished iters; 0.000% of 59,827 d>=2 finished iters; 0.00% of 7,670 searches)
+  Part C check R(3): H-waste saved = 0 (0.00% of 32,864,906; incl. skipped-fin = 0 = 0.00%), finished iters skipped = 0 (0.000% of all 67,450 finished iters; 0.000% of 59,827 d>=2 finished iters; 0.00% of 7,670 searches)
+  Part C check R(4): H-waste saved = 134,082 (0.41% of 32,864,906; incl. skipped-fin = 418,844 = 1.27%), finished iters skipped = 90 (0.133% of all 67,450 finished iters; 0.150% of 59,827 d>=2 finished iters; 1.17% of 7,670 searches)
+  Part C check R(6): H-waste saved = 1,364,127 (4.15% of 32,864,906; incl. skipped-fin = 3,688,953 = 11.22%), finished iters skipped = 845 (1.253% of all 67,450 finished iters; 1.412% of 59,827 d>=2 finished iters; 10.80% of 7,670 searches)
+  Part C check R(8): H-waste saved = 2,567,974 (7.81% of 32,864,906; incl. skipped-fin = 7,116,845 = 21.65%), finished iters skipped = 1,771 (2.626% of all 67,450 finished iters; 2.960% of 59,827 d>=2 finished iters; 22.02% of 7,670 searches)
+  Part C check R(12): H-waste saved = 3,990,695 (12.14% of 32,864,906; incl. skipped-fin = 12,279,922 = 37.36%), finished iters skipped = 3,577 (5.303% of all 67,450 finished iters; 5.979% of 59,827 d>=2 finished iters; 40.81% of 7,670 searches)
+
+Qualifying k for Part C (saves >= 10.00% of 32,864,906 and skips <= 1.00% of finished iterations): []
