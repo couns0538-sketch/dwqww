@@ -1,0 +1,129 @@
+=== PGO1 PATCH HUNKS (job10/pgo1_curated_pgo_winners_and_hot_stop_tt_stalemate.patch.txt, 1060 lines) ===
+P01 include/forge/board.hpp    pgo1:L   4-L  12 @@ -208,7 +208,7 @@        | ['CHANGED_OR_ABSENT'] | -    [[nodiscard]] bool make_move(const Move& move, Undo& undo);
+P02 include/forge/board.hpp    pgo1:L  13-L  26 @@ -219,6 +219,13 @@       | ['EQUAL_BODY@curated:L53-L66'] | +#if FORGE_SPD_KING_LINES
+P03 include/forge/board.hpp    pgo1:L  27-L  35 @@ -326,7 +333,7 @@        | ['CHANGED_OR_ABSENT'] | -    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_typ
+P04 include/forge/search.hpp   pgo1:L  39-L  49 @@ -139,9 +139,9 @@        | ['CHANGED_OR_ABSENT'] | +    std::uint8_t slot_ = 0;
+P05 include/forge/search.hpp   pgo1:L  50-L  60 @@ -564,7 +564,10 @@       | ['CHANGED_OR_ABSENT'] | +    mutable MoveList picker_scratch_;
+P06 include/forge/search.hpp   pgo1:L  61-L  76 @@ -617,6 +620,15 @@       | ['CHANGED_OR_ABSENT'] | +    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
+P07 src/board.cpp              pgo1:L  80-L  87 @@ -2,6 +2,7 @@            | ['EQUAL_BODY@curated:L166-L173'] | +#include <cassert>
+P08 src/board.cpp              pgo1:L  88-L  97 @@ -833,7 +834,8 @@        | ['EQUAL_BODY@curated:L174-L183'] | -    for (Bitboard b = attacks::king(king) & ~own; b != 0;) {
+P09 src/board.cpp              pgo1:L  98-L 123 @@ -850,14 +852,21 @@      | ['EQUAL_BODY@curated:L184-L209'] | +        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bis
+P10 src/board.cpp              pgo1:L 124-L 132 @@ -895,7 +904,7 @@        | ['CHANGED_OR_ABSENT'] | -    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_typ
+P11 src/board.cpp              pgo1:L 133-L 141 @@ -1156,7 +1165,7 @@      | ['EQUAL_BODY@curated:L210-L218'] | -bool Board::make_move(const Move& move, Undo& undo) {
+P12 src/board.cpp              pgo1:L 142-L 155 @@ -1170,10 +1179,11 @@    | ['CHANGED_OR_ABSENT'] | -    undo.king_lines = king_lines_;
+P13 src/board.cpp              pgo1:L 156-L 187 @@ -1182,26 +1192,26 @@    | ['CHANGED_OR_ABSENT'] | -        key_ ^= piece_key(captured_square, undo.captured);
+P14 src/board.cpp              pgo1:L 188-L 252 @@ -1211,31 +1221,45 @@    | ['CHANGED_OR_ABSENT'] | -        key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook)
+P15 src/board.cpp              pgo1:L 253-L 262 @@ -1274,7 +1298,8 @@      | ['EQUAL_BODY@curated:L362-L371', 'EQUAL_PM(ctx_diff)@curated:L382-L391'] | -    king_lines_ = undo.king_lines;
+P16 src/board.cpp              pgo1:L 263-L 272 @@ -1285,7 +1310,8 @@      | ['EQUAL_BODY@curated:L372-L381'] | -    undo.king_lines = king_lines_;
+P17 src/board.cpp              pgo1:L 273-L 282 @@ -1311,7 +1337,8 @@      | ['EQUAL_PM(ctx_diff)@curated:L362-L371', 'EQUAL_BODY@curated:L382-L391'] | -    king_lines_ = undo.king_lines;
+P18 src/search.cpp             pgo1:L 286-L 294 @@ -21,7 +21,7 @@          | ['EQUAL_BODY@curated:L485-L493'] | -#define FORGE_SDK_BADCAP_PREFIX 0
+P19 src/search.cpp             pgo1:L 295-L 338 @@ -467,25 +467,34 @@      | ['CHANGED_OR_ABSENT'] | -    // Owner calls (TakeLock false) skip lock_stripe: under the lease
+P20 src/search.cpp             pgo1:L 339-L 360 @@ -504,15 +513,14 @@      | ['CHANGED_OR_ABSENT'] | -        return snapshot(*found, true);
+P21 src/search.cpp             pgo1:L 361-L 369 @@ -520,7 +528,7 @@        | ['CHANGED_OR_ABSENT'] | -    return snapshot(*replace, false);
+P22 src/search.cpp             pgo1:L 370-L 382 @@ -537,7 +545,11 @@       | ['CHANGED_OR_ABSENT'] | -    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::u
+P23 src/search.cpp             pgo1:L 383-L 392 @@ -792,8 +804,7 @@        | ['EQUAL_BODY@curated:L528-L537'] | -                    if (move == tt_move_) continue;
+P24 src/search.cpp             pgo1:L 393-L 417 @@ -854,21 +865,20 @@      | ['CHANGED_OR_ABSENT'] | -    MoveList buffer_;
+P25 src/search.cpp             pgo1:L 418-L 425 @@ -878,6 +888,7 @@        | ['EQUAL_BODY@curated:L595-L602'] | +#endif
+P26 src/search.cpp             pgo1:L 426-L 445 @@ -1028,15 +1039,16 @@    | ['CHANGED_OR_ABSENT'] | -        buffer_.clear();
+P27 src/search.cpp             pgo1:L 446-L 470 @@ -1056,19 +1068,20 @@    | ['CHANGED_OR_ABSENT'] | +        MoveList& buf = searcher_.picker_scratch_;
+P28 src/search.cpp             pgo1:L 471-L 496 @@ -1076,20 +1089,21 @@    | ['CHANGED_OR_ABSENT'] | +        MoveList& buf = searcher_.picker_scratch_;
+P29 src/search.cpp             pgo1:L 497-L 519 @@ -1100,15 +1114,16 @@    | ['EQUAL_BODY@curated:L1031-L1053'] | -    void generate_evasions() {
+P30 src/search.cpp             pgo1:L 520-L 548 @@ -1169,20 +1184,21 @@    | ['CHANGED_OR_ABSENT'] | -        legal_to_by_from_.fill(0);
+P31 src/search.cpp             pgo1:L 549-L 586 @@ -1217,24 +1233,24 @@    | ['CHANGED_OR_ABSENT'] | -    *main_history_ = ButterflyHistory{};
+P32 src/search.cpp             pgo1:L 587-L 595 @@ -1766,7 +1782,7 @@      | ['CHANGED_OR_ABSENT'] | -    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && sho
+P33 src/search.cpp             pgo1:L 596-L 606 @@ -1847,8 +1863,10 @@     | ['EQUAL_BODY@curated:L1262-L1272'] | +        int known_gives_check = -1;
+P34 src/search.cpp             pgo1:L 607-L 620 @@ -1867,11 +1885,12 @@    | ['EQUAL_BODY@curated:L1273-L1286'] | -        (void)board.make_move(move, undo);
+P35 src/search.cpp             pgo1:L 621-L 629 @@ -1915,7 +1934,7 @@      | ['CHANGED_OR_ABSENT'] | -    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && sho
+P36 src/search.cpp             pgo1:L 630-L 643 @@ -2385,11 +2404,12 @@    | ['CHANGED_OR_ABSENT'] | -        (void)board.make_move(move, undo);
+P37 src/search.cpp             pgo1:L 644-L 653 @@ -2881,6 +2901,9 @@      | ['CHANGED_OR_ABSENT'] | +    fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 
+P38 src/uci.cpp                pgo1:L 657-L 791 @@ -43,48 +43,111 @@       | ['CHANGED_OR_ABSENT'] | -    std::string base_fen;
+P39 src/uci.cpp                pgo1:L 792-L 867 @@ -95,41 +158,63 @@       | ['EQUAL_BODY@curated:L1589-L1664'] | -        cache.base_fen = std::move(fen);
+P40 src/uci.cpp                pgo1:L 868-L 891 @@ -137,18 +222,18 @@      | ['EQUAL_BODY@curated:L1665-L1688'] | -    for (std::size_t i = 0; i < tokens.size();) {
+P41 src/uci.cpp                pgo1:L 892-L 900 @@ -162,7 +247,7 @@        | ['EQUAL_BODY@curated:L1689-L1697', 'EQUAL_PM(ctx_diff)@curated:L1698-L1706'] | -            std::string text;
+P42 src/uci.cpp                pgo1:L 901-L 909 @@ -173,7 +258,7 @@        | ['EQUAL_PM(ctx_diff)@curated:L1689-L1697', 'EQUAL_BODY@curated:L1698-L1706'] | -            std::string text;
+P43 src/uci.cpp                pgo1:L 910-L 918 @@ -223,7 +308,7 @@        | ['EQUAL_BODY@curated:L1707-L1715', 'EQUAL_PM(ctx_diff)@curated:L1751-L1759'] | -            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+P44 src/uci.cpp                pgo1:L 919-L 953 @@ -233,27 +318,25 @@      | ['EQUAL_BODY@curated:L1716-L1750'] | -    for (std::size_t i = 0; i < tokens.size();) {
+P45 src/uci.cpp                pgo1:L 954-L 962 @@ -274,7 +357,7 @@        | ['EQUAL_PM(ctx_diff)@curated:L1707-L1715', 'EQUAL_BODY@curated:L1751-L1759'] | -            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+P46 src/uci.cpp                pgo1:L 963-L 985 @@ -333,17 +416,19 @@      | ['EQUAL_BODY@curated:L1760-L1782'] | +        SearchTask task;
+P47 src/uci.cpp                pgo1:L 986-L 997 @@ -409,9 +494,8 @@        | ['EQUAL_BODY@curated:L1783-L1794'] | -        std::istringstream input(line);
+P48 src/uci.cpp                pgo1:L 998-L1011 @@ -493,10 +577,11 @@      | ['EQUAL_BODY@curated:L1795-L1808'] | -            pos_cache.base_fen.clear();
+P49 src/uci.cpp                pgo1:L1012-L1020 @@ -735,7 +820,7 @@        | ['EQUAL_BODY@curated:L1809-L1817'] | -            apply_position(board, input, pos_cache);
+P50 src/uci.cpp                pgo1:L1021-L1037 @@ -745,13 +830,11 @@      | ['EQUAL_BODY@curated:L1818-L1834'] | -            std::string first;
+P51 src/uci.cpp                pgo1:L1038-L1048 @@ -774,9 +857,7 @@        | ['EQUAL_BODY@curated:L1835-L1845'] | -                input.clear();
+P52 src/uci.cpp                pgo1:L1049-L1060 @@ -848,7 +929,10 @@       | ['EQUAL_BODY@curated:L1846-L1857'] | -            if (int parsed = 0; input >> parsed) depth = std::clamp(p
+
+=== CURATED PATCH HUNKS (job11/curated_sp_bundle.patch.txt, 1857 lines) ===
+C01 include/forge/b4.hpp       curated:L   4-L  39 @@ -37,20 +37,26 @@        | -    const Color them = opposite(board.side_to_move());
+C02 include/forge/board.hpp    curated:L  43-L  52 @@ -208,7 +208,8 @@        | -    [[nodiscard]] bool make_move(const Move& move, Undo& undo);
+C03 include/forge/board.hpp    curated:L  53-L  66 @@ -219,6 +220,13 @@       | +#if FORGE_SPD_KING_LINES
+C04 include/forge/board.hpp    curated:L  67-L  74 @@ -242,6 +250,7 @@        | +    [[nodiscard]] const std::array<Bitboard, 13>& piece_bitboards() c
+C05 include/forge/eval.hpp     curated:L  78-L  87 @@ -51,6 +51,9 @@          | +[[nodiscard]] inline bool has_dead_material_candidates(const Board& b
+C06 include/forge/nnue_v3.hpp  curated:L  91-L 105 @@ -173,7 +173,13 @@       | -[[nodiscard]] KingKey king_key(const Net& net, Color perspective, int
+C07 include/forge/search.hpp   curated:L 109-L 119 @@ -452,8 +452,9 @@        | -    mutable std::uint64_t corr_mat_mix = 0;
+C08 include/forge/search.hpp   curated:L 120-L 127 @@ -544,6 +545,7 @@        | +    std::uint64_t quiet_hist_epoch_ = 0;
+C09 include/forge/search.hpp   curated:L 128-L 162 @@ -563,7 +565,33 @@       | -    std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      //
+C10 src/board.cpp              curated:L 166-L 173 @@ -2,6 +2,7 @@            | +#include <cassert>
+C11 src/board.cpp              curated:L 174-L 183 @@ -833,7 +834,8 @@        | -    for (Bitboard b = attacks::king(king) & ~own; b != 0;) {
+C12 src/board.cpp              curated:L 184-L 209 @@ -850,14 +852,21 @@      | +        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bis
+C13 src/board.cpp              curated:L 210-L 218 @@ -1156,7 +1165,7 @@      | -bool Board::make_move(const Move& move, Undo& undo) {
+C14 src/board.cpp              curated:L 219-L 237 @@ -1170,10 +1179,17 @@    | -    undo.king_lines = king_lines_;
+C15 src/board.cpp              curated:L 238-L 284 @@ -1182,26 +1198,41 @@    | -        key_ ^= piece_key(captured_square, undo.captured);
+C16 src/board.cpp              curated:L 285-L 361 @@ -1211,31 +1242,57 @@    | -        key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook)
+C17 src/board.cpp              curated:L 362-L 371 @@ -1274,7 +1331,8 @@      | -    king_lines_ = undo.king_lines;
+C18 src/board.cpp              curated:L 372-L 381 @@ -1285,7 +1343,8 @@      | -    undo.king_lines = king_lines_;
+C19 src/board.cpp              curated:L 382-L 391 @@ -1311,7 +1370,8 @@      | -    king_lines_ = undo.king_lines;
+C20 src/board.cpp              curated:L 392-L 414 @@ -1456,11 +1516,19 @@    | -    Color stm = us;
+C21 src/board.cpp              curated:L 415-L 444 @@ -1468,7 +1536,29 @@     | +#else
+C22 src/nnue_v3.cpp            curated:L 448-L 462 @@ -696,14 +696,6 @@       | -KingKey king_key(const Net& net, Color perspective, int king_square) 
+C23 src/nnue_v3.cpp            curated:L 463-L 481 @@ -822,9 +814,15 @@       | -    state.stack.assign(static_cast<std::size_t>(stack_size), Accumula
+C24 src/search.cpp             curated:L 485-L 493 @@ -21,7 +21,7 @@          | -#define FORGE_SDK_BADCAP_PREFIX 0
+C25 src/search.cpp             curated:L 494-L 527 @@ -755,10 +755,32 @@      | -                        const Move move = pick_best();
+C26 src/search.cpp             curated:L 528-L 537 @@ -792,8 +814,7 @@        | -                    if (move == tt_move_) continue;
+C27 src/search.cpp             curated:L 538-L 554 @@ -804,8 +825,14 @@       | -    // Every move yielded from the Evasions stage (not EvasionTT) was
+C28 src/search.cpp             curated:L 555-L 594 @@ -854,21 +881,35 @@      | -    MoveList buffer_;
+C29 src/search.cpp             curated:L 595-L 602 @@ -878,6 +919,7 @@        | +#endif
+C30 src/search.cpp             curated:L 603-L 611 @@ -913,7 +955,7 @@        | -                          ? &searcher.threat_maps_[static_cast<std::s
+C31 src/search.cpp             curated:L 612-L 667 @@ -955,18 +997,53 @@      | -    [[nodiscard]] Move pick_best() {
+C32 src/search.cpp             curated:L 668-L 680 @@ -1001,9 +1078,11 @@     | -        return moves_[index_++].move;
+C33 src/search.cpp             curated:L 681-L 788 @@ -1027,16 +1106,103 @@   | -    void generate_captures() {
+C34 src/search.cpp             curated:L 789-L1030 @@ -1050,46 +1216,225 @@   | +#endif
+C35 src/search.cpp             curated:L1031-L1053 @@ -1100,15 +1445,16 @@    | -    void generate_evasions() {
+C36 src/search.cpp             curated:L1054-L1088 @@ -1166,23 +1512,24 @@    | -        // Score tie among legal evasions: pick_best()'s 4 selection 
+C37 src/search.cpp             curated:L1089-L1127 @@ -1217,24 +1564,25 @@    | -    *main_history_ = ButterflyHistory{};
+C38 src/search.cpp             curated:L1128-L1144 @@ -1277,13 +1625,13 @@    | -    if (dead_material_enabled) {
+C39 src/search.cpp             curated:L1145-L1157 @@ -1348,9 +1696,11 @@     | +    if (captured != Empty || move.is_promotion()) keep &= static_cast
+C40 src/search.cpp             curated:L1158-L1168 @@ -1358,8 +1708,8 @@      | -    if (nnue::v3::active()) {
+C41 src/search.cpp             curated:L1169-L1186 @@ -1394,14 +1744,15 @@    | +    child->corr_mat_idx = ss->corr_mat_idx;
+C42 src/search.cpp             curated:L1187-L1216 @@ -1409,16 +1760,27 @@    | +
+C43 src/search.cpp             curated:L1217-L1230 @@ -1480,7 +1842,12 @@     | -    if (tune::MaterialCorrectionWeight > 0) apply((*material_correcti
+C44 src/search.cpp             curated:L1231-L1239 @@ -1610,7 +1977,7 @@      | -        const Bitboard set = threat_maps_[static_cast<std::size_t>(ss
+C45 src/search.cpp             curated:L1240-L1249 @@ -1631,8 +1998,7 @@      | -    const b4::LesserThreats& threats = threat_maps_[static_cast<std::
+C46 src/search.cpp             curated:L1250-L1261 @@ -1836,9 +2202,9 @@      | -    // B4 HistRework: check evasions score quiet moves with the twin,
+C47 src/search.cpp             curated:L1262-L1272 @@ -1847,8 +2213,10 @@     | +        int known_gives_check = -1;
+C48 src/search.cpp             curated:L1273-L1286 @@ -1867,11 +2235,12 @@    | -        (void)board.make_move(move, undo);
+C49 src/search.cpp             curated:L1287-L1295 @@ -2043,7 +2412,7 @@      | -            apply_history((*main_history_)[static_cast<std::size_t>(o
+C50 src/search.cpp             curated:L1296-L1304 @@ -2111,7 +2480,7 @@      | -            int null_score = -search_child(board, ss + 1, depth - red
+C51 src/search.cpp             curated:L1305-L1315 @@ -2187,8 +2556,8 @@      | -    // B4 HistRework: lesser-attacker maps of this node, read by the 
+C52 src/search.cpp             curated:L1316-L1324 @@ -2230,7 +2599,7 @@      | -        const bool gives_check = board.gives_check(move);
+C53 src/search.cpp             curated:L1325-L1339 @@ -2385,11 +2754,13 @@    | -        (void)board.make_move(move, undo);
+C54 src/search.cpp             curated:L1340-L1348 @@ -2497,7 +2868,7 @@      | -        apply_history((*main_history_)[static_cast<std::size_t>(board
+C55 src/search.cpp             curated:L1349-L1363 @@ -2644,6 +3015,14 @@     | +    nnue_active_ = nnue::enabled && nnue::available();
+C56 src/search.cpp             curated:L1364-L1372 @@ -2883,7 +3262,7 @@      | -    const bool use_v3_eval = nnue::enabled && nnue::available() && nn
+C57 src/search.cpp             curated:L1373-L1383 @@ -3346,7 +3725,9 @@      | -    SearchInfo result = workers_.front()->search(board, worker_limits
+C58 src/search.cpp             curated:L1384-L1398 @@ -3365,9 +3746,11 @@     | -    const nnue::v3::Net& net = *nnue::v3::loaded();
+C59 src/search.cpp             curated:L1399-L1450 @@ -3377,29 +3760,32 @@    | -        int king0 = parent.king_sq[0];
+C60 src/uci.cpp                curated:L1454-L1588 @@ -43,48 +43,111 @@       | -    std::string base_fen;
+C61 src/uci.cpp                curated:L1589-L1664 @@ -95,41 +158,63 @@       | -        cache.base_fen = std::move(fen);
+C62 src/uci.cpp                curated:L1665-L1688 @@ -137,18 +222,18 @@      | -    for (std::size_t i = 0; i < tokens.size();) {
+C63 src/uci.cpp                curated:L1689-L1697 @@ -162,7 +247,7 @@        | -            std::string text;
+C64 src/uci.cpp                curated:L1698-L1706 @@ -173,7 +258,7 @@        | -            std::string text;
+C65 src/uci.cpp                curated:L1707-L1715 @@ -223,7 +308,7 @@        | -            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+C66 src/uci.cpp                curated:L1716-L1750 @@ -233,27 +318,25 @@      | -    for (std::size_t i = 0; i < tokens.size();) {
+C67 src/uci.cpp                curated:L1751-L1759 @@ -274,7 +357,7 @@        | -            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+C68 src/uci.cpp                curated:L1760-L1782 @@ -333,17 +416,19 @@      | +        SearchTask task;
+C69 src/uci.cpp                curated:L1783-L1794 @@ -409,9 +494,8 @@        | -        std::istringstream input(line);
+C70 src/uci.cpp                curated:L1795-L1808 @@ -493,10 +577,11 @@      | -            pos_cache.base_fen.clear();
+C71 src/uci.cpp                curated:L1809-L1817 @@ -735,7 +820,7 @@        | -            apply_position(board, input, pos_cache);
+C72 src/uci.cpp                curated:L1818-L1834 @@ -745,13 +830,11 @@      | -            std::string first;
+C73 src/uci.cpp                curated:L1835-L1845 @@ -774,9 +857,7 @@        | -                input.clear();
+C74 src/uci.cpp                curated:L1846-L1857 @@ -848,7 +929,10 @@       | -            if (int parsed = 0; input >> parsed) depth = std::clamp(p
