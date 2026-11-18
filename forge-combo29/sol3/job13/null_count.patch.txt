@@ -1,0 +1,141 @@
+diff -ruN base/include/forge/search.hpp tree/include/forge/search.hpp
+--- base/include/forge/search.hpp	2026-11-18 05:27:32.636359833 -0800
++++ tree/include/forge/search.hpp	2026-11-18 05:50:28.994453077 -0800
+@@ -70,6 +70,7 @@
+     std::vector<Move> pv;
+     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
+     bool restricted_root_empty = false;
++    std::array<std::uint64_t, 5> null_counts{};
+ };
+ 
+ constexpr int MaxPly = 128;
+@@ -637,6 +638,9 @@
+     bool root_prev_best_done_ = false;     // that move was searched to its end in the root search now running
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    std::uint64_t null_shallow_tries_ = 0;
++    std::uint64_t null_shallow_cutoffs_ = 0;
++    std::uint64_t null_quiet_mates_ = 0;
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
+@@ -731,6 +735,7 @@
+ #endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
++    void count_null_cutoff(const Board& board, int child_depth);
+     [[gnu::always_inline]] bool check_node_or_periodic_stop() {
+         if (fast_single_node_stop_) {
+             if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
+diff -ruN base/src/search.cpp tree/src/search.cpp
+--- base/src/search.cpp	2026-11-18 05:27:32.638032655 -0800
++++ tree/src/search.cpp	2026-11-18 05:50:29.798414298 -0800
+@@ -1883,6 +1883,28 @@
+     child->runtime_psqt.valid = false;
+ }
+ 
++void Worker::count_null_cutoff(const Board& board, int child_depth) {
++    ++null_cutoffs_;
++    if (child_depth > 0) return;
++    ++null_shallow_cutoffs_;
++
++    // The actual null search has been undone. Test its position on a copy.
++    Board null_child = board;
++    NullUndo null_undo;
++    null_child.make_null_move(null_undo);
++    for (const Move move : null_child.legal_moves()) {
++        if (move.is_capture() || move.is_promotion()) continue;
++        Undo undo;
++        (void)null_child.make_move(move, undo);
++        const bool mate = null_child.in_check() && null_child.legal_moves().empty();
++        null_child.unmake_move(move, undo);
++        if (mate) {
++            ++null_quiet_mates_;
++            return;
++        }
++    }
++}
++
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+@@ -2589,9 +2611,9 @@
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+-            ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++            const int child_depth = depth - reduction;
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -2603,7 +2625,9 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+-            int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            ++null_tries_;
++            if (child_depth <= 0) ++null_shallow_tries_;
++            int null_score = -search_child(board, ss + 1, child_depth, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+@@ -2615,7 +2639,7 @@
+                 const bool threat_gate =
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+-                    ++null_cutoffs_;
++                    count_null_cutoff(board, child_depth);
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -2623,13 +2647,13 @@
+                 const bool saved_block = null_blocked_;
+                 if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
+-                const int verification = search_child(board, ss, depth - reduction, beta - 1, beta, false);
++                const int verification = search_child(board, ss, child_depth, beta - 1, beta, false);
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+-                    ++null_cutoffs_;
++                    count_null_cutoff(board, child_depth);
+                     return null_score;
+                 }
+             }
+@@ -3129,6 +3153,9 @@
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    null_shallow_tries_ = 0;
++    null_shallow_cutoffs_ = 0;
++    null_quiet_mates_ = 0;
+     null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+@@ -3859,6 +3886,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    const Worker& worker = *workers_.front();
++    result.null_counts = {worker.null_tries_, worker.null_shallow_tries_, worker.null_cutoffs_,
++                          worker.null_shallow_cutoffs_, worker.null_quiet_mates_};
+     return result;
+ }
+ 
+diff -ruN base/src/uci.cpp tree/src/uci.cpp
+--- base/src/uci.cpp	2026-11-18 05:27:32.639155943 -0800
++++ tree/src/uci.cpp	2026-11-18 05:50:30.450382850 -0800
+@@ -447,6 +447,9 @@
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "bestmove " << best << prediction << std::endl;
++                std::cout << "NC0";
++                for (const std::uint64_t count : result.null_counts) std::cout << ' ' << count;
++                std::cout << std::endl;
+             }
+             {
+                 const std::lock_guard<std::mutex> lock(stop_mutex);
