@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+"""Recount Job 7 ABBA receipts and enter the Job 6 unprofiled comparison."""
+
+import argparse
+from dataclasses import dataclass
+import hashlib
+import json
+import math
+from pathlib import Path
+from statistics import median
+
+
+SCHEMA = "forge-warm-abba-v2"
+ORDER = "ABBA"
+EXPECTED = (60, 8612, 29333343, "5c705841c3ea17b4")
+TRACE_FIELDS = ("games", "searches", "total_nodes", "trace_fnv1a64")
+WORKLOAD_ARGS = ["--games", "60", "--softnodes", "2000", "--random-plies", "8", "--max-plies", "300",
+                 "--seed", "20261117", "--json"]
+METRICS = (("engine_cpu_s", "Engine CPU"), ("total_wall_ns", "Wall"))
+NET_SHA256 = "c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7"
+DRIVER_SHA256 = "c79b95bf45762fa9869d23140ed7f946cfaf0cb6bc4f74325a18d5f934bf1c45"
+
+
+@dataclass
+class Audit:
+    directory: Path
+    manifest: dict
+    summary: dict | None
+    rows: list
+    blocks: list
+    metrics: dict
+    complete: bool
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def same_number(actual, expected):
+    return math.isclose(actual, expected, rel_tol=1e-10, abs_tol=1e-12)
+
+
+def verify_manifest(directory, manifest, requested, floor):
+    require(manifest["schema"] == SCHEMA and manifest["order"] == list(ORDER), f"bad schema/order in {directory}")
+    require(manifest["blocks_requested"] == requested and tuple(manifest["expected_games_searches_nodes_trace"]) == EXPECTED,
+            f"bad block count or workload in {directory}")
+    identities = manifest["inputs"]
+    require(identities["net"]["sha256"] == NET_SHA256 and identities["driver"]["sha256"] == DRIVER_SHA256,
+            f"bad net or driver pin in {directory}")
+    for arm in "AB":
+        expected_argv = [identities["driver"]["path"], "--engine", identities[arm]["path"], "--net", identities["net"]["path"],
+                         *WORKLOAD_ARGS]
+        require(manifest["argv_by_arm"][arm] == expected_argv, f"workload argv differs for {arm} in {directory}")
+    if floor is None:
+        require(manifest["identical_floor"] and manifest["floor"] is None, f"missing identical-floor flag in {directory}")
+        require(identities["A"]["path"] != identities["B"]["path"] and identities["A"]["sha256"] == identities["B"]["sha256"],
+                f"floor did not name distinct paths with identical executable hashes in {directory}")
+    else:
+        source = floor.directory / "summary.txt"
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        require(floor.complete and not manifest["identical_floor"] and manifest["floor"]["sha256"] == digest,
+                f"invalid floor binding in {directory}")
+        require(manifest["worker_affinity"] == floor.manifest["worker_affinity"], f"floor CPU affinity differs in {directory}")
+
+
+def inspect_rows(directory, manifest, rows, requested):
+    require(len(rows) <= requested * 4, f"unexpected extra runs in {directory}")
+    first_failed = None
+    previous_finished = 0
+    for index, row in enumerate(rows):
+        block, offset = divmod(index, 4)
+        arm = ORDER[offset]
+        stem = f"b{block + 1:02d}-r{offset + 1}-{arm}"
+        require((row["block"], row["order_index"], row["arm"]) == (block + 1, offset + 1, arm),
+                f"misordered leg {stem} in {directory}")
+        require(row["engine"] == manifest["arm_labels"][arm] and row["engine_sha256"] == manifest["inputs"][arm]["sha256"],
+                f"wrong run executable at {stem} in {directory}")
+        start = row["wall_start_monotonic_ns"]
+        end = row["wall_end_monotonic_ns"]
+        require(end - start == row["total_wall_ns"] and start >= previous_finished, f"invalid/overlapping wall receipts at {stem}")
+        previous_finished = end
+        require(same_number(row["engine_user_s"] + row["engine_system_s"], row["engine_cpu_s"]),
+                f"engine CPU does not equal user plus system at {stem}")
+        require(row["driver_stdout"] == stem + ".driver.stdout.txt" and row["engine_stderr"] == stem + ".engine.stderr.txt",
+                f"unexpected raw paths at {stem}")
+        require((directory / row["engine_stderr"]).is_file() and (directory / row["driver_stdout"]).is_file(),
+                f"missing raw output at {stem}")
+        exact = tuple(row.get(key) for key in TRACE_FIELDS) == EXPECTED
+        require(row["trace_matches"] is exact, f"incorrect trace flag at {stem}")
+        if row["eligible"]:
+            require(first_failed is None and exact and row["error"] is None and row["engine_exit"] == 0,
+                    f"invalid run eligible for analysis at {stem}")
+            require(row["engine_cpu_s"] > 0 and row["total_wall_ns"] > 0 and min(row["engine_user_s"], row["engine_system_s"]) >= 0,
+                    f"invalid raw durations at {stem}")
+            driver = load(directory / row["driver_stdout"])
+            require(all(row.get(key) == field for key, field in driver.items()), f"driver stdout does not match timing row at {stem}")
+        else:
+            require(first_failed is None and index == len(rows) - 1 and row["error"], f"invalid failure boundary at {stem}")
+            first_failed = index
+    return rows[:first_failed] if first_failed is not None else rows
+
+
+def independent_summary(included, requested, floor):
+    blocks = []
+    for offset in range(0, len(included), 4):
+        a_first, b_first, b_last, a_last = included[offset:offset + 4]
+        row = {"block": 1 + offset // 4}
+        for metric, _ in METRICS:
+            row[metric] = math.fsum(row[metric] for row in (b_first, b_last)) / math.fsum(row[metric] for row in (a_first, a_last))
+        blocks.append(row)
+    stats = {}
+    for metric, _ in METRICS:
+        if not blocks:
+            break
+        values = [row[metric] for row in blocks]
+        pooled = {arm: math.fsum(row[metric] for row in included if row["arm"] == arm) for arm in "AB"}
+        below, above = sum(n < 1 for n in values), sum(n > 1 for n in values)
+        stats[metric] = {"pooled_b_over_a": pooled["B"] / pooled["A"], "block_median": median(values),
+                         "block_min": min(values), "block_max": max(values), "below_one": below,
+                         "above_one": above, "equal_one": len(values) - below - above}
+        if floor is not None:
+            low, high = floor.metrics[metric]["block_min"], floor.metrics[metric]["block_max"]
+            outside = median(values) < low or median(values) > high
+            consistent = max(below, above) >= 10
+            decision = "incomplete"
+            if len(blocks) == requested:
+                decision = "MEASURED" if outside and consistent else "not measurable here"
+            stats[metric].update(floor_min=low, floor_max=high, median_outside_floor=outside,
+                                 at_least_10_on_one_side=consistent, decision=decision)
+    return blocks, stats
+
+
+def audit(directory, requested, floor=None):
+    manifest = load(directory / "inputs.txt")
+    verify_manifest(directory, manifest, requested, floor)
+    summary_path = directory / "summary.txt"
+    recorded = load(summary_path) if summary_path.exists() else None
+    rows = [json.loads(line) for line in (directory / "runs.jsonl.txt").read_text(encoding="utf-8").splitlines()]
+    eligible = inspect_rows(directory, manifest, rows, requested)
+    included = eligible[:len(eligible) - len(eligible) % 4]
+    if recorded and "verified_inputs_after" not in recorded:
+        require(str(recorded["error"]).startswith("Post-run identity failed:"), f"missing verified input record in {directory}")
+        included = []
+    blocks, stats = independent_summary(included, requested, floor)
+    complete = len(blocks) == requested
+    if recorded is not None:
+        require(recorded["schema"] == SCHEMA and recorded["order"] == list(ORDER) and recorded["complete"] is complete,
+                f"inconsistent summary header in {directory}")
+        require((recorded["requested_blocks"], recorded["completed_blocks"], recorded["attempted_runs"], recorded["included_runs"])
+                == (requested, len(blocks), len(rows), len(included)), f"inconsistent summary counts in {directory}")
+        require(all(recorded[key] == manifest[key] for key in ("arm_labels", "identical_floor", "floor", "worker_affinity")),
+                f"inconsistent summary identities in {directory}")
+        if "verified_inputs_after" in recorded:
+            require(recorded["verified_inputs_after"] == manifest["inputs"], f"post-run input identity differs in {directory}")
+        require(len(recorded["blocks"]) == len(blocks) and recorded["metrics"].keys() == stats.keys(),
+                f"summary block/metric coverage differs in {directory}")
+        for got, wanted in zip(recorded["blocks"], blocks):
+            require(got["block"] == wanted["block"] and all(same_number(got[key], wanted[key]) for key, _ in METRICS),
+                    f"block ratio mismatch in {directory}: {wanted!r}")
+        for metric, values in stats.items():
+            for key, expected in values.items():
+                got = recorded["metrics"][metric][key]
+                same = same_number(got, expected) if type(expected) is float else got == expected
+                require(same, f"summary mismatch in {directory}: {metric}.{key}, {got!r} versus {expected!r}")
+    return Audit(directory, manifest, recorded, rows, blocks, stats, complete and recorded is not None)
+
+
+def report_campaign(step, subject, data):
+    print(f"### Step {step} — {subject}\n")
+    inputs = data.manifest["inputs"]
+    labels = data.manifest["arm_labels"]
+    print(f"B/A compares `{labels['B']}` (`{inputs['B']['sha256']}`) with `{labels['A']}` (`{inputs['A']['sha256']}`).\n")
+    print("| Block | Leg | Engine | CPU (s) | Wall (s) | Trace | Exit | Included |")
+    print("|---:|---:|---|---:|---:|---|---:|---|")
+    for index, row in enumerate(data.rows):
+        included = "yes" if index < len(data.blocks) * 4 else "no"
+        print(f"| {row['block']} | {row['order_index']} | {row['engine']} | {row['engine_cpu_s']:.3f} | "
+              f"{row['total_wall_ns']/1e9:.3f} | `{row.get('trace_fnv1a64', 'pending')}` | {row['engine_exit']} | {included} |")
+    if data.blocks:
+        print("\n| Block | B/A CPU | B/A wall |\n|---:|---:|---:|")
+        for row in data.blocks:
+            print(f"| {row['block']} | {row['engine_cpu_s']:.4f} | {row['total_wall_ns']:.4f} |")
+        print("\n| Metric | Median | Pooled | Block range | Below 1 | Above 1 | Reading |")
+        print("|---|---:|---:|---:|---:|---:|---|")
+        for metric, label in METRICS:
+            row = data.metrics[metric]
+            reading = row.get("decision", "Identical-binary floor") if data.complete else "incomplete"
+            print(f"| {label} | {row['block_median']:.4f} | {row['pooled_b_over_a']:.4f} | "
+                  f"{row['block_min']:.4f}–{row['block_max']:.4f} | {row['below_one']}/{len(data.blocks)} | "
+                  f"{row['above_one']}/{len(data.blocks)} | {reading} |")
+    else:
+        print("\nNo complete blocks were eligible.")
+    if data.summary and data.summary["error"]:
+        print(f"\nRecorded error `{data.summary['error']}`")
+    links = [f"[Raw runs](sol2/job7/step{step}/runs.jsonl.txt)"]
+    if data.summary is not None:
+        links.append(f"[Summary](sol2/job7/step{step}/summary.txt)")
+    command = f"step{step}-command.raw.txt"
+    if (data.directory.parent / command).is_file():
+        links.append(f"[Command](sol2/job7/{command})")
+    print("\n" + " · ".join(links) + "\n")
+
+
+def report_context(previous, pgo):
+    print("### k11 against r15d with and without GCC LTO and PGO\n")
+    print("| Build | Metric | Block median | Pooled B/A | Blocks below 1 | Reading |")
+    print("|---|---|---:|---:|---:|---|")
+    for label, data in (("Job 6 GCC Release", previous), ("Job 7 GCC Release with LTO and PGO", pgo)):
+        for metric, title in METRICS:
+            if metric not in data.metrics:
+                continue
+            row = data.metrics[metric]
+            decision = row["decision"] if data.complete else "incomplete"
+            print(f"| {label} | {title} | {row['block_median']:.4f} | {row['pooled_b_over_a']:.4f} | "
+                  f"{row['below_one']}/{len(data.blocks)} | {decision} |")
+    print("\nThe two sessions used separate identical-binary ABBA floors. The second session changes both LTO and PGO. "
+          "[Job 6 raw comparison](sol2/job6/step2/runs.jsonl.txt) · [Job 7 raw comparison](sol2/job7/step3/runs.jsonl.txt)\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, epilog=(
+        "Audit the floor alone with --through 2. Use --through 3 after the candidate campaign stops. "
+        "The default also includes Step 4 when its raw runs exist."
+    ))
+    parser.add_argument("job7", type=Path, help="directory containing the Job 7 step folders")
+    parser.add_argument("job6", type=Path, help="directory containing the Job 6 step folders")
+    parser.add_argument("--through", type=int, choices=(2, 3, 4), default=4,
+                        help="last campaign to read (default: 4, optional when absent)")
+    args = parser.parse_args()
+    floor = audit(args.job7 / "step2", 6)
+    print("All tables use PC20, Threads 1, Hash 16 MiB, net768, seed 20261117 and `go softnodes 2000`. "
+          "Each eligible run records 8,612 searches, 29,333,343 nodes and trace `5c705841c3ea17b4`.\n")
+    report_campaign(2, "identical-binary ABBA floor", floor)
+    if args.through >= 3 and floor.complete:
+        previous_floor = audit(args.job6 / "step1", 6)
+        previous = audit(args.job6 / "step2", 12, previous_floor)
+        pgo = audit(args.job7 / "step3", 12, floor)
+        report_campaign(3, "k11-pgo against r15d-pgo", pgo)
+        report_context(previous, pgo)
+    if args.through >= 4 and floor.complete and (args.job7 / "step4" / "runs.jsonl.txt").is_file():
+        report_campaign(4, "k11v-pgo against k11-pgo", audit(args.job7 / "step4", 12, floor))
+
+
+if __name__ == "__main__":
+    main()

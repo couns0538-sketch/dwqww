@@ -67,3 +67,7 @@ All twelve Carbon2 pieces applied with zero fuzz and offsets. k10 and k11 matche
 ## Job 6 — 2026-11-18T10:57:42Z
 
 All 120 PC20/net768 warm timing passes reproduced 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. The identical-binary CPU floor was 0.9699–1.0523. k11/r15d pooled CPU was 0.9457 with a 0.9470 block median and 12/12 below 1, measured by the matching ABBA rule. Piece 11 alone pooled 0.9992 CPU and was not measurable here. The same-session SEE control passed, and matched profiles put the largest estimated reduction in move generation and legality. [Job 6 report](REPORT_sol2_job6.md)
+
+## Job 7 — 2026-11-18T11:59:56Z
+
+All three GCC LTO+PGO builds passed the held-out PC20/net768 trace, with disjoint training and timing openings. The 24 identical-binary control runs gave a CPU floor of 0.9921–1.0517. In 48 runs per comparison, k11-pgo/r15d-pgo pooled 0.9392 CPU with 12/12 blocks below one, measured by the predeclared rule. Carbon2's refresh patch on k11v-pgo pooled 0.9726 CPU against k11-pgo, measured. All 120 timing runs kept 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. These are cloud GCC results. GitHub connector checkpoints had the same tree hashes as the local commits after the CLI authentication failure. [Job 7 report](REPORT_sol2_job7.md)
