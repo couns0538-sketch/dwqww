@@ -1,0 +1,179 @@
+src/uci.cpp
+   490	        } else if (command == "ucinewgame") {
+   491	            stop_search();
+   492	            searcher.clear();
+   493	            (void)board.set_fen(forge::Board::StandardStartFen);
+   494	            pos_cache.valid = true;
+   495	            pos_cache.startpos = true;
+   496	            pos_cache.base_fen.clear();
+   497	            pos_cache.moves.clear();
+   498	        } else if (command == "setoption") {
+src/search.cpp
+   458	void TranspositionTable::clear() {
+   459	    for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
+   460	    generation_ = 0;
+   461	    for (auto& c : sample_gen_counts_) c.store(0, std::memory_order_relaxed);
+   462	    ++epoch_;
+   463	}
+   464	
+  1217	void Worker::clear() {
+  1218	    stack_dirty_limit_ = MaxPly + 7;
+  1219	    evaluator_.clear();
+  1220	    *main_history_ = ButterflyHistory{};
+  1221	    *threat_history_ = ThreatQuietHistory{};
+  1222	    // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+  1223	#if FORGE_PAWN_HISTORY
+  1224	    if (tune::PawnHistory != 0) pawn_history_->fill({});
+  1225	#endif
+  1226	    *capture_history_ = CaptureHistory{};
+  1227	    *continuation_history_ = ContinuationHistory{};
+  1228	    *counter_moves_ = CounterMoveTable{};
+  1229	    *correction_history_ = CorrectionHistory{};
+  1230	    *material_correction_ = CorrectionHistory{};
+  1231	    *non_pawn_white_correction_ = CorrectionHistory{};
+  1232	    *non_pawn_black_correction_ = CorrectionHistory{};
+  1233	    // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+  1234	    *rework_history_ = LesserThreatHistory{};
+  1235	    *joint_correction_ = CorrectionHistory{};
+  1236	    *continuation_correction_ = ContinuationCorrection{};
+  1237	    threat_maps_ = {};
+  1238	    for (SearchStack& ss : stack_) ss = SearchStack{};
+  1239	}
+  2914	        entry.corr_valid = 0;
+  2915	    }
+  2916	    SearchStack* ss = &stack_[4];
+  2917	#if FORGE_NNUE_V3
+  2918	    if (v3_state_) v3_state_->invalidate();
+  2919	    if (use_v3_eval) {
+  2920	        // A v3 net is the whole evaluation. Build its root accumulators now (left lazy, a root whose
+  2921	        // evaluation comes from the hash table never gets them); the compiled-in network is not touched.
+  3284	void Searcher::clear() {
+  3285	    shared_.tt.clear();
+  3286	    for (auto& worker : workers_) worker->clear();
+  3287	}
+  3288	
+src/eval.cpp
+   567	Evaluator::Evaluator() : pawn_cache_(PawnCacheSize) {}
+   568	
+   569	void Evaluator::clear() {
+   570	    std::fill(pawn_cache_.begin(), pawn_cache_.end(), PawnEntry{});
+   571	}
+   572	
+include/forge/eval.hpp
+    74	    struct PawnEntry {
+    75	        std::uint64_t key = 0;
+    76	        Score score = 0;
+    77	        std::array<Bitboard, 2> passed{};
+    78	        bool valid = false;
+    79	    };
+    80	
+    81	private:
+    82	    friend class Worker;
+    83	    [[nodiscard]] static RuntimePsqt refresh_runtime_psqt(const Board& board);
+    84	    static void update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty);
+    85	    [[nodiscard]] int evaluate_runtime(const Board& board, const RuntimePsqt& psqt);
+    86	    static constexpr std::size_t PawnCacheSize = 1U << 15U;
+    87	    std::vector<PawnEntry> pawn_cache_;
+    88	};
+include/forge/search.hpp
+   393	using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+   394	// [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+   395	// Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+   396	using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+   397	// forge/r15: the pawn-structure history is compiled in only with -DFORGE_PAWN_HISTORY=1. Compiled out (the default)
+   398	// its table is not allocated, its reads and updates are not in the code and its four tunables are not offered.
+   399	// Reason: with the tunable off the engine was about 2 % slower than without the code (timing t4, 2026-11-15:
+   400	// the table of 13.6 MB a thread and five calls on the quiet-move paths).
+   401	#ifndef FORGE_PAWN_HISTORY
+   402	#define FORGE_PAWN_HISTORY 0
+   403	#endif
+   404	// forge/r12: pawn-structure history, [pawn key bucket][moved piece][to square]; 8192 buckets allocated (13.6 MB a
+   405	// search thread), of which the tunable PawnHistoryBits uses 2^Bits (4096 = 6.8 MB by default).
+   406	constexpr std::size_t PawnHistoryMaxBuckets = std::size_t{1} << 13U;
+   407	using PawnHistoryTable = std::array<std::array<std::array<std::int16_t, 64>, 13>, PawnHistoryMaxBuckets>;
+   408	[[nodiscard]] int quiet_threat_index(const Board& board, Move move);
+   409	using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+   410	using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+   411	using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+   412	using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+   413	constexpr std::size_t CorrectionSize = 1U << 14U;
+   414	constexpr int CorrectionGrain = 256;
+   415	constexpr int CorrectionLimit = 32 * CorrectionGrain;
+   416	using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+   417	
+   418	struct SearchStack {
+   419	    std::array<Move, MaxPly + 1> pv{};
+   420	    int pv_length = 0;
+   421	    int ply = 0;
+   422	    Move current_move{};
+   423	    Move excluded_move{};
+   424	    std::array<Move, 2> killers{};
+   425	    Piece moved_piece = Empty;
+   426	    int static_eval = ValueNone;
+   427	    int raw_eval = ValueNone;
+   428	    int move_count = 0;
+   429	    // 1-based index of the move that entered this node. 0 means the node was not
+   430	    // reached by a counted move (root, null move, or a probcut capture).
+   431	    int arrival_index = 0;
+   432	    int cutoff_count = 0;
+   433	    int double_extensions = 0;
+   434	    // Plies the parent withheld when it searched the move that reached this node.
+   435	    // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+   436	    int withheld_plies = 0;
+   437	    bool in_check = false;
+   438	    bool tt_pv = false;
+   439	    bool null_move_allowed = true;
+   440	    PieceToHistory* continuation = nullptr;
+   441	    // Network features are not updated when the move is made. The move's
+   442	    // pieces are remembered here; the change list and the accumulator are
+   443	    // built the first time an evaluation needs this ply (or a descendant).
+   444	    // A null move sets entered_null and does not change the piece set.
+   445	    nnue::Accumulator accumulator{};
+   446	    Evaluator::RuntimePsqt runtime_psqt{};
+   447	    nnue::DirtyPieces dirty{};
+   448	    Move entered_move{};
+   449	    Piece entered_piece = Empty;
+   450	    Piece entered_capture = Empty;
+   451	    std::uint8_t entered_side = 0;
+   452	    bool entered_null = false;
+   453	    bool diff_known = false;
+   454	    mutable std::array<std::uint16_t, 2> corr_np_idx{};
+   455	    mutable std::uint64_t corr_mat_mix = 0;
+   505	    std::unique_ptr<CounterMoveTable> counter_moves_;
+   506	    std::unique_ptr<CorrectionHistory> correction_history_;
+   507	    std::unique_ptr<CorrectionHistory> material_correction_;
+   508	    std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+   509	    std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+   510	    std::array<SearchStack, MaxPly + 8> stack_{};
+   511	#if FORGE_NNUE_V3
+   512	    // NNUE v3 (UCI NNUEArch) per-worker state, allocated on first use; null with the option off.
+   513	    std::unique_ptr<nnue::v3::WorkerState> v3_state_;
+   553	    bool root_bare_king_ = false;          // one side of the root position has only its king
+   554	    Move root_prev_best_ = Move::none();   // best move of the last finished iteration (none before the first)
+   555	    bool root_prev_best_done_ = false;     // that move was searched to its end in the root search now running
+   556	    std::uint64_t null_tries_ = 0;
+   557	    std::uint64_t null_cutoffs_ = 0;
+   558	    // True only inside a NullThreatVerify confirmation, so that reduced search
+   559	    // does not use null moves. Stays false for the whole default search.
+   560	    bool null_blocked_ = false;
+   561	    // B4 (forge/r9). Allocated with the worker and zeroed by clear(); read and written only while their option is
+   562	    // on. Per worker: rework twin 32 KiB, joint correction 128 KiB, continuation correction 6.5 KiB, maps 7.4 KiB.
+   563	    std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
+   564	    std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+   565	    std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+   566	    std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+include/forge/b4.hpp
+    96	// Key of the pawn-structure x non-pawn-material correction: the Zobrist pawn key mixed with the signature.
+    97	[[nodiscard]] inline std::uint64_t joint_key(const Board& board) {
+    98	    return board.pawn_key() ^ mix64(static_cast<std::uint64_t>(non_pawn_material(board)) + 1U);
+    99	}
+   100	
+   101	} // namespace forge::b4
+   102	
+   103	namespace forge {
+   104	// HistRework's twin: [side][from attacked by a lesser enemy][to attacked by a lesser enemy][from][to] (32 KiB).
+   105	using LesserThreatHistory =
+   106	    std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
+   107	// CorrHistV2: [0 = the move that led here, 1 = the move before it][moved piece][to square] (6.5 KiB).
+   108	using ContinuationCorrection = std::array<std::array<std::array<std::int32_t, 64>, 13>, 2>;
+   109	} // namespace forge

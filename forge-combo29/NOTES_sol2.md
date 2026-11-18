@@ -51,3 +51,7 @@ Opus identifies the loop baseline as r15d and says Carbon2 P6 already caches cor
 r15 and r15d rebuilt from the pinned stack and passed the three anchors and all 400 fixed-node identity pairs under PC20. The named startpos self-play driver matched across builds. Its starting positions differ from Carbon2's cited FEN-root timing fixture, so I used the prescribed UHO fallback for the profile and timing.
 
 On that cold net768 fallback, glibc `memset`, fused v3 update and evaluation, and main search led the resolved self samples. The CPU timing interval crosses parity and the wall interval overlaps same-build noise. The report records the patch inputs, option receipts, clock stamps, profile caveats and per-run evidence. [Job 2 report](REPORT_sol2_job2.md)
+
+## Job 3 — 2026-11-18T09:11:06Z
+
+The pinned r15d warm replay reproduced 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4` on PC20/Threads 1/Hash 16/synthetic net768. A reset cost 0.380 ms engine CPU in both blocks, or 0.115–0.120% of CPU for the 60 game resets. This fell below the Step 4 threshold. The `see_ge` delay control moved from sixth to first in the sample table while keeping the trace exact. In the three clean passes, main search, TT probe, and fused v3 update/evaluation were the top three. [Job 3 report](REPORT_sol2_job3.md)
