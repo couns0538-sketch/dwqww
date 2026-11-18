@@ -1,0 +1,41 @@
+PC20 predictions for the counting build, written before Step 3.
+
+Ratio is events per 1,000 actual main plus qsearch nodes at softnodes 2000
+divided by the same rate at nodes 20000. Each numeric prediction survives
+when the exact observed ratio is within [guess / 1.5, guess × 1.5].
+A "zero" prediction requires zero events at both budgets. If observations
+give a zero hard rate for a numeric prediction, that prediction is killed.
+
+Event                         O       G
+razor_taken                   1.10    1.05
+rfp_taken                     0.85    0.85
+null_move_taken               0.40    0.45
+null_move_tested              0.40    0.45
+probcut_taken                 0.25    0.35
+probcut_tested                0.30    0.40
+iir_no_tt_taken               1.15    1.10
+iir_tt_taken                  0.35    0.40
+lmp_taken                     0.95    0.90
+quiet_futility_taken          1.00    1.00
+history_pruning_taken         0.70    0.75
+quiet_see_taken               0.80    0.85
+capture_futility_taken        zero    zero
+noisy_see_taken               0.85    0.90
+singular_taken                0.25    0.30
+singular_double               0.20    0.25
+singular_negative             0.20    0.30
+check_extension_taken         0.80    0.80
+lmr_taken                     0.75    0.80
+lmr_plies                     0.65    0.70
+aspiration_taken              3.00    2.60
+q_futility_taken              1.05    1.00
+fail_low_bonus_taken          zero    zero
+eval_swing_taken              zero    zero
+draw_jitter_taken             zero    zero
+
+Below 0.5 on both sets: null tries and cuts, ProbCut tries and cuts,
+TT-upper-bound IIR, and positive, double, and negative singular extensions.
+Above 2 on both sets: aspiration retries. Shallow moves should retain
+pruning and qsearch events better than steps with minimum main depth.
+Aspiration retries are root events whose count grows more slowly than nodes.
+Zero events are expected where PC20 leaves the settings at their defaults.
