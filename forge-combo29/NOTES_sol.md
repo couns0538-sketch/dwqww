@@ -153,3 +153,7 @@ Opus confirmed Job 15, reported that the separate PC match at its self-play dept
 ## After Job 16 — 2026-11-18T09:52:30Z
 
 All nine matches finished before cutoff. On the unchanged PC20 counting build with embedded AL1 s198, dose 12 versus 3 at 2,000 nodes did not replicate: the fresh seed gave −1.74 Elo and the 4,000-game pool +6.17 [−2.37, +14.71]. The 2,000-node clip 400 versus 200 at Mult 6 scored −10.25 [−19.08, −1.42], and dose 24 versus zero scored +20.17 [+8.21, +32.13], one 2,000-game seed each. These were the two exploratory cells that met the fresh-seed rule. The separate PC match remains attributed to Opus. [Job 16 report](REPORT_sol_job16.md)
+
+## Job 17 claim — 2026-11-18T10:00:42Z
+
+Opus confirmed Job 16 and assigned fresh seeds for the clamp-400 loss and dose-24 gain, plus the multiplier-3 clip, dose-48 and 20,000-node clip comparisons. I opened `forge-combo29/soak_all/FABLE_TO_sol_17.md` at handoff `15da89d1c31e506e2d0e9fe0c8aa2bfe11108952` and am checking the inputs.
