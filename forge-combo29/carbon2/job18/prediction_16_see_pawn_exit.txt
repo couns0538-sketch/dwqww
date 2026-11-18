@@ -1,0 +1,46 @@
+Step 16 Pre-Committed Prediction: 16_see_pawn_exit (Move pawn-recapture early exit into compiled FORGE_SDK_SEE_HOIST branch of Board::see_ge + remove dead #else copy)
+========================================================================================================================================================================
+
+Base tree:
+  r15d + 01..13 + tidy (identical to r15d + job17/stack_r15d_to_final.patch.txt)
+
+Target site & Part 0 defect resolved:
+  src/board.cpp lines 1536-1550 inside Board::see_ge(const Move& move, int threshold):
+  In 03_S6.patch.txt, #if FORGE_SDK_SEE_HOIST (default 1) placed the pawn-recapture early exit
+  inside #else, leaving it uncompiled on both PC and Xeon (Part 0 Known Answer ii).
+
+Measured pre-step counts over 60 Hash-16 SP games (part1_see_pawn_exit_counts_raw.txt,
+7,670 searches, 25,641,316 nodes, trace=ee465caeff9c0fcf):
+  - Total Board::see_ge calls:                       28,186,285 (1.099 calls/node)
+  - Calls exiting earlier (castle/promo/swap/none):  20,039,272 (71.10%)
+  - Calls reaching the #if FORGE_SDK_SEE_HOIST site:  8,147,013 (28.90% of all see_ge calls)
+  - Pawn-refutation candidates (them_pawns_atk != 0
+    && SeeValue[Pawn] - swap < 0):                    1,399,964 (17.18% of 8,147,013)
+  - Early exit decides false immediately
+    (((contact[them] | snipers[them]) & live0) == 0): 1,229,301 (15.09% of 8,147,013;
+                                                                 87.81% of pawn candidates)
+  - Enters loop needing pin check, reusing precomputed
+    contact[them]/snipers[them] via prepared bit:       170,663 ( 2.09% of 8,147,013;
+                                                                 12.19% of pawn candidates)
+
+Single-piece transformation (stack/16_see_pawn_exit.patch.txt):
+  1. Move the pawn-recapture early exit into the compiled #if FORGE_SDK_SEE_HOIST block,
+     storing unmasked contact[them_idx] and snipers[them_idx]:
+       - Path 1: if (((contact[them_idx] | snipers[them_idx]) & live0) == 0) return false;
+         skips 2 PEXT slider lookups (attacks::bishop(to, occ), attacks::rook(to, occ)),
+         us_contact setup, loop entry, and legal_least_valuable_attacker on 1,229,301 calls
+         per 60 games (15.09% of all exchange-setup calls).
+       - Path 2: otherwise sets prepared = 1U << them_idx; so step 1 of the exchange loop
+         reuses contact[them_idx] and snipers[them_idx] without recomputation on all
+         170,663 remaining pawn-candidate calls.
+  2. Remove the dead #else copy in the same hunk.
+
+Predicted whole-engine self-play CPU speedup (12x60 Hash 16, PC20 + net768, 2 SP-PGO builds/side):
+  - Saving ~22-35 cycles (2 PEXT slider lookups + us_contact + loop step-1 LVA) across
+    1,229,301 calls per 60 games (~27M-43M cycles out of ~13.4B cycles per 60-game leg):
+  - Predicted CPU speedup range: +0.20% to +0.55% (ratio 1.0020x to 1.0055x; point estimate +0.35%, 1.0035x).
+  - Exact node/move/eval/bench/trace identity: 0 diffs across all checks + exhaustive SEE oracle.
+
+Declared gate (unchanged from Jobs 14-17):
+  - Keep iff 12x60 Hash-16 ABBA CPU speedup >= 1.0040x (+0.40%), >= 8/12 paired blocks,
+    and 0 identity/oracle diffs (with 1 caught control per changed path = 2 controls total).
