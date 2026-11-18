@@ -136,7 +136,7 @@ and R3 changes within PC20. [Paired comparisons](sol3/job17/audit/census.json)
   game. The saved game suffixes give the sampling windows, and play
   against best defense can take longer. For example, row 24's game
   ended after seven plies and A's first positive exact report was
-  `mate 11`. [F7k game metadata](https://github.com/couns0538-sketch/dwqww/blob/45b95e5814b9b67abf8e72229f5b020d9e632b58/forge-combo29/sol/job20/raw/F7k.meta) · [A rows](sol3/job17/census/A/rows.tsv)
+  `mate 11`. [F7k game metadata](sol3/job18/F7k.provenance.txt) · [A rows](sol3/job17/census/A/rows.tsv)
 
 ### Suspicions
 
