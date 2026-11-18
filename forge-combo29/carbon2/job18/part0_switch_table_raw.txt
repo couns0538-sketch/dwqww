@@ -1,0 +1,83 @@
+=== JOB 18 PART 0: COMPLETE PREPROCESSOR SWITCH & DEFAULT-#DEFINE TABLE OF stack_r15d_to_final.patch.txt ===
+Source diff: forge-combo29/carbon2/job17/stack_r15d_to_final.patch.txt (2,450 lines across 9 modified files).
+
+PC compile line:
+  -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=<h> -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1
+  -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1
+  -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1
+  -ffp-contract=off -fno-fast-math -march=znver5 -flto=thin
+Our compile line:
+  Identical switches, with `-march=sapphirerapids` in place of `-march=znver5` (both 64-bit Clang x86-64
+  targets define `__AVX2__=1`, `__AVX512F__=1`, `__AVX512BW__=1`, `__BMI2__=1`, `__SIZEOF_INT128__=16`,
+  and `NDEBUG=1`; thus `FORGE_NNUE_V3_AVX512=1` in `src/nnue_v3.cpp`).
+
+--- A. Every #if / #ifdef / #ifndef / #elif / #else Added or Touched, and Every Default #define Changed ---
+
+| # | File | Diff Line(s) | Directive / Changed Default | Value (PC `-march=znver5`) | Value (Ours `-march=sapphirerapids`) | Added (`+`) Lines in Branch Compiled by PC? |
+|---:|---|---|---|---|---|---|
+| 1 | `include/forge/board.hpp` | `L57`..`L62` (`+`) | `#if FORGE_SPD_KING_LINES` (default `1` at `board.hpp:73`) | `1` (true) | `1` (true) | **YES** (`diff:L58-L61`, `ensure_king_lines()`) |
+| 2 | `include/forge/search.hpp` | `L156`..`L158` (`+`) | `#if defined(__AVX512F__)` | `1` (true) | `1` (true) | **YES** (`diff:L157`, `#include <immintrin.h>`) |
+| 3 | `include/forge/search.hpp` | `L192`..`L261` (ctx) | `#if FORGE_SPD_TT_NOTLS` (`-DFORGE_SPD_TT_NOTLS=1`) | `1` (true) | `1` (true) | **YES** (`diff:L199-L237, L259-L260`; `diff:L238-L258` `#else` NO, row 5) |
+| 4 | `include/forge/search.hpp` | `L215`..`L237` (`+`) | `#if defined(__AVX512F__)` (nested in `FORGE_SPD_TT_NOTLS`) | `1` (true) | `1` (true) | **YES** (`diff:L216-L237`, AVX-512 `probe_owned_fast`) |
+| 5 | `include/forge/search.hpp` | `L238`..`L259` (`+`) | `#else` (of `#if defined(__AVX512F__)` at `diff:L215`) | `0` (inactive) | `0` (inactive) | **NO** (`diff:L239-L258`, 20-line scalar fallback) |
+| 6 | `include/forge/search.hpp` | `L280`..`L287` (ctx) | `#if defined(__SIZEOF_INT128__)` / `#else` in `cluster_index` | `#if`=true, `#else`=false | `#if`=true, `#else`=false | `#if` (`diff:L282-L283`): **YES**; `#else` (`diff:L286`, 1 line): **NO** |
+| 7 | `include/forge/search.hpp` | `L335`..`L337` (`+`) | `#if FORGE_NNUE_V3` (`-DFORGE_NNUE_V3=1`) | `1` (true) | `1` (true) | **YES** (`diff:L336`, `v3_active_net_`) |
+| 8 | `include/forge/search.hpp` | `L341`..`L364` (ctx) | `#if FORGE_SPD_TT_NOTLS` (`Worker::probe_tt` / `store_tt`) | `1` (true) | `1` (true) | **YES** (`diff:L350-L362`) |
+| 9 | `src/board.cpp` | `L414`..`L426` (ctx) | `#if FORGE_SPD_KING_LINES` / `#else` in `has_legal_move` | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L419-L421`): **YES**; `#else` (`diff:L425`, 1 line): **NO** |
+| 10 | `src/board.cpp` | `L441`..`L445` (ctx) | `#if FORGE_SPD_KING_LINES` in `Board::make_move` | `1` (true) | `1` (true) | **YES** (`diff:L443-L444`) |
+| 11 | `src/board.cpp` | `L447`..`L452` (`+`) | `#ifndef NDEBUG` (`-DNDEBUG` on compile line) | `0` (false) | `0` (false) | **NO** (`diff:L448, L450-L451`, `dbg_key` init; debug builds only) |
+| 12 | `src/board.cpp` | `L462`..`L464` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L463`, EP `dbg_key ^=`) |
+| 13 | `src/board.cpp` | `L470`..`L472` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L471`, capture `dbg_key ^=`) |
+| 14 | `src/board.cpp` | `L480`..`L482` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L481`, `from` `dbg_key ^=`) |
+| 15 | `src/board.cpp` | `L491`..`L493` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L492`, promotion `dbg_key ^=`) |
+| 16 | `src/board.cpp` | `L497`..`L499` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L498`, `to` `dbg_key ^=`) |
+| 17 | `src/board.cpp` | `L509`..`L511` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L510`, castle rook `dbg_key ^=`) |
+| 18 | `src/board.cpp` | `L526`..`L528` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L527`, `assert(key_ == dbg_key)`) |
+| 19 | `src/board.cpp` | `L535`..`L541` (`+`) | `#ifndef NDEBUG` | `0` (false) | `0` (false) | **NO** (`diff:L536-L540`, `dbg_key` EP/castling/side + `assert`) |
+| 20 | `src/board.cpp` | `L566` (`+`, inside `known_gives_check == 0`) | *(Note: `assert(compute_checkers() == 0);` uses `<cassert>` macro)* | Expands to `((void)0)` under `-DNDEBUG` | Expands to `((void)0)` under `-DNDEBUG` | Line parsed, `assert` macro expands to no-op under `-DNDEBUG` |
+| 21 | `src/board.cpp` | `L584`..`L588`, `L594`..`L598`, `L604`..`L608` (ctx) | `#if FORGE_SPD_KING_LINES` in `unmake_move` / `make_null_move` / `unmake_null_move` | `1` (true) | `1` (true) | **YES** (`diff:L586-L587, L596-L597, L606-L607`) |
+| 22 | `src/board.cpp` | `L631` (ctx), `L638`..`L649` (`+`) | `#if FORGE_SDK_SEE_HOIST` / `#else` (default `1` at `board.cpp:14`; **Known Answer (ii)**) | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#else` (`diff:L638-L648`, 11 lines pawn early exit): **NO** (compiled by neither!) |
+| 23 | `src/nnue_v3.cpp` | Enclosing `nnue_v3.cpp:L3` (`L667`..`L917`) | `#if FORGE_NNUE_V3` (`-DFORGE_NNUE_V3=1`) | `1` (true) | `1` (true) | **YES** (except row 25 `#else`) |
+| 24 | `src/nnue_v3.cpp` | `L725`..`L833` (`+`) | `#if FORGE_NNUE_V3_AVX512` (`__AVX512F__ && __AVX512BW__ && FORGE_SPD_NNUE_ZMM`) | `1` (true) | `1` (true) | **YES** (`diff:L726-L833`, AVX-512 `apply_one_refresh_one_and_evaluate`) |
+| 25 | `src/nnue_v3.cpp` | `L834`..`L840` (`+`) | `#else` (of `#if FORGE_NNUE_V3_AVX512` at `diff:L725`) | `0` (inactive) | `0` (inactive) | **NO** (`diff:L835-L839`, 5-line non-AVX-512 fallback) |
+| 26 | `src/nnue_v3.cpp` | `L849`..`L908` (ctx/`+`) | `#if FORGE_NNUE_V3_AVX512` / `#else` in `refresh_from_pieces` | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L853..L900`): **YES**; `#else` (`diff:L907`, 1 moved `copy_n` line): **NO** |
+| 27 | `src/search.cpp` | `L923`..`L926` (`-`/`+`) | **`#ifndef FORGE_SDK_BADCAP_PREFIX` -> `#define FORGE_SDK_BADCAP_PREFIX 0` changed to `1` (Known Answer (i))** | `1` | `1` | **YES** (`diff:L925` sets `FORGE_SDK_BADCAP_PREFIX` to `1`, turning on 4 `r15d` blocks listed in Section B) |
+| 28 | `src/search.cpp` | Enclosing `search.cpp:L465` (`L929`..`L1066`) | `#if FORGE_SPD_TT_NOTLS` (`-DFORGE_SPD_TT_NOTLS=1`) | `1` (true) | `1` (true) | **YES** (except row 30 `#else`) |
+| 29 | `src/search.cpp` | `L986`..`L993` (`+`) | `#if defined(__AVX512F__)` in `store_owned_fast` | `1` (true) | `1` (true) | **YES** (`diff:L987-L993`) |
+| 30 | `src/search.cpp` | `L994`..`L1001` (`+`) | `#else` (of `#if defined(__AVX512F__)` at `diff:L986`) | `0` (inactive) | `0` (inactive) | **NO** (`diff:L995-L1000`, 6-line scalar fallback) |
+| 31 | `src/search.cpp` | `L1077`..`L1086` (`+`) | `#if FORGE_SPD_KING_LINES` / `#else` in `MovePicker::next` (`QuietMoves` legality) | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L1078-L1083`): **YES**; `#else` (`diff:L1085`, 1 line): **NO** |
+| 32 | `src/search.cpp` | `L1089`..`L1096` (`+`) | `#if FORGE_SPD_KING_LINES` / `#else` in `MovePicker::next` (`QuietMoves` `gives_check`) | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L1090-L1093`): **YES**; `#else` (`diff:L1095`, 1 line): **NO** |
+| 33 | `src/search.cpp` | `L1133`..`L1138` (`+`) | `#if FORGE_SPD_KING_LINES` (`MovePicker` cached pin/discoverer fields) | `1` (true) | `1` (true) | **YES** (`diff:L1134-L1137`) |
+| 34 | `src/search.cpp` | `L1149`..`L1165` (`+`) | `#if FORGE_SPD_KING_LINES` / `#else` in `MovePicker::init_check_squares` | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L1150-L1156`): **YES**; `#else` (`diff:L1158..L1164` context only, `0` `+` lines): N/A |
+| 35 | `src/search.cpp` | Enclosing `search.cpp:L1054` (`L1174`) | `#if FORGE_SEARCH_SPEED2` (`-DFORGE_SEARCH_SPEED2=1`) | `1` (true) | `1` (true) | **YES** (`diff:L1174`) |
+| 36 | `src/search.cpp` | `L1196`..`L1230` (`+`) | `#if defined(__AVX512F__)` in `MovePicker::pick_best_scored` | `1` (true) | `1` (true) | **YES** (`diff:L1197-L1229`) |
+| 37 | `src/search.cpp` | `L1258`..`L1359` (`+`/ctx) | `#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2` / `#else` in `generate_captures` | `#if`=true (`2>=2 && 1`), `#else`=false | `#if`=true, `#else`=false | `#if` (`diff:L1259-L1342`): **YES**; `#else` (`diff:L1344-L1346, L1351`, 4 `+` lines): **NO** |
+| 38 | `src/search.cpp` | `L1367`..`L1597` (`+`/ctx) | `#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2` / `#elif FORGE_SPD_NO_ZERO_MOVELISTS >= 2` / `#else` in `generate_quiets` | `#if`=true, `#elif`=skipped, `#else`=false | `#if`=true, `#elif`=skipped, `#else`=false | `#if` (`diff:L1368..L1557`): **YES**; `#elif` (`diff:L1559-L1566`, 8 `+` lines) & `#else` (`diff:L1574, L1578-L1579, L1586, L1592`, 5 `+` lines): **NO** *(Note: inside `#if` at `diff:L1381` = `new:L1355`, `FORGE_PAWN_HISTORY` is runtime/constexpr `0` by default in `search.cpp:36`, compiled as C++ expression)* |
+| 39 | `src/search.cpp` | `L1663`..`L1665` (ctx) | `#if FORGE_PAWN_HISTORY` in `Worker::clear` (default `0` at `search.cpp:36`, not set on compile line) | `0` (false) | `0` (false) | Context only (`0` `+` lines inside `#if FORGE_PAWN_HISTORY`) |
+| 40 | `src/search.cpp` | `L1704`..`L1707`, `L1726`..`L1733`, `L1744`..`L1751`, `L1928`..`L1934`, `L1955`..`L1960`, `L1972`..`L2044` | `#if FORGE_NNUE_V3` (`-DFORGE_NNUE_V3=1`) | `1` (true) | `1` (true) | **YES** (`#else` at `L1958` has `0` `+` lines) |
+| 41 | `src/search.cpp` | `L1821`..`L1823`, `L1876`..`L1878` (ctx) | `#if FORGE_TEST_CLOCK_STOP` (not set -> `0`) | `0` (false) | `0` (false) | Context only (`0` `+` lines inside `#if FORGE_TEST_CLOCK_STOP`) |
+| 42 | `src/search.cpp` | `L1827`..`L1832`, `L1882`..`L1887`, `L1941`..`L1946` (ctx) | `#if FORGE_SPD_TT_NOTLS` / `#else` at `Worker` `probe_tt` sites | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L1829, L1884, L1943`): **YES** (`0` `+` lines in `#else`) |
+| 43 | `src/search.cpp` | `L1861`..`L1868`, `L1914`..`L1921` (ctx) | `#if FORGE_SPD_PREFETCH_EARLY` / `#else` (`-DFORGE_SPD_PREFETCH_EARLY=1`) | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L1862, L1915`): **YES**; `#else` (`diff:L1866, L1919`, 2 `+` lines fallback `make_move`): **NO** |
+| 44 | `src/search.cpp` | `L1897` (ctx) | `#if FORGE_SPD_NO_ZERO_MOVELISTS` (`2` -> non-zero true) | `2` (true) | `2` (true) | Context only (adjacent `diff:L1892` is outside `#if` -> **YES**) |
+| 45 | `src/uci.cpp` | `L2249`..`L2352` (ctx) | `#if FORGE_FIX_GO_PARSE` / `#else` (default `1` at `uci.cpp:31`, not overridden) | `#if`=`1`, `#else`=`0` | `#if`=`1`, `#else`=`0` | `#if` (`diff:L2263..L2304`): **YES**; `#else` (`diff:L2315-L2316, L2321-L2322, L2332, L2339-L2340, L2349`, 8 `+` lines `string_view` port of legacy `r9` parser): **NO** |
+| 46 | `src/uci.cpp` | `L2410`..`L2414`, `L2441` (ctx) | `#if FORGE_NNUE_V3` (`-DFORGE_NNUE_V3=1`) | `1` (true) | `1` (true) | Adjacent `+` lines (`diff:L2416, L2443-L2446`) sit outside `#endif` -> **YES** |
+
+--- B. Base-Tree (`r15d`) Blocks Turned On by Changed Default `#define` ---
+
+Only ONE default `#define` changes in `stack_r15d_to_final.patch.txt`:
+`src/search.cpp` line 24 (`diff:L924-L925`): `#define FORGE_SDK_BADCAP_PREFIX 0` -> `#define FORGE_SDK_BADCAP_PREFIX 1`.
+
+In plain `r15d`, `FORGE_SDK_BADCAP_PREFIX` appears only in `src/search.cpp` and activates these **4 blocks**:
+1. `src/search.cpp` lines `725-730` (`MovePicker::next`, `Stage::GoodCaptures`): compiles `moves_[bad_count_++].move = move;` (`L727`) instead of `bad_captures_[bad_count_++] = move;` (`L729`).
+2. `src/search.cpp` lines `769-773` (`MovePicker::next`, `Stage::BadCaptures`): compiles `if (bad_index_ < bad_count_) return moves_[bad_index_++].move;` (`L770`) instead of `if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];` (`L772`).
+3. `src/search.cpp` lines `846-854` (`class MovePicker` data members): activates the empty `#if FORGE_SDK_BADCAP_PREFIX` branch (`L846-L847`, comment `// Losing captures live in moves_[0, bad_count_).`), turning OFF `#elif FORGE_SPD_NO_ZERO_MOVELISTS` `std::array<Move, MoveList::Capacity> bad_captures_;` (`L848-L851`) and `#else` (`L852-L854`).
+4. `src/search.cpp` lines `1023-1027` (`MovePicker::quiet_start()`): compiles `return bad_count_;` (`L1024`) instead of `return 0;` (`L1026`).
+
+--- C. Known Answers & Additional Uncompiled-Branch Findings ---
+- **Known Answer (i):** **MET** (`#define FORGE_SDK_BADCAP_PREFIX 0` -> `1` at `diff:L924-L925`, turning on the 4 `r15d` blocks `src/search.cpp:725-730`, `769-773`, `846-854`, `1023-1027`).
+- **Known Answer (ii):** **MET** (`src/board.cpp` `diff:L638-L648` adds 11 lines under `#else` of `#if FORGE_SDK_SEE_HOIST`, which is `1` at `src/board.cpp:14` and never set to `0`, so no build compiles those 11 lines; Part 1 below moves that exit into `#if FORGE_SDK_SEE_HOIST` and deletes the dead `#else`).
+- **Additional findings (uncompiled fallback / debug branches added or touched in the diff under the PC's release flags):**
+  - **9 `#ifndef NDEBUG` blocks in `src/board.cpp` (`diff:L447-L541`, 21 `+` lines):** uncompiled under `-DNDEBUG` (exercised in Job 14 Part 1 debug build without `-DNDEBUG`).
+  - **3 non-AVX-512 `#else` fallback blocks (`include/forge/search.hpp` `diff:L238-L258`, `src/nnue_v3.cpp` `diff:L834-L839` + `L907`, `src/search.cpp` `diff:L994-L1000`):** uncompiled under `-march=znver5` / `-march=sapphirerapids` (`__AVX512F__=1`, `FORGE_NNUE_V3_AVX512=1`).
+  - **1 non-`__int128` `#else` line (`include/forge/search.hpp` `diff:L286`):** uncompiled on 64-bit Clang (`__SIZEOF_INT128__=16`).
+  - **Switch-off `#else`/`#elif` compatibility fallbacks (`src/board.cpp` `diff:L425`; `src/search.cpp` `diff:L1085, L1095, L1344-L1351, L1559-L1592, L1866, L1919`; `src/uci.cpp` `diff:L2315-L2349`):** uncompiled when `FORGE_SPD_KING_LINES=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1`, `FORGE_SPD_PREFETCH_EARLY=1`, and `FORGE_FIX_GO_PARSE=1` hold as on the PC's compile line.
