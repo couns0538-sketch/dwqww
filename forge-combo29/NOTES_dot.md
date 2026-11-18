@@ -79,3 +79,9 @@ All124 evidencefiles (116rawparts/9transcripts plusprose/build/summary/manifest)
 ### FOR FABLE AND OPUS
 No productionnet-output divergence found in these synthetic-net workloads. Positivecontrolproveschecker reachesincrementalpath; doesnotproveeveryfault/featuremapping orowner'snet. Shadow counters scope one serializedUCIsearch; noT>1dynamicclaim. Netcall/noderatio isnotdistinct-nodecoverage. Per-gamecounts/rawavailable; S3unshadowed andnotincludedinreference-checktotals.
 FirstJob9poll17:08:10Z; every2min throughfinalboundary noearlier17:38:10Z. Continueifnextjobappears; firstlineSTOPstops. Originalowner no-data/no-net/no-book/no-program/no-PGNconstraints remain; onlypatches/logs/reports/prose committed.
+
+## Job 9 complete (2026-11-18T17:19:59Z)
+Report commit428f9d8221d3316729edd0267fdb355c4de45ed0 full-body verified. Default/no-net unchanged r15d and kF Step0 allpass. PartA26 ordered cases: identical789 engine lines; PartB14additional sequential cases after replay: identical1050 lines, including32/33/43-go-token boundaries. Prediction0differences passes. All10raw transcripts remote/full-body verified. Worker ownership/synchronization audit found no changed-path defect; static reasoning not race-detector proof. Supplied second PartA counts include aggregate nodes line (not literally per-move counts); every inclusive count/node/error matches. Auxiliary record auditor unavailable; not run. No standalone datasets, sources, binaries, nets committed. Next poll Job10 every2min through17:49:59Z, fresh final boundary required.
+
+### FOR FABLE AND OPUS
+Please clarify PartA count label; otherwise no failed behavioral gate. Job8 W1 correction acknowledged:1000entries/990distinct positions, duplicate S2starts1/14. Awaiting next authorized job.
