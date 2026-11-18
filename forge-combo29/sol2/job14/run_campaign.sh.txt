@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job14
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job14
+base=/workspace/work/sol2-job2
+step=$1
+case "$step" in
+  S1) label_a=P0; label_b=P0;;
+  S2) label_a=E1; label_b=E2;;
+  S3) label_a=P0; label_b=H1;;
+  S4) label_a=P0; label_b=C0;;
+  S5) label_a=C0; label_b=P0;;
+  S6) label_a=R1; label_b=K1;;
+  S7) label_a=K1; label_b=R1;;
+  *) exit 2;;
+esac
+values=$(python3 -B - "$out/arms.txt" "$label_a" "$label_b" <<'PY'
+import json
+from pathlib import Path
+import sys
+arms=json.loads(Path(sys.argv[1]).read_text())["arms"]
+print("\t".join(arms[label][key] for label in sys.argv[2:] for key in ("path","sha256")))
+PY
+)
+IFS=$'\t' read -r arm_a sha_a arm_b sha_b <<< "$values"
+test -n "$sha_a" && test -n "$sha_b"
+driver=/workspace/work/sol2-job13/soft_book_driver.py
+book="$base/UHO_Lichess_4852_v1.epd"
+known="$out/known-answer.txt"
+driver_sha=$(awk '$2 ~ /soft_book_driver[.]py$/ {print $1}' "$out/workload-pins.raw.txt")
+known_sha=$(awk '$2 ~ /known-answer[.]txt$/ {print $1}' "$out/workload-pins.raw.txt")
+start=$(date -u -d "$(cat /workspace/work/sol2-job13/job14-read-at.txt)" +%s)
+left=$((start + 80*60 - $(date -u +%s)))
+if [ "$left" -le 0 ]; then
+    printf '%s %s not run, minute 80 reached\n' "$(date -u +'%FT%TZ')" "$step"
+    exit 0
+fi
+status=0
+export PYTHONPATH=/workspace/work/sol2-job12/python
+(
+  set -x
+  date -u +'%FT%TZ'
+  timeout "$left" taskset -c 2 python3 -B "$job/arm_timing.py" "$arm_a" "$arm_b" "$base/net768.fnn3" "$out/$step" --a-sha256 "$sha_a" --b-sha256 "$sha_b" --a-label "$label_a" --b-label "$label_b" --driver "$driver" --driver-sha256 "$driver_sha" --book "$book" --known-answer "$known" --known-answer-sha256 "$known_sha" --blocks 16
+) > "$out/$step-command.raw.txt" 2>&1 || status=$?
+result=PASS
+if [ "$status" -ne 0 ]; then result=INCOMPLETE; fi
+printf '%s %s %s, %s vs %s, 16 balanced blocks requested\n' "$(date -u +'%FT%TZ')" "$step" "$result" "$label_b" "$label_a" >> "$out/stamps.txt"
+git add -- forge-combo29/sol2/job14
+git -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+git -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "Record sol2 Job 14 $step $label_b vs $label_a"
+printf '%s %s, timing harness exit %s\n' "$step" "$result" "$status"
+GIT_TERMINAL_PROMPT=0 timeout 30s git push origin HEAD:refs/heads/for-fable-and-opus/sol2-work
+test "$(git rev-parse HEAD)" = "$(git ls-remote --exit-code --refs origin refs/heads/for-fable-and-opus/sol2-work | cut -f1)"
+if [ -f "$out/$step/summary.txt" ]; then
+  python3 - "$out/$step/summary.txt" <<'PY'
+from pathlib import Path
+import json,sys
+result=json.loads(Path(sys.argv[1]).read_text())
+print(json.dumps({key: result.get(key) for key in ("metrics", "completed_blocks")}, indent=2))
+PY
+fi
