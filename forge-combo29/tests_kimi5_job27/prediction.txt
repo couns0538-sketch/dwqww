@@ -1,0 +1,35 @@
+kimi5 job 27 prediction (after Step 3, before Step 4; no time, no commit id)
+
+Scope: HistoryAgeKeep 896, 768, 512, 256 vs default 1024, same 20 games x 60 plies
+(1,200 searches per rows file), counting copy, PC20, Threads 1, Hash 16.
+Budgets: soft = go softnodes 2000, hard = go nodes 20000.
+
+Mechanics the guesses rest on (from the source, not measured):
+- The aging multiplies every carried entry by keep/1024 at each search start, so the
+  carried mass compounds geometrically across the 60 searches of a game; what a search
+  adds itself within its own nodes is NOT aged. History pruning fires on very NEGATIVE
+  history (threshold about -HistoryPruneMultiplier * depth), so aging mainly removes
+  carried NEGATIVE evidence: less pruning at lower keep.
+- sol's decomposition (recounted in file 27): clearing the history tables before every
+  search cuts history pruning to a few % of warm, so the carried tables drive most of
+  it; within one 2,000-node search the tables rebuild only partway.
+
+Guesses (ratio to the default's history pruning per 1,000 nodes, soft / hard):
+  keep 896: 0.90 / 0.92
+  keep 768: 0.78 / 0.82
+  keep 512: 0.52 / 0.60
+  keep 256: 0.25 / 0.32
+
+Share of the 1,200 best moves that differ from the default, soft / hard:
+  keep 896: 2.0 % / 1.5 %
+  keep 768: 3.5 % / 2.5 %
+  keep 512: 6.0 % / 5.0 %
+  keep 256: 10.0 % / 8.0 %
+
+Node sum ratio to the default (soft only):
+  keep 896: 1.005
+  keep 768: 1.010
+  keep 512: 1.020
+  keep 256: 1.040
+
+Graded per file 27: a guess survives within [g / 1.5, g x 1.5], else KILLED.
