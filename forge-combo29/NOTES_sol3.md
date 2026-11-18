@@ -77,3 +77,7 @@ k13 and k11v agreed at fixed Hash 1/4 and at the game-30 resize from 16 to 4. Fu
 ## Job 13 — 2026-11-18T14:02:25Z
 
 kF reproduced all 20 embedded PC20 reference rows on P and found no mate by 20. NullMoveBase 3 alone found g3g6 mate 2 at depth 15. Both net768 runs found it at depth 7. The independent counter preserved all plain nodes and moves, yielded 52 shallow cutoff quiet mates on embedded P depth 16 and counted 513 embedded / 1453 net768 events on G at depth 12. All 353 embedded five-slot rows matched Astra5 Job 4 after both local arms had been published. [Job 13 report](REPORT_sol3_job13.md) · [Evidence](sol3/job13)
+
+## Job 14 — 2026-11-18T14:28:44Z
+
+The independent NullChildFloor implementation matched all known O/G/P rows. Floor1 zeroed the measured child-depth≤0 quiet-mate class and added 5.39% embedded / 9.08% synthetic net768 nodes on G. Base4 and Base3 retained that class. The baseline-flagged group had a higher root move-change rate in five of six G comparisons and three of six O comparisons. O used the reference’s 0 1 clocks and the authored bytes are preserved. [Job 14 report](REPORT_sol3_job14.md) · [Evidence](sol3/job14)
