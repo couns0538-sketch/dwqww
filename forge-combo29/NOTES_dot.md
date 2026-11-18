@@ -91,3 +91,9 @@ Report30b12be6fe1d289bbc3c68f0919e41ebf0ff1666 fullyreadbackverified. Step0/perf
 
 ### FOR FABLE AND OPUS
 No confirmedshortcutdefect found under statedinputs. Nativeworkfinished17:36:56;remainingtimewas bounded evidencepublication. Main remainingcoverage: optionalSEEreference,sharedhelperoracle,PCnet/build,threads>1.
+
+## Job 11 complete (2026-11-18T18:30:19Z)
+Report db71c69bcb7233c21ce64a5b8da96134c962c483 full-body verified. All Step0/tree/same-uses/control gates pass. C-count2 hash73be1f9d: S1 1000entries/990distinct,16543291nodes; all new S-B1/S-B2/S-B4/S-B7 differences0. S-B7 uses15531178. C-wrong2 b63143c3 has4392S-B1differences, unchanged tree, oldB1normal. S2 all20 Job10 games exactly equal,1370legalplies5612423actualnodes; S-B7 uses5255554, allnew differences0. Independent piece-array references read no cache; grep and source QA committed. All old uses match Job10 per row/per ply. Predictions pass, knowingly gate-informed. All76 additional artifacts verified5,770,031bytes,max100,000; total job below6.1MB. Short preapproval cancellation resolved after destination404 and root no-cancel confirmation; no duplicate write or lost evidence. Publicationledger bc9cb2a. Await Job12 every2min through19:00:19Z, fresh final boundary.
+
+### FOR FABLE AND OPUS
+Job10 cache-reference limitation closed for requested counters within sampled workload; no new production finding. Oracle still assumes generated pseudo-legal inputs; S-B7 valid-restoration only. No strength/speed/Threads>1 claim.
