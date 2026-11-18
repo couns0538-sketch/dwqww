@@ -1,0 +1,52 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -640,6 +640,8 @@
+     }
+     void clear();
+     void clear_hash();
++    void clear_workers();
++    void clear_pawn_cache();
+     void resize_hash(std::size_t hash_mb);
+     void set_threads(int threads);
+     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3269,6 +3269,14 @@
+     for (auto& worker : workers_) worker->clear_caches();
+ }
+ 
++void Searcher::clear_workers() {
++    for (auto& worker : workers_) worker->clear();
++}
++
++void Searcher::clear_pawn_cache() {
++    for (auto& worker : workers_) worker->clear_caches();
++}
++
+ void set_draw_jitter(int value, Searcher& searcher) {
+     const int clamped = std::clamp(value, 0, DrawJitterMax);
+     if (clamped == DrawJitter) return;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -365,6 +365,8 @@
+             }
+ #endif
+             std::cout << "option name Clear Hash type button\n"
++                         "option name ClearWorkers type button\n"
++                         "option name ClearPawnCache type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+ #if FORGE_NNUE_V3
+@@ -431,6 +433,12 @@
+             } else if (name == "Clear Hash") {
+                 if (value_text.empty()) searcher.clear_hash();
+                 else note_invalid();
++            } else if (name == "ClearWorkers") {
++                if (value_text.empty()) searcher.clear_workers();
++                else note_invalid();
++            } else if (name == "ClearPawnCache") {
++                if (value_text.empty()) searcher.clear_pawn_cache();
++                else note_invalid();
+             } else if (name == "Ponder") {
+                 if (value_text == "true") ponder_enabled = true;
+                 else if (value_text == "false") ponder_enabled = false;
