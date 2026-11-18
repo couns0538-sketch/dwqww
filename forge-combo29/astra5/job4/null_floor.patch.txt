@@ -1,0 +1,42 @@
+diff -ruN pc/include/forge/search.hpp floor-design/include/forge/search.hpp
+--- pc/include/forge/search.hpp	2026-11-15 05:25:59.000000000 +0000
++++ floor-design/include/forge/search.hpp	2026-11-15 05:25:59.000000000 +0000
+@@ -250,6 +250,7 @@
+ extern int LmrNoisyDivisor;   // x0.01
+ extern int NullMoveMinDepth;
+ extern int NullMoveBase;
++extern int NullChildFloor;
+ extern int NullMoveDepthDivisor;
+ extern int NullMoveEvalDivisor;
+ extern int RfpDepth;
+diff -ruN pc/src/search.cpp floor-design/src/search.cpp
+--- pc/src/search.cpp	2026-11-15 05:25:59.000000000 +0000
++++ floor-design/src/search.cpp	2026-11-15 05:25:59.000000000 +0000
+@@ -101,6 +101,7 @@
+ int LmrNoisyDivisor = 340;
+ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
++int NullChildFloor = 0;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
+ int RfpDepth = 8;
+@@ -188,6 +189,7 @@
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
++        {"NullChildFloor", &NullChildFloor, 0, 3},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+@@ -1960,7 +1962,10 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+-            int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            const int reduced_depth = depth - reduction;
++            const int null_child_depth = tune::NullChildFloor > 0 ? std::max(reduced_depth, tune::NullChildFloor)
++                                                                  : reduced_depth;
++            int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+             if (null_score >= beta) {

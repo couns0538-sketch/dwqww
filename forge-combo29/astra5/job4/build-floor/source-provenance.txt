@@ -1,0 +1,16 @@
+Base 6b98f2170a3210e71beed04bbd2553972c253ed7. Reconstructed CMakeLists.txt, include and src from the pinned Git objects; applied job 1 PC r15 patch, SHA256 d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a, using patch -p1 -F0. diff -qr excluding the build directory matched the job 1 PC sources.
+Floor patch generated with diff -ruN pc floor-design (exit 1; stdout in null_floor.patch.txt). Applied with patch -p1 -F0 in a fresh copy of pc (exit 0; stdout in null-floor-apply.txt). diff -qr compared the applied result with floor-design (exit 0).
+pc to pcfloor, changed source paths and SHA-256:
+03d6c552203d118640229cc1f8b8345d794a5851fb723a27826cc0e05d6b2a37 pc/include/forge/search.hpp
+52fd951309a9d524dcc21fd482d352ff45b76716137f634d920c854c2ae8ff0c pcfloor/include/forge/search.hpp
+b5209ea5e05d5b9221a59806f1f7620ce9edd5345840a4fcbca0b5cfece04d0c pc/src/search.cpp
+00f1f1c48c5f9acc052a7a981bb339046f1efbd7bbbcc0fef5610c09d2dfe38d pcfloor/src/search.cpp
+pc/src/search.cpp:1963: int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+pc/src/search.cpp:1983: const int verification = search_child(board, ss, depth - reduction, beta - 1, beta, false);
+pcfloor/src/search.cpp:104: int NullChildFloor = 0;
+pcfloor/src/search.cpp:192: {"NullChildFloor", &NullChildFloor, 0, 3},
+pcfloor/src/search.cpp:1965: const int reduced_depth = depth - reduction;
+pcfloor/src/search.cpp:1966: const int null_child_depth = tune::NullChildFloor > 0 ? std::max(reduced_depth, tune::NullChildFloor)
+pcfloor/src/search.cpp:1968: int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
+pcfloor/src/search.cpp:1988: const int verification = search_child(board, ss, depth - reduction, beta - 1, beta, false);
+null_floor.patch.txt SHA-256 596c9649c91ef79af7648e734cd1ba8184ce6c756abd9d97e211a055fa919b98
