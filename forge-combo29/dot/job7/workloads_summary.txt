@@ -1,0 +1,335 @@
+
+=== W1_comparison.txt ===
+{
+  "rows": 1000,
+  "equal": 1000,
+  "differ": 0,
+  "first_difference": [],
+  "canonical_info_differ_rows": 0,
+  "r15d_nodes": 16543291,
+  "kF_nodes": 16543291
+}
+
+=== W2_comparison.txt ===
+{
+  "normalization": "Only output lines (< prefix), deleting time/nps/hashfull numeric fields",
+  "literal_sequence": {
+    "left": "W2_r15d.raw.txt",
+    "right": "W2_kF.raw.txt",
+    "lines_left": 1481,
+    "lines_right": 1481,
+    "equal": true,
+    "first_difference": null
+  },
+  "fresh_processes": {
+    "left": "W2_r15d_fresh.raw.txt",
+    "right": "W2_kF_fresh.raw.txt",
+    "lines_left": 2260,
+    "lines_right": 2260,
+    "equal": true,
+    "first_difference": null
+  },
+  "freshness_by_program": {
+    "r15d": {
+      "program": "r15d",
+      "positions": 20,
+      "sequence_searches": 120,
+      "fresh_process_searches": 20,
+      "freshness_equal": 0,
+      "freshness_differ": 20,
+      "first_difference": {
+        "line": 1,
+        "last_literal": "info depth 1 seldepth 1 score cp 319 nodes 27 pv g2g4",
+        "fresh_original": "info depth 1 seldepth 2 score cp 6 nodes 38 pv d8a5"
+      },
+      "literal_note": "Final ucinewgame resets Board to startpos; no position reinserted, as mandated."
+    },
+    "kF": {
+      "program": "kF",
+      "positions": 20,
+      "sequence_searches": 120,
+      "fresh_process_searches": 20,
+      "freshness_equal": 0,
+      "freshness_differ": 20,
+      "first_difference": {
+        "line": 1,
+        "last_literal": "info depth 1 seldepth 1 score cp 319 nodes 27 pv g2g4",
+        "fresh_original": "info depth 1 seldepth 2 score cp 6 nodes 38 pv d8a5"
+      },
+      "literal_note": "Final ucinewgame resets Board to startpos; no position reinserted, as mandated."
+    }
+  },
+  "raw_sha256": {
+    "W2_r15d_fresh.raw.txt": "85977584721412f392cfa885f338ef811d155005fedd00bd5833723c172634e0",
+    "W2_kF_fresh.raw.txt": "98036ea54ffc63a1244660ea5946fb0bb09986fcdf2683dda838f10796bb5f70",
+    "W2_r15d.raw.txt": "ca507b2985fbab4241d68db9fdff796d3c6ab75970acbd62111b772d950b7204",
+    "W2_kF.raw.txt": "386f1bc8b5c9f983d45d2b393790a1bc0a17cf2aa1af96b50dd9b53de4e359c7"
+  }
+}
+
+=== W3_search.summary.txt ===
+{
+  "mode": "search",
+  "rows_compared": 300,
+  "equal": 300,
+  "differ": 0,
+  "first_difference": null,
+  "finished_utc": "2026-11-18T15:49:44.530139+00:00",
+  "canonical_info_differ_rows": 0,
+  "node_sum_kF": 5999699,
+  "node_sum_kF0": 5999699
+}
+
+=== W3_eval.summary.txt ===
+{
+  "mode": "eval",
+  "rows_compared": 1000,
+  "equal": 1000,
+  "differ": 0,
+  "first_difference": null,
+  "finished_utc": "2026-11-18T15:49:44.716529+00:00"
+}
+
+=== W3_scope.txt ===
+Started UTC 2026-11-18T15:49:36.576433+00:00
+Settings PC20, Threads1, Hash16, synthetic v3 net checksum30ab43b4ba5db5f3; freshprocess per program and workload. Search first300 positions at depth9, ucinewgame/isready each. Eval all1000 positions.
+Actual macro proof kf0_effective_flags.txt: both programs FORGE_NNUE_V3_AVX512=1 despite ZMM0 in kF0. Therefore this is prescribed build differential, not v3 AVX512 versus alternate kernel.
+Source opened: src/uci.cpp:901-911 eval branch calls nnue::v3::evaluate_reference at906 and describes fresh accumulators/scalar output sum at904-905. Eval equality compares two scalar-reference commands, not optimized search SIMD outputs against scalar outputs. No instrumentation demonstrates per-fusion branch reach.
+
+=== W4_comparison.txt ===
+{
+  "rows": 20,
+  "equal": 20,
+  "differ": 0,
+  "comparisons": [
+    {
+      "row": 1,
+      "equal": true,
+      "r15d_nodes": 16023,
+      "kF_nodes": 16023,
+      "r15d_bestmove": "bestmove e8e7",
+      "kF_bestmove": "bestmove e8e7",
+      "first_difference": null
+    },
+    {
+      "row": 2,
+      "equal": true,
+      "r15d_nodes": 22489,
+      "kF_nodes": 22489,
+      "r15d_bestmove": "bestmove b7f7",
+      "kF_bestmove": "bestmove b7f7",
+      "first_difference": null
+    },
+    {
+      "row": 3,
+      "equal": true,
+      "r15d_nodes": 13097,
+      "kF_nodes": 13097,
+      "r15d_bestmove": "bestmove g1h1",
+      "kF_bestmove": "bestmove g1h1",
+      "first_difference": null
+    },
+    {
+      "row": 4,
+      "equal": true,
+      "r15d_nodes": 9629,
+      "kF_nodes": 9629,
+      "r15d_bestmove": "bestmove b1a1",
+      "kF_bestmove": "bestmove b1a1",
+      "first_difference": null
+    },
+    {
+      "row": 5,
+      "equal": true,
+      "r15d_nodes": 28838,
+      "kF_nodes": 28838,
+      "r15d_bestmove": "bestmove f2f3",
+      "kF_bestmove": "bestmove f2f3",
+      "first_difference": null
+    },
+    {
+      "row": 6,
+      "equal": true,
+      "r15d_nodes": 16279,
+      "kF_nodes": 16279,
+      "r15d_bestmove": "bestmove c7c8",
+      "kF_bestmove": "bestmove c7c8",
+      "first_difference": null
+    },
+    {
+      "row": 7,
+      "equal": true,
+      "r15d_nodes": 37965,
+      "kF_nodes": 37965,
+      "r15d_bestmove": "bestmove f6g4",
+      "kF_bestmove": "bestmove f6g4",
+      "first_difference": null
+    },
+    {
+      "row": 8,
+      "equal": true,
+      "r15d_nodes": 10190,
+      "kF_nodes": 10190,
+      "r15d_bestmove": "bestmove a1c1",
+      "kF_bestmove": "bestmove a1c1",
+      "first_difference": null
+    },
+    {
+      "row": 9,
+      "equal": true,
+      "r15d_nodes": 14822,
+      "kF_nodes": 14822,
+      "r15d_bestmove": "bestmove e1d2",
+      "kF_bestmove": "bestmove e1d2",
+      "first_difference": null
+    },
+    {
+      "row": 10,
+      "equal": true,
+      "r15d_nodes": 4646,
+      "kF_nodes": 4646,
+      "r15d_bestmove": "bestmove h2b2",
+      "kF_bestmove": "bestmove h2b2",
+      "first_difference": null
+    },
+    {
+      "row": 11,
+      "equal": true,
+      "r15d_nodes": 22785,
+      "kF_nodes": 22785,
+      "r15d_bestmove": "bestmove c6c7",
+      "kF_bestmove": "bestmove c6c7",
+      "first_difference": null
+    },
+    {
+      "row": 12,
+      "equal": true,
+      "r15d_nodes": 3576,
+      "kF_nodes": 3576,
+      "r15d_bestmove": "bestmove a3g3",
+      "kF_bestmove": "bestmove a3g3",
+      "first_difference": null
+    },
+    {
+      "row": 13,
+      "equal": true,
+      "r15d_nodes": 6706,
+      "kF_nodes": 6706,
+      "r15d_bestmove": "bestmove a2b3",
+      "kF_bestmove": "bestmove a2b3",
+      "first_difference": null
+    },
+    {
+      "row": 14,
+      "equal": true,
+      "r15d_nodes": 19507,
+      "kF_nodes": 19507,
+      "r15d_bestmove": "bestmove g7h7",
+      "kF_bestmove": "bestmove g7h7",
+      "first_difference": null
+    },
+    {
+      "row": 15,
+      "equal": true,
+      "r15d_nodes": 56549,
+      "kF_nodes": 56549,
+      "r15d_bestmove": "bestmove c5a3",
+      "kF_bestmove": "bestmove c5a3",
+      "first_difference": null
+    },
+    {
+      "row": 16,
+      "equal": true,
+      "r15d_nodes": 4188,
+      "kF_nodes": 4188,
+      "r15d_bestmove": "bestmove d8g8",
+      "kF_bestmove": "bestmove d8g8",
+      "first_difference": null
+    },
+    {
+      "row": 17,
+      "equal": true,
+      "r15d_nodes": 36001,
+      "kF_nodes": 36001,
+      "r15d_bestmove": "bestmove c2e2",
+      "kF_bestmove": "bestmove c2e2",
+      "first_difference": null
+    },
+    {
+      "row": 18,
+      "equal": true,
+      "r15d_nodes": 8243,
+      "kF_nodes": 8243,
+      "r15d_bestmove": "bestmove b3e3",
+      "kF_bestmove": "bestmove b3e3",
+      "first_difference": null
+    },
+    {
+      "row": 19,
+      "equal": true,
+      "r15d_nodes": 4180,
+      "kF_nodes": 4180,
+      "r15d_bestmove": "bestmove a5a8",
+      "kF_bestmove": "bestmove a5a8",
+      "first_difference": null
+    },
+    {
+      "row": 20,
+      "equal": true,
+      "r15d_nodes": 30434,
+      "kF_nodes": 30434,
+      "r15d_bestmove": "bestmove e7h7",
+      "kF_bestmove": "bestmove e7h7",
+      "first_difference": null
+    }
+  ]
+}
+
+=== W2_W4_raw_manifest.txt ===
+{
+  "W2_kF.raw.txt": {
+    "sha256": "386f1bc8b5c9f983d45d2b393790a1bc0a17cf2aa1af96b50dd9b53de4e359c7",
+    "bytes": 162584,
+    "net_checksum_lines": 62,
+    "net_active_lines": 41,
+    "bestmove_lines": 120
+  },
+  "W2_kF_fresh.raw.txt": {
+    "sha256": "98036ea54ffc63a1244660ea5946fb0bb09986fcdf2683dda838f10796bb5f70",
+    "bytes": 181485,
+    "net_checksum_lines": 40,
+    "net_active_lines": 20,
+    "bestmove_lines": 20
+  },
+  "W2_r15d.raw.txt": {
+    "sha256": "ca507b2985fbab4241d68db9fdff796d3c6ab75970acbd62111b772d950b7204",
+    "bytes": 162880,
+    "net_checksum_lines": 62,
+    "net_active_lines": 41,
+    "bestmove_lines": 120
+  },
+  "W2_r15d_fresh.raw.txt": {
+    "sha256": "85977584721412f392cfa885f338ef811d155005fedd00bd5833723c172634e0",
+    "bytes": 181577,
+    "net_checksum_lines": 40,
+    "net_active_lines": 20,
+    "bestmove_lines": 20
+  },
+  "W4_kF.raw.txt": {
+    "sha256": "a27920d17089ede955cc616c52bae3223413a41cf616c18c217f7a36afc37f14",
+    "bytes": 41606,
+    "net_checksum_lines": 2,
+    "net_active_lines": 1,
+    "bestmove_lines": 20
+  },
+  "W4_r15d.raw.txt": {
+    "sha256": "fbdb74ccb382af3cc9e1e1350b215d3e32717815d30efd60f44bf373162dc129",
+    "bytes": 41650,
+    "net_checksum_lines": 2,
+    "net_active_lines": 1,
+    "bestmove_lines": 20
+  }
+}
+
+=== net_provenance.txt ===
+bytes 9463528 fnv1a64 30ab43b4ba5db5f3 sha256 c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7
