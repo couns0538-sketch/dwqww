@@ -1,0 +1,188 @@
+diff -ruN before/include/forge/search.hpp after/include/forge/search.hpp
+--- before/include/forge/search.hpp	2026-11-18 05:57:00.410530151 -0800
++++ after/include/forge/search.hpp	2026-11-18 05:57:00.462465080 -0800
+@@ -275,6 +275,7 @@
+ extern int ProbcutMargin;
+ extern int QsFutilityMargin;
+ extern int QsSeeMargin;
++extern int QsNullChecks;
+ extern int AspirationDelta;
+ extern int HistoryBonusQuadratic;
+ extern int HistoryBonusLinear;
+@@ -573,12 +574,12 @@
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+-    int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
++    int qsearch(Board& board, SearchStack* ss, int alpha, int beta, bool null_quiet_checks = false);
+     // B4 CuckooRep: every child search goes through these; with CuckooRep off they are the plain calls.
+     int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+-    int qsearch_child(Board& board, SearchStack* ss, int alpha, int beta);
++    int qsearch_child(Board& board, SearchStack* ss, int alpha, int beta, bool null_quiet_checks = false);
+     [[gnu::cold]] int search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+-    [[gnu::cold]] int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta);
++    [[gnu::cold]] int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta, bool null_quiet_checks = false);
+     // B4 HistRework: the twin's slot of a quiet move at the node of `ss` (its maps are threat_maps_[ss->ply]), the
+     // change of a quiet move's score when part of its butterfly term comes from the twin, and the twin's update.
+     [[nodiscard]] std::int16_t& rework_entry(const Board& board, const SearchStack* ss, Move move) const;
+diff -ruN before/src/search.cpp after/src/search.cpp
+--- before/src/search.cpp	2026-11-18 05:57:00.409029005 -0800
++++ after/src/search.cpp	2026-11-18 05:57:00.469210716 -0800
+@@ -126,6 +126,7 @@
+ int ProbcutMargin = 180;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
++int QsNullChecks = 0;
+ int AspirationDelta = 18;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+@@ -206,6 +207,7 @@
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
++        {"QsNullChecks", &QsNullChecks, 0, 1},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+@@ -683,7 +685,7 @@
+         }
+     }
+ 
+-    [[nodiscard]] Move next(bool skip_quiets) {
++    [[nodiscard]] Move next(bool skip_quiets, bool null_quiet_checks = false) {
+         while (true) {
+             switch (stage_) {
+             case MainTT:
+@@ -762,6 +764,21 @@
+                     if (move == tt_move_) continue;
+                     return move;
+                 }
++                if (!null_quiet_checks) return Move::none();
++                buffer_.clear();
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
++                board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++#else
++                board_.generate_pseudo_legal(buffer_, false);
++#endif
++                index_ = 0;
++                stage_ = QsQuietChecks;
++                [[fallthrough]];
++            case QsQuietChecks:
++                while (index_ < buffer_.size()) {
++                    const Move move = buffer_[index_++];
++                    if (move.is_quiet() && board_.gives_check(move)) return move;
++                }
+                 return Move::none();
+ 
+             case EvasionGenerate:
+@@ -789,7 +806,7 @@
+ private:
+     enum Stage : int {
+         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+-        QsTT, QsGenerate, QsCaptures,
++        QsTT, QsGenerate, QsCaptures, QsQuietChecks,
+         EvasionTT, EvasionGenerate, Evasions
+     };
+     struct Scored {
+@@ -1616,7 +1633,7 @@
+ // ---------------------------------------------------------------------------
+ // Quiescence search
+ 
+-int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta, bool null_quiet_checks) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+@@ -1640,10 +1657,14 @@
+         if (alpha >= beta) return alpha;
+     }
+ 
++    // The first null-child qsearch has additional legal continuations. Its bounds
++    // are reusable within that move set, but not interchangeable with normal bounds.
++    constexpr std::uint64_t NullQuietChecksKey = 0x93fd26bcab6b0f4dULL;
++    const auto tt_key = null_quiet_checks ? board.key() ^ NullQuietChecksKey : board.key();
+ #if FORGE_SPD_TT_NOTLS
+-    const TTProbe tt_probe = probe_tt(board.key());
++    const TTProbe tt_probe = probe_tt(tt_key);
+ #else
+-    const TTProbe tt_probe = shared_.tt.probe(board.key());
++    const TTProbe tt_probe = shared_.tt.probe(tt_key);
+ #endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+@@ -1679,9 +1700,9 @@
+         best_score = eval;
+         if (best_score >= beta) {
+ #if FORGE_SPD_TT_NOTLS
+-            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++            if (!tt_hit) store_tt(tt_probe, tt_key, score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+-            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++            if (!tt_hit) shared_.tt.store(tt_probe, tt_key, score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #endif
+             return best_score;
+         }
+@@ -1697,7 +1718,7 @@
+     Move best_move = Move::none();
+     int move_count = 0;
+     Move move;
+-    while (!(move = picker.next(false)).is_none()) {
++    while (!(move = picker.next(false, null_quiet_checks)).is_none()) {
+         if (!board.is_legal(move)) continue;
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+@@ -1748,9 +1769,9 @@
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+-    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++    store_tt(tt_probe, tt_key, score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #else
+-    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++    shared_.tt.store(tt_probe, tt_key, score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #endif
+     return best_score;
+ }
+@@ -1984,7 +2005,11 @@
+             const int reduced_depth = depth - reduction;
+             const int null_child_depth = tune::NullChildFloor > 0 ? std::max(reduced_depth, tune::NullChildFloor)
+                                                                   : reduced_depth;
+-            int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
++            // A nonpositive depth normally dispatches directly to qsearch_child.
++            // Only the null probe opts in; recursive qsearch_child calls use false.
++            int null_score = tune::QsNullChecks && null_child_depth <= 0
++                ? -qsearch_child(board, ss + 1, -beta, -beta + 1, true)
++                : -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+             if (null_score >= beta &&
+@@ -2423,9 +2448,9 @@
+     return search(board, ss, depth, alpha, beta, cut_node);
+ }
+ 
+-int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
+-    if (tune::CuckooRep) [[unlikely]] return qsearch_cuckoo(board, ss, alpha, beta);
+-    return qsearch(board, ss, alpha, beta);
++int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta, bool null_quiet_checks) {
++    if (tune::CuckooRep) [[unlikely]] return qsearch_cuckoo(board, ss, alpha, beta, null_quiet_checks);
++    return qsearch(board, ss, alpha, beta, null_quiet_checks);
+ }
+ 
+ int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+@@ -2440,13 +2465,13 @@
+     return search(board, ss, depth, alpha, beta, cut_node);
+ }
+ 
+-int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
++int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta, bool null_quiet_checks) {
+     constexpr int DrawScore = 0;
+     if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+         if (beta <= DrawScore) return DrawScore;
+-        return std::max(qsearch(board, ss, DrawScore, beta), DrawScore);
++        return std::max(qsearch(board, ss, DrawScore, beta, null_quiet_checks), DrawScore);
+     }
+-    return qsearch(board, ss, alpha, beta);
++    return qsearch(board, ss, alpha, beta, null_quiet_checks);
+ }
+ 
+ namespace {

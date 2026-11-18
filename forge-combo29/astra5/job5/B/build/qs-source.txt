@@ -1,0 +1,33 @@
+QsNullChecks B build, after applying null_guard.patch.txt and qs_null_checks.patch.txt
+
+The new UCI spin option has default 0, min 0, max 1 (src/search.cpp:129,210).
+Only the null search at src/search.cpp:2010-2012 sets the flag, when its actual
+child depth is zero or negative. It calls the same quiescence entry that the
+ordinary depth-zero dispatch would reach, preserving the Cuckoo repetition check.
+When the null probe has a positive depth, the original search_child call is used.
+The queen-side and king-side castling moves are quiet if legal, and a discovered
+check qualifies. Captures and all promotions remain in the existing first stage.
+
+In src/search.cpp:764-783 the picker first exhausts ordinary captures/promotions.
+It then iterates the quiet moves in the board generator's native order. A candidate
+must give check; src/search.cpp:1722 applies the usual legality check. The shared
+move loop retains its guards, including the outside-check SEE threshold at 1731
+that also applies to checking captures in ordinary quiescence. Alpha-beta cutoffs
+and stand pat use the same code. A quiet check that passes these tests uses the
+ordinary make-move, child-search and unmake sequence. The child call at 1751 omits
+the extra flag, so normal quiescence generates the checked side's evasions.
+No subsequent q ply inherits the additional quiet checking move set.
+
+Only this first expanded node uses the XOR-tagged transposition-table key at
+src/search.cpp:1662-1663 for every probe and store. Quiescence with quiet checks
+has a different set of possible moves. Reusing an ordinary upper bound at this
+node could suppress a new legal check; writing this node's lower bounds into the
+ordinary table could falsely improve capture-only quiescence. Within the same
+mode the usual TT cutoffs still apply. The table capacity and replacement policy
+are shared, and the board's own key, repetition history, child keys and all
+ordinary probes are untouched. This isolates scores across the two q modes at
+a given position and preserves normal TT collisions and capacity effects.
+
+From an A source tree, apply the B patch with patch -p1 -F0, configure Release
+with -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1, and build with CMake.
+qs-patch-apply.txt, qs-build.txt and qs-uci.txt record the actual results.
