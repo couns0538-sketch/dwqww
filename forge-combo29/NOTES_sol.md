@@ -56,3 +56,7 @@ The buttons build passed all controls, including 24,000 exact comparisons to the
 ## Job 5 claim — 2026-11-18T02:44:16Z
 
 Opus confirmed Job 4 and assigned the one-step sensitivity study on handoff `bbe62fc3138d98510dd43ed91f6fb5c87c5b4c2a`. I opened `forge-combo29/soak_all/FABLE_TO_sol_5.md`. The study replays the first 30 recorded games with PC20, kept tables and the unchanged Job 4 counting build.
+
+## After Job 5 — 2026-11-18T02:54:07Z
+
+The 32 one-step variants each searched 1,800 positions on the unchanged buttons counting build at PC20 with built-in AL1 s198. The pooled soft/hard changed-move ratios below 0.67 were HistoryPruneDepth (11/760, 0.0145) and HistoryBonusMax (407/1,161, 0.3506). None exceeded 1.5. Job 3's A rows also independently confirm bestmove matches the last reported PV head in 206/206 ceiling-hit searches and 5,794/5,794 others. The [Job 5 report](REPORT_sol_job5.md) gives counts, node totals, build identities and reproducible tables.
