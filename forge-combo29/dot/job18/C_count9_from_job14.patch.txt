@@ -1,0 +1,208 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -5,14 +5,15 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82"};
+-inline std::atomic<unsigned long long> uses[13]{}, differs[13]{}, diagnostics{0};
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3"};
++inline std::atomic<unsigned long long> uses[15]{}, differs[15]{}, diagnostics{0};
+ inline std::atomic<unsigned long long> h25_paths[7]{};
+ inline std::atomic<unsigned long long> h82_classes[6]{};
+-inline void reset() { for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<13;++i) { uses[i]=0; differs[i]=0; } }
++inline std::atomic<unsigned long long> h30_classes[4]{}, h3_classes[4]{};
++inline void reset() { for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<15;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<13 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==13) return;
++    int i=0; while(i<15 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==15) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -40,8 +41,15 @@
+     ++h82_classes[store?5:4];
+     record("H82",different,*tt_board,move);
+ }
++inline void record_h30(bool different, int cls, bool illegal_source, bool promotion_source, const Board& board, Move move) {
++ ++h30_classes[cls]; if(illegal_source)++h30_classes[2]; if(promotion_source)++h30_classes[3];
++ record("H30",different,board,move);
++}
++inline void record_h3(bool different, int cls, const Board& board) { ++h3_classes[cls]; record("H3",different,board,Move::none()); }
+ // Caller holds the output mutex, after workers have joined.
+-inline void summary() { for(int i=0;i<13;++i) std::cout << "info string shortcut " << names[i]
++inline void summary() {
++ std::cout << "info string h30_classes white_generation " << h30_classes[0].load() << " black_generation " << h30_classes[1].load() << " illegal_source " << h30_classes[2].load() << " promotion_source " << h30_classes[3].load() << std::endl;
++ std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<15;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
+     std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
+               << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -194,6 +194,9 @@
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     void generate_legal_evasions(MoveList& moves) const;
+     [[nodiscard]] bool has_legal_move() const;
++#if FORGE_SHORTCUT_COUNT
++    [[nodiscard]] bool h3_has_legal_move_reference() const; // diagnostic copy only
++#endif
+     // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
+     // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
+     // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2001,12 +2001,55 @@
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
++#if FORGE_SHORTCUT_COUNT
++        std::array<Scored,256> h30_original{};
++        std::size_t h30_n=0;
++        bool h30_illegal=false,h30_promotion=false;
++#endif
+         for (const Move move : buf) {
+             const int sc = score_evasion(move);
+             const Move tagged = (legal_mask[move.from] & square_bb(move.to)) != 0 ? move : Move::none();
++#if FORGE_SHORTCUT_COUNT
++            h30_original[h30_n++]={move,sc};
++            h30_illegal |= tagged.is_none(); h30_promotion |= move.is_promotion();
++#endif
+             push_scored(tagged, sc);
+         }
+         sort_moves();
++#if FORGE_SHORTCUT_COUNT
++        // Diagnostic-only private arrays. Compare tag-then-select with r15d's
++        // select-then-deferred-legality-filter, including full tie ordering.
++        auto h30_sequence=[&](std::array<Scored,256> values,std::size_t n,bool deferred,std::array<Scored,256>& output) {
++            std::size_t out=0; bool ordered=false;
++            for(std::size_t i=0;i<n;++i) {
++                if(i<4) {
++                    std::size_t best=i;
++                    for(std::size_t j=i+1;j<n;++j)if(values[j].score>values[best].score)best=j;
++                    if(best!=i)std::swap(values[i],values[best]);
++                } else if(!ordered) {
++                    std::sort(values.begin()+static_cast<std::ptrdiff_t>(i),values.begin()+static_cast<std::ptrdiff_t>(n),[](const Scored&a,const Scored&b){return a.score>b.score;});
++                    ordered=true;
++                }
++                const Move m=values[i].move;
++                if(m.is_none() || m==tt_move_)continue;
++                if(deferred && (legal_mask[m.from]&square_bb(m.to))==0)continue;
++                output[out++]=values[i];
++            }
++            return out;
++        };
++        std::array<Scored,256> actual_values{},actual_output{},reference_output{};
++        for(std::size_t i=0;i<count_;++i)actual_values[i]=moves_[i];
++        const std::size_t actual_n=h30_sequence(actual_values,count_,false,actual_output);
++        const std::size_t reference_n=h30_sequence(h30_original,h30_n,true,reference_output);
++        const int h30_class=board_.side_to_move()==White?0:1;
++#if FORGE_SHORTCUT_WRONG9
++        if(h30_class==0 && reference_n>0)reference_output[0].move=Move::none(); // White tied-fallback generations only.
++#endif
++        bool h30_diff=actual_n!=reference_n;
++        for(std::size_t i=0;i<std::min(actual_n,reference_n);++i)
++            h30_diff |= actual_output[i].move!=reference_output[i].move || actual_output[i].score!=reference_output[i].score;
++        shortcut_count::record_h30(h30_diff,h30_class,h30_illegal,h30_promotion,board_,reference_n?reference_output[0].move:Move::none());
++#endif
+     }
+ };
+ 
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -848,7 +848,82 @@
+     }
+ }
+ 
++#if FORGE_SHORTCUT_COUNT
++// Exact r15d has_legal_move body. Called only on a diagnostic Board copy;
++// its is_legal fallback may populate that copy's mutable cache, never the search board.
++bool Board::h3_has_legal_move_reference() const {
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const Bitboard occ = occupied();
++        const Bitboard us_occ = occupied(us);
++        const Bitboard them_occ = occupied(them);
++        const int ksq = king_square(us);
++#if FORGE_SPD_KING_LINES
++        const Bitboard pinned = king_lines_.valid
++            ? king_lines_.pinned
++            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++#else
++        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++#endif
++        const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
++        if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
++        if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
++        const Bitboard not_us = ~us_occ;
++        for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
++            if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
++        }
++        const Bitboard queens = pieces(us, Queen);
++        for (Bitboard bb = (pieces(us, Bishop) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::bishop(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        for (Bitboard bb = (pieces(us, Rook) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::rook(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        const Bitboard occ_no_king = occ & ~square_bb(ksq);
++        for (Bitboard k = attacks::king(ksq) & not_us; k != 0;) {
++            const int to = pop_lsb(k);
++            const Bitboard to_bb = square_bb(to);
++            if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
++        }
++    }
++    MoveList moves;
++    generate_pseudo_legal(moves, false);
++    for (const Move move : moves) {
++        if (is_legal(move)) return true;
++    }
++    return false;
++}
++#endif
++
+ bool Board::has_legal_move() const {
++#if FORGE_SHORTCUT_COUNT
++    Board h3_reference_board = *this;
++    bool h3_reference = h3_reference_board.h3_has_legal_move_reference();
++    int h3_class = 0; // in check
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const int king = king_square(us);
++        const Bitboard rays = attacks::rook_ray(king) | attacks::bishop_ray(king);
++        const Bitboard pawns = pieces(us, Pawn) & ~rays;
++        const bool safe_pawn_witness = ((pawn_push(us, pawns) & ~occupied()) |
++                                      (pawn_attacks_bb(us, pawns) & occupied(them))) != 0;
++        const bool no_enemy_ray = ((attacks::rook_ray(king) & (pieces(them, Rook) | pieces(them, Queen))) |
++                                   (attacks::bishop_ray(king) & (pieces(them, Bishop) | pieces(them, Queen)))) == 0;
++        bool no_ray_shortcut = false;
++#if FORGE_SPD_KING_LINES
++        no_ray_shortcut = !king_lines_.valid && no_enemy_ray;
++#endif
++        h3_class = safe_pawn_witness ? 1 : no_ray_shortcut ? 2 : 3;
++    }
++#if FORGE_SHORTCUT_WRONG9
++    if (h3_class == 1) h3_reference = !h3_reference;
++#endif
++#endif
++    const bool h3_actual = [&]() -> bool {
+     if (checkers_ == 0) {
+         const Color us = side_;
+         const Color them = opposite(us);
+@@ -899,6 +974,12 @@
+         if (is_legal(move)) return true;
+     }
+     return false;
++
++    }();
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h3(h3_actual != h3_reference, h3_class, *this);
++#endif
++    return h3_actual;
+ }
+ 
+ #if FORGE_SPD_KING_LINES
