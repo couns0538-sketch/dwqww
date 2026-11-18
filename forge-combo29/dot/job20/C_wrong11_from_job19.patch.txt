@@ -1,0 +1,126 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -1,3 +1,6 @@
++#ifndef FORGE_SHORTCUT_WRONG11
++#define FORGE_SHORTCUT_WRONG11 1
++#endif
+ #pragma once
+ #include "forge/board.hpp"
+ #include "forge/uci_output.hpp"
+@@ -5,16 +8,17 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12"};
+-inline std::atomic<unsigned long long> uses[17]{}, differs[17]{}, diagnostics{0};
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12", "H36", "H11"};
++inline std::atomic<unsigned long long> uses[19]{}, differs[19]{}, diagnostics{0};
+ inline std::atomic<unsigned long long> h25_paths[7]{};
+ inline std::atomic<unsigned long long> h82_classes[6]{};
+ inline std::atomic<unsigned long long> h30_classes[4]{}, h3_classes[4]{};
+ inline std::atomic<unsigned long long> h71_classes[4]{}, h12_classes[6]{};
+-inline void reset() { for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<17;++i) { uses[i]=0; differs[i]=0; } }
++inline std::atomic<unsigned long long> h36_classes[7]{}, h11_classes[2]{};
++inline void reset() { for(auto& n:h36_classes)n=0; for(auto& n:h11_classes)n=0; for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<19;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<17 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==17) return;
++    int i=0; while(i<19 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==19) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -53,13 +57,22 @@
+ inline void record_h12(bool different, bool knight, int path, const Board& board, const Move& move) {
+  ++h12_classes[knight?0:1]; ++h12_classes[2+path]; record("H12",different,board,move);
+ }
++inline void record_h36(bool different, bool white, int path, bool update, const Board& board) {
++ ++h36_classes[white?0:1]; ++h36_classes[2+path]; ++h36_classes[update?6:5];
++ record("H36",different,board,Move::none());
++}
++inline void record_h11(bool different, int cls, const Board& board, const Move& move) {
++ ++h11_classes[cls]; record("H11",different,board,move);
++}
+ // Caller holds the output mutex, after workers have joined.
+ inline void summary() {
++ std::cout << "info string h36_classes white " << h36_classes[0].load() << " black " << h36_classes[1].load() << " cache_valid " << h36_classes[2].load() << " cache_invalid " << h36_classes[3].load() << " no_stack " << h36_classes[4].load() << " eval " << h36_classes[5].load() << " update " << h36_classes[6].load() << std::endl;
++ std::cout << "info string h11_classes white " << h11_classes[0].load() << " black " << h11_classes[1].load() << std::endl;
+  std::cout << "info string h71_classes neither " << h71_classes[0].load() << " rook_only " << h71_classes[1].load() << " queen_only " << h71_classes[2].load() << " both " << h71_classes[3].load() << std::endl;
+  std::cout << "info string h12_classes moving_knight " << h12_classes[0].load() << " other_mover " << h12_classes[1].load() << " prefix_return " << h12_classes[2].load() << " ray_empty " << h12_classes[3].load() << " actual_empty " << h12_classes[4].load() << " exchange_loop " << h12_classes[5].load() << std::endl;
+ 
+  std::cout << "info string h30_classes white_generation " << h30_classes[0].load() << " black_generation " << h30_classes[1].load() << " illegal_source " << h30_classes[2].load() << " promotion_source " << h30_classes[3].load() << std::endl;
+- std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<17;++i) std::cout << "info string shortcut " << names[i]
++ std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<19;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
+     std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
+               << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2290,6 +2290,9 @@
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
++#if FORGE_SHORTCUT_COUNT
++        const int h36_path = ss == nullptr ? 2 : ((ss->corr_valid & 8U) ? 0 : 1);
++#endif
+         std::size_t mat_idx;
+         if (ss != nullptr) {
+             if ((ss->corr_valid & 8U) == 0U) {
+@@ -2300,6 +2303,18 @@
+         } else {
+             mat_idx = material_key(board) & (CorrectionSize - 1U);
+         }
++#if FORGE_SHORTCUT_COUNT
++        // Recompute from current board, independent of stack cache validity/storage.
++        std::uint64_t h36_key = 0;
++        for (const Color c : {White, Black})
++            for (int t = Pawn; t <= Queen; ++t)
++                h36_key = h36_key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(c, static_cast<PieceType>(t))) + 1);
++        std::size_t h36_ref = (h36_key * 0x9E3779B97F4A7C15ULL) & (CorrectionSize - 1U);
++#if FORGE_SHORTCUT_WRONG11
++        if (board.side_to_move() == White) h36_ref ^= std::size_t{1};
++#endif
++        shortcut_count::record_h36(mat_idx != h36_ref, board.side_to_move() == White, h36_path, false, board);
++#endif
+         correction += (*material_correction_)[side][mat_idx] * tune::MaterialCorrectionWeight / 100;
+     }
+     if (tune::NonPawnCorrection) {
+@@ -2366,6 +2381,19 @@
+         const std::size_t mat_idx = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
+             ? static_cast<std::size_t>(ss->corr_mat_idx)
+             : (material_key(board) & (CorrectionSize - 1U));
++#if FORGE_SHORTCUT_COUNT
++        const int h36_path = ss == nullptr ? 2 : ((ss->corr_valid & 8U) ? 0 : 1);
++        // Recompute from current board, independent of stack cache validity/storage.
++        std::uint64_t h36_key = 0;
++        for (const Color c : {White, Black})
++            for (int t = Pawn; t <= Queen; ++t)
++                h36_key = h36_key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(c, static_cast<PieceType>(t))) + 1);
++        std::size_t h36_ref = (h36_key * 0x9E3779B97F4A7C15ULL) & (CorrectionSize - 1U);
++#if FORGE_SHORTCUT_WRONG11
++        if (board.side_to_move() == White) h36_ref ^= std::size_t{1};
++#endif
++        shortcut_count::record_h36(mat_idx != h36_ref, board.side_to_move() == White, h36_path, true, board);
++#endif
+         apply((*material_correction_)[side][mat_idx]);
+     }
+     if (tune::NonPawnCorrection) {
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1913,6 +1913,16 @@
+ #if FORGE_SHORTCUT_COUNT
+     }();
+     bool reference=see_ge_r15d_reference(move,threshold);
++    // H11: only the taken geometric contact/ray-empty earlyout. Reuse the
++    // pristine full r15d SEE result before any H12 control mutation below.
++    if(h12_path==1) {
++        bool h11_reference=reference;
++        const int h11_class=side_to_move()==White ? 0 : 1;
++#if FORGE_SHORTCUT_WRONG11
++        if(h11_class==0) h11_reference=!h11_reference;
++#endif
++        shortcut_count::record_h11(actual!=h11_reference,h11_class,*this,move);
++    }
+     const bool moving_knight=piece_type(piece_at(move.from))==Knight;
+ #if FORGE_SHORTCUT_WRONG10
+     if(moving_knight) reference=!reference;
