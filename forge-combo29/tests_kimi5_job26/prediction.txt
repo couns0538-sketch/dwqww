@@ -1,0 +1,47 @@
+kimi5 job 26 PREDICTION (written after Step 1 reading, before any Step 2 run)
+
+P1. Tuned settings that change nothing under PC20, by my reading: NONE (empty list).
+    Every one of the 40 tuned settings is read in code that runs under PC20 at least at one of
+    its ends. Four of them have their MINIMUM equal to the PC value, so their min end is skipped
+    in Step 2 and their max end switches a gated feature ON: DrawJitter (min 0 = PC; max 8 turns
+    on the draw-leaf jitter, search.cpp:1440-1446 via 1627 and 1778), CaptureFutilityBase
+    (min 0 = PC; max 1000 opens the capture-futility block, 2156), FailLowContinuationBonus
+    (min 0 = PC; max 300 opens the fail-low continuation update, 2359), EvalSwingMult
+    (min 0 = PC; max 64 opens the eval-swing history update, 1890).
+    Side finding among the five UNTUNED ones: QsSeeMargin is NOT dead under PC20 - it is read in
+    the qsearch move loop (search.cpp:1706, gate 1699 mate_moves_==0 && !in_check &&
+    best_score > -MateInMaxPly, all true in PC20 play). The other four untuned are dead under
+    PC20: CaptureFutilityMultiplier/CaptureFutilityDepth behind `CaptureFutilityBase > 0` (2156),
+    EvalSwingMax behind `EvalSwingMult != 0` (1890), AspFailHighMaxReduce behind
+    `AspFailHighReduce != 0` (2766, PC20 has the default 0).
+
+P2. Ends where my reading finds undefined behaviour or a wrap: NONE.
+    Checked, with the largest magnitude reachable at any depth/ply the engine allows
+    (MaxPly = 128, values clamped to the declared ranges by apply_spin, uci.cpp:410-419):
+    - double -> uint8_t narrowing in the LMR tables (search.cpp:303-306): max
+      300/100 + ln(63)*ln(63)/(100/100) = 20.17 < 256: in range, defined.
+    - SeeQuietMultiplier * lmr_depth^2 (2148): <= 200 * 128^2 = 3,276,800, int32 holds.
+    - -HistoryPruneMultiplier * depth [*3/4] (2129-2130): <= 20000*128 = 2,560,000.
+    - -SeeNoisyMultiplier * depth (2166): <= 1000*128 = 128,000.
+    - history_bonus (324): 100*128^2 + 500*128 - 32 = 1,702,368 then min() with <= 10,000.
+    - history_bonus * FailLowContinuationBonus / 100 (2363): <= 10,000*300 = 3,000,000.
+    - swing * EvalSwingMult / 16 (1897): |swing| <= 400 (clamp) -> <= 25,600.
+    - material_correction entry * MaterialCorrectionWeight / 100 (1299): |entry| <= 8192
+      (CorrectionLimit) -> <= 24,576.
+    - No division by zero reachable: every divisor's declared minimum is >= 1
+      (NullMoveDepthDivisor 1, NullMoveEvalDivisor 50, LmrQuietDivisor 100, LmrNoisyDivisor 100,
+      LmrHistoryDivisor 1000, and the /100, /16, /8, /3, /4 literals).
+    - Negative or zero child depths are defined: depth-4 (2016, ProbcutDepth min 1),
+      depth-reduction (1963, NullMoveDepthDivisor min 1 gives reduction > depth),
+      --depth to 0 (2033, IirDepth min 1) all land in `depth <= 0 -> qsearch` (1762);
+      lmr_depth is max(0, ...) (2123); reduced_depth is clamped to [1, new_depth] (2275);
+      singular_depth is max(1, (depth-1)/2) so depth 2 stays in search() (2198).
+    - Aspiration delta (2799): delta += delta/2 + 4 from <= 200; the loop ends once the window
+      covers [-Infinite, Infinite] (delta ~ 65k), far below int32 overflow.
+    - DrawJitter: width = 2*span+1 <= 17, result in [-8, 8] (1443-1445).
+    - Array indices: correction tables masked & (CorrectionSize-1) (1298-1299, 1333-1334);
+      history indexed by squares 0..63; reduction tables by min(depth,63), min(moves,63) (314-317).
+    - No shift counts or pointer arithmetic depend on any of the 45.
+
+P3. Step 2 corner runs expected to show a sanitizer line: 0 of 77.
+    (The positive control must first prove the harness sees a planted overflow.)
