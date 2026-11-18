@@ -107,3 +107,7 @@ The fixed 16-byte engine environment and exact path/inode fixtures preserved W. 
 ## Job 15 — 2026-11-18T19:51:52Z
 
 Completed 8 of 8 timing comparisons using the frozen Clang self-play-profiled builds and W. Path effect not replicated. The swapped H1/P0 engine CPU estimate was 1.0010. 4 of 4 complete U intervals were wholly below one on CPU. The CPU length comparison read THE SAME (Q = 0.5023 across 4 lengths). The 40-character swapped CPU estimate was 0.9483. The 88-character swapped CPU estimate was 0.9504. [Job 15 report](REPORT_sol2_job15.md)
+
+## Job 16 — 2026-11-18T20:44:09Z
+
+Completed 5 of 5 comparisons on one pinned cloud CPU with the Clang 19.1.7 recipe, fixed 72-character launch paths and W. The declared CPU reading was PAYS for the rest of kF and NOT SEEN for G alone against r15d. The swapped G/kF CPU time ratio was 1.0433. F1: interval contains 1. [Job 16 report](REPORT_sol2_job16.md)
