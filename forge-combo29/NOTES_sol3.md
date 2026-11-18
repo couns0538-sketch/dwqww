@@ -121,3 +121,7 @@ Address, undefined-behavior and thread sanitizer controls all reported their pla
 ## Job 23 — 2026-11-18T18:02:57Z
 
 Both plain builds passed all five pins. The 2,000-row P fixture included all available discovered-check and legal pin-line positions. Its D/Q/C/P/X/K counts were 140/1,203/0/855/1,025/1,025. A-kF reproduced all 200 Job 22 known rows, and the direct-only control stopped on e4c2 opening the queen check from e1. With PC20, synthetic net768, Threads 1 and Hash 16, A-kF completed 2,000 depth-9 searches and ten softnodes-2000 games with zero assert stops and zero sanitizer reports. The independent readback found 35,709,215 last-info nodes in the fixture run and 295,448 consumed nodes across 84 game moves. A1/A2 compare the copy and its use against Board APIs that share king-line data. [Job 23 report](REPORT_sol3_job23.md) · [Evidence](sol3/job23)
+
+## Job 24 — 2026-11-18T18:23:55Z
+
+Both plain builds passed the five pins. A-kF2 uses piece placement and geometric attacks for A1s, A2s, A4 and A7. With PC20, synthetic net768, Threads 1 and Hash 16, K1 matched all 200 Job 22 depth-9 labels at 4,097,080 nodes, and the first depth-9 direct-only control stopped at A1s on e4c2. The first pinned-empty depth-4 trial, P row 11, stopped at A7 on unmake of g2f3, with saved pin mask 0 and placement-derived mask 2,048 for the queen on d2. The required first signal was A2s or A4. I stopped at that gate. The remaining controls, K2/R1 and R2 did not run, and there was no prediction commit. [Job 24 report](REPORT_sol3_job24.md) · [Evidence](sol3/job24)
