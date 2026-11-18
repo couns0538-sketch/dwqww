@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2879,7 +2879,7 @@
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+-        const bool early_key = board.key_after(move, child_key);
++        const bool early_key = board.key_after(move, child_key); child_key ^= 1ULL;
+         if (early_key) shared_.tt.prefetch(child_key);
+ #endif
+         ss->current_move = move;

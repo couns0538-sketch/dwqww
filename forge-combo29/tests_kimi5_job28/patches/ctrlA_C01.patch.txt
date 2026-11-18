@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -863,7 +863,7 @@
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+                         ++inv_checks[0];
+                         if (!(bad_count_ < index_)) ++inv_fails[0];
+-                        moves_[bad_count_++].move = move;
++                        bad_count_ = index_; moves_[bad_count_++].move = move;
+ #else
+                         bad_captures_[bad_count_++] = move;
+ #endif

@@ -1,0 +1,195 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -137,6 +137,10 @@
+ static_assert(offsetof(TTEntry, gen_bound) == 13);
+ static_assert(sizeof(TTCluster) == 64);
+ 
++// INV counting build (kimi5 job 28): defined in src/search.cpp.
++extern long long inv_checks[7];
++extern long long inv_fails[7];
++
+ struct WorkerTTProbe {
+     TTEntry entry{};
+     std::size_t cluster = 0;
+@@ -237,7 +241,7 @@
+     void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
+                            Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+ 
+-    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast_impl(std::uint64_t key) const noexcept {
+         const std::size_t index = cluster_index(key);
+         TTCluster& cluster = clusters_[index];
+         const std::uint32_t key32 = verification_key(key);
+@@ -288,6 +292,47 @@
+         return WorkerTTProbe{cluster.entries[repl], index, repl, false};
+ #endif
+     }
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
++        ++inv_checks[4];
++        const std::size_t inv_index = cluster_index(key);
++        TTCluster& inv_cluster = clusters_[inv_index];
++        if ((reinterpret_cast<std::uintptr_t>(&inv_cluster) & 63U) != 0U) ++inv_fails[4];
++        ++inv_checks[5];
++        const std::uint32_t inv_key32 = verification_key(key);
++        WorkerTTProbe inv_exp{};
++        bool inv_found = false;
++        for (std::size_t s = 0; s < 4; ++s) {
++            const TTEntry& e = inv_cluster.entries[s];
++            if (e.key32 == inv_key32 && e.occupied()) {
++                inv_exp = WorkerTTProbe{e, inv_index, static_cast<std::uint8_t>(s), true};
++                inv_found = true;
++                break;
++            }
++        }
++        if (!inv_found) {
++            for (std::size_t s = 0; s < 4; ++s) {
++                if (!inv_cluster.entries[s].occupied()) {
++                    inv_exp = WorkerTTProbe{inv_cluster.entries[s], inv_index, static_cast<std::uint8_t>(s), false};
++                    inv_found = true;
++                    break;
++                }
++            }
++            if (!inv_found) {
++                const std::uint8_t inv_repl = replace_full_cluster_slot(inv_cluster, generation_);
++                inv_exp = WorkerTTProbe{inv_cluster.entries[inv_repl], inv_index, inv_repl, false};
++            }
++        }
++        const WorkerTTProbe inv_got = probe_owned_fast_impl(key);
++        if (inv_got.cluster != inv_exp.cluster || inv_got.hit != inv_exp.hit || inv_got.slot != inv_exp.slot ||
++            inv_got.entry.key32 != inv_exp.entry.key32 || inv_got.entry.move != inv_exp.entry.move ||
++            inv_got.entry.score != inv_exp.entry.score || inv_got.entry.eval != inv_exp.entry.eval ||
++            inv_got.entry.depth != inv_exp.entry.depth ||
++            inv_got.entry.rule50_clock != inv_exp.entry.rule50_clock ||
++            (inv_got.entry.gen_bound & 7U) != (inv_exp.entry.gen_bound & 7U)) {
++            ++inv_fails[5];
++        }
++        return inv_got;
++    }
+ #endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
+@@ -733,10 +778,17 @@
+     void record_null_move(SearchStack* ss);
+     [[gnu::always_inline]] bool check_node_or_periodic_stop() {
+         if (fast_single_node_stop_) {
++            bool inv_result;
+             if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
+-                return shared_.stop.load(std::memory_order_relaxed);
++                inv_result = shared_.stop.load(std::memory_order_relaxed);
++            } else {
++                inv_result = should_stop();
++            }
++            ++inv_checks[6];
++            if (inv_result != (shared_.stop.load(std::memory_order_relaxed) || local_nodes_ >= node_limit_)) {
++                ++inv_fails[6];
+             }
+-            return should_stop();
++            return inv_result;
+         }
+         return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
+     }
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -8,6 +8,12 @@
+ #include <sstream>
+ #include <utility>
+ 
++// INV counting build (kimi5 job 28): defined in src/search.cpp.
++namespace forge {
++extern long long inv_checks[7];
++extern long long inv_fails[7];
++}
++
+ // FORGE_SDK_SEE_HOIST (SDK long job 2026-11-06; default 0 = the code before it): see_ge() builds each side's
+ // king-contact and king-line slider sets once per call instead of at every exchange step, and skips the pin
+ // filter when both are empty after masking. Same sets, same pop order: bit-exact.
+@@ -1282,6 +1288,8 @@
+     // the other colour cannot be the checker, so it is not consulted.
+     if (known_gives_check == 0) {
+         checkers_ = 0;
++        ++forge::inv_checks[2];
++        if (compute_checkers() != 0) ++forge::inv_fails[2];
+         assert(compute_checkers() == 0);
+     } else {
+         const int their_king = king_square(them);
+@@ -1298,6 +1306,10 @@
+ #if FORGE_SPD_KING_LINES
+     king_lines_.valid = false;
+ #endif
++    if (precomputed_key != nullptr) {
++        ++forge::inv_checks[1];
++        if (key_ != compute_key()) ++forge::inv_fails[1];
++    }
+     return true;
+ }
+ 
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -16,6 +16,12 @@
+ #include <immintrin.h>
+ #endif
+ 
++// INV counting build (kimi5 job 28): plain globals, read-only checks, reset per root search.
++namespace forge {
++long long inv_checks[7] = {};
++long long inv_fails[7] = {};
++}
++
+ // FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
+ // losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
+ // behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
+@@ -855,6 +861,8 @@
+                     if (!board_.see_ge(move, -move_score_threshold(move))) {
+ #if FORGE_SDK_BADCAP_PREFIX
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
++                        ++inv_checks[0];
++                        if (!(bad_count_ < index_)) ++inv_fails[0];
+                         moves_[bad_count_++].move = move;
+ #else
+                         bad_captures_[bad_count_++] = move;
+@@ -1900,6 +1908,10 @@
+                 ss->corr_valid |= 8U;
+             }
+             mat_idx = ss->corr_mat_idx;
++            ++inv_checks[3];
++            if (ss->corr_mat_idx != static_cast<std::uint16_t>(material_key(board) & (CorrectionSize - 1U))) {
++                ++inv_fails[3];
++            }
+         } else {
+             mat_idx = material_key(board) & (CorrectionSize - 1U);
+         }
+@@ -3383,6 +3395,9 @@
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+         time_managed_ = false;
+     }
++    if (parent_worker_ == nullptr) {
++        for (int i = 0; i < 7; ++i) { inv_checks[i] = 0; inv_fails[i] = 0; }
++    }
+     fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 &&
+                              (all_workers_ == nullptr || all_workers_->size() == 1) &&
+                              node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -9,6 +9,10 @@
+ #include "forge/uci_clock.hpp"
+ #include "forge/uci_output.hpp"
+ 
++// INV counting build (kimi5 job 28): defined in src/search.cpp.
++extern long long inv_checks[7];
++extern long long inv_fails[7];
++
+ #include <algorithm>
+ #include <array>
+ #include <charconv>
+@@ -446,6 +450,11 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                static const char* const inv_ids[7] = {"C01", "C02", "C04", "C05", "C13a", "C13b", "C11"};
++                for (int i = 0; i < 7; ++i) {
++                    std::cout << "info string INV " << inv_ids[i] << ' ' << inv_checks[i] << ' ' << inv_fails[i]
++                              << std::endl;
++                }
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {

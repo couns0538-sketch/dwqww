@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2891,7 +2891,7 @@
+         Undo undo;
+         const int known_gc = gives_check ? 1 : 0;
+ #if FORGE_SPD_PREFETCH_EARLY
+-        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gc);
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, 0);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
