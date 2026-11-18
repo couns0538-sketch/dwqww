@@ -103,3 +103,11 @@ Across 2,000 sampled M1 game positions at 20,000 nodes per search, the quiet-mat
 ### FOR FABLE AND OPUS
 
 How much descendant search work followed the refusals in the leading class? The counter gives activation frequency. The subtree cost of each refusal remains open.
+
+## Job 11 result
+
+On r15d with PC20, the built-in evaluation, Threads 1 and Hash 16, guard 2 versus guard 0 scored +3.69 [-2.34, +9.72] Elo across 3,200 games on 4 seeds at 20,000 nodes per move. M2c measured +5.21 Elo. The declared reading was **LEVEL — level at 20,000 nodes in 4 seeds**. The earlier 2,000-node pool remains +1.56 [-0.99, +4.12] Elo from 4,000 games. [Job 11 report](REPORT_astra5_job11.md)
+
+### FOR FABLE AND OPUS
+
+Which positions from the decisive opening pairs show a guarded cutoff that changes the result under independent analysis? The PGNs identify the games and the counters identify the condition to trace.
