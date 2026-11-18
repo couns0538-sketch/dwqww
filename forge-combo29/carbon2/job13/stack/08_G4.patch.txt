@@ -1,0 +1,217 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-18 07:07:14.170998850 +0000
++++ b/include/forge/board.hpp	2026-11-18 06:53:21.438998850 +0000
+@@ -250,6 +250,7 @@
+     [[nodiscard]] bool see_ge(const Move& move, int threshold) const;
+ 
+     [[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }
++    [[nodiscard]] const std::array<Bitboard, 13>& piece_bitboards() const { return bitboards_; }
+     [[nodiscard]] Bitboard pieces(Piece piece) const { return bitboards_[static_cast<std::size_t>(piece)]; }
+     [[nodiscard]] Bitboard pieces(Color color, PieceType type) const {
+         return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];
+diff -ruN a/include/forge/nnue_v3.hpp b/include/forge/nnue_v3.hpp
+--- a/include/forge/nnue_v3.hpp	2026-11-17 20:43:42.881143771 +0000
++++ b/include/forge/nnue_v3.hpp	2026-11-18 06:53:21.438998850 +0000
+@@ -173,7 +173,13 @@
+ [[nodiscard]] bool kernel_available(Kernel kernel);
+ 
+ // ---- feature set ----
+-[[nodiscard]] KingKey king_key(const Net& net, Color perspective, int king_square);
++[[nodiscard]] inline KingKey king_key(const Net& net, Color perspective, int king_square) noexcept {
++    const int kr = perspective == White ? king_square : king_square ^ 56;
++    return KingKey{
++        net.king_map[static_cast<std::size_t>(kr)],
++        static_cast<std::uint8_t>((net.mirror && (kr & 7) >= 4) ? 7 : 0),
++    };
++}
+ [[nodiscard]] int feature_index(KingKey key, Color perspective, Piece piece, int square);
+ [[nodiscard]] int output_bucket(const Net& net, const Board& board);
+ [[nodiscard]] inline const std::int16_t* column(const Net& net, int feature) {
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-18 07:07:14.158998850 +0000
++++ b/include/forge/search.hpp	2026-11-18 07:07:14.178998850 +0000
+@@ -568,6 +568,10 @@
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+     mutable MoveList picker_scratch_;
+     mutable MoveList evasion_scratch_;
++    bool nnue_active_ = false;
++#if FORGE_NNUE_V3
++    const nnue::v3::Net* v3_active_net_ = nullptr;
++#endif
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
+ 
+ #if FORGE_SPD_TT_NOTLS
+diff -ruN a/src/nnue_v3.cpp b/src/nnue_v3.cpp
+--- a/src/nnue_v3.cpp	2026-11-17 20:43:42.881143771 +0000
++++ b/src/nnue_v3.cpp	2026-11-18 06:53:21.438998850 +0000
+@@ -696,14 +696,6 @@
+ 
+ void set_problem(const std::string& text) { g_problem = text; }
+ 
+-KingKey king_key(const Net& net, Color perspective, int king_square) {
+-    const int kr = perspective == White ? king_square : king_square ^ 56;
+-    KingKey key;
+-    key.bucket = net.king_map[static_cast<std::size_t>(kr)];
+-    key.flip = (net.mirror && (kr & 7) >= 4) ? 7 : 0;
+-    return key;
+-}
+-
+ int feature_index(KingKey key, Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -822,9 +814,15 @@
+ 
+ void prepare(const Net& net, WorkerState& state, int stack_size) {
+     if (state.generation == net.generation && state.stack.size() == static_cast<std::size_t>(stack_size)) return;
+-    state.stack.assign(static_cast<std::size_t>(stack_size), Accumulator{});
+-    state.valid_flags.assign(static_cast<std::size_t>(stack_size), static_cast<std::uint8_t>(0));
+-    state.cache.entries.assign(static_cast<std::size_t>(2 * net.king_buckets * 2), RefreshCache::Entry{});
++    const std::size_t sz = static_cast<std::size_t>(stack_size);
++    state.stack.resize(sz);
++    for (Accumulator& acc : state.stack) {
++        acc.keys = {};
++        acc.king_sq = {};
++        acc.valid = false;
++    }
++    state.valid_flags.assign(sz, static_cast<std::uint8_t>(0));
++    state.cache.entries.resize(static_cast<std::size_t>(2 * net.king_buckets * 2));
+     for (RefreshCache::Entry& entry : state.cache.entries) {
+         // An entry starts as the empty board: bias only, no pieces.
+         std::copy_n(net.b1.data(), net.hidden, entry.values.data());
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 07:14:10.470998850 +0000
++++ b/src/search.cpp	2026-11-18 07:14:10.474998850 +0000
+@@ -1329,9 +1329,9 @@
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+-    if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++    if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) return static_evaluate_v3(board, ss);
++    if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
+ #endif
+     const bool residual = nnue::residual();
+     // Features used for this evaluation. A null move keeps the parent's
+@@ -1400,7 +1400,7 @@
+     else child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_valid = keep;
+ 
+-    if (!nnue::enabled || !nnue::available()) return;
++    if (!nnue_active_) return;
+     child->entered_move = move;
+     child->entered_piece = moved;
+     child->entered_capture = captured;
+@@ -1408,8 +1408,8 @@
+     child->entered_null = false;
+     child->diff_known = false;
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) {
+-        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++    if (v3_active_net_ != nullptr) {
++        v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
+         return;
+     }
+ #endif
+@@ -1451,8 +1451,8 @@
+     child->diff_known = true;
+     child->dirty.count = 0;
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) {
+-        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++    if (v3_active_net_ != nullptr) {
++        v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
+         return;
+     }
+ #endif
+@@ -2716,6 +2716,14 @@
+     root_prev_best_done_ = false;
+     root_history_index_ = board.history_size() - 1;
+     tt_prune_v2_ = tune::TtPruneV2;  // B4 TtPruneV2: one snapshot per search
++    nnue_active_ = nnue::enabled && nnue::available();
++#if FORGE_NNUE_V3
++    v3_active_net_ = (nnue_active_ && nnue::v3::requested) ? nnue::v3::loaded() : nullptr;
++    if (v3_active_net_ != nullptr) {
++        if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++        nnue::v3::prepare(*v3_active_net_, *v3_state_, MaxPly + 8);
++    }
++#endif
+     node_limit_ = limits.nodes;
+     // Helpers must observe the budget. Leaving the flag false on them made
+     // should_stop return before the count was consulted. An alternate MultiPV
+@@ -2955,7 +2963,7 @@
+     }
+ 
+ #if FORGE_NNUE_V3
+-    const bool use_v3_eval = nnue::enabled && nnue::available() && nnue::v3::active();
++    const bool use_v3_eval = v3_active_net_ != nullptr;
+ #else
+     constexpr bool use_v3_eval = false;
+ #endif
+@@ -3439,9 +3447,11 @@
+ // key changed is refreshed through the per-worker cache. Only stand-alone v3 nets are accepted (the UCI code
+ // refuses a residual one), so the value returned is the net's alone.
+ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
+-    const nnue::v3::Net& net = *nnue::v3::loaded();
+-    if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
+-    nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
++    const nnue::v3::Net& net = *(v3_active_net_ != nullptr ? v3_active_net_ : nnue::v3::loaded());
++    if (!v3_state_) {
++        v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++        nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
++    }
+     const int index = ss->ply + 4;
+     int value = 0;
+     if (v3_state_->valid_flags[static_cast<std::size_t>(index)] != 0) {
+@@ -3451,29 +3461,32 @@
+         ensure_piece_diff(frame);
+         const nnue::DirtyPieces& dirty = frame->dirty;
+         const nnue::v3::Accumulator& parent = v3_state_->stack[static_cast<std::size_t>(index - 1)];
+-        int king0 = parent.king_sq[0];
+-        int king1 = parent.king_sq[1];
+-        for (int i = 0; i < dirty.count; ++i) {
+-            const nnue::PieceChange& ch = dirty.changes[static_cast<std::size_t>(i)];
+-            if (ch.add) {
+-                if (ch.piece == WK) king0 = ch.square;
+-                else if (ch.piece == BK) king1 = ch.square;
+-            }
+-        }
+-        const nnue::v3::KingKey key0 = nnue::v3::king_key(net, White, king0);
+-        const nnue::v3::KingKey key1 = nnue::v3::king_key(net, Black, king1);
+-        if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++        const int king0 = board.king_square(White);
++        const int king1 = board.king_square(Black);
++        if (king0 == parent.king_sq[0] && king1 == parent.king_sq[1]) {
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+-                key0, king0, key1, king1, dirty, board);
++                parent.keys[0], king0, parent.keys[1], king1, dirty, board);
+         } else {
+-            nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+-                SearchStack* f = &stack_[static_cast<std::size_t>(k)];
+-                ensure_piece_diff(f);
+-                return f->dirty;
+-            });
+-            value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
++            const nnue::v3::KingKey key0 = king0 == parent.king_sq[0]
++                ? parent.keys[0] : nnue::v3::king_key(net, White, king0);
++            const nnue::v3::KingKey key1 = king1 == parent.king_sq[1]
++                ? parent.keys[1] : nnue::v3::king_key(net, Black, king1);
++            if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++                v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
++                value = nnue::v3::apply_pair_and_evaluate(
++                    net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
++                    key0, king0, key1, king1, dirty, board);
++
++            } else {
++                nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
++                    SearchStack* f = &stack_[static_cast<std::size_t>(k)];
++                    ensure_piece_diff(f);
++                    return f->dirty;
++                });
++                value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
++            }
+         }
+     } else {
+         nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {

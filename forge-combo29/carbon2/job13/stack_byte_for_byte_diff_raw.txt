@@ -1,0 +1,40 @@
+=== APPLYING ALL 10 STACK PATCHES WITH patch -p1 -F0 (ZERO FUZZ) ONTO CLEAN r15d ===
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/01_S4.patch.txt
+patching file include/forge/search.hpp
+patching file src/search.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/02_S5.patch.txt
+patching file include/forge/board.hpp
+patching file src/board.cpp
+patching file src/search.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/03_S5_assert.patch.txt
+patching file src/board.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/04_S7.patch.txt
+patching file src/search.cpp
+patching file src/uci.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/05_G1.patch.txt
+patching file include/forge/eval.hpp
+patching file include/forge/search.hpp
+patching file src/search.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/06_G2.patch.txt
+patching file src/board.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/07_G3.patch.txt
+patching file include/forge/board.hpp
+patching file src/board.cpp
+patching file src/search.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/08_G4.patch.txt
+patching file include/forge/board.hpp
+patching file include/forge/nnue_v3.hpp
+patching file include/forge/search.hpp
+patching file src/nnue_v3.cpp
+patching file src/search.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/09_W1.patch.txt
+patching file include/forge/b4.hpp
+patching file include/forge/search.hpp
+patching file src/search.cpp
+$ patch -d stack_replayed -p1 -F0 < forge-combo29/carbon2/job13/stack/10_W2.patch.txt
+patching file include/forge/search.hpp
+patching file src/search.cpp
+
+=== BYTE-FOR-BYTE CHECK OVER src/ AND include/ ===
+$ diff -r stack_replayed/src curated_direct/src && diff -r stack_replayed/include curated_direct/include
+(exit_code=0, output_bytes=0: EXACT BYTE-FOR-BYTE MATCH)
