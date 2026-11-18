@@ -1,0 +1,41 @@
+=== JOB 17 PART 1: FULL IDENTITY SUITE, FORGE_NNUE_V3_VERIFY ORACLE & 2 PER-PATH PLANTED FAULTS (stack/14_v3_apply_changes_fast.patch.txt) ===
+
+--- 1. Engine's Own Bench Lines on Candidate SP-Profiled Binary (/tmp/carbon2_job17/bld_sp_s14_1/forge) ---
+[PC20 + net512.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 625258 time 252 nps 2481182
+info string bench depth 13 nodes 3652372 time 1460 nps 2501624
+info string bench depth 16 nodes 23891329 time 9551 nps 2501447
+[PC20 + net768.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 882074 time 366 nps 2410038
+info string bench depth 13 nodes 4275906 time 1941 nps 2202939
+info string bench depth 16 nodes 32374943 time 14238 nps 2273840
+
+--- 2. 250 Depth-9 Rows (PC20 + net768.fnn3, positions_250.txt, strict self-stop guard active): Node Sum & SHA-256 ---
+  reference (bld_sp_tidy_1): rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  candidate (bld_sp_s14_1):  rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  first_3_rows_sample: 001 bestmove=c1b2 nodes=11089 score=cp -160 | 002 bestmove=d8c7 nodes=9663 score=cp -108 | 003 bestmove=h1g1 nodes=23129 score=cp 89
+  last_row_sample:     250 bestmove=e7g5 nodes=5301 score=mate 3
+
+--- 3. 1,000 Static Evals (positions_1000.txt, engine's own info string eval lines) ---
+  net768 (1000 lines): ref_sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 candidate_sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 sample_0='info string eval hce 0 nnue 339 total 339'
+  net512 (1000 lines): ref_sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d candidate_sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d sample_0='info string eval hce 0 nnue 835 total 835'
+
+--- 4. Both 6-Game Self-Play Traces (softnodes 2000, Hash 128, PC20 + net768.fnn3) ---
+  startpos_6game: searches=846 nodes=2916466 trace=4560d7c3afdeba2e (== 4560d7c3afdeba2e)
+  fen_6game:      searches=745 nodes=2481101 trace=9ed22c1193ab96de (== 9ed22c1193ab96de)
+
+--- 5. NNUE v3 Per-Node Reference Oracle (-DFORGE_NNUE_V3_VERIFY=1: compares every search eval vs evaluate_reference) ---
+[clean 14_v3_apply_changes_fast + FORGE_NNUE_V3_VERIFY=1, net768 bench 11, exit_code=0]
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 875955 time 1442 nps 607458
+[clean 14_v3_apply_changes_fast + FORGE_NNUE_V3_VERIFY=1, net512 bench 11, exit_code=0]
+info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 965454 time 1193 nps 809265
+
+--- 6. Two Per-Path Planted Fault Checks (Rule 3: one per specialized path, both caught) ---
+  path_1_fault (s14_fault_path1_c2.patch.txt, count==2 quiet path):   exit_code=3 | info string V3 VERIFY FAILED at ply 10: search path 528, reference 616, fen rnbqkbnr/ppp1p1p1/8/3p1B1p/1P1P4/6P1/P1P1PP1P/RNBQK1NR w KQ - 1 6
+  path_2_fault (s14_fault_path2_c3.patch.txt, count==3 capture path): exit_code=3 | info string V3 VERIFY FAILED at ply 11: search path -996, reference -1058, fen rnbqk1nr/ppp2pp1/8/3pP2p/8/6P1/P1PKPP1P/RN1Q1BNR b kq - 0 6

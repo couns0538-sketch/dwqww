@@ -1,0 +1,66 @@
+--- a/src/nnue_v3.cpp	2026-11-18 12:40:39.764049697 +0000
++++ b/src/nnue_v3.cpp	2026-11-18 12:59:07.024049697 +0000
+@@ -345,6 +345,63 @@
+ #if FORGE_NNUE_V3_AVX512
+ void apply_changes_avx512(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
+     const int count = c.count;
++    if (count == 2 && !c.adds[0] && c.adds[1]) {
++        const std::int16_t* const s0 = c.columns[0];
++        const std::int16_t* const a0 = c.columns[1];
++        int h = 0;
++        for (; h + 64 <= hidden; h += 64) {
++            const __m512i v0 = _mm512_add_epi16(
++                _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h)),
++                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++            const __m512i v1 = _mm512_add_epi16(
++                _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h + 32)),
++                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h + 32))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h + 32)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v0);
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h + 32), v1);
++        }
++        for (; h < hidden; h += 32) {
++            const __m512i v = _mm512_add_epi16(
++                _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h)),
++                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v);
++        }
++        return;
++    }
++    if (count == 3 && !c.adds[0] && !c.adds[1] && c.adds[2]) {
++        const std::int16_t* const s0 = c.columns[0];
++        const std::int16_t* const s1 = c.columns[1];
++        const std::int16_t* const a0 = c.columns[2];
++        int h = 0;
++        for (; h + 64 <= hidden; h += 64) {
++            const __m512i v0 = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h)),
++                                     _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(s1 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++            const __m512i v1 = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h + 32)),
++                                     _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h + 32))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(s1 + h + 32))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h + 32)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v0);
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h + 32), v1);
++        }
++        for (; h < hidden; h += 32) {
++            const __m512i v = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h)),
++                                     _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(s1 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v);
++        }
++        return;
++    }
+     const std::int16_t* col0 = c.columns[0];
+     const std::int16_t* col1 = c.columns[1];
+     const std::int16_t* col2 = c.columns[2];

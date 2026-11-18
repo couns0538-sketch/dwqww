@@ -1,0 +1,11 @@
+--- a/src/nnue_v3.cpp	2026-11-18 12:59:07.024049697 +0000
++++ b/src/nnue_v3.cpp	2026-11-18 12:59:07.056049697 +0000
+@@ -350,7 +350,7 @@
+         const std::int16_t* const a0 = c.columns[1];
+         int h = 0;
+         for (; h + 64 <= hidden; h += 64) {
+-            const __m512i v0 = _mm512_add_epi16(
++            const __m512i v0 = _mm512_sub_epi16( // PLANTED FAULT PATH 1 (count==2)
+                 _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source + h)),
+                                  _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
+                 _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
