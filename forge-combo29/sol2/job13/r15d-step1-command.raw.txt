@@ -1,0 +1,81 @@
++ job=/workspace/work/sol2-job13
++ repo=/workspace/work/sol2-repo/forge-combo29/sol2
++ base=/workspace/work/sol2-job2
++ arm=r15d
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job13
++ build=/workspace/work/sol2-job13/build-clang-selfplay-r15d
++ profile=/workspace/work/sol2-job13/clang-selfplay-profile-r15d
++ cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
++ source /workspace/work/sol2-job12/clang.env
+++ export LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ export FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ export FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ export FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
+++ FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ export PYTHONPATH=/workspace/work/sol2-job12/python
++ PYTHONPATH=/workspace/work/sol2-job12/python
++ case "$arm" in
++ source_tree=/workspace/work/sol2-job2/r15d
++ flags='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin'
++ link_flags=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ common=(-S "$source_tree" -B "$build" "-DCMAKE_CXX_COMPILER=$FORGE_CLANGXX" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_EXE_LINKER_FLAGS=$link_flags")
++ driver=/workspace/work/sol2-job10/fixed_nodes_driver.py
++ net=/workspace/work/sol2-job2/net768.fnn3
++ book=/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd
++ known=/workspace/work/sol2-repo/forge-combo29/sol2/job10/known-answer.txt
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
+Debian clang version 19.1.7 (3+b1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin
++ mkdir /workspace/work/sol2-job13/clang-selfplay-profile-r15d
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job2/r15d -B /workspace/work/sol2-job13/build-clang-selfplay-r15d -DCMAKE_CXX_COMPILER=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin -fprofile-instr-generate'
+-- The CXX compiler identification is Clang 19.1.7
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job13/build-clang-selfplay-r15d
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job13/build-clang-selfplay-r15d --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge
+46cabbd4539ca50387e7e3512cb583ca186b361d3ecedf17acd80d32208f0594  /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge
++ printf '%s\n' uci 'setoption name CuckooRep value true' 'setoption name HistRework value 2' 'setoption name TtPruneV2 value true' 'setoption name CorrHistV2 value true' 'setoption name NNUEArchFile value /workspace/work/sol2-job2/net768.fnn3' 'setoption name NNUEArch value true' isready 'bench 11' 'bench 13' 'bench 16' quit
++ LLVM_PROFILE_FILE=/workspace/work/sol2-job13/clang-selfplay-profile-r15d/bench.profraw
++ timeout 180 taskset -c 2 /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge
++ test '!' -s /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-profile-bench.stderr.txt
++ rg '^info string NNUE v3 active: .*hidden 768 .*checksum 30ab43b4ba5db5f3' /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-profile-bench.stdout.txt
+info string NNUE v3 active: v3 /workspace/work/sol2-job2/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+++ rg -c '^info string bench depth (11|13|16) nodes ' /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-profile-bench.stdout.txt
++ test 3 -eq 3
++ LLVM_PROFILE_FILE=/workspace/work/sol2-job13/clang-selfplay-profile-r15d/selfplay.profraw
++ timeout 240 taskset -c 2 python3 -B /workspace/work/sol2-job13/soft_book_driver.py --engine /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge --net /workspace/work/sol2-job2/net768.fnn3 --book /workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd --start 1001 --games 60 --softnodes 2000 --max-plies 300 --json
++ test '!' -s /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-profile-selfplay.stderr.txt
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata merge -sparse /workspace/work/sol2-job13/clang-selfplay-profile-r15d/bench.profraw /workspace/work/sol2-job13/clang-selfplay-profile-r15d/selfplay.profraw -o /workspace/work/sol2-job13/clang-selfplay-profile-r15d/merged.profdata
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job2/r15d -B /workspace/work/sol2-job13/build-clang-selfplay-r15d -DCMAKE_CXX_COMPILER=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin -fprofile-instr-use=/workspace/work/sol2-job13/clang-selfplay-profile-r15d/merged.profdata -Werror=profile-instr-out-of-date'
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job13/build-clang-selfplay-r15d
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job13/build-clang-selfplay-r15d --clean-first --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge
++ tee /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-clang-sha256.raw.txt
+540e63c0b7cf2512f1716657aded48b0558022b49c0fe8489596195cf2035834  /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge
++ ldd /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge
++ rg 'libstdc[+][+][.]so' /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-libraries.raw.txt
+	libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f5bb749d000)
++ taskset -c 2 python3 -B /workspace/work/sol2-job13/no_options_pins.py /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-default.raw.txt
+/workspace/work/sol2-job13/build-clang-selfplay-r15d/forge matched all no-options pins
++ taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-net768.raw.txt required
+/workspace/work/sol2-job13/build-clang-selfplay-r15d/forge 882074 4275906
++ timeout 180 taskset -c 2 python3 -B /workspace/work/sol2-job10/fixed_nodes_driver.py --engine /workspace/work/sol2-job13/build-clang-selfplay-r15d/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings /workspace/work/sol2-repo/forge-combo29/sol2/job10/fixed-openings.txt --json
++ test '!' -s /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-identity.stderr.txt
++ python3 -B - /workspace/work/sol2-repo/forge-combo29/sol2/job13/r15d-identity.raw.txt /workspace/work/sol2-repo/forge-combo29/sol2/job10/known-answer.txt
+{"games": 12, "searches": 1373, "total_nodes": 15527588, "avg_nodes_per_search": 11309.24, "avg_searches_per_game": 114.42, "elapsed_ms": 17252.463, "searches_per_sec": 79.58, "effective_nps": 900021.5, "trace_fnv1a64": "73ecbb5eedc59271"}
