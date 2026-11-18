@@ -2,20 +2,20 @@ Pre-Declared Extra Rule for Job 20 Part B (Committed Before Generating or Inspec
 =========================================================================================================
 
 Rule name:
-  R_oe3 (Odd-Even-Robust 2-Ply Step Envelope, k = 3)
+  R(12) — k = 12 member of the R(k) family (directly representable by UCI spin SoftStartGuard = 12)
 
 Exact predicate (evaluated after iteration d finishes with n_d < N, where N = 2,000 and 4N = 8,000,
-with cumulative finished-iteration nodes n_0 = 0, n_{-1} = 0):
-  Let delta_d     = n_d - n_{d-1}       (marginal nodes spent in iteration d)
-  Let delta_{d-1} = n_{d-1} - n_{d-2}   (marginal nodes spent in iteration d-1; 0 when d == 1)
-
+with n_0 = 0):
   Do NOT start iteration d + 1 when:
-    n_d + 3 * max(delta_d, delta_{d-1}) > 4 * N
+    n_d + 12 * (n_d - n_{d-1}) > 4 * N
 
-Rationale (prior to seeing Part A data):
-  Standard R(k) predicts iteration d+1 cost from single-ply delta_d = n_d - n_{d-1} alone.
-  In alpha-beta search with TT reuse and odd/even ply oscillation, an even/odd ply d can finish
-  with a small marginal delta_d immediately after a heavy ply d-1, causing R(k) to underestimate
-  iteration d+1 and launch an iteration that hits the 4N = 8,000 hard cap. Taking max(delta_d, delta_{d-1})
-  smooths single-ply dips while keeping genuinely shallow/narrow endgame trees (where both delta_d and
-  delta_{d-1} are small) unblocked.
+A-priori algebraic rationale (derived before running Part A):
+  Since iteration d finished below N = 2,000, n_d <= 1,999 and n_{d-1} >= 0:
+    - For k in {1, 2, 3}: n_d + k * (n_d - n_{d-1}) <= (k + 1) * 1,999 <= 7,996 < 8,000, so R(1), R(2), R(3)
+      algebraically never fire.
+    - At a typical alpha-beta effective branching factor b ~ 2.2, delta_d = n_d - n_{d-1} ~ 0.55 * n_d.
+      Then R(4) requires 3.2 * n_d > 8,000 (impossible for n_d < 2,000 unless b is huge), R(6) requires
+      4.3 * n_d > 8,000 (n_d > 1,860), and R(8) requires 5.4 * n_d > 8,000 (n_d > 1,481).
+    - Choosing k = 12 gives (1 + 12 * 0.55) * n_d = 7.6 * n_d > 8,000, guarding iterations once n_d > ~1,053
+      at normal branching while leaving earlier iterations (n_j <= ~600, where 7.6 * 600 = 4,560 < 8,000)
+      untouched, and mapping directly to SoftStartGuard = 12 in Part C if needed.
