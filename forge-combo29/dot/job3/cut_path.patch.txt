@@ -1,0 +1,31 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 14:05:18.259303312 +0100
++++ b/src/search.cpp	2026-11-18 14:13:12.656836412 +0100
+@@ -107,6 +107,7 @@
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+ // A2A5 (kimi5 job 25): fail-high blending and three reverse-futility conditions. All 0 = today's search.
++int DotRawMainTt = 0;  // diagnostic path cut: store pre-blend main-search score, return remains blended
+ int FailHighBlend = 0;  // bit 1: rfp return blend; bit 2: qsearch fail-high blends; bit 4: main-search non-PV blend
+ int RfpNoTtPv = 0;      // 1: the rfp step is skipped at a node whose tt-pv flag is set
+ int RfpTtGuard = 0;     // 1: the rfp step is skipped when there is a TT move and it is not a capture
+@@ -197,6 +198,7 @@
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"DotRawMainTt", &DotRawMainTt, 0, 1},
+         {"FailHighBlend", &FailHighBlend, 0, 7},         {"RfpNoTtPv", &RfpNoTtPv, 0, 1},
+         {"RfpTtGuard", &RfpTtGuard, 0, 1},               {"RfpCorrMul", &RfpCorrMul, 0, 64},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -2395,9 +2397,9 @@
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+-        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++        store_tt(tt_probe, board.key(), score_to_tt(tune::DotRawMainTt ? raw_best_score : best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ #else
+-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++        shared_.tt.store(tt_probe, board.key(), score_to_tt(tune::DotRawMainTt ? raw_best_score : best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ #endif
+     }
+     // Teach the static evaluation about this pawn structure when the search
