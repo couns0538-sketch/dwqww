@@ -1,0 +1,22 @@
+PC20 button-isolation predictions
+
+Each guess is a rate ratio relative to the cold arm at the same budget.
+Plain rates use all credited nodes. Common-mix estimates use main-node
+entry depth and the matching cold arm's main-node weights. Numeric
+predictions survive within a factor of 1.5 of the guess.
+
+Event E/C2-plain F/C2-plain E/C2-mix F/C2-mix EH/D2-plain FH/D2-plain EH/D2-mix FH/D2-mix
+history_pruning_taken 35.00 1.50 32.00 1.10 12.00 1.20 11.00 1.00
+null_move_taken 1.20 1.50 1.05 1.10 1.12 1.22 1.03 1.10
+probcut_taken 1.25 1.70 1.00 1.23 1.10 1.32 1.02 1.18
+singular_taken 1.15 2.00 0.95 1.05 1.03 1.25 0.97 1.04
+iir_no_tt_taken 0.95 0.80 0.90 0.72 0.98 0.86 0.95 0.79
+lmr_taken 1.05 1.04 0.92 0.73 1.02 1.02 0.95 0.85
+aspiration_taken 0.95 0.40 0.90 0.42 0.92 0.42 0.88 0.44
+
+I expect retained worker state to carry the history-pruning increase.
+I expect retained TT state to carry most of the aspiration and no-TT IIR
+decreases. I expect retained TT state and changes in depth mix to carry most
+of the positive singular and ProbCut gains, with a smaller worker-state
+contribution to null move. LMR combines move ordering and learned history;
+I expect the standardized reduction in its rate to be larger with the TT kept.
