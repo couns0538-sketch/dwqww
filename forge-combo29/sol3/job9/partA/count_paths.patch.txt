@@ -1,0 +1,117 @@
+--- a/include/forge/nnue_v3.hpp
++++ b/include/forge/nnue_v3.hpp
+@@ -57,6 +57,17 @@
+ #include <vector>
+ 
+ namespace forge::nnue::v3 {
++
++struct SearchEvaluationCounts {
++    std::uint64_t valid = 0;
++    std::uint64_t same_square = 0;
++    std::uint64_t same_bucket = 0;
++    std::uint64_t fused = 0;
++    std::uint64_t make_valid = 0;
++    std::uint64_t refresh_from_pieces = 0;
++};
++
++extern thread_local SearchEvaluationCounts search_evaluation_counts;
+ 
+ constexpr int InputsPerBucket = 768;
+ constexpr int MaxKingBuckets = 32;
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -26,6 +26,8 @@
+ #endif
+ 
+ namespace forge::nnue::v3 {
++
++thread_local SearchEvaluationCounts search_evaluation_counts;
+ 
+ bool requested = false;
+ 
+@@ -1039,6 +1041,7 @@
+ 
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                          std::int16_t* destination) {
++    ++search_evaluation_counts.refresh_from_pieces;
+     const KingKey key = king_key(net, perspective, king_square);
+     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
+     const int hidden = net.hidden;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3728,6 +3728,9 @@
+             });
+         }
+     }
++#if FORGE_NNUE_V3
++    nnue::v3::search_evaluation_counts = {};
++#endif
+     SearchInfo result = helpers.empty()
+         ? workers_.front()->search(std::move(board), worker_limits, emit_info, all)
+         : workers_.front()->search(board, worker_limits, emit_info, all);
+@@ -3736,6 +3739,18 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_NNUE_V3
++    // The facade runs for every search, including Worker::search's early returns.
++    // This instrumentation reports only the single-thread, single-PV workload.
++    if (emit_info && workers_.size() == 1 && worker_limits.multipv == 1) {
++        const auto& counts = nnue::v3::search_evaluation_counts;
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string v3 eval paths valid=" << counts.valid
++                  << " same_square=" << counts.same_square << " same_bucket=" << counts.same_bucket
++                  << " fused=" << counts.fused << " make_valid=" << counts.make_valid
++                  << " refresh_from_pieces=" << counts.refresh_from_pieces << std::endl;
++    }
++#endif
+     return result;
+ }
+ 
+@@ -3756,7 +3771,9 @@
+     }
+     const int index = ss->ply + 4;
+     int value = 0;
++    auto& counts = nnue::v3::search_evaluation_counts;
+     if (v3_state_->valid_flags[static_cast<std::size_t>(index)] != 0) {
++        ++counts.valid;
+         value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
+     } else if (index > 4 && v3_state_->valid_flags[static_cast<std::size_t>(index - 1)] != 0) {
+         SearchStack* frame = &stack_[static_cast<std::size_t>(index)];
+@@ -3766,6 +3783,7 @@
+         const int king0 = board.king_square(White);
+         const int king1 = board.king_square(Black);
+         if (king0 == parent.king_sq[0] && king1 == parent.king_sq[1]) {
++            ++counts.same_square;
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+@@ -3776,17 +3794,20 @@
+             const nnue::v3::KingKey key1 = king1 == parent.king_sq[1]
+                 ? parent.keys[1] : nnue::v3::king_key(net, Black, king1);
+             if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++                ++counts.same_bucket;
+                 v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+                 value = nnue::v3::apply_pair_and_evaluate(
+                     net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+                     key0, king0, key1, king1, dirty, board);
+ 
+             } else if ((key0 == parent.keys[0]) != (key1 == parent.keys[1])) {
++                ++counts.fused;
+                 v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+                 value = nnue::v3::apply_one_refresh_one_and_evaluate(
+                     net, v3_state_->cache, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+                     key0, king0, key1, king1, dirty, board);
+             } else {
++                ++counts.make_valid;
+                 nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+                     SearchStack* f = &stack_[static_cast<std::size_t>(k)];
+                     ensure_piece_diff(f);
+@@ -3796,6 +3817,7 @@
+             }
+         }
+     } else {
++        ++counts.make_valid;
+         nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+             SearchStack* frame = &stack_[static_cast<std::size_t>(k)];
+             ensure_piece_diff(frame);
