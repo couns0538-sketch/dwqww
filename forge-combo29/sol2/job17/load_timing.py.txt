@@ -1,0 +1,339 @@
+#!/usr/bin/env python3
+"""Time three Forge engines on distinct CPUs with a common pre-launch barrier."""
+
+import argparse
+from contextlib import ExitStack
+import json
+import os
+from pathlib import Path
+import runpy
+import select
+import signal
+import subprocess
+import sys
+import time
+from unittest.mock import patch
+
+from arm_timing import (BOOK_SHA256, ENGINE_ENV_META, NET_SHA256, ORDER, SCHEMA,
+                        SIGNATURE_FIELDS, WORKLOAD, matches, measure_driver, now_utc,
+                        pinned_identity, summarize_runs, write_json)
+
+
+SCRIPT = Path(__file__).resolve()
+LOAD_SCHEMA = "forge-three-worker-prelaunch-gate-v1"
+WORKER_COUNT = 3
+READY_TIMEOUT_SECONDS = 30
+
+
+class GroupCancelled(Exception):
+    pass
+
+
+def cancel_group(signum, _frame):
+    raise GroupCancelled(f'group interrupted by {signal.Signals(signum).name}')
+
+
+def write_result(path, row):
+    with path.open('x', encoding='utf-8') as result:
+        print(json.dumps(row), file=result)
+
+
+def worker_main(args):
+    argv = json.loads(args.argv_json)
+    expected = tuple(json.loads(args.expected_json))
+    output = Path(args.output)
+    result_path = output / f'{args.stem}.worker.result.txt'
+    row = {'cpu': args.cpu, 'worker_affinity': sorted(os.sched_getaffinity(0))}
+    launch = {}
+    real_popen = subprocess.Popen
+
+    def synchronized_popen(*popen_args, **popen_kwargs):
+        try:
+            if os.write(args.ready_fd, b'R') != 1:
+                raise RuntimeError('Short write entering ready barrier')
+        finally:
+            os.close(args.ready_fd)
+        try:
+            if os.read(args.gate_fd, 1) != b'G':
+                raise RuntimeError('Start barrier closed before release')
+        finally:
+            os.close(args.gate_fd)
+        launch['engine_launch_monotonic_ns'] = time.monotonic_ns()
+        engine = real_popen(*popen_args, **popen_kwargs)
+        real_wait = engine.wait
+
+        def record_reap(*wait_args, **wait_kwargs):
+            status = real_wait(*wait_args, **wait_kwargs)
+            if 'engine_exit_observed_monotonic_ns' not in launch:
+                launch['engine_exit_observed_monotonic_ns'] = time.monotonic_ns()
+                launch['engine_exit_observed_utc'] = now_utc()
+            return status
+
+        engine.wait = record_reap
+        return engine
+
+    try:
+        if row['worker_affinity'] != [args.cpu]:
+            raise RuntimeError(f'Worker CPU affinity differs from {[args.cpu]}')
+        driver_main = runpy.run_path(argv[0])['main']
+        with patch.object(subprocess, 'Popen', synchronized_popen):
+            row.update(measure_driver(driver_main, argv, output, args.stem, expected))
+        if row['eligible'] and 'engine_exit_observed_monotonic_ns' not in launch:
+            raise RuntimeError('Missing engine reap timestamp')
+    except (Exception, SystemExit) as exc:
+        row.update({'eligible': False, 'trace_matches': False, 'error': f'{type(exc).__name__}: {exc}'})
+    write_result(result_path, {**row, **launch})
+    return 0 if row['eligible'] else 1
+
+
+def wait_ready(fd, workers):
+    deadline = time.monotonic() + READY_TIMEOUT_SECONDS
+    ready = 0
+    while ready < workers:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not select.select([fd], [], [], remaining)[0]:
+            raise RuntimeError(f'Worker barrier timed out ({ready}/{workers} ready)')
+        data = os.read(fd, workers - ready)
+        if not data:
+            raise RuntimeError(f'Worker barrier ended early ({ready}/{workers} ready)')
+        if data != b'R' * len(data):
+            raise RuntimeError('Worker barrier emitted an unknown readiness marker')
+        ready += len(data)
+
+
+def cleanup(children):
+    # Each worker is a group leader, with its Forge child in the same session.
+    targets = [child for child in children if child.poll() != 0]
+    for child in targets:
+        try:
+            os.killpg(child.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + 3
+    for child in targets:
+        try:
+            child.wait(timeout=max(0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            pass
+        # A worker killed by the first signal may have left an engine in its session.
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.wait()
+
+
+def collect_worker(output, worker_stem, cpu, child):
+    result_path = output / f'{worker_stem}.worker.result.txt'
+    try:
+        receipt = json.loads(result_path.read_text(encoding='utf-8'))
+        if not isinstance(receipt, dict):
+            raise ValueError('worker receipt was not a JSON object')
+    except (OSError, ValueError) as exc:
+        receipt = {'eligible': False, 'trace_matches': False, 'error': f'Missing or invalid worker receipt: {exc}'}
+    return {**receipt, 'cpu': cpu, 'worker_exit': child.returncode,
+            'worker_result': result_path.name, 'driver_stdout': f'{worker_stem}.driver.stdout.txt',
+            'engine_stderr': f'{worker_stem}.engine.stderr.txt', 'worker_stdout': f'{worker_stem}.worker.stdout.txt',
+            'worker_stderr': f'{worker_stem}.worker.stderr.txt'}
+
+
+def summarize_group(workers, expected, cpus, release_ns, release_utc, error, interrupted):
+    launch_key = 'engine_launch_monotonic_ns'
+    exit_key = 'engine_exit_observed_monotonic_ns'
+    starts = [row[launch_key] for row in workers if type(row.get(launch_key)) is int]
+    ends = [row for row in workers if type(row.get(exit_key)) is int]
+    last = max(ends, key=lambda row: row[exit_key]) if ends else None
+    finish_ns = last[exit_key] if last else None
+    present = len(cpus) == len(workers)
+    traced = present and all(row.get('trace_matches') is True and matches(row, expected) for row in workers)
+    if error is None:
+        if not present:
+            error = f'Expected {len(cpus)} workers, collected {len(workers)}'
+        elif not all(row.get('eligible') is True and row.get('engine_exit') == 0 and row.get('worker_exit') == 0
+                     and row.get('worker_affinity') == [cpu] for row, cpu in zip(workers, cpus)):
+            problems = [f"CPU {row['cpu']}: {row.get('error') or 'eligibility, exit or affinity mismatch'}"
+                        for row, cpu in zip(workers, cpus)
+                        if (row.get('eligible') is not True or row.get('engine_exit') != 0
+                            or row.get('worker_exit') != 0 or row.get('worker_affinity') != [cpu])]
+            error = ' | '.join(problems)
+        elif not traced:
+            error = f'At least one worker disagreed with signature {expected}'
+        elif (release_ns is None or len(starts) != len(cpus) or len(ends) != len(cpus)
+              or min(starts) < release_ns or max(starts) >= min(row[exit_key] for row in ends)):
+            error = 'Missing, inconsistent or nonoverlapping worker time intervals'
+    signature = dict(zip(SIGNATURE_FIELDS, expected if traced else (None,) * len(SIGNATURE_FIELDS)))
+    return {**signature, 'utc_start': release_utc, 'utc_end': last.get('engine_exit_observed_utc') if last else None,
+            'wall_start_monotonic_ns': release_ns, 'wall_end_monotonic_ns': finish_ns,
+            'total_wall_ns': finish_ns - release_ns if release_ns is not None and finish_ns is not None else None,
+            'start_spread_ns': max(starts) - min(starts) if starts else None,
+            'engine_user_s': sum(row.get('engine_user_s', 0) for row in workers),
+            'engine_system_s': sum(row.get('engine_system_s', 0) for row in workers),
+            'engine_cpu_s': sum(row.get('engine_cpu_s', 0) for row in workers),
+            'engine_exit': 0 if error is None else None, 'engine_exits': [row.get('engine_exit') for row in workers],
+            'trace_matches': traced, 'eligible': error is None, 'error': error, 'interrupted': interrupted,
+            'worker_count': len(cpus), 'workers': workers, 'barrier_release_monotonic_ns': release_ns}
+
+
+def measure_group(argv, output: Path, stem: str, expected: tuple, cpus: list[int]):
+    """Return an engine-only CPU sum and the gate-to-last-engine-reap wall interval.
+
+    Per-worker scalar signature fields are repeated in eligible group rows. Jobs
+    may use the detailed worker rows to reconcile every trace and CPU interval.
+    """
+    if len(cpus) != WORKER_COUNT or len(set(cpus)) != WORKER_COUNT or min(cpus) < 0:
+        raise ValueError('Supply three distinct nonnegative CPU IDs')
+    output = output.resolve(strict=True)
+    expected = tuple(expected)
+    workers = []
+    error = None
+    prior_term = signal.signal(signal.SIGTERM, cancel_group)
+    gate_read = gate_write = ready_read = ready_write = None
+    interrupted = False
+    barrier_release_ns = barrier_release_utc = None
+    try:
+        gate_read, gate_write = os.pipe()
+        ready_read, ready_write = os.pipe()
+        with ExitStack() as files:
+            for cpu in cpus:
+                worker_stem = f'{stem}-cpu{cpu}'
+                stdout = files.enter_context((output / f'{worker_stem}.worker.stdout.txt').open('xb'))
+                stderr = files.enter_context((output / f'{worker_stem}.worker.stderr.txt').open('xb'))
+                command = ['taskset', '-c', str(cpu), sys.executable, '-B', str(SCRIPT), '--internal-worker',
+                           '--cpu', str(cpu), '--output', str(output), '--stem', worker_stem,
+                           '--ready-fd', str(ready_write), '--gate-fd', str(gate_read),
+                           '--argv-json', json.dumps(argv), '--expected-json', json.dumps(expected)]
+                child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                         pass_fds=(ready_write, gate_read), start_new_session=True)
+                workers.append((worker_stem, cpu, child))
+            os.close(ready_write)
+            ready_write = None
+            wait_ready(ready_read, len(cpus))
+            barrier_release_utc = now_utc()
+            barrier_release_ns = time.monotonic_ns()
+            if os.write(gate_write, b'G' * len(cpus)) != len(cpus):
+                raise RuntimeError('Short write releasing common start barrier')
+            for _, _, child in workers:
+                child.wait()
+    except (GroupCancelled, OSError, RuntimeError) as exc:
+        interrupted = isinstance(exc, GroupCancelled)
+        error = f'{type(exc).__name__}: {exc}'
+    finally:
+        for fd in (gate_write, gate_read, ready_write, ready_read):
+            if fd is not None:
+                os.close(fd)
+        try:
+            cleanup([child for _, _, child in workers])
+        finally:
+            signal.signal(signal.SIGTERM, prior_term)
+    rows = [collect_worker(output, worker_stem, cpu, child) for worker_stem, cpu, child in workers]
+    return summarize_group(rows, expected, cpus, barrier_release_ns, barrier_release_utc, error, interrupted)
+
+
+def worker_cli(argv):
+    parser = argparse.ArgumentParser(description='Internal Job 17 pinned worker.')
+    parser.add_argument('--cpu', type=int, required=True)
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--stem', required=True)
+    parser.add_argument('--ready-fd', type=int, required=True)
+    parser.add_argument('--gate-fd', type=int, required=True)
+    parser.add_argument('--argv-json', required=True)
+    parser.add_argument('--expected-json', required=True)
+    return worker_main(parser.parse_args(argv))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("a", type=Path)
+    parser.add_argument("b", type=Path)
+    parser.add_argument("net", type=Path)
+    parser.add_argument("output", type=Path, help="new output directory")
+    parser.add_argument("--a-sha256", required=True)
+    parser.add_argument("--b-sha256", required=True)
+    parser.add_argument("--a-label", default="A")
+    parser.add_argument("--b-label", default="B")
+    parser.add_argument("--driver", type=Path, required=True)
+    parser.add_argument("--driver-sha256", required=True)
+    parser.add_argument("--book", type=Path, required=True)
+    parser.add_argument("--known-answer", type=Path, required=True)
+    parser.add_argument("--known-answer-sha256", required=True)
+    parser.add_argument("--blocks", type=int, choices=(16,), required=True)
+    parser.add_argument("--cpus", type=int, nargs=WORKER_COUNT, required=True)
+    args = parser.parse_args()
+    if len(set(args.cpus)) != WORKER_COUNT or min(args.cpus) < 0:
+        parser.error("--cpus must be three distinct nonnegative CPU IDs")
+    args.output.mkdir(parents=True, exist_ok=False)
+    pins = {"A": (args.a, args.a_sha256), "B": (args.b, args.b_sha256),
+            "net": (args.net, NET_SHA256), "driver": (args.driver, args.driver_sha256),
+            "book": (args.book, BOOK_SHA256),
+            "known_answer": (args.known_answer, args.known_answer_sha256)}
+    inputs = {key: pinned_identity(*spec) for key, spec in pins.items()}
+    if any(len(inputs[arm]["path"]) != 72 for arm in "AB"):
+        raise ValueError("Each engine launch path must be exactly 72 characters")
+    gate = json.loads(Path(inputs["known_answer"]["path"]).read_text(encoding="utf-8"))
+    expected = tuple(gate[name] for name in SIGNATURE_FIELDS)
+    if not matches(gate, None):
+        raise ValueError("Invalid soft-node book known-answer receipt")
+    labels = {"A": args.a_label, "B": args.b_label}
+    argv = {name: [inputs["driver"]["path"], "--engine", inputs[name]["path"],
+                   "--net", inputs["net"]["path"], "--book", inputs["book"]["path"],
+                   *WORKLOAD, "--json"] for name in "AB"}
+    manifest = {"schema": SCHEMA, "load_schema": LOAD_SCHEMA, "inputs": inputs, "arm_labels": labels, "argv_by_arm": argv,
+                "order": ORDER, "blocks_requested": args.blocks,
+                "expected_games_searches_nodes_trace": expected, "identical_floor": False, "floor": None,
+                "engine_environment": ENGINE_ENV_META,
+                "cpu_scope": "sum of three workers’ Forge-only RUSAGE_CHILDREN deltas",
+                "wall_scope": "common pre-launch pipe release through the final observed engine reap",
+                "worker_affinity": args.cpus, "worker_count": WORKER_COUNT,
+                "coordinator_affinity": sorted(os.sched_getaffinity(0))}
+    write_json(args.output / "inputs.txt", manifest)
+    runs = []
+    failed_rows = []
+    with (args.output / "runs.jsonl.txt").open("x", encoding="utf-8") as log:
+        for block in range(1, args.blocks + 1):
+            order = ORDER[(block - 1) % len(ORDER)]
+            for index, arm in enumerate(order[0] + order):
+                stem = f"b{block:02d}-r{index}-{arm}"
+                row = {"block": block, "order_index": index, "warmup": index == 0, "arm": arm, "engine": labels[arm],
+                       "engine_sha256": inputs[arm]["sha256"],
+                       **measure_group(argv[arm], args.output, stem, expected, args.cpus)}
+                runs.append(row)
+                line = json.dumps(row)
+                print(line, file=log, flush=True)
+                print(line, flush=True)
+                if not row["eligible"]:
+                    failed_rows.append(f"{stem}: {row['error']}")
+                if row["interrupted"]:
+                    break
+            if row["interrupted"]:
+                break
+    failure = " | ".join(failed_rows) or None
+    try:
+        after = {key: pinned_identity(*spec) for key, spec in pins.items()}
+        if after != inputs:
+            raise ValueError("An input path changed during the campaign")
+    except (OSError, ValueError) as exc:
+        # Retain the original rows while withholding the measurements from the ratio.
+        summary = summarize_runs([], args.blocks)
+        summary["attempted_runs"] = len(runs)
+        failure = f"Post-run identity failed: {exc}"
+    else:
+        summary = summarize_runs(runs, args.blocks)
+        summary["verified_inputs_after"] = after
+    summary.update({"load_schema": LOAD_SCHEMA, "arm_labels": labels, "error": failure, "identical_floor": False,
+                    "floor": None, "expected_games_searches_nodes_trace": expected,
+                    "engine_environment": ENGINE_ENV_META, "worker_affinity": args.cpus, "worker_count": WORKER_COUNT,
+                    "coordinator_affinity": manifest["coordinator_affinity"]})
+    write_json(args.output / "summary.txt", summary)
+    if failure:
+        raise RuntimeError(failure)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        if sys.argv[1:2] == ["--internal-worker"]:
+            sys.exit(worker_cli(sys.argv[2:]))
+        main()
+    except (KeyError, OSError, RuntimeError, ValueError) as exc:
+        print(exc, file=sys.stderr)
+        sys.exit(1)

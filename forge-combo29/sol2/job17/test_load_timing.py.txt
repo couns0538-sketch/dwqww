@@ -1,0 +1,85 @@
+import json
+import os
+from pathlib import Path
+import select
+import subprocess
+import sys
+import tempfile
+import time
+
+from load_timing import SIGNATURE_FIELDS, summarize_group
+
+EXPECTED = (20, 2247, 7905938, 9189426, '7f78d3aec021ab01')
+CPU = 0
+
+
+def test_worker():
+    with tempfile.TemporaryDirectory() as path:
+        out = Path(path)
+        fake_driver = out / 'driver.py'
+        fake_driver.write_text('''
+import json
+import subprocess
+import sys
+
+def main():
+    with subprocess.Popen([sys.argv[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                          text=True, encoding='utf-8') as proc:
+        proc.stdin.write('ready\\n')
+        proc.stdin.flush()
+        assert proc.stdout.readline() == 'ready\\n'
+        proc.stdin.close()
+        assert proc.wait(timeout=3) == 0
+    print(json.dumps(dict(zip(("games", "searches", "total_nodes", "final_nodes", "trace_fnv1a64"),
+                              (20, 2247, 7905938, 9189426, "7f78d3aec021ab01")))), flush=True)
+''')
+        gate_read, gate_write = os.pipe()
+        ready_read, ready_write = os.pipe()
+        argv = [sys.executable, '-B', str(Path(__file__).with_name('load_timing.py')), '--internal-worker',
+                '--cpu', str(CPU), '--output', path, '--stem', 'toy', '--ready-fd', str(ready_write),
+                '--gate-fd', str(gate_read), '--argv-json', json.dumps([str(fake_driver), '/usr/bin/cat']),
+                '--expected-json', json.dumps(EXPECTED)]
+        with subprocess.Popen(argv, pass_fds=(gate_read, ready_write)) as proc:
+            os.close(gate_read)
+            os.close(ready_write)
+            try:
+                assert select.select([ready_read], [], [], 3)[0]
+                assert os.read(ready_read, 1) == b'R'
+                assert proc.poll() is None
+                released = time.monotonic_ns()
+                assert os.write(gate_write, b'G') == 1
+                assert proc.wait(timeout=5) == 0
+            finally:
+                os.close(gate_write)
+                os.close(ready_read)
+        result = json.loads((out / 'toy.worker.result.txt').read_text())
+        assert result['eligible'] is True and result['engine_proc_receipt'] == 'verified', result
+        assert result['worker_affinity'] == [CPU]
+        assert result['engine_environment_bytes'] == 16
+        assert released <= result['engine_launch_monotonic_ns'] < result['engine_exit_observed_monotonic_ns']
+        assert result['engine_cpu_s'] > 0
+        print('pinned CPU 0 toy worker waits for gate, captures verified launch and actual reap')
+
+
+def test_group():
+    rows = []
+    for index, cpu in enumerate((1, 2, 3)):
+        rows.append({**dict(zip(SIGNATURE_FIELDS, EXPECTED)), 'trace_matches': True, 'eligible': True,
+                     'cpu': cpu, 'worker_affinity': [cpu], 'worker_exit': 0, 'engine_exit': 0,
+                     'engine_user_s': 1.0, 'engine_system_s': 0.25, 'engine_cpu_s': 1.25,
+                     'engine_launch_monotonic_ns': 101 + index, 'engine_exit_observed_monotonic_ns': 350 + index})
+    group = summarize_group(rows, EXPECTED, [1, 2, 3], 100, 'during', None, False)
+    assert group['eligible'] and group['engine_cpu_s'] == 3.75 and group['total_wall_ns'] == 252
+    assert group['start_spread_ns'] == 2
+    assert tuple(group[key] for key in SIGNATURE_FIELDS) == EXPECTED
+    rows[1]['total_nodes'] += 1
+    group = summarize_group(rows, EXPECTED, [1, 2, 3], 100, 'during', None, False)
+    assert not group['eligible'] and not group['trace_matches']
+    group = summarize_group([], EXPECTED, [1, 2, 3], None, None, 'cancelled', True)
+    assert not group['eligible'] and group['interrupted'] and group['total_wall_ns'] is None
+    print('group arithmetic sums engine-only CPU, measures release-to-last-reap and rejects bad traces')
+
+
+if __name__ == '__main__':
+    test_worker()
+    test_group()
