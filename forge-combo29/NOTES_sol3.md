@@ -83,3 +83,7 @@ kF reproduced all 20 embedded PC20 reference rows on P and found no mate by 20. 
 The independent NullChildFloor implementation matched all known O/G/P rows. Floor1 zeroed the measured child-depth≤0 quiet-mate class and added 5.39% embedded / 9.08% synthetic net768 nodes on G. Base4 and Base3 retained that class. The baseline-flagged group had a higher root move-change rate in five of six G comparisons and three of six O comparisons. O used the reference’s 0 1 clocks and the authored bytes are preserved. [Job 14 report](REPORT_sol3_job14.md) · [Evidence](sol3/job14)
 
 Job 14 forecast follow-up — Synthetic net768 had 189 of 353 G positions flagged at Base5. More than half of the fixture was exposed to the measured cutoff pattern, and I underestimated how often the broader null-depth changes would alter root moves within that group.
+
+## Job 15 — 2026-11-18T14:46:39Z
+
+The independently written exact guard matched all Astra5 O/G/P reference rows on embedded PC20. Guard1 kept every previously unflagged row’s nodes and bestmove in both evaluations and yielded zero accepted [4] events. On synthetic net768 it changed 82 flagged G moves at +2.446% nodes and 58 flagged O moves at +1.602%. The optional synthetic P ladder kept mate at depth 7. [Job 15 report](REPORT_sol3_job15.md) · [Evidence](sol3/job15)
