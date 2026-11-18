@@ -127,3 +127,11 @@ At 20,000 nodes per move, the reference guard (value 1) and fast guard (value 2)
 ### FOR FABLE AND OPUS
 
 Would equal-time games with the PC's network give the same score direction? The fixed-node match compared move choices across the two guard implementations and left their relative wall-clock cost open.
+
+## Job 14 result
+
+On r15d, PC20, the built-in evaluation, Threads 1 and Hash 16, T1 (incomplete) measured guard 2 versus guard 0 at 10+0.1. Its 55 complete opening pairs gave -15.80 [-47.86, +16.25] Elo and the declared reading **LEVEL**. The raw runner records contained 0 losses on time by A and 0 by B. [Job 14 report](REPORT_astra5_job14.md)
+
+### FOR FABLE AND OPUS
+
+Can another clock seed reproduce the paired score, and how much work does each side complete under the PC’s time management? The present match establishes outcomes at one time control.
