@@ -1,0 +1,93 @@
+--- a/include/forge/board.hpp	2026-11-18 12:37:57.640049697 +0000
++++ b/include/forge/board.hpp	2026-11-18 12:40:39.780049697 +0000
+@@ -221,7 +221,6 @@
+     [[nodiscard]] bool in_check() const { return checkers_ != 0; }
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
+ #if FORGE_SPD_KING_LINES
+-    [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
+     const KingLines& ensure_king_lines() const {
+         if (!king_lines_.valid) refresh_king_lines();
+         return king_lines_;
+--- a/include/forge/search.hpp	2026-11-18 12:37:57.656049697 +0000
++++ b/include/forge/search.hpp	2026-11-18 12:40:39.780049697 +0000
+@@ -218,7 +218,6 @@
+     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+     // without it and are only for the Worker on the lease's thread (tt_owned_).
+     friend class Worker;
+-    friend struct S13TTTestAccess;
+     template <bool TakeLock>
+     [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
+     template <bool TakeLock>
+@@ -627,7 +626,6 @@
+ #endif
+     int seldepth_ = 0;
+     int stack_dirty_limit_ = MaxPly + 7;
+-    std::uint64_t quiet_hist_epoch_ = 0;
+     int root_depth_ = 0;
+     int mate_moves_ = 0;
+     std::size_t root_history_index_ = 0;
+--- a/src/search.cpp	2026-11-18 12:37:57.656049697 +0000
++++ b/src/search.cpp	2026-11-18 12:40:39.780049697 +0000
+@@ -903,7 +903,6 @@
+ #endif
+                         const int pt = piece_type(board_.piece_at(move.from));
+                         const bool direct_chk = (check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0;
+-                        last_quiet_history_ = picked.score - (direct_chk ? 12000 : 0);
+ #if FORGE_SPD_KING_LINES
+                         last_quiet_gives_check_ = direct_chk ||
+                             (move.is_castle() ? board_.gives_check(move)
+@@ -960,10 +959,6 @@
+     [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions || stage_ == QuietMoves; }
+     [[nodiscard]] bool has_cached_gives_check() const { return stage_ == QuietMoves; }
+     [[nodiscard]] bool cached_gives_check() const { return last_quiet_gives_check_; }
+-    [[nodiscard]] bool has_cached_quiet_history(std::uint64_t current_epoch) const {
+-        return stage_ == QuietMoves && current_epoch == quiet_gen_epoch_;
+-    }
+-    [[nodiscard]] int cached_quiet_history() const { return last_quiet_history_; }
+ 
+     // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
+     void close_quiet_tail() { quiet_tail_closed_ = true; }
+@@ -1016,8 +1011,6 @@
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
+     bool last_quiet_gives_check_ = false;
+-    std::uint64_t quiet_gen_epoch_ = 0;
+-    int last_quiet_history_ = 0;
+ #if FORGE_SPD_KING_LINES
+     Bitboard pinned_ = 0;
+     Bitboard discoverers_ = 0;
+@@ -1351,7 +1344,6 @@
+     }
+ 
+     [[gnu::noinline]] void generate_quiets() {
+-        quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
+         init_check_squares();
+         index_ = quiet_start();
+@@ -2543,7 +2535,7 @@
+         if (parent->static_eval != ValueNone && ss->static_eval != ValueNone && !parent->in_check &&
+             !parent->current_move.is_none() && !parent->current_move.is_capture() && !parent->current_move.is_promotion()) {
+             const int swing = std::clamp(-(ss->static_eval + parent->static_eval), -tune::EvalSwingMax, tune::EvalSwingMax);
+-                    apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))]
++            apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))]
+                                           [parent->current_move.from][parent->current_move.to],
+                           swing * tune::EvalSwingMult / 16);
+         }
+@@ -2611,7 +2603,7 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+-                int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+@@ -2999,7 +2991,7 @@
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+-            apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
++        apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
+ #if FORGE_PAWN_HISTORY

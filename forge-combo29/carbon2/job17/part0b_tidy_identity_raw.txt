@@ -1,0 +1,30 @@
+=== JOB 17 PART 0(b): FULL IDENTITY PROOF FOR stack/tidy.patch.txt ON TOP OF 01..13 ===
+
+--- 1. Engine's Own Bench Lines on Plain Tidy Binary (/tmp/carbon2_job17/bld_tidy/forge) ---
+[PC20 + net512.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 625258 time 260 nps 2404838
+info string bench depth 13 nodes 3652372 time 1503 nps 2430054
+info string bench depth 16 nodes 23891329 time 9781 nps 2442626
+[PC20 + net768.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 882074 time 376 nps 2345941
+info string bench depth 13 nodes 4275906 time 1852 nps 2308804
+info string bench depth 16 nodes 32374943 time 14574 nps 2221417
+
+--- 2. 250 Depth-9 Rows (PC20 + net768.fnn3, positions_250.txt, strict self-stop guard active): Node Sum & SHA-256 ---
+  (Note: row #088 is root checkmate `bestmove=0000 nodes=0 score=mate 0`; all 249 non-terminal rows verified `nodes > 0` and all 250 verified non-empty `score`.)
+  reference (01..13): rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  tidy   (01..13+tidy): rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  first_3_rows_sample: 001 bestmove=c1b2 nodes=11089 score=cp -160 | 002 bestmove=d8c7 nodes=9663 score=cp -108 | 003 bestmove=h1g1 nodes=23129 score=cp 89
+  last_row_sample:     250 bestmove=e7g5 nodes=5301 score=mate 3
+
+--- 3. 1,000 Static Evals (positions_1000.txt, engine's own info string eval lines) ---
+  net768 (1000 lines): ref_sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 tidy_sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 sample_0='info string eval hce 0 nnue 339 total 339'
+  net512 (1000 lines): ref_sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d tidy_sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d sample_0='info string eval hce 0 nnue 835 total 835'
+
+--- 4. Both 6-Game Self-Play Traces (softnodes 2000, Hash 128, PC20 + net768.fnn3) ---
+  startpos_6game: searches=846 nodes=2916466 trace=4560d7c3afdeba2e (== 4560d7c3afdeba2e)
+  fen_6game:      searches=745 nodes=2481101 trace=9ed22c1193ab96de (== 9ed22c1193ab96de)
