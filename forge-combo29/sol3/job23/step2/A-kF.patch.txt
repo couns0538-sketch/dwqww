@@ -1,0 +1,301 @@
+diff -ruN base_kF/include/forge/board.hpp tree_A-kF/include/forge/board.hpp
+--- base_kF/include/forge/board.hpp	2026-11-18 05:27:32.634667555 -0800
++++ tree_A-kF/include/forge/board.hpp	2026-11-18 09:49:18.948539910 -0800
+@@ -300,6 +300,9 @@
+ #endif
+     [[nodiscard]] bool is_legal_complete(const Move& move) const;
+     [[nodiscard]] bool gives_check_complete(const Move& move) const;
++#ifndef NDEBUG
++    [[nodiscard]] bool job23_see_reference(const Move& move, int threshold) const;
++#endif
+ 
+     void put_piece(Piece piece, int square);
+     void remove_piece(int square);
+diff -ruN base_kF/src/board.cpp tree_A-kF/src/board.cpp
+--- base_kF/src/board.cpp	2026-11-18 05:27:32.636860160 -0800
++++ tree_A-kF/src/board.cpp	2026-11-18 09:49:43.045618012 -0800
+@@ -5,6 +5,9 @@
+ #include <cassert>
+ #include <cctype>
+ #include <cstdlib>
++#ifndef NDEBUG
++#include <iostream>
++#endif
+ #include <sstream>
+ #include <utility>
+ 
+@@ -1489,7 +1492,20 @@
+ }
+ 
+ bool Board::see_ge(const Move& move, int threshold) const {
+-    if (move.is_castle()) return 0 >= threshold;
++    const auto checked = [&](bool fast, [[maybe_unused]] const char* exit) {
++#ifndef NDEBUG
++        const bool reference = job23_see_reference(move, threshold);
++        if (fast != reference) {
++            std::cerr << "job23 assert A3 move " << Board::move_to_uci(move)
++                      << " fast " << static_cast<int>(fast) << " ref " << static_cast<int>(reference)
++                      << " threshold " << threshold << " exit " << exit
++                      << "\njob23 fen " << fen() << std::endl;
++            std::abort();
++        }
++#endif
++        return fast;
++    };
++    if (move.is_castle()) return checked(0 >= threshold, "castle");
+     const Color us = side_;
+     const int from = move.from;
+     const int to = move.to;
+@@ -1502,7 +1518,7 @@
+             pieces(promoter, Pawn) & attacks::pawn(opposite(promoter), to) &
+             ~(square_bb(from) | square_bb(captured_square));
+         if (promoting_pawns != 0) {
+-            return promotion_recapture_exchange(*this, move, captured_square) >= threshold;
++            return checked(promotion_recapture_exchange(*this, move, captured_square) >= threshold, "promotion-recapture");
+         }
+     }
+     int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
+@@ -1511,9 +1527,9 @@
+         swap += SeeValue[move.promotion] - SeeValue[Pawn];
+         attacker_value = SeeValue[move.promotion];
+     }
+-    if (swap < 0) return false;
++    if (swap < 0) return checked(false, "initial-insufficient");
+     swap = attacker_value - swap;
+-    if (swap <= 0) return true;
++    if (swap <= 0) return checked(true, "initial-sufficient");
+ 
+     Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
+     const Color them = opposite(us);
+@@ -1527,7 +1543,7 @@
+                                     (attacks::king(to) & pieces(them, King))) & live0);
+     const Bitboard them_ray_sliders =
+         ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
+-    if ((them_contact | them_ray_sliders) == 0) return true;
++    if ((them_contact | them_ray_sliders) == 0) return checked(true, "no-ray-or-contact");
+ 
+ #if FORGE_SDK_SEE_HOIST
+     // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
+@@ -1545,13 +1561,13 @@
+                                        (attacks::king(ek) & pieces(us, King))) & live0;
+         const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
+                                        (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
+-        if ((contact_them | snipers_them) == 0) return false;
++        if ((contact_them | snipers_them) == 0) return checked(false, "free-pawn-recapture");
+     }
+ #endif
+ 
+     const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
+     const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
+-    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) return true;
++    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) return checked(true, "no-live-attacker");
+ 
+     const Bitboard us_contact = (attacks::pawn(them, to) & pieces(us, Pawn)) |
+                                 (attacks::knight(to) & pieces(us, Knight)) |
+@@ -1644,11 +1660,146 @@
+         } else {
+             // Only the king is left to capture; it may do so only if the
+             // opponent has no further attackers.
++            return checked((attackers & ~occupied(stm)) != 0 ? result ^ 1 : result, "king-recapture");
++        }
++    }
++    return result != 0;
++}
++
++#ifndef NDEBUG
++// r15d's full threshold exchange, including its pinned-build SEE hoist.
++bool Board::job23_see_reference(const Move& move, int threshold) const {
++    if (move.is_castle()) return 0 >= threshold;
++    const Color us = side_;
++    const int from = move.from;
++    const int to = move.to;
++    const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;
++    const int target_rank = rank_of(to);
++    if ((target_rank == 0 || target_rank == 7) &&
++        piece_type(squares_[static_cast<std::size_t>(from)]) != King) {
++        const Color promoter = target_rank == 7 ? White : Black;
++        const Bitboard promoting_pawns =
++            pieces(promoter, Pawn) & attacks::pawn(opposite(promoter), to) &
++            ~(square_bb(from) | square_bb(captured_square));
++        if (promoting_pawns != 0) {
++            return promotion_recapture_exchange(*this, move, captured_square) >= threshold;
++        }
++    }
++    int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
++    int attacker_value = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(from)]))];
++    if (move.is_promotion()) {
++        swap += SeeValue[move.promotion] - SeeValue[Pawn];
++        attacker_value = SeeValue[move.promotion];
++    }
++    if (swap < 0) return false;
++    swap = attacker_value - swap;
++    if (swap <= 0) return true;
++
++    Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
++    Color stm = us;
++    Bitboard attackers = attackers_to_fast(*this, to, occupancy);
++    const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
++    const Bitboard lines = pieces(Rook) | pieces(Queen);
++    int result = 1;
++#if FORGE_SDK_SEE_HOIST
++    // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
++    // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
++    // exchange; only `live` loses bits, so `set & live` is exactly what the loop used to rebuild at every step.
++    std::array<Bitboard, 2> contact{};
++    std::array<Bitboard, 2> snipers{};
++    unsigned prepared = 0;
++#endif
++    while (true) {
++        stm = opposite(stm);
++        attackers &= occupancy;
++        Bitboard stm_attackers = attackers & occupied(stm);
++        // Every candidate only removes its own origin; the target stays occupied.
++        // Existing checks reject every non-king; singleton ray blockers identify
++        // exactly the origins whose departure would expose a live enemy slider.
++        const Bitboard king_attackers = stm_attackers & pieces(stm, King);
++#if FORGE_SDK_SEE_HOIST
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const std::size_t side = static_cast<std::size_t>(stm);
++            const int king = king_square(stm);
++            if ((prepared & (1U << side)) == 0U) {
++                const Color enemy = opposite(stm);
++                const Bitboard queens = pieces(enemy, Queen);
++                contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
++                                (attacks::knight(king) & pieces(enemy, Knight)) |
++                                (attacks::king(king) & pieces(enemy, King));
++                snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) | queens)) |
++                                (attacks::rook_ray(king) & (pieces(enemy, Rook) | queens));
++                prepared |= 1U << side;
++            }
++            const Bitboard live = occupancy & ~square_bb(to);
++            bool checked = (contact[side] & live) != 0;
++            Bitboard pinners = snipers[side] & live;
++            // Neither a contact check nor a live slider on a king line: nothing to filter (the common case).
++            if (checked || pinners != 0) {
++                Bitboard forbidden = 0;
++                while (!checked && pinners != 0) {
++                    const int pinner = pop_lsb(pinners);
++                    const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                    if (blockers == 0) checked = true;
++                    else if (!more_than_one(blockers)) forbidden |= blockers;
++                }
++                stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++            }
++        }
++#else
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const Color enemy = opposite(stm);
++            const int king = king_square(stm);
++            const Bitboard live = occupancy & ~square_bb(to);
++            const Bitboard queens = pieces(enemy, Queen) & live;
++            bool checked =
++                (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0 ||
++                (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
++                (attacks::king(king) & pieces(enemy, King) & live) != 0;
++            Bitboard pinners =
++                (attacks::bishop_ray(king) & ((pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook_ray(king) & ((pieces(enemy, Rook) & live) | queens));
++            Bitboard forbidden = 0;
++            while (!checked && pinners != 0) {
++                const int pinner = pop_lsb(pinners);
++                const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                if (blockers == 0) checked = true;
++                else if (!more_than_one(blockers)) forbidden |= blockers;
++            }
++            stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++        }
++#endif
++        if (stm_attackers == 0) break;
++        result ^= 1;
++        Bitboard bb = 0;
++        if ((bb = stm_attackers & pieces(stm, Pawn)) != 0) {
++            if ((swap = SeeValue[Pawn] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if ((bb = stm_attackers & pieces(stm, Knight)) != 0) {
++            if ((swap = SeeValue[Knight] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++        } else if ((bb = stm_attackers & pieces(stm, Bishop)) != 0) {
++            if ((swap = SeeValue[Bishop] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if ((bb = stm_attackers & pieces(stm, Rook)) != 0) {
++            if ((swap = SeeValue[Rook] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::rook(to, occupancy) & lines;
++        } else if ((bb = stm_attackers & pieces(stm, Queen)) != 0) {
++            if ((swap = SeeValue[Queen] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= (attacks::bishop(to, occupancy) & diagonals) | (attacks::rook(to, occupancy) & lines);
++        } else {
++            // Only the king is left to capture; it may do so only if the
++            // opponent has no further attackers.
+             return (attackers & ~occupied(stm)) != 0 ? result ^ 1 : result;
+         }
+     }
+     return result != 0;
+ }
++#endif
+ 
+ int Board::static_exchange(const Move& move) const {
+     int low = -2000;
+diff -ruN base_kF/src/search.cpp tree_A-kF/src/search.cpp
+--- base_kF/src/search.cpp	2026-11-18 05:27:32.638032655 -0800
++++ tree_A-kF/src/search.cpp	2026-11-18 09:49:18.276572370 -0800
+@@ -811,6 +811,16 @@
+ // ---------------------------------------------------------------------------
+ // Move picker
+ 
++#ifndef NDEBUG
++[[noreturn]] static void quiet_assert_failed(const Board& board, Move move, const char* label,
++                                             bool fast, bool reference) {
++    std::cerr << "job23 assert " << label << " move " << Board::move_to_uci(move)
++              << " fast " << static_cast<int>(fast) << " ref " << static_cast<int>(reference)
++              << "\njob23 fen " << board.fen() << std::endl;
++    std::abort();
++}
++#endif
++
+ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+@@ -892,15 +902,19 @@
+                         // A closed tail keeps quiet checks, including discovered checks.
+                         if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
+ #if FORGE_SPD_KING_LINES
+-                        if (move.from == own_king_sq_) {
+-                            if (!board_.is_legal(move)) continue;
+-                        } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
+-                                   !attacks::aligned(own_king_sq_, move.from, move.to)) {
+-                            continue;
+-                        }
++                        const bool quiet_legal = move.from == own_king_sq_ ? board_.is_legal(move) :
++                            (((pinned_ >> move.from) & 1ULL) == 0 ||
++                             attacks::aligned(own_king_sq_, move.from, move.to));
+ #else
+-                        if (!board_.is_legal(move)) continue;
++                        const bool quiet_legal = board_.is_legal(move);
+ #endif
++#ifndef NDEBUG
++                        const bool legal_reference = board_.is_legal(move);
++                        if (quiet_legal != legal_reference) {
++                            quiet_assert_failed(board_, move, "A2", quiet_legal, legal_reference);
++                        }
++#endif
++                        if (!quiet_legal) continue;
+                         const int pt = piece_type(board_.piece_at(move.from));
+                         const bool direct_chk = (check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0;
+ #if FORGE_SPD_KING_LINES
+@@ -911,6 +925,12 @@
+ #else
+                         last_quiet_gives_check_ = board_.gives_check(move);
+ #endif
++#ifndef NDEBUG
++                        const bool check_reference = board_.gives_check(move);
++                        if (last_quiet_gives_check_ != check_reference) {
++                            quiet_assert_failed(board_, move, "A1", last_quiet_gives_check_, check_reference);
++                        }
++#endif
+                         return move;
+                     }
+                 }

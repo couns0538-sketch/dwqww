@@ -1,0 +1,47 @@
+Job 23 assertion sites
+Line numbers refer to the reproduced A-kF tree unless otherwise stated.
+
+A1 and A2
+src/search.cpp:896–934 handles the ordinary QuietMoves stage.
+src/search.cpp:904–917 evaluates its legality verdict once. A2 reads
+Board::is_legal before either the rejection or acceptance path. The
+duplicate-move and closed-tail skips at 901–903 are ordering/pruning choices.
+src/search.cpp:918–934 assigns the cached gives-check value and compares
+it with Board::gives_check before returning the move. Quiet stage
+castling uses the special Board path at 922. The search consumes the
+cached value at src/search.cpp:2745.
+src/search.cpp:1047–1055 copies the Board king lines before generation
+(1366–1368,1553,1567). Board::is_legal and Board::gives_check consult
+the same already-populated Board cache for ordinary quiet moves
+(include/forge/board.hpp:337–359). A1/A2 test the picker's copied data and
+use of it. This is shared-formula agreement and does not independently
+establish the cache builder's correctness. King legality and castling
+gives-check already use the Board API in the picker.
+src/search.cpp:815–821 logs UCI move, both booleans and then the local
+FEN in separate flushed stderr lines before abort. No passing case logs.
+A-wrong changes exactly src/search.cpp:929 to use direct_chk only. A
+pure discovered check should trip it if that move reaches QuietMoves;
+a double check can have direct_chk true and will not trip it by itself.
+
+A3
+src/board.cpp:1493–1667 is the live optimized Board::see_ge. The checked
+wrapper preserves its own result. It validates all eight early returns
+at 1508 (castle), 1521 (promotion recapture), 1530 and 1532 (initial
+threshold bounds), 1546 (contact/ray set empty), 1564 (unpin-threat
+pawn shortcut when the hoist is off), 1570 (exact attackers empty) and
+1663 (last remaining attacker is the king). The ordinary loop result
+at 1666 falls through as before. The hoist is 1 in the pinned build,
+so the alternate pawn shortcut is source-instrumented and dormant.
+src/board.cpp:1671–1801 copies pinned r15d src/board.cpp:1431–1561
+with only the method name changed. The existing attackers_to_fast
+and promotion_recapture_exchange helper bodies and SeeValue constant
+are byte-identical between trees. The legacy castle, promotion and
+initial threshold shortcuts are therefore shared with the reference.
+As with A1/A2, the check records only a failure. It does not count
+how many times each branch was reached.
+
+Existing debug assertions
+src/board.cpp:1263–1269 verifies the supplied key against the native
+incremental calculation. src/board.cpp:1286–1288 recomputes checkers
+in an assert when the passed known-gives-check value is false.
+src/search.cpp:2888–2906 shows the main-search callers.
