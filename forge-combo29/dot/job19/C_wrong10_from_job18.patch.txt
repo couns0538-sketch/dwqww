@@ -1,0 +1,373 @@
+--- a/include/forge/b4.hpp
++++ b/include/forge/b4.hpp
+@@ -10,6 +10,9 @@
+ // Nothing here is used while the options are off.
+ #include "forge/bitboard.hpp"
+ #include "forge/board.hpp"
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ 
+ #include <array>
+ #include <cstddef>
+@@ -57,6 +60,31 @@
+             threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    // Old r15d unconditional computation on private masks. Never call the
++    // instrumented function recursively or modify the result search reads.
++    const Bitboard ref_occupancy = board.occupied();
++    const Bitboard ref_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard ref_minor = ref_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) ref_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) ref_minor |= attacks::bishop(pop_lsb(bb), ref_occupancy);
++    Bitboard ref_rook = ref_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) ref_rook |= attacks::rook(pop_lsb(bb), ref_occupancy);
++    const bool has_rook = board.pieces(us, Rook) != 0;
++    const bool has_queen = us_queens != 0;
++    const int material_class = (has_rook ? 1 : 0) + (has_queen ? 2 : 0);
++#if FORGE_SHORTCUT_WRONG10
++    // One reachable material class only; alter local rook-reference mask.
++    if (material_class == 1) ref_minor ^= Bitboard{1};
++#endif
++    bool different = threats.by_type[Pawn] != ref_pawn || threats.by_type[Knight] != ref_pawn ||
++                     threats.by_type[Bishop] != ref_pawn || threats.by_type[King] != 0 || threats.by_type[0] != 0;
++    // Absent own piece-type fields are deliberately omitted by kF and are not
++    // consumed for moves of that type in this position. Do not compare them.
++    if (has_rook) different = different || threats.by_type[Rook] != ref_minor;
++    if (has_queen) different = different || threats.by_type[Queen] != ref_rook;
++    shortcut_count::record_h71(different, material_class, board);
++#endif
+     return threats;
+ }
+ 
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -1,3 +1,6 @@
++#ifndef FORGE_SHORTCUT_WRONG10
++#define FORGE_SHORTCUT_WRONG10 1
++#endif
+ #pragma once
+ #include "forge/board.hpp"
+ #include "forge/uci_output.hpp"
+@@ -5,15 +8,16 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3"};
+-inline std::atomic<unsigned long long> uses[15]{}, differs[15]{}, diagnostics{0};
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12"};
++inline std::atomic<unsigned long long> uses[17]{}, differs[17]{}, diagnostics{0};
+ inline std::atomic<unsigned long long> h25_paths[7]{};
+ inline std::atomic<unsigned long long> h82_classes[6]{};
+ inline std::atomic<unsigned long long> h30_classes[4]{}, h3_classes[4]{};
+-inline void reset() { for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<15;++i) { uses[i]=0; differs[i]=0; } }
++inline std::atomic<unsigned long long> h71_classes[4]{}, h12_classes[6]{};
++inline void reset() { for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<17;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<15 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==15) return;
++    int i=0; while(i<17 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==17) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -46,10 +50,19 @@
+  record("H30",different,board,move);
+ }
+ inline void record_h3(bool different, int cls, const Board& board) { ++h3_classes[cls]; record("H3",different,board,Move::none()); }
++inline void record_h71(bool different, int cls, const Board& board) {
++ ++h71_classes[cls]; record("H71",different,board,Move::none());
++}
++inline void record_h12(bool different, bool knight, int path, const Board& board, const Move& move) {
++ ++h12_classes[knight?0:1]; ++h12_classes[2+path]; record("H12",different,board,move);
++}
+ // Caller holds the output mutex, after workers have joined.
+ inline void summary() {
++ std::cout << "info string h71_classes neither " << h71_classes[0].load() << " rook_only " << h71_classes[1].load() << " queen_only " << h71_classes[2].load() << " both " << h71_classes[3].load() << std::endl;
++ std::cout << "info string h12_classes moving_knight " << h12_classes[0].load() << " other_mover " << h12_classes[1].load() << " prefix_return " << h12_classes[2].load() << " ray_empty " << h12_classes[3].load() << " actual_empty " << h12_classes[4].load() << " exchange_loop " << h12_classes[5].load() << std::endl;
++
+  std::cout << "info string h30_classes white_generation " << h30_classes[0].load() << " black_generation " << h30_classes[1].load() << " illegal_source " << h30_classes[2].load() << " promotion_source " << h30_classes[3].load() << std::endl;
+- std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<15;++i) std::cout << "info string shortcut " << names[i]
++ std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<17;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
+     std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
+               << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -250,6 +250,9 @@
+     // destination square nets at least `threshold` centipawns for the mover.
+     [[nodiscard]] int static_exchange(const Move& move) const;
+     [[nodiscard]] bool see_ge(const Move& move, int threshold) const;
++#if FORGE_SHORTCUT_COUNT
++    [[nodiscard]] bool see_ge_r15d_reference(const Move& move, int threshold) const;
++#endif
+ 
+     [[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }
+     [[nodiscard]] const std::array<Bitboard, 13>& piece_bitboards() const { return bitboards_; }
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1597,7 +1597,8 @@
+     return (pieces(color, Knight) | pieces(color, Bishop) | pieces(color, Rook) | pieces(color, Queen)) != 0;
+ }
+ 
+-bool Board::see_ge(const Move& move, int threshold) const {
++#if FORGE_SHORTCUT_COUNT
++bool Board::see_ge_r15d_reference(const Move& move, int threshold) const {
+     if (move.is_castle()) return 0 >= threshold;
+     const Color us = side_;
+     const int from = move.from;
+@@ -1625,19 +1626,11 @@
+     if (swap <= 0) return true;
+ 
+     Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
+-    const Color them = opposite(us);
+-    const Bitboard live0 = occupancy & ~square_bb(to);
+-    const Bitboard them_live = occupied(them) & live0;
++    Color stm = us;
++    Bitboard attackers = attackers_to_fast(*this, to, occupancy);
+     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+     const Bitboard lines = pieces(Rook) | pieces(Queen);
+-    const Bitboard them_pawns_atk = attacks::pawn(us, to) & pieces(them, Pawn) & live0;
+-    const Bitboard them_contact = them_pawns_atk |
+-                                  (((attacks::knight(to) & pieces(them, Knight)) |
+-                                    (attacks::king(to) & pieces(them, King))) & live0);
+-    const Bitboard them_ray_sliders =
+-        ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
+-    if ((them_contact | them_ray_sliders) == 0) return true;
+-
++    int result = 1;
+ #if FORGE_SDK_SEE_HOIST
+     // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
+     // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
+@@ -1645,29 +1638,7 @@
+     std::array<Bitboard, 2> contact{};
+     std::array<Bitboard, 2> snipers{};
+     unsigned prepared = 0;
+-#else
+-    if (them_pawns_atk != 0 && SeeValue[Pawn] - swap < 0) {
+-        const int ek = king_square(them);
+-        const Bitboard our_q = pieces(us, Queen);
+-        const Bitboard contact_them = ((attacks::pawn(them, ek) & pieces(us, Pawn)) |
+-                                       (attacks::knight(ek) & pieces(us, Knight)) |
+-                                       (attacks::king(ek) & pieces(us, King))) & live0;
+-        const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
+-                                       (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
+-        if ((contact_them | snipers_them) == 0) return false;
+-    }
+-#endif
+-
+-    const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
+-    const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
+-    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) return true;
+-
+-    const Bitboard us_contact = (attacks::pawn(them, to) & pieces(us, Pawn)) |
+-                                (attacks::knight(to) & pieces(us, Knight)) |
+-                                (attacks::king(to) & pieces(us, King));
+-    Color stm = us;
+-    Bitboard attackers = them_contact | us_contact | b_atk | r_atk;
+-    int result = 1;
++#endif
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+@@ -1757,6 +1728,198 @@
+         }
+     }
+     return result != 0;
++}
++#endif
++
++bool Board::see_ge(const Move& move, int threshold) const {
++#if FORGE_SHORTCUT_COUNT
++    int h12_path=0;
++    const bool actual=[&]() -> bool {
++#endif
++
++    if (move.is_castle()) return 0 >= threshold;
++    const Color us = side_;
++    const int from = move.from;
++    const int to = move.to;
++    const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;
++    const int target_rank = rank_of(to);
++    if ((target_rank == 0 || target_rank == 7) &&
++        piece_type(squares_[static_cast<std::size_t>(from)]) != King) {
++        const Color promoter = target_rank == 7 ? White : Black;
++        const Bitboard promoting_pawns =
++            pieces(promoter, Pawn) & attacks::pawn(opposite(promoter), to) &
++            ~(square_bb(from) | square_bb(captured_square));
++        if (promoting_pawns != 0) {
++            return promotion_recapture_exchange(*this, move, captured_square) >= threshold;
++        }
++    }
++    int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
++    int attacker_value = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(from)]))];
++    if (move.is_promotion()) {
++        swap += SeeValue[move.promotion] - SeeValue[Pawn];
++        attacker_value = SeeValue[move.promotion];
++    }
++    if (swap < 0) return false;
++    swap = attacker_value - swap;
++    if (swap <= 0) return true;
++
++    Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
++    const Color them = opposite(us);
++    const Bitboard live0 = occupancy & ~square_bb(to);
++    const Bitboard them_live = occupied(them) & live0;
++    const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
++    const Bitboard lines = pieces(Rook) | pieces(Queen);
++    const Bitboard them_pawns_atk = attacks::pawn(us, to) & pieces(them, Pawn) & live0;
++    const Bitboard them_contact = them_pawns_atk |
++                                  (((attacks::knight(to) & pieces(them, Knight)) |
++                                    (attacks::king(to) & pieces(them, King))) & live0);
++    const Bitboard them_ray_sliders =
++        ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
++    if ((them_contact | them_ray_sliders) == 0) {
++#if FORGE_SHORTCUT_COUNT
++        h12_path=1;
++#endif
++        return true;
++    }
++
++#if FORGE_SDK_SEE_HOIST
++    // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
++    // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
++    // exchange; only `live` loses bits, so `set & live` is exactly what the loop used to rebuild at every step.
++    std::array<Bitboard, 2> contact{};
++    std::array<Bitboard, 2> snipers{};
++    unsigned prepared = 0;
++#else
++    if (them_pawns_atk != 0 && SeeValue[Pawn] - swap < 0) {
++        const int ek = king_square(them);
++        const Bitboard our_q = pieces(us, Queen);
++        const Bitboard contact_them = ((attacks::pawn(them, ek) & pieces(us, Pawn)) |
++                                       (attacks::knight(ek) & pieces(us, Knight)) |
++                                       (attacks::king(ek) & pieces(us, King))) & live0;
++        const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
++                                       (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
++        if ((contact_them | snipers_them) == 0) return false;
++    }
++#endif
++
++    const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
++    const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
++    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) {
++#if FORGE_SHORTCUT_COUNT
++        h12_path=2;
++#endif
++        return true;
++    }
++
++    const Bitboard us_contact = (attacks::pawn(them, to) & pieces(us, Pawn)) |
++                                (attacks::knight(to) & pieces(us, Knight)) |
++                                (attacks::king(to) & pieces(us, King));
++    Color stm = us;
++    Bitboard attackers = them_contact | us_contact | b_atk | r_atk;
++    int result = 1;
++#if FORGE_SHORTCUT_COUNT
++    h12_path=3;
++#endif
++    while (true) {
++        stm = opposite(stm);
++        attackers &= occupancy;
++        Bitboard stm_attackers = attackers & occupied(stm);
++        // Every candidate only removes its own origin; the target stays occupied.
++        // Existing checks reject every non-king; singleton ray blockers identify
++        // exactly the origins whose departure would expose a live enemy slider.
++        const Bitboard king_attackers = stm_attackers & pieces(stm, King);
++#if FORGE_SDK_SEE_HOIST
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const std::size_t side = static_cast<std::size_t>(stm);
++            const int king = king_square(stm);
++            if ((prepared & (1U << side)) == 0U) {
++                const Color enemy = opposite(stm);
++                const Bitboard queens = pieces(enemy, Queen);
++                contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
++                                (attacks::knight(king) & pieces(enemy, Knight)) |
++                                (attacks::king(king) & pieces(enemy, King));
++                snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) | queens)) |
++                                (attacks::rook_ray(king) & (pieces(enemy, Rook) | queens));
++                prepared |= 1U << side;
++            }
++            const Bitboard live = occupancy & ~square_bb(to);
++            bool checked = (contact[side] & live) != 0;
++            Bitboard pinners = snipers[side] & live;
++            // Neither a contact check nor a live slider on a king line: nothing to filter (the common case).
++            if (checked || pinners != 0) {
++                Bitboard forbidden = 0;
++                while (!checked && pinners != 0) {
++                    const int pinner = pop_lsb(pinners);
++                    const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                    if (blockers == 0) checked = true;
++                    else if (!more_than_one(blockers)) forbidden |= blockers;
++                }
++                stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++            }
++        }
++#else
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const Color enemy = opposite(stm);
++            const int king = king_square(stm);
++            const Bitboard live = occupancy & ~square_bb(to);
++            const Bitboard queens = pieces(enemy, Queen) & live;
++            bool checked =
++                (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0 ||
++                (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
++                (attacks::king(king) & pieces(enemy, King) & live) != 0;
++            Bitboard pinners =
++                (attacks::bishop_ray(king) & ((pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook_ray(king) & ((pieces(enemy, Rook) & live) | queens));
++            Bitboard forbidden = 0;
++            while (!checked && pinners != 0) {
++                const int pinner = pop_lsb(pinners);
++                const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                if (blockers == 0) checked = true;
++                else if (!more_than_one(blockers)) forbidden |= blockers;
++            }
++            stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++        }
++#endif
++        if (stm_attackers == 0) break;
++        result ^= 1;
++        Bitboard bb = 0;
++        if ((bb = stm_attackers & pieces(stm, Pawn)) != 0) {
++            if ((swap = SeeValue[Pawn] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if ((bb = stm_attackers & pieces(stm, Knight)) != 0) {
++            if ((swap = SeeValue[Knight] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++        } else if ((bb = stm_attackers & pieces(stm, Bishop)) != 0) {
++            if ((swap = SeeValue[Bishop] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if ((bb = stm_attackers & pieces(stm, Rook)) != 0) {
++            if ((swap = SeeValue[Rook] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::rook(to, occupancy) & lines;
++        } else if ((bb = stm_attackers & pieces(stm, Queen)) != 0) {
++            if ((swap = SeeValue[Queen] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= (attacks::bishop(to, occupancy) & diagonals) | (attacks::rook(to, occupancy) & lines);
++        } else {
++            // Only the king is left to capture; it may do so only if the
++            // opponent has no further attackers.
++            return (attackers & ~occupied(stm)) != 0 ? result ^ 1 : result;
++        }
++    }
++    return result != 0;
++
++#if FORGE_SHORTCUT_COUNT
++    }();
++    bool reference=see_ge_r15d_reference(move,threshold);
++    const bool moving_knight=piece_type(piece_at(move.from))==Knight;
++#if FORGE_SHORTCUT_WRONG10
++    if(moving_knight) reference=!reference;
++#endif
++    shortcut_count::record_h12(actual!=reference,moving_knight,h12_path,*this,move);
++    return actual;
++#endif
+ }
+ 
+ int Board::static_exchange(const Move& move) const {
