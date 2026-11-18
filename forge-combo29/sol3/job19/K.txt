@@ -1,0 +1,38 @@
+python-chess module 1.11.2
+input PGN SHA-256 d9a02ff4b3128fcbeb39582aec5a350831b40fda6d38010fd630a94498b8a4d0
+input synthetic net768 SHA-256 c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7
+synthetic net768 mirror flag 1
+synthetic net768 king map, bytes 48–111 in square-index order
+0 1 2 3 3 2 1 0
+4 4 5 5 5 5 4 4
+6 6 6 6 6 6 6 6
+7 7 7 7 7 7 7 7
+7 7 7 7 7 7 7 7
+7 7 7 7 7 7 7 7
+7 7 7 7 7 7 7 7
+7 7 7 7 7 7 7 7
+games read 41
+terminal fifth-ply samples skipped 2
+positions 1000
+positions SHA-256 3c1b17332eca46a912f572eae8197324f466a8e2f909653104c427457ffb0521
+expected positions SHA-256 3c1b17332eca46a912f572eae8197324f466a8e2f909653104c427457ffb0521
+positions SHA-256 match True
+first FEN r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 (game 1, ply 5)
+first FEN matches True
+last FEN 1nr5/1b3kpp/r3pn2/2p5/1pP5/p3BP2/PPB3PP/2RR1NK1 w - - 0 20 (game 41, ply 25)
+last FEN matches True
+position-level coverage, at least one legal move of the indicated kind
+king 984 expected 984 match True
+castle 40 expected 40 match True
+en_passant 1 expected 1 match True
+promotion 25 expected 25 match True
+king_bucket 802
+king_key 852
+mirror_only_move 142 (may overlap with king_bucket)
+king_key positions without king_bucket 50
+king_bucket positions by turn white=405, black=397
+move-level totals king=3429, castle=43, en_passant=1, promotion=108, king_bucket=2199, king_key=2392, mirror_only_move=193
+coverage TSV SHA-256 07464bd790a5b5b47d14a76a9ce68891cf40911285cc9289d053ed501a3dc997
+kF src/nnue_v3.cpp:585–588,621–626 reads bucket count, mirror flag and map.
+kF include/forge/nnue_v3.hpp:75–78,176–181 uses square for White or square xor 56 for Black, then indexes the map and stores the mirror flip separately.
+kF src/search.cpp:3897–3911 checks the full KingKey in the parent-valid path. This fixture counts legal root opportunities. Engine execution is outside this measurement.
