@@ -1,0 +1,135 @@
+diff -ruN guard-r15d/src/search.cpp count10/src/search.cpp
+--- guard-r15d/src/search.cpp	2026-11-18 07:06:21.157653354 -0800
++++ count10/src/search.cpp	2026-11-18 12:46:27.365664253 -0800
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <array>
+ #include <charconv>
+ #include <cmath>
+ #include <cstdlib>
+@@ -1906,6 +1907,66 @@
+ 
+ // ---------------------------------------------------------------------------
+ namespace {
++struct Guard10Counts {
++    std::uint64_t nm = 0;
++    std::uint64_t fh = 0;
++    std::uint64_t mate = 0;
++    std::uint64_t t1 = 0;
++    std::uint64_t t2 = 0;
++    std::array<std::array<std::uint64_t, 3>, 4> by_piece_depth{};
++
++    void add(const Guard10Counts& other) {
++        nm += other.nm;
++        fh += other.fh;
++        mate += other.mate;
++        t1 += other.t1;
++        t2 += other.t2;
++        for (std::size_t p = 0; p < by_piece_depth.size(); ++p) {
++            for (std::size_t d = 0; d < by_piece_depth[p].size(); ++d) {
++                by_piece_depth[p][d] += other.by_piece_depth[p][d];
++            }
++        }
++    }
++
++    void record_reference_hit(int pieces, int depth) {
++        ++t1;
++        const int p = pieces <= 5 ? 0 : pieces <= 9 ? 1 : pieces <= 15 ? 2 : 3;
++        const int d = depth <= 6 ? 0 : depth <= 10 ? 1 : 2;
++        ++by_piece_depth[p][d];
++    }
++
++    void print(std::uint64_t nodes) const {
++        constexpr std::array<const char*, 4> pieces{"p2_5", "p6_9", "p10_15", "p16_32"};
++        constexpr std::array<const char*, 3> depths{"d1_6", "d7_10", "d11plus"};
++        std::array<std::uint64_t, 3> depth_totals{};
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string guard10 nm " << nm << " fh " << fh << " mate " << mate
++                  << " t1 " << t1 << " t2 " << t2 << '\n';
++        std::cout << "info string guard10cls";
++        for (std::size_t p = 0; p < pieces.size(); ++p) {
++            std::uint64_t piece_total = 0;
++            for (std::size_t d = 0; d < depths.size(); ++d) {
++                piece_total += by_piece_depth[p][d];
++                depth_totals[d] += by_piece_depth[p][d];
++            }
++            std::cout << ' ' << pieces[p] << ' ' << piece_total;
++        }
++        for (std::size_t d = 0; d < depths.size(); ++d) {
++            std::cout << ' ' << depths[d] << ' ' << depth_totals[d];
++        }
++        for (std::size_t p = 0; p < pieces.size(); ++p) {
++            for (std::size_t d = 0; d < depths.size(); ++d) {
++                std::cout << ' ' << pieces[p] << '_' << depths[d] << ' ' << by_piece_depth[p][d];
++            }
++        }
++        std::cout << "\ninfo string guard10nodes total " << nodes << std::endl;
++    }
++};
++
++// One counter per search thread. MultiPV alternate passes on the same thread
++// contribute to its totals, and helper totals are collected after join.
++thread_local Guard10Counts guard10;
++
+ // Reference test: rebuild the null child on a private board and enumerate legal moves.
+ bool quiet_mate_after_null(Board parent) {
+     NullUndo null_undo;
+@@ -2151,11 +2212,25 @@
+             shared_.tt.prefetch(board.key());
+ #endif
+             const int null_child_depth = depth - reduction;
++            ++guard10.nm;
+             int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
++            if (!aborted_ && null_score >= beta) {
++                ++guard10.fh;
++                if (is_mate_score(null_score)) ++guard10.mate;
++                if (null_child_depth <= 0) {
++                    // Keep even a lazy board-cache fill off the live search board.
++                    Board diagnostic_child = board;
++                    if (has_quiet_mate(diagnostic_child)) ++guard10.t2;
++                }
++            }
+             const bool fast_guard_veto = tune::NullMateGuard == 2 && !aborted_ && null_score >= beta &&
+                                          null_child_depth <= 0 && has_quiet_mate(board);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
++            // The reference helper takes its parent board by value.
++            if (null_score >= beta && null_child_depth <= 0 && quiet_mate_after_null(board)) {
++                guard10.record_reference_hit(popcount(board.occupied()), depth);
++            }
+             if (null_score >= beta && !fast_guard_veto &&
+                 !(tune::NullMateGuard == 1 && null_child_depth <= 0 && quiet_mate_after_null(board))) {
+                 if (is_mate_score(null_score)) null_score = beta;
+@@ -3378,14 +3453,18 @@
+     // thread first. MultiPV leaves the extra workers idle; clearing them does
+     // not change the main-worker total.
+     for (auto& worker : workers_) worker->reset_node_count();
++    guard10 = {};
++    std::vector<Guard10Counts> helper_counts(all.size() - 1);
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+     // A clock with nothing left after overhead does not start those threads.
+     if (worker_limits.multipv <= 1 && !no_clock_left) {
+         for (std::size_t i = 1; i < workers_.size(); ++i) {
+-            helpers.emplace_back([this, i, board, &worker_limits, &all]() {
++            helpers.emplace_back([this, i, board, &worker_limits, &all, &helper_counts]() {
++                guard10 = {};
+                 (void)workers_[i]->search(board, worker_limits, false, all);
++                helper_counts[i - 1] = guard10;
+             });
+         }
+     }
+@@ -3395,6 +3474,10 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    if (emit_info) {
++        for (const auto& counts : helper_counts) guard10.add(counts);
++        guard10.print(result.nodes);
++    }
+     return result;
+ }
+ 
