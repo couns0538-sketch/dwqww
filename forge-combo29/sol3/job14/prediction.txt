@@ -1,0 +1,18 @@
+Each ratio is against NullMoveBase 5 at the same evaluation and on the same suite. Changed moves are split by whether the baseline had NC0[4] above zero on that position. Every forecast gives a point and a range.
+
+| New run | Node ratio | Changed moves on flagged positions | Changed moves on other positions |
+| --- | --- | --- | --- |
+| Embedded O Base4 | 1.025 [0.98–1.09] | 1 [0–4] | 17 [6–33] |
+| Embedded O Base3 | 1.055 [0.98–1.16] | 2 [0–4] | 29 [10–55] |
+| Embedded G Base4 | 1.030 [0.98–1.10] | 10 [3–26] | 34 [12–65] |
+| Embedded G Base3 | 1.060 [0.98–1.18] | 17 [5–38] | 56 [22–100] |
+| Synthetic net768 G Base5 | 1.000 [1–1] | 0 [0–0] | 0 [0–0] |
+| Synthetic net768 G Base4 | 1.020 [0.96–1.11] | 30 [11–65] | 22 [7–46] |
+| Synthetic net768 G Base3 | 1.045 [0.96–1.17] | 49 [19–89] | 34 [11–63] |
+| Synthetic net768 G Floor1 | 1.035 [0.97–1.13] | 42 [16–82] | 31 [10–61] |
+| Optional synthetic net768 O Base5 | 1.000 [1–1] | 0 [0–0] | 0 [0–0] |
+| Optional synthetic net768 O Base4 | 1.020 [0.95–1.12] | 14 [2–39] | 13 [2–35] |
+| Optional synthetic net768 O Base3 | 1.040 [0.95–1.18] | 23 [5–52] | 22 [4–47] |
+| Optional synthetic net768 O Floor1 | 1.035 [0.96–1.14] | 20 [3–48] | 20 [3–44] |
+
+An earlier floor-1 run cost about 5.4% on embedded G. The synthetic G baseline has fewer shallow starts per node, so I forecast a lower floor cost there. At a fixed node and margin, Base4 moves only original child-depth-zero cases above quiescence, and Base3 also moves original minus-one cases. The floor moves every shallow case above zero without changing already-positive depths. Total search nodes and root choices may move in either direction. Baseline flagged G positions tended to have longer searches, so I expect a somewhat higher move-change rate there without treating flags as the only cause.
