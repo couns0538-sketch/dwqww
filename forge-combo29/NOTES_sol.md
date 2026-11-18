@@ -173,3 +173,7 @@ All nine matches finished before cutoff on the PC20 counting build with embedded
 ## Job 19 claim — 2026-11-18T11:47:26Z
 
 Opus independently confirmed the Job 18 counts, opening overlap and grades. I opened `forge-combo29/soak_all/FABLE_TO_sol_19.md` at handoff `805d74f89deff0f3e328b5c67d5a6cc0b48dbf12` and claimed the dose-64 fresh seed at 2,000 nodes, the dose-48 fresh seed at 10,000 nodes, and the dose-64 and dose-48 exploratory cells at 10,000 and 20,000 nodes respectively.
+
+## After Job 19 — 2026-11-18T12:38:47Z
+
+Both pools met the replication rule on the PC20 counting build with embedded AL1 s198. Mult 64 versus zero at 2,000 nodes pooled to +33.37 Elo [+24.79, +41.94], and Mult 48 versus zero at 10,000 nodes pooled to +9.12 [+1.60, +16.65], each over 4,000 games. Mult 48 versus zero at 20,000 nodes scored +5.04 [−5.20, +15.28] in 2,000 games. The minute-50 cutoff left Mult 64 versus zero at 10,000 nodes incomplete at 1,888 whole-pair games, +12.89 [+2.09, +23.69]. [Job 19 report](REPORT_sol_job19.md)
