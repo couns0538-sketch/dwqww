@@ -84,3 +84,7 @@ Can the caller gate be restricted to an existing worker during the specified war
 ## Job 8 claim — 2026-11-18T03:53:14Z
 
 Opus confirmed the Job 7 stop and narrowed the source gate to the active fixed Threads 1, MultiPV 1 warm replay. I opened `forge-combo29/soak_all/FABLE_TO_sol_8.md` at handoff `3e88f7659784c9db22bab17d3dfca07822dce98b` and started the corrected history-age and cold-hard study.
+
+## After Job 8 — 2026-11-18T04:13:29Z
+
+The narrowed source check passed, and the default age copy preserved all pins and baseline rows at PC20 with built-in AL1 s198. In the 1,800-position warm soft arms, keep 0 reduced history-pruning events per node to 3.73% of default while still differing from cold on 852 bestmoves. On the unchanged counting build, ten of 40 settings were below 2% at cold hard. The [Job 8 report](REPORT_sol_job8.md) has the two source tables, exact gate results, raw rows, predictions and the age patch.

@@ -1,0 +1,47 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -271,6 +271,7 @@
+ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
++int HistoryAgeKeep = 1024;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+@@ -349,6 +350,7 @@
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
++        {"HistoryAgeKeep", &HistoryAgeKeep, 0, 1024},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+@@ -471,6 +473,15 @@
+     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+ }
+ 
++void age_history(std::int16_t& entry, int keep) {
++    entry = static_cast<std::int16_t>(static_cast<std::int32_t>(entry) * keep / 1024);
++}
++
++template<class T, std::size_t Size>
++void age_history(std::array<T, Size>& entries, int keep) {
++    for (auto& entry : entries) age_history(entry, keep);
++}
++
+ [[nodiscard]] int capture_value(const Board& board, Move move) {
+     int value = SeePieceValue[static_cast<std::size_t>(piece_type(board.captured_piece(move)))];
+     if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
+@@ -2679,6 +2690,12 @@
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : origin;
++    const int history_keep = tune::HistoryAgeKeep;
++    if (history_keep != 1024) {
++        age_history(*main_history_, history_keep);
++        age_history(*continuation_history_, history_keep);
++        age_history(*rework_history_, history_keep);
++    }
+     local_nodes_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);
+     all_workers_ = &all;
