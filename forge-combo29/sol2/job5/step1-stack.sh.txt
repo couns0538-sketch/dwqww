@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job5
+base=/workspace/work/sol2-job2
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job5
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+patches=(01_S4 02_S5 03_S5_assert 04_S7 05_G1 06_G2 07_G3 08_G4 09_W1 10_W2 11_stop_hot 12_fast_has_legal_move)
+pins=(5e0299fa936f882f 027852a316146bf4 4bf7e5055beb88cf fb8973b78a12f698 7ccd04fde1b3ff97 e87f64853a16e3d1 317cfb0327423e07 902444538db331d6 285bf940b2ba9b9b e47472913f7249b6 c00d8d79e70d70af 58a69dba9f7a336f)
+for i in "${!patches[@]}"; do
+    sha=$(sha256sum "$job/patches/${patches[i]}.patch.txt" | cut -d' ' -f1)
+    printf '%s %s\n' "${patches[i]}" "$sha"
+    [[ "$sha" == "${pins[i]}"* ]]
+done
+mkdir "$job/tree"
+cp -a "$base/r15d/." "$job/tree/"
+for name in "${patches[@]}"; do
+    record="$out/$name.patch-output.raw.txt"
+    patch --batch -p1 -F0 -d "$job/tree" < "$job/patches/$name.patch.txt" > "$record" 2>&1
+    cat "$record"
+    if rg -qi '\bfuzz\b|\boffset\b|\bfailed\b|reject|skipping|reversed' "$record"; then printf 'Patch gate stopped at %s\n' "$name"; exit 4; fi
+    case "$name" in
+        10_W2) arm=k10;;
+        11_stop_hot) arm=k11;;
+        12_fast_has_legal_move) arm=k12;;
+        *) continue;;
+    esac
+    cp -a "$job/tree" "$job/$arm"
+    "$cmake" -S "$job/$arm" -B "$job/build-$arm" -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+    "$cmake" --build "$job/build-$arm" --parallel 3 --verbose > "$out/$arm-build.raw.txt" 2>&1
+    sha256sum "$job/build-$arm/forge"
+    test "$(sha256sum "$job/$arm/CMakeLists.txt" | cut -d' ' -f1)" = bfa17f8cb5f2f6358e88951f385fc67ddca279af06301b22945efdcc1ceaca5f
+done
+for arm in k10 k11 k12; do
+    date -u +'%FT%TZ'
+    status=0
+    timeout 240 taskset -c 2 python -B "$base/carbon2/selfplay_driver.py" --engine "$job/build-$arm/forge" --net "$base/net768.fnn3" --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json > "$out/$arm-identity.raw.txt" 2> "$out/$arm-identity.stderr.txt" || status=$?
+    printf '%s driver exit %s\n' "$arm" "$status"
+    cat "$out/$arm-identity.raw.txt"
+done
