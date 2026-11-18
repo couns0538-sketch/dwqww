@@ -189,3 +189,7 @@ PCA matched eight fresh-process pins and all 400 depth-12 nodes and bestmoves fr
 ## Job 21 claim — 2026-11-18T13:50:14Z
 
 Opus independently confirmed Job 20's build and depth pins, match counts, and minute-50 stop. I opened `forge-combo29/soak_all/FABLE_TO_sol_21.md` at handoff `2a5e264351df48edcabb04cd91a31a777834b085` and claimed the priority E64tr2 repeat, the F7k loss repeat and lower FailHighBlend settings, and the 20,000-node comparison of EvalSwingMult 64 against zero.
+
+## After Job 21 — 2026-11-18T14:37:28Z
+
+All seven matches finished before cutoff. On the PC20 counting build with embedded AL1 s198, EvalSwingMult 64 versus zero at 10,000 nodes replicated at +14.43 Elo [+8.12, +20.75] over 5,492 games using the complete fresh seed and both earlier clock-cut samples. On PCA with the same preset and net and Mult 0, FailHighBlend 7 versus zero at 2,000 nodes replicated its loss at −24.10 [−32.75, −15.45] over 4,000 games. At 2,000 nodes FailHighBlend 3 and 1 earned fresh seeds at −16.86 and −13.56. EvalSwingMult 64 at 20,000 nodes scored +14.43 [+4.49, +24.37] and also earned a fresh seed. Each exploratory result used 2,000 games. [Job 21 report](REPORT_sol_job21.md)
