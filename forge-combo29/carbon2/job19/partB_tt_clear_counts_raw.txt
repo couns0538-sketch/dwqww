@@ -1,0 +1,17 @@
+=== JOB 19 PART B: TranspositionTable::clear COUNTS, PER-CLEAR TIMES (HASH 16 & HASH 256), AND CPU SHARE ===
+Binary: /tmp/carbon2_job19/bld_pb_cnt/forge (01..13+tidy built with bld_sp_tidy_1/forge.profdata)
+Timer inside TranspositionTable::clear(): CLOCK_PROCESS_CPUTIME_ID (cpu_ns) and CLOCK_MONOTONIC (wall_ns).
+
+--- 1. Clears & Engine CPU Share Over 60 Hash-16 Self-Play Games (3 Sequential 60-Game Runs) ---
+  run 1/3: clears=63 clusters=262144 (16.0 MiB/clear) | clear_cpu_total=46.640 ms (mean=0.7403 ms/clear, median=0.6463 ms/clear) | 60game_engine_cpu=11164.22 ms | share=0.4178% | searches=7670 nodes=25641316 trace=ee465caeff9c0fcf
+  run 2/3: clears=63 clusters=262144 (16.0 MiB/clear) | clear_cpu_total=46.809 ms (mean=0.7430 ms/clear, median=0.6780 ms/clear) | 60game_engine_cpu=11117.05 ms | share=0.4211% | searches=7670 nodes=25641316 trace=ee465caeff9c0fcf
+  run 3/3: clears=63 clusters=262144 (16.0 MiB/clear) | clear_cpu_total=44.528 ms (mean=0.7068 ms/clear, median=0.6400 ms/clear) | 60game_engine_cpu=11147.16 ms | share=0.3995% | searches=7670 nodes=25641316 trace=ee465caeff9c0fcf
+  3-run aggregate (189 total clears = 3x63 [3 UCI setoption setup clears + 60 ucinewgame clears per 60-game run]): clears_per_60_games = 63 (60 ucinewgame + 3 setup), in_game_Hash16_per_clear_cpu_mean = 0.7300 ms (median = 0.6581 ms, wall_mean = 0.7285 ms), mean_share_of_60game_engine_CPU = 0.4128% (60 ucinewgame clears alone: ~0.393%)
+
+--- 2. Dedicated Per-Clear Time at Hash 16 vs Hash 256 (33 Clears Each = 3 UCI Setup Clears + 30 ucinewgame Clears Preceded by go softnodes 2000) ---
+  Hash  16 (262,144 clusters = 16.0 MiB): n=33 | cpu_mean=0.6690 ms, cpu_median=0.5718 ms [min=0.5470, max=3.4394] | wall_mean=0.6675 ms, wall_median=0.5705 ms
+  Hash 256 (4,194,304 clusters = 256.0 MiB): n=33 | cpu_mean=14.0983 ms, cpu_median=12.5089 ms [min=4.0017, max=32.5634] | wall_mean=14.0968 ms, wall_median=12.5071 ms
+  Scaling ratio Hash 256 / Hash 16 (16.0x bytes): cpu_mean_ratio = 21.07x, cpu_median_ratio = 21.87x
+
+--- 3. Part B Gate Decision (0.50% Threshold) ---
+  SHARE = 0.4128% < 0.50% THRESHOLD -> STOP WITH COUNTS PER PART B RULE
