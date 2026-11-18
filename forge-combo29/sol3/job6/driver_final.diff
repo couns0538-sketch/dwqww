@@ -1,0 +1,245 @@
+--- a/selfplay_driver.py
++++ b/driver_final.py
+@@ -15,13 +15,16 @@
+       50-move rule (100 reversible halfmoves), threefold repetition, or ply == max_plies.
+ - Emits total searches, total nodes, searches/sec, effective nps, and an FNV-1a 64-bit
+   hash over every (game, ply, bestmove, nodes, score) tuple to verify bit-exact search identity.
++- Records final softnodes totals and a separate FNV-1a hash over (game, ply, final nodes).
+ - Optionally dumps sampled FENs / move-lists for position test suites.
+ """
+ 
+ import argparse
++from contextlib import nullcontext
+ import json
+ import pathlib
+ import random
++import re
+ import subprocess
+ import sys
+ import time
+@@ -51,6 +54,10 @@
+     ("Hash", "16"),
+ ]
+ 
++HLM_FIELDS = ("calls", "incheck", "nomove", "mismatch")
++HLM_COUNTS = re.compile(r"info string hlm calls=([0-9]+) incheck=([0-9]+) nomove=([0-9]+) mismatch=([0-9]+)")
++HLM_FIRST = re.compile(r"info string hlm first_mismatch fast=([01]) full=([01]) fen=(.+)")
++
+ 
+ class MinimalBoardTracker:
+     """Tracks board placement, castling, ep, halfmove clock, and 3-fold repetition for UCI moves."""
+@@ -184,6 +191,16 @@
+     return h
+ 
+ 
++def parse_final_nodes(line: str, previous: int | None, context: str) -> int:
++    if previous is not None:
++        raise RuntimeError(f"Duplicate softnodes final count during {context}: {line.strip()}")
++    parts = line.split()
++    if (len(parts) != 5 or parts[:4] != ["info", "string", "softnodes", "nodes"]
++            or not parts[4].isascii() or not parts[4].isdecimal()):
++        raise RuntimeError(f"Malformed softnodes final count during {context}: {line.strip()}")
++    return int(parts[4])
++
++
+ def send(proc: subprocess.Popen, text: str):
+     assert proc.stdin is not None
+     proc.stdin.write(text)
+@@ -249,6 +266,8 @@
+     seed: int,
+     extra_options: list[tuple[str, str]],
+     dump_fens_path: str | None = None,
++    trace=None,
++    check_hlm: bool = False,
+ ):
+     proc = subprocess.Popen(
+         [engine_path],
+@@ -276,15 +295,29 @@
+         wait_ready(proc, check_errors=True)
+         send(proc, f"position startpos moves {' '.join(openings[0])}\ngo softnodes {softnodes}\n")
+         assert proc.stdout is not None
++        warm_final_nodes = None
+         while True:
+             ln = proc.stdout.readline()
+-            if not ln or ln.startswith("bestmove "):
++            if not ln:
++                raise RuntimeError("Engine EOF during warm-up search")
++            if ln.startswith("info string softnodes nodes"):
++                warm_final_nodes = parse_final_nodes(ln, warm_final_nodes, "warm-up")
++            elif ln.startswith("bestmove "):
++                if warm_final_nodes is None:
++                    raise RuntimeError(f"Missing softnodes final count during warm-up: {ln.strip()}")
+                 break
+ 
+         collected_fens: list[str] = []
+         total_searches = 0
+         total_nodes = 0
+         trace_hash = 14695981039346656037
++        final_sum = 0
++        at_cap = 0
++        terminal = 0
++        final_hash = trace_hash
++        hard_cap = 4 * softnodes
++        hlm_totals = dict.fromkeys(HLM_FIELDS, 0) if check_hlm else None
++        first_mismatch = None
+ 
+         t0 = time.perf_counter_ns()
+         for g_idx, opening in enumerate(openings):
+@@ -302,30 +335,88 @@
+                 if dump_fens_path is not None:
+                     collected_fens.append(tracker.fen())
+ 
+-                cmd = f"position startpos moves {' '.join(moves)}\ngo softnodes {softnodes}\n"
+-                send(proc, cmd)
++                position = f"position startpos moves {' '.join(moves)}"
++                send(proc, f"{position}\ngo softnodes {softnodes}\n")
+ 
+                 last_nodes = 0
+                 last_score = ""
++                final_nodes = None
++                last_info_nodes = None
++                last_info_line = None
++                final_line = None
++                hlm_counts = None
++                hlm_first = None
+                 bestmove = "0000"
++                context = f"game {g_idx}, ply {ply}"
+                 while True:
+                     line = proc.stdout.readline()
+                     if not line:
+                         raise RuntimeError("Engine EOF during search")
+                     if line.startswith("info depth "):
+                         parts = line.split()
++                        last_info_nodes = None
++                        last_info_line = line.rstrip("\r\n")
+                         for i, tok in enumerate(parts):
+                             if tok == "nodes" and i + 1 < len(parts):
+-                                last_nodes = int(parts[i + 1])
++                                last_info_nodes = last_nodes = int(parts[i + 1])
+                             elif tok == "score" and i + 2 < len(parts):
+                                 last_score = f"{parts[i + 1]}:{parts[i + 2]}"
++                    elif line.startswith("info string softnodes nodes"):
++                        final_nodes = parse_final_nodes(line, final_nodes, context)
++                        final_line = line.rstrip("\r\n")
++                    elif check_hlm and line.startswith("info string hlm "):
++                        detail = line.rstrip("\r\n")
++                        if count := HLM_COUNTS.fullmatch(detail):
++                            if hlm_counts is not None:
++                                raise RuntimeError(f"Duplicate HLM counts during {context}: {detail}")
++                            hlm_counts = dict(zip(HLM_FIELDS, map(int, count.groups())))
++                            if any(hlm_counts[field] > hlm_counts["calls"] for field in HLM_FIELDS[1:]):
++                                raise RuntimeError(f"Inconsistent HLM counts during {context}: {detail}")
++                        elif mismatch := HLM_FIRST.fullmatch(detail):
++                            fast, full, fen = mismatch.groups()
++                            if hlm_first is not None or fast == full or len(fen.split()) != 6:
++                                raise RuntimeError(f"Invalid HLM mismatch during {context}: {detail}")
++                            hlm_first = {"game": g_idx, "ply": ply, "fast": int(fast),
++                                         "full": int(full), "fen": fen, "line": detail}
++                        else:
++                            raise RuntimeError(f"Malformed HLM output during {context}: {detail}")
+                     elif line.startswith("bestmove "):
+                         bestmove = line.split()[1]
++                        bestmove_line = line.rstrip("\r\n")
+                         break
+ 
++                terminal_fallback = final_nodes is None
++                if terminal_fallback:
++                    if bestmove != "0000" and last_info_nodes != 0:
++                        raise RuntimeError(f"Missing softnodes final count during {context}: "
++                                           f"bestmove {bestmove}, last info nodes {last_info_nodes}")
++                    final_nodes = 0
++                    terminal += 1
++                if check_hlm:
++                    if hlm_counts is None:
++                        raise RuntimeError(f"Missing HLM counts during {context}")
++                    if bool(hlm_counts["mismatch"]) != (hlm_first is not None):
++                        raise RuntimeError(f"Inconsistent HLM first mismatch during {context}")
++                    for field in HLM_FIELDS:
++                        hlm_totals[field] += hlm_counts[field]
++                    if first_mismatch is None:
++                        first_mismatch = hlm_first
++
+                 total_searches += 1
+                 total_nodes += last_nodes
+                 trace_hash = fnv1a64_str(trace_hash, f"{g_idx},{ply},{bestmove},{last_nodes},{last_score};")
++                final_sum += final_nodes
++                at_cap += final_nodes == hard_cap
++                final_hash = fnv1a64_str(final_hash, f"{g_idx},{ply},{final_nodes};")
++
++                if trace is not None:
++                    record = {"game": g_idx, "ply": ply, "position": position, "bestmove": bestmove,
++                              "nodes": last_nodes, "score": last_score, "final": final_nodes,
++                              "terminal": terminal_fallback, "last_info": last_info_line,
++                              "final_line": final_line, "bestmove_line": bestmove_line}
++                    if check_hlm:
++                        record.update(hlm=hlm_counts, hlm_first_mismatch=hlm_first)
++                    trace.write(json.dumps(record, separators=(",", ":")) + "\n")
+ 
+                 if bestmove == "0000" or last_nodes == 0:
+                     break
+@@ -343,7 +434,7 @@
+         pathlib.Path(dump_fens_path).write_text("\n".join(collected_fens) + "\n")
+ 
+     elapsed_s = (t1 - t0) / 1e9
+-    return {
++    summary = {
+         "games": num_games,
+         "searches": total_searches,
+         "total_nodes": total_nodes,
+@@ -353,7 +444,14 @@
+         "searches_per_sec": round(total_searches / elapsed_s, 2),
+         "effective_nps": round(total_nodes / elapsed_s, 1),
+         "trace_fnv1a64": f"{trace_hash:016x}",
++        "terminal": terminal,
++        "final_sum": final_sum,
++        "at_cap": at_cap,
++        "final_fnv1a64": f"{final_hash:016x}",
+     }
++    if check_hlm:
++        summary["hlm"] = hlm_totals | {"first_mismatch": first_mismatch}
++    return summary
+ 
+ 
+ def main():
+@@ -367,6 +465,8 @@
+     ap.add_argument("--seed", type=int, default=20261117, help="Deterministic PRNG seed for openings")
+     ap.add_argument("--option", action="append", default=[], help="Extra UCI option Name=Value")
+     ap.add_argument("--dump-fens", default=None, help="Optional output file for visited FENs")
++    ap.add_argument("--trace", type=pathlib.Path, help="Create a JSONL file of measured search evidence")
++    ap.add_argument("--hlm", action="store_true", help="Require and sum per-search has_legal_move probe counts")
+     ap.add_argument("--json", action="store_true", help="Print JSON summary line")
+     args = ap.parse_args()
+ 
+@@ -377,17 +477,21 @@
+         k, v = item.split("=", 1)
+         extra.append((k, v))
+ 
+-    summary = run_selfplay(
+-        engine_path=args.engine,
+-        net_path=args.net,
+-        num_games=args.games,
+-        softnodes=args.softnodes,
+-        random_plies=args.random_plies,
+-        max_plies=args.max_plies,
+-        seed=args.seed,
+-        extra_options=extra,
+-        dump_fens_path=args.dump_fens,
+-    )
++    trace_context = args.trace.open("x", encoding="ascii", buffering=1) if args.trace else nullcontext()
++    with trace_context as trace:
++        summary = run_selfplay(
++            engine_path=args.engine,
++            net_path=args.net,
++            num_games=args.games,
++            softnodes=args.softnodes,
++            random_plies=args.random_plies,
++            max_plies=args.max_plies,
++            seed=args.seed,
++            extra_options=extra,
++            dump_fens_path=args.dump_fens,
++            trace=trace,
++            check_hlm=args.hlm,
++        )
+     if args.json:
+         print(json.dumps(summary))
+     else:
