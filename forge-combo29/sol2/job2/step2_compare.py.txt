@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""Compare the pinned Forge builds on the first openings of the UHO book."""
+
+import argparse
+from contextlib import ExitStack
+from dataclasses import asdict, dataclass
+import hashlib
+import json
+from pathlib import Path
+import queue
+import re
+import resource
+import subprocess
+import sys
+import threading
+import time
+
+
+BOOK_SHA256 = "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+V3_CHECKSUM = "30ab43b4ba5db5f3"
+OPTIONS = (
+    ("Threads", "1"),
+    ("Hash", "16"),
+    ("LmrQuietBase", "93"),
+    ("LmrQuietDivisor", "205"),
+    ("LmrNoisyBase", "13"),
+    ("LmrNoisyDivisor", "333"),
+    ("LmrHistoryDivisor", "5643"),
+    ("NullMoveBase", "5"),
+    ("LmpBase", "8"),
+    ("HistoryPruneMultiplier", "2220"),
+    ("HistoryBonusQuadratic", "24"),
+    ("HistoryBonusLinear", "54"),
+    ("HistoryBonusMax", "2212"),
+    ("SingularDepth", "6"),
+    ("IirDepth", "2"),
+    ("NonPawnCorrection", "true"),
+    ("CuckooRep", "true"),
+    ("HistRework", "2"),
+    ("TtPruneV2", "true"),
+    ("CorrHistV2", "true"),
+    ("MateAlphaGuard", "true"),
+    ("OwnBook", "false"),
+)
+REFUSAL = re.compile(
+    r"\b(?:invalid|unknown option|error|refused|illegal move|failed|unsupported)\b", re.IGNORECASE
+)
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def to_fen(raw):
+    text = raw.decode("ascii").strip()
+    fields = text.split(maxsplit=4)
+    if len(fields) < 4 or fields[1] not in {"w", "b"} or fields[0].count("/") != 7:
+        raise ValueError(f"invalid opening row: {text!r}")
+    tail = fields[4] if len(fields) > 4 else ""
+    fen_clocks = re.match(r"^(\d+)\s+(\d+)(?:\s|;|$)", tail)
+    if fen_clocks:
+        halfmove, fullmove = fen_clocks.groups()
+    else:
+        hmvc = re.search(r"(?:^|;)\s*hmvc\s+(\d+)(?:\s*;|\s*$)", tail)
+        fmvn = re.search(r"(?:^|;)\s*fmvn\s+(\d+)(?:\s*;|\s*$)", tail)
+        halfmove = hmvc.group(1) if hmvc else "0"
+        fullmove = fmvn.group(1) if fmvn else "1"
+    return " ".join([*fields[:4], halfmove, fullmove])
+
+
+def read_openings(path, count, output_dir):
+    rows = []
+    with path.open("rb") as source, (output_dir / "opening-rows.raw.txt").open("wb") as raw:
+        for index in range(1, count + 1):
+            line = source.readline()
+            if not line:
+                raise ValueError(f"opening file ended before row {index}")
+            raw.write(line)
+            rows.append(to_fen(line))
+    return rows
+
+
+@dataclass(frozen=True)
+class Result:
+    depth: int
+    score_kind: str
+    score: int
+    score_bound: str
+    nodes: int
+    bestmove: str
+    last_info: str
+
+    def search_fields(self):
+        return (self.depth, self.score_kind, self.score, self.score_bound, self.nodes, self.bestmove)
+
+
+def inspect_search(lines):
+    last_info = next((line for line in reversed(lines) if line.startswith("info depth ")), None)
+    if last_info is None:
+        raise ValueError("bestmove arrived without an info depth line")
+    fields = last_info.split()
+    depth = int(fields[fields.index("depth") + 1])
+    nodes = int(fields[fields.index("nodes") + 1])
+    score_idx = fields.index("score")
+    score_kind = fields[score_idx + 1]
+    if score_kind not in {"cp", "mate"}:
+        raise ValueError(f"unexpected UCI score: {last_info!r}")
+    bound = fields[score_idx + 3] if fields[score_idx + 3] in {"lowerbound", "upperbound"} else ""
+    bestmove = lines[-1]
+    if not re.fullmatch(r"bestmove (?:[a-h][1-8][a-h][1-8][nbrq]?|0000)(?: ponder [a-h][1-8][a-h][1-8][nbrq]?)?", bestmove):
+        raise ValueError(f"unexpected UCI bestmove: {bestmove!r}")
+    return Result(depth, score_kind, int(fields[score_idx + 2]), bound, nodes, bestmove, last_info)
+
+
+class Uci:
+    def __init__(self, binary, prefix, timeout):
+        self.binary = binary
+        self.prefix = prefix
+        self.timeout = timeout
+        self.lines = queue.Queue()
+
+    def __enter__(self):
+        self.process = subprocess.Popen(
+            [str(self.binary)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        self.commands = self.prefix.with_suffix(".stdin.txt").open("wb")
+        self.stdout = threading.Thread(
+            target=self.capture, args=(self.process.stdout, self.prefix.with_suffix(".stdout.txt"), self.lines)
+        )
+        self.stderr = threading.Thread(
+            target=self.capture, args=(self.process.stderr, self.prefix.with_suffix(".stderr.txt"), None)
+        )
+        self.stdout.start()
+        self.stderr.start()
+        return self
+
+    @staticmethod
+    def capture(pipe, path, destination):
+        try:
+            with pipe, path.open("wb") as log:
+                for line in iter(pipe.readline, b""):
+                    log.write(line)
+                    log.flush()
+                    if destination is not None:
+                        destination.put(line)
+        finally:
+            if destination is not None:
+                destination.put(None)
+
+    def send(self, command):
+        raw = (command + "\n").encode("utf-8")
+        self.commands.write(raw)
+        self.commands.flush()
+        self.process.stdin.write(raw)
+        self.process.stdin.flush()
+
+    def until(self, terminator):
+        lines = []
+        deadline = time.monotonic() + self.timeout
+        while True:
+            try:
+                raw = self.lines.get(timeout=max(0, deadline - time.monotonic()))
+            except queue.Empty as error:
+                raise RuntimeError(f"{self.prefix.name}: timed out waiting for {terminator}") from error
+            if raw is None:
+                raise RuntimeError(f"{self.prefix.name}: stdout ended before {terminator}")
+            line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+            lines.append(line)
+            if line.split(maxsplit=1)[:1] == [terminator]:
+                return lines
+
+    def check_responses(self, lines):
+        for line in lines:
+            if REFUSAL.search(line):
+                raise RuntimeError(f"{self.prefix.name}: {line}")
+
+    def configure(self, net):
+        self.send("uci")
+        options = self.until("uciok")
+        advertised = set()
+        for line in options:
+            match = re.match(r"^option name (.+?) type ", line)
+            if match:
+                advertised.add(match.group(1))
+        settings = [*OPTIONS, ("MultiPV", "1"), ("UseNNUE", "true")]
+        if net is not None:
+            settings += [("NNUEArchFile", str(net)), ("NNUEArch", "true")]
+        else:
+            settings.append(("NNUEArch", "false"))
+        missing = [name for name, _ in settings if name not in advertised]
+        if missing:
+            raise RuntimeError(f"{self.prefix.name}: UCI options not advertised: {', '.join(missing)}")
+        for name, value in settings:
+            self.send(f"setoption name {name} value {value}")
+        self.send("isready")
+        responses = self.until("readyok")
+        self.check_responses(responses)
+        if net is not None:
+            active = [line for line in responses if line.startswith("info string NNUE v3 active:")]
+            if len(active) != 1 or not re.search(r"\bhidden 768\b.*\bchecksum " + V3_CHECKSUM + r"\b", active[0]):
+                raise RuntimeError(f"{self.prefix.name}: missing or unexpected NNUE v3 active line: {active!r}")
+
+    def search(self, fen, go):
+        self.send("ucinewgame")
+        self.send("isready")
+        self.check_responses(self.until("readyok"))
+        self.send(f"position fen {fen}")
+        self.send(go)
+        lines = self.until("bestmove")
+        self.check_responses(lines)
+        return inspect_search(lines)
+
+    def __exit__(self, error_type, _error, _traceback):
+        if self.process.poll() is None:
+            try:
+                self.send("quit")
+            except BrokenPipeError:
+                pass
+        self.process.stdin.close()
+        self.commands.close()
+        try:
+            status = self.process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            status = self.process.wait()
+        self.stdout.join()
+        self.stderr.join()
+        if status and error_type is None:
+            raise RuntimeError(f"{self.prefix.name}: engine exited with status {status}")
+
+
+def compare(engines, net, evaluation, openings, go, output_dir, timeout):
+    matched = 0
+    with (output_dir / f"{evaluation}-comparison.jsonl.txt").open("x", encoding="utf-8") as rows, ExitStack() as stack:
+        uci = {
+            label: stack.enter_context(Uci(binary, output_dir / f"{evaluation}-{label}", timeout))
+            for label, binary in engines.items()
+        }
+        for engine in uci.values():
+            engine.configure(net)
+        totals = {label: 0 for label in uci}
+        for index, fen in enumerate(openings, 1):
+            row = {"index": index, "fen": fen, "results": {}}
+            results = []
+            try:
+                for label, engine in uci.items():
+                    result = engine.search(fen, go)
+                    results.append(result)
+                    row["results"][label] = asdict(result)
+                    totals[label] += result.nodes
+                equal = len(results) == 1 or results[0].search_fields() == results[1].search_fields()
+                row["match"] = equal if len(results) == 2 else None
+                if not equal:
+                    raise RuntimeError(f"first mismatch at {evaluation} opening {index}: {fen}")
+                matched += 1
+            except (OSError, RuntimeError, ValueError) as error:
+                row["error"] = str(error)
+                first = output_dir / "first-failure.txt"
+                first.write_text(json.dumps(row, indent=2) + "\n", encoding="utf-8")
+                raise
+            finally:
+                rows.write(json.dumps(row) + "\n")
+                rows.flush()
+    return {"rows_completed": matched, "actual_nodes": totals}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("r15", type=Path)
+    parser.add_argument("r15d", type=Path)
+    parser.add_argument("net", type=Path)
+    parser.add_argument("epd", type=Path)
+    parser.add_argument("output", type=Path, help="new output directory")
+    parser.add_argument("--evaluation", choices=("both", "builtin", "v3"), default="both")
+    parser.add_argument("--run", choices=("both", "r15", "r15d"), default="both")
+    limits = parser.add_mutually_exclusive_group()
+    limits.add_argument("--nodes", type=int, default=20_000)
+    limits.add_argument("--softnodes", type=int)
+    parser.add_argument("--count", type=int, default=200)
+    parser.add_argument("--timeout", type=float, default=20)
+    args = parser.parse_args()
+    if min(args.nodes, args.count, args.timeout) <= 0 or (args.softnodes is not None and args.softnodes <= 0):
+        parser.error("node budget, count and timeout must be positive")
+    output_dir = args.output.resolve()
+    output_dir.mkdir(parents=True, exist_ok=False)
+    epd = args.epd.resolve(strict=True)
+    net = args.net.resolve(strict=True) if args.evaluation != "builtin" else None
+    engines = {label: getattr(args, label).resolve(strict=True) for label in ("r15", "r15d") if args.run in ("both", label)}
+    go = f"go softnodes {args.softnodes}" if args.softnodes is not None else f"go nodes {args.nodes}"
+    metadata = {
+        "engines": {label: {"path": str(path), "sha256": sha256_file(path)} for label, path in engines.items()},
+        "net": {"path": str(net), "sha256": sha256_file(net)} if net else None,
+        "epd": {"path": str(epd), "sha256": sha256_file(epd)},
+        "go": go,
+        "count": args.count,
+        "evaluation": args.evaluation,
+    }
+    (output_dir / "inputs.txt").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    if metadata["epd"]["sha256"] != BOOK_SHA256:
+        raise RuntimeError(f"opening SHA-256 mismatch: {metadata['epd']['sha256']}")
+    openings = read_openings(epd, args.count, output_dir)
+    modes = ("builtin", "v3") if args.evaluation == "both" else (args.evaluation,)
+    for evaluation in modes:
+        start_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+        start = time.perf_counter_ns()
+        result = compare(engines, net if evaluation == "v3" else None, evaluation, openings, go, output_dir, args.timeout)
+        elapsed = time.perf_counter_ns() - start
+        end_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+        result.update(
+            elapsed_ns=elapsed,
+            children_cpu_s=(end_usage.ru_utime - start_usage.ru_utime) + (end_usage.ru_stime - start_usage.ru_stime),
+        )
+        summary = json.dumps(result, indent=2) + "\n"
+        (output_dir / f"{evaluation}-summary.txt").write_text(summary, encoding="utf-8")
+        print(f"{evaluation}: {summary}", end="", flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, RuntimeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)
