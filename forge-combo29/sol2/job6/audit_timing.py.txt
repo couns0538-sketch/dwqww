@@ -1,0 +1,25 @@
+from pathlib import Path
+import json,math,sys
+from statistics import median
+
+root=Path(sys.argv[1]); expected=(60,8612,29333343,'5c705841c3ea17b4'); floor={}
+for step,n in ((1,6),(2,12),(3,12)):
+    p=root/f'step{step}'; s=json.loads((p/'summary.txt').read_text()); rows=[json.loads(x) for x in (p/'runs.jsonl.txt').read_text().splitlines()]
+    assert len(rows)==4*n and s['complete'] and all(x['eligible'] and x['engine_exit']==0 and (x['games'],x['searches'],x['total_nodes'],x['trace_fnv1a64'])==expected for x in rows)
+    for metric in ('engine_cpu_s','total_wall_ns'):
+        blocks=[]
+        for index in range(n):
+            a,b,c,d=rows[index*4:index*4+4]
+            assert [x['arm'] for x in (a,b,c,d)]==list('ABBA')
+            this=(b[metric]+c[metric])/(a[metric]+d[metric]); blocks.append(this)
+            assert math.isclose(this,s['blocks'][index][metric])
+        r=s['metrics'][metric]
+        pooled=sum(x[metric] for x in rows if x['arm']=='B')/sum(x[metric] for x in rows if x['arm']=='A')
+        for k,v in [('block_median',median(blocks)),('pooled_b_over_a',pooled),('block_min',min(blocks)),('block_max',max(blocks)),('below_one',sum(x<1 for x in blocks)),('above_one',sum(x>1 for x in blocks))]:
+            assert math.isclose(r[k],v), (step,metric,k,r[k],v)
+        if step==1: floor[metric]=(min(blocks),max(blocks))
+        else:
+            outside=not(floor[metric][0]<=median(blocks)<=floor[metric][1]); sided=max(sum(x<1 for x in blocks),sum(x>1 for x in blocks))>=10
+            assert r['decision']==('MEASURED' if outside and sided else 'not measurable here')
+        print(step,metric,'median',median(blocks),'pooled',pooled,'range',min(blocks),max(blocks),'below 1',r['below_one'],'decision',r.get('decision','identical-binary control'))
+print('120 exact traces, ABBA order, medians, pooled ratios and noise-floor decisions independently reconciled.')

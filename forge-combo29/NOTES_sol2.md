@@ -63,3 +63,7 @@ The PC20/net768 warm probe preserved all 8,612 searches, 29,333,343 last-info no
 ## Job 5 — 2026-11-18T09:59:44Z
 
 All twelve Carbon2 pieces applied with zero fuzz and offsets. k10 and k11 matched Sol3's hashes and k12 is `9b50324e42ea8fe42f3246149d7389726f8994650080790349018e956d60eca7`. Each stack stage, all 24 ABBA passes and all profile gates reproduced the PC20/net768 warm trace `5c705841c3ea17b4`. Pooled k12/r15d time was 0.9524 CPU and 0.9539 wall, both within same-build spread. The SEE sampling control passed and the k12 top three were main search, TT probe and fused v3 update/output. [Job 5 report](REPORT_sol2_job5.md)
+
+## Job 6 — 2026-11-18T10:57:42Z
+
+All 120 PC20/net768 warm timing passes reproduced 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. The identical-binary CPU floor was 0.9699–1.0523. k11/r15d pooled CPU was 0.9457 with a 0.9470 block median and 12/12 below 1, measured by the matching ABBA rule. Piece 11 alone pooled 0.9992 CPU and was not measurable here. The same-session SEE control passed, and matched profiles put the largest estimated reduction in move generation and legality. [Job 6 report](REPORT_sol2_job6.md)
