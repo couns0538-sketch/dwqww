@@ -1,0 +1,26 @@
+=== JOB 15 PART 2: NNUE v3 REFRESH & MAKE_VALID COUNTERS ON SCRATCH CURATED ===
+
+--- 1. Engine's Own bench 11, 13, 16 Lines on Scratch Counter Build (PC20 + net512 & PC20 + net768) ---
+[net512]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 625258 time 271 nps 2307225
+info string bench depth 13 nodes 3652372 time 1587 nps 2301431
+info string bench depth 16 nodes 23891329 time 10027 nps 2382699
+[net768]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 882074 time 387 nps 2279260
+info string bench depth 13 nodes 4275906 time 1930 nps 2215495
+info string bench depth 16 nodes 32374943 time 15294 nps 2116839
+
+--- 2. 60-Game Self-Play Driver Run (Hash 16, softnodes 2000, PC20 + net768.fnn3) ---
+games=60 searches=7670 nodes=25641316 trace=ee465caeff9c0fcf
+P2_SE total=13172445 already_valid=458035 apply_pair_same_sq=6834074 apply_pair_same_key=1010187 mv_key_change=2389507 mv_invalid_parent=2480642
+P2_MV total=4870149 p0=7623 p1=2389507 p2=1689898 p3=386900 p4=165493 p5=99880 p6=52600 p7=31420 p8plus=46828 max_plies=33
+P2_RP total=9076787 pair_ok=4904377 one_rfp=4172410 two_rfp=0 undo_iters=1567985
+P2_RFP total=4187656 bucket_at_eval=3150226 bucket_below=581068 bucket_also_flip_at_eval=355405 bucket_also_flip_below=61410 flip_only_at_eval=363568 flip_only_below=77548 no_anc_at_eval=15246 no_anc_below=0 total_cols=20640147 zero_col=239190 both_lt4=3019249
+P2_COL_HIST 0:239190 1:48516 2:862186 3:314206 4:852463 5:395009 6:439880 7:251531 8:218035 9:157206 10:121349 11:86657 12:64737 13:45667 14:32376 15:21281 16:14064 17:8773 18:5554 19:3253 20:1826 21:1044 22:591 23:410 24:239 25:198 26:152 27:175 28:161 29:119 30:149 31:132 32:131 33:100 34:96 35:53 36:54 37:29 38:15 39:14 40:12 41:8 42:8 43:2 44:1 45:4
+P2_NSUB_HIST 0:269940 1:1090070 2:1205203 3:726143 4:400798 5:226218 6:126092 7:68744 8:36919 9:19073 10:9599 11:4676 12:2183 13:1010 14:472 15:244 16:106 17:68 18:28 19:29 20:20 21:10 22:5 23:4 26:1 27:1
+P2_NADD_HIST 0:274228 1:1060320 2:1222851 3:747162 4:399856 5:222138 6:123983 7:66626 8:35121 9:17639 10:8605 11:4025 12:1958 13:855 14:421 15:187 16:118 17:81 18:85 19:79 20:93 21:115 22:115 23:159 24:151 25:131 26:116 27:115 28:117 29:117 30:70 31:12 32:7
+P2_COL_SUMMARY refreshes=4187656 total_columns=20640147 mean=4.9288 p50=4 p90=9 p99=15 min=0 max=45
