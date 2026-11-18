@@ -1,0 +1,69 @@
++ date -u +%FT%TZ
++ source /workspace/work/sol2-job12/clang.env
+++ export LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ export FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ export FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ export FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
+++ FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ export PYTHONPATH=/workspace/work/sol2-job12/python
++ PYTHONPATH=/workspace/work/sol2-job12/python
++ flags='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin'
++ link_flags=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ common=(-S "$source_tree" -B "$build" "-DCMAKE_CXX_COMPILER=$FORGE_CLANGXX" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_EXE_LINKER_FLAGS=$link_flags")
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
++ tee /workspace/work/sol2-job19/step1-P4_2/compiler.raw.txt
+Debian clang version 19.1.7 (3+b1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin
++ rg '19\.1\.7' /workspace/work/sol2-job19/step1-P4_2/compiler.raw.txt
+Debian clang version 19.1.7 (3+b1)
++ cd /workspace/work/sol2-job19/P4_2
++ sha256sum -c /workspace/work/sol2-job19/prefix-source/P4_2-source-sha256.raw.txt
++ sha256sum /workspace/work/sol2-job13/soft_book_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd /workspace/work/sol2-repo/forge-combo29/sol2/job13/known-answer.txt
++ test '!' -e /workspace/work/sol2-job19/build-clang-selfplay-P4_2
++ mkdir /workspace/work/sol2-job19/clang-selfplay-profile-P4_2
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job19/P4_2 -B /workspace/work/sol2-job19/build-clang-selfplay-P4_2 -DCMAKE_CXX_COMPILER=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin -fprofile-instr-generate'
+-- The CXX compiler identification is Clang 19.1.7
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job19/build-clang-selfplay-P4_2
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job19/build-clang-selfplay-P4_2 --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job19/build-clang-selfplay-P4_2/forge
++ printf '%s\n' uci 'setoption name CuckooRep value true' 'setoption name HistRework value 2' 'setoption name TtPruneV2 value true' 'setoption name CorrHistV2 value true' 'setoption name NNUEArchFile value /workspace/work/sol2-job2/net768.fnn3' 'setoption name NNUEArch value true' isready 'bench 11' 'bench 13' 'bench 16' quit
++ LLVM_PROFILE_FILE=/workspace/work/sol2-job19/clang-selfplay-profile-P4_2/bench.profraw
++ timeout 180 taskset -c 2 /workspace/work/sol2-job19/build-clang-selfplay-P4_2/forge
++ test '!' -s /workspace/work/sol2-job19/step1-P4_2/profile-bench.stderr.txt
++ rg '^info string NNUE v3 active: .*hidden 768 .*checksum 30ab43b4ba5db5f3' /workspace/work/sol2-job19/step1-P4_2/profile-bench.stdout.txt
+info string NNUE v3 active: v3 /workspace/work/sol2-job2/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+++ rg -c '^info string bench depth (11|13|16) nodes ' /workspace/work/sol2-job19/step1-P4_2/profile-bench.stdout.txt
++ test 3 -eq 3
++ LLVM_PROFILE_FILE=/workspace/work/sol2-job19/clang-selfplay-profile-P4_2/selfplay.profraw
++ timeout 240 taskset -c 2 python3 -B /workspace/work/sol2-job13/soft_book_driver.py --engine /workspace/work/sol2-job19/build-clang-selfplay-P4_2/forge --net /workspace/work/sol2-job2/net768.fnn3 --book /workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd --start 1001 --games 60 --softnodes 2000 --max-plies 300 --json
++ test '!' -s /workspace/work/sol2-job19/step1-P4_2/profile-selfplay.stderr.txt
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata merge -sparse /workspace/work/sol2-job19/clang-selfplay-profile-P4_2/bench.profraw /workspace/work/sol2-job19/clang-selfplay-profile-P4_2/selfplay.profraw -o /workspace/work/sol2-job19/clang-selfplay-profile-P4_2/merged.profdata
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job19/P4_2 -B /workspace/work/sol2-job19/build-clang-selfplay-P4_2 -DCMAKE_CXX_COMPILER=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin -fprofile-instr-use=/workspace/work/sol2-job19/clang-selfplay-profile-P4_2/merged.profdata -Werror=profile-instr-out-of-date'
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job19/build-clang-selfplay-P4_2
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job19/build-clang-selfplay-P4_2 --clean-first --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job19/build-clang-selfplay-P4_2/forge
++ tee /workspace/work/sol2-job19/step1-P4_2/clang-sha256.raw.txt
+19a3a47029f7947ba9fd8e348fc6a41889d8ee549af9f32996de58837cdeb78e  /workspace/work/sol2-job19/build-clang-selfplay-P4_2/forge
++ ldd /workspace/work/sol2-job19/build-clang-selfplay-P4_2/forge
++ rg 'libstdc[+][+][.]so' /workspace/work/sol2-job19/step1-P4_2/libraries.raw.txt
+	libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f3f02b6a000)
++ rc=0
++ date -u +%FT%TZ
++ printf '%s\n' 0
