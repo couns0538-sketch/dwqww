@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Measure emitted softnodes totals in one engine's self-play from exact book FENs."""
+
+import argparse
+from collections import Counter
+from contextlib import ExitStack
+from functools import cache
+import hashlib
+import io
+import json
+from pathlib import Path
+import re
+import runpy
+import sys
+import time
+
+
+JOB12_DRIVER = Path(__file__).resolve().parent.parent / 'sol2-job12' / 'fen_identity.py'
+JOB12_DRIVER_SHA256 = 'd0b73116df0dbeba4319d8286ff2f2682481b6592df98e7b97251d8496c0fe9e'
+FNV_OFFSET = 14695981039346656037
+FINAL_NODES = re.compile(r'info string softnodes nodes ([0-9]+)')
+
+
+def read_soft_search(stdout, mode):
+    if mode != 'softnodes':
+        raise ValueError(f'Expected softnodes search mode, received {mode}')
+    info = None
+    nodes = None
+    final_info = None
+    final_nodes = None
+    for line in iter(stdout.readline, ''):
+        if line.startswith('info depth '):
+            if final_info is not None:
+                raise RuntimeError('Depth info followed the final softnodes line')
+            info = line.removesuffix('\n')
+            tokens = info.split()
+            nodes_at = tokens.index('nodes') + 1 if 'nodes' in tokens else len(tokens)
+            nodes = int(tokens[nodes_at]) if nodes_at < len(tokens) else None
+        elif line.startswith('info string softnodes'):
+            if final_info is not None:
+                raise RuntimeError('Duplicate final softnodes line')
+            final_info = line.removesuffix('\n')
+            match = FINAL_NODES.fullmatch(final_info)
+            if match is None:
+                raise RuntimeError(f'Malformed final softnodes line: {final_info!r}')
+            final_nodes = int(match[1])
+        elif line.startswith('bestmove '):
+            parts = line.split()
+            if len(parts) < 2 or nodes is None or nodes < 0:
+                raise RuntimeError(f'Missing last-info nodes or move before {line.rstrip()!r}; last info {info!r}')
+            if final_nodes is None and nodes != 0:
+                raise RuntimeError(f'Missing final softnodes line after last info {info!r} before {line.rstrip()!r}')
+            if final_nodes is not None and final_nodes < nodes:
+                raise RuntimeError(f'Final softnodes {final_nodes} below last-info nodes {nodes}')
+            return {'bestmove': parts[1], 'nodes': nodes, 'final_nodes': final_nodes,
+                    'last_info': info, 'final_nodes_line': final_info, 'bestmove_line': line.removesuffix('\n')}
+        elif line.startswith('info string ') and ('ERROR' in line or 'illegal move' in line or 'invalid FEN' in line):
+            raise RuntimeError(f'Engine refused the game position: {line.rstrip()}')
+    raise RuntimeError(f'Engine EOF before bestmove; last info {info!r}, final softnodes line {final_info!r}')
+
+
+@cache
+def reusable_drivers():
+    with JOB12_DRIVER.open('rb') as source:
+        actual = hashlib.file_digest(source, 'sha256').hexdigest()
+    if actual != JOB12_DRIVER_SHA256:
+        raise ValueError(f'{JOB12_DRIVER}: expected SHA-256 {JOB12_DRIVER_SHA256}, got {actual}')
+    fen = runpy.run_path(str(JOB12_DRIVER))
+    uci = runpy.run_path(fen['pin'](fen['JOB10_DRIVER'], fen['JOB10_DRIVER_SHA256'])['path'])
+    # Only replace the UCI response reader. The pinned game/position logic is unchanged.
+    fen['play_game'].__globals__['read_search'] = read_soft_search
+    return fen, uci
+
+
+@cache
+def _pinned_book(path, _stat_identity):
+    fen, _ = reusable_drivers()
+    return fen['pin'](path, fen['BOOK_SHA256'])['path']
+
+
+def pinned_book(path):
+    path = path.resolve(strict=True)
+    stat = path.stat()
+    return Path(_pinned_book(path, (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)))
+
+
+def summarize_games(game_records, fnv, trace_rows):
+    games = searches = total_nodes = final_nodes = final_lines = zero_last = 0
+    trace_hash = FNV_OFFSET
+    terminations = Counter()
+    for line_number, trace, termination in game_records:
+        games += 1
+        terminations[termination] += 1
+        for ply, row in enumerate(trace, start=1):
+            searches += 1
+            total_nodes += row['nodes']
+            zero_last += row['nodes'] == 0
+            if row['final_nodes'] is not None:
+                final_nodes += row['final_nodes']
+                final_lines += 1
+            trace_input = f"{row['bestmove']},{row['nodes']};"
+            trace_hash = fnv(trace_hash, trace_input)
+            if trace_rows is not None:
+                print(json.dumps({'book_line': line_number, 'ply': ply, 'trace_input': trace_input,
+                                  'trace_fnv1a64': f'{trace_hash:016x}', **row}, separators=(',', ':')), file=trace_rows)
+    return {'games': games, 'searches': searches, 'total_nodes': total_nodes, 'final_nodes': final_nodes,
+            'trace_fnv1a64': f'{trace_hash:016x}', 'final_lines': final_lines,
+            'missing_final_lines': searches - final_lines, 'zero_last_info_searches': zero_last,
+            'terminations': dict(terminations)}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--engine', required=True, type=Path)
+    parser.add_argument('--net', required=True, type=Path)
+    parser.add_argument('--book', required=True, type=Path)
+    parser.add_argument('--start', required=True, type=int, help='first physical book line, 1-based')
+    parser.add_argument('--games', required=True, type=int)
+    parser.add_argument('--softnodes', required=True, type=int)
+    parser.add_argument('--max-plies', required=True, type=int)
+    parser.add_argument('--trace-rows', type=Path)
+    parser.add_argument('--wire-log', type=Path, help='optional raw UCI setup transcript')
+    parser.add_argument('--json', required=True, action='store_true')
+    args = parser.parse_args()
+    fen, uci = reusable_drivers()
+    if min(args.start, args.games, args.softnodes) <= 0 or args.max_plies != fen['PLY_CAP']:
+        parser.error('Expected positive start/games/softnodes and the frozen 300-ply cap')
+    import chess
+
+    engine_path = str(args.engine.resolve(strict=True))
+    net_path = fen['pin'](args.net, fen['NET_SHA256'])['path']
+    book = pinned_book(args.book)
+    end = args.start + args.games - 1
+    with ExitStack() as files:
+        trace_rows = files.enter_context(args.trace_rows.open('x', encoding='utf-8')) if args.trace_rows else None
+        wire = files.enter_context(args.wire_log.open('x', encoding='utf-8')) if args.wire_log else io.StringIO()
+        proc = files.enter_context(fen['engine'](engine_path, sys.stderr, uci['send']))
+        fen['configure'](proc, uci, net_path, None, wire)
+
+        def games():
+            for line_number, root in fen['book_rows'](book, args.start, end):
+                try:
+                    trace, _outcome, termination = fen['play_game'](proc, chess.Board, root, 'softnodes', args.softnodes, uci)
+                except (RuntimeError, ValueError) as error:
+                    raise RuntimeError(f'Book line {line_number}: {error}') from error
+                yield line_number, trace, termination
+
+        started = time.monotonic_ns()
+        result = summarize_games(games(), uci['fnv1a64_str'], trace_rows)
+        elapsed_ns = time.monotonic_ns() - started
+    print(json.dumps({**result, 'book_start': args.start, 'book_end': end, 'softnodes': args.softnodes,
+                      'elapsed_ms': elapsed_ns / 1_000_000, 'chess_module_version': chess.__version__}), flush=True)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ImportError, OSError, RuntimeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)
