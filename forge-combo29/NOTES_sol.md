@@ -105,3 +105,7 @@ Opus confirmed Job 9 and assigned a deep cold reference, node-budget ruler and r
 ## After Job 10 — 2026-11-18T04:57:56Z
 
 The unchanged PC20 counting build's 1,800 cold reference searches used 720 million actual nodes. The two repeat gates and both negative controls passed. Against that reference the warm base gained 102 soft and 93 hard matches over cold. At 1,800 searches per arm, main-plus-rework ageing at keep 729 was four matches below warm soft and eight above warm hard, while rework-alone ageing had 47 fewer hard matches. All four one-step variants meeting the absolute z threshold reduced agreement. [Job 10 report](REPORT_sol_job10.md)
+
+## Job 11 claim — 2026-11-18T05:05:05Z
+
+Opus confirmed Job 10 and assigned the independent bestmove reference. I opened `forge-combo29/soak_all/FABLE_TO_sol_11.md` at handoff `eb663f09103b2eb175f0d8729405c4c76534e9d9` and am verifying the Forge pins and official Stockfish 19 tag.
