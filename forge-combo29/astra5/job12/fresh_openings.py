@@ -116,9 +116,11 @@ def run(action,stage):
         p=(ARCHIVE/f'job12/{stage}.pgn') if ARCHIVE is not None else (ROOT/f'j12match/results/{stage}.pgn')
         actual,checksum=rounds(p,needed)
         a3=[marks(f)[0] for f in actual];a4={marks(f)[1] for f in actual}
-        if a3!=[marks(f.decode())[0] for f in chosen] or set(a3)&excluded or a4&exact:
-            raise ValueError('PGN does not match seeded selections or reuses a prior opening')
-        lines += [f'actual_pgn_sha256 {checksum}',f'actual_opening_pairs {needed}',f'actual_distinct_four_field {len(a4)}',f'actual_distinct_ignoring_ep {len(set(a3))}',f'actual_overlap_prior_four_field {len(a4&exact)}',f'actual_overlap_prior_ignoring_ep {len(set(a3)&excluded)}','all_rounds_equal_seeded_original_order_after_exclusions yes']
+        chosen_four=[marks(f.decode())[1] for f in chosen]
+        actual_four=[marks(f)[1] for f in actual]
+        if actual_four!=chosen_four or set(a3)&excluded or a4&exact:
+            raise ValueError('PGN does not match all four selected opening fields or reuses a prior opening')
+        lines += [f'actual_pgn_sha256 {checksum}',f'actual_opening_pairs {needed}',f'actual_distinct_four_field {len(a4)}',f'actual_distinct_ignoring_ep {len(set(a3))}',f'actual_overlap_prior_four_field {len(a4&exact)}',f'actual_overlap_prior_ignoring_ep {len(set(a3)&excluded)}','actual_four_field_sequence_equals_selected_sequence yes','all_rounds_equal_seeded_original_order_after_exclusions yes']
     suffix='preflight' if action=='prepare' else 'audit'
     (OUT/f'{stage}-opening-{suffix}.txt').write_text('\n'.join(lines)+'\n')
     print('\n'.join(lines[-8:]))
