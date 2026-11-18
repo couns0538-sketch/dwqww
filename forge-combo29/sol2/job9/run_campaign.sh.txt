@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job9
+previous=/workspace/work/sol2-job8
+base=/workspace/work/sol2-job2
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job9
+step=$1
+r15d=/workspace/work/sol2-job7/build-pgo-r15d/forge
+k11v=/workspace/work/sol2-job7/build-pgo-k11v/forge
+k13="$previous/build-pgo-k13/forge"
+kF="$job/build-pgo-kF/forge"
+copy="$job/k11v-pgo-copy"
+case "$step" in
+  1) arm_a="$k11v"; arm_b="$copy"; label_a=k11v-pgo; label_b=copy; args=(--identical-floor);;
+  2|2-repeat) arm_a="$k11v"; arm_b="$k13"; label_a=k11v-pgo; label_b=k13-pgo; args=(--floor "$out/step1/summary.txt");;
+  3) arm_a="$r15d"; arm_b="$kF"; label_a=r15d-pgo; label_b=kF-pgo; args=(--floor "$out/step1/summary.txt");;
+  *) exit 2;;
+esac
+sha_a=$(awk -v target="$arm_a" '$2==target {print $1}' "$out/pgo-executables.raw.txt")
+arm_b_origin=$arm_b
+if [ "$step" = 1 ]; then
+  (
+    set -x
+    cp -p "$k11v" "$copy"
+    cmp "$k11v" "$copy"
+    printf 'cmp exit %s, empty difference stream\n' "$?"
+    sha256sum "$k11v" "$copy"
+  ) > "$out/step1-copy.raw.txt" 2>&1
+  arm_b_origin=$k11v
+fi
+sha_b=$(awk -v target="$arm_b_origin" '$2==target {print $1}' "$out/pgo-executables.raw.txt")
+start=$(date -u -d "$(cat "$previous/job9-read-at.txt")" +%s)
+left=$((start + 80*60 - $(date -u +%s)))
+test "$left" -gt 0
+status=0
+(
+  set -x
+  date -u +'%FT%TZ'
+  timeout "$left" taskset -c 2 python -B "$job/balanced_timing.py" "$arm_a" "$arm_b" "$base/net768.fnn3" "$out/step$step" --a-sha256 "$sha_a" --b-sha256 "$sha_b" --a-label "$label_a" --b-label "$label_b" --blocks 12 "${args[@]}"
+) > "$out/step$step-command.raw.txt" 2>&1 || status=$?
+result=PASS
+if [ "$status" -ne 0 ]; then result=STOPPED; fi
+printf '%s Step %s %s, %s vs %s, 12 balanced blocks requested\n' "$(date -u +'%FT%TZ')" "$step" "$result" "$label_b" "$label_a" >> "$out/stamps.txt"
+git add -- forge-combo29/sol2/job9
+git -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+git -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "Record sol2 Job 9 Step $step balanced $label_b vs $label_a"
+printf 'Step %s %s, timing harness exit %s\n' "$step" "$result" "$status"
+GIT_TERMINAL_PROMPT=0 timeout 25s git push origin HEAD:refs/heads/for-fable-and-opus/sol2-work
+test "$(git rev-parse HEAD)" = "$(git ls-remote --exit-code --refs origin refs/heads/for-fable-and-opus/sol2-work | cut -f1)"
+if [ -f "$out/step$step/summary.txt" ]; then
+  python - "$out/step$step/summary.txt" <<'PY'
+from pathlib import Path
+import json,sys
+result=json.loads(Path(sys.argv[1]).read_text())
+print(json.dumps({key: result.get(key) for key in ("metrics", "order_position_means", "completed_blocks")}, indent=2))
+PY
+fi
+exit "$status"
