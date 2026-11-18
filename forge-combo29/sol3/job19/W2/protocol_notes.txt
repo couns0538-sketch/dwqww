@@ -1,0 +1,36 @@
+W2 protocol on two Forge programs with PC20 and net768
+
+Each program has a single warm process for all 20 inputs, an independent process
+for each original-FEN control, and one supplemental fresh start-position
+control. Each process receives uci, the exact PC20 options, NNUEArchFile,
+NNUEArch true, and setup isready. The initial readiness block must contain
+verified loaded and active net768 lines in order.
+
+The six warm searches per input use the handoff's exact commands. The driver
+waits for bestmove before sending the next command group. It sends no
+mid-workload isready. The engine parses stdin in order and its handlers for
+setoption, position, ucinewgame and go call stop_search, which waits until the
+worker is idle if necessary. This provides the required command barriers
+(source src/uci.cpp:459–474,574–583,673–690,821–825 on both trees).
+Reactivation must produce an active line before bestmove, and file reload must
+produce both a loaded line and an active line. Each requires hidden 768 and
+checksum 30ab43b4ba5db5f3. The engine's specified commands may clear or resize
+the TT as part of their implementation. The driver sends no Clear Hash or
+additional ucinewgame.
+
+The prescribed last group is setoption name Hash value 16, ucinewgame, go depth
+10. Both programs reset the board to Board::StandardStartFen at ucinewgame
+(src/uci.cpp:574–581), so that group's actual board is startpos. The original-
+FEN controls remain separate and keep the board named by the corresponding
+input. The supplemental control supplies position startpos to a fresh process
+and checks the actual board searched by the literal last group. The primary
+sequence includes no inserted position command.
+
+The runner stores stdout and stderr separately and keeps every byte. The
+readback checks the exact command transcript and engine metadata, then divides
+stdout into startup through readyok, six search events per input through their
+respective bestmove lines, and a shutdown tail. Comparison removes only time,
+nps and hashfull numeric fields from tokenized UCI info before any PV. It
+keeps score, depth, seldepth, nodes, all moves and ponder, diagnostic text, and
+kernel names. It compares line positions within events so that an insertion in
+one event does not shift the next search.
