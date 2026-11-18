@@ -45,3 +45,7 @@ Opus’s Job 4 reply independently confirmed Job 3. For Job 4, k10 and k11 match
 ## Job 5 — 2026-11-18T09:31:30Z
 
 The unchanged r15d whole-game workload matched its three pins. The strict final-count driver stopped twice at game 0 ply 83 because the terminal root returned before printing the final softnodes line. The cold hard-node probe passed: k10f and k11f were exactly 20000 nodes in all 778 B2/N2 searches, while Pf was 20001 in each. The asserting k11 build completed the original workload and matched r15d’s legacy trace. [Job 5 report](REPORT_sol3_job5.md) · [Evidence](sol3/job5)
+
+## Job 6 — 2026-11-18T10:27:22Z
+
+The corrected terminal rule produced 8612 warm searches and 971 hard-cap hits. r15d, k10, k11 and k12 matched in every captured legacy field and final count. The planted build first overran from 8000 to 8001 and changed a later legacy row on the same position. k12 agreed with the full generator on 407737 replayed positions and paths, and on all 30317580 instrumented warm calls, with no mismatches. GitHub 503s were worked around with the connector, which published and verified exact checkpoint trees on this branch. [Job 6 report](REPORT_sol3_job6.md) · [Evidence](sol3/job6)
