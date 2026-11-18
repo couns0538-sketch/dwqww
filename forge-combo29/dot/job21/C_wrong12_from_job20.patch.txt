@@ -1,0 +1,167 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -1,3 +1,6 @@
++#ifndef FORGE_SHORTCUT_WRONG12
++#define FORGE_SHORTCUT_WRONG12 1
++#endif
+ #pragma once
+ #include "forge/board.hpp"
+ #include "forge/uci_output.hpp"
+@@ -5,17 +8,19 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12", "H36", "H11"};
+-inline std::atomic<unsigned long long> uses[19]{}, differs[19]{}, diagnostics{0};
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12", "H36", "H11", "H29", "H86"};
++inline std::atomic<unsigned long long> uses[21]{}, differs[21]{}, diagnostics{0};
+ inline std::atomic<unsigned long long> h25_paths[7]{};
+ inline std::atomic<unsigned long long> h82_classes[6]{};
+ inline std::atomic<unsigned long long> h30_classes[4]{}, h3_classes[4]{};
+ inline std::atomic<unsigned long long> h71_classes[4]{}, h12_classes[6]{};
+ inline std::atomic<unsigned long long> h36_classes[7]{}, h11_classes[2]{};
+-inline void reset() { for(auto& n:h36_classes)n=0; for(auto& n:h11_classes)n=0; for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<19;++i) { uses[i]=0; differs[i]=0; } }
++inline std::atomic<unsigned long long> h86_classes[8]{}, h86_skips[2]{};
++inline std::atomic<unsigned long long> h29_classes[4]{};
++inline void reset() { for(auto& n:h29_classes)n=0; for(auto& n:h86_classes)n=0; for(auto& n:h86_skips)n=0; for(auto& n:h36_classes)n=0; for(auto& n:h11_classes)n=0; for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<21;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<19 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==19) return;
++    int i=0; while(i<21 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==21) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -61,15 +66,27 @@
+ inline void record_h11(bool different, int cls, const Board& board, const Move& move) {
+  ++h11_classes[cls]; record("H11",different,board,move);
+ }
++inline void record_h29(bool different,bool white,bool pseudo,const Board& board) {
++ ++h29_classes[white?0:1]; ++h29_classes[pseudo?3:2]; record("H29",different,board,Move::none());
++}
++inline void skip_h86(bool unstable) { ++h86_skips[unstable?1:0]; }
++inline void record_h86(bool different, bool odd, int path, bool actual) {
++ if(tt_board==nullptr) { ++h86_skips[0]; return; }
++ ++h86_classes[odd?0:1]; ++h86_classes[2+path]; ++h86_classes[actual?6:7];
++ record("H86",different,*tt_board,Move::none());
++}
+ // Caller holds the output mutex, after workers have joined.
+ inline void summary() {
++ std::cout << "info string h29_classes white " << h29_classes[0].load() << " black " << h29_classes[1].load() << " legal " << h29_classes[2].load() << " pseudo " << h29_classes[3].load() << std::endl;
++ std::cout << "info string h86_classes odd " << h86_classes[0].load() << " even " << h86_classes[1].load() << " fast_direct " << h86_classes[2].load() << " fast_fallback " << h86_classes[3].load() << " ordinary_periodic " << h86_classes[4].load() << " ordinary_nonperiodic " << h86_classes[5].load() << " stopped " << h86_classes[6].load() << " continued " << h86_classes[7].load() << std::endl;
++ std::cout << "info string h86_skips unsupported " << h86_skips[0].load() << " unstable_stop " << h86_skips[1].load() << std::endl;
+  std::cout << "info string h36_classes white " << h36_classes[0].load() << " black " << h36_classes[1].load() << " cache_valid " << h36_classes[2].load() << " cache_invalid " << h36_classes[3].load() << " no_stack " << h36_classes[4].load() << " eval " << h36_classes[5].load() << " update " << h36_classes[6].load() << std::endl;
+  std::cout << "info string h11_classes white " << h11_classes[0].load() << " black " << h11_classes[1].load() << std::endl;
+  std::cout << "info string h71_classes neither " << h71_classes[0].load() << " rook_only " << h71_classes[1].load() << " queen_only " << h71_classes[2].load() << " both " << h71_classes[3].load() << std::endl;
+  std::cout << "info string h12_classes moving_knight " << h12_classes[0].load() << " other_mover " << h12_classes[1].load() << " prefix_return " << h12_classes[2].load() << " ray_empty " << h12_classes[3].load() << " actual_empty " << h12_classes[4].load() << " exchange_loop " << h12_classes[5].load() << std::endl;
+ 
+  std::cout << "info string h30_classes white_generation " << h30_classes[0].load() << " black_generation " << h30_classes[1].load() << " illegal_source " << h30_classes[2].load() << " promotion_source " << h30_classes[3].load() << std::endl;
+- std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<19;++i) std::cout << "info string shortcut " << names[i]
++ std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<21;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
+     std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
+               << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -773,6 +773,21 @@
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+     [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++#if FORGE_SHORTCUT_COUNT
++        const bool h86_supported = is_main() && parent_worker_ == nullptr &&
++            (all_workers_ == nullptr || all_workers_->size() == 1) &&
++            !pondering_ && !time_managed_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
++        const bool h86_stop_before = shared_.stop.load(std::memory_order_relaxed);
++        const bool h86_reason_before = stopped_by_nodes_;
++        const std::uint64_t h86_nodes = local_nodes_, h86_extra = extra_nodes_, h86_limit = node_limit_;
++        const bool h86_specified = node_limit_specified_;
++        const bool h86_periodic = (h86_nodes & 1023U) == 0;
++        const int h86_path = fast_single_node_stop_
++            ? ((h86_nodes < h86_limit && !h86_periodic) ? 0 : 1)
++            : (h86_periodic ? 2 : 3);
++        const bool h86_actual = [&]() -> bool {
++#endif
++
+         if (fast_single_node_stop_) {
+             if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
+                 return shared_.stop.load(std::memory_order_relaxed);
+@@ -780,6 +795,29 @@
+             return should_stop();
+         }
+         return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    
++#if FORGE_SHORTCUT_COUNT
++        }();
++        const bool h86_stop_after = shared_.stop.load(std::memory_order_relaxed);
++        if (!h86_supported) {
++            shortcut_count::skip_h86(false);
++        } else if (h86_stop_before != h86_stop_after) {
++            shortcut_count::skip_h86(true);
++        } else {
++            // Original r15d outer gate and should_stop_with predicate, restricted
++            // to the no-clock, no-parent, sole-main-worker domain above.
++            const bool h86_gate = h86_periodic || h86_specified;
++            const bool h86_nodes_hit = h86_specified && h86_nodes + h86_extra >= h86_limit;
++            bool h86_reference = h86_gate && (h86_stop_before || h86_nodes_hit);
++            const bool h86_reason = h86_reason_before || (h86_gate && !h86_stop_before && h86_nodes_hit);
++#if FORGE_SHORTCUT_WRONG12
++            if ((h86_nodes & 1U) != 0) h86_reference = !h86_reference;
++#endif
++            shortcut_count::record_h86(h86_actual != h86_reference || stopped_by_nodes_ != h86_reason,
++                                      (h86_nodes & 1U) != 0, h86_path, h86_actual);
++        }
++        return h86_actual;
++#endif
+     }
+ };
+ 
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1931,6 +1931,32 @@
+         for (const Move move : buf) {
+             if (!(move == tt_move_)) non_tt.push_back(move);
+         }
++#if FORGE_SHORTCUT_COUNT
++        // H29 storage-consumption diagnostic: regenerate on independent Board
++        // and stack lists; never inspect an uninitialized MoveList capacity slot.
++        auto h29_same_move=[](const Move& a,const Move& b) {
++            return a.from==b.from && a.to==b.to && a.promotion==b.promotion && a.flags==b.flags;
++        };
++        auto h29_same_list=[&](const MoveList& a,const MoveList& b,bool fault) {
++            std::size_t reference_size=b.size();
++#if FORGE_SHORTCUT_WRONG12
++            if(fault && board_.side_to_move()==White) ++reference_size;
++#else
++            (void)fault;
++#endif
++            bool same=a.size()==reference_size;
++            for(std::size_t i=0;i<std::min(a.size(),b.size());++i) same &= h29_same_move(a[i],b[i]);
++            return same;
++        };
++        {
++            const Board h29_board=board_;
++            MoveList h29_legal,h29_non_tt;
++            h29_board.generate_legal_evasions(h29_legal);
++            for(const Move move:h29_legal) if(!(move==tt_move_)) h29_non_tt.push_back(move);
++            const bool h29_equal=h29_same_list(buf,h29_legal,false) & h29_same_list(non_tt,h29_non_tt,true);
++            shortcut_count::record_h29(!h29_equal,board_.side_to_move()==White,false,board_);
++        }
++#endif
+         index_ = 0;
+         if (non_tt.empty()) {
+             count_ = 0;
+@@ -1998,6 +2024,14 @@
+         }
+         buf.clear();
+         board_.generate_pseudo_legal(buf, false);
++#if FORGE_SHORTCUT_COUNT
++        {
++            const Board h29_board=board_;
++            MoveList h29_pseudo;
++            h29_board.generate_pseudo_legal(h29_pseudo,false);
++            shortcut_count::record_h29(!h29_same_list(buf,h29_pseudo,true),board_.side_to_move()==White,true,board_);
++        }
++#endif
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
