@@ -1,0 +1,28 @@
+import subprocess,sys,hashlib,json,re
+S14={'Threads':1,'Hash':16,'OwnBook':'false','LmrQuietBase':93,'LmrQuietDivisor':205,'LmrNoisyBase':13,'LmrNoisyDivisor':333,'LmrHistoryDivisor':5643,'NullMoveBase':5,'LmpBase':8,'HistoryPruneMultiplier':2220,'HistoryBonusQuadratic':24,'HistoryBonusLinear':54,'HistoryBonusMax':2212,'SingularDepth':6,'IirDepth':2,'NonPawnCorrection':'true'}
+PC20=dict(S14,CuckooRep='true',HistRework=2,TtPruneV2='true',CorrHistV2='true',MateAlphaGuard='true')
+class Engine:
+ def __init__(self,exe,label,options=S14):
+  self.p=subprocess.Popen([exe],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1)
+  print(json.dumps({'label':label,'sha256':hashlib.sha256(open(exe,'rb').read()).hexdigest(),'options':options}),flush=True)
+  self.send('uci');lines=self.until(lambda s:s=='uciok')
+  names={re.match(r'option name (.*?) type ',x).group(1) for x in lines if x.startswith('option name ')}
+  for n,v in options.items():
+   if n not in names:raise RuntimeError('not advertised '+n)
+   self.send('setoption name '+n+' value '+str(v))
+  self.send('isready');self.until(lambda s:s=='readyok')
+ def send(self,s):
+  print('> '+s,flush=True);self.p.stdin.write(s+'\n');self.p.stdin.flush()
+ def until(self,pred):
+  rows=[]
+  while True:
+   s=self.p.stdout.readline()
+   if not s:raise RuntimeError('unexpected EOF')
+   s=s.rstrip();print('< '+s,flush=True);rows.append(s)
+   if any(x in s for x in ['unknown option','invalid value','ERROR']):raise RuntimeError('refusal '+s)
+   if pred(s):return rows
+ def close(self):self.send('quit');self.p.wait(timeout=10)
+if __name__=='__main__':
+ exe,label=sys.argv[1:3];opts=PC20 if len(sys.argv)>3 and sys.argv[3]=='PC20' else S14
+ for depth in [11,13]:
+  e=Engine(exe,label+' bench'+str(depth),opts);e.send('bench '+str(depth));e.until(lambda s:s.startswith('info string bench depth'));e.close()
