@@ -1,0 +1,125 @@
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <ucontext.h>
+#include <unistd.h>
+
+static int samples = -1;
+static int profile_signal;
+static const long period_us = 3989;
+static _Thread_local unsigned thread_id __attribute__((tls_model("initial-exec")));
+
+static void fail(const char *message) {
+    fprintf(stderr, "SOL2 sampler error: %s: %s\n", message, strerror(errno));
+    _exit(125);
+}
+
+static char *hex(char *out, uint64_t value, int digits) {
+    for (int i=digits-1; i>=0; --i) {
+        out[i]="0123456789abcdef"[value & 15];
+        value >>= 4;
+    }
+    return out + digits;
+}
+
+static void sample(int number, siginfo_t *info, void *data) {
+    (void)number;
+    if (info->si_code != SI_TIMER) return;
+    int saved_errno = errno;
+    uint64_t pc = (uint64_t)((ucontext_t *)data)->uc_mcontext.gregs[REG_RIP];
+    char row[32];
+    char *end = hex(row, thread_id, 8);
+    *end++ = '\t';
+    end = hex(end, pc, 16);
+    *end++ = '\t';
+    end = hex(end, (unsigned)info->si_overrun, 4);
+    *end++ = '\n';
+    if (write(samples, row, (size_t)(end-row)) != end-row) _exit(126);
+    errno = saved_errno;
+}
+
+static void start_thread_timer(timer_t *timer) {
+    thread_id = (unsigned)gettid();
+    struct sigevent event = {.sigev_notify=SIGEV_THREAD_ID, .sigev_signo=profile_signal};
+    event._sigev_un._tid = (int)thread_id;
+    if (timer_create(CLOCK_THREAD_CPUTIME_ID, &event, timer)) fail("timer_create");
+    struct itimerspec tick = {
+        .it_interval = {.tv_nsec = period_us * 1000},
+        .it_value = {.tv_nsec = period_us * 1000},
+    };
+    if (timer_settime(*timer, 0, &tick, NULL)) fail("timer_settime");
+}
+
+static void copy_maps(const char *prefix) {
+    char *name = NULL;
+    if (asprintf(&name, "%s.maps.txt", prefix) < 0) fail("maps path");
+    int out = open(name, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+    if (out < 0) fail("open output maps");
+    free(name);
+    int in = open("/proc/self/maps", O_RDONLY | O_CLOEXEC);
+    if (in < 0) fail("open process maps");
+    char buffer[8192];
+    ssize_t n;
+    while ((n=read(in,buffer,sizeof(buffer)))>0) {
+        if (write(out, buffer, n) != n) fail("write process maps");
+    }
+    if (n<0) fail("read process maps");
+    close(in);
+    close(out);
+}
+
+__attribute__((constructor)) static void initialize_sampler(void) {
+    const char *prefix = getenv("SOL2_PROFILE_PREFIX");
+    if (!prefix || !*prefix) return;
+    char *name = NULL;
+    if (asprintf(&name, "%s.samples.txt", prefix) < 0) fail("samples path");
+    samples = open(name, O_WRONLY | O_CREAT | O_EXCL | O_APPEND | O_CLOEXEC, 0600);
+    if (samples < 0) fail("open output samples");
+    free(name);
+    copy_maps(prefix);
+    profile_signal = SIGRTMIN + 6;
+    struct sigaction action = {.sa_sigaction=sample, .sa_flags=SA_SIGINFO | SA_RESTART};
+    sigemptyset(&action.sa_mask);
+    if (sigaction(profile_signal, &action, NULL)) fail("sigaction");
+    timer_t timer;
+    start_thread_timer(&timer);
+    fprintf(stderr, "SOL2 sampler: per-thread CLOCK_THREAD_CPUTIME_ID, period %ld us, signal %d\n", period_us, profile_signal);
+}
+
+struct launch {
+    void *(*entry)(void *);
+    void *arg;
+};
+
+static void *start_sampled_thread(void *opaque) {
+    struct launch request = *(struct launch *)opaque;
+    free(opaque);
+    timer_t timer;
+    start_thread_timer(&timer);
+    void *result = request.entry(request.arg);
+    if (timer_delete(timer)) fail("timer_delete");
+    return result;
+}
+
+int pthread_create(pthread_t *id, const pthread_attr_t *attrs, void *(*entry)(void *), void *arg) {
+    int (*real_create)(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *) = dlsym(RTLD_NEXT, "pthread_create");
+    if (!real_create) {
+        errno = ENOSYS;
+        fail("pthread_create symbol");
+    }
+    if (samples < 0) return real_create(id, attrs, entry, arg);
+    struct launch *request = malloc(sizeof(*request));
+    if (!request) return ENOMEM;
+    *request = (struct launch){entry,arg};
+    int rc = real_create(id, attrs, start_sampled_thread, request);
+    if (rc) free(request);
+    return rc;
+}

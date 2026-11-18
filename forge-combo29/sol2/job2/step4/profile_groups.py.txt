@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Aggregate exclusive samples by innermost classified DWARF frame.
+
+This is source attribution, not inclusive call-stack accounting. A called
+function outside the inline stack is classified separately. Unresolved PCs
+and unattributed runtime use the all-samples denominator.
+"""
+from collections import Counter, defaultdict
+from pathlib import Path
+import argparse
+import csv
+import re
+
+
+GROUPS = (
+    ('Evaluation (NNUE v3)', r'forge::nnue::v3::|(?:^|/)nnue_v3\.cpp:\d+|Worker::(?:static_evaluate_v3|record_(?:null_)?move)\('),
+    ('Draw and repetition checks', r'Worker::(?:is_draw|draw_leaf_score)\(|Board::(?:[^(:]*repetition|is_insufficient_material|has_legal_move)\('),
+    ('Hash table', r'TranspositionTable::|TTEntry::|Worker::(?:prefetch_tt|probe_tt|store_tt)\('),
+    ('Move generation and legality', r'Board::(?:generate_[^(:]*legal[^(:]*|pseudo_legal_moves|legal_moves|is_(?:pseudo_)?legal[^(:]*|refresh_king_lines|compute_checkers|square_attacked[^(:]*|attackers_to|gives_check[^(:]*)\(|fill_pseudo_legal|emit_(?:moves|promotions)|forge::attacks::'),
+    ('Move ordering and picking', r'MovePicker::|Worker::(?:quiet_history|capture_history_value|threat_quiet_bonus|update_(?:quiet_stats|capture_stats|threat_quiet|continuation))\(|\bquiet_history_sum\('),
+    ('UCI and input/output', r'(?:^|/)uci\.cpp:\d+|Board::(?:parse_uci|move_to_uci|set_fen|fen)\(|\b(?:parse_go_limits|report_limits)\('),
+    ('Board updates and position keys', r'Board::(?:make_move|unmake_move|make_null_move|unmake_null_move|key_after|compute_key|compute_pawn_key|put_piece|remove_piece|move_piece)\('),
+    ('Static exchange evaluation', r'Board::(?:see_ge|static_exchange)\('),
+    ('Search control', r'\b(?:Worker|Searcher)::|(?:^|/)search\.cpp:\d+'),
+)
+
+
+def group(inline_frames, image):
+    frames = [item.rsplit(' @ ', 1) for item in inline_frames.split(' | ')]
+    control = None
+    for name, source in frames:
+        value = f'{name}\t{source}'
+        for label, pattern in GROUPS:
+            if re.search(pattern, value):
+                if label == 'Search control':
+                    # Try more specific enclosing frames before fallback.
+                    control = label
+                    break
+                return label
+    if control:
+        return control
+    if frames[0][0] == '??':
+        return 'Unresolved'
+    if image.endswith('/forge'):
+        return 'Other engine work'
+    return 'Other runtime and libraries'
+
+
+def table(path, header, rows):
+    with path.open('x', newline='') as out:
+        writer = csv.writer(out, delimiter='\t', lineterminator='\n')
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('symbols', type=Path, help='directory produced by symbolize.py')
+    args = parser.parse_args()
+    by_group = Counter()
+    by_func = Counter()
+    lines = defaultdict(Counter)
+    with (args.symbols / 'symbolized_pcs.tsv').open(newline='') as file:
+        for row in csv.DictReader(file, delimiter='\t'):
+            count = int(row['samples'])
+            label = group(row['inline_frames'], row['image'])
+            by_group[label] += count
+            func = row['outer_function']
+            if func == '??':
+                continue
+            key = (func, Path(row['image']).name)
+            by_func[key] += count
+            lines[key][row['outer_source']] += count
+    total = sum(by_group.values())
+    def share(count):
+        return f'{100 * count / total:.6f}'
+    assert total > 0
+    table(args.symbols / 'groups.tsv', ('group', 'samples', 'percent_of_all_samples'),
+          [(label, count, share(count)) for label, count in by_group.most_common()])
+    rows = [(func, image, lines[(func, image)].most_common(1)[0][0], count, share(count))
+            for (func, image), count in by_func.most_common(15)]
+    table(args.symbols / 'top15.tsv', ('function', 'image', 'modal_sample_source_line', 'samples', 'percent_of_all_samples'), rows)
+    for label, count in by_group.most_common():
+        print(f'{label}\t{count}\t{share(count)}')
+
+
+if __name__ == '__main__':
+    main()

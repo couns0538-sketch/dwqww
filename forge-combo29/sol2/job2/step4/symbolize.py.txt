@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Convert a process's samples and executable maps to GNU addr2line frames."""
+from collections import Counter, defaultdict
+import argparse
+import csv
+from pathlib import Path
+import re
+import struct
+import subprocess
+
+
+def executable_segments(path):
+    with open(path, 'rb') as binary:
+        header = binary.read(64)
+        if not header.startswith(b'\x7fELF\x02\x01'):
+            raise ValueError(f'{path} is not little-endian ELF64')
+        offset = struct.unpack_from('<Q', header, 32)[0]
+        size, count = struct.unpack_from('<HH', header, 54)
+        binary.seek(offset)
+        for _ in range(count):
+            typ, flags, foff, vaddr, _, filesz, _, alignment = struct.unpack_from('<IIQQQQQQ', binary.read(size))
+            if typ == 1 and flags & 1:
+                yield foff, vaddr, filesz, alignment
+
+
+def link_address(path, offset):
+    for foff, vaddr, filesz, alignment in executable_segments(path):
+        if foff - foff % alignment <= offset < foff + filesz:
+            return vaddr + offset - foff
+    raise ValueError(f'No executable ELF segment at file offset {offset:#x} in {path}')
+
+
+def parse_maps(file):
+    for line in file.read_text().splitlines():
+        row = line.split(maxsplit=5)
+        bounds, access, offset, *_ = row
+        if 'x' not in access:
+            continue
+        start, end = (int(value, 16) for value in bounds.split('-'))
+        image = row[5] if len(row) == 6 else '[anonymous]'
+        yield start, end, int(offset, 16), image
+
+
+def caller_frames(path, addresses):
+    words = subprocess.check_output(
+        ['addr2line', '-a', '-f', '-C', '-i', '-e', path],
+        input=''.join(f'{address:x}\n' for address in sorted(addresses)), text=True,
+    ).splitlines()
+    frames = {}
+    pending = None
+    for word in words:
+        if re.fullmatch(r'0x[0-9a-f]+', word):
+            pending = None
+            stack = frames.setdefault(int(word, 16), [])
+        elif pending is None:
+            pending = word
+        else:
+            stack.append((pending, word.split(' (discriminator ')[0]))
+            pending = None
+    if frames.keys() != set(addresses) or any(not frame for frame in frames.values()):
+        raise RuntimeError(f'Incomplete addr2line output for {path}')
+    return frames
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('prefix', help='input prefix for .maps.txt and .samples.txt')
+    parser.add_argument('output', type=Path, help='output directory for exact PCs and aggregate TSVs')
+    arguments = parser.parse_args()
+    sample_count = Counter()
+    thread_count = Counter()
+    overruns = 0
+    for line in Path(arguments.prefix + '.samples.txt').read_text().splitlines():
+        tid, address, overrun = (int(value, 16) for value in line.split('\t'))
+        sample_count[address] += 1
+        thread_count[tid] += 1
+        overruns += overrun
+    total = sum(sample_count.values())
+    if not total:
+        raise RuntimeError('Zero CPU samples')
+
+    maps = list(parse_maps(Path(arguments.prefix + '.maps.txt')))
+    paths = defaultdict(set)
+    sites = {}
+    for pc in sample_count:
+        matches = [(image, fileoff + pc - start) for start, end, fileoff, image in maps if start <= pc < end]
+        image, offset = matches[0] if len(matches) == 1 else ('[unmapped]', None)
+        if image.startswith('/') and Path(image).is_file():
+            address = link_address(image, offset)
+            paths[image].add(address)
+        else:
+            address = None
+        sites[pc] = image, address
+    decoded = {path: caller_frames(path, addresses) for path, addresses in paths.items()}
+
+    by_leaf = Counter()
+    by_outer = Counter()
+    by_source = Counter()
+    args = arguments.output
+    args.mkdir(parents=True, exist_ok=True)
+    with (args / 'symbolized_pcs.tsv').open('x', newline='') as file:
+        writer = csv.writer(file, delimiter='\t', lineterminator='\n')
+        writer.writerow(('pc', 'samples', 'image', 'link_address', 'leaf_function', 'leaf_source', 'outer_function', 'outer_source', 'inline_frames'))
+        for pc, count in sample_count.most_common():
+            path, address = sites[pc]
+            frames = decoded[path][address] if address is not None else [('??', '??:0')]
+            leaf, leaf_source = frames[0]
+            outer, outer_source = frames[-1]
+            writer.writerow((f'{pc:#x}', count, path, f'{address:#x}' if address is not None else '', leaf, leaf_source, outer, outer_source,
+                             ' | '.join(f'{name} @ {source}' for name, source in frames)))
+            by_leaf[(path, leaf)] += count
+            by_outer[(path, outer)] += count
+            by_source[(path, leaf, leaf_source)] += count
+    for label, groups in [('leaf_functions', by_leaf), ('outer_functions', by_outer), ('leaf_source_lines', by_source)]:
+        with (args / f'{label}.tsv').open('x', newline='') as file:
+            writer = csv.writer(file, delimiter='\t', lineterminator='\n')
+            writer.writerow(('samples', 'percent_of_all_samples', 'image', 'function', *(('source',) if label == 'leaf_source_lines' else ())))
+            for attribution, count in groups.most_common():
+                writer.writerow((count, f'{100 * count / total:.6f}', *attribution))
+    with (args / 'sampler_summary.txt').open('x') as file:
+        print(f'samples {total}\nreported_timer_overruns {overruns}\ndistinct_PC {len(sample_count)}\nthreads {len(thread_count)}', file=file)
+        for tid, count in thread_count.most_common():
+            print(f'thread {tid} samples {count}', file=file)
+    print(f'{total} CPU instruction-pointer samples across {len(thread_count)} threads; reported timer overruns {overruns}')
+
+
+if __name__ == '__main__':
+    main()
