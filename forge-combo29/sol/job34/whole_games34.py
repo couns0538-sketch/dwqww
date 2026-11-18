@@ -80,7 +80,7 @@ def setup(engine, options, meta):
     print(meta['active_line'], flush=True)
 
 
-def play_game(engine, opening, book_line, search, stopped, current):
+def play_game(engine, opening, book_line, search, stopped, current, missing_info=None):
     board = chess.Board(opening)
     engine.send('ucinewgame')
     engine.send('isready')
@@ -105,22 +105,31 @@ def play_game(engine, opening, book_line, search, stopped, current):
         engine.send(position)
         engine.send(search)
         output = engine.until('bestmove')
-        last_info = next((line for line in reversed(output) if line.startswith('info ')), '')
+        if missing_info is None:
+            last_info = next((line for line in reversed(output) if line.startswith('info ')), '')
+        else:
+            last_info = next((line for line in reversed(output) if line.split(maxsplit=1)[:1] == ['info']), '')
         node_fields = NODES_FIELD.findall(last_info)
         words = output[-1].split()
-        if len(node_fields) != 1 or len(words) < 2:
+        info_absent = missing_info is not None and not last_info
+        if (len(node_fields) != 1 and not info_absent) or len(words) < 2:
             raise RuntimeError(f'missing last-info nodes or bestmove: {output[-4:]}')
-        move_text, nodes = words[1], int(node_fields[0])
+        move_text = words[1]
         move = chess.Move.from_uci(move_text)
         if move not in board.legal_moves:
             raise RuntimeError(f'illegal bestmove {move_text} from {position}')
         board.push(move)
         moves.append(move_text)
+        if info_absent:
+            nodes = 'NA'
+            missing_info.append(dict(book_line=book_line, ply=ply, position=position, received=output))
+        else:
+            nodes = int(node_fields[0])
+            sum_nodes += nodes
+            kind = 'softnodes' if last_info.startswith('info string softnodes nodes ') else last_info.split(maxsplit=2)[1]
+            info_kinds[kind] += 1
+            last_info_sample = last_info_sample or last_info
         records.append(f'{book_line} {ply} {move_text} {nodes}\n')
-        sum_nodes += nodes
-        kind = 'softnodes' if last_info.startswith('info string softnodes nodes ') else last_info.split(maxsplit=2)[1]
-        info_kinds[kind] += 1
-        last_info_sample = last_info_sample or last_info
     return records, sum_nodes, ending, info_kinds, last_info_sample
 
 
@@ -156,6 +165,10 @@ def run(args):
         'last_info_nodes_sum': 0, 'info_line_kinds': info_kinds, 'games': [],
         'deadline_epoch': args.deadline, 'start_utc': utc_now(), 'status': 'incomplete',
     }
+    if args.record_missing_info:
+        meta['record_format'] += ' (NA when no info line was received)'
+        meta['missing_info_count'] = 0
+        meta['missing_info'] = []
     current = {'book_line': None, 'ply': None}
     requested_signal = None
 
@@ -178,7 +191,8 @@ def run(args):
                             break
                         current = {'book_line': book_line, 'ply': None}
                         game_start = time.monotonic_ns()
-                        result = play_game(engine, fen, book_line, search, stopped, current)
+                        missing_info = [] if args.record_missing_info else None
+                        result = play_game(engine, fen, book_line, search, stopped, current, missing_info)
                         if result is None:
                             break
                         records, sum_nodes, ending, kinds, sample = result
@@ -192,6 +206,9 @@ def run(args):
                         meta['games_completed'] += 1
                         meta['positions_completed'] += len(records)
                         meta['last_info_nodes_sum'] += sum_nodes
+                        if missing_info:
+                            meta['missing_info_count'] += len(missing_info)
+                            meta['missing_info'].extend(missing_info)
                         if meta['games_completed'] % 25 == 0:
                             print(f"{args.output.name}: completed {meta['games_completed']}/{len(work)} games through book line {book_line}", flush=True)
             if meta['games_completed'] == len(work):
@@ -213,6 +230,8 @@ def run(args):
                 signal.signal(sig, previous)
     print(f"{args.output.name}: {meta['status']}, {meta['games_completed']}/{len(work)} complete games, "
           f"{meta['positions_completed']} records, {meta['last_info_nodes_sum']} last-info nodes", flush=True)
+    if args.record_missing_info:
+        print(f"{args.output.name}: {meta['missing_info_count']} records with no info line", flush=True)
     return {'complete': 0, 'cut': 130}.get(meta['status'], 1)
 
 
@@ -227,6 +246,7 @@ def main():
     parser.add_argument('--expected-engine-sha')
     parser.add_argument('--deadline', type=float, help='absolute UTC epoch for the shared run cutoff')
     parser.add_argument('--timeout', type=float, default=15, help='seconds allowed per UCI response')
+    parser.add_argument('--record-missing-info', action='store_true', help='record NA only when bestmove arrives without any info line')
     args = parser.parse_args()
     if not 1 <= args.first <= args.last or args.timeout <= 0:
         parser.error('line range and timeout must be positive')

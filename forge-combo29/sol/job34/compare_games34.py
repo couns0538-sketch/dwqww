@@ -4,7 +4,7 @@
 import argparse
 from dataclasses import dataclass
 from hashlib import sha256
-from itertools import islice
+from itertools import islice, zip_longest
 import json
 from pathlib import Path
 import re
@@ -144,6 +144,14 @@ def summarize(book, left, right, first, last):
             "left_result": row_left,
             "right_result": row_right,
         }
+    first_stream_record = None
+    if left.raw != right.raw:
+        # A cutoff can change file length without changing any common game's records.
+        stream = zip_longest(left.raw.decode("ascii").splitlines(), right.raw.decode("ascii").splitlines())
+        for number, (a, b) in enumerate(stream, 1):
+            if a != b:
+                first_stream_record = {"record_number": number, "left_record": a, "right_record": b}
+                break
     return {
         "left": left.receipt(),
         "right": right.receipt(),
@@ -158,6 +166,7 @@ def summarize(book, left, right, first, last):
         "node_columns_equal": left_keys == right_keys and equal_nodes,
         "common_node_columns_equal": equal_nodes,
         "first_differing_common_record": first_difference,
+        "first_differing_stream_record": first_stream_record,
     }
 
 
@@ -187,6 +196,10 @@ def display(summary):
             print(f"- {name.capitalize()} `{first[f'{name}_record'] or '<no record>'}`")
         print(f"- Opening `{first['fen']}`")
         print(f"- Moves already played `{(' '.join(first['prior_moves'])) or '<none>'}`")
+    elif (stream := summary["first_differing_stream_record"]) is not None:
+        print(f"\nFirst differing record-file line {stream['record_number']} reflects incomplete coverage.")
+        for name in ("left", "right"):
+            print(f"- {name.capitalize()} `{stream[f'{name}_record'] or '<no record>'}`")
 
 
 def main():

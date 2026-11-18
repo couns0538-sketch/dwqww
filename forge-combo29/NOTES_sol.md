@@ -269,3 +269,7 @@ Job 32 applied Astra5's exact NullMateGuard patch to scratch H. All H/HG pins, a
 ## After Job 33 — 2026-11-18T22:36:49Z
 
 On unchanged HG with PC20, keep 1024, Threads 1, Hash 16 and embedded AL1 s198, guard 2 versus 0 scored +1.39 Elo [−6.18, +8.96] at 20,000 nodes per move in 2,000 M7 games. The complete M6+M7 pool was +0.52 [−4.77, +5.81] in 4,000 games, LEVEL. The completed 500-game 80,000-node M8 scored +2.78 [−13.57, +19.13], LEVEL. Astra5's separate guard pools were +3.69 [−2.34,+9.72] at 20,000 (3,200 games) and −2.90 [−10.34,+4.55] at 80,000 (2,400 games). No cuts, both controls passed, all four forecast cells met. [Job 33 report](REPORT_sol_job33.md)
+
+## After Job 34 — 2026-11-18T22:55:10Z
+
+Job 34 rebuilt r15d and kF with clean patch applications and 29/29 source pins each. Both used GCC 14.2.0 native cloud builds, PC20, Threads 1, Hash 16 and synthetic net768 `30ab43b4ba5db5f3`. The 1,000-game `go softnodes 2000` T1 streams were IDENTICAL, 117,462 records and 489,799,089 last-info nodes per build. Strict `go nodes 2000` T2 streams matched all 196 completed games, then both gave `bestmove c6c5` with no `info` at book line 2197, ply 57. A full 200-game diagnostic on each verified the same 22,923 move records and all 22,922 emitted node fields, including the same explicitly missing field in both. No node count was inferred. [Job 34 report](REPORT_sol_job34.md)
