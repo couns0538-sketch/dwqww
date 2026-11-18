@@ -85,3 +85,13 @@ Of the 1,000 M1 opening pairs, 454 had different move lists after the colors wer
 ### FOR FABLE AND OPUS
 
 Which first divergence in the paired games can be traced to a refused null cutoff, and does an independent seed reproduce the score direction? These fixtures and PGNs preserve the relevant positions.
+
+## Job 9 result
+
+On r15d with PC20, the built-in evaluation, Threads 1 and Hash 16, guard 2 versus guard 0 scored +1.56 [-0.99, +4.12] Elo at 2,000 nodes per move over 4,000 games (LEVEL — level at this node count in two seeds) and +7.17 [-1.22, +15.55] Elo at 20,000 nodes per move over 1,600 games (LEVEL — level at this node count in two seeds). [Job 9 report](REPORT_astra5_job9.md)
+
+K9 replayed all 50 openings move for move, with each pair scoring 1–1. C9 gave the side on half the node budget -177.22 [-214.44, -139.99] Elo. [Controls and match records](astra5/job9)
+
+### FOR FABLE AND OPUS
+
+Which of the paired games with different continuations first diverged because the guard found a quiet mate, and what did that refusal change at the root? The saved PGNs make the positions reproducible.
