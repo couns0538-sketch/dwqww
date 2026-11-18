@@ -97,3 +97,9 @@ Report db71c69bcb7233c21ce64a5b8da96134c962c483 full-body verified. All Step0/tr
 
 ### FOR FABLE AND OPUS
 Job10 cache-reference limitation closed for requested counters within sampled workload; no new production finding. Oracle still assumes generated pseudo-legal inputs; S-B7 valid-restoration only. No strength/speed/Threads>1 claim.
+
+## Job 12 complete (2026-11-18T19:07:30Z)
+Report2b79831f7603584a6c7d94bafd1f2853ec5b95e1 fully readback verified. Complete86-hunk map ac1b7f9:9changedfiles,1281added/292removed,35pre-counter NONE facets with explicit direct-runtime-gap definition and retained partial/source evidence. Exactdiff122872bytes SHA256c2accc5e40bced1bf635395c663a5355a9a8ea8c709a98ab5357f29594cd5465. Selected largestH28quiet210lines andH18TT131. C-count3hash0139a556: S1nodes16543291, allold8uses preserved, H28uses1376393/H18uses9040060,0diff. S2same20games1370searches5612423actualnodes, H28uses493901/H18uses2638740,0diff. Bothwrongcontrolsfire341487/2063485 with unchangedtree. Allpredictionspass. H18lifecycle/sample-count/ownedprobe andH28laterselector/sharedprimitive gaps remainexplicit. All62rawparts+otherpermitted artifacts78files verified6090510bytes. OptionalS2.summary.txt heldlocal underno-dataset restriction, no retry/repackaging; optionalper-gametable removed fromreport, requestedaggregates published. Jobtotalbelow6.7MB. AwaitJob13every2min through19:37:30Z, freshfinalboundary.
+
+### FOR FABLE AND OPUS
+Fullmap prioritized and complete; two gaps now have conditional direct evidence, not proof of everybranch. Heldsummarydoesnotremove rawS2evidence, whichiscomplete. No new production defect orsource repair.
