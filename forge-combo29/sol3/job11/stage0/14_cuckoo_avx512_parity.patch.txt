@@ -1,0 +1,293 @@
+--- a/include/forge/board.hpp	2026-11-18 11:30:37.280049697 +0000
++++ b/include/forge/board.hpp	2026-11-18 11:59:02.456049697 +0000
+@@ -263,6 +263,7 @@
+     [[nodiscard]] std::uint64_t key() const { return key_; }
+     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
+     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
++    [[nodiscard]] int plies_from_null() const { return plies_from_null_; }
+     [[nodiscard]] int fullmove_number() const { return fullmove_; }
+     [[nodiscard]] int ep_square() const { return ep_square_; }
+     [[nodiscard]] std::uint8_t castling_rights() const { return castling_; }
+@@ -293,6 +294,7 @@
+     // Plies since the last null move; bounds search-level repetition scans.
+     std::uint16_t plies_from_null_ = 1024;
+     std::vector<std::uint64_t> key_history_;
++    std::array<std::vector<std::uint64_t>, 2> opp_prefix_{};
+ #if FORGE_SPD_KING_LINES
+     // Lazily computed for the current position; invalidated by every make and
+     // restored by every unmake (each search thread owns its Board copy).
+--- a/src/board.cpp	2026-11-18 11:30:37.284049697 +0000
++++ b/src/board.cpp	2026-11-18 11:59:02.456049697 +0000
+@@ -7,6 +7,9 @@
+ #include <cstdlib>
+ #include <sstream>
+ #include <utility>
++#if defined(__AVX512F__)
++#include <immintrin.h>
++#endif
+ 
+ // FORGE_SDK_SEE_HOIST (SDK long job 2026-11-06; default 0 = the code before it): see_ge() builds each side's
+ // king-contact and king-line slider sets once per call instead of at every exchange step, and skips the pin
+@@ -183,6 +186,8 @@
+ Board::Board() {
+     attacks::init();
+     key_history_.reserve(512);
++    opp_prefix_[0].reserve(256);
++    opp_prefix_[1].reserve(256);
+     (void)set_fen(StandardStartFen);
+ }
+ 
+@@ -365,6 +370,10 @@
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
+     candidate.key_history_.push_back(candidate.key_);
++    candidate.opp_prefix_[0].clear();
++    candidate.opp_prefix_[0].push_back(0ULL);
++    candidate.opp_prefix_[1].clear();
++    candidate.opp_prefix_[1].push_back(0ULL);
+     *this = std::move(candidate);
+     return true;
+ }
+@@ -1294,6 +1303,11 @@
+                     (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
+     }
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
++    {
++        const std::size_t ply_idx = key_history_.size();
++        auto& pv = opp_prefix_[ply_idx & 1U];
++        pv.push_back(pv.back() ^ (undo.key ^ key_ ^ Z.side));
++    }
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+     king_lines_.valid = false;
+@@ -1302,6 +1316,7 @@
+ }
+ 
+ void Board::unmake_move(const Move& move, const Undo& undo) {
++    opp_prefix_[(key_history_.size() - 1U) & 1U].pop_back();
+     key_history_.pop_back();
+     side_ = opposite(side_);
+     const Color us = side_;
+@@ -1355,6 +1370,11 @@
+     halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
+     plies_from_null_ = 0;
+     checkers_ = 0;
++    {
++        const std::size_t ply_idx = key_history_.size();
++        auto& pv = opp_prefix_[ply_idx & 1U];
++        pv.push_back(pv.back() ^ (undo.key ^ key_ ^ Z.side));
++    }
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+     king_lines_.valid = false;
+@@ -1362,6 +1382,7 @@
+ }
+ 
+ void Board::unmake_null_move(const NullUndo& undo) {
++    opp_prefix_[(key_history_.size() - 1U) & 1U].pop_back();
+     key_history_.pop_back();
+     side_ = opposite(side_);
+     ep_square_ = undo.ep_square;
+@@ -1699,25 +1720,28 @@
+ 
+ constexpr std::size_t CuckooSlots = 8192;
+ 
+-struct CuckooMove {
+-    std::uint8_t piece = 0;  // Piece (never a pawn); 0 = empty slot
++struct alignas(16) CuckooSlot {
++    std::uint64_t key = 0;   // 0 = empty slot
++    std::uint8_t piece = 0;  // Piece (never a pawn)
+     std::uint8_t a = 0;      // lower square
+     std::uint8_t b = 0;      // higher square
++    std::uint8_t pad[5]{};
+ };
+ 
+ struct CuckooTable {
+-    std::array<std::uint64_t, CuckooSlots> keys{};  // 0 = empty slot
+-    std::array<CuckooMove, CuckooSlots> moves{};
++    std::array<CuckooSlot, CuckooSlots> slots{};
+     std::size_t entries = 0;
+-    bool complete = true;  // every insertion found a slot
++    bool complete = true;
+ };
+ 
+-// Two independent 13-bit slot indices from different halves of the key.
+-std::size_t cuckoo_slot_low(std::uint64_t key) { return static_cast<std::size_t>(key) & (CuckooSlots - 1); }
+-std::size_t cuckoo_slot_high(std::uint64_t key) { return static_cast<std::size_t>(key >> 32U) & (CuckooSlots - 1); }
++constexpr std::size_t cuckoo_slot_low(std::uint64_t key) noexcept {
++    return static_cast<std::size_t>(key) & (CuckooSlots - 1);
++}
++constexpr std::size_t cuckoo_slot_high(std::uint64_t key) noexcept {
++    return static_cast<std::size_t>(key >> 32U) & (CuckooSlots - 1);
++}
+ 
+-// Whether a piece of this type connects squares a and b on an empty board.
+-bool reversible_step(int type, int a, int b) {
++constexpr bool reversible_step(int type, int a, int b) noexcept {
+     const int df = file_of(a) - file_of(b);
+     const int dr = rank_of(a) - rank_of(b);
+     const int files = df < 0 ? -df : df;
+@@ -1734,13 +1758,11 @@
+     }
+ }
+ 
+-std::uint64_t reversible_move_key(int piece, int a, int b) {
++constexpr std::uint64_t reversible_move_key(int piece, int a, int b) noexcept {
+     return piece_key(a, static_cast<Piece>(piece)) ^ piece_key(b, static_cast<Piece>(piece)) ^ Z.side;
+ }
+ 
+-// Cuckoo hashing with two candidate slots per key: an insertion takes its first slot and evicts the occupant,
+-// which moves to its other slot, and so on.
+-CuckooTable build_cuckoo_table() {
++constexpr CuckooTable build_cuckoo_table() {
+     CuckooTable table{};
+     for (int piece = WN; piece <= BK; ++piece) {
+         const int type = piece_type(static_cast<Piece>(piece));
+@@ -1748,19 +1770,19 @@
+         for (int a = 0; a < 64; ++a) {
+             for (int b = a + 1; b < 64; ++b) {
+                 if (!reversible_step(type, a, b)) continue;
+-                std::uint64_t key = reversible_move_key(piece, a, b);
+-                CuckooMove move{static_cast<std::uint8_t>(piece), static_cast<std::uint8_t>(a),
+-                                static_cast<std::uint8_t>(b)};
+-                if (key == 0) table.complete = false;
+-                std::size_t slot = cuckoo_slot_low(key);
+-                for (int evictions = 0; key != 0; ++evictions) {
++                CuckooSlot cur{reversible_move_key(piece, a, b),
++                               static_cast<std::uint8_t>(piece),
++                               static_cast<std::uint8_t>(a),
++                               static_cast<std::uint8_t>(b)};
++                if (cur.key == 0) table.complete = false;
++                std::size_t slot = cuckoo_slot_low(cur.key);
++                for (int evictions = 0; cur.key != 0; ++evictions) {
+                     if (evictions > 4096) {
+                         table.complete = false;
+                         break;
+                     }
+-                    std::swap(table.keys[slot], key);
+-                    std::swap(table.moves[slot], move);
+-                    slot = slot == cuckoo_slot_low(key) ? cuckoo_slot_high(key) : cuckoo_slot_low(key);
++                    std::swap(table.slots[slot], cur);
++                    slot = slot == cuckoo_slot_low(cur.key) ? cuckoo_slot_high(cur.key) : cuckoo_slot_low(cur.key);
+                 }
+                 ++table.entries;
+             }
+@@ -1769,59 +1791,76 @@
+     return table;
+ }
+ 
+-// Built once at program start (Z is a constant, so it is ready before this runs).
+-const CuckooTable CuckooMoves = build_cuckoo_table();
+-// 2 colours x (N 168 + B 280 + R 448 + Q 728 + K 210) = 3,668 reversible moves.
+-const bool CuckooOk = CuckooMoves.complete && CuckooMoves.entries == 3668;
++constexpr CuckooTable CuckooMoves = build_cuckoo_table();
++static_assert(CuckooMoves.complete && CuckooMoves.entries == 3668);
+ 
+-const CuckooMove* cuckoo_find(std::uint64_t key) {
++[[nodiscard]] inline const CuckooSlot* cuckoo_find(std::uint64_t key) noexcept {
+     if (key == 0) return nullptr;
+     std::size_t slot = cuckoo_slot_low(key);
+-    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
++    if (CuckooMoves.slots[slot].key == key) return &CuckooMoves.slots[slot];
+     slot = cuckoo_slot_high(key);
+-    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
++    if (CuckooMoves.slots[slot].key == key) return &CuckooMoves.slots[slot];
+     return nullptr;
+ }
+ 
+ } // namespace
+ 
+ bool Board::upcoming_repetition(std::size_t root_index) const {
+-    if (!CuckooOk) return false;
+-    // After one more reversible move, is_repetition(root_index) of the new position scans its earlier positions at
+-    // even distances 4 .. span, where span is the smaller of its halfmove clock, its plies since a null move (both
+-    // one more than here, with the same saturation as make_move) and its number of earlier positions. Seen from
+-    // here those are the odd distances 3 .. span-1.
+     const std::size_t size = key_history_.size();
+     const std::size_t clock = std::min<std::size_t>(static_cast<std::size_t>(halfmove_) + 1, 65535);
+     const std::size_t since_null = std::min<std::size_t>(static_cast<std::size_t>(plies_from_null_) + 1, 1024);
+     const std::size_t span = std::min(std::min(clock, since_null), size);
+     if (span < 4) return false;
++
+     const std::uint64_t* const keys = key_history_.data();
+     const std::size_t now = size - 1;
+-    // Running XOR of the opponent's move deltas (one ply each, side key removed) between the candidate earlier
+-    // position and now.
+-    std::uint64_t opponent = keys[now] ^ keys[now - 1] ^ Z.side;
+-    for (std::size_t distance = 3; distance < span; distance += 2) {
+-        opponent ^= keys[now - distance + 1] ^ keys[now - distance] ^ Z.side;
+-        if (opponent != 0) continue;
+-        const std::uint64_t earlier = keys[now - distance];
+-        const CuckooMove* const move = cuckoo_find(key_ ^ earlier);
+-        if (move == nullptr) continue;
+-        const Piece piece = static_cast<Piece>(move->piece);
+-        if (color_of(piece) != side_) continue;
+-        int from = move->a;
+-        int to = move->b;
++    const std::size_t max_steps = (span - 2U) >> 1U;
++    const auto& pv = opp_prefix_[now & 1U];
++    const std::uint64_t* const pdata = pv.data();
++    const std::ptrdiff_t top_r = static_cast<std::ptrdiff_t>(pv.size()) - 1;
++    const std::uint64_t target = pdata[top_r];
++    const std::ptrdiff_t r_hi = top_r - 2;
++    const std::ptrdiff_t r_lo = top_r - 1 - static_cast<std::ptrdiff_t>(max_steps);
++    const std::size_t earlier_parity = (now & 1U) ^ 1U;
++
++    auto check_candidate = [&](std::ptrdiff_t r) -> bool {
++        const std::size_t earlier_idx = (static_cast<std::size_t>(r) << 1U) | earlier_parity;
++        const std::uint64_t earlier = keys[earlier_idx];
++        const CuckooSlot* const slot = cuckoo_find(key_ ^ earlier);
++        if (slot == nullptr) return false;
++        const Piece piece = static_cast<Piece>(slot->piece);
++        if (color_of(piece) != side_) return false;
++        int from = slot->a;
++        int to = slot->b;
+         if (squares_[static_cast<std::size_t>(from)] != piece) std::swap(from, to);
+         if (squares_[static_cast<std::size_t>(from)] != piece || squares_[static_cast<std::size_t>(to)] != Empty ||
+             (attacks::between(from, to) & occupied()) != 0) {
+-            continue;
++            return false;
+         }
+-        // As in is_repetition(root_index): one occurrence at or after the root is a draw; before the root a second
+-        // occurrence inside the window is needed.
+-        if (now - distance >= root_index) return true;
++        if (earlier_idx >= root_index) return true;
++        const std::size_t distance = now - earlier_idx;
+         for (std::size_t further = distance + 2; further < span; further += 2) {
+             if (keys[now - further] == earlier) return true;
+         }
++        return false;
++    };
++
++    std::ptrdiff_t r = r_hi;
++#if defined(__AVX512F__)
++    const __m512i v_target = _mm512_set1_epi64(static_cast<long long>(target));
++    while (r - r_lo >= 7) {
++        const __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(pdata + (r - 7)));
++        unsigned mask = static_cast<unsigned>(_mm512_cmpeq_epi64_mask(v, v_target));
++        while (mask != 0U) {
++            const int hi_lane = 31 - __builtin_clz(mask);
++            if (check_candidate(r - 7 + hi_lane)) return true;
++            mask ^= (1U << hi_lane);
++        }
++        r -= 8;
++    }
++#endif
++    for (; r >= r_lo; --r) {
++        if (pdata[r] == target && check_candidate(r)) return true;
+     }
+     return false;
+ }
+--- a/src/search.cpp	2026-11-18 11:30:37.304049697 +0000
++++ b/src/search.cpp	2026-11-18 11:59:02.456049697 +0000
+@@ -3043,7 +3043,9 @@
+ // score, the node fails high at once when beta is not above it, and its result is never below the draw.
+ namespace {
+ // A repetition needs at least three reversible plies.
+-[[nodiscard]] inline bool may_repeat(const Board& board) { return board.halfmove_clock() >= 3; }
++[[nodiscard]] inline bool may_repeat(const Board& board) {
++    return board.halfmove_clock() >= 3 && board.plies_from_null() >= 3 && board.history_size() >= 4;
++}
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
