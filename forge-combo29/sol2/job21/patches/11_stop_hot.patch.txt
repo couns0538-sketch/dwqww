@@ -1,0 +1,70 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-18 07:54:23.266998850 +0000
++++ b/include/forge/search.hpp	2026-11-18 08:06:27.442998850 +0000
+@@ -593,6 +593,7 @@
+     const nnue::v3::Net* v3_active_net_ = nullptr;
+ #endif
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
++    bool fast_single_node_stop_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+@@ -645,6 +646,15 @@
+ #endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
++    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++        if (fast_single_node_stop_) {
++            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++                return shared_.stop.load(std::memory_order_relaxed);
++            }
++            return should_stop();
++        }
++        return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    }
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 07:54:23.266998850 +0000
++++ b/src/search.cpp	2026-11-18 08:06:27.442998850 +0000
+@@ -2132,7 +2132,7 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -2284,7 +2284,7 @@
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -3260,6 +3260,9 @@
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+         time_managed_ = false;
+     }
++    fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 &&
++                             (all_workers_ == nullptr || all_workers_->size() == 1) &&
++                             node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+ 
+ #if FORGE_NNUE_V3
+     const bool use_v3_eval = v3_active_net_ != nullptr;
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-18 07:54:23.250998850 +0000
++++ b/src/uci.cpp	2026-11-18 08:06:27.442998850 +0000
+@@ -64,7 +64,7 @@
+     return tok;
+ }
+ 
+-void apply_position_sv(forge::Board& board, std::string_view input, PositionCache& cache) {
++[[gnu::hot]] void apply_position_sv(forge::Board& board, std::string_view input, PositionCache& cache) {
+     std::string_view token = next_uci_token(input);
+     if (token.empty()) return;
+     bool is_startpos = false;

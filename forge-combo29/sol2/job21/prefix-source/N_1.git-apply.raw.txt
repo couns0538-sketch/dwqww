@@ -1,0 +1,80 @@
+Start 2026-11-18T23:52:28.975431+00:00
+$ cd /workspace/work/sol2-job2/r15d
+$ sha256sum -c /workspace/work/sol2-job13/job9-r15d-29.sha256.txt
+CMakeLists.txt: OK
+include/forge/b4.hpp: OK
+include/forge/bitboard.hpp: OK
+include/forge/board.hpp: OK
+include/forge/book.hpp: OK
+include/forge/clock_plan.hpp: OK
+include/forge/eval.hpp: OK
+include/forge/eval_params.hpp: OK
+include/forge/nnue.hpp: OK
+include/forge/nnue_v3.hpp: OK
+include/forge/search.hpp: OK
+include/forge/tm_finish.hpp: OK
+include/forge/tm_node_share.hpp: OK
+include/forge/uci.hpp: OK
+include/forge/uci_clock.hpp: OK
+include/forge/uci_output.hpp: OK
+src/bitboard.cpp: OK
+src/board.cpp: OK
+src/book.cpp: OK
+src/book_data.inc: OK
+src/eval.cpp: OK
+src/eval_params.cpp: OK
+src/eval_params_table.inc: OK
+src/nnue.cpp: OK
+src/nnue_v3.cpp: OK
+src/nnue_weights.inc: OK
+src/polyglot_keys.inc: OK
+src/search.cpp: OK
+src/uci.cpp: OK
+exit=0
+$ cd /workspace/work/sol2-job21/.N_1.partial
+Patch 11_stop_hot.patch.txt
+$ git apply --no-index -p1 --whitespace=nowarn --stat /workspace/work/sol2-job21/patches/11_stop_hot.patch.txt
+ include/forge/search.hpp |   10 ++++++++++
+ src/search.cpp           |    7 +++++--
+ src/uci.cpp              |    2 +-
+ 3 files changed, 16 insertions(+), 3 deletions(-)
+exit=0
+$ git apply --no-index -p1 --whitespace=nowarn --check --verbose /workspace/work/sol2-job21/patches/11_stop_hot.patch.txt
+Checking patch include/forge/search.hpp...
+error: while searching for:
+    const nnue::v3::Net* v3_active_net_ = nullptr;
+#endif
+    bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
+
+#if FORGE_SPD_TT_NOTLS
+    // The six TT call sites of search / qsearch: one predictable branch per access.
+
+error: patch failed: include/forge/search.hpp:593
+error: include/forge/search.hpp: patch does not apply
+Checking patch src/search.cpp...
+Hunk #1 succeeded at 1766 (offset -366 lines).
+Hunk #2 succeeded at 1915 (offset -369 lines).
+error: while searching for:
+        soft_limit_ms_ = hard_limit_ms_ = 0;
+        time_managed_ = false;
+    }
+
+#if FORGE_NNUE_V3
+    const bool use_v3_eval = v3_active_net_ != nullptr;
+
+error: patch failed: src/search.cpp:3260
+error: src/search.cpp: patch does not apply
+Checking patch src/uci.cpp...
+error: while searching for:
+    return tok;
+}
+
+void apply_position_sv(forge::Board& board, std::string_view input, PositionCache& cache) {
+    std::string_view token = next_uci_token(input);
+    if (token.empty()) return;
+    bool is_startpos = false;
+
+error: patch failed: src/uci.cpp:64
+error: src/uci.cpp: patch does not apply
+exit=1
+11_stop_hot.patch.txt refused by git apply --check, exit 1. Scratch tree retained at /workspace/work/sol2-job21/.N_1.partial.

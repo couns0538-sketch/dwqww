@@ -1,0 +1,459 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 07:02:20.954998850 +0000
++++ b/src/search.cpp	2026-11-18 07:02:20.970998850 +0000
+@@ -1261,24 +1261,24 @@
+ void Worker::clear() {
+     stack_dirty_limit_ = MaxPly + 7;
+     evaluator_.clear();
+-    *main_history_ = ButterflyHistory{};
+-    *threat_history_ = ThreatQuietHistory{};
++    std::memset(main_history_.get(), 0, sizeof(*main_history_));
++    std::memset(threat_history_.get(), 0, sizeof(*threat_history_));
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+ #endif
+-    *capture_history_ = CaptureHistory{};
+-    *continuation_history_ = ContinuationHistory{};
+-    *counter_moves_ = CounterMoveTable{};
+-    *correction_history_ = CorrectionHistory{};
+-    *material_correction_ = CorrectionHistory{};
+-    *non_pawn_white_correction_ = CorrectionHistory{};
+-    *non_pawn_black_correction_ = CorrectionHistory{};
++    std::memset(capture_history_.get(), 0, sizeof(*capture_history_));
++    std::memset(continuation_history_.get(), 0, sizeof(*continuation_history_));
++    counter_moves_->fill({});
++    std::memset(correction_history_.get(), 0, sizeof(*correction_history_));
++    std::memset(material_correction_.get(), 0, sizeof(*material_correction_));
++    std::memset(non_pawn_white_correction_.get(), 0, sizeof(*non_pawn_white_correction_));
++    std::memset(non_pawn_black_correction_.get(), 0, sizeof(*non_pawn_black_correction_));
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+-    *rework_history_ = LesserThreatHistory{};
+-    *joint_correction_ = CorrectionHistory{};
+-    *continuation_correction_ = ContinuationCorrection{};
+-    threat_maps_ = {};
++    std::memset(rework_history_.get(), 0, sizeof(*rework_history_));
++    std::memset(joint_correction_.get(), 0, sizeof(*joint_correction_));
++    std::memset(continuation_correction_.get(), 0, sizeof(*continuation_correction_));
++    std::memset(threat_maps_.data(), 0, sizeof(threat_maps_));
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -3392,7 +3392,9 @@
+             });
+         }
+     }
+-    SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++    SearchInfo result = helpers.empty()
++        ? workers_.front()->search(std::move(board), worker_limits, emit_info, all)
++        : workers_.front()->search(board, worker_limits, emit_info, all);
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 20:43:42.885143771 +0000
++++ b/src/uci.cpp	2026-11-18 06:53:21.442998850 +0000
+@@ -43,48 +43,111 @@
+ struct PositionCache {
+     bool valid = false;
+     bool startpos = false;
+-    std::string base_fen;
+-    std::vector<std::string> moves;
++    int fen_count = 0;
++    std::array<std::string, 6> fen_parts{};
++    std::string canonical_moves;
+ };
+ 
+-void apply_position(forge::Board& board, std::istringstream& input, PositionCache& cache) {
+-    std::string token;
+-    if (!(input >> token)) return;
++[[nodiscard]] inline bool is_uci_ws(char c) noexcept {
++    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
++}
++
++[[nodiscard]] inline std::string_view next_uci_token(std::string_view& sv) noexcept {
++    std::size_t i = 0;
++    while (i < sv.size() && is_uci_ws(sv[i])) ++i;
++    sv.remove_prefix(i);
++    if (sv.empty()) return {};
++    std::size_t j = 0;
++    while (j < sv.size() && !is_uci_ws(sv[j])) ++j;
++    const std::string_view tok = sv.substr(0, j);
++    sv.remove_prefix(j);
++    return tok;
++}
++
++void apply_position_sv(forge::Board& board, std::string_view input, PositionCache& cache) {
++    std::string_view token = next_uci_token(input);
++    if (token.empty()) return;
+     bool is_startpos = false;
+-    std::string fen;
++    std::array<std::string_view, 6> fen_toks{};
++    int fen_n = 0;
+     if (token == "startpos") {
+         is_startpos = true;
+     } else if (token == "fen") {
+-        for (int i = 0; i < 6 && input >> token; ++i) {
+-            if (!fen.empty()) fen += ' ';
+-            fen += token;
++        for (; fen_n < 6; ++fen_n) {
++            const std::string_view ft = next_uci_token(input);
++            if (ft.empty()) break;
++            fen_toks[static_cast<std::size_t>(fen_n)] = ft;
+         }
+     } else {
+         return;
+     }
+ 
+-    std::vector<std::string> move_tokens;
+-    if (input >> token) {
+-        // A token other than "moves" is not part of the FEN.
+-        while (token != "moves") {
+-            if (!(input >> token)) break;
++    std::string_view moves_sv{};
++    token = next_uci_token(input);
++    if (!token.empty()) {
++        while (!token.empty() && token != "moves") {
++            token = next_uci_token(input);
+         }
+         if (token == "moves") {
+-            move_tokens.reserve(256);
+-            while (input >> token) move_tokens.push_back(std::move(token));
++            while (!input.empty() && is_uci_ws(input.front())) input.remove_prefix(1);
++            moves_sv = input;
+         }
+     }
+ 
+-    std::size_t start_idx = 0;
+-    const bool same_root = cache.valid && cache.startpos == is_startpos &&
+-                           (is_startpos || cache.base_fen == fen);
+-    if (same_root && cache.moves.size() <= move_tokens.size() &&
+-        std::equal(cache.moves.begin(), cache.moves.end(), move_tokens.begin())) {
+-        start_idx = cache.moves.size();
+-    } else {
++    bool same_root = cache.valid && cache.startpos == is_startpos;
++    if (same_root && !is_startpos) {
++        if (cache.fen_count != fen_n) {
++            same_root = false;
++        } else {
++            for (int k = 0; k < fen_n; ++k) {
++                if (cache.fen_parts[static_cast<std::size_t>(k)] != fen_toks[static_cast<std::size_t>(k)]) {
++                    same_root = false;
++                    break;
++                }
++            }
++        }
++    }
++
++    bool matched_prefix = false;
++    std::string_view tail_sv = moves_sv;
++    if (same_root) {
++        const std::string_view canon = cache.canonical_moves;
++        if (canon.empty()) {
++            matched_prefix = true;
++            tail_sv = moves_sv;
++        } else if (moves_sv.size() >= canon.size() &&
++                   moves_sv.substr(0, canon.size()) == canon &&
++                   (moves_sv.size() == canon.size() || is_uci_ws(moves_sv[canon.size()]))) {
++            matched_prefix = true;
++            tail_sv = moves_sv.substr(canon.size());
++        } else {
++            // Fallback for non-canonical whitespace between previously applied move tokens.
++            std::string_view cur_in = moves_sv;
++            std::string_view cur_ca = canon;
++            bool ok = true;
++            while (true) {
++                const std::string_view ct = next_uci_token(cur_ca);
++                if (ct.empty()) break;
++                const std::string_view it = next_uci_token(cur_in);
++                if (it != ct) { ok = false; break; }
++            }
++            if (ok) {
++                matched_prefix = true;
++                tail_sv = cur_in;
++            }
++        }
++    }
++
++    if (!matched_prefix) {
+         if (is_startpos) {
+             (void)board.set_fen(forge::Board::StandardStartFen);
+         } else {
++            std::string fen;
++            fen.reserve(96);
++            for (int k = 0; k < fen_n; ++k) {
++                if (k > 0) fen.push_back(' ');
++                fen.append(fen_toks[static_cast<std::size_t>(k)]);
++            }
+             forge::Board candidate;
+             std::string error;
+             if (!candidate.set_fen(fen, &error)) {
+@@ -95,41 +158,63 @@
+         }
+         cache.valid = true;
+         cache.startpos = is_startpos;
+-        cache.base_fen = std::move(fen);
+-        cache.moves.clear();
++        cache.fen_count = fen_n;
++        for (int k = 0; k < fen_n; ++k) {
++            cache.fen_parts[static_cast<std::size_t>(k)].assign(fen_toks[static_cast<std::size_t>(k)]);
++        }
++        cache.canonical_moves.clear();
++        if (cache.canonical_moves.capacity() < 2048) cache.canonical_moves.reserve(2048);
++        tail_sv = moves_sv;
+     }
+ 
+-    for (std::size_t i = start_idx; i < move_tokens.size(); ++i) {
+-        const auto move = board.parse_uci(move_tokens[i]);
++    while (true) {
++        const std::string_view mv_tok = next_uci_token(tail_sv);
++        if (mv_tok.empty()) break;
++        const auto move = board.parse_uci(mv_tok);
+         if (!move.has_value()) {
+             // The position and every legal move before this token still stand.
+-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << move_tokens[i] << std::endl; }
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << mv_tok << std::endl; }
+             return;
+         }
+         forge::Undo undo;
+         (void)board.make_move(*move, undo);
+-        cache.moves.push_back(std::move(move_tokens[i]));
++        if (!cache.canonical_moves.empty()) cache.canonical_moves.push_back(' ');
++        cache.canonical_moves.append(mv_tok);
+     }
+ }
+ 
+-bool is_go_keyword(const std::string& token) {
++bool is_go_keyword(std::string_view token) {
+     return token == "depth" || token == "nodes" || token == "softnodes" || token == "movetime" ||
+            token == "movestogo" || token == "infinite" || token == "wtime" || token == "btime" ||
+            token == "winc" || token == "binc" || token == "mate" || token == "searchmoves" ||
+            token == "ponder";
+ }
+ 
+-forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
++forge::SearchLimits parse_limits_sv(std::string_view input, forge::Board& board) {
+     forge::SearchLimits limits;
+-    std::string token;
+-    std::vector<std::string> tokens;
+-    while (input >> token) tokens.push_back(token);
++    std::array<std::string_view, 32> stack_tokens{};
++    std::vector<std::string_view> heap_tokens;
++    std::size_t token_count = 0;
++    while (true) {
++        const std::string_view t = next_uci_token(input);
++        if (t.empty()) break;
++        if (token_count < stack_tokens.size() && heap_tokens.empty()) {
++            stack_tokens[token_count++] = t;
++        } else {
++            if (heap_tokens.empty()) {
++                heap_tokens.assign(stack_tokens.begin(), stack_tokens.end());
++            }
++            heap_tokens.push_back(t);
++            ++token_count;
++        }
++    }
++    const std::string_view* const tokens = heap_tokens.empty() ? stack_tokens.data() : heap_tokens.data();
+     const forge::Color side = board.side_to_move();
+ #if FORGE_FIX_GO_PARSE
+     bool limit_given = false;      // a usable limit of any kind is on the line
+     bool limit_unusable = false;   // a limit was named, and its value was missing or not a number
+     // An optional single sign and then digits only.
+-    const auto is_integer = [](const std::string& text) {
++    const auto is_integer = [](std::string_view text) {
+         std::size_t k = (!text.empty() && (text[0] == '+' || text[0] == '-')) ? 1 : 0;
+         if (k >= text.size()) return false;
+         for (; k < text.size(); ++k) {
+@@ -137,18 +222,18 @@
+         }
+         return true;
+     };
+-    for (std::size_t i = 0; i < tokens.size();) {
+-        token = tokens[i++];
++    for (std::size_t i = 0; i < token_count;) {
++        const std::string_view token = tokens[i++];
+         // The value of the keyword just read: the next token, unless it is missing or is itself a keyword (then
+         // nothing is consumed). A token that is not a complete integer is consumed and gives no value.
+-        const auto take_integer = [&](std::string& text) {
+-            if (i >= tokens.size() || is_go_keyword(tokens[i])) return false;
++        const auto take_integer = [&](std::string_view& text) {
++            if (i >= token_count || is_go_keyword(tokens[i])) return false;
+             text = tokens[i++];
+             return is_integer(text);
+         };
+         // An int, saturated at the ends of its range.
+         const auto read_int = [&](int& out) {
+-            std::string text;
++            std::string_view text;
+             if (!take_integer(text)) return false;
+             long long wide = 0;
+             const char* const first = text.data() + (text[0] == '+' ? 1 : 0);
+@@ -162,7 +247,7 @@
+         };
+         // Clocks are 64-bit; parse_clock_ms clamps a complete integer to [0, kMaxClockMs].
+         const auto read_clock = [&](std::int64_t& out) {
+-            std::string text;
++            std::string_view text;
+             if (!take_integer(text)) return false;
+             out = forge::parse_clock_ms(text);
+             return true;
+@@ -173,7 +258,7 @@
+             else limit_unusable = true;
+         }
+         else if (token == "nodes" || token == "softnodes") {
+-            std::string text;
++            std::string_view text;
+             if (take_integer(text)) {
+                 // A negative count is 0, and an explicit 0 is an immediate bounded answer in the search.
+                 std::uint64_t value = 0;
+@@ -223,7 +308,7 @@
+         }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+-            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
++            while (i < token_count && !is_go_keyword(tokens[i])) {
+                 const auto move = board.parse_uci(tokens[i++]);
+                 if (move.has_value()) limits.search_moves.push_back(*move);
+             }
+@@ -233,27 +318,25 @@
+     // (r9 did, through a value of 0) instead of searching without a limit.
+     if (limit_unusable && !limit_given) limits.movetime_ms = 0;
+ #else
+-    for (std::size_t i = 0; i < tokens.size();) {
+-        token = tokens[i++];
++    for (std::size_t i = 0; i < token_count;) {
++        const std::string_view token = tokens[i++];
+         auto read_int = [&]() {
+             int value = 0;
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
++            if (i < token_count) {
++                const std::string_view text = tokens[i++];
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
+             }
+             return value;
+         };
+-        // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+-        // search then stops at once.
+         auto read_clock = [&]() -> std::int64_t {
+-            if (i >= tokens.size()) return 0;
++            if (i >= token_count) return 0;
+             return forge::parse_clock_ms(tokens[i++]);
+         };
+         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+         else if (token == "nodes" || token == "softnodes") {
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
++            if (i < token_count) {
++                const std::string_view text = tokens[i++];
+                 std::uint64_t value = 0;
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+@@ -274,7 +357,7 @@
+         else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+-            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
++            while (i < token_count && !is_go_keyword(tokens[i])) {
+                 const auto move = board.parse_uci(tokens[i++]);
+                 if (move.has_value()) limits.search_moves.push_back(*move);
+             }
+@@ -333,17 +416,19 @@
+     SearchTask pending_task;
+ 
+     std::thread worker([&]() {
++        SearchTask task;
+         for (;;) {
+-            SearchTask task;
+             {
+                 std::unique_lock<std::mutex> lock(stop_mutex);
+                 work_cv.wait(lock, [&] { return has_task || worker_quit; });
+                 if (worker_quit && !has_task) break;
+-                task = std::move(pending_task);
++                task.board = pending_task.board;
++                task.limits = std::move(pending_task.limits);
++                task.ponder_enabled = pending_task.ponder_enabled;
+                 has_task = false;
+             }
+             const forge::SearchInfo result = searcher.search(
+-                std::move(task.board), task.limits, true, forge::Searcher::TTAccess::Exclusive);
++                task.board, task.limits, true, forge::Searcher::TTAccess::Exclusive);
+             if (task.limits.infinite || task.limits.ponder) {
+                 std::unique_lock<std::mutex> lock(stop_mutex);
+                 stop_cv.wait(lock, [&] {
+@@ -409,9 +494,8 @@
+     std::string line;
+     while (std::getline(in, line)) {
+         const auto command_start = std::chrono::steady_clock::now();
+-        std::istringstream input(line);
+-        std::string command;
+-        input >> command;
++        std::string_view line_rest(line);
++        const std::string_view command = next_uci_token(line_rest);
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+@@ -493,10 +577,11 @@
+             (void)board.set_fen(forge::Board::StandardStartFen);
+             pos_cache.valid = true;
+             pos_cache.startpos = true;
+-            pos_cache.base_fen.clear();
+-            pos_cache.moves.clear();
++            pos_cache.fen_count = 0;
++            pos_cache.canonical_moves.clear();
+         } else if (command == "setoption") {
+             stop_search();
++            std::istringstream input{std::string(line_rest)};
+             std::string token;
+             std::string name;
+             std::string value_text;
+@@ -735,7 +820,7 @@
+             }
+         } else if (command == "position") {
+             stop_search();
+-            apply_position(board, input, pos_cache);
++            apply_position_sv(board, line_rest, pos_cache);
+         } else if (command == "go") {
+             stop_search();
+ #if FORGE_NNUE_V3
+@@ -745,13 +830,11 @@
+                 return 2;
+             }
+ #endif
+-            std::string first;
+-            const auto position = input.tellg();
+-            input >> first;
++            std::string_view go_peek = line_rest;
++            const std::string_view first = next_uci_token(go_peek);
+             if (first == "perft") {
+-                std::string depth_text;
++                const std::string_view depth_text = next_uci_token(go_peek);
+                 int depth = -1;
+-                if (!(input >> depth_text)) depth_text.clear();
+                 const auto parsed = std::from_chars(
+                     depth_text.data(), depth_text.data() + depth_text.size(), depth);
+                 if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size() ||
+@@ -774,9 +857,7 @@
+                 }
+                 { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+             } else {
+-                input.clear();
+-                input.seekg(position);
+-                forge::SearchLimits limits = parse_limits(input, board);
++                forge::SearchLimits limits = parse_limits_sv(line_rest, board);
+                 limits.move_overhead_ms = move_overhead_ms;
+                 limits.multipv = multipv;
+                 // Charge dispatch admission only to finite externally clocked searches.
+@@ -848,7 +929,10 @@
+             }
+ #endif
+             int depth = 13;
+-            if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            {
++                std::istringstream input{std::string(line_rest)};
++                if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            }
+             constexpr std::array<std::string_view, 8> fens{
+                 forge::Board::StandardStartFen,
+                 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",

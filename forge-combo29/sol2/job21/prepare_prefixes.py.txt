@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Prepare the pinned Job 21 sources and retain every patch check and application."""
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path, PurePosixPath
+import shlex
+import shutil
+import subprocess
+
+
+JOB = Path(__file__).resolve().parent
+BASE = JOB.parent / 'sol2-job2/r15d'
+PINS = JOB.parent / 'sol2-job13/job9-r15d-29.sha256.txt'
+OUTPUT = JOB / 'prefix-source'
+REQUESTED = ('11_stop_hot', '12_v3_refresh_fuse', '13_tt_avx512_fast_probe')
+LITERAL_FALLBACK = ('04_S7', *REQUESTED)
+CARBON_M = ('stack_M_on_r15d',)
+
+def targets(raw):
+    before = []
+    after = []
+    for line in raw.decode('utf-8').splitlines():
+        if line.startswith('--- a/'):
+            before.append(line.split('\t', 1)[0][6:])
+        elif line.startswith('+++ b/'):
+            after.append(line.split('\t', 1)[0][6:])
+    if not before or before != after or len(before) != len(set(before)):
+        raise ValueError('Patch target headers missing, conflicting or duplicated')
+    for name in before:
+        parts = PurePosixPath(name).parts
+        if (not parts or '..' in parts or (parts[0] != 'src' and parts[:2] != ('include', 'forge'))):
+            raise ValueError(f'Patch target outside permitted source scope: {name}')
+    return before
+
+def inventory(root):
+    paths = sorted(root.rglob('*'))
+    if any(path.is_symlink() for path in paths):
+        raise ValueError(f'Unexpected source symlink in {root}')
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in paths if path.is_file()}
+
+
+def parse_manifest(path):
+    pairs = [line.split(' *', 1) for line in path.read_text().splitlines()]
+    result = {name: digest for digest, name in pairs}
+    if len(pairs) != 29 or len(result) != 29:
+        raise ValueError(f'Invalid 29-file source manifest {path}')
+    return result
+
+class CheckRefused(Exception):
+    def __init__(self, patch, log_file, returncode):
+        super().__init__(f'{patch} refused by git apply --check, exit {returncode}')
+        self.receipt = {'patch': patch, 'log': f'prefix-source/{log_file.name}',
+                        'command_status': returncode}
+
+
+def execute(cwd, log, *args):
+    print(f'$ {shlex.join(args)}', file=log, flush=True)
+    completed = subprocess.run(args, cwd=cwd, stdout=log, stderr=subprocess.STDOUT)
+    print(f'exit={completed.returncode}', file=log, flush=True)
+    if completed.returncode and args[:2] == ('git', 'apply') and '--check' in args:
+        raise CheckRefused(Path(args[-1]).name, Path(log.name), completed.returncode)
+    completed.check_returncode()
+
+
+def prepare(label, pieces, *, destination_label=None):
+    destination = JOB / (destination_label or label)
+    incomplete = JOB / f'.{label}.partial'
+    log_file = OUTPUT / f'{label}.git-apply.raw.txt'
+    if destination.exists() or incomplete.exists():
+        raise ValueError(f'Refusing to overwrite source tree {destination} or {incomplete}')
+    with log_file.open('x', encoding='utf-8') as log:
+        print(f'Start {datetime.now(timezone.utc).isoformat()}', file=log)
+        print(f'$ cd {BASE}', file=log, flush=True)
+        execute(BASE, log, 'sha256sum', '-c', str(PINS))
+        baseline = parse_manifest(PINS)
+        if inventory(BASE) != baseline:
+            raise ValueError('r15d does not match the exact pinned file inventory')
+        shutil.copytree(BASE, incomplete)
+        print(f'$ cd {incomplete}', file=log, flush=True)
+        before = inventory(incomplete)
+        if before != baseline:
+            raise ValueError('Fresh scratch copy differs from pinned r15d')
+        for stem in pieces:
+            patch = JOB / 'patches' / f'{stem}.patch.txt'
+            expected = sorted(targets(patch.read_bytes()))
+            options = ('git', 'apply', '--no-index', '-p1', '--whitespace=nowarn')
+            print(f'Patch {patch.name}', file=log, flush=True)
+            execute(incomplete, log, *options, '--stat', str(patch))
+            try:
+                execute(incomplete, log, *options, '--check', '--verbose', str(patch))
+            except CheckRefused as refusal:
+                print(f'{refusal}. Scratch tree retained at {incomplete}.', file=log, flush=True)
+                raise
+            execute(incomplete, log, *options, '--verbose', str(patch))
+            after = inventory(incomplete)
+            if set(before) != set(after):
+                raise ValueError(f'Patch changed pinned file inventory: {patch.name}')
+            changed = sorted(path for path in before if before[path] != after[path])
+            if changed != expected:
+                raise ValueError(f'Patch targets differ: {changed} versus {expected}')
+            print('Changed targets verified: ' + ', '.join(changed), file=log, flush=True)
+            before = after
+        manifest = OUTPUT / f'{destination.name}-source-sha256.raw.txt'
+        with manifest.open('x', encoding='utf-8') as receipt:
+            for path, digest in before.items():
+                print(f'{digest} *{path}', file=receipt)
+        execute(incomplete, log, 'sha256sum', '-c', str(manifest))
+        incomplete.rename(destination)
+        print(f'Published scratch source directory {destination}', file=log)
+        print(f'End {datetime.now(timezone.utc).isoformat()}', file=log)
+    return destination
+
+
+def choose_stack():
+    failures = []
+    try:
+        first = prepare('N_1', REQUESTED)
+        second = prepare('N_2', REQUESTED)
+    except CheckRefused as refusal:
+        failures.append(refusal.receipt)
+    else:
+        manifest1 = OUTPUT / f'{first.name}-source-sha256.raw.txt'
+        manifest2 = OUTPUT / f'{second.name}-source-sha256.raw.txt'
+        if manifest1.read_bytes() != manifest2.read_bytes():
+            raise ValueError('The independently prepared N_1 and N_2 source inventories differ')
+        return {'variant': 'requested', 'source_labels': ['r15d_2', 'N_1', 'N_2'],
+                'pieces': list(REQUESTED), 'failed_checks': failures, 'fallback_artifact': None}
+
+    try:
+        prepare('N-literal-fallback', LITERAL_FALLBACK, destination_label='N')
+    except CheckRefused as refusal:
+        failures.append(refusal.receipt)
+    else:
+        return {'variant': 'fallback', 'source_labels': ['r15d_2', 'N'],
+                'pieces': list(LITERAL_FALLBACK), 'failed_checks': failures, 'fallback_artifact': None}
+
+    prepare('N', CARBON_M)
+    return {'variant': 'fallback', 'source_labels': ['r15d_2', 'N'],
+            'pieces': ['04_S7', '08_G4', *REQUESTED],
+            'failed_checks': failures,
+            'fallback_artifact': {'path': 'patches/stack_M_on_r15d.patch.txt',
+                                  'includes_08_G4': True, 'removes_s13_test_friend': True,
+                                  'provenance': 'prefix-patch-provenance.raw.txt'}}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('step', choices=('baseline', 'stack'))
+    args = parser.parse_args()
+    if (JOB / 'step0-status.txt').read_text().strip() != '0':
+        raise ValueError('Step 0 has not passed')
+    OUTPUT.mkdir(exist_ok=True)
+    if args.step == 'baseline':
+        print(prepare('r15d_2', ()))
+        return
+    if not (JOB / 'r15d_2').is_dir():
+        raise ValueError('Prepare the baseline before the stack')
+    receipt = choose_stack()
+    with (JOB / 'variant.txt').open('x', encoding='utf-8') as log:
+        print(json.dumps(receipt, indent=2), file=log)
+    print(json.dumps(receipt, indent=2))
+
+
+if __name__ == '__main__':
+    main()
