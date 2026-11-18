@@ -1,0 +1,58 @@
+import json
+from itertools import zip_longest
+from pathlib import Path
+import sys
+
+from concurrent_measure import measure_group
+
+
+def load_rows(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def canonical(row):
+    return None if row is None else tuple(row[name] for name in ("game", "ply", "nodes", "score", "bestmove"))
+
+
+root = Path(sys.argv[1]).resolve()
+previous = Path(sys.argv[2]).resolve()
+gate = root / "gate"
+gate.mkdir(exist_ok=False)
+cpus = json.loads((root / "step0-worker-selection.txt").read_text())["worker_cpus"]
+known = json.loads((previous / "known-answer.txt").read_text())
+fields = ("games", "searches", "total_nodes", "trace_fnv1a64")
+expected = tuple(known[name] for name in fields)
+baseline = load_rows(previous / "gate-r15d-searches.raw.txt")
+driver = "/workspace/work/sol2-job10/fixed_nodes_driver.py"
+net = "/workspace/work/sol2-job2/net768.fnn3"
+engines = {
+    "r15d-pgo": "/workspace/work/sol2-job7/build-pgo-r15d/forge",
+    "kF-pgo": "/workspace/work/sol2-job9/build-pgo-kF/forge",
+}
+for arm, engine in engines.items():
+    argv = [driver, "--engine", engine, "--net", net, "--games", "12", "--nodes", "20000",
+            "--random-plies", "8", "--max-plies", "300", "--openings", str(previous / "fixed-openings.txt"), "--json"]
+    print(json.dumps({"arm": arm, "worker_cpus": cpus, "argv": argv}), flush=True)
+    group = measure_group(argv, gate, arm, expected, cpus, capture_traces=True)
+    (gate / f"{arm}.group.raw.txt").write_text(json.dumps(group, indent=2) + "\n")
+    for worker in group["workers"]:
+        cpu = worker["cpu"]
+        search_path = gate / f"{arm}-cpu{cpu}.searches.raw.txt"
+        if not search_path.is_file():
+            print(f"{arm} CPU {cpu} has no search tape: {worker['error']}", flush=True)
+            continue
+        observed = load_rows(search_path)
+        for index, (reference, actual) in enumerate(zip_longest(baseline, observed), start=1):
+            if canonical(reference) == canonical(actual):
+                continue
+            with (gate / "first-difference.raw.txt").open("x") as mismatch:
+                print(f"First differing search {index} for {arm} on CPU {cpu}", file=mismatch)
+                print("Job 10 r15d-pgo reference " + json.dumps(reference), file=mismatch)
+                print(f"Job 11 {arm} CPU {cpu} " + json.dumps(actual), file=mismatch)
+            sys.exit(f"Changed search trace on {arm} CPU {cpu}")
+        print(json.dumps({"arm": arm, "cpu": cpu, **{field: worker[field] for field in fields},
+                          "exit": worker["engine_exit"], "canonical_rows_equal": len(observed)}), flush=True)
+    if not group["eligible"] or len(group["workers"]) != len(cpus):
+        sys.exit(f"Known-answer group failed: {group['error']}")
+    assert all((gate / f"{arm}-cpu{cpu}.searches.raw.txt").is_file() for cpu in cpus)
+print("PASS: both groups, each CPU affinity, and the canonical trace on every worker.")

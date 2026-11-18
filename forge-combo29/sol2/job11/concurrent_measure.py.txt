@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+"""Run copies of the fixed-node driver together, each on its own logical CPU."""
+
+import argparse
+from contextlib import ExitStack
+import json
+import os
+from pathlib import Path
+import runpy
+import select
+import signal
+import subprocess
+import sys
+import time
+
+
+SCRIPT = Path(__file__).resolve()
+JOB10_RUNNER = SCRIPT.parent.parent / 'sol2-job10' / 'balanced_timing.py'
+SIGNATURE_FIELDS = ('games', 'searches', 'total_nodes', 'trace_fnv1a64')
+READY_TIMEOUT_SECONDS = 30
+
+
+class GroupCancelled(Exception):
+    pass
+
+
+def cancel_group(signum, _frame):
+    raise GroupCancelled(f'group interrupted by {signal.Signals(signum).name}')
+
+
+def write_result(path, row):
+    with path.open('x', encoding='utf-8') as result:
+        print(json.dumps(row), file=result)
+
+
+def worker_main(args):
+    argv = json.loads(args.argv_json)
+    expected = tuple(json.loads(args.expected_json))
+    output = Path(args.output)
+    result_path = output / f'{args.stem}.worker.result.txt'
+    row = {'cpu': args.cpu, 'worker_affinity': sorted(os.sched_getaffinity(0)), 'trace_rows': args.trace_rows}
+    try:
+        if row['worker_affinity'] != [args.cpu]:
+            raise RuntimeError(f'Worker CPU affinity differs from {[args.cpu]}')
+        driver_main = runpy.run_path(argv[0])['main']
+        measure_driver = runpy.run_path(str(JOB10_RUNNER))['measure_driver']
+        try:
+            if os.write(args.ready_fd, b'R') != 1:
+                raise RuntimeError('Short write entering ready barrier')
+        finally:
+            os.close(args.ready_fd)
+        try:
+            if os.read(args.gate_fd, 1) != b'G':
+                raise RuntimeError('Start barrier closed before release')
+        finally:
+            os.close(args.gate_fd)
+        row.update(measure_driver(driver_main, argv, output, args.stem, expected))
+    except (Exception, SystemExit) as exc:
+        row.update({'eligible': False, 'trace_matches': False, 'error': f'{type(exc).__name__}: {exc}'})
+    write_result(result_path, row)
+    return 0 if row['eligible'] else 1
+
+
+def wait_ready(fd, workers):
+    deadline = time.monotonic() + READY_TIMEOUT_SECONDS
+    ready = 0
+    while ready < workers:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not select.select([fd], [], [], remaining)[0]:
+            raise RuntimeError(f'Worker barrier timed out ({ready}/{workers} ready)')
+        data = os.read(fd, workers - ready)
+        if not data:
+            raise RuntimeError(f'Worker barrier ended early ({ready}/{workers} ready)')
+        if data != b'R' * len(data):
+            raise RuntimeError('Worker barrier emitted an unknown readiness marker')
+        ready += len(data)
+
+
+def cleanup(children):
+    # Each worker is a group leader, with its Forge child in the same session.
+    targets = [child for child in children if child.poll() != 0]
+    for child in targets:
+        try:
+            os.killpg(child.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + 3
+    for child in targets:
+        try:
+            child.wait(timeout=max(0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            pass
+        # A worker killed by the first signal may have left an engine in its session.
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.wait()
+
+
+def collect_worker(output, worker_stem, cpu, child):
+    result_path = output / f'{worker_stem}.worker.result.txt'
+    try:
+        receipt = json.loads(result_path.read_text(encoding='utf-8'))
+        if not isinstance(receipt, dict):
+            raise ValueError('worker receipt was not a JSON object')
+    except (OSError, ValueError) as exc:
+        receipt = {'eligible': False, 'trace_matches': False, 'error': f'Missing or invalid worker receipt: {exc}'}
+    return {**receipt, 'cpu': cpu, 'worker_exit': child.returncode,
+            'worker_result': result_path.name, 'driver_stdout': f'{worker_stem}.driver.stdout.txt',
+            'engine_stderr': f'{worker_stem}.engine.stderr.txt', 'worker_stdout': f'{worker_stem}.worker.stdout.txt',
+            'worker_stderr': f'{worker_stem}.worker.stderr.txt'}
+
+
+def summarize_group(workers, expected, cpus, error=None):
+    present = len(cpus) == len(workers)
+    starts = [row for row in workers if type(row.get('wall_start_monotonic_ns')) is int]
+    ends = [row for row in workers if type(row.get('wall_end_monotonic_ns')) is int]
+    first = min(starts, key=lambda row: row['wall_start_monotonic_ns']) if starts else None
+    last = max(ends, key=lambda row: row['wall_end_monotonic_ns']) if ends else None
+    started = first['wall_start_monotonic_ns'] if first else None
+    finished = last['wall_end_monotonic_ns'] if last else None
+    signatures = [tuple(row.get(key) for key in SIGNATURE_FIELDS) for row in workers]
+    traced = present and all(row.get('trace_matches') is True and signature == expected
+                             for row, signature in zip(workers, signatures))
+    if error is None:
+        if not present:
+            error = f'Expected {len(cpus)} workers, collected {len(workers)}'
+        elif not all(row.get('eligible') is True and row.get('engine_exit') == 0 and row.get('worker_exit') == 0
+                     and row.get('worker_affinity') == [cpu] for row, cpu in zip(workers, cpus)):
+            problems = [f"CPU {row['cpu']}: {row.get('error') or 'eligibility, exit or affinity mismatch'}"
+                        for row, cpu in zip(workers, cpus)
+                        if (row.get('eligible') is not True or row.get('engine_exit') != 0
+                            or row.get('worker_exit') != 0 or row.get('worker_affinity') != [cpu])]
+            error = '; '.join(problems)
+        elif not traced:
+            error = f'At least one worker disagreed with signature {expected}'
+        elif len(starts) != len(cpus) or len(ends) != len(cpus) or finished <= started:
+            error = 'Missing worker timestamps or invalid group time interval'
+    user = sum(row.get('engine_user_s', 0) for row in workers)
+    system = sum(row.get('engine_system_s', 0) for row in workers)
+    result = dict(zip(SIGNATURE_FIELDS, expected if traced else (None,) * len(SIGNATURE_FIELDS)))
+    complete = error is None
+    result.update({'utc_start': first.get('utc_start') if first else None, 'utc_end': last.get('utc_end') if last else None,
+                   'wall_start_monotonic_ns': started, 'wall_end_monotonic_ns': finished,
+                   'total_wall_ns': finished - started if started is not None and finished is not None else None,
+                   'start_spread_ns': max(row['wall_start_monotonic_ns'] for row in starts) - started if starts else None,
+                   'engine_user_s': user, 'engine_system_s': system, 'engine_cpu_s': user + system,
+                   'engine_exit': 0 if complete else None, 'engine_exits': [row.get('engine_exit') for row in workers],
+                   'trace_matches': traced, 'eligible': complete, 'error': error,
+                   'worker_count': len(cpus), 'workers': workers})
+    return result
+
+
+def measure_group(argv, output: Path, stem: str, expected: tuple, cpus: list[int], *, capture_traces=False):
+    """Return an engine-only CPU sum and the interval covering all driver calls.
+
+    Per-worker scalar signature fields are repeated in eligible group rows. Jobs
+    may use the detailed worker rows to reconcile every trace and CPU interval.
+    """
+    if len(cpus) < 2 or len(cpus) != len(set(cpus)) or not set(cpus) <= os.sched_getaffinity(0):
+        raise ValueError('Supply at least two distinct CPUs in the caller affinity mask')
+    output = output.resolve(strict=True)
+    expected = tuple(expected)
+    workers = []
+    error = None
+    prior_term = signal.signal(signal.SIGTERM, cancel_group)
+    gate_read = gate_write = ready_read = ready_write = None
+    barrier_release_ns = None
+    try:
+        gate_read, gate_write = os.pipe()
+        ready_read, ready_write = os.pipe()
+        with ExitStack() as files:
+            for cpu in cpus:
+                worker_stem = f'{stem}-cpu{cpu}'
+                stdout = files.enter_context((output / f'{worker_stem}.worker.stdout.txt').open('xb'))
+                stderr = files.enter_context((output / f'{worker_stem}.worker.stderr.txt').open('xb'))
+                worker_argv = list(argv)
+                if capture_traces:
+                    trace_rows = f'{worker_stem}.searches.raw.txt'
+                    worker_argv.extend(('--trace-rows', str(output / trace_rows)))
+                command = ['taskset', '-c', str(cpu), sys.executable, '-B', str(SCRIPT),
+                           '--cpu', str(cpu), '--output', str(output), '--stem', worker_stem,
+                           '--ready-fd', str(ready_write), '--gate-fd', str(gate_read),
+                           '--argv-json', json.dumps(worker_argv), '--expected-json', json.dumps(expected)]
+                if capture_traces:
+                    command.extend(('--trace-rows', trace_rows))
+                child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                         pass_fds=(ready_write, gate_read), start_new_session=True)
+                workers.append((worker_stem, cpu, child))
+            os.close(ready_write)
+            ready_write = None
+            wait_ready(ready_read, len(cpus))
+            barrier_release_ns = time.monotonic_ns()
+            if os.write(gate_write, b'G' * len(cpus)) != len(cpus):
+                raise RuntimeError('Short write releasing common start barrier')
+            for _, _, child in workers:
+                child.wait()
+    except (GroupCancelled, OSError, RuntimeError) as exc:
+        error = f'{type(exc).__name__}: {exc}'
+    finally:
+        for fd in (gate_write, gate_read, ready_write, ready_read):
+            if fd is not None:
+                os.close(fd)
+        try:
+            cleanup([child for _, _, child in workers])
+        finally:
+            signal.signal(signal.SIGTERM, prior_term)
+    rows = [collect_worker(output, worker_stem, cpu, child) for worker_stem, cpu, child in workers]
+    return {**summarize_group(rows, expected, cpus, error), 'barrier_release_monotonic_ns': barrier_release_ns}
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Internal Job 11 measurement worker. Import measure_group for orchestration.')
+    parser.add_argument('--cpu', type=int, required=True)
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--stem', required=True)
+    parser.add_argument('--ready-fd', type=int, required=True)
+    parser.add_argument('--gate-fd', type=int, required=True)
+    parser.add_argument('--argv-json', required=True)
+    parser.add_argument('--expected-json', required=True)
+    parser.add_argument('--trace-rows', help='basename of gate-only trace artifact passed to driver')
+    sys.exit(worker_main(parser.parse_args()))
