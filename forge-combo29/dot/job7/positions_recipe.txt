@@ -1,0 +1,6 @@
+Source: sol-work commit a8fe78047e045d9f972f31ec2c86c02c0558ef53 path forge-combo29/sol/job21/raw/F1k.pgn
+PGN SHA256 d9a02ff4b3128fcbeb39582aec5a350831b40fda6d38010fd630a94498b8a4d0
+Read with python-chess 1.11.2. Games in file order, initialize each Board from explicit FEN tag, replay mainline legal moves. After ply5,10,15,... retain unless board.is_game_over() (default claim_draw=False). Stop immediately at1000. Validate each retained Board with board.is_valid(). Write board.fen() using defaults, LF terminated. Per-row game/ply/validation and coverage kept separately.
+Bucket-change uses the file header king map bytes48..111; side-to-move perspective square = sq for White, sq XOR56 for Black. Count position once if any legal king move changes map entry. Mirror flip is not counted as a bucket change.
+W4: first20 games represented in W1 having at least60 plies and a valid nonterminal board at60; use their original FEN tag plus exactly first60 mainline UCI moves, then depth10. Inputs kept outside repo at /tmp/forge-dot-job7-w4-inputs.json and /tmp/forge-dot-job7-w4-commands.txt. No PGN or generated program committed.
+Positions SHA256 3c1b17332eca46a912f572eae8197324f466a8e2f909653104c427457ffb0521
