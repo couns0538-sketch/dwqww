@@ -65,3 +65,7 @@ The k11v counting build matched the Job 8 trace. Its 8613 searches including war
 ## Job 10 — 2026-11-18T12:05:42Z
 
 Carbon2’s owned AVX-512 TT patch matched k11v on all 8612 warm search rows. All 1556 cold final-count, move and score rows also matched k11f at 50000 and 250000 nodes with both nets. The three one-line controls changed the warm trace. The first probe-hit and store-slot changes appeared at game 0 ply 8, and the first full-cluster victim change appeared at game 1 ply 143. [Job 10 report](REPORT_sol3_job10.md) · [Evidence](sol3/job10)
+
+## Job 11 — 2026-11-18T12:32:53Z
+
+k13 counted 35432228 owned probes, 16378441 stores and 40146 full-cluster helper calls with unchanged warm rows. The first helper call was game 0 ply 59. k14 matched all warm and hard-node rows. The repetition oracle compared 9726410 new calls and 361911 prefilter rejections with zero mismatches. The four required controls stopped; the optional null-prefix bit flip matched every row and counter. [Job 11 report](REPORT_sol3_job11.md) · [Evidence](sol3/job11)
