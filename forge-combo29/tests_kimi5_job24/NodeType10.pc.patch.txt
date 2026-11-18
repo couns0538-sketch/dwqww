@@ -1,0 +1,55 @@
+diff -ruN base/include/forge/search.hpp mod/include/forge/search.hpp
+--- base/include/forge/search.hpp	2026-11-18 09:02:05.855635531 +0000
++++ mod/include/forge/search.hpp	2026-11-18 09:02:30.539635531 +0000
+@@ -318,6 +318,9 @@
+ extern int HistRework;               // 0 = off; 1..3: threat-keyed quiet history twin + pawn x material correction
+ extern bool TtPruneV2;               // TT-move pruning guards, cut-node IIR, opponent-worsening RFP, margins (false = off)
+ extern bool CorrHistV2;              // static-eval correction keyed by the last two moves (false = off)
++// NodeType10: node-type-aware null move and TT cutoff. At the defaults the search is exactly today's.
++extern int NullCutOnly;              // 1: the null-move search is tried only at an expected cut node
++extern int TtNodeTypeDepth;          // 0 = off; 1..20: at depth <= D a main-search TT cutoff needs cut_node == (tt_score >= beta)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff -ruN base/src/search.cpp mod/src/search.cpp
+--- base/src/search.cpp	2026-11-18 09:02:05.859635531 +0000
++++ mod/src/search.cpp	2026-11-18 09:02:36.283635531 +0000
+@@ -182,6 +182,9 @@
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
++// NodeType10: at the defaults (0 / 0) the search computes exactly what it computes today.
++int NullCutOnly = 0;
++int TtNodeTypeDepth = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -220,6 +223,7 @@
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
++        {"NullCutOnly", &NullCutOnly, 0, 1},                 {"TtNodeTypeDepth", &TtNodeTypeDepth, 0, 20},
+ #if FORGE_PAWN_HISTORY
+         {"PawnHistory", &PawnHistory, 0, 1},                     {"PawnHistoryBits", &PawnHistoryBits, 9, 13},
+         {"PawnHistoryWeight", &PawnHistoryWeight, 0, 200},       {"PawnHistoryPvBonus", &PawnHistoryPvBonus, 0, 1},
+@@ -1847,6 +1851,9 @@
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
++        // NodeType10: at depth <= TtNodeTypeDepth a stored fail-high cuts only at an expected cut
++        // node, a stored fail-low only at an expected all node. Deeper nodes cut as today.
++        (tune::TtNodeTypeDepth == 0 || depth > tune::TtNodeTypeDepth || cut_node == (tt_score >= beta)) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         // packc28, TtCutoffHistory: a stored fail-high by a quiet move teaches the ordering tables.
+@@ -1940,7 +1947,9 @@
+             return eval;
+         }
+         // Null move pruning.
+-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        // NodeType10: with NullCutOnly the null search runs only at an expected cut node.
++        if (!bare_king_mode && (!tune::NullCutOnly || cut_node) && depth >= tune::NullMoveMinDepth &&
++            eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&

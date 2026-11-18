@@ -1,0 +1,170 @@
+diff -ruN mod/include/forge/search.hpp cnt/include/forge/search.hpp
+--- mod/include/forge/search.hpp	2026-11-18 09:02:30.539635531 +0000
++++ cnt/include/forge/search.hpp	2026-11-18 09:06:40.403635531 +0000
+@@ -574,6 +574,7 @@
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    int search_impl(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+     // B4 CuckooRep: every child search goes through these; with CuckooRep off they are the plain calls.
+     int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+diff -ruN mod/src/search.cpp cnt/src/search.cpp
+--- mod/src/search.cpp	2026-11-18 09:02:36.283635531 +0000
++++ cnt/src/search.cpp	2026-11-18 09:06:43.807635531 +0000
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <array>
+ #include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+@@ -233,6 +234,19 @@
+ }
+ } // namespace tune
+ 
++// kimi5 job 24 counting build (observe-only; no search change). One NT10C line per
++// search. Slots: [0..5] null tries / score>=beta / returned, each cut_node true then
++// false; [6..13] taken main-search TT cutoffs by depth class (1..5, 6+), side
++// (score>=beta, score<=alpha), agreement (agree, disagree): 6 + dclass*4 + side*2 +
++// !agree; [14,15] taken with alpha<score<beta (must stay 0); [16..20] t5-refused,
++// stored>=beta, depth 1..5; [21..25] t5-refused, stored<=alpha, depth 1..5;
++// [26..30] of those confirmed, stored>=beta; [31..35] confirmed, stored<=alpha;
++// [36,37] refused/confirmed with stored between (must stay 0); [38] refused at a
++// depth outside 1..5 (must stay 0). Threads 1 only.
++std::array<std::int64_t, 40> g_nt10{};
++struct Nt10Refusal { bool pending = false; int depth = 0; int side = 0; };
++std::array<Nt10Refusal, 256> g_nt10_ref{};
++
+ // Kings are left out: this engine's SEE value for a king is 0, so a king is
+ // neither a material attacker nor a material victim.
+ bool cheaper_enemy_attacks_dearer(const Board& board) {
+@@ -1758,7 +1772,27 @@
+ // ---------------------------------------------------------------------------
+ // Main alpha-beta search
+ 
++// kimi5 job 24 counting: wrapper around the node search. It clears this ply's refusal
++// slot on entry, and when the NodeType10 gate refused a TT cutoff inside this node it
++// classifies the node's return against the stored side (confirmed, else overturned).
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    const int ply = ss->ply;
++    if (ply >= 0 && ply < 256) g_nt10_ref[ply].pending = false;
++    const int value = search_impl(board, ss, depth, alpha, beta, cut_node);
++    if (ply >= 0 && ply < 256 && g_nt10_ref[ply].pending) {
++        const Nt10Refusal r = g_nt10_ref[ply];
++        g_nt10_ref[ply].pending = false;
++        if (r.side == 2) {
++            if (value >= beta || value <= alpha) ++g_nt10[37];
++        } else if (r.depth >= 1 && r.depth <= 5) {
++            const bool confirmed = (r.side == 0 && value >= beta) || (r.side == 1 && value <= alpha);
++            if (confirmed) ++g_nt10[(r.side == 0 ? 26 : 31) + r.depth - 1];
++        }
++    }
++    return value;
++}
++
++int Worker::search_impl(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+@@ -1848,14 +1882,25 @@
+         }
+     }
+ 
+-    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
++    // kimi5 job 24 counting: the cutoff condition of today's code (nt10_tt_today) and the
++    // NodeType10 gate apart, so a refusal can be recorded. The taken cutoff is iff both hold.
++    const bool nt10_tt_today = !pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
+-        // NodeType10: at depth <= TtNodeTypeDepth a stored fail-high cuts only at an expected cut
+-        // node, a stored fail-low only at an expected all node. Deeper nodes cut as today.
+-        (tune::TtNodeTypeDepth == 0 || depth > tune::TtNodeTypeDepth || cut_node == (tt_score >= beta)) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+-         (tt_bound == BoundUpper && tt_score <= alpha))) {
++         (tt_bound == BoundUpper && tt_score <= alpha));
++    // NodeType10: at depth <= TtNodeTypeDepth a stored fail-high cuts only at an expected cut
++    // node, a stored fail-low only at an expected all node. Deeper nodes cut as today.
++    const bool nt10_tt_pass = nt10_tt_today &&
++        (tune::TtNodeTypeDepth == 0 || depth > tune::TtNodeTypeDepth || cut_node == (tt_score >= beta));
++    if (nt10_tt_pass) {
++        {   // kimi5 job 24 counting: taken cutoff by depth class, side, agreement.
++            const int dclass = depth <= 5 ? 0 : 1;
++            const int side = tt_score >= beta ? 0 : (tt_score <= alpha ? 1 : 2);
++            const bool agree = cut_node == (tt_score >= beta);
++            if (side == 2) ++g_nt10[dclass == 0 ? 14 : 15];
++            else ++g_nt10[6 + dclass * 4 + side * 2 + (agree ? 0 : 1)];
++        }
+         // packc28, TtCutoffHistory: a stored fail-high by a quiet move teaches the ordering tables.
+         if (tune::TtCutoffHistory != 0 && tt_score >= beta && !tt_move.is_none() && !tt_move.is_capture() &&
+             !tt_move.is_promotion() && board.is_pseudo_legal(tt_move)) {
+@@ -1865,6 +1910,15 @@
+         }
+         return tt_score;
+     }
++    if (nt10_tt_today) {
++        // kimi5 job 24 counting: a cutoff today's code takes but the NodeType10 gate refuses.
++        // The wrapper of this node's search classifies what the node then returns.
++        const int side = tt_score >= beta ? 0 : (tt_score <= alpha ? 1 : 2);
++        if (side == 2) ++g_nt10[36];
++        else if (depth >= 1 && depth <= 5) ++g_nt10[(side == 0 ? 16 : 21) + depth - 1];
++        else ++g_nt10[38];
++        if (ss->ply >= 0 && ss->ply < 256) g_nt10_ref[ss->ply] = {true, depth, side};
++    }
+ 
+     // Static evaluation. reuse_raw is the hindsight eval of this position.
+     int eval;
+@@ -1956,6 +2010,7 @@
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
++            ++g_nt10[cut_node ? 0 : 1];  // kimi5 job 24 counting: null try by cut_node
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+             ss->current_move = Move::none();
+@@ -1973,6 +2028,7 @@
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+             if (null_score >= beta) {
++                ++g_nt10[cut_node ? 2 : 3];  // kimi5 job 24 counting: null search scored >= beta
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
+@@ -1982,6 +2038,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++                    ++g_nt10[cut_node ? 4 : 5];  // kimi5 job 24 counting: null cutoff returned
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1996,6 +2053,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    ++g_nt10[cut_node ? 4 : 5];  // kimi5 job 24 counting: null cutoff returned
+                     return null_score;
+                 }
+             }
+@@ -3116,6 +3174,7 @@
+     // thread first. MultiPV leaves the extra workers idle; clearing them does
+     // not change the main-worker total.
+     for (auto& worker : workers_) worker->reset_node_count();
++    g_nt10.fill(0);  // kimi5 job 24 counting: one NT10C line per search (Threads 1)
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+@@ -3133,6 +3192,12 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    if (emit_info) {  // kimi5 job 24 counting: one NT10C line per search
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "NT10C";
++        for (std::size_t i = 0; i < g_nt10.size(); ++i) std::cout << ' ' << g_nt10[i];
++        std::cout << std::endl;
++    }
+     return result;
+ }
+ 

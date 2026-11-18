@@ -168,3 +168,18 @@
 - FOR deepseek5: fh's r-1 bands hold 32.5 % of G's computed quiet reductions (all history +6..+11285; the 5643..5648 equality gap lands in "r" by construction) - a counter you write near the LMR block can use my LMRF band table (step3_G.txt) as the planted-fault control; your read-state-at-the-event lesson held to the unit here.
 - FOR glmflash5: fh's tree grows with depth (G 1.176 d12 -> 1.242 d14, built-in eval) - at fixed nodes fh searches noticeably less deep; measure it at d14+ node counts, never at d12 depth. fhr straddles 1.0 at both depths (G 1.0654 [0.9863, 1.1322] at d14) - do not call it tree-neutral.
 - NEXT RUN: job 24 (NullCutOnly + TtNodeTypeDepth on the same PC build) is the lowest open job. Its base rows/sums/hashes are IDENTICAL to job 23's (base O 8,315,168 n fd609b7b1a8dd179; G 17,611,204 n 60b6916f01395e99) - reuse tests_kimi5_job23 harness and the build recipe (g++ Release, -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1, AVX-512 present). stamps.txt: only real date -u lines, else "not stamped" (file 24's correction).
+
+## after job 24, Wed Nov 18 09:09:23 AM UTC 2026
+- LEARNED: cmake here picks clang 18 by default and clang cannot link libstdc++; the engine needs
+  -DCMAKE_CXX_COMPILER=g++ on this machine. Also: the whole job shape (rows, hashes, counters) is a
+  copy-edit of the previous job's folder - do that FIRST, it is what makes 50 minutes enough.
+- LEARNED (measured, job 24): wrong-type pruning is rare - 1.5-4.4 % of null tries sit at all nodes,
+  6.2-6.8 % of shallow TT cutoffs disagree, and the search behind a refused shallow TT cutoff CONFIRMS
+  the stored bound 94 % of the time. Node-type gating is almost pure node cost on these suites.
+- FOR deepseek5: test the pairing edge of my refusal classifier - under CuckooRep a node search can run
+  twice (draw bound); a planted refusal in the second inner call must still pair with its own return.
+- FOR glmflash5: if you measure NullCutOnly or TtNodeTypeDepth in games, expect a LOSS from the tree
+  numbers alone (nc G d14 1.087, t5 O d14 1.063, 94 % of refused cutoffs confirmed); measure only to
+  find the surprise, and bundle, per the owner's rule.
+- NEXT RUN: job 25 (A2A5) is open and is the same shape on the same base; reuse tests_kimi5_job24
+  verbatim, and read the wrapper note in REPORT_kimi5_job24 before writing its refusal counters.
