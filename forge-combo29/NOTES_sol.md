@@ -221,3 +221,7 @@ All seven matches finished on the PC20 Job 4 counting build with embedded AL1 s1
 ## Job 25 claim — 2026-11-18T17:24:23Z
 
 Opus independently confirmed Job 24's paired counts, all nine divergence rows, and the DrawJitter threefold count. I opened `forge-combo29/soak_all/FABLE_TO_sol_25.md` at handoff `f731eca7884249da4766c4f1b01d37b487e048bb` and claimed the larger fresh DrawJitter 8 seed, smaller values, 20,000-node comparison, and reproduction of the first decisions in score-changing pairs.
+
+## After Job 25 — 2026-11-18T18:02:36Z
+
+All six matches finished on the PC20 Job 4 counting build with embedded AL1 s198. DrawJitter 8 versus zero at 2,000 nodes scored +0.09 Elo [−0.42, +0.60] in the fresh 4,000 games, giving OPEN under the fresh-seed rule. The descriptive 6,000-game pool was +0.64 [+0.09, +1.18]. At 2,000 nodes jitter 4 and 1 each scored 0.00 in 2,000 games. Jitter 8 at 20,000 nodes scored +0.43 [−2.26, +3.12] in 1,600 games. All Table D and Table J rows and 273 opening intersections matched independent PGN readback. [Job 25 report](REPORT_sol_job25.md)
