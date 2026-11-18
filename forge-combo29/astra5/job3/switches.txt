@@ -1,0 +1,195 @@
+Job 3, Step 2 — Search pruning and reduction switches
+
+Plain PC r15 on helper base 6b98f217, compiled with FORGE_MATE_ALPHA_GUARD=1.
+Executable SHA-256 9279d02c2ea8c42875ec83a55399aeb588b72a3ae13e8067969be2cee8219306.
+Option declarations below are quoted from this executable's UCI listing archived in job1/step0/pc-uci.txt. Numbered conditions are verbatim excerpts from the patched PC tree's src/search.cpp. Numbers are source line numbers. Fixed-depth experiments use PC20 followed by the indicated override, Threads 1, Hash 16, the built-in evaluation, and unrestricted searchmoves.
+
+The ordered switches.tsv contains every experimental PC override, once per option. The combined control applies all of them in order. Each single-arm test applies only its own line. Some values disable an entire action. Other values move a finite threshold, disable one modifier, or remove a PC guard. The combined control still contains search selectivity. PCA's two additional guard tests are separate from this PC control.
+
+RfpDepth 0 — Exact off
+  option name RfpDepth type spin default 8 min 0 max 15
+  1937  if (!bare_king_mode && depth <= tune::RfpDepth &&
+  1938  eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+  1940  return eval;
+  Disables reverse futility in main search. Nonpositive input depth already enters qsearch at 1762. The threshold uses the current eval and beta.
+
+RazorDepth 0 — Exact off
+  option name RazorDepth type spin default 2 min 0 max 6
+  1926  if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+  1929  if (razor < alpha) return razor;
+  Disables main-search razoring at every eligible positive depth (1762).
+
+FutilityDepth 0 — Shallowest gate
+  option name FutilityDepth type spin default 7 min 0 max 15
+  2122  const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+  2132  if (!in_check && lmr_depth <= tune::FutilityDepth &&
+  2136  ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+  2139  skip_quiets = true;
+  Lowering this option to zero leaves lmr_depth == 0 eligible. Quiet futility can discard the current quiet and set skip_quiets for the rest. It requires a nonchecking quiet here.
+
+CaptureFutilityDepth 0 — Already inactive
+  option name CaptureFutilityDepth type spin default 6 min 0 max 15
+  2156  if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+  2157  lmr_depth <= tune::CaptureFutilityDepth &&
+  CaptureFutilityBase is 0 in PC20 and its positive-value guard is an exact off. CaptureFutilityDepth 0 alone would retain lmr_depth == 0 if the base were positive. This requested arm is a baseline identity control.
+
+HistoryPruneDepth 0 — Shallowest gate
+  option name HistoryPruneDepth type spin default 3 min 0 max 10
+  2122  const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+  2143  if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+  A reduced depth of zero remains eligible. The trigger also requires poor history; TtPruneV2 can change the threshold (2128–2130).
+
+NullMoveMinDepth 10 — Bounded
+  option name NullMoveMinDepth type spin default 3 min 1 max 10
+  1943  if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+  1944  ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+  1963  int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+  1966  if (null_score >= beta) {
+  Defers null-move pruning to internal depth 10 or higher. The maximum UCI threshold cannot disable it at all depths. Depth at node, not requested root depth, determines eligibility.
+
+ProbcutDepth 20 — Bounded
+  option name ProbcutDepth type spin default 5 min 1 max 20
+  1996  if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+  2002  if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
+  2016  value = -search_child(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+  2020  if (value >= probcut_beta) {
+  Defers the reduced capture search and consequent cutoff to internal depth 20 or higher.
+
+SingularDepth 20 — Bounded
+  option name SingularDepth type spin default 7 min 2 max 20
+  2192  if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+  2194  const int singular_beta = tt_score - tune::SingularMargin * depth;
+  2201  const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+  2211  } else if (singular_beta >= beta) {
+  2216  extension = -1;
+  Defers the singular verification to internal depth 20 or higher. Its outcomes include a cutoff, negative extensions, and positive extensions.
+
+IirDepth 20 — Bounded
+  option name IirDepth type spin default 4 min 1 max 20
+  2033  if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+  2036  else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
+  2037  !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+  Defers the missing-TT-move depth decrement to internal depth 20. The TtPruneV2 upper-bound variant has threshold IirDepth + 2.
+
+LmpBase 20 — Partial
+  option name LmpBase type spin default 4 min 0 max 20
+  320  return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+  2121  if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+  727  if (!skip_quiets) generate_quiets();
+  Increasing LmpBase raises the quiet move-count threshold. No sentinel exists: zero makes pruning earlier. Once set, skip_quiets suppresses later moves at picker stages 714–736. A quiet futility failure (2139) can independently set the flag.
+
+SeeQuietMultiplier 200 — Partial
+  option name SeeQuietMultiplier type spin default 24 min 0 max 200
+  2122  const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+  2131  if (quiet && !gives_check && prunable) {
+  2148  if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+  A larger multiplier tolerates greater SEE loss. Threshold remains zero whenever lmr_depth is zero; setting the multiplier to zero is maximally strict.
+
+SeeNoisyMultiplier 1000 — Partial
+  option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+  2153  } else if (prunable) {
+  2166  const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+  2167  if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+  2168  !board.see_ge(move, see_threshold)) {
+  The larger multiplier makes the (negative) threshold more permissive for captures, promotions and eligible quiet checks. SEE on an ordinary exchange has maximum moving-piece price 900, but the back-rank promotion-recapture path in src/board.cpp:1272–1279 is a separate calculation. No skip sentinel. IIR at depth 1 could also produce depth 0 before the move loop.
+
+QsFutilityMargin 1000 — Partial
+  option name QsFutilityMargin type spin default 160 min 0 max 1000
+  1685  futility_base = ss->static_eval + tune::QsFutilityMargin;
+  1702  if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+  1704  continue;
+  Increasing the qsearch margin tolerates more material shortfall. Even 1000 is finite; stand pat, move generation and SEE remain active.
+
+QsSeeMargin 500 — Partial
+  option name QsSeeMargin type spin default 40 min 0 max 500
+  1699  if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+  1706  if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+  Maximum permits losing 500 in SEE. A larger loss may still skip the move.
+
+LmrQuietBase 0 — Partial
+  option name LmrQuietBase type spin default 85 min 0 max 300
+  302  const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+  304  std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+  2257  int r = reduction(quiet, depth, move_count);
+  2259  if (!improving) r += 1;
+  2260  if (cut_node) r += 2;
+  2275  const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  Smallest quiet additive table term. The log product and later node-dependent increments can still produce reductions.
+
+LmrQuietDivisor 500 — Partial
+  option name LmrQuietDivisor type spin default 220 min 100 max 500
+  302  const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+  304  std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+  2257  int r = reduction(quiet, depth, move_count);
+  2260  if (cut_node) r += 2;
+  2275  const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  Largest quiet divisor attenuates the logarithmic term; the base and later node-dependent changes remain.
+
+LmrNoisyBase 0 — Partial
+  option name LmrNoisyBase type spin default 10 min 0 max 300
+  302  const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+  306  std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
+  2257  int r = reduction(quiet, depth, move_count);
+  2260  if (cut_node) r += 2;
+  2275  const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  Smallest noisy additive table term. Other table and node terms remain.
+
+LmrNoisyDivisor 800 — Partial
+  option name LmrNoisyDivisor type spin default 340 min 100 max 800
+  302  const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+  306  std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
+  2257  int r = reduction(quiet, depth, move_count);
+  2260  if (cut_node) r += 2;
+  2275  const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  Largest noisy divisor attenuates the logarithmic term. Other table and node terms remain.
+
+LmrCutoffThreshold 0 — Exact modifier off
+  option name LmrCutoffThreshold type spin default 3 min 0 max 20
+  2264  if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+  Disables only the extra one-ply LMR increment from a child’s accumulated cutoffs. Ordinary LMR remains.
+
+TtPruneV2 false — Exact modifier off
+  option name TtPruneV2 type check default false
+  1934  const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+  2036  else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
+  2126  const bool prunable = !tt_prune_v2_ || move != tt_move;
+  2127  const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
+  2128  const int history_prune_threshold = tt_prune_v2_ && !improving
+  Removes the PC TT-move exemption, improving/history margin adjustments, RFP worsening adjustment and upper-bound IIR variant. Ordinary TT probing and cutoffs still operate (1847–1851). Removing the TT-move exemption permits more pruning in this part of the loop.
+
+MateAlphaGuard false — Exact modifier off
+  option name MateAlphaGuard type check default false
+  2134  (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+  2159  (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+  Disables the protection for mate-valued alpha in quiet/capture futility. False can therefore enable pruning at a mate alpha. Present in this binary through FORGE_MATE_ALPHA_GUARD=1.
+
+CuckooRep false — Exact modifier off
+  option name CuckooRep type check default false
+  2397  if (tune::CuckooRep) [[unlikely]] return search_cuckoo(board, ss, depth, alpha, beta, cut_node);
+  2402  if (tune::CuckooRep) [[unlikely]] return qsearch_cuckoo(board, ss, alpha, beta);
+  2410  if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
+  2412  if (beta <= DrawScore) return DrawScore;
+  2421  if (beta <= DrawScore) return DrawScore;
+  Bypasses the upcoming-repetition lower-bound wrapper in main and quiescence searches. Ordinary rule-draw detection still runs.
+
+SoundMatePruning true — Partial protection
+  option name SoundMatePruning type check default false
+  2093  (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+  2094  (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+  2095  (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+  2096  if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+  With the normal FollowOption arms (include/forge/search.hpp:327–339), true bypasses the shallow move-loop pruning block on PV, in check or with mate-valued alpha. Other node types can still be pruned. It does not bypass main LMR or qsearch.
+
+Other search mechanisms and inactive options
+
+• Alpha-beta and principal variation search have no UCI disable value. Main beta cutoff at 2319 is `if (score >= beta)` with break at 2321. PVS zero-window and possible full-window re-search appear at 2296–2300. Alpha-beta bounds, move order, TT state and depth reductions interact. The full-depth re-search of a reduced move requires `score > alpha && reduced_depth < new_depth` (2279).
+• Main/qsearch TT cutoffs have no global off. Lines 1847–1851 and 1653–1657 accept `tt_bound == BoundExact` or a lower/upper bound passing `tt_score >= beta` / `tt_score <= alpha`. `Clear Hash` clears stored entries at that moment. The search immediately starts repopulating them. TtPruneV2 false does not bypass these returns.
+• Main LMR has no UCI off. Eligibility is `depth >= 2` and `move_count > 1 + (root_node ? 1 : 0)` (2254–2256). A root move can be reduced even though shallow move-loop pruning excludes the root (2096). Beyond the four table knobs (302–306), the engine adjusts r for TT-PV, improving, cut nodes, TT captures, checks, history and other conditions (2257–2275). It tests a reduced-depth null window before deciding on a full-depth re-search (2275–2287). LmrHistoryDivisor [1000,30000] scales a signed adjustment, with no globally least-reducing direction. LmrSignedCorrection, LmrLateParentRelief, LmrDeeperShallower and HindsightDepth are false in PC20. The hindsight-adjustment guard is `if (tune::HindsightDepth)` (1820); `proposed = depth - 1` at 1834 is already inactive. No UCI value removes ordinary move ordering. HistRework changes scores/history; CorrHistV2 and NonPawnCorrection affect the static evaluation that feeds pruning (1298–1315, 1450). They are inputs rather than off-switches for a specific pruning step.
+• Quiescence is entered on `if (depth <= 0) return qsearch_child(...)` (1762). There is no UCI override for that boundary, stand pat `if (best_score >= beta)` (1676), or quiescent alpha-beta cutoff `if (score >= beta) break;` (1738). The quiescence move picker rejects a quiet non-promotion TT move outside check (666–668), enters QsGenerate/QsCaptures outside check (670–671, 751–761), and handles evasions separately when in check (670, 763–773). A quiet non-capturing mate threat can be absent from this horizon.
+• Ordinary check extension is positive, `depth >= tune::CheckExtensionDepth` and a safe check at 2218–2220. Its threshold [1,30] defers that extension. It is not a pruning or reduction switch. SingularDepth separately controls the verification family including negative extensions. The PC r15 double-extension test has hard-coded margin 24 and inherited limit 6 at 2208 (no separate UCI knob in PC).
+• QuietExtinction false is already off (`tune::QuietExtinction && !root_node`, 2060). The optional tight futility test (2181–2186) and closing of the later quiet tail (2327–2330) therefore stay inactive. This is distinct from the normal LMP and futility skip_quiets paths. AspFailHighReduce [0,1] is already zero (`tune::AspFailHighReduce != 0`, 2766–2767). Normal aspiration windows remain in use (`depth >= 4`, 2748). AspirationDelta [4,200] changes window size without disabling the mechanism.
+• NullThreatVerify and NullSeeVeto are false in PC20; enabling either would gate particular null-move opportunities or require verification (1944–1948, 1968–1989). Neither disables null-move pruning globally. SoundMatePruning and MateAlphaGuard apply at different sites: the first exempts a whole move-loop block in three cases (2092–2097), the second contributes only to the two futility branch predicates (2134, 2159).
+• Non-root mate-distance pruning bounds alpha and beta and may return when `alpha >= beta` (1777–1783). No general UCI off. Rule-draw and MaxPly returns are at 1627–1628 and 1778–1779. `go mate` and fixed-depth `go depth` select distinct search modes. This experiment uses the latter throughout. The structural maximum-ply and legal/terminal checks are retained.
+
+PCA-only extra arms
+On the PCA build, after PC20, send RfpTtGuard 1 or RfpNoTtPv 1 separately. Both spin ranges are [0,1] with default 0. From PCA src/search.cpp:1955–1962, the guards `!(tune::RfpNoTtPv != 0 && ss->tt_pv)` and `!(tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture())` protect TT-PV and quiet TT-move nodes respectively. RFP on other qualifying nodes stays active. Neither UCI setting is present in the PC control executable.
