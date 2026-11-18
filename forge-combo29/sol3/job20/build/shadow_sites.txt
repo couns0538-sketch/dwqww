@@ -1,0 +1,22 @@
+Job 20 shadow instrumentation source map
+Line numbers refer to the fresh applied trees.
+
+kF
+src/search.cpp:1757 dispatches to Worker::static_evaluate_v3 (definition at 3883).
+src/search.cpp:3938-3951 compares the finished fast value against nnue::v3::evaluate_reference before returning the same fast value at 3962.
+src/nnue_v3.cpp:762-769 allocates a fresh accumulator, refreshes from the board, and uses output_sum_scalar.
+src/search.cpp:3125 resets at Worker::search entry. The shadow also checks the actual root priming call at 3430.
+src/search.cpp:3613 merges the alternate-PV subsearch counter; 3869 collects active workers after helper joins.
+src/uci.cpp:450-453 reports immediately before the worker bestmove including a terminal 0000. The direct book path at 888-890 reports zero without a search.
+
+r15d
+src/search.cpp:1286 dispatches to Worker::static_evaluate_v3 (definition at 3376).
+src/search.cpp:3421-3434 compares the two values before returning the unchanged fast value.
+src/nnue_v3.cpp:770-777 is the reference.
+src/search.cpp:2631 resets; 2925 primes at the root; 3108 merges alternate PV; 3362 collects active workers.
+src/uci.cpp:365-368 covers the worker bestmove and 807-809 the direct book path.
+
+Control
+src/nnue.cpp:535-542 in applied_plant contains nnue::dirty_from_move. Only line 537 differs from the clean shadow tree. Promotions omit the moving pawn's removal from the dirty feature record. Captured enemy-piece subtraction and promoted-piece insertion retain their original code.
+
+The first five mismatches are shared across workers and searches for the process, under the UCI output lock. The counts include each call that computes the v3 value, including the root warming call and repeated evaluations of a node. Evaluation count divided by visited nodes is therefore an evaluation-call rate. Terminal, restricted-empty, and zero-budget results consistently use reset worker counters because all native returns pass through the facade before UCI output.
