@@ -1,0 +1,254 @@
+--- a/include/forge/nnue_v3.hpp
++++ b/include/forge/nnue_v3.hpp
+@@ -126,6 +126,8 @@
+ // Piece bitboards indexed by Piece code (index 0 unused).
+ using Pieces = std::array<Bitboard, 13>;
+ 
++enum class RefreshCause : std::size_t { Root, NoAncestor, Bucket, Mirror, BucketAndMirror, Forced, Count };
++
+ // Per-worker accumulator cache: for each (perspective, bucket, flip) the
+ // accumulator of the last piece placement refreshed under that key.
+ struct RefreshCache {
+@@ -137,6 +139,20 @@
+     std::uint64_t generation = 0;
+     std::uint64_t refreshes = 0;  // statistics (tests)
+     std::uint64_t columns = 0;
++    std::array<std::uint64_t, static_cast<std::size_t>(RefreshCause::Count)> refresh_causes{};
++    std::uint64_t zero_column_refreshes = 0;
++};
++
++struct EvalCounts {
++    std::uint64_t forced_updates = 0;
++    std::uint64_t update_single = 0;
++    std::uint64_t update_pair = 0;
++    std::uint64_t update_pair_null = 0;
++    std::uint64_t eval_fused = 0;
++    std::uint64_t eval_fused_null = 0;
++    std::uint64_t eval_valid = 0;
++    std::uint64_t eval_after_refresh_or_replay = 0;
++    std::uint64_t eval_forced = 0;
+ };
+ 
+ // Per-worker state: one accumulator per stack index (ply + 4), compact L1 validity flags, and the cache.
+@@ -145,6 +161,7 @@
+     std::vector<std::uint8_t> valid_flags;
+     RefreshCache cache;
+     std::uint64_t generation = 0;
++    EvalCounts eval_counts;
+     void invalidate() { std::fill(valid_flags.begin(), valid_flags.end(), static_cast<std::uint8_t>(0)); }
+ };
+ 
+@@ -213,9 +230,10 @@
+                                           const DirtyPieces& dirty, const Board& board);
+ // Accumulator of `perspective` for the placement `pieces` (own king on `king_square`), through the cache.
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+-                         std::int16_t* destination);
++                         std::int16_t* destination, RefreshCause cause);
+ // Both perspectives of `board` through the cache; marks the accumulator valid.
+-void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator);
++void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator,
++                    RefreshCause cause);
+ // Rebuilds state.stack[k] from state.stack[k - 1] (valid) with dirty_of(k); `board` is the position at
+ // stack index `top` (>= k) and dirty_of(j) the changes that led to index j, for j in (k, top].
+ template <class DirtyOf>
+@@ -241,6 +259,8 @@
+         if (!(pair_keys[pi] == parent.keys[pi])) pair_ok = false;
+     }
+     if (pair_ok) {
++        ++state.eval_counts.update_pair;
++        state.eval_counts.update_pair_null += dirty.count == 0;
+         apply_changes_pair(net, parent.values[0].data(), child.values[0].data(), pair_keys[0],
+                            parent.values[1].data(), child.values[1].data(), pair_keys[1], dirty);
+         for (const Color p : {White, Black}) {
+@@ -258,6 +278,7 @@
+         child.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+         child.keys[pi] = key;
+         if (key == parent.keys[pi]) {
++            ++state.eval_counts.update_single;
+             apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
+         } else {
+             // The king changed bucket or side: rebuild this perspective from the
+@@ -271,7 +292,11 @@
+                     else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
+                 }
+             }
+-            refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data());
++            const bool bucket_changed = key.bucket != parent.keys[pi].bucket;
++            const bool mirror_changed = key.flip != parent.keys[pi].flip;
++            const RefreshCause cause = !bucket_changed ? RefreshCause::Mirror
++                : mirror_changed ? RefreshCause::BucketAndMirror : RefreshCause::Bucket;
++            refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data(), cause);
+         }
+     }
+     child.valid = true;
+@@ -285,7 +310,8 @@
+     int ancestor = index - 1;
+     while (ancestor >= 4 && state.valid_flags[static_cast<std::size_t>(ancestor)] == 0) --ancestor;
+     if (ancestor < 4) {
+-        refresh_cached(net, state.cache, board, state.stack[static_cast<std::size_t>(index)]);
++        const RefreshCause cause = index == 4 ? RefreshCause::Root : RefreshCause::NoAncestor;
++        refresh_cached(net, state.cache, board, state.stack[static_cast<std::size_t>(index)], cause);
+         state.valid_flags[static_cast<std::size_t>(index)] = 1;
+         return;
+     }
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -13,6 +13,7 @@
+ #include <chrono>
+ #include <cstddef>
+ #include <cstdint>
++#include <iosfwd>
+ #include <memory>
+ #include <mutex>
+ #include <thread>
+@@ -478,6 +479,9 @@
+     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
+     void clear();
+     void clear_caches() { evaluator_.clear(); }
++#if FORGE_NNUE_V3
++    void write_eval_counts(std::ostream& out) const;
++#endif
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+     // Zero the count other workers add into a node budget. Searcher::search does
+     // this for every worker before it starts any of them.
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -902,11 +902,12 @@
+ }
+ 
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+-                         std::int16_t* destination) {
++                         std::int16_t* destination, RefreshCause cause) {
+     const KingKey key = king_key(net, perspective, king_square);
+     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
+     const int hidden = net.hidden;
+     ++cache.refreshes;
++    ++cache.refresh_causes[static_cast<std::size_t>(cause)];
+     const std::int16_t* subs[32];
+     const std::int16_t* adds[32];
+     int n_sub = 0;
+@@ -926,6 +927,7 @@
+         entry.pieces[pi] = pieces[pi];
+     }
+     cache.columns += static_cast<std::uint64_t>(n_sub + n_add);
++    cache.zero_column_refreshes += n_sub == 0 && n_add == 0;
+     std::int16_t* const acc = entry.values.data();
+ #if FORGE_NNUE_V3_AVX512
+     int s = 0;
+@@ -961,14 +963,15 @@
+     std::copy_n(acc, hidden, destination);
+ }
+ 
+-void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator) {
++void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator,
++                    RefreshCause cause) {
+     const Pieces pieces = pieces_of(board);
+     for (const Color p : {White, Black}) {
+         const auto pi = static_cast<std::size_t>(p);
+         const int king_square = board.king_square(p);
+         accumulator.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+         accumulator.keys[pi] = king_key(net, p, king_square);
+-        refresh_from_pieces(net, cache, pieces, p, king_square, accumulator.values[pi].data());
++        refresh_from_pieces(net, cache, pieces, p, king_square, accumulator.values[pi].data(), cause);
+     }
+     accumulator.valid = true;
+ }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2621,6 +2621,15 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#if FORGE_NNUE_V3
++    if (v3_state_) {
++        v3_state_->cache.refreshes = 0;
++        v3_state_->cache.columns = 0;
++        v3_state_->cache.refresh_causes.fill(0);
++        v3_state_->cache.zero_column_refreshes = 0;
++        v3_state_->eval_counts = {};
++    }
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -3356,6 +3365,35 @@
+ }
+ 
+ #if FORGE_NNUE_V3
++void Worker::write_eval_counts(std::ostream& out) const {
++    using nnue::v3::RefreshCause;
++    const auto* cache = v3_state_ ? &v3_state_->cache : nullptr;
++    const auto refresh_count = [cache](RefreshCause cause) {
++        return cache ? cache->refresh_causes[static_cast<std::size_t>(cause)] : 0;
++    };
++    const nnue::v3::EvalCounts counts = v3_state_ ? v3_state_->eval_counts : nnue::v3::EvalCounts{};
++    out << "info string evalcount"
++        << " refreshes=" << (cache ? cache->refreshes : 0)
++        << " columns=" << (cache ? cache->columns : 0)
++        << " refresh_root=" << refresh_count(RefreshCause::Root)
++        << " refresh_no_ancestor=" << refresh_count(RefreshCause::NoAncestor)
++        << " refresh_bucket=" << refresh_count(RefreshCause::Bucket)
++        << " refresh_mirror=" << refresh_count(RefreshCause::Mirror)
++        << " refresh_bucket_mirror=" << refresh_count(RefreshCause::BucketAndMirror)
++        << " refresh_forced=" << refresh_count(RefreshCause::Forced)
++        << " forced_updates=" << counts.forced_updates
++        << " update_single=" << counts.update_single
++        << " update_pair=" << counts.update_pair
++        << " update_pair_null=" << counts.update_pair_null
++        << " eval_fused=" << counts.eval_fused
++        << " eval_fused_null=" << counts.eval_fused_null
++        << " eval_valid=" << counts.eval_valid
++        << " eval_after_refresh_or_replay=" << counts.eval_after_refresh_or_replay
++        << " eval_forced=" << counts.eval_forced
++        << " refresh_zero_columns=" << (cache ? cache->zero_column_refreshes : 0)
++        << '\n';
++}
++
+ // NNUE v3 evaluation driver (forge/r7, 2026-11-15; after src/search_v3.cpp of branch
+ // fable/standalone-h512-20261111, written for this tree's move records). Reached only from
+ // Worker::static_evaluate when UCI NNUEArch is true and a v3 net is loaded.
+@@ -3371,6 +3409,7 @@
+     const int index = ss->ply + 4;
+     int value = 0;
+     if (v3_state_->valid_flags[static_cast<std::size_t>(index)] != 0) {
++        ++v3_state_->eval_counts.eval_valid;
+         value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
+     } else if (index > 4 && v3_state_->valid_flags[static_cast<std::size_t>(index - 1)] != 0) {
+         SearchStack* frame = &stack_[static_cast<std::size_t>(index)];
+@@ -3389,6 +3428,8 @@
+         const nnue::v3::KingKey key0 = nnue::v3::king_key(net, White, king0);
+         const nnue::v3::KingKey key1 = nnue::v3::king_key(net, Black, king1);
+         if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++            ++v3_state_->eval_counts.eval_fused;
++            v3_state_->eval_counts.eval_fused_null += dirty.count == 0;
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+@@ -3399,6 +3440,7 @@
+                 ensure_piece_diff(f);
+                 return f->dirty;
+             });
++            ++v3_state_->eval_counts.eval_after_refresh_or_replay;
+             value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
+         }
+     } else {
+@@ -3407,6 +3449,7 @@
+             ensure_piece_diff(frame);
+             return frame->dirty;
+         });
++        ++v3_state_->eval_counts.eval_after_refresh_or_replay;
+         value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
+     }
+ #if FORGE_NNUE_V3_VERIFY
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -361,6 +361,9 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#if FORGE_NNUE_V3
++                searcher.main_worker().write_eval_counts(std::cout);
++#endif
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {

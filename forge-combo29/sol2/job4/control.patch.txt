@@ -1,0 +1,115 @@
+--- a/include/forge/nnue_v3.hpp
++++ b/include/forge/nnue_v3.hpp
+@@ -234,6 +234,39 @@
+ // Both perspectives of `board` through the cache; marks the accumulator valid.
+ void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator,
+                     RefreshCause cause);
++// Positive control only: share the attempt ordinal across all incremental call sites.
++inline bool force_control_update(WorkerState& state) {
++    static thread_local std::uint64_t attempts = 0;
++    if ((++attempts & 63U) != 0) return false;
++    ++state.eval_counts.forced_updates;
++    return true;
++}
++
++template <class DirtyOf>
++Pieces replay_placement(const Board& board, int k, int top, DirtyOf&& dirty_of) {
++    Pieces pieces = pieces_of(board);
++    for (int j = top; j > k; --j) {
++        const DirtyPieces& later = dirty_of(j);
++        for (int i = 0; i < later.count; ++i) {
++            const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
++            if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
++            else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
++        }
++    }
++    return pieces;
++}
++
++template <class DirtyOf>
++void force_replay_refresh(const Net& net, WorkerState& state, Accumulator& child,
++                          const Board& board, int k, int top, DirtyOf&& dirty_of, const int (&kings)[2]) {
++    const Pieces pieces = replay_placement(board, k, top, dirty_of);
++    for (const Color perspective : {White, Black}) {
++        const auto pi = static_cast<std::size_t>(perspective);
++        refresh_from_pieces(net, state.cache, pieces, perspective, kings[pi],
++                            child.values[pi].data(), RefreshCause::Forced);
++    }
++}
++
+ // Rebuilds state.stack[k] from state.stack[k - 1] (valid) with dirty_of(k); `board` is the position at
+ // stack index `top` (>= k) and dirty_of(j) the changes that led to index j, for j in (k, top].
+ template <class DirtyOf>
+@@ -259,10 +292,14 @@
+         if (!(pair_keys[pi] == parent.keys[pi])) pair_ok = false;
+     }
+     if (pair_ok) {
+-        ++state.eval_counts.update_pair;
+-        state.eval_counts.update_pair_null += dirty.count == 0;
+-        apply_changes_pair(net, parent.values[0].data(), child.values[0].data(), pair_keys[0],
+-                           parent.values[1].data(), child.values[1].data(), pair_keys[1], dirty);
++        if (force_control_update(state)) {
++            force_replay_refresh(net, state, child, board, k, top, dirty_of, pair_kings);
++        } else {
++            ++state.eval_counts.update_pair;
++            state.eval_counts.update_pair_null += dirty.count == 0;
++            apply_changes_pair(net, parent.values[0].data(), child.values[0].data(), pair_keys[0],
++                               parent.values[1].data(), child.values[1].data(), pair_keys[1], dirty);
++        }
+         for (const Color p : {White, Black}) {
+             const auto pi = static_cast<std::size_t>(p);
+             child.king_sq[pi] = static_cast<std::uint8_t>(pair_kings[pi]);
+@@ -278,20 +315,17 @@
+         child.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+         child.keys[pi] = key;
+         if (key == parent.keys[pi]) {
+-            ++state.eval_counts.update_single;
+-            apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
++            if (force_control_update(state)) {
++                // Keep the existing mandatory refresh of the other perspective.
++                force_replay_refresh(net, state, child, board, k, top, dirty_of, pair_kings);
++            } else {
++                ++state.eval_counts.update_single;
++                apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
++            }
+         } else {
+             // The king changed bucket or side: rebuild this perspective from the
+             // placement at index k, reconstructed by undoing the later plies.
+-            Pieces pieces = pieces_of(board);
+-            for (int j = top; j > k; --j) {
+-                const DirtyPieces& later = dirty_of(j);
+-                for (int i = 0; i < later.count; ++i) {
+-                    const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
+-                    if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
+-                    else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
+-                }
+-            }
++            const Pieces pieces = replay_placement(board, k, top, dirty_of);
+             const bool bucket_changed = key.bucket != parent.keys[pi].bucket;
+             const bool mirror_changed = key.flip != parent.keys[pi].flip;
+             const RefreshCause cause = !bucket_changed ? RefreshCause::Mirror
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3428,12 +3428,17 @@
+         const nnue::v3::KingKey key0 = nnue::v3::king_key(net, White, king0);
+         const nnue::v3::KingKey key1 = nnue::v3::king_key(net, Black, king1);
+         if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
+-            ++v3_state_->eval_counts.eval_fused;
+-            v3_state_->eval_counts.eval_fused_null += dirty.count == 0;
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+-            value = nnue::v3::apply_pair_and_evaluate(
+-                net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+-                key0, king0, key1, king1, dirty, board);
++            auto& child = v3_state_->stack[static_cast<std::size_t>(index)];
++            if (nnue::v3::force_control_update(*v3_state_)) {
++                ++v3_state_->eval_counts.eval_forced;
++                nnue::v3::refresh_cached(net, v3_state_->cache, board, child, nnue::v3::RefreshCause::Forced);
++                value = nnue::v3::evaluate(net, board, child);
++            } else {
++                ++v3_state_->eval_counts.eval_fused;
++                v3_state_->eval_counts.eval_fused_null += dirty.count == 0;
++                value = nnue::v3::apply_pair_and_evaluate(net, parent, child, key0, king0, key1, king1, dirty, board);
++            }
+         } else {
+             nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+                 SearchStack* f = &stack_[static_cast<std::size_t>(k)];

@@ -1,0 +1,56 @@
+from collections import Counter
+from pathlib import Path
+import json,sys
+
+out, mode = Path(sys.argv[1]), sys.argv[2]
+expected=(8612,29333343,'5c705841c3ea17b4')
+events=('refresh_root','refresh_no_ancestor','refresh_bucket','refresh_mirror','refresh_bucket_mirror','refresh_forced')
+
+def read(tag):
+    checks=[]
+    row=json.loads((out/f'{tag}-run.raw.txt').read_text())
+    logs=[json.loads(line) for line in (out/f'{tag}-trace.jsonl.txt').open()]
+    result=(row['searches'],row['total_nodes'],row['trace_fnv1a64'])
+    print(tag,'native replay',result,'known answer',result==expected)
+    checks.append(result==expected)
+    counts=Counter()
+    event_failures=[]
+    fnv=14695981039346656037
+    for index,record in enumerate(logs,1):
+        counts.update(record['evalcounts'])
+        c=record['evalcounts']
+        if sum(c[x] for x in events)!=c['refreshes'] or 2*c['forced_updates']!=c['refresh_forced']:
+            event_failures.append({'row':index,'game':record['game'],'ply':record['ply'],'counts':c})
+        for byte in record['trace_input'].encode():
+            fnv=((fnv^byte)*1099511628211)&((1<<64)-1)
+    checks.extend((len(logs)==row['searches'], sum(x['nodes'] for x in logs)==row['total_nodes'], f'{fnv:016x}'==row['trace_fnv1a64'], dict(counts)==row['evalcount_totals'], not event_failures))
+    print(tag, 'reconciliation', checks, 'summed events', sum(counts[x] for x in events), 'refreshes', counts['refreshes'])
+    if event_failures: print('first event sum difference',json.dumps(event_failures[0]))
+    print(json.dumps(dict(counts), sort_keys=True))
+    return checks, counts, logs
+
+probe_ok, probe, baseline = read('probe')
+if mode=='probe':
+    checks=probe_ok+[probe['forced_updates']==0,probe['refresh_forced']==0,probe['eval_forced']==0]
+    sys.exit(0 if all(checks) else 1)
+
+control_ok, control, compared = read('control')
+extra=control['refreshes']-probe['refreshes']
+attempts=lambda c: c['update_single']+c['update_pair']+c['eval_fused']+c['forced_updates']
+base_eval=lambda c: c['eval_fused']+c['eval_valid']+c['eval_after_refresh_or_replay']+c['eval_forced']
+checks=probe_ok+control_ok+[control['forced_updates']>0,extra==2*control['forced_updates'],all(probe[key]==control[key] for key in events if key!='refresh_forced'),attempts(probe)==attempts(control),base_eval(probe)==base_eval(control)]
+first=None
+for index,(a,b) in enumerate(zip(baseline,compared),1):
+    if a['trace_input']!=b['trace_input']:
+        first=(index,a,b)
+        break
+if first is None and len(baseline)!=len(compared):
+    n=min(len(baseline),len(compared))
+    first=(n+1, baseline[n] if n<len(baseline) else None, compared[n] if n<len(compared) else None)
+if first: print('FIRST TRACE DIFFERENCE',json.dumps(first))
+checks.append(first is None)
+print('Control extra perspective refreshes',extra,'forced updates',control['forced_updates'],'2×',2*control['forced_updates'])
+print('Update attempts',attempts(probe),attempts(control),'full outputs',base_eval(probe),base_eval(control))
+print('Known-answer booleans',checks)
+print('PASS' if all(checks) else 'FAIL')
+sys.exit(0 if all(checks) else 1)

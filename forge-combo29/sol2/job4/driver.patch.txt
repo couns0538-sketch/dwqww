@@ -1,0 +1,169 @@
+--- a/selfplay_driver.py
++++ b/selfplay_driver.py
+@@ -22,6 +22,7 @@
+ import json
+ import pathlib
+ import random
++import re
+ import subprocess
+ import sys
+ import time
+@@ -239,6 +240,50 @@
+     return openings
+ 
+ 
++def read_counted_search(stdout, location, expected_keys=None):
++    last_nodes = 0
++    last_score = ""
++    last_info = None
++    evalcount = None
++    counters = {}
++    while True:
++        line = stdout.readline()
++        if not line:
++            raise RuntimeError(f"{location}: engine EOF before bestmove")
++        if line.startswith("info depth "):
++            last_info = line.rstrip("\r\n")
++            parts = line.split()
++            for i, tok in enumerate(parts):
++                if tok == "nodes" and i + 1 < len(parts):
++                    last_nodes = int(parts[i + 1])
++                elif tok == "score" and i + 2 < len(parts):
++                    last_score = f"{parts[i + 1]}:{parts[i + 2]}"
++        elif line.startswith("info string evalcount") and line.split()[:3] == ["info", "string", "evalcount"]:
++            if evalcount is not None:
++                raise RuntimeError(f"{location}: duplicate evalcount line before bestmove")
++            evalcount = line.rstrip("\r\n")
++            tokens = line.split()[3:]
++            if not tokens:
++                raise RuntimeError(f"{location}: empty evalcount line")
++            for token in tokens:
++                key, separator, value = token.partition("=")
++                if (not separator or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]*", key)
++                        or not re.fullmatch(r"[0-9]{1,20}", value) or key in counters
++                        or int(value) >= 2**64):
++                    raise RuntimeError(f"{location}: invalid or duplicate evalcount field {token!r}")
++                counters[key] = int(value)
++            if expected_keys is not None and tuple(counters) != expected_keys:
++                raise RuntimeError(f"{location}: evalcount keys {tuple(counters)} != {expected_keys}")
++        elif line.startswith("bestmove "):
++            if evalcount is None:
++                raise RuntimeError(f"{location}: missing evalcount line before bestmove")
++            return {
++                "bestmove": line.split()[1], "nodes": last_nodes, "score": last_score,
++                "uci_last_info": last_info, "uci_bestmove": line.rstrip("\r\n"),
++                "uci_evalcount": evalcount, "evalcounts": counters,
++            }
++
++
+ def run_selfplay(
+     engine_path: str,
+     net_path: str,
+@@ -248,6 +293,7 @@
+     max_plies: int,
+     seed: int,
+     extra_options: list[tuple[str, str]],
++    trace_file,
+     dump_fens_path: str | None = None,
+ ):
+     proc = subprocess.Popen(
+@@ -276,10 +322,9 @@
+         wait_ready(proc, check_errors=True)
+         send(proc, f"position startpos moves {' '.join(openings[0])}\ngo softnodes {softnodes}\n")
+         assert proc.stdout is not None
+-        while True:
+-            ln = proc.stdout.readline()
+-            if not ln or ln.startswith("bestmove "):
+-                break
++        warmup = read_counted_search(proc.stdout, "warmup")
++        expected_keys = tuple(warmup["evalcounts"])
++        evalcount_totals = dict.fromkeys(expected_keys, 0)
+ 
+         collected_fens: list[str] = []
+         total_searches = 0
+@@ -305,27 +350,19 @@
+                 cmd = f"position startpos moves {' '.join(moves)}\ngo softnodes {softnodes}\n"
+                 send(proc, cmd)
+ 
+-                last_nodes = 0
+-                last_score = ""
+-                bestmove = "0000"
+-                while True:
+-                    line = proc.stdout.readline()
+-                    if not line:
+-                        raise RuntimeError("Engine EOF during search")
+-                    if line.startswith("info depth "):
+-                        parts = line.split()
+-                        for i, tok in enumerate(parts):
+-                            if tok == "nodes" and i + 1 < len(parts):
+-                                last_nodes = int(parts[i + 1])
+-                            elif tok == "score" and i + 2 < len(parts):
+-                                last_score = f"{parts[i + 1]}:{parts[i + 2]}"
+-                    elif line.startswith("bestmove "):
+-                        bestmove = line.split()[1]
+-                        break
++                search = read_counted_search(proc.stdout, f"game {g_idx + 1}, ply {ply}", expected_keys)
++                bestmove, last_nodes, last_score = search["bestmove"], search["nodes"], search["score"]
++                for key, value in search["evalcounts"].items():
++                    evalcount_totals[key] += value
+ 
+                 total_searches += 1
+                 total_nodes += last_nodes
+-                trace_hash = fnv1a64_str(trace_hash, f"{g_idx},{ply},{bestmove},{last_nodes},{last_score};")
++                trace_input = f"{g_idx},{ply},{bestmove},{last_nodes},{last_score};"
++                trace_hash = fnv1a64_str(trace_hash, trace_input)
++                print(json.dumps({
++                    "game_index": g_idx, "game": g_idx + 1, "ply": ply,
++                    "trace_input": trace_input, "trace_fnv1a64": f"{trace_hash:016x}", **search,
++                }, separators=(",", ":")), file=trace_file)
+ 
+                 if bestmove == "0000" or last_nodes == 0:
+                     break
+@@ -353,6 +390,8 @@
+         "searches_per_sec": round(total_searches / elapsed_s, 2),
+         "effective_nps": round(total_nodes / elapsed_s, 1),
+         "trace_fnv1a64": f"{trace_hash:016x}",
++        "evalcount_totals": evalcount_totals,
++        "warmup_evalcount": warmup["uci_evalcount"],
+     }
+ 
+ 
+@@ -367,6 +406,7 @@
+     ap.add_argument("--seed", type=int, default=20261117, help="Deterministic PRNG seed for openings")
+     ap.add_argument("--option", action="append", default=[], help="Extra UCI option Name=Value")
+     ap.add_argument("--dump-fens", default=None, help="Optional output file for visited FENs")
++    ap.add_argument("--trace-jsonl", required=True, type=pathlib.Path, help="New JSONL evidence file, one record per measured search")
+     ap.add_argument("--json", action="store_true", help="Print JSON summary line")
+     args = ap.parse_args()
+ 
+@@ -377,17 +417,19 @@
+         k, v = item.split("=", 1)
+         extra.append((k, v))
+ 
+-    summary = run_selfplay(
+-        engine_path=args.engine,
+-        net_path=args.net,
+-        num_games=args.games,
+-        softnodes=args.softnodes,
+-        random_plies=args.random_plies,
+-        max_plies=args.max_plies,
+-        seed=args.seed,
+-        extra_options=extra,
+-        dump_fens_path=args.dump_fens,
+-    )
++    with args.trace_jsonl.open("x", encoding="utf-8") as trace_file:
++        summary = run_selfplay(
++            engine_path=args.engine,
++            net_path=args.net,
++            num_games=args.games,
++            softnodes=args.softnodes,
++            random_plies=args.random_plies,
++            max_plies=args.max_plies,
++            seed=args.seed,
++            extra_options=extra,
++            trace_file=trace_file,
++            dump_fens_path=args.dump_fens,
++        )
+     if args.json:
+         print(json.dumps(summary))
+     else:
