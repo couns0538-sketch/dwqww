@@ -1,0 +1,63 @@
+# STEP 2 evidence — seat 25, group 5 part 5
+
+## Patches applied (all clean, no offset/fuzz/FAILED/reject/malformed)
+```
+cd ~/w/r15d
+$ patch -p1 -F0 < pc_r15.patch
+patching file include/forge/b4.hpp; include/forge/board.hpp; include/forge/nnue.hpp; include/forge/nnue_v3.hpp; include/forge/search.hpp; src/board.cpp; src/eval_params.cpp; src/nnue.cpp; src/nnue_v3.cpp; src/search.cpp; src/uci.cpp
+$ patch -p1 -F0 < a_speed.patch
+patching file include/forge/nnue_v3.hpp; include/forge/search.hpp; src/board.cpp; src/nnue_v3.cpp; src/search.cpp; src/uci.cpp
+$ patch -p1 -F0 < e1.patch
+patching file include/forge/board.hpp; src/board.cpp; src/search.cpp
+cd ~/w/kF
+$ patch -p1 -F0 < stack.patch
+patching file include/forge/b4.hpp; include/forge/board.hpp; include/forge/eval.hpp; include/forge/nnue_v3.hpp; include/forge/search.hpp; src/board.cpp; src/nnue_v3.cpp; src/search.cpp; src/uci.cpp
+```
+No line in any patch output contained offset, fuzz, FAILED, reject or malformed.
+
+## Patch hashes (match the brief)
+```
+d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a  /home/ubuntu/w/pc_r15.patch
+034814873e2ffce7010b7b065d79b5aa0a57419cbb75cc8bfc4ff22208278cea  /home/ubuntu/w/a_speed.patch
+20cca10770a32af8d9b7b26b9fd9544fefb67e592b35177f68788cfd73ab7574  /home/ubuntu/w/e1.patch
+3d2ce085a8b76478942d4e29d7a74512eb3ecd2d328d224e27f711a48e46cb30  /home/ubuntu/w/stack.patch
+```
+
+## Checksum lists
+r15d: 29 of 29 OK (sha256sum -c, zero non-OK lines)
+kF:   29 of 29 OK (sha256sum -c, zero non-OK lines)
+
+## Compiler / ISA
+```
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+#define __AVX512F__ 1
+#define __AVX512BW__ 1
+#define __BMI2__ 1
+nproc: 4
+CPU(s):                                  4
+Model name:                              Intel(R) Xeon(R) Processor
+Thread(s) per core:                      1
+Core(s) per socket:                      4
+```
+
+## Binary hashes
+```
+da21c7efaa2fd850f008e7342bbd2314c1e38eeb817b9d0e9dfa38f5ca959130  /home/ubuntu/w/bin_r15d
+59f95a59ef9dc5eca379117254de013fad60013fbebdc668c3a4ce6a37ac4d0e  /home/ubuntu/w/bin_kF
+```
+
+## Known numbers (fresh process per program; bench sent on STDIN)
+
+| check | expected | bin_r15d | bin_kF | verdict |
+|---|---|---|---|---|
+| no options, bench 11 | 312866 | 312866 | 312866 | MATCH |
+| no options, bench 13 | 862329 | 862329 | 862329 | MATCH |
+| no options, go perft 5 | 4865609 | 4865609 | 4865609 | MATCH |
+| PC20, bench 11 | 278024 | 278024 | 278024 | MATCH |
+| PC20, bench 13 | 587276 | 587276 | 587276 | MATCH |
+
+Note: 'bench N' must be sent on stdin. Passed as argv it produces no output and exits 0 (independently recorded in the earlier swarm run). The perft line format is 'nodes 4865609', not 'Nodes searched:'.
+
+## net768 known numbers — NOT RUN IN STEP 2
+
+net768 applies to groups 1, 2, 3 and part 5 of group 4. Seat 25 is group 5 part 5, so the net768 row (bench 11 -> 882074, bench 13 -> 4275906) is not part of this seat's required set and was not run here. Group 5's own known answers are the three P-position ladders, reported in the group section.
