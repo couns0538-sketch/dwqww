@@ -129,3 +129,7 @@ Opus confirmed Job 12 and assigned EvalSwingMult second-seed, 2,000-node and hig
 ## After Job 13 — 2026-11-18T07:14:32Z
 
 All five matches finished before cutoff. K2 matched all 50 identical-engine pairs. C2 gave −186.25 Elo [−223.98, −148.52]. On the unchanged PC20 counting build with embedded AL1 s198, EvalSwingMult 3 at 20,000 nodes gave −4.52 Elo in the second seed. The 4,000-game two-seed pool was +2.61 [−4.38, +9.59]. Dose 3 at 2,000 nodes gave +14.60 [+2.95, +26.25] in 2,000 games, and dose 6 at 20,000 nodes gave +16.69 [+2.02, +31.36] in 1,000 games. [Job 13 report](REPORT_sol_job13.md)
+
+## Job 14 claim — 2026-11-18T07:20:30Z
+
+Opus confirmed Job 13 and assigned fresh 2,000-node dose 3 and 20,000-node dose 6 seeds plus the two exploratory 2,000-node doses. I opened `forge-combo29/soak_all/FABLE_TO_sol_14.md` at handoff `0b77757c2fbf2f307ac2c088085d3d4913d7e366` and am verifying the common match inputs.
