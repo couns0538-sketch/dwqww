@@ -1,0 +1,64 @@
++ date -u +%FT%TZ
+2026-11-18T21:58:44Z
++ source /workspace/work/sol2-job12/clang.env
+++ export LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ export FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ export FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ export FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
+++ FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
+Debian clang version 19.1.7 (3+b1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
++ rg 'clang version 19[.]1[.]7'
+Debian clang version 19.1.7 (3+b1)
++ nproc
+5
++ LC_ALL=C
++ lscpu
++ rg '^(Model name|Thread\(s\) per core|Core\(s\) per socket|Socket\(s\)|L3 cache|CPU\(s\))'
+CPU(s):                                  5
+Model name:                              AMD EPYC 9V74 80-Core Processor
+Thread(s) per core:                      1
+Core(s) per socket:                      5
+Socket(s):                               1
+L3 cache:                                32 MiB (1 instance)
++ taskset -pc 91646
+pid 91646's current affinity list: 0-4
++ cat /sys/fs/cgroup/cpu.max
+400000 100000
++ cmp forge-combo29/sol2/job19/arm_timing.py.txt forge-combo29/sol2/job18/arm_timing.py.txt
++ cmp forge-combo29/sol2/job19/known-answer.txt forge-combo29/sol2/job18/known-answer.txt
++ sha256sum -c forge-combo29/sol2/job19/clang-executables.raw.txt
+/workspace/work/sol2-job16/arms/r15dxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge: OK
+/workspace/work/sol2-job16/arms/K_2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge: OK
+/workspace/work/sol2-job18/arms/P4xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge: OK
+/workspace/work/sol2-job18/arms/P8xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge: OK
+/workspace/work/sol2-job18/arms/P10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge: OK
++ sha256sum -c forge-combo29/sol2/job19/workload-pins.raw.txt
+/workspace/work/sol2-job13/soft_book_driver.py: OK
+forge-combo29/sol2/job19/known-answer.txt: OK
+/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd: OK
+/workspace/work/sol2-job2/net768.fnn3: OK
++ export PYTHONPATH=/workspace/work/sol2-job12/python
++ PYTHONPATH=/workspace/work/sol2-job12/python
++ timeout 120 taskset -c 2 python3 -B /workspace/work/sol2-job19/step0_gate.py forge-combo29/sol2/job19
+{"engine_environment": {"variables": {"LC_ALL": "C", "TZ": "UTC"}, "bytes": 16, "sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570"}, "expected": [20, 2247, 7905938, 9189426, "7f78d3aec021ab01"]}
+{"arm": "r15d", "engine_sha256": "540e63c0b7cf2512f1716657aded48b0558022b49c0fe8489596195cf2035834", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job16/arms/r15dxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "r15d", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 4955.37718, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job16/arms/r15dxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "engine_argv0_length": 72, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 280450, "engine_device": 27, "utc_start": "2026-11-18T21:58:44.912947Z", "utc_end": "2026-11-18T21:58:50.233687Z", "wall_start_monotonic_ns": 55819967194553, "wall_end_monotonic_ns": 55825287904843, "total_wall_ns": 5320710290, "engine_user_s": 4.326057, "engine_system_s": 0.22103199999999998, "engine_cpu_s": 4.547089, "engine_pid": 91675, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "r15d.driver.stdout.txt", "engine_stderr": "r15d.engine.stderr.txt"}
+{"arm": "K_2", "engine_sha256": "2890d5b1cf4f332a87e572222d5a24ecdc014e0920a6ade776c4f22f3730187f", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job16/arms/K_2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "K_2", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 4708.077237, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job16/arms/K_2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "engine_argv0_length": 72, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 280458, "engine_device": 27, "utc_start": "2026-11-18T21:58:50.234876Z", "utc_end": "2026-11-18T21:58:55.022892Z", "wall_start_monotonic_ns": 55825289111171, "wall_end_monotonic_ns": 55830077109854, "total_wall_ns": 4787998683, "engine_user_s": 4.100065, "engine_system_s": 0.06038600000000002, "engine_cpu_s": 4.160451, "engine_pid": 91755, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "K_2.driver.stdout.txt", "engine_stderr": "K_2.engine.stderr.txt"}
+{"arm": "P4", "engine_sha256": "791a4fc172886cb28c5648c0d7a808d23814786bd67e340c3cb8b242a8df4573", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job18/arms/P4xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "P4", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 4956.427902, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job18/arms/P4xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "engine_argv0_length": 72, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 287714, "engine_device": 27, "utc_start": "2026-11-18T21:58:55.023961Z", "utc_end": "2026-11-18T21:59:00.054587Z", "wall_start_monotonic_ns": 55830078195850, "wall_end_monotonic_ns": 55835108804890, "total_wall_ns": 5030609040, "engine_user_s": 4.332646, "engine_system_s": 0.06864899999999996, "engine_cpu_s": 4.401295, "engine_pid": 91771, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "P4.driver.stdout.txt", "engine_stderr": "P4.engine.stderr.txt"}
+{"arm": "P8", "engine_sha256": "7b2c2b2a4807680d4d17ca3e32f037ada215edc9cdf251d2c4d4060a6a637c1d", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job18/arms/P8xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "P8", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 4834.9434, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job18/arms/P8xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "engine_argv0_length": 72, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 287785, "engine_device": 27, "utc_start": "2026-11-18T21:59:00.056147Z", "utc_end": "2026-11-18T21:59:04.977110Z", "wall_start_monotonic_ns": 55835110383959, "wall_end_monotonic_ns": 55840031328016, "total_wall_ns": 4920944057, "engine_user_s": 4.247097, "engine_system_s": 0.052886000000000044, "engine_cpu_s": 4.299983, "engine_pid": 91773, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "P8.driver.stdout.txt", "engine_stderr": "P8.engine.stderr.txt"}
+{"arm": "P10", "engine_sha256": "dee47b3cd9135abb2c52eb58a741c0e7d65875e08d525c1438d72f1f88a390ad", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job18/arms/P10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "P10", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 4882.927244, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job18/arms/P10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/forge", "engine_argv0_length": 72, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 287787, "engine_device": 27, "utc_start": "2026-11-18T21:59:04.978940Z", "utc_end": "2026-11-18T21:59:09.933020Z", "wall_start_monotonic_ns": 55840033175189, "wall_end_monotonic_ns": 55844987238885, "total_wall_ns": 4954063696, "engine_user_s": 4.228560000000002, "engine_system_s": 0.09161199999999997, "engine_cpu_s": 4.320172000000001, "engine_pid": 91775, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "P10.driver.stdout.txt", "engine_stderr": "P10.engine.stderr.txt"}
+Frozen Clang signatures match W with the fixed environment.
++ date -u +%FT%TZ
+2026-11-18T21:59:09Z
