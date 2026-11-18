@@ -1,0 +1,70 @@
+# STEP 2 evidence — seat 03, group 1 part 3
+
+## Patches (all clean: no offset / fuzz / FAILED / reject / malformed in any output)
+```
+cd ~/w/r15d; patch -p1 -F0 < ~/w/pc_r15.patch
+  -> b4.hpp board.hpp nnue.hpp nnue_v3.hpp search.hpp board.cpp eval_params.cpp nnue.cpp nnue_v3.cpp search.cpp uci.cpp
+patch -p1 -F0 < ~/w/a_speed.patch
+  -> nnue_v3.hpp search.hpp board.cpp nnue_v3.cpp search.cpp uci.cpp
+patch -p1 -F0 < ~/w/e1.patch
+  -> board.hpp board.cpp search.cpp
+cd ~/w/kF; patch -p1 -F0 < ~/w/stack.patch
+  -> b4.hpp board.hpp eval.hpp nnue_v3.hpp search.hpp board.cpp nnue_v3.cpp search.cpp uci.cpp
+```
+
+## Patch hashes (all four match the brief)
+```
+d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a  /home/ubuntu/w/pc_r15.patch
+034814873e2ffce7010b7b065d79b5aa0a57419cbb75cc8bfc4ff22208278cea  /home/ubuntu/w/a_speed.patch
+20cca10770a32af8d9b7b26b9fd9544fefb67e592b35177f68788cfd73ab7574  /home/ubuntu/w/e1.patch
+3d2ce085a8b76478942d4e29d7a74512eb3ecd2d328d224e27f711a48e46cb30  /home/ubuntu/w/stack.patch
+```
+
+## Checksum lists: 29 of 29 OK on both trees (sha256sum -c, zero non-OK lines)
+
+## Compiler / ISA / machine
+```
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+#define __AVX512F__ 1
+#define __AVX512BW__ 1
+#define __BMI2__ 1
+nproc 4
+CPU(s):                                  4
+Model name:                              Intel(R) Xeon(R) Processor
+Thread(s) per core:                      1
+Core(s) per socket:                      4
+```
+
+## BUILT lines
+```
+BUILT /home/ubuntu/w/bin_r15d with FORGE_SPD_NNUE_ZMM=1 FORGE_SPD_SLIDER_PEXT=1
+BUILT /home/ubuntu/w/bin_kF with FORGE_SPD_NNUE_ZMM=1 FORGE_SPD_SLIDER_PEXT=1
+```
+
+## Binary hashes
+```
+da21c7efaa2fd850f008e7342bbd2314c1e38eeb817b9d0e9dfa38f5ca959130  /home/ubuntu/w/bin_r15d
+59f95a59ef9dc5eca379117254de013fad60013fbebdc668c3a4ce6a37ac4d0e  /home/ubuntu/w/bin_kF
+```
+
+## Known numbers — raw output in known_*.txt (fresh process per line, bench sent on stdin)
+
+| check | expected | bin_r15d | bin_kF | raw |
+|---|---|---|---|---|
+| no options, bench 11 | 312866 | 312866 | 312866 | known_*_none.txt |
+| no options, bench 13 | 862329 | 862329 | 862329 | known_*_none.txt |
+| no options, go perft 5 | 4865609 | 4865609 | 4865609 | known_*_none.txt |
+| PC20, bench 11 | 278024 | 278024 | 278024 | known_*_pc20.txt |
+| PC20, bench 13 | 587276 | 587276 | 587276 | known_*_pc20.txt |
+| PC20 + net768, bench 11 | 882074 | 882074 | 882074 | known_*_net768.txt |
+| PC20 + net768, bench 13 | 4275906 | 4275906 | 4275906 | known_*_net768.txt |
+
+net768.fnn3: sha256 c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7,
+fnv1a64 30ab43b4ba5db5f3 as printed by the maker; both engines printed
+'checksum 30ab43b4ba5db5f3' and 'info string NNUE v3 active' in the handshake (checked in known2.py, both programs).
+
+## Operational notes
+- bench N must be sent on stdin; as argv it prints nothing and exits 0. bench never emits bestmove, so a read-until-bestmove loop hangs.
+- go perft prints 'nodes 4865609' (not 'Nodes searched:').
+- A first build attempt raced the patch step (build started while trees were being written): bin_kF failed with 'No such file or directory' and bin_r15d was possibly stale. Both were deleted and rebuilt after the trees were final; every number above is from the rebuild.
+- Book fetched from the pinned URL; UHO_Lichess_4852_v1.epd sha256 7a7f6470... matches; O = lines 1-200, sha256 ca2f576bb1632e46... (matches the brief); my slice = lines 2001-2080, 80 lines, sha256 03dc68c43a3d298b31017b083071e8d114d60d7e8da0fd626e935024be93074e.
