@@ -1,0 +1,110 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -848,7 +848,82 @@
+     }
+ }
+ 
++#if FORGE_SHORTCUT_COUNT
++// Exact r15d has_legal_move body. Called only on a diagnostic Board copy;
++// its is_legal fallback may populate that copy's mutable cache, never the search board.
++bool Board::h3_has_legal_move_reference() const {
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const Bitboard occ = occupied();
++        const Bitboard us_occ = occupied(us);
++        const Bitboard them_occ = occupied(them);
++        const int ksq = king_square(us);
++#if FORGE_SPD_KING_LINES
++        const Bitboard pinned = king_lines_.valid
++            ? king_lines_.pinned
++            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++#else
++        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++#endif
++        const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
++        if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
++        if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
++        const Bitboard not_us = ~us_occ;
++        for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
++            if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
++        }
++        const Bitboard queens = pieces(us, Queen);
++        for (Bitboard bb = (pieces(us, Bishop) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::bishop(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        for (Bitboard bb = (pieces(us, Rook) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::rook(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        const Bitboard occ_no_king = occ & ~square_bb(ksq);
++        for (Bitboard k = attacks::king(ksq) & not_us; k != 0;) {
++            const int to = pop_lsb(k);
++            const Bitboard to_bb = square_bb(to);
++            if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
++        }
++    }
++    MoveList moves;
++    generate_pseudo_legal(moves, false);
++    for (const Move move : moves) {
++        if (is_legal(move)) return true;
++    }
++    return false;
++}
++#endif
++
+ bool Board::has_legal_move() const {
++#if FORGE_SHORTCUT_COUNT
++    Board h3_reference_board = *this;
++    bool h3_reference = h3_reference_board.h3_has_legal_move_reference();
++    int h3_class = 0; // in check
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const int king = king_square(us);
++        const Bitboard rays = attacks::rook_ray(king) | attacks::bishop_ray(king);
++        const Bitboard pawns = pieces(us, Pawn) & ~rays;
++        const bool safe_pawn_witness = ((pawn_push(us, pawns) & ~occupied()) |
++                                      (pawn_attacks_bb(us, pawns) & occupied(them))) != 0;
++        const bool no_enemy_ray = ((attacks::rook_ray(king) & (pieces(them, Rook) | pieces(them, Queen))) |
++                                   (attacks::bishop_ray(king) & (pieces(them, Bishop) | pieces(them, Queen)))) == 0;
++        bool no_ray_shortcut = false;
++#if FORGE_SPD_KING_LINES
++        no_ray_shortcut = !king_lines_.valid && no_enemy_ray;
++#endif
++        h3_class = safe_pawn_witness ? 1 : no_ray_shortcut ? 2 : 3;
++    }
++#if FORGE_SHORTCUT_WRONG9
++    if (h3_class == 1) h3_reference = !h3_reference;
++#endif
++#endif
++    const bool h3_actual = [&]() -> bool {
+     if (checkers_ == 0) {
+         const Color us = side_;
+         const Color them = opposite(us);
+@@ -899,6 +974,12 @@
+         if (is_legal(move)) return true;
+     }
+     return false;
++
++    }();
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h3(h3_actual != h3_reference, h3_class, *this);
++#endif
++    return h3_actual;
+ }
+ 
+ #if FORGE_SPD_KING_LINES
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -194,6 +194,9 @@
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     void generate_legal_evasions(MoveList& moves) const;
+     [[nodiscard]] bool has_legal_move() const;
++#if FORGE_SHORTCUT_COUNT
++    [[nodiscard]] bool h3_has_legal_move_reference() const; // diagnostic copy only
++#endif
+     // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
+     // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
+     // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
