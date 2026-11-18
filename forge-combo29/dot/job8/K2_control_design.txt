@@ -1,0 +1,14 @@
+K2 deliberate control; NOT a proposed engine repair.
+Separate scratch copy of final kF-shadow. Only src/nnue_v3.cpp collect_changes changed.
+Unmodified kF source references: collect_changes lines205-213; evaluate_reference762-768; scalar reference refresh_perspective719-733 and refresh735-739.
+The control compacts Changes.columns/adds while omitting at most one removal per collection when a rook at absolute square7(h1) or63(h8) has a corresponding addition of that same Piece at a different square in the dirty list. Requiring the addition excludes a rook captured at the corner. The same missing piece feature is omitted for each perspective whose incremental update consumes that dirty list. Castling's rook shift also qualifies; a fully refreshed perspective remains correct.
+Unmodified caller paths:
+- apply_changes837-845 -> collect_changes839, then scalar/AVX2/AVX512 kernels; includes replay_ply unchanged-key update via nnue_v3.hpp272.
+- apply_changes_pair849-859 -> collect_changes852-853.
+- apply_changes_with863-873 -> collect_changes865.
+- apply_pair_and_evaluate877-899 -> collect_changes885-886 for fused AVX512; non-AVX512 falls through apply_changes_pair895.
+- apply_one_refresh_one_and_evaluate902-1037 -> collect_changes923 for AVX512 incremental half; alternate path apply_changes1032.
+The refresh half and refresh_from_pieces do not use collect_changes, intentionally: the control is solely incremental.
+Reference independence: evaluate_reference762-768 creates a fresh Accumulator, calls refresh764, then output_sum_scalar767. refresh calls refresh_perspective for White and Black735-738, which adds columns from actual board occupancy729-731 and never uses dirty-list collect_changes. None of those functions changed.
+Dirty list producer nnue.cpp535-550 removes moved origin537, adds destination542, and for castling removes/adds rook547-548. Control's matching add therefore targets a rook departure rather than a corner-rook capture.
+Counts remain dense and bounded by original dirty.count; no uninitialized hole introduced. No source change to shared kF-shadow or repository engine source. Patch file is against kF-shadow scratch. No K2 search until parent authorization.
