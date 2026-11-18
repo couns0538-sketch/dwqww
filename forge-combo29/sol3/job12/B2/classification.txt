@@ -1,0 +1,25 @@
+Tree differences, old hunk start lines in the k13 source
+src/search.cpp 903: remove unused quiet-history score assignment
+src/search.cpp 960: remove two unused quiet-history accessors
+src/search.cpp 1016: remove MovePicker quiet-history score and epoch members
+src/search.cpp 1351: remove snapshot of unused quiet-history epoch
+src/search.cpp 2543: indentation of eval-swing update only
+src/search.cpp 2611: indentation of null-move child search only
+src/search.cpp 2999: indentation of PV quiet-history bonus only
+include/forge/board.hpp 221: remove unused cached_king_lines accessor
+include/forge/search.hpp 218: remove unreferenced test-access friend
+include/forge/search.hpp 627: remove unused Worker quiet-history epoch
+
+Byte-identical src/board.cpp and CMakeLists.txt; identical halfmove-only may_repeat definition
+Old references to removed names, confined to declarations/unused accessors/writes
+/workspace/work/sol3-job10/tree_13/src/search.cpp:906:                        last_quiet_history_ = picked.score - (direct_chk ? 12000 : 0);
+/workspace/work/sol3-job10/tree_13/src/search.cpp:963:    [[nodiscard]] bool has_cached_quiet_history(std::uint64_t current_epoch) const {
+/workspace/work/sol3-job10/tree_13/src/search.cpp:964:        return stage_ == QuietMoves && current_epoch == quiet_gen_epoch_;
+/workspace/work/sol3-job10/tree_13/src/search.cpp:966:    [[nodiscard]] int cached_quiet_history() const { return last_quiet_history_; }
+/workspace/work/sol3-job10/tree_13/src/search.cpp:1019:    std::uint64_t quiet_gen_epoch_ = 0;
+/workspace/work/sol3-job10/tree_13/src/search.cpp:1020:    int last_quiet_history_ = 0;
+/workspace/work/sol3-job10/tree_13/src/search.cpp:1354:        quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
+/workspace/work/sol3-job10/tree_13/include/forge/board.hpp:224:    [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
+/workspace/work/sol3-job10/tree_13/include/forge/search.hpp:221:    friend struct S13TTTestAccess;
+/workspace/work/sol3-job10/tree_13/include/forge/search.hpp:630:    std::uint64_t quiet_hist_epoch_ = 0;
+gate PASS
