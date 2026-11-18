@@ -1,0 +1,23 @@
+kimi5 job 25 prediction (own commit before Step 1; never edited; no time, no commit id)
+
+Priors used: the job file's depth-12 known answers (G: base 17,611,204; fhb7 15,879,039 = 0.9016;
+rfp3 17,980,776 = 1.0210; a2a5 16,949,516 = 0.9624) and job 22's recounted G base singular classes
+(tests 176,423; ext1 111,221; ext2 10,247; multi-cut 31,604) on the same PC build.
+
+P1: fhb7 / base at depth 14 on G = 0.89. KILLED if outside [0.84, 0.94].
+    (d12 ratio 0.9016 compounded two plies: 0.9016^(14/12) = 0.886.)
+P2: a2a5 / base at depth 14 on G = 0.95. KILLED if outside [0.89, 1.01].
+    (d12 ratio 0.9624 compounded two plies: 0.956; the rfp3 growth (+2.1 %) partially cancels fhb7.)
+P3: under base on G at depth 12, the share of singular tests that extend (extension 1 or 2)
+    = 0.69 of tests. KILLED if outside [0.62, 0.76].
+    (job 22's G base: (111,221 + 10,247) / 176,423 = 0.6885.)
+P4: under fhb7 on G at depth 12, extensions (ext1 + ext2) change against base = -20 %.
+    KILLED if outside [-45 %, -5 %].
+    (the blend lowers stored fail-high scores -> lower singular_beta -> the verification search
+     fails to go below it more often -> fewer extensions; the 9.8 % tree shrink needs a
+     multi-ply compounding of a per-test drop, so the drop is larger than the tree factor.)
+P5: of the three bits, bit 4 (fhb4, the main-search non-PV store blend) removes the most
+    singular extensions on G. KILLED if fhb4's ext drop is not the largest of fhb1, fhb2, fhb4.
+    (bit 4 lowers the deep TT stores that singular tests read (tt_depth >= depth - 3 >= 3);
+     bit 2's stores are depth 0 and never eligible; bit 1 stores nothing, it only shifts
+     returned values that parents may store.)
