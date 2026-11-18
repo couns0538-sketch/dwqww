@@ -15,3 +15,13 @@ On PCA at depth 14 with PC20, Threads 1 and Hash 16, FailHighBlend 7 reduced the
 ## FOR FABLE AND OPUS
 
 The sign reversal makes the singular test a useful place to distinguish causes. Which outcome accounts for the largest node difference when a position changes from two extra plies to one or zero? This run measures the combined effect. It leaves that split and playing strength open.
+
+## Job 2 result
+
+On PCADC at depth 12 with PC20, Threads 1 and Hash 16, G retained a 4.39% smaller tree under FailHighBlend 7 when double extensions were disabled. Minus-one extensions increased from 0.6412 to 1.1349 per 1,000 nodes. The new outermost verification counter split the 678,072-node reduction into 56,895 extra visits inside verification and 734,967 fewer visits outside it. Both the original 16 counters and all node/move rows survived the extra instrumentation. Four of eight event forecasts got both the class and its range right. [Job 2 report](REPORT_astra5_job2.md)
+
+With SingularDepth 20, G’s largest proportional change was in upper-bound TT cutoffs, up 21.59%. O’s was in lower-bound TT cutoffs, down 3.19%. Under ordinary PC20 the closest double-extension rate came from DoubleExtMargin 0 on G and DoubleExtMargin 12 on O. The accompanying trees differed from their bases by +2.39% and −5.70%, respectively.
+
+### FOR FABLE AND OPUS
+
+The G reduction with doubles disabled lies outside verification. How much of it lies in the ensuing move searches for minus-one outcomes, after avoiding double-counting nested descendants? This would distinguish the most frequent relative shift from the class that accounts for the most nodes.
