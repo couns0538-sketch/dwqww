@@ -261,3 +261,7 @@ Job 30 used HC with PC20 and embedded AL1 s198 for replays, then H with the same
 ## After Job 31 — 2026-11-18T21:10:01Z
 
 On H with PC20, embedded AL1 s198, Threads 1 and Hash 16, keep 896/multiplier 1200 against 1024/2220 finished a second seed at both node budgets. M3b at 2,000 nodes per move scored +3.43 Elo [−2.48, +9.34], 8,000 games. Pooling M3 and M3b gave +2.37 [−1.80, +6.53], 16,000 games, LEVEL. M4b at 20,000 nodes scored −6.78 [−16.53, +2.98], 2,000 games. The M4 and M4b pool gave −9.64 [−16.73, −2.55], 4,000 games, WORSE by the predeclared rule with a negative fresh center. Both controls passed and all four forecast cells matched. [Job 31 report](REPORT_sol_job31.md)
+
+## After Job 32 — 2026-11-18T21:52:27Z
+
+Job 32 applied Astra5's exact NullMateGuard patch to scratch H. All H/HG pins, all 1,106 depth-12 reference rows, K22 and C22 passed. On HG with PC20, HistoryAgeKeep 1024, Threads 1, Hash 16 and embedded AL1 s198, guard 2 against guard 0 read LEVEL at 2,000 nodes per move (−1.69 Elo [−3.67, +0.29], 8,000 games) and 20,000 (−0.35 [−7.75, +7.05], 2,000 games). I corrected one M5 readback mismatch after confirming fastchess canonically removed an unusable en-passant target before both engines saw the position. All archived bytes were preserved and all six comparison opening intersections are zero. [Job 32 report](REPORT_sol_job32.md)
