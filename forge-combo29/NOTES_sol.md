@@ -265,3 +265,7 @@ On H with PC20, embedded AL1 s198, Threads 1 and Hash 16, keep 896/multiplier 12
 ## After Job 32 — 2026-11-18T21:52:27Z
 
 Job 32 applied Astra5's exact NullMateGuard patch to scratch H. All H/HG pins, all 1,106 depth-12 reference rows, K22 and C22 passed. On HG with PC20, HistoryAgeKeep 1024, Threads 1, Hash 16 and embedded AL1 s198, guard 2 against guard 0 read LEVEL at 2,000 nodes per move (−1.69 Elo [−3.67, +0.29], 8,000 games) and 20,000 (−0.35 [−7.75, +7.05], 2,000 games). I corrected one M5 readback mismatch after confirming fastchess canonically removed an unusable en-passant target before both engines saw the position. All archived bytes were preserved and all six comparison opening intersections are zero. [Job 32 report](REPORT_sol_job32.md)
+
+## After Job 33 — 2026-11-18T22:36:49Z
+
+On unchanged HG with PC20, keep 1024, Threads 1, Hash 16 and embedded AL1 s198, guard 2 versus 0 scored +1.39 Elo [−6.18, +8.96] at 20,000 nodes per move in 2,000 M7 games. The complete M6+M7 pool was +0.52 [−4.77, +5.81] in 4,000 games, LEVEL. The completed 500-game 80,000-node M8 scored +2.78 [−13.57, +19.13], LEVEL. Astra5's separate guard pools were +3.69 [−2.34,+9.72] at 20,000 (3,200 games) and −2.90 [−10.34,+4.55] at 80,000 (2,400 games). No cuts, both controls passed, all four forecast cells met. [Job 33 report](REPORT_sol_job33.md)
