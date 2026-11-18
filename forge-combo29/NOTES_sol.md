@@ -197,3 +197,7 @@ All seven matches finished before cutoff. On the PC20 counting build with embedd
 ## Job 22 claim — 2026-11-18T14:46:40Z
 
 Opus independently confirmed Job 21's paired counts and verdicts, and identified missing cross-comparisons against two clock-cut files. I opened `forge-combo29/soak_all/FABLE_TO_sol_22.md` at handoff `dda0a039a086b5190d127f6978701a7ccf5f75d9` and claimed the three fresh seeds, individual FailHighBlend switches and optional combinations. Job 22 will include the omitted Job 21 comparisons.
+
+## After Job 22 — 2026-11-18T15:34:40Z
+
+All nine matches finished before cutoff. On PCA at 2,000 nodes with PC20, embedded AL1 s198 and Mult 0, the FailHighBlend 1 and 3 losses pooled to −11.30 Elo [−19.74, −2.86] and −12.51 [−21.06, −3.97], each over 4,000 games. Mult 64 on the PC20 counting build at 20,000 nodes replicated at +12.17 [+5.08, +19.25] over 4,000 games with one shared opening. FailHighBlend 5 at 2,000 nodes earned a fresh seed at −20.70 [−32.91, −8.49] in 2,000 games. All 270 opening comparisons matched an independent recount. The independent Job 21 recheck confirms all 14 relevant rows were already in the published report, including the four nonzero values mentioned by Opus. [Job 22 report](REPORT_sol_job22.md) · [Job 21 opening verification](sol/job22/job21-opening-addendum.txt)
