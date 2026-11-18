@@ -1,0 +1,21 @@
+Pre-Declared Extra Rule for Job 20 Part B (Committed Before Generating or Inspecting Part A's 7,670 Rows)
+=========================================================================================================
+
+Rule name:
+  R_oe3 (Odd-Even-Robust 2-Ply Step Envelope, k = 3)
+
+Exact predicate (evaluated after iteration d finishes with n_d < N, where N = 2,000 and 4N = 8,000,
+with cumulative finished-iteration nodes n_0 = 0, n_{-1} = 0):
+  Let delta_d     = n_d - n_{d-1}       (marginal nodes spent in iteration d)
+  Let delta_{d-1} = n_{d-1} - n_{d-2}   (marginal nodes spent in iteration d-1; 0 when d == 1)
+
+  Do NOT start iteration d + 1 when:
+    n_d + 3 * max(delta_d, delta_{d-1}) > 4 * N
+
+Rationale (prior to seeing Part A data):
+  Standard R(k) predicts iteration d+1 cost from single-ply delta_d = n_d - n_{d-1} alone.
+  In alpha-beta search with TT reuse and odd/even ply oscillation, an even/odd ply d can finish
+  with a small marginal delta_d immediately after a heavy ply d-1, causing R(k) to underestimate
+  iteration d+1 and launch an iteration that hits the 4N = 8,000 hard cap. Taking max(delta_d, delta_{d-1})
+  smooths single-ply dips while keeping genuinely shallow/narrow endgame trees (where both delta_d and
+  delta_{d-1} are small) unblocked.
