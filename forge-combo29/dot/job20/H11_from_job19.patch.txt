@@ -1,0 +1,19 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1913,6 +1913,16 @@
+ #if FORGE_SHORTCUT_COUNT
+     }();
+     bool reference=see_ge_r15d_reference(move,threshold);
++    // H11: only the taken geometric contact/ray-empty earlyout. Reuse the
++    // pristine full r15d SEE result before any H12 control mutation below.
++    if(h12_path==1) {
++        bool h11_reference=reference;
++        const int h11_class=side_to_move()==White ? 0 : 1;
++#if FORGE_SHORTCUT_WRONG11
++        if(h11_class==0) h11_reference=!h11_reference;
++#endif
++        shortcut_count::record_h11(actual!=h11_reference,h11_class,*this,move);
++    }
+     const bool moving_knight=piece_type(piece_at(move.from))==Knight;
+ #if FORGE_SHORTCUT_WRONG10
+     if(moving_knight) reference=!reference;
