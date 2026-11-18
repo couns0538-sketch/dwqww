@@ -1,0 +1,78 @@
+--- a/driver_final.py
++++ b/driver_resize.py
+@@ -6,6 +6,7 @@
+ - Before timing: generates `num_games` deterministic 8-ply random legal openings from `seed`
+   via the engine's own `go perft 1` legal-move listing.
+ - Timed loop per game:
++    At game index 30, resize Hash from 16 to 4 and verify readyok.
+     ucinewgame
+     isready -> wait readyok
+     for ply in 8 .. max_plies-1:
+@@ -217,7 +218,7 @@
+         if check_errors and any(bad in s for bad in ("unknown option", "invalid value", "ERROR")):
+             raise RuntimeError(f"Engine option/setup error: {s}")
+         if s == "readyok":
+-            return
++            return s
+ 
+ 
+ def perft1_moves(proc: subprocess.Popen, moves: list[str]) -> list[str]:
+@@ -268,6 +269,8 @@
+     dump_fens_path: str | None = None,
+     trace=None,
+     check_hlm: bool = False,
++    *,
++    resize_evidence,
+ ):
+     proc = subprocess.Popen(
+         [engine_path],
+@@ -321,6 +324,14 @@
+ 
+         t0 = time.perf_counter_ns()
+         for g_idx, opening in enumerate(openings):
++            if g_idx == 30:
++                commands = ["setoption name Hash value 4", "isready"]
++                send(proc, "\n".join(commands) + "\n")
++                reply = wait_ready(proc, check_errors=True)
++                resize_evidence.write(json.dumps({
++                    "game": g_idx, "hash_before": 16, "hash_after": 4,
++                    "sent": commands, "received": reply,
++                }) + "\n")
+             send(proc, "ucinewgame\nisready\n")
+             wait_ready(proc, check_errors=False)
+ 
+@@ -466,19 +477,25 @@
+     ap.add_argument("--option", action="append", default=[], help="Extra UCI option Name=Value")
+     ap.add_argument("--dump-fens", default=None, help="Optional output file for visited FENs")
+     ap.add_argument("--trace", type=pathlib.Path, help="Create a JSONL file of measured search evidence")
++    ap.add_argument("--resize-evidence", type=pathlib.Path, required=True,
++                    help="Create a JSONL receipt for the game-30 Hash resize")
+     ap.add_argument("--hlm", action="store_true", help="Require and sum per-search has_legal_move probe counts")
+     ap.add_argument("--json", action="store_true", help="Print JSON summary line")
+     args = ap.parse_args()
++    if args.games <= 30:
++        ap.error("--games must include game index 30")
+ 
+     extra = []
+     for item in args.option:
+         if "=" not in item:
+             ap.error(f"--option requires Name=Value, got {item}")
+         k, v = item.split("=", 1)
++        if k.strip().casefold() == "hash":
++            ap.error("Hash is fixed at 16 before game 30 and 4 afterwards")
+         extra.append((k, v))
+ 
+     trace_context = args.trace.open("x", encoding="ascii", buffering=1) if args.trace else nullcontext()
+-    with trace_context as trace:
++    with trace_context as trace, args.resize_evidence.open("x", encoding="ascii", buffering=1) as resize_evidence:
+         summary = run_selfplay(
+             engine_path=args.engine,
+             net_path=args.net,
+@@ -491,6 +508,7 @@
+             dump_fens_path=args.dump_fens,
+             trace=trace,
+             check_hlm=args.hlm,
++            resize_evidence=resize_evidence,
+         )
+     if args.json:
+         print(json.dumps(summary))

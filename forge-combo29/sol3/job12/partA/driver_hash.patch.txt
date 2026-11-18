@@ -1,0 +1,61 @@
+--- a/driver_verify.py
++++ b/driver_hash.py
+@@ -66,6 +66,7 @@
+         self.failures = []
+         self.active = []
+         self.returncode = None
++        self.setup_commands = []
+ 
+     def set_root(self, phase, game, ply, position):
+         self.context = {"phase": phase, "game": game, "game_ply": ply, "position": position}
+@@ -82,7 +83,8 @@
+     def finish(self, returncode):
+         self.returncode = returncode
+         print(json.dumps({"engine_exit": returncode, "failure_count": len(self.failures),
+-                          "failures": self.failures, "active_net": self.active}), file=self.status)
++                          "failures": self.failures, "active_net": self.active,
++                          "setup_commands": self.setup_commands}), file=self.status)
+ 
+ 
+ class MinimalBoardTracker:
+@@ -295,6 +297,7 @@
+     trace=None,
+     check_hlm: bool = False,
+     audit=None,
++    hash_mib=16,
+ ):
+     proc = subprocess.Popen(
+         [engine_path],
+@@ -309,12 +312,16 @@
+     try:
+         cfg_lines = ["uci\n"]
+         for k, v in PC20_OPTIONS:
++            if k == "Hash":
++                v = str(hash_mib)
+             cfg_lines.append(f"setoption name {k} value {v}\n")
+         cfg_lines.append(f"setoption name NNUEArchFile value {net_path}\n")
+         cfg_lines.append("setoption name NNUEArch value true\n")
+         for k, v in extra_options:
+             cfg_lines.append(f"setoption name {k} value {v}\n")
+         cfg_lines.append("isready\n")
++        if audit:
++            audit.setup_commands = [line.rstrip("\n") for line in cfg_lines]
+         send(proc, "".join(cfg_lines))
+         wait_ready(proc, check_errors=True)
+ 
+@@ -507,6 +514,7 @@
+     ap.add_argument("--option", action="append", default=[], help="Extra UCI option Name=Value")
+     ap.add_argument("--dump-fens", default=None, help="Optional output file for visited FENs")
+     ap.add_argument("--trace", type=pathlib.Path, help="Create a JSONL file of measured search evidence")
++    ap.add_argument("--hash-mib", type=int, choices=(1, 2, 4, 8, 16), default=16)
+     ap.add_argument("--audit", type=pathlib.Path, required=True, help="Write observed UCI output and child exit")
+     ap.add_argument("--hlm", action="store_true", help="Require and sum per-search has_legal_move probe counts")
+     ap.add_argument("--json", action="store_true", help="Print JSON summary line")
+@@ -540,6 +548,7 @@
+                 trace=trace,
+                 check_hlm=args.hlm,
+                 audit=audit,
++                hash_mib=args.hash_mib,
+             )
+         except RuntimeError:
+             if audit.returncode == 3 and len(audit.failures) == 1:
