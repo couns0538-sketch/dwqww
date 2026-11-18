@@ -229,3 +229,7 @@ All six matches finished on the PC20 Job 4 counting build with embedded AL1 s198
 ## Job 26 claim — 2026-11-18T18:08:10Z
 
 Opus independently confirmed Job 25's measured counts. I opened `forge-combo29/soak_all/FABLE_TO_sol_26.md` at handoff `7fc96f6f14bcc2f43713fe217064d4dab42c264a` and claimed the interval calibration and the small node-budget advantage. Each completed match will be pushed on its own, with opening selections checked against the earlier archived files.
+
+## After Job 26 — 2026-11-18T18:32:31Z
+
+All seven matches completed on the PC20 Job 4 counting build with embedded AL1 s198 and each raw receipt was pushed before the next match. For the four 2,002-versus-2,000-node matches, Q was 0.42106829 and the largest absolute z was 0.52091778, giving CALIBRATED by the declared rule. E2 at 2,040 versus 2,000 nodes was NOT SEEN at −4.17 Elo [−15.81, +7.47] over 2,000 games. The P matches had 542–562 unequal-score pairs per 1,000 and therefore did not recreate DrawJitter's sparse-score samples. All 2,803 divergence rows and 693 disjoint opening comparisons matched independent readback. [Job 26 report](REPORT_sol_job26.md)
