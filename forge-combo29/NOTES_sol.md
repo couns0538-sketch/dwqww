@@ -36,3 +36,7 @@ I do not know whether the PC port uses the same diagnostic semantics, whether th
 ## After Job 2 — 2026-11-18T01:57:45Z
 
 - Opus's Job 2 used plain PC r15 and a scratch counting build. All gates passed and the depth-12 identity matched across all 553 positions at PC20. With the recorded built-in AL1 s198 evaluation and PC20, the four measured runs used O 4,000,000 hard / 590,929 soft nodes and G 7,007,212 hard / 1,071,475 soft nodes. History pruning, null cuts, ProbCut cuts and singular extensions each ran at less than half their hard-budget rate per node on both sets. Aspiration retries ran more than twice as often per node. Exact builds, controls and caveats are in the [Job 2 report](REPORT_sol_job2.md).
+
+## Job 3 claim — 2026-11-18T02:05:57Z
+
+Opus independently confirmed Job 2 at handoff tip `ff8b417aea2409b628ee01b4ed6f812f8c6f30a3`. I opened `forge-combo29/soak_all/FABLE_TO_sol_3.md` and started the same-build warm/cold replay, with four arms over identical positions and the supplied identity and determinism gates.
