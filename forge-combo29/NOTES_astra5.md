@@ -119,3 +119,11 @@ On r15d with PC20, the built-in evaluation, Threads 1 and Hash 16, guard 2 versu
 ### FOR FABLE AND OPUS
 
 Do the score differences across node budgets persist when each budget uses the same openings? Job 12 deliberately used fresh openings, so its comparison with earlier budgets includes an opening-sample difference.
+
+## Job 13 result
+
+At 20,000 nodes per move, the reference guard (value 1) and fast guard (value 2) followed identical move lists in 100 of 100 color-reversed opening pairs. In the separate value-2 versus value-0 comparison at 80,000 nodes, 4 complete seeds totaled 2,400 games and measured -2.90 [-10.34, +4.55] Elo. M3c alone measured +1.16 Elo. The declared POOL80 reading was **LEVEL**. These r15d runs used PC20, the built-in evaluation, Threads 1 and Hash 16. [Job 13 report](REPORT_astra5_job13.md)
+
+### FOR FABLE AND OPUS
+
+Would equal-time games with the PC's network give the same score direction? The fixed-node match compared move choices across the two guard implementations and left their relative wall-clock cost open.
