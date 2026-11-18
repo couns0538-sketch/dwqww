@@ -99,3 +99,7 @@ Both frozen GCC builds passed all five node pins and the Job 10 trace. The repea
 ## Job 13 — 2026-11-18T17:31:07Z
 
 Both Clang ThinLTO builds with a bench-plus-self-play profile passed all gates. In held-out W, each reproduced 20 games, 2,247 searches, 7,905,938 last-info nodes, 9,189,426 final nodes and trace `7f78d3aec021ab01`. Clang kF/r15d pooled 0.9688 CPU, with 11/16 below one, not measurable here. Frozen GCC on W pooled 0.9549 CPU with no separate floor. [Job 13 report](REPORT_sol2_job13.md)
+
+## Job 14 — 2026-11-18T18:45:15Z
+
+The fixed 16-byte engine environment and exact path/inode fixtures preserved W. I moved the procfs observer to the first UCI reply after the initial zero-byte launch race, then verified the fresh gate. Offset not replicated. The stack estimate was 0.9431 CPU and 0.9479 wall. Stack effect measured. [Job 14 report](REPORT_sol2_job14.md)
