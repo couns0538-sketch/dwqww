@@ -1,0 +1,20 @@
+from pathlib import Path
+import re,runpy,subprocess,sys
+engine,driver,net,output,mode=sys.argv[1:]
+opts=runpy.run_path(driver)['PC20_OPTIONS']
+setup='uci\n'+''.join(f'setoption name {name} value {value}\n' for name,value in opts)
+setup+=f'setoption name NNUEArchFile value {net}\nsetoption name NNUEArch value true\nisready\n'
+nodes=[]
+with Path(output).open('wb') as log:
+    for depth in (11,13):
+        query=(setup+f'bench {depth}\nquit\n').encode()
+        result=subprocess.run([engine],input=query,capture_output=True,timeout=90)
+        log.write(b'--- stdin ---\n'+query+b'--- stdout ---\n'+result.stdout+b'--- stderr ---\n'+result.stderr)
+        log.write(f'--- exit={result.returncode} ---\n'.encode())
+        match=re.findall(rb'^info string bench depth \d+ nodes (\d+) ',result.stdout,re.MULTILINE)
+        active=re.search(rb'^info string NNUE v3 active: .*hidden 768 .*checksum 30ab43b4ba5db5f3',result.stdout,re.MULTILINE)
+        assert result.returncode==0 and not result.stderr and active and b'readyok' in result.stdout and len(match)==1
+        assert not re.search(rb'^info string .*?(?:unknown option|invalid value|error)', result.stdout,re.MULTILINE|re.IGNORECASE)
+        nodes.append(int(match[0]))
+print(engine,*nodes)
+if mode=='required': assert nodes==[882074,4275906], nodes

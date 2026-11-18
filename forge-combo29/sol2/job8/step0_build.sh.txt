@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job8
+prior=/workspace/work/sol2-job7
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job8
+base=/workspace/work/sol2-job2
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+patchfile="$out/13_tt_avx512_fast_probe.patch.txt"
+printf '%s  %s\n' a6d66722e690c5fe3f1fb397405a3f8470b8dd1bd300887a5e2442ae132e02eb "$patchfile" | sha256sum -c -
+sha256sum "$patchfile"
+mkdir "$job/k13"
+cp -a "$prior/k11v/." "$job/k13/"
+patch --batch -p1 -F0 -d "$job/k13" < "$patchfile" > "$out/step0-patch.raw.txt" 2>&1
+cat "$out/step0-patch.raw.txt"
+if rg -qi '\bfuzz\b|\boffset\b|\bfailed\b|reject|skipping|reversed' "$out/step0-patch.raw.txt"; then exit 3; fi
+test -z "$(find "$job/k13" -name '*.rej' -print -quit)"
+"$cmake" -S "$job/k13" -B "$job/build-k13" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+"$cmake" --build "$job/build-k13" --parallel 3 --verbose > "$out/step0-k13-build.raw.txt" 2>&1
+sha256sum "$job/build-k13/forge" | tee "$out/step0-k13-release-sha256.raw.txt"
+taskset -c 2 python -B "$job/no_options_pins.py" "$job/build-k13/forge" "$out/step0-k13-pins.raw.txt"
+taskset -c 2 python -B "$prior/bench_v3.py" "$job/build-k13/forge" "$base/carbon2/selfplay_driver.py" "$base/net768.fnn3" "$out/step0-k13-net768.raw.txt" required

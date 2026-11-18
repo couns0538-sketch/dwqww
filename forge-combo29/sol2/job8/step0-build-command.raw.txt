@@ -1,0 +1,41 @@
++ job=/workspace/work/sol2-job8
++ prior=/workspace/work/sol2-job7
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job8
++ base=/workspace/work/sol2-job2
++ cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
++ patchfile=/workspace/work/sol2-repo/forge-combo29/sol2/job8/13_tt_avx512_fast_probe.patch.txt
++ printf '%s  %s\n' a6d66722e690c5fe3f1fb397405a3f8470b8dd1bd300887a5e2442ae132e02eb /workspace/work/sol2-repo/forge-combo29/sol2/job8/13_tt_avx512_fast_probe.patch.txt
++ sha256sum -c -
+/workspace/work/sol2-repo/forge-combo29/sol2/job8/13_tt_avx512_fast_probe.patch.txt: OK
++ sha256sum /workspace/work/sol2-repo/forge-combo29/sol2/job8/13_tt_avx512_fast_probe.patch.txt
+a6d66722e690c5fe3f1fb397405a3f8470b8dd1bd300887a5e2442ae132e02eb  /workspace/work/sol2-repo/forge-combo29/sol2/job8/13_tt_avx512_fast_probe.patch.txt
++ mkdir /workspace/work/sol2-job8/k13
++ cp -a /workspace/work/sol2-job7/k11v/. /workspace/work/sol2-job8/k13/
++ patch --batch -p1 -F0 -d /workspace/work/sol2-job8/k13
++ cat /workspace/work/sol2-repo/forge-combo29/sol2/job8/step0-patch.raw.txt
+patching file include/forge/search.hpp
+patching file src/search.cpp
++ rg -qi '\bfuzz\b|\boffset\b|\bfailed\b|reject|skipping|reversed' /workspace/work/sol2-repo/forge-combo29/sol2/job8/step0-patch.raw.txt
+++ find /workspace/work/sol2-job8/k13 -name '*.rej' -print -quit
++ test -z ''
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job8/k13 -B /workspace/work/sol2-job8/build-k13 -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job8/build-k13
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job8/build-k13 --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job8/build-k13/forge
++ tee /workspace/work/sol2-repo/forge-combo29/sol2/job8/step0-k13-release-sha256.raw.txt
+0a54e59a8500958605476814d424e00f9d392fa719e706284ef61ecc70c096a3  /workspace/work/sol2-job8/build-k13/forge
++ taskset -c 2 python -B /workspace/work/sol2-job8/no_options_pins.py /workspace/work/sol2-job8/build-k13/forge /workspace/work/sol2-repo/forge-combo29/sol2/job8/step0-k13-pins.raw.txt
+/workspace/work/sol2-job8/build-k13/forge matched all no-options pins
++ taskset -c 2 python -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job8/build-k13/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job8/step0-k13-net768.raw.txt required
+/workspace/work/sol2-job8/build-k13/forge 882074 4275906

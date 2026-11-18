@@ -1,0 +1,346 @@
+--- a/include/forge/search.hpp	2026-11-18 10:22:24.400049697 +0000
++++ b/include/forge/search.hpp	2026-11-18 11:30:37.304049697 +0000
+@@ -17,6 +17,9 @@
+ #include <mutex>
+ #include <thread>
+ #include <vector>
++#if defined(__AVX512F__)
++#include <immintrin.h>
++#endif
+ 
+ #ifndef FORGE_SPD_TT_NOTLS
+ // Build switch, default 0 (= the lock's code): the Worker that runs on the thread
+@@ -129,8 +132,18 @@
+     std::array<TTEntry, 4> entries{};
+ };
+ static_assert(sizeof(TTEntry) == 16);
++static_assert(offsetof(TTEntry, key32) == 0);
++static_assert(offsetof(TTEntry, depth) == 12);
++static_assert(offsetof(TTEntry, gen_bound) == 13);
+ static_assert(sizeof(TTCluster) == 64);
+ 
++struct WorkerTTProbe {
++    TTEntry entry{};
++    std::size_t cluster = 0;
++    std::uint8_t slot = 0;
++    bool hit = false;
++};
++
+ class TranspositionTable;
+ 
+ // Immutable entry copy plus an opaque probe-time replacement destination.
+@@ -193,11 +206,19 @@
+     static thread_local const ExclusiveLease* active_lease_;
+     [[nodiscard]] bool has_exclusive_access() const;
+     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
++    // Place hot read-mostly probe metadata in the very first cache line of TranspositionTable
++    // rather than +65,712 bytes behind stripes_.
++    std::unique_ptr<TTCluster[]> clusters_;
++    std::size_t cluster_count_ = 0;
++    std::uint64_t epoch_ = 0;
++    std::uint8_t generation_ = 0;
++
+ #if FORGE_SPD_TT_NOTLS
+     // One body per access with a compile-time "take the stripe lock" parameter.
+     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+     // without it and are only for the Worker on the lease's thread (tt_owned_).
+     friend class Worker;
++    friend struct S13TTTestAccess;
+     template <bool TakeLock>
+     [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
+     template <bool TakeLock>
+@@ -206,16 +227,74 @@
+     [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
+     void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                      bool pv, std::uint16_t halfmove_clock);
++    [[nodiscard]] static std::uint8_t replace_full_cluster_slot(const TTCluster& cluster, std::uint8_t generation) noexcept;
++    void refresh_hit_sample_gen(std::uint8_t old_gen, std::uint8_t new_gen) const noexcept {
++        sample_gen_counts_[old_gen].fetch_sub(1, std::memory_order_relaxed);
++        sample_gen_counts_[new_gen].fetch_add(1, std::memory_order_relaxed);
++    }
++    [[nodiscard]] WorkerTTProbe probe_locked_fast(std::uint64_t key) const;
++    void store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
++                          Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++    void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
++                           Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
++        const std::size_t index = cluster_index(key);
++        TTCluster& cluster = clusters_[index];
++        const std::uint32_t key32 = verification_key(key);
++        const std::uint8_t generation = generation_;
++#if defined(__AVX512F__)
++        const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
++        const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
++        const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
++        const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
++        if (hit_m != 0U) {
++            const unsigned slot = static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U;
++            TTEntry& found = cluster.entries[slot];
++            if (found.generation() != generation) {
++                if (index < HashfullSampleLimit) [[unlikely]] {
++                    refresh_hit_sample_gen(found.generation(), generation);
++                }
++                found.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation) << 3U) | (found.gen_bound & 7U));
++            }
++            return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
++        }
++        if (static_cast<unsigned>(occ_m) != 0x8888U) {
++            const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m) ^ 0x8888U)) >> 2U;
++            return WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false};
++        }
++        const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++#else
++        for (std::size_t s = 0; s < 4; ++s) {
++            TTEntry& entry = cluster.entries[s];
++            if (entry.key32 == key32 && entry.occupied()) {
++                if (entry.generation() != generation) {
++                    if (index < HashfullSampleLimit) [[unlikely]] {
++                        refresh_hit_sample_gen(entry.generation(), generation);
++                    }
++                    entry.gen_bound = static_cast<std::uint8_t>(
++                        (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
++                }
++                return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++            }
++        }
++        for (std::size_t s = 0; s < 4; ++s) {
++            if (!cluster.entries[s].occupied()) {
++                return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++            }
++        }
++        const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++#endif
++    }
+ #endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
+     mutable std::atomic<bool> stripes_dirty_{false};
+     mutable std::array<std::atomic<int>, 32> sample_gen_counts_{};
+     std::atomic<bool> exclusive_requested_{false};
+-    std::uint64_t epoch_ = 0;
+-    std::unique_ptr<TTCluster[]> clusters_;
+-    std::size_t cluster_count_ = 0;
+-    std::uint8_t generation_ = 0;
+ 
+     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
+ #if defined(__SIZEOF_INT128__)
+@@ -228,14 +307,17 @@
+ #endif
+     }
+ 
+-    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++    [[nodiscard]] std::size_t cluster_index(std::uint64_t key) const noexcept {
+ #if defined(__SIZEOF_INT128__)
+         __extension__ using u128 = unsigned __int128;
+-        return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];
++        return static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U);
+ #else
+-        return clusters_[static_cast<std::size_t>(key % cluster_count_)];
++        return static_cast<std::size_t>(key % cluster_count_);
+ #endif
+     }
++    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++        return clusters_[cluster_index(key)];
++    }
+ };
+ 
+ // Search constants exposed for tuning. The UCI layer accepts them as unlisted
+@@ -596,14 +678,19 @@
+     bool fast_single_node_stop_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+-    // The six TT call sites of search / qsearch: one predictable branch per access.
+-    [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+-        return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
+-    }
+-    void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+-                  bool pv, std::uint16_t halfmove_clock) {
+-        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+-        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++    // The TT call sites of search / qsearch: inline AVX-512 fast path when tt_owned_ holds.
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_tt(std::uint64_t key) const {
++        return tt_owned_ ? shared_.tt.probe_owned_fast(key) : shared_.tt.probe_locked_fast(key);
++    }
++    [[gnu::always_inline]] void store_tt(const WorkerTTProbe& probe, std::uint64_t key, int score, int eval, Move move,
++                                         int depth, Bound bound, bool pv, std::uint16_t halfmove_clock) {
++        if (tt_owned_) {
++            shared_.tt.store_owned_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
++                                        halfmove_clock);
++        } else {
++            shared_.tt.store_locked_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
++                                         halfmove_clock);
++        }
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+--- a/src/search.cpp	2026-11-18 10:22:24.424049697 +0000
++++ b/src/search.cpp	2026-11-18 11:30:37.304049697 +0000
+@@ -525,6 +525,137 @@
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+ 
++[[gnu::noinline]] std::uint8_t TranspositionTable::replace_full_cluster_slot(const TTCluster& cluster,
++                                                                             std::uint8_t generation) noexcept {
++    std::uint8_t replace_slot = 0;
++    int replace_score = cluster.entries[0].depth -
++                        4 * static_cast<int>((32U + generation - cluster.entries[0].generation()) & 31U);
++    for (std::uint8_t s = 1; s < 4; ++s) {
++        const TTEntry& entry = cluster.entries[s];
++        const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
++        const int score = entry.depth - 4 * age;
++        if (score < replace_score) {
++            replace_slot = s;
++            replace_score = score;
++        }
++    }
++    return replace_slot;
++}
++
++WorkerTTProbe TranspositionTable::probe_locked_fast(std::uint64_t key) const {
++    const std::size_t index = cluster_index(key);
++    auto lock = lock_stripe(index);
++    (void)lock;
++    TTCluster& cluster = clusters_[index];
++    const std::uint32_t key32 = verification_key(key);
++    const std::uint8_t generation = generation_;
++    for (std::size_t s = 0; s < 4; ++s) {
++        TTEntry& entry = cluster.entries[s];
++        if (entry.key32 == key32 && entry.occupied()) {
++            if (entry.generation() != generation) {
++                if (index < HashfullSampleLimit) [[unlikely]] {
++                    refresh_hit_sample_gen(entry.generation(), generation);
++                }
++                entry.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
++            }
++            return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++        }
++    }
++    for (std::size_t s = 0; s < 4; ++s) {
++        if (!cluster.entries[s].occupied()) {
++            return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++        }
++    }
++    const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++    return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++}
++
++void TranspositionTable::store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
++                                          int eval, Move move, int depth, Bound bound, bool pv,
++                                          std::uint16_t halfmove_clock) {
++    assert(has_exclusive_access());
++    TTCluster& cluster = clusters_[cluster_idx];
++    const std::uint32_t key32 = verification_key(key);
++    TTEntry* entry = &cluster.entries[slot];
++#if defined(__AVX512F__)
++    const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
++    const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
++    const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
++    const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
++    if (hit_m != 0U) {
++        entry = &cluster.entries[static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U];
++    }
++#else
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
++#endif
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    const bool stale_slot = entry != &cluster.entries[slot];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
++        if (cluster_idx < HashfullSampleLimit) [[unlikely]] {
++            if (entry->occupied()) {
++                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++            }
++            if (bound != BoundNone) {
++                sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++            }
++        }
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>(
++            (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
++void TranspositionTable::store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
++                                           int eval, Move move, int depth, Bound bound, bool pv,
++                                           std::uint16_t halfmove_clock) {
++    auto lock = lock_stripe(cluster_idx);
++    (void)lock;
++    TTCluster& cluster = clusters_[cluster_idx];
++    const std::uint32_t key32 = verification_key(key);
++    TTEntry* entry = &cluster.entries[slot];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    const bool stale_slot = entry != &cluster.entries[slot];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
++        if (cluster_idx < HashfullSampleLimit) [[unlikely]] {
++            if (entry->occupied()) {
++                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++            }
++            if (bound != BoundNone) {
++                sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++            }
++        }
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>(
++            (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
+ TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
+     assert(has_exclusive_access());
+     return probe_body<false>(key);
+@@ -2154,7 +2285,7 @@
+     }
+ 
+ #if FORGE_SPD_TT_NOTLS
+-    const TTProbe tt_probe = probe_tt(board.key());
++    const WorkerTTProbe tt_probe = probe_tt(board.key());
+ #else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+@@ -2314,7 +2445,7 @@
+ 
+     // Transposition table probe.
+ #if FORGE_SPD_TT_NOTLS
+-    const TTProbe tt_probe = probe_tt(board.key());
++    const WorkerTTProbe tt_probe = probe_tt(board.key());
+ #else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+@@ -3214,7 +3345,7 @@
+     if (!waiting_to_ponder && (clock_reserve_empty_ || hard_limit_passed) && !root_candidates.empty()) {
+         Move hashed = Move::none();
+ #if FORGE_SPD_TT_NOTLS
+-        const TTProbe tt_probe = probe_tt(board.key());
++        const WorkerTTProbe tt_probe = probe_tt(board.key());
+ #else
+         const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
