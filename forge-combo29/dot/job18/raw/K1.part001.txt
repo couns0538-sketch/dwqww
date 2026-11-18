@@ -1,0 +1,1564 @@
+UTC START 2026-11-18T22:17:33.123932+00:00
+{"label": "K1 PC20 net768 depth9", "sha256": "b8d31d23d4675237fd46b98500867ec2169eaee1aad0adf895335212592e6245", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11
+> go depth 9
+< info depth 1 seldepth 2 score cp 6 nodes 38 nps 0 hashfull 0 time 0 pv d8a5
+< info depth 2 seldepth 6 score cp 350 nodes 100 nps 0 hashfull 0 time 0 pv d8a5 e2c4
+< info depth 3 seldepth 6 score cp 312 nodes 150 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6
+< info depth 4 seldepth 7 score cp 328 nodes 230 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6 f2f3 d5c4
+< info depth 5 seldepth 7 score cp 258 nodes 453 nps 453000 hashfull 0 time 1 pv d8a5 e2c4 b7b6 g2g3 b6b5
+< info depth 6 seldepth 8 score cp 117 nodes 850 nps 850000 hashfull 0 time 1 pv d8e8 d1e1 d7e5 f4e5
+< info depth 7 seldepth 8 score cp 83 nodes 1230 nps 615000 hashfull 0 time 2 pv d8e8 d1e1 d7b6 a1d1 g7g6 f4h2
+< info depth 8 seldepth 19 score cp -61 nodes 5353 nps 764714 hashfull 1 time 7 pv d8e8 d1e1 e7d8 e5d3 g7g6 d2c4 e8e7
+< info depth 9 seldepth 19 score cp -74 nodes 7372 nps 737200 hashfull 1 time 10 pv d8a5 d1e1 g7g6 e5g4 f6g4 e2g4 d7f6 g4e6 e7d8 e6c8
+< info string h30_classes white_generation 6 black_generation 23 illegal_source 29 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7223 no_enemy_ray 24 other 2
+< info string shortcut B1 uses 5190 differ 0
+< info string shortcut B2 uses 5199 differ 0
+< info string shortcut B5 uses 6659 differ 0
+< info string shortcut B6 uses 6612 differ 0
+< info string shortcut S-B1 uses 5190 differ 0
+< info string shortcut S-B2 uses 5199 differ 0
+< info string shortcut S-B4 uses 5190 differ 0
+< info string shortcut S-B7 uses 6932 differ 0
+< info string shortcut H28 uses 595 differ 0
+< info string shortcut H18 uses 2703 differ 0
+< info string shortcut H25 uses 10268 differ 0
+< info string shortcut H27 uses 1632 differ 0
+< info string shortcut H82 uses 10075 differ 0
+< info string shortcut H30 uses 29 differ 0
+< info string shortcut H3 uses 7249 differ 0
+< info string h82_classes hit 3008 miss_empty 7067 miss_full 0 older_generation 0 probes 7372 stores 2703
+< info string h25_paths seeded 2136 scan16 1391 scan8 605 scan4 876 scalar_tail 2499 sort_transition 639 sorted_tail 3885
+< bestmove d8a5
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/4bppp/p3pn2/3pB3/PppP4/2P1P2P/1P1NBPP1/R2Q1RK1 w - - 0 14
+> go depth 9
+< info depth 1 seldepth 6 score cp -136 nodes 53 nps 0 hashfull 0 time 0 pv a4a5
+< info depth 2 seldepth 6 score cp -215 nodes 137 nps 0 hashfull 0 time 0 pv a4a5 b4b3 e5f6
+< info depth 3 seldepth 6 score cp -148 nodes 199 nps 0 hashfull 0 time 0 pv a4a5 b4b3 d2c4
+< info depth 4 seldepth 8 score cp -131 nodes 488 nps 0 hashfull 0 time 0 pv e2c4 d5c4 d1c1
+< info depth 5 seldepth 11 score cp -1 nodes 1009 nps 1009000 hashfull 0 time 1 pv e2c4 a6a5 d1b1 d8b6
+< info depth 6 seldepth 11 score cp -20 nodes 2208 nps 1104000 hashfull 0 time 2 pv e2c4 e7d6 c4d5 a6a5 a1b1
+< info depth 7 seldepth 11 score cp 56 nodes 3097 nps 774250 hashfull 0 time 4 pv e2c4 g7g6 c4d5 b4c3 d5a8 c3b2
+< info depth 8 seldepth 18 score cp 192 nodes 5372 nps 895333 hashfull 1 time 6 pv e2c4 g7g6 c4d5 b4c3 e5f6 c3b2 f2f3 d8d5 f6e7
+< info depth 9 seldepth 20 score cp 112 nodes 12540 nps 783750 hashfull 4 time 16 pv e2c4 a6a5 a1b1 g8h8 g1h2 c8d7 e5f6 b4c3 f6e7 d8e7
+< info string h30_classes white_generation 111 black_generation 10 illegal_source 121 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 12043 no_enemy_ray 104 other 102
+< info string shortcut B1 uses 4769 differ 0
+< info string shortcut B2 uses 4960 differ 0
+< info string shortcut B5 uses 11049 differ 0
+< info string shortcut B6 uses 11356 differ 0
+< info string shortcut S-B1 uses 4769 differ 0
+< info string shortcut S-B2 uses 4960 differ 0
+< info string shortcut S-B4 uses 4769 differ 0
+< info string shortcut S-B7 uses 11499 differ 0
+< info string shortcut H28 uses 710 differ 0
+< info string shortcut H18 uses 7194 differ 0
+< info string shortcut H25 uses 19692 differ 0
+< info string shortcut H27 uses 4931 differ 0
+< info string shortcut H82 uses 19734 differ 0
+< info string shortcut H30 uses 121 differ 0
+< info string shortcut H3 uses 12249 differ 0
+< info string h82_classes hit 6335 miss_empty 13399 miss_full 0 older_generation 0 probes 12540 stores 7194
+< info string h25_paths seeded 5635 scan16 1571 scan8 699 scan4 1077 scalar_tail 5432 sort_transition 904 sorted_tail 4497
+< bestmove e2c4
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/4bppp/p3p3/3p4/PppPP3/2P4P/1P1NBPP1/R2QR1K1 b - - 2 16
+> go depth 9
+< info depth 1 seldepth 4 score cp 384 nodes 59 nps 0 hashfull 0 time 0 pv g8h8
+< info depth 2 seldepth 8 score cp -15 nodes 400 nps 0 hashfull 0 time 0 pv e7h4 c3b4
+< info depth 3 seldepth 8 score cp -15 nodes 437 nps 0 hashfull 0 time 0 pv e7h4 c3b4 d5e4
+< info depth 4 seldepth 8 score cp -383 nodes 859 nps 0 hashfull 0 time 0 pv c8d7 g1h2 d8b8 e4e5 b4c3
+< info depth 5 seldepth 8 score cp -646 nodes 1106 nps 1106000 hashfull 0 time 1 pv f8e8 g1h2 d8d6 e4e5 c8d7
+< info depth 6 seldepth 14 score cp -417 nodes 1713 nps 1713000 hashfull 0 time 1 pv g8h8 g1h2 d8d6 f2f4 d6f4 g2g3 d5e4
+< info depth 7 seldepth 14 score cp -358 nodes 2449 nps 1224500 hashfull 0 time 2 pv g8h8 g1h2 d8d6 e4e5 b4c3 a1a3 c3d2 d1d2
+< info depth 8 seldepth 16 score cp -506 nodes 4399 nps 1099750 hashfull 2 time 4 pv g8h8 g1f1 b4c3 b2c3 d5e4 d2c4
+< info depth 9 seldepth 16 score cp -518 nodes 6144 nps 1024000 hashfull 2 time 6 pv g8h8 g1f1 b4c3 a4a5 c3d2 d1a4 d2e1b a1e1 d5e4
+< info string h30_classes white_generation 14 black_generation 0 illegal_source 14 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 5672 no_enemy_ray 10 other 8
+< info string shortcut B1 uses 1939 differ 0
+< info string shortcut B2 uses 1948 differ 0
+< info string shortcut B5 uses 4672 differ 0
+< info string shortcut B6 uses 5502 differ 0
+< info string shortcut S-B1 uses 1939 differ 0
+< info string shortcut S-B2 uses 1948 differ 0
+< info string shortcut S-B4 uses 1939 differ 0
+< info string shortcut S-B7 uses 5691 differ 0
+< info string shortcut H28 uses 342 differ 0
+< info string shortcut H18 uses 3802 differ 0
+< info string shortcut H25 uses 9037 differ 0
+< info string shortcut H27 uses 2450 differ 0
+< info string shortcut H82 uses 9946 differ 0
+< info string shortcut H30 uses 14 differ 0
+< info string shortcut H3 uses 5690 differ 0
+< info string h82_classes hit 3717 miss_empty 6229 miss_full 0 older_generation 0 probes 6144 stores 3802
+< info string h25_paths seeded 2773 scan16 578 scan8 376 scan4 480 scalar_tail 2254 sort_transition 300 sorted_tail 2200
+< bestmove g8h8
+> ucinewgame
+> isready
+< readyok
+> position fen r2qr1k1/4bppp/p3p3/3b4/PppP4/2P2B1P/1P1N1PP1/R2QR1K1 w - - 0 19
+> go depth 9
+< info depth 1 seldepth 6 score cp 327 nodes 50 nps 0 hashfull 0 time 0 pv f3d5 e6d5 c3b4 e7b4
+< info depth 2 seldepth 7 score cp -38 nodes 212 nps 0 hashfull 0 time 0 pv f3d5 d8d5
+< info depth 3 seldepth 7 score cp 327 nodes 263 nps 0 hashfull 0 time 0 pv f3d5 e6d5 c3b4
+< info depth 4 seldepth 9 score cp 634 nodes 746 nps 0 hashfull 0 time 0 pv g1h2 d8c7 g2g3 b4c3 b2c3
+< info depth 5 seldepth 9 score cp 552 nodes 1061 nps 1061000 hashfull 0 time 1 pv f3d5 e6d5 g1h2 e7d6 g2g3
+< info depth 6 seldepth 9 score cp 120 nodes 1229 nps 1229000 hashfull 0 time 1 pv f3d5 b4c3 b2c3 g8h8 g1f1 e6d5
+< info depth 7 seldepth 9 score cp 335 nodes 1393 nps 1393000 hashfull 0 time 1 pv f3d5 b4c3 b2c3 g8h8 g1f1 d8c7 d2c4
+< info depth 8 seldepth 15 score cp -69 nodes 2752 nps 917333 hashfull 0 time 3 pv f3d5 b4c3 d5c4 c3b2 g1f1 b2b1b d2b1 g8f8
+< info depth 9 seldepth 18 score cp 89 nodes 6913 nps 768111 hashfull 2 time 9 pv g1h2 d8c7 g2g3 b4c3 b2b4 c7g3 f2g3 d5f3 h2g1 f3d1
+< info string h30_classes white_generation 106 black_generation 3 illegal_source 109 promotion_source 3
+< info string h3_classes checked 0 safe_pawn_witness 6471 no_enemy_ray 55 other 14
+< info string shortcut B1 uses 2060 differ 0
+< info string shortcut B2 uses 2105 differ 0
+< info string shortcut B5 uses 5514 differ 0
+< info string shortcut B6 uses 6153 differ 0
+< info string shortcut S-B1 uses 2060 differ 0
+< info string shortcut S-B2 uses 2105 differ 0
+< info string shortcut S-B4 uses 2060 differ 0
+< info string shortcut S-B7 uses 6187 differ 0
+< info string shortcut H28 uses 367 differ 0
+< info string shortcut H18 uses 4098 differ 0
+< info string shortcut H25 uses 12086 differ 0
+< info string shortcut H27 uses 3084 differ 0
+< info string shortcut H82 uses 11011 differ 0
+< info string shortcut H30 uses 109 differ 0
+< info string shortcut H3 uses 6540 differ 0
+< info string h82_classes hit 3923 miss_empty 7088 miss_full 0 older_generation 0 probes 6913 stores 4098
+< info string h25_paths seeded 3498 scan16 778 scan8 469 scan4 772 scalar_tail 3060 sort_transition 567 sorted_tail 3090
+< bestmove g1h2
+> ucinewgame
+> isready
+< readyok
+> position fen 2rqr1k1/4bppp/p7/P2p4/QppP4/2P4P/1P1N1PP1/R3R1K1 b - - 1 21
+> go depth 9
+< info depth 1 seldepth 3 score cp 591 nodes 38 nps 0 hashfull 0 time 0 pv b4b3
+< info depth 2 seldepth 5 score cp 317 nodes 115 nps 0 hashfull 0 time 0 pv g8f8 c3b4
+< info depth 3 seldepth 5 score cp 755 nodes 150 nps 0 hashfull 0 time 0 pv g8f8 c3b4 c4c3 b2c3 c8c3
+< info depth 4 seldepth 7 score cp 536 nodes 282 nps 0 hashfull 0 time 0 pv g8f8 c3b4 e7b4 e1e8 d8e8 a4e8 c8e8
+< info depth 5 seldepth 7 score cp 431 nodes 425 nps 0 hashfull 0 time 0 pv g8f8 a4b4 e7b4 e1e8 d8e8
+< info depth 6 seldepth 13 score cp 523 nodes 596 nps 0 hashfull 0 time 0 pv g8f8 a4b4 h7h5 f2f3 g7g5
+< info depth 7 seldepth 16 score cp 468 nodes 1356 nps 1356000 hashfull 0 time 1 pv g8f8 c3b4 h7h5 a4e8 d8e8 g1f1 e7b4 e1e8 c8e8
+< info depth 8 seldepth 16 score cp 349 nodes 2699 nps 899666 hashfull 1 time 3 pv g8f8 c3b4 d8a5 b4a5 c4c3 a4e8 c8e8 e1e7 c3d2 e7e8 f8e8
+< info depth 9 seldepth 18 score cp 387 nodes 9010 nps 819090 hashfull 5 time 11 pv g8f8 a4b4 h7h5 b4e7 e8e7 g1f1 c8b8 h3h4 e7e6 e1e3
+< info string h30_classes white_generation 32 black_generation 20 illegal_source 52 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7384 no_enemy_ray 298 other 61
+< info string shortcut B1 uses 3518 differ 0
+< info string shortcut B2 uses 3587 differ 0
+< info string shortcut B5 uses 5769 differ 0
+< info string shortcut B6 uses 7843 differ 0
+< info string shortcut S-B1 uses 3518 differ 0
+< info string shortcut S-B2 uses 3587 differ 0
+< info string shortcut S-B4 uses 3518 differ 0
+< info string shortcut S-B7 uses 7884 differ 0
+< info string shortcut H28 uses 575 differ 0
+< info string shortcut H18 uses 5747 differ 0
+< info string shortcut H25 uses 14389 differ 0
+< info string shortcut H27 uses 3799 differ 0
+< info string shortcut H82 uses 14757 differ 0
+< info string shortcut H30 uses 52 differ 0
+< info string shortcut H3 uses 7743 differ 0
+< info string h82_classes hit 4523 miss_empty 10234 miss_full 0 older_generation 0 probes 9010 stores 5747
+< info string h25_paths seeded 4154 scan16 1020 scan8 558 scan4 764 scalar_tail 3125 sort_transition 536 sorted_tail 4291
+< bestmove g8f8
+> ucinewgame
+> isready
+< readyok
+> position fen 2rqr1k1/5p1p/p4bp1/P2p4/Q1pP4/2P3PP/3N1P2/R3R1K1 w - - 0 24
+> go depth 9
+< info depth 1 seldepth 4 score cp 707 nodes 54 nps 0 hashfull 0 time 0 pv e1e8 d8e8 a4e8 c8e8
+< info depth 2 seldepth 4 score cp 707 nodes 101 nps 0 hashfull 0 time 0 pv e1e8 d8e8
+< info depth 3 seldepth 4 score cp 707 nodes 158 nps 0 hashfull 0 time 0 pv e1e8 d8e8 a4e8 c8e8
+< info depth 4 seldepth 6 score cp -37 nodes 564 nps 0 hashfull 0 time 0 pv g1f1 e8e1 a1e1 g8f8
+< info depth 5 seldepth 9 score cp -107 nodes 929 nps 929000 hashfull 0 time 1 pv e1e8 d8e8 a4e8 c8e8 a1a4 e8e1 g1g2
+< info depth 6 seldepth 11 score cp 127 nodes 1417 nps 1417000 hashfull 0 time 1 pv e1e8 d8e8 g1f1 e8a4 a1e1
+< info depth 7 seldepth 12 score cp 283 nodes 2540 nps 846666 hashfull 0 time 3 pv a4e8 d8e8 e1e8 c8e8 g1f1 g8h8 f2f4
+< info depth 8 seldepth 12 score cp 262 nodes 3309 nps 827250 hashfull 0 time 4 pv a4e8 d8e8 e1e8 c8e8 g1f1 e8a8 f2f4 f6d4 f1g2
+< info depth 9 seldepth 18 score cp 0 nodes 7492 nps 832444 hashfull 2 time 9 pv a4e8 d8e8 e1e8 c8e8 g1f1 e8a8 f1e1 a8e8
+< info string h30_classes white_generation 32 black_generation 29 illegal_source 61 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 3295 no_enemy_ray 3471 other 212
+< info string shortcut B1 uses 5130 differ 0
+< info string shortcut B2 uses 5183 differ 0
+< info string shortcut B5 uses 6157 differ 0
+< info string shortcut B6 uses 6545 differ 0
+< info string shortcut S-B1 uses 5130 differ 0
+< info string shortcut S-B2 uses 5183 differ 0
+< info string shortcut S-B4 uses 5130 differ 0
+< info string shortcut S-B7 uses 6795 differ 0
+< info string shortcut H28 uses 608 differ 0
+< info string shortcut H18 uses 2610 differ 0
+< info string shortcut H25 uses 8902 differ 0
+< info string shortcut H27 uses 1889 differ 0
+< info string shortcut H82 uses 10102 differ 0
+< info string shortcut H30 uses 61 differ 0
+< info string shortcut H3 uses 6978 differ 0
+< info string h82_classes hit 4231 miss_empty 5871 miss_full 0 older_generation 0 probes 7492 stores 2610
+< info string h25_paths seeded 2042 scan16 1086 scan8 432 scan4 477 scalar_tail 1325 sort_transition 345 sorted_tail 4475
+< bestmove a4e8
+> ucinewgame
+> isready
+< readyok
+> position fen 2rq2k1/5p2/p4bp1/P2p3p/Q1pP3P/2P2NP1/5P2/4R1K1 b - - 1 26
+> go depth 9
+< info depth 1 seldepth 2 score cp 445 nodes 36 nps 0 hashfull 0 time 0 pv f6e7
+< info depth 2 seldepth 3 score cp 312 nodes 106 nps 0 hashfull 0 time 0 pv f6h4 g1h2
+< info depth 3 seldepth 5 score cp 342 nodes 161 nps 0 hashfull 0 time 0 pv f6h4 g1f1 f7f6
+< info depth 4 seldepth 5 score cp 416 nodes 222 nps 0 hashfull 0 time 0 pv f6h4 g1f1 f7f6 f3h4
+< info depth 5 seldepth 6 score cp 387 nodes 590 nps 0 hashfull 0 time 0 pv f6e5 g1f1 e5g3 f2g3
+< info depth 6 seldepth 6 score cp 376 nodes 706 nps 0 hashfull 0 time 0 pv f6e5 g1f1 e5g3 f3e5 g3h4
+< info depth 7 seldepth 11 score cp 318 nodes 2299 nps 766333 hashfull 0 time 3 pv f6e7 a4e8 d8e8 f3e5 f7f6 g1f1
+< info depth 8 seldepth 15 score cp 78 nodes 5307 nps 758142 hashfull 1 time 7 pv f6e7 g1f1 c8a8 f3h2 e7f8 f2f4
+< info depth 9 seldepth 15 score cp 57 nodes 10741 nps 716066 hashfull 3 time 15 pv g8f8 a4e8 d8e8 e1e8 f8e8 g1g2 f6d4 c3d4
+< info string h30_classes white_generation 21 black_generation 162 illegal_source 183 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 5237 no_enemy_ray 4284 other 375
+< info string shortcut B1 uses 6317 differ 0
+< info string shortcut B2 uses 6465 differ 0
+< info string shortcut B5 uses 8516 differ 0
+< info string shortcut B6 uses 9593 differ 0
+< info string shortcut S-B1 uses 6317 differ 0
+< info string shortcut S-B2 uses 6465 differ 0
+< info string shortcut S-B4 uses 6317 differ 0
+< info string shortcut S-B7 uses 9855 differ 0
+< info string shortcut H28 uses 977 differ 0
+< info string shortcut H18 uses 5781 differ 0
+< info string shortcut H25 uses 18374 differ 0
+< info string shortcut H27 uses 4054 differ 0
+< info string shortcut H82 uses 16520 differ 0
+< info string shortcut H30 uses 183 differ 0
+< info string shortcut H3 uses 9896 differ 0
+< info string h82_classes hit 5082 miss_empty 11438 miss_full 0 older_generation 0 probes 10739 stores 5781
+< info string h25_paths seeded 4847 scan16 2044 scan8 1202 scan4 1065 scalar_tail 3490 sort_transition 651 sorted_tail 6554
+< bestmove g8f8
+> ucinewgame
+> isready
+< readyok
+> position fen 2r5/1q3pk1/p4bp1/P2p3p/Q1pP3P/2P2NP1/5P2/4R1K1 w - - 6 29
+> go depth 9
+< info depth 1 seldepth 2 score cp 85 nodes 39 nps 0 hashfull 0 time 0 pv g1f1
+< info depth 2 seldepth 3 score cp -250 nodes 84 nps 0 hashfull 0 time 0 pv g1f1 g7f8
+< info depth 3 seldepth 6 score cp 9 nodes 155 nps 0 hashfull 0 time 0 pv g1f1 g7f8 e1e8 c8e8
+< info depth 4 seldepth 7 score cp -78 nodes 387 nps 0 hashfull 0 time 0 pv g1f1 f6e7 f3h2 b7c7
+< info depth 5 seldepth 7 score cp -71 nodes 489 nps 0 hashfull 0 time 0 pv g1f1 f6e7 f3h2 b7c7 f2f4
+< info depth 6 seldepth 10 score cp -247 nodes 1095 nps 1095000 hashfull 0 time 1 pv g1f1 f6e7 e1e7 b7b1 f1g2 b1f1 g2h2 f1f2 h2h3 f2f3
+< info depth 7 seldepth 17 score cp -193 nodes 1822 nps 911000 hashfull 0 time 2 pv g1f1 f6d8 e1e8 b7b3 f1e1 b3a4
+< info depth 8 seldepth 22 score cp -129 nodes 4491 nps 748500 hashfull 0 time 6 pv g1f1 f6e7 e1e7 b7b1 f3e1 b1b5 e7f7 g7f7 a4c2 b5a5
+< info depth 9 seldepth 29 score cp -18 nodes 10247 nps 683133 hashfull 3 time 15 pv g1f1 f6e7 e1e7 b7b5 a4b5 g7f8 e7f7 f8f7 b5b7 f7f8
+< info string h30_classes white_generation 179 black_generation 112 illegal_source 291 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 5515 no_enemy_ray 2364 other 924
+< info string shortcut B1 uses 5960 differ 0
+< info string shortcut B2 uses 6336 differ 0
+< info string shortcut B5 uses 7172 differ 0
+< info string shortcut B6 uses 9316 differ 0
+< info string shortcut S-B1 uses 5960 differ 0
+< info string shortcut S-B2 uses 6336 differ 0
+< info string shortcut S-B4 uses 5960 differ 0
+< info string shortcut S-B7 uses 9260 differ 0
+< info string shortcut H28 uses 937 differ 0
+< info string shortcut H18 uses 6002 differ 0
+< info string shortcut H25 uses 17889 differ 0
+< info string shortcut H27 uses 4041 differ 0
+< info string shortcut H82 uses 16249 differ 0
+< info string shortcut H30 uses 291 differ 0
+< info string shortcut H3 uses 8803 differ 0
+< info string h82_classes hit 5272 miss_empty 10977 miss_full 0 older_generation 0 probes 10247 stores 6002
+< info string h25_paths seeded 4758 scan16 2243 scan8 1555 scan4 1308 scalar_tail 3588 sort_transition 758 sorted_tail 6268
+< bestmove g1f1
+> ucinewgame
+> isready
+< readyok
+> position fen 1r6/2q2pk1/p4bp1/P2p3p/2pP3P/2P2NP1/5PK1/Q3R3 b - - 11 31
+> go depth 9
+< info depth 1 seldepth 2 score cp 1806 nodes 51 nps 0 hashfull 0 time 0 pv g7g8
+< info depth 2 seldepth 4 score cp 698 nodes 166 nps 0 hashfull 0 time 0 pv g7g8 e1e8 b8e8
+< info depth 3 seldepth 4 score cp 698 nodes 216 nps 0 hashfull 0 time 0 pv g7g8 e1e8 b8e8
+< info depth 4 seldepth 8 score cp 540 nodes 721 nps 0 hashfull 0 time 0 pv f6h4 g2h3 c7c8 g3g4 h4f2
+< info depth 5 seldepth 10 score cp 376 nodes 1028 nps 1028000 hashfull 0 time 1 pv c7b7 g2h3 b7c8 g3g4 h5g4 h3h2 g4f3
+< info depth 6 seldepth 12 score cp 671 nodes 1644 nps 822000 hashfull 0 time 2 pv b8b7 f3g1 g7g8 g2f1 g8h7
+< info depth 7 seldepth 16 score cp 289 nodes 2627 nps 875666 hashfull 1 time 3 pv c7b7 g2h3 b7c8 g3g4 h5g4 h3g3 c8c7 g3g2 g4f3 g2h3 b8b7
+< info depth 8 seldepth 18 score cp 355 nodes 5686 nps 812285 hashfull 2 time 7 pv b8b5 f3g1 f6h4 g2f1 c7c8 g3h4
+< info depth 9 seldepth 18 score cp 404 nodes 9820 nps 701428 hashfull 5 time 14 pv b8b5 f3g1 g6g5 h4g5 b5a5 g5f6 g7g6 g2f1
+< info string h30_classes white_generation 143 black_generation 49 illegal_source 192 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 3091 no_enemy_ray 3266 other 2563
+< info string shortcut B1 uses 4950 differ 0
+< info string shortcut B2 uses 5083 differ 0
+< info string shortcut B5 uses 7350 differ 0
+< info string shortcut B6 uses 8567 differ 0
+< info string shortcut S-B1 uses 4950 differ 0
+< info string shortcut S-B2 uses 5083 differ 0
+< info string shortcut S-B4 uses 4950 differ 0
+< info string shortcut S-B7 uses 8618 differ 0
+< info string shortcut H28 uses 881 differ 0
+< info string shortcut H18 uses 5829 differ 0
+< info string shortcut H25 uses 15970 differ 0
+< info string shortcut H27 uses 4575 differ 0
+< info string shortcut H82 uses 15649 differ 0
+< info string shortcut H30 uses 192 differ 0
+< info string shortcut H3 uses 8920 differ 0
+< info string h82_classes hit 5125 miss_empty 10524 miss_full 0 older_generation 0 probes 9820 stores 5829
+< info string h25_paths seeded 4596 scan16 1707 scan8 958 scan4 945 scalar_tail 3447 sort_transition 558 sorted_tail 5005
+< bestmove b8b5
+> ucinewgame
+> isready
+< readyok
+> position fen 4R3/5pk1/p4bp1/q2p3p/2pP3P/1rP2NP1/5PK1/2Q5 w - - 2 34
+> go depth 9
+< info depth 1 seldepth 4 score cp 89 nodes 98 nps 0 hashfull 0 time 0 pv g2h3 b3c3
+< info depth 2 seldepth 4 score cp 89 nodes 144 nps 0 hashfull 0 time 0 pv g2h3 b3c3
+< info depth 3 seldepth 6 score cp 189 nodes 264 nps 0 hashfull 0 time 0 pv g2h3 f6d4 c1d2 d4c3
+< info depth 4 seldepth 6 score cp 249 nodes 361 nps 0 hashfull 0 time 0 pv g2h3 f6d4 c1f1 d4c3
+< info depth 5 seldepth 7 score cp 295 nodes 556 nps 0 hashfull 0 time 0 pv g2h3 f6d4 c1c2 d4c3
+< info depth 6 seldepth 8 score cp 224 nodes 900 nps 900000 hashfull 0 time 1 pv g2h3 f6d4 f3g5 g7h6 g5f7 h6h7 c3d4
+< info depth 7 seldepth 13 score cp 184 nodes 2574 nps 858000 hashfull 1 time 3 pv g2h1 a5c7 f3g5 b3b5 e8g8 g7h6 g5f7 h6h7
+< info depth 8 seldepth 13 score cp 334 nodes 4852 nps 693142 hashfull 2 time 7 pv g2h1 b3b8 f3g5 b8d8 e8d8
+< info depth 9 seldepth 20 score cp 280 nodes 10625 nps 664062 hashfull 4 time 16 pv g2h1 a5a2 f3g5 b3b8 c1e1 a2c2 e8b8 g7h6 g5f7 h6h7
+< info string h30_classes white_generation 36 black_generation 77 illegal_source 113 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 6193 no_enemy_ray 2347 other 937
+< info string shortcut B1 uses 6947 differ 0
+< info string shortcut B2 uses 7401 differ 0
+< info string shortcut B5 uses 7889 differ 0
+< info string shortcut B6 uses 9574 differ 0
+< info string shortcut S-B1 uses 6947 differ 0
+< info string shortcut S-B2 uses 7401 differ 0
+< info string shortcut S-B4 uses 6947 differ 0
+< info string shortcut S-B7 uses 9498 differ 0
+< info string shortcut H28 uses 908 differ 0
+< info string shortcut H18 uses 5624 differ 0
+< info string shortcut H25 uses 17788 differ 0
+< info string shortcut H27 uses 3754 differ 0
+< info string shortcut H82 uses 16249 differ 0
+< info string shortcut H30 uses 113 differ 0
+< info string shortcut H3 uses 9477 differ 0
+< info string h82_classes hit 5586 miss_empty 10663 miss_full 0 older_generation 0 probes 10625 stores 5624
+< info string h25_paths seeded 4272 scan16 2138 scan8 1012 scan4 1140 scalar_tail 3600 sort_transition 656 sorted_tail 7017
+< bestmove g2h1
+> ucinewgame
+> isready
+< readyok
+> position fen 4R3/1r3pk1/p4bp1/3pN2p/2pP1QPP/2q5/5PK1/8 b - - 0 36
+> go depth 9
+< info depth 1 seldepth 6 score cp -148 nodes 132 nps 0 hashfull 0 time 0 pv g7h7 f4f6 h5g4 e5g4
+< info depth 2 seldepth 6 score cp -148 nodes 184 nps 0 hashfull 0 time 0 pv g7h7 f4f6
+< info depth 3 seldepth 6 score cp -148 nodes 241 nps 0 hashfull 0 time 0 pv g7h7 f4f6 h5g4
+< info depth 4 seldepth 7 score cp -260 nodes 616 nps 0 hashfull 0 time 0 pv f6h4 f4e3 c3e3
+< info depth 5 seldepth 9 score cp -167 nodes 950 nps 950000 hashfull 0 time 1 pv f6h4 g4h5 g7h7 f4h4 g6h5
+< info depth 6 seldepth 13 score cp -249 nodes 1614 nps 807000 hashfull 0 time 2 pv f6e5 f4e5 f7f6 e5d5 h5g4 e8e2 c3h3 g2g1
+< info depth 7 seldepth 19 score cp -215 nodes 4474 nps 745666 hashfull 1 time 6 pv f6e5 f4e5 g7h7 e5d5 h5g4 d5e5 c3h3 g2g1
+< info depth 8 seldepth 19 score cp -250 nodes 7930 nps 720909 hashfull 3 time 11 pv f6e5 g4h5 c3d4 e8g8 g7h7 h5g6 f7g6 f4f7 e5g7
+< info depth 9 seldepth 20 score cp -203 nodes 23931 nps 747843 hashfull 9 time 32 pv c3f3 e5f3 f6h4 g4h5 h4f2 e8g8 g7h7 h5g6 f7g6 g2f2 b7b2 f4d2
+< info string h30_classes white_generation 330 black_generation 144 illegal_source 474 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 15401 no_enemy_ray 3795 other 730
+< info string shortcut B1 uses 7072 differ 0
+< info string shortcut B2 uses 8196 differ 0
+< info string shortcut B5 uses 14339 differ 0
+< info string shortcut B6 uses 20595 differ 0
+< info string shortcut S-B1 uses 7072 differ 0
+< info string shortcut S-B2 uses 8196 differ 0
+< info string shortcut S-B4 uses 7072 differ 0
+< info string shortcut S-B7 uses 20424 differ 0
+< info string shortcut H28 uses 1505 differ 0
+< info string shortcut H18 uses 16582 differ 0
+< info string shortcut H25 uses 41323 differ 0
+< info string shortcut H27 uses 10825 differ 0
+< info string shortcut H82 uses 40511 differ 0
+< info string shortcut H30 uses 474 differ 0
+< info string shortcut H3 uses 19926 differ 0
+< info string h82_classes hit 10477 miss_empty 30034 miss_full 0 older_generation 0 probes 23929 stores 16582
+< info string h25_paths seeded 11719 scan16 3410 scan8 1585 scan4 2712 scalar_tail 9172 sort_transition 1758 sorted_tail 12800
+< bestmove c3f3
+> ucinewgame
+> isready
+< readyok
+> position fen 4R3/5pk1/p4bp1/3pN3/2pP1QpP/2q2P2/1r6/5K2 w - - 0 39
+> go depth 9
+< info depth 1 seldepth 6 score cp 2190 nodes 69 nps 0 hashfull 0 time 0 pv f4g4 f6e5 d4e5
+< info depth 2 seldepth 13 score cp -24 nodes 530 nps 530000 hashfull 0 time 1 pv f3g4 c3h3 f1e1 f6e5 f4e5 g7h6
+< info depth 3 seldepth 13 score cp 381 nodes 716 nps 716000 hashfull 1 time 1 pv e8g8 g7g8 f4f6
+< info depth 4 seldepth 13 score cp -127 nodes 1209 nps 1209000 hashfull 1 time 1 pv e8g8 g7g8 e5f7 g4f3
+< info depth 5 seldepth 13 score cp -140 nodes 1838 nps 919000 hashfull 1 time 2 pv e8e7 g4f3 e7f7 g7g8 f7f6 c3c1 f4c1
+< info depth 6 seldepth 13 score cp -115 nodes 2174 nps 724666 hashfull 1 time 3 pv f4f6 g7f6 e5g4 f6g7 e8e7 c3f3 f1e1
+< info depth 7 seldepth 13 score cp 0 nodes 2372 nps 790666 hashfull 1 time 3 pv f4f6 g7f6 e5g4 f6g7 e8g8 g7h7 g8h8 h7g7
+< info depth 8 seldepth 19 score cp 0 nodes 4849 nps 808166 hashfull 2 time 6 pv f4f6 g7f6 e5g4 f6f5 g4e3 f5f4 e3d5 f4g3 d5c3 f7f6 c3e2 g3f3
+< info depth 9 seldepth 20 score cp 0 nodes 11017 nps 612055 hashfull 6 time 18 pv e8e7 b2b1 f1g2 b1b2
+< info string h30_classes white_generation 295 black_generation 166 illegal_source 461 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7419 no_enemy_ray 1210 other 66
+< info string shortcut B1 uses 3345 differ 0
+< info string shortcut B2 uses 4065 differ 0
+< info string shortcut B5 uses 6337 differ 0
+< info string shortcut B6 uses 10102 differ 0
+< info string shortcut S-B1 uses 3345 differ 0
+< info string shortcut S-B2 uses 4065 differ 0
+< info string shortcut S-B4 uses 3345 differ 0
+< info string shortcut S-B7 uses 9953 differ 0
+< info string shortcut H28 uses 698 differ 0
+< info string shortcut H18 uses 7559 differ 0
+< info string shortcut H25 uses 20718 differ 0
+< info string shortcut H27 uses 4113 differ 0
+< info string shortcut H82 uses 18575 differ 0
+< info string shortcut H30 uses 461 differ 0
+< info string shortcut H3 uses 8695 differ 0
+< info string h82_classes hit 5459 miss_empty 13116 miss_full 0 older_generation 0 probes 11016 stores 7559
+< info string h25_paths seeded 4503 scan16 2105 scan8 1083 scan4 1782 scalar_tail 4241 sort_transition 1038 sorted_tail 8613
+< bestmove e8e7
+> ucinewgame
+> isready
+< readyok
+> position fen 7R/5pk1/p4bp1/3pN3/2pP2pP/5P2/1q1Q2K1/1r6 b - - 5 41
+> go depth 9
+< info depth 1 seldepth 12 score cp 34 nodes 193 nps 0 hashfull 0 time 0 pv g7h8 e5f7 h8g7 d2b2
+< info depth 2 seldepth 12 score cp 34 nodes 245 nps 0 hashfull 0 time 0 pv g7h8 e5f7 h8g7
+< info depth 3 seldepth 12 score mate 2 nodes 465 nps 0 hashfull 0 time 0 pv b2d2 g2g3 b1g1
+< info depth 4 seldepth 12 score mate 2 nodes 505 nps 0 hashfull 0 time 0 pv b2d2 g2g3 b1g1
+< info depth 5 seldepth 12 score mate 2 nodes 545 nps 0 hashfull 0 time 0 pv b2d2 g2g3 b1g1
+< info depth 6 seldepth 12 score mate 2 nodes 591 nps 0 hashfull 0 time 0 pv b2d2 g2g3 b1g1
+< info depth 7 seldepth 12 score mate 2 nodes 648 nps 0 hashfull 0 time 0 pv b2d2 g2g3 b1g1
+< info depth 8 seldepth 12 score mate 2 nodes 708 nps 0 hashfull 0 time 0 pv b2d2 g2g3 b1g1
+< info depth 9 seldepth 12 score mate 2 nodes 770 nps 770000 hashfull 0 time 1 pv b2d2 g2g3 b1g1
+< info string h30_classes white_generation 65 black_generation 8 illegal_source 73 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 586 no_enemy_ray 36 other 10
+< info string shortcut B1 uses 237 differ 0
+< info string shortcut B2 uses 275 differ 0
+< info string shortcut B5 uses 474 differ 0
+< info string shortcut B6 uses 759 differ 0
+< info string shortcut S-B1 uses 237 differ 0
+< info string shortcut S-B2 uses 275 differ 0
+< info string shortcut S-B4 uses 237 differ 0
+< info string shortcut S-B7 uses 749 differ 0
+< info string shortcut H28 uses 12 differ 0
+< info string shortcut H18 uses 522 differ 0
+< info string shortcut H25 uses 1589 differ 0
+< info string shortcut H27 uses 232 differ 0
+< info string shortcut H82 uses 1195 differ 0
+< info string shortcut H30 uses 73 differ 0
+< info string shortcut H3 uses 632 differ 0
+< info string h82_classes hit 508 miss_empty 687 miss_full 0 older_generation 0 probes 673 stores 522
+< info string h25_paths seeded 294 scan16 128 scan8 126 scan4 93 scalar_tail 329 sort_transition 84 sorted_tail 719
+< bestmove b2d2
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11
+> go depth 9
+< info depth 1 seldepth 2 score cp 6 nodes 38 nps 0 hashfull 0 time 0 pv d8a5
+< info depth 2 seldepth 6 score cp 350 nodes 100 nps 0 hashfull 0 time 0 pv d8a5 e2c4
+< info depth 3 seldepth 6 score cp 312 nodes 150 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6
+< info depth 4 seldepth 7 score cp 328 nodes 230 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6 f2f3 d5c4
+< info depth 5 seldepth 7 score cp 258 nodes 453 nps 0 hashfull 0 time 0 pv d8a5 e2c4 b7b6 g2g3 b6b5
+< info depth 6 seldepth 8 score cp 117 nodes 850 nps 850000 hashfull 0 time 1 pv d8e8 d1e1 d7e5 f4e5
+< info depth 7 seldepth 8 score cp 83 nodes 1230 nps 1230000 hashfull 0 time 1 pv d8e8 d1e1 d7b6 a1d1 g7g6 f4h2
+< info depth 8 seldepth 19 score cp -61 nodes 5353 nps 669125 hashfull 1 time 8 pv d8e8 d1e1 e7d8 e5d3 g7g6 d2c4 e8e7
+< info depth 9 seldepth 19 score cp -74 nodes 7372 nps 670181 hashfull 1 time 11 pv d8a5 d1e1 g7g6 e5g4 f6g4 e2g4 d7f6 g4e6 e7d8 e6c8
+< info string h30_classes white_generation 6 black_generation 23 illegal_source 29 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7223 no_enemy_ray 24 other 2
+< info string shortcut B1 uses 5190 differ 0
+< info string shortcut B2 uses 5199 differ 0
+< info string shortcut B5 uses 6659 differ 0
+< info string shortcut B6 uses 6612 differ 0
+< info string shortcut S-B1 uses 5190 differ 0
+< info string shortcut S-B2 uses 5199 differ 0
+< info string shortcut S-B4 uses 5190 differ 0
+< info string shortcut S-B7 uses 6932 differ 0
+< info string shortcut H28 uses 595 differ 0
+< info string shortcut H18 uses 2703 differ 0
+< info string shortcut H25 uses 10268 differ 0
+< info string shortcut H27 uses 1632 differ 0
+< info string shortcut H82 uses 10075 differ 0
+< info string shortcut H30 uses 29 differ 0
+< info string shortcut H3 uses 7249 differ 0
+< info string h82_classes hit 3008 miss_empty 7067 miss_full 0 older_generation 0 probes 7372 stores 2703
+< info string h25_paths seeded 2136 scan16 1391 scan8 605 scan4 876 scalar_tail 2499 sort_transition 639 sorted_tail 3885
+< bestmove d8a5
+> ucinewgame
+> isready
+< readyok
+> position fen r1bq1rk1/3nbppp/p3p3/1p1p4/2pP4/2P1P1BP/PP1NBPP1/R2Q1RK1 w - - 0 14
+> go depth 9
+< info depth 1 seldepth 2 score cp 352 nodes 44 nps 0 hashfull 0 time 0 pv d1e1
+< info depth 2 seldepth 3 score cp 320 nodes 90 nps 0 hashfull 0 time 0 pv d1e1 f7f6
+< info depth 3 seldepth 5 score cp 396 nodes 170 nps 0 hashfull 0 time 0 pv d1e1 a6a5 e3e4
+< info depth 4 seldepth 5 score cp 18 nodes 761 nps 0 hashfull 0 time 0 pv d1e1 d7b8 e3e4 b8c6
+< info depth 5 seldepth 6 score cp 155 nodes 954 nps 954000 hashfull 0 time 1 pv d1e1 e7g5 e3e4 d8e7 a2a4
+< info depth 6 seldepth 7 score cp -14 nodes 1645 nps 822500 hashfull 0 time 2 pv d1e1 d7b8 e3e4 b8c6 a2a4 e7g5
+< info depth 7 seldepth 9 score cp 61 nodes 2825 nps 941666 hashfull 0 time 3 pv d1a4 e7g5 g3c7 d8e7 f1b1 e6e5
+< info depth 8 seldepth 12 score cp 114 nodes 5684 nps 812000 hashfull 0 time 7 pv d1a4 d7f6 f2f3 e6e5 g3e5 b5a4
+< info depth 9 seldepth 15 score cp 257 nodes 12074 nps 710235 hashfull 2 time 17 pv d1a4 e7d6 f2f3 d7b6 f1b1 d8e7 e2f1
+< info string h30_classes white_generation 58 black_generation 2 illegal_source 60 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 11788 no_enemy_ray 0 other 3
+< info string shortcut B1 uses 8264 differ 0
+< info string shortcut B2 uses 8273 differ 0
+< info string shortcut B5 uses 10885 differ 0
+< info string shortcut B6 uses 10965 differ 0
+< info string shortcut S-B1 uses 8264 differ 0
+< info string shortcut S-B2 uses 8273 differ 0
+< info string shortcut S-B4 uses 8264 differ 0
+< info string shortcut S-B7 uses 11311 differ 0
+< info string shortcut H28 uses 973 differ 0
+< info string shortcut H18 uses 4946 differ 0
+< info string shortcut H25 uses 18896 differ 0
+< info string shortcut H27 uses 2634 differ 0
+< info string shortcut H82 uses 17020 differ 0
+< info string shortcut H30 uses 60 differ 0
+< info string shortcut H3 uses 11791 differ 0
+< info string h82_classes hit 5276 miss_empty 11744 miss_full 0 older_generation 0 probes 12074 stores 4946
+< info string h25_paths seeded 3528 scan16 2294 scan8 1544 scan4 1641 scalar_tail 4872 sort_transition 1346 sorted_tail 6862
+< bestmove d1a4
+> ucinewgame
+> isready
+< readyok
+> position fen r2q1rk1/1b2bppp/p3pn2/1p1p4/2pPP3/2P2BBP/PP1N1PP1/R2QR1K1 b - - 2 16
+> go depth 9
+< info depth 1 seldepth 9 score cp 665 nodes 60 nps 0 hashfull 0 time 0 pv d8a5
+< info depth 2 seldepth 9 score cp 314 nodes 138 nps 0 hashfull 0 time 0 pv d8a5 b2b3
+< info depth 3 seldepth 9 score cp 307 nodes 242 nps 0 hashfull 0 time 0 pv d8a5 b2b4 g7g5
+< info depth 4 seldepth 9 score cp 133 nodes 676 nps 0 hashfull 0 time 0 pv d8a5 e4e5 f8d8 a1b1
+< info depth 5 seldepth 9 score cp 49 nodes 988 nps 988000 hashfull 0 time 1 pv d8a5 a1b1 a5a2 d1c1 f6e4
+< info depth 6 seldepth 9 score cp 64 nodes 1245 nps 1245000 hashfull 0 time 1 pv d8a5 a1b1 e7d8 e4d5 a5a2
+< info depth 7 seldepth 13 score cp 35 nodes 3840 nps 960000 hashfull 1 time 4 pv g7g6 a1b1 d8a5 e4d5 g8h8 d5e6 b7f3 d1f3
+< info depth 8 seldepth 14 score cp 64 nodes 8004 nps 800400 hashfull 2 time 10 pv g7g6 a1b1 g8g7 g3f4 d8a5 f4h6 g7g8 e4d5
+< info depth 9 seldepth 17 score cp 81 nodes 15153 nps 797526 hashfull 5 time 19 pv g7g6 g3f4 g8g7 e4e5 a8a7 d1e2 g7h8 g1h1
+< info string h30_classes white_generation 21 black_generation 29 illegal_source 50 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 14426 no_enemy_ray 200 other 61
+< info string shortcut B1 uses 6992 differ 0
+< info string shortcut B2 uses 7035 differ 0
+< info string shortcut B5 uses 12961 differ 0
+< info string shortcut B6 uses 13455 differ 0
+< info string shortcut S-B1 uses 6992 differ 0
+< info string shortcut S-B2 uses 7035 differ 0
+< info string shortcut S-B4 uses 6992 differ 0
+< info string shortcut S-B7 uses 13667 differ 0
+< info string shortcut H28 uses 823 differ 0
+< info string shortcut H18 uses 7831 differ 0
+< info string shortcut H25 uses 23829 differ 0
+< info string shortcut H27 uses 5600 differ 0
+< info string shortcut H82 uses 22984 differ 0
+< info string shortcut H30 uses 50 differ 0
+< info string shortcut H3 uses 14687 differ 0
+< info string h82_classes hit 7684 miss_empty 15300 miss_full 0 older_generation 0 probes 15153 stores 7831
+< info string h25_paths seeded 6345 scan16 1619 scan8 1190 scan4 1055 scalar_tail 6547 sort_transition 1008 sorted_tail 5768
+< bestmove g7g6
+> ucinewgame
+> isready
+< readyok
+> position fen r2q1rk1/4bppp/p3p3/1p6/2pPn3/2P3BP/PP3PP1/R2QR1K1 w - - 0 19
+> go depth 9
+< info depth 1 seldepth 3 score cp 1908 nodes 46 nps 0 hashfull 0 time 0 pv g1f1 e4g3 f2g3
+< info depth 2 seldepth 4 score cp 143 nodes 171 nps 0 hashfull 0 time 0 pv d1c1 e4g3
+< info depth 3 seldepth 4 score cp 143 nodes 218 nps 0 hashfull 0 time 0 pv d1c1 e4g3 f2g3
+< info depth 4 seldepth 6 score cp 134 nodes 502 nps 0 hashfull 0 time 0 pv h3h4 e7h4 e1e4 f7f6 e4e6
+< info depth 5 seldepth 6 score cp 257 nodes 825 nps 0 hashfull 0 time 0 pv h3h4 e4g3 d1g4 e7h4
+< info depth 6 seldepth 9 score cp 433 nodes 1261 nps 1261000 hashfull 0 time 1 pv h3h4 e4g3 b2b4 e7h4 g1h2
+< info depth 7 seldepth 9 score cp 277 nodes 1821 nps 910500 hashfull 0 time 2 pv h3h4 e4g3 d1c1 e7h4 d4d5 e6d5 c1f4 d8b8
+< info depth 8 seldepth 14 score cp 165 nodes 4252 nps 850400 hashfull 1 time 5 pv h3h4 e4g3 f2f3 g8h8 d1c1 f7f5 g1f2 e7d6 e1e6
+< info depth 9 seldepth 20 score cp 133 nodes 11538 nps 721125 hashfull 5 time 16 pv g1f1 e4g3 f2g3 d8d4 c3d4 b5b4 e1e6 f8b8 h3h4 f7e6
+< info string h30_classes white_generation 96 black_generation 4 illegal_source 100 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 10721 no_enemy_ray 20 other 74
+< info string shortcut B1 uses 6436 differ 0
+< info string shortcut B2 uses 6678 differ 0
+< info string shortcut B5 uses 9209 differ 0
+< info string shortcut B6 uses 9445 differ 0
+< info string shortcut S-B1 uses 6436 differ 0
+< info string shortcut S-B2 uses 6678 differ 0
+< info string shortcut S-B4 uses 6436 differ 0
+< info string shortcut S-B7 uses 10369 differ 0
+< info string shortcut H28 uses 919 differ 0
+< info string shortcut H18 uses 6259 differ 0
+< info string shortcut H25 uses 17703 differ 0
+< info string shortcut H27 uses 4625 differ 0
+< info string shortcut H82 uses 17797 differ 0
+< info string shortcut H30 uses 100 differ 0
+< info string shortcut H3 uses 10815 differ 0
+< info string h82_classes hit 6020 miss_empty 11777 miss_full 0 older_generation 0 probes 11538 stores 6259
+< info string h25_paths seeded 5233 scan16 1807 scan8 1081 scan4 911 scalar_tail 3230 sort_transition 665 sorted_tail 5936
+< bestmove g1f1
+> ucinewgame
+> isready
+< readyok
+> position fen r4rk1/5ppp/p3pb2/1p1q4/2pPR3/2P3BP/PP2QPP1/R5K1 b - - 4 21
+> go depth 9
+< info depth 1 seldepth 3 score cp 9 nodes 45 nps 0 hashfull 0 time 0 pv g7g5
+< info depth 2 seldepth 3 score cp -338 nodes 129 nps 0 hashfull 0 time 0 pv d5b7 f2f3
+< info depth 3 seldepth 5 score cp -118 nodes 194 nps 0 hashfull 0 time 0 pv d5b7 g1h2 g7g5
+< info depth 4 seldepth 5 score cp -507 nodes 758 nps 758000 hashfull 0 time 1 pv g7g6 g1f1 h7h5 f2f3
+< info depth 5 seldepth 7 score cp -194 nodes 1097 nps 1097000 hashfull 0 time 1 pv g7g6 f2f3 g8g7 g1f1 g7g8
+< info depth 6 seldepth 7 score cp -133 nodes 1601 nps 800500 hashfull 0 time 2 pv g7g6 f2f3 d5e4 f3e4 f6d4 g1h1
+< info depth 7 seldepth 11 score cp -541 nodes 3442 nps 860500 hashfull 2 time 4 pv g7g6 g1f1 e6e5 e2f3 e5d4 e4d4 d5f3
+< info depth 8 seldepth 11 score cp -139 nodes 5933 nps 741625 hashfull 2 time 8 pv h7h5 f2f3 d5d4 e4d4 f8b8 g3b8 g8f8
+< info depth 9 seldepth 17 score cp -159 nodes 11601 nps 682411 hashfull 4 time 17 pv h7h5 g1f1 f6d4 g3h2 g7g6 h3h4 d5b7 e4d4
+< info string h30_classes white_generation 49 black_generation 37 illegal_source 86 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 11071 no_enemy_ray 58 other 10
+< info string shortcut B1 uses 6471 differ 0
+< info string shortcut B2 uses 6516 differ 0
+< info string shortcut B5 uses 9566 differ 0
+< info string shortcut B6 uses 9628 differ 0
+< info string shortcut S-B1 uses 6471 differ 0
+< info string shortcut S-B2 uses 6516 differ 0
+< info string shortcut S-B4 uses 6471 differ 0
+< info string shortcut S-B7 uses 10345 differ 0
+< info string shortcut H28 uses 983 differ 0
+< info string shortcut H18 uses 6472 differ 0
+< info string shortcut H25 uses 20576 differ 0
+< info string shortcut H27 uses 4808 differ 0
+< info string shortcut H82 uses 18073 differ 0
+< info string shortcut H30 uses 86 differ 0
+< info string shortcut H3 uses 11139 differ 0
+< info string h82_classes hit 5621 miss_empty 12452 miss_full 0 older_generation 0 probes 11601 stores 6472
+< info string h25_paths seeded 5503 scan16 2001 scan8 1089 scan4 1028 scalar_tail 5301 sort_transition 804 sorted_tail 5472
+< bestmove h7h5
+> ucinewgame
+> isready
+< readyok
+> position fen 2r2rk1/1q3ppp/p3p3/1p2R3/2pP4/2P4P/PP2QPP1/R5K1 w - - 1 24
+> go depth 9
+< info depth 1 seldepth 1 score cp 198 nodes 43 nps 0 hashfull 0 time 0 pv g1f1
+< info depth 2 seldepth 4 score cp -227 nodes 87 nps 0 hashfull 0 time 0 pv g1f1 b5b4
+< info depth 3 seldepth 5 score cp 27 nodes 169 nps 0 hashfull 0 time 0 pv g1f1 g7g6 a2a3
+< info depth 4 seldepth 5 score cp -134 nodes 334 nps 0 hashfull 0 time 0 pv g1f1 h7h6 a2a3
+< info depth 5 seldepth 8 score cp -184 nodes 509 nps 0 hashfull 0 time 0 pv g1f1 c8b8 e5e6 f7e6
+< info depth 6 seldepth 23 score cp 145 nodes 985 nps 985000 hashfull 0 time 1 pv g1f1 c8a8 e5e6 f7e6 e2e6 b7f7 a2a3
+< info depth 7 seldepth 23 score cp 159 nodes 3187 nps 796750 hashfull 1 time 4 pv e5d5 c8b8 g1f1 h7h6 f2f3 f7f5
+< info depth 8 seldepth 23 score cp 100 nodes 4162 nps 832400 hashfull 1 time 5 pv e5d5 c8b8 g1f1 a6a5 a2a4 f8c8 d5b5
+< info depth 9 seldepth 23 score cp 324 nodes 7678 nps 767800 hashfull 3 time 10 pv f2f3 f7f6 g1f1 c8b8 e5e6 b7d7 e6a6
+< info string h30_classes white_generation 63 black_generation 30 illegal_source 93 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7161 no_enemy_ray 41 other 25
+< info string shortcut B1 uses 3807 differ 0
+< info string shortcut B2 uses 3844 differ 0
+< info string shortcut B5 uses 5928 differ 0
+< info string shortcut B6 uses 6483 differ 0
+< info string shortcut S-B1 uses 3807 differ 0
+< info string shortcut S-B2 uses 3844 differ 0
+< info string shortcut S-B4 uses 3807 differ 0
+< info string shortcut S-B7 uses 6737 differ 0
+< info string shortcut H28 uses 625 differ 0
+< info string shortcut H18 uses 4265 differ 0
+< info string shortcut H25 uses 12480 differ 0
+< info string shortcut H27 uses 3180 differ 0
+< info string shortcut H82 uses 11943 differ 0
+< info string shortcut H30 uses 93 differ 0
+< info string shortcut H3 uses 7227 differ 0
+< info string h82_classes hit 4028 miss_empty 7915 miss_full 0 older_generation 0 probes 7678 stores 4265
+< info string h25_paths seeded 3610 scan16 1177 scan8 721 scan4 626 scalar_tail 2582 sort_transition 365 sorted_tail 3675
+< bestmove f2f3
+> ucinewgame
+> isready
+< readyok
+> position fen 2rr2k1/1q3pp1/p3p2p/1p2R3/2pP2Q1/P1P4P/1P3PP1/4R1K1 b - - 1 26
+> go depth 9
+< info depth 1 seldepth 2 score cp 1406 nodes 42 nps 0 hashfull 0 time 0 pv d8e8
+< info depth 2 seldepth 3 score cp 913 nodes 119 nps 0 hashfull 0 time 0 pv d8f8 f2f3
+< info depth 3 seldepth 7 score cp 523 nodes 465 nps 0 hashfull 0 time 0 pv c8c5 f2f3
+< info depth 4 seldepth 7 score cp 212 nodes 710 nps 0 hashfull 0 time 0 pv d8d6 e5e6 f7e6 e1e6
+< info depth 5 seldepth 7 score cp 216 nodes 1170 nps 1170000 hashfull 0 time 1 pv c8c6 f2f3 d8d6 g1h2
+< info depth 6 seldepth 9 score cp 99 nodes 1694 nps 847000 hashfull 0 time 2 pv c8c6 e5b5 f7f5 g1f1 a6b5
+< info depth 7 seldepth 13 score cp -127 nodes 5300 nps 757142 hashfull 0 time 7 pv f7f5 e5e6 c8c6 f2f3 f5g4
+< info depth 8 seldepth 15 score cp 155 nodes 8712 nps 726000 hashfull 1 time 12 pv g7g6 g1f1 c8c6 e5e6 g8g7 e6c6 b7c6
+< info depth 9 seldepth 16 score cp -230 nodes 15612 nps 709636 hashfull 3 time 22 pv d8d6 g4g7 g8g7 e1a1 g7f8 g1f1 d6b6
+< info string h30_classes white_generation 31 black_generation 90 illegal_source 121 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 14393 no_enemy_ray 1 other 2
+< info string shortcut B1 uses 7073 differ 0
+< info string shortcut B2 uses 7139 differ 0
+< info string shortcut B5 uses 11964 differ 0
+< info string shortcut B6 uses 13593 differ 0
+< info string shortcut S-B1 uses 7073 differ 0
+< info string shortcut S-B2 uses 7139 differ 0
+< info string shortcut S-B4 uses 7073 differ 0
+< info string shortcut S-B7 uses 13765 differ 0
+< info string shortcut H28 uses 1274 differ 0
+< info string shortcut H18 uses 9334 differ 0
+< info string shortcut H25 uses 25974 differ 0
+< info string shortcut H27 uses 6870 differ 0
+< info string shortcut H82 uses 24946 differ 0
+< info string shortcut H30 uses 121 differ 0
+< info string shortcut H3 uses 14396 differ 0
+< info string h82_classes hit 8764 miss_empty 16182 miss_full 0 older_generation 0 probes 15612 stores 9334
+< info string h25_paths seeded 8002 scan16 2316 scan8 1373 scan4 1368 scalar_tail 6402 sort_transition 862 sorted_tail 6045
+< bestmove d8d6
+> ucinewgame
+> isready
+< readyok
+> position fen 2r3k1/5pp1/p1q1p2p/1p6/2pP1Q2/P1P4P/1P3PP1/4R1K1 w - - 2 29
+> go depth 9
+< info depth 1 seldepth 2 score cp 757 nodes 46 nps 0 hashfull 0 time 0 pv g1f1
+< info depth 2 seldepth 3 score cp 79 nodes 98 nps 0 hashfull 0 time 0 pv g1f1 b5b4 a3b4
+< info depth 3 seldepth 3 score cp 285 nodes 150 nps 0 hashfull 0 time 0 pv f4f7 g8f7 g1f1
+< info depth 4 seldepth 5 score cp -19 nodes 515 nps 0 hashfull 0 time 0 pv f4f7 g8f7 g1f1 a6a5
+< info depth 5 seldepth 6 score cp 467 nodes 597 nps 0 hashfull 0 time 0 pv f4f7 g8f7 g1f1 f7f8 f2f3
+< info depth 6 seldepth 8 score cp 46 nodes 1067 nps 1067000 hashfull 0 time 1 pv f2f3 c6d7 e1e6 f7e6
+< info depth 7 seldepth 9 score cp 14 nodes 2415 nps 805000 hashfull 1 time 3 pv f4g4 b5b4 e1a1 c8b8 c3b4
+< info depth 8 seldepth 10 score cp 240 nodes 4665 nps 777500 hashfull 2 time 6 pv f4g4 h6h5 g1h1 h5g4 e1e6 g4h3 e6c6
+< info depth 9 seldepth 15 score cp 76 nodes 11593 nps 724562 hashfull 5 time 16 pv f4g4 b5b4 e1e5 b4c3 g1h1 c3b2 g4d1
+< info string h30_classes white_generation 18 black_generation 51 illegal_source 69 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 10969 no_enemy_ray 0 other 0
+< info string shortcut B1 uses 6969 differ 0
+< info string shortcut B2 uses 7058 differ 0
+< info string shortcut B5 uses 9292 differ 0
+< info string shortcut B6 uses 9948 differ 0
+< info string shortcut S-B1 uses 6969 differ 0
+< info string shortcut S-B2 uses 7058 differ 0
+< info string shortcut S-B4 uses 6969 differ 0
+< info string shortcut S-B7 uses 10097 differ 0
+< info string shortcut H28 uses 992 differ 0
+< info string shortcut H18 uses 5996 differ 0
+< info string shortcut H25 uses 17920 differ 0
+< info string shortcut H27 uses 4692 differ 0
+< info string shortcut H82 uses 17589 differ 0
+< info string shortcut H30 uses 69 differ 0
+< info string shortcut H3 uses 10969 differ 0
+< info string h82_classes hit 6106 miss_empty 11483 miss_full 0 older_generation 0 probes 11593 stores 5996
+< info string h25_paths seeded 5175 scan16 1832 scan8 1227 scan4 818 scalar_tail 3782 sort_transition 625 sorted_tail 5614
+< bestmove f4g4
+> ucinewgame
+> isready
+< readyok
+> position fen 3r1k2/5pp1/p1q1p2p/1p6/2pP1Q2/P1P1R2P/1P3PP1/6K1 b - - 7 31
+> go depth 9
+< info depth 1 seldepth 2 score cp 1507 nodes 42 nps 0 hashfull 0 time 0 pv d8d6
+< info depth 2 seldepth 3 score cp 1113 nodes 94 nps 0 hashfull 0 time 0 pv d8d6 b2b3 c4b3
+< info depth 3 seldepth 3 score cp 1113 nodes 137 nps 0 hashfull 0 time 0 pv d8d6 b2b3 c4b3
+< info depth 4 seldepth 8 score cp 620 nodes 638 nps 638000 hashfull 0 time 1 pv c6a8 f4g3 d8d6 g3d6 f8g8
+< info depth 5 seldepth 9 score cp 531 nodes 1175 nps 1175000 hashfull 0 time 1 pv c6f3 e3f3 f7f6 f4g3 f6f5
+< info depth 6 seldepth 9 score cp 320 nodes 1720 nps 860000 hashfull 0 time 2 pv c6c5 e3e6 c5h5 e6a6 h5d1 g1h2
+< info depth 7 seldepth 11 score cp -20 nodes 3224 nps 806000 hashfull 0 time 4 pv c6b6 f4g3 b6d4 c3d4 a6a5 g1h1 d8d4
+< info depth 8 seldepth 13 score cp 175 nodes 4841 nps 691571 hashfull 0 time 7 pv c6g2 g1g2 a6a5 f4g3 f8g8 g2h1 g7g5 h1h2
+< info depth 9 seldepth 15 score cp -74 nodes 7697 nps 769700 hashfull 1 time 10 pv c6g2 g1g2 a6a5 f4g3 f8e8 g3g7 b5b4 g7h6 b4c3 b2c3
+< info string h30_classes white_generation 13 black_generation 107 illegal_source 120 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7157 no_enemy_ray 1 other 10
+< info string shortcut B1 uses 4489 differ 0
+< info string shortcut B2 uses 4557 differ 0
+< info string shortcut B5 uses 6085 differ 0
+< info string shortcut B6 uses 6662 differ 0
+< info string shortcut S-B1 uses 4489 differ 0
+< info string shortcut S-B2 uses 4557 differ 0
+< info string shortcut S-B4 uses 4489 differ 0
+< info string shortcut S-B7 uses 6778 differ 0
+< info string shortcut H28 uses 701 differ 0
+< info string shortcut H18 uses 3967 differ 0
+< info string shortcut H25 uses 12446 differ 0
+< info string shortcut H27 uses 2944 differ 0
+< info string shortcut H82 uses 11664 differ 0
+< info string shortcut H30 uses 120 differ 0
+< info string shortcut H3 uses 7168 differ 0
+< info string h82_classes hit 5592 miss_empty 6072 miss_full 0 older_generation 0 probes 7697 stores 3967
+< info string h25_paths seeded 3495 scan16 1246 scan8 998 scan4 798 scalar_tail 2392 sort_transition 479 sorted_tail 4061
+< bestmove c6g2
+> ucinewgame
+> isready
+< readyok
+> position fen 5k2/5pp1/pq2p2p/1p2r3/2pP4/P1P2Q1P/1P3PP1/6K1 w - - 0 34
+> go depth 9
+< info depth 1 seldepth 5 score cp 368 nodes 44 nps 0 hashfull 0 time 0 pv g1f1
+< info depth 2 seldepth 5 score cp 82 nodes 82 nps 0 hashfull 0 time 0 pv f3a8 f8e7
+< info depth 3 seldepth 5 score cp 82 nodes 114 nps 0 hashfull 0 time 0 pv f3a8 f8e7 d4e5
+< info depth 4 seldepth 5 score cp 274 nodes 231 nps 0 hashfull 0 time 0 pv f3a8 f8e7 g1f1 e5e1 f1e1
+< info depth 5 seldepth 5 score cp 274 nodes 308 nps 0 hashfull 0 time 0 pv f3a8 f8e7 g1f1 e5e1 f1e1
+< info depth 6 seldepth 6 score cp 79 nodes 403 nps 0 hashfull 0 time 0 pv f3a8 f8e7 g1f1 e5e1 f1e1 a6a5
+< info depth 7 seldepth 12 score cp 283 nodes 701 nps 0 hashfull 0 time 0 pv f3a8 f8e7 a8a7 e7d6 f2f4 b6a7
+< info depth 8 seldepth 17 score cp 472 nodes 1747 nps 873500 hashfull 0 time 2 pv f3a8 f8e7 a8e8 e7e8 f2f3 e5e1 g1h2
+< info depth 9 seldepth 20 score cp 490 nodes 3681 nps 920250 hashfull 1 time 4 pv f3a8 f8e7 a8a7 b6a7 g1f1 a7d4 c3d4 e5e1 f1e1 c4c3 b2b3
+< info string h30_classes white_generation 26 black_generation 147 illegal_source 173 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 3170 no_enemy_ray 2 other 1
+< info string shortcut B1 uses 1594 differ 0
+< info string shortcut B2 uses 1638 differ 0
+< info string shortcut B5 uses 2453 differ 0
+< info string shortcut B6 uses 2882 differ 0
+< info string shortcut S-B1 uses 1594 differ 0
+< info string shortcut S-B2 uses 1638 differ 0
+< info string shortcut S-B4 uses 1594 differ 0
+< info string shortcut S-B7 uses 3033 differ 0
+< info string shortcut H28 uses 267 differ 0
+< info string shortcut H18 uses 2079 differ 0
+< info string shortcut H25 uses 5988 differ 0
+< info string shortcut H27 uses 1461 differ 0
+< info string shortcut H82 uses 5760 differ 0
+< info string shortcut H30 uses 173 differ 0
+< info string shortcut H3 uses 3173 differ 0
+< info string h82_classes hit 2523 miss_empty 3237 miss_full 0 older_generation 0 probes 3681 stores 2079
+< info string h25_paths seeded 1479 scan16 630 scan8 490 scan4 378 scalar_tail 972 sort_transition 236 sorted_tail 2771
+< bestmove f3a8
+> ucinewgame
+> isready
+< readyok
+> position fen 8/2q1kpp1/Q3p2p/1p2P3/2p5/P1P4P/1P3PP1/6K1 b - - 0 36
+> go depth 9
+< info depth 1 seldepth 3 score cp 2372 nodes 43 nps 0 hashfull 0 time 0 pv c7b8
+< info depth 2 seldepth 5 score cp 1932 nodes 123 nps 0 hashfull 0 time 0 pv c7b8 a6d6 b8d6 e5d6 e7d8
+< info depth 3 seldepth 5 score cp 1932 nodes 151 nps 0 hashfull 0 time 0 pv c7b8 a6d6 b8d6
+< info depth 4 seldepth 7 score cp 0 nodes 637 nps 0 hashfull 0 time 0 pv c7e5 a6b7 e7e8 b7c8 e8e7
+< info depth 5 seldepth 7 score cp 0 nodes 683 nps 0 hashfull 0 time 0 pv c7e5 a6b7 e7e8 b7c8 e8e7
+< info depth 6 seldepth 9 score cp 0 nodes 736 nps 0 hashfull 0 time 0 pv c7e5 a6b7 e7e8 b7c8 e8e7
+< info depth 7 seldepth 16 score cp 0 nodes 1961 nps 980500 hashfull 0 time 2 pv e7e8 a6a8 e8d7 g1h2 c7e5 h2h1 e5e1 h1h2
+< info depth 8 seldepth 16 score cp -179 nodes 3021 nps 755250 hashfull 1 time 4 pv e7e8 a6a8 e8d7 g1h2 c7e5 f2f4 e5f4 g2g3 h6h5 a8h1 f4f2 h1g2
+< info depth 9 seldepth 21 score cp -180 nodes 8918 nps 810727 hashfull 4 time 11 pv b5b4 a6e6 e7e6 g1h1 e6e5 f2f4 e5f4 b2b3 b4c3 b3c4 c7c4
+< info string h30_classes white_generation 52 black_generation 180 illegal_source 232 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 7235 no_enemy_ray 181 other 38
+< info string shortcut B1 uses 3572 differ 0
+< info string shortcut B2 uses 3830 differ 0
+< info string shortcut B5 uses 5312 differ 0
+< info string shortcut B6 uses 6929 differ 0
+< info string shortcut S-B1 uses 3572 differ 0
+< info string shortcut S-B2 uses 3830 differ 0
+< info string shortcut S-B4 uses 3572 differ 0
+< info string shortcut S-B7 uses 7391 differ 0
+< info string shortcut H28 uses 738 differ 0
+< info string shortcut H18 uses 5961 differ 0
+< info string shortcut H25 uses 12289 differ 0
+< info string shortcut H27 uses 4013 differ 0
+< info string shortcut H82 uses 14879 differ 0
+< info string shortcut H30 uses 232 differ 0
+< info string shortcut H3 uses 7454 differ 0
+< info string h82_classes hit 4973 miss_empty 9906 miss_full 0 older_generation 0 probes 8918 stores 5961
+< info string h25_paths seeded 3681 scan16 1250 scan8 832 scan4 1087 scalar_tail 2019 sort_transition 536 sorted_tail 4312
+< bestmove b5b4
+> ucinewgame
+> isready
+< readyok
+> position fen 8/1Q3pp1/4p1kp/1p2q3/2p3P1/P1P4P/1P3P2/6K1 w - - 1 39
+> go depth 9
+< info depth 1 seldepth 5 score cp 1265 nodes 46 nps 0 hashfull 0 time 0 pv h3h4
+< info depth 2 seldepth 11 score cp 615 nodes 176 nps 0 hashfull 0 time 0 pv f2f3 e5e1 g1h2
+< info depth 3 seldepth 11 score cp 193 nodes 336 nps 0 hashfull 0 time 0 pv g1h1 e5e1 h1h2 e1f2 b7g2 f2g2 h2g2
+< info depth 4 seldepth 11 score cp 193 nodes 379 nps 0 hashfull 0 time 0 pv g1h1 e5e1 h1h2 e1f2 b7g2 f2g2 h2g2
+< info depth 5 seldepth 16 score cp 191 nodes 929 nps 929000 hashfull 0 time 1 pv h3h4 e5e1 g1h2 e1f2 h2h3 f2b2 b7h1 b2c3 h1f3
+< info depth 6 seldepth 16 score cp 0 nodes 1188 nps 1188000 hashfull 0 time 1 pv h3h4 e5e1 g1h2 e1f2 h2h3 f2e3 h3h2
+< info depth 7 seldepth 16 score cp 0 nodes 1333 nps 1333000 hashfull 0 time 1 pv h3h4 e5e1 g1h2 e1f2 h2h3 f2e3 h3h2
+< info depth 8 seldepth 16 score cp 0 nodes 1490 nps 1490000 hashfull 0 time 1 pv h3h4 e5e1 g1h2 e1f2 h2h3 f2e3 h3h2
+< info depth 9 seldepth 26 score cp -198 nodes 10519 nps 701266 hashfull 5 time 15 pv g1h1 e5e1 h1h2 e1f2 h2h1 f2e1 h1h2 f7f5 b7b5 f5g4 b5c5 g4g3 h2g2 e6e5 c5c4
+< info string h30_classes white_generation 167 black_generation 222 illegal_source 389 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 6798 no_enemy_ray 1045 other 281
+< info string shortcut B1 uses 4186 differ 0
+< info string shortcut B2 uses 4705 differ 0
+< info string shortcut B5 uses 5484 differ 0
+< info string shortcut B6 uses 9218 differ 0
+< info string shortcut S-B1 uses 4186 differ 0
+< info string shortcut S-B2 uses 4705 differ 0
+< info string shortcut S-B4 uses 4186 differ 0
+< info string shortcut S-B7 uses 9350 differ 0
+< info string shortcut H28 uses 797 differ 0
+< info string shortcut H18 uses 7672 differ 0
+< info string shortcut H25 uses 17301 differ 0
+< info string shortcut H27 uses 4423 differ 0
+< info string shortcut H82 uses 18191 differ 0
+< info string shortcut H30 uses 389 differ 0
+< info string shortcut H3 uses 8124 differ 0
+< info string h82_classes hit 5046 miss_empty 13145 miss_full 0 older_generation 0 probes 10519 stores 7672
+< info string h25_paths seeded 4775 scan16 2135 scan8 952 scan4 1416 scalar_tail 2891 sort_transition 704 sorted_tail 6363
+< bestmove g1h1
+> ucinewgame
+> isready
+< readyok
+> position fen Q7/6pk/4p2p/1p2qp2/2p3P1/P1P2K1P/1P3P2/8 b - - 3 41
+> go depth 9
+< info depth 1 seldepth 5 score cp 1486 nodes 91 nps 0 hashfull 0 time 0 pv f5f4
+< info depth 2 seldepth 8 score cp 223 nodes 214 nps 0 hashfull 0 time 0 pv e5f4 f3f4
+< info depth 3 seldepth 8 score cp 223 nodes 263 nps 0 hashfull 0 time 0 pv e5f4 f3f4 f5g4
+< info depth 4 seldepth 8 score cp 947 nodes 401 nps 0 hashfull 0 time 0 pv e5h2 g4f5 e6f5 a8g8 h7g6
+< info depth 5 seldepth 8 score cp 257 nodes 1184 nps 1184000 hashfull 0 time 1 pv e5e4 f3g3 f5g4 h3g4 e4a8
+< info depth 6 seldepth 10 score cp 239 nodes 2125 nps 708333 hashfull 0 time 3 pv e5h2 a8e8 g7g5 e8b5 h2h3 f3e2
+< info depth 7 seldepth 19 score cp 591 nodes 4846 nps 692285 hashfull 3 time 7 pv e5c3 f3e2 c3e3 e2f1 e3e5 g4f5
+< info depth 8 seldepth 21 score cp 612 nodes 11022 nps 734800 hashfull 6 time 15 pv e5g3 f3e2 g3d3 e2e1 d3f1 e1f1 f5g4 a8e4 h7h8
+< info depth 9 seldepth 21 score cp 443 nodes 18911 nps 727346 hashfull 9 time 26 pv e5g3 f3e2 g3d3 e2e1 d3f1 e1f1 b5b4 a3b4 h7g6 g4f5 g6f5 a8e4 f5e4
+< info string h30_classes white_generation 364 black_generation 167 illegal_source 531 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 14469 no_enemy_ray 395 other 32
+< info string shortcut B1 uses 8393 differ 0
+< info string shortcut B2 uses 9957 differ 0
+< info string shortcut B5 uses 11130 differ 0
+< info string shortcut B6 uses 16226 differ 0
+< info string shortcut S-B1 uses 8393 differ 0
+< info string shortcut S-B2 uses 9957 differ 0
+< info string shortcut S-B4 uses 8393 differ 0
+< info string shortcut S-B7 uses 16414 differ 0
+< info string shortcut H28 uses 1640 differ 0
+< info string shortcut H18 uses 11854 differ 0
+< info string shortcut H25 uses 26596 differ 0
+< info string shortcut H27 uses 7313 differ 0
+< info string shortcut H82 uses 30765 differ 0
+< info string shortcut H30 uses 531 differ 0
+< info string shortcut H3 uses 14896 differ 0
+< info string h82_classes hit 10905 miss_empty 19860 miss_full 0 older_generation 0 probes 18911 stores 11854
+< info string h25_paths seeded 7565 scan16 2876 scan8 1668 scan4 3075 scalar_tail 5349 sort_transition 1432 sorted_tail 8799
+< bestmove e5g3
+> ucinewgame
+> isready
+< readyok
+> position fen 8/6pk/4p2p/1p3p2/2p3P1/P1P1Kq2/1P3P2/8 w - - 0 44
+> go depth 9
+< info depth 1 seldepth 5 score cp 325 nodes 27 nps 0 hashfull 0 time 0 pv e3d2
+< info depth 2 seldepth 7 score cp 273 nodes 61 nps 0 hashfull 0 time 0 pv e3d2 f3d3 d2c1
+< info depth 3 seldepth 9 score cp -29 nodes 154 nps 0 hashfull 0 time 0 pv e3d2 f3d3 d2c1 d3f1 c1c2
+< info depth 4 seldepth 10 score cp -98 nodes 361 nps 0 hashfull 0 time 0 pv e3d2 f3d3 d2e1 d3b1 e1e2 g7g6 g4f5
+< info depth 5 seldepth 11 score cp 0 nodes 629 nps 0 hashfull 0 time 0 pv e3d2 f3d3 d2e1 d3b1 e1e2 b1d3
+< info depth 6 seldepth 18 score cp -15 nodes 1743 nps 871500 hashfull 1 time 2 pv e3d2 f3d3 d2e1 d3b1 e1e2 f5f4 e2f3 b1b2
+< info depth 7 seldepth 19 score cp -134 nodes 2820 nps 940000 hashfull 2 time 3 pv e3d2 f3f2 d2d1 f2b2 d1e1 b2c3 e1f2 c3c2 f2g1 c2d1 g1f2
+< info depth 8 seldepth 24 score cp -323 nodes 8691 nps 790090 hashfull 5 time 11 pv e3d2 f3f2 d2d1 f2g1 d1e2 g1h2 e2e1 h2g3 e1e2 g3f3 e2e1 f5g4
+< info depth 9 seldepth 26 score cp -134 nodes 20638 nps 793769 hashfull 10 time 26 pv e3f3 h7h8 g4g5 h6g5 a3a4 b5a4 f3g3 f5f4 g3h3 g5g4 h3h2
+< info string h30_classes white_generation 310 black_generation 30 illegal_source 340 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 15518 no_enemy_ray 1096 other 18
+< info string shortcut B1 uses 10967 differ 0
+< info string shortcut B2 uses 11715 differ 0
+< info string shortcut B5 uses 13955 differ 0
+< info string shortcut B6 uses 19181 differ 0
+< info string shortcut S-B1 uses 10967 differ 0
+< info string shortcut S-B2 uses 11715 differ 0
+< info string shortcut S-B4 uses 10967 differ 0
+< info string shortcut S-B7 uses 19513 differ 0
+< info string shortcut H28 uses 1865 differ 0
+< info string shortcut H18 uses 11486 differ 0
+< info string shortcut H25 uses 24785 differ 0
+< info string shortcut H27 uses 6201 differ 0
+< info string shortcut H82 uses 32124 differ 0
+< info string shortcut H30 uses 340 differ 0
+< info string shortcut H3 uses 16632 differ 0
+< info string h82_classes hit 11166 miss_empty 20958 miss_full 0 older_generation 0 probes 20638 stores 11486
+< info string h25_paths seeded 6612 scan16 2398 scan8 1522 scan4 3161 scalar_tail 4711 sort_transition 1387 sorted_tail 9072
+< bestmove e3f3
+> ucinewgame
+> isready
+< readyok
+> position fen 8/6p1/4p1kp/1p6/2p2K2/P1P5/1P3P2/8 b - - 2 46
+> go depth 9
+< info depth 1 seldepth 2 score cp 802 nodes 16 nps 0 hashfull 0 time 0 pv g6h5
+< info depth 2 seldepth 3 score cp -49 nodes 51 nps 0 hashfull 0 time 0 pv e6e5 f4e3
+< info depth 3 seldepth 4 score cp 948 nodes 119 nps 0 hashfull 0 time 0 pv e6e5 f4e5 g6h5
+< info depth 4 seldepth 5 score cp -80 nodes 287 nps 0 hashfull 0 time 0 pv e6e5 f4e5 h6h5 e5d6
+< info depth 5 seldepth 5 score cp 566 nodes 402 nps 0 hashfull 0 time 0 pv e6e5 f4e5 h6h5 e5f4 g6h6
+< info depth 6 seldepth 7 score cp 417 nodes 1377 nps 1377000 hashfull 0 time 1 pv g6h7 a3a4 h7h8 f4g3 b5a4
+< info depth 7 seldepth 9 score cp 301 nodes 2326 nps 1163000 hashfull 0 time 2 pv g6h7 b2b3 h7h8 f4g3 e6e5 f2f4 e5f4 g3h3
+< info depth 8 seldepth 14 score cp 188 nodes 3162 nps 1054000 hashfull 1 time 3 pv g6h7 f4g3 h7h8 b2b3 c4b3 g3h3 b3b2 a3a4 b5a4
+< info depth 9 seldepth 15 score cp 96 nodes 10774 nps 897833 hashfull 5 time 12 pv g6f6 a3a4 e6e5 f4e4 b5a4 f2f4 f6e6 e4f3
+< info string h30_classes white_generation 79 black_generation 31 illegal_source 110 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 9361 no_enemy_ray 1000 other 22
+< info string shortcut B1 uses 5799 differ 0
+< info string shortcut B2 uses 6698 differ 0
+< info string shortcut B5 uses 9225 differ 0
+< info string shortcut B6 uses 9125 differ 0
+< info string shortcut S-B1 uses 5799 differ 0
+< info string shortcut S-B2 uses 6698 differ 0
+< info string shortcut S-B4 uses 5799 differ 0
+< info string shortcut S-B7 uses 9942 differ 0
+< info string shortcut H28 uses 1004 differ 0
+< info string shortcut H18 uses 5547 differ 0
+< info string shortcut H25 uses 11519 differ 0
+< info string shortcut H27 uses 3816 differ 0
+< info string shortcut H82 uses 16321 differ 0
+< info string shortcut H30 uses 110 differ 0
+< info string shortcut H3 uses 10383 differ 0
+< info string h82_classes hit 6152 miss_empty 10169 miss_full 0 older_generation 0 probes 10774 stores 5547
+< info string h25_paths seeded 3257 scan16 3 scan8 1183 scan4 1407 scalar_tail 2131 sort_transition 805 sorted_tail 4019
+< bestmove g6f6
+> ucinewgame
+> isready
+< readyok
+> position fen 8/6p1/4p3/1p4k1/2pK3p/P1P5/1P3P2/8 w - - 0 49
+> go depth 9
+< info depth 1 seldepth 2 score cp 637 nodes 18 nps 0 hashfull 0 time 0 pv f2f3
+< info depth 2 seldepth 4 score cp 57 nodes 113 nps 0 hashfull 0 time 0 pv b2b3 c4b3
+< info depth 3 seldepth 5 score cp 94 nodes 231 nps 0 hashfull 0 time 0 pv b2b3 g5f5 f2f3
+< info depth 4 seldepth 6 score cp -134 nodes 407 nps 0 hashfull 0 time 0 pv b2b3 g5f4 b3c4 f4g4 c4b5
+< info depth 5 seldepth 7 score cp -72 nodes 790 nps 0 hashfull 0 time 0 pv b2b3 g5f4 b3c4 e6e5 d4c5 g7g5
+< info depth 6 seldepth 10 score cp -15 nodes 1653 nps 1653000 hashfull 0 time 1 pv b2b3 g5f5 f2f3 e6e5 d4e3 e5e4 e3d4
+< info depth 7 seldepth 11 score cp 38 nodes 2256 nps 1128000 hashfull 1 time 2 pv b2b3 g5f5 b3c4 f5f4 a3a4 h4h3 a4b5
+< info depth 8 seldepth 13 score cp -101 nodes 6151 nps 1025166 hashfull 2 time 6 pv b2b3 e6e5 d4e3 g5g4 a3a4 b5a4 b3b4
+< info depth 9 seldepth 13 score cp -52 nodes 8740 nps 971111 hashfull 3 time 9 pv b2b3 e6e5 d4c5 g5f5 a3a4 f5g4 b3c4 b5a4 c5b6 h4h3
+< info string h30_classes white_generation 62 black_generation 51 illegal_source 113 promotion_source 3
+< info string h3_classes checked 0 safe_pawn_witness 6769 no_enemy_ray 1602 other 28
+< info string shortcut B1 uses 4317 differ 0
+< info string shortcut B2 uses 5296 differ 0
+< info string shortcut B5 uses 7511 differ 0
+< info string shortcut B6 uses 7420 differ 0
+< info string shortcut S-B1 uses 4317 differ 0
+< info string shortcut S-B2 uses 5296 differ 0
+< info string shortcut S-B4 uses 4317 differ 0
+< info string shortcut S-B7 uses 8140 differ 0
+< info string shortcut H28 uses 736 differ 0
+< info string shortcut H18 uses 4646 differ 0
+< info string shortcut H25 uses 10538 differ 0
+< info string shortcut H27 uses 2759 differ 0
+< info string shortcut H82 uses 13386 differ 0
+< info string shortcut H30 uses 113 differ 0
+< info string shortcut H3 uses 8399 differ 0
+< info string h82_classes hit 4722 miss_empty 8664 miss_full 0 older_generation 0 probes 8740 stores 4646
+< info string h25_paths seeded 2978 scan16 1 scan8 1215 scan4 925 scalar_tail 2030 sort_transition 629 sorted_tail 3414
+< bestmove b2b3
+> ucinewgame
+> isready
+< readyok
+> position fen 8/8/4p3/1p4p1/2p3kp/P1P5/1P3P2/5K2 b - - 1 51
+> go depth 9
+< info depth 1 seldepth 2 score cp 583 nodes 16 nps 0 hashfull 0 time 0 pv g4h3
+< info depth 2 seldepth 4 score cp 129 nodes 50 nps 0 hashfull 0 time 0 pv g4h3 f2f4 g5f4
+< info depth 3 seldepth 5 score cp 415 nodes 94 nps 0 hashfull 0 time 0 pv g4h3 f2f4 g5g4
+< info depth 4 seldepth 5 score cp 420 nodes 255 nps 0 hashfull 0 time 0 pv h4h3 f2f4 e6e5
+< info depth 5 seldepth 7 score cp 320 nodes 460 nps 0 hashfull 0 time 0 pv h4h3 f2f3 g4g3 b2b3 b5b4
+< info depth 6 seldepth 7 score cp 272 nodes 1038 nps 1038000 hashfull 0 time 1 pv h4h3 f2f3 g4f3 b2b3 e6e5
+< info depth 7 seldepth 13 score cp 201 nodes 2562 nps 1281000 hashfull 0 time 2 pv h4h3 b2b3 g4h5 f2f4 c4b3 a3a4 g5g4 a4b5
+< info depth 8 seldepth 14 score cp 256 nodes 4438 nps 1109500 hashfull 1 time 4 pv b5b4 b2b3 g4h3 a3a4 c4b3 f1g1 e6e5
+< info depth 9 seldepth 20 score cp 119 nodes 16551 nps 919500 hashfull 6 time 18 pv b5b4 b2b3 h4h3 a3a4 g4h5 f1e2 h3h2 c3b4 h2h1n
+< info string h30_classes white_generation 102 black_generation 39 illegal_source 141 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 14871 no_enemy_ray 1057 other 34
+< info string shortcut B1 uses 8321 differ 0
+< info string shortcut B2 uses 9676 differ 0
+< info string shortcut B5 uses 14536 differ 0
+< info string shortcut B6 uses 14841 differ 0
+< info string shortcut S-B1 uses 8321 differ 0
+< info string shortcut S-B2 uses 9676 differ 0
+< info string shortcut S-B4 uses 8321 differ 0
+< info string shortcut S-B7 uses 15678 differ 0
+< info string shortcut H28 uses 1674 differ 0
+< info string shortcut H18 uses 8252 differ 0
+< info string shortcut H25 uses 18180 differ 0
+< info string shortcut H27 uses 4819 differ 0
+< info string shortcut H82 uses 24803 differ 0
+< info string shortcut H30 uses 141 differ 0
+< info string shortcut H3 uses 15962 differ 0
+< info string h82_classes hit 8991 miss_empty 15812 miss_full 0 older_generation 0 probes 16551 stores 8252
+< info string h25_paths seeded 5408 scan16 109 scan8 668 scan4 3279 scalar_tail 4057 sort_transition 1373 sorted_tail 4756
+< bestmove b5b4
+> ucinewgame
+> isready
+< readyok
+> position fen 8/8/4p3/1p6/2p3p1/P1P2k1p/1P3P1K/8 w - - 0 54
+> go depth 9
+< info depth 1 seldepth 2 score cp -400 nodes 13 nps 0 hashfull 0 time 0 pv h2g1
+< info depth 2 seldepth 4 score cp -804 nodes 45 nps 0 hashfull 0 time 0 pv h2g1 e6e5
+< info depth 3 seldepth 4 score cp -322 nodes 90 nps 0 hashfull 0 time 0 pv h2g1 h3h2 g1h2
+< info depth 4 seldepth 6 score cp -541 nodes 252 nps 0 hashfull 0 time 0 pv h2g1 e6e5 a3a4 b5a4
+< info depth 5 seldepth 10 score cp -302 nodes 505 nps 0 hashfull 0 time 0 pv h2g1 g4g3 g1h1 g3f2 b2b3 f2f1r h1h2
+< info depth 6 seldepth 10 score cp -375 nodes 786 nps 0 hashfull 0 time 0 pv h2g1 g4g3 a3a4 b5a4 g1h1 g3g2 h1h2
+< info depth 7 seldepth 14 score cp -412 nodes 3074 nps 1024666 hashfull 1 time 3 pv b2b3 f3f2 a3a4 g4g3 h2h3 g3g2 h3h2 c4b3 a4b5 g2g1n
+< info depth 8 seldepth 19 score cp -325 nodes 4936 nps 987200 hashfull 3 time 5 pv b2b3 c4b3 a3a4 b3b2 a4b5 f3f2 b5b6 g4g3 h2h3
+< info depth 9 seldepth 19 score cp -319 nodes 8292 nps 921333 hashfull 5 time 9 pv h2g1 b5b4 g1h1 b4b3 h1g1 f3e2 g1h1 e2f2 a3a4 g4g3 a4a5
+< info string h30_classes white_generation 52 black_generation 17 illegal_source 69 promotion_source 6
+< info string h3_classes checked 0 safe_pawn_witness 7199 no_enemy_ray 384 other 15
+< info string shortcut B1 uses 3333 differ 0
+< info string shortcut B2 uses 4606 differ 0
+< info string shortcut B5 uses 6698 differ 0
+< info string shortcut B6 uses 7426 differ 0
+< info string shortcut S-B1 uses 3333 differ 0
+< info string shortcut S-B2 uses 4606 differ 0
+< info string shortcut S-B4 uses 3333 differ 0
+< info string shortcut S-B7 uses 7593 differ 0
+< info string shortcut H28 uses 804 differ 0
+< info string shortcut H18 uses 4819 differ 0
+< info string shortcut H25 uses 10379 differ 0
+< info string shortcut H27 uses 2989 differ 0
+< info string shortcut H82 uses 13111 differ 0
+< info string shortcut H30 uses 69 differ 0
+< info string shortcut H3 uses 7598 differ 0
+< info string h82_classes hit 5107 miss_empty 8004 miss_full 0 older_generation 0 probes 8292 stores 4819
+< info string h25_paths seeded 3264 scan16 65 scan8 403 scan4 1367 scalar_tail 2446 sort_transition 735 sorted_tail 2527
+< bestmove h2g1
+> ucinewgame
+> isready
+< readyok
+> position fen 8/8/8/1p2p3/2P3p1/Pp3k1p/5P2/6K1 b - - 0 56
+> go depth 9
+< info depth 1 seldepth 5 score cp 714 nodes 24 nps 0 hashfull 0 time 0 pv b3b2
+< info depth 2 seldepth 5 score cp 136 nodes 108 nps 0 hashfull 0 time 0 pv g4g3 f2g3
+< info depth 3 seldepth 7 score cp 469 nodes 252 nps 0 hashfull 0 time 0 pv b3b2 g1h1 e5e4
+< info depth 4 seldepth 7 score cp 485 nodes 442 nps 0 hashfull 0 time 0 pv b3b2 g1h1 b2b1q h1h2 e5e4 c4b5
+< info depth 5 seldepth 7 score cp 311 nodes 615 nps 0 hashfull 0 time 0 pv b3b2 g1h1 b2b1q h1h2 g4g3 f2g3
+< info depth 6 seldepth 10 score cp 406 nodes 859 nps 0 hashfull 0 time 0 pv b3b2 g1h1 b2b1q h1h2 g4g3 f2g3 b1c2 h2g1
+< info depth 7 seldepth 15 score cp 278 nodes 2115 nps 1057500 hashfull 1 time 2 pv b3b2 g1h2 b5b4 a3b4 f3f4 b4b5 e5e4
+< info depth 8 seldepth 15 score cp 392 nodes 3396 nps 1132000 hashfull 1 time 3 pv b3b2 g1h2 e5e4 a3a4 e4e3 f2e3 g4g3 h2h3 g3g2 e3e4
+< info depth 9 seldepth 18 score cp 494 nodes 5672 nps 1134400 hashfull 1 time 5 pv b3b2 g1h2 e5e4 a3a4 e4e3 c4c5 f3f2 a4a5 b2b1n c5c6 g4g3 h2h1
+< info string h30_classes white_generation 39 black_generation 11 illegal_source 50 promotion_source 8
+< info string h3_classes checked 0 safe_pawn_witness 4862 no_enemy_ray 169 other 1
+< info string shortcut B1 uses 1579 differ 0
+< info string shortcut B2 uses 2298 differ 0
+< info string shortcut B5 uses 4456 differ 0
+< info string shortcut B6 uses 5313 differ 0
+< info string shortcut S-B1 uses 1579 differ 0
+< info string shortcut S-B2 uses 2298 differ 0
+< info string shortcut S-B4 uses 1579 differ 0
+< info string shortcut S-B7 uses 5239 differ 0
+< info string shortcut H28 uses 416 differ 0
+< info string shortcut H18 uses 3227 differ 0
+< info string shortcut H25 uses 6776 differ 0
+< info string shortcut H27 uses 1400 differ 0
+< info string shortcut H82 uses 8899 differ 0
+< info string shortcut H30 uses 50 differ 0
+< info string shortcut H3 uses 5032 differ 0
+< info string h82_classes hit 3560 miss_empty 5339 miss_full 0 older_generation 0 probes 5672 stores 3227
+< info string h25_paths seeded 1745 scan16 73 scan8 197 scan4 1005 scalar_tail 1764 sort_transition 579 sorted_tail 1693
+< bestmove b3b2
+> ucinewgame
+> isready
+< readyok
+> position fen 8/8/8/4p3/P5p1/1pp4p/5k2/7K w - - 0 59
+> go depth 9
+< info depth 1 seldepth 1 score cp 253 nodes 4 nps 0 hashfull 0 time 0 pv h1h2
+< info depth 2 seldepth 3 score cp 113 nodes 44 nps 0 hashfull 0 time 0 pv a4a5 f2f1
+< info depth 3 seldepth 4 score cp 205 nodes 68 nps 0 hashfull 0 time 0 pv a4a5 b3b2 h1h2 b2b1b
+< info depth 4 seldepth 6 score cp -592 nodes 208 nps 0 hashfull 0 time 0 pv a4a5 b3b2 a5a6 b2b1r h1h2
+< info depth 5 seldepth 7 score cp -293 nodes 288 nps 0 hashfull 0 time 0 pv a4a5 b3b2 a5a6 b2b1r h1h2 g4g3 h2h3
+< info depth 6 seldepth 10 score cp -510 nodes 831 nps 0 hashfull 0 time 0 pv a4a5 b3b2 h1h2 g4g3 h2h3 b2b1n a5a6
+< info depth 7 seldepth 12 score cp -243 nodes 1551 nps 1551000 hashfull 0 time 1 pv a4a5 b3b2 h1h2 g4g3 h2h3 f2f3 h3h4 f3g2
+< info depth 8 seldepth 17 score cp -323 nodes 3004 nps 1502000 hashfull 0 time 2 pv a4a5 b3b2 h1h2 g4g3 h2h3 f2e3 h3g4 e3d3 g4f5 g3g2 f5f6 b2b1b
+< info depth 9 seldepth 21 score cp -363 nodes 6448 nps 1074666 hashfull 2 time 6 pv a4a5 b3b2 h1h2 g4g3 h2h3 f2e3 h3g4 e3d4 g4f5 d4c5 f5g4 c5b5
+< info string h30_classes white_generation 125 black_generation 0 illegal_source 125 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 5095 no_enemy_ray 793 other 52
+< info string shortcut B1 uses 2866 differ 0
+< info string shortcut B2 uses 3362 differ 0
+< info string shortcut B5 uses 5381 differ 0
+< info string shortcut B6 uses 6178 differ 0
+< info string shortcut S-B1 uses 2866 differ 0
+< info string shortcut S-B2 uses 3362 differ 0
+< info string shortcut S-B4 uses 2866 differ 0
+< info string shortcut S-B7 uses 6164 differ 0
+< info string shortcut H28 uses 552 differ 0
+< info string shortcut H18 uses 3512 differ 0
+< info string shortcut H25 uses 6748 differ 0
+< info string shortcut H27 uses 2042 differ 0
+< info string shortcut H82 uses 9960 differ 0
+< info string shortcut H30 uses 125 differ 0
+< info string shortcut H3 uses 5940 differ 0
+< info string h82_classes hit 4371 miss_empty 5589 miss_full 0 older_generation 0 probes 6448 stores 3512
+< info string h25_paths seeded 1758 scan16 211 scan8 412 scan4 1017 scalar_tail 2059 sort_transition 414 sorted_tail 1864
+< bestmove a4a5
+> ucinewgame
+> isready
+< readyok
+> position fen 8/8/8/4p3/P5p1/1p5p/5k1K/2q5 b - - 1 61
+> go depth 9
+< info depth 1 seldepth 2 score mate 1 nodes 34 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 2 seldepth 2 score mate 1 nodes 64 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 3 seldepth 3 score mate 1 nodes 94 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 4 seldepth 4 score mate 1 nodes 124 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 5 seldepth 5 score mate 1 nodes 154 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 6 seldepth 6 score mate 1 nodes 184 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 7 seldepth 7 score mate 1 nodes 214 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 8 seldepth 8 score mate 1 nodes 244 nps 0 hashfull 0 time 0 pv c1g1
+< info depth 9 seldepth 9 score mate 1 nodes 274 nps 0 hashfull 0 time 0 pv c1g1
+< info string h30_classes white_generation 0 black_generation 0 illegal_source 0 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 228 no_enemy_ray 0 other 0
+< info string shortcut B1 uses 253 differ 0
+< info string shortcut B2 uses 280 differ 0
+< info string shortcut B5 uses 225 differ 0
+< info string shortcut B6 uses 264 differ 0
+< info string shortcut S-B1 uses 253 differ 0
+< info string shortcut S-B2 uses 280 differ 0
+< info string shortcut S-B4 uses 253 differ 0
+< info string shortcut S-B7 uses 261 differ 0
+< info string shortcut H28 uses 9 differ 0
+< info string shortcut H18 uses 40 differ 0
+< info string shortcut H25 uses 292 differ 0
+< info string shortcut H27 uses 12 differ 0
+< info string shortcut H82 uses 90 differ 0
+< info string shortcut H30 uses 0 differ 0
+< info string shortcut H3 uses 228 differ 0
+< info string h82_classes hit 16 miss_empty 74 miss_full 0 older_generation 0 probes 50 stores 40
+< info string h25_paths seeded 10 scan16 27 scan8 27 scan4 27 scalar_tail 18 sort_transition 9 sorted_tail 246
+< bestmove c1g1
+> ucinewgame
+> isready
+< readyok
+> position fen rnb1kb1r/pp3pp1/2pp1n1p/2q5/2BNP3/2NQ3P/PPP2PP1/R1B2RK1 b kq - 2 11
+> go depth 9
+< info depth 1 seldepth 2 score cp 21 nodes 49 nps 0 hashfull 0 time 0 pv g7g6
+< info depth 2 seldepth 2 score cp 512 nodes 98 nps 0 hashfull 0 time 0 pv g7g6 f2f3
+< info depth 3 seldepth 5 score cp 140 nodes 161 nps 0 hashfull 0 time 0 pv g7g6 f2f3 a7a6
+< info depth 4 seldepth 5 score cp 394 nodes 293 nps 0 hashfull 0 time 0 pv g7g6 g2g3 c8h3
+< info depth 5 seldepth 10 score cp 72 nodes 757 nps 757000 hashfull 0 time 1 pv g7g6 e4e5 d6e5 f2f3 e5d4
+< info depth 6 seldepth 11 score cp 110 nodes 1130 nps 1130000 hashfull 0 time 1 pv c5a3 f2f3 h6h5 d3e3
+< info depth 7 seldepth 11 score cp 103 nodes 3011 nps 752750 hashfull 1 time 4 pv e8d7 d4f3 c5c4 c1h6 c4d3
+< info depth 8 seldepth 20 score cp 241 nodes 5717 nps 714625 hashfull 2 time 8 pv e8d7 d4f3 c5f2 g1h1 h6h5 f1f2 c6c5 c3d5 g7g6
+< info depth 9 seldepth 22 score cp 236 nodes 14721 nps 669136 hashfull 4 time 22 pv e8d7 c1f4 h6h5 a1d1 b7b6 d4c6 c5c6 c4f7 c6b7
+< info string h30_classes white_generation 36 black_generation 312 illegal_source 348 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 12927 no_enemy_ray 181 other 332
+< info string shortcut B1 uses 5923 differ 0
+< info string shortcut B2 uses 6121 differ 0
+< info string shortcut B5 uses 10521 differ 0
+< info string shortcut B6 uses 12883 differ 0
+< info string shortcut S-B1 uses 5923 differ 0
+< info string shortcut S-B2 uses 6121 differ 0
+< info string shortcut S-B4 uses 5923 differ 0
+< info string shortcut S-B7 uses 12950 differ 0
+< info string shortcut H28 uses 900 differ 0
+< info string shortcut H18 uses 8873 differ 0
+< info string shortcut H25 uses 32065 differ 0
+< info string shortcut H27 uses 6125 differ 0
+< info string shortcut H82 uses 23594 differ 0
+< info string shortcut H30 uses 348 differ 0
+< info string shortcut H3 uses 13440 differ 0
+< info string h82_classes hit 6413 miss_empty 17181 miss_full 0 older_generation 0 probes 14721 stores 8873
+< info string h25_paths seeded 7287 scan16 2539 scan8 1292 scan4 2475 scalar_tail 8473 sort_transition 1707 sorted_tail 10155
+< bestmove e8d7
+> ucinewgame
+> isready
+< readyok
+> position fen r1b1kb1r/pp3p2/2pp1npp/2q1n3/3NP3/1BN4P/PPP2PP1/R1BQ1RK1 w kq - 0 14
+> go depth 9
+< info depth 1 seldepth 2 score cp 737 nodes 42 nps 0 hashfull 0 time 0 pv f2f3
+< info depth 2 seldepth 6 score cp -224 nodes 175 nps 0 hashfull 0 time 0 pv a1b1 f8e7
+< info depth 3 seldepth 6 score cp 357 nodes 252 nps 0 hashfull 0 time 0 pv a1b1 f8g7 f2f3
+< info depth 4 seldepth 8 score cp 80 nodes 537 nps 0 hashfull 0 time 0 pv a1b1 f8g7 f2f3 d6d5
+< info depth 5 seldepth 9 score cp -115 nodes 962 nps 962000 hashfull 0 time 1 pv a1b1 f8g7 f2f3 a8b8 a2a3
+< info depth 6 seldepth 13 score cp -276 nodes 1894 nps 947000 hashfull 0 time 2 pv a1b1 f8g7 f2f3 a8b8 f3f4 c5b6
+< info depth 7 seldepth 17 score cp -210 nodes 3175 nps 793750 hashfull 0 time 4 pv a1b1 f8g7 a2a3 c5c3 b3f7 e8f7 d1e1
+< info depth 8 seldepth 17 score cp 122 nodes 6446 nps 644600 hashfull 2 time 10 pv a1b1 f8g7 d4f5 g6f5 c1f4 f5e4 d1c1
+< info depth 9 seldepth 22 score cp -164 nodes 15644 nps 651833 hashfull 5 time 24 pv a1b1 a8b8 c1f4 b7b6 d4f5 e5c4 f5d6 e8e7 d6c8 b8c8
+< info string h30_classes white_generation 55 black_generation 306 illegal_source 361 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 14345 no_enemy_ray 6 other 31
+< info string shortcut B1 uses 5582 differ 0
+< info string shortcut B2 uses 5730 differ 0
+< info string shortcut B5 uses 11182 differ 0
+< info string shortcut B6 uses 13782 differ 0
+< info string shortcut S-B1 uses 5582 differ 0
+< info string shortcut S-B2 uses 5730 differ 0
+< info string shortcut S-B4 uses 5582 differ 0
+< info string shortcut S-B7 uses 13826 differ 0
+< info string shortcut H28 uses 816 differ 0
+< info string shortcut H18 uses 10119 differ 0
+< info string shortcut H25 uses 36279 differ 0
+< info string shortcut H27 uses 6988 differ 0
+< info string shortcut H82 uses 25763 differ 0
+< info string shortcut H30 uses 361 differ 0
+< info string shortcut H3 uses 14382 differ 0
+< info string h82_classes hit 6799 miss_empty 18964 miss_full 0 older_generation 0 probes 15644 stores 10119
+< info string h25_paths seeded 8136 scan16 2250 scan8 971 scan4 2610 scalar_tail 10659 sort_transition 2172 sorted_tail 10466
+< bestmove a1b1
+> ucinewgame
+> isready
+< readyok
+> position fen r1b2rk1/pp3pb1/2pp1npp/2q1n3/P2NPB2/1BN4P/1PP2PP1/R2QR1K1 b - - 4 16
+> go depth 9
+< info depth 1 seldepth 3 score cp -271 nodes 86 nps 0 hashfull 0 time 0 pv c5c3 b2c3
+< info depth 2 seldepth 4 score cp -271 nodes 131 nps 0 hashfull 0 time 0 pv c5c3 b2c3
+< info depth 3 seldepth 7 score cp 122 nodes 241 nps 0 hashfull 0 time 0 pv c5c3 b3f7 g8f7
+< info depth 4 seldepth 7 score cp 6 nodes 532 nps 0 hashfull 0 time 0 pv c5c3 d4c6 c3b2 f4e5 d6e5
+< info depth 5 seldepth 7 score cp -185 nodes 758 nps 758000 hashfull 0 time 1 pv c5c3 b3f7 g8f7 g1h2 c3b2 f4e5
+< info depth 6 seldepth 10 score cp -138 nodes 1028 nps 1028000 hashfull 0 time 1 pv c5c3 b3f7 f8f7 g1h1 c3b2
+< info depth 7 seldepth 10 score cp -155 nodes 1522 nps 761000 hashfull 0 time 2 pv c5c3 d4e2 c3b2 c2c4 f6e4
+< info depth 8 seldepth 17 score cp -48 nodes 4352 nps 870400 hashfull 1 time 5 pv c5b4 f4e5 d6e5 g1h2 b4d4 d1d4
+< info depth 9 seldepth 21 score cp 54 nodes 10576 nps 755428 hashfull 4 time 14 pv c5b4 d4c6 h6h5 d1h5 b7c6 b3f7 e5f7 f4d6 f6h5 d6b4 g7c3
+< info string h30_classes white_generation 34 black_generation 71 illegal_source 105 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 9733 no_enemy_ray 169 other 24
+< info string shortcut B1 uses 3231 differ 0
+< info string shortcut B2 uses 3303 differ 0
+< info string shortcut B5 uses 8141 differ 0
+< info string shortcut B6 uses 9000 differ 0
+< info string shortcut S-B1 uses 3231 differ 0
+< info string shortcut S-B2 uses 3303 differ 0
+< info string shortcut S-B4 uses 3231 differ 0
+< info string shortcut S-B7 uses 9102 differ 0
+< info string shortcut H28 uses 539 differ 0
+< info string shortcut H18 uses 6551 differ 0
+< info string shortcut H25 uses 24045 differ 0
+< info string shortcut H27 uses 5002 differ 0
+< info string shortcut H82 uses 17127 differ 0
+< info string shortcut H30 uses 105 differ 0
+< info string shortcut H3 uses 9926 differ 0
+< info string h82_classes hit 4563 miss_empty 12564 miss_full 0 older_generation 0 probes 10576 stores 6551
+< info string h25_paths seeded 5627 scan16 1010 scan8 491 scan4 2608 scalar_tail 7396 sort_transition 1876 sorted_tail 5863
+< bestmove c5b4
+> ucinewgame
+> isready
+< readyok
+> position fen r1br2k1/pp3pb1/2pB1npp/8/P1qNP3/2N4P/1PP2PP1/R2QR1K1 w - - 1 19
+> go depth 9
+< info depth 1 seldepth 4 score cp 281 nodes 81 nps 0 hashfull 0 time 0 pv d4f3
+< info depth 2 seldepth 4 score cp -47 nodes 147 nps 0 hashfull 0 time 0 pv d4f3 g6g5
+< info depth 3 seldepth 4 score cp 142 nodes 218 nps 0 hashfull 0 time 0 pv d4f3 g6g5 b2b3
+< info depth 4 seldepth 8 score cp 77 nodes 982 nps 982000 hashfull 0 time 1 pv g1h1 d8d6 d1e2 d6d4 e2c4
+< info depth 5 seldepth 8 score cp -5 nodes 1178 nps 1178000 hashfull 0 time 1 pv g1h1 g8h8 h3h4 d8d6
+< info depth 6 seldepth 16 score cp 167 nodes 1698 nps 849000 hashfull 1 time 2 pv g1h1 g8h8 d1e2 f6e4 d4c6 g7c3
+< info depth 7 seldepth 16 score cp 130 nodes 3194 nps 798500 hashfull 1 time 4 pv g1h1 c4f1 e1f1 d8d6 b2b4 g8h7
+< info depth 8 seldepth 18 score cp 198 nodes 4931 nps 821833 hashfull 2 time 6 pv g1h1 c4f1 e1f1 d8d6 h3h4 f6e4 b2b3 e4f2 h1g1
+< info depth 9 seldepth 18 score cp 67 nodes 9012 nps 751000 hashfull 4 time 12 pv g1h1 c4f1 e1f1 d8d6 d1b1 c8h3 b2b3 h3g2 h1g1
+< info string h30_classes white_generation 30 black_generation 24 illegal_source 54 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 8647 no_enemy_ray 10 other 1
+< info string shortcut B1 uses 4116 differ 0
+< info string shortcut B2 uses 4213 differ 0
+< info string shortcut B5 uses 7717 differ 0
+< info string shortcut B6 uses 8127 differ 0
+< info string shortcut S-B1 uses 4116 differ 0
+< info string shortcut S-B2 uses 4213 differ 0
+< info string shortcut S-B4 uses 4116 differ 0
+< info string shortcut S-B7 uses 8223 differ 0
+< info string shortcut H28 uses 513 differ 0
+< info string shortcut H18 uses 4973 differ 0
+< info string shortcut H25 uses 15226 differ 0
+< info string shortcut H27 uses 3436 differ 0
+< info string shortcut H82 uses 13985 differ 0
+< info string shortcut H30 uses 54 differ 0
+< info string shortcut H3 uses 8658 differ 0
+< info string h82_classes hit 5086 miss_empty 8899 miss_full 0 older_generation 0 probes 9012 stores 4973
+< info string h25_paths seeded 3872 scan16 1060 scan8 591 scan4 1414 scalar_tail 3669 sort_transition 918 sorted_tail 4706
+< bestmove g1h1
+> ucinewgame
+> isready
+< readyok
+> position fen r1br2k1/pp3pb1/2pP2pp/8/P1q5/2N2N1P/1PP2PP1/R2QR1K1 b - - 0 21
+> go depth 9
+< info depth 1 seldepth 3 score cp 991 nodes 53 nps 0 hashfull 0 time 0 pv f7f6
+< info depth 2 seldepth 3 score cp 477 nodes 132 nps 0 hashfull 0 time 0 pv d8e8 e1e8 g8h7
+< info depth 3 seldepth 5 score cp -31 nodes 215 nps 0 hashfull 0 time 0 pv d8e8 e1e8 g8h7 f3g5 h6g5
+< info depth 4 seldepth 6 score cp 189 nodes 350 nps 0 hashfull 0 time 0 pv d8d6 d1d6 c8h3 g2h3
+< info depth 5 seldepth 6 score cp -140 nodes 691 nps 0 hashfull 0 time 0 pv c4f1 e1f1 g7c3 h3h4 c3b2
+< info depth 6 seldepth 10 score cp -321 nodes 1372 nps 1372000 hashfull 0 time 1 pv c4f1 e1f1 d8d6 h3h4 g7c3 b2c3
+< info depth 7 seldepth 13 score cp 7 nodes 1789 nps 894500 hashfull 1 time 2 pv c4f1 e1f1 d8d6 h3h4 g7c3 a1a3 d6d1 b2c3
+< info depth 8 seldepth 13 score cp -188 nodes 3340 nps 835000 hashfull 1 time 4 pv c4f1 e1f1 d8d6 h3h4 d6d1 f3g5 d1f1 g1f1 g8f8 g5h7 f8e8
+< info depth 9 seldepth 18 score cp 7 nodes 6221 nps 777625 hashfull 2 time 8 pv g7c3 e1e8 d8e8 b2c3 g8f8 h3h4 e8e1 f3e1 f8e8 d6d7 c8d7
+< info string h30_classes white_generation 14 black_generation 45 illegal_source 59 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 5832 no_enemy_ray 0 other 0
+< info string shortcut B1 uses 3174 differ 0
+< info string shortcut B2 uses 3201 differ 0
+< info string shortcut B5 uses 5057 differ 0
+< info string shortcut B6 uses 5562 differ 0
+< info string shortcut S-B1 uses 3174 differ 0
+< info string shortcut S-B2 uses 3201 differ 0
+< info string shortcut S-B4 uses 3174 differ 0
+< info string shortcut S-B7 uses 5649 differ 0
+< info string shortcut H28 uses 474 differ 0
+< info string shortcut H18 uses 3421 differ 0
+< info string shortcut H25 uses 8539 differ 0
+< info string shortcut H27 uses 2394 differ 0
+< info string shortcut H82 uses 9642 differ 0
+< info string shortcut H30 uses 59 differ 0
+< info string shortcut H3 uses 5832 differ 0
+< info string h82_classes hit 4112 miss_empty 5530 miss_full 0 older_generation 0 probes 6221 stores 3421
+< info string h25_paths seeded 2621 scan16 795 scan8 387 scan4 542 scalar_tail 1549 sort_transition 319 sorted_tail 2860
+< bestmove g7c3
+> ucinewgame
+> isready
+< readyok
+> position fen r2r2k1/pp3p2/2pPb1pp/8/P1q3P1/2P2N1P/2P2P2/R2QR1K1 w - - 1 24
+> go depth 9
+< info depth 1 seldepth 3 score cp 757 nodes 59 nps 0 hashfull 0 time 0 pv e1e6 c4c3
+< info depth 2 seldepth 4 score cp -36 nodes 138 nps 0 hashfull 0 time 0 pv e1e6 g6g5 e6h6
+< info depth 3 seldepth 6 score cp -36 nodes 210 nps 0 hashfull 0 time 0 pv e1e6 g6g5 e6h6
+< info depth 4 seldepth 6 score cp 90 nodes 281 nps 0 hashfull 0 time 0 pv e1e6 g6g5 e6h6 c4c3
+< info depth 5 seldepth 6 score cp 90 nodes 333 nps 0 hashfull 0 time 0 pv e1e6 g6g5 e6h6 c4c3 f3g5
+< info depth 6 seldepth 13 score cp 212 nodes 578 nps 0 hashfull 0 time 0 pv e1e6 g6g5 e6e8 d8e8 d1d3
+< info depth 7 seldepth 15 score cp 270 nodes 1340 nps 1340000 hashfull 0 time 1 pv e1e6 c4g4 h3g4 g8f8 e6e8 d8e8 d1f1
+< info depth 8 seldepth 15 score cp 103 nodes 3334 nps 833500 hashfull 1 time 4 pv e1e6 c4g4 h3g4 g8f8 e6e8 d8e8 d1f1 e8e1 g4g5
+< info depth 9 seldepth 17 score cp 138 nodes 9468 nps 728307 hashfull 4 time 13 pv e1e6 g8f8 d1d2 c4g4 g1f1 f7e6 f3g1 f8e8
+< info string h30_classes white_generation 75 black_generation 83 illegal_source 158 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 8484 no_enemy_ray 2 other 0
+< info string shortcut B1 uses 4614 differ 0
+< info string shortcut B2 uses 4805 differ 0
+< info string shortcut B5 uses 6993 differ 0
+< info string shortcut B6 uses 8624 differ 0
+< info string shortcut S-B1 uses 4614 differ 0
+< info string shortcut S-B2 uses 4805 differ 0
+< info string shortcut S-B4 uses 4614 differ 0
+< info string shortcut S-B7 uses 8746 differ 0
+< info string shortcut H28 uses 716 differ 0
+< info string shortcut H18 uses 5520 differ 0
+< info string shortcut H25 uses 15400 differ 0
+< info string shortcut H27 uses 3334 differ 0
+< info string shortcut H82 uses 14988 differ 0
+< info string shortcut H30 uses 158 differ 0
+< info string shortcut H3 uses 8486 differ 0
+< info string h82_classes hit 4361 miss_empty 10627 miss_full 0 older_generation 0 probes 9468 stores 5520
+< info string h25_paths seeded 3782 scan16 1656 scan8 957 scan4 1307 scalar_tail 2923 sort_transition 731 sorted_tail 6129
+< bestmove e1e6
+> ucinewgame
+> isready
+< readyok
+> position fen r5k1/pQ3p2/2prb1pp/2q1N3/P5P1/2P4P/2P2P2/R3R1K1 b - - 0 26
+> go depth 9
+< info depth 1 seldepth 10 score cp 681 nodes 182 nps 0 hashfull 0 time 0 pv g8f8 b7a8 f8e7
+< info depth 2 seldepth 10 score cp 681 nodes 236 nps 0 hashfull 0 time 0 pv g8f8 b7a8 f8e7
+< info depth 3 seldepth 13 score cp 643 nodes 562 nps 0 hashfull 0 time 0 pv a8f8 b7b2
+< info depth 4 seldepth 13 score cp 893 nodes 726 nps 726000 hashfull 0 time 1 pv c5f2 g1f2 a8c8 b7a7
+< info depth 5 seldepth 13 score cp 208 nodes 1579 nps 789500 hashfull 0 time 2 pv a8f8 b7b2 e6g4 e5g4
+< info depth 6 seldepth 13 score cp 83 nodes 3379 nps 844750 hashfull 1 time 4 pv a8d8 b7c6 c5c6 a1a3 e6d5 e5c6
+< info depth 7 seldepth 18 score cp 47 nodes 6767 nps 676700 hashfull 2 time 10 pv c5f2 g1f2 a8f8 e5g6 d6d2 f2f1 e6g4 h3g4 f7g6 f1g1
+< info depth 8 seldepth 21 score cp 11 nodes 13045 nps 686578 hashfull 7 time 19 pv a8f8 b7f7 e6f7 e5c6 f7c4 e1e2 c5g5 c6a7
+< info depth 9 seldepth 21 score cp -133 nodes 17907 nps 688730 hashfull 9 time 26 pv a8f8 b7f7 e6f7 e1e2 c5b6 g1f1 f7d5 e2d2
+< info string h30_classes white_generation 198 black_generation 345 illegal_source 543 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 15183 no_enemy_ray 168 other 26
+< info string shortcut B1 uses 7916 differ 0
+< info string shortcut B2 uses 8307 differ 0
+< info string shortcut B5 uses 11981 differ 0
+< info string shortcut B6 uses 16294 differ 0
+< info string shortcut S-B1 uses 7916 differ 0
+< info string shortcut S-B2 uses 8307 differ 0
+< info string shortcut S-B4 uses 7916 differ 0
+< info string shortcut S-B7 uses 16131 differ 0
+< info string shortcut H28 uses 1088 differ 0
+< info string shortcut H18 uses 10536 differ 0
+< info string shortcut H25 uses 36818 differ 0
+< info string shortcut H27 uses 6224 differ 0
+< info string shortcut H82 uses 28443 differ 0
+< info string shortcut H30 uses 543 differ 0
+< info string shortcut H3 uses 15377 differ 0
+< info string h82_classes hit 10105 miss_empty 18338 miss_full 0 older_generation 0 probes 17907 stores 10536
+< info string h25_paths seeded 7344 scan16 3562 scan8 1692 scan4 2625 scalar_tail 7676 sort_transition 1741 sorted_tail 16016
+< bestmove a8f8
+> ucinewgame
+> isready
+< readyok
+> position fen 4r1k1/p4p2/2q1b1pp/4N3/P5P1/2P1R2P/2Pr1P2/R5K1 w - - 0 29
+> go depth 9
+< info depth 1 seldepth 3 score cp 795 nodes 55 nps 0 hashfull 0 time 0 pv f2f3
+< info depth 2 seldepth 6 score cp 353 nodes 201 nps 0 hashfull 0 time 0 pv e3d3 d2c2 e5c6
+< info depth 3 seldepth 6 score cp 353 nodes 241 nps 0 hashfull 0 time 0 pv e3d3 d2c2 e5c6
+< info depth 4 seldepth 11 score cp 445 nodes 499 nps 0 hashfull 0 time 0 pv e3e2 c6c3 f2f3 d2e2
+< info depth 5 seldepth 11 score cp 134 nodes 1615 nps 807500 hashfull 0 time 2 pv e3e1 d2c2 e5g6 e6g4 g6f4
+< info depth 6 seldepth 13 score cp 119 nodes 2736 nps 912000 hashfull 0 time 3 pv e3e1 d2c2 f2f3 e6g4 f3g4
+< info depth 7 seldepth 14 score cp 56 nodes 4106 nps 1026500 hashfull 0 time 4 pv e3e1 d2c2 a1c1 e6g4 e5c6 g8h7 c1c2
+< info depth 8 seldepth 17 score cp -266 nodes 15962 nps 798100 hashfull 7 time 20 pv e3f3 d2d1 a1d1 g8h8 d1f1 e6g4 e5f7 h8h7 g1h1 c6f3 h1g1 f3h3
+< info depth 9 seldepth 17 score cp -193 nodes 17376 nps 789818 hashfull 8 time 22 pv e3f3 d2d1 a1d1 g8h8 d1f1 e6g4 e5f7 h8h7 h3g4 c6e4 f7d6
+< info string h30_classes white_generation 118 black_generation 68 illegal_source 186 promotion_source 0
+< info string h3_classes checked 0 safe_pawn_witness 14674 no_enemy_ray 558 other 48
+< info string shortcut B1 uses 5282 differ 0
+< info string shortcut B2 uses 5729 differ 0
+< info string shortcut B5 uses 11898 differ 0
+< info string shortcut B6 uses 15435 differ 0
+< info string shortcut S-B1 uses 5282 differ 0
+< info string shortcut S-B2 uses 5729 differ 0
+< info string shortcut S-B4 uses 5282 differ 0
+< info string shortcut S-B7 uses 15273 differ 0
+< info string shortcut H28 uses 1058 differ 0
+< info string shortcut H18 uses 11256 differ 0
+< info string shortcut H25 uses 28871 differ 0
+< info string shortcut H27 uses 7299 differ 0
+< info string shortcut H82 uses 28632 differ 0
+< info string shortcut H30 uses 186 differ 0
+< info string shortcut H3 uses 15280 differ 0
+< info string h82_classes hit 9253 miss_empty 19379 miss_full 0 older_generation 0 probes 17376 stores 11256
+< info string h25_paths seeded 8080 scan16 2282 scan8 1363 scan4 2352 scalar_tail 7816 sort_transition 1651 sorted_tail 6828
+< bestmove e3f3
+> ucinewgame
+> isready
+< readyok
+> position fen r5k1/p2bNp2/6pp/8/P5P1/2P1R2P/2Pr1P2/4R1K1 b - - 4 31
+> go depth 9
+< i
