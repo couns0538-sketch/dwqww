@@ -1,0 +1,369 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -1,3 +1,6 @@
++#ifndef FORGE_SHORTCUT_WRONG3
++#define FORGE_SHORTCUT_WRONG3 1
++#endif
+ #pragma once
+ #include "forge/board.hpp"
+ #include "forge/uci_output.hpp"
+@@ -5,12 +8,12 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7"};
+-inline std::atomic<unsigned long long> uses[8]{}, differs[8]{}, diagnostics{0};
+-inline void reset() { for (int i=0;i<8;++i) { uses[i]=0; differs[i]=0; } }
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18"};
++inline std::atomic<unsigned long long> uses[10]{}, differs[10]{}, diagnostics{0};
++inline void reset() { for (int i=0;i<10;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<8 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==8) return;
++    int i=0; while(i<10 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==10) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -20,7 +23,18 @@
+                   << " move " << (move.is_none() ? "0000" : Board::move_to_uci(move)) << std::endl;
+     }
+ }
++inline thread_local const Board* tt_board = nullptr;
++struct BoardContext {
++    const Board* previous;
++    explicit BoardContext(const Board& b) : previous(tt_board) { tt_board=&b; }
++    ~BoardContext() { tt_board=previous; }
++};
++inline void record_tt(bool different, std::uint64_t key, Move move=Move::none()) {
++    (void)key;
++    // TT hooks run synchronously inside Worker search with a live board context.
++    if (tt_board != nullptr) record("H18", different, *tt_board, move);
++}
+ // Caller holds the output mutex, after workers have joined.
+-inline void summary() { for(int i=0;i<8;++i) std::cout << "info string shortcut " << names[i]
++inline void summary() { for(int i=0;i<10;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl; }
+ }
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -529,6 +529,72 @@
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+ 
++#if FORGE_SHORTCUT_COUNT
++namespace {
++// Local snapshots only: scalar r15d probe/store algorithms; no actual TT writes,
++// lock operations, sample-generation counter updates, or search reads by oracle.
++bool h18_entry_equal(const TTEntry& a, const TTEntry& b) {
++    return a.key32 == b.key32 && a.move == b.move && a.score == b.score && a.eval == b.eval &&
++           a.depth == b.depth && a.gen_bound == b.gen_bound && a.rule50_clock == b.rule50_clock &&
++           a.padding == b.padding;
++}
++bool h18_cluster_equal(const TTCluster& a, const TTCluster& b) {
++    for (unsigned i = 0; i < 4; ++i) if (!h18_entry_equal(a.entries[i], b.entries[i])) return false;
++    return true;
++}
++std::uint8_t h18_reference_replacement(const TTCluster& cluster, std::uint8_t generation) {
++    const TTEntry* replace = &cluster.entries[0];
++    int replace_score = replace->occupied()
++        ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U) : 0;
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
++        const int score = entry.depth - 4 * age;
++        if (score < replace_score) { replace = &entry; replace_score = score; }
++    }
++    return static_cast<std::uint8_t>(replace - cluster.entries.data());
++}
++WorkerTTProbe h18_reference_probe(TTCluster& cluster, std::size_t index,
++                                  std::uint32_t key32, std::uint8_t generation) {
++    for (TTEntry& entry : cluster.entries) {
++        if (entry.key32 == key32 && entry.occupied()) {
++            entry.gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation) << 3U) |
++                                                       (entry.gen_bound & 7U));
++            return {entry, index, static_cast<std::uint8_t>(&entry - cluster.entries.data()), true};
++        }
++    }
++    const auto slot = h18_reference_replacement(cluster, generation);
++    return {cluster.entries[slot], index, slot, false};
++}
++void h18_reference_store(TTCluster& cluster, std::uint8_t slot, std::uint32_t key32,
++                         std::uint8_t generation, int score, int eval, Move move, int depth,
++                         Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    TTEntry* entry = &cluster.entries[slot];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) { entry = &candidate; break; }
++    }
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    const bool stale_slot = entry != &cluster.entries[slot];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation;
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation) << 3U) |
++                                                   (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++#if FORGE_SHORTCUT_WRONG3
++    // Positive control corrupts only the local reference payload, never actual storage.
++    entry->score = static_cast<std::int16_t>(entry->score ^ 1);
++#endif
++}
++} // namespace
++#endif
++
+ [[gnu::noinline]] std::uint8_t TranspositionTable::replace_full_cluster_slot(const TTCluster& cluster,
+                                                                              std::uint8_t generation) noexcept {
+     std::uint8_t replace_slot = 0;
+@@ -543,6 +609,9 @@
+             replace_score = score;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_tt(replace_slot != h18_reference_replacement(cluster, generation), 0);
++#endif
+     return replace_slot;
+ }
+ 
+@@ -553,6 +622,19 @@
+     TTCluster& cluster = clusters_[index];
+     const std::uint32_t key32 = verification_key(key);
+     const std::uint8_t generation = generation_;
++#if FORGE_SHORTCUT_COUNT
++    TTCluster reference_cluster = cluster;
++    const WorkerTTProbe reference = h18_reference_probe(reference_cluster, index, key32, generation);
++    auto checked = [&](WorkerTTProbe result) {
++        const bool differs = result.cluster != reference.cluster || result.slot != reference.slot ||
++                             result.hit != reference.hit || !h18_entry_equal(result.entry, reference.entry) ||
++                             !h18_cluster_equal(cluster, reference_cluster);
++        shortcut_count::record_tt(differs, key);
++        return result;
++    };
++#else
++    auto checked = [](WorkerTTProbe result) { return result; };
++#endif
+     for (std::size_t s = 0; s < 4; ++s) {
+         TTEntry& entry = cluster.entries[s];
+         if (entry.key32 == key32 && entry.occupied()) {
+@@ -563,16 +645,16 @@
+                 entry.gen_bound = static_cast<std::uint8_t>(
+                     (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
+             }
+-            return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++            return checked(WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true});
+         }
+     }
+     for (std::size_t s = 0; s < 4; ++s) {
+         if (!cluster.entries[s].occupied()) {
+-            return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++            return checked(WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false});
+         }
+     }
+     const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+-    return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++    return checked(WorkerTTProbe{cluster.entries[repl], index, repl, false});
+ }
+ 
+ void TranspositionTable::store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
+@@ -581,6 +663,11 @@
+     assert(has_exclusive_access());
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
++#if FORGE_SHORTCUT_COUNT
++    TTCluster reference_cluster = cluster;
++    h18_reference_store(reference_cluster, slot, key32, generation_, score, eval, move, depth,
++                         bound, pv, halfmove_clock);
++#endif
+     TTEntry* entry = &cluster.entries[slot];
+ #if defined(__AVX512F__)
+     const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
+@@ -620,6 +707,9 @@
+         entry->gen_bound = static_cast<std::uint8_t>(
+             (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_tt(!h18_cluster_equal(cluster, reference_cluster), key, move);
++#endif
+ }
+ 
+ void TranspositionTable::store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
+@@ -629,6 +719,11 @@
+     (void)lock;
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
++#if FORGE_SHORTCUT_COUNT
++    TTCluster reference_cluster = cluster;
++    h18_reference_store(reference_cluster, slot, key32, generation_, score, eval, move, depth,
++                         bound, pv, halfmove_clock);
++#endif
+     TTEntry* entry = &cluster.entries[slot];
+     for (TTEntry& candidate : cluster.entries) {
+         if (candidate.key32 == key32 && candidate.occupied()) {
+@@ -658,6 +753,9 @@
+         entry->gen_bound = static_cast<std::uint8_t>(
+             (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_tt(!h18_cluster_equal(cluster, reference_cluster), key, move);
++#endif
+ }
+ 
+ TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
+@@ -1376,7 +1474,122 @@
+ #endif
+     }
+ 
++
++#if FORGE_SHORTCUT_COUNT && FORGE_SEARCH_SPEED2
++    struct QuietReferenceScorer {
++        const std::array<std::array<std::int16_t, 64>, 64>& main;
++        const PieceToHistory* cont1;
++        const PieceToHistory* cont2;
++        const PieceToHistory* cont4;
++        const Board& board;
++        const Worker& worker;
++        const LesserThreatHistory::value_type* rework_side;
++        const b4::LesserThreats* threats;
++        int quarters;
++        bool rework;
++        bool use_threat_hist;
++
++        QuietReferenceScorer(const Board& b, const Worker& searcher, const SearchStack* ss, const b4::LesserThreats& ref_threats)
++            : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
++              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
++              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
++              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++                        ? (ss - 4)->continuation : nullptr),
++              board(b),
++              worker(searcher),
++              rework_side(tune::HistRework != 0 && ss != nullptr
++                              ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
++                              : nullptr),
++              threats(tune::HistRework != 0 && ss != nullptr
++                          ? &ref_threats
++                          : nullptr),
++              quarters(tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0),
++              rework(tune::HistRework != 0 && ss != nullptr),
++              use_threat_hist(tune::ThreatHistory) {}
++
++        [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
++            const Piece piece = board.piece_at(move.from);
++            const std::size_t pt = static_cast<std::size_t>(piece_type(piece));
++            const std::size_t p = static_cast<std::size_t>(piece);
++            const int plain = main[move.from][move.to];
++            int value = plain;
++            if (rework) {
++                const Bitboard set = threats->by_type[pt];
++                const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
++                value = b4::blend(plain, twin, quarters);
++            }
++            if (cont1 != nullptr) value += (*cont1)[p][move.to];
++            if (cont2 != nullptr) value += (*cont2)[p][move.to];
++            if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
++            if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
++#if FORGE_PAWN_HISTORY
++            value += worker.pawn_history_value(board, piece, move);
++#endif
++            if ((check_squares[pt] & square_bb(move.to)) != 0) value += 12000;
++            return value;
++        }
++    };
++[[nodiscard]] static b4::LesserThreats reference_lesser_threats(const Board& board) {
++    const Color them = opposite(board.side_to_move());
++    const Bitboard occupancy = board.occupied();
++    const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard by_minor = by_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
++    Bitboard by_rook = by_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
++    b4::LesserThreats threats;
++    threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
++    threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++    return threats;
++}
++    void observe_quiet_generation() const {
++        MoveList ref_moves;
++        board_.generate_pseudo_legal(ref_moves, Board::GenMode::Quiets);
++        std::array<Bitboard,7> ref_checks{};
++        const Color them = opposite(board_.side_to_move());
++        const int king = board_.king_square(them);
++        const Bitboard occ = board_.occupied();
++        ref_checks[Pawn] = attacks::pawn(them, king);
++        ref_checks[Knight] = attacks::knight(king);
++        ref_checks[Bishop] = attacks::bishop(king, occ);
++        ref_checks[Rook] = attacks::rook(king, occ);
++        ref_checks[Queen] = ref_checks[Bishop] | ref_checks[Rook];
++        const auto ref_threats = reference_lesser_threats(board_);
++        const QuietReferenceScorer ref_score(board_, searcher_, ss_, ref_threats);
++        const std::size_t start = quiet_start();
++        bool different = count_ != start + ref_moves.size() || index_ != start || list_start_ != start || sorted_;
++        bool ref_seed = false;
++        int ref_seed_score = 0;
++        std::size_t ref_seed_at = 0;
++        Move first = Move::none();
++        for (std::size_t i=0; i<ref_moves.size(); ++i) {
++            const Move move = ref_moves[i];
++            int score = ref_score.score(move, ref_checks);
++#if FORGE_SHORTCUT_WRONG3
++            if (i==0) ++score; // Deliberately corrupt reference only.
++#endif
++            if (!ref_seed || score > ref_seed_score) { ref_seed=true; ref_seed_score=score; ref_seed_at=start+i; }
++            if (start+i >= count_ || moves_[start+i].move != move || moves_[start+i].score != score) {
++                different=true;
++                if(first.is_none()) first=move;
++            }
++        }
++        different = different || seeded_ != ref_seed || (ref_seed && (seeded_score_ != ref_seed_score || seeded_at_ != ref_seed_at));
++        shortcut_count::record("H28", different, board_, first);
++    }
++#endif
+     [[gnu::noinline]] void generate_quiets() {
++        generate_quiets_impl();
++#if FORGE_SHORTCUT_COUNT && FORGE_SEARCH_SPEED2
++        observe_quiet_generation();
++#endif
++    }
++
++    [[gnu::noinline]] void generate_quiets_impl() {
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
+         init_check_squares();
+         index_ = quiet_start();
+@@ -2286,6 +2499,9 @@
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++#if FORGE_SHORTCUT_COUNT
++    const shortcut_count::BoardContext diagnostic_context(board);
++#endif
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (check_node_or_periodic_stop()) aborted_ = true;
+@@ -2431,6 +2647,9 @@
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++#if FORGE_SHORTCUT_COUNT
++    const shortcut_count::BoardContext diagnostic_context(board);
++#endif
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+@@ -3148,6 +3367,9 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#if FORGE_SHORTCUT_COUNT
++    const shortcut_count::BoardContext diagnostic_context(board);
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
