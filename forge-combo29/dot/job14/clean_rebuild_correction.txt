@@ -1,0 +1,13 @@
+Wed Nov 18 19:48:38 UTC 2026
+Preclean artifact identity
+d244cf9ebda40cbcd22275bcbfc1bcb561bfd5f8c94c5527b5a6bedbd8d522e6  /tmp/forge-dot-job14-preclean/count-forge
+3f3b04ca1264bb61c7a6f733e8e39be5642942daaeedc15f0db8423e41bfa85f  /tmp/forge-dot-job14-preclean/wrong-forge
+Header/object timestamps observed before clean rebuild
+count header19:45:56.504020; count search.cpp.o19:45:57.376911; wrong header19:45:56.504121; wrong search.cpp.o19:46:08.960809 UTC
+Prior incremental count rebuild output:
+[100%] Built target forge
+[ 10%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[ 20%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 30%] Linking CXX executable forge
+[100%] Built target forge
+Root cause: header edited during compile. Compiler may consume old header then finish object after header mtime; incremental make sees object newer and skips it. Current count/wrong headers are byte-identical. Full clean rebuild of both frozen sources required. No source changes after final correction.
