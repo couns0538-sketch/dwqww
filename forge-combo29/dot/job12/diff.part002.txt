@@ -1,0 +1,425 @@
+line_rest, pos_cache);
+         } else if (command == "go") {
+             stop_search();
+ #if FORGE_NNUE_V3
+@@ -745,13 +830,11 @@
+                 return 2;
+             }
+ #endif
+-            std::string first;
+-            const auto position = input.tellg();
+-            input >> first;
++            std::string_view go_peek = line_rest;
++            const std::string_view first = next_uci_token(go_peek);
+             if (first == "perft") {
+-                std::string depth_text;
++                const std::string_view depth_text = next_uci_token(go_peek);
+                 int depth = -1;
+-                if (!(input >> depth_text)) depth_text.clear();
+                 const auto parsed = std::from_chars(
+                     depth_text.data(), depth_text.data() + depth_text.size(), depth);
+                 if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size() ||
+@@ -774,9 +857,7 @@
+                 }
+                 { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+             } else {
+-                input.clear();
+-                input.seekg(position);
+-                forge::SearchLimits limits = parse_limits(input, board);
++                forge::SearchLimits limits = parse_limits_sv(line_rest, board);
+                 limits.move_overhead_ms = move_overhead_ms;
+                 limits.multipv = multipv;
+                 // Charge dispatch admission only to finite externally clocked searches.
+@@ -848,7 +929,10 @@
+             }
+ #endif
+             int depth = 13;
+-            if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            {
++                std::istringstream input{std::string(line_rest)};
++                if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            }
+             constexpr std::array<std::string_view, 8> fens{
+                 forge::Board::StandardStartFen,
+                 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+diff -ru /tmp/forge-dot-r15d-src/include/forge/b4.hpp /tmp/forge-dot-kf-src/include/forge/b4.hpp
+--- /tmp/forge-dot-r15d-src/include/forge/b4.hpp	2026-11-18 12:03:52.122727569 +0100
++++ /tmp/forge-dot-kf-src/include/forge/b4.hpp	2026-11-18 16:20:41.434564222 +0100
+@@ -37,20 +37,26 @@
+ };
+ 
+ [[nodiscard]] inline LesserThreats lesser_threats(const Board& board) {
+-    const Color them = opposite(board.side_to_move());
+-    const Bitboard occupancy = board.occupied();
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
+     const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
+-    Bitboard by_minor = by_pawn;
+-    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
+-    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
+-    Bitboard by_rook = by_minor;
+-    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
+     LesserThreats threats;
+     threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
+     threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
+     threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
+-    threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
+-    threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++    const Bitboard us_queens = board.pieces(us, Queen);
++    if ((board.pieces(us, Rook) | us_queens) != 0) {
++        const Bitboard occupancy = board.occupied();
++        Bitboard by_minor = by_pawn;
++        for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
++        for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
++        threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
++        if (us_queens != 0) {
++            Bitboard by_rook = by_minor;
++            for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
++            threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++        }
++    }
+     return threats;
+ }
+ 
+diff -ru /tmp/forge-dot-r15d-src/include/forge/board.hpp /tmp/forge-dot-kf-src/include/forge/board.hpp
+--- /tmp/forge-dot-r15d-src/include/forge/board.hpp	2026-11-18 16:20:41.419885617 +0100
++++ /tmp/forge-dot-kf-src/include/forge/board.hpp	2026-11-18 16:20:41.434629519 +0100
+@@ -208,7 +208,8 @@
+     // double push next to an enemy pawn): then the caller prefetches after make_move.
+     [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
+ #endif
+-    [[nodiscard]] bool make_move(const Move& move, Undo& undo);
++    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr,
++                                 int known_gives_check = -1);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+     void unmake_null_move(const NullUndo& undo);
+@@ -219,6 +220,12 @@
+     [[nodiscard]] bool in_check(Color color) const;
+     [[nodiscard]] bool in_check() const { return checkers_ != 0; }
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
++#if FORGE_SPD_KING_LINES
++    const KingLines& ensure_king_lines() const {
++        if (!king_lines_.valid) refresh_king_lines();
++        return king_lines_;
++    }
++#endif
+ 
+     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
+     [[nodiscard]] static std::string move_to_uci(const Move& move);
+@@ -242,6 +249,7 @@
+     [[nodiscard]] bool see_ge(const Move& move, int threshold) const;
+ 
+     [[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }
++    [[nodiscard]] const std::array<Bitboard, 13>& piece_bitboards() const { return bitboards_; }
+     [[nodiscard]] Bitboard pieces(Piece piece) const { return bitboards_[static_cast<std::size_t>(piece)]; }
+     [[nodiscard]] Bitboard pieces(Color color, PieceType type) const {
+         return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];
+diff -ru /tmp/forge-dot-r15d-src/include/forge/eval.hpp /tmp/forge-dot-kf-src/include/forge/eval.hpp
+--- /tmp/forge-dot-r15d-src/include/forge/eval.hpp	2026-11-18 11:49:51.972411840 +0100
++++ /tmp/forge-dot-kf-src/include/forge/eval.hpp	2026-11-18 16:20:41.434682727 +0100
+@@ -51,6 +51,9 @@
+ // king score 0; king, bishop and knight versus king scores a corner drive.
+ // Returns false for every other position and leaves `score` untouched.
+ [[nodiscard]] bool dead_material_score(const Board& board, int& score);
++[[nodiscard]] inline bool has_dead_material_candidates(const Board& board) noexcept {
++    return (board.pieces(Pawn) | board.pieces(Rook) | board.pieces(Queen)) == 0;
++}
+ 
+ class Evaluator {
+ public:
+diff -ru /tmp/forge-dot-r15d-src/include/forge/nnue_v3.hpp /tmp/forge-dot-kf-src/include/forge/nnue_v3.hpp
+--- /tmp/forge-dot-r15d-src/include/forge/nnue_v3.hpp	2026-11-18 16:20:41.415014634 +0100
++++ /tmp/forge-dot-kf-src/include/forge/nnue_v3.hpp	2026-11-18 16:20:41.434720272 +0100
+@@ -173,7 +173,13 @@
+ [[nodiscard]] bool kernel_available(Kernel kernel);
+ 
+ // ---- feature set ----
+-[[nodiscard]] KingKey king_key(const Net& net, Color perspective, int king_square);
++[[nodiscard]] inline KingKey king_key(const Net& net, Color perspective, int king_square) noexcept {
++    const int kr = perspective == White ? king_square : king_square ^ 56;
++    return KingKey{
++        net.king_map[static_cast<std::size_t>(kr)],
++        static_cast<std::uint8_t>((net.mirror && (kr & 7) >= 4) ? 7 : 0),
++    };
++}
+ [[nodiscard]] int feature_index(KingKey key, Color perspective, Piece piece, int square);
+ [[nodiscard]] int output_bucket(const Net& net, const Board& board);
+ [[nodiscard]] inline const std::int16_t* column(const Net& net, int feature) {
+@@ -211,6 +217,11 @@
+ [[nodiscard]] int apply_pair_and_evaluate(const Net& net, const Accumulator& parent, Accumulator& child,
+                                           KingKey key0, int king0, KingKey key1, int king1,
+                                           const DirtyPieces& dirty, const Board& board);
++// Fused single-ply update + SCReLU output when one perspective keeps its king key and the other refreshes.
++[[nodiscard]] int apply_one_refresh_one_and_evaluate(const Net& net, RefreshCache& cache,
++                                                     const Accumulator& parent, Accumulator& child,
++                                                     KingKey key0, int king0, KingKey key1, int king1,
++                                                     const DirtyPieces& dirty, const Board& board);
+ // Accumulator of `perspective` for the placement `pieces` (own king on `king_square`), through the cache.
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                          std::int16_t* destination);
+@@ -261,17 +272,22 @@
+             apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
+         } else {
+             // The king changed bucket or side: rebuild this perspective from the
+-            // placement at index k, reconstructed by undoing the later plies.
+-            Pieces pieces = pieces_of(board);
+-            for (int j = top; j > k; --j) {
+-                const DirtyPieces& later = dirty_of(j);
+-                for (int i = 0; i < later.count; ++i) {
+-                    const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
+-                    if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
+-                    else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
++            // placement at index k, reconstructed by undoing the later plies when k < top.
++            if (k == top) {
++                refresh_from_pieces(net, state.cache, board.piece_bitboards(), p, king_square,
++                                    child.values[pi].data());
++            } else {
++                Pieces pieces = board.piece_bitboards();
++                for (int j = top; j > k; --j) {
++                    const DirtyPieces& later = dirty_of(j);
++                    for (int i = 0; i < later.count; ++i) {
++                        const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
++                        if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
++                        else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
++                    }
+                 }
++                refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data());
+             }
+-            refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data());
+         }
+     }
+     child.valid = true;
+diff -ru /tmp/forge-dot-r15d-src/include/forge/search.hpp /tmp/forge-dot-kf-src/include/forge/search.hpp
+--- /tmp/forge-dot-r15d-src/include/forge/search.hpp	2026-11-18 16:20:41.415236971 +0100
++++ /tmp/forge-dot-kf-src/include/forge/search.hpp	2026-11-18 16:20:41.434799208 +0100
+@@ -17,6 +17,9 @@
+ #include <mutex>
+ #include <thread>
+ #include <vector>
++#if defined(__AVX512F__)
++#include <immintrin.h>
++#endif
+ 
+ #ifndef FORGE_SPD_TT_NOTLS
+ // Build switch, default 0 (= the lock's code): the Worker that runs on the thread
+@@ -129,8 +132,18 @@
+     std::array<TTEntry, 4> entries{};
+ };
+ static_assert(sizeof(TTEntry) == 16);
++static_assert(offsetof(TTEntry, key32) == 0);
++static_assert(offsetof(TTEntry, depth) == 12);
++static_assert(offsetof(TTEntry, gen_bound) == 13);
+ static_assert(sizeof(TTCluster) == 64);
+ 
++struct WorkerTTProbe {
++    TTEntry entry{};
++    std::size_t cluster = 0;
++    std::uint8_t slot = 0;
++    bool hit = false;
++};
++
+ class TranspositionTable;
+ 
+ // Immutable entry copy plus an opaque probe-time replacement destination.
+@@ -193,6 +206,13 @@
+     static thread_local const ExclusiveLease* active_lease_;
+     [[nodiscard]] bool has_exclusive_access() const;
+     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
++    // Place hot read-mostly probe metadata in the very first cache line of TranspositionTable
++    // rather than +65,712 bytes behind stripes_.
++    std::unique_ptr<TTCluster[]> clusters_;
++    std::size_t cluster_count_ = 0;
++    std::uint64_t epoch_ = 0;
++    std::uint8_t generation_ = 0;
++
+ #if FORGE_SPD_TT_NOTLS
+     // One body per access with a compile-time "take the stripe lock" parameter.
+     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+@@ -206,16 +226,74 @@
+     [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
+     void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                      bool pv, std::uint16_t halfmove_clock);
++    [[nodiscard]] static std::uint8_t replace_full_cluster_slot(const TTCluster& cluster, std::uint8_t generation) noexcept;
++    void refresh_hit_sample_gen(std::uint8_t old_gen, std::uint8_t new_gen) const noexcept {
++        sample_gen_counts_[old_gen].fetch_sub(1, std::memory_order_relaxed);
++        sample_gen_counts_[new_gen].fetch_add(1, std::memory_order_relaxed);
++    }
++    [[nodiscard]] WorkerTTProbe probe_locked_fast(std::uint64_t key) const;
++    void store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
++                          Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++    void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
++                           Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
++        const std::size_t index = cluster_index(key);
++        TTCluster& cluster = clusters_[index];
++        const std::uint32_t key32 = verification_key(key);
++        const std::uint8_t generation = generation_;
++#if defined(__AVX512F__)
++        const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
++        const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
++        const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
++        const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
++        if (hit_m != 0U) {
++            const unsigned slot = static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U;
++            TTEntry& found = cluster.entries[slot];
++            if (found.generation() != generation) {
++                if (index < HashfullSampleLimit) [[unlikely]] {
++                    refresh_hit_sample_gen(found.generation(), generation);
++                }
++                found.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation) << 3U) | (found.gen_bound & 7U));
++            }
++            return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
++        }
++        if (static_cast<unsigned>(occ_m) != 0x8888U) {
++            const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m) ^ 0x8888U)) >> 2U;
++            return WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false};
++        }
++        const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++#else
++        for (std::size_t s = 0; s < 4; ++s) {
++            TTEntry& entry = cluster.entries[s];
++            if (entry.key32 == key32 && entry.occupied()) {
++                if (entry.generation() != generation) {
++                    if (index < HashfullSampleLimit) [[unlikely]] {
++                        refresh_hit_sample_gen(entry.generation(), generation);
++                    }
++                    entry.gen_bound = static_cast<std::uint8_t>(
++                        (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
++                }
++                return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++            }
++        }
++        for (std::size_t s = 0; s < 4; ++s) {
++            if (!cluster.entries[s].occupied()) {
++                return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++            }
++        }
++        const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++#endif
++    }
+ #endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
+     mutable std::atomic<bool> stripes_dirty_{false};
+     mutable std::array<std::atomic<int>, 32> sample_gen_counts_{};
+     std::atomic<bool> exclusive_requested_{false};
+-    std::uint64_t epoch_ = 0;
+-    std::unique_ptr<TTCluster[]> clusters_;
+-    std::size_t cluster_count_ = 0;
+-    std::uint8_t generation_ = 0;
+ 
+     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
+ #if defined(__SIZEOF_INT128__)
+@@ -228,14 +306,17 @@
+ #endif
+     }
+ 
+-    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++    [[nodiscard]] std::size_t cluster_index(std::uint64_t key) const noexcept {
+ #if defined(__SIZEOF_INT128__)
+         __extension__ using u128 = unsigned __int128;
+-        return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];
++        return static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U);
+ #else
+-        return clusters_[static_cast<std::size_t>(key % cluster_count_)];
++        return static_cast<std::size_t>(key % cluster_count_);
+ #endif
+     }
++    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++        return clusters_[cluster_index(key)];
++    }
+ };
+ 
+ // Search constants exposed for tuning. The UCI layer accepts them as unlisted
+@@ -452,8 +533,9 @@
+     bool entered_null = false;
+     bool diff_known = false;
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+-    mutable std::uint64_t corr_mat_mix = 0;
++    mutable std::uint16_t corr_mat_idx = 0;
+     mutable std::uint8_t corr_valid = 0;
++    mutable std::uint64_t corr_mat_mix = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -563,18 +645,50 @@
+     std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
+     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+-    std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
++    mutable std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{}; // HistRework: maps of the node at each ply
++    mutable std::array<std::uint8_t, MaxPly + 8> threat_map_ready_{};
++    mutable MoveList picker_scratch_;
++    mutable MoveList evasion_scratch_;
++
++    [[nodiscard]] const b4::LesserThreats& ensure_threat_map(const Board& board, int ply) const {
++        const auto idx = static_cast<std::size_t>(ply);
++        if (threat_map_ready_[idx] == 0U) {
++            threat_maps_[idx] = b4::lesser_threats(board);
++            threat_map_ready_[idx] = 1U;
++        }
++        return threat_maps_[idx];
++    }
++    [[nodiscard]] Bitboard threat_set_for_piece(const Board& board, int ply, int pt) const {
++        if (pt == King || pt == NoPieceType) return 0ULL;
++        const auto idx = static_cast<std::size_t>(ply);
++        if (threat_map_ready_[idx] != 0U) return threat_maps_[idx].by_type[static_cast<std::size_t>(pt)];
++        if (pt <= Bishop) {
++            const Color them = opposite(board.side_to_move());
++            return pawn_attacks_bb(them, board.pieces(them, Pawn));
++        }
++        return ensure_threat_map(board, ply).by_type[static_cast<std::size_t>(pt)];
++    }
++    bool nnue_active_ = false;
++#if FORGE_NNUE_V3
++    const nnue::v3::Net* v3_active_net_ = nullptr;
++#endif
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
++    bool fast_single_node_stop_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+-    // The six TT call sites of search / qsearch: one predictable branch per access.
+-    [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+-        return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
+-    }
+-    void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+-                  bool pv, std::uint16_t halfmove_clock) {
+-        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+-        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++    // The TT call sites of search / qsearch: inline AVX-512 fast path when tt_owned_ holds.
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_tt(std::uint64_t key) const {
++        return tt_owned_ ? shared_.tt.probe_owned_fast(key) : shared_.tt.probe_locked_fast(key);
++    }
++    [[gnu::always_inline]] void store_tt(const WorkerTTProbe& probe, std::uint64_t key, int score, int eval, Move move,
++                                         int depth, Bound bound, bool pv, std::uint16_t halfmove_clock) {
++        if (tt_owned_) {
++            shared_.tt.store_owned_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
++                                        halfmove_clock);
++        } else {
++            shared_.tt.store_locked_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
++                                         halfmove_clock);
++        }
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+@@ -617,6 +731,15 @@
+ #endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
++    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++        if (fast_single_node_stop_) {
++            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++                return shared_.stop.load(std::memory_order_relaxed);
++            }
++            return should_stop();
++        }
++        return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    }
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
