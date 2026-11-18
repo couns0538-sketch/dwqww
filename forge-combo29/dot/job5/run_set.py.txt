@@ -1,0 +1,23 @@
+import pathlib,runpy,json,hashlib,re,contextlib,sys,subprocess
+root=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job5');m=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')
+exe,label=sys.argv[1],sys.argv[2];extra=[]
+for arg in sys.argv[3:]:name,value=arg.split('=',1);extra.append((name,int(value)))
+fens=[' '.join(s.split()[:4])+' 0 1' for s in pathlib.Path('forge-dot-evidence/job3_O.epd').read_text().splitlines() if s.strip()];assert len(fens)==200
+uci=subprocess.run([exe],input='uci\nquit\n',text=True,capture_output=True,timeout=10).stdout
+names={re.match(r'option name (.*?) type ',s).group(1) for s in uci.splitlines() if s.startswith('option name ')}
+for n,v in extra:assert n in names,n
+meta={'exe':exe,'sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'id name':[s for s in uci.splitlines() if s.startswith('id name ')],'settings_sent_in_order':list(m['PC20'].items())+extra,'depth':12,'positions_sha256':hashlib.sha256(pathlib.Path('forge-dot-evidence/job3_O.epd').read_bytes()).hexdigest(),'protocol':'one process per setting; ucinewgame + isready/wait before each FEN'}
+(root/(label+'.rows.txt.meta.txt')).write_text(json.dumps(meta,indent=2)+'\n')
+rows=[]
+with (root/(label+'.raw.txt')).open('w') as fp,contextlib.redirect_stdout(fp):
+ e=m['Engine'](exe,label,m['PC20'])
+ for n,v in extra:e.send('setoption name '+n+' value '+str(v))
+ e.send('isready');e.until(lambda s:s=='readyok')
+ for i,fen in enumerate(fens):
+  e.send('ucinewgame');e.send('isready');e.until(lambda s:s=='readyok');e.send('position fen '+fen);e.send('go depth 12');out=e.until(lambda s:s.startswith('bestmove '))
+  infos=[s for s in out if s.startswith('info ') and re.search(r'\bdepth \d+',s) and re.search(r'\bnodes \d+',s)];assert infos
+  info=infos[-1];row={'index':i,'fen':fen,'nodes':int(re.search(r'\bnodes (\d+)',info)[1]),'bestmove':out[-1].split()[1],'last_info':info};rows.append(row)
+  with (root/(label+'.rows.txt')).open('a') as f:f.write(json.dumps(row)+'\n')
+ e.close()
+summary={'label':label,'sha256':meta['sha256'],'settings':extra,'rows':len(rows),'sum':sum(r['nodes'] for r in rows),'first_three':[r['nodes'] for r in rows[:3]],'bestmoves_first_three':[r['bestmove'] for r in rows[:3]]}
+(root/(label+'.summary.txt')).write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
