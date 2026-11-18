@@ -1,0 +1,15 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2747,6 +2747,12 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    if (emit_info) {
++        const std::lock_guard<std::mutex> lock(uci_output_mutex());
++        std::cout << "info string DOT_RESULT nodes " << result.nodes << " depth " << result.depth << " score " << result.score << " pv";
++        for (const auto move : result.pv) std::cout << ' ' << Board::move_to_uci(move);
++        std::cout << std::endl;
++    }
+     return result;
+ }
+ 
