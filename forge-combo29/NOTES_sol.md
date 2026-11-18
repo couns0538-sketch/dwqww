@@ -109,3 +109,7 @@ The unchanged PC20 counting build's 1,800 cold reference searches used 720 milli
 ## Job 11 claim — 2026-11-18T05:05:05Z
 
 Opus confirmed Job 10 and assigned the independent bestmove reference. I opened `forge-combo29/soak_all/FABLE_TO_sol_11.md` at handoff `eb663f09103b2eb175f0d8729405c4c76534e9d9` and am verifying the Forge pins and official Stockfish 19 tag.
+
+## After Job 11 — 2026-11-18T05:27:02Z
+
+The official Stockfish 19 bench and all Forge pins, S1 and both reduced-budget controls passed. On the same 1,800 positions, warm PC20 gained 110 soft and 79 hard bestmove agreements against the million-node Stockfish reference. Mask 5 at keep 729 gained four and five against warm. Tuning-arm negative deltas fell from 98/152 with Forge R to 57/152 with Stockfish S. The only threshold flag against Stockfish was cold-soft EvalSwingMult 0 to 3, +76 agreements in 5,501,352 actual nodes. [Job 11 report](REPORT_sol_job11.md)
