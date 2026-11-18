@@ -1,0 +1,53 @@
+Job 21 r15d source and table interpretation
+
+The r15d source is the uninstrumented tree used in Job 19, reproduced locally
+at sol3-job4/r15d. These line numbers refer to that tree.
+
+- src/search.cpp:2659–2666 sets the finished-iteration target to N and the
+  hard limit to 4N for the main softnodes worker. The hard budget is checked
+  before incrementing the local count in qsearch (1766–1774) and regular
+  search (1913–1923). At the hard budget, should_stop_with (1537–1547)
+  marks stopped_by_nodes_ for the main worker.
+- src/search.cpp:3024–3051 handles an aborted aspiration pass before result
+  publication. Both partial-PV salvage paths require !stopped_by_nodes_.
+  The abort exits before the score, depth, PV, and move assignment at
+  3053–3059, preserving the move and score established by the last
+  completed iteration. At MultiPV 1, 3141–3143 emits that completed result.
+  The soft budget is checked after this emission at 3151–3155, before
+  starting the next iteration.
+- src/search.cpp:3229–3249 publishes the final accumulated nodes as
+  "info string softnodes nodes". This includes nodes from an unfinished
+  iteration. The result's seldepth is also updated from all work at 3231.
+- src/search.cpp:2713–2718 takes the displayed time from worker start and
+  truncates to whole milliseconds. The worker starts its clock at
+  2623–2627 if a command/clock origin was not supplied. src/uci.cpp:779–784
+  supplies the command origin only for finite externally clocked searches.
+  G1 measures wall from go to receiving bestmove. Its per-capped-search
+  wall minus info time includes dispatch and UCI readback in addition to
+  work after the last completed iteration. The displayed time loses less
+  than 1 millisecond per capped search through truncation.
+- A completed descendant of the eventually aborted root iteration can
+  update histories at src/search.cpp:2493–2509, write the TT at 2517–2523,
+  and update correction history at 2525–2531. Those writes are not rolled
+  back by the root abort. src/uci.cpp:490–497 clears once on ucinewgame,
+  via the TT and worker clears at src/search.cpp:3284–3287,1217–1238.
+  src/uci.cpp:736–738 changes position without the clear and the next
+  search ages the table at src/search.cpp:3312 (include/forge/search.hpp:158).
+  Thus the skipped tail also changes the state inherited by later moves.
+
+C reflects two observed boundaries per TSV search. At the last completed
+depth d, when its cumulative nodes are below 2,000, a capped search can
+save final minus last-info nodes. At the immediately preceding completed
+depth d−1, then the last available completed depth, the same rule can block
+the actual completed depth d. This false-stop test needs the d−2 snapshot.
+The literal sensitivity also requires the observed final completed depth
+to end below 2,000. Invalid/nonconsecutive snapshots are never used as
+the preceding iteration. A missing preceding snapshot cannot trigger
+R(k). The tables show overlap if both boundaries would trigger for the
+same search and separately give cap savings after excluding overlaps.
+
+The cap-tail total is an upper bound on directly removable nodes in these
+recorded searches. A live policy leaves fewer TT entries and different
+histories, and a false stop can select a different move and change the
+positions that follow. The offline copy of the observed game therefore
+does not estimate the net cost or playing strength of that live policy.
