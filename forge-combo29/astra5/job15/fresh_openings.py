@@ -1,0 +1,211 @@
+"""Derive and audit small disjoint EPD books using fastchess v1.8.3-alpha's seeded order."""
+import argparse
+import collections
+import hashlib
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+
+STAGES = {'C15':(100,7371), 'T1b':(300,7372)}
+HISTORY = {8:{'K8':50,'C8':100,'M1':1000,'M2':400},
+           9:{'K9':50,'C9':100,'M1b':1000,'M2b':400},
+           11:{'K11':25,'C11':100,'M2c':400,'M2d':400},
+           12:{'K12':10,'C12':50,'M3':300,'M3b':300},
+           13:{'A13':100,'K13':10,'M3c':300,'M3d':300},14:{'C14':100}}
+ORIGINAL = '7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a'
+ROOT = Path('/workspace/work')
+OUT = ROOT/'j15review'
+ARCHIVE = None
+SOURCE = ROOT/'j8gate/UHO_Lichess_4852_v1.epd'
+SHUFFLE = """
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <vector>
+int main(int argc, char** argv) {
+    std::size_t n = std::stoull(argv[1]), take = std::stoull(argv[2]);
+    std::mt19937_64 gen(std::stoull(argv[3]));
+    std::vector<std::size_t> items(n);
+    std::iota(items.begin(), items.end(), 0);
+    for (std::size_t i = 0; i < take; ++i) {
+        if (i + 1 < n) std::swap(items[i], items[i + gen() % (n - i)]);
+        std::cout << items[i] << '\\n';
+    }
+}
+"""
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+def marks(s):
+    a=s.split()
+    if len(a)!=6 or a[1] not in ('w','b'): raise ValueError(s)
+    castle=''.join(c for c in 'KQkq' if c in a[2]) or '-'
+    position=(a[0],a[1],castle)
+    return position, (*position,a[3])
+def rounds(path,n):
+    data=path.read_bytes()
+    headers=re.findall(rb'(?m)^\[Event [^\n]*(?:\n\[[^\n]+)*',data)
+    out=collections.defaultdict(list)
+    for h in headers:
+        r=int(re.search(rb'(?m)^\[Round "(\d+)"\]',h)[1])
+        f=re.search(rb'(?m)^\[FEN "([^"]+)"\]',h)[1].decode()
+        out[r].append(f)
+    if set(out)!=set(range(1,n+1)) or any(len(g)!=2 or g[0]!=g[1] for g in out.values()):
+        raise ValueError(f'incomplete rounds or unequal opening pairs: {path}')
+    return [out[i][0] for i in range(1,n+1)],sha(data)
+def played_records(path,stage,ordered):
+    """A clock match can stop while only one color, or neither, finished a round."""
+    data=path.read_bytes()
+    headers=re.findall(rb'(?m)^\[Event [^\n]*(?:\n\[[^\n]+)*',data)
+    groups=collections.defaultdict(list)
+    for header in headers:
+        def tag(name):
+            m=re.search(rb'(?m)^\['+name.encode()+rb' "([^"]*)"\]$',header)
+            if not m: raise ValueError(f'missing PGN {name} in {path}')
+            return m[1].decode()
+        ri=int(tag('Round'));fen=tag('FEN'); white=tag('White'); black=tag('Black'); result=tag('Result')
+        if not 1<=ri<=len(ordered) or marks(fen)[1]!=marks(ordered[ri-1])[1]:
+            raise ValueError(f'round {ri} differs from selected four-field opening')
+        if {white,black}!={stage+'-A',stage+'-B'} or result not in ('1-0','0-1','1/2-1/2','*'):
+            raise ValueError(f'unexpected players or result at round {ri}')
+        groups[ri].append((fen,white,result))
+    for ri,games in groups.items():
+        if len(games)>2 or len({g[1] for g in games})!=len(games) or len({g[0] for g in games})!=1:
+            raise ValueError(f'duplicate color, extra game or differing FEN at round {ri}')
+    return groups,sha(data)
+def permutation(n,take,seed):
+    prog=OUT/'shuffle'
+    if not prog.exists():
+        with tempfile.TemporaryDirectory(dir=OUT) as d:
+            target=Path(d)/'shuffle'
+            subprocess.run(['c++','-std=c++17','-O2','-x','c++','-','-o',target],input=SHUFFLE,text=True,check=True)
+            target.replace(prog)
+    return list(map(int,subprocess.check_output([prog,str(n),str(take),str(seed)],text=True).split()))
+def prior(stage):
+    h={k:dict(v) for k,v in HISTORY.items()}
+    h[15]={k:STAGES[k][0] for k in list(STAGES)[:list(STAGES).index(stage)]}
+    used3=set(); used4=set(); meta=[]
+    for job,matches in h.items():
+        for match,n in matches.items():
+            p=(ARCHIVE/f'job{job}/{match}.pgn') if ARCHIVE is not None else (ROOT/f'j{job}match/results/{match}.pgn')
+            fens,checksum=rounds(p,n)
+            for f in fens:
+                key3,key4=marks(f); used3.add(key3); used4.add(key4)
+            meta.append(f'prior_pgn job{job}/{match}.pgn pairs={n} sha256={checksum}')
+    # Job 14's T1 was intentionally cut. Use the recorded roots directly,
+    # then separately exclude scheduled roots of any started but unscored round.
+    prev=(ARCHIVE/'job14') if ARCHIVE is not None else (ROOT/'j14match/results')
+    pgn=(prev/'T1.pgn').read_bytes()
+    groups=collections.defaultdict(list)
+    for h in re.findall(rb'(?m)^\[Event [^\n]*(?:\n\[[^\n]+)*',pgn):
+        r=int(re.search(rb'(?m)^\[Round "(\d+)"\]',h)[1])
+        fen=re.search(rb'(?m)^\[FEN "([^"]+)"\]',h)[1].decode()
+        groups[r].append(fen)
+    for r,group in groups.items():
+        if len(group)>2 or len(set(group))!=1:raise ValueError(f'conflicting prior T1 round {r}')
+        k3,k4=marks(group[0]);used3.add(k3);used4.add(k4)
+    raw=(prev/'T1.out').read_bytes()
+    starts={int(i) for i in re.findall(rb'^Started game (\d+) of ',raw,re.M)}
+    unobserved={(i+1)//2 for i in starts}-groups.keys()
+    # These are the corresponding one-based original EPD lines in seed 7362's
+    # full-book shuffled prefix; its one prior-used skip was later at rank 178.
+    indices=permutation(2632036,57,7362)
+    pins={56:(1975550,'fbaefa1369f1c3e3d116736c139daffabc11dd07a557fe35859b09c0a5352510'),
+          57:(404757,'eeb2d84831277aaea57156e7a6bc1b994125543fb77deeb88c41d42e35e207f3')}
+    if unobserved-set(pins):raise ValueError(f'unrecognized historical starts: {unobserved}')
+    wanted={pins[r][0]:(r,pins[r][1]) for r in unobserved}
+    extra3=set();extra4=set()
+    with SOURCE.open() as original:
+        for i,line in enumerate(original,1):
+            if i not in wanted:continue
+            r,pin=wanted[i];k3,k4=marks(line)
+            if i!=indices[r-1]+1 or sha(' '.join(k4).encode())!=pin:raise ValueError('historical scheduled root mismatch')
+            extra3.add(k3);extra4.add(k4)
+            meta.append(f'prior_started_without_PGN job14/T1 round={r} original_seed=7362 original_EPD_line={i} four_field_SHA256={pin}')
+            if i==max(wanted):break
+    meta += [f'prior_partial_PGN job14/T1 pairs={sum(len(g)==2 for g in groups.values())} singletons={sum(len(g)==1 for g in groups.values())} recorded_roots={len(groups)} sha256={sha(pgn)}',
+             f'prior_partial_controller_output job14/T1.out started_games={len(starts)} sha256={sha(raw)}',
+             f'prior_PGN_confirmed_unique_four_field {len(used4)}',
+             f'prior_PGN_confirmed_unique_ignoring_ep {len(used3)}',
+             f'additional_started_without_PGN_unique_ignoring_ep {len(extra3-used3)}']
+    return used3|extra3,used4|extra4,meta,extra3-used3
+def run(action,stage):
+    needed,seed=STAGES[stage]
+    excluded,exact,meta,conservative_only=prior(stage)
+    src=SOURCE
+    src_bytes=src.read_bytes()
+    if sha(src_bytes)!=ORIGINAL: raise ValueError('original UHO book SHA mismatch')
+    data=[s for s in src_bytes.splitlines() if s]
+    del src_bytes
+    take=min(len(data),needed+128)
+    while True:
+        idx=permutation(len(data),take,seed)
+        chosen=[]; seen=set(); prior_hits=0; conservative_hits=0; dup_hits=0
+        for i in idx:
+            opening=data[i].decode()
+            key,_=marks(opening)
+            if key in excluded:
+                prior_hits+=1; conservative_hits+=int(key in conservative_only);continue
+            if key in seen: dup_hits+=1;continue
+            chosen.append(data[i]);seen.add(key)
+            if len(chosen)==needed: break
+        if len(chosen)==needed: break
+        if take==len(data): raise RuntimeError('not enough unused openings')
+        take=min(take*2,len(data))
+    # Undo the controller's second shuffle on this small book, to preserve the
+    # original full-book seeded order even after already-used positions skip.
+    sorted_for_file=[None]*needed
+    for game,i in zip(chosen,permutation(needed,needed,seed)):
+        sorted_for_file[i]=game
+    payload=b'\n'.join(sorted_for_file)+b'\n'
+    path=OUT/(stage+'.epd')
+    if action=='prepare' and not path.exists():
+        with tempfile.NamedTemporaryFile(dir=OUT,delete=False) as tmp:
+            tmp.write(payload)
+        Path(tmp.name).replace(path)
+    if path.read_bytes()!=payload: raise ValueError(f'derived book mismatch {stage}')
+    lines=[f'match {stage} seed {seed}',f'original_sha256 {ORIGINAL}',f'original_nonempty_entries {len(data)}',
+        'Order uses fastchess Openings::shuffle (std::mt19937_64 Fisher-Yates). Walk the original seeded order until enough eligible positions, skipping historical or within-match duplicates. Inverse-permute the small EPD so fastchess order=random with the required seed emits the chosen sequence.',
+        'Four-field EPD key uses placement, side, sorted castling rights and EP target. The exclusion key also drops the EP field to reject the same position under optional, uncapturable, or differing EP encodings. Move counters do not distinguish openings. PGN pairs start at their FEN tags. Book EPD has no prefixed moves.',
+        *meta,f'prior_unique_four_field {len(exact)}',f'prior_unique_ignoring_ep {len(excluded)}',f'prior_hits_skipped_in_seeded_prefix {prior_hits}',f'prior_PGN_confirmed_hits_skipped {prior_hits-conservative_hits}',f'prior_started_without_PGN_hits_skipped {conservative_hits}',f'duplicates_skipped_in_seeded_prefix {dup_hits}',
+        f'selected_positions {len(chosen)}',f'selected_distinct_ignoring_ep {len(seen)}',f'selected_overlap_prior_ignoring_ep {len(excluded&seen)}',f'derived_sha256 {sha(payload)}']
+    if action=='audit':
+        p=(ARCHIVE/f'job15/{stage}.pgn') if ARCHIVE is not None else (ROOT/f'j15match/results/{stage}.pgn')
+        groups,checksum=played_records(p,stage,[row.decode() for row in chosen])
+        played={r:[g for g in games if g[2]!='*'] for r,games in groups.items()}
+        complete=sorted(r for r,games in played.items() if len(games)==2)
+        single=sorted(r for r,games in played.items() if len(games)==1)
+        a3={marks(games[0][0])[0] for games in groups.values()}
+        a4={marks(games[0][0])[1] for games in groups.values()}
+        if len(a3)!=len(groups) or len(a4)!=len(groups) or a3&excluded or a4&exact:
+            raise ValueError('actual PGN root repeated or reused an earlier match opening')
+        unfinished=sum(g[2]=='*' for games in groups.values() for g in games)
+        singleton_detail=[f'{r}({played[r][0][1]} White,{played[r][0][2]})' for r in single]
+        lines += [f'actual_pgn_sha256 {checksum}',f'scheduled_opening_pairs {needed}',
+                  f'actual_pgn_records {sum(map(len,groups.values()))}',
+                  f'actual_games_with_result {sum(map(len,played.values()))}',
+                  f'actual_unfinished_star_records {unfinished}',
+                  f'actual_opening_pairs {len(complete)}',
+                  f'actual_singleton_rounds {len(single)}',
+                  'singleton_round_ids_white_result '+(' '.join(singleton_detail) or 'none'),
+                  f'actual_rounds_with_any_pgn_record {len(groups)}',
+                  f'scheduled_rounds_without_a_pgn_record {needed-len(groups)}',
+                  f'actual_distinct_four_field {len(a4)}',f'actual_distinct_ignoring_ep {len(a3)}',
+                  f'actual_overlap_prior_PGN_ignoring_ep {len(a3&(excluded-conservative_only))}',f'actual_overlap_prior_started_without_PGN_ignoring_ep {len(a3&conservative_only)}',f'actual_overlap_prior_four_field {len(a4&exact)}',f'actual_overlap_prior_ignoring_ep {len(a3&excluded)}',
+                  'all_recorded_roots_equal_four_field_seeded_selection_at_actual_round yes',
+                  'all_completed_pairs_have_opposite_colors_and_identical_full_FEN yes']
+    suffix='preflight' if action=='prepare' else 'audit'
+    (OUT/f'{stage}-opening-{suffix}.txt').write_text('\n'.join(lines)+'\n')
+    print('\n'.join(lines[-8:]))
+if __name__=='__main__':
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('action',choices=['prepare','audit']);p.add_argument('stage',choices=STAGES)
+    p.add_argument('--archive',type=Path,help='astra5 PGN archive containing job8/, job9/, job11/, job12/, job13/, job14/ and job15/; otherwise local match results are used')
+    p.add_argument('--source-book',type=Path,default=SOURCE,help='original 2,632,036-position UHO EPD')
+    p.add_argument('--out',type=Path,default=OUT,help='scratch directory for generated books, helper and receipts')
+    a=p.parse_args()
+    SOURCE=a.source_book; OUT=a.out; ARCHIVE=a.archive
+    OUT.mkdir(parents=True,exist_ok=True)
+    run(a.action,a.stage)
