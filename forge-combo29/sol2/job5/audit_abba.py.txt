@@ -1,0 +1,25 @@
+from pathlib import Path
+import json, math,sys
+from statistics import fmean
+root=Path(sys.argv[1]); anchor=(8612,29333343,'5c705841c3ea17b4')
+rows=[json.loads(s) for s in (root/'runs.jsonl.txt').read_text().splitlines()]
+summary=json.loads((root/'summary.txt').read_text())
+assert len(rows)==24 and all(x['eligible'] and (x['searches'],x['total_nodes'],x['trace_fnv1a64'])==anchor for x in rows)
+for metric in ('engine_cpu_s','total_wall_ns'):
+    ratios=[]
+    aa=[]
+    for index in range(6):
+        a,b,c,d=rows[index*4:index*4+4]
+        assert [x['engine'] for x in (a,b,c,d)]==['r15d','k12','k12','r15d']
+        est=(float(b[metric])+float(c[metric]))/(float(a[metric])+float(d[metric]))
+        control=float(a[metric])/float(d[metric])
+        assert math.isclose(est,summary['blocks'][index][metric]['k12_over_r15d'])
+        assert math.isclose(control,summary['blocks'][index][metric]['r15d_first_over_last'])
+        ratios.append(est); aa.append(control)
+    pooled=fmean(x[metric] for x in rows if x['engine']=='k12')/fmean(x[metric] for x in rows if x['engine']=='r15d')
+    result=summary['metrics'][metric]
+    for actual,key in ((pooled,'k12_over_r15d'),(min(ratios),'block_min'),(max(ratios),'block_max'),(min(aa),'aa_min'),(max(aa),'aa_max')):
+        assert math.isclose(actual,result[key])
+    assert result['inside_aa_spread']==(min(aa)<=pooled<=max(aa))
+    print(metric, 'pooled',pooled,'block spread',min(ratios),max(ratios),'AA spread',min(aa),max(aa))
+print('24 valid traces and all ABBA arithmetic reproduced.')

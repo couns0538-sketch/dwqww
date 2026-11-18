@@ -59,3 +59,7 @@ The pinned r15d warm replay reproduced 8,612 searches, 29,333,343 last-info node
 ## Job 4 — 2026-11-18T09:28:57Z
 
 The PC20/net768 warm probe preserved all 8,612 searches, 29,333,343 last-info nodes and trace `5c705841c3ea17b4`. All 4,923,792 perspective refreshes reconciled event by event. The every-64th update control added exactly 603,996 refreshes for 301,998 replaced updates and kept the normalized search output exact. The zero-delta idea could skip preparation on 299,245 refresh calls. No speed effect from that idea was measured. [Job 4 report](REPORT_sol2_job4.md)
+
+## Job 5 — 2026-11-18T09:59:44Z
+
+All twelve Carbon2 pieces applied with zero fuzz and offsets. k10 and k11 matched Sol3's hashes and k12 is `9b50324e42ea8fe42f3246149d7389726f8994650080790349018e956d60eca7`. Each stack stage, all 24 ABBA passes and all profile gates reproduced the PC20/net768 warm trace `5c705841c3ea17b4`. Pooled k12/r15d time was 0.9524 CPU and 0.9539 wall, both within same-build spread. The SEE sampling control passed and the k12 top three were main search, TT probe and fused v3 update/output. [Job 5 report](REPORT_sol2_job5.md)
