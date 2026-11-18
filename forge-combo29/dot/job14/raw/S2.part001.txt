@@ -1,0 +1,1481 @@
+UTC START 2026-11-18T19:51:17.918051+00:00
+{"label": "S2 PC20 net768 softnodes2000 first20distinct W1", "sha256": "14e0a5935fcde67fae88fb300c4428be2bd915ca4492cd708ddbf9619d766779", "options": {"Threads": 1, "Hash": 16, "OwnBook": "false", "LmrQuietBase": 93, "LmrQuietDivisor": 205, "LmrNoisyBase": 13, "LmrNoisyDivisor": 333, "LmrHistoryDivisor": 5643, "NullMoveBase": 5, "LmpBase": 8, "HistoryPruneMultiplier": 2220, "HistoryBonusQuadratic": 24, "HistoryBonusLinear": 54, "HistoryBonusMax": 2212, "SingularDepth": 6, "IirDepth": 2, "NonPawnCorrection": "true", "CuckooRep": "true", "HistRework": 2, "TtPruneV2": "true", "CorrHistV2": "true", "MateAlphaGuard": "true"}}
+> uci
+< id name Chess Engine Forge 6.4.24 candidate
+< id author OpenAI
+< option name Hash type spin default 32 min 1 max 2048
+< option name Threads type spin default 1 min 1 max 256
+< option name MultiPV type spin default 1 min 1 max 8
+< option name Move Overhead type spin default 10 min 0 max 1000
+< option name Ponder type check default false
+< option name OwnBook type check default true
+< option name Book File type string default <empty>
+< option name Book Depth type spin default 30 min 0 max 100
+< option name Book Variety type spin default 30 min 0 max 100
+< option name UseNNUE type check default true
+< option name NnueFile type string default <empty>
+< option name NNUEArch type check default false
+< option name NNUEArchFile type string default <empty>
+< option name ContHist4PlyRead type check default false
+< option name NonPawnCorrection type check default false
+< option name LmrDeeperShallower type check default false
+< option name EvalRule50Damp type check default false
+< option name ThreatHistory type check default false
+< option name LmrSignedCorrection type check default false
+< option name LmrLateParentRelief type check default false
+< option name HindsightDepth type check default false
+< option name NullThreatVerify type check default false
+< option name NullSeeVeto type check default false
+< option name AspCappedReopen type check default false
+< option name AspArmLate type check default false
+< option name EvasionOrdering type check default false
+< option name DeadMaterial type check default false
+< option name QuietExtinction type check default false
+< option name DrawJitter type spin default 0 min 0 max 8
+< option name TmFinishIteration type check default false
+< option name TmNodeShare type check default false
+< option name SoundMatePruning type check default false
+< option name CuckooRep type check default false
+< option name HistRework type spin default 0 min 0 max 3
+< option name TtPruneV2 type check default false
+< option name CorrHistV2 type check default false
+< option name MateAlphaGuard type check default false
+< option name LmrQuietBase type spin default 85 min 0 max 300
+< option name LmrQuietDivisor type spin default 220 min 100 max 500
+< option name LmrNoisyBase type spin default 10 min 0 max 300
+< option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< option name NullMoveMinDepth type spin default 3 min 1 max 10
+< option name NullMoveBase type spin default 3 min 1 max 6
+< option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< option name RfpDepth type spin default 8 min 0 max 15
+< option name RfpMargin type spin default 72 min 10 max 300
+< option name RfpImproving type spin default 40 min 0 max 200
+< option name RazorDepth type spin default 2 min 0 max 6
+< option name RazorBase type spin default 150 min 0 max 1000
+< option name RazorMultiplier type spin default 350 min 0 max 1000
+< option name FutilityDepth type spin default 7 min 0 max 15
+< option name FutilityBase type spin default 100 min 0 max 500
+< option name FutilityMultiplier type spin default 110 min 0 max 500
+< option name LmpBase type spin default 4 min 0 max 20
+< option name HistoryPruneDepth type spin default 3 min 0 max 10
+< option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< option name SingularDepth type spin default 7 min 2 max 20
+< option name SingularMargin type spin default 2 min 0 max 10
+< option name IirDepth type spin default 4 min 1 max 20
+< option name ProbcutDepth type spin default 5 min 1 max 20
+< option name ProbcutMargin type spin default 180 min 0 max 1000
+< option name QsFutilityMargin type spin default 160 min 0 max 1000
+< option name QsSeeMargin type spin default 40 min 0 max 500
+< option name AspirationDelta type spin default 18 min 4 max 200
+< option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< option name HistoryBonusLinear type spin default 48 min 0 max 500
+< option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< option name CheckExtensionDepth type spin default 2 min 1 max 30
+< option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< option name TmSoftDivisor type spin default 22 min 5 max 80
+< option name TmIncrementPercent type spin default 75 min 0 max 150
+< option name TmHardPercent type spin default 60 min 10 max 95
+< option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< option name TmStableFactor type spin default 60 min 20 max 150
+< option name TmSemiStableFactor type spin default 80 min 20 max 150
+< option name TmUnstableFactor type spin default 140 min 50 max 300
+< option name TmEffortBase type spin default 155 min 100 max 250
+< option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< option name TmMinFactorPercent type spin default 45 min 10 max 100
+< option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< option name AspFailHighReduce type spin default 0 min 0 max 1
+< option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+< option name EvalSwingMult type spin default 0 min 0 max 64
+< option name EvalSwingMax type spin default 200 min 50 max 400
+< option name TtCutoffHistory type spin default 0 min 0 max 1
+< option name Clear Hash type button
+< uciok
+> setoption name Threads value 1
+> setoption name Hash value 16
+> setoption name OwnBook value false
+> setoption name LmrQuietBase value 93
+> setoption name LmrQuietDivisor value 205
+> setoption name LmrNoisyBase value 13
+> setoption name LmrNoisyDivisor value 333
+> setoption name LmrHistoryDivisor value 5643
+> setoption name NullMoveBase value 5
+> setoption name LmpBase value 8
+> setoption name HistoryPruneMultiplier value 2220
+> setoption name HistoryBonusQuadratic value 24
+> setoption name HistoryBonusLinear value 54
+> setoption name HistoryBonusMax value 2212
+> setoption name SingularDepth value 6
+> setoption name IirDepth value 2
+> setoption name NonPawnCorrection value true
+> setoption name CuckooRep value true
+> setoption name HistRework value 2
+> setoption name TtPruneV2 value true
+> setoption name CorrHistV2 value true
+> setoption name MateAlphaGuard value true
+> isready
+< readyok
+> setoption name NNUEArchFile value /tmp/forge-dot-job7-testnet.fnn3
+> setoption name NNUEArch value true
+> isready
+< info string NNUE v3 loaded: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< info string NNUE v3 active: v3 /tmp/forge-dot-job7-testnet.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+< readyok
+> ucinewgame
+> isready
+< readyok
+{"game": 1, "ply": 1, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp 6 nodes 38 nps 38000 hashfull 0 time 1 pv d8a5
+< info depth 2 seldepth 6 score cp 350 nodes 100 nps 100000 hashfull 0 time 1 pv d8a5 e2c4
+< info depth 3 seldepth 6 score cp 312 nodes 150 nps 150000 hashfull 0 time 1 pv d8a5 e2c4 b7b6
+< info depth 4 seldepth 7 score cp 328 nodes 230 nps 230000 hashfull 0 time 1 pv d8a5 e2c4 b7b6 f2f3 d5c4
+< info depth 5 seldepth 7 score cp 258 nodes 453 nps 453000 hashfull 0 time 1 pv d8a5 e2c4 b7b6 g2g3 b6b5
+< info depth 6 seldepth 8 score cp 117 nodes 850 nps 425000 hashfull 0 time 2 pv d8e8 d1e1 d7e5 f4e5
+< info depth 7 seldepth 8 score cp 83 nodes 1230 nps 615000 hashfull 0 time 2 pv d8e8 d1e1 d7b6 a1d1 g7g6 f4h2
+< info depth 8 seldepth 19 score cp -61 nodes 5353 nps 594777 hashfull 1 time 9 pv d8e8 d1e1 e7d8 e5d3 g7g6 d2c4 e8e7
+< info string softnodes nodes 5353
+< info string shortcut B1 uses 3643 differ 0
+< info string shortcut B2 uses 3645 differ 0
+< info string shortcut B5 uses 4825 differ 0
+< info string shortcut B6 uses 4803 differ 0
+< info string shortcut S-B1 uses 3643 differ 0
+< info string shortcut S-B2 uses 3645 differ 0
+< info string shortcut S-B4 uses 3643 differ 0
+< info string shortcut S-B7 uses 5034 differ 0
+< info string shortcut H28 uses 432 differ 0
+< info string shortcut H18 uses 2070 differ 0
+< info string shortcut H25 uses 7494 differ 0
+< info string shortcut H27 uses 1221 differ 0
+< info string shortcut H82 uses 7423 differ 0
+< info string h82_classes hit 2325 miss_empty 5098 miss_full 0 older_generation 0 probes 5353 stores 2070
+< info string h25_paths seeded 1578 scan16 1016 scan8 415 scan4 644 scalar_tail 1949 sort_transition 489 sorted_tail 2677
+< bestmove d8e8
+{"game": 1, "ply": 2, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp 61 nodes 44 nps 0 hashfull 0 time 0 pv d1e1
+< info depth 2 seldepth 3 score cp 61 nodes 96 nps 0 hashfull 0 time 0 pv d1e1 e7d8
+< info depth 3 seldepth 4 score cp 61 nodes 161 nps 0 hashfull 0 time 0 pv d1e1 e7d8 e5d3
+< info depth 4 seldepth 4 score cp 61 nodes 232 nps 0 hashfull 0 time 0 pv d1e1 e7d8 e5d3 g7g6
+< info depth 5 seldepth 6 score cp 61 nodes 315 nps 0 hashfull 0 time 0 pv d1e1 e7d8 e5d3 g7g6 d2c4
+< info depth 6 seldepth 6 score cp 61 nodes 407 nps 0 hashfull 0 time 0 pv d1e1 e7d8 e5d3 g7g6 d2c4 e8e7
+< info depth 7 seldepth 13 score cp 238 nodes 1488 nps 1488000 hashfull 0 time 1 pv d1e1 d7b6 e5d3 e7d8 d2f3 g7g6 f3h2 c4d3
+< info depth 8 seldepth 17 score cp 50 nodes 3743 nps 748600 hashfull 0 time 5 pv d1e1 e7d8 e5d3 g7g6 f2f3 c4d3 e2d3 b7b5 g1f2
+< info string softnodes nodes 3743
+< info string shortcut B1 uses 2712 differ 0
+< info string shortcut B2 uses 2717 differ 0
+< info string shortcut B5 uses 3417 differ 0
+< info string shortcut B6 uses 3437 differ 0
+< info string shortcut S-B1 uses 2712 differ 0
+< info string shortcut S-B2 uses 2717 differ 0
+< info string shortcut S-B4 uses 2712 differ 0
+< info string shortcut S-B7 uses 3550 differ 0
+< info string shortcut H28 uses 297 differ 0
+< info string shortcut H18 uses 1157 differ 0
+< info string shortcut H25 uses 4471 differ 0
+< info string shortcut H27 uses 732 differ 0
+< info string shortcut H82 uses 4900 differ 0
+< info string h82_classes hit 2074 miss_empty 2826 miss_full 0 older_generation 129 probes 3743 stores 1157
+< info string h25_paths seeded 958 scan16 668 scan8 221 scan4 350 scalar_tail 826 sort_transition 216 sorted_tail 2013
+< bestmove d1e1
+{"game": 1, "ply": 3, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -50 nodes 25 nps 0 hashfull 0 time 0 pv e7d8
+< info depth 2 seldepth 3 score cp -50 nodes 58 nps 0 hashfull 0 time 0 pv e7d8 e5d3
+< info depth 3 seldepth 3 score cp -50 nodes 97 nps 0 hashfull 0 time 0 pv e7d8 e5d3 g7g6
+< info depth 4 seldepth 5 score cp -50 nodes 144 nps 0 hashfull 0 time 0 pv e7d8 e5d3 g7g6 f2f3
+< info depth 5 seldepth 6 score cp -50 nodes 204 nps 0 hashfull 0 time 0 pv e7d8 e5d3 g7g6 f2f3 c4d3
+< info depth 6 seldepth 6 score cp -50 nodes 285 nps 0 hashfull 0 time 0 pv e7d8 e5d3 g7g6 f2f3 c4d3 e2d3
+< info depth 7 seldepth 11 score cp -58 nodes 529 nps 0 hashfull 0 time 0 pv e7d8 e5d3 g7g6 f2f3 c4d3 e2d3 b7b5 g1f2 f6g4 f2e2
+< info depth 8 seldepth 16 score cp -186 nodes 4223 nps 469222 hashfull 0 time 9 pv e7d8 e5d3 g7g6 f2f3 c4d3 f4c7 d7b6 e2d3
+< info string softnodes nodes 4223
+< info string shortcut B1 uses 2627 differ 0
+< info string shortcut B2 uses 2639 differ 0
+< info string shortcut B5 uses 3637 differ 0
+< info string shortcut B6 uses 3824 differ 0
+< info string shortcut S-B1 uses 2627 differ 0
+< info string shortcut S-B2 uses 2639 differ 0
+< info string shortcut S-B4 uses 2627 differ 0
+< info string shortcut S-B7 uses 3920 differ 0
+< info string shortcut H28 uses 338 differ 0
+< info string shortcut H18 uses 1695 differ 0
+< info string shortcut H25 uses 5421 differ 0
+< info string shortcut H27 uses 1122 differ 0
+< info string shortcut H82 uses 5918 differ 0
+< info string h82_classes hit 2076 miss_empty 3842 miss_full 0 older_generation 171 probes 4223 stores 1695
+< info string h25_paths seeded 1352 scan16 726 scan8 283 scan4 406 scalar_tail 1068 sort_transition 268 sorted_tail 2053
+< bestmove e7d8
+{"game": 1, "ply": 4, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp 186 nodes 42 nps 0 hashfull 0 time 0 pv e5d3
+< info depth 2 seldepth 2 score cp 186 nodes 88 nps 0 hashfull 0 time 0 pv e5d3 g7g6
+< info depth 3 seldepth 4 score cp 186 nodes 138 nps 0 hashfull 0 time 0 pv e5d3 g7g6 f2f3
+< info depth 4 seldepth 5 score cp 186 nodes 198 nps 0 hashfull 0 time 0 pv e5d3 g7g6 f2f3 c4d3
+< info depth 5 seldepth 6 score cp 186 nodes 276 nps 0 hashfull 0 time 0 pv e5d3 g7g6 f2f3 c4d3 f4c7
+< info depth 6 seldepth 7 score cp 186 nodes 371 nps 0 hashfull 0 time 0 pv e5d3 g7g6 f2f3 c4d3 f4c7 d7b6
+< info depth 7 seldepth 14 score cp 22 nodes 1334 nps 1334000 hashfull 0 time 1 pv e5g4 f6g4 f4c7 a8b8 c7d8 g7g6 f2f3 e8d8
+< info depth 8 seldepth 14 score cp 87 nodes 2376 nps 792000 hashfull 0 time 3 pv e5g4 f6g4 d2f3 d7b6 f4c7 d8c7 e2c4 b6c4
+< info string softnodes nodes 2376
+< info string shortcut B1 uses 1629 differ 0
+< info string shortcut B2 uses 1639 differ 0
+< info string shortcut B5 uses 2227 differ 0
+< info string shortcut B6 uses 2226 differ 0
+< info string shortcut S-B1 uses 1629 differ 0
+< info string shortcut S-B2 uses 1639 differ 0
+< info string shortcut S-B4 uses 1629 differ 0
+< info string shortcut S-B7 uses 2268 differ 0
+< info string shortcut H28 uses 157 differ 0
+< info string shortcut H18 uses 751 differ 0
+< info string shortcut H25 uses 2989 differ 0
+< info string shortcut H27 uses 442 differ 0
+< info string shortcut H82 uses 3127 differ 0
+< info string h82_classes hit 1273 miss_empty 1854 miss_full 0 older_generation 142 probes 2376 stores 751
+< info string h25_paths seeded 591 scan16 388 scan8 149 scan4 197 scalar_tail 666 sort_transition 146 sorted_tail 1220
+< bestmove e5g4
+{"game": 1, "ply": 5, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -87 nodes 26 nps 0 hashfull 0 time 0 pv f6g4
+< info depth 2 seldepth 2 score cp -87 nodes 56 nps 0 hashfull 0 time 0 pv f6g4 d2f3
+< info depth 3 seldepth 4 score cp -87 nodes 91 nps 0 hashfull 0 time 0 pv f6g4 d2f3 d7b6
+< info depth 4 seldepth 5 score cp -87 nodes 136 nps 0 hashfull 0 time 0 pv f6g4 d2f3 d7b6 f4c7
+< info depth 5 seldepth 6 score cp -87 nodes 190 nps 0 hashfull 0 time 0 pv f6g4 d2f3 d7b6 f4c7 d8c7
+< info depth 6 seldepth 7 score cp -87 nodes 262 nps 0 hashfull 0 time 0 pv f6g4 d2f3 d7b6 f4c7 d8c7 e2c4
+< info depth 7 seldepth 12 score cp 80 nodes 956 nps 956000 hashfull 0 time 1 pv f6g4 d2f3 d7b6 h3g4 b6a4 g4g5 a4b2
+< info depth 8 seldepth 12 score cp -46 nodes 2832 nps 944000 hashfull 0 time 3 pv f6g4 d2f3 d7b6 f3h2 f7f6 h2g4 g7g6 f2f3
+< info string softnodes nodes 2832
+< info string shortcut B1 uses 1796 differ 0
+< info string shortcut B2 uses 1813 differ 0
+< info string shortcut B5 uses 2636 differ 0
+< info string shortcut B6 uses 2651 differ 0
+< info string shortcut S-B1 uses 1796 differ 0
+< info string shortcut S-B2 uses 1813 differ 0
+< info string shortcut S-B4 uses 1796 differ 0
+< info string shortcut S-B7 uses 2680 differ 0
+< info string shortcut H28 uses 232 differ 0
+< info string shortcut H18 uses 1115 differ 0
+< info string shortcut H25 uses 3618 differ 0
+< info string shortcut H27 uses 732 differ 0
+< info string shortcut H82 uses 3947 differ 0
+< info string h82_classes hit 1555 miss_empty 2392 miss_full 0 older_generation 165 probes 2832 stores 1115
+< info string h25_paths seeded 883 scan16 483 scan8 311 scan4 277 scalar_tail 818 sort_transition 180 sorted_tail 1183
+< bestmove f6g4
+{"game": 1, "ply": 6, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4
+> go softnodes 2000
+< info depth 1 seldepth 1 score cp 46 nodes 35 nps 0 hashfull 0 time 0 pv d2f3
+< info depth 2 seldepth 3 score cp 46 nodes 77 nps 0 hashfull 0 time 0 pv d2f3 d7b6
+< info depth 3 seldepth 4 score cp 46 nodes 125 nps 0 hashfull 0 time 0 pv d2f3 d7b6 f3h2
+< info depth 4 seldepth 5 score cp 46 nodes 187 nps 0 hashfull 0 time 0 pv d2f3 d7b6 f3h2 f7f6
+< info depth 5 seldepth 5 score cp 46 nodes 263 nps 0 hashfull 0 time 0 pv d2f3 d7b6 f3h2 f7f6 h2g4
+< info depth 6 seldepth 6 score cp 46 nodes 356 nps 0 hashfull 0 time 0 pv d2f3 d7b6 f3h2 f7f6 h2g4 g7g6
+< info depth 7 seldepth 10 score cp -23 nodes 1207 nps 1207000 hashfull 0 time 1 pv d2f3 d7b6 f3h2 e6e5 d4e5 g7g6
+< info depth 8 seldepth 12 score cp -7 nodes 2780 nps 926666 hashfull 0 time 3 pv d2f3 g7g6 f3h2 d7b6 g2g3 a8b8 f4b8
+< info string softnodes nodes 2780
+< info string shortcut B1 uses 1817 differ 0
+< info string shortcut B2 uses 1841 differ 0
+< info string shortcut B5 uses 2572 differ 0
+< info string shortcut B6 uses 2581 differ 0
+< info string shortcut S-B1 uses 1817 differ 0
+< info string shortcut S-B2 uses 1841 differ 0
+< info string shortcut S-B4 uses 1817 differ 0
+< info string shortcut S-B7 uses 2634 differ 0
+< info string shortcut H28 uses 193 differ 0
+< info string shortcut H18 uses 849 differ 0
+< info string shortcut H25 uses 3379 differ 0
+< info string shortcut H27 uses 480 differ 0
+< info string shortcut H82 uses 3629 differ 0
+< info string h82_classes hit 1574 miss_empty 2055 miss_full 0 older_generation 185 probes 2780 stores 849
+< info string h25_paths seeded 638 scan16 438 scan8 314 scan4 247 scalar_tail 786 sort_transition 194 sorted_tail 1326
+< bestmove d2f3
+{"game": 1, "ply": 7, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp 7 nodes 34 nps 0 hashfull 0 time 0 pv g7g6
+< info depth 2 seldepth 3 score cp 7 nodes 73 nps 0 hashfull 0 time 0 pv g7g6 f3h2
+< info depth 3 seldepth 4 score cp 7 nodes 121 nps 0 hashfull 0 time 0 pv g7g6 f3h2 d7b6
+< info depth 4 seldepth 5 score cp 7 nodes 177 nps 0 hashfull 0 time 0 pv g7g6 f3h2 d7b6 g2g3
+< info depth 5 seldepth 6 score cp 7 nodes 249 nps 0 hashfull 0 time 0 pv g7g6 f3h2 d7b6 g2g3 a8b8
+< info depth 6 seldepth 7 score cp 7 nodes 338 nps 0 hashfull 0 time 0 pv g7g6 f3h2 d7b6 g2g3 a8b8 f4b8
+< info depth 7 seldepth 10 score cp 77 nodes 758 nps 758000 hashfull 0 time 1 pv g7g6 f3h2 d7b6 g2g3 a8b8 f4b8 e6e5 b8e5
+< info depth 8 seldepth 15 score cp 77 nodes 3276 nps 819000 hashfull 0 time 4 pv g7g6 f3e5 g4e5 f2f3 d7b6
+< info string softnodes nodes 3276
+< info string shortcut B1 uses 1946 differ 0
+< info string shortcut B2 uses 1970 differ 0
+< info string shortcut B5 uses 2962 differ 0
+< info string shortcut B6 uses 2911 differ 0
+< info string shortcut S-B1 uses 1946 differ 0
+< info string shortcut S-B2 uses 1970 differ 0
+< info string shortcut S-B4 uses 1946 differ 0
+< info string shortcut S-B7 uses 3079 differ 0
+< info string shortcut H28 uses 228 differ 0
+< info string shortcut H18 uses 1268 differ 0
+< info string shortcut H25 uses 4075 differ 0
+< info string shortcut H27 uses 764 differ 0
+< info string shortcut H82 uses 4544 differ 0
+< info string h82_classes hit 1708 miss_empty 2836 miss_full 0 older_generation 151 probes 3276 stores 1268
+< info string h25_paths seeded 917 scan16 515 scan8 355 scan4 284 scalar_tail 967 sort_transition 203 sorted_tail 1403
+< bestmove g7g6
+{"game": 1, "ply": 8, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -77 nodes 35 nps 0 hashfull 0 time 0 pv f3e5
+< info depth 2 seldepth 3 score cp -77 nodes 76 nps 0 hashfull 0 time 0 pv f3e5 g4e5
+< info depth 3 seldepth 3 score cp -77 nodes 124 nps 0 hashfull 0 time 0 pv f3e5 g4e5 f2f3
+< info depth 4 seldepth 5 score cp -78 nodes 186 nps 0 hashfull 0 time 0 pv f3e5 g4e5 f2f3 d7b6
+< info depth 5 seldepth 7 score cp -41 nodes 360 nps 0 hashfull 0 time 0 pv f3e5 d7b6 g2g3 g4e3 f2e3
+< info depth 6 seldepth 8 score cp -65 nodes 526 nps 0 hashfull 0 time 0 pv f3e5 d7b6 g2g3 g4e3 e2f3 e3c2
+< info depth 7 seldepth 9 score cp -107 nodes 1970 nps 985000 hashfull 0 time 2 pv f3h2 a8b8 f4b8 g4h6 f2f3 d8f6
+< info depth 8 seldepth 14 score cp 13 nodes 7751 nps 775100 hashfull 2 time 10 pv f4d6 d7b6 f3h2 g4e3 g2g3 e3f1 g1f1 g8g7
+< info string softnodes nodes 7751
+< info string shortcut B1 uses 4113 differ 0
+< info string shortcut B2 uses 4157 differ 0
+< info string shortcut B5 uses 6933 differ 0
+< info string shortcut B6 uses 7006 differ 0
+< info string shortcut S-B1 uses 4113 differ 0
+< info string shortcut S-B2 uses 4157 differ 0
+< info string shortcut S-B4 uses 4113 differ 0
+< info string shortcut S-B7 uses 7183 differ 0
+< info string shortcut H28 uses 618 differ 0
+< info string shortcut H18 uses 3594 differ 0
+< info string shortcut H25 uses 10736 differ 0
+< info string shortcut H27 uses 2431 differ 0
+< info string shortcut H82 uses 11345 differ 0
+< info string h82_classes hit 3605 miss_empty 7740 miss_full 0 older_generation 286 probes 7751 stores 3594
+< info string h25_paths seeded 2837 scan16 1278 scan8 807 scan4 905 scalar_tail 2824 sort_transition 607 sorted_tail 2816
+< bestmove f4d6
+{"game": 1, "ply": 9, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -13 nodes 35 nps 0 hashfull 0 time 0 pv d7b6
+< info depth 2 seldepth 3 score cp -13 nodes 75 nps 0 hashfull 0 time 0 pv d7b6 f3h2
+< info depth 3 seldepth 4 score cp -13 nodes 123 nps 0 hashfull 0 time 0 pv d7b6 f3h2 g4e3
+< info depth 4 seldepth 5 score cp -13 nodes 180 nps 0 hashfull 0 time 0 pv d7b6 f3h2 g4e3 g2g3
+< info depth 5 seldepth 7 score cp 125 nodes 841 nps 0 hashfull 0 time 0 pv d7e5 h3g4 e5c6 g4g5
+< info depth 6 seldepth 9 score cp 44 nodes 1517 nps 1517000 hashfull 0 time 1 pv d7e5 b2b3 g4h6 b3c4 e5c4 e2c4
+< info depth 7 seldepth 12 score cp 5 nodes 2908 nps 969333 hashfull 1 time 3 pv d7e5 d6c7 d8c7 d4e5 g8h8 e2c4 d5c4
+< info string softnodes nodes 2908
+< info string shortcut B1 uses 1290 differ 0
+< info string shortcut B2 uses 1306 differ 0
+< info string shortcut B5 uses 2517 differ 0
+< info string shortcut B6 uses 2721 differ 0
+< info string shortcut S-B1 uses 1290 differ 0
+< info string shortcut S-B2 uses 1306 differ 0
+< info string shortcut S-B4 uses 1290 differ 0
+< info string shortcut S-B7 uses 2718 differ 0
+< info string shortcut H28 uses 170 differ 0
+< info string shortcut H18 uses 1490 differ 0
+< info string shortcut H25 uses 3930 differ 0
+< info string shortcut H27 uses 834 differ 0
+< info string shortcut H82 uses 4398 differ 0
+< info string h82_classes hit 1792 miss_empty 2606 miss_full 0 older_generation 62 probes 2908 stores 1490
+< info string h25_paths seeded 989 scan16 380 scan8 321 scan4 280 scalar_tail 1086 sort_transition 230 sorted_tail 1029
+< bestmove d7e5
+{"game": 1, "ply": 10, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp -5 nodes 38 nps 0 hashfull 0 time 0 pv d6c7
+< info depth 2 seldepth 4 score cp -5 nodes 83 nps 0 hashfull 0 time 0 pv d6c7 d8c7
+< info depth 3 seldepth 4 score cp -5 nodes 135 nps 0 hashfull 0 time 0 pv d6c7 d8c7 d4e5
+< info depth 4 seldepth 5 score cp -5 nodes 201 nps 0 hashfull 0 time 0 pv d6c7 d8c7 d4e5 g8h8
+< info depth 5 seldepth 6 score cp -5 nodes 288 nps 0 hashfull 0 time 0 pv d6c7 d8c7 d4e5 g8h8 e2c4
+< info depth 6 seldepth 7 score cp -5 nodes 391 nps 0 hashfull 0 time 0 pv d6c7 d8c7 d4e5 g8h8 e2c4 d5c4
+< info depth 7 seldepth 10 score cp -94 nodes 3762 nps 752400 hashfull 1 time 5 pv f3e5 f7f5 e2f3 f5f4 e5g4
+< info string softnodes nodes 3762
+< info string shortcut B1 uses 1549 differ 0
+< info string shortcut B2 uses 1593 differ 0
+< info string shortcut B5 uses 3192 differ 0
+< info string shortcut B6 uses 3306 differ 0
+< info string shortcut S-B1 uses 1549 differ 0
+< info string shortcut S-B2 uses 1593 differ 0
+< info string shortcut S-B4 uses 1549 differ 0
+< info string shortcut S-B7 uses 3440 differ 0
+< info string shortcut H28 uses 237 differ 0
+< info string shortcut H18 uses 1945 differ 0
+< info string shortcut H25 uses 5796 differ 0
+< info string shortcut H27 uses 1324 differ 0
+< info string shortcut H82 uses 5707 differ 0
+< info string h82_classes hit 2125 miss_empty 3582 miss_full 0 older_generation 181 probes 3762 stores 1945
+< info string h25_paths seeded 1491 scan16 499 scan8 398 scan4 441 scalar_tail 1701 sort_transition 348 sorted_tail 1351
+< bestmove f3e5
+{"game": 1, "ply": 11, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5
+> go softnodes 2000
+< info depth 1 seldepth 3 score cp 94 nodes 43 nps 0 hashfull 0 time 0 pv f7f5
+< info depth 2 seldepth 3 score cp 94 nodes 84 nps 0 hashfull 0 time 0 pv f7f5 e2f3
+< info depth 3 seldepth 6 score cp 94 nodes 186 nps 0 hashfull 0 time 0 pv f7f5 e2f3 f5f4
+< info depth 4 seldepth 6 score cp 94 nodes 296 nps 0 hashfull 0 time 0 pv f7f5 e2f3 f5f4 e5g4
+< info depth 5 seldepth 9 score cp 235 nodes 1282 nps 1282000 hashfull 1 time 1 pv a8b8 e2f3 c8d7 f3d5 g4e5
+< info depth 6 seldepth 11 score cp 125 nodes 1588 nps 1588000 hashfull 1 time 1 pv a8b8 e2f3 e8a4 d6b8 g4e5 b8e5
+< info depth 7 seldepth 11 score cp 152 nodes 2555 nps 1277500 hashfull 1 time 2 pv a8b8 e2f3 b7b5 e5c4 g4e3 e1e3 b5c4
+< info string softnodes nodes 2555
+< info string shortcut B1 uses 1190 differ 0
+< info string shortcut B2 uses 1246 differ 0
+< info string shortcut B5 uses 2241 differ 0
+< info string shortcut B6 uses 2268 differ 0
+< info string shortcut S-B1 uses 1190 differ 0
+< info string shortcut S-B2 uses 1246 differ 0
+< info string shortcut S-B4 uses 1190 differ 0
+< info string shortcut S-B7 uses 2384 differ 0
+< info string shortcut H28 uses 123 differ 0
+< info string shortcut H18 uses 1058 differ 0
+< info string shortcut H25 uses 3756 differ 0
+< info string shortcut H27 uses 730 differ 0
+< info string shortcut H82 uses 3613 differ 0
+< info string h82_classes hit 1743 miss_empty 1870 miss_full 0 older_generation 63 probes 2555 stores 1058
+< info string h25_paths seeded 800 scan16 283 scan8 232 scan4 414 scalar_tail 986 sort_transition 248 sorted_tail 1268
+< bestmove a8b8
+{"game": 1, "ply": 12, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -152 nodes 40 nps 0 hashfull 0 time 0 pv e2f3
+< info depth 2 seldepth 3 score cp -152 nodes 88 nps 0 hashfull 0 time 0 pv e2f3 b7b5
+< info depth 3 seldepth 3 score cp -152 nodes 143 nps 0 hashfull 0 time 0 pv e2f3 b7b5 e5c4
+< info depth 4 seldepth 4 score cp -152 nodes 208 nps 0 hashfull 0 time 0 pv e2f3 b7b5 e5c4 g4e3
+< info depth 5 seldepth 7 score cp -152 nodes 292 nps 0 hashfull 0 time 0 pv e2f3 b7b5 e5c4 g4e3 e1e3
+< info depth 6 seldepth 7 score cp -152 nodes 379 nps 0 hashfull 0 time 0 pv e2f3 b7b5 e5c4 g4e3 e1e3 b5c4
+< info depth 7 seldepth 12 score cp -241 nodes 1144 nps 1144000 hashfull 0 time 1 pv e2f3 b7b5 e5d3 c8b7 d6f4 c4d3
+< info depth 8 seldepth 13 score cp -363 nodes 5926 nps 846571 hashfull 3 time 7 pv e2c4 d8f6 d6b8 e8d8 h3g4
+< info string softnodes nodes 5926
+< info string shortcut B1 uses 1834 differ 0
+< info string shortcut B2 uses 1894 differ 0
+< info string shortcut B5 uses 4727 differ 0
+< info string shortcut B6 uses 5017 differ 0
+< info string shortcut S-B1 uses 1834 differ 0
+< info string shortcut S-B2 uses 1894 differ 0
+< info string shortcut S-B4 uses 1834 differ 0
+< info string shortcut S-B7 uses 5302 differ 0
+< info string shortcut H28 uses 267 differ 0
+< info string shortcut H18 uses 3265 differ 0
+< info string shortcut H25 uses 9794 differ 0
+< info string shortcut H27 uses 2338 differ 0
+< info string shortcut H82 uses 9191 differ 0
+< info string h82_classes hit 3106 miss_empty 6085 miss_full 0 older_generation 123 probes 5926 stores 3265
+< info string h25_paths seeded 2494 scan16 505 scan8 368 scan4 968 scalar_tail 2898 sort_transition 646 sorted_tail 2391
+< bestmove e2c4
+{"game": 1, "ply": 13, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4
+> go softnodes 2000
+< info depth 1 seldepth 5 score cp 363 nodes 41 nps 0 hashfull 0 time 0 pv d8f6
+< info depth 2 seldepth 5 score cp 363 nodes 80 nps 0 hashfull 0 time 0 pv d8f6 d6b8
+< info depth 3 seldepth 5 score cp 363 nodes 129 nps 0 hashfull 0 time 0 pv d8f6 d6b8 e8d8
+< info depth 4 seldepth 5 score cp 363 nodes 209 nps 0 hashfull 0 time 0 pv d8f6 d6b8 e8d8 h3g4
+< info depth 5 seldepth 11 score cp 218 nodes 1348 nps 1348000 hashfull 0 time 1 pv f7f6 a1b1 g8g7 c4d5 g4e5 d6f8 e8f8 d4e5
+< info depth 6 seldepth 12 score cp 392 nodes 2680 nps 1340000 hashfull 1 time 2 pv d8b6 c4a6 g4e5 a6b7 f7f6 d6b8
+< info string softnodes nodes 2680
+< info string shortcut B1 uses 628 differ 0
+< info string shortcut B2 uses 637 differ 0
+< info string shortcut B5 uses 2203 differ 0
+< info string shortcut B6 uses 2419 differ 0
+< info string shortcut S-B1 uses 628 differ 0
+< info string shortcut S-B2 uses 637 differ 0
+< info string shortcut S-B4 uses 628 differ 0
+< info string shortcut S-B7 uses 2477 differ 0
+< info string shortcut H28 uses 75 differ 0
+< info string shortcut H18 uses 1524 differ 0
+< info string shortcut H25 uses 4360 differ 0
+< info string shortcut H27 uses 999 differ 0
+< info string shortcut H82 uses 4204 differ 0
+< info string h82_classes hit 1810 miss_empty 2394 miss_full 0 older_generation 169 probes 2680 stores 1524
+< info string h25_paths seeded 1049 scan16 153 scan8 58 scan4 473 scalar_tail 1430 sort_transition 353 sorted_tail 913
+< bestmove d8b6
+{"game": 1, "ply": 14, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp -20 nodes 71 nps 0 hashfull 0 time 0 pv e5d3
+< info depth 2 seldepth 6 score cp 125 nodes 165 nps 0 hashfull 0 time 0 pv g1h1 g4e5
+< info depth 3 seldepth 7 score cp -99 nodes 300 nps 0 hashfull 0 time 0 pv a1b1 g4e5 d6e5
+< info depth 4 seldepth 8 score cp -3 nodes 471 nps 0 hashfull 0 time 0 pv a1b1 g4e5 c4d5 e6d5
+< info depth 5 seldepth 9 score cp -130 nodes 826 nps 826000 hashfull 0 time 1 pv a1b1 g8g7 d6b8 d5c4 e5c4
+< info depth 6 seldepth 12 score cp 17 nodes 2860 nps 953333 hashfull 1 time 3 pv a1b1 a6a5 c4d5 g8g7 d5b7 g4e5
+< info string softnodes nodes 2860
+< info string shortcut B1 uses 861 differ 0
+< info string shortcut B2 uses 891 differ 0
+< info string shortcut B5 uses 2374 differ 0
+< info string shortcut B6 uses 2598 differ 0
+< info string shortcut S-B1 uses 861 differ 0
+< info string shortcut S-B2 uses 891 differ 0
+< info string shortcut S-B4 uses 861 differ 0
+< info string shortcut S-B7 uses 2617 differ 0
+< info string shortcut H28 uses 93 differ 0
+< info string shortcut H18 uses 1579 differ 0
+< info string shortcut H25 uses 4933 differ 0
+< info string shortcut H27 uses 1041 differ 0
+< info string shortcut H82 uses 4439 differ 0
+< info string h82_classes hit 1969 miss_empty 2470 miss_full 0 older_generation 72 probes 2860 stores 1579
+< info string h25_paths seeded 1112 scan16 178 scan8 95 scan4 615 scalar_tail 1514 sort_transition 416 sorted_tail 1206
+< bestmove a1b1
+{"game": 1, "ply": 15, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1
+> go softnodes 2000
+< info depth 1 seldepth 7 score cp -17 nodes 76 nps 0 hashfull 0 time 0 pv a6a5
+< info depth 2 seldepth 7 score cp -17 nodes 113 nps 0 hashfull 0 time 0 pv a6a5 c4d5
+< info depth 3 seldepth 7 score cp -17 nodes 169 nps 0 hashfull 0 time 0 pv a6a5 c4d5 g8g7
+< info depth 4 seldepth 7 score cp -17 nodes 249 nps 0 hashfull 0 time 0 pv a6a5 c4d5 g8g7 d5b7
+< info depth 5 seldepth 8 score cp -17 nodes 385 nps 0 hashfull 0 time 0 pv a6a5 c4d5 g8g7 d5b7 g4e5
+< info depth 6 seldepth 15 score cp 229 nodes 1110 nps 1110000 hashfull 0 time 1 pv a6a5 c4d5 g8g7 d5b7 f7f6 d6b8
+< info depth 7 seldepth 15 score cp 27 nodes 2536 nps 845333 hashfull 1 time 3 pv a6a5 c4d5 g8g7 d5b7 f8g8 d6b8 g4e5 d4e5
+< info string softnodes nodes 2536
+< info string shortcut B1 uses 955 differ 0
+< info string shortcut B2 uses 971 differ 0
+< info string shortcut B5 uses 2117 differ 0
+< info string shortcut B6 uses 2337 differ 0
+< info string shortcut S-B1 uses 955 differ 0
+< info string shortcut S-B2 uses 971 differ 0
+< info string shortcut S-B4 uses 955 differ 0
+< info string shortcut S-B7 uses 2354 differ 0
+< info string shortcut H28 uses 103 differ 0
+< info string shortcut H18 uses 1151 differ 0
+< info string shortcut H25 uses 3988 differ 0
+< info string shortcut H27 uses 788 differ 0
+< info string shortcut H82 uses 3687 differ 0
+< info string h82_classes hit 1653 miss_empty 2034 miss_full 0 older_generation 172 probes 2536 stores 1151
+< info string h25_paths seeded 868 scan16 230 scan8 95 scan4 453 scalar_tail 1139 sort_transition 335 sorted_tail 1112
+< bestmove a6a5
+{"game": 1, "ply": 16, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -27 nodes 42 nps 0 hashfull 0 time 0 pv c4d5
+< info depth 2 seldepth 4 score cp -27 nodes 90 nps 0 hashfull 0 time 0 pv c4d5 g8g7
+< info depth 3 seldepth 4 score cp -27 nodes 146 nps 0 hashfull 0 time 0 pv c4d5 g8g7 d5b7
+< info depth 4 seldepth 4 score cp -27 nodes 211 nps 0 hashfull 0 time 0 pv c4d5 g8g7 d5b7 f8g8
+< info depth 5 seldepth 6 score cp -27 nodes 294 nps 0 hashfull 0 time 0 pv c4d5 g8g7 d5b7 f8g8 d6b8
+< info depth 6 seldepth 9 score cp -27 nodes 415 nps 0 hashfull 0 time 0 pv c4d5 g8g7 d5b7 f8g8 d6b8 g4e5
+< info depth 7 seldepth 12 score cp 48 nodes 990 nps 990000 hashfull 0 time 1 pv c4d5 g8g7 d6f8 e8f8 h3g4 f7f6 f2f3 f6e5
+< info depth 8 seldepth 13 score cp 95 nodes 2305 nps 768333 hashfull 0 time 3 pv c4d5 g4e5 e1d2 e5f3 g2f3 e8d8 d6f8
+< info string softnodes nodes 2305
+< info string shortcut B1 uses 1050 differ 0
+< info string shortcut B2 uses 1081 differ 0
+< info string shortcut B5 uses 2041 differ 0
+< info string shortcut B6 uses 2129 differ 0
+< info string shortcut S-B1 uses 1050 differ 0
+< info string shortcut S-B2 uses 1081 differ 0
+< info string shortcut S-B4 uses 1050 differ 0
+< info string shortcut S-B7 uses 2156 differ 0
+< info string shortcut H28 uses 124 differ 0
+< info string shortcut H18 uses 1029 differ 0
+< info string shortcut H25 uses 3472 differ 0
+< info string shortcut H27 uses 720 differ 0
+< info string shortcut H82 uses 3334 differ 0
+< info string h82_classes hit 1384 miss_empty 1950 miss_full 0 older_generation 127 probes 2305 stores 1029
+< info string h25_paths seeded 821 scan16 260 scan8 98 scan4 334 scalar_tail 963 sort_transition 236 sorted_tail 961
+< bestmove c4d5
+{"game": 1, "ply": 17, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -95 nodes 33 nps 0 hashfull 0 time 0 pv g4e5
+< info depth 2 seldepth 2 score cp -95 nodes 67 nps 0 hashfull 0 time 0 pv g4e5 e1d2
+< info depth 3 seldepth 5 score cp -95 nodes 109 nps 0 hashfull 0 time 0 pv g4e5 e1d2 e5f3 g2f3
+< info depth 4 seldepth 5 score cp -174 nodes 285 nps 0 hashfull 0 time 0 pv g8g7 d6f8 e8f8 h3g4 f7f6
+< info depth 5 seldepth 7 score cp -95 nodes 437 nps 0 hashfull 0 time 0 pv g4e5 e1d2 e5f3 g2f3 e8d8 d6f8
+< info depth 6 seldepth 7 score cp -95 nodes 527 nps 0 hashfull 0 time 0 pv g4e5 e1d2 e5f3 g2f3 e8d8 d6f8
+< info depth 7 seldepth 19 score cp -189 nodes 2056 nps 1028000 hashfull 0 time 2 pv g8g7 d6f8 e8f8 h3g4 f7f6 f2f3 f6e5 g4g5 f8f7
+< info string softnodes nodes 2056
+< info string shortcut B1 uses 1145 differ 0
+< info string shortcut B2 uses 1157 differ 0
+< info string shortcut B5 uses 1861 differ 0
+< info string shortcut B6 uses 1914 differ 0
+< info string shortcut S-B1 uses 1145 differ 0
+< info string shortcut S-B2 uses 1157 differ 0
+< info string shortcut S-B4 uses 1145 differ 0
+< info string shortcut S-B7 uses 1937 differ 0
+< info string shortcut H28 uses 131 differ 0
+< info string shortcut H18 uses 790 differ 0
+< info string shortcut H25 uses 2993 differ 0
+< info string shortcut H27 uses 544 differ 0
+< info string shortcut H82 uses 2846 differ 0
+< info string h82_classes hit 1387 miss_empty 1459 miss_full 0 older_generation 182 probes 2056 stores 790
+< info string h25_paths seeded 662 scan16 282 scan8 135 scan4 220 scalar_tail 747 sort_transition 175 sorted_tail 1001
+< bestmove g8g7
+{"game": 1, "ply": 18, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7
+> go softnodes 2000
+< info depth 1 seldepth 6 score cp 425 nodes 179 nps 0 hashfull 0 time 0 pv e1d2 g4e5
+< info depth 2 seldepth 7 score cp 425 nodes 246 nps 0 hashfull 0 time 0 pv e1d2 g4e5
+< info depth 3 seldepth 10 score cp 515 nodes 356 nps 0 hashfull 0 time 0 pv e1d2 g4e5 d4e5 e6d5
+< info depth 4 seldepth 10 score cp 189 nodes 862 nps 0 hashfull 0 time 0 pv d6f8 e8f8 h3g4 f7f6
+< info depth 5 seldepth 10 score cp 189 nodes 933 nps 0 hashfull 0 time 0 pv d6f8 e8f8 h3g4 f7f6 f2f3
+< info depth 6 seldepth 10 score cp 189 nodes 1023 nps 0 hashfull 0 time 0 pv d6f8 e8f8 h3g4 f7f6 f2f3 f6e5
+< info depth 7 seldepth 13 score cp 177 nodes 2971 nps 990333 hashfull 0 time 3 pv d6f8 e8f8 h3g4 f7f6 f2f3 f6e5 g4g5
+< info string softnodes nodes 2971
+< info string shortcut B1 uses 1053 differ 0
+< info string shortcut B2 uses 1075 differ 0
+< info string shortcut B5 uses 2256 differ 0
+< info string shortcut B6 uses 2592 differ 0
+< info string shortcut S-B1 uses 1053 differ 0
+< info string shortcut S-B2 uses 1075 differ 0
+< info string shortcut S-B4 uses 1053 differ 0
+< info string shortcut S-B7 uses 2699 differ 0
+< info string shortcut H28 uses 126 differ 0
+< info string shortcut H18 uses 1545 differ 0
+< info string shortcut H25 uses 4756 differ 0
+< info string shortcut H27 uses 989 differ 0
+< info string shortcut H82 uses 4516 differ 0
+< info string h82_classes hit 2044 miss_empty 2472 miss_full 0 older_generation 119 probes 2971 stores 1545
+< info string h25_paths seeded 1101 scan16 230 scan8 144 scan4 437 scalar_tail 1307 sort_transition 314 sorted_tail 1355
+< bestmove d6f8
+{"game": 1, "ply": 19, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8
+> go softnodes 2000
+< info depth 1 seldepth 1 score cp -177 nodes 6 nps 0 hashfull 0 time 0 pv e8f8
+< info depth 2 seldepth 3 score cp -177 nodes 15 nps 0 hashfull 0 time 0 pv e8f8 h3g4
+< info depth 3 seldepth 5 score cp -177 nodes 35 nps 0 hashfull 0 time 0 pv e8f8 h3g4 f7f6
+< info depth 4 seldepth 5 score cp -177 nodes 67 nps 0 hashfull 0 time 0 pv e8f8 h3g4 f7f6 f2f3
+< info depth 5 seldepth 6 score cp -62 nodes 166 nps 0 hashfull 0 time 0 pv e8f8 h3g4 h7h5 g4h5 g6h5
+< info depth 6 seldepth 9 score cp 128 nodes 528 nps 0 hashfull 0 time 0 pv e8f8 h3g4 f7f6 e1e2 f6e5 g4g5
+< info depth 7 seldepth 11 score cp -119 nodes 1048 nps 1048000 hashfull 0 time 1 pv e8f8 h3g4 f7f6 e1e2 f6e5 g4g5 f8f7
+< info depth 8 seldepth 17 score cp 20 nodes 4479 nps 746500 hashfull 2 time 6 pv e8f8 h3g4 f7f6 f2f3 g7g8 e1e2 h7h5 f1e1
+< info string softnodes nodes 4479
+< info string shortcut B1 uses 2270 differ 0
+< info string shortcut B2 uses 2307 differ 0
+< info string shortcut B5 uses 3869 differ 0
+< info string shortcut B6 uses 3850 differ 0
+< info string shortcut S-B1 uses 2270 differ 0
+< info string shortcut S-B2 uses 2307 differ 0
+< info string shortcut S-B4 uses 2270 differ 0
+< info string shortcut S-B7 uses 4110 differ 0
+< info string shortcut H28 uses 357 differ 0
+< info string shortcut H18 uses 2281 differ 0
+< info string shortcut H25 uses 6787 differ 0
+< info string shortcut H27 uses 1701 differ 0
+< info string shortcut H82 uses 6760 differ 0
+< info string h82_classes hit 2470 miss_empty 4290 miss_full 0 older_generation 183 probes 4479 stores 2281
+< info string h25_paths seeded 1937 scan16 643 scan8 373 scan4 434 scalar_tail 1654 sort_transition 279 sorted_tail 1780
+< bestmove e8f8
+{"game": 1, "ply": 20, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8
+> go softnodes 2000
+< info depth 1 seldepth 3 score cp 419 nodes 72 nps 0 hashfull 0 time 0 pv d5f3 g4e5
+< info depth 2 seldepth 3 score cp 181 nodes 148 nps 0 hashfull 0 time 0 pv e1e2 g4e5
+< info depth 3 seldepth 6 score cp 411 nodes 240 nps 0 hashfull 0 time 0 pv e1e2 f7f5 h3g4
+< info depth 4 seldepth 6 score cp 58 nodes 557 nps 0 hashfull 0 time 0 pv b2b3 g4e5 f2f3 f7f5
+< info depth 5 seldepth 10 score cp 212 nodes 877 nps 0 hashfull 0 time 0 pv g2g3 g4f2 d5e6 f7e6 e1f2
+< info depth 6 seldepth 11 score cp 91 nodes 1746 nps 873000 hashfull 0 time 2 pv g2g3 g4e5 d5b7 b8b7 d4e5 f8c5
+< info depth 7 seldepth 22 score cp 108 nodes 5817 nps 831000 hashfull 4 time 7 pv e3e4 e6d5 h3g4 f7f6 e4d5 f6e5 e1e5 f8f6 e5f6 g7g8 f6b6
+< info string softnodes nodes 5817
+< info string shortcut B1 uses 2581 differ 0
+< info string shortcut B2 uses 2625 differ 0
+< info string shortcut B5 uses 4885 differ 0
+< info string shortcut B6 uses 5065 differ 0
+< info string shortcut S-B1 uses 2581 differ 0
+< info string shortcut S-B2 uses 2625 differ 0
+< info string shortcut S-B4 uses 2581 differ 0
+< info string shortcut S-B7 uses 5363 differ 0
+< info string shortcut H28 uses 351 differ 0
+< info string shortcut H18 uses 3307 differ 0
+< info string shortcut H25 uses 8859 differ 0
+< info string shortcut H27 uses 2322 differ 0
+< info string shortcut H82 uses 9124 differ 0
+< info string h82_classes hit 3087 miss_empty 6037 miss_full 0 older_generation 204 probes 5817 stores 3307
+< info string h25_paths seeded 2563 scan16 675 scan8 406 scan4 451 scalar_tail 2169 sort_transition 346 sorted_tail 2206
+< bestmove e3e4
+{"game": 1, "ply": 21, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4
+> go softnodes 2000
+< info depth 1 seldepth 6 score cp 1792 nodes 68 nps 0 hashfull 0 time 0 pv g4f6
+< info depth 2 seldepth 6 score cp 255 nodes 157 nps 0 hashfull 0 time 0 pv h7h5 h3g4
+< info depth 3 seldepth 10 score cp 203 nodes 280 nps 0 hashfull 0 time 0 pv h7h5 d5b7 g4e5
+< info depth 4 seldepth 10 score cp 35 nodes 861 nps 861000 hashfull 0 time 1 pv h7h5 d5b7 g4e5 e1e2
+< info depth 5 seldepth 10 score cp 108 nodes 1535 nps 1535000 hashfull 0 time 1 pv g4h2 d5e6 f7e6 g1h2
+< info depth 6 seldepth 10 score cp 82 nodes 1692 nps 1692000 hashfull 0 time 1 pv g4h2 d5e6 f7e6 g1h2 g7g8
+< info depth 7 seldepth 18 score cp 287 nodes 2862 nps 954000 hashfull 2 time 3 pv f7f6 h3g4 f6e5 f2f3 a5a4 g4g5
+< info string softnodes nodes 2862
+< info string shortcut B1 uses 981 differ 0
+< info string shortcut B2 uses 1000 differ 0
+< info string shortcut B5 uses 2366 differ 0
+< info string shortcut B6 uses 2487 differ 0
+< info string shortcut S-B1 uses 981 differ 0
+< info string shortcut S-B2 uses 1000 differ 0
+< info string shortcut S-B4 uses 981 differ 0
+< info string shortcut S-B7 uses 2582 differ 0
+< info string shortcut H28 uses 163 differ 0
+< info string shortcut H18 uses 1724 differ 0
+< info string shortcut H25 uses 4948 differ 0
+< info string shortcut H27 uses 1295 differ 0
+< info string shortcut H82 uses 4586 differ 0
+< info string h82_classes hit 1853 miss_empty 2733 miss_full 0 older_generation 39 probes 2862 stores 1724
+< info string h25_paths seeded 1451 scan16 270 scan8 177 scan4 228 scalar_tail 1440 sort_transition 230 sorted_tail 910
+< bestmove f7f6
+{"game": 1, "ply": 22, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6
+> go softnodes 2000
+< info depth 1 seldepth 9 score cp -93 nodes 103 nps 0 hashfull 0 time 0 pv e5c6
+< info depth 2 seldepth 9 score cp -212 nodes 200 nps 0 hashfull 0 time 0 pv e1e2 f6e5
+< info depth 3 seldepth 9 score cp -212 nodes 260 nps 0 hashfull 0 time 0 pv e1e2 f6e5 d4e5
+< info depth 4 seldepth 11 score cp -212 nodes 488 nps 0 hashfull 0 time 0 pv e1e2 f6e5 f2f3 a5a4
+< info depth 5 seldepth 11 score cp -269 nodes 821 nps 0 hashfull 0 time 0 pv e1e2 h7h5 d5b7 b8b7
+< info depth 6 seldepth 13 score cp -107 nodes 1317 nps 1317000 hashfull 0 time 1 pv e1e2 f6e5 e2f3 g4h6 f3f8 g7f8
+< info depth 7 seldepth 15 score cp -115 nodes 3556 nps 889000 hashfull 1 time 4 pv e1e2 f6e5 c3c4 a5a4 d5b7 c8b7 d4e5
+< info string softnodes nodes 3556
+< info string shortcut B1 uses 1098 differ 0
+< info string shortcut B2 uses 1130 differ 0
+< info string shortcut B5 uses 2781 differ 0
+< info string shortcut B6 uses 3291 differ 0
+< info string shortcut S-B1 uses 1098 differ 0
+< info string shortcut S-B2 uses 1130 differ 0
+< info string shortcut S-B4 uses 1098 differ 0
+< info string shortcut S-B7 uses 3332 differ 0
+< info string shortcut H28 uses 156 differ 0
+< info string shortcut H18 uses 2241 differ 0
+< info string shortcut H25 uses 5994 differ 0
+< info string shortcut H27 uses 1350 differ 0
+< info string shortcut H82 uses 5797 differ 0
+< info string h82_classes hit 2113 miss_empty 3684 miss_full 0 older_generation 31 probes 3556 stores 2241
+< info string h25_paths seeded 1501 scan16 311 scan8 227 scan4 299 scalar_tail 2112 sort_transition 419 sorted_tail 1167
+< bestmove e1e2
+{"game": 1, "ply": 23, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2
+> go softnodes 2000
+< info depth 1 seldepth 6 score cp 312 nodes 64 nps 0 hashfull 0 time 0 pv f8b4 c3b4
+< info depth 2 seldepth 6 score cp 136 nodes 140 nps 0 hashfull 0 time 0 pv g4h2 g1h2
+< info depth 3 seldepth 7 score cp 115 nodes 225 nps 0 hashfull 0 time 0 pv f6e5 c3c4 a5a4
+< info depth 4 seldepth 7 score cp 115 nodes 282 nps 0 hashfull 0 time 0 pv f6e5 c3c4 a5a4 d5b7
+< info depth 5 seldepth 7 score cp 115 nodes 349 nps 0 hashfull 0 time 0 pv f6e5 c3c4 a5a4 d5b7 c8b7
+< info depth 6 seldepth 10 score cp 115 nodes 464 nps 0 hashfull 0 time 0 pv f6e5 c3c4 a5a4 d5b7 c8b7 d4e5
+< info depth 7 seldepth 12 score cp 52 nodes 2061 nps 1030500 hashfull 1 time 2 pv h7h5 d5b7 f6e5 c3c4 c8b7 f1e1 b7c6
+< info string softnodes nodes 2061
+< info string shortcut B1 uses 881 differ 0
+< info string shortcut B2 uses 895 differ 0
+< info string shortcut B5 uses 1772 differ 0
+< info string shortcut B6 uses 1927 differ 0
+< info string shortcut S-B1 uses 881 differ 0
+< info string shortcut S-B2 uses 895 differ 0
+< info string shortcut S-B4 uses 881 differ 0
+< info string shortcut S-B7 uses 1959 differ 0
+< info string shortcut H28 uses 95 differ 0
+< info string shortcut H18 uses 970 differ 0
+< info string shortcut H25 uses 3132 differ 0
+< info string shortcut H27 uses 636 differ 0
+< info string shortcut H82 uses 3031 differ 0
+< info string h82_classes hit 1425 miss_empty 1606 miss_full 0 older_generation 192 probes 2061 stores 970
+< info string h25_paths seeded 725 scan16 202 scan8 150 scan4 211 scalar_tail 1027 sort_transition 225 sorted_tail 757
+< bestmove h7h5
+{"game": 1, "ply": 24, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 678 nodes 100 nps 0 hashfull 0 time 0 pv e5c4
+< info depth 2 seldepth 4 score cp 455 nodes 203 nps 0 hashfull 0 time 0 pv g1h1 g4e5
+< info depth 3 seldepth 5 score cp 174 nodes 292 nps 0 hashfull 0 time 0 pv g1h1 g4f2 h1h2
+< info depth 4 seldepth 8 score cp 271 nodes 523 nps 0 hashfull 0 time 0 pv g1h1 g4f2 h1h2 f6e5
+< info depth 5 seldepth 11 score cp 79 nodes 842 nps 0 hashfull 1 time 0 pv c3c4 f6e5 f1e1 a5a4 g1f1
+< info depth 6 seldepth 11 score cp 74 nodes 1058 nps 1058000 hashfull 1 time 1 pv c3c4 f6e5 f1e1 g4f2 h3h4
+< info depth 7 seldepth 15 score cp 53 nodes 3214 nps 1071333 hashfull 2 time 3 pv c3c4 f6e5 d5b7 a5a4 d4e5 f8c5
+< info string softnodes nodes 3214
+< info string shortcut B1 uses 1385 differ 0
+< info string shortcut B2 uses 1412 differ 0
+< info string shortcut B5 uses 2534 differ 0
+< info string shortcut B6 uses 2472 differ 0
+< info string shortcut S-B1 uses 1385 differ 0
+< info string shortcut S-B2 uses 1412 differ 0
+< info string shortcut S-B4 uses 1385 differ 0
+< info string shortcut S-B7 uses 3053 differ 0
+< info string shortcut H28 uses 145 differ 0
+< info string shortcut H18 uses 1563 differ 0
+< info string shortcut H25 uses 4977 differ 0
+< info string shortcut H27 uses 893 differ 0
+< info string shortcut H82 uses 4777 differ 0
+< info string h82_classes hit 1923 miss_empty 2854 miss_full 0 older_generation 91 probes 3214 stores 1563
+< info string h25_paths seeded 1035 scan16 309 scan8 150 scan4 268 scalar_tail 1467 sort_transition 347 sorted_tail 1620
+< bestmove c3c4
+{"game": 1, "ply": 25, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 571 nodes 94 nps 0 hashfull 0 time 0 pv g4h6
+< info depth 2 seldepth 7 score cp 167 nodes 208 nps 0 hashfull 0 time 0 pv g7h7 h3g4
+< info depth 3 seldepth 7 score cp 44 nodes 328 nps 0 hashfull 0 time 0 pv g7h7 h3g4 h7g8
+< info depth 4 seldepth 11 score cp -53 nodes 681 nps 681000 hashfull 0 time 1 pv f6e5 d5b7 a5a4 d4e5
+< info depth 5 seldepth 11 score cp -53 nodes 763 nps 763000 hashfull 0 time 1 pv f6e5 d5b7 a5a4 d4e5 f8c5
+< info depth 6 seldepth 12 score cp -23 nodes 1108 nps 1108000 hashfull 0 time 1 pv f6e5 d5b7 a5a4 d4e5 c8d7 h3h4
+< info depth 7 seldepth 16 score cp 74 nodes 4835 nps 805833 hashfull 1 time 6 pv f6e5 d5b7 a5a4 h3h4 c8b7 f1e1 b6d4
+< info string softnodes nodes 4835
+< info string shortcut B1 uses 1815 differ 0
+< info string shortcut B2 uses 1857 differ 0
+< info string shortcut B5 uses 3854 differ 0
+< info string shortcut B6 uses 4558 differ 0
+< info string shortcut S-B1 uses 1815 differ 0
+< info string shortcut S-B2 uses 1857 differ 0
+< info string shortcut S-B4 uses 1815 differ 0
+< info string shortcut S-B7 uses 4564 differ 0
+< info string shortcut H28 uses 208 differ 0
+< info string shortcut H18 uses 2616 differ 0
+< info string shortcut H25 uses 7636 differ 0
+< info string shortcut H27 uses 1600 differ 0
+< info string shortcut H82 uses 7451 differ 0
+< info string h82_classes hit 2763 miss_empty 4688 miss_full 0 older_generation 230 probes 4835 stores 2616
+< info string h25_paths seeded 1796 scan16 482 scan8 309 scan4 465 scalar_tail 2439 sort_transition 486 sorted_tail 1879
+< bestmove f6e5
+{"game": 1, "ply": 26, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -74 nodes 35 nps 0 hashfull 0 time 0 pv d5b7
+< info depth 2 seldepth 3 score cp -74 nodes 76 nps 0 hashfull 0 time 0 pv d5b7 a5a4
+< info depth 3 seldepth 4 score cp -74 nodes 126 nps 0 hashfull 0 time 0 pv d5b7 a5a4 h3h4
+< info depth 4 seldepth 5 score cp -74 nodes 181 nps 0 hashfull 0 time 0 pv d5b7 a5a4 h3h4 c8b7
+< info depth 5 seldepth 6 score cp -74 nodes 253 nps 0 hashfull 0 time 0 pv d5b7 a5a4 h3h4 c8b7 f1e1
+< info depth 6 seldepth 6 score cp -74 nodes 348 nps 0 hashfull 0 time 0 pv d5b7 a5a4 h3h4 c8b7 f1e1 b6d4
+< info depth 7 seldepth 17 score cp -4 nodes 1680 nps 840000 hashfull 0 time 2 pv d5b7 a5a4 h3h4 c8d7 f1e1 g7h7 g1f1 e5d4
+< info string softnodes nodes 8000
+< info string shortcut B1 uses 3009 differ 0
+< info string shortcut B2 uses 3089 differ 0
+< info string shortcut B5 uses 5616 differ 0
+< info string shortcut B6 uses 7406 differ 0
+< info string shortcut S-B1 uses 3009 differ 0
+< info string shortcut S-B2 uses 3089 differ 0
+< info string shortcut S-B4 uses 3009 differ 0
+< info string shortcut S-B7 uses 7399 differ 0
+< info string shortcut H28 uses 371 differ 0
+< info string shortcut H18 uses 4498 differ 0
+< info string shortcut H25 uses 12963 differ 0
+< info string shortcut H27 uses 2967 differ 0
+< info string shortcut H82 uses 12498 differ 0
+< info string h82_classes hit 3824 miss_empty 8674 miss_full 0 older_generation 389 probes 8000 stores 4498
+< info string h25_paths seeded 3292 scan16 738 scan8 373 scan4 622 scalar_tail 3723 sort_transition 653 sorted_tail 3529
+< bestmove d5b7
+{"game": 1, "ply": 27, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7
+> go softnodes 2000
+< info depth 1 seldepth 6 score cp 135 nodes 52 nps 0 hashfull 0 time 0 pv c8b7 d4e5
+< info depth 2 seldepth 6 score cp 38 nodes 124 nps 0 hashfull 0 time 0 pv c8b7 h3h4
+< info depth 3 seldepth 6 score cp 38 nodes 177 nps 0 hashfull 0 time 0 pv c8b7 h3h4 e5d4
+< info depth 4 seldepth 6 score cp 38 nodes 245 nps 0 hashfull 0 time 0 pv c8b7 h3h4 e5d4 f1c1
+< info depth 5 seldepth 11 score cp 106 nodes 546 nps 0 hashfull 0 time 0 pv c8b7 h3h4 e5d4 f2f3 d4d3 e2f2
+< info depth 6 seldepth 12 score cp 195 nodes 1604 nps 1604000 hashfull 1 time 1 pv c8b7 h3h4 g7g8 f2f3 b6d4 e2e3
+< info depth 7 seldepth 15 score cp 28 nodes 4626 nps 925200 hashfull 3 time 5 pv c8b7 d4d5 g7g8 h3g4 b6f2 e2f2 f8f2 g1h2
+< info string softnodes nodes 4626
+< info string shortcut B1 uses 2114 differ 0
+< info string shortcut B2 uses 2180 differ 0
+< info string shortcut B5 uses 3316 differ 0
+< info string shortcut B6 uses 4363 differ 0
+< info string shortcut S-B1 uses 2114 differ 0
+< info string shortcut S-B2 uses 2180 differ 0
+< info string shortcut S-B4 uses 2114 differ 0
+< info string shortcut S-B7 uses 4337 differ 0
+< info string shortcut H28 uses 226 differ 0
+< info string shortcut H18 uses 2384 differ 0
+< info string shortcut H25 uses 7017 differ 0
+< info string shortcut H27 uses 1370 differ 0
+< info string shortcut H82 uses 7010 differ 0
+< info string h82_classes hit 2833 miss_empty 4177 miss_full 0 older_generation 155 probes 4626 stores 2384
+< info string h25_paths seeded 1573 scan16 516 scan8 169 scan4 463 scalar_tail 1918 sort_transition 403 sorted_tail 2234
+< bestmove c8b7
+{"game": 1, "ply": 28, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7
+> go softnodes 2000
+< info depth 1 seldepth 5 score cp -28 nodes 35 nps 0 hashfull 0 time 0 pv d4d5
+< info depth 2 seldepth 5 score cp -28 nodes 72 nps 0 hashfull 0 time 0 pv d4d5 g7g8
+< info depth 3 seldepth 5 score cp -28 nodes 118 nps 0 hashfull 0 time 0 pv d4d5 g7g8 h3g4
+< info depth 4 seldepth 8 score cp -28 nodes 229 nps 0 hashfull 0 time 0 pv d4d5 g7g8 h3g4 b6f2 e2f2 f8f2 g1h2
+< info depth 5 seldepth 8 score cp -28 nodes 340 nps 0 hashfull 0 time 0 pv d4d5 g7g8 h3g4 b6f2 e2f2
+< info depth 6 seldepth 13 score cp -6 nodes 1572 nps 1572000 hashfull 0 time 1 pv f2f3 f8d8 c4c5 g7h7 d4e5 d8d4 e2f2
+< info depth 7 seldepth 16 score cp 0 nodes 5060 nps 843333 hashfull 1 time 6 pv f2f3 g7g8 f1f2 g8g7
+< info string softnodes nodes 5060
+< info string shortcut B1 uses 2171 differ 0
+< info string shortcut B2 uses 2302 differ 0
+< info string shortcut B5 uses 3398 differ 0
+< info string shortcut B6 uses 4767 differ 0
+< info string shortcut S-B1 uses 2171 differ 0
+< info string shortcut S-B2 uses 2302 differ 0
+< info string shortcut S-B4 uses 2171 differ 0
+< info string shortcut S-B7 uses 4701 differ 0
+< info string shortcut H28 uses 235 differ 0
+< info string shortcut H18 uses 2716 differ 0
+< info string shortcut H25 uses 7691 differ 0
+< info string shortcut H27 uses 1610 differ 0
+< info string shortcut H82 uses 7776 differ 0
+< info string h82_classes hit 3247 miss_empty 4529 miss_full 0 older_generation 363 probes 5060 stores 2716
+< info string h25_paths seeded 1809 scan16 530 scan8 184 scan4 420 scalar_tail 1973 sort_transition 371 sorted_tail 2503
+< bestmove f2f3
+{"game": 1, "ply": 29, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3
+> go softnodes 2000
+< info depth 1 seldepth 6 score cp 104 nodes 70 nps 0 hashfull 0 time 0 pv f8a3 b2a3
+< info depth 2 seldepth 13 score cp 0 nodes 192 nps 0 hashfull 0 time 0 pv g7g8 f1f2
+< info depth 3 seldepth 13 score cp 0 nodes 257 nps 0 hashfull 0 time 0 pv g7g8 f1f2 g8g7
+< info depth 4 seldepth 13 score cp 0 nodes 341 nps 0 hashfull 0 time 0 pv g7g8 f1f2 g8g7
+< info depth 5 seldepth 13 score cp 0 nodes 419 nps 0 hashfull 0 time 0 pv g7g8 f1f2 g8g7
+< info depth 6 seldepth 13 score cp 0 nodes 1036 nps 1036000 hashfull 0 time 1 pv g7g8 f1f2 g8g7
+< info depth 7 seldepth 13 score cp 213 nodes 1462 nps 1462000 hashfull 0 time 1 pv g7g8 f1f2 b6d4 b1f1 d4f2 e2f2 g4f2 f1f2
+< info depth 8 seldepth 24 score cp 147 nodes 7326 nps 732600 hashfull 2 time 10 pv g4h2 h3h4 b6d4 f1f2 f8c8 b1e1 a5a4 g1h2
+< info string softnodes nodes 7326
+< info string shortcut B1 uses 2683 differ 0
+< info string shortcut B2 uses 2805 differ 0
+< info string shortcut B5 uses 4975 differ 0
+< info string shortcut B6 uses 6688 differ 0
+< info string shortcut S-B1 uses 2683 differ 0
+< info string shortcut S-B2 uses 2805 differ 0
+< info string shortcut S-B4 uses 2683 differ 0
+< info string shortcut S-B7 uses 6665 differ 0
+< info string shortcut H28 uses 397 differ 0
+< info string shortcut H18 uses 4207 differ 0
+< info string shortcut H25 uses 11688 differ 0
+< info string shortcut H27 uses 2733 differ 0
+< info string shortcut H82 uses 11533 differ 0
+< info string h82_classes hit 3788 miss_empty 7745 miss_full 0 older_generation 215 probes 7326 stores 4207
+< info string h25_paths seeded 3093 scan16 822 scan8 299 scan4 755 scalar_tail 3042 sort_transition 623 sorted_tail 3239
+< bestmove g4h2
+{"game": 1, "ply": 30, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2
+> go softnodes 2000
+< info depth 1 seldepth 5 score cp -147 nodes 34 nps 0 hashfull 0 time 0 pv h3h4
+< info depth 2 seldepth 5 score cp 18 nodes 80 nps 0 hashfull 0 time 0 pv h3h4 b6d4 e2e3
+< info depth 3 seldepth 10 score cp -210 nodes 196 nps 0 hashfull 0 time 0 pv f1f2 f8c8 b1e1
+< info depth 4 seldepth 10 score cp -67 nodes 357 nps 0 hashfull 0 time 0 pv f1f2 f8c8 b1e1 g7g8 d4e5
+< info depth 5 seldepth 10 score cp -205 nodes 627 nps 627000 hashfull 0 time 1 pv f1f2 b7c6 b1e1 b6d4
+< info depth 6 seldepth 11 score cp -110 nodes 2202 nps 734000 hashfull 1 time 3 pv f1f2 f8e7 b1e1 a5a4 g1h2
+< info string softnodes nodes 2202
+< info string shortcut B1 uses 1217 differ 0
+< info string shortcut B2 uses 1246 differ 0
+< info string shortcut B5 uses 1795 differ 0
+< info string shortcut B6 uses 2102 differ 0
+< info string shortcut S-B1 uses 1217 differ 0
+< info string shortcut S-B2 uses 1246 differ 0
+< info string shortcut S-B4 uses 1217 differ 0
+< info string shortcut S-B7 uses 2080 differ 0
+< info string shortcut H28 uses 144 differ 0
+< info string shortcut H18 uses 883 differ 0
+< info string shortcut H25 uses 3095 differ 0
+< info string shortcut H27 uses 543 differ 0
+< info string shortcut H82 uses 3085 differ 0
+< info string h82_classes hit 1757 miss_empty 1328 miss_full 0 older_generation 220 probes 2202 stores 883
+< info string h25_paths seeded 667 scan16 321 scan8 82 scan4 209 scalar_tail 801 sort_transition 200 sorted_tail 1021
+< bestmove f1f2
+{"game": 1, "ply": 31, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 110 nodes 57 nps 0 hashfull 0 time 0 pv f8e7
+< info depth 2 seldepth 4 score cp 110 nodes 109 nps 0 hashfull 0 time 0 pv f8e7 b1e1
+< info depth 3 seldepth 5 score cp 110 nodes 172 nps 0 hashfull 0 time 0 pv f8e7 b1e1 a5a4
+< info depth 4 seldepth 6 score cp 110 nodes 265 nps 0 hashfull 0 time 0 pv f8e7 b1e1 a5a4 g1h2
+< info depth 5 seldepth 8 score cp -5 nodes 1090 nps 1090000 hashfull 1 time 1 pv f8c8 b1e1 c8h8 d4e5
+< info depth 6 seldepth 12 score cp 130 nodes 1755 nps 877500 hashfull 1 time 2 pv b8c8 h3h4 f8d8 b1e1 a5a4
+< info depth 7 seldepth 18 score cp 229 nodes 3900 nps 780000 hashfull 2 time 5 pv b8c8 h3h4 c8c7 b1e1 b6d4
+< info string softnodes nodes 3900
+< info string shortcut B1 uses 1962 differ 0
+< info string shortcut B2 uses 2052 differ 0
+< info string shortcut B5 uses 3130 differ 0
+< info string shortcut B6 uses 3655 differ 0
+< info string shortcut S-B1 uses 1962 differ 0
+< info string shortcut S-B2 uses 2052 differ 0
+< info string shortcut S-B4 uses 1962 differ 0
+< info string shortcut S-B7 uses 3679 differ 0
+< info string shortcut H28 uses 237 differ 0
+< info string shortcut H18 uses 2034 differ 0
+< info string shortcut H25 uses 6539 differ 0
+< info string shortcut H27 uses 1380 differ 0
+< info string shortcut H82 uses 5934 differ 0
+< info string h82_classes hit 2200 miss_empty 3734 miss_full 0 older_generation 200 probes 3900 stores 2034
+< info string h25_paths seeded 1613 scan16 562 scan8 107 scan4 538 scalar_tail 1854 sort_transition 458 sorted_tail 1702
+< bestmove b8c8
+{"game": 1, "ply": 32, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -229 nodes 29 nps 0 hashfull 0 time 0 pv h3h4
+< info depth 2 seldepth 3 score cp -229 nodes 61 nps 0 hashfull 0 time 0 pv h3h4 c8c7
+< info depth 3 seldepth 7 score cp -344 nodes 226 nps 0 hashfull 0 time 0 pv f2f1 c8c7 h3h4
+< info depth 4 seldepth 7 score cp -140 nodes 683 nps 0 hashfull 0 time 0 pv c4c5 a5a4 h3h4 c8b8 c5b6
+< info depth 5 seldepth 7 score cp -139 nodes 785 nps 785000 hashfull 0 time 1 pv c4c5 a5a4 h3h4 c8b8 c5b6
+< info depth 6 seldepth 8 score cp -85 nodes 1346 nps 1346000 hashfull 0 time 1 pv c4c5 a5a4 h3h4 c8c7 c5b6 f8a8 b6c7
+< info depth 7 seldepth 20 score cp -171 nodes 3224 nps 806000 hashfull 1 time 4 pv c4c5 b6d8 h3h4 e5d4 e2b5 c8c5
+< info string softnodes nodes 3224
+< info string shortcut B1 uses 1762 differ 0
+< info string shortcut B2 uses 1812 differ 0
+< info string shortcut B5 uses 2749 differ 0
+< info string shortcut B6 uses 2999 differ 0
+< info string shortcut S-B1 uses 1762 differ 0
+< info string shortcut S-B2 uses 1812 differ 0
+< info string shortcut S-B4 uses 1762 differ 0
+< info string shortcut S-B7 uses 3009 differ 0
+< info string shortcut H28 uses 212 differ 0
+< info string shortcut H18 uses 1490 differ 0
+< info string shortcut H25 uses 5403 differ 0
+< info string shortcut H27 uses 1086 differ 0
+< info string shortcut H82 uses 4714 differ 0
+< info string h82_classes hit 2037 miss_empty 2677 miss_full 0 older_generation 127 probes 3224 stores 1490
+< info string h25_paths seeded 1287 scan16 487 scan8 206 scan4 489 scalar_tail 1464 sort_transition 367 sorted_tail 1522
+< bestmove c4c5
+{"game": 1, "ply": 33, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 171 nodes 49 nps 0 hashfull 1 time 0 pv b6d8
+< info depth 2 seldepth 4 score cp 171 nodes 97 nps 0 hashfull 1 time 0 pv b6d8 h3h4
+< info depth 3 seldepth 4 score cp 171 nodes 148 nps 0 hashfull 1 time 0 pv b6d8 h3h4 e5d4
+< info depth 4 seldepth 5 score cp 171 nodes 216 nps 0 hashfull 1 time 0 pv b6d8 h3h4 e5d4 e2b5
+< info depth 5 seldepth 8 score cp 113 nodes 423 nps 0 hashfull 1 time 0 pv b6d8 e2d1 b7c6 d4e5
+< info depth 6 seldepth 13 score cp 229 nodes 1285 nps 1285000 hashfull 2 time 1 pv b6d8 h3h4 a5a4 b1e1 b7c6 d4e5 f8c5
+< info depth 7 seldepth 14 score cp 176 nodes 2580 nps 860000 hashfull 2 time 3 pv b6d8 h3h4 a5a4 b1e1 b7c6 g1h2 f8e7 d4e5 e7h4 h2g1
+< info string softnodes nodes 2580
+< info string shortcut B1 uses 1279 differ 0
+< info string shortcut B2 uses 1322 differ 0
+< info string shortcut B5 uses 2017 differ 0
+< info string shortcut B6 uses 2349 differ 0
+< info string shortcut S-B1 uses 1279 differ 0
+< info string shortcut S-B2 uses 1322 differ 0
+< info string shortcut S-B4 uses 1279 differ 0
+< info string shortcut S-B7 uses 2351 differ 0
+< info string shortcut H28 uses 130 differ 0
+< info string shortcut H18 uses 1213 differ 0
+< info string shortcut H25 uses 4421 differ 0
+< info string shortcut H27 uses 873 differ 0
+< info string shortcut H82 uses 3793 differ 0
+< info string h82_classes hit 1832 miss_empty 1961 miss_full 0 older_generation 135 probes 2580 stores 1213
+< info string h25_paths seeded 979 scan16 290 scan8 192 scan4 382 scalar_tail 1236 sort_transition 334 sorted_tail 1311
+< bestmove b6d8
+{"game": 1, "ply": 34, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp -176 nodes 39 nps 0 hashfull 0 time 0 pv h3h4
+< info depth 2 seldepth 4 score cp -176 nodes 74 nps 0 hashfull 0 time 0 pv h3h4 a5a4
+< info depth 3 seldepth 5 score cp -176 nodes 141 nps 0 hashfull 0 time 0 pv h3h4 a5a4 b1e1
+< info depth 4 seldepth 5 score cp -176 nodes 192 nps 0 hashfull 0 time 0 pv h3h4 a5a4 b1e1 b7c6
+< info depth 5 seldepth 6 score cp -176 nodes 264 nps 0 hashfull 0 time 0 pv h3h4 a5a4 b1e1 b7c6 g1h2
+< info depth 6 seldepth 7 score cp -176 nodes 362 nps 0 hashfull 0 time 0 pv h3h4 a5a4 b1e1 b7c6 g1h2 f8e7
+< info depth 7 seldepth 23 score cp -199 nodes 2476 nps 825333 hashfull 2 time 3 pv g2g4 f8f6 g4g5 g7f8 h3h4
+< info string softnodes nodes 2476
+< info string shortcut B1 uses 958 differ 0
+< info string shortcut B2 uses 988 differ 0
+< info string shortcut B5 uses 1904 differ 0
+< info string shortcut B6 uses 2072 differ 0
+< info string shortcut S-B1 uses 958 differ 0
+< info string shortcut S-B2 uses 988 differ 0
+< info string shortcut S-B4 uses 958 differ 0
+< info string shortcut S-B7 uses 2289 differ 0
+< info string shortcut H28 uses 119 differ 0
+< info string shortcut H18 uses 1373 differ 0
+< info string shortcut H25 uses 4604 differ 0
+< info string shortcut H27 uses 934 differ 0
+< info string shortcut H82 uses 3849 differ 0
+< info string h82_classes hit 1487 miss_empty 2362 miss_full 0 older_generation 111 probes 2476 stores 1373
+< info string h25_paths seeded 1040 scan16 257 scan8 220 scan4 447 scalar_tail 1373 sort_transition 387 sorted_tail 1272
+< bestmove g2g4
+{"game": 1, "ply": 35, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 199 nodes 58 nps 0 hashfull 1 time 0 pv f8f6
+< info depth 2 seldepth 5 score cp 199 nodes 109 nps 0 hashfull 1 time 0 pv f8f6 g4g5
+< info depth 3 seldepth 5 score cp 199 nodes 163 nps 0 hashfull 1 time 0 pv f8f6 g4g5 g7f8
+< info depth 4 seldepth 5 score cp 198 nodes 238 nps 0 hashfull 1 time 0 pv f8f6 g4g5 g7f8 h3h4
+< info depth 5 seldepth 13 score cp 172 nodes 771 nps 0 hashfull 1 time 0 pv f8f6 g4g5 a5a4 d4e5 c8c7 e5f6 g7g8 f2h2
+< info depth 6 seldepth 14 score cp 207 nodes 1165 nps 1165000 hashfull 1 time 1 pv f8f6 g4g5 g7f8 h3h4 f6h8 b1e1
+< info depth 7 seldepth 15 score cp 174 nodes 2712 nps 904000 hashfull 2 time 3 pv f8f6 g4g5 g7f8 h3h4 f6h8 f2g2 b7c6
+< info string softnodes nodes 2712
+< info string shortcut B1 uses 1089 differ 0
+< info string shortcut B2 uses 1109 differ 0
+< info string shortcut B5 uses 1995 differ 0
+< info string shortcut B6 uses 2092 differ 0
+< info string shortcut S-B1 uses 1089 differ 0
+< info string shortcut S-B2 uses 1109 differ 0
+< info string shortcut S-B4 uses 1089 differ 0
+< info string shortcut S-B7 uses 2533 differ 0
+< info string shortcut H28 uses 103 differ 0
+< info string shortcut H18 uses 1319 differ 0
+< info string shortcut H25 uses 4219 differ 0
+< info string shortcut H27 uses 844 differ 0
+< info string shortcut H82 uses 4031 differ 0
+< info string h82_classes hit 1708 miss_empty 2323 miss_full 0 older_generation 129 probes 2712 stores 1319
+< info string h25_paths seeded 927 scan16 247 scan8 177 scan4 300 scalar_tail 1165 sort_transition 255 sorted_tail 1355
+< bestmove f8f6
+{"game": 1, "ply": 36, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp -174 nodes 36 nps 0 hashfull 0 time 0 pv g4g5
+< info depth 2 seldepth 4 score cp -174 nodes 76 nps 0 hashfull 0 time 0 pv g4g5 g7f8
+< info depth 3 seldepth 4 score cp -174 nodes 123 nps 0 hashfull 0 time 0 pv g4g5 g7f8 h3h4
+< info depth 4 seldepth 5 score cp -174 nodes 188 nps 0 hashfull 0 time 0 pv g4g5 g7f8 h3h4 f6h8
+< info depth 5 seldepth 6 score cp -174 nodes 270 nps 0 hashfull 0 time 0 pv g4g5 g7f8 h3h4 f6h8 f2g2
+< info depth 6 seldepth 15 score cp -296 nodes 1144 nps 1144000 hashfull 0 time 1 pv g4g5 f6f7 f2h2 e5d4 e2b5 f7f3
+< info depth 7 seldepth 18 score cp -174 nodes 3058 nps 764500 hashfull 1 time 4 pv h3h4 g7f8 g4g5 f6h8 f2g2 b7c6
+< info string softnodes nodes 3058
+< info string shortcut B1 uses 1280 differ 0
+< info string shortcut B2 uses 1322 differ 0
+< info string shortcut B5 uses 2343 differ 0
+< info string shortcut B6 uses 2857 differ 0
+< info string shortcut S-B1 uses 1280 differ 0
+< info string shortcut S-B2 uses 1322 differ 0
+< info string shortcut S-B4 uses 1280 differ 0
+< info string shortcut S-B7 uses 2857 differ 0
+< info string shortcut H28 uses 127 differ 0
+< info string shortcut H18 uses 1578 differ 0
+< info string shortcut H25 uses 5183 differ 0
+< info string shortcut H27 uses 1067 differ 0
+< info string shortcut H82 uses 4636 differ 0
+< info string h82_classes hit 1847 miss_empty 2789 miss_full 0 older_generation 207 probes 3058 stores 1578
+< info string h25_paths seeded 1152 scan16 313 scan8 224 scan4 364 scalar_tail 1489 sort_transition 360 sorted_tail 1563
+< bestmove h3h4
+{"game": 1, "ply": 37, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 174 nodes 56 nps 0 hashfull 0 time 0 pv g7f8
+< info depth 2 seldepth 4 score cp 174 nodes 101 nps 0 hashfull 0 time 0 pv g7f8 g4g5
+< info depth 3 seldepth 4 score cp 174 nodes 153 nps 0 hashfull 0 time 0 pv g7f8 g4g5 f6h8
+< info depth 4 seldepth 5 score cp 174 nodes 217 nps 0 hashfull 0 time 0 pv g7f8 g4g5 f6h8 f2g2
+< info depth 5 seldepth 6 score cp 174 nodes 343 nps 0 hashfull 0 time 0 pv g7f8 g4g5 f6h8 f2g2 b7c6
+< info depth 6 seldepth 12 score cp 169 nodes 748 nps 0 hashfull 1 time 0 pv g7f8 a2a3 f6h4 g4h5
+< info depth 7 seldepth 17 score cp 261 nodes 4093 nps 818600 hashfull 4 time 5 pv g7f8 c5c6 f6h4 f2h2 e5d4 g4h5 c8c7
+< info string softnodes nodes 4093
+< info string shortcut B1 uses 1262 differ 0
+< info string shortcut B2 uses 1309 differ 0
+< info string shortcut B5 uses 2992 differ 0
+< info string shortcut B6 uses 3857 differ 0
+< info string shortcut S-B1 uses 1262 differ 0
+< info string shortcut S-B2 uses 1309 differ 0
+< info string shortcut S-B4 uses 1262 differ 0
+< info string shortcut S-B7 uses 3848 differ 0
+< info string shortcut H28 uses 172 differ 0
+< info string shortcut H18 uses 2423 differ 0
+< info string shortcut H25 uses 7213 differ 0
+< info string shortcut H27 uses 1610 differ 0
+< info string shortcut H82 uses 6516 differ 0
+< info string h82_classes hit 2078 miss_empty 4438 miss_full 0 older_generation 129 probes 4093 stores 2423
+< info string h25_paths seeded 1761 scan16 363 scan8 247 scan4 621 scalar_tail 2061 sort_transition 481 sorted_tail 1941
+< bestmove g7f8
+{"game": 1, "ply": 38, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -261 nodes 37 nps 0 hashfull 0 time 0 pv c5c6
+< info depth 2 seldepth 3 score cp -261 nodes 82 nps 0 hashfull 1 time 0 pv c5c6 f6h4
+< info depth 3 seldepth 3 score cp -261 nodes 131 nps 0 hashfull 1 time 0 pv c5c6 f6h4 f2h2
+< info depth 4 seldepth 5 score cp -261 nodes 190 nps 0 hashfull 1 time 0 pv c5c6 f6h4 f2h2 e5d4
+< info depth 5 seldepth 6 score cp -261 nodes 264 nps 0 hashfull 1 time 0 pv c5c6 f6h4 f2h2 e5d4 g4h5
+< info depth 6 seldepth 17 score cp -261 nodes 581 nps 0 hashfull 1 time 0 pv c5c6 f6h4 f2h2 e5d4 g4h5 c8c7 c6b7
+< info string softnodes nodes 8000
+< info string shortcut B1 uses 1298 differ 0
+< info string shortcut B2 uses 1336 differ 0
+< info string shortcut B5 uses 4310 differ 0
+< info string shortcut B6 uses 7432 differ 0
+< info string shortcut S-B1 uses 1298 differ 0
+< info string shortcut S-B2 uses 1336 differ 0
+< info string shortcut S-B4 uses 1298 differ 0
+< info string shortcut S-B7 uses 7341 differ 0
+< info string shortcut H28 uses 199 differ 0
+< info string shortcut H18 uses 6233 differ 0
+< info string shortcut H25 uses 14137 differ 0
+< info string shortcut H27 uses 4031 differ 0
+< info string shortcut H82 uses 14232 differ 0
+< info string h82_classes hit 2544 miss_empty 11686 miss_full 2 older_generation 229 probes 8000 stores 6232
+< info string h25_paths seeded 4111 scan16 446 scan8 335 scan4 983 scalar_tail 3590 sort_transition 682 sorted_tail 3643
+< bestmove c5c6
+{"game": 1, "ply": 39, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp 297 nodes 39 nps 0 hashfull 0 time 0 pv f6h4 f2h2
+< info depth 2 seldepth 2 score cp 297 nodes 78 nps 0 hashfull 0 time 0 pv f6h4 f2h2
+< info depth 3 seldepth 4 score cp 297 nodes 128 nps 0 hashfull 0 time 0 pv f6h4 f2h2 h4h2 g1h2
+< info depth 4 seldepth 4 score cp 297 nodes 180 nps 0 hashfull 0 time 0 pv f6h4 f2h2 h4h2 g1h2
+< info depth 5 seldepth 21 score cp 311 nodes 341 nps 0 hashfull 1 time 0 pv f6h4 c6b7 c8c1 g1g2 e5d4 b7b8b
+< info depth 6 seldepth 21 score cp 311 nodes 554 nps 0 hashfull 1 time 0 pv f6h4 c6b7 c8c1 g1g2 e5d4 b7b8b
+< info depth 7 seldepth 21 score cp 378 nodes 4696 nps 782666 hashfull 5 time 6 pv f6h4 c6b7 h4g3 f2g2 c8c1 b1c1 h2f3 g1f1 g3g2 e2g2
+< info string softnodes nodes 4696
+< info string shortcut B1 uses 587 differ 0
+< info string shortcut B2 uses 615 differ 0
+< info string shortcut B5 uses 2302 differ 0
+< info string shortcut B6 uses 4570 differ 0
+< info string shortcut S-B1 uses 587 differ 0
+< info string shortcut S-B2 uses 615 differ 0
+< info string shortcut S-B4 uses 587 differ 0
+< info string shortcut S-B7 uses 4506 differ 0
+< info string shortcut H28 uses 84 differ 0
+< info string shortcut H18 uses 3775 differ 0
+< info string shortcut H25 uses 7702 differ 0
+< info string shortcut H27 uses 2035 differ 0
+< info string shortcut H82 uses 8471 differ 0
+< info string h82_classes hit 1411 miss_empty 7060 miss_full 0 older_generation 238 probes 4696 stores 3775
+< info string h25_paths seeded 2080 scan16 218 scan8 271 scan4 514 scalar_tail 1653 sort_transition 312 sorted_tail 2713
+< bestmove f6h4
+{"game": 1, "ply": 40, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -378 nodes 33 nps 0 hashfull 2 time 0 pv c6b7
+< info depth 2 seldepth 6 score cp -378 nodes 79 nps 0 hashfull 2 time 0 pv c6b7 h4g3 f2g2
+< info depth 3 seldepth 9 score cp -378 nodes 137 nps 0 hashfull 2 time 0 pv c6b7 h4g3 f2g2 c8c1 b1c1
+< info depth 4 seldepth 9 score cp -364 nodes 191 nps 0 hashfull 2 time 0 pv c6b7 h4g3 f2g2 c8c1 b1c1
+< info depth 5 seldepth 9 score cp -350 nodes 270 nps 0 hashfull 2 time 0 pv c6b7 c8c1 g1g2 h4g3 g2g3
+< info depth 6 seldepth 23 score cp -169 nodes 2462 nps 820666 hashfull 4 time 3 pv c6b7 c8c1 g1g2 h4g3 g2g3 h5h4 g3h2
+< info string softnodes nodes 2462
+< info string shortcut B1 uses 556 differ 0
+< info string shortcut B2 uses 563 differ 0
+< info string shortcut B5 uses 1302 differ 0
+< info string shortcut B6 uses 2415 differ 0
+< info string shortcut S-B1 uses 556 differ 0
+< info string shortcut S-B2 uses 563 differ 0
+< info string shortcut S-B4 uses 556 differ 0
+< info string shortcut S-B7 uses 2362 differ 0
+< info string shortcut H28 uses 58 differ 0
+< info string shortcut H18 uses 1650 differ 0
+< info string shortcut H25 uses 3977 differ 0
+< info string shortcut H27 uses 893 differ 0
+< info string shortcut H82 uses 4112 differ 0
+< info string h82_classes hit 1572 miss_empty 2540 miss_full 0 older_generation 381 probes 2462 stores 1650
+< info string h25_paths seeded 949 scan16 172 scan8 163 scan4 244 scalar_tail 952 sort_transition 210 sorted_tail 1341
+< bestmove c6b7
+{"game": 1, "ply": 41, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7
+> go softnodes 2000
+< info depth 1 seldepth 12 score cp 169 nodes 178 nps 0 hashfull 1 time 0 pv c8c1 g1g2
+< info depth 2 seldepth 12 score cp 167 nodes 218 nps 0 hashfull 1 time 0 pv c8c1 g1g2
+< info depth 3 seldepth 15 score cp 169 nodes 582 nps 0 hashfull 1 time 0 pv c8c1 g1g2 h4g3 g2g3
+< info depth 4 seldepth 21 score cp 169 nodes 952 nps 952000 hashfull 2 time 1 pv c8c1 g1g2 h4g3 g2g3
+< info depth 5 seldepth 21 score cp 169 nodes 2120 nps 706666 hashfull 3 time 3 pv c8c1 g1g2 h4g3 g2g3 h5h4 g3h2
+< info string softnodes nodes 2120
+< info string shortcut B1 uses 234 differ 0
+< info string shortcut B2 uses 235 differ 0
+< info string shortcut B5 uses 951 differ 0
+< info string shortcut B6 uses 2104 differ 0
+< info string shortcut S-B1 uses 234 differ 0
+< info string shortcut S-B2 uses 235 differ 0
+< info string shortcut S-B4 uses 234 differ 0
+< info string shortcut S-B7 uses 2066 differ 0
+< info string shortcut H28 uses 26 differ 0
+< info string shortcut H18 uses 1820 differ 0
+< info string shortcut H25 uses 3974 differ 0
+< info string shortcut H27 uses 1022 differ 0
+< info string shortcut H82 uses 3940 differ 0
+< info string h82_classes hit 432 miss_empty 3508 miss_full 0 older_generation 63 probes 2120 stores 1820
+< info string h25_paths seeded 1026 scan16 114 scan8 124 scan4 309 scalar_tail 996 sort_transition 199 sorted_tail 1226
+< bestmove c8c1
+{"game": 1, "ply": 42, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -169 nodes 10 nps 0 hashfull 1 time 0 pv g1g2
+< info depth 2 seldepth 4 score cp -169 nodes 32 nps 0 hashfull 1 time 0 pv g1g2 h4g3 g2g3
+< info depth 3 seldepth 4 score cp -169 nodes 54 nps 0 hashfull 1 time 0 pv g1g2 h4g3 g2g3
+< info depth 4 seldepth 6 score cp -169 nodes 82 nps 0 hashfull 1 time 0 pv g1g2 h4g3 g2g3 h5h4 g3h2
+< info depth 5 seldepth 18 score cp -119 nodes 936 nps 936000 hashfull 1 time 1 pv b1c1 h4g3 f2g2 e5d4 g2g3 h5h4 b7b8q
+< info depth 6 seldepth 22 score cp -149 nodes 5353 nps 764714 hashfull 5 time 7 pv b1c1 h4g3 f2g2 g3f4 b7b8q h2f3 g1f2 f3h4 f2e1
+< info string softnodes nodes 5353
+< info string shortcut B1 uses 479 differ 0
+< info string shortcut B2 uses 492 differ 0
+< info string shortcut B5 uses 2599 differ 0
+< info string shortcut B6 uses 5262 differ 0
+< info string shortcut S-B1 uses 479 differ 0
+< info string shortcut S-B2 uses 492 differ 0
+< info string shortcut S-B4 uses 479 differ 0
+< info string shortcut S-B7 uses 5114 differ 0
+< info string shortcut H28 uses 84 differ 0
+< info string shortcut H18 uses 4387 differ 0
+< info string shortcut H25 uses 8939 differ 0
+< info string shortcut H27 uses 2515 differ 0
+< info string shortcut H82 uses 9740 differ 0
+< info string h82_classes hit 1906 miss_empty 7834 miss_full 0 older_generation 286 probes 5353 stores 4387
+< info string h25_paths seeded 2515 scan16 155 scan8 90 scan4 646 scalar_tail 2139 sort_transition 428 sorted_tail 2586
+< bestmove b1c1
+{"game": 1, "ply": 43, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1
+> go softnodes 2000
+< info depth 1 seldepth 8 score cp 149 nodes 100 nps 0 hashfull 1 time 0 pv h4g3 f2g2
+< info depth 2 seldepth 8 score cp 149 nodes 139 nps 0 hashfull 1 time 0 pv h4g3 f2g2
+< info depth 3 seldepth 8 score cp 149 nodes 184 nps 0 hashfull 1 time 0 pv h4g3 f2g2 g3f4
+< info depth 4 seldepth 17 score cp 142 nodes 948 nps 948000 hashfull 1 time 1 pv h4g3 f2g2 g3f4 b7b8q h2f3 g1f2
+< info depth 5 seldepth 17 score cp 142 nodes 1187 nps 1187000 hashfull 1 time 1 pv h4g3 f2g2 g3f4 b7b8q h2f3 g1f2
+< info depth 6 seldepth 22 score cp 149 nodes 5555 nps 793571 hashfull 4 time 7 pv h4g3 f2g2 g3f4 b7b8q h2f3 g1f2 f3h4 f2e1
+< info string softnodes nodes 5555
+< info string shortcut B1 uses 505 differ 0
+< info string shortcut B2 uses 542 differ 0
+< info string shortcut B5 uses 2513 differ 0
+< info string shortcut B6 uses 5424 differ 0
+< info string shortcut S-B1 uses 505 differ 0
+< info string shortcut S-B2 uses 542 differ 0
+< info string shortcut S-B4 uses 505 differ 0
+< info string shortcut S-B7 uses 5279 differ 0
+< info string shortcut H28 uses 85 differ 0
+< info string shortcut H18 uses 4669 differ 0
+< info string shortcut H25 uses 8564 differ 0
+< info string shortcut H27 uses 2606 differ 0
+< info string shortcut H82 uses 10223 differ 0
+< info string h82_classes hit 1585 miss_empty 8636 miss_full 2 older_generation 253 probes 5555 stores 4668
+< info string h25_paths seeded 2556 scan16 204 scan8 115 scan4 562 scalar_tail 1709 sort_transition 366 sorted_tail 2740
+< bestmove h4g3
+{"game": 1, "ply": 44, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp -149 nodes 15 nps 0 hashfull 2 time 0 pv f2g2
+< info depth 2 seldepth 4 score cp -149 nodes 32 nps 0 hashfull 2 time 0 pv f2g2 g3f4
+< info depth 3 seldepth 12 score cp -149 nodes 72 nps 0 hashfull 2 time 0 pv f2g2 g3f4 b7b8q
+< info depth 4 seldepth 12 score cp -143 nodes 121 nps 0 hashfull 2 time 0 pv f2g2 g3f4 b7b8q h2f3 g1f2
+< info depth 5 seldepth 12 score cp -149 nodes 192 nps 0 hashfull 2 time 0 pv f2g2 g3f4 b7b8q h2f3 g1f2 f3h4 f2e1
+< info depth 6 seldepth 20 score cp 14 nodes 2392 nps 797333 hashfull 3 time 3 pv f2g2 h5h4 e2f2 g3f4 b7b8q
+< info string softnodes nodes 2392
+< info string shortcut B1 uses 390 differ 0
+< info string shortcut B2 uses 407 differ 0
+< info string shortcut B5 uses 1333 differ 0
+< info string shortcut B6 uses 2358 differ 0
+< info string shortcut S-B1 uses 390 differ 0
+< info string shortcut S-B2 uses 407 differ 0
+< info string shortcut S-B4 uses 390 differ 0
+< info string shortcut S-B7 uses 2284 differ 0
+< info string shortcut H28 uses 68 differ 0
+< info string shortcut H18 uses 1741 differ 0
+< info string shortcut H25 uses 3718 differ 0
+< info string shortcut H27 uses 967 differ 0
+< info string shortcut H82 uses 4132 differ 0
+< info string h82_classes hit 1230 miss_empty 2900 miss_full 2 older_generation 175 probes 2392 stores 1740
+< info string h25_paths seeded 1000 scan16 161 scan8 90 scan4 298 scalar_tail 950 sort_transition 210 sorted_tail 1071
+< bestmove f2g2
+{"game": 1, "ply": 45, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2
+> go softnodes 2000
+< info depth 1 seldepth 8 score cp -14 nodes 79 nps 0 hashfull 1 time 0 pv h5h4
+< info depth 2 seldepth 16 score cp -14 nodes 187 nps 0 hashfull 1 time 0 pv h5h4 e2f2
+< info depth 3 seldepth 16 score cp -14 nodes 276 nps 0 hashfull 1 time 0 pv h5h4 e2f2 g3f4
+< info depth 4 seldepth 16 score cp -14 nodes 441 nps 0 hashfull 1 time 0 pv h5h4 e2f2 g3f4 b7b8q
+< info depth 5 seldepth 16 score cp -14 nodes 880 nps 880000 hashfull 1 time 1 pv h5h4 e2f2 g3f4 b7b8q h2f3 f2f3
+< info depth 6 seldepth 17 score cp -27 nodes 2755 nps 918333 hashfull 2 time 3 pv h5h4 g4g5 h2f3 e2f3 f8e7 g1f1 e5d4 g2g3
+< info string softnodes nodes 2755
+< info string shortcut B1 uses 504 differ 0
+< info string shortcut B2 uses 530 differ 0
+< info string shortcut B5 uses 1679 differ 0
+< info string shortcut B6 uses 2670 differ 0
+< info string shortcut S-B1 uses 504 differ 0
+< info string shortcut S-B2 uses 530 differ 0
+< info string shortcut S-B4 uses 504 differ 0
+< info string shortcut S-B7 uses 2588 differ 0
+< info string shortcut H28 uses 78 differ 0
+< info string shortcut H18 uses 1905 differ 0
+< info string shortcut H25 uses 4234 differ 0
+< info string shortcut H27 uses 1079 differ 0
+< info string shortcut H82 uses 4660 differ 0
+< info string h82_classes hit 1501 miss_empty 3159 miss_full 0 older_generation 223 probes 2755 stores 1905
+< info string h25_paths seeded 1125 scan16 117 scan8 78 scan4 408 scalar_tail 1070 sort_transition 221 sorted_tail 1209
+< bestmove h5h4
+{"game": 1, "ply": 46, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2 h5h4
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 27 nodes 50 nps 0 hashfull 1 time 0 pv g4g5
+< info depth 2 seldepth 5 score cp 27 nodes 112 nps 0 hashfull 1 time 0 pv g4g5 h2f3 e2f3 f8e7
+< info depth 3 seldepth 5 score cp 27 nodes 173 nps 0 hashfull 1 time 0 pv g4g5 h2f3 e2f3 f8e7
+< info depth 4 seldepth 9 score cp 27 nodes 245 nps 0 hashfull 1 time 0 pv g4g5 h2f3 e2f3 f8e7 g1f1
+< info depth 5 seldepth 14 score cp 8 nodes 623 nps 0 hashfull 1 time 0 pv g4g5 g3g2 e2g2 h2f3 g1h1
+< info depth 6 seldepth 16 score cp 8 nodes 991 nps 991000 hashfull 1 time 1 pv g4g5 g3g2 e2g2 h2f3 g1h1 f3d4 b7b8n
+< info string softnodes nodes 8000
+< info string shortcut B1 uses 1454 differ 0
+< info string shortcut B2 uses 1600 differ 0
+< info string shortcut B5 uses 4675 differ 0
+< info string shortcut B6 uses 7523 differ 0
+< info string shortcut S-B1 uses 1454 differ 0
+< info string shortcut S-B2 uses 1600 differ 0
+< info string shortcut S-B4 uses 1454 differ 0
+< info string shortcut S-B7 uses 7420 differ 0
+< info string shortcut H28 uses 255 differ 0
+< info string shortcut H18 uses 5726 differ 0
+< info string shortcut H25 uses 11995 differ 0
+< info string shortcut H27 uses 3463 differ 0
+< info string shortcut H82 uses 13726 differ 0
+< info string h82_classes hit 4080 miss_empty 9646 miss_full 0 older_generation 201 probes 8000 stores 5726
+< info string h25_paths seeded 3553 scan16 225 scan8 389 scan4 818 scalar_tail 2623 sort_transition 496 sorted_tail 3538
+< bestmove g4g5
+{"game": 1, "ply": 47, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2 h5h4 g4g5
+> go softnodes 2000
+< info depth 1 seldepth 4 score cp 63 nodes 40 nps 0 hashfull 1 time 0 pv h2f3 g1f1
+< info depth 2 seldepth 4 score cp 63 nodes 67 nps 0 hashfull 1 time 0 pv h2f3 g1f1
+< info depth 3 seldepth 14 score cp 156 nodes 172 nps 0 hashfull 1 time 0 pv h2f3 g1f1 g3g2 e2g2
+< info depth 4 seldepth 14 score cp 150 nodes 268 nps 0 hashfull 1 time 0 pv h2f3 g1f1 g3g2 e2g2
+< info depth 5 seldepth 14 score cp 54 nodes 431 nps 0 hashfull 1 time 0 pv h2f3 g1f1 g3g2 e2g2 e5d4
+< info depth 6 seldepth 20 score cp -173 nodes 2906 nps 968666 hashfull 3 time 3 pv g3f4 c1c8 h2f3 e2f3 e5d4 f3f4 f8e8 b7b8q
+< info string softnodes nodes 2906
+< info string shortcut B1 uses 407 differ 0
+< info string shortcut B2 uses 420 differ 0
+< info string shortcut B5 uses 1570 differ 0
+< info string shortcut B6 uses 2816 differ 0
+< info string shortcut S-B1 uses 407 differ 0
+< info string shortcut S-B2 uses 420 differ 0
+< info string shortcut S-B4 uses 407 differ 0
+< info string shortcut S-B7 uses 2758 differ 0
+< info string shortcut H28 uses 65 differ 0
+< info string shortcut H18 uses 2128 differ 0
+< info string shortcut H25 uses 4488 differ 0
+< info string shortcut H27 uses 1190 differ 0
+< info string shortcut H82 uses 5034 differ 0
+< info string h82_classes hit 1397 miss_empty 3637 miss_full 0 older_generation 235 probes 2906 stores 2128
+< info string h25_paths seeded 1205 scan16 92 scan8 114 scan4 286 scalar_tail 1085 sort_transition 220 sorted_tail 1400
+< bestmove g3f4
+{"game": 1, "ply": 48, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2 h5h4 g4g5 g3f4
+> go softnodes 2000
+< info depth 1 seldepth 17 score cp 437 nodes 1003 nps 1003000 hashfull 0 time 1 pv e2f2 h2f3 g1f1 f4c1 f1e2 c1b2 e2e3 b2f2 g2f2 e5d4 e3f3
+< info depth 2 seldepth 20 score cp 173 nodes 2895 nps 965000 hashfull 2 time 3 pv c1c8 h2f3 e2f3 e5d4
+< info string softnodes nodes 2895
+< info string shortcut B1 uses 84 differ 0
+< info string shortcut B2 uses 86 differ 0
+< info string shortcut B5 uses 1197 differ 0
+< info string shortcut B6 uses 2876 differ 0
+< info string shortcut S-B1 uses 84 differ 0
+< info string shortcut S-B2 uses 86 differ 0
+< info string shortcut S-B4 uses 84 differ 0
+< info string shortcut S-B7 uses 2807 differ 0
+< info string shortcut H28 uses 9 differ 0
+< info string shortcut H18 uses 2621 differ 0
+< info string shortcut H25 uses 5255 differ 0
+< info string shortcut H27 uses 1358 differ 0
+< info string shortcut H82 uses 5515 differ 0
+< info string h82_classes hit 846 miss_empty 4667 miss_full 2 older_generation 74 probes 2895 stores 2620
+< info string h25_paths seeded 1344 scan16 55 scan8 44 scan4 505 scalar_tail 1327 sort_transition 307 sorted_tail 1625
+< bestmove c1c8
+{"game": 1, "ply": 49, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2 h5h4 g4g5 g3f4 c1c8
+> go softnodes 2000
+< info depth 1 seldepth 17 score cp -173 nodes 381 nps 0 hashfull 0 time 0 pv h2f3 e2f3
+< info depth 2 seldepth 17 score cp -173 nodes 435 nps 0 hashfull 0 time 0 pv h2f3 e2f3 e5d4 f3f4 f8e8 b7b8q
+< info depth 3 seldepth 17 score cp -173 nodes 504 nps 0 hashfull 0 time 0 pv h2f3 e2f3 e5d4
+< info depth 4 seldepth 17 score cp -173 nodes 681 nps 0 hashfull 0 time 0 pv h2f3 e2f3 e5d4 f3f4 f8e8 b7b8q
+< info depth 5 seldepth 17 score cp -287 nodes 1792 nps 896000 hashfull 1 time 2 pv e5d4 c8d8 f8f7 b7b8b f7e7 b8f4
+< info depth 6 seldepth 18 score cp -314 nodes 3402 nps 850500 hashfull 2 time 4 pv e5d4 c8d8 f8f7 d8f8 f7e7 f8f4 e7e8
+< info string softnodes nodes 3402
+< info string shortcut B1 uses 493 differ 0
+< info string shortcut B2 uses 591 differ 0
+< info string shortcut B5 uses 1958 differ 0
+< info string shortcut B6 uses 3305 differ 0
+< info string shortcut S-B1 uses 493 differ 0
+< info string shortcut S-B2 uses 591 differ 0
+< info string shortcut S-B4 uses 493 differ 0
+< info string shortcut S-B7 uses 3244 differ 0
+< info string shortcut H28 uses 78 differ 0
+< info string shortcut H18 uses 2524 differ 0
+< info string shortcut H25 uses 5436 differ 0
+< info string shortcut H27 uses 1470 differ 0
+< info string shortcut H82 uses 5925 differ 0
+< info string h82_classes hit 1887 miss_empty 4036 miss_full 2 older_generation 119 probes 3402 stores 2523
+< info string h25_paths seeded 1499 scan16 122 scan8 99 scan4 422 scalar_tail 1417 sort_transition 291 sorted_tail 1478
+< bestmove e5d4
+{"game": 1, "ply": 50, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2 h5h4 g4g5 g3f4 c1c8 e5d4
+> go softnodes 2000
+< info depth 1 seldepth 7 score cp 575 nodes 74 nps 0 hashfull 0 time 0 pv a2a3
+< info depth 2 seldepth 18 score cp 415 nodes 846 nps 846000 hashfull 1 time 1 pv g1f2 h4h3 c8d8 f8g7 b7b8b
+< info depth 3 seldepth 18 score cp 415 nodes 977 nps 977000 hashfull 1 time 1 pv g1f2 h4h3 c8d8 f8g7
+< info depth 4 seldepth 18 score cp 593 nodes 1407 nps 1407000 hashfull 1 time 1 pv g1f2 f8e7 a2a3 f4e3 e2e3
+< info depth 5 seldepth 18 score cp 314 nodes 3852 nps 963000 hashfull 3 time 4 pv c8d8 f8f7 d8f8 f7e7 f8f4
+< info string softnodes nodes 3852
+< info string shortcut B1 uses 657 differ 0
+< info string shortcut B2 uses 700 differ 0
+< info string shortcut B5 uses 2059 differ 0
+< info string shortcut B6 uses 3745 differ 0
+< info string shortcut S-B1 uses 657 differ 0
+< info string shortcut S-B2 uses 700 differ 0
+< info string shortcut S-B4 uses 657 differ 0
+< info string shortcut S-B7 uses 3630 differ 0
+< info string shortcut H28 uses 84 differ 0
+< info string shortcut H18 uses 2982 differ 0
+< info string shortcut H25 uses 6330 differ 0
+< info string shortcut H27 uses 1589 differ 0
+< info string shortcut H82 uses 6833 differ 0
+< info string h82_classes hit 1796 miss_empty 5035 miss_full 2 older_generation 35 probes 3852 stores 2981
+< info string h25_paths seeded 1617 scan16 172 scan8 134 scan4 566 scalar_tail 1664 sort_transition 421 sorted_tail 1822
+< bestmove c8d8
+{"game": 1, "ply": 51, "board_valid": true}
+> position fen r1bq1rk1/1p1nbppp/p3pn2/3pN3/2pP1B2/2P1P2P/PP1NBPP1/R2Q1RK1 b - - 0 11 moves d8e8 d1e1 e7d8 e5g4 f6g4 d2f3 g7g6 f4d6 d7e5 f3e5 a8b8 e2c4 d8b6 a1b1 a6a5 c4d5 g8g7 d6f8 e8f8 e3e4 f7f6 e1e2 h7h5 c3c4 f6e5 d5b7 c8b7 f2f3 g4h2 f1f2 b8c8 c4c5 b6d8 g2g4 f8f6 h3h4 g7f8 c5c6 f6h4 c6b7 c8c1 b1c1 h4g3 f2g2 h5h4 g4g5 g3f4 c1c8 e5d4 c8d8
+> go softnodes 2000
+< info depth 1 seldepth 2 score cp -314 nodes 8 nps 0 hashfull 2 time 0 pv f8f7
+< info depth 2 seldepth 4 score cp -314 nodes 28 nps 0 hashfull 2 time 0 pv f8f7 d8f8 f7e7
+< info depth 3 seldepth 4 score cp -314 nodes 48 nps 0 hashfull 2 time 0 pv f8f7 d8f8 f7e7 f8f4
+< info depth 4 seldepth 4 score cp -314
