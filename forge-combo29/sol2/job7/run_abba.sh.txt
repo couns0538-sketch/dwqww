@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job7
+previous=/workspace/work/sol2-job6
+base=/workspace/work/sol2-job2
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job7
+step=$1
+case "$step" in
+  2) name_a=r15d; name_b=r15d; label_a=r15d-pgo; label_b=copy; blocks=6; args=(--identical-floor);;
+  3) name_a=r15d; name_b=k11; label_a=r15d-pgo; label_b=k11-pgo; blocks=12; args=(--floor "$out/step2/summary.txt");;
+  4) name_a=k11; name_b=k11v; label_a=k11-pgo; label_b=k11v-pgo; blocks=12; args=(--floor "$out/step2/summary.txt");;
+  *) exit 2;;
+esac
+arm_a="$job/build-pgo-$name_a/forge"
+arm_b="$job/build-pgo-$name_b/forge"
+sha_a=$(awk -v target="$arm_a" '$2==target {print $1}' "$out/pgo-executables.raw.txt")
+sha_b=$(awk -v target="$arm_b" '$2==target {print $1}' "$out/pgo-executables.raw.txt")
+if [ "$step" = 2 ]; then arm_b="$job/r15d-pgo-copy"; fi
+start=$(date -u -d "$(cat "$previous/job7-read-at.txt")" +%s)
+left=$((start + 80*60 - $(date -u +%s)))
+test "$left" -gt 0
+status=0
+(
+  set -x
+  date -u +'%FT%TZ'
+  timeout "$left" taskset -c 2 python -B "$job/abba_timing.py" "$arm_a" "$arm_b" "$base/net768.fnn3" "$out/step$step" --a-sha256 "$sha_a" --b-sha256 "$sha_b" --a-label "$label_a" --b-label "$label_b" --blocks "$blocks" "${args[@]}"
+) > "$out/step$step-command.raw.txt" 2>&1 || status=$?
+result=PASS
+if [ "$status" -ne 0 ]; then result=STOPPED; fi
+printf '%s Step %s %s, %s vs %s, %s ABBA blocks requested\n' "$(date -u +'%FT%TZ')" "$step" "$result" "$label_a" "$label_b" "$blocks" >> "$out/stamps.txt"
+git -C /workspace/work/sol2-repo add -- forge-combo29/sol2/job7
+git -C /workspace/work/sol2-repo -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+git -C /workspace/work/sol2-repo -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "Record sol2 Job 7 Step $step ABBA $label_b vs $label_a"
+printf 'Step %s %s, timing harness exit %s\n' "$step" "$result" "$status"
+if [ -f "$out/step$step/summary.txt" ]; then
+  python - "$out/step$step/summary.txt" <<'PY'
+from pathlib import Path
+import json,sys
+s=json.loads(Path(sys.argv[1]).read_text()); print(json.dumps(s.get('metrics',s),indent=2)); print('Completed',s.get('completed_blocks'),'blocks')
+PY
+fi
+exit "$status"

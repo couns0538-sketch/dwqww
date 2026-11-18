@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Read back existing Job 7 opening receipts without launching Forge."""
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import re
+import runpy
+
+
+DRIVER = Path(__file__).resolve().parent.parent / "sol2-job2" / "carbon2" / "selfplay_driver.py"
+PIN = "c79b95bf45762fa9869d23140ed7f946cfaf0cb6bc4f74325a18d5f934bf1c45"
+TRACE = "5c705841c3ea17b4"
+MOVE = re.compile(r"[a-h][1-8][a-h][1-8][nbrq]?")
+
+
+def pinned_tracker(path):
+    if hashlib.sha256(path.read_bytes()).hexdigest() != PIN:
+        raise ValueError(f"opening replay requires the pinned Carbon2 driver: {path}")
+    return runpy.run_path(str(path))["MinimalBoardTracker"]
+
+
+def checked_positions(rows, tracker, expected):
+    if len(rows) != expected:
+        raise ValueError(f"expected {expected} opening vectors, got {len(rows)}")
+    openings = []
+    roots = set()
+    for row in rows:
+        moves = tuple(row["moves"])
+        if len(moves) != 8 or not all(MOVE.fullmatch(move) for move in moves):
+            raise ValueError(f"bad opening move vector: {moves!r}")
+        board = tracker()
+        for move in moves:
+            board.push_uci(move)
+        # Ignore clocks and EP so transposed placement/turn/rights overlap also fails.
+        root = board.fen().split()[:3]
+        if root != row["position_side_castling"]:
+            raise ValueError(f"root position differs from replay: {moves!r}")
+        openings.append(moves)
+        roots.add(tuple(root))
+    if len(set(openings)) != expected or len(roots) != expected:
+        raise ValueError(f"duplicate moves or transposed root positions in the {expected}-game suite")
+    return openings, roots
+
+
+def seed_for(command, basename, games):
+    runs = [line for line in command.splitlines() if line.startswith("+ timeout ") and basename in line]
+    if len(runs) != 1 or f"--games {games} --softnodes 2000 --random-plies 8 --max-plies 300" not in runs[0]:
+        raise ValueError(f"missing or unexpected opening capture command for {basename}")
+    match = re.search(r" --seed (\d+) --json(?: |$)", runs[0])
+    if not match:
+        raise ValueError(f"missing seed for {basename}")
+    return int(match.group(1))
+
+
+def readback(root, build, tracker):
+    command = (root / f"{build}-step1-command.raw.txt").read_text(encoding="utf-8")
+    profile_path = root / f"{build}-training-openings.txt"
+    timing_path = root / f"{build}-timing-openings.txt"
+    profile_seed = seed_for(command, profile_path.name, 20)
+    timing_seed = seed_for(command, timing_path.name, 60)
+    if timing_seed != 20261117 or profile_seed == timing_seed:
+        raise ValueError(f"unexpected timing seed or duplicate profile seed for {build}")
+    profile, profile_roots = checked_positions(json.loads(profile_path.read_text(encoding="utf-8")), tracker, 20)
+    timing, timing_roots = checked_positions(json.loads(timing_path.read_text(encoding="utf-8")), tracker, 60)
+    shared_moves = set(timing) & set(profile)
+    shared_roots = timing_roots & profile_roots
+    if shared_moves or shared_roots:
+        raise ValueError(f"overlap for {build}: {len(shared_moves)} move vectors and {len(shared_roots)} root positions")
+    train = json.loads((root / f"{build}-training.raw.txt").read_text(encoding="utf-8"))
+    gate = json.loads((root / f"{build}-identity.raw.txt").read_text(encoding="utf-8"))
+    if train["games"] != 20 or train["trace_fnv1a64"] == TRACE or min(train["searches"], train["total_nodes"]) <= 0:
+        raise ValueError(f"profile workload receipt invalid for {build}")
+    if (gate["games"], gate["searches"], gate["total_nodes"], gate["trace_fnv1a64"]) != (60, 8612, 29333343, TRACE):
+        raise ValueError(f"timing workload receipt invalid for {build}")
+    print(json.dumps({"build": build, "timing_seed": timing_seed, "profile_seed": profile_seed,
+                      "timing_games": len(timing), "profile_games": len(profile),
+                      "intersecting_move_vectors": len(shared_moves), "intersecting_root_positions": len(shared_roots),
+                      "profile_workload": [train["searches"], train["total_nodes"], train["trace_fnv1a64"]],
+                      "timing_workload": [gate["searches"], gate["total_nodes"], gate["trace_fnv1a64"]]}))
+    return timing_seed, profile_seed, timing, profile
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("root", type=Path)
+    parser.add_argument("builds", nargs="*", default=("r15d", "k11", "k11v"))
+    parser.add_argument("--driver", type=Path, default=DRIVER)
+    args = parser.parse_args()
+    tracker = pinned_tracker(args.driver)
+    builds = [readback(args.root, build, tracker) for build in args.builds]
+    if any(build != builds[0] for build in builds):
+        raise ValueError("recorded timing or training openings differ across builds")
+
+
+if __name__ == "__main__":
+    main()
