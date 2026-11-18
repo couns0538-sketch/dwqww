@@ -1,0 +1,112 @@
++ job=/workspace/work/sol2-job7
++ base=/workspace/work/sol2-job2
++ stack=/workspace/work/sol2-job5
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job7
++ cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
++ tag=k11v
++ case "$tag" in
++ source=/workspace/work/sol2-job7/k11v
++ build=/workspace/work/sol2-job7/build-pgo-k11v
++ profiles=/workspace/work/sol2-job7/pgo-data-k11v
++ mkdir /workspace/work/sol2-job7/pgo-data-k11v
++ flags='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto'
++ driver=/workspace/work/sol2-job2/carbon2/selfplay_driver.py
++ net=/workspace/work/sol2-job2/net768.fnn3
++ sha256sum /workspace/work/sol2-job7/k11v/CMakeLists.txt /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3
+bfa17f8cb5f2f6358e88951f385fc67ddca279af06301b22945efdcc1ceaca5f  /workspace/work/sol2-job7/k11v/CMakeLists.txt
+c79b95bf45762fa9869d23140ed7f946cfaf0cb6bc4f74325a18d5f934bf1c45  /workspace/work/sol2-job2/carbon2/selfplay_driver.py
+c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7  /workspace/work/sol2-job2/net768.fnn3
++ head -1
++ c++ --version
+c++ (Debian 14.2.0-19) 14.2.0
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job7/k11v -B /workspace/work/sol2-job7/build-pgo-k11v -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto -fprofile-generate=/workspace/work/sol2-job7/pgo-data-k11v'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job7/build-pgo-k11v
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job7/build-pgo-k11v --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job7/build-pgo-k11v/forge
+c0545d23ece43af6f94a17be9ca1c15a4d6abb52716d436604e23549671637e2  /workspace/work/sol2-job7/build-pgo-k11v/forge
++ date -u +%FT%TZ
+2026-11-18T11:13:45Z
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job7/capture_openings.py /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-repo/forge-combo29/sol2/job7/k11v-training-openings.txt --engine /workspace/work/sol2-job7/build-pgo-k11v/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 20 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261118 --json
++ date -u +%FT%TZ
+2026-11-18T11:13:53Z
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job7/k11v-training.raw.txt
+{'games': 20, 'searches': 2482, 'total_nodes': 8391013, 'avg_nodes_per_search': 3380.75, 'avg_searches_per_game': 124.1, 'elapsed_ms': 7551.143, 'searches_per_sec': 328.69, 'effective_nps': 1111224.2, 'trace_fnv1a64': 'c7d9520ffe04deda'}
++ shopt -s nullglob
++ data=("$profiles"/*.gcda)
++ test 9 -gt 0
++ sha256sum /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#bitboard.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#board.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#book.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval_params.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue_v3.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#search.cpp.gcda /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#uci.cpp.gcda
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#bitboard.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#board.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#book.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval_params.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue_v3.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#search.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ for file in "${data[@]}"
++ gcov-dump -l /workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#uci.cpp.gcda
++ awk '/OBJECT_SUMMARY.*runs=1/ {print; seen=1} END {if (!seen) exit 1}'
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job7/k11v -B /workspace/work/sol2-job7/build-pgo-k11v -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto -fprofile-use=/workspace/work/sol2-job7/pgo-data-k11v -Werror=missing-profile -Werror=coverage-mismatch'
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job7/build-pgo-k11v
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job7/build-pgo-k11v --clean-first --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job7/build-pgo-k11v/forge
+95980ac637b41376245996617d537fd38ef54f223cc93f13673915bfb6f3079c  /workspace/work/sol2-job7/build-pgo-k11v/forge
++ sha256sum -c /workspace/work/sol2-repo/forge-combo29/sol2/job7/k11v-gcda-hashes.raw.txt
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#bitboard.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#board.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#book.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval_params.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue_v3.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#search.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#uci.cpp.gcda: OK
++ date -u +%FT%TZ
+2026-11-18T11:14:02Z
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job7/capture_openings.py /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-repo/forge-combo29/sol2/job7/k11v-timing-openings.txt --engine /workspace/work/sol2-job7/build-pgo-k11v/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json
++ date -u +%FT%TZ
+2026-11-18T11:14:21Z
++ sha256sum -c /workspace/work/sol2-repo/forge-combo29/sol2/job7/k11v-gcda-hashes.raw.txt
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#bitboard.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#board.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#book.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#eval_params.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#nnue_v3.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#search.cpp.gcda: OK
+/workspace/work/sol2-job7/pgo-data-k11v/#workspace#work#sol2-job7#build-pgo-k11v#CMakeFiles#forge.dir#src#uci.cpp.gcda: OK
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job7 k11v
+{'games': 60, 'searches': 8612, 'total_nodes': 29333343, 'avg_nodes_per_search': 3406.1, 'avg_searches_per_game': 143.53, 'elapsed_ms': 18367.975, 'searches_per_sec': 468.86, 'effective_nps': 1596983.0, 'trace_fnv1a64': '5c705841c3ea17b4'}
+moves overlap 0
+position_side_castling overlap 0
+Known answer and disjoint opening groups PASS
