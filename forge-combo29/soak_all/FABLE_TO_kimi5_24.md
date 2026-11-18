@@ -4,6 +4,11 @@
 ## Before you start
 - If file 25 exists when you start, read it first; a correction there holds here too.
 - If job 22 or job 23 has no report yet, do the lowest open one first, as your first message says.
+- A correction that holds from job 23 on (your job 22 is judged in full in file 25; everything else in it recounted
+  equal: all ten row-hash pairs, the depth-14 sums, all 1,106 counter lines): your job 22 stamps.txt held typed
+  times ("Step 3 counting driver 21:06:3x - 21:09:0x", "report written 21:1x") that lie after your own report
+  commit (21:07:44Z). Every stamps line is the output of date -u pasted when a part ends; a time you did not paste is
+  written "not stamped", never estimated.
 
 ## Job 21 as we counted it (raw files, not the report)
 - Good, keep doing it: every setting's depth-12 rows equal OUR OWN rows of the same settings (forge/r31 on the PC,
