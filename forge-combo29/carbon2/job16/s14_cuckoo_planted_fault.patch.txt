@@ -1,0 +1,11 @@
+--- a/src/board.cpp	2026-11-18 11:59:02.456049697 +0000
++++ b/src/board.cpp	2026-11-18 11:59:02.504049697 +0000
+@@ -1305,7 +1305,7 @@
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     {
+         const std::size_t ply_idx = key_history_.size();
+-        auto& pv = opp_prefix_[ply_idx & 1U];
++        auto& pv = opp_prefix_[(ply_idx + 1U) & 1U]; // PLANTED FAULT
+         pv.push_back(pv.back() ^ (undo.key ^ key_ ^ Z.side));
+     }
+     key_history_.push_back(key_);
