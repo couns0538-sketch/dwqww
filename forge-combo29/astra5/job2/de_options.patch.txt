@@ -1,0 +1,42 @@
+diff -ruN pca/include/forge/search.hpp options/include/forge/search.hpp
+--- pca/include/forge/search.hpp	2026-11-18 12:11:13.000000000 +0000
++++ options/include/forge/search.hpp	2026-11-18 12:11:13.000000000 +0000
+@@ -272,6 +272,8 @@
+ extern int SeeNoisyMultiplier;
+ extern int SingularDepth;
+ extern int SingularMargin;
++extern int DoubleExtMargin;
++extern int DoubleExtLimit;
+ extern int IirDepth;
+ extern int ProbcutDepth;
+ extern int ProbcutMargin;
+diff -ruN pca/src/search.cpp options/src/search.cpp
+--- pca/src/search.cpp	2026-11-18 12:11:13.000000000 +0000
++++ options/src/search.cpp	2026-11-18 12:11:13.000000000 +0000
+@@ -124,6 +124,8 @@
+ int SeeNoisyMultiplier = 150;
+ int SingularDepth = 7;
+ int SingularMargin = 2;
++int DoubleExtMargin = 24;
++int DoubleExtLimit = 6;
+ int IirDepth = 4;
+ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
+@@ -207,6 +209,7 @@
+         {"SeeQuietMultiplier", &SeeQuietMultiplier, 0, 200},
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
++        {"DoubleExtMargin", &DoubleExtMargin, 0, 400},    {"DoubleExtLimit", &DoubleExtLimit, -1, 64},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+@@ -2227,7 +2230,8 @@
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++                if (!pv_node && singular_score < singular_beta - tune::DoubleExtMargin &&
++                    inherited_double_extensions <= tune::DoubleExtLimit) {
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
