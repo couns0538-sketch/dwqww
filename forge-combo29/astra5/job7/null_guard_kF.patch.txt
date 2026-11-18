@@ -1,0 +1,91 @@
+diff -ruN kF/include/forge/search.hpp kF-guard/include/forge/search.hpp
+--- kF/include/forge/search.hpp	2026-11-18 07:11:30.416479202 -0800
++++ kF-guard/include/forge/search.hpp	2026-11-18 07:11:40.707300421 -0800
+@@ -334,6 +334,7 @@
+ extern int LmrNoisyDivisor;   // x0.01
+ extern int NullMoveMinDepth;
+ extern int NullMoveBase;
++extern int NullMateGuard;
+ extern int NullMoveDepthDivisor;
+ extern int NullMoveEvalDivisor;
+ extern int RfpDepth;
+diff -ruN kF/src/search.cpp kF-guard/src/search.cpp
+--- kF/src/search.cpp	2026-11-18 07:11:30.417540480 -0800
++++ kF-guard/src/search.cpp	2026-11-18 07:11:40.707802596 -0800
+@@ -102,6 +102,7 @@
+ int LmrNoisyDivisor = 340;
+ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
++int NullMateGuard = 0;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
+ int RfpDepth = 8;
+@@ -189,6 +190,7 @@
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
++        {"NullMateGuard", &NullMateGuard, 0, 2},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+@@ -2395,6 +2397,43 @@
+ }
+ 
+ // ---------------------------------------------------------------------------
++namespace {
++// Reference test: rebuild the null child on a private board and enumerate legal moves.
++bool quiet_mate_after_null(Board parent) {
++    NullUndo null_undo;
++    parent.make_null_move(null_undo);
++    for (const Move move : parent.legal_moves()) {
++        if (!move.is_quiet() || !parent.gives_check(move)) continue;
++        Undo undo;
++        (void)parent.make_move(move, undo);
++        const bool mate = parent.in_check() && parent.legal_moves().empty();
++        parent.unmake_move(move, undo);
++        if (mate) return true;
++    }
++    return false;
++}
++
++// The search already made the null move. Only quiet checks require a legality
++// test, and one legal reply suffices to disprove mate.
++bool has_quiet_mate(Board& null_child) {
++    MoveList candidates;
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
++    null_child.generate_pseudo_legal(candidates, Board::GenMode::Quiets);
++#else
++    null_child.generate_pseudo_legal(candidates, false);
++#endif
++    for (const Move move : candidates) {
++        if (!move.is_quiet() || !null_child.gives_check(move) || !null_child.is_legal(move)) continue;
++        Undo undo;
++        (void)null_child.make_move(move, undo);
++        const bool mate = null_child.in_check() && !null_child.has_legal_move();
++        null_child.unmake_move(move, undo);
++        if (mate) return true;
++    }
++    return false;
++}
++} // namespace
++
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+@@ -2603,10 +2642,14 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+-            int null_score = -search_child(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            const int null_child_depth = depth - reduction;
++            int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
++            const bool fast_guard_veto = tune::NullMateGuard == 2 && !aborted_ && null_score >= beta &&
++                                         null_child_depth <= 0 && has_quiet_mate(board);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+-            if (null_score >= beta) {
++            if (null_score >= beta && !fast_guard_veto &&
++                !(tune::NullMateGuard == 1 && null_child_depth <= 0 && quiet_mate_after_null(board))) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
