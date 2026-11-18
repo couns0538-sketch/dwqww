@@ -1,0 +1,40 @@
+pcadc/src/search.cpp:253: std::array<std::int64_t, 16> g_a25{};
+pcadc/src/search.cpp:1678: (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+pcadc/src/search.cpp:1879: (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+pcadc/src/search.cpp:1881: ++g_a25[tt_bound == BoundLower ? 7 : (tt_bound == BoundUpper ? 8 : 9)];  // A25C: taken TT cutoff by stored bound
+pcadc/src/search.cpp:1978: const bool rfp_refused_pv = tune::RfpNoTtPv != 0 && ss->tt_pv;
+pcadc/src/search.cpp:1979: const bool rfp_refused_tt = tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture();
+pcadc/src/search.cpp:1980: const bool rfp_refused_corr = eval - (rfp_margin_today + rfp_corr) < beta;
+pcadc/src/search.cpp:1982: ++g_a25[15];
+pcadc/src/search.cpp:1983: if (!rfp_refused_pv && !rfp_refused_tt && !rfp_refused_corr) ++g_a25[11];
+pcadc/src/search.cpp:1984: else if (rfp_refused_pv) ++g_a25[12];
+pcadc/src/search.cpp:1985: else if (rfp_refused_tt) ++g_a25[13];
+pcadc/src/search.cpp:1986: else ++g_a25[14];
+pcadc/src/search.cpp:1989: !rfp_refused_pv && !rfp_refused_tt &&
+pcadc/src/search.cpp:1992: ++g_a25[10];  // A25C: rfp return
+pcadc/src/search.cpp:2246: int extension = 0;
+pcadc/src/search.cpp:2249: ++g_a25[0];  // A25C: singular test (the verification search below runs)
+pcadc/src/search.cpp:2250: const int singular_beta = tt_score - tune::SingularMargin * depth;
+pcadc/src/search.cpp:2254: const int singular_depth = std::max(1, (depth - 1) / 2);
+pcadc/src/search.cpp:2257: const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+pcadc/src/search.cpp:2261: if (aborted_) return 0;
+pcadc/src/search.cpp:2262: if (singular_score < singular_beta) {
+pcadc/src/search.cpp:2263: extension = 1;
+pcadc/src/search.cpp:2264: if (!pv_node && singular_score < singular_beta - tune::DoubleExtMargin &&
+pcadc/src/search.cpp:2265: inherited_double_extensions <= tune::DoubleExtLimit) {
+pcadc/src/search.cpp:2266: extension = 2;
+pcadc/src/search.cpp:2268: ++g_a25[extension == 2 ? 2 : 1];  // A25C: extension 1 or 2
+pcadc/src/search.cpp:2270: ++g_a25[3];  // A25C: multi-cut return
+pcadc/src/search.cpp:2273: extension = -2;
+pcadc/src/search.cpp:2274: ++g_a25[4];  // A25C: extension -2
+pcadc/src/search.cpp:2276: extension = -1;
+pcadc/src/search.cpp:2277: ++g_a25[5];  // A25C: extension -1
+pcadc/src/search.cpp:2279: ++g_a25[6];  // A25C: no extension
+pcadc/src/search.cpp:2281: } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+pcadc/src/search.cpp:2283: extension = 1;
+pcadc/src/search.cpp:2285: ss->double_extensions = inherited_double_extensions + (extension == 2);
+pcadc/src/search.cpp:2286: int new_depth = depth - 1 + extension;
+pcadc/src/search.cpp:2366: if (aborted_) return 0;
+pcadc/src/search.cpp:3180: g_a25.fill(0);  // kimi5 job 25 counting: one A25C line per search (Threads 1)
+pcadc/src/search.cpp:3198: if (emit_info) {  // kimi5 job 25 counting: one A25C line per search
+pcadc/src/search.cpp:3201: for (std::size_t i = 0; i < g_a25.size(); ++i) std::cout << ' ' << g_a25[i];
