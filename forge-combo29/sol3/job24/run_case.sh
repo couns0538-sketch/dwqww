@@ -45,8 +45,11 @@ export PYTHONPATH=/workspace/work/sol3-replay/python
 run_code=124
 if ((remaining > 0)); then
     run_code=0
-    /usr/bin/time -p -o "$pub/time.txt" timeout --foreground --kill-after=8s "$remaining" "${args[@]}" \
+    began_ns=$(date -u +%s%N)
+    timeout --foreground --kill-after=8s "$remaining" "${args[@]}" \
         > "$out.driver.stdout.txt" 2> "$out.driver.stderr.txt" || run_code=$?
+    finished_ns=$(date -u +%s%N)
+    printf 'start_epoch_ns %s\nfinish_epoch_ns %s\nelapsed_ns %s\n' "$began_ns" "$finished_ns" "$((finished_ns - began_ns))" > "$pub/time.txt"
 fi
 printf 'driver exit %s\n' "$run_code" > "$pub/driver.status.txt"
 if [[ -d "$out" ]]; then

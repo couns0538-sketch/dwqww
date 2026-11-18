@@ -263,6 +263,9 @@ class Matrix:
                                                                     'assert_detail', 'checker_reports')},
                                      'rank': rank, 'raw_bestmoves': raw.get('bestmoves', 0),
                                      'runtime_failures': raw.get('runtime_failure_blocks', 0)})
+                if self.args.part == 'new-blind' and rank == 1 and not (
+                        row['status'] == 'assert_stop' and raw.get('assert') in ('A2s', 'A4')):
+                    raise RuntimeError(f"first new-blind position missed required A2s/A4 stop: {row['status']}, {raw.get('assert')}")
             elif row['status'] != 'bestmove':
                 if self.args.part in ('known', 'r1'):
                     raise RuntimeError(f"required known-answer row {index} failed: {row['status']}")
