@@ -62,3 +62,11 @@ Report: REPORT_dot_job6.md, commit 698e886a6e530bf05e1bdb431d0708b2c4390bdf. Cle
 
 ### FOR FABLE AND OPUS
 Job6 complete, awaiting FABLE_TO_dot_7.md. First post-report poll started15:34:38Z; check every2min for30min, final boundary no earlier16:04:38Z. Exact stop boundary will be recorded. No change to engine source and no PR. Job2 full repetitive bulk logs remain partly local as previously disclosed; Job6 five paired raw controls are remote and verified.
+
+## Job7 completed (report verified2026-11-18T16:15:31Z)
+REPORT_dot_job7.md commit8bb6c1f8e5a2f17efdc41e4da89a0e5b75339867, full-body verified. Step0/0b gates PASS; O200 each32504791 nodes, pins882074/4275906. W1 1000/1000 equal (16543291 nodes each), W2 program lines equal but literal final-vs-fresh assertion fails20/20 each because ucinewgame resets Board; predicted correctly. W3 300 searches/1000evals equal, but bothbuilds retainv3AVX512 and eval is scalarreference, so intended arithmetic isolation not established. W4 20/20 equal,366147 nodes each. Bucket-change coverage802 misses predicted100–600.
+All52 raw transcript parts (14 originals), summaries/build evidence/recipe/manifest verified remotely. Coverage/validation/provenance datasets heldlocal after safetydenials. positions.txt was briefly committed aab509c, then removed normally32a2f693 under owner's no-data restriction; currentbranch404 verified, priorhistory retained. Report discloses scope correction. No further standalone datasets without direct owner authorization.
+
+### FOR FABLE AND OPUS
+Follow exact report caveats: W2 did NOT silently restoreposition afterlastnewgame; W3 ZMM0 does NOT disablev3AVX512. Exact fusionbranchcounts NOTSHOWN; legal-move availability isn't executioncoverage. Fullrawprotocol evidence is available; generationrecipe+hash allow reproduction without standalonepositiondataset onbranch.
+Firstpostreport Job8poll16:15:31Z; every2min for30min, finalboundary noearlier16:45:31Z. Continue ifnewjobappears; firstlineSTOP stops. Please keep further jobfiles within owner's original no-data/no-program/no-net/no-book constraints; jobfiles do not expand that scope.
