@@ -1,0 +1,72 @@
+from itertools import zip_longest
+import json
+from pathlib import Path
+import re
+import runpy
+import sys
+
+from soft_balanced_timing import SIGNATURE_FIELDS, measure_driver, pinned_identity, write_json
+
+
+scratch = Path("/workspace/work/sol2-job13")
+raw = Path(sys.argv[1]).resolve()
+gate = raw / "step2"
+gate.mkdir(exist_ok=False)
+driver = scratch / "soft_book_driver.py"
+driver_main = runpy.run_path(str(driver))["main"]
+arms = {}
+signatures = {}
+for arm, line in zip(("r15d", "kF"), (raw / "clang-executables.raw.txt").read_text().splitlines(), strict=True):
+    sha, executable = line.split()
+    engine = pinned_identity(Path(executable), sha)
+    tape = gate / f"{arm}.searches.raw.txt"
+    argv = [str(driver), "--engine", engine["path"], "--net", "/workspace/work/sol2-job2/net768.fnn3",
+            "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001",
+            "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json", "--trace-rows", str(tape)]
+    print(json.dumps({"arm": arm, "engine_sha256": sha, "argv": argv}), flush=True)
+    result = measure_driver(driver_main, argv, gate, arm, None)
+    write_json(gate / f"{arm}.result.raw.txt", {**result, "engine_sha256": sha})
+    print(json.dumps({"arm": arm, **result}), flush=True)
+    if not result["eligible"]:
+        sys.exit(f"Workload gate failed for {arm}: {result['error']}")
+    signatures[arm] = tuple(result[name] for name in SIGNATURE_FIELDS)
+    rows = [json.loads(record) for record in tape.read_text().splitlines()]
+    arms[arm] = rows
+    assert len(rows) == result["searches"] and {row["book_line"] for row in rows} == set(range(7001, 7021)), arm
+    last_info, final_total, final_lines = 0, 0, 0
+    trace = 14695981039346656037
+    for row in rows:
+        match = re.search(r"\bnodes (\d+)(?: |$)", row["last_info"] or "")
+        assert row["nodes"] == (int(match[1]) if match else 0), row
+        assert row["bestmove_line"].split()[1] == row["bestmove"], row
+        line = row["final_nodes_line"]
+        if line is not None:
+            assert line == f"info string softnodes nodes {row['final_nodes']}", row
+            final_lines += 1
+            final_total += row["final_nodes"]
+        else:
+            assert row["final_nodes"] is None and row["nodes"] == 0, row
+        last_info += row["nodes"]
+        payload = f"{row['bestmove']},{row['nodes']};".encode("ascii")
+        for byte in payload:
+            trace = ((trace ^ byte) * 1099511628211) & ((1 << 64) - 1)
+        assert row["trace_fnv1a64"] == f"{trace:016x}"
+    assert (last_info, final_total, f"{trace:016x}", final_lines) == (
+        result["total_nodes"], result["final_nodes"], result["trace_fnv1a64"], result["final_lines"],
+    ), arm
+    print(f"{arm}: read back {len(rows)} canonical searches and {final_lines} final telemetry lines", flush=True)
+keys = ("book_line", "ply", "bestmove", "nodes", "final_nodes")
+for index, (a, b) in enumerate(zip_longest(arms["r15d"], arms["kF"]), start=1):
+    if a is not None and b is not None and all(a[k] == b[k] for k in keys):
+        continue
+    with (gate / "first-difference.raw.txt").open("x") as difference:
+        print(f"First per-search difference at record {index}", file=difference)
+        print(f"r15d {json.dumps(a)}", file=difference)
+        print(f"kF {json.dumps(b)}", file=difference)
+    break
+if signatures["r15d"] != signatures["kF"]:
+    sys.exit("The two workload W signatures differ")
+if (gate / "first-difference.raw.txt").is_file():
+    print("The five-field signatures agree; see first-difference.raw.txt for final telemetry order details.", flush=True)
+write_json(raw / "known-answer.txt", dict(zip(SIGNATURE_FIELDS, signatures["r15d"])))
+print("Both five-field signatures match.", flush=True)

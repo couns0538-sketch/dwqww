@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+"""Measure Forge CPU and wall time with alternating ABBA and BAAB blocks."""
+
+import argparse
+from contextlib import redirect_stdout
+from datetime import datetime, timezone
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import resource
+import runpy
+from statistics import mean, median, stdev
+import subprocess
+import sys
+import time
+from unittest.mock import patch
+
+
+NET_SHA256 = "c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7"
+BOOK_SHA256 = "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+WORKLOAD = ("--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300")
+T_975 = {7: 2.3646242515927844, 15: 2.131449545559323}
+SIGNATURE_FIELDS = ("games", "searches", "total_nodes", "final_nodes", "trace_fnv1a64")
+ORDER = ("ABBA", "BAAB")
+SCHEMA = "forge-balanced-softbook-v1"
+METRICS = ("engine_cpu_s", "total_wall_ns")
+
+
+def now_utc():
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def pinned_identity(path, expected):
+    path = path.resolve(strict=True)
+    with path.open("rb") as content:
+        actual = hashlib.file_digest(content, "sha256").hexdigest()
+    if actual != expected:
+        raise ValueError(f"SHA-256 mismatch for {path}: expected {expected}, got {actual}")
+    return {"path": str(path), "sha256": actual}
+
+
+def write_json(path, content):
+    with path.open("x", encoding="utf-8") as output:
+        print(json.dumps(content, indent=2), file=output)
+
+
+def matches(row, expected):
+    found = tuple(row.get(field) for field in SIGNATURE_FIELDS)
+    if expected is not None:
+        return found == expected
+    games, searches, last_info, final, trace = found
+    return (games == 20 and isinstance(searches, int) and searches > 0
+            and isinstance(last_info, int) and isinstance(final, int)
+            and final >= last_info > 0 and isinstance(trace, str) and len(trace) == 16)
+
+
+def measure_driver(driver_main, argv, output, stem, expected):
+    stdout_path = output / f"{stem}.driver.stdout.txt"
+    stderr_path = output / f"{stem}.engine.stderr.txt"
+    real_popen = subprocess.Popen
+    child = None
+    error = None
+    old_argv = sys.argv
+    with (stdout_path.open("x", encoding="utf-8") as stdout,
+          stderr_path.open("xb") as stderr):
+        def launch(*args, **kwargs):
+            nonlocal child
+            if child is not None:
+                raise RuntimeError("Pinned driver attempted a second child")
+            kwargs["stderr"] = stderr
+            child = real_popen(*args, **kwargs)
+            return child
+
+        sys.argv = argv
+        try:
+            with redirect_stdout(stdout), patch.object(subprocess, "Popen", launch):
+                utc_start = now_utc()
+                before = resource.getrusage(resource.RUSAGE_CHILDREN)
+                start = time.monotonic_ns()
+                try:
+                    driver_main()
+                except (Exception, SystemExit) as exc:
+                    error = f"{type(exc).__name__}: {exc}"
+                finally:
+                    if child is not None and child.poll() is None:
+                        child.kill()
+                        child.wait()
+                    finished = time.monotonic_ns()
+                    after = resource.getrusage(resource.RUSAGE_CHILDREN)
+                    utc_end = now_utc()
+        finally:
+            sys.argv = old_argv
+    row = {}
+    if error is None:
+        try:
+            row = json.loads(stdout_path.read_text(encoding="utf-8"))
+            if not isinstance(row, dict):
+                raise ValueError("driver output must be one JSON object")
+        except (ValueError, UnicodeError) as exc:
+            row = {}
+            error = f"Unreadable driver JSON: {exc}"
+    user = after.ru_utime - before.ru_utime
+    system = after.ru_stime - before.ru_stime
+    engine_exit = child.returncode if child is not None else None
+    trace_valid = matches(row, expected)
+    if error is None:
+        if engine_exit != 0:
+            error = f"Expected one successful Forge child, got exit {engine_exit}"
+        elif not trace_valid:
+            error = f"Workload identity differs from {expected}"
+        elif user < 0 or system < 0 or user + system <= 0 or finished <= start:
+            error = "Nonpositive or inconsistent native time accounting"
+    return {**row, "utc_start": utc_start, "utc_end": utc_end,
+            "wall_start_monotonic_ns": start, "wall_end_monotonic_ns": finished,
+            "total_wall_ns": finished - start, "engine_user_s": user, "engine_system_s": system,
+            "engine_cpu_s": user + system, "engine_pid": child.pid if child is not None else None,
+            "engine_exit": engine_exit, "trace_matches": trace_valid, "eligible": error is None,
+            "error": error, "driver_stdout": stdout_path.name, "engine_stderr": stderr_path.name}
+
+
+def summarize_runs(runs, requested_blocks, floor=None):
+    blocks = []
+    complete_runs = []
+    by_parity = {parity: {key: [] for key in METRICS} for parity in ("odd", "even")}
+    for offset in range(0, len(runs), 5):
+        block_index = offset // 5 + 1
+        order = ORDER[(block_index - 1) % len(ORDER)]
+        group = runs[offset:offset + 5]
+        if len(group) != 5:
+            break
+        if not all(row["eligible"] for row in group):
+            continue
+        warmup, *measured = group
+        if not warmup["warmup"] or warmup["arm"] != order[0] or warmup["order_index"] != 0:
+            raise ValueError("Invalid first-arm warm-up receipt")
+        if "".join(row["arm"] for row in measured) != order or any(row["warmup"] for row in measured):
+            raise ValueError("Invalid timed order or warm-up flag")
+        block = {"block": block_index, "order": order}
+        parity = "odd" if block_index % 2 else "even"
+        for key in METRICS:
+            total_a = sum(row[key] for row in measured if row["arm"] == "A")
+            total_b = sum(row[key] for row in measured if row["arm"] == "B")
+            block[key] = total_b / total_a
+            average = (total_a + total_b) / len(measured)
+            by_parity[parity][key].append([row[key] / average for row in measured])
+        blocks.append(block)
+        complete_runs.extend(measured)
+    complete = len(blocks) == requested_blocks and len(runs) == requested_blocks * 5
+    position_means = {
+        parity: {
+            key: [sum(column) / len(columns) for column in zip(*columns)]
+            for key, columns in data.items()
+        }
+        for parity, data in by_parity.items()
+    }
+    metrics = {}
+    for key in METRICS:
+        if not blocks:
+            break
+        total_a = sum(row[key] for row in complete_runs if row["arm"] == "A")
+        total_b = sum(row[key] for row in complete_runs if row["arm"] == "B")
+        ratios = [block[key] for block in blocks]
+        middle = median(ratios)
+        slower = sum(value > 1 for value in ratios)
+        faster = sum(value < 1 for value in ratios)
+        result = {"pooled_b_over_a": total_b / total_a, "block_median": middle,
+                  "block_min": min(ratios), "block_max": max(ratios), "below_one": faster,
+                  "above_one": slower, "equal_one": len(ratios) - faster - slower}
+        result["block_mean"] = mean(ratios)
+        if len(ratios) >= 3:
+            ordered = sorted(ratios)
+            result["block_middle_min"] = ordered[1]
+            result["block_middle_max"] = ordered[-2]
+        degrees = len(ratios) - 1
+        if complete and degrees in T_975:
+            radius = T_975[degrees] * stdev(ratios) / math.sqrt(len(ratios))
+            result["block_mean_ci95"] = [result["block_mean"] - radius, result["block_mean"] + radius]
+            result["ci_df"] = degrees
+        if floor is not None:
+            ordered_floor = sorted(floor[key])
+            low, high = ordered_floor[1], ordered_floor[-2]
+            outside = middle < low or middle > high
+            signs_agree = max(faster, slower) >= 13
+            decision = "incomplete"
+            if complete and requested_blocks == 16:
+                decision = "MEASURED" if outside and signs_agree else "not measurable here"
+            result.update({"floor_middle_min": low, "floor_middle_max": high,
+                           "median_outside_middle_floor": outside, "at_least_13_on_one_side": signs_agree,
+                           "decision": decision})
+        metrics[key] = result
+    return {"schema": SCHEMA, "order": ORDER, "comparison_direction": "B / A, less than 1 is faster",
+            "requested_blocks": requested_blocks, "completed_blocks": len(blocks),
+            "attempted_runs": len(runs), "included_runs": len(complete_runs),
+            "included_warmups": len(blocks), "complete": complete, "blocks": blocks, "metrics": metrics,
+            "order_position_means": position_means}
+
+
+def load_floor(path, current):
+    source = path.resolve(strict=True)
+    data = source.read_bytes()
+    metadata = {"path": str(source), "sha256": hashlib.sha256(data).hexdigest()}
+    floor = json.loads(data)
+    if not isinstance(floor, dict):
+        raise ValueError("Expected one balanced summary object")
+    if (floor.get("schema") != SCHEMA or floor.get("order") != list(ORDER)
+            or not floor.get("identical_floor") or not floor.get("complete") or floor.get("error") is not None
+            or floor.get("requested_blocks") != 16 or floor.get("completed_blocks") != 16
+            or floor.get("attempted_runs") != 80 or floor.get("included_runs") != 64
+            or floor.get("included_warmups") != 16
+            or floor.get("expected_games_searches_nodes_trace") != list(current["expected_games_searches_nodes_trace"])
+            or floor.get("worker_affinity") != current["worker_affinity"]):
+        raise ValueError("Floor must be a complete, eligible sixteen-block identical balanced campaign on the same workload/affinity")
+    pins = floor["verified_inputs_after"]
+    if (pins["A"]["sha256"] != pins["B"]["sha256"] or pins["A"]["path"] == pins["B"]["path"]
+            or any(pins[name]["sha256"] != current["inputs"][name]["sha256"]
+                   for name in ("net", "driver", "book", "known_answer"))):
+        raise ValueError("Floor must have byte-identical A/B executables at distinct paths and the same workload inputs")
+    checked = {key: [] for key in METRICS}
+    if len(floor["blocks"]) != 16:
+        raise ValueError("Expected sixteen raw floor block ratios")
+    for expected_index, block in enumerate(floor["blocks"], start=1):
+        if block["block"] != expected_index or block["order"] != ORDER[(expected_index - 1) % len(ORDER)]:
+            raise ValueError("Unexpected floor block ordering")
+        for key in METRICS:
+            ratio = block[key]
+            if type(ratio) not in (int, float) or not math.isfinite(ratio) or ratio <= 0:
+                raise ValueError("Nonpositive or nonfinite floor ratio")
+            checked[key].append(ratio)
+    return checked, metadata
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("a", type=Path)
+    parser.add_argument("b", type=Path)
+    parser.add_argument("net", type=Path)
+    parser.add_argument("output", type=Path, help="new output directory")
+    parser.add_argument("--a-sha256", required=True)
+    parser.add_argument("--b-sha256", required=True)
+    parser.add_argument("--a-label", default="A")
+    parser.add_argument("--b-label", default="B")
+    parser.add_argument("--driver", type=Path, required=True)
+    parser.add_argument("--driver-sha256", required=True)
+    parser.add_argument("--book", type=Path, required=True)
+    parser.add_argument("--known-answer", type=Path, required=True)
+    parser.add_argument("--known-answer-sha256", required=True)
+    parser.add_argument("--blocks", type=int, choices=(8, 16), required=True)
+    parser.add_argument("--identical-floor", action="store_true", help="mark this sixteen-block A/copy experiment as the reference floor")
+    parser.add_argument("--floor", type=Path, help="summary.txt from a completed --identical-floor campaign")
+    args = parser.parse_args()
+    if args.identical_floor and args.floor:
+        parser.error("--identical-floor and --floor are mutually exclusive")
+    if (args.identical_floor or args.floor) and args.blocks != 16:
+        parser.error("Clang floor and comparison require sixteen blocks")
+    args.output.mkdir(parents=True, exist_ok=False)
+    pins = {"A": (args.a, args.a_sha256), "B": (args.b, args.b_sha256),
+            "net": (args.net, NET_SHA256), "driver": (args.driver, args.driver_sha256),
+            "book": (args.book, BOOK_SHA256),
+            "known_answer": (args.known_answer, args.known_answer_sha256)}
+    inputs = {key: pinned_identity(*spec) for key, spec in pins.items()}
+    gate = json.loads(Path(inputs["known_answer"]["path"]).read_text(encoding="utf-8"))
+    expected = tuple(gate[name] for name in SIGNATURE_FIELDS)
+    if not matches(gate, None):
+        raise ValueError("Invalid soft-node book known-answer receipt")
+    labels = {"A": args.a_label, "B": args.b_label}
+    if args.identical_floor and (inputs["A"]["sha256"] != inputs["B"]["sha256"] or inputs["A"]["path"] == inputs["B"]["path"]):
+        raise ValueError("The reference floor requires byte-identical executables at distinct paths")
+    argv = {name: [inputs["driver"]["path"], "--engine", inputs[name]["path"],
+                   "--net", inputs["net"]["path"], "--book", inputs["book"]["path"],
+                   *WORKLOAD, "--json"] for name in "AB"}
+    manifest = {"schema": SCHEMA, "inputs": inputs, "arm_labels": labels, "argv_by_arm": argv,
+                "order": ORDER, "blocks_requested": args.blocks,
+                "expected_games_searches_nodes_trace": expected, "identical_floor": args.identical_floor,
+                "cpu_scope": "RUSAGE_CHILDREN delta while pinned driver runs its one Forge child, setup through exit",
+                "wall_scope": "monotonic wall for full driver call including pinned book reads, Python draw claims and teardown",
+                "worker_affinity": sorted(os.sched_getaffinity(0))}
+    floor, floor_source = load_floor(args.floor, manifest) if args.floor else (None, None)
+    manifest["floor"] = floor_source
+    write_json(args.output / "inputs.txt", manifest)
+    driver_main = runpy.run_path(inputs["driver"]["path"])["main"]
+    runs = []
+    failed_rows = []
+    with (args.output / "runs.jsonl.txt").open("x", encoding="utf-8") as log:
+        for block in range(1, args.blocks + 1):
+            order = ORDER[(block - 1) % len(ORDER)]
+            for index, arm in enumerate(order[0] + order):
+                stem = f"b{block:02d}-r{index}-{arm}"
+                row = {"block": block, "order_index": index, "warmup": index == 0, "arm": arm, "engine": labels[arm],
+                       "engine_sha256": inputs[arm]["sha256"],
+                       **measure_driver(driver_main, argv[arm], args.output, stem, expected)}
+                runs.append(row)
+                line = json.dumps(row)
+                print(line, file=log, flush=True)
+                print(line, flush=True)
+                if not row["eligible"]:
+                    failed_rows.append(f"{stem}: {row['error']}")
+    failure = " | ".join(failed_rows) or None
+    try:
+        after = {key: pinned_identity(*spec) for key, spec in pins.items()}
+        if after != inputs:
+            raise ValueError("An input path changed during the campaign")
+        if floor_source and pinned_identity(Path(floor_source["path"]), floor_source["sha256"]) != floor_source:
+            raise ValueError("The floor file changed during the campaign")
+    except (OSError, ValueError) as exc:
+        # Retain the original rows while withholding the measurements from the ratio.
+        summary = summarize_runs([], args.blocks)
+        summary["attempted_runs"] = len(runs)
+        failure = f"Post-run identity failed: {exc}"
+    else:
+        summary = summarize_runs(runs, args.blocks, floor)
+        summary["verified_inputs_after"] = after
+    summary.update({"arm_labels": labels, "error": failure, "identical_floor": args.identical_floor,
+                    "floor": floor_source, "expected_games_searches_nodes_trace": expected,
+                    "worker_affinity": manifest["worker_affinity"]})
+    write_json(args.output / "summary.txt", summary)
+    if failure:
+        raise RuntimeError(failure)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (KeyError, OSError, RuntimeError, ValueError) as exc:
+        print(exc, file=sys.stderr)
+        sys.exit(1)
