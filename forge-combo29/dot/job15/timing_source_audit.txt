@@ -1,0 +1,27 @@
+Job15 Branch R source-only timing audit
+Observed UTC: 2026-11-18T20:37:15.873331+00:00
+
+Read job15_received.txt fully and Job14 report L1 evidence. Literal ANY-disagreement rule selects Branch R because L1 exact final-info lines differ, even though the recorded difference is only time/nps. This is not permission to reinterpret Branch N or silently normalize raw transcripts.
+
+Exact source evidence (opened unchanged kF and r15d):
+1. kF src/search.cpp3217-3218 and r15d2715-2716 both say:
+   const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+       std::chrono::steady_clock::now() - start_).count();
+   This samples real elapsed monotonic-clock duration, not logical tree progress or a deterministic node-derived duration. It is not CPU-time accounting or civil UTC wallclock. Integer milliseconds discard the fractional remainder.
+2. kF3220-3221 and r15d2718-2719 both say:
+   const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+   const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+   Thus equal nodes do not imply equal nps. At zero elapsed the printed nps is zero, not infinite or a forced one-ms estimate.
+3. kF3257-3262 and r15d2755-2760 write literal nps, nps value, hashfull, shown_hash, time, elapsed using the same to_chars path. kF3215-3270 and r15d2713-2768 are textually identical (checked locally). The output mutex is acquired AFTER the clock sample: kF3222/r15d2720. Therefore this particular line's lock wait is not included in its own sampled time; earlier search/emission delays can affect later samples.
+4. Worker start origin is identical: kF3118-3121/r15d2624-2627 gives nonempty limits.start_time precedence over request_start, otherwise steady_clock::now(). Searcher kF3795-3802/r15d3290-3297 passes supplied origin, supplying now only for a finite clocked search with no origin.
+5. UCI kF863-865/r15d782-784 comment: "Charge dispatch admission only to finite externally clocked searches." Only non-infinite/non-ponder with time_ms>=0 or movetime_ms>=0 gets command_start. A plain go depth9 has neither clock and reaches Worker's own now fallback. Default SearchLimits kFsearch.hpp41-42/r15d38-39 sets both clock values -1, kF58-59/r15d55-56 leaves origins empty. Clock-budget setup kF3173-3186/r15d2671-2684 keeps time limits zero and time_managed false absent clock fields. This does not claim elapsed is irrelevant to every other command or configuration.
+
+Observed Job14 first pair is internally correct under the identical formula:
+Both nodes7372 (last completed depth info). r15d time4,nps1843000 =7372*1000/4; kF time5,nps1474400 =7372*1000/5. Depth9/seldepth19/cp-74/hashfull1/PV agree. Independent processes have distinct clock samples and need not consume equal elapsed time even with identical trees. Scheduling, machine load, cache state and genuine implementation speed differences can contribute; the pair alone cannot identify their individual shares or demonstrate a speed regression.
+
+Cause and repair conclusion:
+There is NO r15d line implementing a different timing semantic to name as the counterpart defect. The relevant formulas, origin policy and printed fields agree. Strict whole-final-info equality compares nondeterministic elapsed telemetry as if it were a deterministic search answer. It is an unsuitable universal equivalence oracle for these independent fixed-depth executions, and can fail even for repeat runs of the same binary. This latter statement is a consequence of sampling elapsed time, not a new native repeat-run result in this audit.
+No semantic engine repair is justified by this time/nps-only finding. Setting both fields to zero, deriving fake time from nodes, deleting telemetry or forcing reference timing into kF would conceal real measurements rather than repair demonstrated search behavior. No such patch is proposed. Therefore Branch R's requested repaired-binary proof is not supplied as a spurious success.
+A sound bounded differential test preserves complete raw lines, checks time/nps numeric formula separately, and compares all remaining final-info fields plus bestmove exactly for the fixed-depth T1 workloads. This is a proposed test-oracle clarification, not retroactive satisfaction of the literal assignment and not proof for clocked/multithread runs. Clocked search may legitimately change its tree with timing; that requires its own test design.
+
+No native commands, source modifications, patches or remote writes were performed by this audit. Fresh minimization/reproduction and their raw versions are separate work; no shortest-script claim made here.
