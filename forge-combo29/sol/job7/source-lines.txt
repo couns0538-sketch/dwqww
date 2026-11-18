@@ -1,0 +1,245 @@
+Job 4 counting source with the buttons patch, src/search.cpp
+
+   394	namespace {
+   395
+   396	constexpr int HistoryMax = 16384;
+   397	static_assert(b4::HistoryLimit == HistoryMax, "B4 HistRework bounds assume this history limit");
+   398	static_assert(b4::CorrectionEntryLimit == CorrectionLimit, "B4 HistRework bounds assume this correction limit");
+   469	void apply_history(std::int16_t& entry, int bonus) {
+   470	    const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+   471	    entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+   472	}
+  1233	Worker::Worker(SharedSearchState& shared, int id)
+  1234	    : shared_(shared),
+  1235	      id_(id),
+  1236	      main_history_(std::make_unique<ButterflyHistory>()),
+  1237	      threat_history_(std::make_unique<ThreatQuietHistory>()),
+  1238	#if FORGE_PAWN_HISTORY
+  1239	      pawn_history_(std::make_unique<PawnHistoryTable>()),
+  1240	#else
+  1241	      pawn_history_(),
+  1242	#endif
+  1243	      capture_history_(std::make_unique<CaptureHistory>()),
+  1244	      continuation_history_(std::make_unique<ContinuationHistory>()),
+  1245	      counter_moves_(std::make_unique<CounterMoveTable>()),
+  1246	      correction_history_(std::make_unique<CorrectionHistory>()),
+  1247	      material_correction_(std::make_unique<CorrectionHistory>()),
+  1248	      non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+  1249	      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+  1250	      rework_history_(std::make_unique<LesserThreatHistory>()),
+  1251	      joint_correction_(std::make_unique<CorrectionHistory>()),
+  1252	      continuation_correction_(std::make_unique<ContinuationCorrection>()) {
+  1253	    clear();
+  1254	}
+  1255
+  1256	Worker::~Worker() = default;
+  1257
+  1258	void Worker::clear() {
+  1259	    evaluator_.clear();
+  1260	    *main_history_ = ButterflyHistory{};
+  1261	    *threat_history_ = ThreatQuietHistory{};
+  1262	    // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+  1263	#if FORGE_PAWN_HISTORY
+  1264	    if (tune::PawnHistory != 0) pawn_history_->fill({});
+  1265	#endif
+  1266	    *capture_history_ = CaptureHistory{};
+  1267	    *continuation_history_ = ContinuationHistory{};
+  1268	    *counter_moves_ = CounterMoveTable{};
+  1269	    *correction_history_ = CorrectionHistory{};
+  1270	    *material_correction_ = CorrectionHistory{};
+  1271	    *non_pawn_white_correction_ = CorrectionHistory{};
+  1272	    *non_pawn_black_correction_ = CorrectionHistory{};
+  1273	    // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+  1274	    *rework_history_ = LesserThreatHistory{};
+  1275	    *joint_correction_ = CorrectionHistory{};
+  1276	    *continuation_correction_ = ContinuationCorrection{};
+  1277	    threat_maps_ = {};
+  1278	    for (SearchStack& ss : stack_) ss = SearchStack{};
+  2677	SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+  2678	    const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+  2679	        ? limits.start_time : limits.request_start;
+  2680	    start_ = origin == std::chrono::steady_clock::time_point{}
+  2681	        ? std::chrono::steady_clock::now() : origin;
+  2682	    local_nodes_ = 0;
+  2683	    nodes_.store(0, std::memory_order_relaxed);
+  2684	    all_workers_ = &all;
+  2685	    seldepth_ = 0;
+  2686	    aborted_ = false;
+  2687	    stopped_by_nodes_ = false;
+  2688	    extra_nodes_ = 0;
+  2893	    for (SearchStack& ss : stack_) {
+  2894	        ss.pv_length = 0;
+  2895	        ss.current_move = Move::none();
+  2896	        ss.excluded_move = Move::none();
+  2897	        ss.moved_piece = Empty;
+  2898	        ss.static_eval = ValueNone;
+  2899	        ss.continuation = &(*continuation_history_)[Empty][0];
+  2900	        ss.double_extensions = 0;
+  2901	        ss.withheld_plies = 0;
+  2902	        ss.null_move_allowed = true;
+  2903	        ss.arrival_index = 0;
+  2904	        ss.killers = {};
+  2905	    }
+  2906	    SearchStack* ss = &stack_[4];
+  2907	    for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
+  2908	    for (SearchStack& entry : stack_) {
+  2909	        entry.accumulator.valid = false;
+  2910	        entry.runtime_psqt.valid = false;
+  2911	        entry.diff_known = false;
+  2912	        entry.entered_null = false;
+  2913	        entry.dirty.count = 0;
+  2914	    }
+  2915	#if FORGE_NNUE_V3
+  2916	    if (v3_state_) v3_state_->invalidate();
+  2945	    std::unique_ptr<Worker> alt_worker;
+  2946	    std::vector<Worker*> alt_list;
+  2947	    if (multipv > 1 && is_main()) {
+  2948	        const std::size_t hash_mb = std::max<std::size_t>(
+  2949	            1, shared_.tt.cluster_count() * sizeof(TTCluster) / (1024U * 1024U));
+  2950	        alt_shared = std::make_unique<SharedSearchState>(hash_mb);
+  2951	        alt_worker = std::make_unique<Worker>(*alt_shared, 0);
+  2952	        alt_worker->parent_worker_ = this;
+  2953	        alt_list.push_back(alt_worker.get());
+  2954	    }
+  2955	    for (int depth = 1; depth <= max_depth; ++depth) {
+  3099	                narrowed.request_start = {};
+  3100	                alt_shared->stop.store(false, std::memory_order_relaxed);
+  3101	                alt_shared->ponder_hit_ns.store(0, std::memory_order_relaxed);
+  3102	                alt_shared->tt.clear();
+  3103	                alt_worker->clear();
+  3104	                const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+  3105	                extra_nodes_ += alt.nodes;
+  3106	                if (alt_worker->aborted_ || alt.depth < depth) {
+  3251	Searcher::Searcher(std::size_t hash_mb, int threads) : shared_(hash_mb) {
+  3252	    set_threads(threads);
+  3253	}
+  3254
+  3255	Searcher::~Searcher() = default;
+  3256
+  3257	void Searcher::set_threads(int threads) {
+  3258	    const std::size_t count = static_cast<std::size_t>(std::clamp(threads, 1, 256));
+  3259	    while (workers_.size() > count) workers_.pop_back();
+  3260	    while (workers_.size() < count) {
+  3261	        workers_.push_back(std::make_unique<Worker>(shared_, static_cast<int>(workers_.size())));
+  3262	    }
+  3263	}
+  3266
+  3267	void Searcher::clear_hash() {
+  3268	    shared_.tt.clear();
+  3269	    for (auto& worker : workers_) worker->clear_caches();
+  3270	}
+  3271
+  3272	void Searcher::clear_workers() {
+  3273	    for (auto& worker : workers_) worker->clear();
+  3274	}
+  3275
+  3276	void Searcher::clear_pawn_cache() {
+  3277	    for (auto& worker : workers_) worker->clear_caches();
+  3278	}
+  3279
+  3280	void set_draw_jitter(int value, Searcher& searcher) {
+  3281	    const int clamped = std::clamp(value, 0, DrawJitterMax);
+  3282	    if (clamped == DrawJitter) return;
+  3283	    DrawJitter = clamped;
+  3284	    searcher.clear_hash();
+  3285	}
+  3286
+  3287	void Searcher::clear() {
+  3288	    shared_.tt.clear();
+  3289	    for (auto& worker : workers_) worker->clear();
+  3290	}
+  3291
+
+Job 4 counting source, src/uci.cpp
+
+   277	    int move_overhead_ms = 10;
+   278	    int multipv = 1;
+   279	    bool ponder_enabled = false;
+   386	#endif
+   387	            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+   388	        } else if (command == "ucinewgame") {
+   389	            stop_search();
+   390	            searcher.clear();
+   391	            (void)board.set_fen(forge::Board::StandardStartFen);
+   392	        } else if (command == "setoption") {
+   433	            } else if (name == "Clear Hash") {
+   434	                if (value_text.empty()) searcher.clear_hash();
+   435	                else note_invalid();
+   436	            } else if (name == "ClearWorkers") {
+   437	                if (value_text.empty()) searcher.clear_workers();
+   438	                else note_invalid();
+   439	            } else if (name == "ClearPawnCache") {
+   440	                if (value_text.empty()) searcher.clear_pawn_cache();
+   441	                else note_invalid();
+   586	                if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+   587	                else note_invalid();
+   588	            } else if (name == "SoundMatePruning") {
+   589	                if (value_text == "true" || value_text == "false") {
+   590	                    const bool enabled = value_text == "true";
+   591	                    if (forge::tune::SoundMatePruning != enabled) {
+   592	                        forge::tune::SoundMatePruning = enabled;
+   593	                        // Scores already stored were built with the other guard.
+   594	                        searcher.clear();
+   595	                    }
+   596	                } else {
+   597	                    note_invalid();
+   598	                }
+   599	#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+   600	            } else if (name == "MateAlphaGuard") {
+   601	                if (value_text == "true" || value_text == "false") {
+   602	                    const bool enabled = value_text == "true";
+   603	                    if (forge::tune::MateAlphaGuard != enabled) {
+   604	                        forge::tune::MateAlphaGuard = enabled;
+   605	                        searcher.clear();
+   606	                    }
+   607	                } else {
+   608	                    note_invalid();
+   679	                forge::SearchLimits limits = parse_limits(input, board);
+   680	                limits.move_overhead_ms = move_overhead_ms;
+   681	                limits.multipv = multipv;
+   682	                // Charge dispatch admission only to finite externally clocked searches.
+   683	                if (!limits.infinite && !limits.ponder &&
+   781	            forge::Searcher bench_searcher(16);
+   782	            for (const std::string_view fen : fens) {
+   783	                forge::Board bench_board;
+   784	                if (!bench_board.set_fen(fen)) continue;
+   785	                forge::SearchLimits limits;
+   786	                limits.depth = depth;
+   787	                bench_searcher.clear();
+   788	                total_nodes += bench_searcher.search(
+   789	                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+
+Job 6 warm replay protocol, run_sweep.py
+
+    45	    settings = [f"setoption name {name} value {value}" for name, value in
+    46	                (("Threads", "1"), ("Hash", "16"), *PC20)]
+    85	                for setting in settings:
+    86	                    engine.send(setting)
+    87	                    meta["settings_sent"].append(setting)
+    88	                engine.send("isready")
+    89	                engine.until("readyok")
+    90	                if args.override:
+    91	                    name, value = args.override
+    92	                    setting = f"setoption name {name} value {value}"
+    93	                    engine.send(setting)
+    94	                    meta["settings_sent"].append(setting)
+    95	                    engine.send("isready")
+    96	                    engine.wait_for_variant(meta["variant_reply"])
+    97	                for game in games:
+    98	                    current_game, current_ply = game.index, None
+    99	                    if warm:
+   100	                        reset_tables(engine)
+   101	                    for ply in range(1 if args.opening_only else len(game.moves)):
+   102	                        current_ply = ply
+   103	                        if not warm:
+   104	                            reset_tables(engine)
+   105	                        position = f"position fen {game.fen}"
+   106	                        if ply:
+   107	                            position += " moves " + " ".join(game.moves[:ply])
+   108	                        engine.send(position)
+   109	                        engine.send(search)
+   110	                        row = parse_row(
+   111	                            meta["positions_completed"] + 1, game.fen,
+   112	                            engine.until("bestmove"), require_counter=True,
+   113	                        )
+   114	                        row.update(game=game.index, ply=ply)
