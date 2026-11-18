@@ -1,0 +1,199 @@
+--- a/include/forge/shortcut_count.hpp
++++ b/include/forge/shortcut_count.hpp
+@@ -5,13 +5,14 @@
+ #include <cstring>
+ #include <iostream>
+ namespace forge::shortcut_count {
+-inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27"};
+-inline std::atomic<unsigned long long> uses[12]{}, differs[12]{}, diagnostics{0};
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82"};
++inline std::atomic<unsigned long long> uses[13]{}, differs[13]{}, diagnostics{0};
+ inline std::atomic<unsigned long long> h25_paths[7]{};
+-inline void reset() { for(auto& n:h25_paths) n=0; for (int i=0;i<12;++i) { uses[i]=0; differs[i]=0; } }
++inline std::atomic<unsigned long long> h82_classes[6]{};
++inline void reset() { for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<13;++i) { uses[i]=0; differs[i]=0; } }
+ inline void record(const char* name, bool different, const Board& board, const Move& move) {
+-    int i=0; while(i<12 && std::strcmp(names[i],name)!=0) ++i;
+-    if(i==12) return;
++    int i=0; while(i<13 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==13) return;
+     uses[i].fetch_add(1,std::memory_order_relaxed);
+     if(!different) return;
+     differs[i].fetch_add(1,std::memory_order_relaxed);
+@@ -32,9 +33,19 @@
+     // TT hooks run synchronously inside Worker search with a live board context.
+     if (tt_board != nullptr) record("H18", different, *tt_board, move);
+ }
++inline void record_h82(bool different, int cls, bool older, bool store, Move move=Move::none()) {
++    if(tt_board==nullptr) return;
++    ++h82_classes[cls];
++    if(older) ++h82_classes[3];
++    ++h82_classes[store?5:4];
++    record("H82",different,*tt_board,move);
++}
+ // Caller holds the output mutex, after workers have joined.
+-inline void summary() { for(int i=0;i<12;++i) std::cout << "info string shortcut " << names[i]
++inline void summary() { for(int i=0;i<13;++i) std::cout << "info string shortcut " << names[i]
+     << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
++    std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
++              << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
++              << " probes " << h82_classes[4].load() << " stores " << h82_classes[5].load() << std::endl;
+     std::cout << "info string h25_paths seeded " << h25_paths[0].load() << " scan16 " << h25_paths[1].load()
+               << " scan8 " << h25_paths[2].load() << " scan4 " << h25_paths[3].load()
+               << " scalar_tail " << h25_paths[4].load() << " sort_transition " << h25_paths[5].load()
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -1,4 +1,7 @@
+ #pragma once
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ 
+ #include "forge/b4.hpp"
+ #include "forge/board.hpp"
+@@ -237,11 +240,49 @@
+     void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
+                            Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+ 
++#if FORGE_SHORTCUT_COUNT
++    struct H82Reference { std::uint8_t slot; bool hit; int cls; bool older; };
++    static H82Reference h82_scan(TTCluster snapshot, std::uint32_t key32,
++                                 std::uint8_t generation, bool store=false, std::uint8_t supplied=0) {
++        int hit=-1, empty=-1;
++        for(int i=0;i<4;++i) {
++            if(hit<0 && snapshot.entries[i].occupied() && snapshot.entries[i].key32==key32) hit=i;
++            if(empty<0 && !snapshot.entries[i].occupied()) empty=i;
++        }
++        int slot=hit;
++        const int cls=hit>=0 ? 0 : empty>=0 ? 1 : 2;
++        if(slot<0 && store) slot=supplied; // r15d store re-finds a key, otherwise uses probe's saved destination.
++        if(slot<0 && empty>=0) slot=empty;
++        if(slot<0) {
++            slot=0;
++            int best=snapshot.entries[0].depth-4*static_cast<int>((32U+generation-snapshot.entries[0].generation())&31U);
++            for(int i=1;i<4;++i) {
++                const int value=snapshot.entries[i].depth-4*static_cast<int>((32U+generation-snapshot.entries[i].generation())&31U);
++                if(value<best) {best=value;slot=i;}
++            }
++        }
++        const bool older=(store || hit>=0) && snapshot.entries[slot].occupied() && snapshot.entries[slot].generation()!=generation;
++#if FORGE_SHORTCUT_WRONG5
++        if(cls==2) slot=(slot+1)&3; // Only full misses corrupt the local reference slot.
++#endif
++        return {static_cast<std::uint8_t>(slot),hit>=0,cls,older};
++    }
++#endif
+     [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
+         const std::size_t index = cluster_index(key);
+         TTCluster& cluster = clusters_[index];
+         const std::uint32_t key32 = verification_key(key);
+         const std::uint8_t generation = generation_;
++#if FORGE_SHORTCUT_COUNT
++        const H82Reference reference=h82_scan(cluster,key32,generation);
++        auto checked=[&](WorkerTTProbe result) {
++            shortcut_count::record_h82(result.hit!=reference.hit || result.slot!=reference.slot,
++                                       reference.cls,reference.older,false);
++            return result;
++        };
++#else
++        auto checked=[](WorkerTTProbe result){return result;};
++#endif
+ #if defined(__AVX512F__)
+         const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
+         const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
+@@ -257,14 +298,14 @@
+                 found.gen_bound = static_cast<std::uint8_t>(
+                     (static_cast<unsigned>(generation) << 3U) | (found.gen_bound & 7U));
+             }
+-            return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
++            return checked(WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true});
+         }
+         if (static_cast<unsigned>(occ_m) != 0x8888U) {
+             const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m) ^ 0x8888U)) >> 2U;
+-            return WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false};
++            return checked(WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false});
+         }
+         const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+-        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++        return checked(WorkerTTProbe{cluster.entries[repl], index, repl, false});
+ #else
+         for (std::size_t s = 0; s < 4; ++s) {
+             TTEntry& entry = cluster.entries[s];
+@@ -276,16 +317,16 @@
+                     entry.gen_bound = static_cast<std::uint8_t>(
+                         (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
+                 }
+-                return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++                return checked(WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true});
+             }
+         }
+         for (std::size_t s = 0; s < 4; ++s) {
+             if (!cluster.entries[s].occupied()) {
+-                return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++                return checked(WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false});
+             }
+         }
+         const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+-        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++        return checked(WorkerTTProbe{cluster.entries[repl], index, repl, false});
+ #endif
+     }
+ #endif
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -623,6 +623,7 @@
+     const std::uint32_t key32 = verification_key(key);
+     const std::uint8_t generation = generation_;
+ #if FORGE_SHORTCUT_COUNT
++    const H82Reference ref82=h82_scan(cluster,key32,generation);
+     TTCluster reference_cluster = cluster;
+     const WorkerTTProbe reference = h18_reference_probe(reference_cluster, index, key32, generation);
+     auto checked = [&](WorkerTTProbe result) {
+@@ -630,6 +631,7 @@
+                              result.hit != reference.hit || !h18_entry_equal(result.entry, reference.entry) ||
+                              !h18_cluster_equal(cluster, reference_cluster);
+         shortcut_count::record_tt(differs, key);
++        shortcut_count::record_h82(result.hit!=ref82.hit || result.slot!=ref82.slot,ref82.cls,ref82.older,false);
+         return result;
+     };
+ #else
+@@ -664,6 +666,7 @@
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
+ #if FORGE_SHORTCUT_COUNT
++    const H82Reference ref82=h82_scan(cluster,key32,generation_,true,slot);
+     TTCluster reference_cluster = cluster;
+     h18_reference_store(reference_cluster, slot, key32, generation_, score, eval, move, depth,
+                          bound, pv, halfmove_clock);
+@@ -684,6 +687,11 @@
+             break;
+         }
+     }
++#endif
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h82(static_cast<std::size_t>(entry-cluster.entries.data())!=ref82.slot ||
++                               (entry->key32==key32 && entry->occupied())!=ref82.hit,
++                               ref82.cls,ref82.older,true,move);
+ #endif
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[slot];
+@@ -720,6 +728,7 @@
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
+ #if FORGE_SHORTCUT_COUNT
++    const H82Reference ref82=h82_scan(cluster,key32,generation_,true,slot);
+     TTCluster reference_cluster = cluster;
+     h18_reference_store(reference_cluster, slot, key32, generation_, score, eval, move, depth,
+                          bound, pv, halfmove_clock);
+@@ -731,6 +740,11 @@
+             break;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h82(static_cast<std::size_t>(entry-cluster.entries.data())!=ref82.slot ||
++                               (entry->key32==key32 && entry->occupied())!=ref82.hit,
++                               ref82.cls,ref82.older,true,move);
++#endif
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[slot];
+     const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
