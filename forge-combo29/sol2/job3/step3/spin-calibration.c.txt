@@ -1,0 +1,53 @@
+#define _POSIX_C_SOURCE 200809L
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+static uint64_t ns(clockid_t clock) {
+    struct timespec time;
+    if (clock_gettime(clock, &time)) exit(2);
+    return (uint64_t)time.tv_sec * 1000000000 + (uint64_t)time.tv_nsec;
+}
+
+static void clear_control(size_t bytes) {
+    unsigned char *p;
+    if (posix_memalign((void **)&p, 64, bytes) != 0) exit(2);
+    memset(p, 1, bytes);
+    const unsigned repeats = 1000;
+    const uint64_t wall_start = ns(CLOCK_MONOTONIC), cpu_start = ns(CLOCK_PROCESS_CPUTIME_ID);
+    for (unsigned i = 0; i < repeats; ++i) {
+        memset(p, 0, bytes);
+        asm volatile("" : : "r"(p) : "memory");
+    }
+    const uint64_t cpu = ns(CLOCK_PROCESS_CPUTIME_ID) - cpu_start;
+    const uint64_t wall = ns(CLOCK_MONOTONIC) - wall_start;
+    printf("memset bytes=%zu repeats=%u cpu_ns=%llu wall_ns=%llu cpu_us_per=%.6f effective_GB_per_s=%.6f\n",
+           bytes, repeats, (unsigned long long)cpu, (unsigned long long)wall, (double)cpu / (1000 * repeats), (double)bytes * repeats / cpu);
+    free(p);
+}
+
+__attribute__((noinline)) static void spin_control(unsigned count) {
+    for (unsigned i = 0; i < count; ++i) asm volatile("" ::: "memory");
+}
+
+static void calibrate(unsigned count) {
+    const unsigned repeats = 100000;
+    const uint64_t start = ns(CLOCK_PROCESS_CPUTIME_ID);
+    for (unsigned i = 0; i < repeats; ++i) spin_control(count);
+    const uint64_t elapsed = ns(CLOCK_PROCESS_CPUTIME_ID) - start;
+    printf("spin iterations=%u repeats=%u cpu_ns=%llu cpu_us_per=%.6f\n",
+           count, repeats, (unsigned long long)elapsed, (double)elapsed / (1000 * repeats));
+}
+
+int main(void) {
+    clear_control(18976128);
+    clear_control(20460488);
+    clear_control(20460488);
+    calibrate(5000);
+    calibrate(6500);
+    calibrate(8000);
+    calibrate(13000);
+    return 0;
+}
