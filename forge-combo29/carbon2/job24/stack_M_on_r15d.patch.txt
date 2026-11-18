@@ -1,0 +1,1304 @@
+--- a/include/forge/board.hpp	2026-11-18 12:36:01.672049697 +0000
++++ b/include/forge/board.hpp	2026-11-18 22:08:55.946864572 +0000
+@@ -242,6 +242,7 @@
+     [[nodiscard]] bool see_ge(const Move& move, int threshold) const;
+ 
+     [[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }
++    [[nodiscard]] const std::array<Bitboard, 13>& piece_bitboards() const { return bitboards_; }
+     [[nodiscard]] Bitboard pieces(Piece piece) const { return bitboards_[static_cast<std::size_t>(piece)]; }
+     [[nodiscard]] Bitboard pieces(Color color, PieceType type) const {
+         return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];
+--- a/include/forge/nnue_v3.hpp	2026-11-18 12:36:01.672049697 +0000
++++ b/include/forge/nnue_v3.hpp	2026-11-18 22:08:55.978864572 +0000
+@@ -173,7 +173,13 @@
+ [[nodiscard]] bool kernel_available(Kernel kernel);
+ 
+ // ---- feature set ----
+-[[nodiscard]] KingKey king_key(const Net& net, Color perspective, int king_square);
++[[nodiscard]] inline KingKey king_key(const Net& net, Color perspective, int king_square) noexcept {
++    const int kr = perspective == White ? king_square : king_square ^ 56;
++    return KingKey{
++        net.king_map[static_cast<std::size_t>(kr)],
++        static_cast<std::uint8_t>((net.mirror && (kr & 7) >= 4) ? 7 : 0),
++    };
++}
+ [[nodiscard]] int feature_index(KingKey key, Color perspective, Piece piece, int square);
+ [[nodiscard]] int output_bucket(const Net& net, const Board& board);
+ [[nodiscard]] inline const std::int16_t* column(const Net& net, int feature) {
+@@ -211,6 +217,11 @@
+ [[nodiscard]] int apply_pair_and_evaluate(const Net& net, const Accumulator& parent, Accumulator& child,
+                                           KingKey key0, int king0, KingKey key1, int king1,
+                                           const DirtyPieces& dirty, const Board& board);
++// Fused single-ply update + SCReLU output when one perspective keeps its king key and the other refreshes.
++[[nodiscard]] int apply_one_refresh_one_and_evaluate(const Net& net, RefreshCache& cache,
++                                                     const Accumulator& parent, Accumulator& child,
++                                                     KingKey key0, int king0, KingKey key1, int king1,
++                                                     const DirtyPieces& dirty, const Board& board);
+ // Accumulator of `perspective` for the placement `pieces` (own king on `king_square`), through the cache.
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                          std::int16_t* destination);
+@@ -261,17 +272,22 @@
+             apply_changes(net, parent.values[pi].data(), child.values[pi].data(), key, p, dirty);
+         } else {
+             // The king changed bucket or side: rebuild this perspective from the
+-            // placement at index k, reconstructed by undoing the later plies.
+-            Pieces pieces = pieces_of(board);
+-            for (int j = top; j > k; --j) {
+-                const DirtyPieces& later = dirty_of(j);
+-                for (int i = 0; i < later.count; ++i) {
+-                    const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
+-                    if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
+-                    else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
++            // placement at index k, reconstructed by undoing the later plies when k < top.
++            if (k == top) {
++                refresh_from_pieces(net, state.cache, board.piece_bitboards(), p, king_square,
++                                    child.values[pi].data());
++            } else {
++                Pieces pieces = board.piece_bitboards();
++                for (int j = top; j > k; --j) {
++                    const DirtyPieces& later = dirty_of(j);
++                    for (int i = 0; i < later.count; ++i) {
++                        const PieceChange& change = later.changes[static_cast<std::size_t>(i)];
++                        if (change.add) pieces[static_cast<std::size_t>(change.piece)] &= ~square_bb(change.square);
++                        else pieces[static_cast<std::size_t>(change.piece)] |= square_bb(change.square);
++                    }
+                 }
++                refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data());
+             }
+-            refresh_from_pieces(net, state.cache, pieces, p, king_square, child.values[pi].data());
+         }
+     }
+     child.valid = true;
+--- a/include/forge/search.hpp	2026-11-18 12:36:01.672049697 +0000
++++ b/include/forge/search.hpp	2026-11-18 22:08:55.990864572 +0000
+@@ -17,6 +17,9 @@
+ #include <mutex>
+ #include <thread>
+ #include <vector>
++#if defined(__AVX512F__)
++#include <immintrin.h>
++#endif
+ 
+ #ifndef FORGE_SPD_TT_NOTLS
+ // Build switch, default 0 (= the lock's code): the Worker that runs on the thread
+@@ -129,8 +132,18 @@
+     std::array<TTEntry, 4> entries{};
+ };
+ static_assert(sizeof(TTEntry) == 16);
++static_assert(offsetof(TTEntry, key32) == 0);
++static_assert(offsetof(TTEntry, depth) == 12);
++static_assert(offsetof(TTEntry, gen_bound) == 13);
+ static_assert(sizeof(TTCluster) == 64);
+ 
++struct WorkerTTProbe {
++    TTEntry entry{};
++    std::size_t cluster = 0;
++    std::uint8_t slot = 0;
++    bool hit = false;
++};
++
+ class TranspositionTable;
+ 
+ // Immutable entry copy plus an opaque probe-time replacement destination.
+@@ -193,6 +206,13 @@
+     static thread_local const ExclusiveLease* active_lease_;
+     [[nodiscard]] bool has_exclusive_access() const;
+     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
++    // Place hot read-mostly probe metadata in the very first cache line of TranspositionTable
++    // rather than +65,712 bytes behind stripes_.
++    std::unique_ptr<TTCluster[]> clusters_;
++    std::size_t cluster_count_ = 0;
++    std::uint64_t epoch_ = 0;
++    std::uint8_t generation_ = 0;
++
+ #if FORGE_SPD_TT_NOTLS
+     // One body per access with a compile-time "take the stripe lock" parameter.
+     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+@@ -206,16 +226,74 @@
+     [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
+     void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                      bool pv, std::uint16_t halfmove_clock);
++    [[nodiscard]] static std::uint8_t replace_full_cluster_slot(const TTCluster& cluster, std::uint8_t generation) noexcept;
++    void refresh_hit_sample_gen(std::uint8_t old_gen, std::uint8_t new_gen) const noexcept {
++        sample_gen_counts_[old_gen].fetch_sub(1, std::memory_order_relaxed);
++        sample_gen_counts_[new_gen].fetch_add(1, std::memory_order_relaxed);
++    }
++    [[nodiscard]] WorkerTTProbe probe_locked_fast(std::uint64_t key) const;
++    void store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
++                          Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++    void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
++                           Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
++        const std::size_t index = cluster_index(key);
++        TTCluster& cluster = clusters_[index];
++        const std::uint32_t key32 = verification_key(key);
++        const std::uint8_t generation = generation_;
++#if defined(__AVX512F__)
++        const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
++        const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
++        const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
++        const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
++        if (hit_m != 0U) {
++            const unsigned slot = static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U;
++            TTEntry& found = cluster.entries[slot];
++            if (found.generation() != generation) {
++                if (index < HashfullSampleLimit) [[unlikely]] {
++                    refresh_hit_sample_gen(found.generation(), generation);
++                }
++                found.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation) << 3U) | (found.gen_bound & 7U));
++            }
++            return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
++        }
++        if (static_cast<unsigned>(occ_m) != 0x8888U) {
++            const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m) ^ 0x8888U)) >> 2U;
++            return WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false};
++        }
++        const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++#else
++        for (std::size_t s = 0; s < 4; ++s) {
++            TTEntry& entry = cluster.entries[s];
++            if (entry.key32 == key32 && entry.occupied()) {
++                if (entry.generation() != generation) {
++                    if (index < HashfullSampleLimit) [[unlikely]] {
++                        refresh_hit_sample_gen(entry.generation(), generation);
++                    }
++                    entry.gen_bound = static_cast<std::uint8_t>(
++                        (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
++                }
++                return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++            }
++        }
++        for (std::size_t s = 0; s < 4; ++s) {
++            if (!cluster.entries[s].occupied()) {
++                return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++            }
++        }
++        const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++#endif
++    }
+ #endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
+     mutable std::atomic<bool> stripes_dirty_{false};
+     mutable std::array<std::atomic<int>, 32> sample_gen_counts_{};
+     std::atomic<bool> exclusive_requested_{false};
+-    std::uint64_t epoch_ = 0;
+-    std::unique_ptr<TTCluster[]> clusters_;
+-    std::size_t cluster_count_ = 0;
+-    std::uint8_t generation_ = 0;
+ 
+     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
+ #if defined(__SIZEOF_INT128__)
+@@ -228,14 +306,17 @@
+ #endif
+     }
+ 
+-    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++    [[nodiscard]] std::size_t cluster_index(std::uint64_t key) const noexcept {
+ #if defined(__SIZEOF_INT128__)
+         __extension__ using u128 = unsigned __int128;
+-        return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];
++        return static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U);
+ #else
+-        return clusters_[static_cast<std::size_t>(key % cluster_count_)];
++        return static_cast<std::size_t>(key % cluster_count_);
+ #endif
+     }
++    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++        return clusters_[cluster_index(key)];
++    }
+ };
+ 
+ // Search constants exposed for tuning. The UCI layer accepts them as unlisted
+@@ -564,17 +645,27 @@
+     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
++    bool nnue_active_ = false;
++#if FORGE_NNUE_V3
++    const nnue::v3::Net* v3_active_net_ = nullptr;
++#endif
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
++    bool fast_single_node_stop_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+-    // The six TT call sites of search / qsearch: one predictable branch per access.
+-    [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+-        return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
+-    }
+-    void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+-                  bool pv, std::uint16_t halfmove_clock) {
+-        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+-        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++    // The TT call sites of search / qsearch: inline AVX-512 fast path when tt_owned_ holds.
++    [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_tt(std::uint64_t key) const {
++        return tt_owned_ ? shared_.tt.probe_owned_fast(key) : shared_.tt.probe_locked_fast(key);
++    }
++    [[gnu::always_inline]] void store_tt(const WorkerTTProbe& probe, std::uint64_t key, int score, int eval, Move move,
++                                         int depth, Bound bound, bool pv, std::uint16_t halfmove_clock) {
++        if (tt_owned_) {
++            shared_.tt.store_owned_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
++                                        halfmove_clock);
++        } else {
++            shared_.tt.store_locked_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
++                                         halfmove_clock);
++        }
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+@@ -617,6 +708,15 @@
+ #endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
++    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++        if (fast_single_node_stop_) {
++            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++                return shared_.stop.load(std::memory_order_relaxed);
++            }
++            return should_stop();
++        }
++        return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    }
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
+--- a/src/nnue_v3.cpp	2026-11-18 12:36:01.680049697 +0000
++++ b/src/nnue_v3.cpp	2026-11-18 22:08:55.978864572 +0000
+@@ -696,14 +696,6 @@
+ 
+ void set_problem(const std::string& text) { g_problem = text; }
+ 
+-KingKey king_key(const Net& net, Color perspective, int king_square) {
+-    const int kr = perspective == White ? king_square : king_square ^ 56;
+-    KingKey key;
+-    key.bucket = net.king_map[static_cast<std::size_t>(kr)];
+-    key.flip = (net.mirror && (kr & 7) >= 4) ? 7 : 0;
+-    return key;
+-}
+-
+ int feature_index(KingKey key, Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -822,9 +814,15 @@
+ 
+ void prepare(const Net& net, WorkerState& state, int stack_size) {
+     if (state.generation == net.generation && state.stack.size() == static_cast<std::size_t>(stack_size)) return;
+-    state.stack.assign(static_cast<std::size_t>(stack_size), Accumulator{});
+-    state.valid_flags.assign(static_cast<std::size_t>(stack_size), static_cast<std::uint8_t>(0));
+-    state.cache.entries.assign(static_cast<std::size_t>(2 * net.king_buckets * 2), RefreshCache::Entry{});
++    const std::size_t sz = static_cast<std::size_t>(stack_size);
++    state.stack.resize(sz);
++    for (Accumulator& acc : state.stack) {
++        acc.keys = {};
++        acc.king_sq = {};
++        acc.valid = false;
++    }
++    state.valid_flags.assign(sz, static_cast<std::uint8_t>(0));
++    state.cache.entries.resize(static_cast<std::size_t>(2 * net.king_buckets * 2));
+     for (RefreshCache::Entry& entry : state.cache.entries) {
+         // An entry starts as the empty board: bias only, no pieces.
+         std::copy_n(net.b1.data(), net.hidden, entry.values.data());
+@@ -901,6 +899,144 @@
+ #endif
+ }
+ 
++int apply_one_refresh_one_and_evaluate(const Net& net, RefreshCache& cache,
++                                       const Accumulator& parent, Accumulator& child,
++                                       KingKey key0, int king0, KingKey key1, int king1,
++                                       const DirtyPieces& dirty, const Board& board) {
++    child.king_sq[0] = static_cast<std::uint8_t>(king0);
++    child.keys[0] = key0;
++    child.king_sq[1] = static_cast<std::uint8_t>(king1);
++    child.keys[1] = key1;
++    child.valid = true;
++
++    const Color inc_p = (key0 == parent.keys[0]) ? White : Black;
++    const Color ref_p = opposite(inc_p);
++    const auto inc_i = static_cast<std::size_t>(inc_p);
++    const auto ref_i = static_cast<std::size_t>(ref_p);
++    const KingKey inc_key = inc_p == White ? key0 : key1;
++    const KingKey ref_key = ref_p == White ? key0 : key1;
++
++    const Color us = board.side_to_move();
++    const int bucket = output_bucket(net, board);
++
++#if FORGE_NNUE_V3_AVX512
++    const Changes c_inc = collect_changes(net, inc_key, inc_p, dirty);
++    RefreshCache::Entry& entry = cache.entries[cache_index(net, ref_p, ref_key)];
++    ++cache.refreshes;
++    const Pieces& pieces = board.piece_bitboards();
++    const std::int16_t* subs[32];
++    const std::int16_t* adds[32];
++    int n_sub = 0;
++    int n_add = 0;
++    for (int piece = WP; piece <= BK; ++piece) {
++        const auto pi = static_cast<std::size_t>(piece);
++        Bitboard removed = entry.pieces[pi] & ~pieces[pi];
++        Bitboard added = pieces[pi] & ~entry.pieces[pi];
++        while (removed != 0) {
++            const int square = pop_lsb(removed);
++            subs[n_sub++] = column(net, feature_index(ref_key, ref_p, static_cast<Piece>(piece), square));
++        }
++        while (added != 0) {
++            const int square = pop_lsb(added);
++            adds[n_add++] = column(net, feature_index(ref_key, ref_p, static_cast<Piece>(piece), square));
++        }
++        entry.pieces[pi] = pieces[pi];
++    }
++    cache.columns += static_cast<std::uint64_t>(n_sub + n_add);
++
++    const int hidden = net.hidden;
++    const std::int16_t* const src_inc = parent.values[inc_i].data();
++    std::int16_t* const dst_inc = child.values[inc_i].data();
++    std::int16_t* const acc_ref = entry.values.data();
++    std::int16_t* const dst_ref = child.values[ref_i].data();
++
++    const std::int16_t* const w2_base =
++        net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
++    const std::int16_t* const w_inc = (inc_p == us) ? w2_base : (w2_base + hidden);
++    const std::int16_t* const w_ref = (ref_p == us) ? w2_base : (w2_base + hidden);
++
++    const int inc_cnt = c_inc.count;
++    const std::int16_t* const ic0 = c_inc.columns[0];
++    const std::int16_t* const ic1 = c_inc.columns[1];
++    const std::int16_t* const ic2 = c_inc.columns[2];
++    const std::int16_t* const ic3 = c_inc.columns[3];
++    const bool ia0 = c_inc.adds[0];
++    const bool ia1 = c_inc.adds[1];
++    const bool ia2 = c_inc.adds[2];
++    const bool ia3 = c_inc.adds[3];
++
++    const __m512i zero = _mm512_setzero_si512();
++    const __m512i qa = _mm512_set1_epi16(static_cast<short>(QA));
++    __m512i sum_inc = zero;
++    __m512i sum_ref = zero;
++
++    for (int h = 0; h < hidden; h += 32) {
++        __m512i v_inc = _mm512_load_si512(reinterpret_cast<const __m512i*>(src_inc + h));
++        if (inc_cnt > 0) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic0 + h));
++            v_inc = ia0 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++        }
++        if (inc_cnt > 1) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic1 + h));
++            v_inc = ia1 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++        }
++        if (inc_cnt > 2) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic2 + h));
++            v_inc = ia2 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++        }
++        if (inc_cnt > 3) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic3 + h));
++            v_inc = ia3 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(dst_inc + h), v_inc);
++
++        __m512i v_ref = _mm512_load_si512(reinterpret_cast<const __m512i*>(acc_ref + h));
++        int s = 0;
++        for (; s + 4 <= n_sub; s += 4) {
++            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
++            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 1] + h)));
++            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 2] + h)));
++            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 3] + h)));
++        }
++        for (; s < n_sub; ++s) {
++            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
++        }
++        int a = 0;
++        for (; a + 4 <= n_add; a += 4) {
++            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 1] + h)));
++            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 2] + h)));
++            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 3] + h)));
++        }
++        for (; a < n_add; ++a) {
++            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++        }
++        if ((n_sub | n_add) != 0) {
++            _mm512_store_si512(reinterpret_cast<__m512i*>(acc_ref + h), v_ref);
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(dst_ref + h), v_ref);
++
++        const __m512i c_vi = _mm512_min_epi16(_mm512_max_epi16(v_inc, zero), qa);
++        const __m512i c_vr = _mm512_min_epi16(_mm512_max_epi16(v_ref, zero), qa);
++        sum_inc = _mm512_add_epi32(
++            sum_inc,
++            _mm512_madd_epi16(_mm512_mullo_epi16(c_vi, _mm512_load_si512(reinterpret_cast<const __m512i*>(w_inc + h))),
++                              c_vi));
++        sum_ref = _mm512_add_epi32(
++            sum_ref,
++            _mm512_madd_epi16(_mm512_mullo_epi16(c_vr, _mm512_load_si512(reinterpret_cast<const __m512i*>(w_ref + h))),
++                              c_vr));
++    }
++    return finish(net, hsum_epi32_pair_avx512(sum_inc, sum_ref), bucket);
++#else
++    apply_changes(net, parent.values[inc_i].data(), child.values[inc_i].data(), inc_key, inc_p, dirty);
++    refresh_from_pieces(net, cache, board.piece_bitboards(), ref_p, ref_p == White ? king0 : king1,
++                        child.values[ref_i].data());
++    return finish(net, output_sum(net, child.values[static_cast<std::size_t>(us)].data(),
++                                  child.values[static_cast<std::size_t>(opposite(us))].data(), bucket), bucket);
++#endif
++}
++
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                          std::int16_t* destination) {
+     const KingKey key = king_key(net, perspective, king_square);
+@@ -928,41 +1064,47 @@
+     cache.columns += static_cast<std::uint64_t>(n_sub + n_add);
+     std::int16_t* const acc = entry.values.data();
+ #if FORGE_NNUE_V3_AVX512
+-    int s = 0;
+-    for (; s + 4 <= n_sub; s += 4) {
+-        const std::int16_t *c0 = subs[s], *c1 = subs[s + 1], *c2 = subs[s + 2], *c3 = subs[s + 3];
++    if ((n_sub | n_add) == 0) {
+         for (int h = 0; h < hidden; h += 32) {
+-            __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(acc + h));
+-            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c0 + h)));
+-            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c1 + h)));
+-            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c2 + h)));
+-            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c3 + h)));
+-            _mm512_store_si512(reinterpret_cast<__m512i*>(acc + h), v);
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h),
++                               _mm512_load_si512(reinterpret_cast<const __m512i*>(acc + h)));
+         }
++        return;
+     }
+-    for (; s < n_sub; ++s) sub_column_avx512(acc, subs[s], hidden);
+-    int a = 0;
+-    for (; a + 4 <= n_add; a += 4) {
+-        const std::int16_t *c0 = adds[a], *c1 = adds[a + 1], *c2 = adds[a + 2], *c3 = adds[a + 3];
+-        for (int h = 0; h < hidden; h += 32) {
+-            __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(acc + h));
+-            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c0 + h)));
+-            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c1 + h)));
+-            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c2 + h)));
+-            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(c3 + h)));
+-            _mm512_store_si512(reinterpret_cast<__m512i*>(acc + h), v);
++    for (int h = 0; h < hidden; h += 32) {
++        __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(acc + h));
++        int s = 0;
++        for (; s + 4 <= n_sub; s += 4) {
++            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
++            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 1] + h)));
++            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 2] + h)));
++            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 3] + h)));
++        }
++        for (; s < n_sub; ++s) {
++            v = _mm512_sub_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
++        }
++        int a = 0;
++        for (; a + 4 <= n_add; a += 4) {
++            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 1] + h)));
++            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 2] + h)));
++            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 3] + h)));
+         }
++        for (; a < n_add; ++a) {
++            v = _mm512_add_epi16(v, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(acc + h), v);
++        _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v);
+     }
+-    for (; a < n_add; ++a) add_column_avx512(acc, adds[a], hidden);
+ #else
+     for (int s = 0; s < n_sub; ++s) sub_column(acc, subs[s], hidden);
+     for (int a = 0; a < n_add; ++a) add_column(acc, adds[a], hidden);
+-#endif
+     std::copy_n(acc, hidden, destination);
++#endif
+ }
+ 
+ void refresh_cached(const Net& net, RefreshCache& cache, const Board& board, Accumulator& accumulator) {
+-    const Pieces pieces = pieces_of(board);
++    const Pieces& pieces = board.piece_bitboards();
+     for (const Color p : {White, Black}) {
+         const auto pi = static_cast<std::size_t>(p);
+         const int king_square = board.king_square(p);
+--- a/src/search.cpp	2026-11-18 12:36:01.676049697 +0000
++++ b/src/search.cpp	2026-11-18 22:08:55.986864572 +0000
+@@ -525,6 +525,137 @@
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+ 
++[[gnu::noinline]] std::uint8_t TranspositionTable::replace_full_cluster_slot(const TTCluster& cluster,
++                                                                             std::uint8_t generation) noexcept {
++    std::uint8_t replace_slot = 0;
++    int replace_score = cluster.entries[0].depth -
++                        4 * static_cast<int>((32U + generation - cluster.entries[0].generation()) & 31U);
++    for (std::uint8_t s = 1; s < 4; ++s) {
++        const TTEntry& entry = cluster.entries[s];
++        const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
++        const int score = entry.depth - 4 * age;
++        if (score < replace_score) {
++            replace_slot = s;
++            replace_score = score;
++        }
++    }
++    return replace_slot;
++}
++
++WorkerTTProbe TranspositionTable::probe_locked_fast(std::uint64_t key) const {
++    const std::size_t index = cluster_index(key);
++    auto lock = lock_stripe(index);
++    (void)lock;
++    TTCluster& cluster = clusters_[index];
++    const std::uint32_t key32 = verification_key(key);
++    const std::uint8_t generation = generation_;
++    for (std::size_t s = 0; s < 4; ++s) {
++        TTEntry& entry = cluster.entries[s];
++        if (entry.key32 == key32 && entry.occupied()) {
++            if (entry.generation() != generation) {
++                if (index < HashfullSampleLimit) [[unlikely]] {
++                    refresh_hit_sample_gen(entry.generation(), generation);
++                }
++                entry.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
++            }
++            return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++        }
++    }
++    for (std::size_t s = 0; s < 4; ++s) {
++        if (!cluster.entries[s].occupied()) {
++            return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++        }
++    }
++    const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
++    return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++}
++
++void TranspositionTable::store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
++                                          int eval, Move move, int depth, Bound bound, bool pv,
++                                          std::uint16_t halfmove_clock) {
++    assert(has_exclusive_access());
++    TTCluster& cluster = clusters_[cluster_idx];
++    const std::uint32_t key32 = verification_key(key);
++    TTEntry* entry = &cluster.entries[slot];
++#if defined(__AVX512F__)
++    const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
++    const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
++    const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
++    const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
++    if (hit_m != 0U) {
++        entry = &cluster.entries[static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U];
++    }
++#else
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
++#endif
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    const bool stale_slot = entry != &cluster.entries[slot];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
++        if (cluster_idx < HashfullSampleLimit) [[unlikely]] {
++            if (entry->occupied()) {
++                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++            }
++            if (bound != BoundNone) {
++                sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++            }
++        }
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>(
++            (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
++void TranspositionTable::store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
++                                           int eval, Move move, int depth, Bound bound, bool pv,
++                                           std::uint16_t halfmove_clock) {
++    auto lock = lock_stripe(cluster_idx);
++    (void)lock;
++    TTCluster& cluster = clusters_[cluster_idx];
++    const std::uint32_t key32 = verification_key(key);
++    TTEntry* entry = &cluster.entries[slot];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    const bool stale_slot = entry != &cluster.entries[slot];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
++        if (cluster_idx < HashfullSampleLimit) [[unlikely]] {
++            if (entry->occupied()) {
++                sample_gen_counts_[entry->generation()].fetch_sub(1, std::memory_order_relaxed);
++            }
++            if (bound != BoundNone) {
++                sample_gen_counts_[generation_].fetch_add(1, std::memory_order_relaxed);
++            }
++        }
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>(
++            (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
+ TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
+     assert(has_exclusive_access());
+     return probe_body<false>(key);
+@@ -1217,24 +1348,24 @@
+ void Worker::clear() {
+     stack_dirty_limit_ = MaxPly + 7;
+     evaluator_.clear();
+-    *main_history_ = ButterflyHistory{};
+-    *threat_history_ = ThreatQuietHistory{};
++    std::memset(main_history_.get(), 0, sizeof(*main_history_));
++    std::memset(threat_history_.get(), 0, sizeof(*threat_history_));
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+ #endif
+-    *capture_history_ = CaptureHistory{};
+-    *continuation_history_ = ContinuationHistory{};
+-    *counter_moves_ = CounterMoveTable{};
+-    *correction_history_ = CorrectionHistory{};
+-    *material_correction_ = CorrectionHistory{};
+-    *non_pawn_white_correction_ = CorrectionHistory{};
+-    *non_pawn_black_correction_ = CorrectionHistory{};
++    std::memset(capture_history_.get(), 0, sizeof(*capture_history_));
++    std::memset(continuation_history_.get(), 0, sizeof(*continuation_history_));
++    counter_moves_->fill({});
++    std::memset(correction_history_.get(), 0, sizeof(*correction_history_));
++    std::memset(material_correction_.get(), 0, sizeof(*material_correction_));
++    std::memset(non_pawn_white_correction_.get(), 0, sizeof(*non_pawn_white_correction_));
++    std::memset(non_pawn_black_correction_.get(), 0, sizeof(*non_pawn_black_correction_));
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+-    *rework_history_ = LesserThreatHistory{};
+-    *joint_correction_ = CorrectionHistory{};
+-    *continuation_correction_ = ContinuationCorrection{};
+-    threat_maps_ = {};
++    std::memset(rework_history_.get(), 0, sizeof(*rework_history_));
++    std::memset(joint_correction_.get(), 0, sizeof(*joint_correction_));
++    std::memset(continuation_correction_.get(), 0, sizeof(*continuation_correction_));
++    std::memset(threat_maps_.data(), 0, sizeof(threat_maps_));
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1281,9 +1412,9 @@
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+-    if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++    if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) return static_evaluate_v3(board, ss);
++    if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
+ #endif
+     const bool residual = nnue::residual();
+     // Features used for this evaluation. A null move keeps the parent's
+@@ -1350,7 +1481,7 @@
+     else child->corr_mat_mix = ss->corr_mat_mix;
+     child->corr_valid = keep;
+ 
+-    if (!nnue::enabled || !nnue::available()) return;
++    if (!nnue_active_) return;
+     child->entered_move = move;
+     child->entered_piece = moved;
+     child->entered_capture = captured;
+@@ -1358,8 +1489,8 @@
+     child->entered_null = false;
+     child->diff_known = false;
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) {
+-        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++    if (v3_active_net_ != nullptr) {
++        v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
+         return;
+     }
+ #endif
+@@ -1400,8 +1531,8 @@
+     child->diff_known = true;
+     child->dirty.count = 0;
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) {
+-        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++    if (v3_active_net_ != nullptr) {
++        v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
+         return;
+     }
+ #endif
+@@ -1766,7 +1897,7 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -1788,7 +1919,7 @@
+     }
+ 
+ #if FORGE_SPD_TT_NOTLS
+-    const TTProbe tt_probe = probe_tt(board.key());
++    const WorkerTTProbe tt_probe = probe_tt(board.key());
+ #else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+@@ -1915,7 +2046,7 @@
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -1945,7 +2076,7 @@
+ 
+     // Transposition table probe.
+ #if FORGE_SPD_TT_NOTLS
+-    const TTProbe tt_probe = probe_tt(board.key());
++    const WorkerTTProbe tt_probe = probe_tt(board.key());
+ #else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+@@ -2644,6 +2775,14 @@
+     root_prev_best_done_ = false;
+     root_history_index_ = board.history_size() - 1;
+     tt_prune_v2_ = tune::TtPruneV2;  // B4 TtPruneV2: one snapshot per search
++    nnue_active_ = nnue::enabled && nnue::available();
++#if FORGE_NNUE_V3
++    v3_active_net_ = (nnue_active_ && nnue::v3::requested) ? nnue::v3::loaded() : nullptr;
++    if (v3_active_net_ != nullptr) {
++        if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++        nnue::v3::prepare(*v3_active_net_, *v3_state_, MaxPly + 8);
++    }
++#endif
+     node_limit_ = limits.nodes;
+     // Helpers must observe the budget. Leaving the flag false on them made
+     // should_stop return before the count was consulted. An alternate MultiPV
+@@ -2835,7 +2974,7 @@
+     if (!waiting_to_ponder && (clock_reserve_empty_ || hard_limit_passed) && !root_candidates.empty()) {
+         Move hashed = Move::none();
+ #if FORGE_SPD_TT_NOTLS
+-        const TTProbe tt_probe = probe_tt(board.key());
++        const WorkerTTProbe tt_probe = probe_tt(board.key());
+ #else
+         const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+@@ -2881,9 +3020,12 @@
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+         time_managed_ = false;
+     }
++    fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 &&
++                             (all_workers_ == nullptr || all_workers_->size() == 1) &&
++                             node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+ 
+ #if FORGE_NNUE_V3
+-    const bool use_v3_eval = nnue::enabled && nnue::available() && nnue::v3::active();
++    const bool use_v3_eval = v3_active_net_ != nullptr;
+ #else
+     constexpr bool use_v3_eval = false;
+ #endif
+@@ -3346,7 +3488,9 @@
+             });
+         }
+     }
+-    SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++    SearchInfo result = helpers.empty()
++        ? workers_.front()->search(std::move(board), worker_limits, emit_info, all)
++        : workers_.front()->search(board, worker_limits, emit_info, all);
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+@@ -3365,9 +3509,11 @@
+ // key changed is refreshed through the per-worker cache. Only stand-alone v3 nets are accepted (the UCI code
+ // refuses a residual one), so the value returned is the net's alone.
+ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
+-    const nnue::v3::Net& net = *nnue::v3::loaded();
+-    if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
+-    nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
++    const nnue::v3::Net& net = *(v3_active_net_ != nullptr ? v3_active_net_ : nnue::v3::loaded());
++    if (!v3_state_) {
++        v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++        nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
++    }
+     const int index = ss->ply + 4;
+     int value = 0;
+     if (v3_state_->valid_flags[static_cast<std::size_t>(index)] != 0) {
+@@ -3377,29 +3523,37 @@
+         ensure_piece_diff(frame);
+         const nnue::DirtyPieces& dirty = frame->dirty;
+         const nnue::v3::Accumulator& parent = v3_state_->stack[static_cast<std::size_t>(index - 1)];
+-        int king0 = parent.king_sq[0];
+-        int king1 = parent.king_sq[1];
+-        for (int i = 0; i < dirty.count; ++i) {
+-            const nnue::PieceChange& ch = dirty.changes[static_cast<std::size_t>(i)];
+-            if (ch.add) {
+-                if (ch.piece == WK) king0 = ch.square;
+-                else if (ch.piece == BK) king1 = ch.square;
+-            }
+-        }
+-        const nnue::v3::KingKey key0 = nnue::v3::king_key(net, White, king0);
+-        const nnue::v3::KingKey key1 = nnue::v3::king_key(net, Black, king1);
+-        if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++        const int king0 = board.king_square(White);
++        const int king1 = board.king_square(Black);
++        if (king0 == parent.king_sq[0] && king1 == parent.king_sq[1]) {
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+-                key0, king0, key1, king1, dirty, board);
++                parent.keys[0], king0, parent.keys[1], king1, dirty, board);
+         } else {
+-            nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+-                SearchStack* f = &stack_[static_cast<std::size_t>(k)];
+-                ensure_piece_diff(f);
+-                return f->dirty;
+-            });
+-            value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
++            const nnue::v3::KingKey key0 = king0 == parent.king_sq[0]
++                ? parent.keys[0] : nnue::v3::king_key(net, White, king0);
++            const nnue::v3::KingKey key1 = king1 == parent.king_sq[1]
++                ? parent.keys[1] : nnue::v3::king_key(net, Black, king1);
++            if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++                v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
++                value = nnue::v3::apply_pair_and_evaluate(
++                    net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
++                    key0, king0, key1, king1, dirty, board);
++
++            } else if ((key0 == parent.keys[0]) != (key1 == parent.keys[1])) {
++                v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
++                value = nnue::v3::apply_one_refresh_one_and_evaluate(
++                    net, v3_state_->cache, parent, v3_state_->stack[static_cast<std::size_t>(index)],
++                    key0, king0, key1, king1, dirty, board);
++            } else {
++                nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
++                    SearchStack* f = &stack_[static_cast<std::size_t>(k)];
++                    ensure_piece_diff(f);
++                    return f->dirty;
++                });
++                value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
++            }
+         }
+     } else {
+         nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+--- a/src/uci.cpp	2026-11-18 12:36:01.688049697 +0000
++++ b/src/uci.cpp	2026-11-18 22:08:55.978864572 +0000
+@@ -43,48 +43,111 @@
+ struct PositionCache {
+     bool valid = false;
+     bool startpos = false;
+-    std::string base_fen;
+-    std::vector<std::string> moves;
++    int fen_count = 0;
++    std::array<std::string, 6> fen_parts{};
++    std::string canonical_moves;
+ };
+ 
+-void apply_position(forge::Board& board, std::istringstream& input, PositionCache& cache) {
+-    std::string token;
+-    if (!(input >> token)) return;
++[[nodiscard]] inline bool is_uci_ws(char c) noexcept {
++    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
++}
++
++[[nodiscard]] inline std::string_view next_uci_token(std::string_view& sv) noexcept {
++    std::size_t i = 0;
++    while (i < sv.size() && is_uci_ws(sv[i])) ++i;
++    sv.remove_prefix(i);
++    if (sv.empty()) return {};
++    std::size_t j = 0;
++    while (j < sv.size() && !is_uci_ws(sv[j])) ++j;
++    const std::string_view tok = sv.substr(0, j);
++    sv.remove_prefix(j);
++    return tok;
++}
++
++[[gnu::hot]] void apply_position_sv(forge::Board& board, std::string_view input, PositionCache& cache) {
++    std::string_view token = next_uci_token(input);
++    if (token.empty()) return;
+     bool is_startpos = false;
+-    std::string fen;
++    std::array<std::string_view, 6> fen_toks{};
++    int fen_n = 0;
+     if (token == "startpos") {
+         is_startpos = true;
+     } else if (token == "fen") {
+-        for (int i = 0; i < 6 && input >> token; ++i) {
+-            if (!fen.empty()) fen += ' ';
+-            fen += token;
++        for (; fen_n < 6; ++fen_n) {
++            const std::string_view ft = next_uci_token(input);
++            if (ft.empty()) break;
++            fen_toks[static_cast<std::size_t>(fen_n)] = ft;
+         }
+     } else {
+         return;
+     }
+ 
+-    std::vector<std::string> move_tokens;
+-    if (input >> token) {
+-        // A token other than "moves" is not part of the FEN.
+-        while (token != "moves") {
+-            if (!(input >> token)) break;
++    std::string_view moves_sv{};
++    token = next_uci_token(input);
++    if (!token.empty()) {
++        while (!token.empty() && token != "moves") {
++            token = next_uci_token(input);
+         }
+         if (token == "moves") {
+-            move_tokens.reserve(256);
+-            while (input >> token) move_tokens.push_back(std::move(token));
++            while (!input.empty() && is_uci_ws(input.front())) input.remove_prefix(1);
++            moves_sv = input;
+         }
+     }
+ 
+-    std::size_t start_idx = 0;
+-    const bool same_root = cache.valid && cache.startpos == is_startpos &&
+-                           (is_startpos || cache.base_fen == fen);
+-    if (same_root && cache.moves.size() <= move_tokens.size() &&
+-        std::equal(cache.moves.begin(), cache.moves.end(), move_tokens.begin())) {
+-        start_idx = cache.moves.size();
+-    } else {
++    bool same_root = cache.valid && cache.startpos == is_startpos;
++    if (same_root && !is_startpos) {
++        if (cache.fen_count != fen_n) {
++            same_root = false;
++        } else {
++            for (int k = 0; k < fen_n; ++k) {
++                if (cache.fen_parts[static_cast<std::size_t>(k)] != fen_toks[static_cast<std::size_t>(k)]) {
++                    same_root = false;
++                    break;
++                }
++            }
++        }
++    }
++
++    bool matched_prefix = false;
++    std::string_view tail_sv = moves_sv;
++    if (same_root) {
++        const std::string_view canon = cache.canonical_moves;
++        if (canon.empty()) {
++            matched_prefix = true;
++            tail_sv = moves_sv;
++        } else if (moves_sv.size() >= canon.size() &&
++                   moves_sv.substr(0, canon.size()) == canon &&
++                   (moves_sv.size() == canon.size() || is_uci_ws(moves_sv[canon.size()]))) {
++            matched_prefix = true;
++            tail_sv = moves_sv.substr(canon.size());
++        } else {
++            // Fallback for non-canonical whitespace between previously applied move tokens.
++            std::string_view cur_in = moves_sv;
++            std::string_view cur_ca = canon;
++            bool ok = true;
++            while (true) {
++                const std::string_view ct = next_uci_token(cur_ca);
++                if (ct.empty()) break;
++                const std::string_view it = next_uci_token(cur_in);
++                if (it != ct) { ok = false; break; }
++            }
++            if (ok) {
++                matched_prefix = true;
++                tail_sv = cur_in;
++            }
++        }
++    }
++
++    if (!matched_prefix) {
+         if (is_startpos) {
+             (void)board.set_fen(forge::Board::StandardStartFen);
+         } else {
++            std::string fen;
++            fen.reserve(96);
++            for (int k = 0; k < fen_n; ++k) {
++                if (k > 0) fen.push_back(' ');
++                fen.append(fen_toks[static_cast<std::size_t>(k)]);
++            }
+             forge::Board candidate;
+             std::string error;
+             if (!candidate.set_fen(fen, &error)) {
+@@ -95,41 +158,63 @@
+         }
+         cache.valid = true;
+         cache.startpos = is_startpos;
+-        cache.base_fen = std::move(fen);
+-        cache.moves.clear();
++        cache.fen_count = fen_n;
++        for (int k = 0; k < fen_n; ++k) {
++            cache.fen_parts[static_cast<std::size_t>(k)].assign(fen_toks[static_cast<std::size_t>(k)]);
++        }
++        cache.canonical_moves.clear();
++        if (cache.canonical_moves.capacity() < 2048) cache.canonical_moves.reserve(2048);
++        tail_sv = moves_sv;
+     }
+ 
+-    for (std::size_t i = start_idx; i < move_tokens.size(); ++i) {
+-        const auto move = board.parse_uci(move_tokens[i]);
++    while (true) {
++        const std::string_view mv_tok = next_uci_token(tail_sv);
++        if (mv_tok.empty()) break;
++        const auto move = board.parse_uci(mv_tok);
+         if (!move.has_value()) {
+             // The position and every legal move before this token still stand.
+-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << move_tokens[i] << std::endl; }
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << mv_tok << std::endl; }
+             return;
+         }
+         forge::Undo undo;
+         (void)board.make_move(*move, undo);
+-        cache.moves.push_back(std::move(move_tokens[i]));
++        if (!cache.canonical_moves.empty()) cache.canonical_moves.push_back(' ');
++        cache.canonical_moves.append(mv_tok);
+     }
+ }
+ 
+-bool is_go_keyword(const std::string& token) {
++bool is_go_keyword(std::string_view token) {
+     return token == "depth" || token == "nodes" || token == "softnodes" || token == "movetime" ||
+            token == "movestogo" || token == "infinite" || token == "wtime" || token == "btime" ||
+            token == "winc" || token == "binc" || token == "mate" || token == "searchmoves" ||
+            token == "ponder";
+ }
+ 
+-forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
++forge::SearchLimits parse_limits_sv(std::string_view input, forge::Board& board) {
+     forge::SearchLimits limits;
+-    std::string token;
+-    std::vector<std::string> tokens;
+-    while (input >> token) tokens.push_back(token);
++    std::array<std::string_view, 32> stack_tokens{};
++    std::vector<std::string_view> heap_tokens;
++    std::size_t token_count = 0;
++    while (true) {
++        const std::string_view t = next_uci_token(input);
++        if (t.empty()) break;
++        if (token_count < stack_tokens.size() && heap_tokens.empty()) {
++            stack_tokens[token_count++] = t;
++        } else {
++            if (heap_tokens.empty()) {
++                heap_tokens.assign(stack_tokens.begin(), stack_tokens.end());
++            }
++            heap_tokens.push_back(t);
++            ++token_count;
++        }
++    }
++    const std::string_view* const tokens = heap_tokens.empty() ? stack_tokens.data() : heap_tokens.data();
+     const forge::Color side = board.side_to_move();
+ #if FORGE_FIX_GO_PARSE
+     bool limit_given = false;      // a usable limit of any kind is on the line
+     bool limit_unusable = false;   // a limit was named, and its value was missing or not a number
+     // An optional single sign and then digits only.
+-    const auto is_integer = [](const std::string& text) {
++    const auto is_integer = [](std::string_view text) {
+         std::size_t k = (!text.empty() && (text[0] == '+' || text[0] == '-')) ? 1 : 0;
+         if (k >= text.size()) return false;
+         for (; k < text.size(); ++k) {
+@@ -137,18 +222,18 @@
+         }
+         return true;
+     };
+-    for (std::size_t i = 0; i < tokens.size();) {
+-        token = tokens[i++];
++    for (std::size_t i = 0; i < token_count;) {
++        const std::string_view token = tokens[i++];
+         // The value of the keyword just read: the next token, unless it is missing or is itself a keyword (then
+         // nothing is consumed). A token that is not a complete integer is consumed and gives no value.
+-        const auto take_integer = [&](std::string& text) {
+-            if (i >= tokens.size() || is_go_keyword(tokens[i])) return false;
++        const auto take_integer = [&](std::string_view& text) {
++            if (i >= token_count || is_go_keyword(tokens[i])) return false;
+             text = tokens[i++];
+             return is_integer(text);
+         };
+         // An int, saturated at the ends of its range.
+         const auto read_int = [&](int& out) {
+-            std::string text;
++            std::string_view text;
+             if (!take_integer(text)) return false;
+             long long wide = 0;
+             const char* const first = text.data() + (text[0] == '+' ? 1 : 0);
+@@ -162,7 +247,7 @@
+         };
+         // Clocks are 64-bit; parse_clock_ms clamps a complete integer to [0, kMaxClockMs].
+         const auto read_clock = [&](std::int64_t& out) {
+-            std::string text;
++            std::string_view text;
+             if (!take_integer(text)) return false;
+             out = forge::parse_clock_ms(text);
+             return true;
+@@ -173,7 +258,7 @@
+             else limit_unusable = true;
+         }
+         else if (token == "nodes" || token == "softnodes") {
+-            std::string text;
++            std::string_view text;
+             if (take_integer(text)) {
+                 // A negative count is 0, and an explicit 0 is an immediate bounded answer in the search.
+                 std::uint64_t value = 0;
+@@ -223,7 +308,7 @@
+         }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+-            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
++            while (i < token_count && !is_go_keyword(tokens[i])) {
+                 const auto move = board.parse_uci(tokens[i++]);
+                 if (move.has_value()) limits.search_moves.push_back(*move);
+             }
+@@ -233,27 +318,25 @@
+     // (r9 did, through a value of 0) instead of searching without a limit.
+     if (limit_unusable && !limit_given) limits.movetime_ms = 0;
+ #else
+-    for (std::size_t i = 0; i < tokens.size();) {
+-        token = tokens[i++];
++    for (std::size_t i = 0; i < token_count;) {
++        const std::string_view token = tokens[i++];
+         auto read_int = [&]() {
+             int value = 0;
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
++            if (i < token_count) {
++                const std::string_view text = tokens[i++];
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
+             }
+             return value;
+         };
+-        // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+-        // search then stops at once.
+         auto read_clock = [&]() -> std::int64_t {
+-            if (i >= tokens.size()) return 0;
++            if (i >= token_count) return 0;
+             return forge::parse_clock_ms(tokens[i++]);
+         };
+         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+         else if (token == "nodes" || token == "softnodes") {
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
++            if (i < token_count) {
++                const std::string_view text = tokens[i++];
+                 std::uint64_t value = 0;
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+@@ -274,7 +357,7 @@
+         else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+-            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
++            while (i < token_count && !is_go_keyword(tokens[i])) {
+                 const auto move = board.parse_uci(tokens[i++]);
+                 if (move.has_value()) limits.search_moves.push_back(*move);
+             }
+@@ -333,17 +416,19 @@
+     SearchTask pending_task;
+ 
+     std::thread worker([&]() {
++        SearchTask task;
+         for (;;) {
+-            SearchTask task;
+             {
+                 std::unique_lock<std::mutex> lock(stop_mutex);
+                 work_cv.wait(lock, [&] { return has_task || worker_quit; });
+                 if (worker_quit && !has_task) break;
+-                task = std::move(pending_task);
++                task.board = pending_task.board;
++                task.limits = std::move(pending_task.limits);
++                task.ponder_enabled = pending_task.ponder_enabled;
+                 has_task = false;
+             }
+             const forge::SearchInfo result = searcher.search(
+-                std::move(task.board), task.limits, true, forge::Searcher::TTAccess::Exclusive);
++                task.board, task.limits, true, forge::Searcher::TTAccess::Exclusive);
+             if (task.limits.infinite || task.limits.ponder) {
+                 std::unique_lock<std::mutex> lock(stop_mutex);
+                 stop_cv.wait(lock, [&] {
+@@ -409,9 +494,8 @@
+     std::string line;
+     while (std::getline(in, line)) {
+         const auto command_start = std::chrono::steady_clock::now();
+-        std::istringstream input(line);
+-        std::string command;
+-        input >> command;
++        std::string_view line_rest(line);
++        const std::string_view command = next_uci_token(line_rest);
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+@@ -493,10 +577,11 @@
+             (void)board.set_fen(forge::Board::StandardStartFen);
+             pos_cache.valid = true;
+             pos_cache.startpos = true;
+-            pos_cache.base_fen.clear();
+-            pos_cache.moves.clear();
++            pos_cache.fen_count = 0;
++            pos_cache.canonical_moves.clear();
+         } else if (command == "setoption") {
+             stop_search();
++            std::istringstream input{std::string(line_rest)};
+             std::string token;
+             std::string name;
+             std::string value_text;
+@@ -735,7 +820,7 @@
+             }
+         } else if (command == "position") {
+             stop_search();
+-            apply_position(board, input, pos_cache);
++            apply_position_sv(board, line_rest, pos_cache);
+         } else if (command == "go") {
+             stop_search();
+ #if FORGE_NNUE_V3
+@@ -745,13 +830,11 @@
+                 return 2;
+             }
+ #endif
+-            std::string first;
+-            const auto position = input.tellg();
+-            input >> first;
++            std::string_view go_peek = line_rest;
++            const std::string_view first = next_uci_token(go_peek);
+             if (first == "perft") {
+-                std::string depth_text;
++                const std::string_view depth_text = next_uci_token(go_peek);
+                 int depth = -1;
+-                if (!(input >> depth_text)) depth_text.clear();
+                 const auto parsed = std::from_chars(
+                     depth_text.data(), depth_text.data() + depth_text.size(), depth);
+                 if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size() ||
+@@ -774,9 +857,7 @@
+                 }
+                 { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+             } else {
+-                input.clear();
+-                input.seekg(position);
+-                forge::SearchLimits limits = parse_limits(input, board);
++                forge::SearchLimits limits = parse_limits_sv(line_rest, board);
+                 limits.move_overhead_ms = move_overhead_ms;
+                 limits.multipv = multipv;
+                 // Charge dispatch admission only to finite externally clocked searches.
+@@ -848,7 +929,10 @@
+             }
+ #endif
+             int depth = 13;
+-            if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            {
++                std::istringstream input{std::string(line_rest)};
++                if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            }
+             constexpr std::array<std::string_view, 8> fens{
+                 forge::Board::StandardStartFen,
+                 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
