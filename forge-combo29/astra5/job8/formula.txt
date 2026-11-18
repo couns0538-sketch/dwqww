@@ -1,0 +1,19 @@
+Paired logistic Elo. Unit of independence: one opening played with colours swapped.
+Pinned fastchess d7b47e8dec6b564aaf4cbb2922ab37e6c6761e75, tag v1.8.3-alpha.
+app/src/matchmaking/elo/elo_pentanomial.cpp lines 9–20 and 26–49;
+app/src/matchmaking/elo/elo.hpp lines 28–30;
+app/src/matchmaking/elo/elo_wdl.cpp line 10;
+app/src/matchmaking/output/output_fastchess.hpp lines 115–134 and 214–217.
+https://github.com/Disservin/fastchess/tree/d7b47e8dec6b564aaf4cbb2922ab37e6c6761e75/app/src/matchmaking/elo
+
+For counts n_i at two-game pair scores 0, 0.5, 1, 1.5, 2, put x_i=i/4.
+N=sum n_i, p=sum(n_i*x_i)/N, V=sum(n_i*(x_i-p)^2)/N, SE=sqrt(V/N).
+The score interval uses q=1.959963984540054, lower=p−q*SE, upper=p+q*SE.
+Map score to logistic Elo L(p)=-400 log10(1/p−1).
+Fastchess reports the estimate E=L(p) and margin H=[L(upper)−L(lower)]/2.
+The primary displayed endpoints are E−H,E+H formed before rounding. The direct
+transforms L(lower),L(upper), also recorded, can be asymmetric around E.
+The runner's normalized Elo (nElo) and LOS use different statistics.
+Use only fully completed colour-reversed pairs, denote cut matches incomplete,
+and do not give a reading for them. Identical K8 pair scores of 1 give
+zero empirical pair-score variance and a degenerate [0,0] Elo interval.
