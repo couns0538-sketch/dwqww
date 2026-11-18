@@ -1,0 +1,36 @@
+=== JOB 15 PART 1: PROTOCOL IDENTITY TEST OF 04_S7 (apply_position_sv, parse_limits_sv) ===
+SEED: 15001
+STREAM_FILE: /tmp/carbon2_job15/protocol_stream.txt (blocks=23719, sha256=b89c88c7da3655fcde68ee237ca1a9df23f6dc1083fbb7da1471890cff954806)
+BUILDS: plain no-PGO -O3 -DNDEBUG -march=sapphirerapids ThinLTO + 6 speed switches, PC20 + net512.fnn3 (Threads 1, Hash 16)
+
+--- 1. Position Commands Sent Per Kind (a) to (h) ---
+  (a) growing prefixes (startpos & fen roots across 60 SP games + 2 startpos SP games): 15605
+  (b) shrinking prefixes & seeded-random-order prefixes (seed 15001):                  5106
+  (c) root changing between commands (game A -> game B -> game A):                      240
+  (d) non-canonical whitespace (two spaces, tabs, trailing ws, empty 'moves'):          243
+  (e) mid-list illegal move (other-game move, 'e2e9', 'e2e4q') + continuation past it:  485
+  (f) 4-field and 5-field FEN roots (bare and with moves):                              240
+  (g) ucinewgame interleaved between position commands:                                 180
+  (h) parse_limits_sv go lines (depth, nodes, softnodes, searchmoves 2..5, >32 tokens, unknown word): 130
+  TOTAL_POSITION_COMMANDS: 22229 (requirement: >= 20000)
+
+--- 2. Probes Executed ---
+  per_position_probes (go perft 2 + eval + isready): 22229
+  every_50th_probes   (ucinewgame + go depth 6 + isready): 444
+  kind_h_go_probes    (depth/nodes/softnodes/searchmoves/>32-tok/unknown-word + isready): 130 (max tokens after 'go' = 52)
+
+--- 3. Line-for-Line Comparison: plain r15d vs plain curated (time, nps, hashfull stripped) ---
+  r15d_emitted_lines:    540889
+  curated_emitted_lines: 540889
+  lines_compared:        540889
+  lines_that_differ:     0
+
+--- 4. Planted Fault Check (part1_s7_ws_planted_fault.patch.txt: moves_sv[canon.size()] whitespace check removed) ---
+  fault_emitted_lines:   540991
+  total_differing_lines: 30275
+  first_diff_line_index: 510154 (in block #22254)
+  previous_block_pos:    position startpos moves e2e4
+  faulting_block_pos:    position startpos moves e2e4q e7e5 g1f3
+  FIRST_DIFFERING_LINE_EXPECTED (r15d & clean curated): info string illegal move e2e4q
+  FIRST_DIFFERING_LINE_PLANTED_FAULT (curated_fault):   info string illegal move q
+  elapsed_total_sec:     20.23
