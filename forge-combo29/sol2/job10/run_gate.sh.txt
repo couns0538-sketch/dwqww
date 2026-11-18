@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job10
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job10
+net=/workspace/work/sol2-job2/net768.fnn3
+r15d=/workspace/work/sol2-job7/build-pgo-r15d/forge
+kF=/workspace/work/sol2-job9/build-pgo-kF/forge
+{
+  set -x
+  sha256sum -c "$out/pgo-executables.raw.txt"
+  sha256sum "$job/fixed_nodes_driver.py" "$out/fixed-openings.txt" "$net"
+  for arm in r15d kF; do
+    if [ "$arm" = r15d ]; then engine=$r15d; else engine=$kF; fi
+    date -u +%FT%TZ
+    timeout 180 taskset -c 2 python3 -B "$job/fixed_nodes_driver.py" --engine "$engine" --net "$net" --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings "$out/fixed-openings.txt" --json --trace-rows "$out/gate-$arm-searches.raw.txt" --wire-log "$out/gate-$arm-wire.raw.txt" > "$out/gate-$arm-driver.raw.txt" 2> "$out/gate-$arm-stderr.txt"
+    date -u +%FT%TZ
+    cat "$out/gate-$arm-driver.raw.txt"
+  done
+} > "$out/gate-commands.raw.txt" 2>&1

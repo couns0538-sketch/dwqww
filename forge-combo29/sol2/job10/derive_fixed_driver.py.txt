@@ -1,0 +1,174 @@
+import hashlib
+import json
+from pathlib import Path
+
+upstream = Path("/workspace/work/sol2-job2/carbon2/selfplay_driver.py")
+job = Path("/workspace/work/sol2-job10")
+raw = Path("forge-combo29/sol2/job10")
+source_openings = Path("forge-combo29/sol2/job9/kF-timing-openings.txt")
+driver_sha256 = "c79b95bf45762fa9869d23140ed7f946cfaf0cb6bc4f74325a18d5f934bf1c45"
+openings_sha256 = "720bbfea70c6cd0634f53b8ec7f0ca8134299220b04f22b410f1aeced2f2365e"
+assert hashlib.sha256(upstream.read_bytes()).hexdigest() == driver_sha256
+assert hashlib.sha256(source_openings.read_bytes()).hexdigest() == openings_sha256
+source = upstream.read_text()
+start = source.index('"""')
+end = source.index('"""', start + 3) + 3
+source = source[:start] + '"""Forge PC20 fixed-node self-play over saved eight-ply move histories."""' + source[end:]
+source = source.replace("import argparse\n", "import argparse\nfrom contextlib import ExitStack\n")
+source = source.replace("import random\n", "import re\n")
+source = source.replace("import time\n", "import time\nfrom typing import TextIO\n")
+source = source.replace("def wait_ready(proc: subprocess.Popen, check_errors: bool = True):",
+                        "def wait_ready(proc: subprocess.Popen, check_errors: bool = True, receipt: TextIO | None = None):")
+source = source.replace('''        s = line.strip()
+        if check_errors''', '''        if receipt is not None:
+            receipt.write("< " + line)
+        s = line.strip()
+        if check_errors''', 1)
+
+start = source.index("def perft1_moves(")
+end = source.index("def run_selfplay(", start)
+source = source[:start] + '''def load_openings(path, games, opening_plies):
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    if len(rows) != games:
+        raise ValueError("Expected the pinned number of opening histories")
+    openings = []
+    for row in rows:
+        moves = row["moves"]
+        if len(moves) != opening_plies or any(not re.fullmatch("[a-h][1-8][a-h][1-8][nbrq]?", move) for move in moves):
+            raise ValueError("Invalid opening move vector")
+        board = MinimalBoardTracker()
+        for move in moves:
+            board.push_uci(move)
+        if board.fen().split()[:3] != row["position_side_castling"]:
+            raise ValueError("Opening history and position receipt disagree")
+        openings.append(moves)
+    if len({tuple(moves) for moves in openings}) != games:
+        raise ValueError("Duplicate pinned opening histories")
+    return openings
+
+
+''' + source[end:]
+source = source.replace('''    num_games: int,
+    softnodes: int,
+    random_plies: int,
+    max_plies: int,
+    seed: int,
+    extra_options: list[tuple[str, str]],
+    dump_fens_path: str | None = None,
+''', '''    openings: list[list[str]],
+    nodes: int,
+    opening_plies: int,
+    max_plies: int,
+    trace_rows: TextIO | None,
+    wire_log: TextIO | None,
+''')
+source = source.replace('''    try:
+        cfg_lines = ["uci\\n"]''', '''    def issue(command):
+        send(proc, command)
+        if wire_log is not None:
+            for written in command.splitlines():
+                print("> " + written, file=wire_log)
+
+    go_command = f"go nodes {nodes}\\n"
+    num_games = len(openings)
+    try:
+        cfg_lines = ["uci\\n"]''')
+source = source.replace('''        for k, v in extra_options:
+            cfg_lines.append(f"setoption name {k} value {v}\\n")
+''', '')
+source = source.replace('''        send(proc, "".join(cfg_lines))
+        wait_ready(proc, check_errors=True)
+
+        openings = generate_openings(proc, num_games, random_plies, seed)
+        # Warm up 1 game untimed so OS pages and allocator are faulted in before timing.
+        send(proc, "ucinewgame\\nisready\\n")''', '''        issue("".join(cfg_lines))
+        wait_ready(proc, receipt=wire_log)
+
+        # One untimed search faults in executable and allocator pages.
+        issue("ucinewgame\\nisready\\n")''')
+source = source.replace('''        send(proc, f"position startpos moves {' '.join(openings[0])}\\ngo softnodes {softnodes}\\n")''',
+                        '''        issue(f"position startpos moves {' '.join(openings[0])}\\n" + go_command)''')
+source = source.replace('''            if not ln or ln.startswith("bestmove "):
+                break
+
+        collected_fens: list[str] = []''', '''            if not ln:
+                raise RuntimeError("Engine EOF during internal warm-up")
+            if ln.startswith("info string softnodes"):
+                raise RuntimeError("Engine reported soft-node mode during hard-node warm-up")
+            if ln.startswith("bestmove "):
+                break
+''')
+source = source.replace('''            send(proc, "ucinewgame\\nisready\\n")''','''            issue("ucinewgame\\nisready\\n")''')
+source = source.replace("range(random_plies, max_plies)", "range(opening_plies, max_plies)")
+source = source.replace('''                if dump_fens_path is not None:
+                    collected_fens.append(tracker.fen())
+
+                cmd = f"position startpos moves {' '.join(moves)}\\ngo softnodes {softnodes}\\n"
+                send(proc, cmd)''', '''                issue(f"position startpos moves {' '.join(moves)}\\n" + go_command)''')
+source = source.replace('''                bestmove = "0000"
+                while True:''',
+                        '''                bestmove = "0000"
+                last_info = ""
+                while True:''')
+source = source.replace('''                    if line.startswith("info depth "):
+                        parts = line.split()''', '''                    if line.startswith("info string softnodes"):
+                        raise RuntimeError("Engine reported soft-node mode during hard-node search")
+                    if line.startswith("info depth "):
+                        last_info = line
+                        parts = line.split()''')
+source = source.replace('''                total_searches += 1
+''', '''                if trace_rows is not None:
+                    print(json.dumps({
+                        "game": g_idx, "ply": ply, "bestmove": bestmove, "nodes": last_nodes,
+                        "score": last_score, "last_info": last_info.rstrip("\\n"), "bestmove_line": line.rstrip("\\n"),
+                    }), file=trace_rows)
+                total_searches += 1
+''')
+source = source.replace('''        send(proc, "quit\\n")
+        proc.wait(timeout=5)''', '''        issue("quit\\n")
+        if proc.wait(timeout=5) != 0:
+            raise RuntimeError(f"Forge exited {proc.returncode}")''')
+source = source.replace('''    if dump_fens_path is not None:
+        pathlib.Path(dump_fens_path).write_text("\\n".join(collected_fens) + "\\n")
+
+''', '')
+start = source.index("def main():")
+source = source[:start] + '''def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--engine", required=True)
+    parser.add_argument("--net", required=True)
+    parser.add_argument("--games", required=True, type=int)
+    parser.add_argument("--nodes", required=True, type=int)
+    parser.add_argument("--random-plies", required=True, type=int)
+    parser.add_argument("--max-plies", required=True, type=int)
+    parser.add_argument("--openings", required=True, type=pathlib.Path)
+    parser.add_argument("--trace-rows", type=pathlib.Path)
+    parser.add_argument("--wire-log", type=pathlib.Path)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    if args.games < 1 or args.nodes < 1 or not 0 < args.random_plies < args.max_plies:
+        parser.error("Expected positive games and hard nodes, and opening length below the ply ceiling")
+    openings = load_openings(args.openings, args.games, args.random_plies)
+    with ExitStack() as receipt:
+        trace_rows = receipt.enter_context(args.trace_rows.open("x", encoding="utf-8")) if args.trace_rows else None
+        wire_log = receipt.enter_context(args.wire_log.open("x", encoding="utf-8")) if args.wire_log else None
+        summary = run_selfplay(args.engine, args.net, openings, args.nodes, args.random_plies, args.max_plies, trace_rows, wire_log)
+    if args.json:
+        print(json.dumps(summary))
+    else:
+        for key, value in summary.items():
+            print(f"{key}: {value}")
+
+
+if __name__ == "__main__":
+    main()
+'''
+for stale in ("go softnodes", "generate_openings", "dump_fens_path", "extra_options", "random_plies, max_plies"):
+    assert stale not in source, stale
+assert source.count(" + go_command)") == 2
+compile(source, str(job / "fixed_nodes_driver.py"), "exec")
+(job / "fixed_nodes_driver.py").write_text(source)
+(raw / "fixed_nodes_driver.py.txt").write_text(source)
+original_openings = json.loads(source_openings.read_text())
+assert len(original_openings) == 60
+(raw / "fixed-openings.txt").write_text(json.dumps(original_openings[:12], indent=2) + "\n")

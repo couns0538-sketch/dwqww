@@ -1,0 +1,75 @@
+from itertools import groupby, zip_longest
+import json
+from pathlib import Path
+import re
+import runpy
+import sys
+
+root = Path(sys.argv[1])
+driver = runpy.run_path(sys.argv[2])
+games = 12
+hard_nodes = 20000
+keys = ("game", "ply", "bestmove", "nodes", "score")
+summary_keys = ("games", "searches", "total_nodes", "trace_fnv1a64")
+openings = json.loads((root / "fixed-openings.txt").read_text())
+assert openings == json.loads(Path("forge-combo29/sol2/job9/kF-timing-openings.txt").read_text())[:games]
+def rows(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+def audit(label):
+    wire = (root / f"gate-{label}-wire.raw.txt").read_text().splitlines()
+    output = (root / f"gate-{label}-driver.raw.txt").read_text()
+    searches = rows(root / f"gate-{label}-searches.raw.txt")
+    assert not (root / f"gate-{label}-stderr.txt").read_text(), label
+    assert [line for line in wire if line.startswith("> go ")] == [f"> go nodes {hard_nodes}"] * (len(searches) + 1), label
+    assert [line for line in wire if line.startswith("> setoption ")] == [
+        *(f"> setoption name {name} value {value}" for name, value in driver["PC20_OPTIONS"]),
+        "> setoption name NNUEArchFile value /workspace/work/sol2-job2/net768.fnn3",
+        "> setoption name NNUEArch value true",
+    ], label
+    assert any(re.search(r"^< info string NNUE v3 active: .*hidden 768 .*checksum 30ab43b4ba5db5f3", line) for line in wire), label
+    epochs = []
+    for line in wire:
+        if line == "> ucinewgame":
+            epochs.append([])
+        if line.startswith("> position startpos moves "):
+            epochs[-1].append(line.removeprefix("> position startpos moves ").split())
+    assert len(epochs) == games + 1, label
+    assert epochs[0] == [openings[0]["moves"]], label
+    by_game = {game: list(group) for game, group in groupby(searches, key=lambda row: row["game"])}
+    assert tuple(by_game) == tuple(range(games)), label
+    for game, opening in enumerate(openings):
+        history = list(opening["moves"])
+        expected_positions = []
+        for ply, row in enumerate(by_game[game], start=8):
+            assert row["ply"] == ply, label
+            expected_positions.append(history.copy())
+            history.append(row["bestmove"])
+        assert epochs[game + 1] == expected_positions, (label, game)
+    trace = 14695981039346656037
+    for row in searches:
+        canonical = ",".join(str(row[key]) for key in keys) + ";"
+        trace = driver["fnv1a64_str"](trace, canonical)
+    summary = json.loads(output)
+    expected = (games, len(searches), sum(row["nodes"] for row in searches), f"{trace:016x}")
+    assert tuple(summary[key] for key in summary_keys) == expected, label
+    print(json.dumps({"engine": label, **dict(zip(summary_keys, expected)), "actual_go_nodes_commands": len(searches) + 1,
+          "first_saved_openings_in_order": games, "last_info_min_nodes": min(row["nodes"] for row in searches),
+          "last_info_max_nodes": max(row["nodes"] for row in searches),
+          "last_info_over_hard_budget": sum(row["nodes"] > hard_nodes for row in searches)}))
+    return searches, expected
+
+left, left_summary = audit("r15d")
+right, right_summary = audit("kF")
+for index, (a, b) in enumerate(zip_longest(left, right)):
+    if a is not None and b is not None and all(a[key] == b[key] for key in keys):
+        continue
+    row = a if a is not None else b
+    with (root / "first-difference.raw.txt").open("w") as mismatch:
+        print(f"First differing search index {index}, game {row['game']}, ply {row['ply']}", file=mismatch)
+        for name, result in (("r15d", a), ("kF", b)):
+            print(f"{name} {json.dumps(result)}", file=mismatch)
+    sys.exit("Canonical search records differ")
+assert left_summary == right_summary
+(root / "known-answer.txt").write_text(json.dumps(dict(zip(summary_keys, left_summary)), indent=2) + "\n")
+print("PASS: canonical per-search identity and actual hard-node commands, including the internal warm-up.")
