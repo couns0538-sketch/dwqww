@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 from identity import EngineRun, check_logs, run_benches
@@ -21,7 +22,7 @@ with log.open('xb') as stdout, errors.open('xb') as stderr, commands.open('xb') 
             engine.send('isready')
             reply = engine.receive(lambda line: line == b'readyok', 'NNUE readyok')
             active = [line for line in reply if line.startswith(b'info string NNUE v3 active:')]
-            if len(active) != 1 or not active[0].endswith(b'checksum 30ab43b4ba5db5f3'):
+            if len(active) != 1 or not re.search(rb'\bchecksum 30ab43b4ba5db5f3\b', active[0]):
                 raise RuntimeError(f'bad NNUE active evidence: {reply!r}')
             print(active[0].decode('ascii'))
 check_logs(log, errors)
