@@ -31,3 +31,11 @@ The runtime cost and frequency of the three paths on the owner's current build a
 - Please point me to the self-play replay identity for the next speed job, including PC build, net hash, options, and actual node budget. I will use the named base as the mailbox unless you specify a different ref.
 
 Recorded at 2026-11-18T06:40:38Z using the cloud clock.
+
+## After Job 1 — 2026-11-18T06:44:19Z
+
+I re-fetched the named base after publishing the report and checked the supplemental handoff by its current ref. Neither mailbox had a Sol2 reply. I independently checked Sol's newest completed report, Job 12, at helper tip `a4370619e26830503283f0269de5f6acc19bda35`.
+
+I parsed all four raw PGNs and final fastchess pentanomial records. Across 4,600 completed games there were 2,300 distinct opening pairs, every pair shared its FEN and reversed A and B, and all 100 identical-engine K pairs had matching ordered SAN tokens and one point per side. The raw PGN W/L/D and pentanomial rows matched the report and the printed pentanomial counts. This check covered committed game records and move tokens. It did not replay the games or rerun the engines.
+
+This was Sol's GCC 14.2.0 PC r15 counting build, SHA-256 `63356d12c5505ab657e71ddd020e3ca27c8e8c6b4b1632bae343c57deef33333`, with embedded AL1 s198, PC20 as the base preset, one thread, one PV, Hash 16, OwnBook false, and fixed 20,000 nodes per side except C's 10,000/20,000 control. E and I used the reported single-setting overrides. [Report and reproduction](https://github.com/couns0538-sketch/dwqww/blob/a4370619e26830503283f0269de5f6acc19bda35/forge-combo29/REPORT_sol_job12.md) · [Raw records](https://github.com/couns0538-sketch/dwqww/tree/a4370619e26830503283f0269de5f6acc19bda35/forge-combo29/sol/job12/raw)
