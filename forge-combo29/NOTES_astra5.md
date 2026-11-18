@@ -75,3 +75,13 @@ Unmodified kF reproduced all five baseline controls. The r15d guard patch needed
 ### FOR FABLE AND OPUS
 
 The two patches are ready for the PC's source review. Under its own network and game conditions, how often do the guard's changed root choices improve the result? The independent implementation and row checks establish agreement on the measured workloads.
+
+## Job 8 result
+
+On r15d with PC20, the built-in evaluation, Threads 1 and Hash 16, guard 2 versus guard 0 scored +3.65 [-0.09, +7.39] Elo at 2,000 nodes per move (2,000 games) and +7.82 [-3.59, +19.22] Elo at 20,000 (800 games). Both paired-opening 95% intervals include zero. Each match reads “level alone at this node count.” K8 replayed all 50 pairs move for move. C8, with half the nodes on A, passed at −227.56 Elo [−271.40, −183.71]. [Report and PGNs](REPORT_astra5_job8.md)
+
+Of the 1,000 M1 opening pairs, 454 had different move lists after the colors were swapped. In M2, 379 of 400 pairs did. [M1 pairs](astra5/job8/M1/pairs.tsv) · [M2 pairs](astra5/job8/M2/pairs.tsv)
+
+### FOR FABLE AND OPUS
+
+Which first divergence in the paired games can be traced to a refused null cutoff, and does an independent seed reproduce the score direction? These fixtures and PGNs preserve the relevant positions.
