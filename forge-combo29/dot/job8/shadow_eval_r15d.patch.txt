@@ -1,0 +1,87 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -25,6 +25,12 @@
+ #endif
+ 
+ namespace forge {
++
++#if FORGE_SHADOW_EVAL
++// Diagnostic counters for serialized UCI searches, including all worker evaluations.
++[[nodiscard]] std::uint64_t shadow_eval_count();
++[[nodiscard]] std::uint64_t shadow_difference_count();
++#endif
+ 
+ struct SearchLimits {
+     int depth = 64;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -92,6 +92,16 @@
+ #endif
+ 
+ namespace forge {
++
++#if FORGE_SHADOW_EVAL
++namespace {
++std::atomic<std::uint64_t> shadow_evals{0};
++std::atomic<std::uint64_t> shadow_differences{0};
++std::atomic<std::uint64_t> shadow_process_diagnostics{0};
++}
++std::uint64_t shadow_eval_count() { return shadow_evals.load(std::memory_order_relaxed); }
++std::uint64_t shadow_difference_count() { return shadow_differences.load(std::memory_order_relaxed); }
++#endif
+ 
+ int DrawJitter = 0;
+ 
+@@ -3287,6 +3297,10 @@
+ }
+ 
+ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
++#if FORGE_SHADOW_EVAL
++    shadow_evals.store(0, std::memory_order_relaxed);
++    shadow_differences.store(0, std::memory_order_relaxed);
++#endif
+     const auto supplied_start = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     const bool clocked = !limits.infinite && !limits.ponder &&
+@@ -3409,6 +3423,18 @@
+         });
+         value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
+     }
++#if FORGE_SHADOW_EVAL
++    shadow_evals.fetch_add(1, std::memory_order_relaxed);
++    const int shadow_reference = nnue::v3::evaluate_reference(net, board);
++    if (value != shadow_reference) {
++        shadow_differences.fetch_add(1, std::memory_order_relaxed);
++        if (shadow_process_diagnostics.fetch_add(1, std::memory_order_relaxed) < 5) {
++            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++            std::cout << "info string shadow differ fast " << value << " ref " << shadow_reference
++                      << " fen " << board.fen() << std::endl;
++        }
++    }
++#endif
+ #if FORGE_NNUE_V3_VERIFY
+     // Test builds only (-DFORGE_NNUE_V3_VERIFY=1): every evaluation of the search is compared with the value from
+     // fresh accumulators and the scalar output sum. A difference ends the program with exit code 3.
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -361,6 +361,10 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#if FORGE_SHADOW_EVAL
++                std::cout << "info string shadow evals " << forge::shadow_eval_count()
++                          << " differ " << forge::shadow_difference_count() << std::endl;
++#endif
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {
+@@ -799,6 +803,9 @@
+                         }
+                         const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                         std::cout << "info string book move " << forge::Board::move_to_uci(book_move) << std::endl;
++#if FORGE_SHADOW_EVAL
++                        std::cout << "info string shadow evals 0 differ 0" << std::endl;
++#endif
+                         std::cout << "bestmove " << forge::Board::move_to_uci(book_move) << prediction << std::endl;
+                         continue;
+                     }
