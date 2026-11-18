@@ -1,0 +1,147 @@
+diff -ruN before/include/forge/search.hpp after/include/forge/search.hpp
+--- before/include/forge/search.hpp	2026-11-18 05:43:17.309993974 -0800
++++ after/include/forge/search.hpp	2026-11-18 05:43:17.359604885 -0800
+@@ -56,7 +56,11 @@
+     std::chrono::steady_clock::time_point start_time{};
+ };
+ 
++// Fields 0..7 are the NC0 output. Field 8 retains extra depth-1/2 starts for the sidecar.
++using NullCounts = std::array<std::uint64_t, 9>;
++
+ struct SearchInfo {
++    NullCounts null_counts{};
+     Move best_move{};
+     Move ponder_move{};
+     int score = 0;
+@@ -480,6 +484,7 @@
+         local_nodes_ = 0;
+         nodes_.store(0, std::memory_order_relaxed);
+     }
++    [[nodiscard]] const NullCounts& null_counts() const { return null_counts_; }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
+ 
+ private:
+@@ -489,6 +494,7 @@
+     friend class Searcher;
+ #endif
+ 
++    NullCounts null_counts_{};
+     SharedSearchState& shared_;
+     int id_ = 0;
+     Evaluator evaluator_;
+diff -ruN before/src/search.cpp after/src/search.cpp
+--- before/src/search.cpp	2026-11-18 05:43:17.307329829 -0800
++++ after/src/search.cpp	2026-11-18 05:43:17.362751275 -0800
+@@ -1754,6 +1754,33 @@
+ }
+ 
+ // ---------------------------------------------------------------------------
++// Reconstruct the exact null child on a local board, including en passant and side to move.
++// A legal quiet check counts only if the checked side has no legal evasion.
++namespace {
++bool quiet_mate_after_null(Board parent) {
++    NullUndo null_undo;
++    parent.make_null_move(null_undo);
++    for (const Move move : parent.legal_moves()) {
++        if (!move.is_quiet() || !parent.gives_check(move)) continue;
++        Undo undo;
++        (void)parent.make_move(move, undo);
++        const bool mate = parent.in_check() && parent.legal_moves().empty();
++        parent.unmake_move(move, undo);
++        if (mate) return true;
++    }
++    return false;
++}
++
++void record_null_cutoff(NullCounts& counts, const Board& parent, int child_depth) {
++    ++counts[2];
++    ++counts[5];  // common cutoff denominator of both requested funnels
++    if (child_depth > 2) return;
++    const int bucket = child_depth <= 0 ? 3 : 6;
++    ++counts[bucket];
++    if (quiet_mate_after_null(parent)) ++counts[bucket + 1];
++}
++} // namespace
++
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+@@ -1965,6 +1992,9 @@
+             const int reduced_depth = depth - reduction;
+             const int null_child_depth = tune::NullChildFloor > 0 ? std::max(reduced_depth, tune::NullChildFloor)
+                                                                   : reduced_depth;
++            ++null_counts_[0];
++            if (null_child_depth <= 0) ++null_counts_[1];
++            else if (null_child_depth <= 2) ++null_counts_[8];
+             int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1978,6 +2008,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++                    record_null_cutoff(null_counts_, board, null_child_depth);
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1992,6 +2023,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    record_null_cutoff(null_counts_, board, null_child_depth);
+                     return null_score;
+                 }
+             }
+@@ -2476,6 +2508,7 @@
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    null_counts_.fill(0);
+     null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+@@ -2884,6 +2917,8 @@
+                 alt_shared->tt.clear();
+                 alt_worker->clear();
+                 const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
++                for (std::size_t i = 0; i < null_counts_.size(); ++i)
++                    null_counts_[i] += alt_worker->null_counts()[i];
+                 extra_nodes_ += alt.nodes;
+                 if (alt_worker->aborted_ || alt.depth < depth) {
+                     aborted_ = true;
+@@ -3129,6 +3164,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    for (const auto* worker : all)
++        for (std::size_t i = 0; i < result.null_counts.size(); ++i)
++            result.null_counts[i] += worker->null_counts()[i];
+     return result;
+ }
+ 
+diff -ruN before/src/uci.cpp after/src/uci.cpp
+--- before/src/uci.cpp	2026-11-18 05:43:17.301080030 -0800
++++ after/src/uci.cpp	2026-11-18 05:43:17.363321320 -0800
+@@ -14,6 +14,8 @@
+ #include <charconv>
+ #include <chrono>
+ #include <condition_variable>
++#include <cstdlib>
++#include <fstream>
+ #include <iostream>
+ #include <mutex>
+ #include <sstream>
+@@ -724,6 +726,13 @@
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "bestmove " << best << prediction << std::endl;
++                    if (const char* path = std::getenv("ASTRA5_NC_STARTED12"); path && *path) {
++                        std::ofstream sidecar(path, std::ios::app);
++                        sidecar << result.null_counts[8] << '\n';
++                    }
++                    std::cout << "NC0";
++                    for (std::size_t i = 0; i < 8; ++i) std::cout << ' ' << result.null_counts[i];
++                    std::cout << std::endl;
+                 });
+             }
+         } else if (command == "eval") {
