@@ -1,0 +1,23 @@
+Job 12 Leave-One-Out Predictions for the Six Parts of `PGO1` on SP-Profile Builds (committed ALONE before creating or timing any LOO build)
+===========================================================================================================================================
+Context: In Timing (1) (`forge-combo29/carbon2/job12/timing1_sp_r15d_vs_pgo1_12x60_hash16_raw.txt` line 66), SP-profiled `r15d + PGO1` beat SP-profiled `r15d` by **`1.0238x` (`+2.38%`, `11/12` rounds faster)** on engine CPU (`1.0223x` wall, `11/12`). Per `FABLE_TO_carbon2_12.md` lines 66–69, we construct all six leave-one-out trees on `r15d`, build **two independent SP-profile executables (`2` `.profraw` merged) of each**, and measure each over **12 symmetric palindromic rounds of 60 games at `Hash 16`** against two SP-profile builds of `r15d + PGO1` (`PGO1_1, L1_1..L6_1, L6_2..L1_2, PGO1_2` x `12` rounds = `168` runs):
+  1. `loo1_pgo1_minus_s4.patch.txt`       (`PGO1` minus `S4`: `MovePicker` `-2,568 B` stack reduction & scratch reuse)
+  2. `loo2_pgo1_minus_s5.patch.txt`       (`PGO1` minus `S5`: `Board::make_move` `precomputed_key` reuse, lazy `king_lines_` `Undo`, & debug key assert)
+  3. `loo3_pgo1_minus_s7.patch.txt`       (`PGO1` minus `S7`: zero-alloc `std::string_view` `position` parser & `Worker::clear()` `memset`)
+  4. `loo4_pgo1_minus_tt.patch.txt`       (`PGO1` minus TT part: 56B `TTProbe`, `EmptyLock`, `miss_snapshot` no-copy miss fast-path, empty-slot-0 exit)
+  5. `loo5_pgo1_minus_legal.patch.txt`    (`PGO1` minus legal-move part: `has_legal_move` off-ray pawns, king `taboo`, `known_gives_check == 0`, `ensure_king_lines`, `WK/BK` `is_legal`)
+  6. `loo6_pgo1_minus_stop_hot.patch.txt` (`PGO1` minus stop & hot-attribute part: `[[gnu::always_inline]]` `check_node_or_periodic_stop` + `[[gnu::hot]]` on `apply_position_sv`)
+
+Pre-declared Carrier Keep / Drop Gate for `pgo2_sp_carriers.patch.txt`:
+- Part `k` is **KEPT** iff `median_r(PGO1_r / LOO_k_r) >= 1.0035x` (`>= +0.35%` marginal loss when part `k` is removed from `PGO1`) AND `PGO1 > LOO_k` in **`>= 8 / 12`** paired rounds on `getrusage` engine CPU; otherwise part `k` is **DROPPED**.
+
+Predicted Marginal Ratios `median_r(PGO1 / LOO_k)` on SP-Profile Engine CPU (`12` rounds x `60` games, two builds each):
+1. `S7` (`PGO1 / loo3`): **`+0.40%` to `+1.60%` (`1.0040x..1.0160x`, `>= 8/12`)** -> **KEPT** (`S7` marginal inside SP-profiled `bundle 5` was `1.0113x` in `job11/ablation_loo_sp_6x60_hash16_raw.txt` line 71).
+2. `Legal-move part` (`PGO1 / loo5`): **`+0.40%` to `+1.60%` (`1.0040x..1.0160x`, `>= 8/12`)** -> **KEPT** (`has_legal_move` was `1.56%` in `job10/pgo_time_profile_raw.txt` line 16; `G1..G4` marginal was `1.0171x` in `job11/ablation_loo_sp_6x60_hash16_raw.txt` line 72).
+3. `S4` (`PGO1 / loo1`): **`+0.35%` to `+1.30%` (`1.0035x..1.0130x`, `>= 8/12`)** -> **KEPT** (`-2,568 B/ply` stack in `job10/pgo1_identity_and_bench13_raw.txt` line 2; `S4+S5` marginal was `1.0061x` in `job11/ablation_loo_sp_6x60_hash16_raw.txt` line 70).
+4. `S5` (`PGO1 / loo2`): **`+0.35%` to `+1.30%` (`1.0035x..1.0130x`, `>= 8/12`)** -> **KEPT** (`make_move` `2.87% -> 1.71%` in `job10/pgo_time_profile_raw.txt` lines 11 & 44; `S4+S5` marginal was `1.0061x` in `job11/ablation_loo_sp_6x60_hash16_raw.txt` line 70).
+5. `TT part` (`PGO1 / loo4`): **`-0.50%` to `+0.34%` (`0.9950x..1.0034x`, `< 8/12` or `< 1.0035x`)** -> **DROPPED** (`P1` total marginal on SP-profile was `0.9996x` in `job11/ablation_loo_sp_6x60_hash16_raw.txt` line 74; `14,942,337` misses in `job9/counts_hash16.txt` line 15).
+6. `Stop + hot-attribute part` (`PGO1 / loo6`): **`-0.50%` to `+0.34%` (`0.9950x..1.0034x`, `< 8/12` or `< 1.0035x`)** -> **DROPPED** (`32,930,134` `should_stop` calls in `job9/counts_hash16.txt` line 14 and `5,531` `position` calls in `job12/build_pgo_raw.txt` are already profiled hot by the SP profile; `P1` total marginal was `0.9996x` in `job11/ablation_loo_sp_6x60_hash16_raw.txt` line 74).
+
+Kill range:
+- Any identity, oracle, planted-fault, or `ee465caeff9c0fcf` trace mismatch kills immediately; any row falling outside its stated interval or predicted KEPT/DROPPED gate outcome is graded **KILLED** on that row, and `pgo2_sp_carriers.patch.txt` keeps strictly the parts meeting `>= 1.0035x` & `>= 8/12`.
