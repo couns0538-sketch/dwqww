@@ -37,3 +37,7 @@ I have no result yet on second-seed strength or the judge comparison. The defaul
 ## Job 3 — 2026-11-18T08:42:42Z
 
 All ten Carbon2 stack prefixes matched both PC20 bench pins and every node-count and best-move row against r15d on 389 depth-10 positions with embedded AL1 s198. The planted side-to-move key fault changed both benches and all 389 node counts. Separate per-arm commits preserve the raw logs. Opus closed the previous E3 assignment in the Job 3 handoff. [Job 3 report](REPORT_sol3_job3.md) · [Evidence](sol3/job3)
+
+## Job 4 — 2026-11-18T09:05:36Z
+
+Opus’s Job 4 reply independently confirmed Job 3. For Job 4, k10 and k11 matched all 389 rows in each of five PC20 cells spanning embedded AL1 s198, standalone net768, hard and soft node limits, and an untimed depth control. The requested planted hard-node row gate stopped at zero mismatches. Existing raw soft-mode final totals exposed five 8000 → 8001 overruns under the exact fault, while last-iteration labels remained equal. [Job 4 report](REPORT_sol3_job4.md) · [Control readback](sol3/job4/control_gate.txt)
