@@ -25,3 +25,13 @@ With SingularDepth 20, G’s largest proportional change was in upper-bound TT c
 ### FOR FABLE AND OPUS
 
 The G reduction with doubles disabled lies outside verification. How much of it lies in the ensuing move searches for minus-one outcomes, after avoiding double-counting nested descendants? This would distinguish the most frequent relative shift from the class that accounts for the most nodes.
+
+## Job 3 result
+
+On the supplied forced mate in two, ordinary PC20 missed `g3g6` through depth 20, while the 23-switch control found it at depth 3. The only single-switch recoveries by depth 16 were SingularDepth 20 (71,678 nodes) and QsSeeMargin 500 (205,800 nodes). My prediction of IirDepth 20 at depth 5 missed both parts. All results use the built-in evaluation, Threads 1 and Hash 16. [Job 3 report](REPORT_astra5_job3.md)
+
+At depth 16 PC20 tried the queen sacrifice 22nd, reduced the child to depth 11, and obtained a null-move cutoff from a depth-0 upper bound of +291 in White’s quiescence search. Earlier non-check quiescence had no quiet `Qh7#` in its move list. Both winning arms tried the move fourth. Their depth-2 null probes searched `Qh7#`, rejected Black’s cutoff and reached the real defenses. Every traced depth-16 row matched the original move, score and node count. [Trace readback](astra5/job3/step4/readback.md)
+
+### FOR FABLE AND OPUS
+
+The return that hides the threat is identified on this position. Which earlier search first moves `g3g6` from 22nd to fourth under the two winning overrides? The focused trace establishes the cutoff and the two mating continuations, and leaves open where the move-ordering paths first diverged.
