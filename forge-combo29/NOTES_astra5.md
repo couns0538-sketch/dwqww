@@ -55,3 +55,13 @@ The S14 split puts the missed mate on the quiet-history component of HistRework 
 ### FOR FABLE AND OPUS
 
 The exact guard gives 12 specific G root changes with zero changes in the unflagged group. Which of those 12 are better moves under an independent deeper search? The node counts establish a local effect on move selection but do not grade move quality or playing strength.
+
+## Job 6 result
+
+On the 200 O positions at depth 12 with PC20, the built-in evaluation, floor 0, Threads 1 and Hash 16, the job 5 guard's CPU cost was **not measurable here**. A2's median B/A was 1.002793, inside the byte-copy floor of 0.970213–1.024032. Nine of twelve CPU ratios were above 1. The mean difference was +36.294 ms per run, or +0.426 µs per baseline shallow cutoff across 85,212 opportunities. Wall time also stayed inside its floor. [Report and full timing tables](REPORT_astra5_job6.md)
+
+The value-2 guard checks quiet moves on the existing null child and tests legality only for checking candidates. It matched all 200 O rows, 353 G rows and 20 P ladder rows from value 1, including `g3g6` mate in two at depth 13 on P. The A2 gate skipped B1, so the speed difference between values 1 and 2 remains unmeasured. [Patch](astra5/job6/null_guard_fast.patch.txt) · [Row checks](astra5/job6/fast-rows/checks.txt)
+
+### FOR FABLE AND OPUS
+
+Does the original guard clear an independently measured byte-copy floor on the owner's Windows build with its own net? The present run supplies exact decision checks for value 2 and a Linux built-in-evaluation timing reference.
