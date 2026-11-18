@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Create Job 14's executable path fixtures and print their pinned inventory."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import sys
+
+
+JOB13 = Path("/workspace/work/sol2-job13")
+JOB14 = Path("/workspace/work/sol2-job14")
+R15D = JOB13 / "build-clang-selfplay-r15d" / "forge"
+KF = JOB13 / "build-clang-selfplay-kF" / "forge"
+R15D_SHA256 = "540e63c0b7cf2512f1716657aded48b0558022b49c0fe8489596195cf2035834"
+KF_SHA256 = "da5df215a6aa255261d4e5574474da7c82aad1a9e95df83e15d5b38963ef439d"
+ENVIRONMENT = {"LC_ALL": "C", "TZ": "UTC"}
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def read_arm(path, expected_sha256):
+    info = path.lstat()
+    require(stat.S_ISREG(info.st_mode) and path.resolve(strict=True) == path,
+            f"not a regular file at the specified path: {path}")
+    require(os.access(path, os.X_OK), f"file is not executable: {path}")
+    with path.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    require(digest == expected_sha256, f"wrong SHA-256 for {path}: {digest}")
+    return {"path": str(path), "length": len(str(path)), "inode": info.st_ino,
+            "sha256": digest, "device": info.st_dev}
+
+
+def file_id(arm):
+    return arm["device"], arm["inode"]
+
+
+def copy_exclusive(source, destination, preserve_timestamps=False):
+    original = source.stat()
+    with source.open("rb") as incoming, destination.open("xb") as outgoing:
+        shutil.copyfileobj(incoming, outgoing)
+        outgoing.flush()
+        os.fchmod(outgoing.fileno(), stat.S_IMODE(original.st_mode))
+        if preserve_timestamps:
+            os.utime(outgoing.fileno(), ns=(original.st_atime_ns, original.st_mtime_ns))
+
+
+def main():
+    paths = {
+        "P0": R15D,
+        "C0": JOB13 / "r15d-clang-selfplay-copy",
+        "H1": JOB14 / "hard-link-to-r15d-at-a-substantially-longer-launch-path" / "forge",
+        "E1": JOB14 / "arms" / "e1" / "forge",
+        "E2": JOB14 / "arms" / "e2" / "forge",
+        "K1": JOB14 / "arms" / "k1" / "forge",
+        "R1": JOB14 / "arms" / "r1" / "forge",
+    }
+    original = read_arm(R15D, R15D_SHA256)
+    candidate = read_arm(KF, KF_SHA256)
+    require(len(str(paths["H1"])) >= original["length"] + 16, "H1 launch path is too short")
+    require(len({len(str(paths[name])) for name in ("E1", "E2", "K1", "R1")}) == 1,
+            "fresh-copy launch paths have different lengths")
+
+    if os.path.lexists(paths["C0"]):
+        previous_copy = read_arm(paths["C0"], R15D_SHA256)
+        require(file_id(previous_copy) != file_id(original), "C0 aliases P0 instead of being a copy")
+    if os.path.lexists(paths["H1"]):
+        previous_link = read_arm(paths["H1"], R15D_SHA256)
+        require(file_id(previous_link) == file_id(original), "existing H1 does not share P0's inode")
+    fresh = ("E1", "E2", "K1", "R1")
+    for name in fresh:
+        require(not os.path.lexists(paths[name]), f"refusing to overwrite an existing fresh arm: {paths[name]}")
+    for name, path in paths.items():
+        require(path.parent.resolve() == path.parent, f"unexpected symlink in fixture path: {path}")
+        if name != "P0":
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not os.path.lexists(paths["C0"]):
+        copy_exclusive(R15D, paths["C0"], preserve_timestamps=True)
+    if not os.path.lexists(paths["H1"]):
+        os.link(R15D, paths["H1"], follow_symlinks=False)
+    for name in fresh:
+        copy_exclusive(KF if name == "K1" else R15D, paths[name])
+
+    arms = {name: read_arm(path, KF_SHA256 if name == "K1" else R15D_SHA256)
+            for name, path in paths.items()}
+    require(arms["P0"] == original and read_arm(KF, KF_SHA256) == candidate,
+            "a frozen executable changed while creating arms")
+    require(file_id(arms["H1"]) == file_id(arms["P0"]), "H1 is not a hard link to P0")
+    separate_ids = [file_id(arms[name]) for name in ("P0", "C0", *fresh)] + [file_id(candidate)]
+    require(len(set(separate_ids)) == len(separate_ids), "separate copy arms share an inode")
+
+    raw_env = b"".join(os.fsencode(f"{name}={value}") + b"\0" for name, value in ENVIRONMENT.items())
+    print(json.dumps({"arms": arms, "engine_environment": {"variables": ENVIRONMENT, "bytes": len(raw_env),
+                      "sha256": hashlib.sha256(raw_env).hexdigest()}}, indent=2))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(error, file=sys.stderr)
+        raise SystemExit(1) from error
