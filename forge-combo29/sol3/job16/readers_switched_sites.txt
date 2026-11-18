@@ -1,0 +1,175 @@
+Part 2 quiet-history reader switches, line numbers from the reproduced applied tree
+
+Build
+CMakeLists.txt:33-34 The configured build uses the fused quiet generator and scorer.
+    FORGE_SPD_NO_ZERO_MOVELISTS=2
+    FORGE_SEARCH_SPEED2=1
+
+R1. Move ordering
+src/search.cpp:1093-1100 The shared rework flag gates the scorer and fused generator and bypasses the keyed lookup and map when R1 is 1.
+    quarters(tune::QuietReadPlainR1 == 0 && hist_rework_quiet_level() != 0
+    ? b4::threat_quarters(hist_rework_quiet_level()) : 0),
+    rework(quarters != 0 && ss != nullptr),
+    use_threat_hist(tune::ThreatHistory),
+    rework_side(rework
+    ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
+    : nullptr),
+    threats(rework ? &searcher.ensure_threat_map(b, ss->ply) : nullptr) {}
+src/search.cpp:1108-1112 QuietScorer blends in the keyed score for quiet ordering.
+    if (rework) {
+    const Bitboard set = threats->by_type[pt];
+    const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+    value = b4::blend(plain, twin, quarters);
+    }
+src/search.cpp:1361-1373 The fused quiet generator also invokes QuietScorer::score for its optional fallback.
+    #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
+    init_check_squares();
+    index_ = quiet_start();
+    count_ = quiet_start();
+    seeded_ = false;
+    const QuietScorer scorer(board_, searcher_, ss_);
+    if (scorer.use_threat_hist || FORGE_PAWN_HISTORY != 0) [[unlikely]] {
+    MoveList& buf = searcher_.picker_scratch_;
+    buf.clear();
+    board_.generate_pseudo_legal(buf, Board::GenMode::Quiets);
+    for (const Move move : buf) {
+    push_scored(move, scorer.score(move, check_squares_));
+    }
+src/search.cpp:1419-1437 Fused pawn single and double pushes order by a keyed blend when rework is enabled.
+    if (scorer.rework) {
+    const Bitboard pset = scorer.threats->by_type[static_cast<std::size_t>(Pawn)];
+    while (single != 0) {
+    const int to = pop_lsb(single);
+    const int from = to - up;
+    const int plain = scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+    const int twin = (*scorer.rework_side)[b4::square_bit(pset, from)][b4::square_bit(pset, to)]
+    [static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Quiet},
+    ((plain * inv_quarters + twin * quarters) / 4) + pr.extra(to));
+    }
+    while (twice != 0) {
+    const int to = pop_lsb(twice);
+    const int from = to - 2 * up;
+    const int plain = scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+    const int twin = (*scorer.rework_side)[b4::square_bit(pset, from)][b4::square_bit(pset, to)]
+    [static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, DoublePush},
+    ((plain * inv_quarters + twin * quarters) / 4) + pr.extra(to));
+src/search.cpp:1459-1470 The fused non-pawn target loop orders by the keyed blend.
+    if (scorer.rework) {
+    const Bitboard tset = scorer.threats->by_type[static_cast<std::size_t>(pt)];
+    const std::size_t fbit = b4::square_bit(tset, from);
+    const std::int16_t* const rw0 = (*scorer.rework_side)[fbit][0][static_cast<std::size_t>(from)].data();
+    const std::int16_t* const rw1 = (*scorer.rework_side)[fbit][1][static_cast<std::size_t>(from)].data();
+    while (targets != 0) {
+    const int to = pop_lsb(targets);
+    const int plain = m_row[to];
+    const int twin = ((tset >> to) & 1ULL) != 0 ? rw1[to] : rw0[to];
+    push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Quiet},
+    ((plain * inv_quarters + twin * quarters) / 4) + rows.extra(to));
+    }
+src/search.cpp:1516-1522 The fused castling order blends the untargeted twin entry.
+    const int plain = scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+    int val = plain;
+    if (scorer.rework) {
+    const int twin = (*scorer.rework_side)[0][0][static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
+    val = (plain * inv_quarters + twin * quarters) / 4;
+    }
+    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flag}, val + krows.extra(to));
+src/search.cpp:1553-1556 The speed-0 generator with no-zero movelists applies R1 and retains the direct-check bonus.
+    for (const Move move : buf) {
+    int score = searcher_.quiet_history(board_, ss_, move, tune::QuietReadPlainR1 == 0);
+    if (direct_check(move)) score += 12000;
+    push_scored(move, score);
+src/search.cpp:1567-1578 The other movelist branch enforces R1 through QuietScorer at speed 1 and through quiet_history at speed 0.
+    #if FORGE_SEARCH_SPEED2
+    const QuietScorer scorer(board_, searcher_, ss_);
+    for (const Move move : buf) {
+    if (move.is_capture() || move.is_promotion()) continue;
+    push_scored(move, scorer.score(move, check_squares_));
+    }
+    #else
+    for (const Move move : buf) {
+    if (move.is_capture() || move.is_promotion()) continue;
+    int score = searcher_.quiet_history(board_, ss_, move, tune::QuietReadPlainR1 == 0);
+    if (direct_check(move)) score += 12000;
+    push_scored(move, score);
+src/search.cpp:1622-1627 Quiet evasion ordering enforces R1 in both speed branches and retains the direct-check bonus.
+    #if FORGE_SEARCH_SPEED2
+    return scorer.score(move, check_squares_);
+    #else
+    return searcher_.quiet_history(board_, ss_, move, tune::QuietReadPlainR1 == 0) +
+    (direct_check(move) ? 12000 : 0);
+    #endif
+
+R2 and R3. Shared score implementation and parent snapshot
+src/search.cpp:2138-2159 The include_rework argument gates the keyed lookup and blend. Ordinary history, continuations and independent history options stay in the score.
+    int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move, bool include_rework) const {
+    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+    const Piece piece = board.moved_piece(move);
+    const std::size_t p = static_cast<std::size_t>(piece);
+    const int plain = (*main_history_)[side][move.from][move.to];
+    int score = plain;
+    if (const int level = hist_rework_quiet_level(); include_rework && level != 0 && ss != nullptr) {
+    const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(piece));
+    const int twin = (*rework_history_)[side][b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+    score = b4::blend(plain, twin, b4::threat_quarters(level));
+    }
+    if (ss != nullptr) {
+    if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[p][move.to];
+    if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[p][move.to];
+    if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+    score += (*(ss - 4)->continuation)[p][move.to] / 2;
+    }
+    }
+    if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
+    #if FORGE_PAWN_HISTORY
+    score += pawn_history_value(board, piece, move);
+    #endif
+src/search.cpp:2774-2781 Both quiet scores are taken before making the move. The two readers share a score when their switches agree.
+    const bool prune_uses_rework = tune::QuietReadPlainR2 == 0;
+    const bool lmr_uses_rework = tune::QuietReadPlainR3 == 0;
+    const int pruning_history = quiet ? quiet_history(board, ss, move, prune_uses_rework)
+    : capture_history_value(board, move);
+    // Both scores use the parent position and histories before making the move.
+    const int lmr_history = quiet && lmr_uses_rework != prune_uses_rework
+    ? quiet_history(board, ss, move, lmr_uses_rework)
+    : pruning_history;
+src/search.cpp:2840-2844 R2 selects the quiet history score compared with the pruning threshold.
+    if (lmr_depth <= tune::HistoryPruneDepth && pruning_history < history_prune_threshold) {
+    trace_case();
+    quiet_fail = true;
+    continue;
+    }
+src/search.cpp:2853-2859 Capture futility's use of the variable receives capture history and bypasses the quiet switches.
+    if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+    lmr_depth <= tune::CaptureFutilityDepth &&
+    #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+    (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+    #endif
+    ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+    capture_value(board, move) + pruning_history / 8 <= alpha) {
+src/search.cpp:2964 R3 selects the quiet history score that adjusts the late-move reduction by up to two plies.
+    if (quiet) r -= std::clamp(lmr_history / tune::LmrHistoryDivisor, -2, 2);
+
+Dormant helper
+src/search.cpp:2173-2178 rework_quiet_delta could read a keyed entry, but its declaration and definition have no call site in this tree.
+    int Worker::rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const {
+    const int level = hist_rework_quiet_level();
+    if (level == 0) return 0;
+    const int plain = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+    return b4::blend(plain, rework_entry(board, ss, move), b4::threat_quarters(level)) - plain;
+    }
+
+UCI switches
+src/uci.cpp:547-549 All three spin options advertise default 0 and range 0 to 1.
+    "option name QuietReadPlainR1 type spin default 0 min 0 max 1\n"
+    "option name QuietReadPlainR2 type spin default 0 min 0 max 1\n"
+    "option name QuietReadPlainR3 type spin default 0 min 0 max 1\n"
+src/uci.cpp:817-822 The existing spin handler maps each switch only to its own setting.
+    } else if (name == "QuietReadPlainR1") {
+    apply_spin(0, 1, [&](int clamped) { forge::tune::QuietReadPlainR1 = clamped; });
+    } else if (name == "QuietReadPlainR2") {
+    apply_spin(0, 1, [&](int clamped) { forge::tune::QuietReadPlainR2 = clamped; });
+    } else if (name == "QuietReadPlainR3") {
+    apply_spin(0, 1, [&](int clamped) { forge::tune::QuietReadPlainR3 = clamped; });

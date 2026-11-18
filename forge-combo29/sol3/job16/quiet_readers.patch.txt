@@ -1,0 +1,184 @@
+diff -ruN base/include/forge/search.hpp tree/include/forge/search.hpp
+--- base/include/forge/search.hpp	2026-11-18 06:55:28.158903585 -0800
++++ tree/include/forge/search.hpp	2026-11-18 06:59:23.891402614 -0800
+@@ -403,6 +403,9 @@
+ extern int HistRework;               // 0 = off; 1..3: threat-keyed quiet history twin + pawn x material correction
+ extern int HistReworkQuiet;          // -1 follows HistRework; 0..3 overrides the quiet-history twin
+ extern int HistReworkCorrection;     // -1 follows HistRework; 0..3 overrides the pawn x material correction
++extern int QuietReadPlainR1;         // omit HistRework's twin from quiet move ordering
++extern int QuietReadPlainR2;         // omit HistRework's twin from quiet history pruning
++extern int QuietReadPlainR3;         // omit HistRework's twin from the quiet LMR term
+ extern bool TtPruneV2;               // TT-move pruning guards, cut-node IIR, opponent-worsening RFP, margins (false = off)
+ extern bool CorrHistV2;              // static-eval correction keyed by the last two moves (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -721,7 +724,7 @@
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+-    [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
++    [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move, bool include_rework) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int pawn_history_value(const Board& board, Piece piece, Move move) const;
+diff -ruN base/src/search.cpp tree/src/search.cpp
+--- base/src/search.cpp	2026-11-18 06:55:28.159502461 -0800
++++ tree/src/search.cpp	2026-11-18 06:59:24.671364751 -0800
+@@ -181,6 +181,9 @@
+ int HistRework = 0;
+ int HistReworkQuiet = -1;
+ int HistReworkCorrection = -1;
++int QuietReadPlainR1 = 0;
++int QuietReadPlainR2 = 0;
++int QuietReadPlainR3 = 0;
+ bool TtPruneV2 = false;
+ bool CorrHistV2 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -1073,11 +1076,11 @@
+         const PieceToHistory* cont4;
+         const Board& board;
+         const Worker& worker;
+-        const LesserThreatHistory::value_type* rework_side;
+-        const b4::LesserThreats* threats;
+         int quarters;
+         bool rework;
+         bool use_threat_hist;
++        const LesserThreatHistory::value_type* rework_side;
++        const b4::LesserThreats* threats;
+ 
+         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+@@ -1087,15 +1090,14 @@
+                         ? (ss - 4)->continuation : nullptr),
+               board(b),
+               worker(searcher),
+-              rework_side(hist_rework_quiet_level() != 0 && ss != nullptr
++              quarters(tune::QuietReadPlainR1 == 0 && hist_rework_quiet_level() != 0
++                           ? b4::threat_quarters(hist_rework_quiet_level()) : 0),
++              rework(quarters != 0 && ss != nullptr),
++              use_threat_hist(tune::ThreatHistory),
++              rework_side(rework
+                               ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
+                               : nullptr),
+-              threats(hist_rework_quiet_level() != 0 && ss != nullptr
+-                          ? &searcher.ensure_threat_map(b, ss->ply)
+-                          : nullptr),
+-              quarters(hist_rework_quiet_level() != 0 ? b4::threat_quarters(hist_rework_quiet_level()) : 0),
+-              rework(hist_rework_quiet_level() != 0 && ss != nullptr),
+-              use_threat_hist(tune::ThreatHistory) {}
++              threats(rework ? &searcher.ensure_threat_map(b, ss->ply) : nullptr) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+@@ -1549,7 +1551,7 @@
+         count_ = quiet_start();
+         seeded_ = false;
+         for (const Move move : buf) {
+-            int score = searcher_.quiet_history(board_, ss_, move);
++            int score = searcher_.quiet_history(board_, ss_, move, tune::QuietReadPlainR1 == 0);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -1571,7 +1573,7 @@
+ #else
+         for (const Move move : buf) {
+             if (move.is_capture() || move.is_promotion()) continue;
+-            int score = searcher_.quiet_history(board_, ss_, move);
++            int score = searcher_.quiet_history(board_, ss_, move, tune::QuietReadPlainR1 == 0);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -1620,7 +1622,8 @@
+ #if FORGE_SEARCH_SPEED2
+             return scorer.score(move, check_squares_);
+ #else
+-            return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++            return searcher_.quiet_history(board_, ss_, move, tune::QuietReadPlainR1 == 0) +
++                   (direct_check(move) ? 12000 : 0);
+ #endif
+         };
+ 
+@@ -2132,13 +2135,13 @@
+     return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
+ }
+ 
+-int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
++int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move, bool include_rework) const {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const Piece piece = board.moved_piece(move);
+     const std::size_t p = static_cast<std::size_t>(piece);
+     const int plain = (*main_history_)[side][move.from][move.to];
+     int score = plain;
+-    if (const int level = hist_rework_quiet_level(); level != 0 && ss != nullptr) {
++    if (const int level = hist_rework_quiet_level(); include_rework && level != 0 && ss != nullptr) {
+         const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(piece));
+         const int twin = (*rework_history_)[side][b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+         score = b4::blend(plain, twin, b4::threat_quarters(level));
+@@ -2768,7 +2771,14 @@
+         const bool quiet = !capture && !move.is_promotion();
+         const bool gives_check = picker.has_cached_gives_check() ? picker.cached_gives_check() : board.gives_check(move);
+         const Piece moved = board.moved_piece(move);
+-        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
++        const bool prune_uses_rework = tune::QuietReadPlainR2 == 0;
++        const bool lmr_uses_rework = tune::QuietReadPlainR3 == 0;
++        const int pruning_history = quiet ? quiet_history(board, ss, move, prune_uses_rework)
++                                          : capture_history_value(board, move);
++        // Both scores use the parent position and histories before making the move.
++        const int lmr_history = quiet && lmr_uses_rework != prune_uses_rework
++                                    ? quiet_history(board, ss, move, lmr_uses_rework)
++                                    : pruning_history;
+ 
+         // Shallow-depth pruning of unpromising moves.
+         // Off by default, so the predicate below is the historical guard.
+@@ -2827,7 +2837,7 @@
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
++                if (lmr_depth <= tune::HistoryPruneDepth && pruning_history < history_prune_threshold) {
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+@@ -2846,7 +2856,7 @@
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+-                            capture_value(board, move) + history / 8 <= alpha) {
++                            capture_value(board, move) + pruning_history / 8 <= alpha) {
+                     trace_case();
+                     continue;
+                 }
+@@ -2951,7 +2961,7 @@
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (quiet) r -= std::clamp(lmr_history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+diff -ruN base/src/uci.cpp tree/src/uci.cpp
+--- base/src/uci.cpp	2026-11-18 06:55:28.160301288 -0800
++++ tree/src/uci.cpp	2026-11-18 06:59:25.351331875 -0800
+@@ -544,6 +544,9 @@
+                          "option name HistRework type spin default 0 min 0 max 3\n"
+                          "option name HistReworkQuiet type spin default -1 min -1 max 3\n"
+                          "option name HistReworkCorrection type spin default -1 min -1 max 3\n"
++                         "option name QuietReadPlainR1 type spin default 0 min 0 max 1\n"
++                         "option name QuietReadPlainR2 type spin default 0 min 0 max 1\n"
++                         "option name QuietReadPlainR3 type spin default 0 min 0 max 1\n"
+                          "option name TtPruneV2 type check default false\n"
+                          "option name CorrHistV2 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -811,6 +814,12 @@
+                 apply_spin(-1, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistReworkQuiet = clamped; });
+             } else if (name == "HistReworkCorrection") {
+                 apply_spin(-1, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistReworkCorrection = clamped; });
++            } else if (name == "QuietReadPlainR1") {
++                apply_spin(0, 1, [&](int clamped) { forge::tune::QuietReadPlainR1 = clamped; });
++            } else if (name == "QuietReadPlainR2") {
++                apply_spin(0, 1, [&](int clamped) { forge::tune::QuietReadPlainR2 = clamped; });
++            } else if (name == "QuietReadPlainR3") {
++                apply_spin(0, 1, [&](int clamped) { forge::tune::QuietReadPlainR3 = clamped; });
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
