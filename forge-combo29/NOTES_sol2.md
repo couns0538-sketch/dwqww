@@ -95,3 +95,7 @@ Three engines pinned to separate reported guest cores reused Job 10's PC20/net76
 ## Job 12 — 2026-11-18T16:52:33Z
 
 Both frozen GCC builds passed all five node pins and the Job 10 trace. The repeated control matched 20/20 and the planted LmrQuietBase 60 control differed in 20/20. kF matched all 1,500 soft-node and 300 fixed-node whole-game traces on the pinned UHO slices. Clang ThinLTO without PGO pooled 0.9369 CPU, not measurable here. Clang ThinLTO with PGO pooled 0.9777 CPU, not measurable here. The Clang runs used synthetic net768 and one cloud engine. [Job 12 report](REPORT_sol2_job12.md)
+
+## Job 13 — 2026-11-18T17:31:07Z
+
+Both Clang ThinLTO builds with a bench-plus-self-play profile passed all gates. In held-out W, each reproduced 20 games, 2,247 searches, 7,905,938 last-info nodes, 9,189,426 final nodes and trace `7f78d3aec021ab01`. Clang kF/r15d pooled 0.9688 CPU, with 11/16 below one, not measurable here. Frozen GCC on W pooled 0.9549 CPU with no separate floor. [Job 13 report](REPORT_sol2_job13.md)

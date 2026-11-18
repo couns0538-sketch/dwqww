@@ -1,0 +1,420 @@
+#!/usr/bin/env python3
+"""Independently reconcile Job 13 soft-node timing receipts and their ABBA summaries."""
+
+import argparse
+from dataclasses import dataclass
+import hashlib
+import json
+import math
+from pathlib import Path
+import re
+from statistics import fmean, median, stdev
+
+
+SCHEMA = "forge-balanced-softbook-v1"
+ORDERS = ("ABBA", "BAAB")
+LEGS = 5
+SIGN_GATE = 13
+METRICS = (("engine_cpu_s", "Engine CPU"), ("total_wall_ns", "Wall"))
+TRACE_FIELDS = ("games", "searches", "total_nodes", "final_nodes", "trace_fnv1a64")
+NET_SHA256 = "c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7"
+BOOK_SHA256 = "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+WORKLOAD = ("--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json")
+T975 = {7: 2.36462425101, 15: 2.13144954556}
+STEPS = {"stepF": (16, "Step F — identical-binary Clang floor"),
+         "stepK": (16, "Step K — Clang kF against Clang r15d"),
+         "step4": (8, "Step 4 — frozen GCC kF-pgo against r15d-pgo")}
+
+
+@dataclass
+class Known:
+    signature: tuple
+    hashes: dict
+    clang_inputs: dict
+
+
+@dataclass
+class Campaign:
+    directory: Path
+    manifest: dict
+    rows: list
+    included_blocks: list
+    metrics: dict
+    position_means: dict
+    summary: dict | None
+    complete: bool
+    truncated: bool
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def signature(row):
+    return tuple(row.get(field) for field in TRACE_FIELDS)
+
+
+def check(actual, expected, where):
+    if isinstance(expected, dict):
+        require(isinstance(actual, dict) and expected.keys() <= actual.keys(), f"missing fields at {where}")
+        for key, value in expected.items():
+            check(actual[key], value, f"{where}.{key}")
+    elif isinstance(expected, (tuple, list)):
+        require(isinstance(actual, (tuple, list)) and len(actual) == len(expected), f"list shape differs at {where}")
+        for index, (one, two) in enumerate(zip(actual, expected)):
+            check(one, two, f"{where}[{index}]")
+    elif type(expected) is bool:
+        require(actual is expected, f"wrong {where}: {actual!r}, expected {expected!r}")
+    else:
+        equal = math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12) if type(expected) is float else actual == expected
+        require(equal, f"wrong {where}: {actual!r}, expected {expected!r}")
+
+
+def read_rows(path, finished):
+    if not path.is_file():
+        return [], False
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    rows = []
+    for index, line in enumerate(lines, 1):
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            if not finished and index == len(lines) and not line.endswith("\n"):
+                return rows, True
+            raise
+    return rows, False
+
+
+def validate_run(directory, stem, row, expected):
+    source = f"{directory}/{stem}"
+    stdout, stderr = f"{stem}.driver.stdout.txt", f"{stem}.engine.stderr.txt"
+    check(row, {"driver_stdout": stdout, "engine_stderr": stderr}, source)
+    require((directory / stdout).is_file() and (directory / stderr).is_file(), f"missing driver/engine receipts for {source}")
+    actual = signature(row)
+    check(row["trace_matches"], actual == expected, f"{source} signature flag")
+    start, end = row["wall_start_monotonic_ns"], row["wall_end_monotonic_ns"]
+    user, system = row["engine_user_s"], row["engine_system_s"]
+    check(row, {"total_wall_ns": end - start, "engine_cpu_s": user + system}, f"{source} durations")
+    if row["eligible"] or any(value is not None for value in actual):
+        driver = load(directory / stdout)
+        check(row, driver, f"{source} driver stdout")
+    if row["eligible"]:
+        require(actual == expected and row["engine_exit"] == 0 and row["error"] is None
+                and user >= 0 and system >= 0 and user + system > 0 and end > start,
+                f"{source} marked eligible without correct identity, status and durations")
+    else:
+        require(bool(row["error"]), f"{source} excluded without a recorded error")
+
+
+def validate_tape(path, receipt):
+    rows, _ = read_rows(path, True)
+    last_info_total = final_total = final_lines = zero_last = 0
+    hash_value = 14695981039346656037
+    current_book_line = 7000
+    current_ply = 0
+    seen = set()
+    for row in rows:
+        book_line = row["book_line"]
+        require(7001 <= book_line <= 7020 and book_line >= current_book_line, f"unordered book line in {path}")
+        current_ply = current_ply + 1 if book_line == current_book_line else 1
+        current_book_line = book_line
+        seen.add(book_line)
+        check(row["ply"], current_ply, f"{path} game {book_line} ply")
+        match = re.search(r"\bnodes (\d+)(?=\s|$)", row["last_info"] or "")
+        check(row["nodes"], int(match[1]) if match else 0, f"{path} game {book_line} last-info nodes")
+        move = row["bestmove_line"].split()
+        require(move[:2] == ["bestmove", row["bestmove"]], f"bestmove differs from its UCI line in {path}")
+        final = row["final_nodes"]
+        if final is None:
+            require(row["final_nodes_line"] is None and row["nodes"] == 0, f"missing final soft-node telemetry in {path}")
+        else:
+            require(final >= row["nodes"], f"final soft nodes below last-info nodes in {path}")
+            check(row["final_nodes_line"], f"info string softnodes nodes {final}", f"{path} final soft-node line")
+            final_lines += 1
+            final_total += final
+        last_info_total += row["nodes"]
+        zero_last += row["nodes"] == 0
+        wire = f"{row['bestmove']},{row['nodes']};"
+        check(row["trace_input"], wire, f"{path} trace input")
+        for byte in wire.encode("ascii"):
+            hash_value = (hash_value ^ byte) * 1099511628211 & ((1 << 64) - 1)
+        check(row["trace_fnv1a64"], f"{hash_value:016x}", f"{path} cumulative trace")
+    require(seen == set(range(7001, 7021)), f"wrong W book lines in {path}")
+    check(receipt, {"searches": len(rows), "total_nodes": last_info_total, "final_nodes": final_total,
+                    "trace_fnv1a64": f"{hash_value:016x}", "final_lines": final_lines,
+                    "missing_final_lines": len(rows) - final_lines, "zero_last_info_searches": zero_last},
+          f"{path} tape summary")
+
+
+def read_pins(path):
+    lines = path.read_text(encoding="utf-8").splitlines()
+    require(len(lines) == 2, f"expected one executable receipt per engine in {path}")
+    pins = {}
+    for arm, line in zip("AB", lines):
+        sha256, executable = line.split(maxsplit=1)
+        require(re.fullmatch(r"[0-9a-f]{64}", sha256), f"invalid executable digest in {path}")
+        pins[arm] = {"path": executable, "sha256": sha256}
+    return pins
+
+
+def known_workload(root):
+    path = root / "known-answer.txt"
+    source = load(path)
+    expected = signature(source)
+    require(source.keys() == set(TRACE_FIELDS) and expected[0] == 20
+            and all(type(value) is int and value > 0 for value in expected[:4])
+            and expected[3] >= expected[2]
+            and isinstance(expected[4], str) and re.fullmatch(r"[0-9a-f]{16}", expected[4]),
+            f"invalid W signature in {path}")
+    pins = read_pins(root / "clang-executables.raw.txt")
+    for key, arm in zip("AB", ("r15d", "kF")):
+        gate = root / "step2"
+        data = load(gate / f"{arm}.result.raw.txt")
+        validate_run(gate, arm, data, expected)
+        check(data["engine_sha256"], pins[key]["sha256"], f"Step 2 {arm} executable")
+        require(data["eligible"], f"Step 2 {arm} failed the W gate")
+        validate_tape(gate / f"{arm}.searches.raw.txt", data)
+    return Known(expected, {"net": NET_SHA256, "book": BOOK_SHA256, "known_answer": digest(path),
+                            "driver": digest(root / "soft_book_driver.py.txt")}, pins)
+
+
+def verify_manifest(directory, manifest, expected, requested, floor):
+    step = directory.name
+    copies = step == "stepF"
+    check(manifest, {"schema": SCHEMA, "order": ORDERS, "blocks_requested": requested,
+                     "expected_games_searches_nodes_trace": expected.signature, "identical_floor": copies}, str(directory))
+    affinity = manifest["worker_affinity"]
+    require(len(affinity) == 1 and type(affinity[0]) is int and affinity[0] >= 0,
+            f"{directory} is not pinned to exactly one logical CPU")
+    identities = manifest["inputs"]
+    for key, sha256 in expected.hashes.items():
+        check(identities[key]["sha256"], sha256, f"{directory} {key} SHA-256")
+    for arm in "AB":
+        argv = [identities["driver"]["path"], "--engine", identities[arm]["path"], "--net", identities["net"]["path"],
+                "--book", identities["book"]["path"], *WORKLOAD]
+        check(manifest["argv_by_arm"][arm], argv, f"{directory} arm {arm} argv")
+    if copies:
+        require(manifest["floor"] is None and identities["A"]["path"] != identities["B"]["path"],
+                f"{directory} floor requires distinct paths and no preceding floor")
+        check(identities["A"]["sha256"], identities["B"]["sha256"], f"{directory} copy SHA-256")
+        check(identities["A"], expected.clang_inputs["A"], f"{directory} Clang r15d pin")
+    elif step == "stepK":
+        require(floor is not None and floor.complete, "Step K requires the completed Step F")
+        check(manifest["floor"]["sha256"], digest(floor.directory / "summary.txt"), "Step K floor SHA-256")
+        check(affinity, floor.manifest["worker_affinity"], "Step K CPU versus Step F")
+        check(identities["A"]["sha256"], floor.manifest["inputs"]["A"]["sha256"], "Step K baseline versus Step F")
+        check(identities["A"], expected.clang_inputs["A"], "Step K Clang r15d pin")
+        check(identities["B"], expected.clang_inputs["B"], "Step K Clang kF pin")
+    else:
+        check(manifest["floor"], None, "Step 4 floor")
+        frozen = read_pins(directory.parent / "gcc-executables.raw.txt")
+        for arm, identity in frozen.items():
+            check(identities[arm], identity, f"Step 4 arm {arm} GCC pin")
+
+
+def verified_blocks(directory, manifest, rows, requested, expected):
+    require(len(rows) <= LEGS * requested, f"too many raw runs in {directory}")
+    end = 0
+    for index, row in enumerate(rows):
+        block, leg = divmod(index, LEGS)
+        order = ORDERS[block % len(ORDERS)]
+        arm = order[0] if leg == 0 else order[leg - 1]
+        stem = f"b{block + 1:02d}-r{leg}-{arm}"
+        check(row, {"block": block + 1, "order_index": leg, "arm": arm, "warmup": leg == 0,
+                    "engine": manifest["arm_labels"][arm], "engine_sha256": manifest["inputs"][arm]["sha256"]}, stem)
+        validate_run(directory, stem, row, expected)
+        require(row["wall_start_monotonic_ns"] >= end, f"overlapping run at {stem}")
+        end = row["wall_end_monotonic_ns"]
+    groups = [rows[offset:offset + LEGS] for offset in range(0, len(rows), LEGS)]
+    return [group for group in groups if len(group) == LEGS and all(row["eligible"] for row in group)]
+
+
+def timing_math(groups, requested, floor):
+    blocks = []
+    positions = {cohort: {key: [] for key, _ in METRICS} for cohort in ("odd", "even")}
+    timed_runs = []
+    for group in groups:
+        measured = group[1:]
+        timed_runs.extend(measured)
+        block_index = group[0]["block"]
+        cohort = "odd" if block_index % 2 else "even"
+        block = {"block": block_index, "order": ORDERS[(block_index - 1) % len(ORDERS)]}
+        for key, _ in METRICS:
+            totals = {arm: math.fsum(row[key] for row in measured if row["arm"] == arm) for arm in "AB"}
+            block[key] = totals["B"] / totals["A"]
+            mean = fmean(row[key] for row in measured)
+            positions[cohort][key].append([row[key] / mean for row in measured])
+        blocks.append(block)
+    means = {cohort: {key: [fmean(position) for position in zip(*series)] for key, series in data.items()}
+             for cohort, data in positions.items()}
+    metrics = {}
+    count = len(blocks)
+    for key, _ in METRICS:
+        if count == 0:
+            break
+        values = [block[key] for block in blocks]
+        ordered = sorted(values)
+        block_mean = fmean(values)
+        df = count - 1
+        below, above = sum(value < 1 for value in values), sum(value > 1 for value in values)
+        totals = {arm: math.fsum(row[key] for row in timed_runs if row["arm"] == arm) for arm in "AB"}
+        data = {"block_mean": block_mean, "block_median": median(values), "block_min": ordered[0], "block_max": ordered[-1],
+                "pooled_b_over_a": totals["B"] / totals["A"], "below_one": below, "above_one": above,
+                "equal_one": count - below - above}
+        if count == requested:
+            halfwidth = T975[df] * stdev(values) / math.sqrt(count)
+            data.update(block_mean_ci95=[block_mean - halfwidth, block_mean + halfwidth], ci_df=df)
+        if count >= 3:
+            data.update(block_middle_min=ordered[1], block_middle_max=ordered[-2])
+        if floor is not None:
+            low, high = (floor.metrics[key][field] for field in ("block_middle_min", "block_middle_max"))
+            outside = not low <= data["block_median"] <= high
+            same_side = max(below, above) >= SIGN_GATE
+            decision = "incomplete"
+            if count == requested:
+                decision = "MEASURED" if outside and same_side else "not measurable here"
+            data.update(floor_middle_min=low, floor_middle_max=high, median_outside_middle_floor=outside,
+                        at_least_13_on_one_side=same_side, decision=decision)
+        metrics[key] = data
+    return blocks, metrics, means
+
+
+def audit(directory, requested, known, floor=None):
+    manifest = load(directory / "inputs.txt")
+    verify_manifest(directory, manifest, known, requested, floor)
+    summary_path = directory / "summary.txt"
+    summary = load(summary_path) if summary_path.is_file() else None
+    rows, truncated = read_rows(directory / "runs.jsonl.txt", summary is not None)
+    groups = verified_blocks(directory, manifest, rows, requested, known.signature)
+    if summary is not None and "verified_inputs_after" not in summary:
+        require(str(summary["error"]).startswith("Post-run identity failed:"), f"missing post-run identity in {directory}")
+        groups = []
+    blocks, metrics, means = timing_math(groups, requested, floor)
+    complete = len(blocks) == requested and len(rows) == requested * LEGS
+    if summary is not None:
+        check(summary, {"schema": SCHEMA, "order": ORDERS, "requested_blocks": requested, "completed_blocks": len(blocks),
+                        "attempted_runs": len(rows), "included_runs": 4 * len(blocks), "included_warmups": len(blocks),
+                        "complete": complete, "blocks": blocks, "metrics": metrics, "order_position_means": means,
+                        "expected_games_searches_nodes_trace": known.signature,
+                        **{key: manifest[key] for key in ("arm_labels", "identical_floor", "floor", "worker_affinity")}},
+              str(summary_path))
+        require(summary["metrics"].keys() == metrics.keys(), f"unexpected metric coverage in {summary_path}")
+        if "verified_inputs_after" in summary:
+            check(summary["verified_inputs_after"], manifest["inputs"], f"{summary_path}.verified_inputs_after")
+        require(not complete or summary["error"] is None, f"completed campaign records an error in {summary_path}")
+    return Campaign(directory, manifest, rows, blocks, metrics, means, summary, complete and summary is not None, truncated)
+
+
+def show_campaign(step, data):
+    print(f"### {STEPS[step][1]}\n")
+    for arm in "AB":
+        pin = data.manifest["inputs"][arm]["sha256"]
+        print(f"- Arm {arm} `{data.manifest['arm_labels'][arm]}` (`{pin}`)")
+    cpu = data.manifest["worker_affinity"][0]
+    print(f"\nLogical CPU {cpu}. B/A compares summed timed B durations with summed timed A durations.\n")
+    print("| Block | Leg | Engine | CPU (s) | Wall (s) | Trace | Exit | In ratios |")
+    print("|---:|---|---|---:|---:|---|---:|---|")
+    accepted = {block["block"] for block in data.included_blocks}
+    for row in data.rows:
+        leg = "Warm-up" if row["warmup"] else row["order_index"]
+        sampled = "yes" if row["block"] in accepted and not row["warmup"] else "no"
+        wall_s = row["total_wall_ns"] / 1e9
+        print(f"| {row['block']} | {leg} | {row['engine']} | {row['engine_cpu_s']:.3f} | {wall_s:.3f} | "
+              f"`{row.get('trace_fnv1a64', 'missing')}` | {row['engine_exit']} | {sampled} |")
+    for row in data.rows:
+        if row["error"]:
+            game, searches, nodes, final_nodes, trace = signature(row)
+            print(f"\nExcluded block {row['block']} leg {row['order_index']}. Observed `{game}, {searches}, {nodes}, "
+                  f"{final_nodes}, {trace}`. Recorded error `{row['error']}`.")
+    if data.included_blocks:
+        print("\n| Block | Timed order | B/A CPU | B/A wall |\n|---:|---|---:|---:|")
+        for block in data.included_blocks:
+            print(f"| {block['block']} | {block['order']} | {block['engine_cpu_s']:.4f} | {block['total_wall_ns']:.4f} |")
+        is_candidate = step == "stepK"
+        gate_header = " Reading |" if is_candidate else ""
+        gate_divider = "---|" if is_candidate else ""
+        print(f"\n| Metric | Median | Pooled B/A | Mean | 95% t interval | df | Middle range | Below 1 | Above 1 |{gate_header}")
+        print(f"|---|---:|---:|---:|---:|---:|---:|---:|---:|{gate_divider}")
+        for key, name in METRICS:
+            values = data.metrics[key]
+            interval = df = "—"
+            if data.complete and "block_mean_ci95" in values:
+                lo, hi = values["block_mean_ci95"]
+                interval = f"[{lo:.4f}, {hi:.4f}]"
+                df = str(values["ci_df"])
+            middle = "—"
+            if "block_middle_min" in values:
+                middle = f"{values['block_middle_min']:.4f}–{values['block_middle_max']:.4f}"
+            verdict = f" {values['decision'] if data.complete else 'Incomplete'} |" if is_candidate else ""
+            count = len(data.included_blocks)
+            print(f"| {name} | {values['block_median']:.4f} | {values['pooled_b_over_a']:.4f} | "
+                  f"{values['block_mean']:.4f} | {interval} | {df} | {middle} | {values['below_one']}/{count} | "
+                  f"{values['above_one']}/{count} |{verdict}")
+        print("\n| Block cohort | Metric | Leg 1 | Leg 2 | Leg 3 | Leg 4 |\n|---|---|---:|---:|---:|---:|")
+        for cohort, means in data.position_means.items():
+            for key, name in METRICS:
+                if means[key]:
+                    columns = " | ".join(f"{value:.5f}" for value in means[key])
+                    print(f"| {cohort.capitalize()} | {name} | {columns} |")
+        print("\nPosition means use each block's four timed legs. The middle range drops one block at each end.")
+    else:
+        print("\nNo complete blocks were eligible.")
+    if not data.complete:
+        print(f"\n{len(data.included_blocks)}/{STEPS[step][0]} blocks are eligible. The campaign is incomplete.")
+    if data.summary and data.summary["error"]:
+        print(f"\nRecorded summary error `{data.summary['error']}`")
+    if data.truncated:
+        print("\nThe last raw run record is partial. Complete preceding receipts appear above.")
+    base = f"sol2/job13/{step}"
+    links = [f"[Inputs]({base}/inputs.txt)"]
+    if (data.directory / "runs.jsonl.txt").is_file():
+        links.append(f"[Raw runs]({base}/runs.jsonl.txt)")
+    if data.summary is not None:
+        links.append(f"[Summary]({base}/summary.txt)")
+    command = data.directory.parent / f"{step}-command.raw.txt"
+    if command.is_file():
+        links.append(f"[Command](sol2/job13/{command.name})")
+    print("\n" + " · ".join(links) + "\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("job13", type=Path, help="Job 13 raw receipts directory")
+    parser.add_argument("--through", choices=("F", "K", "4"), default="4", help="last campaign to read, with 4 optional")
+    args = parser.parse_args()
+    if not (args.job13 / "known-answer.txt").is_file():
+        require(not any((args.job13 / name / "inputs.txt").is_file() for name in STEPS), "timing manifests lack a W signature")
+        print("No verified Step 2 W signature or timing campaigns were found.")
+        return
+    known = known_workload(args.job13)
+    games, searches, nodes, final_nodes, trace = known.signature
+    print(f"W uses PC20, Threads 1, Hash 16 MiB, net768 and `go softnodes 2000` on book lines 7001–7020. "
+          f"Both Step 2 engines record {games} games, {searches:,} searches, {nodes:,} last-info nodes, "
+          f"{final_nodes:,} final soft-node counts and trace `{trace}`. [W signature](sol2/job13/known-answer.txt)\n")
+    floor = None
+    for step in STEPS:
+        directory = args.job13 / step
+        short = step.removeprefix("step")
+        if (directory / "inputs.txt").is_file():
+            data = audit(directory, STEPS[step][0], known, floor if step == "stepK" else None)
+            show_campaign(step, data)
+            if step == "stepF":
+                floor = data
+        else:
+            require(not (directory / "runs.jsonl.txt").is_file(), f"raw runs lack a manifest in {directory}")
+            print(f"Step {short} has no timing receipts.\n")
+        if short == args.through:
+            break
+
+
+if __name__ == "__main__":
+    main()
