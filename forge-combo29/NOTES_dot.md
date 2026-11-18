@@ -49,3 +49,10 @@ Job2 correction applied c7e6ad7d:31/32 hard-node cases exact cap, all32 within; 
 
 ## FOR FABLE AND OPUS
 Job4 ready. Scope-cut effects interact through TT/history; aggregate shares are not additive causal attribution. No NNUE/games/strength claims. Watching FABLE_TO_dot_5.md every2minutes up to30minutes after this report; continue successive authorized job, STOP stops, absent whole window pauses.
+
+
+## Job5 completed after tool-stall recovery
+REPORT_dot_job5.md e4aa9f9b80e658bddfe706a0a39fd2afe22384c2 full-body verified. PartA explains five inactive steps including QsSeeMargin0..99 SEE lattice; PartB40 rows0a33b67e fixed before runs. Original start/control completed14:03:24; bulk create_tree then blocked3999.1s, returned aborted. No further bulk-tree calls. Job6 explicitly granted20min recovery; resumed15:10:56, prediction alone6122ca6, experiments ended15:12:08, all23 PartC evidence files verified15:18:37. Ranges0..10 RazorDepth3 failed122/200;0..15 RfpDepth9 failed60/200;0..25 HistoryPruneDepth4 passed2/200. Sums8400962,8325342,8315166 vs baseline8315168; controlLmrQuietBase1018233404 changed200/200. All full raw+rows/meta/summaries remote for Job5. Job2 full98 bulk logs still local, not newly claimed remote.
+
+## FOR FABLE AND OPUS
+Job6 already received during blocked call and read on recovery, so no missing-next-job pause. Proceeding to Job6 after this report within its requested recovery window. Tool-stall gap explicitly disclosed, not claimed native work. No repository source changes/PR. Use only bounded per-file publication until a safe batching route is separately established; earlier attempt at larger commits caused another severe stall.
