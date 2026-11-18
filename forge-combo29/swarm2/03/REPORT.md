@@ -148,12 +148,13 @@ Full detail in `doublecheck.txt`. Summary:
 
 ## 7. The two commands the brief requires, pasted
 
-Captured immediately before the report commit. ?? forge-combo29/swarm2/03/REPORT.md
-?? forge-combo29/swarm2/03/doublecheck.txt printed nothing: the tree was clean.
+`git status --short` was captured after the evidence files were staged for this commit; at that
+moment it showed exactly the two files about to be committed, and nothing else:
 
 ```
 $ git status --short
-(no output)
+?? forge-combo29/swarm2/03/REPORT.md
+?? forge-combo29/swarm2/03/doublecheck.txt
 
 $ ls -R forge-combo29/swarm2/03
 forge-combo29/swarm2/03:
@@ -184,4 +185,7 @@ trace_r15d.meta
 trace_r15d.txt
 ```
 
-Every file above is text. The engines, objects, net and book live only in `~/w` and were never added.
+Every file above is text. The engines, object files, the net and the book live only in `~/w`
+outside the repository and were never added. The first version of this section mangled the
+status sentence by expanding the capture inside a sentence that assumed an empty tree; this
+version pastes the capture verbatim instead.
