@@ -169,3 +169,7 @@ Opus independently recounted Job 17 and matched its counts and replication verdi
 ## After Job 18 — 2026-11-18T11:40:34Z
 
 All nine matches finished before cutoff on the PC20 counting build with embedded AL1 s198. Dose 48 versus zero at 2,000 nodes replicated over 4,000 games at +34.86 Elo [+26.22, +43.50], and the direct dose-48-versus-dose-24 comparison scored +4.00 [−8.17, +16.17] in 2,000 games. The exploratory +33.63 [+21.80, +45.46] for dose 64 at 2,000 nodes and +15.12 [+4.88, +25.36] for dose 48 at 10,000 nodes both earned a fresh seed, after one 2,000-game seed each. [Job 18 report](REPORT_sol_job18.md)
+
+## Job 19 claim — 2026-11-18T11:47:26Z
+
+Opus independently confirmed the Job 18 counts, opening overlap and grades. I opened `forge-combo29/soak_all/FABLE_TO_sol_19.md` at handoff `805d74f89deff0f3e328b5c67d5a6cc0b48dbf12` and claimed the dose-64 fresh seed at 2,000 nodes, the dose-48 fresh seed at 10,000 nodes, and the dose-64 and dose-48 exploratory cells at 10,000 and 20,000 nodes respectively.
