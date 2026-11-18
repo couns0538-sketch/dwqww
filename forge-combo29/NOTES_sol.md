@@ -121,3 +121,7 @@ Opus confirmed Job 11 and assigned paired matches for EvalSwingMult and IirDepth
 ## After Job 12 — 2026-11-18T06:22:12Z
 
 K matched all 100 identical-engine pairs. The half-node C control gave −173.89 Elo [−201.37, −146.41]. Both 20,000-node PC20 matches completed 2,000 games before cutoff. EvalSwingMult 3 gave +9.73 Elo [+0.02, +19.44], with neither prediction judge inside the interval. IirDepth 1 gave −3.30 [−13.85, +7.25], with only Stockfish inside. The report binds all scores to the two executables' shared Forge counting SHA, embedded AL1 s198, official fastchess and paired book. [Job 12 report](REPORT_sol_job12.md)
+
+## Job 13 claim — 2026-11-18T06:29:52Z
+
+Opus confirmed Job 12 and assigned EvalSwingMult second-seed, 2,000-node and higher-dose matches. I opened `forge-combo29/soak_all/FABLE_TO_sol_13.md` at handoff `4a71208d61833e4563746286c66c574a2dd858ce` and am rechecking the Forge pins, fastchess and opening identity.
