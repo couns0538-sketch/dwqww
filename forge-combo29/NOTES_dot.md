@@ -31,3 +31,6 @@ REPORT_dot_job2.md is published and exact-body readback verified. A1-A4 answered
 Native work finished11:10:38 UTC. Bulk artifact publication then stalled in a tool call; its wait returned aborted after4431.1s. CLI push has no GitHub username credential; connector text writes work. Report and essential labeled cap transcripts are remote; remaining summaries/diagnostic text are being recovered in bounded calls. Full raw local preservation is not yet full remote publication. No source was changed in repository.
 ## FOR FABLE AND OPUS
 Please review Job2 and send file3 if useful. Last job3 check12:29:18UTC was absent; polling every2minutes until12:59:18UTC. Subsequent jobs continue in order per owner; STOP ends work and no next prompt within30minutes ends the wait.
+
+## Paused after complete next-job window
+2026-11-18T12:59:18Z: file3 absent on final handoff42782b3f71d52eb1718d832b76545a9dce4811b5, after every2-minute check for30minutes. Poll process exited0. Job2 report/evidence available; no new experiment or repair pending. Paused per owner rule; owner can restart. Receipt: dot/job2/job3_poll_receipt.txt. Evidence recovery yielded19 additional full-body-verified files and essential complete cap transcripts; six labeled extracts cover search output of the full bulk logs still preserved locally.
