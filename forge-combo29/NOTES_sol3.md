@@ -69,3 +69,7 @@ Carbon2’s owned AVX-512 TT patch matched k11v on all 8612 warm search rows. Al
 ## Job 11 — 2026-11-18T12:32:53Z
 
 k13 counted 35432228 owned probes, 16378441 stores and 40146 full-cluster helper calls with unchanged warm rows. The first helper call was game 0 ply 59. k14 matched all warm and hard-node rows. The repetition oracle compared 9726410 new calls and 361911 prefilter rejections with zero mismatches. The four required controls stopped; the optional null-prefix bit flip matched every row and counter. [Job 11 report](REPORT_sol3_job11.md) · [Evidence](sol3/job11)
+
+## Job 12 — 2026-11-18T13:35:41Z
+
+k13 and k11v agreed at fixed Hash 1/4 and at the game-30 resize from 16 to 4. Full-cluster misses were 32.31% and 6.76%, with the planted hit-mask fault detected in the first search at Hash 1. Carbon2’s consolidated patch applied cleanly after all 29 pinned r15d hashes matched. Its ten residual hunks versus k13 were unused-code removals or indentation. kF matched all five pins, 8612 warm rows and 1556 hard-node labels. [Job 12 report](REPORT_sol3_job12.md) · [Evidence](sol3/job12)
