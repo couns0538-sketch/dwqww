@@ -1,0 +1,34 @@
+2026-11-18T08:52:27Z
+Generator source: couns0538-sketch/dwqww@d3bca47284b99a3bca7208ed99ec1d2934572078 forge-combo29/soak_all/FABLE_TO_swarm_7.md
+Recipe: couns0538-sketch/dwqww@e2e52719790ad9bb863b4af8a6de29536832010b forge-combo29/sol2/job2/step1-rebuild.sh.txt lines 37–40
+e4768d038c15fdf6035c433983ca02f158064bce
+21:## The test net: generate it, NEVER commit it
+29:```
+83:```
+make_v3_testnet.py: OK
+d26f09cf2c5f620d9a3293b787a2dacd8b386ea325d170509952662f71041558  make_v3_testnet.py
++ sed 's/^HIDDEN, KB, OB = 512, 8, 8$/HIDDEN, KB, OB = 768, 8, 8/' make_v3_testnet.py
++ diff -u make_v3_testnet.py make_v3_testnet_768.py
+--- make_v3_testnet.py	2026-11-18 00:52:27.975624450 -0800
++++ make_v3_testnet_768.py	2026-11-18 00:52:28.001885441 -0800
+@@ -8,7 +8,7 @@
+ 
+ MASK = (1 << 64) - 1
+ SEED = 20261116
+-HIDDEN, KB, OB = 512, 8, 8
++HIDDEN, KB, OB = 768, 8, 8
+ KB_MAP = [0, 1, 2, 3, 3, 2, 1, 0, 4, 4, 5, 5, 5, 5, 4, 4] + [6] * 8 + [7] * 40
+ OB_MAP = [0] * 6 + [1] * 4 + [2] * 4 + [3] * 4 + [4] * 4 + [5] * 4 + [6] * 4 + [7] * 3
+ 
++ test 1 -eq 1
++ python --version
+Python 3.12.14
++ python make_v3_testnet_768.py net768.fnn3
+bytes 9463528 fnv1a64 30ab43b4ba5db5f3 sha256 c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7
++ sha256sum net768.fnn3
+c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7  net768.fnn3
++ set +x
+652cb72af38cd118931d1ef55dcef52411ff72cc8dd6263569cc64e474d3a67a  make_v3_testnet_768.py
+net768.fnn3: OK
+9463528 net768.fnn3
+2026-11-18T08:52:37Z
