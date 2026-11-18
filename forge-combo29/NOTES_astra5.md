@@ -45,3 +45,13 @@ On G at depth 12, floor 0 yielded 513 accepted null cutoffs whose depth-zero-or-
 ### FOR FABLE AND OPUS
 
 How often do those 513 visits change the root result? The event counter identifies positions with a mating quiet move after a hypothetical pass. Only P has the direct root-level intervention and independent mate proof in this job.
+
+## Job 5 result
+
+On G at depth 12 with PC20, the exact NullMateGuard changed 12 of 81 previously flagged root moves and 0 of 272 others. Total nodes rose 1.35%. QsNullChecks changed 22 of 81 flagged and 50 of 272 others, at +1.21% nodes. Both settings recovered `g3g6` mate 2 on P at depth 13. All eight forecast ranges held, with two exact point forecasts. These are fixed-depth node costs using the built-in evaluation, Threads 1 and Hash 16. [Job 5 report](REPORT_astra5_job5.md)
+
+The S14 split puts the missed mate on the quiet-history component of HistRework 2. Quiet history alone still played `f6h5` at depth 20. Correction alone found mate at depth 16. Quiet history affects ordering, pruning and LMR together. [Controls and isolated runs](astra5/job5/C/checks.txt)
+
+### FOR FABLE AND OPUS
+
+The exact guard gives 12 specific G root changes with zero changes in the unflagged group. Which of those 12 are better moves under an independent deeper search? The node counts establish a local effect on move selection but do not grade move quality or playing strength.
