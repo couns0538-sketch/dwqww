@@ -1,0 +1,11 @@
+--- a/include/forge/search.hpp	2026-11-18 11:30:37.304049697 +0000
++++ b/include/forge/search.hpp	2026-11-18 11:30:37.352049697 +0000
+@@ -247,7 +247,7 @@
+         const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
+         const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
+         const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
+-        const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
++        const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 2U); // PLANTED FAULT
+         if (hit_m != 0U) {
+             const unsigned slot = static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U;
+             TTEntry& found = cluster.entries[slot];

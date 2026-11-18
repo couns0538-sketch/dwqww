@@ -1,0 +1,36 @@
+=== JOB 16 PART 1: FULL IDENTITY SUITE, 500k-OP TT FAST-PROBE ORACLE & PLANTED FAULT (stack/13_tt_avx512_fast_probe.patch.txt) ===
+
+--- 1. Engine's Own Bench Lines on Candidate SP-Profiled Binary (/tmp/carbon2_job16/bld_sp_s13_1/forge) ---
+[PC20 + net512.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 625258 time 249 nps 2511076
+info string bench depth 13 nodes 3652372 time 1447 nps 2524099
+info string bench depth 16 nodes 23891329 time 9404 nps 2540549
+[PC20 + net768.fnn3]
+info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+info string bench depth 11 nodes 882074 time 360 nps 2450205
+info string bench depth 13 nodes 4275906 time 1759 nps 2430873
+info string bench depth 16 nodes 32374943 time 13844 nps 2338554
+
+--- 2. 250 Depth-9 Rows (PC20 + net768.fnn3, positions_250.txt, synchronous wait-for-bestmove): Node Sum & SHA-256 of Rows File ---
+  reference (bld_sp_s12_1): rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  candidate (bld_sp_s13_1): rows=250 node_sum=4332153 rows_sha256=4124a7d4eadfaae4bc811c98f188a814adc26af08cdfe9a669f8e2ecb3816a18
+  first_3_rows_sample: 001 bestmove=c1b2 nodes=11089 score=cp -160 | 002 bestmove=d8c7 nodes=9663 score=cp -108 | 003 bestmove=h1g1 nodes=23129 score=cp 89
+  last_row_sample:     250 bestmove=e7g5 nodes=5301 score=mate 3
+
+--- 3. 1,000 Static Evals (positions_1000.txt, engine's own info string eval lines) ---
+  net768 (1000 lines): ref_sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 candidate_sha256=a702fa7547a8dc5a60d93cfa19dd5c6e0186aea78957ce8ea41c6f559200f690 sample_0='info string eval hce 0 nnue 339 total 339'
+  net512 (1000 lines): ref_sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d candidate_sha256=489220db0011108261352eedb885660ff2d46ad74243f4df433bd43c68e4dd3d sample_0='info string eval hce 0 nnue 835 total 835'
+
+--- 4. Both 6-Game Self-Play Traces (softnodes 2000, Hash 128, PC20 + net768.fnn3) ---
+  startpos_6game: searches=846 nodes=2916466 trace=4560d7c3afdeba2e (== 4560d7c3afdeba2e)
+  fen_6game:      searches=745 nodes=2481101 trace=9ed22c1193ab96de (== 9ed22c1193ab96de)
+
+--- 5. 500,000-Op Collision-Heavy Differential TT Oracle (probe_owned_fast + store_owned_fast vs locked probe + store) ---
+  S13_TT_FAST_PROBE_ORACLE PASS: ops=500000 final_hashfull=64 mismatches=0
+
+--- 6. Planted Fault Check (s13_tt_planted_fault.patch.txt: key_eq << 2U instead of << 3U) ---
+  fault_exit_code=1 (nonzero=true)
+  fault_caught_line: S13_TT_ORACLE MISMATCH (hit) at step=57 ref=1 fast=0
