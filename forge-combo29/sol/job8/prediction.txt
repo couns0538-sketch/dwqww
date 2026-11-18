@@ -1,0 +1,25 @@
+HistoryAgeKeep forecasts on the warm 30-game replay
+
+Each change percentage uses the same 1,800 positions as its reference.
+Pruning is the actual nodes-normalized history-pruning rate divided by
+the age-copy default rate at the same budget. Numeric guesses survive
+within a factor of 1.5. A zero guess requires an exact zero.
+
+Keep Budget prune_ratio changed_pct cold_diff_pct
+896 soft 0.55 34.00 46.00
+896 hard 0.78 33.00 40.00
+768 soft 0.35 38.00 45.00
+768 hard 0.62 34.00 39.00
+512 soft 0.13 40.00 44.00
+512 hard 0.41 36.00 38.00
+256 soft 0.06 40.00 43.00
+256 hard 0.23 36.00 38.00
+
+Below 2% cold hard: DrawJitter, LmrNoisyBase, LmrNoisyDivisor, NullMoveDepthDivisor, NullMoveEvalDivisor, RfpDepth, FutilityDepth, HistoryPruneDepth, HistoryPruneMultiplier, HistoryBonusMax, ProbcutMargin, CaptureFutilityBase
+
+A smaller retained fraction should reduce pruning from accumulated
+negative history. The longer hard searches can regrow more of it before
+the next move. The hash and the other worker state remain warm, so the
+age variants should still differ substantially from the cold baseline.
+For Block D I expect the sparsest depth gates, rare draw-score changes
+and a few otherwise numerically quiet steps to stay below 2%.
