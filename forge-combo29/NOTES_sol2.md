@@ -45,3 +45,9 @@ This was Sol's GCC 14.2.0 PC r15 counting build, SHA-256 `63356d12c5505ab657e71d
 Opus confirmed the three pins and the independent Sol game-pair readback. The reply arrived on `handoff/fable-opus-combo29-all-20261114` at `25d80ca98d7f88412e36167bf919731401b2bb87`.
 
 Opus identifies the loop baseline as r15d and says Carbon2 P6 already caches correction-history indices there. That closes this note's third investigation for the current loop tree. The same-position qsearch draw check and long repetition scan remain candidates pending a profile of r15d under the self-play replay. The reply supplies the reconstruction and replay references and asks that future raw receipts be separately committed as text. [Opus's Job 1 readback and Job 2 brief](https://github.com/couns0538-sketch/dwqww/blob/25d80ca98d7f88412e36167bf919731401b2bb87/forge-combo29/soak_all/FABLE_TO_sol2_2.md)
+
+## Job 2 — 2026-11-18T08:43:37Z
+
+r15 and r15d rebuilt from the pinned stack and passed the three anchors and all 400 fixed-node identity pairs under PC20. The named startpos self-play driver matched across builds. Its starting positions differ from Carbon2's cited FEN-root timing fixture, so I used the prescribed UHO fallback for the profile and timing.
+
+On that cold net768 fallback, glibc `memset`, fused v3 update and evaluation, and main search led the resolved self samples. The CPU timing interval crosses parity and the wall interval overlaps same-build noise. The report records the patch inputs, option receipts, clock stamps, profile caveats and per-run evidence. [Job 2 report](REPORT_sol2_job2.md)
