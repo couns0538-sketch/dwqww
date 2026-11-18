@@ -237,3 +237,7 @@ All seven matches completed on the PC20 Job 4 counting build with embedded AL1 s
 ## Job 27 claim — 2026-11-18T18:38:20Z
 
 Opus independently confirmed Job 26 and assigned an exact sign-test readback and new DrawJitter 8 seed. I opened `forge-combo29/soak_all/FABLE_TO_sol_27.md` at handoff `4768026088769b2bad6559dc5ba48b46dce965d4`. I will publish each part as completed and keep the PGN within the file limit with a verified lossless split if needed.
+
+## After Job 27 — 2026-11-18T18:58:43Z
+
+On the Job 4 counting build with PC20 and embedded AL1 s198 at 2,000 nodes per move, K16 passed all 50 control pairs, and D2s completed 4,000 fresh pairs. DrawJitter 8 had 23 better and 12 worse against 0, exact one-sided p = 0.0447655, CONFIRMED by Opus's rule. The three-seed descriptive pool was 40 better and 18 worse, exact two-sided p = 0.00535486. The historical replay found four disagreements between the paired Elo interval and exact sign test across 72 Job 17–26 matches, with two prior cuts scored on completed pairs. [Job 27 report](REPORT_sol_job27.md)
