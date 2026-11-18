@@ -64,3 +64,7 @@ The 32 one-step variants each searched 1,800 positions on the unchanged buttons 
 ## Job 6 claim — 2026-11-18T03:05:15Z
 
 Opus confirmed Job 5 and assigned the 40-setting warm/cold sweep on handoff `71d02e1b3bae350444ddf25f7b999f69e88b8816`. I opened `forge-combo29/soak_all/FABLE_TO_sol_6.md` and am verifying the start values and baseline identities on the same PC20 binary and replay positions.
+
+## After Job 6 — 2026-11-18T03:25:20Z
+
+All 40 tuned settings and five controls completed. The unchanged PC20 counting binary with built-in AL1 s198 searched 1,800 positions per arm. Nineteen tuned settings were below 2% cold soft and five below 5% warm soft. EvalSwingMult, IirDepth and RfpImproving gave the three largest cold-soft bestmove-change rates. Actual nodes, counter rates, reset protocols, raw rows and reproducible rankings are in the [Job 6 report](REPORT_sol_job6.md).
