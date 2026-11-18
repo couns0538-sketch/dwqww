@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Create Job 15's fresh equal-length engine copies and verify Job 14's aliases."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import sys
+
+
+JOB15 = Path("/workspace/work/sol2-job15")
+JOB14_ARMS = Path("/workspace/work/sol2-repo/forge-combo29/sol2/job14/arms.txt")
+R15D = Path("/workspace/work/sol2-job13/build-clang-selfplay-r15d/forge")
+H1 = Path("/workspace/work/sol2-job14/hard-link-to-r15d-at-a-substantially-longer-launch-path/forge")
+KF = Path("/workspace/work/sol2-job13/build-clang-selfplay-kF/forge")
+R15D_SHA256 = "540e63c0b7cf2512f1716657aded48b0558022b49c0fe8489596195cf2035834"
+KF_SHA256 = "da5df215a6aa255261d4e5574474da7c82aad1a9e95df83e15d5b38963ef439d"
+LENGTHS = (40, 56, 72, 88)
+ENVIRONMENT = {"LC_ALL": "C", "TZ": "UTC"}
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def read_arm(path, expected_sha256):
+    info = path.lstat()
+    require(stat.S_ISREG(info.st_mode) and path.resolve(strict=True) == path,
+            f"not a regular file at the specified path: {path}")
+    require(os.access(path, os.X_OK), f"file is not executable: {path}")
+    with path.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    require(digest == expected_sha256, f"wrong SHA-256 for {path}: {digest}")
+    return {"path": str(path), "length": len(str(path)), "inode": info.st_ino,
+            "sha256": digest, "device": info.st_dev}
+
+
+def file_id(arm):
+    return arm["device"], arm["inode"]
+
+
+def copy_exclusive(source, destination):
+    mode = stat.S_IMODE(source.stat().st_mode)
+    with source.open("rb") as incoming, destination.open("xb") as outgoing:
+        shutil.copyfileobj(incoming, outgoing)
+        outgoing.flush()
+        os.fchmod(outgoing.fileno(), mode)
+
+
+def fresh_path(arm_dir, arm_index, build, length):
+    prefix = f"{build.lower()}{arm_index}"
+    extra = length - len(str(arm_dir / prefix / "forge"))
+    require(extra >= 0, f"no path of length {length} under {arm_dir}")
+    return arm_dir / (prefix + "x" * extra) / "forge"
+
+
+def main():
+    previous = json.loads(JOB14_ARMS.read_text(encoding="utf-8"))
+    original = read_arm(R15D, R15D_SHA256)
+    hard_link = read_arm(H1, R15D_SHA256)
+    candidate = read_arm(KF, KF_SHA256)
+    require(original == previous["arms"]["P0"] and hard_link == previous["arms"]["H1"],
+            "P0 or H1 differs from the Job 14 path, length, inode, device, or SHA-256")
+    require(file_id(original) == file_id(hard_link), "H1 no longer shares P0's inode")
+    raw_env = b"".join(os.fsencode(f"{name}={value}") + b"\0" for name, value in ENVIRONMENT.items())
+    engine_environment = {"variables": ENVIRONMENT, "bytes": len(raw_env),
+                          "sha256": hashlib.sha256(raw_env).hexdigest()}
+    require(engine_environment == previous["engine_environment"], "engine environment differs from Job 14")
+
+    arm_dir = JOB15 / "arms"
+    plans = []
+    for index, length in enumerate(LENGTHS, 1):
+        for build, source, sha256 in (("R", R15D, R15D_SHA256), ("K", KF, KF_SHA256)):
+            path = fresh_path(arm_dir, index, build, length)
+            require(len(str(path)) == length, f"incorrect launch path length: {path}")
+            require(path.parent.resolve() == path.parent, f"unexpected symlink in fixture path: {path}")
+            require(not os.path.lexists(path), f"refusing to overwrite an existing fresh arm: {path}")
+            plans.append((f"{build}{length}", path, source, sha256))
+
+    arms = {"P0": original, "H1": hard_link}
+    inode_ids = {file_id(original), file_id(candidate)}
+    for name, path, source, sha256 in plans:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        copy_exclusive(source, path)
+        arm = read_arm(path, sha256)
+        require(file_id(arm) not in inode_ids, f"fresh copy aliases another inode: {path}")
+        inode_ids.add(file_id(arm))
+        arms[name] = arm
+    require(read_arm(R15D, R15D_SHA256) == original and read_arm(KF, KF_SHA256) == candidate
+            and read_arm(H1, R15D_SHA256) == hard_link, "a frozen executable changed while creating arms")
+
+    print(json.dumps({"arms": arms, "engine_environment": engine_environment}, indent=2))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(error, file=sys.stderr)
+        raise SystemExit(1) from error
