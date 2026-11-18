@@ -1,0 +1,24 @@
+Part B2 and Part B3 Pre-Committed Predictions (CPU of B over A on Held-Out Workload T)
+======================================================================================
+
+Declared row thresholds (A = kF build, B = build without piece or without rest-of-kF):
+  - PAYS:     pooled CPU ratio > 1.0116 and at least 10 of 12 blocks > 1.0000
+  - COSTS:    pooled CPU ratio < 0.9884 and at least 10 of 12 blocks < 1.0000
+  - NOT SEEN: otherwise
+
+Part B2 (G = r15d + 04_S7 + 11_stop_hot + 13_tt_avx512_fast_probe; tests the remaining 10 pieces of kF):
+  1. B2a (B = G_1 against A = kF_sp_1 on T):
+     Predicted pooled CPU ratio range: [1.0300, 1.0620]
+     Expected row reading: PAYS
+  2. B2b (B = G_2 against A = kF_sp_2 on T):
+     Predicted pooled CPU ratio range: [1.0300, 1.0620]
+     Expected row reading: PAYS
+  3. Expected Part B2 reading for the REST of kF:
+     PAYS (both B2a and B2b read PAYS).
+
+Part B3 planned single-piece leave-one-out rows (B = kF minus piece against A = kF_sp_1 on T,
+run in order while ending before minute 70; debug-only 03_S5_assert skipped):
+  1. 04_S7:               predicted pooled CPU ratio range [1.0020, 1.0180]
+  2. 12_v3_refresh_fuse:  predicted pooled CPU ratio range [0.9980, 1.0140]
+  3. 05_G1:               predicted pooled CPU ratio range [0.9950, 1.0120]
+  4. 06_G2 (if reached):  predicted pooled CPU ratio range [0.9950, 1.0120]
