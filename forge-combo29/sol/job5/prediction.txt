@@ -1,0 +1,25 @@
+One-step PC20 sensitivity predictions on the first 30 warm-table games
+
+Soft and hard guesses are percentages of the 3,600 paired searches per
+regime after pooling the lower and upper steps. The ratio is soft/hard.
+Each numerical guess survives within [guess / 1.5, guess × 1.5].
+A zero guess requires zero changed moves (or zero for the ratio with
+nonzero hard share). An undefined observed ratio kills a numeric guess.
+
+Setting soft_share_pct hard_share_pct soft_hard_ratio
+HistoryPruneDepth 7.00 16.00 0.4375
+HistoryPruneMultiplier 5.00 15.00 0.3333
+HistoryBonusQuadratic 16.00 22.00 0.7273
+HistoryBonusLinear 9.00 12.00 0.7500
+HistoryBonusMax 2.00 7.00 0.2857
+LmrHistoryDivisor 6.50 13.00 0.5000
+ProbcutMargin 6.50 10.00 0.6500
+RfpMargin 12.00 15.00 0.8000
+
+Below 0.67: HistoryPruneDepth, HistoryPruneMultiplier, HistoryBonusMax,
+LmrHistoryDivisor and ProbcutMargin. Above 1.5: none predicted.
+The history-pruning and ProbCut event rates were lower in the warm soft
+arm than in the warm hard arm. Small changes to broad history bonuses
+could propagate across later plies under both budgets. I expect the
+bonus maximum to matter less in the shallower search, and reverse
+futility to be the closest of the two comparison settings.
