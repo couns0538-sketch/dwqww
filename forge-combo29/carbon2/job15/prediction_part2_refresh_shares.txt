@@ -1,0 +1,53 @@
+=== JOB 15 PART 2 STANDALONE PREDICTION: NNUE v3 REFRESH & MAKE_VALID SHARES ===
+Committed ALONE before building or running any Part 2 counter executable.
+Workload: 60 self-play games of our driver at `Hash 16`, `go softnodes 2000`,
+`PC20 + net768.fnn3` (`Threads 1`, `7,670` searches, `25,641,316` nodes,
+`trace = ee465caeff9c0fcf`).
+
+Each predicted share / statistic below states its predicted range (the range outside
+which that individual prediction is graded KILLED):
+
+1. `Worker::static_evaluate_v3` outcome shares (fraction of all `static_evaluate_v3` calls):
+   - `apply_pair_and_evaluate` share: **62.0% to 84.0%**
+     (KILLED if `< 62.0%` or `> 84.0%`).
+   - `make_valid` share: **15.5% to 37.5%**
+     (KILLED if `< 15.5%` or `> 37.5%`).
+   - Residual already-valid (`valid_flags[index] != 0`, e.g. root depth > 1 / aspiration
+     re-eval): **0.05% to 2.0%** (KILLED if `< 0.05%` or `> 2.0%`).
+
+2. `nnue::v3::make_valid` calls by number of plies replayed (shares of all `make_valid` calls):
+   - `0` plies (`ancestor < 4`, root `refresh_cached`): **0.05% to 1.0%** (`7,670` root calls;
+     KILLED if `< 0.05%` or `> 1.0%`).
+   - `1` ply replayed (valid parent, king key changed on the evaluated move): **12.0% to 42.0%**
+     (KILLED if `< 12.0%` or `> 42.0%`).
+   - `2` plies replayed (1 skipped ancestor ply: TT eval hit or in-check parent): **30.0% to 60.0%**
+     (KILLED if `< 30.0%` or `> 60.0%`).
+   - `3` plies replayed: **10.0% to 28.0%**
+     (KILLED if `< 10.0%` or `> 28.0%`).
+   - `4 to 7` plies replayed: **4.0% to 22.0%**
+     (KILLED if `< 4.0%` or `> 22.0%`).
+   - `8 or more` plies replayed: **0.05% to 6.0%**
+     (KILLED if `< 0.05%` or `> 6.0%`).
+
+3. `nnue::v3::refresh_from_pieces` calls by cause and placement (shares of all
+   `refresh_from_pieces` calls):
+   - By cause:
+     * **King changed bucket** (`key.bucket != parent.keys[p].bucket`, including moves such
+       as queenside castling that also cross the mirror line): **65.0% to 90.0%**
+       (KILLED if `< 65.0%` or `> 90.0%`).
+     * **King changed flip only** (`key.bucket == parent.keys[p].bucket && key.flip != parent.keys[p].flip`,
+       crossing the `d`/`e` file boundary inside one bucket): **8.0% to 32.0%**
+       (KILLED if `< 8.0%` or `> 32.0%`).
+     * **No valid ancestor** (`ancestor < 4` root `refresh_cached` = `15,340` calls): **0.3% to 4.0%**
+       (KILLED if `< 0.3%` or `> 4.0%`).
+   - By location:
+     * **At the evaluated ply** (`k == index`, plus `ancestor < 4` root): **55.0% to 88.0%**
+       (KILLED if `< 55.0%` or `> 88.0%`).
+     * **Inside a replay below it** (`k < index` inside multi-ply `make_valid`): **12.0% to 45.0%**
+       (KILLED if `< 12.0%` or `> 45.0%`).
+
+4. `RefreshCache` columns (`n_sub + n_add`) per `refresh_from_pieces` call:
+   - **Mean columns / refresh:** **4.0 to 12.0** (KILLED if `< 4.0` or `> 12.0`).
+   - **50th percentile (median):** **2 to 9** columns (KILLED if `< 2` or `> 9`).
+   - **90th percentile:** **8 to 20** columns (KILLED if `< 8` or `> 20`).
+   - **99th percentile:** **14 to 34** columns (KILLED if `< 14` or `> 34`).
