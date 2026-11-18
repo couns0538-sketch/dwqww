@@ -1,0 +1,101 @@
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import random
+import re
+from statistics import median
+import subprocess
+import sys
+from datetime import datetime, timezone
+
+
+def clock():
+    return datetime.now(timezone.utc).isoformat(timespec='seconds')
+
+
+def trace(path):
+    rows = []
+    info = None
+    final_nodes = None
+    for line in path.read_text().splitlines():
+        if line.startswith('info depth '):
+            fields = line.split()
+            score_at = fields.index('score')
+            pv_at = fields.index('pv') if 'pv' in fields else len(fields)
+            bound = fields[score_at + 3] if fields[score_at + 3] in {'lowerbound', 'upperbound'} else ''
+            info = [fields[fields.index('depth') + 1], fields[fields.index('seldepth') + 1],
+                    *fields[score_at + 1:score_at + 3], bound, fields[fields.index('nodes') + 1], fields[pv_at + 1:]]
+        elif line.startswith('info string softnodes nodes '):
+            final_nodes = int(line.split()[-1])
+        elif line.startswith('bestmove '):
+            if info is None:
+                raise ValueError(f'bestmove without info at row {len(rows) + 1}: {path}')
+            if final_nodes is None and int(info[5]) != 0:
+                raise ValueError(f'nonzero search without final nodes at row {len(rows) + 1}: {path}')
+            rows.append([*info, final_nodes if final_nodes is not None else 0, line])
+            info = None
+            final_nodes = None
+    assert len(rows) == 200, (path, len(rows))
+    digest = hashlib.sha256(json.dumps(rows, separators=(',', ':')).encode()).hexdigest()
+    return rows, {'searches': len(rows), 'last_info_nodes': sum(int(row[5]) for row in rows),
+                  'final_nodes': sum(row[7] for row in rows), 'trace_sha256': digest}
+
+
+def timing_run(args, label, engine):
+    destination = args.output / label
+    cmd = [sys.executable, '-B', str(args.driver), str(args.r15), str(args.r15d), str(args.net), str(args.epd),
+           str(destination), '--softnodes', '2000', '--evaluation', 'v3', '--run', engine]
+    started = clock()
+    run = subprocess.run(cmd, capture_output=True, timeout=90)
+    (destination / 'driver.stdout.txt').write_bytes(run.stdout)
+    (destination / 'driver.stderr.txt').write_bytes(run.stderr)
+    (destination / 'command.txt').write_text(json.dumps({'argv':cmd,'start_utc':started,'end_utc':clock(),
+                                                          'exit':run.returncode}) + '\n')
+    run.check_returncode()
+    parsed = json.loads((destination / 'v3-summary.txt').read_text())
+    return trace(destination / f'v3-{engine}.stdout.txt'), parsed['children_cpu_s'], parsed['elapsed_ns']
+
+
+def stats(ratios):
+    rng = random.Random(20261118)
+    bootstrap = sorted(median(rng.choices(ratios, k=len(ratios))) for _ in range(20000))
+    return {'paired_median':median(ratios), 'bootstrap_95':[bootstrap[500], bootstrap[19500]],
+            'min':min(ratios),'max':max(ratios),'above_one':sum(r > 1 for r in ratios), 'pairs':len(ratios)}
+
+
+def main():
+    p = argparse.ArgumentParser()
+    for label in ('driver','r15','r15d','net','epd','profile','output'):
+        p.add_argument(label, type=Path)
+    args = p.parse_args()
+    args.output.mkdir(exist_ok=False)
+    profile_rows = [trace(path) for path in sorted(args.profile.glob('rep-*/v3-r15d.stdout.txt'))]
+    assert len(profile_rows) == 10
+    reference, identity = profile_rows[0]
+    assert all(rows == reference for rows, _ in profile_rows)
+    (args.output / 'profile-trace-readback.txt').write_text(json.dumps(identity, indent=2) + '\n')
+    records = {}
+    with (args.output / 'timing-rows.raw.jsonl.txt').open('x') as raw:
+        for job, engines in [('ab', ('r15','r15d')), ('aa', ('r15d','r15d'))]:
+            pairs = []
+            for idx in range(1,11):
+                pair = []
+                for leg, engine in zip(('a','b'), engines):
+                    name = f'{job}-{idx:02d}-{leg}-{engine}'
+                    (rows, counts), cpu, wall = timing_run(args, name, engine)
+                    result = {'leg':name,'identity':counts,'engine_cpu_s':cpu,'wall_ns':wall,'profile_trace_match': rows == reference}
+                    print(json.dumps(result), file=raw, flush=True)
+                    if rows != reference:
+                        first = next(i for i,(a,b) in enumerate(zip(reference, rows),1) if a != b)
+                        raise RuntimeError(f'{name} first profile trace mismatch at row {first}')
+                    pair.append((cpu,wall))
+                pairs.append([pair[0][0] / pair[1][0], pair[0][1] / pair[1][1]])
+            records[job] = {'first_pair_cpu_and_wall':pairs[0], 'ratios_cpu_and_wall':pairs,
+                            'engine_cpu':stats([row[0] for row in pairs]), 'wall':stats([row[1] for row in pairs])}
+    (args.output / 'timing-readback.txt').write_text(json.dumps(records, indent=2) + '\n')
+    print(json.dumps(records, indent=2))
+
+
+if __name__ == '__main__':
+    main()
