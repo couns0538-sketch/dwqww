@@ -1,0 +1,309 @@
+diff -ruN base_A-kF/include/forge/board.hpp tree_A-kF2/include/forge/board.hpp
+--- base_A-kF/include/forge/board.hpp	2026-11-18 09:51:26.817847773 -0800
++++ tree_A-kF2/include/forge/board.hpp	2026-11-18 10:13:25.814776831 -0800
+@@ -201,6 +201,20 @@
+     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
+     [[nodiscard]] bool gives_check(const Move& move) const;
+ 
++#ifndef NDEBUG
++    struct QuietReference {
++        bool legal;
++        bool gives_check;
++        bool direct_check;
++    };
++    [[nodiscard]] QuietReference job24_quiet_reference(const Move& move) const;
++    [[noreturn]] void job24_fail_bool(const char* label, const Move& move, bool fast, bool reference) const;
++#if FORGE_SPD_KING_LINES
++    void job24_verify_fields(const char* label, const Move& move, Bitboard actual_pins,
++                             Bitboard actual_discoverers, const std::array<Bitboard, 7>& actual_targets) const;
++#endif
++#endif
++
+ #if FORGE_SPD_PREFETCH_EARLY
+     // Key of the position after `move`, without making it (for an early TT
+     // prefetch). Returns true with the exact key, or false when an en-passant
+diff -ruN base_A-kF/src/board.cpp tree_A-kF2/src/board.cpp
+--- base_A-kF/src/board.cpp	2026-11-18 09:51:26.818359779 -0800
++++ tree_A-kF2/src/board.cpp	2026-11-18 10:14:44.804180557 -0800
+@@ -1124,6 +1124,219 @@
+ }
+ #endif
+ 
++#ifndef NDEBUG
++namespace {
++
++using Placement = std::array<Piece, 64>;
++
++struct Step {
++    int file;
++    int rank;
++};
++
++constexpr std::array<Step, 8> knight_steps{{
++    {1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2},
++}};
++constexpr std::array<Step, 8> ray_steps{{
++    {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1},
++}};
++
++bool on_board(int file, int rank) {
++    return static_cast<unsigned>(file) < 8 && static_cast<unsigned>(rank) < 8;
++}
++
++int pawn_forward(Color side) {
++    return side == White ? 1 : -1;
++}
++
++Bitboard bit_at(int square) {
++    return Bitboard{1} << square;
++}
++
++int square_at(int file, int rank) {
++    return rank * 8 + file;
++}
++
++bool ray_slider(Piece piece, bool diagonal) {
++    const int type = piece_type(piece);
++    return type == Queen || type == (diagonal ? Bishop : Rook);
++}
++
++Bitboard raw_attackers(const Placement& placement, int target, Color by, bool first_only) {
++    assert(0 <= target && target < 64);
++    const int file = target % 8;
++    const int rank = target / 8;
++    Bitboard found = 0;
++    const auto record = [&](int square) {
++        found |= bit_at(square);
++        return first_only;
++    };
++
++    const Piece pawn = make_piece(by, Pawn);
++    const int pawn_rank = rank - pawn_forward(by);
++    for (int df : {-1, 1}) {
++        if (!on_board(file + df, pawn_rank)) continue;
++        const int square = square_at(file + df, pawn_rank);
++        if (placement[square] == pawn && record(square)) return found;
++    }
++
++    const Piece knight = make_piece(by, Knight);
++    for (const Step step : knight_steps) {
++        if (!on_board(file + step.file, rank + step.rank)) continue;
++        const int square = square_at(file + step.file, rank + step.rank);
++        if (placement[square] == knight && record(square)) return found;
++    }
++
++    const Piece king = make_piece(by, King);
++    for (const Step step : ray_steps) {
++        bool neighbor = true;
++        const bool diagonal = step.file != 0 && step.rank != 0;
++        for (int f = file + step.file, r = rank + step.rank; on_board(f, r);
++             f += step.file, r += step.rank) {
++            const int square = square_at(f, r);
++            const Piece piece = placement[square];
++            if (piece == Empty) {
++                neighbor = false;
++                continue;
++            }
++            if (color_of(piece) == by && ((neighbor && piece == king) || ray_slider(piece, diagonal)) &&
++                record(square)) return found;
++            break;
++        }
++    }
++    return found;
++}
++
++#if FORGE_SPD_KING_LINES
++struct RawRays {
++    Bitboard diagonal = 0;
++    Bitboard straight = 0;
++    Bitboard blockers = 0;
++};
++
++template <bool IncludeLandings>
++RawRays raw_rays(const Placement& placement, int king, Color blocker_side, Color slider_side) {
++    assert(0 <= king && king < 64);
++    const int file = king % 8;
++    const int rank = king / 8;
++    RawRays result;
++    for (const Step step : ray_steps) {
++        const bool diagonal = step.file != 0 && step.rank != 0;
++        Bitboard& ray = diagonal ? result.diagonal : result.straight;
++        int first = -1;
++        for (int f = file + step.file, r = rank + step.rank; on_board(f, r);
++             f += step.file, r += step.rank) {
++            const int square = square_at(f, r);
++            const Piece piece = placement[square];
++            if constexpr (IncludeLandings) {
++                if (first < 0) ray |= bit_at(square);
++            }
++            if (piece == Empty) continue;
++            if (first < 0) {
++                if (color_of(piece) != blocker_side) break;
++                first = square;
++            } else {
++                if (color_of(piece) == slider_side && ray_slider(piece, diagonal)) {
++                    result.blockers |= bit_at(first);
++                }
++                break;
++            }
++        }
++    }
++    return result;
++}
++
++struct RawFields {
++    Bitboard own_blockers;
++    Bitboard opposing_blockers;
++    std::array<Bitboard, 7> landings;
++};
++
++RawFields raw_fields(const Placement& placement, int own_king, int other_king, Color side) {
++    const auto own = raw_rays<false>(placement, own_king, side, opposite(side));
++    const auto other = raw_rays<true>(placement, other_king, side, side);
++    RawFields result{own.blockers, other.blockers, {}};
++    result.landings[Bishop] = other.diagonal;
++    result.landings[Rook] = other.straight;
++    result.landings[Queen] = other.diagonal | other.straight;
++    const int file = other_king % 8;
++    const int rank = other_king / 8;
++    const int pawn_rank = rank - pawn_forward(side);
++    for (int df : {-1, 1}) {
++        if (on_board(file + df, pawn_rank)) result.landings[Pawn] |= bit_at(square_at(file + df, pawn_rank));
++    }
++    for (const Step step : knight_steps) {
++        if (on_board(file + step.file, rank + step.rank)) {
++            result.landings[Knight] |= bit_at(square_at(file + step.file, rank + step.rank));
++        }
++    }
++    return result;
++}
++#endif
++
++} // namespace
++
++Board::QuietReference Board::job24_quiet_reference(const Move& move) const {
++    auto placement = squares_;
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Piece moving = placement[move.from];
++    placement[move.from] = Empty;
++    if ((move.flags & EnPassant) != 0U) {
++        placement[move.to - 8 * pawn_forward(us)] = Empty;
++    }
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int home = us == White ? 0 : 56;
++        const int rook_from = home + (king_side ? 7 : 0);
++        const int rook_to = home + (king_side ? 5 : 3);
++        placement[rook_to] = placement[rook_from];
++        placement[rook_from] = Empty;
++    }
++    placement[move.to] = move.is_promotion() ? make_piece(us, move.promotion) : moving;
++
++    const int own_king = moving == make_piece(us, King) ? static_cast<int>(move.to) :
++        std::countr_zero(pieces(us, King));
++    const int other_king = std::countr_zero(pieces(them, King));
++    const Bitboard attacking_other_king = raw_attackers(placement, other_king, us, false);
++    return {
++        raw_attackers(placement, own_king, them, true) == 0,
++        attacking_other_king != 0,
++        (attacking_other_king & bit_at(move.to)) != 0,
++    };
++}
++
++void Board::job24_fail_bool(const char* label, const Move& move, bool fast, bool reference) const {
++    std::cerr << "job24 assert " << label << " move " << move_to_uci(move)
++              << " fast " << static_cast<int>(fast) << " ref " << static_cast<int>(reference)
++              << "\njob24 fen " << fen() << std::endl;
++    std::abort();
++}
++
++#if FORGE_SPD_KING_LINES
++void Board::job24_verify_fields(const char* label, const Move& move, Bitboard actual_pins,
++                                Bitboard actual_discoverers, const std::array<Bitboard, 7>& actual_targets) const {
++    const auto reference = raw_fields(squares_, std::countr_zero(pieces(side_, King)),
++                                      std::countr_zero(pieces(opposite(side_), King)), side_);
++    const auto fail = [&](const std::string& field, Bitboard fast, Bitboard expected) {
++        std::cerr << "job24 assert " << label << " move " << move_to_uci(move)
++                  << " field " << field << " fast " << fast << " ref " << expected
++                  << "\njob24 fen " << fen() << std::endl;
++        std::abort();
++    };
++    if (actual_pins != reference.own_blockers) fail("pinned", actual_pins, reference.own_blockers);
++    if (actual_discoverers != reference.opposing_blockers) {
++        fail("discoverers", actual_discoverers, reference.opposing_blockers);
++    }
++    for (std::size_t type = 0; type < actual_targets.size(); ++type) {
++        if (actual_targets[type] != reference.landings[type]) {
++            fail("check_squares_" + std::to_string(type), actual_targets[type], reference.landings[type]);
++        }
++    }
++}
++#endif
++#endif
++
+ bool Board::has_legal_en_passant_capture() const {
+     if (ep_square_ < 0) return false;
+     const Color us = side_;
+@@ -1334,8 +1547,14 @@
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+-    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+-    else king_lines_.valid = false;
++    if (undo.king_lines.valid) {
++        king_lines_ = undo.king_lines;
++#ifndef NDEBUG
++        job24_verify_fields("A7", move, king_lines_.pinned, king_lines_.discoverers, king_lines_.check_squares);
++#endif
++    } else {
++        king_lines_.valid = false;
++    }
+ #endif
+ }
+ 
+@@ -1373,8 +1592,14 @@
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
+ #if FORGE_SPD_KING_LINES
+-    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+-    else king_lines_.valid = false;
++    if (undo.king_lines.valid) {
++        king_lines_ = undo.king_lines;
++#ifndef NDEBUG
++        job24_verify_fields("A7", Move::none(), king_lines_.pinned, king_lines_.discoverers, king_lines_.check_squares);
++#endif
++    } else {
++        king_lines_.valid = false;
++    }
+ #endif
+ }
+ 
+diff -ruN base_A-kF/src/search.cpp tree_A-kF2/src/search.cpp
+--- base_A-kF/src/search.cpp	2026-11-18 09:51:26.819205758 -0800
++++ tree_A-kF2/src/search.cpp	2026-11-18 10:13:27.002719758 -0800
+@@ -913,6 +913,10 @@
+                         if (quiet_legal != legal_reference) {
+                             quiet_assert_failed(board_, move, "A2", quiet_legal, legal_reference);
+                         }
++                        const auto positional_reference = board_.job24_quiet_reference(move);
++                        if (quiet_legal != positional_reference.legal) {
++                            board_.job24_fail_bool("A2s", move, quiet_legal, positional_reference.legal);
++                        }
+ #endif
+                         if (!quiet_legal) continue;
+                         const int pt = piece_type(board_.piece_at(move.from));
+@@ -930,6 +934,13 @@
+                         if (last_quiet_gives_check_ != check_reference) {
+                             quiet_assert_failed(board_, move, "A1", last_quiet_gives_check_, check_reference);
+                         }
++                        const bool positional_check = positional_reference.gives_check;
++                        if (last_quiet_gives_check_ != positional_check) {
++                            board_.job24_fail_bool("A1s", move, last_quiet_gives_check_, positional_check);
++                        }
++#if FORGE_SPD_KING_LINES
++                        board_.job24_verify_fields("A4", move, pinned_, discoverers_, check_squares_);
++#endif
+ #endif
+                         return move;
+                     }

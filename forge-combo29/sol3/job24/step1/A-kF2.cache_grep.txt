@@ -1,0 +1,19 @@
+18:+                             Bitboard actual_discoverers, const std::array<Bitboard, 7>& actual_targets) const;
+223:+                                Bitboard actual_discoverers, const std::array<Bitboard, 7>& actual_targets) const {
+232:+    if (actual_pins != reference.own_blockers) fail("pinned", actual_pins, reference.own_blockers);
+233:+    if (actual_discoverers != reference.opposing_blockers) {
+234:+        fail("discoverers", actual_discoverers, reference.opposing_blockers);
+238:+            fail("check_squares_" + std::to_string(type), actual_targets[type], reference.landings[type]);
+252:-    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+253:-    else king_lines_.valid = false;
+254:+    if (undo.king_lines.valid) {
+255:+        king_lines_ = undo.king_lines;
+257:+        job24_verify_fields("A7", move, king_lines_.pinned, king_lines_.discoverers, king_lines_.check_squares);
+260:+        king_lines_.valid = false;
+269:-    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+270:-    else king_lines_.valid = false;
+271:+    if (undo.king_lines.valid) {
+272:+        king_lines_ = undo.king_lines;
+274:+        job24_verify_fields("A7", Move::none(), king_lines_.pinned, king_lines_.discoverers, king_lines_.check_squares);
+277:+        king_lines_.valid = false;
+305:+                        board_.job24_verify_fields("A4", move, pinned_, discoverers_, check_squares_);

@@ -1,0 +1,10 @@
+$ diff -ruN base_A-kF tree_A-kF2 > A-kF2.patch.txt
+exit 1 (trees differ)
+65011354c09788248b9ba12574f312da5b5b13be1ec2e85fc090b21c8361d23a  A-kF2.patch.txt
+$ patch --batch --forward -p1 -F0 -d applied_A-kF2 -i "$PWD/A-kF2.patch.txt"
+patching file include/forge/board.hpp
+patching file src/board.cpp
+patching file src/search.cpp
+exit 0
+$ diff -rq tree_A-kF2 applied_A-kF2
+exit 0

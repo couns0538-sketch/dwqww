@@ -1,0 +1,8 @@
+$ diff -ruN tree_A-kF2 tree_A-wrong2 > A-wrong2.patch.txt
+exit 1 (trees differ)
+84f142103fb1c0f10eba5f96f0b9f2bf735439051ef7a32ad9530a2090600046  A-wrong2.patch.txt
+$ patch --batch --forward -p1 -F0 -d applied_A-wrong2 -i "$PWD/A-wrong2.patch.txt"
+patching file src/search.cpp
+exit 0
+$ diff -rq tree_A-wrong2 applied_A-wrong2
+exit 0

@@ -1,0 +1,13 @@
+$ diff -ruN base_A-kF tree_A-kF-blind > pinned-empty.patch.txt
+exit 1 (trees differ)
+0ee3e0eea8016e7f7f472a6131657b4ef63351abec4d9f302968c68ef85d8aca  pinned-empty.patch.txt
+$ patch --batch --forward --no-backup-if-mismatch -p1 -F0 -d applied_A-kF-blind -i /workspace/work/sol3-job24-assert/pinned-empty.patch.txt
+patching file include/forge/board.hpp
+exit 0
+$ patch --batch --forward --no-backup-if-mismatch -p1 -F0 -d applied_A-kF2-blind -i /workspace/work/sol3-job24-assert/pinned-empty.patch.txt
+patching file include/forge/board.hpp
+Hunk #1 succeeded at 237 (offset 14 lines).
+exit 0
+$ diff -rq tree_A-kF-blind applied_A-kF-blind
+exit 0
+A-kF2-blind header differs by only one inserted pin-mask reset.
