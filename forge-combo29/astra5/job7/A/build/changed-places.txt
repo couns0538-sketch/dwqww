@@ -1,0 +1,11 @@
+applied/src/search.cpp:105:int NullMateGuard = 0;
+applied/src/search.cpp:193:        {"NullMateGuard", &NullMateGuard, 0, 2},
+applied/src/search.cpp:1910:bool quiet_mate_after_null(Board parent) {
+applied/src/search.cpp:1926:bool has_quiet_mate(Board& null_child) {
+applied/src/search.cpp:2153:            const int null_child_depth = depth - reduction;
+applied/src/search.cpp:2154:            int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
+applied/src/search.cpp:2155:            const bool fast_guard_veto = tune::NullMateGuard == 2 && !aborted_ && null_score >= beta &&
+applied/src/search.cpp:2156:                                         null_child_depth <= 0 && has_quiet_mate(board);
+applied/src/search.cpp:2159:            if (null_score >= beta && !fast_guard_veto &&
+applied/src/search.cpp:2160:                !(tune::NullMateGuard == 1 && null_child_depth <= 0 && quiet_mate_after_null(board))) {
+applied/include/forge/search.hpp:256:extern int NullMateGuard;
