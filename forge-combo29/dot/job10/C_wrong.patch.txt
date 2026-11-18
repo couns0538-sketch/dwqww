@@ -1,0 +1,200 @@
+--- /dev/null
++++ b/include/forge/shortcut_count.hpp
+@@ -0,0 +1,29 @@
++#ifndef FORGE_SHORTCUT_WRONG
++#define FORGE_SHORTCUT_WRONG 1
++#endif
++#pragma once
++#include "forge/board.hpp"
++#include "forge/uci_output.hpp"
++#include <atomic>
++#include <cstring>
++#include <iostream>
++namespace forge::shortcut_count {
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6"};
++inline std::atomic<unsigned long long> uses[4]{}, differs[4]{}, diagnostics{0};
++inline void reset() { for (int i=0;i<4;++i) { uses[i]=0; differs[i]=0; } }
++inline void record(const char* name, bool different, const Board& board, const Move& move) {
++    int i=0; while(i<4 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==4) return;
++    uses[i].fetch_add(1,std::memory_order_relaxed);
++    if(!different) return;
++    differs[i].fetch_add(1,std::memory_order_relaxed);
++    if(diagnostics.fetch_add(1,std::memory_order_relaxed)<5) {
++        const std::lock_guard<std::mutex> lock(uci_output_mutex());
++        std::cout << "info string shortcut disagreement " << name << (i>=2 ? " postmove_fen " : " fen ") << board.fen()
++                  << " move " << Board::move_to_uci(move) << std::endl;
++    }
++}
++// Caller holds the output mutex, after workers have joined.
++inline void summary() { for(int i=0;i<4;++i) std::cout << "info string shortcut " << names[i]
++    << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl; }
++}
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,3 +1,6 @@
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ #include "forge/clock_plan.hpp"
+ #include "forge/search.hpp"
+ #include "forge/tm_finish.hpp"
+@@ -892,6 +895,12 @@
+                         // A closed tail keeps quiet checks, including discovered checks.
+                         if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
+ #if FORGE_SPD_KING_LINES
++#if FORGE_SHORTCUT_COUNT
++                        // Observe both acceptance and rejection without changing the decision below.
++                        const bool shortcut_legal = move.from == own_king_sq_ ? board_.is_legal(move) :
++                            (((pinned_ >> move.from) & 1ULL) == 0 || attacks::aligned(own_king_sq_, move.from, move.to));
++                        shortcut_count::record("B2", shortcut_legal != board_.is_legal(move), board_, move);
++#endif
+                         if (move.from == own_king_sq_) {
+                             if (!board_.is_legal(move)) continue;
+                         } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
+@@ -910,6 +919,14 @@
+                                                  !attacks::aligned(enemy_king_sq_, move.from, move.to)));
+ #else
+                         last_quiet_gives_check_ = board_.gives_check(move);
++#endif
++#if FORGE_SHORTCUT_COUNT
++#if FORGE_SHORTCUT_WRONG
++                        const bool reference_check = direct_chk; // Deliberate reference-only fault.
++#else
++                        const bool reference_check = board_.gives_check(move);
++#endif
++                        shortcut_count::record("B1", last_quiet_gives_check_ != reference_check, board_, move);
+ #endif
+                         return move;
+                     }
+@@ -3792,6 +3809,9 @@
+ }
+ 
+ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::reset();
++#endif
+     const auto supplied_start = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     const bool clocked = !limits.infinite && !limits.ponder &&
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,3 +1,6 @@
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
+@@ -446,6 +449,9 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#if FORGE_SHORTCUT_COUNT
++                forge::shortcut_count::summary();
++#endif
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1,3 +1,6 @@
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ #include "forge/board.hpp"
+ 
+ #include <algorithm>
+@@ -1183,7 +1186,7 @@
+     else undo.king_lines.valid = false;
+ #endif
+ 
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+     std::uint64_t dbg_key = key_;
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -1198,14 +1201,14 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(captured_square, undo.captured);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(move.to, undo.captured);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+@@ -1214,7 +1217,7 @@
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+     dbg_key ^= piece_key(move.from, moving);
+ #endif
+     if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+@@ -1224,12 +1227,12 @@
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(move.to, promoted);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(move.to, moving);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+@@ -1242,14 +1245,14 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+     dbg_key ^= Z.castling[castling_];
+ #endif
+     if (precomputed_key != nullptr) {
+@@ -1258,11 +1261,14 @@
+         if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+         side_ = them;
+         key_ = *precomputed_key;
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= Z.castling[castling_] ^ Z.side;
+         if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+             dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+         }
++#if FORGE_SHORTCUT_COUNT
++        shortcut_count::record("B6", key_ != dbg_key, *this, move);
++#endif
+         assert(key_ == dbg_key);
+ #endif
+     } else {
+@@ -1281,6 +1287,9 @@
+     // Checkers are the mover's attacks on the opponent king. One side only:
+     // the other colour cannot be the checker, so it is not consulted.
+     if (known_gives_check == 0) {
++#if FORGE_SHORTCUT_COUNT
++        shortcut_count::record("B5", compute_checkers() != 0, *this, move);
++#endif
+         checkers_ = 0;
+         assert(compute_checkers() == 0);
+     } else {
