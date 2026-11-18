@@ -61,3 +61,7 @@ Carbon2’s fused v3 refresh patch matched k11 on the pinned benches, all 8612 w
 ## Job 9 — 2026-11-18T11:42:03Z
 
 The k11v counting build matched the Job 8 trace. Its 8613 searches including warm-up made 15228637 net768 evaluations, with 18.90% in the fused path and 2046047 literal refresh_from_pieces calls. All four parser arms matched 406478 position diagnostics over 17257 commands and both build pairs matched the search output within mode. The wrong-prefix control first changed eval at command 2, 322 reset versus 127 cached. [Job 9 report](REPORT_sol3_job9.md) · [Evidence](sol3/job9)
+
+## Job 10 — 2026-11-18T12:05:42Z
+
+Carbon2’s owned AVX-512 TT patch matched k11v on all 8612 warm search rows. All 1556 cold final-count, move and score rows also matched k11f at 50000 and 250000 nodes with both nets. The three one-line controls changed the warm trace. The first probe-hit and store-slot changes appeared at game 0 ply 8, and the first full-cluster victim change appeared at game 1 ply 143. [Job 10 report](REPORT_sol3_job10.md) · [Evidence](sol3/job10)
