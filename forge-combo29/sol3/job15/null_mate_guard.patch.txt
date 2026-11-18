@@ -1,0 +1,68 @@
+diff -ruN base/src/search.cpp tree/src/search.cpp
+--- base/src/search.cpp	2026-11-18 05:55:01.807977026 -0800
++++ tree/src/search.cpp	2026-11-18 06:38:20.623188616 -0800
+@@ -102,6 +102,7 @@
+ int LmrNoisyDivisor = 340;
+ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
++int NullMateGuard = 0;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
+ int RfpDepth = 8;
+@@ -189,6 +190,7 @@
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
++        {"NullMateGuard", &NullMateGuard, 0, 1},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+@@ -1883,12 +1885,10 @@
+     child->runtime_psqt.valid = false;
+ }
+ 
+-void Worker::count_null_cutoff(const Board& board, int child_depth) {
+-    ++null_cutoffs_;
+-    if (child_depth > 0) return;
+-    ++null_shallow_cutoffs_;
++namespace {
+ 
+-    // The actual null search has been undone. Test its position on a copy.
++[[nodiscard]] bool null_child_has_quiet_mate(const Board& board) {
++    // The real null search has been undone. Recreate its position on a copy.
+     Board null_child = board;
+     NullUndo null_undo;
+     null_child.make_null_move(null_undo);
+@@ -1898,11 +1898,18 @@
+         (void)null_child.make_move(move, undo);
+         const bool mate = null_child.in_check() && null_child.legal_moves().empty();
+         null_child.unmake_move(move, undo);
+-        if (mate) {
+-            ++null_quiet_mates_;
+-            return;
+-        }
++        if (mate) return true;
+     }
++    return false;
++}
++
++} // namespace
++
++void Worker::count_null_cutoff(const Board& board, int child_depth) {
++    ++null_cutoffs_;
++    if (child_depth > 0) return;
++    ++null_shallow_cutoffs_;
++    if (null_child_has_quiet_mate(board)) ++null_quiet_mates_;
+ }
+ 
+ 
+@@ -2630,7 +2637,8 @@
+             int null_score = -search_child(board, ss + 1, child_depth, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+-            if (null_score >= beta) {
++            if (null_score >= beta &&
++                !(tune::NullMateGuard && child_depth <= 0 && null_child_has_quiet_mate(board))) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
