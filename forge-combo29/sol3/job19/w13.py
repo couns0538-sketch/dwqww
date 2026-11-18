@@ -18,7 +18,7 @@ PINS = {
     'r15d': 'bb37ed7c50e1716c5fc38f1b2fb92293c18e98f6131bf2be2b13d668603b4fc6',
     'kF': '340f78f4e4834a5bf1e6dc2d73eca3caa62b7a45d05011b5c1c092ace6e5e5ea',
 }
-HELPER_PIN = '1f7703dae17160651c6a9d163a4af0d14cb34848c7523fa70a50e260c86d93ca'
+HELPER_PIN = '4a51fe258b610b32055cc7e42614640d9dd0abb8988fdb304d1ad31f7fbcef61'
 NET_MARKER = re.compile(rb'\bhidden 768\b.*\bchecksum 30ab43b4ba5db5f3\b')
 NODES = re.compile(rb'\bnodes ([0-9]+)\b')
 EVAL = re.compile(rb'info string eval hce 0 nnue (-?[0-9]+) total (-?[0-9]+)(?: incheck 1)?')
