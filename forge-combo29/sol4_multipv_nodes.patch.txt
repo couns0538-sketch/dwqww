@@ -1,0 +1,61 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2222,15 +2222,13 @@
+     int pv_index = 1;
+     int seldepth_override = -1;
+     int hashfull_override = -1;
+-    std::uint64_t node_override = 0;
+-    bool use_node_override = false;
+ 
+     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
+         if (!emit_info) return;
+         const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count();
+         const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+-        const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
++        const std::uint64_t nodes = total_nodes() + extra_nodes_;
+         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+@@ -2464,11 +2462,10 @@
+                 int score = 0;
+                 int seldepth = 0;
+                 int hashfull = 0;
+-                std::uint64_t nodes = 0;
+                 std::vector<Move> pv;
+             };
+             std::vector<PvLine> lines;
+-            lines.push_back(PvLine{score, seldepth_, shared_.tt.hashfull(), total_nodes(), result.pv});
++            lines.push_back(PvLine{score, seldepth_, shared_.tt.hashfull(), result.pv});
+             std::vector<Move> banned{result.pv.front()};
+             const int line_count = std::min(multipv, static_cast<int>(root_candidates.size()));
+             for (int index = 2; index <= line_count && !aborted_; ++index) {
+@@ -2511,27 +2508,22 @@
+                 if (std::find(banned.begin(), banned.end(), alt.best_move) != banned.end()) break;
+                 std::vector<Move> pv = alt.pv;
+                 if (pv.empty() || !(pv.front() == alt.best_move)) pv.insert(pv.begin(), alt.best_move);
+-                lines.push_back(PvLine{alt.score, alt.seldepth, alt_shared->tt.hashfull(), alt.nodes, std::move(pv)});
++                lines.push_back(PvLine{alt.score, alt.seldepth, alt_shared->tt.hashfull(), std::move(pv)});
+                 banned.push_back(lines.back().pv.front());
+             }
+             // Rank by the exact score. Ties keep the primary line first.
+             std::stable_sort(lines.begin(), lines.end(), [](const PvLine& a, const PvLine& b) {
+                 return a.score > b.score;
+             });
+-            std::uint64_t shown_nodes = 0;
+             for (std::size_t i = 0; i < lines.size(); ++i) {
+-                shown_nodes += lines[i].nodes;
+                 pv_index = static_cast<int>(i + 1);
+                 seldepth_override = lines[i].seldepth;
+                 hashfull_override = lines[i].hashfull;
+-                node_override = shown_nodes;
+-                use_node_override = true;
+                 emit(depth, lines[i].score, lines[i].pv);
+             }
+             pv_index = 1;
+             seldepth_override = -1;
+             hashfull_override = -1;
+-            use_node_override = false;
+             if (!lines.empty() && !lines.front().pv.empty()) {
+                 result.score = lines.front().score;
+                 result.pv = lines.front().pv;
