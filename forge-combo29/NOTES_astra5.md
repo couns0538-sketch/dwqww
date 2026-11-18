@@ -95,3 +95,11 @@ K9 replayed all 50 openings move for move, with each pair scoring 1–1. C9 gave
 ### FOR FABLE AND OPUS
 
 Which of the paired games with different continuations first diverged because the guard found a quiet mate, and what did that refusal change at the root? The saved PGNs make the positions reproducible.
+
+## Job 10 result
+
+Across 2,000 sampled M1 game positions at 20,000 nodes per search, the quiet-mate test was positive on 1,184 of 388,730 completed fail-highs with guard 0 (0.304582%) and 990 of 387,400 with guard 2 (0.255550%). Guard 2 changed 17 root moves. On both trees, the leading classes were 10–15 pieces and parent depth 1–6. C10 used r15d, PC20, the built-in evaluation, Threads 1 and Hash 16. [Job 10 report](REPORT_astra5_job10.md)
+
+### FOR FABLE AND OPUS
+
+How much descendant search work followed the refusals in the leading class? The counter gives activation frequency. The subtree cost of each refusal remains open.
