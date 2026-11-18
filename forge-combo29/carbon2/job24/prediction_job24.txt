@@ -1,0 +1,23 @@
+Job 24 Pre-Committed Prediction (CPU of B over A on Held-Out Workload T)
+========================================================================
+
+Declared row thresholds (A = larger stack, B = smaller stack):
+  - PAYS:     pooled CPU ratio > 1.0116 and at least 10 of 12 blocks > 1.0000
+  - COSTS:    pooled CPU ratio < 0.9884 and at least 10 of 12 blocks < 1.0000
+  - NOT SEEN: otherwise
+
+Part M (M = r15d + 04_S7 + 08_G4 + 11_stop_hot + 12_v3_refresh_fuse + 13_tt_avx512_fast_probe):
+  1. M1 (A = kF_sp_1, B = M_1 on T):
+     Predicted pooled CPU ratio range: [1.0120, 1.0260]
+     Expected row reading: PAYS
+
+  2. M2 (A = kF_sp_2, B = M_2 on T):
+     Predicted pooled CPU ratio range: [1.0120, 1.0260]
+     Expected row reading: PAYS
+
+  3. Expected M1/M2 reading:
+     the REST still PAYS (both M1 and M2 read PAYS).
+
+  4. R1 (A = M_1, B = bld_sp_r15d_1 on T):
+     Predicted pooled CPU ratio range: [1.0450, 1.0680]
+     Expected row reading: PAYS (M pays against r15d).
