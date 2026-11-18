@@ -1,0 +1,37 @@
+checking file src/search.cpp
+Hunk #1 FAILED at 2159.
+Hunk #2 succeeded at 2707 (offset 218 lines).
+Hunk #3 FAILED at 3140.
+2 out of 3 hunks FAILED
+checking file include/forge/search.hpp
+
+Existing H context around history pruning
+                    skip_quiets = true;
+                    note_deferred_quiet_checks();
+                    continue;
+                }
+                job2_count(CountEvent::history_pruning_tested, depth);
+                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+                    job2_count(CountEvent::history_pruning_taken, depth);
+                    trace_case();
+                    quiet_fail = true;
+                    continue;
+                }
+                job2_count(CountEvent::quiet_see_tested, depth);
+                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+
+Existing H context around search result
+        Job2Counters* const previous = job2_counters;
+        explicit CounterScope(Job2Counters* active) { job2_counters = active; }
+        ~CounterScope() { job2_counters = previous; }
+    } counter_scope(count_this_search ? &counters : nullptr);
+    SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
+    if (count_this_search) print_job2_counters(counters, result.nodes);
+    // Wind down the helpers without clobbering an externally requested stop.
+    const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+    shared_.stop.store(true, std::memory_order_relaxed);
+    for (auto& helper : helpers) helper.join();
+    shared_.stop.store(external_stop, std::memory_order_relaxed);
+    return result;
+}
+

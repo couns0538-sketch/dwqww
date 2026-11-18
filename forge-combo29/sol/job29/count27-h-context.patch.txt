@@ -1,0 +1,47 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2349,6 +2349,7 @@
+                 job2_count(CountEvent::history_pruning_tested, depth);
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+                     job2_count(CountEvent::history_pruning_taken, depth);
++                    ++hp27_taken_;
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+@@ -2707,6 +2708,7 @@
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    hp27_taken_ = 0;
+     null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+@@ -3377,6 +3379,10 @@
+         ~CounterScope() { job2_counters = previous; }
+     } counter_scope(count_this_search ? &counters : nullptr);
+     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++    {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string HP27 " << workers_.front()->hp27_taken() << ' ' << result.nodes << std::endl;
++    }
+     if (count_this_search) print_job2_counters(counters, result.nodes);
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -481,6 +481,7 @@
+         nodes_.store(0, std::memory_order_relaxed);
+     }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
++    [[nodiscard]] std::uint64_t hp27_taken() const { return hp27_taken_; }
+ 
+ private:
+     friend struct SearcherTestProbe;
+@@ -549,6 +550,7 @@
+     bool root_prev_best_done_ = false;     // that move was searched to its end in the root search now running
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    std::uint64_t hp27_taken_ = 0;
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
