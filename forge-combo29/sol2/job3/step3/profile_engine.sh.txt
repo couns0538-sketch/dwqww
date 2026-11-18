@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+: "${SOL2_PROFILE_EXE:?absolute path of the engine with symbols}"
+: "${SOL2_PROFILE_PREFIX:?unique absolute output prefix}"
+lib="$(cd -- "$(dirname -- "$0")" && pwd)/cpu_sampler.so"
+set -o noclobber
+exec env LD_PRELOAD="$lib" "$SOL2_PROFILE_EXE" "$@" 2> "$SOL2_PROFILE_PREFIX.engine.stderr.txt"

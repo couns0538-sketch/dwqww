@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job3
+prev=/workspace/work/sol2-job2
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job3/step3
+prof="$job/profiler"
+private="$job/profile-private"
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+exe="$job/build-r15d-fp/forge"
+control="$job/build-see-control/forge"
+driver="$prev/carbon2/selfplay_driver.py"
+net="$prev/net768.fnn3"
+flags='-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -g -fno-omit-frame-pointer'
+args=(--net "$net" --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json)
+sha256sum "$prof/cpu_sampler.so" "$driver" "$net" "$prev/r15d/CMakeLists.txt"
+sha256sum "$prev/r15d/src/board.cpp" "$job/r15d-see-control/src/board.cpp" "$out/see-spin.patch.txt"
+"$cmake" -S "$prev/r15d" -B "$job/build-r15d-fp" -DCMAKE_BUILD_TYPE=Release "$flags"
+"$cmake" --build "$job/build-r15d-fp" --parallel 3 --verbose > "$out/clean-build.raw.txt" 2>&1
+sha256sum "$exe"
+printf 'uci\nquit\n' | "$exe" > "$out/frame-pointer-uci.raw.txt"
+rg '^id name ' "$out/frame-pointer-uci.raw.txt"
+trace_check() {
+  python - "$1" <<'PY'
+from pathlib import Path
+import sys,json
+row=json.loads(Path(sys.argv[1]).read_text())
+assert (row['searches'],row['total_nodes'],row['trace_fnv1a64'])==(8612,29333343,'5c705841c3ea17b4'),row
+print(row)
+PY
+}
+timeout 240 taskset -c 2 python -B "$driver" --engine "$exe" "${args[@]}" > "$out/frame-pointer-gate.stdout.txt" 2> "$out/frame-pointer-gate.stderr.txt"
+trace_check "$out/frame-pointer-gate.stdout.txt"
+"$cmake" -S "$job/r15d-see-control" -B "$job/build-see-control" -DCMAKE_BUILD_TYPE=Release "$flags"
+"$cmake" --build "$job/build-see-control" --parallel 3 --verbose > "$out/control-build.raw.txt" 2>&1
+sha256sum "$control"
+printf 'uci\nquit\n' | "$control" > "$out/control-uci.raw.txt"
+run_profile() {
+  local name=$1 binary=$2 prefix="$private/sampler-$1"
+  date -u +'%FT%TZ'
+  SOL2_PROFILE_EXE="$binary" SOL2_PROFILE_PREFIX="$prefix" timeout 240 taskset -c 2 python -B "$driver" --engine "$prof/profile_engine.sh" "${args[@]}" > "$out/$name.stdout.txt" 2> "$out/$name.driver.stderr.txt"
+  cp "$prefix.engine.stderr.txt" "$out/$name.sampler.stderr.txt"
+  trace_check "$out/$name.stdout.txt"
+  python -B "$prof/symbolize.py" "$prefix" "$private/$name" --libc-debug "$prev/profiler/libc.debuginfo"
+  python -B "$prof/profile_groups.py" "$private/$name"
+  for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv; do
+    cp "$private/$name/$receipt" "$out/$name.$receipt.txt"
+  done
+  date -u +'%FT%TZ'
+}
+run_profile control "$control"
+run_profile clean-1 "$exe"
+python -B "$job/aggregate.py" control "$private" "$private" | tee "$out/positive-control.raw.txt"
+run_profile clean-2 "$exe"
+run_profile clean-3 "$exe"
+mkdir "$private/pooled"
+python -B "$job/aggregate.py" pooled "$private" "$private/pooled"
+python -B "$prof/profile_groups.py" "$private/pooled"
+for receipt in top15.tsv groups.tsv all-callers.tsv; do
+  cp "$private/pooled/$receipt" "$out/pooled.$receipt.txt"
+done

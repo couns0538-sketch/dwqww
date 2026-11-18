@@ -1,0 +1,321 @@
+#!/usr/bin/env python3
+"""Convert a process's samples and executable maps to GNU addr2line frames."""
+from bisect import bisect_right
+from collections import Counter, defaultdict
+from functools import cache
+import argparse
+import csv
+from pathlib import Path
+import re
+import struct
+import subprocess
+
+
+def executable_segments(path):
+    with open(path, 'rb') as binary:
+        header = binary.read(64)
+        if not header.startswith(b'\x7fELF\x02\x01'):
+            raise ValueError(f'{path} is not little-endian ELF64')
+        offset = struct.unpack_from('<Q', header, 32)[0]
+        size, count = struct.unpack_from('<HH', header, 54)
+        binary.seek(offset)
+        for _ in range(count):
+            typ, flags, foff, vaddr, _, filesz, _, alignment = struct.unpack_from('<IIQQQQQQ', binary.read(size))
+            if typ == 1 and flags & 1:
+                yield foff, vaddr, filesz, alignment
+
+
+def link_address(path, offset):
+    for foff, vaddr, filesz, alignment in executable_segments(path):
+        if foff - foff % alignment <= offset < foff + filesz:
+            return vaddr + offset - foff
+    raise ValueError(f'No executable ELF segment at file offset {offset:#x} in {path}')
+
+
+def parse_maps(file):
+    for line in file.read_text().splitlines():
+        row = line.split(maxsplit=5)
+        bounds, access, offset, *_ = row
+        if 'x' not in access:
+            continue
+        start, end = (int(value, 16) for value in bounds.split('-'))
+        image = row[5] if len(row) == 6 else '[anonymous]'
+        yield start, end, int(offset, 16), image
+
+
+def caller_frames(path, addresses):
+    words = subprocess.check_output(
+        ['addr2line', '-a', '-f', '-C', '-i', '-e', path],
+        input=''.join(f'{address:x}\n' for address in sorted(addresses)), text=True,
+    ).splitlines()
+    frames = {}
+    pending = None
+    for word in words:
+        if re.fullmatch(r'0x[0-9a-f]+', word):
+            pending = None
+            stack = frames.setdefault(int(word, 16), [])
+        elif pending is None:
+            pending = word
+        else:
+            stack.append((pending, word.split(' (discriminator ')[0]))
+            pending = None
+    if frames.keys() != set(addresses) or any(not frame for frame in frames.values()):
+        raise RuntimeError(f'Incomplete addr2line output for {path}')
+    return frames
+
+
+@cache
+def build_id(path):
+    notes = subprocess.check_output(['readelf', '-n', path], stderr=subprocess.DEVNULL, text=True)
+    ids = re.findall(r'Build ID: ([0-9a-f]+)', notes)
+    if len(ids) != 1:
+        raise ValueError(f'Expected one ELF build ID for {path}')
+    return ids[0]
+
+
+@cache
+def frame_rules(path):
+    """Read just the stable GNU readelf columns used by x86-64 CFA/RA rules."""
+    raw = subprocess.check_output(['readelf', '--debug-dump=frames-interp', path], text=True)
+    records = {}
+    ranges = []
+    active = False
+    frame = None
+    columns = []
+    for line in raw.splitlines():
+        if line.startswith('Contents of the '):
+            active = line == 'Contents of the .eh_frame section:'
+            frame = None
+        if not active:
+            continue
+        cie = re.match(r'^([0-9a-f]+) +[0-9a-f]+ +[0-9a-f]+ CIE ', line)
+        fde = re.match(r'^([0-9a-f]+) +[0-9a-f]+ +[0-9a-f]+ FDE cie=([0-9a-f]+) pc=([0-9a-f]+)\.\.([0-9a-f]+)', line)
+        if cie or fde:
+            frame = int((cie or fde)[1], 16)
+            columns = []
+            records[frame] = []
+            if fde:
+                ranges.append((int(fde[3], 16), int(fde[4], 16), frame, int(fde[2], 16)))
+        elif frame is not None:
+            tokens = line.split()
+            if tokens[:2] == ['LOC', 'CFA']:
+                columns = tokens
+            elif tokens and columns and re.fullmatch(r'[0-9a-f]{8,16}', tokens[0]):
+                mapping = dict(zip(columns, tokens)) if len(tokens) == len(columns) else {}
+                records[frame].append((int(tokens[0], 16), mapping.get('CFA'), mapping.get('ra')))
+    ranges.sort()
+    if not ranges or any(b[0] < a[1] for a, b in zip(ranges, ranges[1:])):
+        return [], [], {}
+    return [span[0] for span in ranges], ranges, records
+
+
+def direct_rule(path, address):
+    starts, ranges, records = frame_rules(path)
+    i = bisect_right(starts, address) - 1
+    if i < 0:
+        return None
+    start, end, fde, cie = ranges[i]
+    if not start <= address < end:
+        return None
+    rules = [row for row in records[fde] if row[0] <= address]
+    rules = rules or records.get(cie, [])
+    if rules:
+        _, cfa, ret = rules[-1]
+        if ret == 'c-8' and cfa in ('rsp+8', 'rbp+16'):
+            return cfa
+    return None
+
+
+@cache
+def memory_call_returns(path):
+    """Find exact post-call addresses for named memory routines in the ELF."""
+    calls = {}
+    last = None
+    process = subprocess.Popen(['objdump', '-d', '--no-show-raw-insn', path], stdout=subprocess.PIPE, text=True)
+    for line in process.stdout:
+        insn = re.match(r'^\s*([0-9a-f]+):\s+(.*)', line)
+        if not insn:
+            last = None
+            continue
+        address = int(insn[1], 16)
+        if last and 1 <= address - last[0] <= 15:
+            calls[address] = last[1]
+        target = re.search(r'<(?:(?:__)?GI_)?(?:__)?(memmove|memcpy|memset)(?:_chk)?(?:@[^>]+)?>', insn[2])
+        if target and re.match(r'callq?\s', insn[2]):
+            last = address, target[1]
+        else:
+            last = None
+    if process.wait() != 0:
+        raise RuntimeError(f'objdump failed for {path}')
+    return calls
+
+
+def watched(functions):
+    for func in functions:
+        if re.search(r'(^|::|\b)(?:__)?memset(?:_\w*)?\b', func) and 'wmemset' not in func:
+            return 'memset'
+        if re.search(r'(^|::|\b)(?:__)?memmove(?:_\w*)?\b', func) and 'wmemmove' not in func:
+            return 'memmove'
+        if 'forge::nnue::v3::load(' in func or 'forge::nnue::v3::load[clone ' in func:
+            return 'nnue::v3::load'
+    return None
+
+
+def write_table(path, header, rows):
+    with path.open('x', newline='') as out:
+        writer = csv.writer(out, delimiter='\t', lineterminator='\n')
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('prefix', help='input prefix for .maps.txt and .samples.txt')
+    parser.add_argument('output', type=Path, help='output directory for exact PCs and aggregate TSVs')
+    parser.add_argument('--libc-debug', type=Path, help='separate matching libc debug ELF (checked by build ID)')
+    arguments = parser.parse_args()
+    sample_count = Counter()
+    thread_count = Counter()
+    stack_count = Counter()
+    statuses = Counter()
+    depths = Counter()
+    overruns = 0
+    for line in Path(arguments.prefix + '.samples.txt').read_text().splitlines():
+        tid, pc, overrun, _rsp, _rbp, status, word, *callers = line.split('\t')
+        tid, pc, overrun = (int(value, 16) for value in (tid, pc, overrun))
+        word = int(word, 16)
+        callers = tuple(int(value, 16) for value in callers)
+        if len(callers) > 6 or status not in 'LZBXMS' or len(status) != 1:
+            raise ValueError(f'Invalid sampler row: {line}')
+        sample_count[pc] += 1
+        thread_count[tid] += 1
+        stack_count[pc, word, callers, status] += 1
+        statuses[status] += 1
+        depths[len(callers)] += 1
+        overruns += overrun
+    total = sum(sample_count.values())
+    if not total:
+        raise RuntimeError('Zero CPU samples')
+
+    maps = list(parse_maps(Path(arguments.prefix + '.maps.txt')))
+    paths = defaultdict(set)
+    sites = {}
+    all_pcs = set(sample_count)
+    for _pc, word, callers, _status in stack_count:
+        all_pcs.update(resume - 1 for resume in (word, *callers) if resume)
+    for pc in all_pcs:
+        matches = [(image, fileoff + pc - start) for start, end, fileoff, image in maps if start <= pc < end]
+        image, offset = matches[0] if len(matches) == 1 else ('[unmapped]', None)
+        if image.startswith('/') and Path(image).is_file():
+            address = link_address(image, offset)
+            paths[image].add(address)
+        else:
+            address = None
+        sites[pc] = image, address
+    alternatives = {}
+    if arguments.libc_debug:
+        libc = sorted({image for _, _, _, image in maps if Path(image).name.startswith('libc.so.') and Path(image).is_file()})
+        if len(libc) != 1:
+            raise RuntimeError(f'Expected one sampled libc image, got {len(libc)}')
+        real = libc[0]
+        debug = str(arguments.libc_debug.resolve())
+        if build_id(real) != build_id(debug):
+            raise ValueError(f'libc debug build ID differs from sampled {real}')
+        alternatives[real] = debug
+    decoded = {path: caller_frames(alternatives.get(path, path), addresses) for path, addresses in paths.items()}
+
+    def describe(pc):
+        image, address = sites[pc]
+        frames = decoded[image][address] if address is not None else [('??', '??:0')]
+        return image, address, frames
+
+    by_leaf = Counter()
+    by_outer = Counter()
+    by_source = Counter()
+    args = arguments.output
+    args.mkdir(parents=True, exist_ok=True)
+    with (args / 'symbolized_pcs.tsv').open('x', newline='') as file:
+        writer = csv.writer(file, delimiter='\t', lineterminator='\n')
+        writer.writerow(('pc', 'samples', 'image', 'link_address', 'leaf_function', 'leaf_source', 'outer_function', 'outer_source', 'inline_frames'))
+        for pc, count in sample_count.most_common():
+            path, address, frames = describe(pc)
+            leaf, leaf_source = frames[0]
+            outer, outer_source = frames[-1]
+            writer.writerow((f'{pc:#x}', count, path, f'{address:#x}' if address is not None else '', leaf, leaf_source, outer, outer_source,
+                             ' | '.join(f'{name} @ {source}' for name, source in frames)))
+            by_leaf[(path, leaf)] += count
+            by_outer[(path, outer)] += count
+            by_source[(path, leaf, leaf_source)] += count
+    for label, groups in [('leaf_functions', by_leaf), ('outer_functions', by_outer), ('leaf_source_lines', by_source)]:
+        with (args / f'{label}.tsv').open('x', newline='') as file:
+            writer = csv.writer(file, delimiter='\t', lineterminator='\n')
+            writer.writerow(('samples', 'percent_of_all_samples', 'image', 'function', *(('source',) if label == 'leaf_source_lines' else ())))
+            for attribution, count in groups.most_common():
+                writer.writerow((count, f'{100 * count / total:.6f}', *attribution))
+    counts = Counter()
+    observations = Counter()
+    alias = Counter()
+    stack_header = ('pc', 'samples', 'fp_stop', 'sample_function', 'caller_rule', 'verified_direct_caller',
+                    'verified_call_site', 'verified_memory_call', 'rsp_word', 'frame_return_pcs', 'frame_caller_functions')
+    with (args / 'symbolized_stacks.tsv').open('x', newline='') as file:
+        writer = csv.writer(file, delimiter='\t', lineterminator='\n')
+        writer.writerow(stack_header)
+        for (pc, word, return_pcs, status), count in stack_count.most_common():
+            image, address, frames = describe(pc)
+            target = watched(name for name, _ in frames)
+            cfa = direct_rule(image, address) if address is not None else None
+            verified = word if cfa == 'rsp+8' else return_pcs[0] if cfa == 'rbp+16' and return_pcs else 0
+            caller_function, caller_source = '', ''
+            actual_call = ''
+            libc_memory = Path(image).name.startswith('libc.so.') and re.search(r'mem(?:move|cpy|set)', frames[-1][0])
+            if verified:
+                caller_image, caller_address, call_site_frames = describe(verified - 1)
+                caller_function, caller_source = call_site_frames[0]
+                if libc_memory and caller_address is not None:
+                    actual_call = memory_call_returns(caller_image).get(caller_address + 1, '')
+            if libc_memory:
+                machine_function = frames[-1][0]
+                if actual_call == 'memmove' and target != 'memmove':
+                    alias[machine_function, actual_call] += count
+                    target = 'memmove'
+                elif actual_call == 'memcpy' and target == 'memmove':
+                    alias[machine_function, actual_call] += count
+                    target = None
+                elif not actual_call and ('memcpy' in machine_function or target == 'memmove'):
+                    # glibc can fold memcpy and memmove into one implementation.
+                    # Count a distinct category where the call target is not demonstrable.
+                    alias[machine_function, '[unresolved copy routine]'] += count
+                    target = 'memcpy/memmove unresolved'
+            if target:
+                observations[target] += count
+                counts[target, caller_function or '[unverified]', caller_source] += count
+            writer.writerow((f'{pc:#x}', count, status, frames[-1][0], cfa or '', caller_function, caller_source, actual_call,
+                             f'{word:#x}' if word else '', ','.join(f'{ret:#x}' for ret in return_pcs),
+                             ' | '.join(describe(ret - 1)[2][0][0] for ret in return_pcs)))
+    write_table(args / 'watched_caller_lines.tsv', ('callee', 'verified_return_site_function', 'call_site', 'samples'),
+                [(*key, count) for key, count in sorted(counts.items(), key=lambda item: (item[0][0], -item[1], item[0]))])
+    by_caller = defaultdict(Counter)
+    for (target, caller, location), count in counts.items():
+        by_caller[target, caller][location] += count
+    rows = [(target, caller, locations.most_common(1)[0][0], sum(locations.values()))
+            for (target, caller), locations in by_caller.items()]
+    write_table(args / 'watched_callers.tsv', ('callee', 'verified_return_site_function', 'modal_call_site', 'samples'),
+                sorted(rows, key=lambda row: (row[0], -row[-1], row[1])))
+    write_table(args / 'glibc_alias_calls.tsv', ('sampled_machine_function', 'call_instruction_target', 'samples'),
+                [(*key, count) for key, count in alias.most_common()])
+    write_table(args / 'watched_callees.tsv', ('callee', 'exclusive_samples'), sorted(observations.items()))
+    with (args / 'sampler_summary.txt').open('x') as file:
+        print(f'samples {total}\nreported_timer_overruns {overruns}\ndistinct_PC {len(sample_count)}\nthreads {len(thread_count)}', file=file)
+        for tid, count in thread_count.most_common():
+            print(f'thread {tid} samples {count}', file=file)
+        for reason, count in sorted(statuses.items()):
+            print(f'frame_stop {reason} {count}', file=file)
+        for depth, count in sorted(depths.items()):
+            print(f'frame_depth {depth} {count}', file=file)
+        for image, debug in alternatives.items():
+            print(f'matching_debug_build_id {build_id(image)} {image} {debug}', file=file)
+    print(f'{total} CPU instruction-pointer samples across {len(thread_count)} threads; reported timer overruns {overruns}')
+
+
+if __name__ == '__main__':
+    main()

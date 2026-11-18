@@ -1,0 +1,241 @@
++ job=/workspace/work/sol2-job3
++ prev=/workspace/work/sol2-job2
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job3/step3
++ prof=/workspace/work/sol2-job3/profiler
++ private=/workspace/work/sol2-job3/profile-private
++ cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
++ exe=/workspace/work/sol2-job3/build-r15d-fp/forge
++ control=/workspace/work/sol2-job3/build-see-control/forge
++ driver=/workspace/work/sol2-job2/carbon2/selfplay_driver.py
++ net=/workspace/work/sol2-job2/net768.fnn3
++ flags='-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -g -fno-omit-frame-pointer'
++ args=(--net "$net" --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json)
++ sha256sum /workspace/work/sol2-job3/profiler/cpu_sampler.so /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-job2/r15d/CMakeLists.txt
+0498df334ada261da6cc89f71d86a9a4886346bca11bb4961614a69bc71a4bbd  /workspace/work/sol2-job3/profiler/cpu_sampler.so
+c79b95bf45762fa9869d23140ed7f946cfaf0cb6bc4f74325a18d5f934bf1c45  /workspace/work/sol2-job2/carbon2/selfplay_driver.py
+c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7  /workspace/work/sol2-job2/net768.fnn3
+bfa17f8cb5f2f6358e88951f385fc67ddca279af06301b22945efdcc1ceaca5f  /workspace/work/sol2-job2/r15d/CMakeLists.txt
++ sha256sum /workspace/work/sol2-job2/r15d/src/board.cpp /workspace/work/sol2-job3/r15d-see-control/src/board.cpp /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/see-spin.patch.txt
+59f659a751a342f3e7008585fd14e71c870faa63ab1766dd095e8d4403414540  /workspace/work/sol2-job2/r15d/src/board.cpp
+109e91d496b493946661e50cd5321a82e79ae851e30bb559c1fef28312ed879f  /workspace/work/sol2-job3/r15d-see-control/src/board.cpp
+3542fd827338599d5cd9d9de6c825bf596db05581f09e45bb6c3190293c81c92  /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/see-spin.patch.txt
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job2/r15d -B /workspace/work/sol2-job3/build-r15d-fp -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -g -fno-omit-frame-pointer'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job3/build-r15d-fp
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job3/build-r15d-fp --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job3/build-r15d-fp/forge
+cba0bf8997b51422fd1e26ad13789d8d244a995adc1c03c88095459024c1743f  /workspace/work/sol2-job3/build-r15d-fp/forge
++ printf 'uci\nquit\n'
++ /workspace/work/sol2-job3/build-r15d-fp/forge
++ rg '^id name ' /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/frame-pointer-uci.raw.txt
+id name Chess Engine Forge 6.4.24 candidate
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job2/carbon2/selfplay_driver.py --engine /workspace/work/sol2-job3/build-r15d-fp/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json
++ trace_check /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/frame-pointer-gate.stdout.txt
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/frame-pointer-gate.stdout.txt
+{'games': 60, 'searches': 8612, 'total_nodes': 29333343, 'avg_nodes_per_search': 3406.1, 'avg_searches_per_game': 143.53, 'elapsed_ms': 21119.7, 'searches_per_sec': 407.77, 'effective_nps': 1388909.1, 'trace_fnv1a64': '5c705841c3ea17b4'}
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job3/r15d-see-control -B /workspace/work/sol2-job3/build-see-control -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -g -fno-omit-frame-pointer'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job3/build-see-control
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job3/build-see-control --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job3/build-see-control/forge
+3b96feef46af8e125bc0882010d4f770b518c2452daa907fdc55effad90b1839  /workspace/work/sol2-job3/build-see-control/forge
++ printf 'uci\nquit\n'
++ /workspace/work/sol2-job3/build-see-control/forge
++ run_profile control /workspace/work/sol2-job3/build-see-control/forge
++ local name=control binary=/workspace/work/sol2-job3/build-see-control/forge prefix=/workspace/work/sol2-job3/profile-private/sampler-control
++ date -u +%FT%TZ
+2026-11-18T09:05:57Z
++ SOL2_PROFILE_EXE=/workspace/work/sol2-job3/build-see-control/forge
++ SOL2_PROFILE_PREFIX=/workspace/work/sol2-job3/profile-private/sampler-control
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job2/carbon2/selfplay_driver.py --engine /workspace/work/sol2-job3/profiler/profile_engine.sh --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json
++ cp /workspace/work/sol2-job3/profile-private/sampler-control.engine.stderr.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.sampler.stderr.txt
++ trace_check /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.stdout.txt
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.stdout.txt
+{'games': 60, 'searches': 8612, 'total_nodes': 29333343, 'avg_nodes_per_search': 3406.1, 'avg_searches_per_game': 143.53, 'elapsed_ms': 84964.23, 'searches_per_sec': 101.36, 'effective_nps': 345243.4, 'trace_fnv1a64': '5c705841c3ea17b4'}
++ python -B /workspace/work/sol2-job3/profiler/symbolize.py /workspace/work/sol2-job3/profile-private/sampler-control /workspace/work/sol2-job3/profile-private/control --libc-debug /workspace/work/sol2-job2/profiler/libc.debuginfo
+20444 CPU instruction-pointer samples across 2 threads; reported timer overruns 510
++ python -B /workspace/work/sol2-job3/profiler/profile_groups.py /workspace/work/sol2-job3/profile-private/control
+Static exchange evaluation	14931	73.033653
+Evaluation (NNUE v3)	1521	7.439836
+Search control	1242	6.075132
+Move ordering and picking	858	4.196830
+Hash table	582	2.846801
+Move generation and legality	568	2.778321
+Board updates and position keys	365	1.785365
+Draw and repetition checks	178	0.870671
+Other runtime and libraries	167	0.816866
+Other engine work	23	0.112502
+UCI and input/output	7	0.034240
+Unresolved	2	0.009783
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/control/sampler_summary.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.sampler_summary.txt.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/control/top15.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.top15.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/control/groups.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.groups.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/control/watched_callers.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.watched_callers.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/control/watched_callees.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/control.watched_callees.tsv.txt
++ date -u +%FT%TZ
+2026-11-18T09:07:24Z
++ run_profile clean-1 /workspace/work/sol2-job3/build-r15d-fp/forge
++ local name=clean-1 binary=/workspace/work/sol2-job3/build-r15d-fp/forge prefix=/workspace/work/sol2-job3/profile-private/sampler-clean-1
++ date -u +%FT%TZ
+2026-11-18T09:07:24Z
++ SOL2_PROFILE_EXE=/workspace/work/sol2-job3/build-r15d-fp/forge
++ SOL2_PROFILE_PREFIX=/workspace/work/sol2-job3/profile-private/sampler-clean-1
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job2/carbon2/selfplay_driver.py --engine /workspace/work/sol2-job3/profiler/profile_engine.sh --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json
++ cp /workspace/work/sol2-job3/profile-private/sampler-clean-1.engine.stderr.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.sampler.stderr.txt
++ trace_check /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.stdout.txt
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.stdout.txt
+{'games': 60, 'searches': 8612, 'total_nodes': 29333343, 'avg_nodes_per_search': 3406.1, 'avg_searches_per_game': 143.53, 'elapsed_ms': 20585.51, 'searches_per_sec': 418.35, 'effective_nps': 1424951.0, 'trace_fnv1a64': '5c705841c3ea17b4'}
++ python -B /workspace/work/sol2-job3/profiler/symbolize.py /workspace/work/sol2-job3/profile-private/sampler-clean-1 /workspace/work/sol2-job3/profile-private/clean-1 --libc-debug /workspace/work/sol2-job2/profiler/libc.debuginfo
+4787 CPU instruction-pointer samples across 2 threads; reported timer overruns 236
++ python -B /workspace/work/sol2-job3/profiler/profile_groups.py /workspace/work/sol2-job3/profile-private/clean-1
+Evaluation (NNUE v3)	1284	26.822645
+Search control	990	20.681011
+Move ordering and picking	727	15.186965
+Hash table	491	10.256946
+Move generation and legality	475	9.922707
+Board updates and position keys	301	6.287863
+Static exchange evaluation	175	3.655734
+Other runtime and libraries	172	3.593065
+Draw and repetition checks	144	3.008147
+Other engine work	24	0.501358
+Unresolved	2	0.041780
+UCI and input/output	2	0.041780
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-1/sampler_summary.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.sampler_summary.txt.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-1/top15.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.top15.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-1/groups.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.groups.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-1/watched_callers.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.watched_callers.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-1/watched_callees.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-1.watched_callees.tsv.txt
++ date -u +%FT%TZ
+2026-11-18T09:07:46Z
++ python -B /workspace/work/sol2-job3/aggregate.py control /workspace/work/sol2-job3/profile-private /workspace/work/sol2-job3/profile-private
++ tee /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/positive-control.raw.txt
+control Board::see_ge rank 1 samples 14988 share_percent 73.312463
+clean-1 Board::see_ge rank 6 samples 236 share_percent 4.930019
+SEE rank change 5 percentage-point change 68.38244399999999 PASS
++ run_profile clean-2 /workspace/work/sol2-job3/build-r15d-fp/forge
++ local name=clean-2 binary=/workspace/work/sol2-job3/build-r15d-fp/forge prefix=/workspace/work/sol2-job3/profile-private/sampler-clean-2
++ date -u +%FT%TZ
+2026-11-18T09:07:46Z
++ SOL2_PROFILE_EXE=/workspace/work/sol2-job3/build-r15d-fp/forge
++ SOL2_PROFILE_PREFIX=/workspace/work/sol2-job3/profile-private/sampler-clean-2
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job2/carbon2/selfplay_driver.py --engine /workspace/work/sol2-job3/profiler/profile_engine.sh --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json
++ cp /workspace/work/sol2-job3/profile-private/sampler-clean-2.engine.stderr.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.sampler.stderr.txt
++ trace_check /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.stdout.txt
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.stdout.txt
+{'games': 60, 'searches': 8612, 'total_nodes': 29333343, 'avg_nodes_per_search': 3406.1, 'avg_searches_per_game': 143.53, 'elapsed_ms': 20874.442, 'searches_per_sec': 412.56, 'effective_nps': 1405227.7, 'trace_fnv1a64': '5c705841c3ea17b4'}
++ python -B /workspace/work/sol2-job3/profiler/symbolize.py /workspace/work/sol2-job3/profile-private/sampler-clean-2 /workspace/work/sol2-job3/profile-private/clean-2 --libc-debug /workspace/work/sol2-job2/profiler/libc.debuginfo
+4838 CPU instruction-pointer samples across 2 threads; reported timer overruns 238
++ python -B /workspace/work/sol2-job3/profiler/profile_groups.py /workspace/work/sol2-job3/profile-private/clean-2
+Evaluation (NNUE v3)	1298	26.829268
+Search control	984	20.338983
+Move ordering and picking	740	15.295577
+Hash table	517	10.686234
+Move generation and legality	479	9.900785
+Board updates and position keys	343	7.089706
+Static exchange evaluation	158	3.265812
+Other runtime and libraries	152	3.141794
+Draw and repetition checks	141	2.914427
+Other engine work	17	0.351385
+UCI and input/output	6	0.124018
+Unresolved	3	0.062009
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-2/sampler_summary.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.sampler_summary.txt.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-2/top15.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.top15.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-2/groups.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.groups.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-2/watched_callers.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.watched_callers.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-2/watched_callees.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-2.watched_callees.tsv.txt
++ date -u +%FT%TZ
+2026-11-18T09:08:08Z
++ run_profile clean-3 /workspace/work/sol2-job3/build-r15d-fp/forge
++ local name=clean-3 binary=/workspace/work/sol2-job3/build-r15d-fp/forge prefix=/workspace/work/sol2-job3/profile-private/sampler-clean-3
++ date -u +%FT%TZ
+2026-11-18T09:08:08Z
++ SOL2_PROFILE_EXE=/workspace/work/sol2-job3/build-r15d-fp/forge
++ SOL2_PROFILE_PREFIX=/workspace/work/sol2-job3/profile-private/sampler-clean-3
++ timeout 240 taskset -c 2 python -B /workspace/work/sol2-job2/carbon2/selfplay_driver.py --engine /workspace/work/sol2-job3/profiler/profile_engine.sh --net /workspace/work/sol2-job2/net768.fnn3 --games 60 --softnodes 2000 --random-plies 8 --max-plies 300 --seed 20261117 --json
++ cp /workspace/work/sol2-job3/profile-private/sampler-clean-3.engine.stderr.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.sampler.stderr.txt
++ trace_check /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.stdout.txt
++ python - /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.stdout.txt
+{'games': 60, 'searches': 8612, 'total_nodes': 29333343, 'avg_nodes_per_search': 3406.1, 'avg_searches_per_game': 143.53, 'elapsed_ms': 20619.146, 'searches_per_sec': 417.67, 'effective_nps': 1422626.5, 'trace_fnv1a64': '5c705841c3ea17b4'}
++ python -B /workspace/work/sol2-job3/profiler/symbolize.py /workspace/work/sol2-job3/profile-private/sampler-clean-3 /workspace/work/sol2-job3/profile-private/clean-3 --libc-debug /workspace/work/sol2-job2/profiler/libc.debuginfo
+4764 CPU instruction-pointer samples across 2 threads; reported timer overruns 235
++ python -B /workspace/work/sol2-job3/profiler/profile_groups.py /workspace/work/sol2-job3/profile-private/clean-3
+Evaluation (NNUE v3)	1340	28.127624
+Search control	977	20.507976
+Move ordering and picking	676	14.189757
+Hash table	477	10.012594
+Move generation and legality	462	9.697733
+Board updates and position keys	363	7.619647
+Draw and repetition checks	149	3.127624
+Static exchange evaluation	147	3.085642
+Other runtime and libraries	146	3.064652
+Other engine work	19	0.398825
+UCI and input/output	6	0.125945
+Unresolved	2	0.041982
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-3/sampler_summary.txt /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.sampler_summary.txt.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-3/top15.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.top15.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-3/groups.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.groups.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-3/watched_callers.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.watched_callers.tsv.txt
++ for receipt in sampler_summary.txt top15.tsv groups.tsv watched_callers.tsv watched_callees.tsv
++ cp /workspace/work/sol2-job3/profile-private/clean-3/watched_callees.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/clean-3.watched_callees.tsv.txt
++ date -u +%FT%TZ
+2026-11-18T09:08:30Z
++ mkdir /workspace/work/sol2-job3/profile-private/pooled
++ python -B /workspace/work/sol2-job3/aggregate.py pooled /workspace/work/sol2-job3/profile-private /workspace/work/sol2-job3/profile-private/pooled
++ python -B /workspace/work/sol2-job3/profiler/profile_groups.py /workspace/work/sol2-job3/profile-private/pooled
+Evaluation (NNUE v3)	3922	27.256932
+Search control	2951	20.508722
+Move ordering and picking	2143	14.893321
+Hash table	1485	10.320384
+Move generation and legality	1416	9.840851
+Board updates and position keys	1007	6.998402
+Static exchange evaluation	480	3.335882
+Other runtime and libraries	470	3.266384
+Draw and repetition checks	434	3.016193
+Other engine work	60	0.416985
+UCI and input/output	14	0.097297
+Unresolved	7	0.048648
++ for receipt in top15.tsv groups.tsv all-callers.tsv
++ cp /workspace/work/sol2-job3/profile-private/pooled/top15.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/pooled.top15.tsv.txt
++ for receipt in top15.tsv groups.tsv all-callers.tsv
++ cp /workspace/work/sol2-job3/profile-private/pooled/groups.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/pooled.groups.tsv.txt
++ for receipt in top15.tsv groups.tsv all-callers.tsv
++ cp /workspace/work/sol2-job3/profile-private/pooled/all-callers.tsv /workspace/work/sol2-repo/forge-combo29/sol2/job3/step3/pooled.all-callers.tsv.txt
