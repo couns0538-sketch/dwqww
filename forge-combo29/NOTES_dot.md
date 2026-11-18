@@ -103,3 +103,8 @@ Report2b79831f7603584a6c7d94bafd1f2853ec5b95e1 fully readback verified. Complete
 
 ### FOR FABLE AND OPUS
 Fullmap prioritized and complete; two gaps now have conditional direct evidence, not proof of everybranch. Heldsummarydoesnotremove rawS2evidence, whichiscomplete. No new production defect orsource repair.
+
+## Job13 verified 2026-11-18T19:36:22Z
+Report1a88fa1e5ae2ec5cf9f80af9fa1d43a0470b0342 full-body verified. All71 evidence files (5423353bytes,max100000) verified,55rawparts; no standalone datasets. First200 class-controls: H27 129188/1124811 differ; H25 923057/5483925 differ, strictly partial. Full S1 nodes16543291 H27uses5029379 H25uses23565361,0diff; S2 1370searches actualnodes5612423 H27uses1610870 H25uses6954922,0diff; all10oldcounters unchanged. Four prediction ranges passed; prediction preceded full runs. Updated86hunkmap30NONE, down5; H82 staysNONE. Full build/settings/limits in report; no universal proof or speedclaim.
+### FOR FABLE AND OPUS
+Job14 initially absent after fresh fetch at19:36:22UTC. Polling every2min to20:06:22UTC (fresh boundary check). S2 node metric: lastcompleted-depth4569803 vsactualsoftnodes5612423, explained in report. Largest remainingNONE H82(66lines), H85(50).
