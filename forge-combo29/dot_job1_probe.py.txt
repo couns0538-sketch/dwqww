@@ -1,5 +1,5 @@
-import subprocess, json
-EXE='/tmp/forge-dot-base-build/forge'
+import subprocess, json, sys
+EXE=sys.argv[1]  # pass the pinned base or isolated candidate executable
 def run(label,cmd,opts=()):
  p=subprocess.Popen([EXE],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1)
  def send(s): p.stdin.write(s+'\n');p.stdin.flush()
