@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job13
+repo=/workspace/work/sol2-repo/forge-combo29/sol2
+base=/workspace/work/sol2-job2
+arm=$1
+out="$repo/job13"
+build="$job/build-clang-selfplay-$arm"
+profile="$job/clang-selfplay-profile-$arm"
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+source /workspace/work/sol2-job12/clang.env
+export PYTHONPATH=/workspace/work/sol2-job12/python
+case "$arm" in
+  r15d) source_tree="$base/r15d";;
+  kF) source_tree=/workspace/work/sol2-job9/kF;;
+  *) exit 2;;
+esac
+flags='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin'
+link_flags="-fuse-ld=$FORGE_LLD"
+common=(-S "$source_tree" -B "$build" "-DCMAKE_CXX_COMPILER=$FORGE_CLANGXX" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_EXE_LINKER_FLAGS=$link_flags")
+driver=/workspace/work/sol2-job10/fixed_nodes_driver.py
+net="$base/net768.fnn3"
+book="$base/UHO_Lichess_4852_v1.epd"
+known="$repo/job10/known-answer.txt"
+"$FORGE_CLANGXX" --version
+mkdir "$profile"
+"$cmake" "${common[@]}" "-DCMAKE_CXX_FLAGS=$flags -fprofile-instr-generate"
+"$cmake" --build "$build" --parallel 3 --verbose > "$out/$arm-generate-build.raw.txt" 2>&1
+sha256sum "$build/forge"
+{
+    printf '%s\n' uci \
+      'setoption name CuckooRep value true' \
+      'setoption name HistRework value 2' \
+      'setoption name TtPruneV2 value true' \
+      'setoption name CorrHistV2 value true' \
+      "setoption name NNUEArchFile value $net" \
+      'setoption name NNUEArch value true' \
+      isready 'bench 11' 'bench 13' 'bench 16' quit
+} > "$out/$arm-profile-bench.stdin.txt"
+LLVM_PROFILE_FILE="$profile/bench.profraw" timeout 180 taskset -c 2 "$build/forge" < "$out/$arm-profile-bench.stdin.txt" > "$out/$arm-profile-bench.stdout.txt" 2> "$out/$arm-profile-bench.stderr.txt"
+test ! -s "$out/$arm-profile-bench.stderr.txt"
+rg '^info string NNUE v3 active: .*hidden 768 .*checksum 30ab43b4ba5db5f3' "$out/$arm-profile-bench.stdout.txt"
+test "$(rg -c '^info string bench depth (11|13|16) nodes ' "$out/$arm-profile-bench.stdout.txt")" -eq 3
+LLVM_PROFILE_FILE="$profile/selfplay.profraw" timeout 240 taskset -c 2 python3 -B "$job/soft_book_driver.py" --engine "$build/forge" --net "$net" --book "$book" --start 1001 --games 60 --softnodes 2000 --max-plies 300 --json > "$out/$arm-profile-selfplay.raw.txt" 2> "$out/$arm-profile-selfplay.stderr.txt"
+test ! -s "$out/$arm-profile-selfplay.stderr.txt"
+"$FORGE_LLVM_PROFDATA" merge -sparse "$profile/bench.profraw" "$profile/selfplay.profraw" -o "$profile/merged.profdata"
+{
+    sha256sum "$profile/bench.profraw" "$profile/selfplay.profraw" "$profile/merged.profdata"
+    "$FORGE_LLVM_PROFDATA" show "$profile/merged.profdata"
+} > "$out/$arm-profile-receipt.raw.txt" 2>&1
+"$cmake" "${common[@]}" "-DCMAKE_CXX_FLAGS=$flags -fprofile-instr-use=$profile/merged.profdata -Werror=profile-instr-out-of-date"
+"$cmake" --build "$build" --clean-first --parallel 3 --verbose > "$out/$arm-use-build.raw.txt" 2>&1
+sha256sum "$build/forge" | tee "$out/$arm-clang-sha256.raw.txt"
+ldd "$build/forge" > "$out/$arm-libraries.raw.txt"
+rg 'libstdc[+][+][.]so' "$out/$arm-libraries.raw.txt"
+taskset -c 2 python3 -B "$job/no_options_pins.py" "$build/forge" "$out/$arm-default.raw.txt"
+taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py "$build/forge" "$base/carbon2/selfplay_driver.py" "$net" "$out/$arm-net768.raw.txt" required
+timeout 180 taskset -c 2 python3 -B "$driver" --engine "$build/forge" --net "$net" --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings "$repo/job10/fixed-openings.txt" --json > "$out/$arm-identity.raw.txt" 2> "$out/$arm-identity.stderr.txt"
+test ! -s "$out/$arm-identity.stderr.txt"
+python3 -B - "$out/$arm-identity.raw.txt" "$known" <<'PY'
+import json
+from pathlib import Path
+import sys
+actual, expected = (json.loads(Path(path).read_text()) for path in sys.argv[1:])
+assert all(actual[key] == value for key, value in expected.items()), (actual, expected)
+print(json.dumps(actual))
+PY

@@ -1,0 +1,56 @@
++ source /workspace/work/sol2-job12/clang.env
+++ export LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ export FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ export FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ export FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
+++ FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
++ tee /workspace/work/sol2-job13/clang-version.raw.txt
+Debian clang version 19.1.7 (3+b1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin
++ rg 'clang version 19[.]1[.]7' /workspace/work/sol2-job13/clang-version.raw.txt
+Debian clang version 19.1.7 (3+b1)
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata --version
+Debian LLVM version 19.1.7
+  Optimized build.
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld --version
+Debian LLD 19.1.7 (compatible with GNU linkers)
++ nproc
+5
++ LC_ALL=C
++ lscpu
++ rg '^(Model name|Thread\(s\) per core|Core\(s\) per socket|Socket\(s\)|L3 cache|CPU\(s\))'
+CPU(s):                                  5
+Model name:                              AMD EPYC 9V74 80-Core Processor
+Thread(s) per core:                      1
+Core(s) per socket:                      5
+Socket(s):                               1
+L3 cache:                                32 MiB (1 instance)
++ LC_ALL=C
++ lscpu -e=CPU,CORE,SOCKET,ONLINE
+CPU CORE SOCKET ONLINE
+  0    0      0    yes
+  1    1      0    yes
+  2    2      0    yes
+  3    3      0    yes
+  4    4      0    yes
++ taskset -pc 51500
+pid 51500's current affinity list: 0-4
++ cat /sys/fs/cgroup/cpu.max
+400000 100000
++ getconf GNU_LIBC_VERSION
+glibc 2.41
+++ g++ -print-file-name=libstdc++.so
++ readlink -f /usr/lib/gcc/x86_64-linux-gnu/14/libstdc++.so
+/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33
++ sha256sum -c forge-combo29/sol2/job13/gcc-executables.raw.txt
+/workspace/work/sol2-job7/build-pgo-r15d/forge: OK
+/workspace/work/sol2-job9/build-pgo-kF/forge: OK
++ printf '%s  %s\n' 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a /workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd
++ sha256sum -c -
+/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd: OK
