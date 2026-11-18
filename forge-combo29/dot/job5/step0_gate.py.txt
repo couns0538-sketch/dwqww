@@ -1,0 +1,11 @@
+import runpy,pathlib,contextlib,subprocess,re,json,hashlib
+root=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job5');m=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt');exe='/tmp/forge-dot-pca-build/forge';summary=[]
+with (root/'step0_raw.txt').open('w') as f,contextlib.redirect_stdout(f):
+ for opts,label,wants in [({},'PCA_default',[312866,862329]),(m['PC20'],'PCA_PC20',[278024,587276])]:
+  for d,w in zip([11,13],wants):
+   e=m['Engine'](exe,label+' bench'+str(d),opts);e.send('bench '+str(d));r=e.until(lambda s:s.startswith('info string bench depth'));e.close();n=int(re.search(r' nodes (\d+)',r[-1])[1]);assert n==w,(label,d,n,w);summary.append([label,d,n])
+ e=m['Engine'](exe,'PCA_default perft5',{});e.send('position startpos');e.send('go perft 5');r=e.until(lambda s:s.startswith('nodes '));e.close();assert r[-1]=='nodes 4865609';summary.append(['perft',5,4865609])
+uci=subprocess.run([exe],input='uci\nquit\n',capture_output=True,text=True,timeout=5).stdout
+for name,maxi in [('FailHighBlend',7),('RfpNoTtPv',1),('RfpTtGuard',1),('RfpCorrMul',64)]:assert f'option name {name} type spin default 0 min 0 max {maxi}' in uci
+summary={'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'id':[x for x in uci.splitlines() if x.startswith('id name ')],'options':[x for x in uci.splitlines() if any('name '+s+' ' in x for s in ['FailHighBlend','RfpNoTtPv','RfpTtGuard','RfpCorrMul'])],'known_answers':summary,'gate':'PASS'}
+(root/'step0_summary.txt').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
