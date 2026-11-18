@@ -1,0 +1,217 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-18 14:05:18.259590837 +0100
++++ b/include/forge/search.hpp	2026-11-18 14:30:34.751463785 +0100
+@@ -518,6 +518,7 @@
+     std::chrono::steady_clock::time_point start_{};
+     std::atomic<std::uint64_t> nodes_{0};
+     std::uint64_t local_nodes_ = 0;
++    int dot_singular_nesting_ = 0; // per-worker, includes nested excluded searches
+     const std::vector<Worker*>* all_workers_ = nullptr;
+     std::uint64_t node_limit_ = 0;
+     bool node_limit_specified_ = false;
+@@ -575,6 +576,7 @@
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    bool dot_blend_allowed() const;
+     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+     // B4 CuckooRep: every child search goes through these; with CuckooRep off they are the plain calls.
+     int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-18 14:05:18.259303312 +0100
++++ b/src/search.cpp	2026-11-18 14:30:34.749454953 +0100
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <array>
+ #include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+@@ -107,6 +108,7 @@
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+ // A2A5 (kimi5 job 25): fail-high blending and three reverse-futility conditions. All 0 = today's search.
++int DotSingularBlendMode = 0; // 0=PCA, 1=outside singular verification only, 2=inside only
+ int FailHighBlend = 0;  // bit 1: rfp return blend; bit 2: qsearch fail-high blends; bit 4: main-search non-PV blend
+ int RfpNoTtPv = 0;      // 1: the rfp step is skipped at a node whose tt-pv flag is set
+ int RfpTtGuard = 0;     // 1: the rfp step is skipped when there is a TT move and it is not a capture
+@@ -197,6 +199,7 @@
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"DotSingularBlendMode", &DotSingularBlendMode, 0, 2},
+         {"FailHighBlend", &FailHighBlend, 0, 7},         {"RfpNoTtPv", &RfpNoTtPv, 0, 1},
+         {"RfpTtGuard", &RfpTtGuard, 0, 1},               {"RfpCorrMul", &RfpCorrMul, 0, 64},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -236,6 +239,18 @@
+ }
+ } // namespace tune
+ 
++// kimi5 job 25 counting build (observe-only; no search change). One A25C line per
++// search. Slots: [0] singular tests (verification search run); [1..6] its outcomes:
++// extension 1, extension 2, multi-cut return (singular_beta >= beta), extension -2
++// (TT score >= beta), extension -1 (cut node), none. Closure: [0] = [1]+...+[6].
++// [7..9] taken main-search TT cutoffs by stored bound (lower, upper, exact).
++// [10] reverse-futility returns. [15] nodes where TODAY's rfp step would return
++// (today's margin, none of the three conditions); [11..14] exactly one class each:
++// returned, refused by RfpNoTtPv, refused by RfpTtGuard and not by RfpNoTtPv,
++// refused only by the larger margin of RfpCorrMul. Closure: [15] = [11]+...+[14].
++// Threads 1 only.
++std::array<std::int64_t, 16> g_a25{};
++
+ // Kings are left out: this engine's SEE value for a king is 0, so a king is
+ // neither a material attacker nor a material victim.
+ bool cheaper_enemy_attacks_dearer(const Board& board) {
+@@ -1619,6 +1634,11 @@
+ // ---------------------------------------------------------------------------
+ // Quiescence search
+ 
++bool Worker::dot_blend_allowed() const {
++    return tune::DotSingularBlendMode == 0 ||
++           (tune::DotSingularBlendMode == 1 ? dot_singular_nesting_ == 0 : dot_singular_nesting_ > 0);
++}
++
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+@@ -1682,7 +1702,7 @@
+         best_score = eval;
+         if (best_score >= beta) {
+             // A2A5 bit 2 (a): the stand-pat fail high is blended toward beta before the store and the return.
+-            if ((tune::FailHighBlend & 2) != 0 && !is_mate_score(best_score) && !is_mate_score(beta))
++            if ((tune::FailHighBlend & 2) != 0 && dot_blend_allowed() && !is_mate_score(best_score) && !is_mate_score(beta))
+                 best_score = (best_score + beta) / 2;
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+@@ -1753,7 +1773,7 @@
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+     // A2A5 bit 2 (b): a fail-high best value is blended toward beta before the bound, the store and the return.
+-    if ((tune::FailHighBlend & 2) != 0 && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta))
++    if ((tune::FailHighBlend & 2) != 0 && dot_blend_allowed() && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta))
+         best_score = (best_score + beta) / 2;
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+@@ -1862,6 +1882,7 @@
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        ++g_a25[tt_bound == BoundLower ? 7 : (tt_bound == BoundUpper ? 8 : 9)];  // A25C: taken TT cutoff by stored bound
+         // packc28, TtCutoffHistory: a stored fail-high by a quiet move teaches the ordering tables.
+         if (tune::TtCutoffHistory != 0 && tt_score >= beta && !tt_move.is_none() && !tt_move.is_capture() &&
+             !tt_move.is_promotion() && board.is_pseudo_legal(tt_move)) {
+@@ -1952,12 +1973,28 @@
+         const int rfp_corr = tune::RfpCorrMul != 0
+                                  ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16
+                                  : 0;
++        // A25C counting: today's step apart (today's margin, none of the three conditions), so a
++        // node where it would return lands in exactly one of the four classes. The taken return
++        // is iff today's condition and the three conditions all hold.
++        const int rfp_margin_today = tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening;
++        const bool rfp_would_today = !bare_king_mode && depth <= tune::RfpDepth &&
++                                     eval - rfp_margin_today >= beta && eval < MateInMaxPly;
++        const bool rfp_refused_pv = tune::RfpNoTtPv != 0 && ss->tt_pv;
++        const bool rfp_refused_tt = tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture();
++        const bool rfp_refused_corr = eval - (rfp_margin_today + rfp_corr) < beta;
++        if (rfp_would_today) {
++            ++g_a25[15];
++            if (!rfp_refused_pv && !rfp_refused_tt && !rfp_refused_corr) ++g_a25[11];
++            else if (rfp_refused_pv) ++g_a25[12];
++            else if (rfp_refused_tt) ++g_a25[13];
++            else ++g_a25[14];
++        }
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+-            !(tune::RfpNoTtPv != 0 && ss->tt_pv) &&
+-            !(tune::RfpTtGuard != 0 && !tt_move.is_none() && !tt_move.is_capture()) &&
+-            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr) >= beta &&
++            !rfp_refused_pv && !rfp_refused_tt &&
++            eval - (rfp_margin_today + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
+-            return (tune::FailHighBlend & 1) != 0 && !is_mate_score(eval) && !is_mate_score(beta)
++            ++g_a25[10];  // A25C: rfp return
++            return (tune::FailHighBlend & 1) != 0 && dot_blend_allowed() && !is_mate_score(eval) && !is_mate_score(beta)
+                        ? beta + (eval - beta) / 3
+                        : eval;
+         }
+@@ -2213,6 +2250,7 @@
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++            ++g_a25[0];  // A25C: singular test (the verification search below runs)
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             // grok47/r4-08 (audit finding 7): (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch,
+             // which never reads excluded_move, so the singular search would cut off on this node's own
+@@ -2220,7 +2258,14 @@
+             const int singular_depth = std::max(1, (depth - 1) / 2);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+-            const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            const int singular_score = [&] {
++                struct Scope {
++                    int& nesting;
++                    explicit Scope(int& value) : nesting(value) { ++nesting; }
++                    ~Scope() { --nesting; }
++                } scope(dot_singular_nesting_);
++                return search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            }();
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -2230,12 +2275,18 @@
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                 }
++                ++g_a25[extension == 2 ? 2 : 1];  // A25C: extension 1 or 2
+             } else if (singular_beta >= beta) {
++                ++g_a25[3];  // A25C: multi-cut return
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
++                ++g_a25[4];  // A25C: extension -2
+             } else if (cut_node) {
+                 extension = -1;
++                ++g_a25[5];  // A25C: extension -1
++            } else {
++                ++g_a25[6];  // A25C: no extension
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+@@ -2389,7 +2440,7 @@
+     // bound is chosen, the entry is stored and the value returned. The correction-history update
+     // below keeps the raw value.
+     const int raw_best_score = best_score;
+-    if ((tune::FailHighBlend & 4) != 0 && !pv_node && best_score >= beta && !is_mate_score(best_score) &&
++    if ((tune::FailHighBlend & 4) != 0 && dot_blend_allowed() && !pv_node && best_score >= beta && !is_mate_score(best_score) &&
+         !is_mate_score(beta))
+         best_score = (best_score * depth + beta) / (depth + 1);
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+@@ -2486,6 +2537,7 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    dot_singular_nesting_ = 0;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -3136,6 +3188,7 @@
+     // thread first. MultiPV leaves the extra workers idle; clearing them does
+     // not change the main-worker total.
+     for (auto& worker : workers_) worker->reset_node_count();
++    g_a25.fill(0);  // kimi5 job 25 counting: one A25C line per search (Threads 1)
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+@@ -3153,6 +3206,12 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++    if (emit_info) {  // kimi5 job 25 counting: one A25C line per search
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "A25C";
++        for (std::size_t i = 0; i < g_a25.size(); ++i) std::cout << ' ' << g_a25[i];
++        std::cout << std::endl;
++    }
+     return result;
+ }
+ 
