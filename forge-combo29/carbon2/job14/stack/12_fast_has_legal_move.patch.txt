@@ -1,0 +1,163 @@
+--- a/include/forge/board.hpp	2026-11-18 07:54:23.258998850 +0000
++++ b/include/forge/board.hpp	2026-11-18 08:46:38.550998850 +0000
+@@ -299,6 +299,7 @@
+     mutable KingLines king_lines_;
+     void refresh_king_lines() const;
+ #endif
++    [[nodiscard]] bool has_legal_move_slow() const;
+     [[nodiscard]] bool is_legal_complete(const Move& move) const;
+     [[nodiscard]] bool gives_check_complete(const Move& move) const;
+ 
+@@ -357,4 +358,47 @@
+     return gives_check_complete(move);
+ }
+ 
++inline bool Board::has_legal_move() const {
++#if FORGE_SPD_KING_LINES
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const int ksq = king_squares_[static_cast<std::size_t>(us)];
++        Bitboard pinned = 0;
++        if (king_lines_.valid) {
++            pinned = king_lines_.pinned;
++        } else {
++            const Bitboard enemy_q = pieces(them, Queen);
++            const Bitboard snipers =
++                (attacks::rook_ray(ksq) & (pieces(them, Rook) | enemy_q)) |
++                (attacks::bishop_ray(ksq) & (pieces(them, Bishop) | enemy_q));
++            if (snipers != 0) [[unlikely]] return has_legal_move_slow();
++        }
++        const Bitboard us_occ = occupied_[static_cast<std::size_t>(us)];
++        const Bitboard them_occ = occupied_[static_cast<std::size_t>(them)];
++        const Bitboard occ = us_occ | them_occ;
++        const Bitboard pawns = pieces(us, Pawn) & ~pinned;
++        if (((pawn_push(us, pawns) & ~occ) | (pawn_attacks_bb(us, pawns) & them_occ)) != 0) {
++            return true;
++        }
++        const Bitboard not_us = ~us_occ;
++        const Bitboard queens = pieces(us, Queen);
++        const Bitboard orth = (pieces(us, Rook) | queens) & ~pinned;
++        const Bitboard diag = (pieces(us, Bishop) | queens) & ~pinned;
++        const Bitboard orth_step = shift_north(orth) | shift_south(orth) | shift_east(orth) | shift_west(orth);
++        const Bitboard diag_step = shift_north_east(diag) | shift_north_west(diag) |
++                                   shift_south_east(diag) | shift_south_west(diag);
++        if (((orth_step | diag_step) & not_us) != 0) return true;
++        if (const Bitboard kn = pieces(us, Knight) & ~pinned; kn != 0) {
++            constexpr Bitboard NotAB = ~(FileABB | FileBBB);
++            constexpr Bitboard NotGH = ~(FileGBB | FileHBB);
++            const Bitboard h1 = ((kn & ~FileABB) >> 1) | ((kn & ~FileHBB) << 1);
++            const Bitboard h2 = ((kn & NotAB) >> 2) | ((kn & NotGH) << 2);
++            if ((((h1 << 16) | (h1 >> 16) | (h2 << 8) | (h2 >> 8)) & not_us) != 0) return true;
++        }
++    }
++#endif
++    return has_legal_move_slow();
++}
++
+ } // namespace forge
+--- a/src/board.cpp	2026-11-18 07:54:23.258998850 +0000
++++ b/src/board.cpp	2026-11-18 08:46:38.550998850 +0000
+@@ -844,34 +844,49 @@
+     }
+ }
+ 
+-bool Board::has_legal_move() const {
++bool Board::has_legal_move_slow() const {
+     if (checkers_ == 0) {
+         const Color us = side_;
+         const Color them = opposite(us);
+-        const Bitboard occ = occupied();
+         const Bitboard us_occ = occupied(us);
+         const Bitboard them_occ = occupied(them);
++        const Bitboard occ = us_occ | them_occ;
++        const Bitboard not_us = ~us_occ;
+         const int ksq = king_square(us);
+-        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
+-        const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
+-        if (((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
+-            return true;
+-        }
+-        const Bitboard enemy_rq = pieces(them, Rook) | pieces(them, Queen);
+-        const Bitboard enemy_bq = pieces(them, Bishop) | pieces(them, Queen);
++        const Bitboard enemy_q = pieces(them, Queen);
++        const Bitboard enemy_rq = pieces(them, Rook) | enemy_q;
++        const Bitboard enemy_bq = pieces(them, Bishop) | enemy_q;
+ #if FORGE_SPD_KING_LINES
+-        const Bitboard pinned = king_lines_.valid
+-            ? king_lines_.pinned
+-            : ((((attacks::rook_ray(ksq) & enemy_rq) | (attacks::bishop_ray(ksq) & enemy_bq)) == 0)
+-                   ? Bitboard{0}
+-                   : (single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ));
++        Bitboard pinned = 0;
++        if (king_lines_.valid) {
++            pinned = king_lines_.pinned;
++        } else if (((attacks::rook_ray(ksq) & enemy_rq) | (attacks::bishop_ray(ksq) & enemy_bq)) != 0) {
++            pinned = ensure_king_lines().pinned;
++            const Bitboard pawns = pieces(us, Pawn) & ~pinned;
++            if (((pawn_push(us, pawns) & ~occ) | (pawn_attacks_bb(us, pawns) & them_occ)) != 0) {
++                return true;
++            }
++            const Bitboard queens = pieces(us, Queen);
++            const Bitboard orth = (pieces(us, Rook) | queens) & ~pinned;
++            const Bitboard diag = (pieces(us, Bishop) | queens) & ~pinned;
++            const Bitboard orth_step = shift_north(orth) | shift_south(orth) | shift_east(orth) | shift_west(orth);
++            const Bitboard diag_step = shift_north_east(diag) | shift_north_west(diag) |
++                                       shift_south_east(diag) | shift_south_west(diag);
++            if (((orth_step | diag_step) & not_us) != 0) return true;
++            if (const Bitboard kn = pieces(us, Knight) & ~pinned; kn != 0) {
++                constexpr Bitboard NotAB = ~(FileABB | FileBBB);
++                constexpr Bitboard NotGH = ~(FileGBB | FileHBB);
++                const Bitboard h1 = ((kn & ~FileABB) >> 1) | ((kn & ~FileHBB) << 1);
++                const Bitboard h2 = ((kn & NotAB) >> 2) | ((kn & NotGH) << 2);
++                if ((((h1 << 16) | (h1 >> 16) | (h2 << 8) | (h2 >> 8)) & not_us) != 0) return true;
++            }
++        }
+ #else
+         const Bitboard pinned = single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ;
+-#endif
+         const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
+-        if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
+-        if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
+-        const Bitboard not_us = ~us_occ;
++        if (((pawn_push(us, unpinned_pawns) & ~occ) | (pawn_attacks_bb(us, unpinned_pawns) & them_occ)) != 0) {
++            return true;
++        }
+         for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
+             if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
+         }
+@@ -882,11 +897,29 @@
+         for (Bitboard bb = (pieces(us, Rook) | queens) & ~pinned; bb != 0;) {
+             if ((attacks::rook(pop_lsb(bb), occ) & not_us) != 0) return true;
+         }
+-        const Bitboard occ_no_king = occ & ~square_bb(ksq);
+-        for (Bitboard k = attacks::king(ksq) & not_us; k != 0;) {
+-            const int to = pop_lsb(k);
+-            const Bitboard to_bb = square_bb(to);
+-            if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
++#endif
++        const Bitboard taboo = pawn_attacks_bb(them, pieces(them, Pawn)) | attacks::king(king_square(them));
++        Bitboard king_steps = attacks::king(ksq) & not_us & ~taboo;
++        if (king_steps != 0) {
++            const Bitboard enemy_kn = pieces(them, Knight);
++            if ((enemy_kn | enemy_bq | enemy_rq) == 0) return true;
++            const Bitboard occ_no_king = occ & ~square_bb(ksq);
++            while (king_steps != 0) {
++                const int to = pop_lsb(king_steps);
++                if ((enemy_kn & attacks::knight(to)) != 0) continue;
++                const Bitboard to_bb = square_bb(to);
++                const Bitboard step_occ = occ_no_king | to_bb;
++                const Bitboard live_bq = enemy_bq & ~to_bb;
++                if (live_bq != 0 && (attacks::bishop_ray(to) & live_bq) != 0 &&
++                    (attacks::bishop(to, step_occ) & live_bq) != 0) continue;
++                const Bitboard live_rq = enemy_rq & ~to_bb;
++                if (live_rq != 0 && (attacks::rook_ray(to) & live_rq) != 0 &&
++                    (attacks::rook(to, step_occ) & live_rq) != 0) continue;
++                return true;
++            }
++        }
++        if (pinned == 0) {
++            return ep_square_ >= 0 && has_legal_en_passant_capture();
+         }
+     }
+     MoveList moves;

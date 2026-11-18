@@ -1,0 +1,11 @@
+--- a/include/forge/board.hpp	2026-11-18 08:46:38.550998850 +0000
++++ b/include/forge/board.hpp	2026-11-18 08:46:38.618998850 +0000
+@@ -372,7 +372,7 @@
+             const Bitboard snipers =
+                 (attacks::rook_ray(ksq) & (pieces(them, Rook) | enemy_q)) |
+                 (attacks::bishop_ray(ksq) & (pieces(them, Bishop) | enemy_q));
+-            if (snipers != 0) [[unlikely]] return has_legal_move_slow();
++            (void)snipers; // PLANTED FAULT: skip sniper pin check when !king_lines_.valid
+         }
+         const Bitboard us_occ = occupied_[static_cast<std::size_t>(us)];
+         const Bitboard them_occ = occupied_[static_cast<std::size_t>(them)];
