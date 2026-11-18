@@ -73,7 +73,8 @@ The [prediction](sol3/job16/prediction.md) was committed alone as
 `9a99bde0f7fd7338f83dc0246938ab880205bed1` and pushed before any
 Part 3 search. S14 scored 3/6 exact and 4/6 inside the predicted range.
 PC20 scored 3/6 exact and 6/6 inside the range. The S14 forecast put
-two of the R1-plain recoveries (L1 and L5) in range, and correctly had L2 absent
+all three R1-plain recoveries (L1, L5, and L6) in range,
+and correctly had L2 absent
 through 20. Its biggest misses were L3 and L4, both finding mate at D15.
 That contradicts my prediction that move ordering would dominate.
 Both profiles recovered with the LMR history reader plain even when
