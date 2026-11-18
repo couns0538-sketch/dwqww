@@ -1,0 +1,160 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -143,6 +143,22 @@
+     std::uint8_t slot = 0;
+     bool hit = false;
+ };
++
++#if FORGE_SPD_TT_NOTLS
++struct OwnedTTPathCounts {
++    std::uint64_t probe_hit = 0;
++    std::uint64_t probe_empty = 0;
++    std::uint64_t probe_full = 0;
++    std::uint64_t store_matched = 0;
++    std::uint64_t store_empty = 0;
++    std::uint64_t store_occupied = 0;
++    std::uint64_t store_from_full_probe = 0;
++    std::uint64_t store_matched_relocated = 0;
++    std::array<std::uint64_t, 4> replace_slots{};
++};
++
++extern thread_local OwnedTTPathCounts owned_tt_path_counts;
++#endif
+ 
+ class TranspositionTable;
+ 
+@@ -234,7 +250,8 @@
+     }
+     [[nodiscard]] WorkerTTProbe probe_locked_fast(std::uint64_t key) const;
+     void store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
+-                          Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
++                          Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock,
++                          bool from_full_probe);
+     void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
+                            Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+ 
+@@ -249,6 +266,7 @@
+         const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x00000300));
+         const unsigned hit_m = static_cast<unsigned>(occ_m) & (static_cast<unsigned>(key_eq) << 3U);
+         if (hit_m != 0U) {
++            ++owned_tt_path_counts.probe_hit;
+             const unsigned slot = static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U;
+             TTEntry& found = cluster.entries[slot];
+             if (found.generation() != generation) {
+@@ -261,15 +279,18 @@
+             return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
+         }
+         if (static_cast<unsigned>(occ_m) != 0x8888U) {
++            ++owned_tt_path_counts.probe_empty;
+             const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m) ^ 0x8888U)) >> 2U;
+             return WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false};
+         }
++        ++owned_tt_path_counts.probe_full;
+         const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+         return WorkerTTProbe{cluster.entries[repl], index, repl, false};
+ #else
+         for (std::size_t s = 0; s < 4; ++s) {
+             TTEntry& entry = cluster.entries[s];
+             if (entry.key32 == key32 && entry.occupied()) {
++                ++owned_tt_path_counts.probe_hit;
+                 if (entry.generation() != generation) {
+                     if (index < HashfullSampleLimit) [[unlikely]] {
+                         refresh_hit_sample_gen(entry.generation(), generation);
+@@ -282,9 +303,11 @@
+         }
+         for (std::size_t s = 0; s < 4; ++s) {
+             if (!cluster.entries[s].occupied()) {
++                ++owned_tt_path_counts.probe_empty;
+                 return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
+             }
+         }
++        ++owned_tt_path_counts.probe_full;
+         const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+         return WorkerTTProbe{cluster.entries[repl], index, repl, false};
+ #endif
+@@ -685,8 +708,9 @@
+     [[gnu::always_inline]] void store_tt(const WorkerTTProbe& probe, std::uint64_t key, int score, int eval, Move move,
+                                          int depth, Bound bound, bool pv, std::uint16_t halfmove_clock) {
+         if (tt_owned_) {
++            // An occupied miss snapshot was chosen by replace_full_cluster_slot at probe time.
+             shared_.tt.store_owned_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
+-                                        halfmove_clock);
++                                        halfmove_clock, !probe.hit && probe.entry.occupied());
+         } else {
+             shared_.tt.store_locked_fast(probe.cluster, probe.slot, key, score, eval, move, depth, bound, pv,
+                                          halfmove_clock);
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -463,6 +463,8 @@
+ }
+ 
+ #if FORGE_SPD_TT_NOTLS
++thread_local OwnedTTPathCounts owned_tt_path_counts;
++
+ template <bool TakeLock>
+ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+@@ -539,6 +541,7 @@
+             replace_score = score;
+         }
+     }
++    ++owned_tt_path_counts.replace_slots[replace_slot];
+     return replace_slot;
+ }
+ 
+@@ -573,7 +576,7 @@
+ 
+ void TranspositionTable::store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
+                                           int eval, Move move, int depth, Bound bound, bool pv,
+-                                          std::uint16_t halfmove_clock) {
++                                          std::uint16_t halfmove_clock, bool from_full_probe) {
+     assert(has_exclusive_access());
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
+@@ -596,6 +599,15 @@
+ #endif
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[slot];
++    if (same_position) {
++        ++owned_tt_path_counts.store_matched;
++        if (stale_slot) ++owned_tt_path_counts.store_matched_relocated;
++    } else {
++        // No key re-found: the supplied slot may now hold a different entry.
++        if (entry->occupied()) ++owned_tt_path_counts.store_occupied;
++        else ++owned_tt_path_counts.store_empty;
++        if (from_full_probe) ++owned_tt_path_counts.store_from_full_probe;
++    }
+     const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
+                        entry->generation() != generation_;
+     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+@@ -3859,6 +3871,9 @@
+             });
+         }
+     }
++#if FORGE_SPD_TT_NOTLS
++    owned_tt_path_counts = {};
++#endif
+     SearchInfo result = helpers.empty()
+         ? workers_.front()->search(std::move(board), worker_limits, emit_info, all)
+         : workers_.front()->search(board, worker_limits, emit_info, all);
+@@ -3867,6 +3882,20 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_SPD_TT_NOTLS
++    if (emit_info && workers_.size() == 1 && worker_limits.multipv == 1 && exclusive.has_value()) {
++        const auto& counts = owned_tt_path_counts;
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string tt paths probe_hit=" << counts.probe_hit
++                  << " probe_empty=" << counts.probe_empty << " probe_full=" << counts.probe_full
++                  << " store_matched=" << counts.store_matched << " store_empty=" << counts.store_empty
++                  << " store_occupied=" << counts.store_occupied
++                  << " store_from_full_probe=" << counts.store_from_full_probe
++                  << " store_matched_relocated=" << counts.store_matched_relocated
++                  << " slot0=" << counts.replace_slots[0] << " slot1=" << counts.replace_slots[1]
++                  << " slot2=" << counts.replace_slots[2] << " slot3=" << counts.replace_slots[3] << std::endl;
++    }
++#endif
+     return result;
+ }
+ 
