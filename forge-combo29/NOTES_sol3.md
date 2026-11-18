@@ -109,3 +109,7 @@ The pinned net768 and the kF build reproduced the PC20 bench gates. On one threa
 ## Job 20 — 2026-11-18T16:37:52Z
 
 One guarded shadow patch applied to both r15d and kF and preserved all 1,000 Job 19 depth-9 nodes and bestmoves per build. The one-line promotion fault omitted the pawn feature removal and triggered 103,012 mismatches on the first 200 W1 roots. Clean PC20 with embedded options plus standalone net768, Threads 1 and Hash 16 had zero differences in 8,046,050 comparisons per build on S1 and 1,680,173 per build on S2. All 20 S2 game move lists agreed, and the 42.8512% rate uses the final consumed-node marker. The scalar follow-up matched the AVX-512 result on all 1,000 W1 rows and matched all depth-12 O pins. [Job 20 report](REPORT_sol3_job20.md) · [Evidence](sol3/job20)
+
+## Job 21 — 2026-11-18T16:56:22Z
+
+The new K1 parser reproduced the 933-search archive. On plain r15d PC20 with standalone net768, Threads 1, Hash 16 and softnodes 2000, all 100 new games finished. Of 6,114 searches, 984 reached the 8,000 cap. Unfinished iterations accounted for 6,746,631 of 27,011,049 nodes (24.98%) and an estimated 25.36% of measured go-to-bestmove wall time. Offline R(8) covered at most 7.75% of consumed nodes at the final boundary and would skip 1,350 completed depths at the preceding boundary. Completed descendants can leave history and correction updates as well as TT entries. [Job 21 report](REPORT_sol3_job21.md) · [Evidence](sol3/job21)
