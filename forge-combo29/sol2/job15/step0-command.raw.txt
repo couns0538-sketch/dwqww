@@ -1,0 +1,55 @@
++ date -u +%FT%TZ
+2026-11-18T18:51:51Z
++ source /workspace/work/sol2-job12/clang.env
+++ export LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ export FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ export FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ export FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
+++ FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
+Debian clang version 19.1.7 (3+b1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
++ rg 'clang version 19[.]1[.]7'
+Debian clang version 19.1.7 (3+b1)
++ nproc
+5
++ LC_ALL=C
++ lscpu
++ rg '^(Model name|Thread\(s\) per core|Core\(s\) per socket|Socket\(s\)|L3 cache|CPU\(s\))'
+CPU(s):                                  5
+Model name:                              AMD EPYC 9V74 80-Core Processor
+Thread(s) per core:                      1
+Core(s) per socket:                      5
+Socket(s):                               1
+L3 cache:                                32 MiB (1 instance)
++ taskset -pc 62148
+pid 62148's current affinity list: 0-4
++ cat /sys/fs/cgroup/cpu.max
+400000 100000
++ cmp forge-combo29/sol2/job15/arm_timing.py.txt forge-combo29/sol2/job14/arm_timing.py.txt
++ cmp forge-combo29/sol2/job15/known-answer.txt forge-combo29/sol2/job14/known-answer.txt
++ sha256sum -c forge-combo29/sol2/job15/clang-executables.raw.txt
+/workspace/work/sol2-job13/build-clang-selfplay-r15d/forge: OK
+/workspace/work/sol2-job13/build-clang-selfplay-kF/forge: OK
++ sha256sum -c forge-combo29/sol2/job15/workload-pins.raw.txt
+/workspace/work/sol2-job13/soft_book_driver.py: OK
+forge-combo29/sol2/job15/known-answer.txt: OK
+/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd: OK
+/workspace/work/sol2-job2/net768.fnn3: OK
++ export PYTHONPATH=/workspace/work/sol2-job12/python
++ PYTHONPATH=/workspace/work/sol2-job12/python
++ timeout 90 taskset -c 2 python3 -B /workspace/work/sol2-job15/step0_gate.py forge-combo29/sol2/job15
+{"engine_environment": {"variables": {"LC_ALL": "C", "TZ": "UTC"}, "bytes": 16, "sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570"}, "expected": [20, 2247, 7905938, 9189426, "7f78d3aec021ab01"]}
+{"arm": "r15d", "engine_sha256": "540e63c0b7cf2512f1716657aded48b0558022b49c0fe8489596195cf2035834", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job13/build-clang-selfplay-r15d/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "r15d", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 5449.895311, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job13/build-clang-selfplay-r15d/forge", "engine_argv0_length": 58, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 278740, "engine_device": 27, "utc_start": "2026-11-18T18:51:51.584183Z", "utc_end": "2026-11-18T18:51:57.434301Z", "wall_start_monotonic_ns": 44606638431493, "wall_end_monotonic_ns": 44612488518946, "total_wall_ns": 5850087453, "engine_user_s": 4.745062, "engine_system_s": 0.22530999999999998, "engine_cpu_s": 4.970372, "engine_pid": 62174, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "r15d.driver.stdout.txt", "engine_stderr": "r15d.engine.stderr.txt"}
+{"arm": "kF", "engine_sha256": "da5df215a6aa255261d4e5574474da7c82aad1a9e95df83e15d5b38963ef439d", "argv": ["/workspace/work/sol2-job13/soft_book_driver.py", "--engine", "/workspace/work/sol2-job13/build-clang-selfplay-kF/forge", "--net", "/workspace/work/sol2-job2/net768.fnn3", "--book", "/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd", "--start", "7001", "--games", "20", "--softnodes", "2000", "--max-plies", "300", "--json"]}
+{"arm": "kF", "games": 20, "searches": 2247, "total_nodes": 7905938, "final_nodes": 9189426, "trace_fnv1a64": "7f78d3aec021ab01", "final_lines": 2247, "missing_final_lines": 0, "zero_last_info_searches": 0, "terminations": {"threefold_repetition": 9, "checkmate": 11}, "book_start": 7001, "book_end": 7020, "softnodes": 2000, "elapsed_ms": 5596.95874, "chess_module_version": "1.11.2", "engine_argv0": "/workspace/work/sol2-job13/build-clang-selfplay-kF/forge", "engine_argv0_length": 56, "engine_environment_bytes": 16, "engine_environment_sha256": "4d41c4c11fcc6efa3bd339441ec9b26e6a1442056205420dc4b11e93dbff2570", "engine_proc_receipt": "verified", "engine_inode": 279845, "engine_device": 27, "utc_start": "2026-11-18T18:51:57.435679Z", "utc_end": "2026-11-18T18:52:03.115437Z", "wall_start_monotonic_ns": 44612489919655, "wall_end_monotonic_ns": 44618169655344, "total_wall_ns": 5679735689, "engine_user_s": 4.824026000000001, "engine_system_s": 0.11114900000000003, "engine_cpu_s": 4.935175000000001, "engine_pid": 62176, "engine_exit": 0, "trace_matches": true, "eligible": true, "error": null, "driver_stdout": "kF.driver.stdout.txt", "engine_stderr": "kF.engine.stderr.txt"}
+Both frozen Clang signatures match W with the fixed environment.
++ date -u +%FT%TZ
+2026-11-18T18:52:03Z
