@@ -1,0 +1,55 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=335067)
+  Read of size 8 at 0x55b26a1bf6a0 by thread T2:
+    #0 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:1926 (forge+0x42abe) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #1 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2993 (forge+0x4ac47) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #2 operator() /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:3348 (forge+0x4f0ef) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #3 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (forge+0x4f1ca) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #4 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (forge+0x4f1ca)
+    #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (forge+0x4f1ca)
+    #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (forge+0x4f1ca)
+    #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (forge+0x4f1ca)
+    #8 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Previous write of size 8 at 0x55b26a1bf6a0 by thread T1:
+    #0 forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:1776 (forge+0x40b74) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #1 forge::Worker::qsearch_child(forge::Board&, forge::SearchStack*, int, int) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2570 (forge+0x427bd) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #2 forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:1879 (forge+0x41a01) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #3 forge::Worker::qsearch_child(forge::Board&, forge::SearchStack*, int, int) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2570 (forge+0x427bd) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #4 forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:1879 (forge+0x41a01) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #5 forge::Worker::qsearch_child(forge::Board&, forge::SearchStack*, int, int) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2570 (forge+0x427bd) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #6 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:1915 (forge+0x42a37) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #7 forge::Worker::search_child(forge::Board&, forge::SearchStack*, int, int, int, bool) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2559 (forge+0x48a5f) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #8 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2454 (forge+0x47576) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #9 forge::Worker::search_child(forge::Board&, forge::SearchStack*, int, int, int, bool) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2559 (forge+0x48a5f) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #10 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2454 (forge+0x47576) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #11 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:2993 (forge+0x4ac47) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #12 forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:3352 (forge+0x50ec3) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #13 operator() /workspace/work/sol3-job22-build/applied_C-T/src/uci.cpp:346 (forge+0x63a94) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #14 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (forge+0x645e4) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #15 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (forge+0x645e4)
+    #16 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (forge+0x645e4)
+    #17 operator() /usr/include/c++/14/bits/std_thread.h:308 (forge+0x645e4)
+    #18 _M_run /usr/include/c++/14/bits/std_thread.h:253 (forge+0x645e4)
+    #19 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Location is global 'forge::SanitizerControlNodes' of size 8 at 0x55b26a1bf6a0 (forge+0x1da6a0)
+
+  Thread T2 (tid=335070, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 operator() /workspace/work/sol3-job22-build/applied_C-T/src/uci.cpp:346 (forge+0x63a94) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/14/bits/invoke.h:61 (forge+0x645e4) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/14/bits/invoke.h:96 (forge+0x645e4)
+    #5 _M_invoke<0> /usr/include/c++/14/bits/std_thread.h:301 (forge+0x645e4)
+    #6 operator() /usr/include/c++/14/bits/std_thread.h:308 (forge+0x645e4)
+    #7 _M_run /usr/include/c++/14/bits/std_thread.h:253 (forge+0x645e4)
+    #8 <null> <null> (libstdc++.so.6+0xe1223) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+
+  Thread T1 (tid=335069, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x568a6) (BuildId: 99ef88596cb10a8ccf307fe1a9070f66a44b1624)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xe12f8) (BuildId: 133b71e0013695cc7832680a74edb51008c4fc4c)
+    #2 main /workspace/work/sol3-job22-build/applied_C-T/src/uci.cpp:905 (forge+0x62b7a) (BuildId: 36d662c89486f5e06dcd223063e1f7bd816abafe)
+
+SUMMARY: ThreadSanitizer: data race /workspace/work/sol3-job22-build/applied_C-T/src/search.cpp:1926 in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+==================
