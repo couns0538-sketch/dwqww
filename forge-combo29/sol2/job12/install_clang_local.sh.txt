@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job12
+loc="$job/clang-apt"
+prefix="$job/clang-root"
+mkdir -p "$loc/empty" "$loc/lists/partial" "$loc/archives/partial" "$prefix"
+cat > "$loc/sources.list" <<'SOURCE'
+deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] https://deb.debian.org/debian trixie main
+SOURCE
+cat > "$loc/apt.conf" <<CONF
+Dir::Etc::Main "/dev/null";
+Dir::Etc::Parts "$loc/empty";
+Dir::Etc::SourceList "$loc/sources.list";
+Dir::Etc::SourceParts "$loc/empty";
+Dir::State::lists "$loc/lists/";
+Dir::Cache::archives "$loc/archives/";
+Dir::Cache::pkgcache "$loc/pkgcache.bin";
+Dir::Cache::srcpkgcache "$loc/srcpkgcache.bin";
+Acquire::Languages "none";
+Acquire::Retries "0";
+Acquire::https::Timeout "30";
+APT::Get::List-Cleanup "false";
+CONF
+export APT_CONFIG="$loc/apt.conf"
+apt-get update
+cd "$loc/archives"
+packages=(clang-19 libclang-cpp19 libclang-common-19-dev llvm-19 llvm-19-linker-tools libclang-rt-19-dev lld-19)
+apt-get download "${packages[@]}"
+for archive in ./*.deb; do
+    dpkg-deb --show "$archive"
+    sha256sum "$archive"
+    dpkg-deb --extract "$archive" "$prefix"
+done
+export LD_LIBRARY_PATH="$prefix/usr/lib/llvm-19/lib:$prefix/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+llvm_bin="$prefix/usr/lib/llvm-19/bin"
+"$llvm_bin/clang++" --version
+"$llvm_bin/llvm-profdata" --version
+"$llvm_bin/ld.lld" --version
+"$llvm_bin/clang++" -print-resource-dir
+cat > "$job/clang.env" <<ENV
+export LD_LIBRARY_PATH='$prefix/usr/lib/llvm-19/lib:$prefix/usr/lib/x86_64-linux-gnu'
+export FORGE_CLANGXX='$llvm_bin/clang++'
+export FORGE_LLVM_PROFDATA='$llvm_bin/llvm-profdata'
+export FORGE_LLD='$llvm_bin/ld.lld'
+ENV

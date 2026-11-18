@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job12
+repo=/workspace/work/sol2-repo/forge-combo29/sol2
+base=/workspace/work/sol2-job2
+previous=/workspace/work/sol2-job10
+mode=$1
+step=$2
+case "$mode" in plain|pgo) ;; *) exit 2;; esac
+out="$repo/job12/clang-$mode"
+r15d="$job/build-clang-$mode-r15d/forge"
+kF="$job/build-clang-$mode-kF/forge"
+copy="$job/r15d-clang-$mode-copy"
+case "$step" in
+  F) arm_a="$r15d"; arm_b="$copy"; label_a=clang-r15d; label_b=copy; args=(--identical-floor);;
+  K) arm_a="$r15d"; arm_b="$kF"; label_a=clang-r15d; label_b=clang-kF; args=(--floor "$out/stepF/summary.txt");;
+  *) exit 2;;
+esac
+sha_a=$(awk -v target="$arm_a" '$2==target {print $1}' "$out/executables.raw.txt")
+arm_b_origin=$arm_b
+if [ "$step" = F ]; then
+  (
+    set -x
+    cp -p "$r15d" "$copy"
+    cmp "$r15d" "$copy"
+    printf 'cmp exit %s, empty difference stream\n' "$?"
+    sha256sum "$r15d" "$copy"
+  ) > "$out/stepF-copy.raw.txt" 2>&1
+  arm_b_origin=$r15d
+fi
+sha_b=$(awk -v target="$arm_b_origin" '$2==target {print $1}' "$out/executables.raw.txt")
+driver="$previous/fixed_nodes_driver.py"
+openings="$repo/job10/fixed-openings.txt"
+known="$repo/job10/known-answer.txt"
+driver_sha=$(awk '$2 ~ /fixed_nodes_driver[.]py$/ {print $1}' "$repo/job10/workload-pins.raw.txt")
+openings_sha=$(awk '$2 ~ /fixed-openings[.]txt$/ {print $1}' "$repo/job10/workload-pins.raw.txt")
+known_sha=$(awk '$2 ~ /known-answer[.]txt$/ {print $1}' "$repo/job10/workload-pins.raw.txt")
+start=$(date -u -d "$(cat /workspace/work/sol2-job11/job12-read-at.txt)" +%s)
+left=$((start + 80*60 - $(date -u +%s)))
+test "$left" -gt 0
+status=0
+(
+  set -x
+  date -u +'%FT%TZ'
+  timeout "$left" taskset -c 2 python3 -B "$job/clang_balanced_timing.py" "$arm_a" "$arm_b" "$base/net768.fnn3" "$out/step$step" --a-sha256 "$sha_a" --b-sha256 "$sha_b" --a-label "$label_a" --b-label "$label_b" --driver "$driver" --driver-sha256 "$driver_sha" --openings "$openings" --openings-sha256 "$openings_sha" --known-answer "$known" --known-answer-sha256 "$known_sha" --blocks 8 "${args[@]}"
+) > "$out/step$step-command.raw.txt" 2>&1 || status=$?
+result=PASS
+if [ "$status" -ne 0 ]; then result=STOPPED; fi
+printf '%s Part B Clang %s Step %s %s, %s vs %s, 8 balanced blocks requested\n' "$(date -u +'%FT%TZ')" "$mode" "$step" "$result" "$label_b" "$label_a" >> "$repo/job12/stamps.txt"
+git add -- forge-combo29/sol2/job12
+git -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+git -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "Record sol2 Job 12 Clang $mode Step $step balanced $label_b vs $label_a"
+printf 'Part B Clang %s Step %s %s, timing harness exit %s\n' "$mode" "$step" "$result" "$status"
+GIT_TERMINAL_PROMPT=0 timeout 25s git push origin HEAD:refs/heads/for-fable-and-opus/sol2-work
+test "$(git rev-parse HEAD)" = "$(git ls-remote --exit-code --refs origin refs/heads/for-fable-and-opus/sol2-work | cut -f1)"
+if [ -f "$out/step$step/summary.txt" ]; then
+  python - "$out/step$step/summary.txt" <<'PY'
+from pathlib import Path
+import json,sys
+result=json.loads(Path(sys.argv[1]).read_text())
+print(json.dumps({key: result.get(key) for key in ("metrics", "completed_blocks")}, indent=2))
+PY
+fi
+exit "$status"

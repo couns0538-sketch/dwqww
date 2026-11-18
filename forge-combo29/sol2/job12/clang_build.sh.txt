@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+job=/workspace/work/sol2-job12
+repo=/workspace/work/sol2-repo/forge-combo29/sol2
+base=/workspace/work/sol2-job2
+mode=$1
+arm=$2
+out="$repo/job12/clang-$mode"
+scratch="$job/build-clang-$mode-$arm"
+cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
+source "$job/clang.env"
+case "$arm" in
+  r15d) source_tree="$base/r15d";;
+  kF) source_tree=/workspace/work/sol2-job9/kF;;
+  *) exit 2;;
+esac
+flags='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin'
+link_flags="-fuse-ld=$FORGE_LLD"
+driver=/workspace/work/sol2-job10/fixed_nodes_driver.py
+net="$base/net768.fnn3"
+workload=(--games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings "$repo/job10/fixed-openings.txt" --json)
+common=(-S "$source_tree" -B "$scratch" "-DCMAKE_CXX_COMPILER=$FORGE_CLANGXX" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_EXE_LINKER_FLAGS=$link_flags")
+"$FORGE_CLANGXX" --version
+readlink -f "$(g++ -print-file-name=libstdc++.so)"
+getconf GNU_LIBC_VERSION
+if [ "$mode" = pgo ]; then
+    profile="$job/clang-profile-$arm"
+    mkdir "$profile"
+    "$cmake" "${common[@]}" "-DCMAKE_CXX_FLAGS=$flags -fprofile-instr-generate"
+    "$cmake" --build "$scratch" --parallel 3 --verbose > "$out/$arm-generate-build.raw.txt" 2>&1
+    sha256sum "$scratch/forge"
+    LLVM_PROFILE_FILE="$profile/forge.profraw" timeout 180 taskset -c 2 python3 -B "$driver" --engine "$scratch/forge" --net "$net" "${workload[@]}" > "$out/$arm-profile-train.raw.txt" 2> "$out/$arm-profile-train.stderr.txt"
+    "$FORGE_LLVM_PROFDATA" merge -sparse "$profile/forge.profraw" -o "$profile/forge.profdata"
+    {
+        sha256sum "$profile/forge.profraw" "$profile/forge.profdata"
+        "$FORGE_LLVM_PROFDATA" show "$profile/forge.profdata"
+    } > "$out/$arm-profile-receipt.raw.txt" 2>&1
+    "$cmake" "${common[@]}" "-DCMAKE_CXX_FLAGS=$flags -fprofile-instr-use=$profile/forge.profdata -Werror=profile-instr-out-of-date"
+else
+    test "$mode" = plain
+    "$cmake" "${common[@]}" "-DCMAKE_CXX_FLAGS=$flags"
+fi
+"$cmake" --build "$scratch" --clean-first --parallel 3 --verbose > "$out/$arm-build.raw.txt" 2>&1
+sha256sum "$scratch/forge" | tee "$out/$arm-sha256.raw.txt"
+ldd "$scratch/forge" > "$out/$arm-libraries.raw.txt"
+rg 'libstdc[+][+][.]so' "$out/$arm-libraries.raw.txt"
+taskset -c 2 python3 -B "$job/no_options_pins.py" "$scratch/forge" "$out/$arm-default.raw.txt"
+taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py "$scratch/forge" "$base/carbon2/selfplay_driver.py" "$net" "$out/$arm-net768.raw.txt" required
+timeout 180 taskset -c 2 python3 -B "$driver" --engine "$scratch/forge" --net "$net" "${workload[@]}" > "$out/$arm-identity.raw.txt" 2> "$out/$arm-identity.stderr.txt"
+python3 -B - "$out" "$arm" "$mode" "$repo/job10/known-answer.txt" <<'PY'
+import json
+from pathlib import Path
+import sys
+out=Path(sys.argv[1])
+arm, mode = sys.argv[2:4]
+expected = json.loads(Path(sys.argv[4]).read_text())
+gates = ["identity", "profile-train"] if mode == "pgo" else ["identity"]
+for gate in gates:
+    row = json.loads((out/f"{arm}-{gate}.raw.txt").read_text())
+    assert all(row[key] == value for key, value in expected.items()), (arm,gate,row)
+    assert not (out/f"{arm}-{gate}.stderr.txt").read_text(), (arm,gate)
+    print(gate, json.dumps(row))
+PY

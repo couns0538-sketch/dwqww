@@ -1,0 +1,64 @@
++ job=/workspace/work/sol2-job12
++ repo=/workspace/work/sol2-repo/forge-combo29/sol2
++ base=/workspace/work/sol2-job2
++ mode=plain
++ arm=kF
++ out=/workspace/work/sol2-repo/forge-combo29/sol2/job12/clang-plain
++ scratch=/workspace/work/sol2-job12/build-clang-plain-kF
++ cmake=/workspace/work/sol2-tools/cmake/data/bin/cmake
++ source /workspace/work/sol2-job12/clang.env
+++ export LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ LD_LIBRARY_PATH=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/lib:/workspace/work/sol2-job12/clang-root/usr/lib/x86_64-linux-gnu
+++ export FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ FORGE_CLANGXX=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++
+++ export FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ FORGE_LLVM_PROFDATA=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/llvm-profdata
+++ export FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
+++ FORGE_LLD=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ case "$arm" in
++ source_tree=/workspace/work/sol2-job9/kF
++ flags='-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin'
++ link_flags=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld
++ driver=/workspace/work/sol2-job10/fixed_nodes_driver.py
++ net=/workspace/work/sol2-job2/net768.fnn3
++ workload=(--games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings "$repo/job10/fixed-openings.txt" --json)
++ common=(-S "$source_tree" -B "$scratch" "-DCMAKE_CXX_COMPILER=$FORGE_CLANGXX" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_EXE_LINKER_FLAGS=$link_flags")
++ /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ --version
+Debian clang version 19.1.7 (3+b1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin
+++ g++ -print-file-name=libstdc++.so
++ readlink -f /usr/lib/gcc/x86_64-linux-gnu/14/libstdc++.so
+/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33
++ getconf GNU_LIBC_VERSION
+glibc 2.41
++ '[' plain = pgo ']'
++ test plain = plain
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job9/kF -B /workspace/work/sol2-job12/build-clang-plain-kF -DCMAKE_CXX_COMPILER=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=/workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/ld.lld '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -flto=thin'
+-- The CXX compiler identification is Clang 19.1.7
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /workspace/work/sol2-job12/clang-root/usr/lib/llvm-19/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job12/build-clang-plain-kF
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job12/build-clang-plain-kF --clean-first --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job12/build-clang-plain-kF/forge
++ tee /workspace/work/sol2-repo/forge-combo29/sol2/job12/clang-plain/kF-sha256.raw.txt
+d84fafe6f5d19a7f040f602b4a68a8b8d88c5ba8987a8bbe4923174a791df19b  /workspace/work/sol2-job12/build-clang-plain-kF/forge
++ ldd /workspace/work/sol2-job12/build-clang-plain-kF/forge
++ rg 'libstdc[+][+][.]so' /workspace/work/sol2-repo/forge-combo29/sol2/job12/clang-plain/kF-libraries.raw.txt
+	libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007fef35ebe000)
++ taskset -c 2 python3 -B /workspace/work/sol2-job12/no_options_pins.py /workspace/work/sol2-job12/build-clang-plain-kF/forge /workspace/work/sol2-repo/forge-combo29/sol2/job12/clang-plain/kF-default.raw.txt
+/workspace/work/sol2-job12/build-clang-plain-kF/forge matched all no-options pins
++ taskset -c 2 python3 -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job12/build-clang-plain-kF/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job12/clang-plain/kF-net768.raw.txt required
+/workspace/work/sol2-job12/build-clang-plain-kF/forge 882074 4275906
++ timeout 180 taskset -c 2 python3 -B /workspace/work/sol2-job10/fixed_nodes_driver.py --engine /workspace/work/sol2-job12/build-clang-plain-kF/forge --net /workspace/work/sol2-job2/net768.fnn3 --games 12 --nodes 20000 --random-plies 8 --max-plies 300 --openings /workspace/work/sol2-repo/forge-combo29/sol2/job10/fixed-openings.txt --json
++ python3 -B - /workspace/work/sol2-repo/forge-combo29/sol2/job12/clang-plain kF plain /workspace/work/sol2-repo/forge-combo29/sol2/job10/known-answer.txt
+identity {"games": 12, "searches": 1373, "total_nodes": 15527588, "avg_nodes_per_search": 11309.24, "avg_searches_per_game": 114.42, "elapsed_ms": 15269.162, "searches_per_sec": 89.92, "effective_nps": 1016924.7, "trace_fnv1a64": "73ecbb5eedc59271"}
