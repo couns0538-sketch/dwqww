@@ -53,3 +53,7 @@ The corrected terminal rule produced 8612 warm searches and 971 hard-cap hits. r
 ## Job 7 — 2026-11-18T11:01:17Z
 
 k10f and k11f had identical final-count, move and score rows in all 1556 hard-node tests at the loop’s 50000 and 250000 budgets with embedded AL1 s198 and net768. Pf was exactly one node later at each cap and matched the one sub-cap depth-64 result. The ordinary k10 and k11 movetime-100 runs each produced 100 legal bestmoves. [Job 7 report](REPORT_sol3_job7.md) · [Evidence](sol3/job7)
+
+## Job 8 — 2026-11-18T11:24:57Z
+
+Carbon2’s fused v3 refresh patch matched k11 on the pinned benches, all 8612 warm search rows, and all 389 hard-node labels per net at 50000 nodes. The independent scalar verification build reported zero mismatches. The three one-line controls each exited 3 in the first warm-up search at game 0, game ply 8, at internal evaluation plies 3/1/0. [Job 8 report](REPORT_sol3_job8.md) · [Evidence](sol3/job8)
