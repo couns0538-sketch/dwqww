@@ -1,0 +1,11 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1307,7 +1307,7 @@
+     {
+         const std::size_t ply_idx = key_history_.size();
+         auto& pv = opp_prefix_[ply_idx & 1U];
+-        pv.push_back(pv.back() ^ (undo.key ^ key_ ^ Z.side));
++        pv.push_back(pv.back() + 1ULL);
+     }
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES

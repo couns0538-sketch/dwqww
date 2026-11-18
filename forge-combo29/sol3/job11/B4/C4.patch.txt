@@ -1,0 +1,11 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1317,7 +1317,7 @@
+ }
+ 
+ void Board::unmake_move(const Move& move, const Undo& undo) {
+-    opp_prefix_[(key_history_.size() - 1U) & 1U].pop_back();
++    opp_prefix_[(key_history_.size() - 1U) & 1U].erase(opp_prefix_[(key_history_.size() - 1U) & 1U].end() - 2);
+     key_history_.pop_back();
+     side_ = opposite(side_);
+     const Color us = side_;

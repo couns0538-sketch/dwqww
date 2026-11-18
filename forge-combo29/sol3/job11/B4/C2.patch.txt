@@ -1,0 +1,11 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1999,7 +1999,7 @@
+         unsigned mask = static_cast<unsigned>(_mm512_cmpeq_epi64_mask(v, v_target));
+         while (mask != 0U) {
+             const int hi_lane = 31 - __builtin_clz(mask);
+-            if (check_candidate(r - 7 + hi_lane)) return true;
++            if (check_candidate(r - 7 + (hi_lane ^ 1))) return true;
+             mask ^= (1U << hi_lane);
+         }
+         r -= 8;

@@ -1,0 +1,11 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -2007,7 +2007,7 @@
+ #endif
+     checked_candidates = &repetition_oracle_counts.tail_candidates;
+     for (; r >= r_lo; --r) {
+-        if (pdata[r] == target && check_candidate(r)) return true;
++        if (pdata[r] == (target ^ 1ULL) && check_candidate(r)) return true;
+     }
+     return false;
+ }
