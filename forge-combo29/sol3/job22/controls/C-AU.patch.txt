@@ -1,0 +1,17 @@
+diff -ruN base_r15d/src/search.cpp tree_C-AU/src/search.cpp
+--- base_r15d/src/search.cpp	2026-11-18 00:52:10.139419132 -0800
++++ tree_C-AU/src/search.cpp	2026-11-18 09:06:14.345216408 -0800
+@@ -2621,6 +2621,13 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    volatile std::size_t job22_extent = 1;
++    const auto job22_array = std::make_unique<int[]>(job22_extent);
++    volatile std::size_t job22_index = job22_extent;
++    volatile int job22_maximum = std::numeric_limits<int>::max();
++    volatile int job22_one = 1;
++    [[maybe_unused]] volatile int job22_read = job22_array[job22_index];
++    [[maybe_unused]] volatile int job22_add = job22_maximum + job22_one;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}

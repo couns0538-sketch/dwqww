@@ -1,0 +1,27 @@
+diff -ruN base_r15d/src/search.cpp tree_C-T/src/search.cpp
+--- base_r15d/src/search.cpp	2026-11-18 00:52:10.139419132 -0800
++++ tree_C-T/src/search.cpp	2026-11-18 09:06:15.085180880 -0800
+@@ -93,6 +93,7 @@
+ 
+ namespace forge {
+ 
++std::uint64_t SanitizerControlNodes = 0;
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -1772,6 +1773,7 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    ++SanitizerControlNodes;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+@@ -1921,6 +1923,7 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    ++SanitizerControlNodes;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
