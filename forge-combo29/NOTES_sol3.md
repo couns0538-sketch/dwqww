@@ -113,3 +113,7 @@ One guarded shadow patch applied to both r15d and kF and preserved all 1,000 Job
 ## Job 21 — 2026-11-18T16:56:22Z
 
 The new K1 parser reproduced the 933-search archive. On plain r15d PC20 with standalone net768, Threads 1, Hash 16 and softnodes 2000, all 100 new games finished. Of 6,114 searches, 984 reached the 8,000 cap. Unfinished iterations accounted for 6,746,631 of 27,011,049 nodes (24.98%) and an estimated 25.36% of measured go-to-bestmove wall time. Offline R(8) covered at most 7.75% of consumed nodes at the final boundary and would skip 1,350 completed depths at the preceding boundary. Completed descendants can leave history and correction updates as well as TT entries. [Job 21 report](REPORT_sol3_job21.md) · [Evidence](sol3/job21)
+
+## Job 22 — 2026-11-18T17:27:37Z
+
+Address, undefined-behavior and thread sanitizer controls all reported their planted faults. All six assert-enabled r15d and kF workload processes using GCC 14.2 and PC20 with synthetic net768 exited 0 with empty stderr. The two 200-position, single-thread depth-9 runs matched every plain Job 19 row. Each TSan process completed 72 fixed-node and 18 timed-stop searches across Threads 1, 2 and 4, followed by four identical single-thread games. The initial non-halting counter control generated 117,539,575 stderr bytes and was interrupted. The complete stream is preserved in verified text parts, and five starts were retested through the same harness with halt-on-first-report. [Job 22 report](REPORT_sol3_job22.md) · [Evidence](sol3/job22)
