@@ -1,0 +1,54 @@
+diff -ruN guard-base/src/search.cpp guard-fast/src/search.cpp
+--- guard-base/src/search.cpp	2026-11-18 06:44:53.158142480 -0800
++++ guard-fast/src/search.cpp	2026-11-18 06:45:08.033319837 -0800
+@@ -191,7 +191,7 @@
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullChildFloor", &NullChildFloor, 0, 3},
+-        {"NullMateGuard", &NullMateGuard, 0, 1},
++        {"NullMateGuard", &NullMateGuard, 0, 2},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+@@ -1771,6 +1771,26 @@
+     }
+     return false;
+ }
++
++// The search already made the null move. Only quiet checks require a legality
++// test, and one legal reply suffices to disprove mate.
++bool has_quiet_mate(Board& null_child) {
++    MoveList candidates;
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
++    null_child.generate_pseudo_legal(candidates, Board::GenMode::Quiets);
++#else
++    null_child.generate_pseudo_legal(candidates, false);
++#endif
++    for (const Move move : candidates) {
++        if (!move.is_quiet() || !null_child.gives_check(move) || !null_child.is_legal(move)) continue;
++        Undo undo;
++        (void)null_child.make_move(move, undo);
++        const bool mate = null_child.in_check() && !null_child.has_legal_move();
++        null_child.unmake_move(move, undo);
++        if (mate) return true;
++    }
++    return false;
++}
+ } // namespace
+ 
+ // Main alpha-beta search
+@@ -1985,10 +2005,12 @@
+             const int null_child_depth = tune::NullChildFloor > 0 ? std::max(reduced_depth, tune::NullChildFloor)
+                                                                   : reduced_depth;
+             int null_score = -search_child(board, ss + 1, null_child_depth, -beta, -beta + 1, !cut_node);
++            const bool fast_guard_veto = tune::NullMateGuard == 2 && !aborted_ && null_score >= beta &&
++                                         null_child_depth <= 0 && has_quiet_mate(board);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+-            if (null_score >= beta &&
+-                !(tune::NullMateGuard && null_child_depth <= 0 && quiet_mate_after_null(board))) {
++            if (null_score >= beta && !fast_guard_veto &&
++                !(tune::NullMateGuard == 1 && null_child_depth <= 0 && quiet_mate_after_null(board))) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
