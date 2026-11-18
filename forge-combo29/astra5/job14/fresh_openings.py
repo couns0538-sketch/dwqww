@@ -55,6 +55,26 @@ def rounds(path,n):
     if set(out)!=set(range(1,n+1)) or any(len(g)!=2 or g[0]!=g[1] for g in out.values()):
         raise ValueError(f'incomplete rounds or unequal opening pairs: {path}')
     return [out[i][0] for i in range(1,n+1)],sha(data)
+def played_records(path,stage,ordered):
+    """A clock match can stop while only one color, or neither, finished a round."""
+    data=path.read_bytes()
+    headers=re.findall(rb'(?m)^\[Event [^\n]*(?:\n\[[^\n]+)*',data)
+    groups=collections.defaultdict(list)
+    for header in headers:
+        def tag(name):
+            m=re.search(rb'(?m)^\['+name.encode()+rb' "([^"]*)"\]$',header)
+            if not m: raise ValueError(f'missing PGN {name} in {path}')
+            return m[1].decode()
+        ri=int(tag('Round'));fen=tag('FEN'); white=tag('White'); black=tag('Black'); result=tag('Result')
+        if not 1<=ri<=len(ordered) or marks(fen)[1]!=marks(ordered[ri-1])[1]:
+            raise ValueError(f'round {ri} differs from selected four-field opening')
+        if {white,black}!={stage+'-A',stage+'-B'} or result not in ('1-0','0-1','1/2-1/2','*'):
+            raise ValueError(f'unexpected players or result at round {ri}')
+        groups[ri].append((fen,white,result))
+    for ri,games in groups.items():
+        if len(games)>2 or len({g[1] for g in games})!=len(games) or len({g[0] for g in games})!=1:
+            raise ValueError(f'duplicate color, extra game or differing FEN at round {ri}')
+    return groups,sha(data)
 def permutation(n,take,seed):
     prog=OUT/'shuffle'
     if not prog.exists():
@@ -116,13 +136,29 @@ def run(action,stage):
         f'selected_positions {len(chosen)}',f'selected_distinct_ignoring_ep {len(seen)}',f'selected_overlap_prior_ignoring_ep {len(excluded&seen)}',f'derived_sha256 {sha(payload)}']
     if action=='audit':
         p=(ARCHIVE/f'job14/{stage}.pgn') if ARCHIVE is not None else (ROOT/f'j14match/results/{stage}.pgn')
-        actual,checksum=rounds(p,needed)
-        a3=[marks(f)[0] for f in actual];a4={marks(f)[1] for f in actual}
-        chosen_four=[marks(f.decode())[1] for f in chosen]
-        actual_four=[marks(f)[1] for f in actual]
-        if actual_four!=chosen_four or set(a3)&excluded or a4&exact:
-            raise ValueError('PGN does not match all four selected opening fields or reuses a prior opening')
-        lines += [f'actual_pgn_sha256 {checksum}',f'actual_opening_pairs {needed}',f'actual_distinct_four_field {len(a4)}',f'actual_distinct_ignoring_ep {len(set(a3))}',f'actual_overlap_prior_four_field {len(a4&exact)}',f'actual_overlap_prior_ignoring_ep {len(set(a3)&excluded)}','actual_four_field_sequence_equals_selected_sequence yes','all_rounds_equal_seeded_original_order_after_exclusions yes']
+        groups,checksum=played_records(p,stage,[row.decode() for row in chosen])
+        played={r:[g for g in games if g[2]!='*'] for r,games in groups.items()}
+        complete=sorted(r for r,games in played.items() if len(games)==2)
+        single=sorted(r for r,games in played.items() if len(games)==1)
+        a3={marks(games[0][0])[0] for games in groups.values()}
+        a4={marks(games[0][0])[1] for games in groups.values()}
+        if len(a3)!=len(groups) or len(a4)!=len(groups) or a3&excluded or a4&exact:
+            raise ValueError('actual PGN root repeated or reused an earlier match opening')
+        unfinished=sum(g[2]=='*' for games in groups.values() for g in games)
+        singleton_detail=[f'{r}({played[r][0][1]} White,{played[r][0][2]})' for r in single]
+        lines += [f'actual_pgn_sha256 {checksum}',f'scheduled_opening_pairs {needed}',
+                  f'actual_pgn_records {sum(map(len,groups.values()))}',
+                  f'actual_games_with_result {sum(map(len,played.values()))}',
+                  f'actual_unfinished_star_records {unfinished}',
+                  f'actual_opening_pairs {len(complete)}',
+                  f'actual_singleton_rounds {len(single)}',
+                  'singleton_round_ids_white_result '+(' '.join(singleton_detail) or 'none'),
+                  f'actual_rounds_with_any_pgn_record {len(groups)}',
+                  f'scheduled_rounds_without_a_pgn_record {needed-len(groups)}',
+                  f'actual_distinct_four_field {len(a4)}',f'actual_distinct_ignoring_ep {len(a3)}',
+                  f'actual_overlap_prior_four_field {len(a4&exact)}',f'actual_overlap_prior_ignoring_ep {len(a3&excluded)}',
+                  'all_recorded_roots_equal_four_field_seeded_selection_at_actual_round yes',
+                  'all_completed_pairs_have_opposite_colors_and_identical_full_FEN yes']
     suffix='preflight' if action=='prepare' else 'audit'
     (OUT/f'{stage}-opening-{suffix}.txt').write_text('\n'.join(lines)+'\n')
     print('\n'.join(lines[-8:]))
