@@ -1,0 +1,87 @@
+# doublecheck — seat 03, group 1 part 3
+Run at 2026-11-18T20:33:12Z (minute 6 of the hour).
+
+## 1. The first measured item re-run in a fresh process
+
+The measured part is the 80-game trace. Its first item is book line 2001. Re-run in a fresh
+process, same settings (PC20 + net768, go nodes 20000), into the NEW raw file trace_r15d_dc1.txt.
+Comparison against the same game's records inside the committed trace_r15d.txt:
+```
+full-run game 2001: 113 records; fresh re-run: 113 records
+IDENTICAL, byte for byte
+```
+
+## 2. Every headline number, printed again from the committed raw files
+```
+trace_r15d.txt records: 8253
+trace_kF.txt   records: 8253
+game numbers: 2001 .. 2080 count: 80
+sum of nodes (r15d): 96817136
+records with nodes == 20000: 1
+records differing r15d vs kF: 0
+```
+
+The byte-level comparison itself:
+```
+cmp: files are byte-identical
+cmp trace_r15d_a.txt trace_r15d_b.txt: byte-identical (determinism)
+cmp trace_r15d_a.txt trace_ctrl60.txt: files differ (control fires)
+```
+
+First differing record of the control (both lines):
+```
+2001 1 d7d6 11207   |   2001 1 d7d6 19241
+```
+(r15d move 1 searched 11,207 nodes; the control with LmrQuietBase 60 searched 19,241 nodes for the same move — the control shows in node counts on the very first record, and in moves later in the file; the two traces have different lengths: 1030 vs 1118 records.)
+
+## 3. Known numbers re-read from the raw output files (not from memory)
+```
+--- known_r15d_none.txt
+info string bench depth 11 nodes 312866
+info string bench depth 13 nodes 862329
+nodes 4865609
+--- known_kF_none.txt
+info string bench depth 11 nodes 312866
+info string bench depth 13 nodes 862329
+nodes 4865609
+--- known_r15d_pc20.txt
+info string bench depth 11 nodes 278024
+info string bench depth 13 nodes 587276
+--- known_kF_pc20.txt
+info string bench depth 11 nodes 278024
+info string bench depth 13 nodes 587276
+--- known_r15d_net768.txt
+info string bench depth 11 nodes 882074
+info string bench depth 13 nodes 4275906
+checksum 30ab43b4ba5db5f3
+info string NNUE v3 active
+--- known_kF_net768.txt
+info string bench depth 11 nodes 882074
+info string bench depth 13 nodes 4275906
+checksum 30ab43b4ba5db5f3
+info string NNUE v3 active
+```
+
+## 4. Every 'X is in file Y' claim in REPORT.md, opened now
+```
+5928 driver.py
+6139 known_kF_net768.txt
+5993 known_r15d_none.txt
+2571 prediction.md
+21004 trace_ctrl60.txt
+154429 trace_kF.txt
+19239 trace_r15d_a.txt
+19239 trace_r15d_b.txt
+2109 trace_r15d_dc1.txt
+154429 trace_r15d.txt
+```
+
+## 5. One discrepancy found and explained
+
+The first copy of the traces I committed used the line number WITHIN my extracted slice (1..80)
+instead of the book line number (2001..2080) that the record format requires. The double-check
+re-run is what exposed it: the fresh game-2001 run wrote '2001' as its line number while the
+committed full trace said '1'. All traces were re-run from the full book file with the correct
+numbering (rerun at 20:31-20:32Z); the numbers in this report come from the corrected files.
+The engines' behaviour was unaffected (the FEN per line was always the right one); only the
+record label was wrong, and the re-run reproduced the same 8,253 records.
