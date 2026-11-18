@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1384,7 +1384,7 @@
+     // already finished (extra_nodes_). Only the main worker records the reason:
+     // its result is the one that is returned, and a node-limit stop must stay
+     // on the last finished iteration. Helpers still ignore the clock.
+-    if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
++    if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes > node_limit_) {
+         if (is_main()) stopped_by_nodes_ = true;
+         return true;
+     }
