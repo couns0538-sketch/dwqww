@@ -1,0 +1,47 @@
++ sha256sum /workspace/work/sol2-repo/forge-combo29/sol2/job7/12_v3_refresh_fuse.patch.txt
+7989b1954ec7a101473c7da05ef9e0f3506a29866e21783a8de31044a367e65f  /workspace/work/sol2-repo/forge-combo29/sol2/job7/12_v3_refresh_fuse.patch.txt
++ printf '%s  %s\n' 7989b1954ec7a101473c7da05ef9e0f3506a29866e21783a8de31044a367e65f /workspace/work/sol2-repo/forge-combo29/sol2/job7/12_v3_refresh_fuse.patch.txt
++ sha256sum -c -
+/workspace/work/sol2-repo/forge-combo29/sol2/job7/12_v3_refresh_fuse.patch.txt: OK
++ mkdir /workspace/work/sol2-job7/k11v
++ cp -a /workspace/work/sol2-job5/k11/. /workspace/work/sol2-job7/k11v/
++ patch --batch -p1 -F0 -d /workspace/work/sol2-job7/k11v
++ cat /workspace/work/sol2-repo/forge-combo29/sol2/job7/step0-patch.raw.txt
+patching file include/forge/nnue_v3.hpp
+patching file src/nnue_v3.cpp
+patching file src/search.cpp
++ rg -qi '\bfuzz\b|\boffset\b|\bfailed\b|reject|skipping|reversed' /workspace/work/sol2-repo/forge-combo29/sol2/job7/step0-patch.raw.txt
++ /workspace/work/sol2-tools/cmake/data/bin/cmake -S /workspace/work/sol2-job7/k11v -B /workspace/work/sol2-job7/build-k11v -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/sol2-job7/build-k11v
++ /workspace/work/sol2-tools/cmake/data/bin/cmake --build /workspace/work/sol2-job7/build-k11v --parallel 3 --verbose
++ sha256sum /workspace/work/sol2-job7/build-k11v/forge
+a9d4eef3de37cf74611c59a2f35b64f205cf95b7463e65554271e64d1ce01c80  /workspace/work/sol2-job7/build-k11v/forge
++ for label in r15d k11 k11v
++ case "$label" in
++ engine=/workspace/work/sol2-job2/build-r15d/forge
++ mode=reference
++ taskset -c 2 python -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job2/build-r15d/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job7/step0-r15d-net768.raw.txt reference
+/workspace/work/sol2-job2/build-r15d/forge 882074 4275906
++ for label in r15d k11 k11v
++ case "$label" in
++ engine=/workspace/work/sol2-job5/build-k11/forge
++ mode=reference
++ taskset -c 2 python -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job5/build-k11/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job7/step0-k11-net768.raw.txt reference
+/workspace/work/sol2-job5/build-k11/forge 882074 4275906
++ for label in r15d k11 k11v
++ case "$label" in
++ engine=/workspace/work/sol2-job7/build-k11v/forge
++ mode=required
++ taskset -c 2 python -B /workspace/work/sol2-job7/bench_v3.py /workspace/work/sol2-job7/build-k11v/forge /workspace/work/sol2-job2/carbon2/selfplay_driver.py /workspace/work/sol2-job2/net768.fnn3 /workspace/work/sol2-repo/forge-combo29/sol2/job7/step0-k11v-net768.raw.txt required
+/workspace/work/sol2-job7/build-k11v/forge 882074 4275906
