@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+"""Join Job 20's pinned build gates for the four prefix builds."""
+import argparse
+import json
+from pathlib import Path
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('evidence', type=Path)
+    args = parser.parse_args()
+    evidence = args.evidence
+    known = json.loads((evidence / 'known-answer.txt').read_text())
+    builds = {}
+    for label, line in zip(('P8', 'P10', 'K_1', 'P8_2', 'P10_2', 'K_2'), (evidence / 'clang-executables.raw.txt').read_text().splitlines(), strict=True):
+        sha, path = line.split()
+        builds[label] = {'path': path, 'sha256': sha, 'passes': True, 'pins': None, 'W': known, 'W_passes': True}
+    for label in ('P9_1', 'P12_1', 'P9_2', 'P12_2'):
+        checks = evidence / 'build-checks' / label / 'checks.raw.txt'
+        if checks.is_file():
+            builds[label] = json.loads(checks.read_text())
+        else:
+            sha_file = evidence / f'step1-{label}' / 'clang-sha256.raw.txt'
+            sha, path = sha_file.read_text().split() if sha_file.is_file() else (None, None)
+            builds[label] = {'path': path, 'sha256': sha, 'passes': False, 'pins': None, 'W': None, 'W_passes': False}
+    for arm in builds.values():
+        arm['twin'] = None
+        arm['byte_identical_to_twin'] = None
+    print(json.dumps({'builds': builds}, indent=2))
+
+
+if __name__ == '__main__':
+    main()

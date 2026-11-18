@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Make independent 72-character executable copies of Job 20's passing builds."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import sys
+
+
+JOB20 = Path("/workspace/work/sol2-job20")
+FROZEN_NAMES = ("P8", "P10", "K_1", "P8_2", "P10_2", "K_2")
+BUILD_NAMES = (*FROZEN_NAMES, "P9_1", "P12_1", "P9_2", "P12_2")
+ARM_PATH_LENGTH = 72
+ENVIRONMENT = {"LC_ALL": "C", "TZ": "UTC"}
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def read_arm(path, expected_sha256):
+    info = path.lstat()
+    require(stat.S_ISREG(info.st_mode) and path.resolve(strict=True) == path,
+            f"not a regular file at the specified path: {path}")
+    require(os.access(path, os.X_OK), f"file is not executable: {path}")
+    with path.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    require(digest == expected_sha256, f"wrong SHA-256 for {path}: {digest}")
+    return {"path": str(path), "length": len(str(path)), "inode": info.st_ino,
+            "sha256": digest, "device": info.st_dev}
+
+
+def file_id(arm):
+    return arm["device"], arm["inode"]
+
+
+def padded_path(name):
+    group = JOB20 / "arms"
+    extra = ARM_PATH_LENGTH - len(str(group / name / "forge"))
+    require(extra >= 0, f"cannot fit {name} in a {ARM_PATH_LENGTH}-character path")
+    return group / (name + "x" * extra) / "forge"
+
+
+def copy_exclusive(source, destination):
+    mode = stat.S_IMODE(source.stat().st_mode)
+    with source.open("rb") as incoming, destination.open("xb") as outgoing:
+        shutil.copyfileobj(incoming, outgoing)
+        outgoing.flush()
+        os.fchmod(outgoing.fileno(), mode)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("builds", type=Path, help="JSON builds.txt containing gated build records")
+    args = parser.parse_args()
+    receipt = json.loads(args.builds.read_text(encoding="utf-8"))
+    builds = receipt.get("builds")
+    require(isinstance(builds, dict) and set(builds) == set(BUILD_NAMES), "unexpected builds.txt inventory")
+    plans = []
+    arms = {}
+    for name in BUILD_NAMES:
+        record = builds[name]
+        require(isinstance(record, dict) and type(record.get("passes")) is bool,
+                f"missing boolean passes field for {name}")
+        if not record["passes"]:
+            continue
+        source_path = record.get("path")
+        digest = record.get("sha256")
+        require(isinstance(source_path, str) and bool(source_path), f"missing executable path for {name}")
+        require(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) is not None,
+                f"missing SHA-256 pin for {name}")
+        source = Path(source_path)
+        if not source.is_absolute():
+            source = args.builds.resolve().parent / source
+        original = read_arm(source, digest)
+        if name in FROZEN_NAMES:
+            require(original["length"] == ARM_PATH_LENGTH, f"wrong frozen path length for {name}")
+            arms[name] = original
+            continue
+        target = padded_path(name)
+        require(len(str(target)) == ARM_PATH_LENGTH, f"incorrect launch path length: {target}")
+        require(target.parent.resolve() == target.parent, f"unexpected symlink in fixture path: {target}")
+        require(not os.path.lexists(target), f"refusing to overwrite an existing arm: {target}")
+        plans.append((name, source, target, digest, original))
+
+    used = {file_id(arm) for arm in arms.values()}
+    used.update(file_id(original) for _, _, _, _, original in plans)
+    for name, source, target, digest, original in plans:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        copy_exclusive(source, target)
+        arm = read_arm(target, digest)
+        require(file_id(arm) not in used, f"new copy aliases another inode: {target}")
+        used.add(file_id(arm))
+        require(read_arm(source, digest) == original, f"source executable changed: {source}")
+        arms[name] = arm
+
+    raw_env = b"".join(os.fsencode(f"{name}={value}") + b"\0" for name, value in ENVIRONMENT.items())
+    engine_environment = {"variables": ENVIRONMENT, "bytes": len(raw_env),
+                          "sha256": hashlib.sha256(raw_env).hexdigest()}
+    print(json.dumps({"arms": arms, "engine_environment": engine_environment}, indent=2))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(error, file=sys.stderr)
+        raise SystemExit(1) from error
