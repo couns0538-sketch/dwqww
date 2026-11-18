@@ -1,0 +1,43 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2179,10 +2179,40 @@
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     // Score recognized endings before any accumulator refresh or network call.
++#if FORGE_SHORTCUT_COUNT
++    int h32_actual_score=0;
++    const bool h32_enabled=dead_material_enabled;
++    const bool h32_candidate=h32_enabled && has_dead_material_candidates(board);
++    const bool h32_actual_dead=h32_candidate && dead_material_score(board,h32_actual_score);
++    int h32_reference_score=0;
++    // Old r15d does not consult the candidate guard.
++    bool h32_reference_dead=h32_enabled && dead_material_score(board,h32_reference_score);
++    const int h32_dead_class=!h32_enabled?0:(!h32_candidate?1:(h32_actual_dead?3:2));
++    bool h32_dispatch_diff=false;
++    int h32_backend=0;
++    if(!h32_actual_dead) {
++        const bool h32_reference_active=nnue::enabled && nnue::available();
++        h32_dispatch_diff=nnue_active_!=h32_reference_active;
++        h32_backend=nnue_active_?2:1;
++#if FORGE_NNUE_V3
++        if(nnue_active_ && h32_reference_active)
++            h32_dispatch_diff |= (v3_active_net_!=nullptr)!=nnue::v3::active();
++        if(nnue_active_ && v3_active_net_!=nullptr)h32_backend=3;
++#endif
++    }
++#if FORGE_SHORTCUT_WRONG13
++    if(board.side_to_move()==White)h32_reference_dead=!h32_reference_dead;
++#endif
++    const bool h32_diff=h32_actual_dead!=h32_reference_dead ||
++        (h32_actual_dead && h32_reference_dead && h32_actual_score!=h32_reference_score) || h32_dispatch_diff;
++    shortcut_count::record_h32(h32_diff,board.side_to_move()==White,h32_dead_class,h32_backend,board);
++    if(h32_actual_dead)return h32_actual_score;
++#else
+     if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
++#endif
+     if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+     if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
