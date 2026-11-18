@@ -1,0 +1,18 @@
+Wed Nov 18 18:04:30 UTC 2026
+FULL PATCH TOKENS: production comparator reads expected; independent reference has no matches
+195:+                            (((pinned_ >> move.from) & 1ULL) == 0 || attacks::aligned(own_king_sq_, move.from, move.to));
+201:                         } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
+222:+                        bool copies_differ = pinned_ != piece_lines.pins || discoverers_ != piece_lines.discoveries;
+225:+                            copies_differ = copies_differ || check_squares_[type] != piece_lines.checks[type];
+252:     else undo.king_lines.valid = false;
+346:     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+347:     else king_lines_.valid = false;
+349:+    if (king_lines_.valid) {
+351:+        bool restored_differ = king_lines_.pinned != piece_lines.pins || king_lines_.discoverers != piece_lines.discoveries;
+353:+            restored_differ = restored_differ || king_lines_.check_squares[type] != piece_lines.checks[type];
+362:     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+363:     else king_lines_.valid = false;
+365:+    if (king_lines_.valid) {
+367:+        bool restored_differ = king_lines_.pinned != piece_lines.pins || king_lines_.discoverers != piece_lines.discoveries;
+369:+            restored_differ = restored_differ || king_lines_.check_squares[type] != piece_lines.checks[type];
+REFERENCE HEADER ONLY
