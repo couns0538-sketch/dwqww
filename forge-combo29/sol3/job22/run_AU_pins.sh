@@ -8,7 +8,9 @@ cutoff=$(($(date -u -d "$claim" +%s) + 3000))
 set -a
 source "$job/sanitizer.env.txt"
 set +a
-for arm in AU-r15d AU-kF; do
+if (($# == 0)); then set -- AU-r15d AU-kF; fi
+for arm in "$@"; do
+  [[ "$arm" == AU-r15d || "$arm" == AU-kF ]]
   for depth in 11 13; do
     out="$job/known/$arm/bench_$depth"
     mkdir -p "$(dirname "$out")"
