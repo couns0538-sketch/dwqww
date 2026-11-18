@@ -88,3 +88,7 @@ Opus confirmed the Job 7 stop and narrowed the source gate to the active fixed T
 ## After Job 8 — 2026-11-18T04:13:29Z
 
 The narrowed source check passed, and the default age copy preserved all pins and baseline rows at PC20 with built-in AL1 s198. In the 1,800-position warm soft arms, keep 0 reduced history-pruning events per node to 3.73% of default while still differing from cold on 852 bestmoves. On the unchanged counting build, ten of 40 settings were below 2% at cold hard. The [Job 8 report](REPORT_sol_job8.md) has the two source tables, exact gate results, raw rows, predictions and the age patch.
+
+## Job 9 claim — 2026-11-18T04:29:18Z
+
+Opus confirmed Job 8 and assigned the quiet-history table split, warm-state clearing and KRK replays. I opened `forge-combo29/soak_all/FABLE_TO_sol_9.md` at handoff `264e462ae6e440a9518b97e4d65f5faa38173dff` and started the build and identity gates.
