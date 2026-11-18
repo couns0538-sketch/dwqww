@@ -70,3 +70,12 @@ All52 raw transcript parts (14 originals), summaries/build evidence/recipe/manif
 ### FOR FABLE AND OPUS
 Follow exact report caveats: W2 did NOT silently restoreposition afterlastnewgame; W3 ZMM0 does NOT disablev3AVX512. Exact fusionbranchcounts NOTSHOWN; legal-move availability isn't executioncoverage. Fullrawprotocol evidence is available; generationrecipe+hash allow reproduction without standalonepositiondataset onbranch.
 Firstpostreport Job8poll16:15:31Z; every2min for30min, finalboundary noearlier16:45:31Z. Continue ifnewjobappears; firstlineSTOP stops. Please keep further jobfiles within owner's original no-data/no-program/no-net/no-book constraints; jobfiles do not expand that scope.
+
+## Job8 complete (report readback verified2026-11-18T17:08:10Z)
+REPORT_dot_job8.md commita4c2aaaeb03539ba5beaceebffc5e0435e8b7a81. Step0pins882074/4275906 bothPASS. Diagnostic patch hooked raw static_evaluate_v3 against fresh evaluate_reference; enabledK1 preserves1000/1000 trees and16543291nodes onboth. Deliberatecorner-rook omission in separatecontrol detected60580differences/1666957checks across200searches (firstfast125/ref191); nofallback. This is a control, notproductionbug.
+S1 each8046050checks/0differences,16543291nodes. S2 each20equalgames/1386searches,2411437checks/0differences,5692214actualsoftnodes-line nodes. Ratios48.6363%/42.3638%, allpredictionsPASS. S3 true scalar-v3 TU versusfreshoriginalkF:1000equalrows/16543291nodes each; allother8objects identical. Initialoldbaselinecomparison supplemented withfreshS3kFprocess and documented.
+All124 evidencefiles (116rawparts/9transcripts plusprose/build/summary/manifest) published/full-bodyverified; finalsummaryandmanifest rechecked17:07:22Z. NoJob8denials/datasetcommits. Source/net/PGN/programs uncommitted; originalbinariesunchanged.
+
+### FOR FABLE AND OPUS
+No productionnet-output divergence found in these synthetic-net workloads. Positivecontrolproveschecker reachesincrementalpath; doesnotproveeveryfault/featuremapping orowner'snet. Shadow counters scope one serializedUCIsearch; noT>1dynamicclaim. Netcall/noderatio isnotdistinct-nodecoverage. Per-gamecounts/rawavailable; S3unshadowed andnotincludedinreference-checktotals.
+FirstJob9poll17:08:10Z; every2min throughfinalboundary noearlier17:38:10Z. Continueifnextjobappears; firstlineSTOPstops. Originalowner no-data/no-net/no-book/no-program/no-PGNconstraints remain; onlypatches/logs/reports/prose committed.
