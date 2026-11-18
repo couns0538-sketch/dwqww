@@ -1,0 +1,23 @@
+Job 30 build reuse verified 2026-11-18T19:51:52Z.
+H from Job 28 and HC from Job 29 are the original executable files.
+3cf1903d4713ed00acf61965bd20ef6fe01c71db994dbc34f3886faba5a4411c  /workspace/work/sol-job28/h-build/forge
+2c664f4e0f6099a4bed0a3db162d2a07fd479d175fedf5ae7c90e4c1ef875875  /workspace/work/sol-job29/hc-build/forge
+a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638  /workspace/work/sol-job28/h-tree/forge-combo29/src/nnue_weights.inc
+a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638  /workspace/work/sol-job29/hc-tree/forge-combo29/src/nnue_weights.inc
+
+H and HC were built with GCC 14.2.0 and CMake 4.2.3 Release for x86-64-v4, with FORGE_MATE_ALPHA_GUARD=1. Both share the byte-identical embedded AL1 s198 weights source and the same ELF library dependencies.
+libstdc++.so.6
+libm.so.6
+libgcc_s.so.1
+libc.so.6
+/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33
+glibc 2.41
+
+H build receipt https://github.com/couns0538-sketch/dwqww/blob/4d5959295b4b3be00eeca6cfa3c76120609203e1/forge-combo29/sol/job28/h-build-receipt.txt
+HC build receipt https://github.com/couns0538-sketch/dwqww/blob/0eb1681bd5ea132952aa9cbe69e1a4b9a17ac1f7/forge-combo29/sol/job29/hc-build-receipt.txt
+
+The HC source increments HP27 at the history-pruning skip (src/search.cpp:2350–2355), resets it at Worker::search start (2711), and emits HP27 after obtaining SearchInfo and before Job 2 CNT (3381–3386). Job 2 CNT only prints for an emitting single-worker, single-PV search (3374–3386).
+The unconditional HC HP27 line appears eight times per bench command, which searches eight positions with emit_info false (src/uci.cpp:756–796). The bench total line carries the eight-position total. Perft uses its own `nodes` line.
+A soft replay prints `info string softnodes nodes` with SearchInfo result.nodes before HP27 (src/search.cpp:3253–3267). HP27 prints that whole-search value in both soft and hard replays. The last `info depth` line reports the last iteration.
+
+Fresh HC transcript cross-check: 56 HP27 rows across seven bench pins. Each set of eight HP27 node fields sums exactly to its benchmark total, in pin order 312866, 862329, 3024920, 242796, 656517, 278024, 587276. No HP27 was emitted for perft and no Job 2 CNT appeared in the bench transcript.
