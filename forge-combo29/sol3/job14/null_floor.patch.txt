@@ -1,0 +1,39 @@
+diff -ruN base/src/search.cpp tree/src/search.cpp
+--- base/src/search.cpp	2026-11-18 05:55:01.807977026 -0800
++++ tree/src/search.cpp	2026-11-18 06:13:21.653026605 -0800
+@@ -102,6 +102,7 @@
+ int LmrNoisyDivisor = 340;
+ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
++int NullChildFloor = 0;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
+ int RfpDepth = 8;
+@@ -189,6 +190,7 @@
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
++        {"NullChildFloor", &NullChildFloor, 0, 3},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+@@ -2613,7 +2615,9 @@
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+-            const int child_depth = depth - reduction;
++            const int reduced_depth = depth - reduction;
++            const int child_depth = tune::NullChildFloor > 0
++                ? std::max(reduced_depth, tune::NullChildFloor) : reduced_depth;
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -2647,7 +2651,7 @@
+                 const bool saved_block = null_blocked_;
+                 if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
+-                const int verification = search_child(board, ss, child_depth, beta - 1, beta, false);
++                const int verification = search_child(board, ss, reduced_depth, beta - 1, beta, false);
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
