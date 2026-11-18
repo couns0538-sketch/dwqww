@@ -1,0 +1,50 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1931,6 +1931,32 @@
+         for (const Move move : buf) {
+             if (!(move == tt_move_)) non_tt.push_back(move);
+         }
++#if FORGE_SHORTCUT_COUNT
++        // H29 storage-consumption diagnostic: regenerate on independent Board
++        // and stack lists; never inspect an uninitialized MoveList capacity slot.
++        auto h29_same_move=[](const Move& a,const Move& b) {
++            return a.from==b.from && a.to==b.to && a.promotion==b.promotion && a.flags==b.flags;
++        };
++        auto h29_same_list=[&](const MoveList& a,const MoveList& b,bool fault) {
++            std::size_t reference_size=b.size();
++#if FORGE_SHORTCUT_WRONG12
++            if(fault && board_.side_to_move()==White) ++reference_size;
++#else
++            (void)fault;
++#endif
++            bool same=a.size()==reference_size;
++            for(std::size_t i=0;i<std::min(a.size(),b.size());++i) same &= h29_same_move(a[i],b[i]);
++            return same;
++        };
++        {
++            const Board h29_board=board_;
++            MoveList h29_legal,h29_non_tt;
++            h29_board.generate_legal_evasions(h29_legal);
++            for(const Move move:h29_legal) if(!(move==tt_move_)) h29_non_tt.push_back(move);
++            const bool h29_equal=h29_same_list(buf,h29_legal,false) & h29_same_list(non_tt,h29_non_tt,true);
++            shortcut_count::record_h29(!h29_equal,board_.side_to_move()==White,false,board_);
++        }
++#endif
+         index_ = 0;
+         if (non_tt.empty()) {
+             count_ = 0;
+@@ -1998,6 +2024,14 @@
+         }
+         buf.clear();
+         board_.generate_pseudo_legal(buf, false);
++#if FORGE_SHORTCUT_COUNT
++        {
++            const Board h29_board=board_;
++            MoveList h29_pseudo;
++            h29_board.generate_pseudo_legal(h29_pseudo,false);
++            shortcut_count::record_h29(!h29_same_list(buf,h29_pseudo,true),board_.side_to_move()==White,true,board_);
++        }
++#endif
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
