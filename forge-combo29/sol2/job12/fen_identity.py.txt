@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""Compare whole-game Forge move and last-info node traces from pinned book FENs."""
+
+import argparse
+from contextlib import ExitStack, contextmanager
+import hashlib
+import io
+from itertools import islice, zip_longest
+import json
+from pathlib import Path
+import runpy
+import subprocess
+import sys
+
+
+ROOT = Path(__file__).resolve().parent.parent
+JOB10_DRIVER = ROOT / 'sol2-job10' / 'fixed_nodes_driver.py'
+JOB10_DRIVER_SHA256 = '662799e637da4c5d44dde7a8f846396fbacb7f208da62e6f3cddd268f3c9a022'
+BOOK_SHA256 = '7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a'
+NET_SHA256 = 'c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7'
+NET_ACTIVATION = 'hidden 768 '
+NET_CHECKSUM = ' checksum 30ab43b4ba5db5f3 '
+PLY_CAP = 300
+
+
+def pin(path, expected=None):
+    resolved = path.resolve(strict=True)
+    with resolved.open('rb') as handle:
+        actual = hashlib.file_digest(handle, 'sha256').hexdigest()
+    if expected is not None and actual != expected:
+        raise ValueError(f'{resolved}: expected SHA-256 {expected}, got {actual}')
+    return {'path': str(resolved), 'sha256': actual}
+
+
+def book_rows(path, start, end):
+    with path.open('r', encoding='ascii', newline='') as file:
+        for line_number, raw in enumerate(islice(file, start - 1, end), start=start):
+            fen = raw.removesuffix('\n').removesuffix('\r')
+            if len(fen.split()) != 6:
+                raise ValueError(f'Book line {line_number} is not a six-field FEN')
+            yield line_number, fen
+    if 'line_number' not in locals() or line_number != end:
+        raise ValueError(f'Book ended before physical line {end}')
+
+
+@contextmanager
+def engine(path, stderr, send):
+    proc = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr,
+                            text=True, encoding='utf-8', bufsize=1)
+    try:
+        yield proc
+    except BaseException:
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait()
+        raise
+    else:
+        try:
+            send(proc, 'quit\n')
+            exit_code = proc.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired):
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait()
+            raise
+        if exit_code != 0:
+            raise RuntimeError(f'{path}: Forge exit {exit_code}')
+    finally:
+        proc.stdin.close()
+        proc.stdout.close()
+
+
+def configure(proc, pinned, net, override, raw):
+    commands = ['uci', *(f'setoption name {name} value {value}' for name, value in pinned['PC20_OPTIONS']),
+                f'setoption name NNUEArchFile value {net}', 'setoption name NNUEArch value true']
+    if override is not None:
+        commands.append(f'setoption name LmrQuietBase value {override}')
+    commands.append('isready')
+    raw.writelines(f'> {command}\n' for command in commands)
+    pinned['send'](proc, '\n'.join(commands) + '\n')
+    readiness = io.StringIO()
+    try:
+        pinned['wait_ready'](proc, receipt=readiness)
+    finally:
+        raw.write(readiness.getvalue())
+        raw.flush()
+    if not any(line.startswith('< info string NNUE v3 active:') and NET_ACTIVATION in line and NET_CHECKSUM in line
+               for line in readiness.getvalue().splitlines()):
+        raise RuntimeError('Engine did not report the pinned active net768 checksum')
+
+
+def read_search(stdout, mode):
+    info = None
+    nodes = None
+    for line in iter(stdout.readline, ''):
+        if mode == 'nodes' and line.startswith('info string softnodes'):
+            raise RuntimeError('Soft-node output in hard-node run')
+        if line.startswith('info depth '):
+            info = line.removesuffix('\n')
+            fields = info.split()
+            nodes_at = fields.index('nodes') + 1 if 'nodes' in fields else len(fields)
+            nodes = int(fields[nodes_at]) if nodes_at < len(fields) else None
+        elif line.startswith('bestmove '):
+            fields = line.split()
+            if len(fields) < 2 or nodes is None or nodes < 0:
+                raise RuntimeError(f'Missing last-info nodes or move before {line.rstrip()!r}; last info {info!r}')
+            return {'bestmove': fields[1], 'nodes': nodes, 'last_info': info, 'bestmove_line': line.removesuffix('\n')}
+        elif line.startswith('info string ') and ('ERROR' in line or 'illegal move' in line or 'invalid FEN' in line):
+            raise RuntimeError(f'Engine refused the game position: {line.rstrip()}')
+    raise RuntimeError(f'Engine EOF before bestmove; last info {info!r}')
+
+
+def play_game(proc, board_factory, fen, mode, limit, pinned):
+    board = board_factory(fen)
+    if not board.is_valid():
+        raise ValueError(f'Invalid game position {fen!r}')
+    pinned['send'](proc, 'ucinewgame\nisready\n')
+    pinned['wait_ready'](proc)
+    trace = []
+    moves = []
+    for ply in range(1, PLY_CAP + 1):
+        if board.is_game_over(claim_draw=True):
+            break
+        position = f'position fen {fen}'
+        if moves:
+            position += ' moves ' + ' '.join(moves)
+        pinned['send'](proc, f'{position}\ngo {mode} {limit}\n')
+        search = read_search(proc.stdout, mode)
+        move = search['bestmove']
+        try:
+            if move == '0000':
+                raise ValueError('null bestmove in a position that python-chess says can continue')
+            board.push_uci(move)
+        except ValueError as exc:
+            raise RuntimeError(f'Ply {ply}: illegal engine move; {search!r}; {exc}') from exc
+        trace.append(search)
+        moves.append(move)
+    outcome = board.outcome(claim_draw=True)
+    return trace, outcome.result() if outcome else '*', outcome.termination.name.lower() if outcome else 'ply_cap'
+
+
+def compare_game(line_number, fen, a, b):
+    def canonical(row):
+        return (row['bestmove'], row['nodes']) if row is not None else None
+
+    def side(record):
+        trace, outcome, termination = record
+        return {'trace': [canonical(item) for item in trace], 'plies': len(trace),
+                'outcome': outcome, 'termination': termination}
+
+    divergence = None
+    for ply, (a_row, b_row) in enumerate(zip_longest(a[0], b[0]), start=1):
+        if canonical(a_row) != canonical(b_row):
+            divergence = {'ply': ply, 'A': a_row, 'B': b_row}
+            break
+    return {'book_line': line_number, 'fen': fen, 'A': side(a), 'B': side(b),
+            'equal': divergence is None, 'first_difference': divergence}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--a', required=True, type=Path, help='baseline executable')
+    parser.add_argument('--b', required=True, type=Path, help='candidate executable')
+    parser.add_argument('--a-sha256')
+    parser.add_argument('--b-sha256')
+    parser.add_argument('--net', required=True, type=Path)
+    parser.add_argument('--book', required=True, type=Path)
+    parser.add_argument('--start', required=True, type=int, help='first physical book line (inclusive, 1-based)')
+    parser.add_argument('--end', required=True, type=int, help='last physical book line (inclusive, 1-based)')
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--softnodes', type=int)
+    mode.add_argument('--nodes', type=int)
+    parser.add_argument('--b-lmr-quiet-base', type=int, help='B-only sensitivity control applied after PC20')
+    parser.add_argument('--output', required=True, type=Path, help='fresh JSONL path, one flushed row per complete pair')
+    args = parser.parse_args()
+    kind = 'nodes' if args.nodes is not None else 'softnodes'
+    limit = args.nodes if args.nodes is not None else args.softnodes
+    if not 1 <= args.start <= args.end or limit <= 0:
+        parser.error('Expected inclusive positive book line bounds and a positive node budget')
+    import chess
+
+    pinned = pin(JOB10_DRIVER, JOB10_DRIVER_SHA256)
+    inputs = {'A': pin(args.a, args.a_sha256), 'B': pin(args.b, args.b_sha256), 'net': pin(args.net, NET_SHA256),
+              'book': pin(args.book, BOOK_SHA256), 'job10_driver': pinned}
+    driver = runpy.run_path(pinned['path'])
+    counts = {'games': 0, 'equal': 0, 'differ': 0}
+    with ExitStack() as files:
+        output = files.enter_context(args.output.open('x', encoding='utf-8'))
+        with args.output.with_name(args.output.name + '.inputs.txt').open('x', encoding='utf-8') as receipt:
+            print(json.dumps({'inputs': inputs, 'book_start': args.start, 'book_end': args.end,
+                              'mode': kind, 'limit': limit, 'ply_cap': PLY_CAP, 'claim_draw': True,
+                              'b_lmr_quiet_base': args.b_lmr_quiet_base, 'chess_module_version': chess.__version__}, indent=2), file=receipt)
+        engines = {}
+        for arm in ('A', 'B'):
+            base = args.output.with_name(args.output.name + f'.{arm}')
+            raw = files.enter_context(base.with_name(base.name + '.setup.raw.txt').open('x', encoding='utf-8'))
+            stderr = files.enter_context(base.with_name(base.name + '.stderr.raw.txt').open('xb'))
+            engines[arm] = files.enter_context(engine(inputs[arm]['path'], stderr, driver['send']))
+            override = args.b_lmr_quiet_base if arm == 'B' else None
+            configure(engines[arm], driver, inputs['net']['path'], override, raw)
+        for line_number, fen in book_rows(Path(inputs['book']['path']), args.start, args.end):
+            try:
+                a = play_game(engines['A'], chess.Board, fen, kind, limit, driver)
+                b = play_game(engines['B'], chess.Board, fen, kind, limit, driver)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise RuntimeError(f'Book line {line_number}: {exc}') from exc
+            row = compare_game(line_number, fen, a, b)
+            print(json.dumps(row, separators=(',', ':')), file=output, flush=True)
+            counts['games'] += 1
+            counts['equal' if row['equal'] else 'differ'] += 1
+    print(json.dumps({'start': args.start, 'end': args.end, **counts, 'output': str(args.output)}), flush=True)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ImportError, OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job12
+out=/workspace/work/sol2-repo/forge-combo29/sol2/job12/control
+book=/workspace/work/sol2-job2/UHO_Lichess_4852_v1.epd
+net=/workspace/work/sol2-job2/net768.fnn3
+base=/workspace/work/sol2-job7/build-pgo-r15d/forge
+sha=96f50b3eb6d4f05cfa8291eaab56ea9c943a8e98fb3b248fff3b9138fcce6808
+export PYTHONPATH="$job/python"
+run() {
+    local name=$1 cpu=$2
+    shift 2
+    (
+        set -x
+        date -u +%FT%TZ
+        timeout 240 taskset -c "$cpu" python3 -B "$job/fen_identity.py" --a "$base" --b "$base" --a-sha256 "$sha" --b-sha256 "$sha" --net "$net" --book "$book" --start 4001 --end 4020 --softnodes 2000 --output "$out/$name.jsonl.txt" "$@"
+        date -u +%FT%TZ
+    ) > "$out/$name.command.raw.txt" 2>&1
+}
+run repeat 1 &
+repeat_pid=$!
+run changed 2 --b-lmr-quiet-base 60 &
+changed_pid=$!
+status=0
+wait "$repeat_pid" || status=1
+wait "$changed_pid" || status=1
+exit "$status"

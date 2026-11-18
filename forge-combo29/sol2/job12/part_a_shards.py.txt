@@ -1,0 +1,298 @@
+#!/usr/bin/env python3
+"""Launch and independently read back one paired FEN identity part."""
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import itertools
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import subprocess
+import sys
+import time
+
+
+BOOK_SHA = "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+PARTS = {
+    "control-repeat": (4001, 4020, "--softnodes", "2000"),
+    "control-changed": (4001, 4020, "--softnodes", "2000"),
+    "A1": (4001, 5500, "--softnodes", "2000"),
+    "A2": (6001, 6300, "--nodes", "20000"),
+}
+MOVE = re.compile(r"[a-h][1-8][a-h][1-8][qrbn]?")
+INFO_NODES = re.compile(r"(?:^|\s)nodes (\d+)(?:\s|$)")
+
+
+def stamp():
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def digest(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def read_book(path, expected):
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise ValueError(f"book bytes differ from the requested SHA-256: {path}")
+    return data.decode("utf-8").splitlines()
+
+
+def write_json(stream, record):
+    print(json.dumps(record, separators=(",", ":"), ensure_ascii=True), file=stream, flush=True)
+
+
+def assert_record(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def cpu_list(value):
+    cpus = [int(cpu) for cpu in value.split(",")]
+    if not cpus or len(cpus) != len(set(cpus)) or not set(cpus) <= {1, 2, 3, 4}:
+        raise argparse.ArgumentTypeError("choose one to four distinct CPU IDs from 1,2,3,4")
+    return cpus
+
+
+def shard_ranges(first, last, cpus):
+    count = last - first + 1
+    return [(cpu, first + index * count // len(cpus), first + (index + 1) * count // len(cpus) - 1)
+            for index, cpu in enumerate(cpus)]
+
+
+def make_manifest(args):
+    first, last, limit, value = PARTS[args.part]
+    cpus = args.cpus or ([1] if args.part.startswith("control-") else [1, 2, 3, 4])
+    assert_record(set(cpus) <= os.sched_getaffinity(0), f"unavailable CPU in requested set {cpus}")
+    path_names = ("driver", "a", "b", "net", "book")
+    paths = {name: getattr(args, name).resolve(strict=True) for name in path_names}
+    assert_record(all(path.is_file() for path in paths.values()), "an input path is not a regular file")
+    hashes = {name: digest(path) for name, path in paths.items()}
+    assert_record(hashes["book"] == BOOK_SHA, "wrong UHO_Lichess_4852_v1.epd SHA-256")
+    for name in ("a", "b", "net"):
+        expected = getattr(args, f"expect_{name}")
+        assert_record(expected is None or hashes[name] == expected, f"{name} SHA-256 differs from the supplied pin")
+    if args.part.startswith("control-"):
+        assert_record(hashes["a"] == hashes["b"], "the control's two engine binaries must be byte-identical")
+    out = args.out.resolve()
+    shards = []
+    for index, (cpu, start, end) in enumerate(shard_ranges(first, last, cpus), 1):
+        name = f"shard-{index:02d}-{start}-{end}"
+        row_path = out / f"{name}.pairs.raw.jsonl.txt"
+        command = ["taskset", "-c", str(cpu), sys.executable, "-B", str(paths["driver"]),
+                   "--a", str(paths["a"]), "--b", str(paths["b"]), "--net", str(paths["net"]),
+                   "--book", str(paths["book"]), "--start", str(start), "--end", str(end),
+                   limit, value, "--output", str(row_path)]
+        if args.part == "control-changed":
+            command.extend(("--b-lmr-quiet-base", "60"))
+        shards.append({"name": name, "cpu": cpu, "first": start, "last": end,
+                       "rows": row_path.name, "command": command})
+    return {"part": args.part, "first": first, "last": last, "book_limit": [limit, value],
+            "opened_utc": stamp(), "paths": {name: str(path) for name, path in paths.items()},
+            "sha256": hashes, "shards": shards}
+
+
+def launch(out, manifest):
+    out.mkdir()
+    with (out / "manifest.raw.json.txt").open("x", encoding="utf-8") as stream:
+        write_json(stream, manifest)
+
+    stopping = None
+    children = {}
+
+    def stop(signum, frame):
+        nonlocal stopping
+        stopping = int(signum)
+
+    def signal_child(proc, signum):
+        try:
+            os.killpg(proc.pid, signum)
+        except ProcessLookupError:
+            pass
+
+    old_handlers = {sig: signal.signal(sig, stop) for sig in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        with (out / "processes.raw.jsonl.txt").open("x", encoding="utf-8") as log:
+            try:
+                for shard in manifest["shards"]:
+                    if stopping:
+                        break
+                    name = shard["name"]
+                    with (out / f"{name}.stdout.raw.txt").open("xb") as stdout, \
+                            (out / f"{name}.stderr.raw.txt").open("xb") as stderr:
+                        proc = subprocess.Popen(shard["command"], stdout=stdout, stderr=stderr, start_new_session=True)
+                    children[name] = proc
+                    write_json(log, {"event": "start", "utc": stamp(), "name": name, "pid": proc.pid,
+                                     "command": shard["command"]})
+                while children and not stopping:
+                    for name, proc in list(children.items()):
+                        code = proc.poll()
+                        if code is None:
+                            continue
+                        if code != 0:
+                            signal_child(proc, signal.SIGTERM)
+                        write_json(log, {"event": "exit", "utc": stamp(), "name": name, "pid": proc.pid, "exit": code})
+                        del children[name]
+                    if children:
+                        time.sleep(0.1)
+            finally:
+                for proc in children.values():
+                    signal_child(proc, signal.SIGTERM)
+                for name, proc in children.items():
+                    try:
+                        code = proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        signal_child(proc, signal.SIGKILL)
+                        code = proc.wait()
+                    write_json(log, {"event": "exit", "utc": stamp(), "name": name, "pid": proc.pid, "exit": code,
+                                     "stopped_by_signal": stopping})
+    finally:
+        for sig, handler in old_handlers.items():
+            signal.signal(sig, handler)
+    return stopping is not None
+
+
+def read_trace(row, side, label):
+    trace = row[side]["trace"]
+    assert_record(isinstance(trace, list) and row[side]["plies"] == len(trace) <= 300,
+                  f"{label}: invalid {side} trace length")
+    for move_node in trace:
+        assert_record(isinstance(move_node, list) and len(move_node) == 2 and
+                      isinstance(move_node[0], str) and MOVE.fullmatch(move_node[0]) is not None and
+                      type(move_node[1]) is int and move_node[1] >= 0, f"{label}: invalid {side} move/node tuple")
+    return trace
+
+
+def read_pairs(out, manifest, partial):
+    source = Path(manifest["paths"]["book"])
+    book = read_book(source, BOOK_SHA)
+    occupied = set()
+    exit_codes = {}
+    log = out / "processes.raw.jsonl.txt"
+    if log.exists():
+        for line in log.read_text().splitlines():
+            record = json.loads(line)
+            if record["event"] == "exit":
+                assert_record(record["name"] not in exit_codes, "duplicate worker exit")
+                exit_codes[record["name"]] = record["exit"]
+
+    moves = {"A": 0, "B": 0}
+    nodes = {"A": 0, "B": 0}
+    traces = {side: hashlib.sha256() for side in ("A", "B")}
+    differences = []
+    shard_details = []
+    for shard in manifest["shards"]:
+        name = shard["name"]
+        row_file = out / shard["rows"]
+        next_line = shard["first"]
+        if row_file.exists():
+            with row_file.open("rb") as stream:
+                for raw in stream:
+                    if partial and not raw.endswith(b"\n"):
+                        break
+                    assert_record(raw.endswith(b"\n"), f"{name}: incomplete final row")
+                    row = json.loads(raw)
+                    line = row["book_line"]
+                    label = f"{name} book line {line}"
+                    assert_record(type(line) is int and line == next_line and line <= shard["last"] and
+                                  line not in occupied, f"{label}: expected unique in-order line {next_line}")
+                    original = book[line - 1]
+                    assert_record(row["fen"] == original, f"{label}: FEN differs from pinned physical book line")
+                    occupied.add(line)
+                    next_line += 1
+
+                    left, right = (read_trace(row, side, label) for side in ("A", "B"))
+                    for side, trace in (("A", left), ("B", right)):
+                        moves[side] += len(trace)
+                        nodes[side] += sum(entry[1] for entry in trace)
+                        canonical = json.dumps([line, trace], separators=(",", ":"), ensure_ascii=True)
+                        traces[side].update(canonical.encode("ascii") + b"\n")
+                    assert_record(type(row["equal"]) is bool and row["equal"] == (left == right),
+                                  f"{label}: equal flag disagrees with canonical trace comparison")
+                    difference = row["first_difference"]
+                    if left == right:
+                        assert_record(difference is None, f"{label}: equal canonical traces have a difference record")
+                        continue
+                    ply, before, after = next((index, a, b) for index, (a, b) in
+                                              enumerate(itertools.zip_longest(left, right), 1) if a != b)
+                    assert_record(isinstance(difference, dict) and difference["ply"] == ply,
+                                  f"{label}: incorrect first-difference ply")
+                    for side, expected in (("A", before), ("B", after)):
+                        actual = difference[side]
+                        if expected is None:
+                            assert_record(actual is None, f"{label}: absent {side} ply has a fabricated output record")
+                        else:
+                            assert_record([actual["bestmove"], actual["nodes"]] == expected and
+                                          isinstance(actual["bestmove_line"], str) and
+                                          actual["bestmove_line"].split()[:2] == ["bestmove", expected[0]] and
+                                          (actual["last_info"] is None or isinstance(actual["last_info"], str)),
+                                          f"{label}: inconsistent {side} first-difference evidence")
+                            match = INFO_NODES.search(actual["last_info"] or "")
+                            assert_record((int(match[1]) if match else 0) == expected[1],
+                                          f"{label}: {side} last-info node count disagrees with first-difference evidence")
+                    differences.append({"book_line": line, "fen": row["fen"], **difference})
+
+        shard_details.append({"name": name, "rows": next_line - shard["first"],
+                              "missing": shard["last"] + 1 - next_line, "exit": exit_codes.get(name),
+                              "sha256": digest(row_file) if row_file.exists() else None})
+
+    missing = sorted(set(range(manifest["first"], manifest["last"] + 1)) - occupied)
+    result = {"part": manifest["part"], "first": manifest["first"], "last": manifest["last"],
+              "games": len(occupied), "equal": len(occupied) - len(differences), "differ": len(differences),
+              "missing_lines": missing, "shards": shard_details, "searches_by_engine": moves,
+              "last_info_nodes_by_engine": nodes,
+              "canonical_sha256_by_engine": {side: hash_.hexdigest() for side, hash_ in traces.items()}}
+    result["complete"] = not missing and all(shard["exit"] == 0 for shard in shard_details)
+    return result, differences
+
+
+def verify(out, partial):
+    with (out / "manifest.raw.json.txt").open(encoding="utf-8") as stream:
+        manifest = json.load(stream)
+    result, differences = read_pairs(out, manifest, partial)
+    for name, rows in (("readback.raw.json.txt", [result]), ("differences.raw.jsonl.txt", differences)):
+        path = out / name
+        if path.exists():
+            previous = [json.loads(line) for line in path.read_text().splitlines()]
+            assert_record(previous == rows, f"{path} no longer matches the independent readback")
+        else:
+            with path.open("x", encoding="utf-8") as stream:
+                for row in rows:
+                    write_json(stream, row)
+    write_json(sys.stdout, result)
+    if not result["complete"]:
+        return 2
+    if ((manifest["part"] == "control-repeat" and result["differ"]) or
+            (manifest["part"] == "control-changed" and not result["differ"])):
+        return 3
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    modes = parser.add_subparsers(dest="mode", required=True)
+    run = modes.add_parser("run")
+    run.add_argument("--part", choices=PARTS, required=True)
+    run.add_argument("--cpus", type=cpu_list)
+    for name in ("driver", "a", "b", "net", "book", "out"):
+        run.add_argument(f"--{name}", required=True, type=Path)
+    for name in ("a", "b", "net"):
+        run.add_argument(f"--expect-{name}")
+    readback = modes.add_parser("verify")
+    readback.add_argument("--out", required=True, type=Path)
+    readback.add_argument("--allow-partial", action="store_true")
+    args = parser.parse_args()
+
+    if args.mode == "verify":
+        return verify(args.out, args.allow_partial)
+    manifest = make_manifest(args)
+    interrupted = launch(args.out.resolve(), manifest)
+    return verify(args.out, partial=interrupted)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
