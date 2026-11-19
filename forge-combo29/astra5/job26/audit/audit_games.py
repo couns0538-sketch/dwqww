@@ -207,6 +207,10 @@ def main():
         games[game]=g
     identities=[tuple(p) for g in games.values() for p in g['processes']]
     check(len(set(identities))==len(identities),(a.stage,'PID/start-ticks reused across games'))
+    active=peak=0
+    for timestamp,delta in sorted((time(g[k]),delta) for g in games.values() for k,delta in [('start',1),('finish',-1)]):
+        active+=delta;peak=max(peak,active)
+    check(active==0 and peak<=advertised['concurrent_games'],(a.stage,'game concurrency',active,peak))
     n=len(openings)
     sums=Counter();ends=Counter();flags=[];bins=[0]*5
     summaries=[];pairs=[];by45=0;by45_receipt=0;straddlers=[]
@@ -243,7 +247,7 @@ def main():
     scores=[i/4 for i,c in enumerate(bins) for _ in range(c)]
     try:elo=evaluate(scores)
     except (ValueError,ZeroDivisionError):elo=None
-    summary=dict(stage=a.stage,openings=openings,pairs=n,pairs_by_minute45=by45,pair_receipts_by_minute45=by45_receipt,minute45_straddlers=straddlers,games=2*n,distinct_processes=len(set(identities)),A_WLD=[sums['W'],sums['L'],sums['D']],penta=bins,elo_lower_upper=elo,
+    summary=dict(stage=a.stage,openings=openings,pairs=n,pairs_by_minute45=by45,pair_receipts_by_minute45=by45_receipt,minute45_straddlers=straddlers,games=2*n,distinct_processes=len(set(identities)),peak_concurrent_scored_games=peak,A_WLD=[sums['W'],sums['L'],sums['D']],penta=bins,elo_lower_upper=elo,
         reading='A BETTER' if elo and elo[1]>0 else 'B BETTER' if elo and elo[2]<0 else 'LEVEL' if elo else 'not finite at this checkpoint',
         endings=dict(ends),time_losses=flags,players={name:{'searches':sums['count',name],'used_total':sums['spent',name],'N_total':sums['nodes',name],
         'mean_used':sums['spent',name]/sums['count',name] if sums['count',name] else None,'hold_searches':sums['holds',name],'hold_lines':sums['holdlines',name],
@@ -252,7 +256,12 @@ def main():
     table_out(a.out/'paired-ends.tsv',['opening','odd_game','even_game','odd_result','even_result','A_pair_points','both_games_finished_utc','pair_receipt_utc'],pairs)
     table_out(a.out/'game-readback.tsv',['game','opening','White','result','ending','plays','W_final','B_final','A_searches','B_searches','A_used','B_used','A_hold_searches','B_hold_searches','started','ended'],sorted(summaries))
     table_out(a.out/'time-losses.tsv',['game','ply','side','engine','N','used','clock_before'],flags)
-    (a.out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps({k:v for k,v in summary.items() if k!='openings'},separators=(',',':')))
+    summary_text=json.dumps(summary,indent=2)+'\n'
+    (a.out/'summary.json').write_text(summary_text)
+    if a.cache and a.stage=='M':
+        snapshots=a.out.parent/'M-checkpoints';snapshots.mkdir(exist_ok=True)
+        (snapshots/f'{n:03d}-pairs.json').write_text(summary_text)
+    print(json.dumps({k:v for k,v in summary.items() if k!='openings'},separators=(',',':')))
 
 
 if __name__=='__main__':main()
