@@ -1,0 +1,44 @@
+START_UTC: Thu Nov 19 08:44:48 PM UTC 2026
+=== C31: X_1 softnodes 2000 (A) vs X_1 softnodes 2200 (B), 4 blocks ===
+A: X_1_sn2000 (/tmp/carbon2_job30/bld_sp_stkH_1/forge) | go='go softnodes 2000'
+B: X_1_sn2200 (/tmp/carbon2_job30/bld_sp_stkH_1/forge) | go='go softnodes 2200'
+Roots: first 60 of workload_T_60_roots.txt | PC20 + net768.fnn3, Threads 1, Hash 16
+Design: engine pinned to CPU 3 (harness on CPU 1); 4 blocks; odd [W] A B B A, even [W] B A A B;
+        1 warm-up run per block left out; block ratio = B / A (> 1 means B uses more time than A).
+
+  block 01 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.5204 wall_s=7.7850
+  block 01 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.4971 wall_s=7.7383 [OK]
+  block 01 leg 2 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.0492 wall_s=8.3210 [OK]
+  block 01 leg 3 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.0558 wall_s=8.3336 [OK]
+  block 01 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5550 wall_s=7.8095 [OK]
+  --> block 01 summary (ABBA): CPU_B/CPU_A = 16.1050/15.0521 = 1.0700 | wall_B/wall_A = 16.6545/15.5478 = 1.0712
+  block 02 WARMUP(B, left out): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1141 wall_s=8.4295
+  block 02 leg 1 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1142 wall_s=8.4270 [OK]
+  block 02 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5747 wall_s=7.8146 [OK]
+  block 02 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5709 wall_s=7.8416 [OK]
+  block 02 leg 4 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1437 wall_s=8.4549 [OK]
+  --> block 02 summary (BAAB): CPU_B/CPU_A = 16.2578/15.1456 = 1.0734 | wall_B/wall_A = 16.8819/15.6562 = 1.0783
+  block 03 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.5363 wall_s=7.7903
+  block 03 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5413 wall_s=7.7827 [OK]
+  block 03 leg 2 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1080 wall_s=8.4107 [OK]
+  block 03 leg 3 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1338 wall_s=8.4275 [OK]
+  block 03 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5210 wall_s=7.7597 [OK]
+  --> block 03 summary (ABBA): CPU_B/CPU_A = 16.2418/15.0623 = 1.0783 | wall_B/wall_A = 16.8382/15.5424 = 1.0834
+  block 04 WARMUP(B, left out): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1108 wall_s=8.4040
+  block 04 leg 1 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1202 wall_s=8.4056 [OK]
+  block 04 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5396 wall_s=7.7932 [OK]
+  block 04 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5392 wall_s=7.8003 [OK]
+  block 04 leg 4 (B): sig=5853/28387596/f37b0151ac18bd56 cpu_s=8.1109 wall_s=8.4003 [OK]
+  --> block 04 summary (BAAB): CPU_B/CPU_A = 16.2311/15.0789 = 1.0764 | wall_B/wall_A = 16.8059/15.5935 = 1.0778
+
+Reference signatures: A=6070/26711499/937e1660561173af | B=5853/28387596/f37b0151ac18bd56 | Dropped blocks: 0 ([])
+  [engine_cpu_B_over_A] 4 block ratios (B/A): 1.0700 1.0734 1.0783 1.0764
+  [engine_cpu_B_over_A] median=1.0749 | pooled(sumB/sumA)=1.0745 (sumA=60.3388s, sumB=64.8356s)
+  [engine_cpu_B_over_A] mean=1.0745, 95% t-CI (df=3) [1.0687, 1.0803] (sd=0.0037, se=0.0018)
+  [engine_cpu_B_over_A] blocks below 1: 0/4 | blocks above 1: 4/4
+
+  [wall_B_over_A] 4 block ratios (B/A): 1.0712 1.0783 1.0834 1.0778
+  [wall_B_over_A] median=1.0780 | pooled(sumB/sumA)=1.0777 (sumA=62.3398s, sumB=67.1805s)
+  [wall_B_over_A] mean=1.0776, 95% t-CI (df=3) [1.0697, 1.0856] (sd=0.0050, se=0.0025)
+  [wall_B_over_A] blocks below 1: 0/4 | blocks above 1: 4/4
+END_UTC: Thu Nov 19 08:47:31 PM UTC 2026

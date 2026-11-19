@@ -1,0 +1,94 @@
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+index 95b52853e..94898f67b 100644
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -301,6 +301,7 @@ private:
+ #endif
+     [[nodiscard]] bool is_legal_complete(const Move& move) const;
+     [[nodiscard]] bool gives_check_complete(const Move& move) const;
++    [[nodiscard]] bool has_legal_move_slow() const;
+     [[nodiscard]] bool upcoming_repetition_hit(const std::uint64_t* keys, std::size_t now,
+                                                std::size_t span, std::size_t distance,
+                                                std::size_t root_index) const;
+@@ -360,4 +361,25 @@ inline bool Board::gives_check(const Move& move) const {
+     return gives_check_complete(move);
+ }
+ 
++inline bool Board::has_legal_move() const {
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Bitboard occ = occupied_[0] | occupied_[1];
++        const Bitboard us_occ = occupied_[static_cast<std::size_t>(us)];
++        const Bitboard them_occ = occupied_[static_cast<std::size_t>(opposite(us))];
++        const int ksq = king_squares_[static_cast<std::size_t>(us)];
++        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
++        if (const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
++            safe_pawns != 0 &&
++            ((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
++            return true;
++        }
++        if (const Bitboard safe_knights = pieces(us, Knight) & ~k_rays;
++            safe_knights != 0 && (attacks::knight(lsb(safe_knights)) & ~us_occ) != 0) {
++            return true;
++        }
++    }
++    return has_legal_move_slow();
++}
++
+ } // namespace forge
+diff --git a/src/board.cpp b/src/board.cpp
+index 2441c7307..024989d17 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -844,19 +844,15 @@ void Board::generate_legal_evasions(MoveList& moves) const {
+     }
+ }
+ 
+-bool Board::has_legal_move() const {
++[[gnu::noinline]] bool Board::has_legal_move_slow() const {
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Bitboard occ = occupied();
++    const Bitboard us_occ = occupied(us);
++    const Bitboard them_occ = occupied(them);
++    const Bitboard not_us = ~us_occ;
++    const int ksq = king_square(us);
+     if (checkers_ == 0) {
+-        const Color us = side_;
+-        const Color them = opposite(us);
+-        const Bitboard occ = occupied();
+-        const Bitboard us_occ = occupied(us);
+-        const Bitboard them_occ = occupied(them);
+-        const int ksq = king_square(us);
+-        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
+-        const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
+-        if (((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
+-            return true;
+-        }
+         const Bitboard enemy_rq = pieces(them, Rook) | pieces(them, Queen);
+         const Bitboard enemy_bq = pieces(them, Bishop) | pieces(them, Queen);
+ #if FORGE_SPD_KING_LINES
+@@ -871,7 +867,6 @@ bool Board::has_legal_move() const {
+         const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
+         if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
+         if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
+-        const Bitboard not_us = ~us_occ;
+         for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
+             if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
+         }
+@@ -888,6 +883,15 @@ bool Board::has_legal_move() const {
+             const Bitboard to_bb = square_bb(to);
+             if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
+         }
++        if (pinned == 0 && ep_square_ < 0) return false;
++    } else {
++        const Bitboard occ_no_king = occ & ~square_bb(ksq);
++        for (Bitboard k = attacks::king(ksq) & not_us; k != 0;) {
++            const int to = pop_lsb(k);
++            const Bitboard to_bb = square_bb(to);
++            if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
++        }
++        if (more_than_one(checkers_)) return false;
+     }
+     MoveList moves;
+     generate_pseudo_legal(moves, false);

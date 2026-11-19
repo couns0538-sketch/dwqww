@@ -1,0 +1,308 @@
+diff --git a/include/forge/nnue_v3.hpp b/include/forge/nnue_v3.hpp
+index d907c74c8..18be30ea8 100644
+--- a/include/forge/nnue_v3.hpp
++++ b/include/forge/nnue_v3.hpp
+@@ -234,6 +234,20 @@ void replay_ply_from(const Net& net, WorkerState& state, int src_k, int k, const
+     const Accumulator& parent = state.stack[static_cast<std::size_t>(src_k)];
+     Accumulator& child = state.stack[static_cast<std::size_t>(k)];
+     const DirtyPieces& dirty = dirty_of(k);
++    if ((dirty.count == 2 && piece_type(dirty.changes[0].piece) != King &&
++         piece_type(dirty.changes[1].piece) != King) ||
++        (dirty.count == 3 && piece_type(dirty.changes[0].piece) != King &&
++         piece_type(dirty.changes[1].piece) != King && piece_type(dirty.changes[2].piece) != King)) {
++        apply_changes_pair(net, parent.values[0].data(), child.values[0].data(), parent.keys[0],
++                           parent.values[1].data(), child.values[1].data(), parent.keys[1], dirty);
++        child.king_sq[0] = parent.king_sq[0];
++        child.king_sq[1] = parent.king_sq[1];
++        child.keys[0] = parent.keys[0];
++        child.keys[1] = parent.keys[1];
++        child.valid = true;
++        state.valid_flags[static_cast<std::size_t>(k)] = 1;
++        return;
++    }
+     // Fast common case first: both perspectives keep their king key and can be
+     // updated in one pass; the per-perspective code below then does nothing.
+     bool done[2] = {false, false};
+diff --git a/src/nnue_v3.cpp b/src/nnue_v3.cpp
+index f0276e6c8..4d9e4393b 100644
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -849,13 +849,73 @@ void apply_changes(const Net& net, const std::int16_t* source, std::int16_t* des
+ void apply_changes_pair(const Net& net, const std::int16_t* source0, std::int16_t* destination0, KingKey key0,
+                         const std::int16_t* source1, std::int16_t* destination1, KingKey key1,
+                         const DirtyPieces& dirty) {
++#if FORGE_NNUE_V3_AVX512
++    const int hidden = net.hidden;
++    const std::int16_t* const w1_base = net.w1.data();
++    const int b0_off = static_cast<int>(key0.bucket) * InputsPerBucket;
++    const int b1_off = static_cast<int>(key1.bucket) * InputsPerBucket;
++    const int flip0 = static_cast<int>(key0.flip);
++    const int flip1 = static_cast<int>(key1.flip) ^ 56;
++    auto pair_cols = [&](const PieceChange& ch, const std::int16_t*& col_w, const std::int16_t*& col_b) noexcept {
++        const int is_b = static_cast<int>(color_of(ch.piece) == Black);
++        const int t = piece_type(ch.piece) - 1;
++        const int sq = static_cast<int>(ch.square);
++        const int f_w = b0_off + (is_b * 6 + t) * 64 + (sq ^ flip0);
++        const int f_b = b1_off + ((is_b ^ 1) * 6 + t) * 64 + (sq ^ flip1);
++        col_w = w1_base + static_cast<std::size_t>(f_w) * static_cast<std::size_t>(hidden);
++        col_b = w1_base + static_cast<std::size_t>(f_b) * static_cast<std::size_t>(hidden);
++    };
++    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
++        const std::int16_t *s0, *s1, *a0, *a1;
++        pair_cols(dirty.changes[0], s0, s1);
++        pair_cols(dirty.changes[1], a0, a1);
++        for (int h = 0; h < hidden; h += 32) {
++            const __m512i v0 = _mm512_add_epi16(
++                _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h)),
++                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
++            const __m512i v1 = _mm512_add_epi16(
++                _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h)),
++                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(s1 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a1 + h)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
++        }
++        return;
++    }
++    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
++        const std::int16_t *s0a, *s1a, *s0b, *s1b, *a0, *a1;
++        pair_cols(dirty.changes[0], s0a, s1a);
++        pair_cols(dirty.changes[1], s0b, s1b);
++        pair_cols(dirty.changes[2], a0, a1);
++        for (int h = 0; h < hidden; h += 32) {
++            const __m512i v0 = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h)),
++                                     _mm512_load_si512(reinterpret_cast<const __m512i*>(s0a + h))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(s0b + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
++            const __m512i v1 = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h)),
++                                     _mm512_load_si512(reinterpret_cast<const __m512i*>(s1a + h))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(s1b + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(a1 + h)));
++            _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
++        }
++        return;
++    }
+     const Changes c0 = collect_changes(net, key0, White, dirty);
+     const Changes c1 = collect_changes(net, key1, Black, dirty);
+-#if FORGE_NNUE_V3_AVX512
+-    apply_changes_pair_avx512(source0, destination0, c0, source1, destination1, c1, net.hidden);
++    apply_changes_pair_avx512(source0, destination0, c0, source1, destination1, c1, hidden);
+ #elif FORGE_NNUE_V3_AVX2
++    const Changes c0 = collect_changes(net, key0, White, dirty);
++    const Changes c1 = collect_changes(net, key1, Black, dirty);
+     apply_changes_pair_avx2(source0, destination0, c0, source1, destination1, c1, net.hidden);
+ #else
++    const Changes c0 = collect_changes(net, key0, White, dirty);
++    const Changes c1 = collect_changes(net, key1, Black, dirty);
+     apply_changes_pair_scalar(source0, destination0, c0, source1, destination1, c1, net.hidden);
+ #endif
+ }
+@@ -997,6 +1057,8 @@ int apply_one_refresh_one_and_evaluate(const Net& net, RefreshCache& cache,
+     const int bucket = output_bucket(net, board);
+ 
+ #if FORGE_NNUE_V3_AVX512
++    const int hidden = net.hidden;
++    const std::int16_t* const w1_base = net.w1.data();
+     const Changes c_inc = collect_changes(net, inc_key, inc_p, dirty);
+     RefreshCache::Entry& entry = cache.entries[cache_index(net, ref_p, ref_key)];
+     ++cache.refreshes;
+@@ -1005,23 +1067,29 @@ int apply_one_refresh_one_and_evaluate(const Net& net, RefreshCache& cache,
+     const std::int16_t* adds[32];
+     int n_sub = 0;
+     int n_add = 0;
++    const int ref_bucket_off = static_cast<int>(ref_key.bucket) * InputsPerBucket;
++    const int ref_flip = static_cast<int>(ref_key.flip) ^ (ref_p == Black ? 56 : 0);
+     for (int piece = WP; piece <= BK; ++piece) {
+         const auto pi = static_cast<std::size_t>(piece);
+-        Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+-        Bitboard added = pieces[pi] & ~entry.pieces[pi];
+-        while (removed != 0) {
+-            const int square = pop_lsb(removed);
+-            subs[n_sub++] = column(net, feature_index(ref_key, ref_p, static_cast<Piece>(piece), square));
++        const Bitboard prev_bb = entry.pieces[pi];
++        const Bitboard curr_bb = pieces[pi];
++        const Bitboard diff = prev_bb ^ curr_bb;
++        if (diff == 0) continue;
++        entry.pieces[pi] = curr_bb;
++        const int plane = ref_p == White ? (piece - 1) : (piece <= WK ? piece + 5 : piece - 7);
++        const std::int16_t* const p_base =
++            w1_base + static_cast<std::size_t>(ref_bucket_off + plane * 64) * static_cast<std::size_t>(hidden);
++        for (Bitboard removed = diff & prev_bb; removed != 0;) {
++            subs[n_sub++] =
++                p_base + static_cast<std::size_t>(pop_lsb(removed) ^ ref_flip) * static_cast<std::size_t>(hidden);
+         }
+-        while (added != 0) {
+-            const int square = pop_lsb(added);
+-            adds[n_add++] = column(net, feature_index(ref_key, ref_p, static_cast<Piece>(piece), square));
++        for (Bitboard added = diff & curr_bb; added != 0;) {
++            adds[n_add++] =
++                p_base + static_cast<std::size_t>(pop_lsb(added) ^ ref_flip) * static_cast<std::size_t>(hidden);
+         }
+-        entry.pieces[pi] = pieces[pi];
+     }
+     cache.columns += static_cast<std::uint64_t>(n_sub + n_add);
+ 
+-    const int hidden = net.hidden;
+     const std::int16_t* const src_inc = parent.values[inc_i].data();
+     std::int16_t* const dst_inc = child.values[inc_i].data();
+     std::int16_t* const acc_ref = entry.values.data();
+@@ -1047,48 +1115,75 @@ int apply_one_refresh_one_and_evaluate(const Net& net, RefreshCache& cache,
+     __m512i sum_inc = zero;
+     __m512i sum_ref = zero;
+ 
++    const int inc_shape =
++        (inc_cnt == 2 && !ia0 && ia1) ? 2
++        : (inc_cnt == 3 && !ia0 && !ia1 && ia2) ? 3
++        : (inc_cnt == 4 && !ia0 && ia1 && !ia2 && ia3) ? 4
++        : 0;
++    const bool has_ref_diff = (n_sub | n_add) != 0;
++
+     for (int h = 0; h < hidden; h += 32) {
+         __m512i v_inc = _mm512_load_si512(reinterpret_cast<const __m512i*>(src_inc + h));
+-        if (inc_cnt > 0) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic0 + h));
+-            v_inc = ia0 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
+-        }
+-        if (inc_cnt > 1) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic1 + h));
+-            v_inc = ia1 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
+-        }
+-        if (inc_cnt > 2) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic2 + h));
+-            v_inc = ia2 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
+-        }
+-        if (inc_cnt > 3) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic3 + h));
+-            v_inc = ia3 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++        if (inc_shape == 2) {
++            v_inc = _mm512_add_epi16(
++                _mm512_sub_epi16(v_inc, _mm512_load_si512(reinterpret_cast<const __m512i*>(ic0 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(ic1 + h)));
++        } else if (inc_shape == 3) {
++            v_inc = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_sub_epi16(v_inc, _mm512_load_si512(reinterpret_cast<const __m512i*>(ic0 + h))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(ic1 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(ic2 + h)));
++        } else if (inc_shape == 4) {
++            v_inc = _mm512_add_epi16(
++                _mm512_sub_epi16(
++                    _mm512_add_epi16(
++                        _mm512_sub_epi16(v_inc, _mm512_load_si512(reinterpret_cast<const __m512i*>(ic0 + h))),
++                        _mm512_load_si512(reinterpret_cast<const __m512i*>(ic1 + h))),
++                    _mm512_load_si512(reinterpret_cast<const __m512i*>(ic2 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(ic3 + h)));
++        } else {
++            if (inc_cnt > 0) {
++                const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic0 + h));
++                v_inc = ia0 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++            }
++            if (inc_cnt > 1) {
++                const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic1 + h));
++                v_inc = ia1 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++            }
++            if (inc_cnt > 2) {
++                const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic2 + h));
++                v_inc = ia2 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++            }
++            if (inc_cnt > 3) {
++                const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(ic3 + h));
++                v_inc = ia3 ? _mm512_add_epi16(v_inc, col) : _mm512_sub_epi16(v_inc, col);
++            }
+         }
+         _mm512_store_si512(reinterpret_cast<__m512i*>(dst_inc + h), v_inc);
+ 
+         __m512i v_ref = _mm512_load_si512(reinterpret_cast<const __m512i*>(acc_ref + h));
+-        int s = 0;
+-        for (; s + 4 <= n_sub; s += 4) {
+-            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
+-            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 1] + h)));
+-            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 2] + h)));
+-            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 3] + h)));
+-        }
+-        for (; s < n_sub; ++s) {
+-            v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
+-        }
+-        int a = 0;
+-        for (; a + 4 <= n_add; a += 4) {
+-            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
+-            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 1] + h)));
+-            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 2] + h)));
+-            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 3] + h)));
+-        }
+-        for (; a < n_add; ++a) {
+-            v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
+-        }
+-        if ((n_sub | n_add) != 0) {
++        if (has_ref_diff) {
++            int s = 0;
++            for (; s + 4 <= n_sub; s += 4) {
++                v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
++                v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 1] + h)));
++                v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 2] + h)));
++                v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s + 3] + h)));
++            }
++            for (; s < n_sub; ++s) {
++                v_ref = _mm512_sub_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(subs[s] + h)));
++            }
++            int a = 0;
++            for (; a + 4 <= n_add; a += 4) {
++                v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++                v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 1] + h)));
++                v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 2] + h)));
++                v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a + 3] + h)));
++            }
++            for (; a < n_add; ++a) {
++                v_ref = _mm512_add_epi16(v_ref, _mm512_load_si512(reinterpret_cast<const __m512i*>(adds[a] + h)));
++            }
+             _mm512_store_si512(reinterpret_cast<__m512i*>(acc_ref + h), v_ref);
+         }
+         _mm512_store_si512(reinterpret_cast<__m512i*>(dst_ref + h), v_ref);
+@@ -1119,24 +1214,32 @@ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& piec
+     const KingKey key = king_key(net, perspective, king_square);
+     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
+     const int hidden = net.hidden;
++    const std::int16_t* const w1_base = net.w1.data();
+     ++cache.refreshes;
+     const std::int16_t* subs[32];
+     const std::int16_t* adds[32];
+     int n_sub = 0;
+     int n_add = 0;
++    const int bucket_off = static_cast<int>(key.bucket) * InputsPerBucket;
++    const int flip = static_cast<int>(key.flip) ^ (perspective == Black ? 56 : 0);
+     for (int piece = WP; piece <= BK; ++piece) {
+         const auto pi = static_cast<std::size_t>(piece);
+-        Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+-        Bitboard added = pieces[pi] & ~entry.pieces[pi];
+-        while (removed != 0) {
+-            const int square = pop_lsb(removed);
+-            subs[n_sub++] = column(net, feature_index(key, perspective, static_cast<Piece>(piece), square));
++        const Bitboard prev_bb = entry.pieces[pi];
++        const Bitboard curr_bb = pieces[pi];
++        const Bitboard diff = prev_bb ^ curr_bb;
++        if (diff == 0) continue;
++        entry.pieces[pi] = curr_bb;
++        const int plane = perspective == White ? (piece - 1) : (piece <= WK ? piece + 5 : piece - 7);
++        const std::int16_t* const p_base =
++            w1_base + static_cast<std::size_t>(bucket_off + plane * 64) * static_cast<std::size_t>(hidden);
++        for (Bitboard removed = diff & prev_bb; removed != 0;) {
++            subs[n_sub++] =
++                p_base + static_cast<std::size_t>(pop_lsb(removed) ^ flip) * static_cast<std::size_t>(hidden);
+         }
+-        while (added != 0) {
+-            const int square = pop_lsb(added);
+-            adds[n_add++] = column(net, feature_index(key, perspective, static_cast<Piece>(piece), square));
++        for (Bitboard added = diff & curr_bb; added != 0;) {
++            adds[n_add++] =
++                p_base + static_cast<std::size_t>(pop_lsb(added) ^ flip) * static_cast<std::size_t>(hidden);
+         }
+-        entry.pieces[pi] = pieces[pi];
+     }
+     cache.columns += static_cast<std::uint64_t>(n_sub + n_add);
+     std::int16_t* const acc = entry.values.data();
