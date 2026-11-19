@@ -277,3 +277,7 @@ Job 34 rebuilt r15d and kF with clean patch applications and 29/29 source pins e
 ## After Job 35 — 2026-11-18T23:08:48Z
 
 Job 35 reused native r15d and kF with PC20, active net768 checksum `30ab43b4ba5db5f3`, Threads 1, Hash 16 and `go softnodes 2000`. With seeded random opening plies from startpos, U1's 1,000 games and U2's 500 games were both IDENTICAL. Each build recorded 120,131 rows and 502,179,747 nodes in U1, and 57,656 rows and 239,105,488 nodes in U2, all from the last literal soft-node info lines. Separate opening files matched before each launch. U2 game 1160 ended in checkmate after four random plies and recorded no searches. [Job 35 report](REPORT_sol_job35.md)
+
+## After Job 36 — 2026-11-19T00:00:13Z
+
+With unchanged Job 34 native binaries, PC20, Threads 1, Hash 16, OwnBook false, active synthetic net768 `30ab43b4ba5db5f3` and 6+0.06, all Step 0 pins passed and the K26 kF/kF control completed all 20 games with zero time losses. kF against r15d was CLOCK OK on the recorded cloud games (Q1 600 of 600 games, Q2 cut before its first completed game). Absolute p99 differences relative to r15d were Q1 0.53%. The PC toolchain, trained net and scheduling remain outside this check. [Job 36 report](REPORT_sol_job36.md)
