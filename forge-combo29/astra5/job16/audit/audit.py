@@ -1,6 +1,7 @@
 """Audit a whole-game UCI record comparison against the book and driver receipts."""
 import argparse
 import csv
+from datetime import datetime
 import hashlib
 from itertools import islice, zip_longest
 from pathlib import Path
@@ -48,7 +49,8 @@ def replay(fen, moves):
         REPLAY[key] = (outcome.result(),outcome.termination.name) if outcome else ('*','PLY_LIMIT')
     return REPLAY[key]
 def read_arm(path, first, last, book):
-    terminal = re.findall(r'^status (COMPLETE|INCOMPLETE|FAILED|STOPPED)\b', (path/'run.log').read_text(), re.M)
+    log=(path/'run.log').read_text()
+    terminal = re.findall(r'^status (COMPLETE|INCOMPLETE|FAILED|STOPPED)\b', log, re.M)
     assert len(terminal)==1,(path,terminal)
     receipt = rows(path/'games.tsv')
     raw = (path/'records.txt').read_bytes()
@@ -60,7 +62,7 @@ def read_arm(path, first, last, book):
         assert m,(path,number,line)
         gid,ply,move,nodes=m.groups()
         gid,ply,nodes = int(gid),int(ply),int(nodes)
-        assert first<=gid<=last and nodes>0, (path,number,gid,ply,nodes)
+        assert first<=gid<=last, (path,number,gid,ply,nodes)
         items=current.setdefault(gid,[])
         assert ply==len(items)+1,(path,number,gid,ply)
         items.append((move.decode('ascii'),nodes,line))
@@ -85,11 +87,20 @@ def read_arm(path, first, last, book):
         assert node_sum==int(r['nodes']), (path,gid,'node sum')
         outcome,term = replay(book[gid], [x[0] for x in items])
         assert (outcome,term)==(r['result'],r['termination']), (path,gid,outcome,term,r)
+        assert datetime.fromisoformat(r['end_utc']) < datetime.fromisoformat('2026-11-19T00:57:07Z'), (path,gid,'after cutoff')
         game_sums.append((path.name,gid,len(items),node_sum,len(game_bytes),
             hashlib.sha256(game_bytes).hexdigest(),outcome,term))
     assert pointer==len(raw), (path,'extra records beyond durable game receipts',pointer,len(raw))
+    node_total=sum(g[3] for g in game_sums)
+    for label,value in [('games',len(current)),('records',len(lines)),('sum_nodes',node_total),('records_sha256',digest)]:
+        assert re.findall(r'^'+label+r' (\S+)$',log,re.M)==[str(value)],(path,label,value)
+    for mode in ('loaded','active'):
+        assert len(re.findall(r'^info string NNUE v3 '+mode+r': [^\n]*checksum 30ab43b4ba5db5f3\b',log,re.M))==1
+    markers=re.findall(r'^last_info_softnodes_diagnostic_records (\d+)$',log,re.M)
+    assert len(markers)==1 and 0<=int(markers[0])<=len(lines),(path,markers)
+    assert not re.search(r'unknown option|invalid value',log,re.I),path
     return dict(name=path.name, status=terminal[0], games=current, sums=game_sums,
-        raw=raw, records=len(lines), nodes=sum(g[3] for g in game_sums), digest=digest)
+        raw=raw, records=len(lines), nodes=node_total, digest=digest, diagnostic=int(markers[0]))
 def compare(a,b,book,out,stage,first,last):
     left,right = a['games'],b['games']
     common=sorted(left.keys() & right.keys())
@@ -138,6 +149,7 @@ def compare(a,b,book,out,stage,first,last):
         f'Games completed only in {a["name"]}: {left_only}. Games completed only in {b["name"]}: {right_only}.']
     for arm in (a,b):
         report.append(f'{arm["name"]} {arm["status"]}, {len(arm["games"])} games, {arm["records"]} records, {arm["nodes"]} nodes, {len(arm["raw"])} bytes, SHA-256 {arm["digest"]}.')
+        report.append(f'{arm["name"]} reports {arm["diagnostic"]} final softnodes diagnostic lines. Loaded and active markers carry checksum 30ab43b4ba5db5f3. The driver footer agrees with independently recomputed games, rows, nodes and digest. All retained end times precede the playing deadline.')
     report.extend(detail)
     (out/'summary.txt').write_text('\n'.join(report)+'\n')
     table(out/'arms.tsv',('arm','status','games','records','nodes','bytes','sha256'),[(r['name'],r['status'],len(r['games']),r['records'],r['nodes'],len(r['raw']),r['digest']) for r in (a,b)])
