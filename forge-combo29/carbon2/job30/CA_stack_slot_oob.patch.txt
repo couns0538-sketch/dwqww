@@ -1,0 +1,11 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -587,7 +587,7 @@
+     std::array<std::array<Move, MaxPly + 1>, MaxPly + 8> pv_stack_{};
+     std::array<V1EvalFrame, MaxPly + 8> v1_stack_{};
+     [[gnu::always_inline]] [[nodiscard]] std::size_t stack_slot(const SearchStack* ss) const noexcept {
+-        return static_cast<std::size_t>(ss - stack_.data());
++        return static_cast<std::size_t>(ss - stack_.data()) + MaxPly + 8;
+     }
+ #if FORGE_NNUE_V3
+     // NNUE v3 (UCI NNUEArch) per-worker state, allocated on first use; null with the option off.

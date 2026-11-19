@@ -1,0 +1,13 @@
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -919,8 +919,8 @@
+         for (int h = 0; h < hidden; h += 32) {
+             const __m512i v0 = _mm512_add_epi16(
+                 _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h)),
+-                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h))),
+-                _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h)));
++                                 _mm512_load_si512(reinterpret_cast<const __m512i*>(a0 + h))),
++                _mm512_load_si512(reinterpret_cast<const __m512i*>(s0 + h)));
+             _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
+             const __m512i v1 = _mm512_add_epi16(
+                 _mm512_sub_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h)),
