@@ -152,6 +152,12 @@ def replay_game(folder, rec, stage, book):
             elif len(applied)==600:end='cap';result='1/2-1/2'
         check(int(s['clock_after'])==clocks[who],(game,i,s['clock_after'],clocks))
     check((board_end(rec['ending']),rec['result'],int(rec['plies']),int(rec['wclock']),int(rec['bclock']))==(end,result,len(applied),clocks['W'],clocks['B']),(game,rec,end,result,clocks))
+    for side in ('W','B'):
+        player=names[side]
+        forfeited=flag is not None and flag[2]==side
+        counted_charge=spent[player]-(flag[5] if forfeited else 0)
+        applied_count=count[player]-int(forfeited)
+        check(clocks[side]==6000+60*applied_count-counted_charge,(game,side,'per-game clock conservation'))
     return dict(game=game,opening=opening,white=rec['white'],score=score2(rec),result=result,ending=end,plies=len(applied),clocks=clocks,
                 count=dict(count),spent=dict(spent),holds=dict(holds),holdlines=dict(holdlines),nodes=dict(nodes),flag=flag,seq=seq,
                 start=rec['started_utc'],finish=rec['ended_utc'],processes=ephemeral)
@@ -214,11 +220,19 @@ def main():
                 for what in ('count','spent','holds','holdlines','nodes'):
                     sums[(what,name)]+=g[what].get(name,0)
                 side='W' if g['white']==name else 'B'
-                sums[('clock',name)]+=g['clocks'][side]
-            for side in ['W','B']:sums[('clock',side)]+=g['clocks'][side]
+                sums[('player_clock',name)]+=g['clocks'][side]
+            for side in ['W','B']:sums[('color_clock',side)]+=g['clocks'][side]
             summaries.append([g['game'],k,g['white'],g['result'],g['ending'],g['plies'],g['clocks']['W'],g['clocks']['B'],
                               g['count'].get('A',0),g['count'].get('B',0),g['spent'].get('A',0),g['spent'].get('B',0),
                               g['holds'].get('A',0),g['holds'].get('B',0),g['start'],g['finish']])
+    for player in ('A','B'):
+        relevant=[f for f in flags if f[3]==player]
+        count_applied=sums['count',player]-len(relevant)
+        charge_applied=sums['spent',player]-sum(f[5] for f in relevant)
+        check(sums['player_clock',player]==6000*2*n+60*count_applied-charge_applied,
+              (a.stage,player,'aggregate clock conservation'))
+    check(sums['player_clock','A']+sums['player_clock','B']==sums['color_clock','W']+sums['color_clock','B'],
+          (a.stage,'role and color clock totals differ'))
     scores=[i/4 for i,c in enumerate(bins) for _ in range(c)]
     try:elo=evaluate(scores)
     except (ValueError,ZeroDivisionError):elo=None
@@ -226,8 +240,8 @@ def main():
         reading='A BETTER' if elo and elo[1]>0 else 'B BETTER' if elo and elo[2]<0 else 'LEVEL' if elo else 'not finite at this checkpoint',
         endings=dict(ends),time_losses=flags,players={name:{'searches':sums['count',name],'used_total':sums['spent',name],'N_total':sums['nodes',name],
         'mean_used':sums['spent',name]/sums['count',name] if sums['count',name] else None,'hold_searches':sums['holds',name],'hold_lines':sums['holdlines',name],
-        'clock_total':sums['clock',name],'mean_final_clock':sums['clock',name]/(2*n) if n else None} for name in ('A','B')},
-        by_colour_mean_clock={c:sums['clock',c]/(2*n) if n else None for c in ['W','B']})
+        'clock_total':sums['player_clock',name],'mean_final_clock':sums['player_clock',name]/(2*n) if n else None} for name in ('A','B')},
+        by_colour_mean_clock={c:sums['color_clock',c]/(2*n) if n else None for c in ['W','B']})
     table_out(a.out/'paired-ends.tsv',['opening','odd_game','even_game','odd_result','even_result','A_pair_points','complete_utc'],pairs)
     table_out(a.out/'game-readback.tsv',['game','opening','White','result','ending','plays','W_final','B_final','A_searches','B_searches','A_used','B_used','A_hold_searches','B_hold_searches','started','ended'],sorted(summaries))
     table_out(a.out/'time-losses.tsv',['game','ply','side','engine','N','used','clock_before'],flags)
