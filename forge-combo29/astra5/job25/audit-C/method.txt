@@ -1,0 +1,30 @@
+Independent Part C readback
+
+Use Python 3 with the chess distribution 1.11.2. For a completed stage run
+"python3 audit_c25.py C1 /path/to/C1 /path/to/astra5-general-openings24.epd /tmp/C1-readback".
+Replace C1 with C2 or C4 for the other stages. It uses games.pgn,
+fastchess.log, argv.json, inputs.json and receipt.json from each raw stage.
+The opening book can be regenerated with Job 24's committed generator.
+
+The reader derives game counts and fastchess's exact ending names from
+the started/finished lines of the primary log. It matches every PGN to
+the two controller game IDs of its round by color and result, validates
+the PGN header and movetext result, and legally replays every move from
+the recorded FEN. It checks the terminal position against the literal
+ending and scans every source log line for illegal moves, disconnections,
+stalls, time forfeits and related process failures. The raw log line number
+and text are saved for each match. Unknown termination reasons remain
+visible and do not qualify as completed games by a rule of chess.
+
+It checks both engines' named inputs, lookup hashes, the frozen PC20
+settings, UCI command order, search limit, thread count and concurrency,
+and independently rebuilds the physical EPD sequence from the seed by
+std::mt19937_64 and fastchess's forward shuffle. Both colors in each round
+must have the same FEN. The two UCI move lists are preserved in full.
+Final PGN and log hashes are compared with the run receipt.
+
+Wins, losses, draws, points and the five pentanomial bins are always from
+kF's perspective. The bins count rounds scoring 0, 0.5, 1, 1.5 and
+2 points. The kF share is (wins + draws/2) / finished games. The independently
+computed W-L-D, point total and five bins must equal the final fastchess
+summary. No engine or fastchess process is started by this audit.

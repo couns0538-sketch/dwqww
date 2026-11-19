@@ -1,0 +1,26 @@
+r15d src/search.cpp sha256 174e07a5211cb1d56ea47105c7d4b847bdf3cd8b1b6ef3d4473405654242abf4
+1527: std::uint64_t Worker::total_nodes() const {
+1537: bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+1545: if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
+1576: bool Worker::should_stop() {
+1578: nodes_.store(local_nodes_, std::memory_order_relaxed);
+2809: nodes_.store(local_nodes_, std::memory_order_relaxed);
+3229: nodes_.store(local_nodes_, std::memory_order_relaxed);
+2718: const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+3230: result.nodes = total_nodes() + extra_nodes_;
+3241: if (emit_info && soft_node_limit_ != 0) {
+1769 if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+1918 if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+kF src/search.cpp sha256 07f6b9da12680535a1fcd9ba43d0161a636b0989d568b8ae93f7873c79ff583a
+2017: std::uint64_t Worker::total_nodes() const {
+2027: bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+2035: if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
+2066: bool Worker::should_stop() {
+2068: nodes_.store(local_nodes_, std::memory_order_relaxed);
+3311: nodes_.store(local_nodes_, std::memory_order_relaxed);
+3734: nodes_.store(local_nodes_, std::memory_order_relaxed);
+3220: const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+3735: result.nodes = total_nodes() + extra_nodes_;
+3746: if (emit_info && soft_node_limit_ != 0) {
+worker-count eligibility 3386 fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 && (all_workers_ == nullptr || all_workers_->size() == 1) && node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+search.hpp 741 return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
