@@ -1,0 +1,65 @@
+=== JOB 31 PART G: ONCE-PER-SEARCH (FIXED) AND ONCE-PER-GAME (GAME) DECOMPOSITION ON X_1 ===
+Derived from `partF_summary_raw.txt`, `profile_S1.txt` (17,490 samples on replay (b) S=1; 7,113 on (c); 58,532 on (d)),
+and `syscalls_S1.txt` (`perf trace -s` across UCI main thread + worker search thread).
+
+Totals on X_1:
+  FIXED = 7.74 us/search (0.627% of T2000 = 1236.17 us)
+  GAME  = 707.56 us/ucinewgame (0.559% of CPU(a)/60 = 126698.11 us; amortized over 101.17 searches/game = 6.99 us/search = 0.566% of T2000)
+
+Note on `libc.so.6 0x1a1efa`: `llvm-objdump-18 -d` confirms `0x1a1efa` is `rep stosb %al, %es:(%rdi)` inside glibc's
+AVX-512 EVEX/ERMS `memset` implementation.
+
+--- TABLE 1: ONCE-PER-SEARCH WORK IN CODE-PATH ORDER OF A `go` COMMAND (SUM = 7.74 us = 100.0% of FIXED) ---
+Step | Code Path Location                          | Syscalls / Search        | Est. CPU (us) | Share of FIXED | Share of T2000
+-----+---------------------------------------------+--------------------------+---------------+----------------+---------------
+  1  | UCI stdin read & `position` incremental     | 1.0000 `read` (UCI thr)  |      0.37 us  |          4.8%  |        0.030%
+     | (`uci.cpp:517,843`, `apply_position_sv`:    |                          |               |                |
+     | `pipe_read`, `std::getline`, prefix match,  |                          |                |               |
+     | 1-move `parse_uci` + `Board::make_move`)    |                          |               |                |
+  2  | `go` parse & task enqueue on UCI thread     | 1.0000 `futex` wake      |      0.60 us  |          7.8%  |        0.049%
+     | (`uci.cpp:846-921`: `steady_clock::now`,    | (`work_cv.notify_one`)   |               |                |
+     | `v3::problem`, `parse_limits_sv`,           |                          |               |                |
+     | `pending_task.board = board` + `key_history`|                          |               |                |
+     | copy under `stop_mutex`)                    |                          |               |                |
+  3  | UCI <-> search-thread condvar hand-off      | 2.0002 `futex` (wrk thr: |      3.78 us  |         48.8%  |        0.306%
+     | (`uci.cpp:423-430,473-477`: kernel          | `work_cv.wait` +         |               |                |
+     | `finish_task_switch`, `_raw_spin_*`,        | `done_cv` / mutex)       |               |                |
+     | `task.board = pending_task.board`)          |                          |               |                |
+  4  | `Searcher::search` & `Worker::search` root  | 0.0000                   |      0.51 us  |          6.6%  |        0.041%
+     | set-up (`search.cpp:3843-3900,3159-3493`:   |                          |               |                |
+     | `Board` pass/move, `tt.new_search`,         |                          |               |                |
+     | `ExclusiveLease`, `reset_node_count`,       |                          |               |                |
+     | `v3::prepare`, root `legal_moves`,          |                          |               |                |
+     | `stack_[0..init_limit]`, `v3_state_->inval`,|                          |               |                |
+     | root `static_evaluate_v3`, `root_move_nodes`|                          |               |                |
+     | zero)                                       |                          |               |                |
+  5  | UCI output format & flushed `write`s        | 2.5634 `write` (wrk thr: |      2.48 us  |         32.0%  |        0.201%
+     | (`search.cpp:3260,3791`, `uci.cpp:439-472`: | 0.5713 `info depth`,     |               |                |
+     | `emit` `info depth`, `info string softnodes | 0.9921 `softnodes`,      |               |                |
+     | nodes`, `bestmove` + `std::cout.flush()`    | 1.0000 `bestmove`)       |               |                |
+     | each -> `_copy_to_iter`, `pipe_write`)      |                          |               |                |
+-----+---------------------------------------------+--------------------------+---------------+----------------+---------------
+ SUM | Total non-node per-search CPU (FIXED)       | 6.5636 syscalls/search   |      7.74 us  |        100.0%  |        0.627%
+
+--- TABLE 2: ONCE-PER-GAME WORK IN CODE-PATH ORDER OF `ucinewgame` (+ `isready`) (SUM = 707.56 us = 100.0% of GAME) ---
+(Sample shares from `(d) - (c)` = 51,419 net samples across 600 `(ucinewgame, isready)` pairs in `profile_S1.txt`.)
+Step | Code Path Location                          | Syscalls / Newgame       | Est. CPU (us) | Share of GAME  | % of T Game
+-----+---------------------------------------------+--------------------------+---------------+----------------+---------------
+  1  | `stop_search()` idle check (`uci.cpp:597`)  | 0.0000                   |      0.40 us  |          0.1%  |       <0.001%
+  2  | `TranspositionTable::clear()`               | 0.0000                   |    564.90 us  |         79.8%  |        0.446%
+     | (`search.cpp:458`: `clusters_[i]=TTCluster` |                          |               |                |
+     | across 524,288 clusters = 16 MiB)           |                          |               |                |
+  3  | `Evaluator::clear()` (`search.cpp:1689`)    | 0.0000                   |     66.09 us  |          9.3%  |        0.052%
+     | (clears v1 pawn & refresh caches)           |                          |               |                |
+  4  | `Worker::clear()` history/stack `memset`s   | 0.0000                   |     67.77 us  |          9.6%  |        0.053%
+     | (`search.cpp:1690-1709`, `0x1a1efa` ERMS    |                          |               |                |
+     | `rep stosb` across ~2.3 MiB histories)      |                          |               |                |
+  5  | `board.set_fen(StartFen)` + `pos_cache` +   | 1.0000 `read` +          |      8.40 us  |          1.2%  |        0.007%
+     | `isready` -> `readyok` (`uci.cpp:595-603`)  | 1.0000 `write`           |               |                |
+-----+---------------------------------------------+--------------------------+---------------+----------------+---------------
+ SUM | Total per-`ucinewgame` CPU (GAME)           | 2.0000 syscalls/newgame  |    707.56 us  |        100.0%  |        0.559%
+
+Part H Branch Criterion Check:
+  - Part F read: SMALL (FIXED/T2000 = 0.627% on X_1, 0.631% on X_2, both < 3%; GAME/(T_game) = 0.559% on X_1, 0.561% on X_2, both < 1%).
+  - Maximum single item in Part G as % of T2000: 0.306% (Step 3 condvar hand-off; even entire GAME amortized per search is 0.566% < 1%).
+  - Per `FABLE_TO_carbon2_31.md`: "If Part F read SMALL and Part G shows nothing above 1 %: no pieces of this kind; take up to two pieces from T's profile as in job 30's Part R, with the same known answers plus n3 and n4."
