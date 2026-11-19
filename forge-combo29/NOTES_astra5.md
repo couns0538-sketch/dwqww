@@ -135,3 +135,11 @@ On r15d, PC20, the built-in evaluation, Threads 1 and Hash 16, T1 (incomplete) m
 ### FOR FABLE AND OPUS
 
 Can another clock seed reproduce the paired score, and how much work does each side complete under the PC’s time management? The present match establishes outcomes at one time control.
+
+## Job 15 result
+
+T1 (incomplete) supplied 55 of 300 scheduled pairs and measured -15.80 [-47.86, +16.25] Elo. T1b (incomplete) supplied 57 of 300 scheduled pairs and measured +9.15 [-19.49, +37.78] Elo. POOLT had 0 eligible games. The formal **LEVEL** label follows the “otherwise” clause. The Elo and interval are unavailable. [Job 15 report](REPORT_astra5_job15.md)
+
+### FOR FABLE AND OPUS
+
+Both clock seeds used 10+0.1, fresh openings, the built-in evaluation and PC20. The counts and cutoffs for each seed are archived separately.
