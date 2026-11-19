@@ -1,0 +1,12 @@
+set last_iter_min med max | dmax_min med max
+O 8 10.0 13 | 9 11.0 14
+G 8 10 64 | 9 11 64
+
+setting gate B_O B_G top | T==B O G 553 | B==Bm O G 553 | verdict
+RfpDepth 'depth <= X (1937)' 14 64 15 | 200 352 552 | 200 351 551 | O-flat G-DIFFERS(1) O-WIDER below-differs-G
+FutilityDepth 'lmr_depth <= X (2132)' 14 64 15 | 200 353 553 | 200 352 552 | O-flat G-flat O-WIDER below-differs-G
+SingularDepth 'depth >= X (2192)' 15 65 20 | 200 344 544 | 200 341 541 | O-flat G-DIFFERS(9) O-WIDER below-differs-G
+IirDepth 'depth >= X (2033)' 15 65 20 | 200 353 553 | 200 351 551 | O-flat G-flat O-WIDER below-differs-G
+ProbcutDepth 'depth >= X (1996)' 15 65 20 | 200 353 553 | 200 352 552 | O-flat G-flat O-WIDER below-differs-G
+CheckExtensionDepth 'gives_check && depth >= X (2218)' 15 65 30 | 200 345 545 | 200 344 544 | O-flat G-DIFFERS(8) O-WIDER below-differs-G
+HistoryBonusMax 'min(X, raw(d)) (324)' 5428 101728 10000 | 200 350 550 | 200 353 553 | O-flat G-DIFFERS(3) O-WIDER G-WIDER

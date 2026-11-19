@@ -1,0 +1,70 @@
+# ran_classes.patch.txt (kimi5 job 32): split the job-29 HP counter into eight classes
+# (lmr_depth 0/1/2/3+ x outside check / in check; reached and fired per class) and add, per remaining
+# depth 1, 2, 3, the largest move number reaching the HP test. Base: a scratch copy of the job 29 build
+# (6b98f217 + pc_r15.patch sha256 d6bd72c5... + ran_counters.patch.txt), guard via -DFORGE_MATE_ALPHA_GUARD=1.
+# Applies with: patch -p1 -F0 < ran_classes.patch.txt. Printed per root search as 'info string RANC <cls> <reached> <fired>'
+# and 'info string HPMOVMAX <d1> <d2> <d3>'. No counter changes a value the search reads.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -22,6 +22,11 @@
+ namespace forge {
+ long long ran_reached[6] = {};
+ long long ran_fired[6] = {};
++// RANC (kimi5 job 32): the HP counter split into eight classes (lmr_depth 0/1/2/3+ x outside/in check)
++// and the largest move number reaching the HP test at remaining depth 1, 2, 3.
++long long hp_reached[8] = {};
++long long hp_fired[8] = {};
++int hp_movmax[3] = {};
+ }
+ 
+ // FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
+@@ -2158,6 +2163,16 @@
+                     continue;
+                 }
+                 ++ran_reached[0];  // RAN HP: the history-prune line evaluates its condition
++                {
++                    // RANC: class this reached test; fired is counted under the same condition as below.
++                    const int hp_cls =
++                        (in_check ? 4 : 0) + (lmr_depth == 0 ? 0 : lmr_depth == 1 ? 1 : lmr_depth == 2 ? 2 : 3);
++                    ++hp_reached[hp_cls];
++                    if (depth >= 1 && depth <= 3 && move_count > hp_movmax[depth - 1])
++                        hp_movmax[depth - 1] = move_count;
++                    if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold)
++                        ++hp_fired[hp_cls];
++                }
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+                     ++ran_fired[0];  // RAN HP fired: the move is skipped there
+                     trace_case();
+@@ -2530,6 +2545,8 @@
+     clock_reserve_empty_ = false;
+     if (parent_worker_ == nullptr) {
+         for (int i = 0; i < 6; ++i) { ran_reached[i] = 0; ran_fired[i] = 0; }  // RAN: reset per root search
++        for (int i = 0; i < 8; ++i) { hp_reached[i] = 0; hp_fired[i] = 0; }    // RANC
++        for (int i = 0; i < 3; ++i) hp_movmax[i] = 0;                          // RANC
+     }
+     if (limits.infinite) {
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -13,6 +13,9 @@
+ namespace forge {
+ extern long long ran_reached[6];
+ extern long long ran_fired[6];
++extern long long hp_reached[8];
++extern long long hp_fired[8];
++extern int hp_movmax[3];
+ }
+ 
+ #include <algorithm>
+@@ -734,6 +737,11 @@
+                         for (int i = 0; i < 6; ++i)
+                             std::cout << "info string RAN " << ran_ids[i] << ' ' << forge::ran_reached[i] << ' '
+                                       << forge::ran_fired[i] << std::endl;
++                        for (int i = 0; i < 8; ++i)
++                            std::cout << "info string RANC " << i << ' ' << forge::hp_reached[i] << ' '
++                                      << forge::hp_fired[i] << std::endl;
++                        std::cout << "info string HPMOVMAX " << forge::hp_movmax[0] << ' ' << forge::hp_movmax[1]
++                                  << ' ' << forge::hp_movmax[2] << std::endl;
+                     }
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
