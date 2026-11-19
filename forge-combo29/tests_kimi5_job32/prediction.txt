@@ -1,0 +1,37 @@
+kimi5 job 32 prediction (own commit, written after known answer A was met, before any Step 3
+or Step 4 run beyond the KA-A base runs; no time and no commit id in this file, per the job).
+
+Class labels: cls0 = outside check lmr_depth 0; cls4 = in check lmr_depth 0. Sets: O (200), G (353).
+
+STEP 3, the lmr_depth-0-outside-check class (reached) per run, and the three pairs:
+
+1. base (PC20): cls0 reached 0 on O, 0 on G (K1). NOTE: this row is not a forecast - the KA-A
+   runs cls_O_d12 / cls_G_d12 ARE the Step-3 base runs (same build, opts, limits); their class
+   sums already fix cls0 = 0 on both sets. Stated for the record.
+2. LmrQuietBase 99:    cls0 = 0 on O, 0 on G (K2: cannot appear).
+3. LmrQuietBase 100:   cls0 nonzero - order 10^5..10^6 (guess 5*10^5) on O; order 10^6 (guess 10^6) on G
+                       (K2: MUST appear - every quiet at depth 1 reaching the test).
+4. LmrQuietDivisor 161: cls0 = 0 on O, 0 on G (K2: cannot).
+5. LmrQuietDivisor 160: cls0 nonzero - order 10^3 (guess 10^3) on O, order 10^3..10^4 (guess 3*10^3) on G.
+6. LmpBase 19:         cls0 = 0 on O, 0 on G (K2: cannot).
+7. LmpBase 20:         cls0 nonzero - order 10^2 (guess 10^2) on O and on G.
+8. LmrQuietBase 300 (K3): cls0 large - order 10^6 (guess 2*10^6) on O, order 10^6 (guess 4*10^6) on G;
+                       the dominant class (all outside-check tests at depths 1..3 move here).
+
+The three pairs (per boundary setting: X+HistoryPruneDepth 0, X+HistoryPruneMultiplier 20000,
+X+HistoryPruneDepth 0 & HistoryPruneMultiplier 0; "equal" = same per-position nodes and best moves):
+- at LmrQuietBase 100: 0 of 3 pairs equal. The lmr0 population is millions of depth-1 moves with
+  ordinary (often negative) histories: hpd0 fires thousands (history < -1665/-2220), hpboth0 fires
+  strictly more (history < 0 band is populated), hpm20000 fires ~0 (history < -15000*d is a far
+  tail). Three different fired sets -> three different trees.
+- at LmrQuietDivisor 160: 1 of 3 pairs equal: hpd0 == hpm20000 (both fire 0: the ~10^3 lmr0 tests
+  are 12th quiets at improving depth-2 nodes that survived futility near alpha; none has
+  history < -3330). hpboth0 fires > 0 (history < 0 among them exists) -> differs from both.
+- at LmpBase 20: 1 of 3 pairs equal: hpd0 == hpm20000 (same mechanism, ~10^2 tests). hpboth0 differs.
+
+STEP 4 (go nodes 20000, class build, base opts):
+- DMAX on O: median 12, largest 14.
+- DMAX on G: median 12, largest 16.
+(Anchor: at go depth 12 the DMAX median is 12 on both sets, O max 12, G max 15 measured in the
+KA-A files; 20,000 nodes ends most searches inside iteration ~12. I have NOT yet aggregated the
+KA-A n20000 DMAX values.)
