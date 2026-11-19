@@ -1,0 +1,137 @@
+# Worker::search Line-to-Category Mapping (Job 32 Part P)
+# Defined from X = kH source code BEFORE inspecting any profile sample counts or hardware counters,
+# and committed alone prior to Prediction 1 and P2.
+#
+# Attribution method:
+# 1. Sampled IP addresses whose outer ELF symbol is
+#    `forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)`
+#    are resolved via `llvm-symbolizer-18 --inlines --functions=linkage -e <exe>`.
+# 2. For line-level reporting (`profile_XG_lines.txt`, `profile_CP_lines.txt`), each sample is tallied at its
+#    innermost project-source frame `(file, line)` (skipping `/usr/include/*` standard-library wrappers such as
+#    `std::array::operator[]` or `std::clamp` so inlined callees in `src/*` and `include/forge/*` appear under
+#    their own file and line and are never merged into the `Worker::search` call site).
+# 3. For category aggregation, the inline frame stack `frame[0], frame[1], ...` (innermost to outermost inside
+#    `Worker::search`) is walked in order and assigned to the FIRST frame matching one of the 12 domain
+#    categories below; shared low-level value/bitboard accessors (`include/forge/move.hpp`, `types.hpp`,
+#    `bitboard.hpp`, `board.hpp:1-337`, `/usr/include/*`, `src/search.cpp:81-83` `is_mate_score`,
+#    `src/search.cpp:293-295` `mated_in`/`mate_in`) pass through to their immediate domain caller frame in the
+#    inline chain so e.g. `attacks::rook` inside `Board::is_legal` maps to `legality and make / undo` while
+#    `attacks::rook` inside `b4::lesser_threats` maps to `move scoring and history reads`. Any sample not
+#    matched by Categories 1..12 falls into Category 13 (`everything else`).
+# 4. In Control `CP`, `CP_planted_moveloop_muls.patch.txt` inserts exactly 1 line at `src/search.cpp:2744`:
+#      - `src/search.cpp:2744` in `CP` is tracked separately as `[CP_PLANTED_LINE]` (for Control CP check), and
+#      - lines `src/search.cpp >= 2745` in `CP` map to `line - 1` of `XG`'s `src/search.cpp` rules below.
+
+[1] hash probe and cutoff test
+  - src/search.cpp:270-292             # score_from_tt, rule50_score_for_this_clock
+  - src/search.cpp:467-573             # TranspositionTable::probe_body, probe, replace_full_cluster_slot, probe_locked_fast
+  - src/search.cpp:659-664, 721-760    # TranspositionTable::probe_owned, probe (non-NOTLS)
+  - src/search.cpp:2444-2460           # TT probe + unpack in Worker::search
+  - src/search.cpp:2496-2509           # TT cutoff test (and TtCutoffHistory on TT cutoff)
+  - include/forge/search.hpp:90-148    # TTEntry helpers (bound, pv, score_usable), TTCluster, WorkerTTProbe
+  - include/forge/search.hpp:229-325   # probe_owned_fast, replace_full_cluster_slot decl, cluster_for / index_for
+  - include/forge/search.hpp:679-681   # Worker::probe_tt
+
+[2] hash store
+  - src/search.cpp:261-269             # score_to_tt
+  - src/search.cpp:574-658             # store_owned_fast, store_locked_fast
+  - src/search.cpp:665-720, 761-803    # store_body, store, store_owned
+  - src/search.cpp:2670-2675           # ProbCut TT store
+  - src/search.cpp:3051-3058           # Main node-exit TT store
+  - include/forge/search.hpp:682-705   # Worker::store_tt
+
+[3] static evaluation call and correction terms
+  - src/search.cpp:1714-1808           # material_key, non_pawn_key, ensure_piece_diff, Worker::static_evaluate
+  - src/search.cpp:1891-2009           # Worker::corrected_eval, Worker::update_correction
+  - src/search.cpp:2467-2494           # HindsightDepth static eval / corrected_eval check
+  - src/search.cpp:2511-2535           # Static evaluation call, corrected_eval, TT eval adjustment, `improving`
+  - src/search.cpp:3061-3066           # Node-exit update_correction call
+  - src/eval.cpp:1-9999                # Any inlined classical/NNUE dispatch helpers
+  - src/nnue.cpp:1-9999                # Any inlined v1 NNUE helpers
+  - src/nnue_v3.cpp:1-9999             # Any inlined v3 NNUE helpers
+  - include/forge/nnue_v3.hpp:1-9999   # Any inlined v3 NNUE header helpers
+  - include/forge/search.hpp:446-456   # rule50_damped_static
+  - include/forge/b4.hpp:77-108        # b4::gravity, non_pawn_material, mix64, joint_key
+
+[4] the node-level prune steps before the move loop
+  - src/search.cpp:235-260             # cheaper_enemy_attacks_dearer (NullThreatVerify)
+  - src/search.cpp:1846-1890           # null_see_veto_threat, Worker::record_null_move
+  - src/search.cpp:2572-2669           # Razoring, RFP, Null-move pruning, ProbCut (excluding ProbCut TT store 2670-2675)
+  - src/search.cpp:2676-2687           # End of ProbCut + IIR + TtPruneV2 cut-node reduction
+
+[5] move scoring and history reads
+  - src/search.cpp:333-353             # capture_value, quiet_history_sum
+  - src/search.cpp:372-391             # quiet_threat_index
+  - src/search.cpp:812-1660            # MovePicker ctor, next, init_check_squares, direct_check, score, pick_best_scored, generate_*
+  - src/search.cpp:2100-2126           # Worker::quiet_history
+  - src/search.cpp:2135-2140           # Worker::rework_quiet_delta
+  - src/search.cpp:2150-2171           # Worker::threat_quiet_bonus, pawn_history_value
+  - src/search.cpp:2192-2197           # Worker::capture_history_value
+  - src/search.cpp:2688-2715           # threat_map_ready_ reset, MovePicker init, move-loop locals, counter_move lookup
+  - src/search.cpp:2733-2743           # History table side pointers + `while (!(move = picker.next(skip_quiets)).is_none())`
+  - src/search.cpp:2757-2781           # `get_quiet_history` lambda (main, rework/lesser_threats, cont1/2/4, pawn_history)
+  - src/search.cpp:2867-2870           # Late-move `get_quiet_history()` warm/compute before LMR
+  - include/forge/search.hpp:647-675   # ensure_threat_map, threat_set_for_piece
+  - include/forge/b4.hpp:18-76         # clamp_level, threat_quarters, lesser_threats, square_bit, blend
+
+[6] legality and make / undo
+  - src/search.cpp:1809-1845           # Worker::record_move
+  - src/search.cpp:2749-2756           # is_legal, move_count, capture/quiet flags, gives_check, moved_piece
+  - src/search.cpp:2906-2910           # key_after + early TT prefetch
+  - src/search.cpp:2916-2926           # record_move, make_move, fallback TT prefetch
+  - src/search.cpp:2985-2985           # board.unmake_move
+  - include/forge/board.hpp:338-370    # Board::is_legal, Board::gives_check
+  - include/forge/search.hpp:175-184   # TranspositionTable::prefetch (when not inside NMP/ProbCut 2572-2669)
+
+[7] the move-loop prune tests
+  - src/search.cpp:320-323             # lmp_threshold
+  - src/search.cpp:2716-2732           # shallow_prune_node, lmp_limit, futility_improving, history/see prune thresholds
+  - src/search.cpp:2782-2866           # LMP, futility, quiet history pruning, quiet SEE, capture futility, noisy SEE, tight futility
+  - src/search.cpp:3011-3016           # QuietExtinction wide_quiet_misses / close_quiet_tail
+
+[8] the reduction formula
+  - src/search.cpp:314-319             # reduction(quiet, depth, moves) table lookup
+  - src/search.cpp:2937-2959           # LMR gate, base reduction, adjustments, LmrSignedCorrection, LmrLateParentRelief, reduced_depth
+  - src/search.cpp:2964-2968           # LmrDeeperShallower adjustment
+  - include/forge/search.hpp:457-472   # apply_lmr_signed_correction
+
+[9] the child call and stack set-up
+  - src/search.cpp:2406-2415           # Function entry, pv/root/ply, depth<=0 qsearch_child gate, double_extensions init
+  - src/search.cpp:2435-2443           # in_check, excluded_move, child stack slot clears ((ss+1), (ss+2)->killers)
+  - src/search.cpp:2744-2748           # excluded move skip & root_restricted_ filter
+  - src/search.cpp:2871-2905           # Singular extension (and verification call) + check extension + new_depth
+  - src/search.cpp:2911-2915           # ss->current_move / moved_piece / continuation / (ss+1)->ply / arrival_index
+  - src/search.cpp:2927-2936           # nodes_before, root_effort_index, score / full_depth_needed init
+  - src/search.cpp:2960-2963           # LMR search_child call & full_depth_needed check
+  - src/search.cpp:2969-2973           # Re-search search_child call
+  - src/search.cpp:2978-2984           # Full-depth zero-window & PV search_child calls
+  - src/search.cpp:2987-3010           # Root node effort accounting, best_score/alpha/beta/PV update, cutoff_count
+  - src/search.cpp:3017-3026           # quiets_tried / captures_tried append, mate/stalemate terminal return
+  - src/search.cpp:3067-3068           # Function return / epilogue
+  - src/search.cpp:3083-3085, 3092-3093, 3095-3097, 3103-3104 # search_child / qsearch_child non-cuckoo dispatch
+  - include/forge/search.hpp:589-596   # Worker::stack_slot
+
+[10] history updates after a cutoff
+  - src/search.cpp:324-332             # history_bonus, apply_history
+  - src/search.cpp:2127-2134           # Worker::rework_entry
+  - src/search.cpp:2141-2149           # Worker::update_rework_history
+  - src/search.cpp:2172-2191           # Worker::update_pawn_history, update_threat_quiet
+  - src/search.cpp:2198-2258           # Worker::update_continuation, update_quiet_stats, update_capture_stats
+  - src/search.cpp:2536-2549           # EvalSwing main_history update
+  - src/search.cpp:2974-2977           # LMR fail-high continuation bonus
+  - src/search.cpp:3027-3050           # Cutoff update_quiet_stats / update_capture_stats, PV quiet bonus, FailLowContinuationBonus
+
+[11] repetition and draw tests
+  - src/search.cpp:2078-2099           # Worker::is_draw, draw_leaf_score
+  - src/search.cpp:2426-2434           # Non-root draw check, MaxPly guard, mate-distance pruning
+  - src/search.cpp:3078-3082, 3086-3091, 3098-3102, 3106-3125 # may_repeat + CuckooRep upcoming_repetition gates
+
+[12] node count and stop test
+  - src/search.cpp:2010-2077           # elapsed_ms, total_nodes, should_stop_with, test_clock_stop_nodes, should_stop
+  - src/search.cpp:2416-2425           # check_node_or_periodic_stop, aborted_ check, ++local_nodes_, seldepth_, pv_length/move_count=0
+  - src/search.cpp:2986-2986           # Post-unmake `if (aborted_) return 0;`
+  - include/forge/search.hpp:733-760   # Worker::check_node_or_periodic_stop, stop
+
+[13] everything else
+  - src/search.cpp:2550-2571           # bare_king_mode / bare_king_lmr_cap setup
+  - Any other line inside `Worker::search` not matched by Categories [1]..[12] (if > 3% of T, split further per spec).
