@@ -21,8 +21,8 @@ for stage,lo,hi in [('P1',600101,603100),('P2',610001,610500),('P3',620001,62010
         ARMS[f'{stage}-{build}']=(lo,hi)
 MOVE = re.compile(rb'[a-h][1-8][a-h][1-8][nbrq]?\Z')
 RAW_METRICS = re.compile(rb'(?<!\S)(?:time|nps)[ \t]+[0-9]+(?=\s|$)')
-SCORE_FIELD = re.compile(rb'(?<!\S)score[ \t]+(?:cp|mate)[ \t]+-?[0-9]+(?=\s|$)')
-MATE_FIELD = re.compile(rb'(?<!\S)score[ \t]+mate[ \t]+-?[0-9]+(?=\s|$)')
+SCORE_FIELD = re.compile(rb'(?<!\S)score[ \t]+(?:cp|mate)[ \t]+[+-]?[0-9]+(?=\s|$)')
+MATE_FIELD = re.compile(rb'(?<!\S)score[ \t]+mate[ \t]+[+-]?[0-9]+(?=\s|$)')
 
 
 def fail(message):
