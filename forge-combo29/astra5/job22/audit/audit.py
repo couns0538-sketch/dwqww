@@ -57,6 +57,26 @@ def difference(stage,names,gid,left,right,rown):
         row=data[i].decode().rstrip('\n') if i<len(data) else '(absent)'
         lines.extend([name+' record '+row,name+' position command: position startpos moves '+' '.join(list(op)+[decode(s)[2].decode() for s in data[:i]])])
     return lines
+def check_lifetime(name,pid,log):
+    """Save the contemporaneous observation and reuse it for a later offline reread."""
+    dest=HERE/'L1';dest.mkdir(exist_ok=True)
+    evidence=dest/('process-'+name+'.txt')
+    ticks=re.findall(r'^engine_start_ticks (\d+)$',log,re.M)
+    assert len(ticks)==1,(name,'unique process start')
+    proc=Path('/proc')/pid
+    try:
+        observed_ticks=proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]
+        stat=proc.joinpath('status').read_text()
+        exe=proc.joinpath('cmdline').read_bytes().split(b'\0')[0].decode()
+    except (FileNotFoundError,PermissionError,ProcessLookupError):
+        observed_ticks=None
+    if observed_ticks==ticks[0] and exe:
+        rss=re.search(r'^VmRSS:\s+(\d+) kB$',stat,re.M)[1]
+        assert exe in log
+        if not evidence.exists():
+            evidence.write_text(f'Independently observed running engine PID {pid}, /proc stat start_ticks {ticks[0]}, executable argv[0] {exe}, VmRSS {rss} kB when inspecting the first audited game. Official per-game memory rows are from the separate after-game reads.\n')
+    ref=re.fullmatch(r'Independently observed running engine PID (\d+), /proc stat start_ticks (\d+), executable argv\[0\] (\S+), VmRSS (\d+) kB when inspecting the first audited game\. Official per-game memory rows are from the separate after-game reads\.\n',evidence.read_text())
+    assert ref and ref[1]==pid and ref[2]==ticks[0] and ref[3] in log and int(ref[4])>0,(name,pid,ref)
 class Stream:
     def __init__(self,name,first):
         self.name=name;self.base=RAW/name;self.first=first;self.pid=None;self.c=Counter()
@@ -105,16 +125,7 @@ class Stream:
         if self.pid is None:
             self.pid=r['p1_pid']
             if self.name.startswith('L1-'):
-                proc=Path('/proc')/self.pid
-                ticks=proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]
-                stat=proc.joinpath('status').read_text()
-                rss=re.search(r'^VmRSS:\s+(\d+) kB$',stat,re.M)[1]
-                exe=proc.joinpath('exe').resolve()
-                log=(self.base/'run.log').read_text()
-                assert re.findall(r'^engine_start_ticks (\d+)$',log,re.M)==[ticks]
-                assert str(exe) in log
-                dest=HERE/'L1';dest.mkdir(exist_ok=True)
-                (dest/('process-'+self.name+'.txt')).write_text(f'Independently observed running engine PID {self.pid}, /proc stat start_ticks {ticks}, executable {exe}, VmRSS {rss} kB when inspecting the first audited game. Official per-game memory rows are from the separate after-game reads.\n')
+                check_lifetime(self.name,self.pid,(self.base/'run.log').read_text())
         assert r['p1_pid']==self.pid
         blob=b''.join(data)
         self.c.update(records=len(data),na=na,nodes=nodes,bytes=len(blob))

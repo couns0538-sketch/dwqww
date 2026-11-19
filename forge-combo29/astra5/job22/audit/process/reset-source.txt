@@ -1,0 +1,11 @@
+Job 22 independent review of the actual r15d and kF reset paths
+
+The r15d executable has SHA-256 9068653cd638639a602b7c72dafe741e395598d0178f14fa31d530767f982671. The kF executable has SHA-256 c9ab02f9e15cc0a293b849116aa56d45ca3c521fa1209ed27386734dbb62d0eb.
+
+In both UCI loops, ucinewgame calls stop_search(), then searcher.clear(), then restores the standard start position. The cached position is marked valid at startpos and its prior move list is cleared. r15d clears base_fen and moves at src/uci.cpp lines 490–497. kF clears the FEN field count and canonical moves at lines 574–581. The subsequent isready response comes after these operations have returned.
+
+Searcher::clear clears the shared transposition table and calls clear on every allocated worker (r15d src/search.cpp 3284–3287, kF 3789–3792). TranspositionTable::clear resets each cluster, sets the generation and sample counts to zero, and increments the epoch (both source trees, lines 458–462). The table stays allocated at its configured size.
+
+Worker::clear resets the evaluator's pawn cache (both src/eval.cpp 569–571), main/threat/capture/continuation histories, countermoves, corrections for pawn position/material/non-pawn pieces, reworked history, joint and continuation corrections, threat maps, and search stack. It resets the stack initialization bound to MaxPly+7. r15d uses value initialization in src/search.cpp 1217–1239. kF clears many numeric arrays in place with memset and also clears its threat-map-validity array at 1687–1710. The optional pawn-history table is compiled out in these builds (both build flags leave FORGE_PAWN_HISTORY at its default zero). Search entry reinitializes per-search nodes, stop flags and null-move counters. The immutable loaded net remains configured across games.
+
+These explicit operations support position independence after ucinewgame. L0 tests that inference on each build's final ten L1 games using the actual output records. Equal records on those games cannot establish equality for every future state. VmRSS in Linux /proc/<engine PID>/status measures resident memory in kernel-reported kB at a point in time. It includes allocator and mapped-page effects, so these samples alone cannot establish a leak or total allocation.
