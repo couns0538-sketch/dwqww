@@ -1,0 +1,33 @@
+records read: F D1 11633, F D2 11633, P D1 5365, P D2 5365
+noscore: F D1 0, F D2 0, P D1 0, P D2 0
+
+F records (fired prunes)
+row                    |   recs |  D1 beats |    D1 per1000 [95% Wilson] |  D2 beats |    D2 per1000 [95% Wilson]
+all F                  |  11633 |       572 |    49.2 [   45.4,   53.3] |       717 |    61.6 [   57.4,   66.2]
+pivW & stale W         |   6991 |       254 |    36.3 [   32.2,   41.0] |       377 |    53.9 [   48.9,   59.5]
+pivW & fresh W         |   3453 |       238 |    68.9 [   60.9,   77.9] |       251 |    72.7 [   64.5,   81.8]
+not pivW               |   1189 |        80 |    67.3 [   54.4,   83.0] |        89 |    74.9 [   61.2,   91.2]
+pivM & stale M         |   3408 |       121 |    35.5 [   29.8,   42.3] |       163 |    47.8 [   41.2,   55.5]
+pivM & fresh M         |   1655 |       111 |    67.1 [   56.0,   80.2] |       121 |    73.1 [   61.5,   86.7]
+pivC                   |   3363 |       179 |    53.2 [   46.1,   61.3] |       218 |    64.8 [   57.0,   73.7]
+none                   |    458 |        25 |    54.6 [   37.2,   79.3] |        31 |    67.7 [   48.1,   94.5]
+in check               |   5521 |       235 |    42.6 [   37.6,   48.2] |       365 |    66.1 [   59.9,   73.0]
+lmr_depth 0            |      0 |         0 |     0.0 [    0.0,    0.0] |         0 |     0.0 [    0.0,    0.0]
+lmr_depth 1            |  10880 |       538 |    49.4 [   45.5,   53.7] |       649 |    59.7 [   55.4,   64.3]
+lmr_depth 2            |    723 |        33 |    45.6 [   32.7,   63.4] |        62 |    85.8 [   67.5,  108.4]
+lmr_depth 3            |     30 |         1 |    33.3 [    5.9,  166.7] |         6 |   200.0 [   95.1,  373.1]
+stale NONZERO W        |   7464 |       277 |    37.1 [   33.1,   41.6] |       402 |    53.9 [   49.0,   59.2]
+stale NONZERO M        |   7252 |       269 |    37.1 [   33.0,   41.7] |       396 |    54.6 [   49.6,   60.1]
+
+P records (every 400th not-fired eligible test)
+row                    |   recs |  D1 beats |    D1 per1000 [95% Wilson] |  D2 beats |    D2 per1000 [95% Wilson]
+P RAISED=1             |    180 |       111 |   616.7 [  543.9,  684.6] |        98 |   544.4 [  471.5,  615.5]
+P RAISED=0             |   3627 |       164 |    45.2 [   38.9,   52.5] |       250 |    68.9 [   61.1,   77.6]
+P RAISED=-1            |   1558 |         7 |     4.5 [    2.2,    9.2] |         9 |     5.8 [    3.0,   10.9]
+
+Readings (D2 decides, D1 printed beside it):
+- THE RULE SELECTS when all-F D2 per1000 <= half of the P records' (three rows together):
+  all F D2 61.6 vs P together D2 66.5 (half 33.3) [P: 357/5365]
+  -> THE RULE DOES NOT SELECT
+- CARRIED (W): stale 53.9 [48.9,59.5] (D1 36.3) vs fresh 72.7 [64.5,81.8] (D1 68.9); ratio 0.74, intervals disjoint -> CARRIED (W) IS NOT WORSE
+- CARRIED (M): stale 47.8 [41.2,55.5] (D1 35.5) vs fresh 73.1 [61.5,86.7] (D1 67.1); ratio 0.65, intervals disjoint -> CARRIED (M) IS NOT WORSE
