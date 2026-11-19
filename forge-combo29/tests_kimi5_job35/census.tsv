@@ -93,3 +93,52 @@
 # TOTALS: rows above the R block: 64 (41 T/A reachable rows of which 40 options made [13 K1 + 27], 8 inside-search() not made, 15 outside-search() reachable not made, gated-off T/A 11, S 4+1, HistoryMax 1).
 # K2's floor = 51 search() lines + 21 outside places + 4 named constants = 76 places; every one is a row above or in the R list.
 # rows beyond the floor: 0/1 amounts and named-value expressions the script cannot see: 2409 2410 2412 2413 2414 2415 2434(x2) 2365 2367 2371 2406 1944 1477 1443 1480 321(already floor) -- 14 rows beyond the floor (not counting R).
+#
+# OPTIONS MADE (40 = 13 K1 + 27 new): name | default | min | max | step.
+# step rule: 1 for plies, counts and move numbers, else a fifth of the default rounded down (min 1; default 0: 8);
+# K1's thirteen fixed by K5: 1 for all but DoubleExtMargin (4), LmrDeeperBase (8), LmrShallowerBase (8).
+# HONESTY NOTE: this block was appended AFTER the Step 4 runs (the pre-Step-4 commit held only the census
+# rows above; the table lived in make_patch.py). Every value below is exactly what the committed patch and
+# the runs used; evidence: s4/opt_*.txt. EXCEPTION: TtNear50Clock max was 100 in the first patch; value 108
+# was refused in Step 4 (invalid value), patch corrected to max 120 (no default/step change), rebuilt,
+# re-proven a no-op at defaults (v2base O 8315168 / G 17611204, 0 diffs), then measured.
+OPTION	LmrDeeperBase	40	0	100000	8
+OPTION	LmrDeeperDepthMul	2	0	64	1
+OPTION	LmrShallowerBase	0	-100000	400	8
+OPTION	LmrShallowerDepthMul	1	0	64	1
+OPTION	DoubleExtMargin	24	0	400	4
+OPTION	DoubleExtLimit	6	-1	64	1
+OPTION	LmrTtPv	1	0	4	1
+OPTION	LmrNotImproving	1	0	4	1
+OPTION	LmrCutNode	2	0	4	1
+OPTION	LmrTtCapture	1	0	4	1
+OPTION	LmrGiveCheck	1	0	4	1
+OPTION	LmrInCheck	1	0	4	1
+OPTION	LmrCutoffAdd	1	0	4	1
+OPTION	TtNear50Clock	90	0	120	18
+OPTION	ImprovingLookback	2	2	8	1
+OPTION	ImprovingLookbackFallback	4	2	8	1
+OPTION	RfpWorseningDrop	2	0	100	1
+OPTION	RfpWorseningDiv	3	1	10	1
+OPTION	NullGateSlope	24	0	100	4
+OPTION	NullGateOffset	180	0	400	36
+OPTION	NullEvalReductionCap	3	0	10	1
+OPTION	NullVerifyDepth	14	2	30	1
+OPTION	ProbcutImprovingDiscount	50	0	200	10
+OPTION	ProbcutTtDepthMargin	3	0	10	1
+OPTION	ProbcutSearchReduction	4	1	10	1
+OPTION	TtPruneIirOffset	2	0	10	1
+OPTION	FutilityImprovingDiv	2	1	10	1
+OPTION	HistPruneWeakNum	3	0	4	1
+OPTION	SingularTtDepthMargin	3	0	10	1
+OPTION	SingularDepthDiv	2	1	8	1
+OPTION	DoubleExtPlies	2	1	4	1
+OPTION	LmrMinDepth	2	1	8	1
+OPTION	LmrNoisyMoveCount	4	1	16	1
+OPTION	LmrHistoryClamp	2	0	8	1
+OPTION	LmrQuietBoostDiv	2	1	8	1
+OPTION	HistBonusBetaMargin	100	0	400	20
+OPTION	PvQuietBonusDiv	4	1	16	1
+OPTION	CuckooRepMinClock	3	0	100	1
+OPTION	AspStartDepth	4	1	16	1
+OPTION	AspDeltaGrowDiv	2	1	8	1
