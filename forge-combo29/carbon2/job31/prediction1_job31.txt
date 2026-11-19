@@ -1,0 +1,16 @@
+PRE-COMMITTED PREDICTION 1 FOR JOB 31 (PART F & PART G)
+(Written after Step 0, KF0, KF1, and CF build, before any CPU number of Part F is looked at. No date, time, or commit id.)
+
+1. Part F Metric Ranges (on X_1 and X_2; START, GAME, T2000, S1, FIXED in microseconds):
+- START (CPU of replay (c), us): [10000.0, 50000.0]
+- GAME  ((CPU of replay (d) - START) / 600, us): [250.0, 1100.0]
+- T2000 ((CPU of replay (a) - START - U * GAME) / 6070, us): [1190.0, 1290.0]
+- S1    ((CPU of replay (b), S=1 - START - U * GAME) / 6070, us): [12.0, 42.0]
+- FIXED (S1 - NODE * (23787 / 6070), us): [11.0, 41.0]
+- FIXED as a percent of T2000 (%): [0.90, 3.40]
+
+2. Control CF (X + 1 MiB memset at top of Searcher::search):
+- CF FIXED minus X_1 FIXED (us): [11.0, 55.0] (with CF firing: difference >= 10 us and all 6 CF runs above all 6 X_1 runs)
+
+3. Top Function by Self Time in profile_S1 (perf on X_1 replay (b) with S = 1):
+- forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
