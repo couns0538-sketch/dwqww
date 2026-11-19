@@ -7,7 +7,7 @@ from pathlib import Path
 
 import chess
 
-from replay28 import BOOK_SHA, check, score2
+from replay28 import BOOK_SHA, OPTIONS, check, score2
 from score28 import ARMS, collect
 from stage28 import read_compact, tab_from
 
@@ -79,15 +79,23 @@ def read_arm(path,book):
             continue
         check(x['uci_line'].startswith('info string TmFinishIteration hold'),x)
         held[int(x['game']),int(x['ply']),x['side'],x['engine']]+=1
-    process_by_game=defaultdict(list)
+    profiles=json.loads((path/'option-profiles.json').read_text())
+    extra={'M4':['TmFinishIteration true','TmSoftDivisor 20'],'M5':['TmSoftDivisor 16'],'M6':['TmSoftDivisor 30']}
+    process_by_game=defaultdict(list);proc_sides=defaultdict(set)
     for r in tab_from(read_compact(path,'engines.tsv')):
-        process_by_game[int(r['game'])].append((int(r['pid']),int(r['start_ticks'])))
+        i=int(r['game']);side=r['color'];role=r['role']
+        check(side in ('W','B') and role==('A' if ((i % 2 == 1)==(side=='W')) else 'B'),(path,i,side,role))
+        expected=OPTIONS+['NodeClock 100']+(extra[scope] if role=='A' else [])
+        check([' '.join(x) for x in profiles[r['option_profile']]]==expected,(path,i,role,'stored option order'))
+        check(side not in proc_sides[i],(path,i,'duplicate process side'))
+        proc_sides[i].add(side);process_by_game[i].append((int(r['pid']),int(r['start_ticks'])))
     searches=defaultdict(list)
     for r in tab_from(read_compact(path,'searches.tsv')):
         searches[int(r['game'])].append(r)
     openings={int(r['opening']):r['fen'] for r in tab_from(read_compact(path,'openings.tsv'))}
     check(all(book[k-1]==fen for k,fen in openings.items()),(path,'L27 line mismatch'))
     games=[replay(r,searches[int(r['game'])],book[int(r['opening'])-1],held,scope,process_by_game) for r in tab_from(read_compact(path,'games.tsv'))]
+    check(all(proc_sides[g['game']]=={'W','B'} for g in games),(path,'two fresh sides per completed game'))
     check(sum(sum(g['holdlines'].values()) for g in games)==sum(held.values()),(path,'unlinked hold'))
     check(sum(sum(g['count'].values()) for g in games)==receipt['searches'],(path,'search count'))
     wanted=set(range(2*receipt['opening_first']-1,2*receipt['opening_last']+1))
