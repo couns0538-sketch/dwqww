@@ -1,0 +1,152 @@
+--- a/src/search.cpp	2026-11-18 12:41:35.996049697 +0000
++++ b/src/search.cpp	2026-11-19 00:32:48.246864572 +0000
+@@ -2710,6 +2710,29 @@
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
+ 
++    const bool sound_mate_pv_or_chk =
++        (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
++        (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check);
++    const bool sound_arm_mate_alpha = tune::sound_arm_enabled(tune::SoundArmMateAlpha);
++    const bool shallow_prune_node =
++        !sound_mate_pv_or_chk && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 &&
++        !root_node && has_material && !bare_king_mode;
++    const int lmp_limit = lmp_threshold(depth, improving);
++    const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
++    const int history_prune_threshold = tt_prune_v2_ && !improving
++                                            ? -tune::HistoryPruneMultiplier * depth * 3 / 4
++                                            : -tune::HistoryPruneMultiplier * depth;
++    const int see_noisy_threshold = -tune::SeeNoisyMultiplier * depth;
++
++    const std::size_t us_idx = static_cast<std::size_t>(board.side_to_move());
++    const auto* const main_side = &(*main_history_)[us_idx];
++    const int rework_q = tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0;
++    const auto* const rework_side = rework_q != 0 ? &(*rework_history_)[us_idx] : nullptr;
++    const PieceToHistory* const cont1 = (ss - 1)->continuation;
++    const PieceToHistory* const cont2 = (ss - 2)->continuation;
++    const PieceToHistory* const cont4 =
++        (tune::ContHist4PlyRead && !(ss - 4)->current_move.is_none()) ? (ss - 4)->continuation : nullptr;
++
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+         if (move == excluded) continue;
+@@ -2724,20 +2747,35 @@
+         const bool quiet = !capture && !move.is_promotion();
+         const bool gives_check = picker.has_cached_gives_check() ? picker.cached_gives_check() : board.gives_check(move);
+         const Piece moved = board.moved_piece(move);
+-        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
++
++        int cached_qh = 0;
++        bool qh_ready = false;
++        auto get_quiet_history = [&]() -> int {
++            if (!qh_ready) {
++                const std::size_t p = static_cast<std::size_t>(moved);
++                const int plain = (*main_side)[move.from][move.to];
++                int sc = plain;
++                if (rework_side != nullptr) {
++                    const Bitboard set = threat_set_for_piece(board, ply, piece_type(moved));
++                    const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
++                    sc = b4::blend(plain, twin, rework_q);
++                }
++                if (cont1 != nullptr) sc += (*cont1)[p][move.to];
++                if (cont2 != nullptr) sc += (*cont2)[p][move.to];
++                if (cont4 != nullptr) sc += (*cont4)[p][move.to] / 2;
++                if (tune::ThreatHistory) [[unlikely]] sc += threat_quiet_bonus(board, move);
++#if FORGE_PAWN_HISTORY
++                sc += pawn_history_value(board, moved, move);
++#endif
++                cached_qh = sc;
++                qh_ready = true;
++            }
++            return cached_qh;
++        };
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        // Off by default, so the predicate below is the historical guard.
+-        // Each SoundMatePruning arm skips this block in one case: a
+-        // principal-variation node, in check, or alpha already a mate score.
+-        // Dropping a move there can hide a faster mate and still store an
+-        // exact transposition bound. FollowOption tracks the UCI option.
+-        const bool sound_mate_case =
+-            (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+-            (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+-            (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+-        if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+-            best_score > -MateInMaxPly && has_material && !bare_king_mode) {
++        if (shallow_prune_node && best_score > -MateInMaxPly &&
++            !(sound_arm_mate_alpha && is_mate_score(alpha))) {
+             // Trace stays off in normal play. It records which case skipped a
+             // move, including a quiet check that follows an earlier quiet skip.
+             auto trace_case = [&]() {
+@@ -2761,16 +2799,9 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= lmp_limit) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+-            // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+-            // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+-            // when not improving. With the option off: prunable, + 0, and r7's threshold.
+             const bool prunable = !tt_prune_v2_ || move != tt_move;
+-            const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
+-            const int history_prune_threshold = tt_prune_v2_ && !improving
+-                                                    ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+-                                                    : -tune::HistoryPruneMultiplier * depth;
+             if (quiet && !gives_check && prunable) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -2783,7 +2814,7 @@
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
++                if (lmr_depth <= tune::HistoryPruneDepth && get_quiet_history() < history_prune_threshold) {
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+@@ -2794,21 +2825,18 @@
+                     continue;
+                 }
+             } else if (prunable) {
+-                // Futility pruning for captures: even winning the piece cannot
+-                // bring the position back to alpha.
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+-                            capture_value(board, move) + history / 8 <= alpha) {
++                            capture_value(board, move) + capture_history_value(board, move) / 8 <= alpha) {
+                     trace_case();
+                     continue;
+                 }
+-                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+-                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+-                    !board.see_ge(move, see_threshold)) {
++                if (!(picker.last_move_see_nonnegative() && see_noisy_threshold <= 0) &&
++                    !board.see_ge(move, see_noisy_threshold)) {
+                     trace_case();
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+@@ -2830,6 +2858,10 @@
+             }
+         }
+ 
++        if (quiet && mate_moves_ == 0 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode) {
++            (void)get_quiet_history();
++        }
++
+         // Extensions.
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+@@ -2907,7 +2939,7 @@
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (quiet) r -= std::clamp(cached_qh / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
