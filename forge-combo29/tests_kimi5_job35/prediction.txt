@@ -1,0 +1,40 @@
+kimi5 job 35 prediction (before any Step 4 run; no times, no commit ids)
+
+ALIVE/DEAD for the 27 new options beyond K1's thirteen (at default minus/plus one step, PC20, go depth 12, O and G):
+- TtNear50Clock (90, step 18: 72/108): DEAD. The O and G positions carry low halfmove clocks (mostly under 20); moving the near-50 TT distrust line 18 either way touches almost no node.
+- ImprovingLookback (2, step 1: plus 3 only, default at range end): ALIVE. The improving flag feeds LMR, futility, RFP, probcut on most nodes.
+- ImprovingLookbackFallback (4, step 1: 3/5): ALIVE, weak. The fallback fires only where the 2-ply eval is missing (after null moves), but that is still many nodes.
+- RfpWorseningDrop (2, step 1: 1/3): ALIVE. TtPruneV2 is on under PC20; the 2 cp gate decides where the RFP discount applies.
+- RfpWorseningDiv (3, step 1: 2/4): ALIVE. Same path, changes the margin where the gate holds.
+- NullGateSlope (24, step 4: 20/28): ALIVE. The static-eval gate decides null tries at shallow depths.
+- NullGateOffset (180, step 36: 144/216): ALIVE, big. A 36 cp move of the gate changes null frequency everywhere.
+- NullEvalReductionCap (3, step 1: 2/4): ALIVE. Caps the eval part of the null reduction; hit in won positions.
+- NullVerifyDepth (14, step 1: 13/15): DEAD, weak. At go depth 12 almost no node reaches depth 14 (needs extensions); the threshold move changes very few searches.
+- ProbcutImprovingDiscount (50, step 10: 40/60): ALIVE. Probcut fires often enough at depth 12.
+- ProbcutTtDepthMargin (3, step 1: 2/4): ALIVE, weak. The TT gate before probcut.
+- ProbcutSearchReduction (4, step 1: 3/5): ALIVE. Re-search depth of every successful probcut.
+- TtPruneIirOffset (2, step 1: 1/3): ALIVE. The TtPruneV2 cut-node reduction needs a failed-low TT move: common.
+- FutilityImprovingDiv (2, step 1: 1/3): ALIVE. Futility margin when improving doubles or thirds the bonus term.
+- HistPruneWeakNum (3, step 1: 2/4): ALIVE. History-prune threshold moves by a third when not improving.
+- SingularTtDepthMargin (3, step 1: 2/4): ALIVE, weak. The singular gate's TT depth condition.
+- SingularDepthDiv (2, step 1: 1/3): ALIVE, big on minus. Divisor 1 makes the singular search nearly full depth.
+- DoubleExtPlies (2, step 1: 1/3): ALIVE. The extension amount itself.
+- LmrMinDepth (2, step 1: 1/3): ALIVE. Depth floor of all LMR.
+- LmrNoisyMoveCount (4, step 1: 3/5): ALIVE, weak. Only noisy moves beyond tt_pv at count above it.
+- LmrHistoryClamp (2, step 1: 1/3): ALIVE. The history term in LMR is often at the clamp.
+- LmrQuietBoostDiv (2, step 1: 1/3): ALIVE, big on minus. Divisor 1 doubles the late-quiet boost.
+- HistBonusBetaMargin (100, step 20: 80/120): ALIVE, weak. Only changes the bonus depth of big fail highs.
+- PvQuietBonusDiv (4, step 1: 3/5): ALIVE, weak. Every new PV quiet's bonus.
+- CuckooRepMinClock (3, step 1: 2/4): DEAD, weak. Needs halfmove >= 2/4 with an upcoming repetition; rare in these fixed positions.
+- AspStartDepth (4, step 1: 3/5): ALIVE. Moves the first narrowed window one iteration either way.
+- AspDeltaGrowDiv (2, step 1: 1/3): ALIVE. Window growth per re-search.
+
+The five I expect to move the O node sum most (side, ratio range to base 8,315,168):
+1. NullGateOffset, minus (144): ratio 0.70 to 0.95.
+2. SingularDepthDiv, minus (1): ratio 1.05 to 1.60.
+3. FutilityImprovingDiv, minus (1): ratio 0.75 to 0.98.
+4. LmrMinDepth, plus (3): ratio 1.02 to 1.25.
+5. DoubleExtPlies, minus (1): ratio 0.88 to 1.00.
+
+K1 held-back number: DoubleExtMargin 20 on G (353): how many positions change node count.
+On O it is 175 of 200 (87.5%). G holds later-game positions with more pieces traded; I expect a similar or slightly smaller share: 250 to 330 of 353.
