@@ -159,6 +159,10 @@ def read_arm(path, first, last, book):
         for name,value in expected.items():
             assert actual.get(name)==value,(slot,'wrong option',name,actual.get(name),value)
         assert Path(actual['NNUEArchFile']).name=='net768.nnue'
+        if is_random:
+            fingerprint=hashlib.sha256(MANIFEST.read_bytes()).hexdigest()
+            note=f'edge_manifest_sha256 {fingerprint} edge {edge} {target["name"]} {target["bound"]} requested {target["table_value"]} applied {target["value"]}'
+            assert note in log.splitlines(),(slot,'edge manifest declaration',note)
         roles=re.findall(r'^(\S+) pid (\d+) child_cpu_affinity \[([0-9]+)\]$',log,re.M)
         assert len(roles)==(1 if is_random else 2),(slot,roles)
         assert any(s.startswith(f'python_chess {chess.__version__} go {go} driver {typ} ') and 'claim_draw True' in s for s in log.splitlines()),slot

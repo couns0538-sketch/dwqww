@@ -1,0 +1,10 @@
+Job 19 controller and source review.
+Actual inputs: selfplay.py SHA-256 6757aa04dd9f9d344cec7459d485aff999730860e8fd76681783c5ad68b607c7; stage.py 792f0f15e205b833d6f8c58fc1fa406be5ed360ba7b2754fd11af5d97102deb9; arm.py a3970d215bc93c0c0d428e7027457be8bc6e234ef35946dfabc3ce122659a597.
+Compared Python abstract syntax trees of job 18 and 19 for the random-opening generator, send/receive, refusal checking, configuration, search, engine role startup loop and entire per-game loop. These portions match exactly.
+Driver R retains one engine playing both colors for an ascending edge-seed range. The total cap of 300 includes the eight random opening plies. Searched rows normally start at absolute ply 8 and end at most at 299.
+Driver F retains separate and persistent white and black processes. Only the moving process searches, with one-based plies after the book FEN and a cap of 300 searched plies. Both drivers use the node count on the last info line, or NA when there is no info line.
+Each build uses one slot and a slot plays one game at a time. The measured stage controller takes a nonblocking exclusive lock, launches one arm of each build, waits for both to finish and then compares. Capacity is two simultaneous games across builds. K19 repeats and C19 run in sequence.
+Checked every declared arm and effective value map. K19 and C19 target book lines 3791–3792 at 250,000 hard nodes; only C19 changes LmrQuietBase to 60. D1 uses lines 3793–3808 at 250,000 hard nodes. D2 uses lines 3809–3812 at 1,000,000 hard nodes.
+Each runnable edge uses softnodes 2000 over five consecutive seeds from 500001 + 10(e−1). Checked all 80 rows against the 40 job 18 inputs and both executables’ option bounds. Each active edge changes exactly one of the 40 start values and preserves PC20 switches, net768, Threads 1 and Hash 16.
+76 runnable edges and 4 starts: E01, E75, E77, E79.
+Raw game and worker intervals must still establish actual concurrency over completed work; see concurrency.txt for the observed result.
