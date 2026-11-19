@@ -1,0 +1,38 @@
+Independent recount. Python 3 and python-chess 1.11.2. Execute:
+  python audit29.py PATH_TO_MATCHES L27.epd OUT
+The archive has blockNNN/arm/receipt.json and schedule-end.json at its root.
+A portable run reads the published per-game, search, opening, process and
+option-profile tables, verifies each manifest, replays moves and terminal
+rules, and regenerates all individual scores, threshold rows and pooled bands.
+Supply --live ORIGINAL_GAME_DIRECTORIES to also verify the complete UCI wire
+for every game: all 22 options in order, both readiness handshakes and quit,
+exact opening FEN and every move sent before the search, exact go, last scored
+info and last completed-depth nodes selected from all printed info, engine
+footer and bestmove. Every completed game has two fresh process identities.
+Legal rule onset is checked after every move. A ceiling of 600 plies is drawn.
+Claims are python-chess can_claim_threefold_repetition and can_claim_fifty_moves.
+
+The opening pair is the independent statistical unit. A receives 0, 0.5, 1,
+1.5 or 2 total game points in one swapped-color pair. Pairs contribute that
+total divided by two to stats_seed.py, identical to Job 28. The 95% error is
+the normal 0.975 quantile times the population standard deviation divided by
+the square root of the pair count, transformed symmetrically in Elo as in
+Jobs 26-28. Positive lower bound gives A BETTER, negative upper gives B BETTER,
+and an interval touching or containing zero gives LEVEL.
+
+For each threshold and side, take only the first ply with that side's positive
+mate or cp>=threshold in the final scored info. A negative mate describes the
+other side's advantage and earns no crossing. The terminal bestmove is ply P,
+so the number of plies after a first hit at ply j is P-j. The categories W/D/L
+are from the crossing side. We use the number of printed depths for mean_depth
+and also provide an all-search mean treating absent depth as zero. For the
+plain side of E, n is the completed-depth count and mean_spent is the nominal
+4,000-node budget. plain29.py separately sums the counters actually printed:
+  python plain29.py OUT/final/independent.json PATH_TO_MATCHES L27.epd OUT/final
+The output also gives the actual-to-soft budget ratio and the count and legal
+move context of early ends, with their exact terminal score and board FEN.
+
+One block counts only when the two colors of each opening are complete in
+all match arms for its phase. The last actual game determines minute 40;
+the scheduler receipt timestamp is preserved as a second check. The optional
+phase requires all 434 primary openings in all three matches before minute 30.
