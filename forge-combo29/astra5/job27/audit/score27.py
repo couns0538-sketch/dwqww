@@ -49,7 +49,7 @@ def collect(out,stages,wire_root,final=False):
     catalog={(v['block'],v['stage']):v for v in stages}
     check(len(stages)==len(catalog),'duplicate arm')
     common=[];complete_opens=[];by45=[];receipts45=[];straddlers=[];stage_rows=[];block_rows=[];unscored=[]
-    ids=set();events=[];latest=None;source=wire_root/'blocks';block_times={}
+    ids=set();events=[];latest=None;source=wire_root/'blocks' if (wire_root/'blocks').is_dir() else wire_root;block_times={}
     for block in range(1,10):
         lo,hi=(block-1)*50+1,min(block*50,N)
         entries=[catalog.get((block,r)) for r in ARMS]

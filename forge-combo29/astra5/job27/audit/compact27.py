@@ -67,6 +67,12 @@ def read_arm(path,book):
     holds_dir=path/'hold-evidence'
     if not holds_dir.is_dir():
         holds_dir=path.parents[2]/'hold-evidence'/path.parent.name/scope
+    hold_receipt=json.loads((holds_dir/'receipt.json').read_text())
+    check(hold_receipt['arm_receipt_sha256']==sha256((path/'receipt.json').read_bytes()).hexdigest(),
+          (path,'hold addendum identifies different arm'))
+    for name,desc in hold_receipt['files'].items():
+        raw=(holds_dir/name).read_bytes()
+        check((len(raw),sha256(raw).hexdigest())==(desc['bytes'],desc['sha256']),(path,name,'hold file digest'))
     held=Counter()
     for x in tab_from(read_compact(holds_dir,'holds.tsv')):
         if x['disposition']!='finished_game':
@@ -84,6 +90,12 @@ def read_arm(path,book):
     games=[replay(r,searches[int(r['game'])],book[int(r['opening'])-1],held,scope,process_by_game) for r in tab_from(read_compact(path,'games.tsv'))]
     check(sum(sum(g['holdlines'].values()) for g in games)==sum(held.values()),(path,'unlinked hold'))
     check(sum(sum(g['count'].values()) for g in games)==receipt['searches'],(path,'search count'))
+    wanted=set(range(2*receipt['opening_first']-1,2*receipt['opening_last']+1))
+    done={g['game'] for g in games};wait=set(receipt['unfinished_game_ids']);skipped=set(receipt['not_started_game_ids'])
+    check(len(done)==len(games) and not (done & wait or wait & skipped or skipped & done)
+          and done|wait|skipped==wanted and len(done|wait)==receipt['started_games'],(path,'claimed coverage'))
+    check(sum(sum(g['holds'].values()) for g in games)==hold_receipt['finished_searches_with_holds'],(path,'hold search aggregate'))
+
     return dict(block=receipt['block'],stage=scope,complete=receipt['complete'],started=receipt['started_games'],finished=len(games),games=games,
         searches=receipt['searches'],finished_ids=receipt['finished_game_ids'],unfinished=receipt['unfinished_game_ids'],unstarted=receipt['not_started_game_ids'],
         unfinished_searches=receipt['unfinished_searches'],frozen_utc=receipt['frozen_utc'])
