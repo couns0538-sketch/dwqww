@@ -1,0 +1,19 @@
+Applies from the kF tree root with: patch -p1 -F0   (kF tree as in c2_control_misalign.patch.txt header)
+Job 31 C3 tie-presence probe for row E1: makes the std::sort comparator at search.cpp:1199 TOTAL
+(tie-break on the move's 32-bit encoding). Diagnostic only, NOT a repair: it changes the trees
+(bench 11: 330,647 vs 312,866; W1 nodes differ 200/200 O, 351/353 G).
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1198,7 +1198,11 @@
+             } else {
+                 std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+                           moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+-                          [](const Scored& a, const Scored& b) { return a.score > b.score; });
++                          [](const Scored& a, const Scored& b) {
++                              if (a.score != b.score) return a.score > b.score;
++                              return std::bit_cast<std::uint32_t>(a.move) <
++                                     std::bit_cast<std::uint32_t>(b.move);
++                          });
+                 sorted_ = true;
+             }
+         }

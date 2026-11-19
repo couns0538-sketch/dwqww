@@ -1,0 +1,19 @@
+Applies from the kF tree root (the folder holding src/ and include/) with: patch -p1 -F0
+kF = 6b98f217 + pc_r15.patch + carbon2 a_speed_pc20_v3.patch + carbon2 e1_legal_check_evasions.patch
+     + carbon2 stack_r15d_to_final.patch (each patch -p1 -F0 in that order; trees sha-verified 29/29).
+Job 31 C2 positive control: ONE deliberate misaligned 64-bit read through a cast, at the top of
+Worker::search (entered exactly once per go): UBSan -fsanitize=alignment must report it. The read is
+volatile (cannot be optimised away), writes nothing, and never touches engine state.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3115,6 +3115,10 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    // job 31 C2 planted control: one deliberate misaligned 64-bit read (UBSan-alignment must report).
++    alignas(8) unsigned char j31_misalign_buf[16] = {0};
++    volatile std::uint64_t j31_misalign_read = *reinterpret_cast<const std::uint64_t*>(j31_misalign_buf + 1);
++    (void)j31_misalign_read;
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}

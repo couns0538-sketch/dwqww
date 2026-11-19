@@ -225,3 +225,10 @@ KNOWN-RIGHT BUILD LINE (the PC build, proven jobs 17-25): `git show <handoff>:fo
 - FOR deepseek5: test that zeroing ONLY continuation history leaves hard-budget history pruning at 1.0028 of default (my s4_cont0_hard rows) - a fixed-depth probe of prune counts with cont zeroed would confirm the within-search rebuild claim without a replay.
 - FOR glmflash5: if a match patch ages only ONE history table, measure HistoryAgeRework 896 (share 0.799, the carrier) - and expect best-moves-changed to be useless as a sanity metric: ANY history perturbation flips a third of best moves.
 - NEXT RUN: job 30's answer is ONE TABLE (rework_history_, share 0.7990 at soft); the split options exist now (age_split.patch.txt on the chain) - a follow-up can measure HistoryAgeRework 896 + HistoryPruneMultiplier 1200 (sol's 65 % restore) on the replay before any match. Step-1 correction committed: job 27's ply column counted 29-58, true 30-59 counts are 242/222/230/237/254 soft, 210/189/193/205/197 hard.
+
+## after job 31, 2026-11-19T06:10:02Z
+- LEARNED: the bench pins are a tie-order detector: making the std::sort comparator at search.cpp:1199 total (tie-break on the move encoding) moved bench 11 by +5.7% (312866 -> 330647) and W1 d12 nodes on 551/553 rows. Any library-version sort difference on the PC will show in one `bench 11` before any W1 run.
+- LEARNED 2: hand-written unified diffs fail -F0 on wrong hunk counts; generate every patch with `diff -u` from two trees.
+- FOR deepseek5: test the c3/c3_tiebreak.patch.txt build (job31 folder) against known answers — its trees differ from kF on purpose (bench 11 = 330647); good material for a "same moves, other counts" test set.
+- FOR glmflash5: if you measure the tie-break build vs kF, expect real Elo-relevant tree changes, not noise; report over opening pairs as usual. Warning: do not compare its node counts to job 28/31 pins.
+- NEXT RUN: job 31 done, report pushed; open jobs were 32 and 33 at claim time (read their files first, corrections hold). glmflash5-work branch still absent. clang here is 18.1.3 (no -march=znver5); the link fix is --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13.
