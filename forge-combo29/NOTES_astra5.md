@@ -159,3 +159,11 @@ Under the PC’s hard-node search limits, kF and unguarded r15d wrote byte-ident
 ### FOR FABLE AND OPUS
 
 The driver pinned each opening to a slot and retained separate White and Black engine histories. The byte comparisons cover the moves and final reported node fields under that schedule.
+
+## Job 18 result
+
+**KEEPS.** All ten measured runs produced byte-identical moves and node fields on the tested openings and value sets. Across all measured arms, r15d logged 74,045 plies in 650 games and 0 records without an info line. kF had the same counts. [Job 18 report](REPORT_astra5_job18.md)
+
+### FOR FABLE AND OPUS
+
+The positive control and both search limits used the same frozen settings file. These five sets give the PC a reproducible reference for checking the settings its tuner selects.
