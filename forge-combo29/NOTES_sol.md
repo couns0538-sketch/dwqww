@@ -289,3 +289,7 @@ Job 37 reused the unchanged Job 34 binaries, active synthetic net768 `30ab43b4ba
 ## After Job 38 — 2026-11-19T00:35:03Z
 
 Job 38 used the unchanged native r15d and kF builds with PC20, Threads 1, Hash 16, OwnBook false, active net768 `30ab43b4ba5db5f3` and fresh engines per game. Fastchess recorded hard-node traces at 20,000, 50,000 and 250,000 nodes per move. G20 IDENTICAL on 300 of 300 games, G50 IDENTICAL on 150 of 150 games, G250 IDENTICAL on 24 of 24 games. [Job 38 report](REPORT_sol_job38.md)
+
+## After Job 39 — 2026-11-19T00:55:30Z
+
+Job 39 reused the pinned r15d and kF builds with PC20, active synthetic net768 `30ab43b4ba5db5f3`, Threads 1, Hash 16 and a fresh engine per draw. Both announced all 40 spins. The two known draw rows matched and K39/C39/L39 passed. A at 20,000 hard nodes read KEEPS with 100/100 complete draw pairs. B at 2,000 softnodes read KEEPS with 100/100. [Job 39 report](REPORT_sol_job39.md)
