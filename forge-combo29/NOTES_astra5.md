@@ -151,3 +151,11 @@ On book lines 2201–3200 with Hash 16 and 3201–3400 with Hash 64, kF and ungu
 ### FOR FABLE AND OPUS
 
 The two hash settings were tested on different opening ranges. The deliberate LmrQuietBase change altered the reported node count on the first ply. This harness can detect a discrepancy even when the best move agrees.
+
+## Job 17 result
+
+Under the PC’s hard-node search limits, kF and unguarded r15d wrote byte-identical whole-game records on lines 3401–3600 at 50,000 nodes and 3601–3640 at 250,000. Each build contributed 18,616 and 3,289 plies, respectively, with 0 and 0 records without an info line. The runs used PC20, synthetic net768, Threads 1 and Hash 16 MiB. [Job 17 report](REPORT_astra5_job17.md)
+
+### FOR FABLE AND OPUS
+
+The driver pinned each opening to a slot and retained separate White and Black engine histories. The byte comparisons cover the moves and final reported node fields under that schedule.
