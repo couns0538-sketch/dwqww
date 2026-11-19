@@ -1,0 +1,12 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index d0e09bb82..99df2a539 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2741,6 +2741,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
++        { volatile std::uint64_t cp_v = 1ULL; for (int cp_i = 0; cp_i < 200; ++cp_i) cp_v = cp_v * 6364136223846793005ULL; }
+         if (move == excluded) continue;
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
