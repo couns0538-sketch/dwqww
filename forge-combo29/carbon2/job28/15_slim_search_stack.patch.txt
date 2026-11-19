@@ -1,0 +1,273 @@
+diff -ruN src_kF14/include/forge/search.hpp src_kF14_15/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-19 16:52:56.442665192 +0000
++++ b/include/forge/search.hpp	2026-11-19 17:12:59.578665192 +0000
+@@ -496,47 +496,37 @@
+ constexpr int CorrectionLimit = 32 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+ 
+-struct SearchStack {
+-    std::array<Move, MaxPly + 1> pv{};
++struct alignas(64) SearchStack {
++    PieceToHistory* continuation = nullptr;
++    mutable std::uint64_t corr_mat_mix = 0;
++    std::array<Move, 2> killers{};
+     int pv_length = 0;
+     int ply = 0;
+     Move current_move{};
+     Move excluded_move{};
+-    std::array<Move, 2> killers{};
+     Piece moved_piece = Empty;
+     int static_eval = ValueNone;
+     int raw_eval = ValueNone;
+     int move_count = 0;
+-    // 1-based index of the move that entered this node. 0 means the node was not
+-    // reached by a counted move (root, null move, or a probcut capture).
+     int arrival_index = 0;
+     int cutoff_count = 0;
+     int double_extensions = 0;
+-    // Plies the parent withheld when it searched the move that reached this node.
+-    // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    Move entered_move{};
++    nnue::DirtyPieces dirty{};
++    mutable std::array<std::uint16_t, 2> corr_np_idx{};
++    mutable std::uint16_t corr_mat_idx = 0;
++    mutable std::uint8_t corr_valid = 0;
++    std::uint8_t entered_piece = 0;
++    std::uint8_t entered_capture = 0;
++    std::uint8_t entered_side = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+-    PieceToHistory* continuation = nullptr;
+-    // Network features are not updated when the move is made. The move's
+-    // pieces are remembered here; the change list and the accumulator are
+-    // built the first time an evaluation needs this ply (or a descendant).
+-    // A null move sets entered_null and does not change the piece set.
+-    nnue::Accumulator accumulator{};
+-    Evaluator::RuntimePsqt runtime_psqt{};
+-    nnue::DirtyPieces dirty{};
+-    Move entered_move{};
+-    Piece entered_piece = Empty;
+-    Piece entered_capture = Empty;
+-    std::uint8_t entered_side = 0;
+     bool entered_null = false;
+     bool diff_known = false;
+-    mutable std::array<std::uint16_t, 2> corr_np_idx{};
+-    mutable std::uint16_t corr_mat_idx = 0;
+-    mutable std::uint8_t corr_valid = 0;
+-    mutable std::uint64_t corr_mat_mix = 0;
+ };
++static_assert(sizeof(SearchStack) == 128, "SearchStack fits in two 64-byte cache lines");
+ 
+ // State shared by every worker of one Searcher.
+ struct SharedSearchState {
+@@ -589,7 +579,16 @@
+     std::unique_ptr<CorrectionHistory> material_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
++    struct V1EvalFrame {
++        nnue::Accumulator accumulator{};
++        Evaluator::RuntimePsqt runtime_psqt{};
++    };
+     std::array<SearchStack, MaxPly + 8> stack_{};
++    std::array<std::array<Move, MaxPly + 1>, MaxPly + 8> pv_stack_{};
++    std::array<V1EvalFrame, MaxPly + 8> v1_stack_{};
++    [[gnu::always_inline]] [[nodiscard]] std::size_t stack_slot(const SearchStack* ss) const noexcept {
++        return static_cast<std::size_t>(ss - stack_.data());
++    }
+ #if FORGE_NNUE_V3
+     // NNUE v3 (UCI NNUEArch) per-worker state, allocated on first use; null with the option off.
+     std::unique_ptr<nnue::v3::WorkerState> v3_state_;
+diff -ruN src_kF14/src/search.cpp src_kF14_15/src/search.cpp
+--- a/src/search.cpp	2026-11-19 16:52:56.442665192 +0000
++++ b/src/search.cpp	2026-11-19 17:12:59.582665192 +0000
+@@ -1739,7 +1739,9 @@
+ // until an evaluation reads this frame. A null move has no change list.
+ void ensure_piece_diff(SearchStack* frame) {
+     if (frame->diff_known) return;
+-    frame->dirty = nnue::dirty_from_move(frame->entered_move, frame->entered_piece, frame->entered_capture,
++    frame->dirty = nnue::dirty_from_move(frame->entered_move,
++                                          static_cast<Piece>(frame->entered_piece),
++                                          static_cast<Piece>(frame->entered_capture),
+                                           static_cast<Color>(frame->entered_side));
+     frame->diff_known = true;
+ }
+@@ -1760,35 +1762,35 @@
+     // Features used for this evaluation. A null move keeps the parent's
+     // accumulator: the piece set is unchanged, and a float copy would be the
+     // same bits without being needed.
+-    const nnue::Accumulator* features = &ss->accumulator;
+-    const Evaluator::RuntimePsqt* psqt = &ss->runtime_psqt;
++    const std::size_t slot = stack_slot(ss);
++    V1EvalFrame* const vf = &v1_stack_[slot];
++    const nnue::Accumulator* features = &vf->accumulator;
++    const Evaluator::RuntimePsqt* psqt = &vf->runtime_psqt;
+     int network = 0;
+     bool have_network = false;
+-    if (!ss->accumulator.valid) {
+-        // Walk back to the nearest ply whose features were already built.
++    if (!vf->accumulator.valid) {
+         int back = 0;
+-        while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+-        if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+-            nnue::refresh(board, ss->accumulator);
+-            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++        while (back < ss->ply && !(vf - back - 1)->accumulator.valid) ++back;
++        if (back >= ss->ply && !(vf - back - 1)->accumulator.valid) {
++            nnue::refresh(board, vf->accumulator);
++            if (residual) vf->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+         } else {
+-            const nnue::Accumulator* source_features = &(ss - back - 1)->accumulator;
+-            const Evaluator::RuntimePsqt* source_psqt = &(ss - back - 1)->runtime_psqt;
++            const nnue::Accumulator* source_features = &(vf - back - 1)->accumulator;
++            const Evaluator::RuntimePsqt* source_psqt = &(vf - back - 1)->runtime_psqt;
+             for (int i = back; i >= 0; --i) {
+                 SearchStack* frame = ss - i;
++                V1EvalFrame* vframe = vf - i;
+                 if (frame->entered_null) continue;
+                 ensure_piece_diff(frame);
+-                if (residual) Evaluator::update_runtime_psqt(*source_psqt, frame->runtime_psqt, frame->dirty);
++                if (residual) Evaluator::update_runtime_psqt(*source_psqt, vframe->runtime_psqt, frame->dirty);
+                 if (i == 0) {
+-                    // The position being scored. Fold the output layer into the
+-                    // feature update so those units are not reloaded.
+-                    network = nnue::apply_and_evaluate(*source_features, frame->accumulator, frame->dirty, board);
++                    network = nnue::apply_and_evaluate(*source_features, vframe->accumulator, frame->dirty, board);
+                     have_network = true;
+                 } else {
+-                    nnue::update(*source_features, frame->accumulator, frame->dirty);
++                    nnue::update(*source_features, vframe->accumulator, frame->dirty);
+                 }
+-                source_features = &frame->accumulator;
+-                source_psqt = &frame->runtime_psqt;
++                source_features = &vframe->accumulator;
++                source_psqt = &vframe->runtime_psqt;
+             }
+             features = source_features;
+             psqt = source_psqt;
+@@ -1797,8 +1799,8 @@
+     if (!have_network) network = nnue::evaluate(board, *features);
+     if (!residual) return network;
+     if (!psqt->valid) {
+-        ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+-        psqt = &ss->runtime_psqt;
++        vf->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++        psqt = &vf->runtime_psqt;
+     }
+     // A residual network is a learned correction on top of the hand-crafted evaluation.
+     return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+@@ -1825,8 +1827,8 @@
+ 
+     if (!nnue_active_) return;
+     child->entered_move = move;
+-    child->entered_piece = moved;
+-    child->entered_capture = captured;
++    child->entered_piece = static_cast<std::uint8_t>(moved);
++    child->entered_capture = static_cast<std::uint8_t>(captured);
+     child->entered_side = static_cast<std::uint8_t>(us);
+     child->entered_null = false;
+     child->diff_known = false;
+@@ -1836,8 +1838,9 @@
+         return;
+     }
+ #endif
+-    child->accumulator.valid = false;
+-    child->runtime_psqt.valid = false;
++    V1EvalFrame& cv1 = v1_stack_[stack_slot(child)];
++    cv1.accumulator.valid = false;
++    cv1.runtime_psqt.valid = false;
+ }
+ 
+ bool null_see_veto_threat(Board& board) {
+@@ -1879,8 +1882,9 @@
+         return;
+     }
+ #endif
+-    child->accumulator.valid = false;
+-    child->runtime_psqt.valid = false;
++    V1EvalFrame& cv1 = v1_stack_[stack_slot(child)];
++    cv1.accumulator.valid = false;
++    cv1.runtime_psqt.valid = false;
+ }
+ 
+ 
+@@ -2374,8 +2378,10 @@
+             if (score > alpha) {
+                 best_move = move;
+                 if (pv_node) {
+-                    ss->pv[0] = move;
+-                    std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
++                    const std::size_t slot = stack_slot(ss);
++                    auto& cur_pv = pv_stack_[slot];
++                    cur_pv[0] = move;
++                    std::copy_n(pv_stack_[slot + 1].begin(), (ss + 1)->pv_length, cur_pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+                 if (score >= beta) break;
+@@ -2989,8 +2995,10 @@
+             if (score > alpha) {
+                 best_move = move;
+                 if (pv_node) {
+-                    ss->pv[0] = move;
+-                    std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
++                    const std::size_t slot = stack_slot(ss);
++                    auto& cur_pv = pv_stack_[slot];
++                    cur_pv[0] = move;
++                    std::copy_n(pv_stack_[slot + 1].begin(), (ss + 1)->pv_length, cur_pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+                 if (score >= beta) {
+@@ -3442,8 +3450,8 @@
+         entry.arrival_index = 0;
+         entry.killers = {};
+         if (!use_v3_eval) {
+-            entry.accumulator.valid = false;
+-            entry.runtime_psqt.valid = false;
++            v1_stack_[static_cast<std::size_t>(i)].accumulator.valid = false;
++            v1_stack_[static_cast<std::size_t>(i)].runtime_psqt.valid = false;
+         }
+         entry.diff_known = false;
+         entry.entered_null = false;
+@@ -3460,8 +3468,8 @@
+     } else
+ #endif
+     if (nnue::enabled && nnue::available()) {
+-        nnue::refresh(board, ss->accumulator);
+-        if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++        nnue::refresh(board, v1_stack_[4].accumulator);
++        if (nnue::residual()) v1_stack_[4].runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
+ 
+     Move previous_best = Move::none();
+@@ -3528,7 +3536,7 @@
+             if (aborted_) break;
+ #if FORGE_FIX_ABORT_PUBLISH
+             if (iteration_score >= beta && ss->pv_length > 0) {
+-                fail_high_pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
++                fail_high_pv.assign(pv_stack_[4].begin(), pv_stack_[4].begin() + ss->pv_length);
+             } else if (iteration_score <= alpha) {
+                 fail_high_pv.clear();          // a fail-low after it takes the earlier fail-high back
+             }
+@@ -3578,9 +3586,9 @@
+ #else
+             if (!stopped_by_nodes_ && ss->pv_length > 0 &&
+ #endif
+-                !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+-                result.best_move = ss->pv[0];
+-                result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
++                !(result.pv.size() > 0 && result.pv[0] == pv_stack_[4][0])) {
++                result.best_move = pv_stack_[4][0];
++                result.pv.assign(pv_stack_[4].begin(), pv_stack_[4].begin() + ss->pv_length);
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                 // Publish the revised line so GUIs see a PV consistent with the move.
+                 emit(depth, result.score, result.pv);
+@@ -3591,7 +3599,7 @@
+         result.score = score;
+         result.depth = depth;
+         result.seldepth = std::max(seldepth_, depth);
+-        result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
++        result.pv.assign(pv_stack_[4].begin(), pv_stack_[4].begin() + ss->pv_length);
+         if (!result.pv.empty()) result.best_move = result.pv.front();
+         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+         result.nodes = total_nodes();
