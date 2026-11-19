@@ -1,0 +1,1049 @@
+W > uci
+W < id name Chess Engine Forge 6.4.24 candidate
+W < id author OpenAI
+W < option name Hash type spin default 32 min 1 max 2048
+W < option name Threads type spin default 1 min 1 max 256
+W < option name MultiPV type spin default 1 min 1 max 8
+W < option name Move Overhead type spin default 10 min 0 max 1000
+W < option name Ponder type check default false
+W < option name OwnBook type check default true
+W < option name Book File type string default <empty>
+W < option name Book Depth type spin default 30 min 0 max 100
+W < option name Book Variety type spin default 30 min 0 max 100
+W < option name UseNNUE type check default true
+W < option name NnueFile type string default <empty>
+W < option name NNUEArch type check default false
+W < option name NNUEArchFile type string default <empty>
+W < option name ContHist4PlyRead type check default false
+W < option name NonPawnCorrection type check default false
+W < option name LmrDeeperShallower type check default false
+W < option name EvalRule50Damp type check default false
+W < option name ThreatHistory type check default false
+W < option name LmrSignedCorrection type check default false
+W < option name LmrLateParentRelief type check default false
+W < option name HindsightDepth type check default false
+W < option name NullThreatVerify type check default false
+W < option name NullSeeVeto type check default false
+W < option name AspCappedReopen type check default false
+W < option name AspArmLate type check default false
+W < option name EvasionOrdering type check default false
+W < option name DeadMaterial type check default false
+W < option name QuietExtinction type check default false
+W < option name DrawJitter type spin default 0 min 0 max 8
+W < option name TmFinishIteration type check default false
+W < option name TmNodeShare type check default false
+W < option name NodeClock type spin default 0 min 0 max 1000000000
+W < option name SoundMatePruning type check default false
+W < option name CuckooRep type check default false
+W < option name HistRework type spin default 0 min 0 max 3
+W < option name TtPruneV2 type check default false
+W < option name CorrHistV2 type check default false
+W < option name MateAlphaGuard type check default false
+W < option name LmrQuietBase type spin default 85 min 0 max 300
+W < option name LmrQuietDivisor type spin default 220 min 100 max 500
+W < option name LmrNoisyBase type spin default 10 min 0 max 300
+W < option name LmrNoisyDivisor type spin default 340 min 100 max 800
+W < option name NullMoveMinDepth type spin default 3 min 1 max 10
+W < option name NullMoveBase type spin default 3 min 1 max 6
+W < option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+W < option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+W < option name RfpDepth type spin default 8 min 0 max 15
+W < option name RfpMargin type spin default 72 min 10 max 300
+W < option name RfpImproving type spin default 40 min 0 max 200
+W < option name RazorDepth type spin default 2 min 0 max 6
+W < option name RazorBase type spin default 150 min 0 max 1000
+W < option name RazorMultiplier type spin default 350 min 0 max 1000
+W < option name FutilityDepth type spin default 7 min 0 max 15
+W < option name FutilityBase type spin default 100 min 0 max 500
+W < option name FutilityMultiplier type spin default 110 min 0 max 500
+W < option name LmpBase type spin default 4 min 0 max 20
+W < option name HistoryPruneDepth type spin default 3 min 0 max 10
+W < option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+W < option name SeeQuietMultiplier type spin default 24 min 0 max 200
+W < option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+W < option name SingularDepth type spin default 7 min 2 max 20
+W < option name SingularMargin type spin default 2 min 0 max 10
+W < option name IirDepth type spin default 4 min 1 max 20
+W < option name ProbcutDepth type spin default 5 min 1 max 20
+W < option name ProbcutMargin type spin default 180 min 0 max 1000
+W < option name QsFutilityMargin type spin default 160 min 0 max 1000
+W < option name QsSeeMargin type spin default 40 min 0 max 500
+W < option name AspirationDelta type spin default 18 min 4 max 200
+W < option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+W < option name HistoryBonusLinear type spin default 48 min 0 max 500
+W < option name HistoryBonusMax type spin default 2048 min 100 max 10000
+W < option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+W < option name CheckExtensionDepth type spin default 2 min 1 max 30
+W < option name LmrCutoffThreshold type spin default 3 min 0 max 20
+W < option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+W < option name TmSoftDivisor type spin default 22 min 5 max 80
+W < option name TmIncrementPercent type spin default 75 min 0 max 150
+W < option name TmHardPercent type spin default 60 min 10 max 95
+W < option name TmHardSoftMultiple type spin default 5 min 1 max 20
+W < option name TmStableFactor type spin default 60 min 20 max 150
+W < option name TmSemiStableFactor type spin default 80 min 20 max 150
+W < option name TmUnstableFactor type spin default 140 min 50 max 300
+W < option name TmEffortBase type spin default 155 min 100 max 250
+W < option name TmFallingEvalPercent type spin default 100 min 0 max 400
+W < option name TmMinFactorPercent type spin default 45 min 10 max 100
+W < option name CaptureFutilityBase type spin default 0 min 0 max 1000
+W < option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+W < option name CaptureFutilityDepth type spin default 6 min 0 max 15
+W < option name FailLowContinuationBonus type spin default 0 min 0 max 300
+W < option name AspFailHighReduce type spin default 0 min 0 max 1
+W < option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+W < option name EvalSwingMult type spin default 0 min 0 max 64
+W < option name EvalSwingMax type spin default 200 min 50 max 400
+W < option name TtCutoffHistory type spin default 0 min 0 max 1
+W < option name Clear Hash type button
+W < uciok
+W > setoption name Threads value 1
+W > setoption name Hash value 16
+W > setoption name OwnBook value false
+W > setoption name MateAlphaGuard value true
+W > setoption name LmrQuietBase value 93
+W > setoption name LmrQuietDivisor value 205
+W > setoption name LmrNoisyBase value 13
+W > setoption name LmrNoisyDivisor value 333
+W > setoption name LmrHistoryDivisor value 5643
+W > setoption name NullMoveBase value 5
+W > setoption name LmpBase value 8
+W > setoption name HistoryPruneMultiplier value 2220
+W > setoption name HistoryBonusQuadratic value 24
+W > setoption name HistoryBonusLinear value 54
+W > setoption name HistoryBonusMax value 2212
+W > setoption name SingularDepth value 6
+W > setoption name IirDepth value 2
+W > setoption name NonPawnCorrection value true
+W > setoption name CuckooRep value true
+W > setoption name HistRework value 2
+W > setoption name TtPruneV2 value true
+W > setoption name CorrHistV2 value true
+W > setoption name NodeClock value 1000
+W > setoption name TmFinishIteration value false
+W > ucinewgame
+W > isready
+W < readyok
+B > uci
+B < id name Chess Engine Forge 6.4.24 candidate
+B < id author OpenAI
+B < option name Hash type spin default 32 min 1 max 2048
+B < option name Threads type spin default 1 min 1 max 256
+B < option name MultiPV type spin default 1 min 1 max 8
+B < option name Move Overhead type spin default 10 min 0 max 1000
+B < option name Ponder type check default false
+B < option name OwnBook type check default true
+B < option name Book File type string default <empty>
+B < option name Book Depth type spin default 30 min 0 max 100
+B < option name Book Variety type spin default 30 min 0 max 100
+B < option name UseNNUE type check default true
+B < option name NnueFile type string default <empty>
+B < option name NNUEArch type check default false
+B < option name NNUEArchFile type string default <empty>
+B < option name ContHist4PlyRead type check default false
+B < option name NonPawnCorrection type check default false
+B < option name LmrDeeperShallower type check default false
+B < option name EvalRule50Damp type check default false
+B < option name ThreatHistory type check default false
+B < option name LmrSignedCorrection type check default false
+B < option name LmrLateParentRelief type check default false
+B < option name HindsightDepth type check default false
+B < option name NullThreatVerify type check default false
+B < option name NullSeeVeto type check default false
+B < option name AspCappedReopen type check default false
+B < option name AspArmLate type check default false
+B < option name EvasionOrdering type check default false
+B < option name DeadMaterial type check default false
+B < option name QuietExtinction type check default false
+B < option name DrawJitter type spin default 0 min 0 max 8
+B < option name TmFinishIteration type check default false
+B < option name TmNodeShare type check default false
+B < option name NodeClock type spin default 0 min 0 max 1000000000
+B < option name SoundMatePruning type check default false
+B < option name CuckooRep type check default false
+B < option name HistRework type spin default 0 min 0 max 3
+B < option name TtPruneV2 type check default false
+B < option name CorrHistV2 type check default false
+B < option name MateAlphaGuard type check default false
+B < option name LmrQuietBase type spin default 85 min 0 max 300
+B < option name LmrQuietDivisor type spin default 220 min 100 max 500
+B < option name LmrNoisyBase type spin default 10 min 0 max 300
+B < option name LmrNoisyDivisor type spin default 340 min 100 max 800
+B < option name NullMoveMinDepth type spin default 3 min 1 max 10
+B < option name NullMoveBase type spin default 3 min 1 max 6
+B < option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+B < option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+B < option name RfpDepth type spin default 8 min 0 max 15
+B < option name RfpMargin type spin default 72 min 10 max 300
+B < option name RfpImproving type spin default 40 min 0 max 200
+B < option name RazorDepth type spin default 2 min 0 max 6
+B < option name RazorBase type spin default 150 min 0 max 1000
+B < option name RazorMultiplier type spin default 350 min 0 max 1000
+B < option name FutilityDepth type spin default 7 min 0 max 15
+B < option name FutilityBase type spin default 100 min 0 max 500
+B < option name FutilityMultiplier type spin default 110 min 0 max 500
+B < option name LmpBase type spin default 4 min 0 max 20
+B < option name HistoryPruneDepth type spin default 3 min 0 max 10
+B < option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+B < option name SeeQuietMultiplier type spin default 24 min 0 max 200
+B < option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+B < option name SingularDepth type spin default 7 min 2 max 20
+B < option name SingularMargin type spin default 2 min 0 max 10
+B < option name IirDepth type spin default 4 min 1 max 20
+B < option name ProbcutDepth type spin default 5 min 1 max 20
+B < option name ProbcutMargin type spin default 180 min 0 max 1000
+B < option name QsFutilityMargin type spin default 160 min 0 max 1000
+B < option name QsSeeMargin type spin default 40 min 0 max 500
+B < option name AspirationDelta type spin default 18 min 4 max 200
+B < option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+B < option name HistoryBonusLinear type spin default 48 min 0 max 500
+B < option name HistoryBonusMax type spin default 2048 min 100 max 10000
+B < option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+B < option name CheckExtensionDepth type spin default 2 min 1 max 30
+B < option name LmrCutoffThreshold type spin default 3 min 0 max 20
+B < option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+B < option name TmSoftDivisor type spin default 22 min 5 max 80
+B < option name TmIncrementPercent type spin default 75 min 0 max 150
+B < option name TmHardPercent type spin default 60 min 10 max 95
+B < option name TmHardSoftMultiple type spin default 5 min 1 max 20
+B < option name TmStableFactor type spin default 60 min 20 max 150
+B < option name TmSemiStableFactor type spin default 80 min 20 max 150
+B < option name TmUnstableFactor type spin default 140 min 50 max 300
+B < option name TmEffortBase type spin default 155 min 100 max 250
+B < option name TmFallingEvalPercent type spin default 100 min 0 max 400
+B < option name TmMinFactorPercent type spin default 45 min 10 max 100
+B < option name CaptureFutilityBase type spin default 0 min 0 max 1000
+B < option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+B < option name CaptureFutilityDepth type spin default 6 min 0 max 15
+B < option name FailLowContinuationBonus type spin default 0 min 0 max 300
+B < option name AspFailHighReduce type spin default 0 min 0 max 1
+B < option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+B < option name EvalSwingMult type spin default 0 min 0 max 64
+B < option name EvalSwingMax type spin default 200 min 50 max 400
+B < option name TtCutoffHistory type spin default 0 min 0 max 1
+B < option name Clear Hash type button
+B < uciok
+B > setoption name Threads value 1
+B > setoption name Hash value 16
+B > setoption name OwnBook value false
+B > setoption name MateAlphaGuard value true
+B > setoption name LmrQuietBase value 93
+B > setoption name LmrQuietDivisor value 205
+B > setoption name LmrNoisyBase value 13
+B > setoption name LmrNoisyDivisor value 333
+B > setoption name LmrHistoryDivisor value 5643
+B > setoption name NullMoveBase value 5
+B > setoption name LmpBase value 8
+B > setoption name HistoryPruneMultiplier value 2220
+B > setoption name HistoryBonusQuadratic value 24
+B > setoption name HistoryBonusLinear value 54
+B > setoption name HistoryBonusMax value 2212
+B > setoption name SingularDepth value 6
+B > setoption name IirDepth value 2
+B > setoption name NonPawnCorrection value true
+B > setoption name CuckooRep value true
+B > setoption name HistRework value 2
+B > setoption name TtPruneV2 value true
+B > setoption name CorrHistV2 value true
+B > setoption name NodeClock value 1000
+B > setoption name TmFinishIteration value true
+B > ucinewgame
+B > isready
+B < readyok
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves
+W > go wtime 6000 btime 6000 winc 60 binc 60
+W < info string softnodes nodes 386205
+W < bestmove d1g4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4
+B > go wtime 5674 btime 6000 winc 60 binc 60
+B < info string softnodes nodes 380829
+B < bestmove d8f6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6
+W > go wtime 5674 btime 5680 winc 60 binc 60
+W < info string softnodes nodes 136257
+W < bestmove h1h4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4
+B > go wtime 5598 btime 5680 winc 60 binc 60
+B < info string TmFinishIteration hold depth 16 prev 31 last 71 remaining 19
+B < info string softnodes nodes 131062
+B < bestmove f6g7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7
+W > go wtime 5598 btime 5609 winc 60 binc 60
+W < info string softnodes nodes 188162
+W < bestmove g4g7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7
+B > go wtime 5470 btime 5609 winc 60 binc 60
+B < info string softnodes nodes 242903
+B < bestmove g8g7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7
+W > go wtime 5470 btime 5427 winc 60 binc 60
+W < info string softnodes nodes 257534
+W < bestmove h4h8
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8
+B > go wtime 5273 btime 5427 winc 60 binc 60
+B < info string softnodes nodes 135692
+B < bestmove b4f8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8
+W > go wtime 5273 btime 5352 winc 60 binc 60
+W < info string softnodes nodes 304359
+W < bestmove c3b5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5
+B > go wtime 5029 btime 5352 winc 60 binc 60
+B < info string TmFinishIteration hold depth 19 prev 26 last 32 remaining 10
+B < info string softnodes nodes 119885
+B < bestmove f7f6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6
+W > go wtime 5029 btime 5293 winc 60 binc 60
+W < info string softnodes nodes 146321
+W < bestmove f1e2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2
+B > go wtime 4943 btime 5293 winc 60 binc 60
+B < info string softnodes nodes 324454
+B < bestmove b8a6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6
+W > go wtime 4943 btime 5029 winc 60 binc 60
+W < info string softnodes nodes 544602
+W < bestmove e1f1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1
+B > go wtime 4459 btime 5029 winc 60 binc 60
+B < info string softnodes nodes 157336
+B < bestmove e8f7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7
+W > go wtime 4459 btime 4932 winc 60 binc 60
+W < info string softnodes nodes 149184
+W < bestmove e2h5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5
+B > go wtime 4370 btime 4932 winc 60 binc 60
+B < info string TmFinishIteration hold depth 17 prev 24 last 53 remaining 15
+B < info string softnodes nodes 105049
+B < bestmove f7e7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7
+W > go wtime 4370 btime 4887 winc 60 binc 60
+W < info string softnodes nodes 181420
+W < bestmove b5a3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3
+B > go wtime 4249 btime 4887 winc 60 binc 60
+B < info string softnodes nodes 196579
+B < bestmove c8d7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7
+W > go wtime 4249 btime 4751 winc 60 binc 60
+W < info string softnodes nodes 138735
+W < bestmove g1e2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2
+B > go wtime 4171 btime 4751 winc 60 binc 60
+B < info string softnodes nodes 251611
+B < bestmove e6e5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5
+W > go wtime 4171 btime 4560 winc 60 binc 60
+W < info string softnodes nodes 163617
+W < bestmove c2c4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4
+B > go wtime 4068 btime 4560 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 24 last 50 remaining 33
+B < info string softnodes nodes 79006
+B < bestmove c7c6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6
+W > go wtime 4068 btime 4541 winc 60 binc 60
+W < info string softnodes nodes 197920
+W < bestmove c4d5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5
+B > go wtime 3931 btime 4541 winc 60 binc 60
+B < info string softnodes nodes 157093
+B < bestmove c6d5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5
+W > go wtime 3931 btime 4444 winc 60 binc 60
+W < info string softnodes nodes 134954
+W < bestmove a1e1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1
+B > go wtime 3857 btime 4444 winc 60 binc 60
+B < info string TmFinishIteration hold depth 16 prev 45 last 147 remaining 54
+B < info string softnodes nodes 332233
+B < bestmove e7d6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6
+W > go wtime 3857 btime 4172 winc 60 binc 60
+W < info string softnodes nodes 136633
+W < bestmove h8h6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6
+B > go wtime 3781 btime 4172 winc 60 binc 60
+B < info string TmFinishIteration hold depth 14 prev 35 last 47 remaining 15
+B < info string softnodes nodes 90770
+B < bestmove e5e4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4
+W > go wtime 3781 btime 4142 winc 60 binc 60
+W < info string softnodes nodes 124144
+W < bestmove a3c2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2
+B > go wtime 3717 btime 4142 winc 60 binc 60
+B < info string TmFinishIteration hold depth 14 prev 22 last 39 remaining 20
+B < info string softnodes nodes 84976
+B < bestmove f8e7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7
+W > go wtime 3717 btime 4118 winc 60 binc 60
+W < info string softnodes nodes 381526
+W < bestmove e2f4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4
+B > go wtime 3396 btime 4118 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 95 last 172 remaining 82
+B < info string softnodes nodes 343669
+B < bestmove g7g5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5
+W > go wtime 3396 btime 3835 winc 60 binc 60
+W < info string softnodes nodes 184894
+W < bestmove c2e3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3
+B > go wtime 3272 btime 3835 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 71 last 99 remaining 18
+B < info string softnodes nodes 177355
+B < bestmove a8c8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8
+W > go wtime 3272 btime 3718 winc 60 binc 60
+W < info string softnodes nodes 115084
+W < bestmove a2a3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3
+B > go wtime 3217 btime 3718 winc 60 binc 60
+B < info string softnodes nodes 105491
+B < bestmove a6c7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7
+W > go wtime 3217 btime 3673 winc 60 binc 60
+W < info string softnodes nodes 174894
+W < bestmove h6h7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7
+B > go wtime 3103 btime 3673 winc 60 binc 60
+B < info string TmFinishIteration hold depth 14 prev 31 last 25 remaining 19
+B < info string softnodes nodes 75849
+B < bestmove e7f8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8
+W > go wtime 3103 btime 3658 winc 60 binc 60
+W < info string softnodes nodes 103004
+W < bestmove h5g6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6
+B > go wtime 3060 btime 3658 winc 60 binc 60
+B < info string softnodes nodes 189893
+B < bestmove c8d8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8
+W > go wtime 3060 btime 3529 winc 60 binc 60
+W < info string softnodes nodes 168929
+W < bestmove e1c1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1
+B > go wtime 2952 btime 3529 winc 60 binc 60
+B < info string softnodes nodes 277520
+B < bestmove c7e6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6
+W > go wtime 2952 btime 3312 winc 60 binc 60
+W < info string softnodes nodes 81398
+W < bestmove f4h3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3
+B > go wtime 2931 btime 3312 winc 60 binc 60
+B < info string softnodes nodes 109544
+B < bestmove e6d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4
+W > go wtime 2931 btime 3263 winc 60 binc 60
+W < info string softnodes nodes 131903
+W < bestmove h3g5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5
+B > go wtime 2860 btime 3263 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 16 last 30 remaining 32
+B < info string softnodes nodes 54400
+B < bestmove f6g5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5
+W > go wtime 2860 btime 3269 winc 60 binc 60
+W < info string softnodes nodes 84173
+W < bestmove f1e1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1
+B > go wtime 2836 btime 3269 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 18 last 105 remaining 21
+B < info string softnodes nodes 133754
+B < bestmove d6e5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5
+W > go wtime 2836 btime 3196 winc 60 binc 60
+W < info string softnodes nodes 90784
+W < bestmove c1c7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7
+B > go wtime 2806 btime 3196 winc 60 binc 60
+B < info string softnodes nodes 119631
+B < bestmove d7c6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6
+W > go wtime 2806 btime 3137 winc 60 binc 60
+W < info string softnodes nodes 236954
+W < bestmove c7f7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7
+B > go wtime 2630 btime 3137 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 32 last 27 remaining 11
+B < info string softnodes nodes 73818
+B < bestmove d4e6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6
+W > go wtime 2630 btime 3124 winc 60 binc 60
+W < info string softnodes nodes 90110
+W < bestmove f7f5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5
+B > go wtime 2600 btime 3124 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 16 last 26 remaining 18
+B < info string softnodes nodes 65964
+B < bestmove e5d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4
+W > go wtime 2600 btime 3119 winc 60 binc 60
+W < info string softnodes nodes 97529
+W < bestmove g6f7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7
+B > go wtime 2563 btime 3119 winc 60 binc 60
+B < info string softnodes nodes 111868
+B < bestmove e6f4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4
+W > go wtime 2563 btime 3068 winc 60 binc 60
+W < info string softnodes nodes 181256
+W < bestmove e1d2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2
+B > go wtime 2442 btime 3068 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 11 last 40 remaining 16
+B < info string softnodes nodes 66007
+B < bestmove a7a5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5
+W > go wtime 2442 btime 3062 winc 60 binc 60
+W < info string softnodes nodes 276087
+W < bestmove b2b3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3
+B > go wtime 2226 btime 3062 winc 60 binc 60
+B < info string softnodes nodes 185420
+B < bestmove a5a4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4
+W > go wtime 2226 btime 2937 winc 60 binc 60
+W < info string softnodes nodes 92223
+W < bestmove b3b4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4
+B > go wtime 2194 btime 2937 winc 60 binc 60
+B < info string softnodes nodes 277553
+B < bestmove f4d3
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3
+W > go wtime 2194 btime 2720 winc 60 binc 60
+W < info string softnodes nodes 139729
+W < bestmove b4b5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5
+B > go wtime 2115 btime 2720 winc 60 binc 60
+B < info string softnodes nodes 91560
+B < bestmove c6b5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5
+W > go wtime 2115 btime 2689 winc 60 binc 60
+W < info string softnodes nodes 70318
+W < bestmove f7d5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5
+B > go wtime 2105 btime 2689 winc 60 binc 60
+B < info string softnodes nodes 133603
+B < bestmove d3e5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5
+W > go wtime 2105 btime 2616 winc 60 binc 60
+W < info string softnodes nodes 135975
+W < bestmove h7b7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7
+B > go wtime 2030 btime 2616 winc 60 binc 60
+B < info string TmFinishIteration hold depth 16 prev 24 last 71 remaining 17
+B < info string softnodes nodes 135397
+B < bestmove b5c4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4
+W > go wtime 2030 btime 2541 winc 60 binc 60
+W < info string softnodes nodes 212863
+W < bestmove e3c4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4
+B > go wtime 1878 btime 2541 winc 60 binc 60
+B < info string softnodes nodes 110746
+B < bestmove e5c4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4
+W > go wtime 1878 btime 2491 winc 60 binc 60
+W < info string softnodes nodes 66080
+W < bestmove d5c4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4
+B > go wtime 1872 btime 2491 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 13 last 32 remaining 15
+B < info string softnodes nodes 55086
+B < bestmove d4c4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4
+W > go wtime 1872 btime 2496 winc 60 binc 60
+W < info string softnodes nodes 59255
+W < bestmove d2c2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2
+B > go wtime 1873 btime 2496 winc 60 binc 60
+B < info string softnodes nodes 86306
+B < bestmove f8a3
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3
+W > go wtime 1873 btime 2470 winc 60 binc 60
+W < info string softnodes nodes 75994
+W < bestmove f5a5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5
+B > go wtime 1858 btime 2470 winc 60 binc 60
+B < info string softnodes nodes 110158
+B < bestmove d8c8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8
+W > go wtime 1858 btime 2420 winc 60 binc 60
+W < info string softnodes nodes 149559
+W < bestmove a5a4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4
+B > go wtime 1769 btime 2420 winc 60 binc 60
+B < info string softnodes nodes 77306
+B < bestmove c4d5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5
+W > go wtime 1769 btime 2403 winc 60 binc 60
+W < info string softnodes nodes 57206
+W < bestmove c2d2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2
+B > go wtime 1772 btime 2403 winc 60 binc 60
+B < info string softnodes nodes 156837
+B < bestmove a3d6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6
+W > go wtime 1772 btime 2307 winc 60 binc 60
+W < info string softnodes nodes 97407
+W < bestmove a4a5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5
+B > go wtime 1735 btime 2307 winc 60 binc 60
+B < info string softnodes nodes 147300
+B < bestmove c8c5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5
+W > go wtime 1735 btime 2220 winc 60 binc 60
+W < info string softnodes nodes 66020
+W < bestmove a5c5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5
+B > go wtime 1729 btime 2220 winc 60 binc 60
+B < info string TmFinishIteration hold depth 18 prev 8 last 16 remaining 25
+B < info string softnodes nodes 40855
+B < bestmove d6c5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5
+W > go wtime 1729 btime 2240 winc 60 binc 60
+W < info string softnodes nodes 55454
+W < bestmove d2e2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2
+B > go wtime 1734 btime 2240 winc 60 binc 60
+B < info string softnodes nodes 400073
+B < bestmove c5d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4
+W > go wtime 1734 btime 1900 winc 60 binc 60
+W < info string softnodes nodes 147619
+W < bestmove b7d7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7
+B > go wtime 1647 btime 1900 winc 60 binc 60
+B < info string softnodes nodes 92647
+B < bestmove d5e5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5
+W > go wtime 1647 btime 1868 winc 60 binc 60
+W < info string softnodes nodes 66453
+W < bestmove d7g7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7
+B > go wtime 1641 btime 1868 winc 60 binc 60
+B < info string softnodes nodes 98142
+B < bestmove e5f6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6
+W > go wtime 1641 btime 1830 winc 60 binc 60
+W < info string softnodes nodes 92537
+W < bestmove g7b7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7
+B > go wtime 1609 btime 1830 winc 60 binc 60
+B < info string TmFinishIteration hold depth 18 prev 6 last 10 remaining 15
+B < info string softnodes nodes 42936
+B < bestmove f6e5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5
+W > go wtime 1609 btime 1848 winc 60 binc 60
+W < info string softnodes nodes 121415
+W < bestmove b7b5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5
+B > go wtime 1548 btime 1848 winc 60 binc 60
+B < info string TmFinishIteration hold depth 20 prev 8 last 14 remaining 7
+B < info string softnodes nodes 50150
+B < bestmove e5f4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4
+W > go wtime 1548 btime 1858 winc 60 binc 60
+W < info string softnodes nodes 54857
+W < bestmove g2g3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3
+B > go wtime 1554 btime 1858 winc 60 binc 60
+B < info string TmFinishIteration hold depth 21 prev 8 last 24 remaining 10
+B < info string softnodes nodes 48149
+B < bestmove f4g4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4
+W > go wtime 1554 btime 1870 winc 60 binc 60
+W < info string softnodes nodes 53760
+W < bestmove b5b4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4
+B > go wtime 1561 btime 1870 winc 60 binc 60
+B < info string TmFinishIteration hold depth 21 prev 14 last 25 remaining 9
+B < info string softnodes nodes 49390
+B < bestmove d4f6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6
+W > go wtime 1561 btime 1881 winc 60 binc 60
+W < info string softnodes nodes 101242
+W < bestmove b4e4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4
+B > go wtime 1520 btime 1881 winc 60 binc 60
+B < info string softnodes nodes 118317
+B < bestmove g4h3
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3
+W > go wtime 1520 btime 1823 winc 60 binc 60
+W < info string softnodes nodes 63563
+W < bestmove e2f1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1
+B > go wtime 1517 btime 1823 winc 60 binc 60
+B < info string softnodes nodes 188242
+B < bestmove f6c3
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3
+W > go wtime 1517 btime 1695 winc 60 binc 60
+W < info string softnodes nodes 81082
+W < bestmove e4e7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7
+B > go wtime 1496 btime 1695 winc 60 binc 60
+B < info string softnodes nodes 71537
+B < bestmove c3b2
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2
+W > go wtime 1496 btime 1684 winc 60 binc 60
+W < info string softnodes nodes 66265
+W < bestmove e7h7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7
+B > go wtime 1490 btime 1684 winc 60 binc 60
+B < info string TmFinishIteration hold depth 17 prev 7 last 19 remaining 2
+B < info string softnodes nodes 52717
+B < bestmove h3g4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4
+W > go wtime 1490 btime 1692 winc 60 binc 60
+W < info string softnodes nodes 57312
+W < bestmove f1g2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2
+B > go wtime 1493 btime 1692 winc 60 binc 60
+B < info string softnodes nodes 156988
+B < bestmove b2f6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6
+W > go wtime 1493 btime 1596 winc 60 binc 60
+W < info string softnodes nodes 73827
+W < bestmove h7b7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7
+B > go wtime 1480 btime 1596 winc 60 binc 60
+B < info string softnodes nodes 54485
+B < bestmove g4f5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5
+W > go wtime 1480 btime 1602 winc 60 binc 60
+W < info string softnodes nodes 166065
+W < bestmove g2f3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3
+B > go wtime 1374 btime 1602 winc 60 binc 60
+B < info string softnodes nodes 151950
+B < bestmove g5g4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4
+W > go wtime 1374 btime 1511 winc 60 binc 60
+W < info string softnodes nodes 50844
+W < bestmove f3e3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3
+B > go wtime 1384 btime 1511 winc 60 binc 60
+B < info string softnodes nodes 93256
+B < bestmove f6g5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5
+W > go wtime 1384 btime 1478 winc 60 binc 60
+W < info string softnodes nodes 63894
+W < bestmove e3d3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3
+B > go wtime 1381 btime 1478 winc 60 binc 60
+B < info string TmFinishIteration hold depth 17 prev 8 last 55 remaining 13
+B < info string softnodes nodes 71907
+B < bestmove g5c1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1
+W > go wtime 1381 btime 1467 winc 60 binc 60
+W < info string softnodes nodes 94898
+W < bestmove b7b5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5
+B > go wtime 1347 btime 1467 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 26 last 19 remaining 4
+B < info string softnodes nodes 51155
+B < bestmove f5g6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6
+W > go wtime 1347 btime 1476 winc 60 binc 60
+W < info string softnodes nodes 107625
+W < bestmove d3e4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4
+B > go wtime 1300 btime 1476 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 8 last 22 remaining 11
+B < info string softnodes nodes 47336
+B < bestmove c1d2
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2
+W > go wtime 1300 btime 1489 winc 60 binc 60
+W < info string softnodes nodes 75398
+W < bestmove b5b2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2
+B > go wtime 1285 btime 1489 winc 60 binc 60
+B < info string softnodes nodes 195175
+B < bestmove d2e1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1
+W > go wtime 1285 btime 1354 winc 60 binc 60
+W < info string softnodes nodes 45692
+W < bestmove e4f4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4
+B > go wtime 1300 btime 1354 winc 60 binc 60
+B < info string TmFinishIteration hold depth 14 prev 10 last 25 remaining 4
+B < info string softnodes nodes 44921
+B < bestmove g6h5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5
+W > go wtime 1300 btime 1370 winc 60 binc 60
+W < info string softnodes nodes 48670
+W < bestmove f4f5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5
+B > go wtime 1312 btime 1370 winc 60 binc 60
+B < info string TmFinishIteration hold depth 16 prev 3 last 32 remaining 4
+B < info string softnodes nodes 63842
+B < bestmove e1c3
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3
+W > go wtime 1312 btime 1367 winc 60 binc 60
+W < info string softnodes nodes 167581
+W < bestmove b2b1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1
+B > go wtime 1205 btime 1367 winc 60 binc 60
+B < info string softnodes nodes 50266
+B < bestmove h5h6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6
+W > go wtime 1205 btime 1377 winc 60 binc 60
+W < info string softnodes nodes 68666
+W < bestmove f5g4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4
+B > go wtime 1197 btime 1377 winc 60 binc 60
+B < info string softnodes nodes 220781
+B < bestmove c3d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4
+W > go wtime 1197 btime 1217 winc 60 binc 60
+W < info string softnodes nodes 80426
+W < bestmove g4f3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3
+B > go wtime 1177 btime 1217 winc 60 binc 60
+B < info string TmFinishIteration hold depth 21 prev 7 last 10 remaining 11
+B < info string softnodes nodes 33870
+B < bestmove h6g5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5
+W > go wtime 1177 btime 1244 winc 60 binc 60
+W < info string softnodes nodes 79449
+W < bestmove b1c1
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1
+B > go wtime 1158 btime 1244 winc 60 binc 60
+B < info string softnodes nodes 106530
+B < bestmove g5g6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6
+W > go wtime 1158 btime 1198 winc 60 binc 60
+W < info string softnodes nodes 54704
+W < bestmove c1c4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4
+B > go wtime 1164 btime 1198 winc 60 binc 60
+B < info string TmFinishIteration hold depth 19 prev 7 last 14 remaining 14
+B < info string softnodes nodes 30856
+B < bestmove d4a7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7
+W > go wtime 1164 btime 1228 winc 60 binc 60
+W < info string softnodes nodes 47394
+W < bestmove c4c6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6
+B > go wtime 1177 btime 1228 winc 60 binc 60
+B < info string TmFinishIteration hold depth 20 prev 4 last 8 remaining 15
+B < info string softnodes nodes 30986
+B < bestmove g6f5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5
+W > go wtime 1177 btime 1258 winc 60 binc 60
+W < info string softnodes nodes 45213
+W < bestmove c6c7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7
+B > go wtime 1192 btime 1258 winc 60 binc 60
+B < info string softnodes nodes 51652
+B < bestmove a7d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4
+W > go wtime 1192 btime 1267 winc 60 binc 60
+W < info string softnodes nodes 60583
+W < bestmove c7c4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4
+B > go wtime 1192 btime 1267 winc 60 binc 60
+B < info string TmFinishIteration hold depth 23 prev 5 last 10 remaining 14
+B < info string softnodes nodes 31103
+B < bestmove d4a7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7
+W > go wtime 1192 btime 1296 winc 60 binc 60
+W < info string softnodes nodes 199274
+W < bestmove g3g4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4
+B > go wtime 1053 btime 1296 winc 60 binc 60
+B < info string softnodes nodes 169496
+B < bestmove f5f6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6
+W > go wtime 1053 btime 1187 winc 60 binc 60
+W < info string softnodes nodes 52128
+W < bestmove f3g3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3
+B > go wtime 1061 btime 1187 winc 60 binc 60
+B < info string softnodes nodes 59350
+B < bestmove f6e6
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6
+W > go wtime 1061 btime 1188 winc 60 binc 60
+W < info string softnodes nodes 53369
+W < bestmove f2f4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4
+B > go wtime 1068 btime 1188 winc 60 binc 60
+B < info string softnodes nodes 54232
+B < bestmove a7g1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1
+W > go wtime 1068 btime 1194 winc 60 binc 60
+W < info string softnodes nodes 45050
+W < bestmove g3g2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2
+B > go wtime 1083 btime 1194 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 11 last 18 remaining 1
+B < info string softnodes nodes 43021
+B < bestmove g1a7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7
+W > go wtime 1083 btime 1211 winc 60 binc 60
+W < info string softnodes nodes 55306
+W < bestmove g2f3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3
+B > go wtime 1088 btime 1211 winc 60 binc 60
+B < info string TmFinishIteration hold depth 15 prev 9 last 22 remaining 13
+B < info string softnodes nodes 42626
+B < bestmove a7b8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8
+W > go wtime 1088 btime 1229 winc 60 binc 60
+W < info string softnodes nodes 87737
+W < bestmove c4c6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6
+B > go wtime 1061 btime 1229 winc 60 binc 60
+B < info string softnodes nodes 357134
+B < bestmove e6d5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5
+W > go wtime 1061 btime 932 winc 60 binc 60
+W < info string softnodes nodes 60904
+W < bestmove c6h6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6
+B > go wtime 1061 btime 932 winc 60 binc 60
+B < info string softnodes nodes 77773
+B < bestmove b8a7
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7
+W > go wtime 1061 btime 915 winc 60 binc 60
+W < info string softnodes nodes 121742
+W < bestmove g4g5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5
+B > go wtime 1000 btime 915 winc 60 binc 60
+B < info string softnodes nodes 175464
+B < bestmove a7c5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5
+W > go wtime 1000 btime 800 winc 60 binc 60
+W < info string softnodes nodes 78898
+W < bestmove f3g4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4
+B > go wtime 982 btime 800 winc 60 binc 60
+B < info string TmFinishIteration hold depth 12 prev 20 last 70 remaining 21
+B < info string softnodes nodes 95682
+B < bestmove c5f8
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8
+W > go wtime 982 btime 765 winc 60 binc 60
+W < info string softnodes nodes 40352
+W < bestmove f4f5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5
+B > go wtime 1002 btime 765 winc 60 binc 60
+B < info string softnodes nodes 186049
+B < bestmove d5c4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4
+W > go wtime 1002 btime 639 winc 60 binc 60
+W < info string softnodes nodes 74751
+W < bestmove h6a6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6
+B > go wtime 988 btime 639 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 16 last 101 remaining 3
+B < info string softnodes nodes 154510
+B < bestmove f8c5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5
+W > go wtime 988 btime 545 winc 60 binc 60
+W < info string softnodes nodes 123958
+W < bestmove g5g6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6
+B > go wtime 925 btime 545 winc 60 binc 60
+B < info string softnodes nodes 49545
+B < bestmove c5d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4
+W > go wtime 925 btime 556 winc 60 binc 60
+W < info string softnodes nodes 50791
+W < bestmove a6a4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4
+B > go wtime 935 btime 556 winc 60 binc 60
+B < info string TmFinishIteration hold depth 13 prev 7 last 60 remaining 17
+B < info string softnodes nodes 89872
+B < bestmove c4c5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5
+W > go wtime 935 btime 527 winc 60 binc 60
+W < info string softnodes nodes 63750
+W < bestmove a4d4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4
+B > go wtime 932 btime 527 winc 60 binc 60
+B < info string softnodes nodes 47998
+B < bestmove c5d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4
+W > go wtime 932 btime 540 winc 60 binc 60
+W < info string softnodes nodes 72269
+W < bestmove g6g7
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7
+B > go wtime 920 btime 540 winc 60 binc 60
+B < info string TmFinishIteration hold depth 12 prev 15 last 15 remaining 6
+B < info string softnodes nodes 41564
+B < bestmove d4e5
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5
+W > go wtime 920 btime 559 winc 60 binc 60
+W < info string softnodes nodes 47461
+W < bestmove g7g8q
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q
+B > go wtime 933 btime 559 winc 60 binc 60
+B < info string softnodes nodes 191616
+B < bestmove e5d4
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4
+W > go wtime 933 btime 428 winc 60 binc 60
+W < info string softnodes nodes 64674
+W < bestmove f5f6
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6
+B > go wtime 929 btime 428 winc 60 binc 60
+B < info string softnodes nodes 81674
+B < bestmove d4c3
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3
+W > go wtime 929 btime 407 winc 60 binc 60
+W < info string softnodes nodes 52485
+W < bestmove g8d5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5
+B > go wtime 937 btime 407 winc 60 binc 60
+B < info string softnodes nodes 70135
+B < bestmove c3c2
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2
+W > go wtime 937 btime 397 winc 60 binc 60
+W < info string softnodes nodes 64575
+W < bestmove g4f5
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5
+B > go wtime 933 btime 397 winc 60 binc 60
+B < info string softnodes nodes 52984
+B < bestmove c2b1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1
+W > go wtime 933 btime 405 winc 60 binc 60
+W < info string softnodes nodes 101473
+W < bestmove d5b3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3
+B > go wtime 892 btime 405 winc 60 binc 60
+B < info string softnodes nodes 42343
+B < bestmove b1c1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1
+W > go wtime 892 btime 423 winc 60 binc 60
+W < info string softnodes nodes 71414
+W < bestmove f5e4
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1 f5e4
+B > go wtime 881 btime 423 winc 60 binc 60
+B < info string TmFinishIteration hold depth 11 prev 5 last 4 remaining 3
+B < info string softnodes nodes 25696
+B < bestmove c1d2
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1 f5e4 c1d2
+W > go wtime 881 btime 458 winc 60 binc 60
+W < info string softnodes nodes 69356
+W < bestmove b3b2
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1 f5e4 c1d2 b3b2
+B > go wtime 872 btime 458 winc 60 binc 60
+B < info string softnodes nodes 3914
+B < bestmove d2e1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1 f5e4 c1d2 b3b2 d2e1
+W > go wtime 872 btime 515 winc 60 binc 60
+W < info string softnodes nodes 3696
+W < bestmove e4e3
+B > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1 f5e4 c1d2 b3b2 d2e1 e4e3
+B > go wtime 929 btime 515 winc 60 binc 60
+B < info string softnodes nodes 257
+B < bestmove e1f1
+W > position fen rnbqk1r1/ppp2pP1/4p3/3p4/1b1P3p/2N5/PPP2PP1/R2QKBNR w KQq - 0 1 moves d1g4 d8f6 h1h4 f6g7 g4g7 g8g7 h4h8 b4f8 c3b5 f7f6 f1e2 b8a6 e1f1 e8f7 e2h5 f7e7 b5a3 c8d7 g1e2 e6e5 c2c4 c7c6 c4d5 c6d5 a1e1 e7d6 h8h6 e5e4 a3c2 f8e7 e2f4 g7g5 c2e3 a8c8 a2a3 a6c7 h6h7 e7f8 h5g6 c8d8 e1c1 c7e6 f4h3 e6d4 h3g5 f6g5 f1e1 d6e5 c1c7 d7c6 c7f7 d4e6 f7f5 e5d4 g6f7 e6f4 e1d2 a7a5 b2b3 a5a4 b3b4 f4d3 b4b5 c6b5 f7d5 d3e5 h7b7 b5c4 e3c4 e5c4 d5c4 d4c4 d2c2 f8a3 f5a5 d8c8 a5a4 c4d5 c2d2 a3d6 a4a5 c8c5 a5c5 d6c5 d2e2 c5d4 b7d7 d5e5 d7g7 e5f6 g7b7 f6e5 b7b5 e5f4 g2g3 f4g4 b5b4 d4f6 b4e4 g4h3 e2f1 f6c3 e4e7 c3b2 e7h7 h3g4 f1g2 b2f6 h7b7 g4f5 g2f3 g5g4 f3e3 f6g5 e3d3 g5c1 b7b5 f5g6 d3e4 c1d2 b5b2 d2e1 e4f4 g6h5 f4f5 e1c3 b2b1 h5h6 f5g4 c3d4 g4f3 h6g5 b1c1 g5g6 c1c4 d4a7 c4c6 g6f5 c6c7 a7d4 c7c4 d4a7 g3g4 f5f6 f3g3 f6e6 f2f4 a7g1 g3g2 g1a7 g2f3 a7b8 c4c6 e6d5 c6h6 b8a7 g4g5 a7c5 f3g4 c5f8 f4f5 d5c4 h6a6 f8c5 g5g6 c5d4 a6a4 c4c5 a4d4 c5d4 g6g7 d4e5 g7g8q e5d4 f5f6 d4c3 g8d5 c3c2 g4f5 c2b1 d5b3 b1c1 f5e4 c1d2 b3b2 d2e1 e4e3 e1f1
+W > go wtime 929 btime 575 winc 60 binc 60
+W < info string softnodes nodes 1794
+W < bestmove b2f2
+W > quit
+B > quit
