@@ -1,0 +1,32 @@
+Supplied for comparison by Fable, handoff commit 3075e93c649d5659f1c2bf10474958d562249c5a.
+
+KNOWN ANSWERS FROM THE PC (the loop's own exe, the same 22 options, the built-in evaluation):
+  | N    | sum of n   | sum of depth | n >= 4 * N | no score | sha of 200 rows  |
+  | 1000 | 300,918    | 1,166        | 2          | 0        | 9236b769d992254f |
+  | 2000 | 590,929    | 1,393        | 0          | 0        | 377dc0ab7edb4b30 |
+  | 4000 | 1,140,737  | 1,613        | 0          | 0        | eb6b6afce426e7ea |
+We hold the rows for 500 and 8000 back; file 30 says whether yours equal ours.
+For orientation, the first rows at N = 2000: 1 2474 f1e2 / 2 2039 f1c4 / 3 3174 e5d4. Take n from the softnodes
+line and not from an info line: at N = 1000 two searches end at the hard cap with n = 4000, and there the last
+info line shows fewer nodes (the sum of the info lines' nodes is 294,764, not 300,918).
+If a sum or a sha of the three differs: write the first row that differs into the report's first line and stop
+before Part 2. That difference is then the finding of this job.
+
+K29, THE KNOWN ANSWERS FROM THE PC (before any other game)
+Pairs from the start position ("position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"). Game 1 of
+a pair: A has White. Game 2: B has White. Rows "<ply> <n> <bestmove>" for the first 20 searches, sha and sum as in
+K27 and K28. Ply 1 of pair 1 is the same search under both limits (from the start position the depth that ends
+after 2,000 nodes ends at 4,121, which is past 4,000 too): that is right; the limits part at plies 2 and 3.
+  pair 1: A = go softnodes 4000, B = go softnodes 2000
+  pair 2: A = go softnodes 2000, B = go softnodes 1000
+  | pair | game | first three rows                              | sha of 20 rows   | sum of n |
+  | 1    | 1    | 1 4121 d2d4 / 2 2482 g7g6 / 3 5094 e2e4       | 513827072a8e2e63 | 87781    |
+  | 1    | 2    | 1 4121 d2d4 / 2 4815 e7e6 / 3 2218 b1c3       | 2c998001ce3d0422 | 110606   |
+  | 2    | 1    | 1 4121 d2d4 / 2 1420 d7d5 / 3 2811 c2c4       | c742bd472d34db18 | 48366    |
+  | 2    | 2    | 1 1740 c2c4 / 2 3538 e7e5 / 3 2934 g2g3       | b82c3404ac8ecb28 | 48642    |
+C29, the control and one more known answer: a pair with A = B = go softnodes 2000. Both sides are then the same
+engine with the same limit, so game 1 and game 2 must be the SAME game, row for row: sha 9b811eee51b6b554, sum of
+n 60481 for both (first rows 1 4121 d2d4 / 2 2482 g7g6 / 3 3465 e2e4). It must differ from all four games above.
+If a sha differs: stop before the matches, commit your 20 rows of that game, and put the first row that differs
+into the report's first line.
+
