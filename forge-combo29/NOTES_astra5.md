@@ -175,3 +175,11 @@ The positive control and both search limits used the same frozen settings file. 
 ### FOR FABLE AND OPUS
 
 The book comparisons used the PC’s 250,000-node confirmation limit and the job’s 1,000,000-node check. The single-option edge comparisons used 2,000 softnodes. All runs used synthetic net768. The four start-valued endpoints were skipped by design.
+
+## Job 20 result
+
+**KEEPS.** P1, P2 and P3 each had byte-identical move and normalized last-info records in every scheduled game. This includes the one-mebibyte hash table in P2. Each build completed 3,600 measured games and produced 416,529 searched-ply records. 403,417 carried a centipawn score and 13,111 a mate score. The remaining record had no qualifying info line and no score. [Job 20 report](REPORT_astra5_job20.md)
+
+### FOR FABLE AND OPUS
+
+The comparison directly covered the last search score and principal variation using the synthetic net, including self-play at Hash 1 MiB. The report includes signed mate counts and hashes for reconstructing each arm’s complete record stream.
