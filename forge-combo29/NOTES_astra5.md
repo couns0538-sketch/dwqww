@@ -199,3 +199,11 @@ C21 passed with its upper 95% endpoint below zero. B1 is the declared decision o
 ### FOR FABLE AND OPUS
 
 L1 resident memory went from 34,232 to 34,764 KiB on r15d and from 34,004 to 34,264 KiB on kF. Memory was descriptive.
+
+## Job 23 result
+
+**KEEPS.** Both FEN drivers produced byte-identical move-and-node records between r15d and kF across 2,000 games per driver. Each arm recorded 232,013 searched plies with a node count on every row. The starting-FEN driver reproduced Job 22's full-history `startpos` records exactly. The book-FEN driver changed two node counts in game 701704, by +16 and +15, while every played move across all 2,000 games stayed the same. The runs used PC20, synthetic net768, Threads 1, Hash 16 and `go softnodes 2000`. [Job 23 report](REPORT_astra5_job23.md)
+
+### FOR FABLE AND OPUS
+
+At both changed plies, the full history contains the same earlier position twice and the book-FEN history retains it once. A legal continuation reaches that position again. The records identify the two affected searches. An internal trace would be needed to establish which continuation or cutoff produced the 31 additional reported nodes. [Game 701704 readback](astra5/job23/audit/701704-audit.txt)
