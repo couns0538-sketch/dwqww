@@ -1,0 +1,32 @@
+PRE-COMMITTED PREDICTION FOR JOB 29
+(Written after Step 0, builds.txt, and LA.epd, and before the first run of Part A. No date, time, or commit id.)
+
+1. Known Answers (number of rows or lines where K / KL differs from R / RL):
+- KA  (Part A, 2,700 rows on LA[1..100] x 27 commands): [0, 0] differing rows
+- KA2 (Part A, 540 rows on LA[1..20] x 27 commands at MultiPV 2): [0, 0] differing rows
+- KB  (Part B, SB 60-round script and SB2 infinite+Hash2 script, time/nps masked): [0, 0] differing lines
+- KC  (Part C, SC with Threads 2 and Threads 4 across RS, KS, RT, KT): [0, 0] new sanitizer reports on KS/KT relative to RS/RT, and [0, 0] illegal/missing bestmoves
+- KD  (Part D, SD 7-step net switching script, time/nps masked): [0, 0] differing lines
+- KE1 (Part E1, KL vs RL under -stdlib=libc++ on bench 11, bench 13, perft 5, and T20): [0, 0] differing rows/traces
+- KE2 (Part E2, net768 copy with hidden=784 on K and R): [0, 0] differing lines
+
+2. Sanitizer Report Counts Across All Job 29 Runs:
+- KS (-fsanitize=address,undefined): 0 reports
+- RS (-fsanitize=address,undefined): 0 reports
+- KT (-fsanitize=thread): 0 reports
+- RT (-fsanitize=thread): 0 reports
+
+3. Controls (whether each control fires):
+- CA  (C3 vs R on Part A's 2,700 rows): FIRES
+- CB  (C1 on SB2, 5 runs): FIRES
+- CC  (C4 on SC with Threads 4): FIRES
+- CD  (C2 on SD): FIRES
+- CE1 (RL bench 11 != 312866 under -stdlib=libc++): FIRES
+- CE2 (unchanged net768 copy loads on both K and R): FIRES
+
+4. Expected Part Readings:
+- Part A: KEEPS
+- Part B: KEEPS
+- Part C: KEEPS
+- Part D: KEEPS
+- Part E (E1 and E2): KEEPS
