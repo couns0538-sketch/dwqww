@@ -1,0 +1,24 @@
+Job 28 Pre-Committed Prediction (CPU of B over A; A = kG, B = kF)
+=================================================================
+
+Bundle kG = kF + 14_search_lazy_history_hoist + 15_slim_search_stack + 16_v3_null_and_fused_tail.
+
+Declared row thresholds (A = kG, B = kF, so B/A > 1 means kG uses less CPU):
+  - PAYS:     pooled CPU ratio > 1.0116 and at least 10 of 12 blocks > 1.0000
+  - COSTS:    pooled CPU ratio < 0.9884 and at least 10 of 12 blocks < 1.0000
+  - NOT SEEN: otherwise
+
+Declared bundle threshold:
+  - BUNDLE reads PAYS when G1 AND G2 both read PAYS; COSTS when both read COSTS; NOT SEEN otherwise.
+
+Predictions:
+  1. G1 (A = kG_1, B = kF_sp_1 on T, go softnodes 2000):
+     Predicted pooled CPU ratio range: [1.0150, 1.0350]
+     Expected row reading: PAYS
+
+  2. G2 (A = kG_2, B = kF_sp_2 on T, go softnodes 2000):
+     Predicted pooled CPU ratio range: [1.0150, 1.0350]
+     Expected row reading: PAYS
+
+  3. BUNDLE (G1 and G2 together):
+     Expected bundle reading: PAYS
