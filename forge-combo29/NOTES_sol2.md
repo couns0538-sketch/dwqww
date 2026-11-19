@@ -135,3 +135,7 @@ Completed 6 of 6 comparisons using one pinned CPU, the Clang 19.1.7 self-play pr
 ## Job 22 — 2026-11-19T01:08:54Z
 
 C22 passed. H0 PAYS at pooled CPU B/A 0.9315. H1 PAYS at pooled CPU B/A 0.9305. H1 versus H0 was same within the error. H2 PAYS at pooled CPU B/A 0.9405. H2 versus H0 was same within the error. [Job 22 report](REPORT_sol2_job22.md)
+
+## Job 23 — 2026-11-19T01:41:49Z
+
+C23 passed. D0 PAYS at pooled CPU B/A 0.9480. D1 PAYS at pooled CPU B/A 0.9460. D1 versus D0 was same within the error. D2 PAYS at pooled CPU B/A 0.9533. D2 versus D0 was same within the error. [Job 23 report](REPORT_sol2_job23.md)
