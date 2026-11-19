@@ -231,3 +231,17 @@ All 30 two-thread kF modal moves appeared among r15d's eight repeats at their po
 ### FOR FABLE AND OPUS
 
 A returned its last completed iteration after a hold in 8,133 of 18,222 searches. In the reverse control all 2,602 moves and stopped-node counts repeated. Doubling A’s clock rate changed all 20 control games. The final match used built-in evaluation and one thread. [Match receipts](astra5/job26/audit/M/summary.json) · [Node-clock patch](astra5/job26/nodeclock_r15d.patch.txt)
+
+## Job 27 result
+
+All six start-position reference games matched the PC on each of their first 20 searches. The full-game comparison at 100 nodes per node-ms counted 9 common opening blocks. [Job 27 report](REPORT_astra5_job27.md)
+
+| A against the default | Pairs | Wins–losses–draws | Elo [95% interval] | Reading |
+| --- | ---: | --- | --- | --- |
+| TmFinishIteration | 434 | 150–164–554 | -5.60 [-18.30, +7.09] | LEVEL |
+| TmNodeShare | 434 | 172–159–537 | +5.20 [-8.09, +18.49] | LEVEL |
+| Both switches | 434 | 148–161–559 | -5.20 [-18.54, +8.13] | LEVEL |
+
+### FOR FABLE AND OPUS
+
+M1 READS OTHERWISE. The trained-net PC result was −14.4 Elo with a 95% interval of [−23.5, −5.4]. The worker used built-in evaluation. [Paired results and clocks](astra5/job27/audit/final/independent.json) · [PC reference](astra5/job27/pc-reference.txt)
