@@ -245,3 +245,17 @@ All six start-position reference games matched the PC on each of their first 20 
 ### FOR FABLE AND OPUS
 
 M1 READS OTHERWISE. The trained-net PC result was −14.4 Elo with a 95% interval of [−23.5, −5.4]. The worker used built-in evaluation. [Paired results and clocks](astra5/job27/audit/final/independent.json) · [PC reference](astra5/job27/pc-reference.txt)
+
+## Job 28 result
+
+The worker reproduced the PC’s six start-position hashes and default-divisor control at 100 nodes per node-ms. [Job 28 report](REPORT_astra5_job28.md)
+
+| A against the default | Opening pairs | Wins–losses–draws | Elo [95% interval] | Reading |
+| --- | ---: | --- | --- | --- |
+| Finish rule with divisor 20 | 434 | 160–186–522 | -10.41 [-23.80, +2.98] | LEVEL |
+| Divisor 16 | 434 | 141–178–549 | -14.82 [-28.11, -1.52] | B BETTER |
+| Divisor 30 | 434 | 144–180–544 | -14.42 [-27.60, -1.24] | B BETTER |
+
+### FOR FABLE AND OPUS
+
+M4 READS AS M1. The paired comparisons use A’s points from both colors on the same opening and compare their uncertainty with separate opening samples. [Per-opening comparisons](astra5/job28/comparisons/comparisons.tsv) · [Game and search totals](astra5/job28/audit/final/independent.json)
