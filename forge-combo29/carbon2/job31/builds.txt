@@ -1,0 +1,25 @@
+=== JOB 31 BUILDS, COMMAND LIST L, AND PATCH SHA256 ===
+L (/tmp/carbon2_job31/L.txt): lines=12287 sha256=73bec774f2b70f7148f4bcc81232666d366fcac1e8a9928b820b284477c46dce U=60 (first 60 lines in job31/L_head.txt)
+
+--- Step 0 Executables ---
+[X_1 = kH_1] exe=/tmp/carbon2_job30/bld_sp_stkH_1/forge (len=38) sha256=41f147ec4482904557dddfc0089378a3fd7e0af6104ca661981d8db7fbe57140 (REUSED from Job 30)
+[X_2 = kH_2] exe=/tmp/carbon2_job30/bld_sp_stkH_2/forge (len=38) sha256=66bf617597720713dcab079b8e6d8e21087b5870e8eefffac121a442c76413c1 (REUSED from Job 30)
+[kF_sp_1]    exe=/tmp/carbon2_job17/bld_sp_tidy_1/forge (len=38) sha256=c16daacc5987a820801c792ec4ffbb5f997f2c8d97af4399aa365c5edc473b4e (REUSED from Job 28/30)
+[D = bld_sp_r15d_1] exe=/tmp/carbon2_job11/bld_sp_r15d_1/forge (len=38) sha256=31489d73bb8f3fa8af14c020bb1f419ded39dc835b0dd3e0b2fee9cddf6faf03 profdata_sha256=7ec91d0bbf8dc50ba53817a4eea858e242403ded7096ba7bf41a96eba834c77f (REBUILT SP-PGO from Job 21's first r15d source)
+
+--- Control CF (X + 1 MB memset at top of Searcher::search) ---
+CF_planted_1mb_memset.patch.txt: sha256=cd85a1dabd82ba73e0007c88506383d81c5f28ac5f8a33ebe10356e0b25cd622
+[CF] exe=/tmp/carbon2_job31/bld_sp_ctrlCF/forge (len=38) sha256=c754b67400d67be485b041877c8d68683cb735d39ec2c4f46454a5cbd570f4f7 profdata_sha256=52471bd9e7ab9c1f7a6e5dcfe031d1e9667f0cadff86a690e0dcaa6f1f3525b6
+Disassembly proof that Clang ThinLTO + SP-PGO kept the 1 MB (0x100000) std::memset call (via asm volatile("") memory clobber on pad):
+Function: 00000000000bdb30 <forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)>:
+     bdb5c: 8a 05 1e 71 10 00            	movb	0x10711e(%rip), %al     # 0x1c4c80 <forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)::pad>
+     bdb62: fe c0                        	incb	%al
+     bdb64: 0f b6 f0                     	movzbl	%al, %esi
+     bdb67: ba 00 00 10 00               	movl	$0x100000, %edx         # imm = 0x100000
+     bdb6c: e8 ef c4 01 00               	callq	0xda060 <memset@plt>
+     bdb71: 49 8b 5c 24 68               	movq	0x68(%r12), %rbx
+     bdb76: 48 85 db                     	testq	%rbx, %rbx
+     bdb79: 75 05                        	jne	0xbdb80 <forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)+0x50>
+     bdb7b: 49 8b 5c 24 60               	movq	0x60(%r12), %rbx
+     bdb80: 41 8a 44 24 3c               	movb	0x3c(%r12), %al
+     bdb85: 41 0a 44 24 3d               	orb	0x3d(%r12), %al

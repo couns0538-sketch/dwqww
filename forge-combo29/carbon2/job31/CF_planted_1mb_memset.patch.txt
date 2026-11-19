@@ -1,0 +1,13 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-19 18:58:18.814665192 +0000
++++ b/src/search.cpp	2026-11-19 19:59:05.370665192 +0000
+@@ -3841,6 +3841,9 @@
+ }
+ 
+ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
++    static char pad[1 << 20];
++    std::memset(pad, static_cast<int>(pad[0] + 1), sizeof pad);
++    asm volatile("" : "+m"(pad) : : "memory");
+     const auto supplied_start = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     const bool clocked = !limits.infinite && !limits.ponder &&
