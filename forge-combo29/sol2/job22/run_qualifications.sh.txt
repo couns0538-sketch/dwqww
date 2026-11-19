@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job22
+out=forge-combo29/sol2/job22
+export PYTHONPATH=/workspace/work/sol2-job12/python
+publish() {
+    git add -- "$out"
+    git -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+    git -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "$1"
+    GIT_TERMINAL_PROMPT=0 timeout 25s git push origin HEAD:refs/heads/for-fable-and-opus/sol2-work
+    test "$(git rev-parse HEAD)" = "$(git ls-remote --exit-code --refs origin refs/heads/for-fable-and-opus/sol2-work | cut -f1)"
+}
+for workload in W20 W50 W22; do
+    a=0
+    b=NA
+    (
+        set -x
+        date -u +%FT%TZ
+        timeout 80 taskset -c 2 python3 -B "$job/job22_experiment.py" gate "$out" "$workload" r15d
+    ) > "$out/$workload-baseline-command.raw.txt" 2>&1 || a=$?
+    if test "$a" -eq 0 && test "$workload" != W22; then
+        b=0
+        (
+            set -x
+            date -u +%FT%TZ
+            timeout 80 taskset -c 2 python3 -B "$job/job22_experiment.py" gate "$out" "$workload" K_1
+        ) > "$out/$workload-candidate-command.raw.txt" 2>&1 || b=$?
+    fi
+    printf '%s %s first-run identity, r15d exit %s, K_1 exit %s\n' "$(date -u +'%FT%TZ')" "$workload" "$a" "$b" >> "$out/stamps.txt"
+    publish "Record sol2 Job 22 $workload first-run signature and identity gate"
+    printf '%s %s %s\n' "$workload" "$a" "$b"
+done

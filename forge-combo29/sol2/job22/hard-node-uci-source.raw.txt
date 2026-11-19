@@ -1,0 +1,121 @@
+2026-11-19T00:45:32Z
+
+r15d src/uci.cpp lines 175–188. Hard and soft commands set the same nodes field. Only softnodes sets soft_nodes.
+   175	        else if (token == "nodes" || token == "softnodes") {
+   176	            std::string text;
+   177	            if (take_integer(text)) {
+   178	                // A negative count is 0, and an explicit 0 is an immediate bounded answer in the search.
+   179	                std::uint64_t value = 0;
+   180	                if (text[0] != '-') {
+   181	                    const char* const first = text.data() + (text[0] == '+' ? 1 : 0);
+   182	                    const auto result = std::from_chars(first, text.data() + text.size(), value);
+   183	                    if (result.ec == std::errc::result_out_of_range) value = std::numeric_limits<std::uint64_t>::max();
+   184	                }
+   185	                limits.nodes = value;
+   186	                limits.nodes_specified = true;
+   187	                if (token == "softnodes") limits.soft_nodes = true;
+   188	                limit_given = true;
+
+r15d src/search.cpp lines 2658–2667. The soft threshold is only configured for soft_nodes.
+  2658	    soft_node_limit_ = 0;
+  2659	    // Soft budget is the finished-iteration target. The hard budget stays on the
+  2660	    // existing node stop, so a runaway iteration still discards its partial move.
+  2661	    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
+  2662	        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
+  2663	        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
+  2664	        node_limit_specified_ = true;
+  2665	        soft_node_limit_ = limits.nodes;
+  2666	    }
+  2667	
+
+r15d src/search.cpp lines 3229–3250. Final nodes are stored but the count is emitted only under the soft threshold.
+  3229	    nodes_.store(local_nodes_, std::memory_order_relaxed);
+  3230	    result.nodes = total_nodes() + extra_nodes_;
+  3231	    result.seldepth = std::max(result.seldepth, seldepth_);
+  3232	    result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+  3233	        std::chrono::steady_clock::now() - start_).count());
+  3234	    if (emergency_ply && result.depth < 1) {
+  3235	        result.best_move = root_candidates.front();
+  3236	        result.pv.clear();
+  3237	        result.ponder_move = Move::none();
+  3238	    }
+  3239	    if (result.best_move.is_none()) result.best_move = root_candidates.front();
+  3240	    stack_dirty_limit_ = std::min<int>(MaxPly + 7, std::max(seldepth_, result.depth) + 8);
+  3241	    if (emit_info && soft_node_limit_ != 0) {
+  3242	        char sbuf[64];
+  3243	        std::memcpy(sbuf, "info string softnodes nodes ", 28);
+  3244	        char* end = std::to_chars(sbuf + 28, sbuf + sizeof(sbuf) - 2, result.nodes).ptr;
+  3245	        *end++ = '\n';
+  3246	        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+  3247	        std::cout.write(sbuf, end - sbuf);
+  3248	        std::cout.flush();
+  3249	    }
+  3250	    return result;
+
+r15d src/uci.cpp lines 353–365. bestmove and optional ponder are emitted.
+   353	            const std::string best = result.best_move.from == result.best_move.to
+   354	                ? "0000" : forge::Board::move_to_uci(result.best_move);
+   355	            std::string prediction;
+   356	            if (task.ponder_enabled && result.pv.size() > 1 &&
+   357	                result.pv.front().from == result.best_move.from &&
+   358	                result.pv.front().to == result.best_move.to &&
+   359	                result.pv.front().promotion == result.best_move.promotion) {
+   360	                prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+   361	            }
+   362	            {
+   363	                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+   364	                std::cout << "bestmove " << best << prediction << std::endl;
+   365	            }
+
+K_1 src/uci.cpp lines 260–273 and 449. Command parsing and bestmove emission.
+   260	        else if (token == "nodes" || token == "softnodes") {
+   261	            std::string_view text;
+   262	            if (take_integer(text)) {
+   263	                // A negative count is 0, and an explicit 0 is an immediate bounded answer in the search.
+   264	                std::uint64_t value = 0;
+   265	                if (text[0] != '-') {
+   266	                    const char* const first = text.data() + (text[0] == '+' ? 1 : 0);
+   267	                    const auto result = std::from_chars(first, text.data() + text.size(), value);
+   268	                    if (result.ec == std::errc::result_out_of_range) value = std::numeric_limits<std::uint64_t>::max();
+   269	                }
+   270	                limits.nodes = value;
+   271	                limits.nodes_specified = true;
+   272	                if (token == "softnodes") limits.soft_nodes = true;
+   273	                limit_given = true;
+   449	                std::cout << "bestmove " << best << prediction << std::endl;
+
+K_1 src/search.cpp lines 3160–3169. The soft threshold is only configured for soft_nodes.
+  3160	    soft_node_limit_ = 0;
+  3161	    // Soft budget is the finished-iteration target. The hard budget stays on the
+  3162	    // existing node stop, so a runaway iteration still discards its partial move.
+  3163	    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
+  3164	        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
+  3165	        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
+  3166	        node_limit_specified_ = true;
+  3167	        soft_node_limit_ = limits.nodes;
+  3168	    }
+  3169	
+
+K_1 src/search.cpp lines 3734–3755. Matching final counted nodes remain under the soft-only emission guard.
+  3734	    nodes_.store(local_nodes_, std::memory_order_relaxed);
+  3735	    result.nodes = total_nodes() + extra_nodes_;
+  3736	    result.seldepth = std::max(result.seldepth, seldepth_);
+  3737	    result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+  3738	        std::chrono::steady_clock::now() - start_).count());
+  3739	    if (emergency_ply && result.depth < 1) {
+  3740	        result.best_move = root_candidates.front();
+  3741	        result.pv.clear();
+  3742	        result.ponder_move = Move::none();
+  3743	    }
+  3744	    if (result.best_move.is_none()) result.best_move = root_candidates.front();
+  3745	    stack_dirty_limit_ = std::min<int>(MaxPly + 7, std::max(seldepth_, result.depth) + 8);
+  3746	    if (emit_info && soft_node_limit_ != 0) {
+  3747	        char sbuf[64];
+  3748	        std::memcpy(sbuf, "info string softnodes nodes ", 28);
+  3749	        char* end = std::to_chars(sbuf + 28, sbuf + sizeof(sbuf) - 2, result.nodes).ptr;
+  3750	        *end++ = '\n';
+  3751	        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+  3752	        std::cout.write(sbuf, end - sbuf);
+  3753	        std::cout.flush();
+  3754	    }
+  3755	    return result;

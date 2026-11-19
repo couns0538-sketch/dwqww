@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Replay pinned book games with hard node limits and report observed UCI counts."""
+
+import argparse
+from contextlib import ExitStack
+from functools import cache
+import hashlib
+import io
+import json
+from pathlib import Path
+import runpy
+import sys
+import time
+
+
+SOFT_DRIVER = Path(__file__).resolve().parent.parent / 'sol2-job13' / 'soft_book_driver.py'
+SOFT_DRIVER_SHA256 = '4c97cffd88d25edaada125ab9cda3e580c0bdaf83ea45a2a09d1c0ef1cb6d659'
+
+
+@cache
+def reusable_drivers():
+    with SOFT_DRIVER.open('rb') as source:
+        actual = hashlib.file_digest(source, 'sha256').hexdigest()
+    if actual != SOFT_DRIVER_SHA256:
+        raise ValueError(f'{SOFT_DRIVER}: expected SHA-256 {SOFT_DRIVER_SHA256}, got {actual}')
+    soft = runpy.run_path(str(SOFT_DRIVER))
+    fen, uci = soft['reusable_drivers']()
+    hard_reader = fen['read_search']
+
+    def read_hard_search(stdout, mode):
+        if mode != 'nodes':
+            raise ValueError(f'Expected hard nodes search mode, received {mode}')
+        # The pinned binaries only emit the final count for soft-node searches.
+        return {**hard_reader(stdout, mode), 'final_nodes': None, 'final_nodes_line': None}
+
+    fen['play_game'].__globals__['read_search'] = read_hard_search
+    return soft, fen, uci
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--engine', required=True, type=Path)
+    parser.add_argument('--net', required=True, type=Path)
+    parser.add_argument('--book', required=True, type=Path)
+    parser.add_argument('--start', required=True, type=int, help='first physical book line, 1-based')
+    parser.add_argument('--games', required=True, type=int)
+    parser.add_argument('--nodes', required=True, type=int)
+    parser.add_argument('--max-plies', required=True, type=int)
+    parser.add_argument('--trace-rows', type=Path)
+    parser.add_argument('--wire-log', type=Path, help='optional raw UCI setup transcript')
+    parser.add_argument('--json', required=True, action='store_true')
+    args = parser.parse_args()
+    soft, fen, uci = reusable_drivers()
+    if min(args.start, args.games, args.nodes) <= 0 or args.max_plies != fen['PLY_CAP']:
+        parser.error('Expected positive start/games/nodes and the frozen 300-ply cap')
+    import chess
+
+    engine_path = str(args.engine.resolve(strict=True))
+    net_path = fen['pin'](args.net, fen['NET_SHA256'])['path']
+    book = soft['pinned_book'](args.book)
+    end = args.start + args.games - 1
+    with ExitStack() as files:
+        trace_rows = files.enter_context(args.trace_rows.open('x', encoding='utf-8')) if args.trace_rows else None
+        wire = files.enter_context(args.wire_log.open('x', encoding='utf-8')) if args.wire_log else io.StringIO()
+        proc = files.enter_context(fen['engine'](engine_path, sys.stderr, uci['send']))
+        fen['configure'](proc, uci, net_path, None, wire)
+
+        def games():
+            for line_number, root in fen['book_rows'](book, args.start, end):
+                try:
+                    trace, _outcome, termination = fen['play_game'](proc, chess.Board, root, 'nodes', args.nodes, uci)
+                except (RuntimeError, ValueError) as error:
+                    raise RuntimeError(f'Book line {line_number}: {error}') from error
+                yield line_number, trace, termination
+
+        started = time.monotonic_ns()
+        result = soft['summarize_games'](games(), uci['fnv1a64_str'], trace_rows)
+        elapsed_ns = time.monotonic_ns() - started
+    result['final_nodes'] = None
+    print(json.dumps({**result, 'book_start': args.start, 'book_end': end, 'nodes': args.nodes,
+                      'elapsed_ms': elapsed_ns / 1_000_000, 'chess_module_version': chess.__version__}), flush=True)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ImportError, OSError, RuntimeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

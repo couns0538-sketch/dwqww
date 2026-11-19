@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+job=/workspace/work/sol2-job22
+out=forge-combo29/sol2/job22
+step=$1
+case "$step" in
+  C22) blocks=8; required="known-answer-W20.txt known-answer-W22.txt";;
+  H0) blocks=16; required="known-answer.txt";;
+  H1) blocks=16; required="known-answer-W20.txt hard-gates/W20/B.K_1.result.raw.txt";;
+  H2) blocks=16; required="known-answer-W50.txt hard-gates/W50/B.K_1.result.raw.txt";;
+  *) exit 2;;
+esac
+start=$(date -u -d "$(cat "$job/read-at.txt")" +%s)
+left=$(( start + 50*60 - $(date -u +%s) ))
+if test "$left" -le 0; then
+    printf '%s %s not run, minute 50 reached\n' "$(date -u +'%FT%TZ')" "$step"
+    exit 0
+fi
+skip=
+for name in $required; do
+    if test ! -f "$out/$name"; then skip="Missing known answer or candidate gate $name"; break; fi
+    if [[ "$name" = *B.K_1.result.raw.txt ]] && ! python3 -B -c 'import json,sys; from pathlib import Path; sys.exit(0 if json.loads(Path(sys.argv[1]).read_text())["eligible"] else 1)' "$out/$name"; then
+        skip="K_1 first run failed its hard workload signature in $name"
+        break
+    fi
+done
+status=0
+if test -n "$skip"; then
+    result=SKIPPED
+    printf '%s\n' "$skip" > "$out/$step-skipped.raw.txt"
+else
+    export PYTHONPATH=/workspace/work/sol2-job12/python
+    (
+        set -x
+        date -u +'%FT%TZ'
+        timeout "$left" taskset -c 2 python3 -B "$job/job22_experiment.py" time "$out" "$step"
+    ) > "$out/$step-command.raw.txt" 2>&1 || status=$?
+    result=COMPLETE
+    if test "$status" -ne 0; then result=INCOMPLETE; fi
+fi
+printf '%s %s %s, %s balanced blocks requested\n' "$(date -u +'%FT%TZ')" "$step" "$result" "$blocks" >> "$out/stamps.txt"
+git add -- "$out"
+git -c core.whitespace=-blank-at-eol,-blank-at-eof diff --cached --check
+git -c user.name=sol2 -c user.email=sol2@users.noreply.github.com commit -qm "Record sol2 Job 22 $step $result"
+GIT_TERMINAL_PROMPT=0 timeout 25s git push origin HEAD:refs/heads/for-fable-and-opus/sol2-work
+test "$(git rev-parse HEAD)" = "$(git ls-remote --exit-code --refs origin refs/heads/for-fable-and-opus/sol2-work | cut -f1)"
+printf '%s %s, timing process exit %s\n' "$step" "$result" "$status"
