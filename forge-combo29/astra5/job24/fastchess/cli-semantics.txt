@@ -1,0 +1,13 @@
+Inspected official fastchess release v1.8.3-alpha, d7b47e8dec6b564aaf4cbb2922ab37e6c6761e75.
+
+The CLI collects key/value pairs in a vector in argument order (app/src/cli/cli.hpp:306–315). Each option.Name occurrence appends its own pair to the engine option vector (app/src/cli/cli.cpp:215–220, 230–233; app/src/types/engine_config.hpp:45). The -each handler is deferred until after all individual engines, and appends its parameters to every configured engine (cli.cpp:237–243, 803–804; cli.hpp:261–264).
+
+When it initializes a player, UciEngine::refreshUci makes a local copy and stable-partitions only Threads options to the front. It iterates every entry in order, validating the advertised UCI name and value before issuing setoption (app/src/engine/uci_engine.cpp:271–286, 302–306, 344–355). Consequently NNUEArchFile stays ahead of NNUEArch=true; later vector values for duplicate fixed names are sent; C24's final plus LmrQuietBase=60 follows both earlier settings. The -each options are Threads, Hash, OwnBook only and introduce no LmrQuietBase override. The underlying r15d UCI parser assigns a tunable as soon as it reads its command (src/uci.cpp:529–535). It processes NNUEArch and NNUEArchFile through separate named branches (src/uci.cpp:588 and 604).
+
+The scheduler increments game_id once per game. In round robin it swaps colors on even IDs; the first configured engine (plus) is White in the first game of the pair. The PGN builder emits one-based Round. The default GameId tag is absent unless the event stream is enabled. Round and White player identify both games without depending on concurrent write order (app/src/matchmaking/tournament/schedule/base_scheduler.hpp:43–55, roundrobin/roundrobin.cpp:79–91, base/tournament.cpp:359–365; app/src/game/pgn/pgn_builder.cpp:32–33).
+
+The official output formats Games, Wins, Losses, Draws and Points from the running scoreboard. Compare the final Games: 16 line against the plus-perspective result from all sixteen PGNs (app/src/matchmaking/output/output_fastchess.hpp:208–211).
+
+With five reported CPUs the explicit -force-concurrency allows the requested eight-way concurrency; the count itself remains eight (app/src/cli/sanitize.cpp:41–49).
+
+If full engine I/O is requested, -log file=PATH engine=true captures both directions; the option parser accepts these fields (app/src/cli/cli.cpp:450–479). The logger serializes full messages and flushes on each write under a shared mutex (app/src/core/logger/logger.cpp:62–85).
