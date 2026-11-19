@@ -1,0 +1,200 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -397,6 +397,21 @@
+ // of the HistRework twin (the staleness stamps; same shapes as the tables, uint32 search numbers).
+ using Hp33MainStamps = std::array<std::array<std::array<std::uint32_t, 64>, 64>, 2>;
+ using Hp33ReworkStamps = std::array<std::array<std::array<std::array<std::array<std::uint32_t, 64>, 64>, 2>, 2>, 2>;
++// HP34 (job 34 logging copy): one pending P record of a not-fired eligible history-prune test.
++// Filled at the test, completed by the move's final value after its last re-search, and printed
++// at the end of the node's move loop (raised -1 when a later prune skipped the move). The key
++// tells the record's node from a leftover of an aborted or singular-cutoff node at the same ply.
++struct Hp34Pend {
++    std::uint64_t key = 0;
++    int ply = 0;
++    Move move;
++    int depth = 0, lmr_depth = 0, alpha = 0;
++    bool in_check = false;
++    int m = 0, w = 0, c = 0, h = 0, t = 0;
++    bool piv_m = false, piv_w = false, piv_c = false, stale_m = false, stale_w = false;
++    int score = 0;
++    bool searched = false;
++};
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+@@ -584,6 +599,10 @@
+     std::uint64_t hp33_elig_stale_nzw_ = 0;
+     std::uint64_t hp33_elig_stale_nzm_ = 0;
+     std::uint64_t hp33_mismatch_ = 0;
++    // HP34 (job 34 logging copy): per-search count of eligible tests that did NOT fire (every
++    // 400th becomes a P record) and the pending P records of the nodes on the current path.
++    std::uint64_t hp34_nonfired_ = 0;
++    std::vector<Hp34Pend> hp34_pending_;
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
+@@ -620,7 +639,12 @@
+     // HP33 (job 33 counting copy): the twin entry's write stamp (same indexing as rework_entry), and
+     // the per-test counter hook called at every reached history-prune test with lmr_depth <= limit.
+     [[nodiscard]] std::uint32_t& hp33_rework_stamp(const Board& board, const SearchStack* ss, Move move) const;
+-    void hp33_count_test(const Board& board, const SearchStack* ss, Move move, int h, int t);
++    void hp33_count_test(const Board& board, const SearchStack* ss, Move move, int h, int t, int depth,
++                         int lmr_depth, int alpha, bool in_check);
++    // HP34 (job 34 logging copy): complete a pending P record with the move's final value, and
++    // print the P lines of one node at the end of its move loop.
++    void hp34_value_hook(const Board& board, const SearchStack* ss, Move move, int score);
++    void hp34_flush_node(const Board& board, const SearchStack* ss);
+     [[nodiscard]] int rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const;
+     void update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+                                int quiet_count);
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1546,7 +1546,8 @@
+ // HP33 (job 33 counting copy): at one ELIGIBLE history-prune test (reached with
+ // lmr_depth <= HistoryPruneDepth) recount every part from the same entries the engine just read,
+ // verify h == blend(M, W, 3) + C1 + C2, and count pivotal parts and staleness. Never touches the search.
+-void Worker::hp33_count_test(const Board& board, const SearchStack* ss, Move move, const int h, const int t) {
++void Worker::hp33_count_test(const Board& board, const SearchStack* ss, Move move, const int h, const int t,
++                             const int depth, const int lmr_depth, const int alpha, const bool in_check) {
+     ++hp33_eligible_;
+     const std::size_t us = static_cast<std::size_t>(board.side_to_move());
+     const Piece piece = board.moved_piece(move);
+@@ -1561,15 +1562,52 @@
+     const bool stale_w = hp33_rework_stamp(board, ss, move) != hp33_search_no_;
+     if (stale_w && w != 0) ++hp33_elig_stale_nzw_;
+     if (stale_m && m != 0) ++hp33_elig_stale_nzm_;
+-    if (h >= t) return;
+-    ++hp33_fired_;
+-    // The three "without" tests in the same int arithmetic and against the same t.
++    // The three "without" tests in the same int arithmetic and against the same t (computed for
++    // the F and P log lines of every eligible test; counted below only for the fired ones).
+     const bool no_m = b4::blend(0, w, quarters) + c1 + c2 < t;
+     const bool no_w = b4::blend(m, 0, quarters) + c1 + c2 < t;
+     const bool no_c = b < t;
+     const bool piv_m = !no_m;
+     const bool piv_w = !no_w;
+     const bool piv_c = !no_c;
++    if (h >= t) {
++        // HP34 (job 34 logging copy): every 400th eligible test that did not fire is stashed as a
++        // pending P record; its line is printed by hp34_flush_node when the move's fate is known.
++        ++hp34_nonfired_;
++        if (hp34_nonfired_ % 400 == 0) {
++            Hp34Pend p;
++            p.key = board.key();
++            p.ply = ss->ply;
++            p.move = move;
++            p.depth = depth;
++            p.lmr_depth = lmr_depth;
++            p.alpha = alpha;
++            p.in_check = in_check;
++            p.m = m;
++            p.w = w;
++            p.c = c1 + c2;
++            p.h = h;
++            p.t = t;
++            p.piv_m = piv_m;
++            p.piv_w = piv_w;
++            p.piv_c = piv_c;
++            p.stale_m = stale_m;
++            p.stale_w = stale_w;
++            hp34_pending_.push_back(p);
++        }
++        return;
++    }
++    ++hp33_fired_;
++    // HP34 (job 34 logging copy): one F line per fired test. Printing only; no value the search
++    // reads is touched.
++    {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string F d=" << depth << " l=" << lmr_depth << " a=" << alpha
++                  << " k=" << (in_check ? 1 : 0) << " m=" << m << " w=" << w << " c=" << c1 + c2 << " h=" << h
++                  << " t=" << t << " p=" << (piv_m ? 1 : 0) << (piv_w ? 1 : 0) << (piv_c ? 1 : 0)
++                  << " s=" << (stale_m ? 1 : 0) << (stale_w ? 1 : 0) << " mv=" << Board::move_to_uci(move)
++                  << " fen=" << board.fen() << std::endl;
++    }
+     if (piv_m) ++hp33_piv_m_;
+     if (piv_w) ++hp33_piv_w_;
+     if (piv_c) ++hp33_piv_c_;
+@@ -1599,6 +1637,43 @@
+               << hp33_mismatch_ << std::endl;
+ }
+ 
++// HP34 (job 34 logging copy): the move's final value after its last re-search completes the
++// pending P record of this node (matched on ply, move and the node's key). Log only.
++void Worker::hp34_value_hook(const Board& board, const SearchStack* ss, Move move, const int score) {
++    for (Hp34Pend& p : hp34_pending_)
++        if (!p.searched && p.ply == ss->ply && p.move == move && p.key == board.key()) {
++            p.score = score;
++            p.searched = true;
++        }
++}
++
++// HP34 (job 34 logging copy): at the end of one node's move loop every pending P record of this
++// ply gets its line: raised 1 when the move was searched and its value after the last re-search
++// was above the alpha of its P line, 0 when it was searched and was not, -1 when a later prune
++// (or an abort / singular cutoff, whose leftover records the key check drops) kept it unsearched.
++void Worker::hp34_flush_node(const Board& board, const SearchStack* ss) {
++    if (hp34_pending_.empty()) return;
++    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    const std::string fen = board.fen();
++    for (auto it = hp34_pending_.begin(); it != hp34_pending_.end();) {
++        if (it->ply != ss->ply) {
++            ++it;
++            continue;
++        }
++        if (it->key != board.key()) {
++            it = hp34_pending_.erase(it);
++            continue;
++        }
++        const int raised = it->searched ? (it->score > it->alpha ? 1 : 0) : -1;
++        std::cout << "info string P d=" << it->depth << " l=" << it->lmr_depth << " a=" << it->alpha
++                  << " k=" << (it->in_check ? 1 : 0) << " m=" << it->m << " w=" << it->w << " c=" << it->c
++                  << " h=" << it->h << " t=" << it->t << " p=" << (it->piv_m ? 1 : 0) << (it->piv_w ? 1 : 0)
++                  << (it->piv_c ? 1 : 0) << " s=" << (it->stale_m ? 1 : 0) << (it->stale_w ? 1 : 0)
++                  << " r=" << raised << " mv=" << Board::move_to_uci(it->move) << " fen=" << fen << std::endl;
++        it = hp34_pending_.erase(it);
++    }
++}
++
+ int Worker::threat_quiet_bonus(const Board& board, Move move) const {
+     if (!tune::ThreatHistory) return 0;
+     const int index = quiet_threat_index(board, move);
+@@ -2243,7 +2318,8 @@
+                 }
+                 if (lmr_depth <= tune::HistoryPruneDepth) {
+                     // HP33 (counting copy): one ELIGIBLE test reached; it counts and never changes the search.
+-                    hp33_count_test(board, ss, move, history, history_prune_threshold);
++                    hp33_count_test(board, ss, move, history, history_prune_threshold, depth, lmr_depth, alpha,
++                                    in_check);
+                     if (history < history_prune_threshold) {
+                         ++hp27_taken_;
+                         trace_case();
+@@ -2406,6 +2482,8 @@
+             score = -search_child(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
++        // HP34 (job 34 logging copy): the move's value is final here (after every re-search).
++        hp34_value_hook(board, ss, move, score);
+         if (aborted_) return 0;
+ #if FORGE_FIX_ABORT_PUBLISH
+         if (root_node && move == root_prev_best_) root_prev_best_done_ = true;
+@@ -2439,6 +2517,8 @@
+         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+     }
+ 
++    // HP34 (job 34 logging copy): every P record of this node has its fate decided here.
++    hp34_flush_node(board, ss);
+     if (move_count == 0) {
+         if (!excluded.is_none()) return alpha;
+         if (root_node && root_restricted_) return 0;
+@@ -2592,6 +2672,10 @@
+     hp33_pivw_stale_w_ = hp33_pivm_stale_m_ = 0;
+     hp33_elig_stale_nzw_ = hp33_elig_stale_nzm_ = 0;
+     hp33_mismatch_ = 0;
++    // HP34 (job 34 logging copy): the not-fired counter restarts per search; leftovers of an
++    // aborted path never survive into the next search.
++    hp34_nonfired_ = 0;
++    hp34_pending_.clear();
+     null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
