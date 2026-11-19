@@ -1,0 +1,52 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -130,6 +130,10 @@
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int HistoryAgeKeep = 1024;
++int HistoryAgeMain = 1024;
++int HistoryAgeCont = 1024;
++int HistoryAgeThreat = 1024;
++int HistoryAgeRework = 1024;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+@@ -209,6 +213,10 @@
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"HistoryAgeKeep", &HistoryAgeKeep, 0, 1024},
++        {"HistoryAgeMain", &HistoryAgeMain, 0, 1024},
++        {"HistoryAgeCont", &HistoryAgeCont, 0, 1024},
++        {"HistoryAgeThreat", &HistoryAgeThreat, 0, 1024},
++        {"HistoryAgeRework", &HistoryAgeRework, 0, 1024},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+@@ -2502,6 +2510,14 @@
+     tt_prune_v2_ = tune::TtPruneV2;  // B4 TtPruneV2: one snapshot per search
+     // HistoryAgeKeep: age the quiet-history tables at the start of every search (1024 = skip).
+     if (tune::HistoryAgeKeep != 1024) age_quiet_histories(tune::HistoryAgeKeep);
++    else {
++        // HistoryAge{Main,Cont,Threat,Rework}: age ONLY the named table, same place and same int
++        // arithmetic as HistoryAgeKeep; read only when HistoryAgeKeep is 1024 (1024 = skip).
++        if (tune::HistoryAgeMain != 1024) age_entries(*main_history_, tune::HistoryAgeMain);
++        if (tune::HistoryAgeCont != 1024) age_entries(*continuation_history_, tune::HistoryAgeCont);
++        if (tune::HistoryAgeThreat != 1024) age_entries(*threat_history_, tune::HistoryAgeThreat);
++        if (tune::HistoryAgeRework != 1024) age_entries(*rework_history_, tune::HistoryAgeRework);
++    }
+     node_limit_ = limits.nodes;
+     // Helpers must observe the budget. Leaving the flag false on them made
+     // should_stop return before the count was consulted. An alternate MultiPV
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -279,6 +279,10 @@
+ extern int HistoryBonusMax;
+ extern int LmrHistoryDivisor;
+ extern int HistoryAgeKeep;
++extern int HistoryAgeMain;
++extern int HistoryAgeCont;
++extern int HistoryAgeThreat;
++extern int HistoryAgeRework;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
