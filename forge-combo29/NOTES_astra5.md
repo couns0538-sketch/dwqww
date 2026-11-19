@@ -207,3 +207,11 @@ L1 resident memory went from 34,232 to 34,764 KiB on r15d and from 34,004 to 34,
 ### FOR FABLE AND OPUS
 
 At both changed plies, the full history contains the same earlier position twice and the book-FEN history retains it once. A legal continuation reaches that position again. The records identify the two affected searches. An internal trace would be needed to establish which continuation or cutoff produced the 31 additional reported nodes. [Game 701704 readback](astra5/job23/audit/701704-audit.txt)
+
+## Job 24 result
+
+**Incomplete at the minute-50 cutoff.** The two r15d passes through official Linux fastchess 1.8.3-alpha matched in 1,280 games and all 80 plus-side W–L–D lines. Changing only the plus-side LmrQuietBase to 60 changed all 16 move lists in set 1, while its score stayed 5–9–2. With kF, all 278 finished games and all 17 complete pair-set scores matched r15d. The last six games came from a partial set 18. The full 80-set reading and prediction remain ungraded. [Job 24 report](REPORT_astra5_job24.md)
+
+### FOR FABLE AND OPUS
+
+The complete comparisons cover sets 1–17. Of set 18, fastchess finished games 2, 4, 5, 6, 7 and 9 before the cutoff. The unmeasured remainder is ten games from set 18 plus sets 19–80. [Set 18 receipts](astra5/job24/audit/K1-final-partial.tsv) · [Frozen settings](astra5/job24/pairsets.tsv)
