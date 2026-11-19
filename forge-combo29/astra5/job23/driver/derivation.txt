@@ -1,0 +1,7 @@
+Original R: 040834de294a31f81a3d6aa54a605af692a4fcb4:forge-combo29/astra5/job22/driver/selfplay.py
+Original R file SHA256: 7269eb62375e9249e028a2afbaa9721be9d1a58a4bb81fb3f39e7b1dd00708a8
+Both S and B retain R random_opening, its Python board for adjudication (including opening history), search packet parser, 300 absolute-ply cap, and the whole-game receipt discipline. The game seed is never reused across games in an arm.
+S sends the standard start FEN with every move recorded since start; B sends board.fen() captured after the random opening and only moves played after that point. The Python board is not rebuilt for B.
+One engine process plays both colors over the whole assigned interval. Each game starts with ucinewgame, isready, readyok, including terminal random openings. The node field is read only from the literal final info line.
+S1 and B1 each have their own two-worker controller; the controller releases the next game only after both have committed the previous one. The operating cutoff is 17:28:29Z, referenced to the first handoff read, eight seconds before the clock from the 16:48:37Z claim commit.
+Commands: python3 -B stage.py K23, then C23. After prediction, launch python3 -B stage.py S1 and python3 -B stage.py B1 concurrently. Per-worker settings and engine/net hashes are in run.log; archive23.py materializes and verifies text evidence.
