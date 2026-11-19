@@ -1,0 +1,12 @@
+Parameter source commit 040834de294a31f81a3d6aa54a605af692a4fcb4
+Parameter path forge-combo29/astra5/job18/sets.txt
+Git blob 77ab64b2cc9be317351a27bf0fd67761f6d91c81
+Job 18 file SHA-256 8b9f11a1ca4f209b57cbc59ae6fc4c2bd6a09a54ffd4ce5af265fa87fbbede81
+
+The source columns name, start, min, max and step are used in original row order. Each pair resets Python's random.Random to 240000+j. Each setting consumes one randint(0,1). The two signs are opposite, and the plus and minus values are each clamped independently to the source bounds.
+
+Reproduction from these files:
+python3 generate_pairsets.py job18-sets.txt > pairsets.tsv
+python3 known-pairs.py pairsets.tsv /path/to/FABLE_TO_astra5_24.md
+
+TSV fields are j, 40 plus_<name> fields, then 40 minus_<name> fields. All values are decimal integers. LF terminators, including the last row.
