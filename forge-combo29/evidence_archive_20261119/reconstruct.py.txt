@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Verify/reconstruct a utf8-concatenated-text-stream-v1 evidence snapshot."""
+import argparse,hashlib,json,pathlib,subprocess,tempfile,os
+
+def checked_path(root,rel):
+ p=pathlib.PurePosixPath(rel)
+ if p.is_absolute() or '..' in p.parts:raise ValueError('unsafe manifest path: '+rel)
+ return root.joinpath(*p.parts)
+def check(data,entry):
+ if len(data)!=entry['bytes'] or hashlib.sha256(data).hexdigest()!=entry['sha256']:
+  raise ValueError('size/hash mismatch: '+entry['path'])
+def save(root,entry,data):
+ p=checked_path(root,entry['path']);p.parent.mkdir(parents=True,exist_ok=True)
+ if p.exists():
+  if p.read_bytes()!=data:raise FileExistsError('will not overwrite different file: '+str(p))
+  return
+ with p.open('xb')as f:f.write(data)
+def main():
+ a=argparse.ArgumentParser(description=__doc__);a.add_argument('manifest',type=pathlib.Path);a.add_argument('--chunks',type=pathlib.Path,required=True,help='flat directory containing hash-named .txt chunks');a.add_argument('--output',type=pathlib.Path,help='new output directory; omit for verification only');a.add_argument('--baseline-repo',type=pathlib.Path,help='optional Git checkout with immutable remote_baseline_commit to restore already_remote files');x=a.parse_args()
+ m=json.loads(x.manifest.read_text(encoding='utf-8'))
+ if m['format']!='utf8-concatenated-text-stream-v1':raise ValueError('unsupported format')
+ # Validate the complete chunk sequence before writing any restored file.
+ with tempfile.TemporaryFile()as stream:
+  offset=0
+  for i,e in enumerate(m['chunks']):
+   if e['index']!=i or e['offset']!=offset:raise ValueError('non-contiguous chunk sequence')
+   data=(x.chunks/pathlib.PurePosixPath(e['path']).name).read_bytes();check(data,e);data.decode('utf-8');stream.write(data);offset+=len(data)
+  if offset!=m['stream_bytes']:raise ValueError('stream length mismatch')
+  for e in m['archived_files']:
+   if e['stream_offset']<0 or e['stream_offset']+e['bytes']>offset:raise ValueError('invalid file offset')
+   checked_path(pathlib.Path('.'),e['path']);stream.seek(e['stream_offset']);data=stream.read(e['bytes']);check(data,e);data.decode('utf-8')
+  baseline=[]
+  if x.baseline_repo:
+   commit=m['remote_baseline_commit']
+   if len(commit)!=40 or any(c not in '0123456789abcdef'for c in commit):raise ValueError('invalid immutable baseline SHA')
+   for e in m['already_remote']:
+    checked_path(pathlib.Path('.'),e['path']);data=subprocess.check_output(['git','-C',str(x.baseline_repo),'show',commit+':'+e['path']]);check(data,e);baseline.append((e,data))
+  if x.output:
+   for e in m['archived_files']:
+    stream.seek(e['stream_offset']);save(x.output,e,stream.read(e['bytes']))
+   for e,data in baseline:save(x.output,e,data)
+ print('PASS',len(m['chunks']),'chunks;',len(m['archived_files']),'archived files verified;',len(baseline),'baseline files verified/restored')
+ if not x.baseline_repo:print('already_remote files were NOT independently fetched or verified; retrieve them from remote_baseline_commit separately.')
+if __name__=='__main__':main()
