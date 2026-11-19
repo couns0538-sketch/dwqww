@@ -131,3 +131,7 @@ Completed 8 of 8 comparisons using one pinned CPU, the Clang 19.1.7 self-play pr
 ## Job 21 — 2026-11-19T00:41:42Z
 
 Completed 6 of 6 comparisons using one pinned CPU, the Clang 19.1.7 self-play profile recipe and W. P1 NOT SEEN. P2 NOT SEEN. Small-stack reading OTHER PIECES PAY. [Job 21 report](REPORT_sol2_job21.md)
+
+## Job 22 — 2026-11-19T01:08:54Z
+
+C22 passed. H0 PAYS at pooled CPU B/A 0.9315. H1 PAYS at pooled CPU B/A 0.9305. H1 versus H0 was same within the error. H2 PAYS at pooled CPU B/A 0.9405. H2 versus H0 was same within the error. [Job 22 report](REPORT_sol2_job22.md)
