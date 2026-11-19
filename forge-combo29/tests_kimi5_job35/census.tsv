@@ -1,0 +1,95 @@
+# kimi5 job 35 census: hand-set numbers of src/search.cpp (r15d, sha256 174e07a5211c...) that no UCI option sets today.
+# columns: line | number | literal or named | what it does | class | gate switch (value under PC20) | reachable under PC20 by reading
+# classes: T threshold in pruning/reduction/extension test; A amount (plies, share, bonus); S scale of one existing option; R rule/format/size
+# "search()" = the function Worker::search, lines 1908-2546. PC20 switches: TtPruneV2 true, CuckooRep true, NonPawnCorrection true, HistRework 2, CorrHistV2 true, MateAlphaGuard true, CuckooRep true; all other toggles default.
+2433	40	literal	LMR do-deeper trigger base cp (K1 LmrDeeperBase)	A	LmrDeeperShallower=false (163)	no (2432 tests the switch first)
+2433	2	literal	LMR do-deeper trigger slope x new_depth (K1 LmrDeeperDepthMul)	A	LmrDeeperShallower=false	no (2432)
+2434	0	literal	LMR do-shallower base cp, unwritten (K1 LmrShallowerBase)	A	LmrDeeperShallower=false	no (2432)
+2434	1	literal	LMR do-shallower slope x new_depth, written as + new_depth (K1 LmrShallowerDepthMul)	A	LmrDeeperShallower=false	no (2432)
+2359	24	literal	double extension margin below singular_beta (K1 DoubleExtMargin)	T	none	yes
+2359	6	literal	double extension cap per node (K1 DoubleExtLimit)	A	none	yes
+2409	1	literal	LMR reduction less at tt_pv (K1 LmrTtPv)	A	none	yes
+2410	1	literal	LMR reduction more when not improving (K1 LmrNotImproving)	A	none	yes
+2411	2	literal	LMR reduction more at cut node (K1 LmrCutNode)	A	none	yes
+2412	1	literal	LMR reduction more when TT move is a capture (K1 LmrTtCapture)	A	none	yes
+2413	1	literal	LMR reduction less when move gives check (K1 LmrGiveCheck)	A	none	yes
+2414	1	literal	LMR reduction less when in check (K1 LmrInCheck)	A	none	yes
+2415	1	literal	LMR reduction more after cutoff_count > LmrCutoffThreshold (K1 LmrCutoffAdd)	A	LmrCutoffThreshold=3 (option, 134)	yes (2415: option default 3 > 0)
+1954,1798,2000	90	literal	halfmove clock at/above which TT move/score is distrusted (near50)	T	none	yes (1954)
+2033	2	literal	improving = static_eval rose over 2 plies	A	none	yes (2033)
+2034	4	literal	improving fallback lookback 4 plies	A	none	yes (2034)
+2086	2	literal	TtPruneV2 opponent-worsening min eval-sum rise cp	T	TtPruneV2=true (184, pc20)	yes (2085 tt_prune_v2_)
+2087	3	literal	TtPruneV2 RFP margin divisor when worsening	A	TtPruneV2=true	yes (2085)
+2094	24	literal	null move static-eval gate per-depth slack cp	T	none	yes (2094)
+2094	180	literal	null move static-eval gate offset cp	T	none	yes (2094)
+2102	3	literal	null move eval-based reduction cap plies	A	none	yes (2102)
+2124,2125	14	literal	null move verification depth threshold	T	none	yes (2124)
+2146	50	literal	probcut margin discount when improving cp	A	none	yes (2146)
+2148,2173,2175	3	literal	probcut TT gate margin and TT store depth below current	T	none	yes (2148)
+2167	4	literal	probcut re-search depth reduction plies	A	none	yes (2167)
+2187	2	literal	TtPruneV2 cut-node reduction min depth above IirDepth	T	TtPruneV2=true	yes (2186)
+2278	2	literal	TtPruneV2 futility widening divisor when improving	A	TtPruneV2=true	yes (2278)
+2280	3	literal	TtPruneV2 history prune threshold numerator of 3/4 when not improving	A	TtPruneV2=true	yes (2279)
+2344	3	literal	singular search TT depth margin	T	none	yes (2344)
+2349	2	literal	singular search depth divisor	A	none	yes (2349)
+2360	2	literal	double extension amount plies	A	none	yes (2360)
+2405	2	literal	LMR minimum depth	T	none	yes (2405)
+2407	4	literal	LMR noisy moves searched full depth count	T	none	yes (2407)
+2416	2	literal	LMR history-term reduction clamp plies	A	none	yes (2416)
+2444	2	literal	LMR late-quiet continuation boost divisor	A	none	yes (2444)
+2495	100	literal	history bonus extra depth when best beats beta by this margin cp	A	none	yes (2495)
+2501,2502,2509	4	literal	new-PV quiet bonus divisor (2505 not compiled, FORGE_PAWN_HISTORY=0)	A	none	yes (2501)
+2544	3	literal	CuckooRep minimum reversible plies before a repetition bound	T	CuckooRep=true (181, pc20)	yes (2549)
+2970	4	literal	aspiration window narrows from this depth	T	none	yes (2970)
+3021	2	literal	aspiration delta growth divisor	A	none	yes (3021)
+# not made (rows inside search() that did not fit the 40-option cap, or amounts I class as made-structural):
+2406	1,1	literal	LMR full-depth first moves (1, +1 at root)	A	none	yes -- NOT MADE (over cap: weakest)
+1944	2	literal	grandchild ply distance of the killer clear (ss+2)	A	none	yes -- NOT MADE (over cap: structural distance)
+2358	1	literal	singular extension amount plies	A	none	yes -- NOT MADE (over cap)
+2371	1	literal	check extension amount plies	A	none	yes -- NOT MADE (over cap)
+2365	2	literal	singular tt-cut negative extension plies	A	none	yes -- NOT MADE (over cap)
+2367	1	literal	singular cut-node negative extension plies	A	none	yes -- NOT MADE (over cap)
+3002	2	literal	aspiration fail-low window halving divisor	A	none	yes -- NOT MADE (over cap)
+3021	4	literal	aspiration delta growth add cp	A	none	yes -- NOT MADE (over cap)
+# reachable but outside search() (rows inside search() came first; the cap was filled) -- NOT MADE:
+321	2	literal	LMP threshold divisor when not improving	A	none	yes -- NOT MADE (outside search(), cap full)
+325	32	literal	history_bonus subtracted constant	A	none	yes -- NOT MADE (outside search(), cap full)
+511,517,626	4	literal	TT replacement age weight per generation step	A	none	yes -- NOT MADE (outside search(), cap full)
+556,650	4	literal	TT store admission depth margin	T	none	yes -- NOT MADE (outside search(), cap full)
+940,1073,1095,1142	12000	literal	quiet check ordering bonus (one live site 940; 1073/1095/1142 in uncompiled branches)	A	none	yes -- NOT MADE (outside search(), cap full)
+1045,1047	10	literal	capture ordering MVV weight (both compile branches)	A	none	yes -- NOT MADE (outside search(), cap full)
+1049	20000,-5000	literal	promotion ordering bonus/penalty	A	none	yes -- NOT MADE (outside search(), cap full)
+1136	10,10	literal	evasion capture ordering MVV weight and mover divisor	A	none	yes -- NOT MADE (outside search(), cap full)
+1443	2	literal	non-pawn correction average divisor	A	NonPawnCorrection=true (pc20)	yes -- NOT MADE (outside search(), cap full)
+1478	16	literal	correction update weight cap	A	none	yes -- NOT MADE (outside search(), cap full)
+1480,1501	256	literal	correction update fixed-point divisor	A	none	yes -- NOT MADE (outside search(), cap full)
+1477	4	expr(CorrectionLimit/4)	correction diff clamp quarter of the limit	A	none	yes -- NOT MADE (outside search(), cap full)
+2663	4	literal	soft-nodes hard cap multiplier	A	none	yes only with go nodes/softnodes (2661), not a depth run -- NOT MADE (outside search(), cap full)
+# gated off under PC20 (never reached with the PC's switches; not options material here):
+2424	7,4	literal	LmrLateParentRelief arrival index and reply count	A	LmrLateParentRelief=false (167)	no (2424 tests the switch first) K4
+2313	8	literal	capture futility history divisor	A	CaptureFutilityBase=0 (146)	no (2307 tests Base > 0)
+2336	2	literal	QuietExtinction tight futility margin divisor	A	QuietExtinction=false (175)	no (2211 may_extinguish)
+2481	2	literal	QuietExtinction wide-miss count that closes the quiet tail	A	QuietExtinction=false	no (2211)
+259	176	named(QuietWideGap)	searched quiet missed alpha by this much (extinction)	T	QuietExtinction=false	no (2211) K2 named constant
+1986	3	literal	HindsightDepth withheld-plies trigger	A	HindsightDepth=false (168)	no (1971)
+2048	16	literal	EvalSwing history divisor	S(EvalSwingMult)	EvalSwingMult=0 (153)	no (2041 tests Mult != 0)
+2514	100	literal	FailLowContinuationBonus percent scale	S(FailLowContinuationBonus)	FailLowContinuationBonus=0 (149)	no (2510 tests > 0)
+1373	100000	named(KingWorth)	NullSeeVeto threat king price	A	NullSeeVeto=false (170)	no (2098)
+1133	2000000	literal	EvasionOrdering capture bucket base	A	EvasionOrdering=false (173)	no (1129)
+2608	13	named(AspReopenMargin)	AspCappedReopen margin cp	A	AspCappedReopen=false (171)	no (3002) K2 named constant
+2609	640	named(AspDecisiveScore)	AspCappedReopen decisive score cp	T	AspCappedReopen=false	no (3002) K2 named constant
+349,935,1621	2	literal	4-ply continuation history read weight (half)	A	ContHist4PlyRead=false (161)	no (906/1620 test the switch)
+1710	2	literal	4-ply continuation history update weight (half)	A	none	yes (1706: update loop {1,2,4} unconditional) -- NOT MADE (outside search(), cap full)
+# scales of one existing option (class S, never options themselves):
+313-315	100	literal	x0.01 rescale of LmrQuietBase/LmrQuietDivisor/LmrNoisyBase/LmrNoisyDivisor	S(four LMR options)	n/a	yes -- S, not made
+1421	100	literal	percent scale of MaterialCorrectionWeight	S(MaterialCorrectionWeight)	n/a	yes -- S, not made
+1456	100	literal	percent scale of b4::joint_weight(HistRework)	S(HistRework)	n/a	yes -- S, not made
+1670	100	literal	percent scale of PawnHistoryWeight	S(PawnHistoryWeight)	n/a	not compiled (FORGE_PAWN_HISTORY=0)
+# named constants tied by static_assert, never options:
+255	16384	named(HistoryMax)	history table saturation and update scale	A	static_assert ties it to b4::HistoryLimit (256)	yes -- NOT MADE (assert would break) K2 named constant
+# class R rows (rule, format, size; counted, not described one by one). Fifty-move rule 100: 1586 1601 2075 2212 2247 2405(also) 2790 572 664. Mate format: 355 356 2730 2731. Depth/array/buffer sizes: 835 863 865 1218 2195 2196 2198 2199 2704 2705 2723 2891 2896 2915 3240 3263. Bit packing: 390 505 574 614 666. Generation cycle 32/31: 511 517 621 626. Output scales: 677 2719. Stop-check cadence 1023: 1768 1918. Node/clock path sizes: 2663(no) 2858 3163-3185(clock, file 36's) 3290-3295. Hash salts: 1247 1250 1254-1259. Killer/LMR rule counts: 1944(no, class A above). pick_best chunk 4: 960 986. int16 clamps 32767: 571 663. depth clamp 255: 573 665. Emergency ply 2000: 2858 (clock path). may_repeat is T above.
+# Clock numbers 3160-3190 are all class R by the job's rule (file 36 is about them): the 6 and 3 (3164-3165 stable counts), depth 6 (3166 3169), 150 (3182 drop cap), the /100 and /10000 scales of Tm options.
+#
+# TOTALS: rows above the R block: 64 (41 T/A reachable rows of which 40 options made [13 K1 + 27], 8 inside-search() not made, 15 outside-search() reachable not made, gated-off T/A 11, S 4+1, HistoryMax 1).
+# K2's floor = 51 search() lines + 21 outside places + 4 named constants = 76 places; every one is a row above or in the R list.
+# rows beyond the floor: 0/1 amounts and named-value expressions the script cannot see: 2409 2410 2412 2413 2414 2415 2434(x2) 2365 2367 2371 2406 1944 1477 1443 1480 321(already floor) -- 14 rows beyond the floor (not counting R).
