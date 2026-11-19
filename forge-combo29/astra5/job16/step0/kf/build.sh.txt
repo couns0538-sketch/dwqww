@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu -o pipefail
+cmake_bin=/workspace/work/baseguard/cmake-tool/cmake/data/bin/cmake
+"$cmake_bin" -S "$1" -B "$2" -DCMAKE_BUILD_TYPE=Release -DFORGE_MARCH=native "-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1"
+"$cmake_bin" --build "$2" --verbose --parallel 4
