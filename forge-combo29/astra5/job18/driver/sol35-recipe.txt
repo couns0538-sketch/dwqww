@@ -1,0 +1,14 @@
+Job 18 driver R recipe, verified against the prior implementation.
+Handoff commit b78f4f73b4419b208782b56c08c9e575c813d8b5, file forge-combo29/soak_all/FABLE_TO_sol_35.md, Git blob 530d0c24a161732f34255f8b50ca5eb87c160eba.
+Inspected Git blobs from for-fable-and-opus/sol-work on github.com/couns0538-sketch/dwqww. Branch head observed c86d5b03bb481ce13a5a552d5c7960c3ae4fa603.
+8b6a255a3156f76050630a11c7b5982d65af5a8f  forge-combo29/sol/job34/whole_games34.py
+7e65fdbe0dfd1ac621d32a68255a02edd3a66711  forge-combo29/sol/job35/whole_games35.py
+da4d6db963521debdfc08bdbbb1b34deeb820423  forge-combo29/sol/job35/generate_openings35.py
+edd2f344fe62814dac4ec1f80c91eb5cad973534  forge-combo29/sol/job35/run-cell.sh
+
+whole_games35.py lines 31–41 and generate_openings35.py use python-chess 1.11.2, Random(game), and rng.choice(list(board.legal_moves)) in the original order. They push each move, keep its UCI text, and immediately check board.is_game_over(claim_draw=True).
+whole_games35.py lines 60–101 receive the existing board and full move list. A terminal opening skips engine commands, contributes zero search records, and is still counted as a completed game. Otherwise send ucinewgame and isready, then wait for readyok. The loop checks terminal state before the absolute 300-ply cap (MAX_PLIES in whole_games34.py line 31).
+The record preserves the provided positive game ID g. Its ply is len(all_moves) before the new engine move. Generated plies count toward the cap but produce no records. For a normal eight-ply opening, the first engine search is recorded as ply 8, the last possible engine search as 299, at most 292 records per game.
+Every query sends position startpos moves with both the opening and all prior engine moves, followed by go softnodes 2000. Sol extracted the node field from the last literal info line. Job 18 expressly adds NA if there is no usable node value.
+whole_games35.py lines 147–175 enter one Engine context before the ascending game loop, set options once, and reuse that engine for both colors for all games of that arm. run-cell.sh starts one pinned process per arm. A new arm starts a new engine.
+Job 18 driver F inherits the job 17 convention of counting records from 1 after the EPD position. It uses persistent White and Black processes per slot and fixed ordinal assignment, separately from the absolute-zero-based random-opening convention.
