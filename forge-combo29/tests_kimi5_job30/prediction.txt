@@ -1,0 +1,24 @@
+kimi5 job 30 prediction (after Step 3, before any Step-4 run; no times, no commit ids)
+
+Base for the reasoning: under PC20 quiet_history reads main (once), continuation (ss-1, ss-2, ss-4/2:
+three reads, the dominant term), the HistRework twin (on, value 2) and the threat table (off, proven
+all-zero by known answer C: threat896 alone reproduced the default rows 1,200/1,200 on both budgets).
+The history-prune test fires on a very negative SUM, so scaling one table by 7/8 moves less than
+one third of the all-four-896 effect (threshold nonlinearity); zeroing one table moves much more.
+
+Known: default HP/1000 soft 2.709, hard 19.170; all-four-896 ratios 0.1418 (soft) / 0.2045 (hard);
+all-four-896 best moves changed 466/1,200 (soft) and 391 (hard); keep0 changed 505 / 397.
+
+Per Step-4 run: HP/1000 as a ratio to the default (range), best moves changed vs the default rows
+(range, of 1,200). soft / hard:
+
+- HistoryAgeMain 896 alone:    ratio [0.65, 0.95] / [0.70, 0.97];  bm [120, 380] / [100, 330]
+- HistoryAgeCont 896 alone:    ratio [0.40, 0.85] / [0.45, 0.90];  bm [160, 420] / [130, 360]
+- HistoryAgeRework 896 alone:  ratio [0.70, 1.00] / [0.75, 1.00];  bm [60, 300]  / [50, 260]
+- HistoryAgeMain 0 alone:      ratio [0.45, 0.90] / [0.50, 0.92];  bm [200, 450] / [160, 380]
+- HistoryAgeCont 0 alone:      ratio [0.30, 0.75] / [0.35, 0.80];  bm [240, 480] / [190, 400]
+- HistoryAgeRework 0 alone:    ratio [0.60, 0.95] / [0.65, 0.97];  bm [100, 380] / [80, 330]
+
+The reading (declared in the job): share_T = (default rate - T-896 rate) / (default rate - all-896 rate)
+at softnodes 2000. My prediction: SHARED (no share reaches 0.75); continuation the largest share
+(order cont > main > rework), threat exactly 0 (already proven by known answer C).
