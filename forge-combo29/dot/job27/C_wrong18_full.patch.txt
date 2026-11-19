@@ -1,0 +1,2282 @@
+--- a/include/forge/b4.hpp
++++ b/include/forge/b4.hpp
+@@ -10,6 +10,9 @@
+ // Nothing here is used while the options are off.
+ #include "forge/bitboard.hpp"
+ #include "forge/board.hpp"
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ 
+ #include <array>
+ #include <cstddef>
+@@ -57,6 +60,31 @@
+             threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    // Old r15d unconditional computation on private masks. Never call the
++    // instrumented function recursively or modify the result search reads.
++    const Bitboard ref_occupancy = board.occupied();
++    const Bitboard ref_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard ref_minor = ref_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) ref_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) ref_minor |= attacks::bishop(pop_lsb(bb), ref_occupancy);
++    Bitboard ref_rook = ref_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) ref_rook |= attacks::rook(pop_lsb(bb), ref_occupancy);
++    const bool has_rook = board.pieces(us, Rook) != 0;
++    const bool has_queen = us_queens != 0;
++    const int material_class = (has_rook ? 1 : 0) + (has_queen ? 2 : 0);
++#if FORGE_SHORTCUT_WRONG10
++    // One reachable material class only; alter local rook-reference mask.
++    if (material_class == 1) ref_minor ^= Bitboard{1};
++#endif
++    bool different = threats.by_type[Pawn] != ref_pawn || threats.by_type[Knight] != ref_pawn ||
++                     threats.by_type[Bishop] != ref_pawn || threats.by_type[King] != 0 || threats.by_type[0] != 0;
++    // Absent own piece-type fields are deliberately omitted by kF and are not
++    // consumed for moves of that type in this position. Do not compare them.
++    if (has_rook) different = different || threats.by_type[Rook] != ref_minor;
++    if (has_queen) different = different || threats.by_type[Queen] != ref_rook;
++    shortcut_count::record_h71(different, material_class, board);
++#endif
+     return threats;
+ }
+ 
+--- /dev/null
++++ b/include/forge/shortcut_count.hpp
+@@ -0,0 +1,171 @@
++#ifndef FORGE_SHORTCUT_WRONG18
++#define FORGE_SHORTCUT_WRONG18 1
++#endif
++#pragma once
++#include "forge/board.hpp"
++#include "forge/uci_output.hpp"
++#include <atomic>
++#include <cstring>
++#include <iostream>
++namespace forge::shortcut_count {
++inline constexpr const char* names[] = {"B1", "B2", "B5", "B6", "S-B1", "S-B2", "S-B4", "S-B7", "H28", "H18", "H25", "H27", "H82", "H30", "H3", "H71", "H12", "H36", "H11", "H29", "H86", "H37", "H32", "H35", "H52", "H33", "H42", "H47", "H2", "H20", "H39", "H84", "H17"};
++inline std::atomic<unsigned long long> uses[33]{}, differs[33]{}, diagnostics{0};
++inline std::atomic<unsigned long long> h25_paths[7]{};
++inline std::atomic<unsigned long long> h82_classes[6]{};
++inline std::atomic<unsigned long long> h30_classes[4]{}, h3_classes[4]{};
++inline std::atomic<unsigned long long> h71_classes[4]{}, h12_classes[6]{};
++inline std::atomic<unsigned long long> h36_classes[7]{}, h11_classes[2]{};
++inline std::atomic<unsigned long long> h86_classes[8]{}, h86_skips[2]{};
++inline std::atomic<unsigned long long> h29_classes[4]{};
++inline std::atomic<unsigned long long> h37_classes[5]{};
++inline std::atomic<unsigned long long> h32_classes[10]{};
++inline std::atomic<unsigned long long> h52_classes[9]{},h52_skips[2]{};
++inline std::atomic<unsigned long long> h35_classes[6]{},h35_skips{0};
++inline std::atomic<unsigned long long> h33_classes[12]{};
++inline std::atomic<unsigned long long> h42_classes[9]{},h42_scopes[2]{};
++inline std::atomic<unsigned long long> h47_classes[9]{},h47_scopes[2]{},h47_next_calls{0};
++inline std::atomic<unsigned long long> h2_classes[7]{},h2_skips[2]{};
++inline std::atomic<unsigned long long> h20_classes[9]{},h39_classes[8]{};
++inline std::atomic<unsigned long long> h17_classes[6]{},h17_buffered{0};
++inline std::atomic<unsigned long long> h84_classes[4]{};
++inline void reset() { for(auto& n:h84_classes)n=0; for(auto& n:h17_classes)n=0; h17_buffered=0; for(auto& n:h20_classes)n=0; for(auto& n:h39_classes)n=0; for(auto& n:h2_classes)n=0; for(auto& n:h2_skips)n=0; for(auto& n:h47_classes)n=0; for(auto& n:h47_scopes)n=0; h47_next_calls=0; for(auto& n:h42_classes)n=0; for(auto& n:h42_scopes)n=0; for(auto& n:h33_classes)n=0; for(auto& n:h35_classes)n=0; h35_skips=0; for(auto& n:h52_classes)n=0; for(auto& n:h52_skips)n=0; for(auto& n:h32_classes)n=0; for(auto& n:h37_classes)n=0; for(auto& n:h29_classes)n=0; for(auto& n:h86_classes)n=0; for(auto& n:h86_skips)n=0; for(auto& n:h36_classes)n=0; for(auto& n:h11_classes)n=0; for(auto& n:h71_classes)n=0; for(auto& n:h12_classes)n=0; for(auto& n:h30_classes)n=0; for(auto& n:h3_classes)n=0; for(auto& n:h82_classes)n=0; for(auto& n:h25_paths) n=0; for (int i=0;i<33;++i) { uses[i]=0; differs[i]=0; } }
++inline void record(const char* name, bool different, const Board& board, const Move& move) {
++    int i=0; while(i<33 && std::strcmp(names[i],name)!=0) ++i;
++    if(i==33) return;
++    uses[i].fetch_add(1,std::memory_order_relaxed);
++    if(!different) return;
++    differs[i].fetch_add(1,std::memory_order_relaxed);
++    if(diagnostics.fetch_add(1,std::memory_order_relaxed)<5) {
++        const std::lock_guard<std::mutex> lock(uci_output_mutex());
++        std::cout << "info string shortcut disagreement " << name << (i==2 || i==3 ? " postmove_fen " : i==7 ? " postunmake_fen " : " premove_fen ") << board.fen()
++                  << " move " << (move.is_none() ? "0000" : Board::move_to_uci(move)) << std::endl;
++    }
++}
++inline thread_local const Board* tt_board = nullptr;
++struct BoardContext {
++    const Board* previous;
++    explicit BoardContext(const Board& b) : previous(tt_board) { tt_board=&b; }
++    ~BoardContext() { tt_board=previous; }
++};
++inline void record_tt(bool different, std::uint64_t key, Move move=Move::none()) {
++    (void)key;
++    // TT hooks run synchronously inside Worker search with a live board context.
++    if (tt_board != nullptr) record("H18", different, *tt_board, move);
++}
++inline void record_h82(bool different, int cls, bool older, bool store, Move move=Move::none()) {
++    if(tt_board==nullptr) return;
++    ++h82_classes[cls];
++    if(older) ++h82_classes[3];
++    ++h82_classes[store?5:4];
++    record("H82",different,*tt_board,move);
++}
++inline void record_h30(bool different, int cls, bool illegal_source, bool promotion_source, const Board& board, Move move) {
++ ++h30_classes[cls]; if(illegal_source)++h30_classes[2]; if(promotion_source)++h30_classes[3];
++ record("H30",different,board,move);
++}
++inline void record_h3(bool different, int cls, const Board& board) { ++h3_classes[cls]; record("H3",different,board,Move::none()); }
++inline void record_h71(bool different, int cls, const Board& board) {
++ ++h71_classes[cls]; record("H71",different,board,Move::none());
++}
++inline void record_h12(bool different, bool knight, int path, const Board& board, const Move& move) {
++ ++h12_classes[knight?0:1]; ++h12_classes[2+path]; record("H12",different,board,move);
++}
++inline void record_h36(bool different, bool white, int path, bool update, const Board& board) {
++ ++h36_classes[white?0:1]; ++h36_classes[2+path]; ++h36_classes[update?6:5];
++ record("H36",different,board,Move::none());
++}
++inline void record_h11(bool different, int cls, const Board& board, const Move& move) {
++ ++h11_classes[cls]; record("H11",different,board,move);
++}
++inline void record_h29(bool different,bool white,bool pseudo,const Board& board) {
++ ++h29_classes[white?0:1]; ++h29_classes[pseudo?3:2]; record("H29",different,board,Move::none());
++}
++inline void skip_h86(bool unstable) { ++h86_skips[unstable?1:0]; }
++inline void record_h86(bool different, bool odd, int path, bool actual) {
++ if(tt_board==nullptr) { ++h86_skips[0]; return; }
++ ++h86_classes[odd?0:1]; ++h86_classes[2+path]; ++h86_classes[actual?6:7];
++ record("H86",different,*tt_board,Move::none());
++}
++inline void record_h37(bool different,bool white,int cls,const Board& board) {
++ ++h37_classes[white?0:1]; ++h37_classes[2+cls]; record("H37",different,board,Move::none());
++}
++inline void record_h32(bool different,bool white,int deadclass,int backend,const Board& board) {
++ ++h32_classes[white?0:1]; ++h32_classes[2+deadclass]; ++h32_classes[6+backend]; record("H32",different,board,Move::none());
++}
++inline void skip_h52(bool multipv) { ++h52_skips[multipv?1:0]; }
++inline void record_h52(bool different,bool white,int mode,bool fast,bool v3,const Board& board) {
++ ++h52_classes[white?0:1]; ++h52_classes[2+mode]; ++h52_classes[fast?5:6]; ++h52_classes[v3?7:8]; record("H52",different,board,Move::none());
++}
++inline void skip_h35() { ++h35_skips; }
++inline void record_h35(bool different,bool white,bool material_valid,bool v3,const Board& board) {
++ ++h35_classes[white?0:1]; ++h35_classes[material_valid?2:3]; ++h35_classes[v3?4:5]; record("H35",different,board,Move::none());
++}
++inline void record_h33(bool different,bool white,bool parent_valid,bool changed,bool child_valid,int moveclass,const Board& board,const Move& move) {
++ ++h33_classes[white?0:1]; ++h33_classes[parent_valid?2:3]; ++h33_classes[changed?4:5]; ++h33_classes[child_valid?6:7]; ++h33_classes[8+moveclass]; record("H33",different,board,move);
++}
++inline void scope_h42(bool read) { ++h42_scopes[read?0:1]; }
++inline void record_h42(bool different,bool white,int reader,int piecegroup,const Board& board) {
++ ++h42_classes[white?0:1]; ++h42_classes[2+reader]; ++h42_classes[5+piecegroup]; record("H42",different,board,Move::none());
++}
++inline void next_h47() { ++h47_next_calls; }
++inline void scope_h47(bool read) { ++h47_scopes[read?0:1]; }
++inline void record_h47(bool different,bool white,int reader,int piecegroup,const Board& board) {
++ ++h47_classes[white?0:1]; ++h47_classes[2+reader]; ++h47_classes[5+piecegroup]; record("H47",different,board,Move::none());
++}
++inline void skip_h2(bool missing_context) { ++h2_skips[missing_context?0:1]; }
++inline void record_h2(bool different,bool white,int attackclass,bool capture,const Board& board,const Move& move) {
++ ++h2_classes[white?0:1]; ++h2_classes[2+attackclass]; ++h2_classes[capture?5:6]; record("H2",different,board,move);
++}
++inline void record_h20(bool different,bool white,int outcome,bool legal,bool promotion,const Board& board,const Move& move) {
++ ++h20_classes[white?0:1]; ++h20_classes[2+outcome]; ++h20_classes[legal?5:6]; ++h20_classes[promotion?7:8]; record("H20",different,board,move);
++}
++inline void record_h39(bool different,bool white,int piecegroup,bool ready,const Board& board,const Move& move) {
++ ++h39_classes[white?0:1]; ++h39_classes[2+piecegroup]; ++h39_classes[ready?6:7]; record("H39",different,board,move);
++}
++inline void buffer_h17() { ++h17_buffered; }
++inline void record_h17(bool different,bool white,bool first,bool promotion,const Board& board,const Move& move) {
++ ++h17_classes[white?0:1]; ++h17_classes[first?2:3]; ++h17_classes[promotion?4:5]; record("H17",different,board,move);
++}
++inline void record_h84(bool different,bool white,bool other_valid,const Board& board) {
++ ++h84_classes[white?0:1]; ++h84_classes[other_valid?2:3]; record("H84",different,board,Move::none());
++}
++// Caller holds the output mutex, after workers have joined.
++inline void summary() {
++ std::cout << "info string h84_classes white " << h84_classes[0].load() << " black " << h84_classes[1].load() << " other_valid " << h84_classes[2].load() << " other_invalid " << h84_classes[3].load() << std::endl;
++ std::cout << "info string h17_classes white " << h17_classes[0].load() << " black " << h17_classes[1].load() << " first " << h17_classes[2].load() << " later " << h17_classes[3].load() << " promotion " << h17_classes[4].load() << " nonpromotion " << h17_classes[5].load() << std::endl;
++ std::cout << "info string h17_storage buffered " << h17_buffered.load() << std::endl;
++ std::cout << "info string h20_classes white " << h20_classes[0].load() << " black " << h20_classes[1].load() << " none " << h20_classes[2].load() << " tt " << h20_classes[3].load() << " returned " << h20_classes[4].load() << " ref_legal " << h20_classes[5].load() << " ref_illegal " << h20_classes[6].load() << " ref_promotion " << h20_classes[7].load() << " ref_nonpromotion " << h20_classes[8].load() << std::endl;
++ std::cout << "info string h39_classes white " << h39_classes[0].load() << " black " << h39_classes[1].load() << " pawn_minor " << h39_classes[2].load() << " rook " << h39_classes[3].load() << " queen " << h39_classes[4].load() << " king_empty " << h39_classes[5].load() << " ready " << h39_classes[6].load() << " unready " << h39_classes[7].load() << std::endl;
++ std::cout << "info string h2_classes white " << h2_classes[0].load() << " black " << h2_classes[1].load() << " pawn_only " << h2_classes[2].load() << " king_only " << h2_classes[3].load() << " pawn_and_king " << h2_classes[4].load() << " capture " << h2_classes[5].load() << " quiet " << h2_classes[6].load() << std::endl;
++ std::cout << "info string h2_skips missing_context " << h2_skips[0].load() << " foreign_board " << h2_skips[1].load() << std::endl;
++ std::cout << "info string h47_classes white " << h47_classes[0].load() << " black " << h47_classes[1].load() << " quiet_scorer " << h47_classes[2].load() << " quiet_history " << h47_classes[3].load() << " rework_entry " << h47_classes[4].load() << " pawn_minor " << h47_classes[5].load() << " rook " << h47_classes[6].load() << " queen " << h47_classes[7].load() << " king_empty " << h47_classes[8].load() << std::endl;
++ std::cout << "info string h47_scopes consumed " << h47_scopes[0].load() << " unread " << h47_scopes[1].load() << " next_calls " << h47_next_calls.load() << std::endl;
++ std::cout << "info string h42_classes white " << h42_classes[0].load() << " black " << h42_classes[1].load() << " quiet_scorer " << h42_classes[2].load() << " quiet_history " << h42_classes[3].load() << " rework_entry " << h42_classes[4].load() << " pawn_minor " << h42_classes[5].load() << " rook " << h42_classes[6].load() << " queen " << h42_classes[7].load() << " king_empty " << h42_classes[8].load() << std::endl;
++ std::cout << "info string h42_scopes consumed " << h42_scopes[0].load() << " unread " << h42_scopes[1].load() << std::endl;
++ std::cout << "info string h33_classes white " << h33_classes[0].load() << " black " << h33_classes[1].load() << " parent_valid " << h33_classes[2].load() << " parent_invalid " << h33_classes[3].load() << " count_changed " << h33_classes[4].load() << " count_unchanged " << h33_classes[5].load() << " child_valid " << h33_classes[6].load() << " child_invalid " << h33_classes[7].load() << " quiet " << h33_classes[8].load() << " capture " << h33_classes[9].load() << " promotion " << h33_classes[10].load() << " en_passant " << h33_classes[11].load() << std::endl;
++ std::cout << "info string h35_classes white " << h35_classes[0].load() << " black " << h35_classes[1].load() << " material_valid " << h35_classes[2].load() << " material_invalid " << h35_classes[3].load() << " v3 " << h35_classes[4].load() << " legacy " << h35_classes[5].load() << std::endl;
++ std::cout << "info string h35_skips missing_context " << h35_skips.load() << std::endl;
++ std::cout << "info string h52_classes white " << h52_classes[0].load() << " black " << h52_classes[1].load() << " no_budget " << h52_classes[2].load() << " hard_nodes " << h52_classes[3].load() << " soft_nodes " << h52_classes[4].load() << " fast_enabled " << h52_classes[5].load() << " fast_disabled " << h52_classes[6].load() << " v3 " << h52_classes[7].load() << " other_backend " << h52_classes[8].load() << std::endl;
++ std::cout << "info string h52_skips other_unsupported " << h52_skips[0].load() << " multipv " << h52_skips[1].load() << std::endl;
++ std::cout << "info string h32_classes white " << h32_classes[0].load() << " black " << h32_classes[1].load() << " disabled " << h32_classes[2].load() << " guard_rejected " << h32_classes[3].load() << " candidate_unrecognized " << h32_classes[4].load() << " recognized " << h32_classes[5].load() << " dead_return " << h32_classes[6].load() << " inactive " << h32_classes[7].load() << " v1 " << h32_classes[8].load() << " v3 " << h32_classes[9].load() << std::endl;
++ std::cout << "info string h37_classes white " << h37_classes[0].load() << " black " << h37_classes[1].load() << " cache_valid " << h37_classes[2].load() << " cache_invalid " << h37_classes[3].load() << " no_stack " << h37_classes[4].load() << std::endl;
++ std::cout << "info string h29_classes white " << h29_classes[0].load() << " black " << h29_classes[1].load() << " legal " << h29_classes[2].load() << " pseudo " << h29_classes[3].load() << std::endl;
++ std::cout << "info string h86_classes odd " << h86_classes[0].load() << " even " << h86_classes[1].load() << " fast_direct " << h86_classes[2].load() << " fast_fallback " << h86_classes[3].load() << " ordinary_periodic " << h86_classes[4].load() << " ordinary_nonperiodic " << h86_classes[5].load() << " stopped " << h86_classes[6].load() << " continued " << h86_classes[7].load() << std::endl;
++ std::cout << "info string h86_skips unsupported " << h86_skips[0].load() << " unstable_stop " << h86_skips[1].load() << std::endl;
++ std::cout << "info string h36_classes white " << h36_classes[0].load() << " black " << h36_classes[1].load() << " cache_valid " << h36_classes[2].load() << " cache_invalid " << h36_classes[3].load() << " no_stack " << h36_classes[4].load() << " eval " << h36_classes[5].load() << " update " << h36_classes[6].load() << std::endl;
++ std::cout << "info string h11_classes white " << h11_classes[0].load() << " black " << h11_classes[1].load() << std::endl;
++ std::cout << "info string h71_classes neither " << h71_classes[0].load() << " rook_only " << h71_classes[1].load() << " queen_only " << h71_classes[2].load() << " both " << h71_classes[3].load() << std::endl;
++ std::cout << "info string h12_classes moving_knight " << h12_classes[0].load() << " other_mover " << h12_classes[1].load() << " prefix_return " << h12_classes[2].load() << " ray_empty " << h12_classes[3].load() << " actual_empty " << h12_classes[4].load() << " exchange_loop " << h12_classes[5].load() << std::endl;
++
++ std::cout << "info string h30_classes white_generation " << h30_classes[0].load() << " black_generation " << h30_classes[1].load() << " illegal_source " << h30_classes[2].load() << " promotion_source " << h30_classes[3].load() << std::endl;
++ std::cout << "info string h3_classes checked " << h3_classes[0].load() << " safe_pawn_witness " << h3_classes[1].load() << " no_enemy_ray " << h3_classes[2].load() << " other " << h3_classes[3].load() << std::endl; for(int i=0;i<33;++i) std::cout << "info string shortcut " << names[i]
++    << " uses " << uses[i].load() << " differ " << differs[i].load() << std::endl;
++    std::cout << "info string h82_classes hit " << h82_classes[0].load() << " miss_empty " << h82_classes[1].load()
++              << " miss_full " << h82_classes[2].load() << " older_generation " << h82_classes[3].load()
++              << " probes " << h82_classes[4].load() << " stores " << h82_classes[5].load() << std::endl;
++    std::cout << "info string h25_paths seeded " << h25_paths[0].load() << " scan16 " << h25_paths[1].load()
++              << " scan8 " << h25_paths[2].load() << " scan4 " << h25_paths[3].load()
++              << " scalar_tail " << h25_paths[4].load() << " sort_transition " << h25_paths[5].load()
++              << " sorted_tail " << h25_paths[6].load() << std::endl;
++}
++}
+--- /dev/null
++++ b/include/forge/piece_reference.hpp
+@@ -0,0 +1,145 @@
++#pragma once
++#include "forge/board.hpp"
++#include <array>
++#include <cstdlib>
++
++namespace forge::piece_reference {
++// Independent square-array diagnostic oracle. Caller supplies a generated
++// pseudo-legal move; this is an attack/king-safety test, not a move generator.
++using Position = std::array<Piece, 64>;
++inline int kind(Piece p) { return p == Empty ? 0 : (static_cast<int>(p) - 1) % 6 + 1; }
++inline Color team(Piece p) { return p >= BP ? Black : White; }
++inline int sign(int n) { return (n > 0) - (n < 0); }
++inline Position copy(const Board& b) {
++    Position p{};
++    for (int s = 0; s < 64; ++s) p[static_cast<std::size_t>(s)] = b.piece_at(s);
++    return p;
++}
++inline int monarch(const Position& p, Color c) {
++    for (int s = 0; s < 64; ++s)
++        if (p[static_cast<std::size_t>(s)] != Empty && team(p[static_cast<std::size_t>(s)]) == c &&
++            kind(p[static_cast<std::size_t>(s)]) == King) return s;
++    return -1;
++}
++inline bool attack(const Position& p, int from, int to, int type, Color c) {
++    if (from < 0 || to < 0 || from == to) return false;
++    const int dx = (to & 7) - (from & 7), dy = (to >> 3) - (from >> 3);
++    const int ax = std::abs(dx), ay = std::abs(dy);
++    if (type == Pawn) return ax == 1 && dy == (c == White ? 1 : -1);
++    if (type == Knight) return (ax == 1 && ay == 2) || (ax == 2 && ay == 1);
++    if (type == King) return ax <= 1 && ay <= 1;
++    const bool diagonal = ax == ay && ax != 0;
++    const bool straight = (dx == 0) != (dy == 0);
++    if (!((type == Bishop && diagonal) || (type == Rook && straight) ||
++          (type == Queen && (diagonal || straight)))) return false;
++    const int sx = sign(dx), sy = sign(dy);
++    for (int x = (from & 7) + sx, y = (from >> 3) + sy; x != (to & 7) || y != (to >> 3); x += sx, y += sy)
++        if (p[static_cast<std::size_t>(8 * y + x)] != Empty) return false;
++    return true;
++}
++inline bool threatened(const Position& p, int target, Color by) {
++    if (target < 0) return false;
++    for (int s = 0; s < 64; ++s) {
++        const Piece piece = p[static_cast<std::size_t>(s)];
++        if (piece != Empty && team(piece) == by && attack(p, s, target, kind(piece), by)) return true;
++    }
++    return false;
++}
++inline Position after(Position p, const Move& m, Color us) {
++    const Piece moving = p[m.from];
++    p[m.from] = Empty;
++    if ((m.flags & EnPassant) != 0U) p[static_cast<std::size_t>(static_cast<int>(m.to) + (us == White ? -8 : 8))] = Empty;
++    p[m.to] = m.is_promotion() ? static_cast<Piece>((us == White ? 0 : 6) + m.promotion) : moving;
++    if (m.is_castle()) {
++        const bool ks = (m.flags & KingCastle) != 0U;
++        const int home = us == White ? 0 : 56;
++        p[static_cast<std::size_t>(home + (ks ? 5 : 3))] = p[static_cast<std::size_t>(home + (ks ? 7 : 0))];
++        p[static_cast<std::size_t>(home + (ks ? 7 : 0))] = Empty;
++    }
++    return p;
++}
++inline bool gives_check(const Board& b, const Move& m) {
++    const Color us = b.side_to_move();
++    const Position p = after(copy(b), m, us);
++    return threatened(p, monarch(p, opposite(us)), us);
++}
++inline bool direct_check(const Board& b, const Move& m) {
++    // Deliberate control: only the piece arriving on m.to counts. In castling
++    // this is the king; rook checks are intentionally omitted with discoveries.
++    const Color us = b.side_to_move();
++    const Position p = after(copy(b), m, us);
++    return attack(p, m.to, monarch(p, opposite(us)), kind(p[m.to]), us);
++}
++inline bool legal(const Board& b, const Move& m) {
++    const Color us = b.side_to_move(), them = opposite(us);
++    const Position before = copy(b);
++    if (m.is_castle()) {
++        if (threatened(before, m.from, them)) return false;
++        Position transit = before;
++        const int through = static_cast<int>(m.from) + sign(static_cast<int>(m.to) - static_cast<int>(m.from));
++        transit[static_cast<std::size_t>(through)] = transit[m.from];
++        transit[m.from] = Empty;
++        if (threatened(transit, through, them)) return false;
++    }
++    const Position p = after(before, m, us);
++    return !threatened(p, monarch(p, us), them);
++}
++struct Lines {
++    std::array<Bitboard, 7> checks{};
++    Bitboard pins = 0;
++    Bitboard discoveries = 0;
++};
++inline Bitboard blockers(const Position& p, int target, Color slider_side, Color blocker_side) {
++    if (target < 0) return 0;
++    Bitboard result = 0;
++    for (int dx = -1; dx <= 1; ++dx) for (int dy = -1; dy <= 1; ++dy) {
++        if (dx == 0 && dy == 0) continue;
++        int first = -1;
++        for (int x = (target & 7) + dx, y = (target >> 3) + dy;
++             x >= 0 && x < 8 && y >= 0 && y < 8; x += dx, y += dy) {
++            const int square = y * 8 + x;
++            const Piece piece = p[static_cast<std::size_t>(square)];
++            if (piece == Empty) continue;
++            if (first < 0) { first = square; continue; }
++            const int type = kind(piece);
++            const bool slider = type == Queen || ((dx != 0 && dy != 0) ? type == Bishop : type == Rook);
++            if (slider && team(piece) == slider_side && team(p[static_cast<std::size_t>(first)]) == blocker_side)
++                result |= Bitboard{1} << first;
++            break;
++        }
++    }
++    return result;
++}
++inline Lines reconstruct(const Board& b) {
++    const Position p = copy(b);
++    const Color us = b.side_to_move(), them = opposite(us);
++    const int enemy = monarch(p, them), own = monarch(p, us);
++    Lines result;
++    if (enemy >= 0) {
++        const int ex = enemy & 7, ey = enemy >> 3;
++        const int pawn_rank = ey + (us == White ? -1 : 1);
++        for (int dx : {-1, 1}) if (ex + dx >= 0 && ex + dx < 8 && pawn_rank >= 0 && pawn_rank < 8)
++            result.checks[Pawn] |= Bitboard{1} << (pawn_rank * 8 + ex + dx);
++        for (int dx = -2; dx <= 2; ++dx) for (int dy = -2; dy <= 2; ++dy) {
++            if (std::abs(dx) * std::abs(dy) != 2) continue;
++            const int x = ex + dx, y = ey + dy;
++            if (x >= 0 && x < 8 && y >= 0 && y < 8) result.checks[Knight] |= Bitboard{1} << (8 * y + x);
++        }
++        for (int dx = -1; dx <= 1; ++dx) for (int dy = -1; dy <= 1; ++dy) {
++            if (dx == 0 && dy == 0) continue;
++            const int type = dx != 0 && dy != 0 ? Bishop : Rook;
++            for (int x = ex + dx, y = ey + dy; x >= 0 && x < 8 && y >= 0 && y < 8; x += dx, y += dy) {
++                const int square = y * 8 + x;
++                result.checks[static_cast<std::size_t>(type)] |= Bitboard{1} << square;
++                if (p[static_cast<std::size_t>(square)] != Empty) break;
++            }
++        }
++        result.checks[Queen] = result.checks[Bishop] | result.checks[Rook];
++    }
++    // NoPieceType and King entries intentionally remain zero, matching the
++    // represented geometry contract, not because kings lack real attacks.
++    result.pins = blockers(p, own, them, us);
++    result.discoveries = blockers(p, enemy, us, us);
++    return result;
++}
++} // namespace forge::piece_reference
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -194,6 +194,9 @@
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     void generate_legal_evasions(MoveList& moves) const;
+     [[nodiscard]] bool has_legal_move() const;
++#if FORGE_SHORTCUT_COUNT
++    [[nodiscard]] bool h3_has_legal_move_reference() const; // diagnostic copy only
++#endif
+     // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
+     // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
+     // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
+@@ -247,6 +250,9 @@
+     // destination square nets at least `threshold` centipawns for the mover.
+     [[nodiscard]] int static_exchange(const Move& move) const;
+     [[nodiscard]] bool see_ge(const Move& move, int threshold) const;
++#if FORGE_SHORTCUT_COUNT
++    [[nodiscard]] bool see_ge_r15d_reference(const Move& move, int threshold) const;
++#endif
+ 
+     [[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }
+     [[nodiscard]] const std::array<Bitboard, 13>& piece_bitboards() const { return bitboards_; }
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -1,4 +1,7 @@
+ #pragma once
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ 
+ #include "forge/b4.hpp"
+ #include "forge/board.hpp"
+@@ -237,11 +240,49 @@
+     void store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score, int eval,
+                            Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+ 
++#if FORGE_SHORTCUT_COUNT
++    struct H82Reference { std::uint8_t slot; bool hit; int cls; bool older; };
++    static H82Reference h82_scan(TTCluster snapshot, std::uint32_t key32,
++                                 std::uint8_t generation, bool store=false, std::uint8_t supplied=0) {
++        int hit=-1, empty=-1;
++        for(int i=0;i<4;++i) {
++            if(hit<0 && snapshot.entries[i].occupied() && snapshot.entries[i].key32==key32) hit=i;
++            if(empty<0 && !snapshot.entries[i].occupied()) empty=i;
++        }
++        int slot=hit;
++        const int cls=hit>=0 ? 0 : empty>=0 ? 1 : 2;
++        if(slot<0 && store) slot=supplied; // r15d store re-finds a key, otherwise uses probe's saved destination.
++        if(slot<0 && empty>=0) slot=empty;
++        if(slot<0) {
++            slot=0;
++            int best=snapshot.entries[0].depth-4*static_cast<int>((32U+generation-snapshot.entries[0].generation())&31U);
++            for(int i=1;i<4;++i) {
++                const int value=snapshot.entries[i].depth-4*static_cast<int>((32U+generation-snapshot.entries[i].generation())&31U);
++                if(value<best) {best=value;slot=i;}
++            }
++        }
++        const bool older=(store || hit>=0) && snapshot.entries[slot].occupied() && snapshot.entries[slot].generation()!=generation;
++#if FORGE_SHORTCUT_WRONG5
++        if(cls==2) slot=(slot+1)&3; // Only full misses corrupt the local reference slot.
++#endif
++        return {static_cast<std::uint8_t>(slot),hit>=0,cls,older};
++    }
++#endif
+     [[gnu::always_inline]] [[nodiscard]] WorkerTTProbe probe_owned_fast(std::uint64_t key) const noexcept {
+         const std::size_t index = cluster_index(key);
+         TTCluster& cluster = clusters_[index];
+         const std::uint32_t key32 = verification_key(key);
+         const std::uint8_t generation = generation_;
++#if FORGE_SHORTCUT_COUNT
++        const H82Reference reference=h82_scan(cluster,key32,generation);
++        auto checked=[&](WorkerTTProbe result) {
++            shortcut_count::record_h82(result.hit!=reference.hit || result.slot!=reference.slot,
++                                       reference.cls,reference.older,false);
++            return result;
++        };
++#else
++        auto checked=[](WorkerTTProbe result){return result;};
++#endif
+ #if defined(__AVX512F__)
+         const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
+         const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(static_cast<int>(key32)));
+@@ -257,14 +298,14 @@
+                 found.gen_bound = static_cast<std::uint8_t>(
+                     (static_cast<unsigned>(generation) << 3U) | (found.gen_bound & 7U));
+             }
+-            return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
++            return checked(WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true});
+         }
+         if (static_cast<unsigned>(occ_m) != 0x8888U) {
+             const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m) ^ 0x8888U)) >> 2U;
+-            return WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false};
++            return checked(WorkerTTProbe{cluster.entries[slot], index, static_cast<std::uint8_t>(slot), false});
+         }
+         const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+-        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++        return checked(WorkerTTProbe{cluster.entries[repl], index, repl, false});
+ #else
+         for (std::size_t s = 0; s < 4; ++s) {
+             TTEntry& entry = cluster.entries[s];
+@@ -276,16 +317,16 @@
+                     entry.gen_bound = static_cast<std::uint8_t>(
+                         (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
+                 }
+-                return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++                return checked(WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true});
+             }
+         }
+         for (std::size_t s = 0; s < 4; ++s) {
+             if (!cluster.entries[s].occupied()) {
+-                return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++                return checked(WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false});
+             }
+         }
+         const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+-        return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++        return checked(WorkerTTProbe{cluster.entries[repl], index, repl, false});
+ #endif
+     }
+ #endif
+@@ -732,6 +773,21 @@
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+     [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++#if FORGE_SHORTCUT_COUNT
++        const bool h86_supported = is_main() && parent_worker_ == nullptr &&
++            (all_workers_ == nullptr || all_workers_->size() == 1) &&
++            !pondering_ && !time_managed_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
++        const bool h86_stop_before = shared_.stop.load(std::memory_order_relaxed);
++        const bool h86_reason_before = stopped_by_nodes_;
++        const std::uint64_t h86_nodes = local_nodes_, h86_extra = extra_nodes_, h86_limit = node_limit_;
++        const bool h86_specified = node_limit_specified_;
++        const bool h86_periodic = (h86_nodes & 1023U) == 0;
++        const int h86_path = fast_single_node_stop_
++            ? ((h86_nodes < h86_limit && !h86_periodic) ? 0 : 1)
++            : (h86_periodic ? 2 : 3);
++        const bool h86_actual = [&]() -> bool {
++#endif
++
+         if (fast_single_node_stop_) {
+             if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
+                 return shared_.stop.load(std::memory_order_relaxed);
+@@ -739,6 +795,29 @@
+             return should_stop();
+         }
+         return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    
++#if FORGE_SHORTCUT_COUNT
++        }();
++        const bool h86_stop_after = shared_.stop.load(std::memory_order_relaxed);
++        if (!h86_supported) {
++            shortcut_count::skip_h86(false);
++        } else if (h86_stop_before != h86_stop_after) {
++            shortcut_count::skip_h86(true);
++        } else {
++            // Original r15d outer gate and should_stop_with predicate, restricted
++            // to the no-clock, no-parent, sole-main-worker domain above.
++            const bool h86_gate = h86_periodic || h86_specified;
++            const bool h86_nodes_hit = h86_specified && h86_nodes + h86_extra >= h86_limit;
++            bool h86_reference = h86_gate && (h86_stop_before || h86_nodes_hit);
++            const bool h86_reason = h86_reason_before || (h86_gate && !h86_stop_before && h86_nodes_hit);
++#if FORGE_SHORTCUT_WRONG12
++            if ((h86_nodes & 1U) != 0) h86_reference = !h86_reference;
++#endif
++            shortcut_count::record_h86(h86_actual != h86_reference || stopped_by_nodes_ != h86_reason,
++                                      (h86_nodes & 1U) != 0, h86_path, h86_actual);
++        }
++        return h86_actual;
++#endif
+     }
+ };
+ 
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,3 +1,7 @@
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#include "forge/piece_reference.hpp"
++#endif
+ #include "forge/clock_plan.hpp"
+ #include "forge/search.hpp"
+ #include "forge/tm_finish.hpp"
+@@ -92,6 +96,90 @@
+ #endif
+ 
+ namespace forge {
++
++#if FORGE_SHORTCUT_COUNT
++namespace {
++struct H42Context;
++thread_local H42Context* h42_current=nullptr;
++struct H42Context {
++    H42Context* previous;
++    const Board* board;
++    std::uint64_t key;
++    int ply;
++    b4::LesserThreats reference;
++    bool enabled,read=false;
++    H42Context(const Board& b,int p,bool on):previous(h42_current),board(&b),key(b.key()),ply(p),enabled(on) {
++        h42_current=on?this:nullptr;
++        if(!on)return;
++        const Color them=opposite(b.side_to_move());
++        const Bitboard occ=b.occupied();
++        const Bitboard pawn=pawn_attacks_bb(them,b.pieces(them,Pawn));
++        reference.by_type[Pawn]=reference.by_type[Knight]=reference.by_type[Bishop]=pawn;
++        Bitboard minor=pawn;
++        for(Bitboard bb=b.pieces(them,Knight);bb;)minor|=attacks::knight(pop_lsb(bb));
++        for(Bitboard bb=b.pieces(them,Bishop);bb;)minor|=attacks::bishop(pop_lsb(bb),occ);
++        reference.by_type[Rook]=minor;
++        for(Bitboard bb=b.pieces(them,Rook);bb;)minor|=attacks::rook(pop_lsb(bb),occ);
++        reference.by_type[Queen]=minor;
++    }
++    ~H42Context(){if(enabled)shortcut_count::scope_h42(read);h42_current=previous;}
++};
++void h42_consume(const Board& board,int ply,int pt,Bitboard actual,int reader) {
++    H42Context* c=h42_current;
++    if(!c || c->board!=&board || c->ply!=ply || c->key!=board.key())return;
++    c->read=true;
++    Bitboard expected=c->reference.by_type[static_cast<std::size_t>(pt)];
++#if FORGE_SHORTCUT_WRONG15
++    if(board.side_to_move()==White)expected^=Bitboard{1};
++#endif
++    const int piecegroup=pt==Rook?1:(pt==Queen?2:((pt==King||pt==NoPieceType)?3:0));
++    shortcut_count::record_h42(actual!=expected,board.side_to_move()==White,reader,piecegroup,board);
++}
++struct H47Context;
++thread_local H47Context* h47_current=nullptr;
++struct H47Context {
++    const Board* board;
++    std::uint64_t key;
++    int ply;
++    b4::LesserThreats reference;
++    bool enabled,read=false;
++    H47Context(const Board& b,int p,bool on):board(&b),key(b.key()),ply(p),enabled(on) {
++        if(!on)return;
++        const Color them=opposite(b.side_to_move());
++        const Bitboard occ=b.occupied();
++        const Bitboard pawn=pawn_attacks_bb(them,b.pieces(them,Pawn));
++        reference.by_type[Pawn]=reference.by_type[Knight]=reference.by_type[Bishop]=pawn;
++        Bitboard minor=pawn;
++        for(Bitboard bb=b.pieces(them,Knight);bb;)minor|=attacks::knight(pop_lsb(bb));
++        for(Bitboard bb=b.pieces(them,Bishop);bb;)minor|=attacks::bishop(pop_lsb(bb),occ);
++        reference.by_type[Rook]=minor;
++        for(Bitboard bb=b.pieces(them,Rook);bb;)minor|=attacks::rook(pop_lsb(bb),occ);
++        reference.by_type[Queen]=minor;
++    }
++    ~H47Context(){if(enabled)shortcut_count::scope_h47(read);}
++};
++void h47_consume(const Board& board,int ply,int pt,Bitboard actual,int reader) {
++    H47Context* c=h47_current;
++    if(!c || c->board!=&board || c->ply!=ply || c->key!=board.key())return;
++    c->read=true;
++    Bitboard expected=c->reference.by_type[static_cast<std::size_t>(pt)];
++#if FORGE_SHORTCUT_WRONG16
++    if(board.side_to_move()==White)expected^=Bitboard{1};
++#endif
++    const int piecegroup=pt==Rook?1:(pt==Queen?2:((pt==King||pt==NoPieceType)?3:0));
++    shortcut_count::record_h47(actual!=expected,board.side_to_move()==White,reader,piecegroup,board);
++}
++struct H47ReadScope {
++    H47Context* previous;
++    explicit H47ReadScope(H47Context& c):previous(h47_current) {
++        h47_current=c.enabled?&c:nullptr;
++        if(c.enabled)shortcut_count::next_h47();
++    }
++    ~H47ReadScope(){h47_current=previous;}
++};
++
++}
++#endif
+ 
+ int DrawJitter = 0;
+ 
+@@ -525,6 +613,72 @@
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+ 
++#if FORGE_SHORTCUT_COUNT
++namespace {
++// Local snapshots only: scalar r15d probe/store algorithms; no actual TT writes,
++// lock operations, sample-generation counter updates, or search reads by oracle.
++bool h18_entry_equal(const TTEntry& a, const TTEntry& b) {
++    return a.key32 == b.key32 && a.move == b.move && a.score == b.score && a.eval == b.eval &&
++           a.depth == b.depth && a.gen_bound == b.gen_bound && a.rule50_clock == b.rule50_clock &&
++           a.padding == b.padding;
++}
++bool h18_cluster_equal(const TTCluster& a, const TTCluster& b) {
++    for (unsigned i = 0; i < 4; ++i) if (!h18_entry_equal(a.entries[i], b.entries[i])) return false;
++    return true;
++}
++std::uint8_t h18_reference_replacement(const TTCluster& cluster, std::uint8_t generation) {
++    const TTEntry* replace = &cluster.entries[0];
++    int replace_score = replace->occupied()
++        ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U) : 0;
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
++        const int score = entry.depth - 4 * age;
++        if (score < replace_score) { replace = &entry; replace_score = score; }
++    }
++    return static_cast<std::uint8_t>(replace - cluster.entries.data());
++}
++WorkerTTProbe h18_reference_probe(TTCluster& cluster, std::size_t index,
++                                  std::uint32_t key32, std::uint8_t generation) {
++    for (TTEntry& entry : cluster.entries) {
++        if (entry.key32 == key32 && entry.occupied()) {
++            entry.gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation) << 3U) |
++                                                       (entry.gen_bound & 7U));
++            return {entry, index, static_cast<std::uint8_t>(&entry - cluster.entries.data()), true};
++        }
++    }
++    const auto slot = h18_reference_replacement(cluster, generation);
++    return {cluster.entries[slot], index, slot, false};
++}
++void h18_reference_store(TTCluster& cluster, std::uint8_t slot, std::uint32_t key32,
++                         std::uint8_t generation, int score, int eval, Move move, int depth,
++                         Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    TTEntry* entry = &cluster.entries[slot];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) { entry = &candidate; break; }
++    }
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    const bool stale_slot = entry != &cluster.entries[slot];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation;
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation) << 3U) |
++                                                   (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++#if FORGE_SHORTCUT_WRONG3
++    // Positive control corrupts only the local reference payload, never actual storage.
++    entry->score = static_cast<std::int16_t>(entry->score ^ 1);
++#endif
++}
++} // namespace
++#endif
++
+ [[gnu::noinline]] std::uint8_t TranspositionTable::replace_full_cluster_slot(const TTCluster& cluster,
+                                                                              std::uint8_t generation) noexcept {
+     std::uint8_t replace_slot = 0;
+@@ -539,6 +693,9 @@
+             replace_score = score;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_tt(replace_slot != h18_reference_replacement(cluster, generation), 0);
++#endif
+     return replace_slot;
+ }
+ 
+@@ -549,6 +706,21 @@
+     TTCluster& cluster = clusters_[index];
+     const std::uint32_t key32 = verification_key(key);
+     const std::uint8_t generation = generation_;
++#if FORGE_SHORTCUT_COUNT
++    const H82Reference ref82=h82_scan(cluster,key32,generation);
++    TTCluster reference_cluster = cluster;
++    const WorkerTTProbe reference = h18_reference_probe(reference_cluster, index, key32, generation);
++    auto checked = [&](WorkerTTProbe result) {
++        const bool differs = result.cluster != reference.cluster || result.slot != reference.slot ||
++                             result.hit != reference.hit || !h18_entry_equal(result.entry, reference.entry) ||
++                             !h18_cluster_equal(cluster, reference_cluster);
++        shortcut_count::record_tt(differs, key);
++        shortcut_count::record_h82(result.hit!=ref82.hit || result.slot!=ref82.slot,ref82.cls,ref82.older,false);
++        return result;
++    };
++#else
++    auto checked = [](WorkerTTProbe result) { return result; };
++#endif
+     for (std::size_t s = 0; s < 4; ++s) {
+         TTEntry& entry = cluster.entries[s];
+         if (entry.key32 == key32 && entry.occupied()) {
+@@ -559,16 +731,16 @@
+                 entry.gen_bound = static_cast<std::uint8_t>(
+                     (static_cast<unsigned>(generation) << 3U) | (entry.gen_bound & 7U));
+             }
+-            return WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true};
++            return checked(WorkerTTProbe{entry, index, static_cast<std::uint8_t>(s), true});
+         }
+     }
+     for (std::size_t s = 0; s < 4; ++s) {
+         if (!cluster.entries[s].occupied()) {
+-            return WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false};
++            return checked(WorkerTTProbe{cluster.entries[s], index, static_cast<std::uint8_t>(s), false});
+         }
+     }
+     const std::uint8_t repl = replace_full_cluster_slot(cluster, generation);
+-    return WorkerTTProbe{cluster.entries[repl], index, repl, false};
++    return checked(WorkerTTProbe{cluster.entries[repl], index, repl, false});
+ }
+ 
+ void TranspositionTable::store_owned_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
+@@ -577,6 +749,12 @@
+     assert(has_exclusive_access());
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
++#if FORGE_SHORTCUT_COUNT
++    const H82Reference ref82=h82_scan(cluster,key32,generation_,true,slot);
++    TTCluster reference_cluster = cluster;
++    h18_reference_store(reference_cluster, slot, key32, generation_, score, eval, move, depth,
++                         bound, pv, halfmove_clock);
++#endif
+     TTEntry* entry = &cluster.entries[slot];
+ #if defined(__AVX512F__)
+     const __m512i cl = _mm512_load_si512(reinterpret_cast<const __m512i*>(&cluster));
+@@ -593,6 +771,11 @@
+             break;
+         }
+     }
++#endif
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h82(static_cast<std::size_t>(entry-cluster.entries.data())!=ref82.slot ||
++                               (entry->key32==key32 && entry->occupied())!=ref82.hit,
++                               ref82.cls,ref82.older,true,move);
+ #endif
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[slot];
+@@ -616,6 +799,9 @@
+         entry->gen_bound = static_cast<std::uint8_t>(
+             (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_tt(!h18_cluster_equal(cluster, reference_cluster), key, move);
++#endif
+ }
+ 
+ void TranspositionTable::store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
+@@ -625,6 +811,12 @@
+     (void)lock;
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
++#if FORGE_SHORTCUT_COUNT
++    const H82Reference ref82=h82_scan(cluster,key32,generation_,true,slot);
++    TTCluster reference_cluster = cluster;
++    h18_reference_store(reference_cluster, slot, key32, generation_, score, eval, move, depth,
++                         bound, pv, halfmove_clock);
++#endif
+     TTEntry* entry = &cluster.entries[slot];
+     for (TTEntry& candidate : cluster.entries) {
+         if (candidate.key32 == key32 && candidate.occupied()) {
+@@ -632,6 +824,11 @@
+             break;
+         }
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h82(static_cast<std::size_t>(entry-cluster.entries.data())!=ref82.slot ||
++                               (entry->key32==key32 && entry->occupied())!=ref82.hit,
++                               ref82.cls,ref82.older,true,move);
++#endif
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[slot];
+     const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
+@@ -654,6 +851,9 @@
+         entry->gen_bound = static_cast<std::uint8_t>(
+             (static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_tt(!h18_cluster_equal(cluster, reference_cluster), key, move);
++#endif
+ }
+ 
+ TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
+@@ -853,6 +1053,9 @@
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+                     if (!board_.see_ge(move, -move_score_threshold(move))) {
++#if FORGE_SHORTCUT_COUNT
++                        h17_shadow_.push_back(move); shortcut_count::buffer_h17();
++#endif
+ #if FORGE_SDK_BADCAP_PREFIX
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+                         moves_[bad_count_++].move = move;
+@@ -892,6 +1095,13 @@
+                         // A closed tail keeps quiet checks, including discovered checks.
+                         if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
+ #if FORGE_SPD_KING_LINES
++#if FORGE_SHORTCUT_COUNT
++                        // Observe both acceptance and rejection without changing the decision below.
++                        const bool shortcut_legal = move.from == own_king_sq_ ? board_.is_legal(move) :
++                            (((pinned_ >> move.from) & 1ULL) == 0 || attacks::aligned(own_king_sq_, move.from, move.to));
++                        shortcut_count::record("B2", shortcut_legal != board_.is_legal(move), board_, move);
++                        shortcut_count::record("S-B2", shortcut_legal != piece_reference::legal(board_, move), board_, move);
++#endif
+                         if (move.from == own_king_sq_) {
+                             if (!board_.is_legal(move)) continue;
+                         } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
+@@ -911,6 +1121,28 @@
+ #else
+                         last_quiet_gives_check_ = board_.gives_check(move);
+ #endif
++#if FORGE_SHORTCUT_COUNT
++#if FORGE_SHORTCUT_WRONG
++                        const bool reference_check = direct_chk; // Deliberate reference-only fault.
++#else
++                        const bool reference_check = board_.gives_check(move);
++#endif
++                        shortcut_count::record("B1", last_quiet_gives_check_ != reference_check, board_, move);
++#if FORGE_SHORTCUT_WRONG2
++                        const bool piece_check = piece_reference::direct_check(board_, move);
++#else
++                        const bool piece_check = piece_reference::gives_check(board_, move);
++#endif
++                        shortcut_count::record("S-B1", last_quiet_gives_check_ != piece_check, board_, move);
++#if FORGE_SPD_KING_LINES
++                        const auto piece_lines = piece_reference::reconstruct(board_);
++                        bool copies_differ = pinned_ != piece_lines.pins || discoverers_ != piece_lines.discoveries;
++                        // Compare all seven copied slots, including the initialized empty slot.
++                        for (int type = 0; type <= King; ++type)
++                            copies_differ = copies_differ || check_squares_[type] != piece_lines.checks[type];
++                        shortcut_count::record("S-B4", copies_differ, board_, move);
++#endif
++#endif
+                         return move;
+                     }
+                 }
+@@ -918,11 +1150,18 @@
+                 bad_index_ = 0;
+                 [[fallthrough]];
+             case BadCaptures:
++                if (bad_index_ < bad_count_) {
++                    const std::size_t h17_at=bad_index_++;
+ #if FORGE_SDK_BADCAP_PREFIX
+-                if (bad_index_ < bad_count_) return moves_[bad_index_++].move;
++                    const Move h17_actual=moves_[h17_at].move;
+ #else
+-                if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
+-#endif
++                    const Move h17_actual=bad_captures_[h17_at];
++#endif
++#if FORGE_SHORTCUT_COUNT
++                    h17_consume(h17_actual,h17_at);
++#endif
++                    return h17_actual;
++                }
+                 return Move::none();
+ 
+             case QsGenerate:
+@@ -944,6 +1183,9 @@
+             case Evasions:
+                 while (index_ < count_) {
+                     const Move move = pick_best();
++#if FORGE_SHORTCUT_COUNT
++                    if(h20_tied_)h20_consume(move,moves_[index_-1].score);
++#endif
+                     if (move.is_none() || move == tt_move_) continue;
+                     return move;
+                 }
+@@ -973,6 +1215,54 @@
+         Move move;
+         int score;
+     };
++#if FORGE_SHORTCUT_COUNT
++    std::vector<Move> h17_shadow_;
++    void h17_consume(const Move& actual,std::size_t at) {
++        const bool missing=at>=h17_shadow_.size();
++        Move expected=missing?Move::none():h17_shadow_[at];
++#if FORGE_SHORTCUT_WRONG18
++        if(board_.side_to_move()==White)expected.flags^=1U;
++#endif
++        const bool different=missing || bad_count_!=h17_shadow_.size() ||
++            actual.from!=expected.from || actual.to!=expected.to || actual.promotion!=expected.promotion || actual.flags!=expected.flags;
++        shortcut_count::record_h17(different,board_.side_to_move()==White,at==0,actual.is_promotion(),board_,actual);
++    }
++#endif
++#if FORGE_SHORTCUT_COUNT
++    bool h20_tied_=false,h20_sorted_=false;
++    std::size_t h20_index_=0;
++    std::vector<Scored> h20_values_;
++    std::array<Bitboard,64> h20_mask_{};
++    void h20_consume(const Move& actual,int actual_score) {
++        const bool missing=h20_index_>=h20_values_.size();
++        Scored expected{Move::none(),0};
++        if(!missing) {
++            const std::size_t i=h20_index_;
++            if(i<4) {
++                std::size_t best=i;
++                for(std::size_t j=i+1;j<h20_values_.size();++j)
++                    if(h20_values_[j].score>h20_values_[best].score)best=j;
++                if(best!=i)std::swap(h20_values_[i],h20_values_[best]);
++            } else if(!h20_sorted_) {
++                std::sort(h20_values_.begin()+static_cast<std::ptrdiff_t>(i),h20_values_.end(),[](const Scored&a,const Scored&b){return a.score>b.score;});
++                h20_sorted_=true;
++            }
++            expected=h20_values_[h20_index_++];
++        }
++        const bool ref_legal=!missing && (h20_mask_[expected.move.from]&square_bb(expected.move.to))!=0;
++        bool expected_skip=missing || expected.move==tt_move_ || !ref_legal;
++        const bool actual_skip=actual.is_none() || actual==tt_move_;
++#if FORGE_SHORTCUT_WRONG17
++        if(board_.side_to_move()==White)expected_skip=!expected_skip;
++#endif
++        const bool full_move_equal=actual.from==expected.move.from && actual.to==expected.move.to &&
++            actual.promotion==expected.move.promotion && actual.flags==expected.move.flags;
++        const bool different=missing || actual_skip!=expected_skip || actual_score!=expected.score ||
++            (!actual_skip && !full_move_equal);
++        const int outcome=actual.is_none()?0:(actual==tt_move_?1:2);
++        shortcut_count::record_h20(different,board_.side_to_move()==White,outcome,ref_legal,!missing && expected.move.is_promotion(),board_,expected.move);
++    }
++#endif
+ 
+     const Board& board_;
+     const Worker& searcher_;
+@@ -1064,6 +1354,9 @@
+         const LesserThreatHistory::value_type* rework_side;
+         const b4::LesserThreats* threats;
+         int quarters;
++#if FORGE_SHORTCUT_COUNT
++        int h42_ply;
++#endif
+         bool rework;
+         bool use_threat_hist;
+ 
+@@ -1082,6 +1375,9 @@
+                           ? &searcher.ensure_threat_map(b, ss->ply)
+                           : nullptr),
+               quarters(tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0),
++#if FORGE_SHORTCUT_COUNT
++              h42_ply(ss?ss->ply:-1),
++#endif
+               rework(tune::HistRework != 0 && ss != nullptr),
+               use_threat_hist(tune::ThreatHistory) {}
+ 
+@@ -1093,6 +1389,10 @@
+             int value = plain;
+             if (rework) {
+                 const Bitboard set = threats->by_type[pt];
++#if FORGE_SHORTCUT_COUNT
++                h42_consume(board,h42_ply,static_cast<int>(pt),set,0);
++                h47_consume(board,h42_ply,static_cast<int>(pt),set,0);
++#endif
+                 const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+                 value = b4::blend(plain, twin, quarters);
+             }
+@@ -1122,6 +1422,48 @@
+     // following move order depends on. Chunks of four compare inside the chunk
+     // first so the running best is not a loop-carried load on every move.
+     [[nodiscard]] Scored pick_best_scored() {
++#if FORGE_SHORTCUT_COUNT
++        // r15d selects the first maximum for the first four picks. On the
++        // fifth pick it instead sorts the tail with this identical comparator.
++        // Reproduce that transition on private storage before the plain scan.
++        const bool transition = !sorted_ && index_ - list_start_ >= 4;
++        const bool seed_path = !sorted_ && !transition && seeded_ && index_ == list_start_;
++        std::array<Scored,256> reference_list;
++        for(std::size_t i=index_; i<count_; ++i) reference_list[i]=moves_[i];
++        if(transition) std::sort(reference_list.begin()+static_cast<std::ptrdiff_t>(index_),
++                                 reference_list.begin()+static_cast<std::ptrdiff_t>(count_),
++                                 [](const Scored& a,const Scored& b){return a.score>b.score;});
++        std::size_t ref_best=index_;
++        for(std::size_t i=index_+1;i<count_;++i) {
++#if FORGE_SHORTCUT_WRONG4
++            if(reference_list[i].score >= reference_list[ref_best].score) ref_best=i; // Fault only on maximal-score ties.
++#else
++            if(reference_list[i].score > reference_list[ref_best].score) ref_best=i;
++#endif
++        }
++        const Scored expected=reference_list[ref_best];
++        if(seed_path) ++shortcut_count::h25_paths[0];
++        else if(transition) ++shortcut_count::h25_paths[5];
++        else if(sorted_) ++shortcut_count::h25_paths[6];
++        else {
++            std::size_t remaining=count_-(index_+1);
++#if defined(__AVX512F__)
++            if(remaining>=16) {++shortcut_count::h25_paths[1]; remaining%=16;}
++            if(remaining>=8) {++shortcut_count::h25_paths[2];remaining-=8;}
++#endif
++#if defined(__AVX2__)
++            if(remaining>=4) {++shortcut_count::h25_paths[3];remaining%=4;}
++#endif
++            if(remaining>0) ++shortcut_count::h25_paths[4];
++        }
++        const Scored actual=pick_best_scored_impl();
++        shortcut_count::record("H25",actual.move!=expected.move || actual.score!=expected.score,board_,actual.move);
++        return actual;
++#else
++        return pick_best_scored_impl();
++#endif
++    }
++    [[nodiscard]] Scored pick_best_scored_impl() {
+         if (!sorted_) {
+             if (index_ - list_start_ < 4) {
+                 if (seeded_ && index_ == list_start_) {
+@@ -1230,7 +1572,59 @@
+ #endif
+     }
+ 
++#if FORGE_SHORTCUT_COUNT
++    void observe_capture_generation() const {
++        // r15d search.cpp1030-1053: separate pseudo-legal capture generation
++        // followed by scalar scoring. Local list; no picker/search mutation.
++        MoveList reference;
++        board_.generate_pseudo_legal(reference, true);
++#if FORGE_SEARCH_SPEED2
++        const CaptureHistory& capture_history = *searcher_.capture_history_;
++#endif
++        bool different = count_ != reference.size() || index_ != 0 || list_start_ != 0 || sorted_;
++        bool ref_seed = false;
++        int ref_seed_score = 0;
++        std::size_t ref_seed_at = 0;
++        Move first = Move::none();
++        for (std::size_t i = 0; i < reference.size(); ++i) {
++            const Move move = reference[i];
++#if FORGE_SEARCH_SPEED2
++            const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
++            const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
++            int value = SeePieceValue[victim];
++            if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
++            int score = 10 * value + capture_history[moved][move.to][victim];
++#else
++            int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
++#endif
++            if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++#if FORGE_SHORTCUT_WRONG4
++            // Class-specific positive control: only captures made BY a knight.
++            // Knight promotions are pawn moves and therefore not corrupted.
++            if (move.is_capture() && piece_type(board_.piece_at(move.from)) == Knight) ++score;
++#endif
++            if (!ref_seed || score > ref_seed_score) {
++                ref_seed = true;
++                ref_seed_score = score;
++                ref_seed_at = i;
++            }
++            if (i >= count_ || moves_[i].move != move || moves_[i].score != score) {
++                different = true;
++                if (first.is_none()) first = move;
++            }
++        }
++        different = different || seeded_ != ref_seed ||
++                    (ref_seed && (seeded_score_ != ref_seed_score || seeded_at_ != ref_seed_at));
++        shortcut_count::record("H27", different, board_, first);
++    }
++#endif
+     [[gnu::noinline]] void generate_captures() {
++        generate_captures_impl();
++#if FORGE_SHORTCUT_COUNT
++        observe_capture_generation();
++#endif
++    }
++    [[gnu::noinline]] void generate_captures_impl() {
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+@@ -1343,7 +1737,122 @@
+ #endif
+     }
+ 
++
++#if FORGE_SHORTCUT_COUNT && FORGE_SEARCH_SPEED2
++    struct QuietReferenceScorer {
++        const std::array<std::array<std::int16_t, 64>, 64>& main;
++        const PieceToHistory* cont1;
++        const PieceToHistory* cont2;
++        const PieceToHistory* cont4;
++        const Board& board;
++        const Worker& worker;
++        const LesserThreatHistory::value_type* rework_side;
++        const b4::LesserThreats* threats;
++        int quarters;
++        bool rework;
++        bool use_threat_hist;
++
++        QuietReferenceScorer(const Board& b, const Worker& searcher, const SearchStack* ss, const b4::LesserThreats& ref_threats)
++            : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
++              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
++              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
++              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++                        ? (ss - 4)->continuation : nullptr),
++              board(b),
++              worker(searcher),
++              rework_side(tune::HistRework != 0 && ss != nullptr
++                              ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
++                              : nullptr),
++              threats(tune::HistRework != 0 && ss != nullptr
++                          ? &ref_threats
++                          : nullptr),
++              quarters(tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0),
++              rework(tune::HistRework != 0 && ss != nullptr),
++              use_threat_hist(tune::ThreatHistory) {}
++
++        [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
++            const Piece piece = board.piece_at(move.from);
++            const std::size_t pt = static_cast<std::size_t>(piece_type(piece));
++            const std::size_t p = static_cast<std::size_t>(piece);
++            const int plain = main[move.from][move.to];
++            int value = plain;
++            if (rework) {
++                const Bitboard set = threats->by_type[pt];
++                const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
++                value = b4::blend(plain, twin, quarters);
++            }
++            if (cont1 != nullptr) value += (*cont1)[p][move.to];
++            if (cont2 != nullptr) value += (*cont2)[p][move.to];
++            if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
++            if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
++#if FORGE_PAWN_HISTORY
++            value += worker.pawn_history_value(board, piece, move);
++#endif
++            if ((check_squares[pt] & square_bb(move.to)) != 0) value += 12000;
++            return value;
++        }
++    };
++[[nodiscard]] static b4::LesserThreats reference_lesser_threats(const Board& board) {
++    const Color them = opposite(board.side_to_move());
++    const Bitboard occupancy = board.occupied();
++    const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard by_minor = by_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
++    Bitboard by_rook = by_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
++    b4::LesserThreats threats;
++    threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
++    threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++    return threats;
++}
++    void observe_quiet_generation() const {
++        MoveList ref_moves;
++        board_.generate_pseudo_legal(ref_moves, Board::GenMode::Quiets);
++        std::array<Bitboard,7> ref_checks{};
++        const Color them = opposite(board_.side_to_move());
++        const int king = board_.king_square(them);
++        const Bitboard occ = board_.occupied();
++        ref_checks[Pawn] = attacks::pawn(them, king);
++        ref_checks[Knight] = attacks::knight(king);
++        ref_checks[Bishop] = attacks::bishop(king, occ);
++        ref_checks[Rook] = attacks::rook(king, occ);
++        ref_checks[Queen] = ref_checks[Bishop] | ref_checks[Rook];
++        const auto ref_threats = reference_lesser_threats(board_);
++        const QuietReferenceScorer ref_score(board_, searcher_, ss_, ref_threats);
++        const std::size_t start = quiet_start();
++        bool different = count_ != start + ref_moves.size() || index_ != start || list_start_ != start || sorted_;
++        bool ref_seed = false;
++        int ref_seed_score = 0;
++        std::size_t ref_seed_at = 0;
++        Move first = Move::none();
++        for (std::size_t i=0; i<ref_moves.size(); ++i) {
++            const Move move = ref_moves[i];
++            int score = ref_score.score(move, ref_checks);
++#if FORGE_SHORTCUT_WRONG3
++            if (i==0) ++score; // Deliberately corrupt reference only.
++#endif
++            if (!ref_seed || score > ref_seed_score) { ref_seed=true; ref_seed_score=score; ref_seed_at=start+i; }
++            if (start+i >= count_ || moves_[start+i].move != move || moves_[start+i].score != score) {
++                different=true;
++                if(first.is_none()) first=move;
++            }
++        }
++        different = different || seeded_ != ref_seed || (ref_seed && (seeded_score_ != ref_seed_score || seeded_at_ != ref_seed_at));
++        shortcut_count::record("H28", different, board_, first);
++    }
++#endif
+     [[gnu::noinline]] void generate_quiets() {
++        generate_quiets_impl();
++#if FORGE_SHORTCUT_COUNT && FORGE_SEARCH_SPEED2
++        observe_quiet_generation();
++#endif
++    }
++
++    [[gnu::noinline]] void generate_quiets_impl() {
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
+         init_check_squares();
+         index_ = quiet_start();
+@@ -1577,6 +2086,32 @@
+         for (const Move move : buf) {
+             if (!(move == tt_move_)) non_tt.push_back(move);
+         }
++#if FORGE_SHORTCUT_COUNT
++        // H29 storage-consumption diagnostic: regenerate on independent Board
++        // and stack lists; never inspect an uninitialized MoveList capacity slot.
++        auto h29_same_move=[](const Move& a,const Move& b) {
++            return a.from==b.from && a.to==b.to && a.promotion==b.promotion && a.flags==b.flags;
++        };
++        auto h29_same_list=[&](const MoveList& a,const MoveList& b,bool fault) {
++            std::size_t reference_size=b.size();
++#if FORGE_SHORTCUT_WRONG12
++            if(fault && board_.side_to_move()==White) ++reference_size;
++#else
++            (void)fault;
++#endif
++            bool same=a.size()==reference_size;
++            for(std::size_t i=0;i<std::min(a.size(),b.size());++i) same &= h29_same_move(a[i],b[i]);
++            return same;
++        };
++        {
++            const Board h29_board=board_;
++            MoveList h29_legal,h29_non_tt;
++            h29_board.generate_legal_evasions(h29_legal);
++            for(const Move move:h29_legal) if(!(move==tt_move_)) h29_non_tt.push_back(move);
++            const bool h29_equal=h29_same_list(buf,h29_legal,false) & h29_same_list(non_tt,h29_non_tt,true);
++            shortcut_count::record_h29(!h29_equal,board_.side_to_move()==White,false,board_);
++        }
++#endif
+         index_ = 0;
+         if (non_tt.empty()) {
+             count_ = 0;
+@@ -1644,15 +2179,68 @@
+         }
+         buf.clear();
+         board_.generate_pseudo_legal(buf, false);
++#if FORGE_SHORTCUT_COUNT
++        {
++            const Board h29_board=board_;
++            MoveList h29_pseudo;
++            h29_board.generate_pseudo_legal(h29_pseudo,false);
++            shortcut_count::record_h29(!h29_same_list(buf,h29_pseudo,true),board_.side_to_move()==White,true,board_);
++        }
++#endif
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
++#if FORGE_SHORTCUT_COUNT
++        std::array<Scored,256> h30_original{};
++        std::size_t h30_n=0;
++        bool h30_illegal=false,h30_promotion=false;
++#endif
+         for (const Move move : buf) {
+             const int sc = score_evasion(move);
+             const Move tagged = (legal_mask[move.from] & square_bb(move.to)) != 0 ? move : Move::none();
++#if FORGE_SHORTCUT_COUNT
++            h30_original[h30_n++]={move,sc};
++            h30_illegal |= tagged.is_none(); h30_promotion |= move.is_promotion();
++#endif
+             push_scored(tagged, sc);
+         }
+         sort_moves();
++#if FORGE_SHORTCUT_COUNT
++        // Diagnostic-only private arrays. Compare tag-then-select with r15d's
++        // select-then-deferred-legality-filter, including full tie ordering.
++        auto h30_sequence=[&](std::array<Scored,256> values,std::size_t n,bool deferred,std::array<Scored,256>& output) {
++            std::size_t out=0; bool ordered=false;
++            for(std::size_t i=0;i<n;++i) {
++                if(i<4) {
++                    std::size_t best=i;
++                    for(std::size_t j=i+1;j<n;++j)if(values[j].score>values[best].score)best=j;
++                    if(best!=i)std::swap(values[i],values[best]);
++                } else if(!ordered) {
++                    std::sort(values.begin()+static_cast<std::ptrdiff_t>(i),values.begin()+static_cast<std::ptrdiff_t>(n),[](const Scored&a,const Scored&b){return a.score>b.score;});
++                    ordered=true;
++                }
++                const Move m=values[i].move;
++                if(m.is_none() || m==tt_move_)continue;
++                if(deferred && (legal_mask[m.from]&square_bb(m.to))==0)continue;
++                output[out++]=values[i];
++            }
++            return out;
++        };
++        std::array<Scored,256> actual_values{},actual_output{},reference_output{};
++        for(std::size_t i=0;i<count_;++i)actual_values[i]=moves_[i];
++        const std::size_t actual_n=h30_sequence(actual_values,count_,false,actual_output);
++        const std::size_t reference_n=h30_sequence(h30_original,h30_n,true,reference_output);
++        h20_values_.assign(h30_original.begin(),h30_original.begin()+static_cast<std::ptrdiff_t>(h30_n));
++        h20_mask_=legal_mask; h20_index_=0; h20_sorted_=false; h20_tied_=true;
++        const int h30_class=board_.side_to_move()==White?0:1;
++#if FORGE_SHORTCUT_WRONG9
++        if(h30_class==0 && reference_n>0)reference_output[0].move=Move::none(); // White tied-fallback generations only.
++#endif
++        bool h30_diff=actual_n!=reference_n;
++        for(std::size_t i=0;i<std::min(actual_n,reference_n);++i)
++            h30_diff |= actual_output[i].move!=reference_output[i].move || actual_output[i].score!=reference_output[i].score;
++        shortcut_count::record_h30(h30_diff,h30_class,h30_illegal,h30_promotion,board_,reference_n?reference_output[0].move:Move::none());
++#endif
+     }
+ };
+ 
+@@ -1748,10 +2336,40 @@
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     // Score recognized endings before any accumulator refresh or network call.
++#if FORGE_SHORTCUT_COUNT
++    int h32_actual_score=0;
++    const bool h32_enabled=dead_material_enabled;
++    const bool h32_candidate=h32_enabled && has_dead_material_candidates(board);
++    const bool h32_actual_dead=h32_candidate && dead_material_score(board,h32_actual_score);
++    int h32_reference_score=0;
++    // Old r15d does not consult the candidate guard.
++    bool h32_reference_dead=h32_enabled && dead_material_score(board,h32_reference_score);
++    const int h32_dead_class=!h32_enabled?0:(!h32_candidate?1:(h32_actual_dead?3:2));
++    bool h32_dispatch_diff=false;
++    int h32_backend=0;
++    if(!h32_actual_dead) {
++        const bool h32_reference_active=nnue::enabled && nnue::available();
++        h32_dispatch_diff=nnue_active_!=h32_reference_active;
++        h32_backend=nnue_active_?2:1;
++#if FORGE_NNUE_V3
++        if(nnue_active_ && h32_reference_active)
++            h32_dispatch_diff |= (v3_active_net_!=nullptr)!=nnue::v3::active();
++        if(nnue_active_ && v3_active_net_!=nullptr)h32_backend=3;
++#endif
++    }
++#if FORGE_SHORTCUT_WRONG13
++    if(board.side_to_move()==White)h32_reference_dead=!h32_reference_dead;
++#endif
++    const bool h32_diff=h32_actual_dead!=h32_reference_dead ||
++        (h32_actual_dead && h32_reference_dead && h32_actual_score!=h32_reference_score) || h32_dispatch_diff;
++    shortcut_count::record_h32(h32_diff,board.side_to_move()==White,h32_dead_class,h32_backend,board);
++    if(h32_actual_dead)return h32_actual_score;
++#else
+     if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
++#endif
+     if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+     if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
+@@ -1822,6 +2440,33 @@
+     if (captured != Empty || move.is_promotion()) keep &= static_cast<std::uint8_t>(~8U);
+     else child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_valid = keep;
++#if FORGE_SHORTCUT_COUNT
++    // H33 independent square-array material transition, no Board make_move.
++    const auto h33_before=piece_reference::copy(board);
++    const auto h33_after=piece_reference::after(h33_before,move,us);
++    auto h33_counts=[](const piece_reference::Position& position) {
++        std::array<int,10> counts{};
++        for(const Piece p:position) if(p!=Empty) {
++            const int type=piece_reference::kind(p);
++            if(type>=Pawn && type<=Queen) ++counts[static_cast<std::size_t>(piece_reference::team(p))*5+static_cast<std::size_t>(type-Pawn)];
++        }
++        return counts;
++    };
++    const auto h33_pre=h33_counts(h33_before),h33_post=h33_counts(h33_after);
++    const bool h33_changed=h33_pre!=h33_post;
++    const bool h33_parent_valid=(ss->corr_valid&8U)!=0;
++    const bool h33_child_valid=(child->corr_valid&8U)!=0;
++    bool h33_expected_valid=h33_parent_valid && !h33_changed;
++    std::uint64_t h33_key=0;
++    for(const int n:h33_post)h33_key=h33_key*1099511628211ULL+static_cast<std::uint64_t>(n+1);
++    const std::size_t h33_index=(h33_key*0x9E3779B97F4A7C15ULL)&(CorrectionSize-1U);
++#if FORGE_SHORTCUT_WRONG15
++    if(us==White)h33_expected_valid=!h33_expected_valid;
++#endif
++    const bool h33_diff=h33_child_valid!=h33_expected_valid || (h33_child_valid && child->corr_mat_idx!=h33_index);
++    const int h33_moveclass=(move.flags&EnPassant)?3:(move.is_promotion()?2:(move.is_capture()?1:0));
++    shortcut_count::record_h33(h33_diff,us==White,h33_parent_valid,h33_changed,h33_child_valid,h33_moveclass,board,move);
++#endif
+ 
+     if (!nnue_active_) return;
+     child->entered_move = move;
+@@ -1865,6 +2510,23 @@
+ }
+ 
+ void Worker::record_null_move(SearchStack* ss) {
++#if FORGE_SHORTCUT_COUNT
++    SearchStack* h35_child=ss+1;
++    const bool h35_acc_before=h35_child->accumulator.valid;
++    const bool h35_psqt_before=h35_child->runtime_psqt.valid;
++    bool h35_ref_v3=false;
++    bool h35_actual_v3=false;
++    bool h35_have_v3_slot=false;
++    std::uint8_t h35_v3_before=0;
++#if FORGE_NNUE_V3
++    h35_ref_v3=nnue::v3::active();
++    h35_actual_v3=v3_active_net_!=nullptr;
++    const std::size_t h35_slot=static_cast<std::size_t>(ss->ply+5);
++    h35_have_v3_slot=v3_state_ && h35_slot<v3_state_->valid_flags.size();
++    if(h35_have_v3_slot) h35_v3_before=v3_state_->valid_flags[h35_slot];
++#endif
++    [&]() {
++#endif
+     SearchStack* child = ss + 1;
+     child->corr_np_idx = ss->corr_np_idx;
+     child->corr_mat_idx = ss->corr_mat_idx;
+@@ -1881,6 +2543,37 @@
+ #endif
+     child->accumulator.valid = false;
+     child->runtime_psqt.valid = false;
++
++#if FORGE_SHORTCUT_COUNT
++    }();
++    if(shortcut_count::tt_board==nullptr) {
++        shortcut_count::skip_h35();
++    } else {
++        const Board& h35_board=*shortcut_count::tt_board;
++        const bool h35_material_valid=(ss->corr_valid&8U)!=0;
++        bool h35_diff=h35_child->corr_valid!=ss->corr_valid;
++        if(h35_material_valid) {
++            std::uint64_t h35_key=0;
++            for(const Color c:{White,Black})for(int t=Pawn;t<=Queen;++t)
++                h35_key=h35_key*1099511628211ULL+static_cast<std::uint64_t>(popcount(h35_board.pieces(c,static_cast<PieceType>(t)))+1);
++            const std::size_t h35_index=(h35_key*0x9E3779B97F4A7C15ULL)&(CorrectionSize-1U);
++            h35_diff |= h35_child->corr_mat_idx!=h35_index;
++        }
++        bool h35_expected_null=true;
++#if FORGE_SHORTCUT_WRONG14
++        if(h35_board.side_to_move()==White)h35_expected_null=false;
++#endif
++        h35_diff |= h35_child->entered_null!=h35_expected_null || !h35_child->diff_known || h35_child->dirty.count!=0;
++        h35_diff |= h35_actual_v3!=h35_ref_v3;
++        h35_diff |= h35_child->accumulator.valid!=(h35_ref_v3?h35_acc_before:false);
++        h35_diff |= h35_child->runtime_psqt.valid!=(h35_ref_v3?h35_psqt_before:false);
++#if FORGE_NNUE_V3
++        if(h35_have_v3_slot)
++            h35_diff |= v3_state_->valid_flags[h35_slot]!=(h35_ref_v3?0:h35_v3_before);
++#endif
++        shortcut_count::record_h35(h35_diff,h35_board.side_to_move()==White,h35_material_valid,h35_ref_v3,h35_board);
++    }
++#endif
+ }
+ 
+ 
+@@ -1893,16 +2586,52 @@
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
++#if FORGE_SHORTCUT_COUNT
++        const int h36_path = ss == nullptr ? 2 : ((ss->corr_valid & 8U) ? 0 : 1);
++#endif
+         std::size_t mat_idx;
+         if (ss != nullptr) {
+             if ((ss->corr_valid & 8U) == 0U) {
++#if FORGE_SHORTCUT_COUNT
++                // H84 field-fill transaction reference: square-array counts, no material_key/cache read.
++                const std::uint8_t h84_before = ss->corr_valid;
++                std::array<unsigned,10> h84_counts{};
++                for (const Piece p : piece_reference::copy(board)) if (p != Empty) {
++                    const int t = piece_reference::kind(p);
++                    if (t >= Pawn && t <= Queen)
++                        ++h84_counts[static_cast<std::size_t>(piece_reference::team(p))*5+static_cast<std::size_t>(t-Pawn)];
++                }
++                std::uint64_t h84_key=0;
++                for (const unsigned n : h84_counts) h84_key=h84_key*1099511628211ULL+static_cast<std::uint64_t>(n+1);
++                const std::size_t h84_expected_index=(h84_key*0x9E3779B97F4A7C15ULL)&(CorrectionSize-1U);
++                std::uint8_t h84_expected_valid=h84_before|8U;
++#if FORGE_SHORTCUT_WRONG18
++                if(board.side_to_move()==White) h84_expected_valid^=8U;
++#endif
++#endif
+                 ss->corr_mat_idx = static_cast<std::uint16_t>(material_key(board) & (CorrectionSize - 1U));
+                 ss->corr_valid |= 8U;
++#if FORGE_SHORTCUT_COUNT
++                shortcut_count::record_h84(ss->corr_mat_idx!=h84_expected_index || ss->corr_valid!=h84_expected_valid,
++                    board.side_to_move()==White,(h84_before&~8U)!=0U,board);
++#endif
+             }
+             mat_idx = ss->corr_mat_idx;
+         } else {
+             mat_idx = material_key(board) & (CorrectionSize - 1U);
+         }
++#if FORGE_SHORTCUT_COUNT
++        // Recompute from current board, independent of stack cache validity/storage.
++        std::uint64_t h36_key = 0;
++        for (const Color c : {White, Black})
++            for (int t = Pawn; t <= Queen; ++t)
++                h36_key = h36_key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(c, static_cast<PieceType>(t))) + 1);
++        std::size_t h36_ref = (h36_key * 0x9E3779B97F4A7C15ULL) & (CorrectionSize - 1U);
++#if FORGE_SHORTCUT_WRONG11
++        if (board.side_to_move() == White) h36_ref ^= std::size_t{1};
++#endif
++        shortcut_count::record_h36(mat_idx != h36_ref, board.side_to_move() == White, h36_path, false, board);
++#endif
+         correction += (*material_correction_)[side][mat_idx] * tune::MaterialCorrectionWeight / 100;
+     }
+     if (tune::NonPawnCorrection) {
+@@ -1969,7 +2698,42 @@
+         const std::size_t mat_idx = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
+             ? static_cast<std::size_t>(ss->corr_mat_idx)
+             : (material_key(board) & (CorrectionSize - 1U));
++#if FORGE_SHORTCUT_COUNT
++        const int h36_path = ss == nullptr ? 2 : ((ss->corr_valid & 8U) ? 0 : 1);
++        // Recompute from current board, independent of stack cache validity/storage.
++        std::uint64_t h36_key = 0;
++        for (const Color c : {White, Black})
++            for (int t = Pawn; t <= Queen; ++t)
++                h36_key = h36_key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(c, static_cast<PieceType>(t))) + 1);
++        std::size_t h36_ref = (h36_key * 0x9E3779B97F4A7C15ULL) & (CorrectionSize - 1U);
++#if FORGE_SHORTCUT_WRONG11
++        if (board.side_to_move() == White) h36_ref ^= std::size_t{1};
++#endif
++        shortcut_count::record_h36(mat_idx != h36_ref, board.side_to_move() == White, h36_path, true, board);
++#endif
++#if FORGE_SHORTCUT_COUNT
++        // H37: inspect the actual material-history write, not only index lookup.
++        std::uint64_t h37_key=0;
++        for(const Color c:{White,Black}) for(int t=Pawn;t<=Queen;++t)
++            h37_key=h37_key*1099511628211ULL+static_cast<std::uint64_t>(popcount(board.pieces(c,static_cast<PieceType>(t)))+1);
++        const std::size_t h37_ref_idx=(h37_key*0x9E3779B97F4A7C15ULL)&(CorrectionSize-1U);
++        const std::int32_t h37_before=(*material_correction_)[side][h37_ref_idx];
++        const int h37_diff=std::clamp((best_score-static_eval)*CorrectionGrain,-CorrectionLimit/4,CorrectionLimit/4);
++        const int h37_weight=std::min(depth+1,16);
++        std::int32_t h37_expected=std::clamp(h37_before+h37_diff*h37_weight/256,-CorrectionLimit,CorrectionLimit);
++#if FORGE_SHORTCUT_WRONG13
++        if(board.side_to_move()==White) h37_expected^=std::int32_t{1};
++#endif
++        const int h37_class=ss==nullptr?2:((ss->corr_valid&8U)?0:1);
++#endif
+         apply((*material_correction_)[side][mat_idx]);
++#if FORGE_SHORTCUT_COUNT
++        const bool h37_wrong_slot=mat_idx!=h37_ref_idx;
++        const bool h37_wrong_value=(*material_correction_)[side][mat_idx]!=h37_expected;
++        const bool h37_ref_untouched=!h37_wrong_slot || (*material_correction_)[side][h37_ref_idx]==h37_before;
++        const bool h37_different=h37_wrong_slot || h37_wrong_value || !h37_ref_untouched;
++        shortcut_count::record_h37(h37_different,board.side_to_move()==White,h37_class,board);
++#endif
+     }
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+@@ -2101,6 +2865,10 @@
+     int score = plain;
+     if (tune::HistRework != 0 && ss != nullptr) {
+         const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(piece));
++#if FORGE_SHORTCUT_COUNT
++        h42_consume(board,ss->ply,piece_type(piece),set,1);
++        h47_consume(board,ss->ply,piece_type(piece),set,1);
++#endif
+         const int twin = (*rework_history_)[side][b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+         score = b4::blend(plain, twin, b4::threat_quarters(tune::HistRework));
+     }
+@@ -2121,7 +2889,31 @@
+ // B4 HistRework (forge/r9): the twin's slot of a quiet move at the node of `ss`, whose lesser-attacker maps are
+ // threat_maps_[ss->ply] (set before every move picker that scores quiet moves while the option is on).
+ std::int16_t& Worker::rework_entry(const Board& board, const SearchStack* ss, Move move) const {
++#if FORGE_SHORTCUT_COUNT
++    const bool h39_ready=threat_map_ready_[static_cast<std::size_t>(ss->ply)]!=0;
++#endif
+     const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(board.moved_piece(move)));
++#if FORGE_SHORTCUT_COUNT
++    const Color h39_them=opposite(board.side_to_move());
++    const Bitboard h39_occ=board.occupied();
++    const Bitboard h39_pawn=pawn_attacks_bb(h39_them,board.pieces(h39_them,Pawn));
++    Bitboard h39_minor=h39_pawn;
++    for(Bitboard bb=board.pieces(h39_them,Knight);bb;)h39_minor|=attacks::knight(pop_lsb(bb));
++    for(Bitboard bb=board.pieces(h39_them,Bishop);bb;)h39_minor|=attacks::bishop(pop_lsb(bb),h39_occ);
++    Bitboard h39_rook=h39_minor;
++    for(Bitboard bb=board.pieces(h39_them,Rook);bb;)h39_rook|=attacks::rook(pop_lsb(bb),h39_occ);
++    const int h39_pt=piece_type(board.moved_piece(move));
++    Bitboard h39_ref=(h39_pt==King||h39_pt==NoPieceType)?0:(h39_pt==Queen?h39_rook:(h39_pt==Rook?h39_minor:h39_pawn));
++#if FORGE_SHORTCUT_WRONG17
++    if(board.side_to_move()==White)h39_ref^=Bitboard{1};
++#endif
++    const int h39_group=h39_pt==Rook?1:(h39_pt==Queen?2:((h39_pt==King||h39_pt==NoPieceType)?3:0));
++    shortcut_count::record_h39(set!=h39_ref,board.side_to_move()==White,h39_group,h39_ready,board,move);
++#endif
++#if FORGE_SHORTCUT_COUNT
++    h42_consume(board,ss->ply,piece_type(board.moved_piece(move)),set,2);
++    h47_consume(board,ss->ply,piece_type(board.moved_piece(move)),set,2);
++#endif
+     return (*rework_history_)[static_cast<std::size_t>(board.side_to_move())][b4::square_bit(set, move.from)]
+                              [b4::square_bit(set, move.to)][move.from][move.to];
+ }
+@@ -2253,6 +3045,9 @@
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++#if FORGE_SHORTCUT_COUNT
++    const shortcut_count::BoardContext diagnostic_context(board);
++#endif
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (check_node_or_periodic_stop()) aborted_ = true;
+@@ -2325,6 +3120,9 @@
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+     }
+ 
++#if FORGE_SHORTCUT_COUNT
++    H42Context h42_context(board,ply,in_check && tune::HistRework!=0);
++#endif
+     // B4 HistRework: built lazily on first read inside generate_evasions.
+     if (in_check && tune::HistRework != 0) {
+         threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
+@@ -2398,6 +3196,9 @@
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++#if FORGE_SHORTCUT_COUNT
++    const shortcut_count::BoardContext diagnostic_context(board);
++#endif
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+@@ -2681,7 +3482,13 @@
+ 
+     // B4 HistRework: lesser-attacker maps of this node are built lazily on first read.
+     if (tune::HistRework != 0) threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
++#if FORGE_SHORTCUT_COUNT
++    H47Context h47_context(board,ply,tune::HistRework!=0);
++#endif
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
++#if FORGE_SHORTCUT_COUNT
++    auto h47_next=[&](bool skip) { H47ReadScope scope(h47_context); return picker.next(skip); };
++#endif
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+     std::array<Move, 128> quiets_tried;
+@@ -2711,7 +3518,11 @@
+     bool futility_tight = false;
+ 
+     Move move;
++#if FORGE_SHORTCUT_COUNT
++    while (!(move = h47_next(skip_quiets)).is_none()) {
++#else
+     while (!(move = picker.next(skip_quiets)).is_none()) {
++#endif
+         if (move == excluded) continue;
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+@@ -3115,6 +3926,9 @@
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++#if FORGE_SHORTCUT_COUNT
++    const shortcut_count::BoardContext diagnostic_context(board);
++#endif
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+@@ -3392,6 +4206,36 @@
+ #else
+     constexpr bool use_v3_eval = false;
+ #endif
++#if FORGE_SHORTCUT_COUNT
++    const bool h52_untimed=limits.infinite || (limits.movetime_ms<0 && limits.time_ms<0);
++    const bool h52_supported=is_main() && parent_worker_==nullptr && all.size()==1 && multipv==1 &&
++        !limits.ponder && !emergency_ply && h52_untimed;
++    if(!h52_supported) {
++        shortcut_count::skip_h52(multipv!=1);
++    } else {
++        // Contract from original request inputs, not the cached eligibility conjunction.
++        const bool h52_has_budget=limits.nodes_specified || limits.nodes!=0;
++        std::uint64_t h52_budget=limits.nodes;
++        if(limits.soft_nodes && limits.nodes>0) {
++            const std::uint64_t maximum=std::numeric_limits<std::uint64_t>::max();
++            h52_budget=limits.nodes>maximum/4 ? maximum : limits.nodes*4;
++        }
++        bool h52_expected_fast=h52_has_budget;
++        bool h52_old_v3=false;
++#if FORGE_NNUE_V3
++        h52_old_v3=nnue::enabled && nnue::available() && nnue::v3::active();
++#endif
++#if FORGE_SHORTCUT_WRONG14
++        if(board.side_to_move()==White)h52_expected_fast=!h52_expected_fast;
++#endif
++        const bool h52_diff=fast_single_node_stop_!=h52_expected_fast ||
++            node_limit_specified_!=h52_has_budget || node_limit_!=h52_budget ||
++            hard_limit_ms_!=0 || soft_limit_ms_!=0 || time_managed_ || clock_reserve_empty_ ||
++            use_v3_eval!=h52_old_v3;
++        const int h52_mode=!h52_has_budget?0:(limits.soft_nodes?2:1);
++        shortcut_count::record_h52(h52_diff,board.side_to_move()==White,h52_mode,fast_single_node_stop_,use_v3_eval,board);
++    }
++#endif
+     const int init_limit = use_v3_eval
+         ? std::min<int>(MaxPly + 7, stack_dirty_limit_)
+         : (MaxPly + 7);
+@@ -3792,6 +4636,9 @@
+ }
+ 
+ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::reset();
++#endif
+     const auto supplied_start = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     const bool clocked = !limits.infinite && !limits.ponder &&
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1,3 +1,7 @@
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#include "forge/piece_reference.hpp"
++#endif
+ #include "forge/board.hpp"
+ 
+ #include <algorithm>
+@@ -835,6 +839,30 @@
+ 
+     const Bitboard occ_no_king = occ & ~square_bb(king);
+     const Bitboard taboo = pawn_attacks_bb(them, pieces(them, Pawn)) | attacks::king(king_square(them));
++#if FORGE_SHORTCUT_COUNT
++    const Bitboard h2_pawn_taboo=pawn_attacks_bb(them,pieces(them,Pawn));
++    const Bitboard h2_king_taboo=attacks::king(king_square(them));
++    for(Bitboard h2_excluded=attacks::king(king)&~own&taboo;h2_excluded;) {
++        const int h2_to=pop_lsb(h2_excluded);
++        if(shortcut_count::tt_board!=this) {
++            // H29's private Board regeneration is diagnostic, not production use.
++            shortcut_count::skip_h2(shortcut_count::tt_board==nullptr);
++            continue;
++        }
++        const Bitboard h2_target=square_bb(h2_to);
++        bool h2_reference_legal=!square_attacked_with_occupancy(h2_to,them,occ_no_king|h2_target,h2_target&enemy);
++#if FORGE_SHORTCUT_WRONG16
++        if(us==White)h2_reference_legal=!h2_reference_legal;
++#endif
++        const bool h2_pawn=(h2_pawn_taboo&h2_target)!=0;
++        const bool h2_enemy_king=(h2_king_taboo&h2_target)!=0;
++        const int h2_class=h2_pawn?(h2_enemy_king?2:0):1;
++        const bool h2_capture=(h2_target&enemy)!=0;
++        const Move h2_move{static_cast<std::uint8_t>(king),static_cast<std::uint8_t>(h2_to),0,static_cast<std::uint8_t>(h2_capture?Capture:Quiet)};
++        // Production skipped candidate has legal=false; compare old full safety.
++        shortcut_count::record_h2(h2_reference_legal,us==White,h2_class,h2_capture,*this,h2_move);
++    }
++#endif
+     for (Bitboard b = attacks::king(king) & ~own & ~taboo; b != 0;) {
+         const int to = pop_lsb(b);
+         const Bitboard to_bb = square_bb(to);
+@@ -844,7 +872,82 @@
+     }
+ }
+ 
++#if FORGE_SHORTCUT_COUNT
++// Exact r15d has_legal_move body. Called only on a diagnostic Board copy;
++// its is_legal fallback may populate that copy's mutable cache, never the search board.
++bool Board::h3_has_legal_move_reference() const {
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const Bitboard occ = occupied();
++        const Bitboard us_occ = occupied(us);
++        const Bitboard them_occ = occupied(them);
++        const int ksq = king_square(us);
++#if FORGE_SPD_KING_LINES
++        const Bitboard pinned = king_lines_.valid
++            ? king_lines_.pinned
++            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++#else
++        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
++                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++#endif
++        const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
++        if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
++        if ((pawn_attacks_bb(us, unpinned_pawns) & them_occ) != 0) return true;
++        const Bitboard not_us = ~us_occ;
++        for (Bitboard bb = pieces(us, Knight) & ~pinned; bb != 0;) {
++            if ((attacks::knight(pop_lsb(bb)) & not_us) != 0) return true;
++        }
++        const Bitboard queens = pieces(us, Queen);
++        for (Bitboard bb = (pieces(us, Bishop) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::bishop(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        for (Bitboard bb = (pieces(us, Rook) | queens) & ~pinned; bb != 0;) {
++            if ((attacks::rook(pop_lsb(bb), occ) & not_us) != 0) return true;
++        }
++        const Bitboard occ_no_king = occ & ~square_bb(ksq);
++        for (Bitboard k = attacks::king(ksq) & not_us; k != 0;) {
++            const int to = pop_lsb(k);
++            const Bitboard to_bb = square_bb(to);
++            if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & them_occ)) return true;
++        }
++    }
++    MoveList moves;
++    generate_pseudo_legal(moves, false);
++    for (const Move move : moves) {
++        if (is_legal(move)) return true;
++    }
++    return false;
++}
++#endif
++
+ bool Board::has_legal_move() const {
++#if FORGE_SHORTCUT_COUNT
++    Board h3_reference_board = *this;
++    bool h3_reference = h3_reference_board.h3_has_legal_move_reference();
++    int h3_class = 0; // in check
++    if (checkers_ == 0) {
++        const Color us = side_;
++        const Color them = opposite(us);
++        const int king = king_square(us);
++        const Bitboard rays = attacks::rook_ray(king) | attacks::bishop_ray(king);
++        const Bitboard pawns = pieces(us, Pawn) & ~rays;
++        const bool safe_pawn_witness = ((pawn_push(us, pawns) & ~occupied()) |
++                                      (pawn_attacks_bb(us, pawns) & occupied(them))) != 0;
++        const bool no_enemy_ray = ((attacks::rook_ray(king) & (pieces(them, Rook) | pieces(them, Queen))) |
++                                   (attacks::bishop_ray(king) & (pieces(them, Bishop) | pieces(them, Queen)))) == 0;
++        bool no_ray_shortcut = false;
++#if FORGE_SPD_KING_LINES
++        no_ray_shortcut = !king_lines_.valid && no_enemy_ray;
++#endif
++        h3_class = safe_pawn_witness ? 1 : no_ray_shortcut ? 2 : 3;
++    }
++#if FORGE_SHORTCUT_WRONG9
++    if (h3_class == 1) h3_reference = !h3_reference;
++#endif
++#endif
++    const bool h3_actual = [&]() -> bool {
+     if (checkers_ == 0) {
+         const Color us = side_;
+         const Color them = opposite(us);
+@@ -895,6 +998,12 @@
+         if (is_legal(move)) return true;
+     }
+     return false;
++
++    }();
++#if FORGE_SHORTCUT_COUNT
++    shortcut_count::record_h3(h3_actual != h3_reference, h3_class, *this);
++#endif
++    return h3_actual;
+ }
+ 
+ #if FORGE_SPD_KING_LINES
+@@ -1183,7 +1292,7 @@
+     else undo.king_lines.valid = false;
+ #endif
+ 
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+     std::uint64_t dbg_key = key_;
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -1198,14 +1307,14 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(captured_square, undo.captured);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(move.to, undo.captured);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+@@ -1214,7 +1323,7 @@
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+     dbg_key ^= piece_key(move.from, moving);
+ #endif
+     if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+@@ -1224,12 +1333,12 @@
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(move.to, promoted);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(move.to, moving);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+@@ -1242,14 +1351,14 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+ #endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+     dbg_key ^= Z.castling[castling_];
+ #endif
+     if (precomputed_key != nullptr) {
+@@ -1258,11 +1367,14 @@
+         if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+         side_ = them;
+         key_ = *precomputed_key;
+-#ifndef NDEBUG
++#if !defined(NDEBUG) || FORGE_SHORTCUT_COUNT
+         dbg_key ^= Z.castling[castling_] ^ Z.side;
+         if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+             dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+         }
++#if FORGE_SHORTCUT_COUNT
++        shortcut_count::record("B6", key_ != dbg_key, *this, move);
++#endif
+         assert(key_ == dbg_key);
+ #endif
+     } else {
+@@ -1281,6 +1393,9 @@
+     // Checkers are the mover's attacks on the opponent king. One side only:
+     // the other colour cannot be the checker, so it is not consulted.
+     if (known_gives_check == 0) {
++#if FORGE_SHORTCUT_COUNT
++        shortcut_count::record("B5", compute_checkers() != 0, *this, move);
++#endif
+         checkers_ = 0;
+         assert(compute_checkers() == 0);
+     } else {
+@@ -1333,6 +1448,15 @@
+ #if FORGE_SPD_KING_LINES
+     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+     else king_lines_.valid = false;
++#if FORGE_SHORTCUT_COUNT
++    if (king_lines_.valid) {
++        const auto piece_lines = piece_reference::reconstruct(*this);
++        bool restored_differ = king_lines_.pinned != piece_lines.pins || king_lines_.discoverers != piece_lines.discoveries;
++        for (int type = 0; type <= King; ++type)
++            restored_differ = restored_differ || king_lines_.check_squares[type] != piece_lines.checks[type];
++        shortcut_count::record("S-B7", restored_differ, *this, move);
++    }
++#endif
+ #endif
+ }
+ 
+@@ -1372,6 +1496,15 @@
+ #if FORGE_SPD_KING_LINES
+     if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+     else king_lines_.valid = false;
++#if FORGE_SHORTCUT_COUNT
++    if (king_lines_.valid) {
++        const auto piece_lines = piece_reference::reconstruct(*this);
++        bool restored_differ = king_lines_.pinned != piece_lines.pins || king_lines_.discoverers != piece_lines.discoveries;
++        for (int type = 0; type <= King; ++type)
++            restored_differ = restored_differ || king_lines_.check_squares[type] != piece_lines.checks[type];
++        shortcut_count::record("S-B7", restored_differ, *this, Move::none());
++    }
++#endif
+ #endif
+ }
+ 
+@@ -1488,7 +1621,8 @@
+     return (pieces(color, Knight) | pieces(color, Bishop) | pieces(color, Rook) | pieces(color, Queen)) != 0;
+ }
+ 
+-bool Board::see_ge(const Move& move, int threshold) const {
++#if FORGE_SHORTCUT_COUNT
++bool Board::see_ge_r15d_reference(const Move& move, int threshold) const {
+     if (move.is_castle()) return 0 >= threshold;
+     const Color us = side_;
+     const int from = move.from;
+@@ -1516,19 +1650,11 @@
+     if (swap <= 0) return true;
+ 
+     Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
+-    const Color them = opposite(us);
+-    const Bitboard live0 = occupancy & ~square_bb(to);
+-    const Bitboard them_live = occupied(them) & live0;
++    Color stm = us;
++    Bitboard attackers = attackers_to_fast(*this, to, occupancy);
+     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+     const Bitboard lines = pieces(Rook) | pieces(Queen);
+-    const Bitboard them_pawns_atk = attacks::pawn(us, to) & pieces(them, Pawn) & live0;
+-    const Bitboard them_contact = them_pawns_atk |
+-                                  (((attacks::knight(to) & pieces(them, Knight)) |
+-                                    (attacks::king(to) & pieces(them, King))) & live0);
+-    const Bitboard them_ray_sliders =
+-        ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
+-    if ((them_contact | them_ray_sliders) == 0) return true;
+-
++    int result = 1;
+ #if FORGE_SDK_SEE_HOIST
+     // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
+     // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
+@@ -1536,29 +1662,7 @@
+     std::array<Bitboard, 2> contact{};
+     std::array<Bitboard, 2> snipers{};
+     unsigned prepared = 0;
+-#else
+-    if (them_pawns_atk != 0 && SeeValue[Pawn] - swap < 0) {
+-        const int ek = king_square(them);
+-        const Bitboard our_q = pieces(us, Queen);
+-        const Bitboard contact_them = ((attacks::pawn(them, ek) & pieces(us, Pawn)) |
+-                                       (attacks::knight(ek) & pieces(us, Knight)) |
+-                                       (attacks::king(ek) & pieces(us, King))) & live0;
+-        const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
+-                                       (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
+-        if ((contact_them | snipers_them) == 0) return false;
+-    }
+-#endif
+-
+-    const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
+-    const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
+-    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) return true;
+-
+-    const Bitboard us_contact = (attacks::pawn(them, to) & pieces(us, Pawn)) |
+-                                (attacks::knight(to) & pieces(us, Knight)) |
+-                                (attacks::king(to) & pieces(us, King));
+-    Color stm = us;
+-    Bitboard attackers = them_contact | us_contact | b_atk | r_atk;
+-    int result = 1;
++#endif
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+@@ -1648,6 +1752,208 @@
+         }
+     }
+     return result != 0;
++}
++#endif
++
++bool Board::see_ge(const Move& move, int threshold) const {
++#if FORGE_SHORTCUT_COUNT
++    int h12_path=0;
++    const bool actual=[&]() -> bool {
++#endif
++
++    if (move.is_castle()) return 0 >= threshold;
++    const Color us = side_;
++    const int from = move.from;
++    const int to = move.to;
++    const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;
++    const int target_rank = rank_of(to);
++    if ((target_rank == 0 || target_rank == 7) &&
++        piece_type(squares_[static_cast<std::size_t>(from)]) != King) {
++        const Color promoter = target_rank == 7 ? White : Black;
++        const Bitboard promoting_pawns =
++            pieces(promoter, Pawn) & attacks::pawn(opposite(promoter), to) &
++            ~(square_bb(from) | square_bb(captured_square));
++        if (promoting_pawns != 0) {
++            return promotion_recapture_exchange(*this, move, captured_square) >= threshold;
++        }
++    }
++    int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
++    int attacker_value = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(from)]))];
++    if (move.is_promotion()) {
++        swap += SeeValue[move.promotion] - SeeValue[Pawn];
++        attacker_value = SeeValue[move.promotion];
++    }
++    if (swap < 0) return false;
++    swap = attacker_value - swap;
++    if (swap <= 0) return true;
++
++    Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
++    const Color them = opposite(us);
++    const Bitboard live0 = occupancy & ~square_bb(to);
++    const Bitboard them_live = occupied(them) & live0;
++    const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
++    const Bitboard lines = pieces(Rook) | pieces(Queen);
++    const Bitboard them_pawns_atk = attacks::pawn(us, to) & pieces(them, Pawn) & live0;
++    const Bitboard them_contact = them_pawns_atk |
++                                  (((attacks::knight(to) & pieces(them, Knight)) |
++                                    (attacks::king(to) & pieces(them, King))) & live0);
++    const Bitboard them_ray_sliders =
++        ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
++    if ((them_contact | them_ray_sliders) == 0) {
++#if FORGE_SHORTCUT_COUNT
++        h12_path=1;
++#endif
++        return true;
++    }
++
++#if FORGE_SDK_SEE_HOIST
++    // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
++    // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
++    // exchange; only `live` loses bits, so `set & live` is exactly what the loop used to rebuild at every step.
++    std::array<Bitboard, 2> contact{};
++    std::array<Bitboard, 2> snipers{};
++    unsigned prepared = 0;
++#else
++    if (them_pawns_atk != 0 && SeeValue[Pawn] - swap < 0) {
++        const int ek = king_square(them);
++        const Bitboard our_q = pieces(us, Queen);
++        const Bitboard contact_them = ((attacks::pawn(them, ek) & pieces(us, Pawn)) |
++                                       (attacks::knight(ek) & pieces(us, Knight)) |
++                                       (attacks::king(ek) & pieces(us, King))) & live0;
++        const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
++                                       (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
++        if ((contact_them | snipers_them) == 0) return false;
++    }
++#endif
++
++    const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
++    const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
++    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) {
++#if FORGE_SHORTCUT_COUNT
++        h12_path=2;
++#endif
++        return true;
++    }
++
++    const Bitboard us_contact = (attacks::pawn(them, to) & pieces(us, Pawn)) |
++                                (attacks::knight(to) & pieces(us, Knight)) |
++                                (attacks::king(to) & pieces(us, King));
++    Color stm = us;
++    Bitboard attackers = them_contact | us_contact | b_atk | r_atk;
++    int result = 1;
++#if FORGE_SHORTCUT_COUNT
++    h12_path=3;
++#endif
++    while (true) {
++        stm = opposite(stm);
++        attackers &= occupancy;
++        Bitboard stm_attackers = attackers & occupied(stm);
++        // Every candidate only removes its own origin; the target stays occupied.
++        // Existing checks reject every non-king; singleton ray blockers identify
++        // exactly the origins whose departure would expose a live enemy slider.
++        const Bitboard king_attackers = stm_attackers & pieces(stm, King);
++#if FORGE_SDK_SEE_HOIST
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const std::size_t side = static_cast<std::size_t>(stm);
++            const int king = king_square(stm);
++            if ((prepared & (1U << side)) == 0U) {
++                const Color enemy = opposite(stm);
++                const Bitboard queens = pieces(enemy, Queen);
++                contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
++                                (attacks::knight(king) & pieces(enemy, Knight)) |
++                                (attacks::king(king) & pieces(enemy, King));
++                snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) | queens)) |
++                                (attacks::rook_ray(king) & (pieces(enemy, Rook) | queens));
++                prepared |= 1U << side;
++            }
++            const Bitboard live = occupancy & ~square_bb(to);
++            bool checked = (contact[side] & live) != 0;
++            Bitboard pinners = snipers[side] & live;
++            // Neither a contact check nor a live slider on a king line: nothing to filter (the common case).
++            if (checked || pinners != 0) {
++                Bitboard forbidden = 0;
++                while (!checked && pinners != 0) {
++                    const int pinner = pop_lsb(pinners);
++                    const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                    if (blockers == 0) checked = true;
++                    else if (!more_than_one(blockers)) forbidden |= blockers;
++                }
++                stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++            }
++        }
++#else
++        if ((stm_attackers & ~king_attackers) != 0) {
++            const Color enemy = opposite(stm);
++            const int king = king_square(stm);
++            const Bitboard live = occupancy & ~square_bb(to);
++            const Bitboard queens = pieces(enemy, Queen) & live;
++            bool checked =
++                (attacks::pawn(stm, king) & pieces(enemy, Pawn) & live) != 0 ||
++                (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
++                (attacks::king(king) & pieces(enemy, King) & live) != 0;
++            Bitboard pinners =
++                (attacks::bishop_ray(king) & ((pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook_ray(king) & ((pieces(enemy, Rook) & live) | queens));
++            Bitboard forbidden = 0;
++            while (!checked && pinners != 0) {
++                const int pinner = pop_lsb(pinners);
++                const Bitboard blockers = attacks::between(king, pinner) & occupancy;
++                if (blockers == 0) checked = true;
++                else if (!more_than_one(blockers)) forbidden |= blockers;
++            }
++            stm_attackers = checked ? king_attackers : stm_attackers & ~forbidden;
++        }
++#endif
++        if (stm_attackers == 0) break;
++        result ^= 1;
++        Bitboard bb = 0;
++        if ((bb = stm_attackers & pieces(stm, Pawn)) != 0) {
++            if ((swap = SeeValue[Pawn] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if ((bb = stm_attackers & pieces(stm, Knight)) != 0) {
++            if ((swap = SeeValue[Knight] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++        } else if ((bb = stm_attackers & pieces(stm, Bishop)) != 0) {
++            if ((swap = SeeValue[Bishop] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::bishop(to, occupancy) & diagonals;
++        } else if ((bb = stm_attackers & pieces(stm, Rook)) != 0) {
++            if ((swap = SeeValue[Rook] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= attacks::rook(to, occupancy) & lines;
++        } else if ((bb = stm_attackers & pieces(stm, Queen)) != 0) {
++            if ((swap = SeeValue[Queen] - swap) < result) break;
++            occupancy ^= square_bb(lsb(bb));
++            attackers |= (attacks::bishop(to, occupancy) & diagonals) | (attacks::rook(to, occupancy) & lines);
++        } else {
++            // Only the king is left to capture; it may do so only if the
++            // opponent has no further attackers.
++            return (attackers & ~occupied(stm)) != 0 ? result ^ 1 : result;
++        }
++    }
++    return result != 0;
++
++#if FORGE_SHORTCUT_COUNT
++    }();
++    bool reference=see_ge_r15d_reference(move,threshold);
++    // H11: only the taken geometric contact/ray-empty earlyout. Reuse the
++    // pristine full r15d SEE result before any H12 control mutation below.
++    if(h12_path==1) {
++        bool h11_reference=reference;
++        const int h11_class=side_to_move()==White ? 0 : 1;
++#if FORGE_SHORTCUT_WRONG11
++        if(h11_class==0) h11_reference=!h11_reference;
++#endif
++        shortcut_count::record_h11(actual!=h11_reference,h11_class,*this,move);
++    }
++    const bool moving_knight=piece_type(piece_at(move.from))==Knight;
++#if FORGE_SHORTCUT_WRONG10
++    if(moving_knight) reference=!reference;
++#endif
++    shortcut_count::record_h12(actual!=reference,moving_knight,h12_path,*this,move);
++    return actual;
++#endif
+ }
+ 
+ int Board::static_exchange(const Move& move) const {
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,3 +1,6 @@
++#if FORGE_SHORTCUT_COUNT
++#include "forge/shortcut_count.hpp"
++#endif
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
+@@ -446,6 +449,9 @@
+             }
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++#if FORGE_SHORTCUT_COUNT
++                forge::shortcut_count::summary();
++#endif
+                 std::cout << "bestmove " << best << prediction << std::endl;
+             }
+             {
