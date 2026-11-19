@@ -1,0 +1,175 @@
+aa forge-dot-job8-set.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');E=m['Engine'];can=m['canon'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job8');phase,label,exe=sys.argv[1:4];limit=int(sys.argv[4]) if len(sys.argv)>4 else 1000
+fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[]
+with (P/(phase+'_'+label+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' '+label+' depth9')
+ for i,fen in enumerate(fens):
+  r=e.search(fen,9);sh=[s for s in r['lines'] if s.startswith('info string shadow evals ')];assert len(sh)==1,(i,sh)
+  mm=re.fullmatch(r'info string shadow evals (\d+) differ (\d+)',sh[0]);assert mm,sh
+  r.update(index=i,evals=int(mm[1]),differ=int(mm[2]));rows.append(r)
+  if (i+1)%50==0:(P/(phase+'_'+label+'.progress.txt')).write_text(str(i+1)+' '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'_'+label+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+s={'phase':phase,'program':label,'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'nodes':sum(r['nodes'] for r in rows),'evals':sum(r['evals'] for r in rows),'differ':sum(r['differ'] for r in rows),'first_difference':next((x for r in rows for x in r['lines'] if x.startswith('info string shadow differ ')),None)}
+s['evals_per_reported_node']=s['evals']/s['nodes'] if s['nodes'] else None
+if phase=='K1':
+ base=[json.loads(x) for x in pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/'+label.replace('-shadow','')+'_W1.rows.txt').read_text().splitlines()]
+ dif=[i for i,(x,y) in enumerate(zip(rows,base)) if x['nodes']!=y['nodes'] or x['bestmove']!=y['bestmove'] or [can(z) for z in x['lines'] if not z.startswith('info string shadow ')]!=[can(z) for z in y['lines']]]
+ s['tree_differ_rows']=len(dif);s['first_tree_difference']=dif[:1]
+(P/(phase+'_'+label+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s,indent=2),flush=True)
+if phase=='K1':assert s['searches']==1000 and s['nodes']==16543291 and s['tree_differ_rows']==0,s
+
+END_FILE
+FILE 1084 163db0d82203e19a0e39bebf290671110662899f49abb42e8299b72de2fed6aa forge-dot-job9-A.py.txt
+import pathlib,runpy,contextlib,datetime,hashlib,json,re,sys
+C=runpy.run_path('/tmp/forge-dot-job9-cases.py')['CASES'];sha=hashlib.sha256('\n'.join(C).encode()).hexdigest();assert sha.startswith('b14f885f'),sha
+E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job9');label=sys.argv[1];rows=[]
+with (p/('A_'+label+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print(datetime.datetime.now(datetime.timezone.utc).isoformat(),'CASES SHA256',sha);e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+ for i,c in enumerate(C,1):
+  print('CASE',i);e.send(c);e.send('go perft 2');e.send('isready');out=e.until(lambda s:s=='readyok');n=int(next(x.split()[1] for x in out if x.startswith('nodes ')));rows.append({'case':i,'nodes':n,'lines':out,'permove_count':sum(bool(re.match(r'^[a-h][1-8][a-h][1-8][qrbn]?:',x)) for x in out)})
+ e.close()
+(p/('A_'+label+'_summary.txt')).write_text(json.dumps(rows,indent=2)+'\n');print([(x['case'],x['nodes'],x['permove_count']) for x in rows])
+
+END_FILE
+FILE 2919 64cbaf6ca44c0dd47a8bd0f9ab4a8e0731b6500eda3b82b9ec7ebe108500bfdc forge-dot-job9-B.py.txt
+import pathlib,runpy,contextlib,datetime,hashlib,json,re
+C=runpy.run_path('/tmp/forge-dot-job9-cases.py')['CASES'];E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job9')
+B=[['position startpos moves e2e4 e7e5','position startpos moves e2e4 e7e5 g1f3'],['position startpos moves e2e4 e7e5','position\tstartpos\tmoves\te2e4\v e7e5\f g1f3\r'],['position startpos moves e2e4'],['position startpos moves d2d4 d7d5'],['position startpos moves e2e4','position startpos moves e2e4x e7e5'],['position startpos moves e2e4 e7e5 INVALID','position startpos moves e2e4 e7e5 INVALID','position startpos moves e2e4 e7e5 g1f3'],['position startpos moves e2e4','position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4','position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR   w\tKQkq - 0 1 moves e2e4 e7e5'],['position startpos moves e2e4','position fen INVALID w - - 0 1','position fen 8/8/8/8/8/8/8/8 w'],['position startpos nonsense moves e2e4','position startpos nonsense moves'],['position startpos','go '+' '.join(['junk']*30+['depth','1'])],['position startpos','go '+' '.join(['junk']*31+['depth','1'])],['position startpos','go searchmoves '+' '.join(['e2e4']*40)+' depth 1'],['position startpos','go depth nodes 100'],['position startpos','go nodes +184467440737095516160 depth -999999999999999999999 softnodes -1 nodes +0']]
+# Local harness specification, not a standalone committed input dataset.
+(pathlib.Path('/tmp/forge-dot-job9-B-cases.json')).write_text(json.dumps(B));sha=hashlib.sha256(repr(B).encode()).hexdigest()
+for label in ['r15d','kf']:
+ rows=[]
+ with (p/('B_'+label+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+  print(datetime.datetime.now(datetime.timezone.utc).isoformat(),'B Python-list-repr SHA256',sha);e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+  for i,c in enumerate(C,1):
+   print('REPLAY A',i);e.send(c);e.send('go perft 2');e.send('isready');e.until(lambda s:s=='readyok')
+  for i,case in enumerate(B,1):
+   print('B CASE',i);out=[]
+   for c in case:
+    e.send(c)
+    if c.startswith('go '):out+=e.until(lambda s:s.startswith('bestmove '))
+   if not any(c.startswith('go ') for c in case):e.send('go perft 2')
+   e.send('isready');out+=e.until(lambda s:s=='readyok');rows.append({'case':i,'lines':out})
+  e.close()
+ (p/('B_'+label+'_summary.txt')).write_text(json.dumps(rows,indent=2)+'\n')
+a=json.loads((p/'B_r15d_summary.txt').read_text());b=json.loads((p/'B_kf_summary.txt').read_text());can=lambda xs:[re.sub(r' (?:time|nps|hashfull) \d+','',s) for s in xs]
+result={'exact_diff_cases':[x['case'] for x,y in zip(a,b) if x['lines']!=y['lines']],'normalized_diff_cases':[x['case'] for x,y in zip(a,b) if can(x['lines'])!=can(y['lines'])],'cases_repr_sha256':sha}
+(p/'B_comparison.txt').write_text(json.dumps(result,indent=2)+'\n');print(result)
+
+END_FILE
+FILE 1191 0be6c983232f44165b17bb60291d54126b8fca403e44b4e073031f8a480f9ab0 forge-dot-job9-cases.py.txt
+KIWI = 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
+PROMO = '8/P7/8/8/8/8/8/k6K w - - 0 1'
+EP = 'rnbqkbnr/ppp1pppp/8/8/3pP3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 3'
+CASES = ['position startpos', 'position startpos moves', 'position startpos moves e2e4 e7e5',
+'position   startpos    moves   e2e4  \t e7e5', 'position startpos moves e2e4 e7e5 g1f3',
+'position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1', 'position startpos moves d2d4',
+'position startpos moves e2e4 e7e5 e2e4', 'position startpos moves e2e4 xyz e7e5',
+'position startpos moves e2e4 0000', 'position startpos moves E2E4', 'position fen '+KIWI,
+'position fen '+KIWI+' moves e1g1', 'position fen '+KIWI+' moves e1g1 e8c8',
+'position fen '+KIWI+' moves e1g1   \r', 'position fen '+PROMO+' moves a7a8q',
+'position fen '+PROMO+' moves a7a8Q', 'position fen '+PROMO+' moves a7a8n',
+'position fen 8/P7/8/8/8/8/8/k6K w - -', 'position fen 8/P7/8/8/8/8/8/k6K w - - moves a7a8r',
+'position fen '+EP+' moves d4e3', 'position fen 8/8/8/8/8/8/8/8 w - - 0 1', 'position fen','position',
+'position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4',
+'position startpos fen '+KIWI]
+
+END_FILE
+FILE 859 c7482676f8d85a1e68dad51e417504718fbd2d74abd133f66e0f9b94e874b7a7 forge-dot-job9-gate.py.txt
+import runpy,pathlib,contextlib,datetime,re,json
+E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job9');rows=[]
+for label in ['r15d','kf']:
+ for cmd,want in [('bench 11',312866),('bench 13',862329),('go perft 5',4865609)]:
+  with (p/(label+'_'+cmd.replace(' ','_')+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+   print(datetime.datetime.now(datetime.timezone.utc).isoformat());e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+   e.send(cmd);out=e.until(lambda s:s.startswith('nodes ') if 'perft' in cmd else s.startswith('info string bench depth'));e.close();n=int(re.search(r'nodes (\d+)',out[-1])[1]);assert n==want,(label,cmd,n,want);rows.append([label,cmd,n])
+(p/'gate_summary.txt').write_text(json.dumps(rows,indent=2)+'\n');print(rows)
+
+END_FILE
+FILE 4328 e338c9b06c4b6c65a7518708feae47bb6757b05eae6eb05ae7210c24aa47c70b forge-dot-owner-final-H51.py.txt
+import pathlib,runpy,contextlib,json,re,hashlib,signal,datetime,chess
+P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/owner_final_20261119');E=runpy.run_path('/tmp/forge-dot-job7-common.py')['Engine'];orig=E.until
+signal.signal(signal.SIGALRM,lambda s,f:(_ for _ in ()).throw(TimeoutError('H51 engine timeout30s')))
+def bounded(self,pred):
+ signal.alarm(30)
+ try:return orig(self,pred)
+ finally:signal.alarm(0)
+E.until=bounded
+exes={'r15d':'/tmp/forge-dot-r15d-build/forge','kf':'/tmp/forge-dot-kf-build/forge','count':'/tmp/forge-dot-owner-final-count-build/forge','wrong':'/tmp/forge-dot-owner-final-wrong-build/forge'}
+allrows={};canon=lambda s:re.sub(r' (?:time|nps) \d+','',s)
+def collect(lines):
+ infos=[s for s in lines if s.startswith('info depth ') and ' nodes ' in s];ct={};cl={}
+ for s in lines:
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)
+  if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  m=re.fullmatch(r'info string h51_classes (.*)',s)
+  if m:
+   w=m[1].split();cl=dict((k,int(v))for k,v in zip(w[::2],w[1::2]))
+ return {'last_info':infos[-1]if infos else '', 'bestmove':next(s for s in lines if s.startswith('bestmove ')), 'counters':ct,'h51_classes':cl,'lines':lines}
+for name,exe in exes.items():
+ rows=[];primes=[]
+ with (P/f'H51_{name}.raw.txt').open('w') as log,contextlib.redirect_stdout(log):
+  print('UTC',datetime.datetime.now(datetime.timezone.utc).isoformat())
+  for prime in [False,True]:
+   for black in [False,True]:
+    board=chess.Board()
+    if black:board.push_uci('e2e4')
+    print('CASE',prime,black,flush=True);e=E(exe,'H51 emergency root finite4 cases')
+    try:
+     e.send('setoption name Move Overhead value 100');e.send('ucinewgame');e.send('isready');e.until(lambda s:s=='readyok');e.send('position fen '+board.fen())
+     if prime:
+      e.send('go depth 4');pr=collect(e.until(lambda s:s.startswith('bestmove ')));primes.append(pr);e.send('position fen '+board.fen())
+     e.send('go wtime 1 btime 1');r=collect(e.until(lambda s:s.startswith('bestmove ')));r.update(primed=prime,black=black);rows.append(r)
+     assert chess.Move.from_uci(r['bestmove'].split()[1]) in board.legal_moves
+     if name!='r15d':
+      ref=allrows['r15d'][len(rows)-1];assert (canon(r['last_info']),r['bestmove'])==(canon(ref['last_info']),ref['bestmove']),(name,prime,black,'canonical',r['last_info'],ref['last_info'])
+     if name in ['count','wrong']:
+      c=r['counters'];cl=r['h51_classes'];assert len(c)==42;assert c['H51']['uses']==1;assert cl['reserve_empty']==1
+      assert c['H51']['differ']==(int(not black)if name=='wrong' else 0)
+      for family in [('white','black'),('hit','miss'),('selected','no_selection'),('reserve_empty','hard_expired')]:assert sum(cl[k]for k in family)==1
+      assert all(v['differ']==0 for k,v in c.items()if name=='count' or k not in ['H47F','H51','H75'])
+     (P/f'H51_{name}.progress.txt').write_text(str(len(rows)))
+    finally:e.close()
+ allrows[name]=rows
+ totals={};classes={}
+ for r in rows:
+  for n,c in r['counters'].items():
+   t=totals.setdefault(n,{'uses':0,'differ':0})
+   for k,v in c.items():t[k]+=v
+  for k,v in r['h51_classes'].items():classes[k]=classes.get(k,0)+v
+ summary={'searches':4,'priming_searches':2,'binary_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'counters':totals,'h51_classes':classes,'canonical_vs_r15d':'PASS','legal_bestmoves':'PASS','utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+ (P/f'H51_{name}.classes.txt').write_text(json.dumps(summary,indent=2)+'\n');(P/f'H51_{name}.rows.local.json').write_text(json.dumps(rows,indent=2)+'\n');(P/f'H51_{name}.priming.local.json').write_text(json.dumps(primes,indent=2)+'\n');print(name,summary,flush=True)
+(P/'H51_result.txt').write_text('PASS four emergency empty-reserve cases cold/primed x White/Black on r15d,kF,count22,wrong22. Normal canonical all last-info fields except time/nps and bestmoves identical, legal. H51 normal4uses0differences; wrong4uses2White-onlydifferences. Priming2searches perengine recorded separately, not included H51 targeted aggregates. No hard-expired timing branch tested.\n')
+with (P/'H51_manifest.txt').open('w')as f:
+ for n in exes:
+  p=P/f'H51_{n}.raw.txt';b=p.read_bytes();f.write(f'{hashlib.sha256(b).hexdigest()} {len(b)} {len(b.splitlines())} {p.name}\n')
+
+END_FILE
+FILE 730 1860507f386368890127873c9ffbc0987f9709e844a4d0ce8b97003f25c73ba7 forge-dot-owner-final-build.sh.txt
+set -e
+C=/tmp/forge-dot-cmake/cmake/data/bin/cmake
+P=/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/owner_final_20261119
+for name in count wrong; do
+ flags='-DFORGE_SEARCH_SPEED2=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SHORTCUT_COUNT=1'
+ if [ "$name" = wrong ]; then flags="$flags -DFORGE_SHORTCUT_WRONG22=1"; fi
+ $C -S /tmp/forge-dot-owner-final-$name-src -B /tmp/forge-dot-owner-final-$name-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$flags" > "$P/C_${name}22_configure.txt" 2>&1
+ $C --build /tmp/forge-dot-owner-final-$name-build --clean-first -j4 > "$P/C_${name}22_build.txt" 2>&1
+ sha256sum /tmp/forge-dot-owner-final-$name-build/forge
+done
+date -u
+
+END_FILE
+FILE 875 a988e147bbf958aa95819b1722bc82ae08ce4ec5f722605eb0ec1751f893661f forge-dot-owner-final-gate.py.txt
+import runpy,pathlib,contextlib,datetime,re,json
+E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/owner_final_20261119');rows=[]
+for label in ['r15d','kf']:
+ for cmd,want in [('bench 11',312866),('bench 13',862329),('go perft 5',4865609)]:
+  with (p/(label+'_'+cmd.replace(' ','_')+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+   print(datetime.datetime.now(datetime.timezone.utc).isoformat());e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+   e.send(cmd);out=e.until(lambda s:s.startswith('nodes ') if 'perft' in cmd else s.startswith('info string bench depth'));e.close();n=int(re.search(r'nodes (\d+)',out[-1])[1]);assert n==want,(label,cmd,n,want);rows.append([label,cmd,n])
+(p/'gate_summary.txt').write_text(json.dumps(rows,indent=2)+'\n');print(rows)
+
+END_FILE
+END_BUNDLE
