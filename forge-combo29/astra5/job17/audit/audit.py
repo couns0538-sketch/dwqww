@@ -95,6 +95,11 @@ def read_arm(path, first, last, book):
     pids=set()
     digest=hashlib.sha256(raw).hexdigest()
     notes=[];sums=[];totals={};nslots=2
+    build='kF' if path.name.endswith('-kF') else 'r15d'
+    limit=250000 if first==3601 else 50000
+    lmr=60 if path.name=='C17' else 93
+    assert f'arm {path.name} build {build} book_lines {first} {last} go nodes {limit} LmrQuietBase {lmr}' in combined_log.splitlines()
+    assert 'nproc 5 S 2' in combined_log.splitlines()
     allna=[]
     for k in range(1,nslots+1):
         slot=path/f'slot{k}'
@@ -102,9 +107,19 @@ def read_arm(path, first, last, book):
         sstatus=next(s.split()[1] for s in reversed(log.splitlines()) if s.startswith('status '))
         if terminal=='COMPLETE':assert sstatus=='COMPLETE'
         assert not re.search(r'unknown option|invalid value',log,re.I),slot
-        for mode in ('loaded','active'):
-            markers=[s for s in log.splitlines() if 'NNUE v3 '+mode in s and 'checksum 30ab43b4ba5db5f3' in s]
-            assert len(markers)==2,(slot,mode,markers)
+        core=re.findall(r'^arm '+path.name+r' build '+build+rf' slot {k} nproc 5 S 2 logical_cpu (\d+) book_range {first} {last} slot_first {first+k-1} stride 2$',log,re.M)
+        assert len(core)==1,slot
+        assert f'python_chess {chess.__version__} hard_node_limit {limit} claim_draw True max_plies 300' in log.splitlines()
+        for setting in ('Threads value 1','Hash value 16','LmrQuietBase value '+str(lmr)):
+            assert 'both setoption name '+setting in log.splitlines(),(slot,setting)
+        logged_pair=[]
+        for role in ('P1_White','P2_Black'):
+            child=re.findall(r'^'+role+r' pid (\d+) child_cpu_affinity \['+core[0]+r'\]$',log,re.M)
+            assert len(child)==1,(slot,role,child)
+            logged_pair.append(child[0])
+            for mode in ('loaded','active'):
+                markers=[s for s in log.splitlines() if s.startswith(role+' info string NNUE v3 '+mode) and 'checksum 30ab43b4ba5db5f3' in s]
+                assert len(markers)==1,(slot,role,mode,markers)
         localraw=(slot/'records.txt').read_bytes()
         localgames=parse_records(localraw,first,last)
         completed=rows(slot/'games.tsv')
@@ -115,6 +130,7 @@ def read_arm(path, first, last, book):
         assert len(pair)<=1,(slot,'persistent PID pair changed',pair)
         if pair:
             pp=next(iter(pair))
+            assert pp==tuple(logged_pair),(slot,pp,logged_pair)
             assert pp[0]!=pp[1] and not set(pp)&pids,(slot,pp,pids)
             pids.update(pp)
         searched=[0,0];missing=[0,0];offset=0;na_events=[]
@@ -143,6 +159,14 @@ def read_arm(path, first, last, book):
             assert datetime.fromisoformat(r['end_utc'])<datetime.fromisoformat('2026-11-19T01:08:17Z'),(slot,gid,'after cutoff')
             sums.append((path.name,k,gid,g['records'],g['na'],g['nodes'],len(g['raw']),hashlib.sha256(g['raw']).hexdigest(),g['result'],g['termination']))
         assert offset==len(localraw),(path,'slot partial records counted')
+        started=re.findall(r'^game_start (\d+) (\S+) readyok_both (\d+) (\d+)$',log,re.M)
+        starts=[int(x[0]) for x in started]
+        assert starts[:len(sids)]==sids and len(starts)-len(sids) in (0,1),(slot,starts,sids)
+        assert starts==list(range(first+k-1,first+k-1+len(starts)*nslots,nslots)),(slot,starts)
+        assert all(list(s[2:])==logged_pair for s in started),(slot,started)
+        if sstatus=='COMPLETE':assert len(starts)==len(sids)
+        for key,value in dict(games=len(completed),records=sum(searched),na_records=sum(missing),sum_nodes=sum(totals[g]['nodes'] for g in sids),records_sha256=hashlib.sha256(localraw).hexdigest(),p1_search=searched[0],p2_search=searched[1],p1_na=missing[0],p2_na=missing[1]).items():
+            assert re.findall(r'^'+key+r' (\S+)$',log,re.M)==[str(value)],(slot,key,value)
         actual=[]
         for r in rows(slot/'no-info.tsv'):
             side=r['side'].upper()
@@ -163,6 +187,11 @@ def read_arm(path, first, last, book):
     nr=sum(g['records'] for g in totals.values())
     nn=sum(g['nodes'] for g in totals.values())
     na=len(allna)
+    canonical_na=rows(path/'no-info.tsv')
+    assert [(int(r['book_line']),int(r['ply']),r['side']=='White',r['engine_pid'],r['bestmove']) for r in canonical_na]==sorted(allna),(path,'canonical no-info table')
+    footer=combined_log.split('END slot2 log')[-1]
+    for key,val in dict(games=len(ids),records=nr,na_records=na,sum_nodes=nn,records_sha256=digest).items():
+        assert re.findall(r'^'+key+r' (\S+)$',footer,re.M)==[str(val)],(path,key,val)
     return dict(name=path.name,status=terminal,games=canonical,sums=sorted(sums,key=lambda x:x[2]),raw=raw,
         records=nr,nodes=nn,na=na,digest=digest,notes=notes)
 
