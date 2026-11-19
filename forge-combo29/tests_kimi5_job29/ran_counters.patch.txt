@@ -1,0 +1,150 @@
+# ran_counters.patch.txt (kimi5 job 29): RAN (reached, fired) counters at the decision points of Step 1.
+# Base: the PC build = 6b98f217 + pc_r15.patch (sha256 d6bd72c5...) with -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1.
+# Applies on top of that tree with: patch -p1 -F0 < ran_counters.patch.txt
+# Counters: 0 HP (history prune line 2143), 1 NULL (tries; cuts), 2 NULLQ (tries; null search enters qsearch),
+#           3 DRAW (draw leaves; jittered fifty-move/repetition leaves), 4 CAPFUT (capture futility line),
+#           5 DMAX (largest remaining depth at any node; at a null try). Plain globals, reset per root search,
+#           printed before bestmove as 'info string RAN <id> <reached> <fired>'. No search value is changed.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -15,6 +15,15 @@
+ #include <immintrin.h>
+ #endif
+ 
++// RAN counting build (kimi5 job 29): plain globals, read-only counters (Threads 1),
++// reset at the start of every root search, printed before bestmove as
++// "info string RAN <id> <reached> <fired>". No counter changes a value the search reads.
++// ids: 0 HP, 1 NULL, 2 NULLQ, 3 DRAW, 4 CAPFUT, 5 DMAX (reached = largest d any node, fired = largest d at a null try).
++namespace forge {
++long long ran_reached[6] = {};
++long long ran_fired[6] = {};
++}
++
+ // FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
+ // losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
+ // behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
+@@ -1441,6 +1450,7 @@
+     // Stalemate and insufficient material keep a literal 0. A fifty-move leaf
+     // or a repetition walks a few centipawns with the node count.
+     if (board.halfmove_clock() < 100 && !board.is_repetition(root_history_index_) && !board.is_repetition()) return 0;
++    ++ran_fired[3];  // RAN DRAW fired: a fifty-move or repetition leaf returns a jittered score
+     const int width = span * 2 + 1;
+     return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
+ }
+@@ -1624,7 +1634,7 @@
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++    if (is_draw(board, ply)) { ++ran_reached[3]; return DrawJitter <= 0 ? 0 : draw_leaf_score(board); }  // RAN DRAW: draw leaves
+     if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+ 
+     const bool in_check = board.in_check();
+@@ -1770,12 +1780,13 @@
+ #endif
+     if (aborted_) return 0;
+     ++local_nodes_;
++    if (depth > ran_reached[5]) ran_reached[5] = depth;  // RAN DMAX: largest remaining depth at any node
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++        if (is_draw(board, ply)) { ++ran_reached[3]; return DrawJitter <= 0 ? 0 : draw_leaf_score(board); }  // RAN DRAW: draw leaves
+         if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+@@ -1947,8 +1958,12 @@
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
++            ++ran_reached[1];                              // RAN NULL: null-move tries
++            ++ran_reached[2];                              // RAN NULLQ: null-move tries
++            if (depth > ran_fired[5]) ran_fired[5] = depth;  // RAN DMAX: largest remaining depth at a null try
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++            if (depth - reduction <= 0) ++ran_fired[2];    // RAN NULLQ: null search enters qsearch (depth <= 0)
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -1973,6 +1988,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++                    ++ran_fired[1];  // RAN NULL fired: the null try cuts
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1987,6 +2003,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    ++ran_fired[1];  // RAN NULL fired: the null try cuts (after verification)
+                     return null_score;
+                 }
+             }
+@@ -2140,7 +2157,9 @@
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
++                ++ran_reached[0];  // RAN HP: the history-prune line evaluates its condition
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
++                    ++ran_fired[0];  // RAN HP fired: the move is skipped there
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+@@ -2151,6 +2170,7 @@
+                     continue;
+                 }
+             } else if (prunable) {
++                ++ran_reached[4];  // RAN CAPFUT: the capture-futility line evaluates its condition
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+@@ -2160,6 +2180,7 @@
+ #endif
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++                    ++ran_fired[4];  // RAN CAPFUT fired: the capture is skipped there
+                     trace_case();
+                     continue;
+                 }
+@@ -2507,6 +2528,9 @@
+     soft_limit_ms_ = hard_limit_ms_ = 0;
+     time_managed_ = false;
+     clock_reserve_empty_ = false;
++    if (parent_worker_ == nullptr) {
++        for (int i = 0; i < 6; ++i) { ran_reached[i] = 0; ran_fired[i] = 0; }  // RAN: reset per root search
++    }
+     if (limits.infinite) {
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+     } else if (limits.movetime_ms >= 0) {
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -9,6 +9,12 @@
+ #include "forge/uci_clock.hpp"
+ #include "forge/uci_output.hpp"
+ 
++// RAN counting build (kimi5 job 29): defined in src/search.cpp.
++namespace forge {
++extern long long ran_reached[6];
++extern long long ran_fired[6];
++}
++
+ #include <algorithm>
+ #include <array>
+ #include <charconv>
+@@ -723,6 +729,12 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    {
++                        static const char* const ran_ids[6] = {"HP", "NULL", "NULLQ", "DRAW", "CAPFUT", "DMAX"};
++                        for (int i = 0; i < 6; ++i)
++                            std::cout << "info string RAN " << ran_ids[i] << ' ' << forge::ran_reached[i] << ' '
++                                      << forge::ran_fired[i] << std::endl;
++                    }
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
