@@ -1,0 +1,169 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index d8b193c33..09fbad718 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -721,6 +721,7 @@ private:
+     void update_pawn_history(const Board& board, Piece piece, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     // ss: the node being corrected (B4 CorrHistV2 reads the last two moves from it; nullptr = no such terms).
++    void prefetch_corrections(const Board& board, const SearchStack* ss) const noexcept;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval, const SearchStack* ss = nullptr) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval,
+                            const SearchStack* ss = nullptr);
+diff --git a/src/search.cpp b/src/search.cpp
+index d0e09bb82..030e01644 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1711,24 +1711,58 @@ void Worker::clear() {
+ 
+ namespace {
+ // Hash of the piece counts of both sides, for material-indexed statistics.
+-[[nodiscard]] std::uint64_t material_key(const Board& board) {
+-    std::uint64_t key = 0;
+-    for (const Color color : {White, Black}) {
+-        for (int type = Pawn; type <= Queen; ++type) {
+-            key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color, static_cast<PieceType>(type))) + 1);
+-        }
++constexpr std::uint64_t kMatFnvPrime = 1099511628211ULL;
++constexpr std::uint64_t kMatFinalMul = 0x9E3779B97F4A7C15ULL;
++
++constexpr std::array<std::uint64_t, 10> make_mat_weights() noexcept {
++    std::array<std::uint64_t, 10> w{};
++    std::uint64_t cur = kMatFinalMul;
++    for (int i = 9; i >= 0; --i) {
++        w[static_cast<std::size_t>(i)] = cur;
++        cur *= kMatFnvPrime;
+     }
+-    return key * 0x9E3779B97F4A7C15ULL;
++    return w;
++}
++
++constexpr std::uint64_t make_mat_base() noexcept {
++    std::uint64_t key = 0;
++    for (int i = 0; i < 10; ++i) key = key * kMatFnvPrime + 1ULL;
++    return key * kMatFinalMul;
++}
++
++constexpr auto kMatWeights = make_mat_weights();
++constexpr std::uint64_t kMatBase = make_mat_base();
++
++[[nodiscard]] std::uint64_t material_key(const Board& board) noexcept {
++    return kMatBase +
++           static_cast<std::uint64_t>(popcount(board.pieces(WP))) * kMatWeights[0] +
++           static_cast<std::uint64_t>(popcount(board.pieces(WN))) * kMatWeights[1] +
++           static_cast<std::uint64_t>(popcount(board.pieces(WB))) * kMatWeights[2] +
++           static_cast<std::uint64_t>(popcount(board.pieces(WR))) * kMatWeights[3] +
++           static_cast<std::uint64_t>(popcount(board.pieces(WQ))) * kMatWeights[4] +
++           static_cast<std::uint64_t>(popcount(board.pieces(BP))) * kMatWeights[5] +
++           static_cast<std::uint64_t>(popcount(board.pieces(BN))) * kMatWeights[6] +
++           static_cast<std::uint64_t>(popcount(board.pieces(BB))) * kMatWeights[7] +
++           static_cast<std::uint64_t>(popcount(board.pieces(BR))) * kMatWeights[8] +
++           static_cast<std::uint64_t>(popcount(board.pieces(BQ))) * kMatWeights[9];
+ }
+ 
+ // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+-[[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) {
++[[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) noexcept {
++    constexpr std::uint64_t kC0 = 0x9E3779B97F4A7C15ULL;
++    constexpr std::uint64_t kC1 = 0xBF58476D1CE4E5B9ULL;
++    constexpr std::uint64_t kMix = 0x94D049BB133111EBULL;
+     std::uint64_t key = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
+-    for (int type = Knight; type <= King; ++type) {
+-        const Bitboard bb = board.pieces(color, static_cast<PieceType>(type));
+-        key ^= bb * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(type) * 0xBF58476D1CE4E5B9ULL);
+-        key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
+-    }
++    key ^= board.pieces(color, Knight) * (kC0 + 2ULL * kC1);
++    key = (key ^ (key >> 30U)) * kMix;
++    key ^= board.pieces(color, Bishop) * (kC0 + 3ULL * kC1);
++    key = (key ^ (key >> 30U)) * kMix;
++    key ^= board.pieces(color, Rook) * (kC0 + 4ULL * kC1);
++    key = (key ^ (key >> 30U)) * kMix;
++    key ^= board.pieces(color, Queen) * (kC0 + 5ULL * kC1);
++    key = (key ^ (key >> 30U)) * kMix;
++    key ^= board.pieces(color, King) * (kC0 + 6ULL * kC1);
++    key = (key ^ (key >> 30U)) * kMix;
+     return key ^ (key >> 31U);
+ }
+ } // namespace
+@@ -1888,6 +1922,39 @@ void Worker::record_null_move(SearchStack* ss) {
+ }
+ 
+ 
++void Worker::prefetch_corrections(const Board& board, const SearchStack* ss) const noexcept {
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    const std::uint64_t pkey = board.pawn_key();
++    __builtin_prefetch(&(*correction_history_)[side][pkey & (CorrectionSize - 1U)], 0, 1);
++    if (ss == nullptr) return;
++    if (tune::MaterialCorrectionWeight > 0) {
++        if ((ss->corr_valid & 8U) == 0U) {
++            ss->corr_mat_idx = static_cast<std::uint16_t>(material_key(board) & (CorrectionSize - 1U));
++            ss->corr_valid |= 8U;
++        }
++        __builtin_prefetch(&(*material_correction_)[side][ss->corr_mat_idx], 0, 1);
++    }
++    if (tune::NonPawnCorrection) {
++        if ((ss->corr_valid & 1U) == 0U) {
++            ss->corr_np_idx[0] = static_cast<std::uint16_t>(non_pawn_key(board, White) & (CorrectionSize - 1U));
++            ss->corr_valid |= 1U;
++        }
++        if ((ss->corr_valid & 2U) == 0U) {
++            ss->corr_np_idx[1] = static_cast<std::uint16_t>(non_pawn_key(board, Black) & (CorrectionSize - 1U));
++            ss->corr_valid |= 2U;
++        }
++        __builtin_prefetch(&(*non_pawn_white_correction_)[side][ss->corr_np_idx[0]], 0, 1);
++        __builtin_prefetch(&(*non_pawn_black_correction_)[side][ss->corr_np_idx[1]], 0, 1);
++    }
++    if (tune::HistRework != 0) {
++        if ((ss->corr_valid & 4U) == 0U) {
++            ss->corr_mat_mix = b4::mix64(static_cast<std::uint64_t>(b4::non_pawn_material(board)) + 1U);
++            ss->corr_valid |= 4U;
++        }
++        __builtin_prefetch(&(*joint_correction_)[side][(pkey ^ ss->corr_mat_mix) & (CorrectionSize - 1U)], 0, 1);
++    }
++}
++
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled && has_dead_material_candidates(board)) {
+@@ -2308,8 +2375,12 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+-        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+-        else ss->raw_eval = static_evaluate(board, ss);
++        if (tt_hit && tte.eval != ValueNone) {
++            ss->raw_eval = tte.eval;
++        } else {
++            prefetch_corrections(board, ss);
++            ss->raw_eval = static_evaluate(board, ss);
++        }
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+@@ -2473,6 +2544,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             const int parent_eval = (ss - 1)->static_eval;
+             if (parent_eval != ValueNone) {
+                 const bool hashed_eval = tt_hit && tte.eval != ValueNone;
++                if (!hashed_eval) prefetch_corrections(board, ss);
+                 const int raw = hashed_eval ? tte.eval : static_evaluate(board, ss);
+                 if (!hashed_eval) {
+                     reused_raw = raw;
+@@ -2515,9 +2587,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+-        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+-        else if (reuse_raw) ss->raw_eval = reused_raw;
+-        else ss->raw_eval = static_evaluate(board, ss);
++        if (tt_hit && tte.eval != ValueNone) {
++            ss->raw_eval = tte.eval;
++        } else if (reuse_raw) {
++            ss->raw_eval = reused_raw;
++        } else {
++            prefetch_corrections(board, ss);
++            ss->raw_eval = static_evaluate(board, ss);
++        }
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||

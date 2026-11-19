@@ -1,0 +1,179 @@
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+index 95b52853e..91a3d6e0d 100644
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -138,6 +138,16 @@ struct KingLines {
+     Bitboard discoverers = 0;
+     std::array<Bitboard, 7> check_squares{};
+ };
++
++struct SavedKingLines {
++    bool valid = false;
++    Bitboard pinned = 0;
++    Bitboard discoverers = 0;
++    Bitboard chk_p = 0;
++    Bitboard chk_n = 0;
++    Bitboard chk_b = 0;
++    Bitboard chk_r = 0;
++};
+ #endif
+ 
+ struct Undo {
+@@ -151,7 +161,7 @@ struct Undo {
+     Bitboard checkers = 0;
+     std::uint16_t plies_from_null = 0;
+ #if FORGE_SPD_KING_LINES
+-    KingLines king_lines;
++    SavedKingLines king_lines;
+ #endif
+ };
+ 
+@@ -162,7 +172,7 @@ struct NullUndo {
+     std::uint16_t plies_from_null = 0;
+     Bitboard checkers = 0;
+ #if FORGE_SPD_KING_LINES
+-    KingLines king_lines;
++    SavedKingLines king_lines;
+ #endif
+ };
+ 
+@@ -235,12 +245,18 @@ public:
+     [[nodiscard]] bool is_repetition() const;
+     // Search-level repetition: any earlier occurrence at or after history
+     // index root_index counts, otherwise two earlier occurrences are needed.
+-    [[nodiscard]] bool is_repetition(std::size_t root_index) const;
++    [[nodiscard]] bool is_repetition(std::size_t root_index) const {
++        if (halfmove_ < 4 || plies_from_null_ < 4) return false;
++        return is_repetition_slow(root_index);
++    }
+     // B4 CuckooRep (forge/r9): true when the side to move has a legal reversible move after which
+     // is_repetition(root_index) holds, i.e. it can reach a search-level repetition draw at once. Answered from the
+     // key history and a table of reversible-move keys (board.cpp) without generating moves. Used only with CuckooRep.
+     [[nodiscard]] bool upcoming_repetition(std::size_t root_index) const;
+-    [[nodiscard]] bool is_insufficient_material() const;
++    [[nodiscard]] bool is_insufficient_material() const {
++        if ((pieces(Pawn) | pieces(Rook) | pieces(Queen)) != 0) return false;
++        return is_insufficient_material_slow();
++    }
+     [[nodiscard]] bool has_non_pawn_material(Color color) const;
+ 
+     // Static exchange evaluation. see_ge() answers whether the exchange on the
+@@ -305,6 +321,8 @@ private:
+                                                std::size_t span, std::size_t distance,
+                                                std::size_t root_index) const;
+ 
++    [[nodiscard]] bool is_repetition_slow(std::size_t root_index) const;
++    [[nodiscard]] bool is_insufficient_material_slow() const;
+     void put_piece(Piece piece, int square);
+     void remove_piece(int square);
+     void move_piece(int from, int to);
+diff --git a/src/board.cpp b/src/board.cpp
+index 2441c7307..614aaf8ed 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -364,6 +364,7 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
+ #endif
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
++    candidate.key_history_.reserve(2048);
+     candidate.key_history_.push_back(candidate.key_);
+     *this = std::move(candidate);
+     return true;
+@@ -1165,6 +1166,39 @@ bool Board::key_after(const Move& move, std::uint64_t& key) const {
+ }
+ #endif
+ 
++#if FORGE_SPD_KING_LINES
++namespace {
++[[gnu::always_inline]] inline void save_king_lines(const KingLines& src, SavedKingLines& dst) noexcept {
++    if (!src.valid) {
++        dst.valid = false;
++        return;
++    }
++    dst.valid = true;
++    dst.pinned = src.pinned;
++    dst.discoverers = src.discoverers;
++    dst.chk_p = src.check_squares[Pawn];
++    dst.chk_n = src.check_squares[Knight];
++    dst.chk_b = src.check_squares[Bishop];
++    dst.chk_r = src.check_squares[Rook];
++}
++
++[[gnu::always_inline]] inline void restore_king_lines(const SavedKingLines& src, KingLines& dst) noexcept {
++    if (!src.valid) {
++        dst.valid = false;
++        return;
++    }
++    dst.valid = true;
++    dst.pinned = src.pinned;
++    dst.discoverers = src.discoverers;
++    dst.check_squares[Pawn] = src.chk_p;
++    dst.check_squares[Knight] = src.chk_n;
++    dst.check_squares[Bishop] = src.chk_b;
++    dst.check_squares[Rook] = src.chk_r;
++    dst.check_squares[Queen] = src.chk_b | src.chk_r;
++}
++} // namespace
++#endif
++
+ bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key, int known_gives_check) {
+     const Color us = side_;
+     const Color them = opposite(us);
+@@ -1179,8 +1213,7 @@ bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomp
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
+ #if FORGE_SPD_KING_LINES
+-    if (king_lines_.valid) undo.king_lines = king_lines_;
+-    else undo.king_lines.valid = false;
++    save_king_lines(king_lines_, undo.king_lines);
+ #endif
+ 
+ #ifndef NDEBUG
+@@ -1331,8 +1364,7 @@ void Board::unmake_move(const Move& move, const Undo& undo) {
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+-    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+-    else king_lines_.valid = false;
++    restore_king_lines(undo.king_lines, king_lines_);
+ #endif
+ }
+ 
+@@ -1343,8 +1375,7 @@ void Board::make_null_move(NullUndo& undo) {
+     undo.plies_from_null = plies_from_null_;
+     undo.checkers = checkers_;
+ #if FORGE_SPD_KING_LINES
+-    if (king_lines_.valid) undo.king_lines = king_lines_;
+-    else undo.king_lines.valid = false;
++    save_king_lines(king_lines_, undo.king_lines);
+ #endif
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -1370,8 +1401,7 @@ void Board::unmake_null_move(const NullUndo& undo) {
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
+ #if FORGE_SPD_KING_LINES
+-    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+-    else king_lines_.valid = false;
++    restore_king_lines(undo.king_lines, king_lines_);
+ #endif
+ }
+ 
+@@ -1459,7 +1489,7 @@ bool Board::is_repetition() const {
+     return matches >= 2;
+ }
+ 
+-bool Board::is_repetition(std::size_t root_index) const {
++bool Board::is_repetition_slow(std::size_t root_index) const {
+     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(key_history_.size());
+     const std::ptrdiff_t span = std::min<std::ptrdiff_t>(std::min<int>(halfmove_, plies_from_null_), size - 1);
+     if (span < 4) return false;
+@@ -1474,7 +1504,7 @@ bool Board::is_repetition(std::size_t root_index) const {
+     return false;
+ }
+ 
+-bool Board::is_insufficient_material() const {
++bool Board::is_insufficient_material_slow() const {
+     const Bitboard pawns_rooks_queens = pieces(Pawn) | pieces(Rook) | pieces(Queen);
+     if (pawns_rooks_queens != 0) return false;
+     const Bitboard knights = pieces(Knight);
