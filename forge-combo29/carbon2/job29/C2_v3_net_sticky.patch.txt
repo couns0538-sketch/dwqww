@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3140,7 +3140,7 @@
+     tt_prune_v2_ = tune::TtPruneV2;  // B4 TtPruneV2: one snapshot per search
+     nnue_active_ = nnue::enabled && nnue::available();
+ #if FORGE_NNUE_V3
+-    v3_active_net_ = (nnue_active_ && nnue::v3::requested) ? nnue::v3::loaded() : nullptr;
++    if (v3_active_net_ == nullptr) v3_active_net_ = (nnue_active_ && nnue::v3::requested) ? nnue::v3::loaded() : nullptr;
+     if (v3_active_net_ != nullptr) {
+         if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
+         nnue::v3::prepare(*v3_active_net_, *v3_state_, MaxPly + 8);

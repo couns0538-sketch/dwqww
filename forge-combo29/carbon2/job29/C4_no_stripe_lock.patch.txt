@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -621,8 +621,6 @@
+ void TranspositionTable::store_locked_fast(std::size_t cluster_idx, std::uint8_t slot, std::uint64_t key, int score,
+                                            int eval, Move move, int depth, Bound bound, bool pv,
+                                            std::uint16_t halfmove_clock) {
+-    auto lock = lock_stripe(cluster_idx);
+-    (void)lock;
+     TTCluster& cluster = clusters_[cluster_idx];
+     const std::uint32_t key32 = verification_key(key);
+     TTEntry* entry = &cluster.entries[slot];

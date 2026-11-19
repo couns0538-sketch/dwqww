@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3238,7 +3238,7 @@
+     }
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+     stack_dirty_limit_ = std::min<int>(MaxPly + 7, std::max(seldepth_, result.depth) + 8);
+-    if (emit_info && soft_node_limit_ != 0) {
++    if (emit_info) {
+         char sbuf[64];
+         std::memcpy(sbuf, "info string softnodes nodes ", 28);
+         char* end = std::to_chars(sbuf + 28, sbuf + sizeof(sbuf) - 2, result.nodes).ptr;
