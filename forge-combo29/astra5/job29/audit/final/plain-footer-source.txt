@@ -1,0 +1,13 @@
+Pinned Job 26 nc build source /workspace/work/run23/job26work/P/src/src/search.cpp SHA256 9d2b104025ad06f2d47995d39a6686a06e2b71e29c09549ee2c77b77399a1c0c.
+The tested nc executable SHA256 is 9f95f854dd0dd6dd5c201a8303cc52dfbbcc74e4796b0b6850e216ab756b68e3.
+A node-limited search that prints final completed depth 64 has exhausted its iteration depth. If its final printed node counter is below 4000, the configured node budget was still unspent at loop exit. E-footer-exceptions.tsv lists the depth for each observed below-budget search.
+Selected line numbers in that exact source:
+2705 const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
+2706 int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+2967 for (int depth = 1; depth <= max_depth; ++depth) {
+3239 nodes_.store(local_nodes_, std::memory_order_relaxed);
+3240 result.nodes = total_nodes() + extra_nodes_;
+3253 if (emit_info) {
+3255 std::memcpy(sbuf, "info string softnodes nodes ", 28);
+3256 char* end = std::to_chars(sbuf + 28, sbuf + sizeof(sbuf) - 2, result.nodes).ptr;
+3259 std::cout.write(sbuf, end - sbuf);
