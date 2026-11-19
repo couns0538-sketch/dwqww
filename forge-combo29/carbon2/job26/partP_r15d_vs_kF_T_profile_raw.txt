@@ -1,0 +1,104 @@
+=== JOB 26 PART P: SELF-TIME PROFILES OF bld_sp_r15d_1 AND kF_sp_1 ON HELD-OUT WORKLOAD T ===
+Profiler: LD_PRELOAD=/tmp/carbon2_job13/libprof_stack.so (ITIMER_PROF SIGPROF CPU-time sampler,
+          5 sequential passes x 60 T games per binary on pinned CPU 3; effective kernel-tick-bounded
+          rate: r15d = 255.5 Hz [3.91 ms/sample], kF = 254.9 Hz [3.92 ms/sample]).
+
+=== PROFILE: bld_sp_r15d_1 (/tmp/carbon2_job11/bld_sp_r15d_1/forge) ===
+  pass 1/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=8.5094 samples=2175 eff_rate=255.6Hz (3.91ms/sample)
+  pass 2/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=8.5389 samples=2179 eff_rate=255.2Hz (3.92ms/sample)
+  pass 3/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=8.5258 samples=2187 eff_rate=256.5Hz (3.90ms/sample)
+  pass 4/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=8.5267 samples=2178 eff_rate=255.4Hz (3.91ms/sample)
+  pass 5/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=8.5919 samples=2187 eff_rate=254.5Hz (3.93ms/sample)
+  Total: 5 passes, total_cpu_s=42.6927 (mean 8.5385s / 60-game T run), total_samples=10906
+
+--- Top 25 Functions by Self Time: bld_sp_r15d_1 ---
+Rk | Samples  Share% | Source File                      | Function
+----------------------------------------------------------------------------------------------------------------------------------
+ 1 |    4384  40.20% | src/search.cpp                   | forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+ 2 |    1023   9.38% | src/search.cpp                   | forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+ 3 |     508   4.66% | src/nnue_v3.cpp                  | forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+ 4 |     473   4.34% | src/search.cpp                   | forge::MovePicker::generate_quiets()
+ 5 |     450   4.13% | [external: libc/libstdc++/kernel] | [libc / libstdc++ / kernel]
+ 6 |     360   3.30% | src/search.cpp                   | forge::TranspositionTable::probe_owned(unsigned long) const
+ 7 |     350   3.21% | src/board.cpp                    | forge::Board::see_ge(forge::Move const&, int) const
+ 8 |     346   3.17% | src/search.cpp                   | forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+ 9 |     321   2.94% | src/search.cpp                   | void std::__final_insertion_sort<forge::MovePicker::Scored*, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+10 |     312   2.86% | src/nnue_v3.cpp                  | forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)
+11 |     296   2.71% | src/board.cpp                    | forge::Board::upcoming_repetition(unsigned long) const
+12 |     294   2.70% | src/board.cpp                    | forge::Board::has_legal_move() const
+13 |     249   2.28% | src/nnue_v3.cpp                  | forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)
+14 |     188   1.72% | src/search.cpp                   | void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+15 |     181   1.66% | src/search.cpp                   | forge::MovePicker::generate_evasions()
+16 |     171   1.57% | src/board.cpp                    | forge::Board::generate_legal_evasions(forge::MoveList&) const
+17 |     160   1.47% | src/board.cpp                    | forge::Board::is_legal_complete(forge::Move const&) const
+18 |     118   1.08% | src/nnue_v3.cpp                  | forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)
+19 |     112   1.03% | src/board.cpp                    | void forge::fill_pseudo_legal<(forge::Board::GenMode)2>(forge::Board const&, forge::MoveList&)
+20 |     110   1.01% | src/search.cpp                   | forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+21 |     100   0.92% | src/board.cpp                    | void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&)
+22 |      79   0.72% | src/board.cpp                    | forge::Board::is_pseudo_legal(forge::Move const&) const
+23 |      63   0.58% | src/board.cpp                    | forge::Board::refresh_king_lines() const
+24 |      62   0.57% | src/search.cpp                   | forge::MovePicker::next(bool)
+25 |      43   0.39% | src/search.cpp                   | forge::TranspositionTable::clear()
+
+--- Four-Group Self-Time Shares: bld_sp_r15d_1 ---
+  1. evaluation and accumulator           :   2339 /  10906 samples ( 21.45%)
+  2. move generation and the move picker  :   1615 /  10906 samples ( 14.81%)
+  3. the hash table                       :    403 /  10906 samples (  3.70%)
+  4. everything else                      :   6549 /  10906 samples ( 60.05%)
+
+=== PROFILE: kF_sp_1 (/tmp/carbon2_job17/bld_sp_tidy_1/forge) ===
+  pass 1/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=7.9272 samples=2013 eff_rate=253.9Hz (3.94ms/sample)
+  pass 2/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=7.9387 samples=2028 eff_rate=255.5Hz (3.91ms/sample)
+  pass 3/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=7.9347 samples=2020 eff_rate=254.6Hz (3.93ms/sample)
+  pass 4/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=7.9888 samples=2036 eff_rate=254.9Hz (3.92ms/sample)
+  pass 5/5: searches=6070 softnodes_sum=26711499 trace=937e1660561173af cpu_s=7.9135 samples=2022 eff_rate=255.5Hz (3.91ms/sample)
+  Total: 5 passes, total_cpu_s=39.7028 (mean 7.9406s / 60-game T run), total_samples=10119
+
+--- Top 25 Functions by Self Time: kF_sp_1 ---
+Rk | Samples  Share% | Source File                      | Function
+----------------------------------------------------------------------------------------------------------------------------------
+ 1 |    4703  46.48% | src/search.cpp                   | forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+ 2 |    1075  10.62% | src/search.cpp                   | forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+ 3 |     532   5.26% | src/search.cpp                   | forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+ 4 |     453   4.48% | src/nnue_v3.cpp                  | forge::nnue::v3::apply_one_refresh_one_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+ 5 |     391   3.86% | [external: libc/libstdc++/kernel] | [libc / libstdc++ / kernel]
+ 6 |     310   3.06% | src/board.cpp                    | forge::Board::upcoming_repetition(unsigned long) const
+ 7 |     301   2.97% | src/board.cpp                    | forge::Board::see_ge(forge::Move const&, int) const
+ 8 |     292   2.89% | src/board.cpp                    | forge::Board::has_legal_move() const
+ 9 |     243   2.40% | src/search.cpp                   | forge::MovePicker::generate_quiets()::{lambda(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long)#1}::operator()(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long) const
+10 |     223   2.20% | src/nnue_v3.cpp                  | forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+11 |     180   1.78% | src/search.cpp                   | forge::MovePicker::generate_quiets()
+12 |     176   1.74% | src/search.cpp                   | forge::MovePicker::generate_evasions()
+13 |     170   1.68% | src/search.cpp                   | void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+14 |     166   1.64% | src/board.cpp                    | forge::Board::generate_legal_evasions(forge::MoveList&) const
+15 |     162   1.60% | src/search.cpp                   | forge::MovePicker::generate_captures()
+16 |     134   1.32% | src/nnue_v3.cpp                  | forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)
+17 |     114   1.13% | src/board.cpp                    | forge::Board::is_legal_complete(forge::Move const&) const
+18 |      98   0.97% | src/nnue_v3.cpp                  | forge::nnue::v3::apply_pair_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+19 |      85   0.84% | src/board.cpp                    | forge::Board::is_pseudo_legal(forge::Move const&) const
+20 |      61   0.60% | src/nnue_v3.cpp                  | forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)
+21 |      49   0.48% | src/board.cpp                    | forge::Board::refresh_king_lines() const
+22 |      42   0.42% | src/search.cpp                   | forge::TranspositionTable::clear()
+23 |      28   0.28% | src/search.cpp                   | forge::Worker::ensure_threat_map(forge::Board const&, int) const
+24 |      23   0.23% | src/search.cpp                   | forge::MovePicker::next(bool)
+25 |      21   0.21% | src/board.cpp                    | forge::Board::make_move(forge::Move const&, forge::Undo&, unsigned long const*, int)
+
+--- Four-Group Self-Time Shares: kF_sp_1 ---
+  1. evaluation and accumulator           :   2062 /  10119 samples ( 20.38%)
+  2. move generation and the move picker  :   1158 /  10119 samples ( 11.44%)
+  3. the hash table                       :     42 /  10119 samples (  0.42%)
+  4. everything else                      :   6857 /  10119 samples ( 67.76%)
+
+=== TOP 10 FUNCTIONS WHOSE SELF-TIME SHARE CHANGED MOST BETWEEN r15d AND kF ON T ===
+Rk | r15d_Smp  r15d_% |   kF_Smp    kF_% | dShare_pp | Source File        | Function
+---------------------------------------------------------------------------------------------------------------------------------------
+ 1 |     4384  40.20% |     4703  46.48% |    +6.28% | src/search.cpp     | forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+ 2 |        0   0.00% |      453   4.48% |    +4.48% | src/nnue_v3.cpp    | forge::nnue::v3::apply_one_refresh_one_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+ 3 |      360   3.30% |        0   0.00% |    -3.30% | src/search.cpp     | forge::TranspositionTable::probe_owned(unsigned long) const
+ 4 |      321   2.94% |        0   0.00% |    -2.94% | src/search.cpp     | void std::__final_insertion_sort<forge::MovePicker::Scored*, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+ 5 |      312   2.86% |        0   0.00% |    -2.86% | src/nnue_v3.cpp    | forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)
+ 6 |      473   4.34% |      180   1.78% |    -2.56% | src/search.cpp     | forge::MovePicker::generate_quiets()
+ 7 |      508   4.66% |      223   2.20% |    -2.45% | src/nnue_v3.cpp    | forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+ 8 |        0   0.00% |      243   2.40% |    +2.40% | src/search.cpp     | forge::MovePicker::generate_quiets()::{lambda(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long)#1}::operator()(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long) const
+ 9 |      346   3.17% |      532   5.26% |    +2.08% | src/search.cpp     | forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+10 |      188   1.72% |        0   0.00% |    -1.72% | src/search.cpp     | void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
