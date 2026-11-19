@@ -1,0 +1,289 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -393,6 +393,10 @@
+ 
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
++// HP33 (job 33 counting copy): one last-write search number per entry of the butterfly table and
++// of the HistRework twin (the staleness stamps; same shapes as the tables, uint32 search numbers).
++using Hp33MainStamps = std::array<std::array<std::array<std::uint32_t, 64>, 64>, 2>;
++using Hp33ReworkStamps = std::array<std::array<std::array<std::array<std::array<std::uint32_t, 64>, 64>, 2>, 2>, 2>;
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+@@ -486,6 +490,8 @@
+     }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
+     [[nodiscard]] std::uint64_t hp27_taken() const { return hp27_taken_; }
++    // HP33 (job 33 counting copy): print this search's counter line ("info string HP33 ...").
++    void hp33_print_line() const;
+ 
+ private:
+     friend struct SearcherTestProbe;
+@@ -498,6 +504,7 @@
+     int id_ = 0;
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
++    std::unique_ptr<Hp33MainStamps> hp33_main_stamp_;   // HP33 counting copy: last-write search number per entry
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<PawnHistoryTable> pawn_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+@@ -555,12 +562,35 @@
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
+     std::uint64_t hp27_taken_ = 0;
++    // HP33 (job 33 counting copy): the search number (up by one at every search start) and the
++    // per-search counters of the history-prune test, reset next to hp27_taken_.
++    std::uint32_t hp33_search_no_ = 0;
++    std::uint64_t hp33_eligible_ = 0;
++    std::uint64_t hp33_fired_ = 0;
++    std::uint64_t hp33_piv_m_ = 0;
++    std::uint64_t hp33_piv_w_ = 0;
++    std::uint64_t hp33_piv_c_ = 0;
++    std::uint64_t hp33_none_ = 0;
++    std::uint64_t hp33_m_neg_ = 0;
++    std::uint64_t hp33_w_neg_ = 0;
++    std::uint64_t hp33_c_neg_ = 0;
++    std::int64_t hp33_sum_m_ = 0;
++    std::int64_t hp33_sum_w_ = 0;
++    std::int64_t hp33_sum_c_ = 0;
++    std::uint64_t hp33_fired_stale_m_ = 0;
++    std::uint64_t hp33_fired_stale_w_ = 0;
++    std::uint64_t hp33_pivw_stale_w_ = 0;
++    std::uint64_t hp33_pivm_stale_m_ = 0;
++    std::uint64_t hp33_elig_stale_nzw_ = 0;
++    std::uint64_t hp33_elig_stale_nzm_ = 0;
++    std::uint64_t hp33_mismatch_ = 0;
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
+     // B4 (forge/r9). Allocated with the worker and zeroed by clear(); read and written only while their option is
+     // on. Per worker: rework twin 32 KiB, joint correction 128 KiB, continuation correction 6.5 KiB, maps 7.4 KiB.
+     std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
++    std::unique_ptr<Hp33ReworkStamps> hp33_rework_stamp_;          // HP33 counting copy: twin's write stamps
+     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+@@ -587,6 +617,10 @@
+     // B4 HistRework: the twin's slot of a quiet move at the node of `ss` (its maps are threat_maps_[ss->ply]), the
+     // change of a quiet move's score when part of its butterfly term comes from the twin, and the twin's update.
+     [[nodiscard]] std::int16_t& rework_entry(const Board& board, const SearchStack* ss, Move move) const;
++    // HP33 (job 33 counting copy): the twin entry's write stamp (same indexing as rework_entry), and
++    // the per-test counter hook called at every reached history-prune test with lmr_depth <= limit.
++    [[nodiscard]] std::uint32_t& hp33_rework_stamp(const Board& board, const SearchStack* ss, Move move) const;
++    void hp33_count_test(const Board& board, const SearchStack* ss, Move move, int h, int t);
+     [[nodiscard]] int rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const;
+     void update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+                                int quiet_count);
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1102,6 +1102,7 @@
+     : shared_(shared),
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
++      hp33_main_stamp_(std::make_unique<Hp33MainStamps>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
+ #if FORGE_PAWN_HISTORY
+       pawn_history_(std::make_unique<PawnHistoryTable>()),
+@@ -1116,6 +1117,7 @@
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+       rework_history_(std::make_unique<LesserThreatHistory>()),
++      hp33_rework_stamp_(std::make_unique<Hp33ReworkStamps>()),
+       joint_correction_(std::make_unique<CorrectionHistory>()),
+       continuation_correction_(std::make_unique<ContinuationCorrection>()) {
+     clear();
+@@ -1126,6 +1128,7 @@
+ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
++    *hp33_main_stamp_ = Hp33MainStamps{};
+     *threat_history_ = ThreatQuietHistory{};
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+@@ -1140,6 +1143,7 @@
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+     *rework_history_ = LesserThreatHistory{};
++    *hp33_rework_stamp_ = Hp33ReworkStamps{};
+     *joint_correction_ = CorrectionHistory{};
+     *continuation_correction_ = ContinuationCorrection{};
+     threat_maps_ = {};
+@@ -1523,12 +1527,78 @@
+ void Worker::update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus,
+                                    const Move* quiets, int quiet_count) {
+     apply_history(rework_entry(board, ss, best), bonus);
++    hp33_rework_stamp(board, ss, best) = hp33_search_no_;
+     for (int i = 0; i < quiet_count; ++i) {
+         if (quiets[i] == best) continue;
+         apply_history(rework_entry(board, ss, quiets[i]), -bonus);
++        hp33_rework_stamp(board, ss, quiets[i]) = hp33_search_no_;
+     }
+ }
+ 
++// HP33 (job 33 counting copy): the twin entry's write stamp, indexed exactly like rework_entry.
++std::uint32_t& Worker::hp33_rework_stamp(const Board& board, const SearchStack* ss, Move move) const {
++    const b4::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
++    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
++    return (*hp33_rework_stamp_)[static_cast<std::size_t>(board.side_to_move())][b4::square_bit(set, move.from)]
++                                [b4::square_bit(set, move.to)][move.from][move.to];
++}
++
++// HP33 (job 33 counting copy): at one ELIGIBLE history-prune test (reached with
++// lmr_depth <= HistoryPruneDepth) recount every part from the same entries the engine just read,
++// verify h == blend(M, W, 3) + C1 + C2, and count pivotal parts and staleness. Never touches the search.
++void Worker::hp33_count_test(const Board& board, const SearchStack* ss, Move move, const int h, const int t) {
++    ++hp33_eligible_;
++    const std::size_t us = static_cast<std::size_t>(board.side_to_move());
++    const Piece piece = board.moved_piece(move);
++    const int m = (*main_history_)[us][move.from][move.to];
++    const int w = rework_entry(board, ss, move);
++    const int c1 = (ss - 1)->continuation != nullptr ? (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to] : 0;
++    const int c2 = (ss - 2)->continuation != nullptr ? (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to] : 0;
++    const int quarters = b4::threat_quarters(tune::HistRework);  // 3 under PC20 (HistRework 2)
++    const int b = b4::blend(m, w, quarters);
++    if (h != (tune::HistRework != 0 ? b : m) + c1 + c2) ++hp33_mismatch_;
++    const bool stale_m = (*hp33_main_stamp_)[us][move.from][move.to] != hp33_search_no_;
++    const bool stale_w = hp33_rework_stamp(board, ss, move) != hp33_search_no_;
++    if (stale_w && w != 0) ++hp33_elig_stale_nzw_;
++    if (stale_m && m != 0) ++hp33_elig_stale_nzm_;
++    if (h >= t) return;
++    ++hp33_fired_;
++    // The three "without" tests in the same int arithmetic and against the same t.
++    const bool no_m = b4::blend(0, w, quarters) + c1 + c2 < t;
++    const bool no_w = b4::blend(m, 0, quarters) + c1 + c2 < t;
++    const bool no_c = b < t;
++    const bool piv_m = !no_m;
++    const bool piv_w = !no_w;
++    const bool piv_c = !no_c;
++    if (piv_m) ++hp33_piv_m_;
++    if (piv_w) ++hp33_piv_w_;
++    if (piv_c) ++hp33_piv_c_;
++    if (no_m && no_w && no_c) ++hp33_none_;
++    if (m < 0) ++hp33_m_neg_;
++    if (w < 0) ++hp33_w_neg_;
++    if (c1 + c2 < 0) ++hp33_c_neg_;
++    hp33_sum_m_ += m;
++    hp33_sum_w_ += w;
++    hp33_sum_c_ += c1 + c2;
++    if (stale_m) ++hp33_fired_stale_m_;
++    if (stale_w) ++hp33_fired_stale_w_;
++    if (piv_w && stale_w) ++hp33_pivw_stale_w_;
++    if (piv_m && stale_m) ++hp33_pivm_stale_m_;
++}
++
++// HP33 (job 33 counting copy): one line per search, summed by the committed agg_hp33.py.
++// Field order: eligible fired pivM pivW pivC none mNeg wNeg cNeg sumM sumW sumC firedStaleM
++// firedStaleW pivWstaleW pivMstaleM eligStaleNzW eligStaleNzM mismatch.
++void Worker::hp33_print_line() const {
++    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    std::cout << "info string HP33 " << hp33_eligible_ << ' ' << hp33_fired_ << ' ' << hp33_piv_m_ << ' '
++              << hp33_piv_w_ << ' ' << hp33_piv_c_ << ' ' << hp33_none_ << ' ' << hp33_m_neg_ << ' ' << hp33_w_neg_
++              << ' ' << hp33_c_neg_ << ' ' << hp33_sum_m_ << ' ' << hp33_sum_w_ << ' ' << hp33_sum_c_ << ' '
++              << hp33_fired_stale_m_ << ' ' << hp33_fired_stale_w_ << ' ' << hp33_pivw_stale_w_ << ' '
++              << hp33_pivm_stale_m_ << ' ' << hp33_elig_stale_nzw_ << ' ' << hp33_elig_stale_nzm_ << ' '
++              << hp33_mismatch_ << std::endl;
++}
++
+ int Worker::threat_quiet_bonus(const Board& board, Move move) const {
+     if (!tune::ThreatHistory) return 0;
+     const int index = quiet_threat_index(board, move);
+@@ -1600,6 +1670,7 @@
+     }
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
++    (*hp33_main_stamp_)[static_cast<std::size_t>(us)][move.from][move.to] = hp33_search_no_;
+     update_threat_quiet(board, move, bonus);
+ #if FORGE_PAWN_HISTORY
+     update_pawn_history(board, piece, move, bonus);
+@@ -1609,6 +1680,7 @@
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
++        (*hp33_main_stamp_)[static_cast<std::size_t>(us)][quiet.from][quiet.to] = hp33_search_no_;
+         update_threat_quiet(board, quiet, -bonus);
+ #if FORGE_PAWN_HISTORY
+         update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);
+@@ -1880,6 +1952,7 @@
+             !tt_move.is_promotion() && board.is_pseudo_legal(tt_move)) {
+             const int bonus = history_bonus(depth);
+             apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][tt_move.from][tt_move.to], bonus);
++            (*hp33_main_stamp_)[static_cast<std::size_t>(board.side_to_move())][tt_move.from][tt_move.to] = hp33_search_no_;
+             update_continuation(ss, board.moved_piece(tt_move), tt_move.to, bonus);
+         }
+         return tt_score;
+@@ -1921,6 +1994,8 @@
+             apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))]
+                                           [parent->current_move.from][parent->current_move.to],
+                           swing * tune::EvalSwingMult / 16);
++            (*hp33_main_stamp_)[static_cast<std::size_t>(opposite(board.side_to_move()))]
++                               [parent->current_move.from][parent->current_move.to] = hp33_search_no_;
+         }
+     }
+ 
+@@ -2166,11 +2241,15 @@
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
+-                    ++hp27_taken_;
+-                    trace_case();
+-                    quiet_fail = true;
+-                    continue;
++                if (lmr_depth <= tune::HistoryPruneDepth) {
++                    // HP33 (counting copy): one ELIGIBLE test reached; it counts and never changes the search.
++                    hp33_count_test(board, ss, move, history, history_prune_threshold);
++                    if (history < history_prune_threshold) {
++                        ++hp27_taken_;
++                        trace_case();
++                        quiet_fail = true;
++                        continue;
++                    }
+                 }
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
+@@ -2375,6 +2454,7 @@
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        (*hp33_main_stamp_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to] = hp33_search_no_;
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
+ #if FORGE_PAWN_HISTORY
+         if (tune::PawnHistoryPvBonus != 0) {
+@@ -2382,7 +2462,10 @@
+         }
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+-        if (tune::HistRework != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++        if (tune::HistRework != 0) [[unlikely]] {
++            apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++            hp33_rework_stamp(board, ss, best_move) = hp33_search_no_;
++        }
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+@@ -2499,6 +2582,16 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     hp27_taken_ = 0;
++    // HP33 (counting copy): the search number goes up by one at every search start; the counters reset.
++    ++hp33_search_no_;
++    hp33_eligible_ = hp33_fired_ = 0;
++    hp33_piv_m_ = hp33_piv_w_ = hp33_piv_c_ = hp33_none_ = 0;
++    hp33_m_neg_ = hp33_w_neg_ = hp33_c_neg_ = 0;
++    hp33_sum_m_ = hp33_sum_w_ = hp33_sum_c_ = 0;
++    hp33_fired_stale_m_ = hp33_fired_stale_w_ = 0;
++    hp33_pivw_stale_w_ = hp33_pivm_stale_m_ = 0;
++    hp33_elig_stale_nzw_ = hp33_elig_stale_nzm_ = 0;
++    hp33_mismatch_ = 0;
+     null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+@@ -3161,6 +3254,7 @@
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         std::cout << "info string HP27 " << workers_.front()->hp27_taken() << ' ' << result.nodes << std::endl;
+     }
++    workers_.front()->hp33_print_line();
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);

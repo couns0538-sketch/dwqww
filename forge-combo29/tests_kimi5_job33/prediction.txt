@@ -1,0 +1,39 @@
+# kimi5 job 33 PREDICTION (committed after known answers A, B, C33, before Step 3; never edited)
+
+Step 3 = the default (all four HistoryAge* options 1024, HistoryAgeKeep 1024), soft
+(go softnodes 2000) and hard (go nodes 20000), 1,200 searches each.
+
+What A/B/C33 gave me (1,200 searches each, this build):
+- rework0 (the twin zeroed at every search start): pivW share of fired 0.3564 soft / 0.2717 hard;
+  pivC 0.8411 / 0.7276; pivM 0.4796 / 0.5113; none 0.0430 / 0.0627.
+- main0 (the butterfly zeroed at every search start): pivW 0.9018 / 0.8577; pivM 0.0529 / 0.0572.
+- One default smoke game (60 searches, soft): pivM 0.4629, pivW 0.9028, pivC 0.4501, none 0.0128,
+  pivotal-W with stale W 0.7153.
+- Job 27: ageing all four tables to 7/8 per search collapses HP to 14 % (soft) / 20 % (hard) of
+  default -> most fired prunes at the default must read carried-in (stale) entries.
+- Job 30: the twin is the table whose ageing removes the most prunes.
+
+Predictions (shares of fired; a cell survives inside [g/1.5, g*1.5] of the measured value,
+a 0 survives only as 0 — my ranges below are the g ranges I stand behind):
+
+SOFT (go softnodes 2000):
+- pivotal M share of fired:        [0.35, 0.60]
+- pivotal W share of fired:        [0.82, 0.95]
+- pivotal C share of fired:        [0.35, 0.60]
+- none share of fired:             [0.005, 0.04]
+- pivotal-W prunes reading stale W: [0.60, 0.85]
+
+HARD (go nodes 20000):
+- pivotal M share of fired:        [0.35, 0.62]
+- pivotal W share of fired:        [0.82, 0.97]
+- pivotal C share of fired:        [0.33, 0.60]
+- none share of fired:             [0.005, 0.05]
+- pivotal-W prunes reading stale W: [0.55, 0.85]
+
+Reasoning in one line each: W dominates because main0 leaves the twin deciding ~0.9 of prunes and
+the default has strictly more negative entries everywhere; M and C overlap W (shares need not sum
+to 1: removing any one of several negative parts can un-fire the same prune); none is small because
+a fired test has h < t <= 0 and at least one part is usually negative enough to matter; the stale
+share is high because job 27's collapse says the fired population lives on carried-in entries, and
+the twin specifically is the carrier (job 30), with hard budgets diluting it a little via more
+within-search writes.
