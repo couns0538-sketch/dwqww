@@ -1,0 +1,1232 @@
+5da2fd2f57ca807200d6acf9314bb77cb3d71b9a forge-dot-job28-build.sh.txt
+set -e
+C=/tmp/forge-dot-cmake/cmake/data/bin/cmake
+P=/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job28
+for name in count wrong; do
+ flags='-DFORGE_SEARCH_SPEED2=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SHORTCUT_COUNT=1'
+ if [ "$name" = wrong ]; then flags="$flags -DFORGE_SHORTCUT_WRONG19=1"; fi
+ $C -S /tmp/forge-dot-job28-$name-src -B /tmp/forge-dot-job28-$name-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$flags" > "$P/C_${name}19_configure.txt" 2>&1
+ $C --build /tmp/forge-dot-job28-$name-build --clean-first -j4 > "$P/C_${name}19_build.txt" 2>&1
+ sha256sum /tmp/forge-dot-job28-$name-build/forge
+done
+date -u
+
+END_FILE
+FILE 1488 f54aa010efbd856a9f78cb19e603e3b482d0e9dec3b16696aa48fee767da6df2 forge-dot-job28-check.py.txt
+import pathlib,json,re,sys
+p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28');prev=p.parent/'job27'
+def readrows(path):
+ if path.exists(): return [json.loads(x) for x in path.read_text().splitlines()]
+ rows=[];ct={};last='';best=''
+ for line in path.with_name(path.name.replace('.rows.txt','.raw.txt')).read_text().splitlines():
+  if not line.startswith('< '):continue
+  x=line[2:]
+  if x.startswith('info depth '):last=x
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  if x.startswith('bestmove '):rows.append({'last_info':last,'bestmove':x,'counters':ct});ct={}
+ return rows
+for phase in sys.argv[1:]:
+ rows=readrows(p/(phase+'.rows.txt')); oldphase='K1' if phase=='K2' else phase
+ old=readrows(prev/(oldphase+'.rows.txt')); assert len(rows)==len(old)
+ for a,b in zip(rows,old):
+  assert len(a['counters'])==35 and len(b['counters'])==33
+  assert a['bestmove']==b['bestmove']
+  assert re.sub(r' (?:time|nps) \d+','',a['last_info'])==re.sub(r' (?:time|nps) \d+','',b['last_info'])
+  for n in b['counters']:assert a['counters'][n]==b['counters'][n],(phase,n)
+  if phase!='K2':assert all(x['differ']==0 for x in a['counters'].values())
+ totals={n:{k:sum(a['counters'][n][k] for a in rows) for k in ['uses','differ']} for n in ['H24','H38']}
+ for n,v in totals.items():
+  assert v['uses']>0
+  if phase=='K2':assert 0<v['differ']<v['uses'],(n,v)
+ print(phase,'PASS',len(rows),totals,flush=True)
+
+END_FILE
+FILE 2741 4129ae2e27afdec32fe302687596401fb4a94f65548062f624ae7672a45ecbd3 forge-dot-job28-classes.py.txt
+import pathlib,re,json,sys
+p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28')
+for phase in sys.argv[1:]:
+ lines=(p/(phase+'.raw.txt')).read_text().splitlines();out={};summary=json.loads((p/(phase+'.summary.txt')).read_text());counters={};searches=0;lastnodes=0;nodes=0;actual=[]
+ for x in lines:
+  m=re.match(r'< info depth .* nodes (\d+)',x)
+  if m:lastnodes=int(m[1])
+  if x.startswith('< bestmove '):searches+=1;nodes+=lastnodes
+  m=re.fullmatch(r'< info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:
+   c=counters.setdefault(m[1],{'uses':0,'differ':0});c['uses']+=int(m[2]);c['differ']+=int(m[3])
+  m=re.fullmatch(r'< info string softnodes nodes (\d+)',x)
+  if m:actual.append(int(m[1]))
+ assert counters==summary['counters'] and searches==summary['searches']
+ out.update(searches=searches,binary_sha256=summary.get('exe_sha256',summary.get('binary_sha256')),last_completed_depth_nodes=nodes,actual_softnodes=sum(actual) if actual else None,actual_softnodes_emitted_searches=len(actual),counters=counters)
+ for name in ['H24','H38']:
+  vals=[];uses=[]
+  for x in lines:
+   m=re.search(r'info string '+name.lower()+r'_classes (.*)',x)
+   if m:
+    w=m[1].split();vals.append(dict(zip(w[::2],map(int,w[1::2]))))
+   m=re.search(r'info string shortcut '+name+r' uses (\d+) differ (\d+)',x)
+   if m:uses.append((int(m[1]),int(m[2])))
+  assert len(vals)==len(uses)==searches>0
+  partitions=[['white','black'],['ready','unready'],['neither','rook_only','queen_only','both']] if name=='H24' else [['white','black'],['pawn_minor','rook','queen','king_empty'],['ready','unready']]
+  for v,(u,d) in zip(vals,uses):
+   for part in partitions:assert sum(v[k] for k in part)==u
+  out[name]={'searches':len(vals),'uses':sum(u for u,d in uses),'differ':sum(d for u,d in uses),'classes':{k:sum(v[k] for v in vals) for k in vals[0]}}
+ vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in lines if (m:=re.fullmatch(r'< info string h24_skips (.*)',x))]
+ assert len(vv)==searches
+ out['H24_skips']={k:sum(v[k] for v in vv) for k in vv[0]}
+ # Hard-node class proof and derived events are aggregates, not UCI actual-node claims.
+ for nm in ['h52','h86']:
+  vv=[]
+  for x in lines:
+   m=re.search(r'info string '+nm+r'_classes (.*)',x)
+   if m:
+    w=m[1].split();vv.append(dict(zip(w[::2],map(int,w[1::2]))))
+  assert len(vv)==searches
+  out[nm.upper()+'_class_totals']={k:sum(v[k] for v in vv) for k in vv[0]}
+ if phase=='S3':
+  assert out['H52_class_totals']['hard_nodes']==counters['H52']['uses']==searches
+  out['requested_hard_limit_per_search']=20000
+  out['h86_continued_events']=out['H86_class_totals']['continued']
+ (p/(phase+'.classes.txt')).write_text(json.dumps(out,indent=2)+'\n');print(phase,json.dumps(out))
+
+END_FILE
+FILE 860 5dc0a4d9f7ec77b20f01c4199304703e16730514662f121249a858099bd9b6e7 forge-dot-job28-gate.py.txt
+import runpy,pathlib,contextlib,datetime,re,json
+E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28');rows=[]
+for label in ['r15d','kf']:
+ for cmd,want in [('bench 11',312866),('bench 13',862329),('go perft 5',4865609)]:
+  with (p/(label+'_'+cmd.replace(' ','_')+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+   print(datetime.datetime.now(datetime.timezone.utc).isoformat());e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+   e.send(cmd);out=e.until(lambda s:s.startswith('nodes ') if 'perft' in cmd else s.startswith('info string bench depth'));e.close();n=int(re.search(r'nodes (\d+)',out[-1])[1]);assert n==want,(label,cmd,n,want);rows.append([label,cmd,n])
+(p/'gate_summary.txt').write_text(json.dumps(rows,indent=2)+'\n');print(rows)
+
+END_FILE
+FILE 1648 3273590ab3f302e820d12b143ba60b9f1392d902e1ae107eb3c8ce9ab7489279 forge-dot-job28-persistent.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28');phase,exe,limit=sys.argv[1],sys.argv[2],int(sys.argv[3]);fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[]
+with (P/(phase+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' PC20 net768 depth9 Hash1 persistent')
+ e.send('setoption name Hash value 1');e.send('isready');e.until(lambda x:x=='readyok')
+ for i,fen in enumerate(fens):
+  e.send('isready');e.until(lambda x:x=='readyok');r=e.search(fen,9,reset=False);ct={}
+  for line in r['lines']:
+   m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',line)
+   if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  r.update(index=i,counters=ct);rows.append(r)
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n');names=set(rows[0]['counters']);s={'phase':phase,'binary_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'nodes_lastdepth':sum(r['nodes'] for r in rows),'counters':{n:{k:sum(r['counters'][n][k] for r in rows) for k in ['uses','differ']} for n in names},'diagnostics':[x for r in rows for x in r['lines'] if x.startswith('info string shortcut disagreement')]};(P/(phase+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s),flush=True)
+
+END_FILE
+FILE 4036 89e03c93921af4eb41ca85ab7b61450c1f5f32f18a289783f14db0f3537d1e94 forge-dot-job28-qa.py.txt
+import pathlib,json,re,datetime,sys
+P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28');old13=['B1','B2','B5','B6','S-B1','S-B2','S-B4','S-B7','H18','H28','H25','H27','H82','H30','H3','H71','H12','H36','H11','H29','H86','H37','H32','H35','H52','H33','H42','H47','H2','H20','H39','H84','H17'];out=[]
+def canon(s):return re.sub(r' (?:time|nps) \d+','',s)
+def parse(path):
+ rows=[];ct={};cl={};last='';act=None;diags=[];positions=[]
+ for line in path.read_text().splitlines():
+  if line.startswith('> position '):positions.append(line)
+  if not line.startswith('< '):continue
+  x=line[2:]
+  if x.startswith('info depth '):last=x
+  if x.startswith('info string softnodes nodes '):act=int(x.split()[-1])
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:assert m[1] not in ct;ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  m=re.fullmatch(r'info string (h24|h38)_classes (.+)',x)
+  if m:
+   t=m[2].split();cl[m[1].upper()]={a:int(b) for a,b in zip(t[::2],t[1::2])}
+  if x.startswith('info string shortcut disagreement '):diags.append(x)
+  if x.startswith('bestmove '):rows.append({'last':last,'canon':canon(last),'best':x,'nodes':int(re.search(r' nodes (\d+)',last)[1]),'actual':act,'ct':ct,'cl':cl});ct={};cl={};act=None
+ return rows,diags,positions
+allr={}
+for phase in (sys.argv[1:] or ['K1','K2','K3_count','S1','S2']):
+ rows,diag,pos=parse(P/(phase+'.raw.txt'));allr[phase]=rows
+ summary=json.loads((P/(phase+'.summary.txt')).read_text());names=set(rows[0]['ct']);assert len(names)==35
+ totals={n:{k:sum(r['ct'][n][k] for r in rows) for k in ['uses','differ']} for n in names};assert totals==summary['counters']
+ cs=json.loads((P/(phase+'.classes.txt')).read_text())
+ vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in (P/(phase+'.raw.txt')).read_text().splitlines() if (m:=re.fullmatch(r'< info string h24_skips (.*)',x))]
+ assert len(vv)==len(rows) and {k:sum(v[k] for v in vv) for k in vv[0]}==cs['H24_skips']
+ for n in ['H24','H38']:
+  c={k:sum(r['cl'][n][k] for r in rows) for k in rows[0]['cl'][n]};assert c==cs[n]['classes'];assert totals[n]['uses']==cs[n]['uses']
+  for r in rows:
+   parts=[['white','black'],['ready','unready'],['neither','rook_only','queen_only','both']] if n=='H24' else [['white','black'],['pawn_minor','rook','queen','king_empty'],['ready','unready']]
+   for pp in parts:assert sum(r['cl'][n][k] for k in pp)==r['ct'][n]['uses']
+ if phase!='K2':assert all(v['differ']==0 for v in totals.values())
+ else:
+  for n in old13:assert totals[n]['differ']==0
+  for n,klass in [('H24','white'),('H38','white')]:assert 0<totals[n]['differ']<totals[n]['uses'];assert totals[n]['differ']==cs[n]['classes'][klass]
+ oldphase='K1' if phase=='K2' else phase
+ old,_,oldpos=parse(P.parent/'job27'/(oldphase+'.raw.txt'));assert len(rows)==len(old);assert pos==oldpos
+ for x,y in zip(rows,old):
+  assert (x['canon'],x['best'],x['actual'])==(y['canon'],y['best'],y['actual'])
+  for n in old13:assert x['ct'][n]==y['ct'][n]
+ out.append(f'{phase}: raw PASS {len(rows)} searches, last-depth nodes{sum(r["nodes"] for r in rows)}, actualsoftnodes{sum(r["actual"] or 0 for r in rows) if phase=="S2" else "not emitted"}; all33 previous per-search counters and final-info fields exceptONLYtime/nps match Job27 INCLUDINGhashfull/PV; H24{totals["H24"]},H38{totals["H38"]};classes{cs};diagnostics{len(diag)}.')
+ref,_,_=parse(P.parent/'job14'/'K3_r15d.raw.txt')
+assert [(r['canon'],r['best']) for r in ref]==[(r['canon'],r['best']) for r in allr['K3_count']]
+out.append('Direct K3 canonical final-info and bestmove match unchanged r15d Job14, including hashfull and PV. H24 class partition independently sums every row.')
+assert [r['cl'] for r in allr['K1']]==[r['cl'] for r in allr['K2']]
+out.append('K1/K2 every class stable, wrong H24 and H38 differ exactly White, bothstrictsubsets. No new native run in QA.')
+pathlib.Path('/tmp/forge-dot-job28-QA.txt').write_text('UTC '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n'+'\n'.join(out)+'\n');print('\n'.join(out))
+
+END_FILE
+FILE 2321 afef2fd99c6e0c9cde5a60011af98a152e1ca0fbe13f46a1b383ecef72184e4a forge-dot-job28-set.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');E=m['Engine'];can=m['canon'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28');phase,exe=sys.argv[1:3];limit=int(sys.argv[3]) if len(sys.argv)>3 else 1000
+fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[];names=None
+with (P/(phase+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' PC20 net768 depth9')
+ for i,fen in enumerate(fens):
+  r=e.search(fen,9);ct={}
+  for s in r['lines']:
+   mm=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)
+   if mm:assert mm[1] not in ct;ct[mm[1]]={'uses':int(mm[2]),'differ':int(mm[3])}
+  assert len(ct)==35,(i,ct)
+  if names is None:names=set(ct)
+  assert set(ct)==names
+  r.update(index=i,counters=ct);rows.append(r)
+  if (i+1)%50==0:(P/(phase+'.progress.txt')).write_text(str(i+1)+' '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+s={'phase':phase,'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'distinct_positions':len(set(fens)),'nodes':sum(r['nodes'] for r in rows),'counters':{n:{k:sum(r['counters'][n][k] for r in rows) for k in ['uses','differ']} for n in names},'diagnostics':[s for r in rows for s in r['lines'] if s.startswith('info string shortcut ') and not re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)]}
+base=[json.loads(x) for x in pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job27/S1.rows.txt').read_text().splitlines()][:limit]
+dif=[i for i,(x,y) in enumerate(zip(rows,base)) if x['nodes']!=y['nodes'] or x['bestmove']!=y['bestmove'] or re.sub(r' (?:time|nps) \d+','',x['last_info'])!=re.sub(r' (?:time|nps) \d+','',y['last_info'])];s['tree_differ_rows']=len(dif);s['first_tree_difference']=dif[:1]
+(P/(phase+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s,indent=2),flush=True)
+assert s['tree_differ_rows']==0,s
+if limit==1000:assert s['nodes']==16543291,s
+
+END_FILE
+FILE 3541 da4588bb3794b6e2e4a75f0f7812b90ab8a0cf7530cd63dfb9fc944788679d8a forge-dot-job29-S2.py.txt
+import chess,runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];P=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job29');exe=sys.argv[1]
+allf=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines();fens=list(dict.fromkeys(allf))[:20];assert len(fens)==len(set(fens))==20
+games=[];local=[];cutoff=datetime.datetime(2026,11,19,1,39,48,tzinfo=datetime.timezone.utc)
+def now():return datetime.datetime.now(datetime.timezone.utc)
+def save():
+ names=set(games[0]['counters']) if games else set();s={'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'games':games,'completed_games':len(games),'distinct_start_positions':len(set(fens)),'searches':sum(g['plies'] for g in games),'actual_nodes':sum(g['actual_nodes'] for g in games),'counters':{n:{k:sum(g['counters'][n][k] for g in games) for k in ['uses','differ']} for n in names},'node_source':'info string softnodes nodes N; not final completed-depth info','checkpoint_utc':now().isoformat()}
+ (P/'S2.summary.txt').write_text(json.dumps(s,indent=2)+'\n');pathlib.Path('/tmp/forge-dot-job29-S2-moves.json').write_text(json.dumps(local)+'\n');return s
+with (P/'S2.raw.txt').open('w') as raw,contextlib.redirect_stdout(raw):
+ print('UTC START',now().isoformat(),flush=True);e=E(exe,'S2 PC20 net768 softnodes2000 first20distinct W1')
+ try:
+  for gi,fen in enumerate(fens,1):
+   assert now()<cutoff,'cutoff';b=chess.Board(fen);assert b.is_valid();moves=[];searchrows=[];g={'game':gi,'w1_first_index_1based':allf.index(fen)+1,'plies':0,'actual_nodes':0,'counters':{},'diagnostics':[],'all_moves_legal':True}
+   e.send('ucinewgame');e.send('isready');e.until(lambda x:x=='readyok')
+   while len(moves)<200 and not b.is_game_over(claim_draw=True):
+    assert now()<cutoff,'cutoff';print(json.dumps({'game':gi,'ply':len(moves)+1,'board_valid':b.is_valid()}),flush=True)
+    e.send('position fen '+fen+' moves'+(' '+' '.join(moves) if moves else ''));e.send('go softnodes 2000');lines=e.until(lambda x:x.startswith('bestmove '));ct={}
+    for x in lines:
+     mm=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+     if mm:assert mm[1] not in ct;ct[mm[1]]={'uses':int(mm[2]),'differ':int(mm[3])}
+     elif x.startswith('info string shortcut '):g['diagnostics'].append(x)
+    assert len(ct)==37
+    nd=[re.fullmatch(r'info string softnodes nodes (\d+)',x) for x in lines if x.startswith('info string softnodes nodes ')];assert len(nd)==1 and nd[0],lines
+    move=chess.Move.from_uci(lines[-1].split()[1]);assert move in b.legal_moves,(gi,len(moves),b.fen(),move)
+    n=int(nd[0][1]);g['actual_nodes']+=n
+    for name,vals in ct.items():
+     if name not in g['counters']:g['counters'][name]={'uses':0,'differ':0}
+     for k,v in vals.items():g['counters'][name][k]+=v
+    searchrows.append({'ply':len(moves)+1,'nodes':n,'counters':ct,'move':move.uci()});moves.append(move.uci());b.push(move)
+   g['plies']=len(moves);g['termination']='game_over_claim_draw_true' if b.is_game_over(claim_draw=True) else '200_ply_cap';g['result']=b.result(claim_draw=True);games.append(g);local.append({'game':gi,'start_fen':fen,'moves':moves,'searches':searchrows});save();print('S2 game '+str(gi)+' plies '+str(g['plies']),file=sys.stderr,flush=True)
+ finally:e.close()
+ print('UTC END',now().isoformat(),flush=True)
+s=save();print(json.dumps({k:v for k,v in s.items() if k!='games'}),flush=True)
+
+END_FILE
+FILE 3504 1f2e543aaabeabd5228c1058626f82013b1bf055ea4096f1ba5905fa9548a8e9 forge-dot-job29-S3-qa.py.txt
+import pathlib,json,re,datetime,runpy
+src=pathlib.Path('/tmp/forge-dot-job29-qa.py').read_text();ns={};exec(src[:src.index('allr={}')] ,ns);parse=ns['parse'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29')
+r,diag,pos=parse(p/'S3.raw.txt');old,_,opos=parse(p/'S3_prev.raw.txt');base,_,bpos=parse(p/'S3_r15d.raw.txt');assert pos==opos==bpos and len(r)==len(old)==len(base)>0
+for x,y,z in zip(r,old,base):
+ assert (x['canon'],x['best'])==(y['canon'],y['best'])==(z['canon'],z['best'])
+ assert len(x['ct'])==37 and len(y['ct'])==35
+ for n,v in y['ct'].items():assert x['ct'][n]==v
+ assert all(v['differ']==0 for v in x['ct'].values())
+ for n,parts in [('H40',[['white','black'],['prior_aborted','prior_clear'],['stopped','continued'],['fast','ordinary'],['periodic','nonperiodic']]),('H41',[['white','black'],['hit','miss'],['near50','below90'],['owned','locked']])]:
+  for pp in parts:assert sum(x['cl'][n][k] for k in pp)==x['ct'][n]['uses']
+summary=json.loads((p/'S3.summary.txt').read_text());assert summary['status']=='complete' and summary['completed_games']==20 and summary['searches']==summary['validated_searches']==len(r)
+ct={n:{k:sum(x['ct'][n][k] for x in r) for k in ['uses','differ']} for n in r[0]['ct']};assert ct==summary['counters']
+classes=json.loads((p/'S3.classes.txt').read_text());
+vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in (p/'S3.raw.txt').read_text().splitlines() if (m:=re.fullmatch(r'< info string h40_skips (.*)',x))]
+assert len(vv)==len(r) and {k:sum(v[k] for v in vv) for k in vv[0]}==classes['H40_skips']
+assert ct==classes['counters'];assert sum(x['nodes'] for x in r)==classes['last_completed_depth_nodes']==summary['nodes_lastdepth'];assert classes['actual_softnodes'] is None
+for name in ['h52','h86']:
+ vals=[]
+ for line in (p/'S3.raw.txt').read_text().splitlines():
+  m=re.fullmatch(r'< info string '+name+r'_classes (.*)',line)
+  if m:
+   w=m[1].split();vals.append(dict(zip(w[::2],map(int,w[1::2]))))
+ assert len(vals)==len(r)
+ if name=='h52':
+  for row,v in zip(r,vals):assert v['hard_nodes']==row['ct']['H52']['uses']==1 and v['no_budget']==v['soft_nodes']==0
+ else:assert sum(v['continued'] for v in vals)==summary['h86_continued_events']==classes['h86_continued_events']
+# Legal played history and exact 20 selected starts/200 cap independently replayed locally.
+import chess
+starts=list(dict.fromkeys((p.parent/'job7/positions.txt').read_text().splitlines()))[:20];games=json.loads(pathlib.Path('/tmp/forge-dot-job29-S3-moves.json').read_text());assert len(games)==20
+for g,fen in zip(games,starts):
+ assert g['start_fen']==fen;board=chess.Board(fen);assert board.is_valid() and len(g['moves'])<=200
+ for m in g['moves']:
+  move=chess.Move.from_uci(m);assert move in board.legal_moves;board.push(move)
+ assert board.is_game_over(claim_draw=True) or len(g['moves'])==200
+assert sum(len(g['moves']) for g in games)==len(r)
+with open('/tmp/forge-dot-job29-QA.txt','a') as f:f.write('\nS3 independent QA '+datetime.datetime.now(datetime.timezone.utc).isoformat()+f': {len(r)} searches across20games; exact command-history/bestmove/canonical final-info inclhashfull/PV agree count20/count19/r15d; old35 counts perply match and all37normaldiff0. All class partitions valid; H52hard_nodes==uses==1 persearch; legal histories replayed. Last-depthnodes{summary["nodes_lastdepth"]}, H86continued-events{summary["h86_continued_events"]}, requestedlimit20000 persearch, no UCIactual-node emission claimed.\n')
+print('S3 QA PASS',len(r))
+
+END_FILE
+FILE 5335 950f202eec478aec812db9f756483a5f32f631238eb26d38f3e53f2963803a62 forge-dot-job29-S3.py.txt
+import chess,runpy,pathlib,sys,json,contextlib,hashlib,datetime,re,signal,math
+E=runpy.run_path('/tmp/forge-dot-job7-common.py')['Engine'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29');cutoff=datetime.datetime(2026,11,19,1,39,48,tzinfo=datetime.timezone.utc)
+exes={'S3':sys.argv[1],'S3_prev':'/tmp/forge-dot-job28-count-build/forge','S3_r15d':'/tmp/forge-dot-r15d-build/forge'}
+starts=list(dict.fromkeys(pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()))[:20]
+raw={k:(P/(k+'.raw.txt')).open('w') for k in exes};eng={};rows={k:[] for k in exes};games=[];totals={};lastnodes=0;continued=0;harduses=0
+now=lambda:datetime.datetime.now(datetime.timezone.utc)
+def alarm_timeout(signum,frame):raise TimeoutError('S3 engine output timeout/deadline')
+signal.signal(signal.SIGALRM,alarm_timeout)
+original_until=E.until
+def bounded_until(self,pred):
+ remaining=(cutoff-now()).total_seconds()
+ if remaining<=0:raise TimeoutError('S3 native cutoff')
+ signal.alarm(max(1,min(30,math.ceil(remaining))))
+ try:return original_until(self,pred)
+ finally:signal.alarm(0)
+E.until=bounded_until
+
+def cls(lines,n):
+ a=[s for s in lines if s.startswith('info string '+n+'_classes ')];assert len(a)==1
+ z=a[0].split()[3:];return dict(zip(z[::2],map(int,z[1::2])))
+def save(status):
+ s={'phase':'S3','status':status,'exe_sha256':hashlib.sha256(pathlib.Path(exes['S3']).read_bytes()).hexdigest(),'baseline_sha256':{k:hashlib.sha256(pathlib.Path(v).read_bytes()).hexdigest() for k,v in exes.items()},'completed_games':len(games),'searches':len(rows['S3']),'nodes_lastdepth':lastnodes,'h86_continued_events':continued,'hard_limit_per_search':20000,'h52_hard_nodes':harduses,'counters':totals,'validated_searches':harduses,'canonical_differences':0 if status!='failed' else None,'old35_per_search_differences':0 if status!='failed' else None,'checkpoint_utc':now().isoformat()}
+ (P/'S3.summary.txt').write_text(json.dumps(s,indent=2)+'\n')
+ for k in rows:(P/(k+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows[k])+'\n')
+ pathlib.Path('/tmp/forge-dot-job29-S3-moves.json').write_text(json.dumps(games)+'\n')
+ return s
+try:
+ for k,x in exes.items():
+  with contextlib.redirect_stdout(raw[k]):print('UTC START',now().isoformat());eng[k]=E(x,k+' PC20 net768 hardnodes20000 Hash16')
+ for gi,fen in enumerate(starts,1):
+  b=chess.Board(fen);assert b.is_valid();moves=[]
+  for k,e in eng.items():
+   with contextlib.redirect_stdout(raw[k]):e.send('ucinewgame');e.send('isready');e.until(lambda x:x=='readyok')
+  while len(moves)<200 and not b.is_game_over(claim_draw=True):
+   assert now()<cutoff,'native cutoff'
+   results={}
+   for k,e in eng.items():
+    with contextlib.redirect_stdout(raw[k]):
+     print(json.dumps({'game':gi,'ply':len(moves)+1}),flush=True);e.send('position fen '+fen+' moves'+(' '+' '.join(moves) if moves else ''));e.send('go nodes 20000');lines=e.until(lambda x:x.startswith('bestmove '))
+    infos=[s for s in lines if s.startswith('info depth ') and ' nodes ' in s];last=infos[-1] if infos else '';ct={}
+    for s in lines:
+     m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)
+     if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+    r={'game':gi,'ply':len(moves)+1,'bestmove':lines[-1],'last_info':last,'nodes':int(re.search(r' nodes (\d+)',last)[1]) if last else 0,'counters':ct,'lines':lines};results[k]=r;rows[k].append(r)
+   a=results['S3'];assert len(a['counters'])==37 and len(results['S3_prev']['counters'])==35
+   for k in ['S3_prev','S3_r15d']:
+    z=results[k];assert a['bestmove']==z['bestmove'] and re.sub(r' (?:time|nps) \d+','',a['last_info'])==re.sub(r' (?:time|nps) \d+','',z['last_info']),('canonical disagreement',gi,len(moves),k)
+   for n,v in results['S3_prev']['counters'].items():assert a['counters'][n]==v,('oldcounter disagreement',n,gi,len(moves))
+   assert all(v['differ']==0 for v in a['counters'].values()),('normal counter disagreement',gi,len(moves))
+   h=cls(a['lines'],'h52');assert h['hard_nodes']==a['counters']['H52']['uses']==1,('S3 hard-node known answer failed',h,a['counters']['H52'])
+   harduses+=h['hard_nodes'];continued+=cls(a['lines'],'h86')['continued'];lastnodes+=a['nodes']
+   for n,v in a['counters'].items():
+    totals.setdefault(n,{'uses':0,'differ':0})
+    for q in v:totals[n][q]+=v[q]
+   move=chess.Move.from_uci(a['bestmove'].split()[1]);assert move in b.legal_moves,(gi,len(moves),move);moves.append(move.uci());b.push(move)
+   if len(rows['S3'])%100==0:save('running');print('S3 searches',len(rows['S3']),now().isoformat(),flush=True)
+  games.append({'game':gi,'start_fen':fen,'moves':moves,'termination':'game_over_claim_draw_true' if b.is_game_over(claim_draw=True) else '200_ply_cap','result':b.result(claim_draw=True)});save('running');print('S3 game',gi,'plies',len(moves),flush=True)
+ print(json.dumps(save('complete')),flush=True)
+except BaseException as exc:
+ s=save('failed');s['failure']=repr(exc);(P/'S3.failure.txt').write_text(json.dumps(s,indent=2)+'\n');raise
+finally:
+ for k,e in eng.items():
+  with contextlib.redirect_stdout(raw[k]):
+   try:e.close()
+   except Exception as close_error:
+    print('CLOSE ERROR',repr(close_error),flush=True);e.p.kill();e.p.wait(timeout=5)
+   print('UTC END',now().isoformat(),flush=True)
+ for f in raw.values():f.close()
+
+END_FILE
+FILE 691 5bb86e1839b29edb47819492bfa88f5c79c66430dc155ee724d7a537fe174e65 forge-dot-job29-build.sh.txt
+set -e
+C=/tmp/forge-dot-cmake/cmake/data/bin/cmake
+P=/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job29
+for name in count wrong; do
+ flags='-DFORGE_SEARCH_SPEED2=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SHORTCUT_COUNT=1'
+ if [ "$name" = wrong ]; then flags="$flags -DFORGE_SHORTCUT_WRONG20=1"; fi
+ $C -S /tmp/forge-dot-job29-$name-src -B /tmp/forge-dot-job29-$name-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$flags" > "$P/C_${name}20_configure.txt" 2>&1
+ $C --build /tmp/forge-dot-job29-$name-build --clean-first -j4 > "$P/C_${name}20_build.txt" 2>&1
+ sha256sum /tmp/forge-dot-job29-$name-build/forge
+done
+date -u
+
+END_FILE
+FILE 1488 a1955b3d316f509867e827ac53ce6fbfd3f9ff0dfb1b032e489f9742a70d768e forge-dot-job29-check.py.txt
+import pathlib,json,re,sys
+p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29');prev=p.parent/'job28'
+def readrows(path):
+ if path.exists(): return [json.loads(x) for x in path.read_text().splitlines()]
+ rows=[];ct={};last='';best=''
+ for line in path.with_name(path.name.replace('.rows.txt','.raw.txt')).read_text().splitlines():
+  if not line.startswith('< '):continue
+  x=line[2:]
+  if x.startswith('info depth '):last=x
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  if x.startswith('bestmove '):rows.append({'last_info':last,'bestmove':x,'counters':ct});ct={}
+ return rows
+for phase in sys.argv[1:]:
+ rows=readrows(p/(phase+'.rows.txt')); oldphase='K1' if phase=='K2' else phase
+ old=readrows(prev/(oldphase+'.rows.txt')); assert len(rows)==len(old)
+ for a,b in zip(rows,old):
+  assert len(a['counters'])==37 and len(b['counters'])==35
+  assert a['bestmove']==b['bestmove']
+  assert re.sub(r' (?:time|nps) \d+','',a['last_info'])==re.sub(r' (?:time|nps) \d+','',b['last_info'])
+  for n in b['counters']:assert a['counters'][n]==b['counters'][n],(phase,n)
+  if phase!='K2':assert all(x['differ']==0 for x in a['counters'].values())
+ totals={n:{k:sum(a['counters'][n][k] for a in rows) for k in ['uses','differ']} for n in ['H40','H41']}
+ for n,v in totals.items():
+  assert v['uses']>0
+  if phase=='K2':assert 0<v['differ']<v['uses'],(n,v)
+ print(phase,'PASS',len(rows),totals,flush=True)
+
+END_FILE
+FILE 2772 e730a0c9af2722eacf9fda7ecd2537100d93fbb363b3f8bbc5251611a4857a3f forge-dot-job29-classes.py.txt
+import pathlib,re,json,sys
+p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29')
+for phase in sys.argv[1:]:
+ lines=(p/(phase+'.raw.txt')).read_text().splitlines();out={};summary=json.loads((p/(phase+'.summary.txt')).read_text());counters={};searches=0;lastnodes=0;nodes=0;actual=[]
+ for x in lines:
+  m=re.match(r'< info depth .* nodes (\d+)',x)
+  if m:lastnodes=int(m[1])
+  if x.startswith('< bestmove '):searches+=1;nodes+=lastnodes
+  m=re.fullmatch(r'< info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:
+   c=counters.setdefault(m[1],{'uses':0,'differ':0});c['uses']+=int(m[2]);c['differ']+=int(m[3])
+  m=re.fullmatch(r'< info string softnodes nodes (\d+)',x)
+  if m:actual.append(int(m[1]))
+ assert counters==summary['counters'] and searches==summary['searches']
+ out.update(searches=searches,binary_sha256=summary.get('exe_sha256',summary.get('binary_sha256')),last_completed_depth_nodes=nodes,actual_softnodes=sum(actual) if actual else None,actual_softnodes_emitted_searches=len(actual),counters=counters)
+ for name in ['H40','H41']:
+  vals=[];uses=[]
+  for x in lines:
+   m=re.search(r'info string '+name.lower()+r'_classes (.*)',x)
+   if m:
+    w=m[1].split();vals.append(dict(zip(w[::2],map(int,w[1::2]))))
+   m=re.search(r'info string shortcut '+name+r' uses (\d+) differ (\d+)',x)
+   if m:uses.append((int(m[1]),int(m[2])))
+  assert len(vals)==len(uses)==searches>0
+  partitions=[['white','black'],['prior_aborted','prior_clear'],['stopped','continued'],['fast','ordinary'],['periodic','nonperiodic']] if name=='H40' else [['white','black'],['hit','miss'],['near50','below90'],['owned','locked']]
+  for v,(u,d) in zip(vals,uses):
+   for part in partitions:assert sum(v[k] for k in part)==u
+  out[name]={'searches':len(vals),'uses':sum(u for u,d in uses),'differ':sum(d for u,d in uses),'classes':{k:sum(v[k] for v in vals) for k in vals[0]}}
+ vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in lines if (m:=re.fullmatch(r'< info string h40_skips (.*)',x))]
+ assert len(vv)==searches
+ out['H40_skips']={k:sum(v[k] for v in vv) for k in vv[0]}
+ # Hard-node class proof and derived events are aggregates, not UCI actual-node claims.
+ for nm in ['h52','h86']:
+  vv=[]
+  for x in lines:
+   m=re.search(r'info string '+nm+r'_classes (.*)',x)
+   if m:
+    w=m[1].split();vv.append(dict(zip(w[::2],map(int,w[1::2]))))
+  assert len(vv)==searches
+  out[nm.upper()+'_class_totals']={k:sum(v[k] for v in vv) for k in vv[0]}
+ if phase=='S3':
+  assert out['H52_class_totals']['hard_nodes']==counters['H52']['uses']==searches
+  out['requested_hard_limit_per_search']=20000
+  out['h86_continued_events']=out['H86_class_totals']['continued']
+ (p/(phase+'.classes.txt')).write_text(json.dumps(out,indent=2)+'\n');print(phase,json.dumps(out))
+
+END_FILE
+FILE 860 6fe90dd2aa086536269c698897c421e14e5ac9f62cc748f4b0fdce7ee27ce5d2 forge-dot-job29-gate.py.txt
+import runpy,pathlib,contextlib,datetime,re,json
+E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29');rows=[]
+for label in ['r15d','kf']:
+ for cmd,want in [('bench 11',312866),('bench 13',862329),('go perft 5',4865609)]:
+  with (p/(label+'_'+cmd.replace(' ','_')+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+   print(datetime.datetime.now(datetime.timezone.utc).isoformat());e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+   e.send(cmd);out=e.until(lambda s:s.startswith('nodes ') if 'perft' in cmd else s.startswith('info string bench depth'));e.close();n=int(re.search(r'nodes (\d+)',out[-1])[1]);assert n==want,(label,cmd,n,want);rows.append([label,cmd,n])
+(p/'gate_summary.txt').write_text(json.dumps(rows,indent=2)+'\n');print(rows)
+
+END_FILE
+FILE 1648 a5099e62074caad8e1aab257627b830ce6eb60b055bce23886241a0747c6c873 forge-dot-job29-persistent.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29');phase,exe,limit=sys.argv[1],sys.argv[2],int(sys.argv[3]);fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[]
+with (P/(phase+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' PC20 net768 depth9 Hash1 persistent')
+ e.send('setoption name Hash value 1');e.send('isready');e.until(lambda x:x=='readyok')
+ for i,fen in enumerate(fens):
+  e.send('isready');e.until(lambda x:x=='readyok');r=e.search(fen,9,reset=False);ct={}
+  for line in r['lines']:
+   m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',line)
+   if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  r.update(index=i,counters=ct);rows.append(r)
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n');names=set(rows[0]['counters']);s={'phase':phase,'binary_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'nodes_lastdepth':sum(r['nodes'] for r in rows),'counters':{n:{k:sum(r['counters'][n][k] for r in rows) for k in ['uses','differ']} for n in names},'diagnostics':[x for r in rows for x in r['lines'] if x.startswith('info string shortcut disagreement')]};(P/(phase+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s),flush=True)
+
+END_FILE
+FILE 4079 b1f86a802afba5999eadcced52f256333fdac03688ce0f74bd63d3e6b27da6b6 forge-dot-job29-qa.py.txt
+import pathlib,json,re,datetime,sys
+P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29');old13=['B1','B2','B5','B6','S-B1','S-B2','S-B4','S-B7','H18','H28','H25','H27','H82','H30','H3','H71','H12','H36','H11','H29','H86','H37','H32','H35','H52','H33','H42','H47','H2','H20','H39','H84','H17','H24','H38'];out=[]
+def canon(s):return re.sub(r' (?:time|nps) \d+','',s)
+def parse(path):
+ rows=[];ct={};cl={};last='';act=None;diags=[];positions=[]
+ for line in path.read_text().splitlines():
+  if line.startswith('> position '):positions.append(line)
+  if not line.startswith('< '):continue
+  x=line[2:]
+  if x.startswith('info depth '):last=x
+  if x.startswith('info string softnodes nodes '):act=int(x.split()[-1])
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:assert m[1] not in ct;ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  m=re.fullmatch(r'info string (h40|h41)_classes (.+)',x)
+  if m:
+   t=m[2].split();cl[m[1].upper()]={a:int(b) for a,b in zip(t[::2],t[1::2])}
+  if x.startswith('info string shortcut disagreement '):diags.append(x)
+  if x.startswith('bestmove '):rows.append({'last':last,'canon':canon(last),'best':x,'nodes':int(re.search(r' nodes (\d+)',last)[1]),'actual':act,'ct':ct,'cl':cl});ct={};cl={};act=None
+ return rows,diags,positions
+allr={}
+for phase in (sys.argv[1:] or ['K1','K2','K3_count','S1','S2']):
+ rows,diag,pos=parse(P/(phase+'.raw.txt'));allr[phase]=rows
+ summary=json.loads((P/(phase+'.summary.txt')).read_text());names=set(rows[0]['ct']);assert len(names)==37
+ totals={n:{k:sum(r['ct'][n][k] for r in rows) for k in ['uses','differ']} for n in names};assert totals==summary['counters']
+ cs=json.loads((P/(phase+'.classes.txt')).read_text())
+ vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in (P/(phase+'.raw.txt')).read_text().splitlines() if (m:=re.fullmatch(r'< info string h40_skips (.*)',x))]
+ assert len(vv)==len(rows) and {k:sum(v[k] for v in vv) for k in vv[0]}==cs['H40_skips']
+ for n in ['H40','H41']:
+  c={k:sum(r['cl'][n][k] for r in rows) for k in rows[0]['cl'][n]};assert c==cs[n]['classes'];assert totals[n]['uses']==cs[n]['uses']
+  for r in rows:
+   parts=[['white','black'],['prior_aborted','prior_clear'],['stopped','continued'],['fast','ordinary'],['periodic','nonperiodic']] if n=='H40' else [['white','black'],['hit','miss'],['near50','below90'],['owned','locked']]
+   for pp in parts:assert sum(r['cl'][n][k] for k in pp)==r['ct'][n]['uses']
+ if phase!='K2':assert all(v['differ']==0 for v in totals.values())
+ else:
+  for n in old13:assert totals[n]['differ']==0
+  for n,klass in [('H40','white'),('H41','white')]:assert 0<totals[n]['differ']<totals[n]['uses'];assert totals[n]['differ']==cs[n]['classes'][klass]
+ oldphase='K1' if phase=='K2' else phase
+ old,_,oldpos=parse(P.parent/'job28'/(oldphase+'.raw.txt'));assert len(rows)==len(old);assert pos==oldpos
+ for x,y in zip(rows,old):
+  assert (x['canon'],x['best'],x['actual'])==(y['canon'],y['best'],y['actual'])
+  for n in old13:assert x['ct'][n]==y['ct'][n]
+ out.append(f'{phase}: raw PASS {len(rows)} searches, last-depth nodes{sum(r["nodes"] for r in rows)}, actualsoftnodes{sum(r["actual"] or 0 for r in rows) if phase=="S2" else "not emitted"}; all35 previous per-search counters and final-info fields exceptONLYtime/nps match Job28 INCLUDINGhashfull/PV; H40{totals["H40"]},H41{totals["H41"]};classes{cs};diagnostics{len(diag)}.')
+ref,_,_=parse(P.parent/'job14'/'K3_r15d.raw.txt')
+assert [(r['canon'],r['best']) for r in ref]==[(r['canon'],r['best']) for r in allr['K3_count']]
+out.append('Direct K3 canonical final-info and bestmove match unchanged r15d Job14, including hashfull and PV. H40 class partition independently sums every row.')
+assert [r['cl'] for r in allr['K1']]==[r['cl'] for r in allr['K2']]
+out.append('K1/K2 every class stable, wrong H40 and H41 differ exactly White, bothstrictsubsets. No new native run in QA.')
+pathlib.Path('/tmp/forge-dot-job29-QA.txt').write_text('UTC '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n'+'\n'.join(out)+'\n');print('\n'.join(out))
+
+END_FILE
+FILE 2321 527f2a3cf7babf1e1956bbafcc3297556f47f6d9111e4ccf981f92dde66e8bd8 forge-dot-job29-set.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');E=m['Engine'];can=m['canon'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29');phase,exe=sys.argv[1:3];limit=int(sys.argv[3]) if len(sys.argv)>3 else 1000
+fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[];names=None
+with (P/(phase+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' PC20 net768 depth9')
+ for i,fen in enumerate(fens):
+  r=e.search(fen,9);ct={}
+  for s in r['lines']:
+   mm=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)
+   if mm:assert mm[1] not in ct;ct[mm[1]]={'uses':int(mm[2]),'differ':int(mm[3])}
+  assert len(ct)==37,(i,ct)
+  if names is None:names=set(ct)
+  assert set(ct)==names
+  r.update(index=i,counters=ct);rows.append(r)
+  if (i+1)%50==0:(P/(phase+'.progress.txt')).write_text(str(i+1)+' '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+s={'phase':phase,'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'distinct_positions':len(set(fens)),'nodes':sum(r['nodes'] for r in rows),'counters':{n:{k:sum(r['counters'][n][k] for r in rows) for k in ['uses','differ']} for n in names},'diagnostics':[s for r in rows for s in r['lines'] if s.startswith('info string shortcut ') and not re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)]}
+base=[json.loads(x) for x in pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job28/S1.rows.txt').read_text().splitlines()][:limit]
+dif=[i for i,(x,y) in enumerate(zip(rows,base)) if x['nodes']!=y['nodes'] or x['bestmove']!=y['bestmove'] or re.sub(r' (?:time|nps) \d+','',x['last_info'])!=re.sub(r' (?:time|nps) \d+','',y['last_info'])];s['tree_differ_rows']=len(dif);s['first_tree_difference']=dif[:1]
+(P/(phase+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s,indent=2),flush=True)
+assert s['tree_differ_rows']==0,s
+if limit==1000:assert s['nodes']==16543291,s
+
+END_FILE
+FILE 3540 3a2661b1b1590c54c5890c2f5cc1fba9bc6d368df57b6f19e00510ff589490eb forge-dot-job30-S2.py.txt
+import chess,runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];P=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job30');exe=sys.argv[1]
+allf=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines();fens=list(dict.fromkeys(allf))[:20];assert len(fens)==len(set(fens))==20
+games=[];local=[];cutoff=datetime.datetime(2026,11,19,1,54,4,tzinfo=datetime.timezone.utc)
+def now():return datetime.datetime.now(datetime.timezone.utc)
+def save():
+ names=set(games[0]['counters']) if games else set();s={'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'games':games,'completed_games':len(games),'distinct_start_positions':len(set(fens)),'searches':sum(g['plies'] for g in games),'actual_nodes':sum(g['actual_nodes'] for g in games),'counters':{n:{k:sum(g['counters'][n][k] for g in games) for k in ['uses','differ']} for n in names},'node_source':'info string softnodes nodes N; not final completed-depth info','checkpoint_utc':now().isoformat()}
+ (P/'S2.summary.txt').write_text(json.dumps(s,indent=2)+'\n');pathlib.Path('/tmp/forge-dot-job30-S2-moves.json').write_text(json.dumps(local)+'\n');return s
+with (P/'S2.raw.txt').open('w') as raw,contextlib.redirect_stdout(raw):
+ print('UTC START',now().isoformat(),flush=True);e=E(exe,'S2 PC20 net768 softnodes2000 first20distinct W1')
+ try:
+  for gi,fen in enumerate(fens,1):
+   assert now()<cutoff,'cutoff';b=chess.Board(fen);assert b.is_valid();moves=[];searchrows=[];g={'game':gi,'w1_first_index_1based':allf.index(fen)+1,'plies':0,'actual_nodes':0,'counters':{},'diagnostics':[],'all_moves_legal':True}
+   e.send('ucinewgame');e.send('isready');e.until(lambda x:x=='readyok')
+   while len(moves)<200 and not b.is_game_over(claim_draw=True):
+    assert now()<cutoff,'cutoff';print(json.dumps({'game':gi,'ply':len(moves)+1,'board_valid':b.is_valid()}),flush=True)
+    e.send('position fen '+fen+' moves'+(' '+' '.join(moves) if moves else ''));e.send('go softnodes 2000');lines=e.until(lambda x:x.startswith('bestmove '));ct={}
+    for x in lines:
+     mm=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+     if mm:assert mm[1] not in ct;ct[mm[1]]={'uses':int(mm[2]),'differ':int(mm[3])}
+     elif x.startswith('info string shortcut '):g['diagnostics'].append(x)
+    assert len(ct)==39
+    nd=[re.fullmatch(r'info string softnodes nodes (\d+)',x) for x in lines if x.startswith('info string softnodes nodes ')];assert len(nd)==1 and nd[0],lines
+    move=chess.Move.from_uci(lines[-1].split()[1]);assert move in b.legal_moves,(gi,len(moves),b.fen(),move)
+    n=int(nd[0][1]);g['actual_nodes']+=n
+    for name,vals in ct.items():
+     if name not in g['counters']:g['counters'][name]={'uses':0,'differ':0}
+     for k,v in vals.items():g['counters'][name][k]+=v
+    searchrows.append({'ply':len(moves)+1,'nodes':n,'counters':ct,'move':move.uci()});moves.append(move.uci());b.push(move)
+   g['plies']=len(moves);g['termination']='game_over_claim_draw_true' if b.is_game_over(claim_draw=True) else '200_ply_cap';g['result']=b.result(claim_draw=True);games.append(g);local.append({'game':gi,'start_fen':fen,'moves':moves,'searches':searchrows});save();print('S2 game '+str(gi)+' plies '+str(g['plies']),file=sys.stderr,flush=True)
+ finally:e.close()
+ print('UTC END',now().isoformat(),flush=True)
+s=save();print(json.dumps({k:v for k,v in s.items() if k!='games'}),flush=True)
+
+END_FILE
+FILE 3620 faca45132fdf40e3038431c22525088f339856e27543fcc7bf33f5f11ed649b3 forge-dot-job30-S3-qa.py.txt
+import pathlib,json,re,datetime,runpy
+src=pathlib.Path('/tmp/forge-dot-job30-qa.py').read_text();ns={};exec(src[:src.index('allr={}')] ,ns);parse=ns['parse'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30')
+r,diag,pos=parse(p/'S3.raw.txt');old,_,opos=parse(p/'S3_prev.raw.txt');base,_,bpos=parse(p/'S3_r15d.raw.txt');assert pos==opos==bpos and len(r)==len(old)==len(base)>0
+for x,y,z in zip(r,old,base):
+ assert (x['canon'],x['best'])==(y['canon'],y['best'])==(z['canon'],z['best'])
+ assert len(x['ct'])==39 and len(y['ct'])==37
+ for n,v in y['ct'].items():assert x['ct'][n]==v
+ assert all(v['differ']==0 for v in x['ct'].values())
+ assert x['ct']['H45']['uses']+x['ct']['H40']['uses']==x['ct']['H86']['uses']
+ for n,parts in [('H45',[['white','black'],['prior_aborted','prior_clear'],['stopped','continued'],['fast','ordinary'],['periodic','nonperiodic'],['root','nonroot']]),('H46',[['white','black'],['hit','miss'],['near50','below90'],['owned','locked'],['root','nonroot']])]:
+  for pp in parts:assert sum(x['cl'][n][k] for k in pp)==x['ct'][n]['uses']
+summary=json.loads((p/'S3.summary.txt').read_text());assert summary['status']=='complete' and summary['completed_games']==20 and summary['searches']==summary['validated_searches']==len(r)
+ct={n:{k:sum(x['ct'][n][k] for x in r) for k in ['uses','differ']} for n in r[0]['ct']};assert ct==summary['counters']
+classes=json.loads((p/'S3.classes.txt').read_text());
+vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in (p/'S3.raw.txt').read_text().splitlines() if (m:=re.fullmatch(r'< info string h45_skips (.*)',x))]
+assert len(vv)==len(r) and {k:sum(v[k] for v in vv) for k in vv[0]}==classes['H45_skips']
+assert ct==classes['counters'];assert sum(x['nodes'] for x in r)==classes['last_completed_depth_nodes']==summary['nodes_lastdepth'];assert classes['actual_softnodes'] is None
+for name in ['h52','h86']:
+ vals=[]
+ for line in (p/'S3.raw.txt').read_text().splitlines():
+  m=re.fullmatch(r'< info string '+name+r'_classes (.*)',line)
+  if m:
+   w=m[1].split();vals.append(dict(zip(w[::2],map(int,w[1::2]))))
+ assert len(vals)==len(r)
+ if name=='h52':
+  for row,v in zip(r,vals):assert v['hard_nodes']==row['ct']['H52']['uses']==1 and v['no_budget']==v['soft_nodes']==0
+ else:assert sum(v['continued'] for v in vals)==summary['h86_continued_events']==classes['h86_continued_events']
+# Legal played history and exact 20 selected starts/200 cap independently replayed locally.
+import chess
+starts=list(dict.fromkeys((p.parent/'job7/positions.txt').read_text().splitlines()))[:20];games=json.loads(pathlib.Path('/tmp/forge-dot-job30-S3-moves.json').read_text());assert len(games)==20
+for g,fen in zip(games,starts):
+ assert g['start_fen']==fen;board=chess.Board(fen);assert board.is_valid() and len(g['moves'])<=200
+ for m in g['moves']:
+  move=chess.Move.from_uci(m);assert move in board.legal_moves;board.push(move)
+ assert board.is_game_over(claim_draw=True) or len(g['moves'])==200
+assert sum(len(g['moves']) for g in games)==len(r)
+with open('/tmp/forge-dot-job30-QA.txt','a') as f:f.write('\nS3 independent QA '+datetime.datetime.now(datetime.timezone.utc).isoformat()+f': {len(r)} searches across20games; exact command-history/bestmove/canonical final-info inclhashfull/PV agree count21/count20/r15d; old37 counts perply match and all39normaldiff0. All class partitions valid; H52hard_nodes==uses==1 persearch; legal histories replayed. Last-depthnodes{summary["nodes_lastdepth"]}, H86continued-events{summary["h86_continued_events"]}, requestedlimit20000 persearch, no UCIactual-node emission claimed.\n')
+print('S3 QA PASS',len(r))
+
+END_FILE
+FILE 5334 750e20f8d6da7d0703d9b7117c1966931720e5d87ddbf2fb1f5c436ce4f7d77d forge-dot-job30-S3.py.txt
+import chess,runpy,pathlib,sys,json,contextlib,hashlib,datetime,re,signal,math
+E=runpy.run_path('/tmp/forge-dot-job7-common.py')['Engine'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30');cutoff=datetime.datetime(2026,11,19,1,54,4,tzinfo=datetime.timezone.utc)
+exes={'S3':sys.argv[1],'S3_prev':'/tmp/forge-dot-job29-count-build/forge','S3_r15d':'/tmp/forge-dot-r15d-build/forge'}
+starts=list(dict.fromkeys(pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()))[:20]
+raw={k:(P/(k+'.raw.txt')).open('w') for k in exes};eng={};rows={k:[] for k in exes};games=[];totals={};lastnodes=0;continued=0;harduses=0
+now=lambda:datetime.datetime.now(datetime.timezone.utc)
+def alarm_timeout(signum,frame):raise TimeoutError('S3 engine output timeout/deadline')
+signal.signal(signal.SIGALRM,alarm_timeout)
+original_until=E.until
+def bounded_until(self,pred):
+ remaining=(cutoff-now()).total_seconds()
+ if remaining<=0:raise TimeoutError('S3 native cutoff')
+ signal.alarm(max(1,min(30,math.ceil(remaining))))
+ try:return original_until(self,pred)
+ finally:signal.alarm(0)
+E.until=bounded_until
+
+def cls(lines,n):
+ a=[s for s in lines if s.startswith('info string '+n+'_classes ')];assert len(a)==1
+ z=a[0].split()[3:];return dict(zip(z[::2],map(int,z[1::2])))
+def save(status):
+ s={'phase':'S3','status':status,'exe_sha256':hashlib.sha256(pathlib.Path(exes['S3']).read_bytes()).hexdigest(),'baseline_sha256':{k:hashlib.sha256(pathlib.Path(v).read_bytes()).hexdigest() for k,v in exes.items()},'completed_games':len(games),'searches':len(rows['S3']),'nodes_lastdepth':lastnodes,'h86_continued_events':continued,'hard_limit_per_search':20000,'h52_hard_nodes':harduses,'counters':totals,'validated_searches':harduses,'canonical_differences':0 if status!='failed' else None,'old37_per_search_differences':0 if status!='failed' else None,'checkpoint_utc':now().isoformat()}
+ (P/'S3.summary.txt').write_text(json.dumps(s,indent=2)+'\n')
+ for k in rows:(P/(k+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows[k])+'\n')
+ pathlib.Path('/tmp/forge-dot-job30-S3-moves.json').write_text(json.dumps(games)+'\n')
+ return s
+try:
+ for k,x in exes.items():
+  with contextlib.redirect_stdout(raw[k]):print('UTC START',now().isoformat());eng[k]=E(x,k+' PC20 net768 hardnodes20000 Hash16')
+ for gi,fen in enumerate(starts,1):
+  b=chess.Board(fen);assert b.is_valid();moves=[]
+  for k,e in eng.items():
+   with contextlib.redirect_stdout(raw[k]):e.send('ucinewgame');e.send('isready');e.until(lambda x:x=='readyok')
+  while len(moves)<200 and not b.is_game_over(claim_draw=True):
+   assert now()<cutoff,'native cutoff'
+   results={}
+   for k,e in eng.items():
+    with contextlib.redirect_stdout(raw[k]):
+     print(json.dumps({'game':gi,'ply':len(moves)+1}),flush=True);e.send('position fen '+fen+' moves'+(' '+' '.join(moves) if moves else ''));e.send('go nodes 20000');lines=e.until(lambda x:x.startswith('bestmove '))
+    infos=[s for s in lines if s.startswith('info depth ') and ' nodes ' in s];last=infos[-1] if infos else '';ct={}
+    for s in lines:
+     m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)
+     if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+    r={'game':gi,'ply':len(moves)+1,'bestmove':lines[-1],'last_info':last,'nodes':int(re.search(r' nodes (\d+)',last)[1]) if last else 0,'counters':ct,'lines':lines};results[k]=r;rows[k].append(r)
+   a=results['S3'];assert len(a['counters'])==39 and len(results['S3_prev']['counters'])==37
+   for k in ['S3_prev','S3_r15d']:
+    z=results[k];assert a['bestmove']==z['bestmove'] and re.sub(r' (?:time|nps) \d+','',a['last_info'])==re.sub(r' (?:time|nps) \d+','',z['last_info']),('canonical disagreement',gi,len(moves),k)
+   for n,v in results['S3_prev']['counters'].items():assert a['counters'][n]==v,('oldcounter disagreement',n,gi,len(moves))
+   assert all(v['differ']==0 for v in a['counters'].values()),('normal counter disagreement',gi,len(moves))
+   h=cls(a['lines'],'h52');assert h['hard_nodes']==a['counters']['H52']['uses']==1,('S3 hard-node known answer failed',h,a['counters']['H52'])
+   harduses+=h['hard_nodes'];continued+=cls(a['lines'],'h86')['continued'];lastnodes+=a['nodes']
+   for n,v in a['counters'].items():
+    totals.setdefault(n,{'uses':0,'differ':0})
+    for q in v:totals[n][q]+=v[q]
+   move=chess.Move.from_uci(a['bestmove'].split()[1]);assert move in b.legal_moves,(gi,len(moves),move);moves.append(move.uci());b.push(move)
+   if len(rows['S3'])%100==0:save('running');print('S3 searches',len(rows['S3']),now().isoformat(),flush=True)
+  games.append({'game':gi,'start_fen':fen,'moves':moves,'termination':'game_over_claim_draw_true' if b.is_game_over(claim_draw=True) else '200_ply_cap','result':b.result(claim_draw=True)});save('running');print('S3 game',gi,'plies',len(moves),flush=True)
+ print(json.dumps(save('complete')),flush=True)
+except BaseException as exc:
+ s=save('failed');s['failure']=repr(exc);(P/'S3.failure.txt').write_text(json.dumps(s,indent=2)+'\n');raise
+finally:
+ for k,e in eng.items():
+  with contextlib.redirect_stdout(raw[k]):
+   try:e.close()
+   except Exception as close_error:
+    print('CLOSE ERROR',repr(close_error),flush=True);e.p.kill();e.p.wait(timeout=5)
+   print('UTC END',now().isoformat(),flush=True)
+ for f in raw.values():f.close()
+
+END_FILE
+FILE 691 9b148effe34e8b16180dd6eff062b2776ec5d2f625301ae509380ac81be3e099 forge-dot-job30-build.sh.txt
+set -e
+C=/tmp/forge-dot-cmake/cmake/data/bin/cmake
+P=/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job30
+for name in count wrong; do
+ flags='-DFORGE_SEARCH_SPEED2=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SHORTCUT_COUNT=1'
+ if [ "$name" = wrong ]; then flags="$flags -DFORGE_SHORTCUT_WRONG21=1"; fi
+ $C -S /tmp/forge-dot-job30-$name-src -B /tmp/forge-dot-job30-$name-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$flags" > "$P/C_${name}21_configure.txt" 2>&1
+ $C --build /tmp/forge-dot-job30-$name-build --clean-first -j4 > "$P/C_${name}21_build.txt" 2>&1
+ sha256sum /tmp/forge-dot-job30-$name-build/forge
+done
+date -u
+
+END_FILE
+FILE 1488 4b96c7fe9d2393afa9c52dea22870e5cfe8e963dddba2ce3b1080f7f2c815fe1 forge-dot-job30-check.py.txt
+import pathlib,json,re,sys
+p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30');prev=p.parent/'job29'
+def readrows(path):
+ if path.exists(): return [json.loads(x) for x in path.read_text().splitlines()]
+ rows=[];ct={};last='';best=''
+ for line in path.with_name(path.name.replace('.rows.txt','.raw.txt')).read_text().splitlines():
+  if not line.startswith('< '):continue
+  x=line[2:]
+  if x.startswith('info depth '):last=x
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  if x.startswith('bestmove '):rows.append({'last_info':last,'bestmove':x,'counters':ct});ct={}
+ return rows
+for phase in sys.argv[1:]:
+ rows=readrows(p/(phase+'.rows.txt')); oldphase='K1' if phase=='K2' else phase
+ old=readrows(prev/(oldphase+'.rows.txt')); assert len(rows)==len(old)
+ for a,b in zip(rows,old):
+  assert len(a['counters'])==39 and len(b['counters'])==37
+  assert a['bestmove']==b['bestmove']
+  assert re.sub(r' (?:time|nps) \d+','',a['last_info'])==re.sub(r' (?:time|nps) \d+','',b['last_info'])
+  for n in b['counters']:assert a['counters'][n]==b['counters'][n],(phase,n)
+  if phase!='K2':assert all(x['differ']==0 for x in a['counters'].values())
+ totals={n:{k:sum(a['counters'][n][k] for a in rows) for k in ['uses','differ']} for n in ['H45','H46']}
+ for n,v in totals.items():
+  assert v['uses']>0
+  if phase=='K2':assert 0<v['differ']<v['uses'],(n,v)
+ print(phase,'PASS',len(rows),totals,flush=True)
+
+END_FILE
+FILE 2810 1d50686fe9e28ffb3aea2fcb17b7c5549cc07cd4f40bc761cd563ea3b4519080 forge-dot-job30-classes.py.txt
+import pathlib,re,json,sys
+p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30')
+for phase in sys.argv[1:]:
+ lines=(p/(phase+'.raw.txt')).read_text().splitlines();out={};summary=json.loads((p/(phase+'.summary.txt')).read_text());counters={};searches=0;lastnodes=0;nodes=0;actual=[]
+ for x in lines:
+  m=re.match(r'< info depth .* nodes (\d+)',x)
+  if m:lastnodes=int(m[1])
+  if x.startswith('< bestmove '):searches+=1;nodes+=lastnodes
+  m=re.fullmatch(r'< info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:
+   c=counters.setdefault(m[1],{'uses':0,'differ':0});c['uses']+=int(m[2]);c['differ']+=int(m[3])
+  m=re.fullmatch(r'< info string softnodes nodes (\d+)',x)
+  if m:actual.append(int(m[1]))
+ assert counters==summary['counters'] and searches==summary['searches']
+ out.update(searches=searches,binary_sha256=summary.get('exe_sha256',summary.get('binary_sha256')),last_completed_depth_nodes=nodes,actual_softnodes=sum(actual) if actual else None,actual_softnodes_emitted_searches=len(actual),counters=counters)
+ for name in ['H45','H46']:
+  vals=[];uses=[]
+  for x in lines:
+   m=re.search(r'info string '+name.lower()+r'_classes (.*)',x)
+   if m:
+    w=m[1].split();vals.append(dict(zip(w[::2],map(int,w[1::2]))))
+   m=re.search(r'info string shortcut '+name+r' uses (\d+) differ (\d+)',x)
+   if m:uses.append((int(m[1]),int(m[2])))
+  assert len(vals)==len(uses)==searches>0
+  partitions=[['white','black'],['prior_aborted','prior_clear'],['stopped','continued'],['fast','ordinary'],['periodic','nonperiodic'],['root','nonroot']] if name=='H45' else [['white','black'],['hit','miss'],['near50','below90'],['owned','locked'],['root','nonroot']]
+  for v,(u,d) in zip(vals,uses):
+   for part in partitions:assert sum(v[k] for k in part)==u
+  out[name]={'searches':len(vals),'uses':sum(u for u,d in uses),'differ':sum(d for u,d in uses),'classes':{k:sum(v[k] for v in vals) for k in vals[0]}}
+ vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in lines if (m:=re.fullmatch(r'< info string h45_skips (.*)',x))]
+ assert len(vv)==searches
+ out['H45_skips']={k:sum(v[k] for v in vv) for k in vv[0]}
+ # Hard-node class proof and derived events are aggregates, not UCI actual-node claims.
+ for nm in ['h52','h86']:
+  vv=[]
+  for x in lines:
+   m=re.search(r'info string '+nm+r'_classes (.*)',x)
+   if m:
+    w=m[1].split();vv.append(dict(zip(w[::2],map(int,w[1::2]))))
+  assert len(vv)==searches
+  out[nm.upper()+'_class_totals']={k:sum(v[k] for v in vv) for k in vv[0]}
+ if phase=='S3':
+  assert out['H52_class_totals']['hard_nodes']==counters['H52']['uses']==searches
+  out['requested_hard_limit_per_search']=20000
+  out['h86_continued_events']=out['H86_class_totals']['continued']
+ (p/(phase+'.classes.txt')).write_text(json.dumps(out,indent=2)+'\n');print(phase,json.dumps(out))
+
+END_FILE
+FILE 860 b4aa76f7694a88cbe4d4a7a5e46aeb4ebee9b6901fb34175a3aee43d7417bd2d forge-dot-job30-gate.py.txt
+import runpy,pathlib,contextlib,datetime,re,json
+E=runpy.run_path('forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt')['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30');rows=[]
+for label in ['r15d','kf']:
+ for cmd,want in [('bench 11',312866),('bench 13',862329),('go perft 5',4865609)]:
+  with (p/(label+'_'+cmd.replace(' ','_')+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+   print(datetime.datetime.now(datetime.timezone.utc).isoformat());e=E('/tmp/forge-dot-'+label+'-build/forge',label,{})
+   e.send(cmd);out=e.until(lambda s:s.startswith('nodes ') if 'perft' in cmd else s.startswith('info string bench depth'));e.close();n=int(re.search(r'nodes (\d+)',out[-1])[1]);assert n==want,(label,cmd,n,want);rows.append([label,cmd,n])
+(p/'gate_summary.txt').write_text(json.dumps(rows,indent=2)+'\n');print(rows)
+
+END_FILE
+FILE 1648 1b3f13cd28cf957b7b3b1c76194899fba2e7ab2ea9e89a1aabe16efb18ecaad5 forge-dot-job30-persistent.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30');phase,exe,limit=sys.argv[1],sys.argv[2],int(sys.argv[3]);fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[]
+with (P/(phase+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' PC20 net768 depth9 Hash1 persistent')
+ e.send('setoption name Hash value 1');e.send('isready');e.until(lambda x:x=='readyok')
+ for i,fen in enumerate(fens):
+  e.send('isready');e.until(lambda x:x=='readyok');r=e.search(fen,9,reset=False);ct={}
+  for line in r['lines']:
+   m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',line)
+   if m:ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  r.update(index=i,counters=ct);rows.append(r)
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n');names=set(rows[0]['counters']);s={'phase':phase,'binary_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'nodes_lastdepth':sum(r['nodes'] for r in rows),'counters':{n:{k:sum(r['counters'][n][k] for r in rows) for k in ['uses','differ']} for n in names},'diagnostics':[x for r in rows for x in r['lines'] if x.startswith('info string shortcut disagreement')]};(P/(phase+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s),flush=True)
+
+END_FILE
+FILE 4226 3f93bf39081170aa8c81aa0665918f1e5af676918f07b161a7277ccd38669707 forge-dot-job30-qa.py.txt
+import pathlib,json,re,datetime,sys
+P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30');old13=['B1','B2','B5','B6','S-B1','S-B2','S-B4','S-B7','H18','H28','H25','H27','H82','H30','H3','H71','H12','H36','H11','H29','H86','H37','H32','H35','H52','H33','H42','H47','H2','H20','H39','H84','H17','H24','H38','H40','H41'];out=[]
+def canon(s):return re.sub(r' (?:time|nps) \d+','',s)
+def parse(path):
+ rows=[];ct={};cl={};last='';act=None;diags=[];positions=[]
+ for line in path.read_text().splitlines():
+  if line.startswith('> position '):positions.append(line)
+  if not line.startswith('< '):continue
+  x=line[2:]
+  if x.startswith('info depth '):last=x
+  if x.startswith('info string softnodes nodes '):act=int(x.split()[-1])
+  m=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',x)
+  if m:assert m[1] not in ct;ct[m[1]]={'uses':int(m[2]),'differ':int(m[3])}
+  m=re.fullmatch(r'info string (h45|h46)_classes (.+)',x)
+  if m:
+   t=m[2].split();cl[m[1].upper()]={a:int(b) for a,b in zip(t[::2],t[1::2])}
+  if x.startswith('info string shortcut disagreement '):diags.append(x)
+  if x.startswith('bestmove '):rows.append({'last':last,'canon':canon(last),'best':x,'nodes':int(re.search(r' nodes (\d+)',last)[1]),'actual':act,'ct':ct,'cl':cl});ct={};cl={};act=None
+ return rows,diags,positions
+allr={}
+for phase in (sys.argv[1:] or ['K1','K2','K3_count','S1','S2']):
+ rows,diag,pos=parse(P/(phase+'.raw.txt'));allr[phase]=rows
+ summary=json.loads((P/(phase+'.summary.txt')).read_text());names=set(rows[0]['ct']);assert len(names)==39
+ totals={n:{k:sum(r['ct'][n][k] for r in rows) for k in ['uses','differ']} for n in names};assert totals==summary['counters']
+ cs=json.loads((P/(phase+'.classes.txt')).read_text())
+ assert all(r['ct']['H45']['uses']+r['ct']['H40']['uses']==r['ct']['H86']['uses'] for r in rows)
+ vv=[dict(zip((w:=m[1].split())[::2],map(int,w[1::2]))) for x in (P/(phase+'.raw.txt')).read_text().splitlines() if (m:=re.fullmatch(r'< info string h45_skips (.*)',x))]
+ assert len(vv)==len(rows) and {k:sum(v[k] for v in vv) for k in vv[0]}==cs['H45_skips']
+ for n in ['H45','H46']:
+  c={k:sum(r['cl'][n][k] for r in rows) for k in rows[0]['cl'][n]};assert c==cs[n]['classes'];assert totals[n]['uses']==cs[n]['uses']
+  for r in rows:
+   parts=[['white','black'],['prior_aborted','prior_clear'],['stopped','continued'],['fast','ordinary'],['periodic','nonperiodic'],['root','nonroot']] if n=='H45' else [['white','black'],['hit','miss'],['near50','below90'],['owned','locked'],['root','nonroot']]
+   for pp in parts:assert sum(r['cl'][n][k] for k in pp)==r['ct'][n]['uses']
+ if phase!='K2':assert all(v['differ']==0 for v in totals.values())
+ else:
+  for n in old13:assert totals[n]['differ']==0
+  for n,klass in [('H45','white'),('H46','white')]:assert 0<totals[n]['differ']<totals[n]['uses'];assert totals[n]['differ']==cs[n]['classes'][klass]
+ oldphase='K1' if phase=='K2' else phase
+ old,_,oldpos=parse(P.parent/'job29'/(oldphase+'.raw.txt'));assert len(rows)==len(old);assert pos==oldpos
+ for x,y in zip(rows,old):
+  assert (x['canon'],x['best'],x['actual'])==(y['canon'],y['best'],y['actual'])
+  for n in old13:assert x['ct'][n]==y['ct'][n]
+ out.append(f'{phase}: raw PASS {len(rows)} searches, last-depth nodes{sum(r["nodes"] for r in rows)}, actualsoftnodes{sum(r["actual"] or 0 for r in rows) if phase=="S2" else "not emitted"}; all37 previous per-search counters and final-info fields exceptONLYtime/nps match Job29 INCLUDINGhashfull/PV; H45{totals["H45"]},H46{totals["H46"]};classes{cs};diagnostics{len(diag)}.')
+ref,_,_=parse(P.parent/'job14'/'K3_r15d.raw.txt')
+assert [(r['canon'],r['best']) for r in ref]==[(r['canon'],r['best']) for r in allr['K3_count']]
+out.append('Direct K3 canonical final-info and bestmove match unchanged r15d Job14, including hashfull and PV. H45 class partition independently sums every row.')
+assert [r['cl'] for r in allr['K1']]==[r['cl'] for r in allr['K2']]
+out.append('K1/K2 every class stable, wrong H45 and H46 differ exactly White, bothstrictsubsets. No new native run in QA.')
+pathlib.Path('/tmp/forge-dot-job30-QA.txt').write_text('UTC '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n'+'\n'.join(out)+'\n');print('\n'.join(out))
+
+END_FILE
+FILE 2321 7edb71bc35b1d3cf5b33e94c74f925af382744e6585d87dcdcbb699aaa76d413 forge-dot-job30-set.py.txt
+import runpy,pathlib,sys,json,contextlib,hashlib,datetime,re
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');E=m['Engine'];can=m['canon'];P=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job30');phase,exe=sys.argv[1:3];limit=int(sys.argv[3]) if len(sys.argv)>3 else 1000
+fens=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:limit];rows=[];names=None
+with (P/(phase+'.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC START',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,phase+' PC20 net768 depth9')
+ for i,fen in enumerate(fens):
+  r=e.search(fen,9);ct={}
+  for s in r['lines']:
+   mm=re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)
+   if mm:assert mm[1] not in ct;ct[mm[1]]={'uses':int(mm[2]),'differ':int(mm[3])}
+  assert len(ct)==39,(i,ct)
+  if names is None:names=set(ct)
+  assert set(ct)==names
+  r.update(index=i,counters=ct);rows.append(r)
+  if (i+1)%50==0:(P/(phase+'.progress.txt')).write_text(str(i+1)+' '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+ e.close();print('UTC END',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(P/(phase+'.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+s={'phase':phase,'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'searches':len(rows),'distinct_positions':len(set(fens)),'nodes':sum(r['nodes'] for r in rows),'counters':{n:{k:sum(r['counters'][n][k] for r in rows) for k in ['uses','differ']} for n in names},'diagnostics':[s for r in rows for s in r['lines'] if s.startswith('info string shortcut ') and not re.fullmatch(r'info string shortcut (\S+) uses (\d+) differ (\d+)',s)]}
+base=[json.loads(x) for x in pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job29/S1.rows.txt').read_text().splitlines()][:limit]
+dif=[i for i,(x,y) in enumerate(zip(rows,base)) if x['nodes']!=y['nodes'] or x['bestmove']!=y['bestmove'] or re.sub(r' (?:time|nps) \d+','',x['last_info'])!=re.sub(r' (?:time|nps) \d+','',y['last_info'])];s['tree_differ_rows']=len(dif);s['first_tree_difference']=dif[:1]
+(P/(phase+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s,indent=2),flush=True)
+assert s['tree_differ_rows']==0,s
+if limit==1000:assert s['nodes']==16543291,s
+
+END_FILE
+FILE 987 5cd34c36bb6c02d010509b7ad53922496b285f51d5c6d8bc0636b75fb7094283 forge-dot-job7-W2-compare.py.txt
+import runpy,json,hashlib
+C=runpy.run_path('/tmp/forge-dot-job7-common.py'); R=C['R'];canon=C['canon']
+def out(p):return [canon(s[2:]) for s in p.read_text().splitlines() if s.startswith('< ')]
+def cmp(a,b):
+ x=out(a);y=out(b);return {'left':a.name,'right':b.name,'lines_left':len(x),'lines_right':len(y),'equal':x==y,'first_difference':next(({'line':i+1,'r15d':u,'kF':v} for i,(u,v) in enumerate(zip(x,y)) if u!=v),None) if len(x)==len(y) else {'lengths':[len(x),len(y)]}}
+s={'normalization':'Only output lines (< prefix), deleting time/nps/hashfull numeric fields','literal_sequence':cmp(R/'W2_r15d.raw.txt',R/'W2_kF.raw.txt'),'fresh_processes':cmp(R/'W2_r15d_fresh.raw.txt',R/'W2_kF_fresh.raw.txt'),'freshness_by_program':{p:json.loads((R/('W2_'+p+'.summary.txt')).read_text()) for p in ['r15d','kF']},'raw_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in R.glob('W2*.raw.txt')}}
+(R/'W2_comparison.txt').write_text(json.dumps(s,indent=2)+'\n');print(json.dumps(s))
+
+END_FILE
+FILE 2772 b1c28636b74271e2a0e469baced72842c08c92ec28c5e18c5c6f498a71459010 forge-dot-job7-W2.py.txt
+import runpy,sys,json,pathlib,contextlib,time
+C=runpy.run_path('/tmp/forge-dot-job7-common.py'); Engine=C['Engine'];R=C['R'];canon=C['canon'];NET=C['NET']
+label=sys.argv[1];exe={'r15d':'/tmp/forge-dot-r15d-build/forge','kF':'/tmp/forge-dot-kf-build/forge'}[label]
+fens=(R/'positions.txt').read_text().splitlines()[:20];rows=[]
+with (R/('W2_'+label+'.raw.txt')).open('w') as raw,contextlib.redirect_stdout(raw):
+ e=Engine(exe,label+' W2 literal')
+ try:
+  for i,fen in enumerate(fens,1):
+   print(json.dumps({'row':i,'fen':fen,'protocol':'literal W2; final ucinewgame resets to startpos'}),flush=True)
+   e.send('ucinewgame'); a=e.search(fen,10,False)
+   e.send('setoption name NNUEArch value false');b=e.search(None,10,False)
+   e.send('setoption name NNUEArch value true');c=e.search(None,10,False)
+   e.send('setoption name NNUEArchFile value '+NET);e.send('setoption name NNUEArch value true');d=e.search(None,10,False)
+   e.send('setoption name Hash value 1');z=e.search(None,10,False)
+   e.send('setoption name Hash value 16');e.send('ucinewgame');last=e.search(None,10,False)
+   rows.append({'row':i,'fen':fen,'searches':dict(first=a,disabled=b,reenabled=c,reloaded=d,hash1=z,last_literal_newgame=last)})
+   (R/('W2_'+label+'.rows.txt')).write_text(json.dumps(rows,indent=2)+'\n')
+   print('W2 checkpoint '+label+' '+str(i),file=sys.stderr,flush=True)
+ finally:e.close()
+with (R/('W2_'+label+'_fresh.raw.txt')).open('w') as raw,contextlib.redirect_stdout(raw):
+ for row in rows:
+  e=Engine(exe,label+' W2 fresh row '+str(row['row']))
+  try:row['fresh_original_fen']=e.search(row['fen'],10,True)
+  finally:e.close()
+  x=[canon(s) for s in row['searches']['last_literal_newgame']['lines'] if s.startswith(('info depth ','bestmove '))]
+  y=[canon(s) for s in row['fresh_original_fen']['lines'] if s.startswith(('info depth ','bestmove '))]
+  row['freshness_equal']=x==y
+  row['freshness_first_difference']=next(({'line':i+1,'last_literal':a,'fresh_original':b} for i,(a,b) in enumerate(zip(x,y)) if a!=b),None)
+  if row['freshness_first_difference'] is None and len(x)!=len(y):row['freshness_first_difference']={'lengths':[len(x),len(y)]}
+  (R/('W2_'+label+'.rows.txt')).write_text(json.dumps(rows,indent=2)+'\n')
+summary={'program':label,'positions':len(rows),'sequence_searches':len(rows)*6,'fresh_process_searches':len(rows),'freshness_equal':sum(r['freshness_equal'] for r in rows),'freshness_differ':sum(not r['freshness_equal'] for r in rows),'first_difference':next((r['freshness_first_difference'] for r in rows if not r['freshness_equal']),None),'literal_note':'Final ucinewgame resets Board to startpos; no position reinserted, as mandated.'}
+(R/('W2_'+label+'.summary.txt')).write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary),flush=True)
+
+END_FILE
+FILE 1980 79085e7abf5fa959e4e11084e6aed29de5082757f70ab9d9d646ccefacc300cb forge-dot-job7-W4.py.txt
+import runpy,json,contextlib,sys,re
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');Engine=C['Engine'];R=C['R'];canon=C['canon']; rows=json.load(open('/tmp/forge-dot-job7-w4-inputs.json'))
+for label,exe in [('r15d','/tmp/forge-dot-r15d-build/forge'),('kF','/tmp/forge-dot-kf-build/forge')]:
+ results=[]
+ with (R/('W4_'+label+'.raw.txt')).open('w') as raw,contextlib.redirect_stdout(raw):
+  e=Engine(exe,label+' W4')
+  try:
+   for row in rows:
+    print(json.dumps({'row':row['row'],'source_game':row['game'],'plies':60,'validated':row['valid'],'expected_fen':row['final_fen']}),flush=True)
+    e.send('ucinewgame');e.send('isready');e.until(lambda s:s=='readyok');e.send(row['position_command'])
+    result=e.search(None,10,False);results.append(dict(row=row['row'],source_game=row['game'],**result))
+    (R/('W4_'+label+'.rows.txt')).write_text(json.dumps(results,indent=2)+'\n')
+  finally:e.close()
+ (R/('W4_'+label+'.summary.txt')).write_text(json.dumps({'program':label,'rows':len(results),'node_sum':sum(x['nodes'] for x in results),'depth':10,'protocol':'fresh process, PC20 plus testnet, ucinewgame/isready then original FEN plus first60 moves for each game'},indent=2)+'\n')
+ print(label+' W4 complete '+str(len(results)),flush=True)
+a=json.loads((R/'W4_r15d.rows.txt').read_text());b=json.loads((R/'W4_kF.rows.txt').read_text())
+comp=[]
+for x,y in zip(a,b):
+ u=[canon(s) for s in x['lines']];v=[canon(s) for s in y['lines']]
+ comp.append({'row':x['row'],'equal':u==v,'r15d_nodes':x['nodes'],'kF_nodes':y['nodes'],'r15d_bestmove':x['bestmove'],'kF_bestmove':y['bestmove'],'first_difference':next(({'line':i+1,'r15d':xx,'kF':yy} for i,(xx,yy) in enumerate(zip(u,v)) if xx!=yy),None) if len(u)==len(v) else {'lengths':[len(u),len(v)]}})
+s={'rows':len(comp),'equal':sum(x['equal'] for x in comp),'differ':sum(not x['equal'] for x in comp),'comparisons':comp}
+(R/'W4_comparison.txt').write_text(json.dumps(s,indent=2)+'\n');print('W4 equal',s['equal'],'differ',s['differ'])
+
+END_FILE
+FILE 1238 9f11e3ca43775af96e024589dafdc33af2cee0bcaa989f301bc05dc75fb2d607 forge-dot-job7-common.py.txt
+import pathlib,runpy,re,json,hashlib
+R=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job7')
+M=runpy.run_path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job2/runner.py.txt');NET='/tmp/forge-dot-job7-testnet.fnn3'
+class Engine(M['Engine']):
+ def __init__(self,exe,label):
+  super().__init__(exe,label,M['PC20']);self.send('setoption name NNUEArchFile value '+NET);self.send('setoption name NNUEArch value true');self.send('isready');out=self.until(lambda s:s=='readyok')
+  assert any('checksum 30ab43b4ba5db5f3' in s for s in out),out
+  assert any(s.startswith('info string NNUE v3 active') for s in out),out
+ def search(self,fen,depth,reset=True):
+  if reset:self.send('ucinewgame');self.send('isready');self.until(lambda s:s=='readyok')
+  if fen is not None:self.send('position fen '+fen)
+  self.send('go depth '+str(depth));out=self.until(lambda s:s.startswith('bestmove '));infos=[x for x in out if x.startswith('info depth ') and ' nodes ' in x]
+  last=infos[-1] if infos else '';return {'nodes':int(re.search(r' nodes (\d+)',last)[1]) if last else 0,'bestmove':out[-1],'last_info':last,'lines':out}
+def canon(s):return re.sub(r' (?:time|nps|hashfull) \d+','',s)
+
+END_FILE
+FILE 1685 7a114a493868dff8fbf03f91ed2d5827ee815511e7e3f9f303169fab96bb6b34 forge-dot-job7-gate.py.txt
+import runpy,sys,contextlib,json,pathlib,re,datetime,hashlib
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');R=m['R'];E=m['Engine'];label,exe=sys.argv[1:3];rows=[]
+with (R/(label+'_gate.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC',datetime.datetime.now(datetime.timezone.utc).isoformat());print('exe_sha256',hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest())
+ for d,w in [(11,882074),(13,4275906)]:
+  e=E(exe,label+' net bench'+str(d));e.send('bench '+str(d));out=e.until(lambda s:s.startswith('info string bench depth'));e.close();n=int(re.search(r' nodes (\d+)',out[-1])[1]);assert n==w,(label,d,n,w);rows.append({'bench':d,'nodes':n})
+(R/(label+'_gate.summary.txt')).write_text(json.dumps(rows,indent=2)+'\n');print(label,rows,flush=True)
+if label=='kF0':sys.exit(0)
+fens=[' '.join(s.split()[:4])+' 0 1' for s in pathlib.Path('forge-dot-evidence/job3_O.epd').read_text().splitlines() if s.strip()];assert len(fens)==200
+rows=[]
+with (R/(label+'_O.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ e=E(exe,label+' O depth12')
+ for i,fen in enumerate(fens):
+  r=e.search(fen,12);r['index']=i;rows.append(r)
+ e.close()
+(R/(label+'_O.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+s={'label':label,'rows':len(rows),'sum':sum(r['nodes'] for r in rows),'first3':[r['nodes'] for r in rows[:3]],'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'book_sha256':hashlib.sha256(pathlib.Path('forge-dot-evidence/job3_O.epd').read_bytes()).hexdigest()};(R/(label+'_O.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(s,flush=True);assert s['sum']==32504791 and s['first3']==[37409,213822,139142],s
+
+END_FILE
+FILE 2000 ad07a24cfaca919182530146fdd661c93a4e13b29fa1e87da4a855b19f8b33bd forge-dot-job7-make_net.py.txt
+#!/usr/bin/env python3
+# Opus 2026-11-16: a deterministic FORGENN3 test net with the shape of the PC's net (hidden 512, 8 mirrored king
+# buckets, 8 output buckets, eval_scale 400, the PC's two bucket maps). Weights from splitmix64, so every machine
+# that runs this script gets the same bytes. Python 3 standard library only. Usage: make_v3_testnet.py <out file>
+import hashlib
+import struct
+import sys
+
+MASK = (1 << 64) - 1
+SEED = 20261116
+HIDDEN, KB, OB = 768, 8, 8
+KB_MAP = [0, 1, 2, 3, 3, 2, 1, 0, 4, 4, 5, 5, 5, 5, 4, 4] + [6] * 8 + [7] * 40
+OB_MAP = [0] * 6 + [1] * 4 + [2] * 4 + [3] * 4 + [4] * 4 + [5] * 4 + [6] * 4 + [7] * 3
+
+
+def stream(state):
+    while True:
+        state = (state + 0x9E3779B97F4A7C15) & MASK
+        z = state
+        z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & MASK
+        z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & MASK
+        yield z ^ (z >> 31)
+
+
+def draw(g, n, lo, hi):
+    span = hi - lo + 1
+    return [lo + next(g) % span for _ in range(n)]
+
+
+def main(out):
+    assert len(KB_MAP) == 64 and len(OB_MAP) == 33
+    g = stream(SEED)
+    w1 = draw(g, KB * 768 * HIDDEN, -64, 64)     # [bucket][768][hidden], hidden fastest
+    b1 = draw(g, HIDDEN, -32, 96)
+    w2 = draw(g, OB * 2 * HIDDEN, -16, 16)       # [output bucket][2 * hidden]
+    b2 = [0] * OB
+    head = b"FORGENN3" + struct.pack("<IIIIIIIiii", 3, 192, 768, HIDDEN, KB, OB, 2, 255, 64, 400)
+    head += bytes(KB_MAP) + bytes(OB_MAP) + bytes(47)
+    assert len(head) == 192
+    body = struct.pack("<%dh" % len(w1), *w1) + struct.pack("<%dh" % len(b1), *b1)
+    body += struct.pack("<%dh" % len(w2), *w2) + struct.pack("<%di" % len(b2), *b2)
+    data = head + body
+    h = 14695981039346656037
+    for byte in data:
+        h = ((h ^ byte) * 1099511628211) & MASK
+    data += struct.pack("<Q", h)
+    with open(out, "xb") as f:
+        f.write(data)
+    print("bytes", len(data), "fnv1a64", "%016x" % h, "sha256", hashlib.sha256(data).hexdigest())
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
+
+
+END_FILE
+FILE 5478 f5849ae9d15d8e848a7bb91b9e7b438ccfc82a0834734e3e7714ca69c00c595b forge-dot-job7-positions.py.txt
+import chess,chess.pgn,hashlib,json,struct,pathlib,subprocess
+src=pathlib.Path('/tmp/forge-dot-job7-F1k.pgn'); net=pathlib.Path('/tmp/forge-dot-job7-testnet.fnn3')
+out=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job7')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+expected='d9a02ff4b3128fcbeb39582aec5a350831b40fda6d38010fd630a94498b8a4d0'
+assert sha(src)==expected
+header=net.read_bytes()[:192]; assert header[:8]==b'FORGENN3' and struct.unpack_from('<II',header,8)==(3,192)
+kingmap=list(header[48:112]); buckets=struct.unpack_from('<I',header,24)[0]; assert max(kingmap)<buckets
+fens=[]; provenance=[]; coverage=[]; w4=[]; games_read=0; examined=0; terminal_skipped=0; selected_games=set()
+with src.open() as f:
+ while len(fens)<1000:
+  game=chess.pgn.read_game(f)
+  if game is None:break
+  games_read+=1
+  assert not game.errors,(games_read,game.errors)
+  assert 'FEN' in game.headers,(games_read,'missing FEN')
+  root=game.headers['FEN']; b=chess.Board(root); assert b.is_valid(),(games_read,'root')
+  moves=list(game.mainline_moves()); game_used=False
+  for ply,m in enumerate(moves,1):
+   assert m in b.legal_moves,(games_read,ply,'illegal PGN move')
+   b.push(m)
+   if ply%5:continue
+   examined+=1
+   if b.is_game_over(): terminal_skipped+=1;continue
+   assert b.is_valid(),(games_read,ply,'invalid selected board')
+   legal=list(b.legal_moves); kings=[m for m in legal if b.piece_type_at(m.from_square)==chess.KING]
+   flip=0 if b.turn==chess.WHITE else 56
+   changing=[m for m in kings if kingmap[m.from_square^flip]!=kingmap[m.to_square^flip]]
+   fens.append(b.fen()); provenance.append({'row':len(fens),'game':games_read,'ply':ply,'valid':True,'game_over':False})
+   coverage.append({'row':len(fens),'legal_king':bool(kings),'legal_castle':any(b.is_castling(m) for m in legal),'legal_ep':any(b.is_en_passant(m) for m in legal),'legal_promotion':any(m.promotion for m in legal),'bucket_changing_king':bool(changing),'bucket_changing_moves':[m.uci() for m in changing]})
+   game_used=True; selected_games.add(games_read)
+   if len(fens)==1000:break
+  if game_used and len(moves)>=60 and len(w4)<20:
+   b60=chess.Board(root)
+   for m in moves[:60]:assert m in b60.legal_moves;b60.push(m)
+   assert b60.is_valid()
+   if not b60.is_game_over():
+    w4.append({'row':len(w4)+1,'game':games_read,'root_fen':root,'moves':[m.uci() for m in moves[:60]],'position_command':'position fen '+root+' moves '+' '.join(m.uci() for m in moves[:60]),'final_fen':b60.fen(),'valid':True,'game_over':False})
+assert len(fens)==1000,len(fens)
+(out/'positions.txt').write_text('\n'.join(fens)+'\n')
+(out/'positions_provenance.txt').write_text('\n'.join(json.dumps(r,sort_keys=True) for r in provenance)+'\n')
+(out/'positions_validation.txt').write_text('python-chess '+chess.__version__+'\n'+'\n'.join(f"row {r['row']} game {r['game']} ply {r['ply']} board.is_valid() True board.is_game_over() False" for r in provenance)+'\n')
+summary={'pgn_sha256':sha(src),'source_ref':'refs/remotes/origin/dot-job7-sol-work','source_commit':'a8fe78047e045d9f972f31ec2c86c02c0558ef53','source_path':'forge-combo29/sol/job21/raw/F1k.pgn','positions_sha256':sha(out/'positions.txt'),'position_count':len(fens),'games_read':games_read,'selected_game_count':len(selected_games),'sampled_candidates':examined,'terminal_skipped':terminal_skipped,'python_chess_version':chess.__version__,'terminal_rule':'board.is_game_over() default claim_draw=False','net_sha256':sha(net),'king_map':kingmap,'map_source':'kF include/forge/nnue_v3.hpp:38-43 format,176-180 king_key; src/nnue_v3.cpp:624-626 loader','coverage':{k:sum(r[k] for r in coverage) for k in ['legal_king','legal_castle','legal_ep','legal_promotion','bucket_changing_king']},'w4_count':len(w4)}
+(out/'positions_coverage.txt').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+(out/'positions_coverage_rows.txt').write_text('\n'.join(json.dumps(r,sort_keys=True) for r in coverage)+'\n')
+pathlib.Path('/tmp/forge-dot-job7-w4-inputs.json').write_text(json.dumps(w4,indent=2)+'\n')
+pathlib.Path('/tmp/forge-dot-job7-w4-commands.txt').write_text('\n'.join(r['position_command']+'\ngo depth 10' for r in w4)+'\n')
+(out/'positions_recipe.txt').write_text('Source: sol-work commit '+summary['source_commit']+' path '+summary['source_path']+'\nPGN SHA256 '+expected+'\nRead with python-chess '+chess.__version__+'. Games in file order, initialize each Board from explicit FEN tag, replay mainline legal moves. After ply5,10,15,... retain unless board.is_game_over() (default claim_draw=False). Stop immediately at1000. Validate each retained Board with board.is_valid(). Write board.fen() using defaults, LF terminated. Per-row game/ply/validation and coverage kept separately.\nBucket-change uses the file header king map bytes48..111; side-to-move perspective square = sq for White, sq XOR56 for Black. Count position once if any legal king move changes map entry. Mirror flip is not counted as a bucket change.\nW4: first20 games represented in W1 having at least60 plies and a valid nonterminal board at60; use their original FEN tag plus exactly first60 mainline UCI moves, then depth10. Inputs kept outside repo at /tmp/forge-dot-job7-w4-inputs.json and /tmp/forge-dot-job7-w4-commands.txt. No PGN or generated program committed.\nPositions SHA256 '+summary['positions_sha256']+'\n')
+print('READY positions',len(fens),'source_sha256',expected,'positions_sha256',summary['positions_sha256'])
+
+END_FILE
+FILE 1037 cef94efeed9c4e4748dc83231822aedf8e77108996f19266a93b5e2e7629568f forge-dot-job7-w1.py.txt
+import runpy,sys,pathlib,json,contextlib,datetime,hashlib
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');R=m['R'];E=m['Engine'];label,exe=sys.argv[1:3];fens=(R/'positions.txt').read_text().splitlines();assert len(fens)==1000;rows=[]
+with (R/(label+'_W1.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+ print('UTC',datetime.datetime.now(datetime.timezone.utc).isoformat());e=E(exe,label+' W1 depth9')
+ for i,fen in enumerate(fens):
+  r=e.search(fen,9);r['index']=i;rows.append(r)
+  if (i+1)%100==0:
+   (R/(label+'_W1.progress.txt')).write_text(str(i+1)+' rows '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+ e.close();print('UTC',datetime.datetime.now(datetime.timezone.utc).isoformat())
+(R/(label+'_W1.rows.txt')).write_text('\n'.join(json.dumps(r) for r in rows)+'\n');s={'program':label,'sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'rows':len(rows),'nodes_sum':sum(r['nodes'] for r in rows)};(R/(label+'_W1.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');print(s,flush=True)
+
+END_FILE
+FILE 3053 5f923e7c103eca0b3cd9e8229df64ae71c05bd845277671bf92926570fc90dd2 forge-dot-job7-w3.py.txt
+import runpy,contextlib,json,datetime,hashlib,pathlib,time
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];R=C['R'];canon=C['canon']
+fens=(R/'positions.txt').read_text().splitlines(); assert len(fens)==1000
+programs={'kF':'/tmp/forge-dot-kf-build/forge','kF0':'/tmp/forge-dot-kf0-build/forge'}
+allrows={};started=datetime.datetime.now(datetime.timezone.utc).isoformat()
+for mode,n in [('search',300),('eval',1000)]:
+ for name,exe in programs.items():
+  rows=[]
+  with (R/f'W3_{mode}_{name}.raw.txt').open('w') as raw,contextlib.redirect_stdout(raw):
+   print('UTC start '+datetime.datetime.now(datetime.timezone.utc).isoformat(),flush=True)
+   engine=E(exe,f'W3_{mode}_{name}')
+   for i,fen in enumerate(fens[:n]):
+    if mode=='search':
+     row=engine.search(fen,9);row['canonical_info']=[canon(x) for x in row['lines'] if x.startswith('info depth ')];del row['lines']
+    else:
+     engine.send('position fen '+fen);engine.send('eval');out=engine.until(lambda s:s.startswith('info string eval '));row={'eval':out[-1]}
+    row.update(index=i,fen=fen);rows.append(row)
+    if (i+1)%50==0:
+     (R/f'W3_{mode}_{name}.progress.txt').write_text(datetime.datetime.now(datetime.timezone.utc).isoformat()+f' rows={i+1}\n')
+   engine.close();print('UTC finish '+datetime.datetime.now(datetime.timezone.utc).isoformat(),flush=True)
+  (R/f'W3_{mode}_{name}.rows.txt').write_text(''.join(json.dumps(x)+'\n' for x in rows));allrows[mode,name]=rows
+ summary=[]
+ for a,b in zip(allrows[mode,'kF'],allrows[mode,'kF0']):
+  keys=['nodes','bestmove'] if mode=='search' else ['eval']
+  if any(a[k]!=b[k] for k in keys):summary.append({'index':a['index'],'kF':a,'kF0':b})
+ result={'mode':mode,'rows_compared':n,'equal':n-len(summary),'differ':len(summary),'first_difference':summary[0] if summary else None,'finished_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+ if mode=='search':result['canonical_info_differ_rows']=sum(a['canonical_info']!=b['canonical_info'] for a,b in zip(allrows[mode,'kF'],allrows[mode,'kF0']));result['node_sum_kF']=sum(x['nodes'] for x in allrows[mode,'kF']);result['node_sum_kF0']=sum(x['nodes'] for x in allrows[mode,'kF0'])
+ (R/f'W3_{mode}.summary.txt').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+(R/'W3_scope.txt').write_text('Started UTC '+started+'\nSettings PC20, Threads1, Hash16, synthetic v3 net checksum30ab43b4ba5db5f3; freshprocess per program and workload. Search first300 positions at depth9, ucinewgame/isready each. Eval all1000 positions.\nActual macro proof kf0_effective_flags.txt: both programs FORGE_NNUE_V3_AVX512=1 despite ZMM0 in kF0. Therefore this is prescribed build differential, not v3 AVX512 versus alternate kernel.\nSource opened: src/uci.cpp:901-911 eval branch calls nnue::v3::evaluate_reference at906 and describes fresh accumulators/scalar output sum at904-905. Eval equality compares two scalar-reference commands, not optimized search SIMD outputs against scalar outputs. No instrumentation demonstrates per-fusion branch reach.\n')
+
+END_FILE
+FILE 3690 0c44ef4c45d041569e516f5c59753838923307efa05e2c8b63c87f4b4aa3168e forge-dot-job8-S2.py.txt
+import chess,runpy,pathlib,sys,json,contextlib,hashlib,datetime,re,time
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];P=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job8');label=sys.argv[1];exe='/tmp/forge-dot-'+{'r15d-shadow':'r15d-shadow','kF-shadow':'kf-shadow'}[label]+'-build/forge'
+fens=pathlib.Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job7/positions.txt').read_text().splitlines()[:20]; games=[];local=[]
+cutoff=datetime.datetime(2026,11,18,17,12,17,tzinfo=datetime.timezone.utc)
+def now():return datetime.datetime.now(datetime.timezone.utc)
+def save():
+ s={'program':label,'exe_sha256':hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),'games':games,'completed_games':len(games),'searches':sum(g['plies'] for g in games),'actual_nodes':sum(g['actual_nodes'] for g in games),'evals':sum(g['evals'] for g in games),'differ':sum(g['differ'] for g in games),'node_source':'info string softnodes nodes N; not final completed-depth info','first_difference':next((g['first_difference'] for g in games if g['first_difference']),None),'checkpoint_utc':now().isoformat()};s['evals_per_actual_node']=s['evals']/s['actual_nodes'] if s['actual_nodes'] else None
+ (P/('S2_'+label+'.summary.txt')).write_text(json.dumps(s,indent=2)+'\n');pathlib.Path('/tmp/forge-dot-job8-S2-'+label+'-moves.json').write_text(json.dumps(local)+'\n');return s
+with (P/('S2_'+label+'.raw.txt')).open('w') as raw,contextlib.redirect_stdout(raw):
+ print('UTC START',now().isoformat(),flush=True);e=E(exe,label+' S2 softnodes2000')
+ try:
+  for gi,fen in enumerate(fens,1):
+   assert now()<cutoff,'cutoff'
+   b=chess.Board(fen);assert b.is_valid();moves=[];searchrows=[];g={'game':gi,'plies':0,'actual_nodes':0,'evals':0,'differ':0,'first_difference':None,'all_moves_legal':True}
+   e.send('ucinewgame');e.send('isready');e.until(lambda x:x=='readyok')
+   while len(moves)<200 and not b.is_game_over(claim_draw=True):
+    assert now()<cutoff,'cutoff'
+    print(json.dumps({'game':gi,'ply':len(moves)+1,'board_valid':b.is_valid()}),flush=True)
+    e.send('position fen '+fen+' moves'+(' '+' '.join(moves) if moves else ''));e.send('go softnodes 2000');lines=e.until(lambda x:x.startswith('bestmove '))
+    sh=[re.fullmatch(r'info string shadow evals (\d+) differ (\d+)',x) for x in lines if x.startswith('info string shadow evals ')];assert len(sh)==1 and sh[0]
+    nd=[re.fullmatch(r'info string softnodes nodes (\d+)',x) for x in lines if x.startswith('info string softnodes nodes ')];assert len(nd)==1 and nd[0],lines
+    move=chess.Move.from_uci(lines[-1].split()[1]);assert move in b.legal_moves,(gi,len(moves),b.fen(),move)
+    dif=next((x for x in lines if x.startswith('info string shadow differ ')),None)
+    if dif and g['first_difference'] is None:g['first_difference']={'ply':len(moves)+1,'line':dif,'previous_game_move':moves[-1] if moves else None}
+    n=int(nd[0][1]);ev=int(sh[0][1]);df=int(sh[0][2]);g['actual_nodes']+=n;g['evals']+=ev;g['differ']+=df
+    searchrows.append({'ply':len(moves)+1,'nodes':n,'evals':ev,'differ':df,'move':move.uci()});moves.append(move.uci());b.push(move)
+   g['plies']=len(moves);g['termination']='game_over_claim_draw_true' if b.is_game_over(claim_draw=True) else '200_ply_cap';g['result']=b.result(claim_draw=True);games.append(g);local.append({'game':gi,'start_fen':fen,'moves':moves,'searches':searchrows});save()
+   print('S2 checkpoint '+label+' game '+str(gi)+' plies '+str(g['plies']),file=sys.stderr,flush=True)
+ finally:e.close()
+ print('UTC END',now().isoformat(),flush=True)
+s=save();print(json.dumps({k:v for k,v in s.items() if k!='games'}),flush=True)
+
+END_FILE
+FILE 2282 b9481959cf7af8250f8c62dc9994769a9fa07b75204e875bb288d95170588599 forge-dot-job8-build-scalar.py.txt
+from pathlib import Path
+import shutil,shlex,subprocess,hashlib,datetime
+old=Path('/tmp/forge-dot-kf-build');new=Path('/tmp/forge-dot-kfscalar-build');R=Path('/workspace/scratch/900442a8c8bb/forge-dot-job-20261118/forge-combo29/dot/job8');shutil.copytree(old,new,dirs_exist_ok=True)
+flags=dict(x.split(' = ',1) for x in (old/'CMakeFiles/forge.dir/flags.make').read_text().splitlines() if ' = ' in x)
+opts=shlex.split(' '.join(flags[x] for x in ['CXX_DEFINES','CXX_INCLUDES','CXX_FLAGS']))+['-mno-avx512f','-mno-avx2','-fno-tree-vectorize']
+with (R/'kfscalar_build.txt').open('w') as out:
+ out.write(datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+ cmd=['/usr/bin/c++',*opts,'-o','CMakeFiles/forge.dir/src/nnue_v3.cpp.o','-c','/tmp/forge-dot-kf-src/src/nnue_v3.cpp'];out.write(shlex.join(cmd)+'\n');out.flush();subprocess.run(cmd,cwd=new,stdout=out,stderr=out,check=True)
+ cmd=shlex.split((old/'CMakeFiles/forge.dir/link.txt').read_text());out.write(shlex.join(cmd)+'\n');out.flush();subprocess.run(cmd,cwd=new,stdout=out,stderr=out,check=True)
+ out.write('finished '+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n')
+with (R/'kfscalar_identity.txt').open('w') as out:
+ out.write('Unshadowed original kF sources; copied original object set, recompiled ONLY nnue_v3.cpp then relinked. No source or CMake changes.\n')
+ out.write('COMMAND '+shlex.join(['/usr/bin/c++',*opts,'-dM','-E','/tmp/forge-dot-kf-src/src/nnue_v3.cpp'])+'\n')
+ macros=subprocess.check_output(['/usr/bin/c++',*opts,'-dM','-E','/tmp/forge-dot-kf-src/src/nnue_v3.cpp'],text=True)
+ out.write('\n'.join(x for x in macros.splitlines() if x.startswith('#define FORGE_NNUE_V3') or x.startswith('#define __AVX') or x.startswith('#define __BMI'))+'\n');assert '#define FORGE_NNUE_V3_AVX512 0' in macros and '#define FORGE_NNUE_V3_AVX2 0' in macros
+ for p in sorted((old/'CMakeFiles/forge.dir/src').glob('*.o')):
+  a=hashlib.sha256(p.read_bytes()).hexdigest();b=hashlib.sha256((new/'CMakeFiles/forge.dir/src'/p.name).read_bytes()).hexdigest();out.write(p.name+' original '+a+' scalar '+b+' unchanged '+str(a==b)+'\n');assert (a==b)==(p.name!='nnue_v3.cpp.o')
+ out.write('PROGRAM SHA256 '+hashlib.sha256((new/'forge').read_bytes()).hexdigest()+'\n')
+print((R/'kfscalar_identity.txt').read_text())
+
+END_FILE
+FILE 902 cc3451507a8025a53dee0e1bc1879bdf2133deedeb6148b79f825b0ffedc8e8f forge-dot-job8-gate.py.txt
+import runpy,pathlib,json,contextlib,re,datetime,hashlib
+m=runpy.run_path('/tmp/forge-dot-job7-common.py');E=m['Engine'];p=pathlib.Path('forge-dot-job-20261118/forge-combo29/dot/job8');rows=[]
+for label,exe in [('r15d','/tmp/forge-dot-r15d-build/forge'),('kF','/tmp/forge-dot-kf-build/forge')]:
+ with (p/(label+'_gate.raw.txt')).open('w') as f,contextlib.redirect_stdout(f):
+  print('UTC',datetime.datetime.now(datetime.timezone.utc).isoformat());print('SHA256',hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest())
+  for d,w in [(11,882074),(13,4275906)]:
+   e=E(exe,label+' Job8 netbench'+str(d));e.send('bench '+str(d));out=e.until(lambda s:s.startswith('info string bench depth'));e.close();n=int(re.search(r' nodes (\d+)',out[-1])[1]);assert n==w,(label,d,n,w);rows.append({'program':label,'depth':d,'nodes':n})
+(p/'step0_summary.txt').write_text(json.dumps(rows,indent=2)+'\n');print(rows)
+
+END_FILE
+FILE 1765 6386e0f044b1f2c829e119e0228390a73fb580988549441a4e7f24f885c98b11 forge-dot-job8-s3.py.txt
+import runpy,json,contextlib,pathlib,datetime
+C=runpy.run_path('/tmp/forge-dot-job7-common.py');E=C['Engine'];R=C['R'].parent/'job8';fens=(C['R']/'positions.txt').read_text().splitlines();baseline=[json.loads(x) for x in (C['R']/'kF_W1.rows.txt').read_text().splitlines()];rows=[]
+with (R/'S3_kFscalar.raw.txt').open('w') as raw,contextlib.redirect_stdout(raw):
+ print('UTC start '+datetime.datetime.now(datetime.timezone.utc).isoformat(),flush=True)
+ e=E('/tmp/forge-dot-kfscalar-build/forge','S3_kFscalar')
+ raw.flush();assert 'kernel scalar' in (R/'S3_kFscalar.raw.txt').read_text()
+ for i,fen in enumerate(fens):
+  row=e.search(fen,9);row.update(index=i,fen=fen);rows.append(row)
+  if (i+1)%100==0:(R/'S3_progress.txt').write_text(datetime.datetime.now(datetime.timezone.utc).isoformat()+f' completed={i+1}\n')
+ e.close();print('UTC finish '+datetime.datetime.now(datetime.timezone.utc).isoformat(),flush=True)
+(R/'S3_kFscalar.rows.txt').write_text(''.join(json.dumps(x)+'\n' for x in rows))
+diffs=[]
+for i,(a,b) in enumerate(zip(rows,baseline)):
+ if a['nodes']!=b['nodes'] or a['bestmove']!=b['bestmove']:diffs.append({'index':i,'scalar':a,'kF':b})
+summary={'workload':'S3','program':'kFscalar','reference':'job7 kF_W1.rows.txt','rows':len(rows),'equal':len(rows)-len(diffs),'differ':len(diffs),'node_sum':sum(x['nodes'] for x in rows),'baseline_node_sum':sum(x['nodes'] for x in baseline),'first_difference':diffs[0] if diffs else None,'finished_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'settings':'PC20 net768 Threads1 Hash16 depth9 ucinewgame/isready each; fresh scalar process; comparison against preserved original kF job7 run'}
+(R/'S3_summary.txt').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary),flush=True)
+
+END_FILE
+FILE 2330 13fe34fdb10578af5576a55a9cf86237d75d5a6992b76b6b96e89dca57dc4c
