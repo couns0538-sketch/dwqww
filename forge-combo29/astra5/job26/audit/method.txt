@@ -1,0 +1,46 @@
+Part R / M independent readback
+
+Use Python 3 and the chess distribution 1.11.2. For one stage, run
+"python3 audit_games.py results STAGE astra5-general-openings24.epd OUT".
+For the two controls after all three runs, run "python3 controls.py results OUT".
+The stats_seed.py file alongside the reader is copied byte for byte from
+Job 21 at 040834de294a31f81a3d6aa54a605af692a4fcb4. check_job21.py
+accepts the local repository path and reproduces all three historical
+reported intervals to eight decimal places. The separate clock-edge check
+uses synthetic messages and tests the reader alone.
+
+For each completed game, the audit checks the raw handshake and options
+for the engine assigned each color, then reconstructs the full position
+and go commands from the book and played moves. It reads the literal final
+softnodes packet and bestmove and checks the search receipt. A hold search
+counts once regardless of its number of hold lines. A charge is N // 1000
+on every arm, including C26 A at NodeClock 2000. An equal charge spends
+the entire previous clock then earns the 60-node-ms increment. A charge
+greater than the clock loses before applying the move or adding increment.
+The mover's previous clock stays in the end receipt in this case. Both
+players' mean used includes all their attempted searches, including any
+forfeiting attempt. End clocks are attributed to A/B using the actual
+color assignment in that game. White/Black means are separately available.
+
+After every legal applied move the independent replay tests checkmate,
+stalemate, insufficient material, can_claim_threefold_repetition(),
+can_claim_fifty_moves() and the 600-ply cap. The complete game receipt
+must agree with the replay in outcome, cause, applied plies and both clocks.
+The control check keys all records by opening and game identity. Its cost
+comparison covers every final N and integer charge. The launch order is
+read separately from the per-stage launch receipts.
+
+Only complete color-reversed pairs enter the match statistics. The five
+bins represent 0, 0.5, 1, 1.5 and 2 A points out of two. Divide each A
+pair total by two to obtain one score fraction per opening. Job 21 uses
+their population standard deviation divided by the square root of the
+number of pairs. It multiplies that standard error by the 0.975 normal
+quantile, maps mean fraction plus and minus that margin through
+400 log10(p / (1 - p)), and uses half the difference as a symmetric
+95 percent width about the logistic Elo of the mean fraction. A checkpoint
+too small to have a finite transform is identified explicitly.
+
+The match cutoff for starting new pairs was 19:11:02 UTC. The receipt
+timestamp used to count pairs already complete by minute 45 is the
+pair's controller complete time. Whole pairs subsequently finished before
+the minute-50 playing stop also enter the final event totals.
