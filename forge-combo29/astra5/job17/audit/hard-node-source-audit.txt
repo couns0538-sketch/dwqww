@@ -1,0 +1,10 @@
+Job 17 hard-node record semantics, inspected on both job 16 source trees and executables.
+r15d: exe SHA-256 9068653cd638639a602b7c72dafe741e395598d0178f14fa31d530767f982671.
+src/search.cpp:2718: at default MultiPV 1 the iteration info line snapshots total_nodes(); lines 2738 and 2753 serialize the depth and nodes fields. Line 3142 publishes a completed ordinary iteration.
+src/search.cpp:3042: the partial-root publication branch excludes searches stopped by the hard node cap. Line 3230 computes the final internal total, including work in the interrupted iteration. Line 3239 supplies a legal fallback when no iteration furnished a best move.
+src/search.cpp:2661 and 3241: only positive soft-node searches produce the supplemental final count. src/uci.cpp:364 prints the returned best move without attaching a hard-node total.
+kF: exe SHA-256 c9ab02f9e15cc0a293b849116aa56d45ca3c521fa1209ed27386734dbb62d0eb.
+src/search.cpp:3220: at default MultiPV 1 the iteration info line snapshots total_nodes(); lines 3240 and 3255 serialize the depth and nodes fields. Line 3647 publishes a completed ordinary iteration.
+src/search.cpp:3547: the partial-root publication branch excludes searches stopped by the hard node cap. Line 3735 computes the final internal total, including work in the interrupted iteration. Line 3744 supplies a legal fallback when no iteration furnished a best move.
+src/search.cpp:3163 and 3746: only positive soft-node searches produce the supplemental final count. src/uci.cpp:449 prints the returned best move without attaching a hard-node total.
+For these single-threaded, MultiPV-1 hard-node runs, the record uses the integer following nodes in the last emitted info line before the bestmove for the same go command. It may be lower than the requested budget. If there was no such info line, use NA, count the NA row, and exclude it from the total. A printed info line without a nodes field is unexpected and must remain distinguishable from no info line.

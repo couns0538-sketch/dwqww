@@ -1,0 +1,14 @@
+$ nproc
+5
+Job 17 slots per build S = floor((nproc - 1) / 2) = 2.
+Process permitted CPU list: 0,1,2,3,4.
+Effective cpuset: 0-4.
+cgroup cpu.max (quota and period in microseconds): 400000 100000.
+Available CPU, physical core, socket (lscpu -p=CPU,CORE,SOCKET):
+0,0,0
+1,1,0
+2,2,0
+3,3,0
+4,4,0
+Four concurrent slots fit on separate enumerated cores. Each slot has two persistent engine processes and only the side to move searches; at most four searches are active across both builds.
+Actual slot-to-CPU assignments are recorded by the driver.
