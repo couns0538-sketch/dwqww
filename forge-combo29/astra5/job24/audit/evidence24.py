@@ -6,12 +6,15 @@ import subprocess
 import sys
 from read_partial24 import read
 from reconcile_games import load
-from dataclasses import asdict
+import argparse
 
-here=Path(__file__).resolve().parent
-root=here/'harness/results'
-out=here/'final'
-out.mkdir(exist_ok=True)
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('stage_directory',type=Path,help='Job 24 directory containing R1, R2, C24 and K1')
+parser.add_argument('output_directory',type=Path,help='Directory for the derived TSV and JSON files')
+args=parser.parse_args()
+root=args.stage_directory
+out=args.output_directory
+out.mkdir(parents=True,exist_ok=True)
 memo={}
 allstats=[]; first={}
 for stage in ['R1','R2','C24','K1']:
