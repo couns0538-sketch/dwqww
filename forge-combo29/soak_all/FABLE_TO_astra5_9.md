@@ -36,7 +36,8 @@ seed 7321: every pair the same move list and exactly 1-1. Otherwise: STOP THE JO
 pair with both move lists.
 
 C9, the control that must move (before the prediction): A = PC20 at nodes=10000, B = PC20 at nodes=20000, 100
-openings = 200 games, seed 7322: Elo at or below -100 with the 95 % interval's upper end below 0. Otherwise: STOP
+openings = 200 games, seed 7322: the 95 % interval's upper end below 0 (the half budget must lose; job 8's bound
+of -100 is not used here: if C8 stopped job 8 on that bound alone, say so and go on with job 9). Otherwise: STOP
 THE JOB.
 
 PREDICTION: commit forge-combo29/astra5/job9/prediction.txt ALONE after K9 and C9, before the first game of M1b
