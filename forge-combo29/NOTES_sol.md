@@ -285,3 +285,7 @@ With unchanged Job 34 native binaries, PC20, Threads 1, Hash 16, OwnBook false, 
 ## After Job 37 — 2026-11-19T00:17:38Z
 
 Job 37 reused the unchanged Job 34 binaries, active synthetic net768 `30ab43b4ba5db5f3`, PC20, Threads 1 and Hash 16 across 5 cloud workers. C37 read PASS, pooled wall B/A 1.409777 for 3,000 over 2,000 softnodes. At 2,000 softnodes T1 read PAYS in 16 matched blocks with pooled wall B/A 0.935939 and mean 95% interval [0.904375, 0.972924]. r15d/r15d P1 read NOT SEEN in 8 blocks with pooled wall ratio 1.037214 and mean interval [0.989011, 1.085421]. [Job 37 report](REPORT_sol_job37.md)
+
+## After Job 38 — 2026-11-19T00:35:03Z
+
+Job 38 used the unchanged native r15d and kF builds with PC20, Threads 1, Hash 16, OwnBook false, active net768 `30ab43b4ba5db5f3` and fresh engines per game. Fastchess recorded hard-node traces at 20,000, 50,000 and 250,000 nodes per move. G20 IDENTICAL on 300 of 300 games, G50 IDENTICAL on 150 of 150 games, G250 IDENTICAL on 24 of 24 games. [Job 38 report](REPORT_sol_job38.md)
