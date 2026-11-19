@@ -1,0 +1,213 @@
+"""Run one job-21 match. Every invocation requires the preceding match gate or frozen prediction."""
+import argparse
+from collections import Counter
+from datetime import datetime
+import hashlib
+import os
+from pathlib import Path
+import re
+import shlex
+import shutil
+import signal
+import subprocess as sp
+import sys
+import time
+
+STAGES = {
+    "C21": (200, 7391, 0, 0, 10000, 20000),
+    "B1": (1200, 7392, 2, 0, 20000, 20000),
+    "B2": (1200, 7393, 2, 0, 2000, 2000),
+}
+ROOT=Path(__file__).resolve().parent
+BOOKS=Path('/workspace/work/j21book')
+NET=Path('/workspace/work/j7net/net768.nnue')
+NET_SHA="c3d95131d7c1c89ccb5b000b52c7c37ed8665dbf8bb2a0a7a873809c85b9f7c7"
+DENIED=re.compile(rb"unknown option|invalid value|failed to set option",re.I)
+EXPECTED_EXE = "ca7ef24ddd1cc80216712646bf71beaa9eacf1ac2184e0e0f11d078b10ff4f2e"
+EXPECTED_BOOK = "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+VERSION = "fastchess alpha 1.8.3 20261107-d7b47e8"
+DEADLINE = datetime.fromisoformat("2026-11-19T02:22:00+00:00").timestamp()
+
+
+def now():
+    return sp.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], text=True).strip()
+
+
+def hash_file(path):
+    with path.open("rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
+
+
+def record_time(meta, stamps, event, match):
+    line = f"{now()} {match} {event}"
+    print(line, file=meta, flush=True)
+    with stamps.open("a") as f:
+        print(line, file=f)
+    print(line, flush=True)
+
+
+def preflight(exe, common, guard, verify, role, meta):
+    commands=["uci",*common,f"setoption name NullMateGuard value {guard}",f"setoption name NullThreatVerify value {verify}","isready","quit"]
+    print(f"{role} preflight input",*commands,sep="\n",file=meta,flush=True)
+    run=sp.run([exe],cwd=exe.parent,input="\n".join(commands)+"\n",text=True,stdout=sp.PIPE,stderr=sp.STDOUT,timeout=60)
+    print(f"{role} preflight output",run.stdout.rstrip(),sep="\n",file=meta,flush=True)
+    output=run.stdout.splitlines()
+    names={line[12:].split(" type ",1)[0] for line in output if line.startswith("option name ")}
+    required={cmd[15:].rsplit(" value ",1)[0] for cmd in commands if cmd.startswith("setoption ")}
+    suffices=all(any(m in line and "checksum 30ab43b4ba5db5f3" in line for line in output) for m in ("NNUE v3 loaded","NNUE v3 active"))
+    if run.returncode or DENIED.search(run.stdout.encode()) or "readyok" not in output or "uciok" not in output or required-names or not suffices:
+        raise ValueError(f"{role} UCI preflight failed")
+    print(f"{role} preflight PASS",file=meta,flush=True)
+
+def whole_pairs(path):
+    if not path.is_file():
+        return None
+    data = path.read_bytes()
+    if not data.rstrip().endswith((b"1-0", b"0-1", b"1/2-1/2")):
+        return None
+    rounds = Counter(re.findall(rb'^\[Round "(\d+)"\]\r?$', data, flags=re.MULTILINE))
+    return len(rounds) if rounds and set(rounds.values()) == {2} else None
+
+
+def wait_match(proc,pgn,meta,raw_log,stage,results):
+    # Poll the original fastchess engine communications for option refusals and retain
+    # authenticated network/option exchanges in a small, publishable log as they occur.
+    source=None
+    refused=False
+    observed=set()
+    with (results/f"{stage}-live-options.txt").open("x") as audit:
+        def consume():
+            nonlocal source,refused
+            if source is None and raw_log.exists(): source=raw_log.open("rb")
+            if source is None: return
+            for line in source:
+                if not line.endswith(b"\n"):
+                    source.seek(-len(line),1)
+                    return
+                denial=DENIED.search(line)
+                relevant=any(token in line for token in (b"NNUE v3 active",b"NNUE v3 loaded",b"setoption name NullThreatVerify",b"setoption name NullMateGuard"))
+                if denial or relevant:
+                    # One exemplar per distinct direction, role and message.
+                    content=line.partition(b"> ")[2].strip()
+                    if denial or content not in observed:
+                        observed.add(content)
+                        audit.write(line.decode(errors="replace"));audit.flush()
+                if denial: refused=True
+        cut=False
+        last_size=-1
+        while proc.poll() is None:
+            consume()
+            remaining=DEADLINE-time.time()
+            closed=None
+            if remaining<=12:
+                size=pgn.stat().st_size if pgn.exists() else 0
+                if size!=last_size: closed=whole_pairs(pgn);last_size=size
+            if refused or closed or remaining<=3:
+                reason="refusal" if refused else "minute 50"
+                print(f"{now()} stop request; {remaining:.3f}s remaining; reason {reason}; complete-pair boundary {closed}",file=meta,flush=True)
+                proc.send_signal(signal.SIGINT)
+                cut=True
+                try: proc.wait(timeout=max(.01,min(2,remaining-1)))
+                except sp.TimeoutExpired:
+                    os.killpg(proc.pid,signal.SIGKILL)
+                    proc.wait()
+                break
+            time.sleep(.2)
+        consume()
+        if source is not None: source.close()
+        print(f"match_refusal {str(refused).lower()}",file=audit)
+    if refused: return 4,cut
+    return proc.returncode,cut
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("match", choices=STAGES)
+    p.add_argument("--fastchess", type=Path, default=Path("/workspace/work/j8fast/source/fastchess"))
+    p.add_argument("--exe", type=Path, default=Path("/workspace/work/j7patch/build/forge"))
+    p.add_argument("--source-book", type=Path, default=Path("/workspace/work/j8gate/UHO_Lichess_4852_v1.epd"))
+    p.add_argument("--book", type=Path)
+    p.add_argument("--book-sha")
+    p.add_argument("--settings", type=Path, default=Path("/workspace/work/j7base/pc20.txt"))
+    p.add_argument("--out", type=Path, default=Path(__file__).resolve().parent/"results")
+    args = p.parse_args()
+    match = args.match
+    games, seed, ga, gb, na, nb = STAGES[match]
+    args.book=args.book or BOOKS/f"{match}.epd"
+    receipt=(BOOKS/f"{match}-opening-preflight.txt").read_text()
+    expected=re.search(r"^derived_sha256 (\w+)$",receipt,re.M)
+    if not expected: raise ValueError("missing frozen book hash")
+    if args.book_sha and args.book_sha!=expected[1]: raise ValueError("receipt vs CLI SHA mismatch")
+    args.book_sha=expected[1]
+    args.out = args.out.resolve()
+    for prop in ("fastchess","exe","book","source_book","settings"):
+        setattr(args, prop, getattr(args,prop).resolve(strict=True))
+    if time.time() >= DEADLINE:
+        return 3
+    nproc = int(sp.check_output(["nproc"], text=True))
+    concurrency = min(4,nproc-1)
+    if concurrency < 1:
+        raise RuntimeError("nproc-1 gives no available match workers")
+    exe_hash, book_hash, source_hash = hash_file(args.exe), hash_file(args.book), hash_file(args.source_book)
+    version = sp.check_output([args.fastchess,"--version"], text=True).strip()
+    if (exe_hash,source_hash,version) != (EXPECTED_EXE,EXPECTED_BOOK,VERSION):
+        raise ValueError("Step 0 executable/source book/controller identity differs")
+    if args.book == args.source_book or book_hash != args.book_sha:
+        raise ValueError("filtered EPD identity differs")
+    common = args.settings.read_text().splitlines()
+    if len(common)!=22 or common[:2]!=["setoption name Threads value 1","setoption name Hash value 16"] or common[-1]!="setoption name OwnBook value false":
+        raise ValueError("PC20 plus Threads and Hash settings are incomplete")
+    if hash_file(NET)!=NET_SHA: raise ValueError("net SHA mismatch")
+    common.extend([f"setoption name NNUEArchFile value {NET}","setoption name NNUEArch value true"])
+    opts=[]
+    for setting in common:
+        name,val = setting.removeprefix("setoption name ").split(" value ")
+        opts.append(f"option.{name}={val}")
+    args.out.mkdir(exist_ok=True,parents=True)
+    stamps=args.out/"times.txt"
+    pgn=args.out/f"{match}.pgn"
+    out=args.out/f"{match}.out"
+    if pgn.exists() or out.exists():
+        raise FileExistsError("existing match evidence")
+    command=[str(args.fastchess)]
+    for role,guard,nodes in (("A",ga,na),("B",gb,nb)):
+        command+=["-engine",f"name={match}-{role}",f"cmd={args.exe}",f"dir={args.exe.parent}",f"option.NullMateGuard={guard}","option.NullThreatVerify="+("true" if guard==2 else "false")]
+        if na!=nb:
+            command.append(f"nodes={nodes}")
+    command += ["-each", "proto=uci"]
+    if na==nb:
+        command.append(f"nodes={na}")
+    command += [*opts, "-openings", f"file={args.book}","format=epd","order=random","-srand",str(seed),
+                "-rounds",str(games//2),"-games","2","-repeat","-concurrency",str(concurrency),
+                "-maxmoves","300","-pgnout",f"file={pgn}"]
+    raw_log=ROOT/f"{match}-uci.log"
+    command+=["-log",f"file={raw_log}","level=warn","engine=true","realtime=true","append=false"]
+    with (args.out/f"{match}.meta").open("x") as meta:
+        print(f"{match}\n{version}\nengine SHA256 {exe_hash}\noriginal book {args.source_book} SHA256 {source_hash}\nfiltered EPD {args.book} SHA256 {book_hash}\nnproc {nproc}; concurrency {concurrency}\n"
+              f"net {NET} SHA256 {NET_SHA}\nA nodes {na}, B nodes {nb}; seed {seed}; target games {games}\ncommand {shlex.join(command)}", file=meta)
+        record_time(meta,stamps,"start", match)
+        try:
+            for role,guard in (("A",ga),("B",gb)):
+                preflight(args.exe,common,guard,"true" if guard==2 else "false",role,meta)
+            print(f"{now()} fastchess launch", file=meta,flush=True)
+            with out.open("xb") as log:
+                proc=sp.Popen(command,cwd=args.out,stdout=log,stderr=sp.STDOUT,start_new_session=True)
+                try:
+                    code,cut=wait_match(proc,pgn,meta,raw_log,match,args.out)
+                finally:
+                    if proc.poll() is None:
+                        proc.send_signal(signal.SIGINT)
+                        try:
+                            proc.wait(timeout=8)
+                        except sp.TimeoutExpired:
+                            os.killpg(proc.pid,signal.SIGKILL)
+                            proc.wait()
+            cfg=args.out/"config.json"
+            if cfg.exists(): shutil.copyfile(cfg,args.out/f"{match}-config.json")
+            print(f"exit {code}\nstatus {'incomplete; refusal' if code==4 else 'incomplete; minute 50' if cut else 'ended'}",file=meta)
+            return 3 if cut else code
+        finally:
+            record_time(meta,stamps,"end",match)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
