@@ -297,3 +297,7 @@ Job 39 reused the pinned r15d and kF builds with PC20, active synthetic net768 `
 ## After Job 40 — 2026-11-19T01:12:59Z
 
 Job 40 used unchanged r15d with PC20, Threads 1, Hash 16 and active net768 `30ab43b4ba5db5f3`. Under `go nodes 20000` for N2 and `go softnodes 2000` for N1, the one-setting map read N2 40 LIVE with 40/40 fully tested and N1 40 LIVE with 40/40 fully tested. Job 38’s C38 wording in Opus file 40 used FEN order (line 4005 at ply 1). Job 38 used book order (line 4001, first node delta at ply 1 and first move delta at ply 3). [Job 40 report](REPORT_sol_job40.md)
+
+## After Job 41 — 2026-11-19T01:17:37Z
+
+Job 41 reused r15d, PC20, Threads 1, Hash 16 and active net768 `30ab43b4ba5db5f3`. Both fresh baseline pairs equaled Job 40 byte for byte. N2 at 20,000 hard nodes matched the EvalSwingMax 300 known answer and changed all 20 games with LmrQuietBase 101. N1 used 2,000 soft nodes. Job 40 read 40/40 LIVE at both limits, leaving zero settings for the wider-step schedule. [Job 41 report](REPORT_sol_job41.md)
