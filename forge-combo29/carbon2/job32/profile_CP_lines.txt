@@ -1,0 +1,230 @@
+=== Job 32 Part P2 Line Profile: CP (/tmp/carbon2_job32/bld_sp_stCP_1/forge) ===
+Tool: sudo perf record -e task-clock -c 50000 (fixed period 50,000 ns = 20,000 samples/CPU-s) + perf script -c forge + llvm-symbolizer-18 --inlines
+Total `forge` process samples: 250764
+`Worker::search` outer-symbol samples: 164405 (65.56% of `forge`)
+Samples inside `Worker::search` attributed to inlined callee files/lines outside `src/search.cpp:2406..3069`: 53982 (32.83% of `Worker::search`) — confirms inlined callees are NOT merged into call sites.
+
+--- Top 20 outer ELF symbols in `forge` ---
+ 1.  164405 (65.56%)  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+ 2.   14954 ( 5.96%)  forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+ 3.   11132 ( 4.44%)  forge::nnue::v3::apply_one_refresh_one_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+ 4.    9335 ( 3.72%)  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+ 5.    5066 ( 2.02%)  forge::Board::has_legal_move() const
+ 6.    4723 ( 1.88%)  forge::MovePicker::generate_quiets()::{lambda(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long)#1}::operator()(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long) const
+ 7.    3343 ( 1.33%)  forge::Board::see_ge(forge::Move const&, int) const
+ 8.    3259 ( 1.30%)  forge::nnue::v3::(anonymous namespace)::apply_changes_pair_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+ 9.    3084 ( 1.23%)  forge::MovePicker::generate_evasions()
+10.    2921 ( 1.16%)  forge::Board::generate_legal_evasions(forge::MoveList&) const
+11.    2865 ( 1.14%)  forge::Board::upcoming_repetition(unsigned long) const
+12.    2856 ( 1.14%)  void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+13.    2759 ( 1.10%)  forge::nnue::v3::apply_pair_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+14.    2698 ( 1.08%)  forge::MovePicker::generate_captures()
+15.    1978 ( 0.79%)  forge::MovePicker::generate_quiets()
+16.    1752 ( 0.70%)  forge::Board::is_legal_complete(forge::Move const&) const
+17.    1631 ( 0.65%)  forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+18.    1266 ( 0.50%)  forge::Board::is_pseudo_legal(forge::Move const&) const
+19.    1047 ( 0.42%)  forge::Board::upcoming_repetition_hit(unsigned long const*, unsigned long, unsigned long, unsigned long, unsigned long) const
+20.    1040 ( 0.41%)  _raw_spin_unlock_irqrestore
+
+--- Top 200 attributed source lines inside `Worker::search` (CP) ---
+Rank  Samples      %T     %WS  File:Line                           Function                      Source
+   1    96071  38.31%  58.44%  src/search.cpp:2744                 search                        { volatile std::uint64_t cp_v = 1ULL; for (int cp_i = 0; cp_i < 200; ++cp_i) cp_v = c
+   2     5366   2.14%   3.26%  ?:0                                 ?                             
+   3     4580   1.83%   2.79%  src/search.cpp:1199                 pick_best_scored              std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+   4     3952   1.58%   2.40%  include/forge/search.hpp:179        prefetch                      __builtin_prefetch(&cluster_for(key));
+   5     1610   0.64%   0.98%  src/search.cpp:1932                 corrected_eval                correction += (np_w + np_b) / 2;
+   6     1089   0.43%   0.66%  src/search.cpp:330                  apply_history                 entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / Histo
+   7     1071   0.43%   0.65%  include/forge/search.hpp:247        probe_owned_fast              const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(s
+   8     1067   0.43%   0.65%  src/search.cpp:905                  next                          const bool direct_chk = (check_squares_[static_cast<std::size_t>(pt)] & square_bb(mov
+   9     1054   0.42%   0.64%  src/board.cpp:1468                  is_repetition                 for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {
+  10      689   0.27%   0.42%  src/search.cpp:1730                 non_pawn_key                  key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
+  11      661   0.26%   0.40%  src/search.cpp:2743                 search                        while (!(move = picker.next(skip_quiets)).is_none()) {
+  12      647   0.26%   0.39%  include/forge/search.hpp:248        probe_owned_fast              const __mmask16 occ_m = _mm512_mask_test_epi32_mask(0x8888, cl, _mm512_set1_epi32(0x0
+  13      643   0.26%   0.39%  include/forge/board.hpp:327         piece_type                    [[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[s
+  14      632   0.25%   0.38%  include/forge/board.hpp:102         is_none                       [[nodiscard]] bool is_none() const { return from == to; }
+  15      587   0.23%   0.36%  include/forge/search.hpp:251        probe_owned_fast              const unsigned slot = static_cast<unsigned>(__builtin_ctz(hit_m)) >> 2U;
+  16      576   0.23%   0.35%  src/search.cpp:2407                 search                        const bool pv_node = beta - alpha > 1;
+  17      543   0.22%   0.33%  src/board.cpp:1334                  unmake_move                   if (undo.king_lines.valid) king_lines_ = undo.king_lines;
+  18      523   0.21%   0.32%  src/board.cpp:1469                  is_repetition                 if (key_history_[static_cast<std::size_t>(i)] == key_) {
+  19      516   0.21%   0.31%  src/search.cpp:1201                 operator()                    [](const Scored& a, const Scored& b) { return a.score > b.score; });
+  20      485   0.19%   0.30%  include/forge/board.hpp:221         in_check                      [[nodiscard]] bool in_check() const { return checkers_ != 0; }
+  21      449   0.18%   0.27%  src/search.cpp:1910                 corrected_eval                correction += (*material_correction_)[side][mat_idx] * tune::MaterialCorrectionWeight
+  22      437   0.17%   0.27%  src/search.cpp:2406                 search                        int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, boo
+  23      418   0.17%   0.25%  src/search.cpp:889                  next                          const Scored picked = pick_best_scored();
+  24      417   0.17%   0.25%  include/forge/search.hpp:680        probe_tt                      return tt_owned_ ? shared_.tt.probe_owned_fast(key) : shared_.tt.probe_locked_fast(ke
+  25      399   0.16%   0.24%  include/forge/board.hpp:341         is_legal                      if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
+  26      396   0.16%   0.24%  src/search.cpp:1144                 pick_best_scored              const int chunk_max = _mm512_reduce_max_epi32(scores16);
+  27      387   0.15%   0.24%  src/search.cpp:3069                 search                        }
+  28      375   0.15%   0.23%  src/search.cpp:2682                 search                        if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && 
+  29      372   0.15%   0.23%  include/forge/board.hpp:257         pieces                        [[nodiscard]] Bitboard pieces(PieceType type) const { return pieces(White, type) | pi
+  30      353   0.14%   0.21%  src/search.cpp:1197                 pick_best_scored              if (best != index_) std::swap(moves_[index_], moves_[best]);
+  31      348   0.14%   0.21%  include/forge/board.hpp:331         color_of                      [[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : Wh
+  32      344   0.14%   0.21%  src/search.cpp:1961                 corrected_eval                return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInM
+  33      338   0.13%   0.21%  include/forge/search.hpp:260        probe_owned_fast              return WorkerTTProbe{found, index, static_cast<std::uint8_t>(slot), true};
+  34      332   0.13%   0.20%  include/forge/search.hpp:105        generation                    [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_
+  35      327   0.13%   0.20%  src/search.cpp:3018                 search                        if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static
+  36      315   0.13%   0.19%  src/board.cpp:153                   piece_key                     return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];
+  37      315   0.13%   0.19%  include/forge/search.hpp:262        probe_owned_fast              if (static_cast<unsigned>(occ_m) != 0x8888U) {
+  38      312   0.12%   0.19%  src/search.cpp:888                  next                          while (index_ < count_) {
+  39      308   0.12%   0.19%  include/forge/bitboard.hpp:26       opposite                      [[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black :
+  40      306   0.12%   0.19%  include/forge/search.hpp:103        bound                         [[nodiscard]] Bound bound() const { return static_cast<Bound>(gen_bound & 3U); }
+  41      306   0.12%   0.19%  src/search.cpp:907                  next                          last_quiet_gives_check_ = direct_chk ||
+  42      305   0.12%   0.19%  src/search.cpp:2949                 search                        if (quiet) r -= std::clamp(cached_qh / tune::LmrHistoryDivisor, -2, 2);
+  43      298   0.12%   0.18%  src/search.cpp:1729                 non_pawn_key                  key ^= bb * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(type) * 0xBF58476D1CE
+  44      296   0.12%   0.18%  src/search.cpp:897                  next                          } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
+  45      295   0.12%   0.18%  src/search.cpp:583                  store_owned_fast              const __mmask16 key_eq = _mm512_mask_cmpeq_epi32_mask(0x1111, cl, _mm512_set1_epi32(s
+  46      291   0.12%   0.18%  src/search.cpp:1126                 pick_best_scored              if (index_ - list_start_ < 4) {
+  47      289   0.12%   0.18%  src/search.cpp:2983                 search                        if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+  48      287   0.11%   0.17%  include/forge/board.hpp:93          operator==                    return std::bit_cast<std::uint32_t>(*this) == std::bit_cast<std::uint32_t>(other);
+  49      274   0.11%   0.17%  src/board.cpp:1182                  make_move                     if (king_lines_.valid) undo.king_lines = king_lines_;
+  50      265   0.11%   0.16%  src/board.cpp:1152                  key_after                     std::uint64_t next = key_ ^ piece_key(move.to, squares_[move.to]) ^ piece_key(move.fr
+  51      264   0.11%   0.16%  src/search.cpp:2521                 search                        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss)
+  52      256   0.10%   0.16%  src/search.cpp:2938                 search                        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+  53      255   0.10%   0.16%  src/search.cpp:3093                 search_child                  return search(board, ss, depth, alpha, beta, cut_node);
+  54      249   0.10%   0.15%  src/board.cpp:1306                  unmake_move                   side_ = opposite(side_);
+  55      247   0.10%   0.15%  src/search.cpp:833                  MovePicker                    counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece
+  56      246   0.10%   0.15%  src/search.cpp:1969                 operator()                    entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+  57      244   0.10%   0.15%  src/search.cpp:2986                 search                        board.unmake_move(move, undo);
+  58      243   0.10%   0.15%  include/forge/search.hpp:263        probe_owned_fast              const unsigned slot = static_cast<unsigned>(__builtin_ctz(static_cast<unsigned>(occ_m
+  59      240   0.10%   0.15%  src/search.cpp:2914                 search                        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to
+  60      232   0.09%   0.14%  src/search.cpp:2868                 search                        if (quiet && mate_moves_ == 0 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) &
+  61      226   0.09%   0.14%  src/board.cpp:1161                  key_after                     const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] 
+  62      216   0.09%   0.13%  src/search.cpp:2874                 search                        if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move
+  63      216   0.09%   0.13%  src/board.cpp:1162                  key_after                     next ^= Z.castling[castling_] ^ Z.castling[castling] ^ Z.side;
+  64      207   0.08%   0.13%  src/search.cpp:2754                 search                        const bool quiet = !capture && !move.is_promotion();
+  65      203   0.08%   0.12%  src/search.cpp:2587                 search                        eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= 
+  66      203   0.08%   0.12%  src/search.cpp:890                  next                          const Move move = picked.move;
+  67      202   0.08%   0.12%  src/search.cpp:1125                 pick_best_scored              if (!sorted_) {
+  68      195   0.08%   0.12%  src/search.cpp:1147                 pick_best_scored              best = i + static_cast<std::size_t>(__builtin_ctz(static_cast<unsigned>(eq)));
+  69      194   0.08%   0.12%  include/forge/board.hpp:251         piece_at                      [[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::siz
+  70      191   0.08%   0.12%  include/forge/b4.hpp:72             blend                         return (plain * (4 - quarters) + threat * quarters) / 4;
+  71      188   0.07%   0.11%  src/search.cpp:2959                 search                        const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  72      186   0.07%   0.11%  src/search.cpp:891                  next                          if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter
+  73      185   0.07%   0.11%  src/search.cpp:2497                 search                        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  74      183   0.07%   0.11%  src/search.cpp:2921                 search                        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gc);
+  75      182   0.07%   0.11%  src/board.cpp:1293                  make_move                     (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
+  76      181   0.07%   0.11%  include/forge/board.hpp:255         pieces                        return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];
+  77      180   0.07%   0.11%  src/board.cpp:1464                  is_repetition                 const std::ptrdiff_t span = std::min<std::ptrdiff_t>(std::min<int>(halfmove_, plies_f
+  78      178   0.07%   0.11%  include/forge/board.hpp:264         halfmove_clock                [[nodiscard]] int halfmove_clock() const { return halfmove_; }
+  79      175   0.07%   0.11%  src/board.cpp:206                   move_piece                    const Bitboard bits = square_bb(from) | square_bb(to);
+  80      174   0.07%   0.11%  src/search.cpp:2551                 search                        const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+  81      172   0.07%   0.10%  include/forge/search.hpp:318        cluster_for                   return clusters_[cluster_index(key)];
+  82      171   0.07%   0.10%  src/board.cpp:1153                  key_after                     next ^= piece_key(move.to, move.is_promotion() ? make_piece(us, move.promotion) : mov
+  83      171   0.07%   0.10%  src/board.cpp:1313                  unmake_move                   if (piece_type(squares_[move.from]) == King) king_squares_[static_cast<std::size_t>(u
+  84      168   0.07%   0.10%  include/forge/search.hpp:82         is_mate_score                 return score >= MateInMaxPly || score <= -MateInMaxPly;
+  85      168   0.07%   0.10%  src/search.cpp:1143                 pick_best_scored              const __m512i scores16 = _mm512_permutex2var_epi32(lo, odd_idx16, hi);
+  86      167   0.07%   0.10%  src/search.cpp:586                  store_owned_fast              if (hit_m != 0U) {
+  87      164   0.07%   0.10%  src/search.cpp:1177                 pick_best_scored              const __m128i swap_halves = _mm_shuffle_epi32(scores, _MM_SHUFFLE(1, 0, 3, 2));
+  88      160   0.06%   0.10%  src/search.cpp:3013                 search                        if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWi
+  89      159   0.06%   0.10%  src/search.cpp:2958                 search                        if (bare_king_lmr_cap) r = std::min(r, 1);
+  90      159   0.06%   0.10%  include/forge/search.hpp:242        probe_owned_fast              TTCluster& cluster = clusters_[index];
+  91      156   0.06%   0.09%  src/search.cpp:2572                 search                        if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves
+  92      156   0.06%   0.09%  include/forge/board.hpp:99          is_promotion                  [[nodiscard]] bool is_promotion() const { return (flags & Promotion) != 0U; }
+  93      156   0.06%   0.09%  src/search.cpp:2975                 search                        if (!aborted_ && quiet && score > alpha) {
+  94      154   0.06%   0.09%  src/search.cpp:2685                 search                        else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2
+  95      154   0.06%   0.09%  src/search.cpp:982                  MovePicker                    Move counter_{};
+  96      150   0.06%   0.09%  src/board.cpp:208                   move_piece                    occupied_[static_cast<std::size_t>(color_of(piece))] ^= bits;
+  97      147   0.06%   0.09%  src/search.cpp:2763                 operator()                    const int plain = (*main_side)[move.from][move.to];
+  98      147   0.06%   0.09%  src/search.cpp:2523                 search                        ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score <
+  99      146   0.06%   0.09%  src/search.cpp:1947                 corrected_eval                b4::joint_weight(level) / 100;
+ 100      146   0.06%   0.09%  src/board.cpp:1192                  make_move                     if (precomputed_key == nullptr && ep_square_ >= 0 && has_legal_en_passant_capture()) 
+ 101      143   0.06%   0.09%  src/search.cpp:1899                 corrected_eval                if (tune::MaterialCorrectionWeight > 0) {
+ 102      143   0.06%   0.09%  src/search.cpp:288                  rule50_score_for_this_clock   if (!tune::EvalRule50Damp) return true;
+ 103      142   0.06%   0.09%  include/forge/search.hpp:252        probe_owned_fast              TTEntry& found = cluster.entries[slot];
+ 104      136   0.05%   0.08%  src/search.cpp:896                  next                          if (!board_.is_legal(move)) continue;
+ 105      135   0.05%   0.08%  src/board.cpp:207                   move_piece                    bitboards_[static_cast<std::size_t>(piece)] ^= bits;
+ 106      135   0.05%   0.08%  src/search.cpp:2767                 operator()                    const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, m
+ 107      134   0.05%   0.08%  include/forge/search.hpp:120        score_usable                  if (stored_clock == capped) return true;
+ 108      134   0.05%   0.08%  include/forge/search.hpp:735        check_node_or_periodic_stop   if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
+ 109      131   0.05%   0.08%  src/search.cpp:1732                 non_pawn_key                  return key ^ (key >> 31U);
+ 110      129   0.05%   0.08%  include/forge/search.hpp:254        probe_owned_fast              if (index < HashfullSampleLimit) [[unlikely]] {
+ 111      126   0.05%   0.08%  src/search.cpp:1191                 pick_best_scored              const int score = moves_[i].score;
+ 112      126   0.05%   0.08%  src/search.cpp:2910                 search                        if (early_key) shared_.tt.prefetch(child_key);
+ 113      125   0.05%   0.08%  src/board.cpp:1171                  make_move                     const Piece moving = squares_[move.from];
+ 114      125   0.05%   0.08%  src/search.cpp:601                  store_owned_fast              if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move
+ 115      124   0.05%   0.08%  src/search.cpp:2904                 search                        ss->double_extensions = inherited_double_extensions + (extension == 2);
+ 116      124   0.05%   0.08%  src/board.cpp:1196                  make_move                     halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
+ 117      124   0.05%   0.08%  src/search.cpp:1202                 pick_best_scored              sorted_ = true;
+ 118      123   0.05%   0.07%  src/search.cpp:2408                 search                        const bool root_node = ss->ply == 0;
+ 119      123   0.05%   0.07%  src/search.cpp:2727                 search                        const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0
+ 120      123   0.05%   0.07%  src/search.cpp:887                  next                          if (!skip_quiets) {
+ 121      121   0.05%   0.07%  include/forge/b4.hpp:25             clamp_level                   return level < 1 ? 1 : (level > MaxReworkLevel ? MaxReworkLevel : level);
+ 122      121   0.05%   0.07%  src/board.cpp:1297                  make_move                     key_history_.push_back(key_);
+ 123      121   0.05%   0.07%  include/forge/b4.hpp:65             square_bit                    return static_cast<std::size_t>((set >> square) & 1U);
+ 124      119   0.05%   0.07%  src/search.cpp:2585                 search                        ? tune::RfpMargin / 3 : 0;
+ 125      119   0.05%   0.07%  src/search.cpp:1924                 corrected_eval                idx_w = ss->corr_np_idx[0];
+ 126      118   0.05%   0.07%  src/search.cpp:2129                 rework_entry                  return (*rework_history_)[static_cast<std::size_t>(board.side_to_move())][b4::square_
+ 127      117   0.05%   0.07%  src/search.cpp:2469                 search                        if (tune::HindsightDepth) {
+ 128      117   0.05%   0.07%  src/search.cpp:325                  history_bonus                 return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + 
+ 129      116   0.05%   0.07%  src/board.cpp:209                   move_piece                    squares_[static_cast<std::size_t>(from)] = Empty;
+ 130      115   0.05%   0.07%  src/search.cpp:2689                 search                        if (tune::HistRework != 0) threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
+ 131      115   0.05%   0.07%  src/search.cpp:1815                 record_move                   const bool mover_nonpawn = piece_type(moved) != Pawn || move.is_promotion();
+ 132      114   0.05%   0.07%  src/search.cpp:2809                 search                        if (quiet && !skip_quiets && move_count >= lmp_limit) skip_quiets = true;
+ 133      113   0.05%   0.07%  src/search.cpp:2996                 search                        if (score > alpha) {
+ 134      112   0.04%   0.07%  src/search.cpp:2583                 search                        const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+ 135      112   0.04%   0.07%  src/search.cpp:317                  reduction                     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ 136      111   0.04%   0.07%  src/search.cpp:578                  store_owned_fast              TTCluster& cluster = clusters_[cluster_idx];
+ 137      110   0.04%   0.07%  src/search.cpp:2981                 search                        score = -search_child(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+ 138      109   0.04%   0.07%  src/search.cpp:2575                 search                        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::Ra
+ 139      109   0.04%   0.07%  src/search.cpp:603                  store_owned_fast              if (cluster_idx < HashfullSampleLimit) [[unlikely]] {
+ 140      108   0.04%   0.07%  src/search.cpp:1818                 record_move                   if (mover_nonpawn) keep &= static_cast<std::uint8_t>(~(1U << static_cast<unsigned>(us
+ 141      108   0.04%   0.07%  src/search.cpp:3055                 search                        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move
+ 142      107   0.04%   0.07%  src/search.cpp:2766                 operator()                    const Bitboard set = threat_set_for_piece(board, ply, piece_type(moved));
+ 143      105   0.04%   0.06%  src/search.cpp:2531                 search                        if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->stati
+ 144      105   0.04%   0.06%  src/search.cpp:3030                 search                        update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tr
+ 145      104   0.04%   0.06%  src/board.cpp:1256                  make_move                     castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.
+ 146      103   0.04%   0.06%  src/search.cpp:1190                 pick_best_scored              for (; i < n; ++i) {
+ 147      103   0.04%   0.06%  src/search.cpp:3087                 search_child                  if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && 
+ 148      102   0.04%   0.06%  src/board.cpp:1173                  make_move                     undo.castling = castling_;
+ 149      101   0.04%   0.06%  src/search.cpp:2414                 search                        const int inherited_double_extensions = (ss - 1)->double_extensions;
+ 150      101   0.04%   0.06%  src/search.cpp:2431                 search                        beta = std::min(beta, mate_in(ply + 1));
+ 151      100   0.04%   0.06%  src/board.cpp:1144                  key_after                     if (ep_square_ >= 0 || (move.flags & EnPassant) != 0U) return false;
+ 152      100   0.04%   0.06%  src/board.cpp:1221                  make_move                     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+ 153      100   0.04%   0.06%  src/search.cpp:612                  store_owned_fast              entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+ 154       99   0.04%   0.06%  src/search.cpp:895                  next                          if (move.from == own_king_sq_) {
+ 155       99   0.04%   0.06%  src/search.cpp:3104                 qsearch_child                 return qsearch(board, ss, alpha, beta);
+ 156       99   0.04%   0.06%  src/search.cpp:2499                 search                        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+ 157       99   0.04%   0.06%  src/search.cpp:1154                 pick_best_scored              const __m256i scores8 = _mm512_castsi512_si256(_mm512_permutexvar_epi32(odd_idx16, v)
+ 158       97   0.04%   0.06%  src/search.cpp:1898                 corrected_eval                std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (Correction
+ 159       96   0.04%   0.06%  src/search.cpp:1205                 pick_best_scored              return moves_[index_++];
+ 160       96   0.04%   0.06%  src/search.cpp:2751                 search                        ++move_count;
+ 161       96   0.04%   0.06%  src/search.cpp:2932                 search                        root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), ro
+ 162       95   0.04%   0.06%  src/board.cpp:1169                  make_move                     const Color us = side_;
+ 163       95   0.04%   0.06%  src/board.cpp:1296                  make_move                     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 102
+ 164       95   0.04%   0.06%  src/board.cpp:1312                  unmake_move                   move_piece(move.to, move.from);
+ 165       95   0.04%   0.06%  include/forge/search.hpp:685        store_tt                      shared_.tt.store_owned_fast(probe.cluster, probe.slot, key, score, eval, move, depth,
+ 166       93   0.04%   0.06%  src/search.cpp:2421                 search                        ++local_nodes_;
+ 167       93   0.04%   0.06%  src/search.cpp:1718                 material_key                  key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color
+ 168       93   0.04%   0.06%  src/board.cpp:1163                  key_after                     key = next;
+ 169       93   0.04%   0.06%  src/search.cpp:2915                 search                        (ss + 1)->ply = ply + 1;
+ 170       91   0.04%   0.06%  src/search.cpp:2453                 search                        const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()
+ 171       91   0.04%   0.06%  src/search.cpp:1821                 record_move                   else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast
+ 172       91   0.04%   0.06%  src/search.cpp:1931                 corrected_eval                const std::int32_t np_b = (*non_pawn_black_correction_)[side][idx_b];
+ 173       91   0.04%   0.06%  include/forge/search.hpp:250        probe_owned_fast              if (hit_m != 0U) {
+ 174       90   0.04%   0.05%  src/board.cpp:1488                  has_non_pawn_material         return (pieces(color, Knight) | pieces(color, Bishop) | pieces(color, Rook) | pieces(
+ 175       90   0.04%   0.05%  src/search.cpp:2829                 search                        if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+ 176       90   0.04%   0.05%  src/search.cpp:3022                 search                        if (move_count == 0) {
+ 177       89   0.04%   0.05%  src/search.cpp:2817                 search                        ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier 
+ 178       89   0.04%   0.05%  src/board.cpp:1150                  key_after                     const Piece moving = squares_[move.from];
+ 179       89   0.04%   0.05%  src/search.cpp:1116                 is_valid_quiet                board_.is_pseudo_legal(move);
+ 180       88   0.04%   0.05%  src/search.cpp:1192                 pick_best_scored              if (score > best_score) {
+ 181       88   0.04%   0.05%  src/search.cpp:945                  next                          while (index_ < count_) {
+ 182       87   0.03%   0.05%  src/search.cpp:2087                 is_draw                       (!board.in_check() && !board.has_legal_move());
+ 183       85   0.03%   0.05%  src/board.cpp:1316                  unmake_move                   } else if (undo.captured != Empty) {
+ 184       85   0.03%   0.05%  src/search.cpp:918                  next                          bad_index_ = 0;
+ 185       84   0.03%   0.05%  src/search.cpp:3080                 may_repeat                    return board.halfmove_clock() >= 3 && board.plies_from_null() >= 3 && board.history_s
+ 186       82   0.03%   0.05%  src/search.cpp:2460                 search                        ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+ 187       81   0.03%   0.05%  src/search.cpp:1946                 corrected_eval                correction += (*joint_correction_)[side][jkey & (CorrectionSize - 1U)] *
+ 188       81   0.03%   0.05%  include/forge/search.hpp:663        threat_set_for_piece          if (threat_map_ready_[idx] != 0U) return threat_maps_[idx].by_type[static_cast<std::s
+ 189       80   0.03%   0.05%  src/search.cpp:2430                 search                        alpha = std::max(alpha, mated_in(ply));
+ 190       80   0.03%   0.05%  include/forge/bitboard.hpp:52       square_bb                     [[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }
+ 191       80   0.03%   0.05%  src/search.cpp:953                  next                          }
+ 192       80   0.03%   0.05%  src/search.cpp:1832                 record_move                   child->entered_side = static_cast<std::uint8_t>(us);
+ 193       80   0.03%   0.05%  src/search.cpp:848                  next                          generate_captures();
+ 194       80   0.03%   0.05%  src/search.cpp:2532                 search                        else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->
+ 195       80   0.03%   0.05%  src/search.cpp:883                  next                          if (!skip_quiets) generate_quiets();
+ 196       79   0.03%   0.05%  src/search.cpp:2963                 search                        full_depth_needed = score > alpha && reduced_depth < new_depth;
+ 197       79   0.03%   0.05%  src/search.cpp:1157                 pick_best_scored              __m128i m4 = _mm_max_epi32(s_lo, s_hi);
+ 198       77   0.03%   0.05%  src/search.cpp:1140                 pick_best_scored              while (i + 16 <= n) {
+ 199       76   0.03%   0.05%  src/search.cpp:2900                 search                        } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !
+ 200       76   0.03%   0.05%  src/search.cpp:2948                 search                        if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold

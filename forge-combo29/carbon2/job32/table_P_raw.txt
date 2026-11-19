@@ -1,0 +1,42 @@
+=== JOB 32 TABLE P: Worker::search Category Breakdown on Replay (a) ===
+XG total `forge` process samples: 161381 (fixed period 50,000 ns task-clock)
+XG `Worker::search` samples:      74110 (45.92% of `T`)
+CP total `forge` process samples: 250764 (fixed period 50,000 ns task-clock)
+CP `Worker::search` samples:      164405 (65.56% of `CP`)
+CP planted line (src/search.cpp:2744) samples: 96071 (38.31% of `CP`, 59.53% of `XG`)
+
+ #   Category                                          XG_samp   % of T   % of WS   CP_samp   CP vs XG
+-----------------------------------------------------------------------------------------------------
+ 1   hash probe and cutoff test                           7072    4.38%     9.54%      6939     -1.88%
+ 2   hash store                                           1540    0.95%     2.08%      1716    +11.43%
+ 3   static evaluation call and correction terms          6510    4.03%     8.78%      6790     +4.30%
+ 4   the node-level prune steps before the move loop      1919    1.19%     2.59%      1881     -1.98%
+ 5   move scoring and history reads                      18143   11.24%    24.48%     16997     -6.32%
+ 6   legality and make / undo                            18253   11.31%    24.63%     14004    -23.28%
+ 7   the move-loop prune tests                            1809    1.12%     2.44%      1256    -30.57%
+ 8   the reduction formula                                1657    1.03%     2.24%      1496     -9.72%
+ 9   the child call and stack set-up                      5181    3.21%     6.99%      5251     +1.35%
+10   history updates after a cutoff                       2646    1.64%     3.57%      2663     +0.64%
+11   repetition and draw tests                            3228    2.00%     4.36%      3248     +0.62%
+12   node count and stop test                              442    0.27%     0.60%       498    +12.67%
+13   everything else (pre-committed sum = 13a + 13b)      5710    3.54%     7.70%      5595     -2.01%
+  13a  DWARF line-0 compiler jump-table/merged (?:0)      5484    3.40%     7.40%      5361     -2.24%
+  13b  bare_king_mode & misc source lines                  226    0.14%     0.30%       234     +3.54%
+-----------------------------------------------------------------------------------------------------
+     SUM Categories 1..13                                74110   45.92%   100.00%     68334     -7.79%
+     [CP_PLANTED_LINE] src/search.cpp:2744                   0    0.00%     0.00%     96071       n/a
+
+=== CONTROL CP CHECK ===
+  True planted cost (6 paired runs, unprofiled):   4.184657 s (55.01% of XG, 35.49% of CP)
+  Planted line samples at src/search.cpp:2744:     96071 samples
+  Planted time at 50 us/sample (raw period):       4.803550 s (relative diff vs true cost: +14.79% — WITHIN 25%)
+  Planted time scaled by unprofiled XG s/sample:   4.528800 s (relative diff vs true cost: +8.22%  — WITHIN 25%)
+  Planted share of CP (profile vs 6-pair true):    38.31% vs 35.49% (relative diff: +7.96%  — WITHIN 25%)
+  Max |CP_samp - XG_samp|/XG_samp across cats:     30.57% on #7 (-30.57%) and #6 (-23.28%), plus #12 (+12.67%) and #2 (+11.43%) (threshold: <= 10.0%)
+  Physical mechanism of #6/#7 drop: the 200-step serial volatile RMW loop (~1,300 cycles) at the top of the move-loop
+    body (src/search.cpp:2744) drains pending ROB / cache-miss stalls from picker.next and preceding unmake_move that
+    otherwise skid onto the immediately following move-loop lines (`is_legal`, `gives_check`, `see_ge` prune checks:
+    sum of #5+#6+#7 delta = -5,948 samples vs +5,800 excess samples on line 2744), while categories outside the move-loop
+    head (#1 -1.88%, #3 +4.30%, #4 -1.98%, #9 +1.35%, #10 +0.64%, #11 +0.62%) stay well within 10%.
+  STRICT CONTROL VERDICT: NOT TRUSTED (planted-line cost passes <= 25%, but #6/#7/#2/#12 exceed the strict <= 10%
+    category-invariance bar; Part R therefore selects and validates pieces from outer function shares + source code).
