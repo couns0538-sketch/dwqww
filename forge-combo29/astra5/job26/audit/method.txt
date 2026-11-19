@@ -40,7 +40,9 @@ quantile, maps mean fraction plus and minus that margin through
 95 percent width about the logistic Elo of the mean fraction. A checkpoint
 too small to have a finite transform is identified explicitly.
 
-The match cutoff for starting new pairs was 19:11:02 UTC. The receipt
-timestamp used to count pairs already complete by minute 45 is the
-pair's controller complete time. Whole pairs subsequently finished before
+The match cutoff for starting new pairs was 19:11:02 UTC. The count of pairs already
+complete by minute 45 uses the later of the two actual game finish times.
+A separate count uses the scheduler receipt time. Both are preserved for
+each pair, and any pair crossing the cutoff between those timestamps is
+identified. Whole pairs subsequently finished before
 the minute-50 playing stop also enter the final event totals.

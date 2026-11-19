@@ -187,8 +187,13 @@ def main():
           and advertised['book_sha256']==BOOK_SHA and advertised['python_chess']=='1.11.2' and advertised['concurrent_games']<=4,advertised)
     receipts_by_k={int(x['opening']):x for x in pair_receipts}
     gameids={i for k in openings for i in (2*k-1,2*k)}
-    records={int(x['game']):x for x in table(folder/'games.tsv')}
+    game_receipts=table(folder/'games.tsv')
+    records={int(x['game']):x for x in game_receipts}
+    check(len(records)==len(game_receipts),(folder,'duplicate game receipt'))
     check(set(records)>=gameids,(folder,'missing receipts'))
+    if (folder/'end.json').exists():
+        complete_by_games={int(r['opening']) for r in game_receipts if 2*int(r['opening'])-1 in records and 2*int(r['opening']) in records}
+        check(set(openings)==complete_by_games,(folder,'pairs and final game receipts disagree',set(openings)^complete_by_games))
     games={}
     if a.cache:a.cache.mkdir(parents=True,exist_ok=True)
     for game in sorted(gameids):
@@ -204,15 +209,17 @@ def main():
     check(len(set(identities))==len(identities),(a.stage,'PID/start-ticks reused across games'))
     n=len(openings)
     sums=Counter();ends=Counter();flags=[];bins=[0]*5
-    summaries=[];pairs=[];by45=0
+    summaries=[];pairs=[];by45=0;by45_receipt=0;straddlers=[]
     for k in openings:
         left,right=games[2*k-1],games[2*k]
         v=left['score']+right['score'];bins[v]+=1
         closed=max(time(left['finish']),time(right['finish']));check(closed<STOP,('game completed after stop',k))
         receipt_time=time(receipts_by_k[k]['completed_utc'])
         check(closed<=receipt_time,(k,closed,receipt_time))
-        by45+=receipt_time<=CUTOFF
-        pairs.append([k,2*k-1,2*k,left['result'],right['result'],v/2,closed.isoformat()])
+        by45+=closed<=CUTOFF
+        by45_receipt+=receipt_time<=CUTOFF
+        if closed<=CUTOFF<receipt_time:straddlers.append(k)
+        pairs.append([k,2*k-1,2*k,left['result'],right['result'],v/2,closed.isoformat(),receipt_time.isoformat()])
         for g in (left,right):
             ends[g['ending']]+=1;sums[('L','D','W')[g['score']]]+=1
             if g['flag']:flags.append(g['flag'])
@@ -236,13 +243,13 @@ def main():
     scores=[i/4 for i,c in enumerate(bins) for _ in range(c)]
     try:elo=evaluate(scores)
     except (ValueError,ZeroDivisionError):elo=None
-    summary=dict(stage=a.stage,openings=openings,pairs=n,pairs_by_minute45=by45,games=2*n,distinct_processes=len(set(identities)),A_WLD=[sums['W'],sums['L'],sums['D']],penta=bins,elo_lower_upper=elo,
+    summary=dict(stage=a.stage,openings=openings,pairs=n,pairs_by_minute45=by45,pair_receipts_by_minute45=by45_receipt,minute45_straddlers=straddlers,games=2*n,distinct_processes=len(set(identities)),A_WLD=[sums['W'],sums['L'],sums['D']],penta=bins,elo_lower_upper=elo,
         reading='A BETTER' if elo and elo[1]>0 else 'B BETTER' if elo and elo[2]<0 else 'LEVEL' if elo else 'not finite at this checkpoint',
         endings=dict(ends),time_losses=flags,players={name:{'searches':sums['count',name],'used_total':sums['spent',name],'N_total':sums['nodes',name],
         'mean_used':sums['spent',name]/sums['count',name] if sums['count',name] else None,'hold_searches':sums['holds',name],'hold_lines':sums['holdlines',name],
         'clock_total':sums['player_clock',name],'mean_final_clock':sums['player_clock',name]/(2*n) if n else None} for name in ('A','B')},
         by_colour_mean_clock={c:sums['color_clock',c]/(2*n) if n else None for c in ['W','B']})
-    table_out(a.out/'paired-ends.tsv',['opening','odd_game','even_game','odd_result','even_result','A_pair_points','complete_utc'],pairs)
+    table_out(a.out/'paired-ends.tsv',['opening','odd_game','even_game','odd_result','even_result','A_pair_points','both_games_finished_utc','pair_receipt_utc'],pairs)
     table_out(a.out/'game-readback.tsv',['game','opening','White','result','ending','plays','W_final','B_final','A_searches','B_searches','A_used','B_used','A_hold_searches','B_hold_searches','started','ended'],sorted(summaries))
     table_out(a.out/'time-losses.tsv',['game','ply','side','engine','N','used','clock_before'],flags)
     (a.out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps({k:v for k,v in summary.items() if k!='openings'},separators=(',',':')))
