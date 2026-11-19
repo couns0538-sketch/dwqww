@@ -1,0 +1,9 @@
+P1 game 601580, record ply 84, White to move (43.g4).
+Pre-move FEN r3kbr1/PP1N4/2pp1p2/3P3n/8/B5P1/4K2p/8 w - - 1 43
+Replaying the stored opening and moves in python-chess 1.11.2 gave the same position as the saved UCI position command. White had 29 legal moves, was out of check and could not claim a draw. The move g3g4 was legal. The resulting position remained nonterminal.
+The game continued for 17 more plies. Black checkmated on recorded ply 101 with g3g1 for a 0-1 result.
+Both original P1 raw-label files and both normalized record files contain the row “601580 84 g3g4 NA”.
+Both saved search replies consisted of “info string softnodes nodes 8000” followed by “bestmove g3g4”. Each lacks an info depth line and a score.
+For go softnodes 2000, both engines set a hard ceiling of 4 times 2000 (r15d src/search.cpp:2663, kF:3165). The supplemental reply shows the search reached this exact ceiling. The single-PV code suppresses an unfinished iteration when stopped by the node cap (r15d:3042, kF:3547), emits completed depth labels (r15d:3142, kF:3647) and falls back to the first legal root candidate if no completed best move exists (r15d:3239, kF:3744). These facts support reaching the ceiling during the first iteration. The saved replies contain no internal trace of which variations consumed those nodes.
+The recorded g3g4 also matches the first legal root candidate implied by the source. It was the only legal nonpromotion single pawn push. Forge generates those pushes before other moves and preserves order when filtering legality (r15d src/board.cpp lines 481-486 or 615-621 and 712-719, kF lines 482-487 or 616-622 and 713-720).
+The position and reply analysis used saved text, board replay and source inspection.
