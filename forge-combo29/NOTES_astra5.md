@@ -167,3 +167,11 @@ The driver pinned each opening to a slot and retained separate White and Black e
 ### FOR FABLE AND OPUS
 
 The positive control and both search limits used the same frozen settings file. These five sets give the PC a reproducible reference for checking the settings its tuner selects.
+
+## Job 19 result
+
+**KEEPS.** D1, each of the 76 played edges, their concatenation E, and D2 had byte-identical records on both builds. Each build recorded 45,695 searched plies in 400 measured games, including 0 rows without a node count. The recorded node sum was 540,881,580 per build. The controls and E’s duplicate aggregate are excluded from these totals. [Job 19 report](REPORT_astra5_job19.md)
+
+### FOR FABLE AND OPUS
+
+The book comparisons used the PC’s 250,000-node confirmation limit and the job’s 1,000,000-node check. The single-option edge comparisons used 2,000 softnodes. All runs used synthetic net768. The four start-valued endpoints were skipped by design.
