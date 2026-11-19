@@ -281,3 +281,7 @@ Job 35 reused native r15d and kF with PC20, active net768 checksum `30ab43b4ba5d
 ## After Job 36 — 2026-11-19T00:00:13Z
 
 With unchanged Job 34 native binaries, PC20, Threads 1, Hash 16, OwnBook false, active synthetic net768 `30ab43b4ba5db5f3` and 6+0.06, all Step 0 pins passed and the K26 kF/kF control completed all 20 games with zero time losses. kF against r15d was CLOCK OK on the recorded cloud games (Q1 600 of 600 games, Q2 cut before its first completed game). Absolute p99 differences relative to r15d were Q1 0.53%. The PC toolchain, trained net and scheduling remain outside this check. [Job 36 report](REPORT_sol_job36.md)
+
+## After Job 37 — 2026-11-19T00:17:38Z
+
+Job 37 reused the unchanged Job 34 binaries, active synthetic net768 `30ab43b4ba5db5f3`, PC20, Threads 1 and Hash 16 across 5 cloud workers. C37 read PASS, pooled wall B/A 1.409777 for 3,000 over 2,000 softnodes. At 2,000 softnodes T1 read PAYS in 16 matched blocks with pooled wall B/A 0.935939 and mean 95% interval [0.904375, 0.972924]. r15d/r15d P1 read NOT SEEN in 8 blocks with pooled wall ratio 1.037214 and mean interval [0.989011, 1.085421]. [Job 37 report](REPORT_sol_job37.md)
