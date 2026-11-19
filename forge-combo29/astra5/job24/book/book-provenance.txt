@@ -1,0 +1,28 @@
+The five opening-family TSV inputs come from the Lichess chess-openings
+project under CC0, at Git commit 3ba6b20d31b2e6125cb0e6a2e792f400717d9d39.
+Their pinned URLs are encoded in make_book.py and their SHA256 digests
+are recorded in book-audit.txt.
+
+From each published line with at least sixteen plies, the script replays
+the first sixteen legal plies. It filters game-over positions and positions
+where the side to move is in check. Selection makes no use of an engine,
+game result, search cost or score. It removes transpositions by piece
+placement, side to move and castling rights. For each ECO volume A–E it
+sorts eligible remaining EPD by a SHA256 ordering keyed with the constant
+"astra5-job24-240024 " and takes up to 64. Ties use the EPD bytes.
+
+It excludes any position key present anywhere in the original UHO book,
+which includes the prior UHO subsets; all observed earlier PGN FENs; the
+FENs in the analysis text and tables of jobs 1–7 and 10; and positions
+replayed from the opening move lists archived in jobs 18–23. Both clocks
+and en-passant rights are ignored when comparing prior positions, as in
+Job 21. The archive input is the frozen Job 23 report commit
+7d6cc0914e80bb2df836c8ed94c1c4d26b8777ef. This screen concerns starting
+positions. It does not test for overlaps with later positions in a game.
+
+To reproduce, install the Python chess distribution 1.11.2, then run
+"python3 make_book.py /path/to/dwqww /tmp/astra5-book24". The repository
+must contain the stated Job 23 Git commit. The five source TSVs and the
+prior UHO archive download into the chosen directory. The output consists
+of four-field EPD records with Unix line endings. All start with White to
+move after Black's eighth move. The EPD itself stays outside the branch.
