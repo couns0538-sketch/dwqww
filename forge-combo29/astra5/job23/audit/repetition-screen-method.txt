@@ -1,0 +1,40 @@
+Offline check of the omitted opening history
+
+Use python-chess 1.11.2 (the chess distribution) and a local Git repository
+containing Job 22 commit 040834de294a31f81a3d6aa54a605af692a4fcb4.
+Run "python3 repetition_screen.py /path/to/repository". The script reads
+the committed L1-r15d games.tsv, openings.tsv and records.txt directly.
+The output identifies their hashes. For a shorter trial use --end GAME.
+
+Each search root in R's recorded game has its original opening and actual
+played prefix. R's reversible window can include pre-book positions until
+the halfmove clock resets. B starts its position-key history at FEN0 and
+retains the halfmove clock from the FEN. Position identity here is the
+pieces, side to move, castling rights and any legally capturable en-passant
+right. The script counts keys strictly before the current search root in
+the full reversible window and in the same window clipped at FEN0.
+
+For r15d, search.cpp line 2645 makes the current position the search root.
+In board.cpp lines 1402–1413 a position reached during search can count
+one prior occurrence at or after that root, or two before it. The upcoming
+repetition test in lines 1729–1734 uses the same distinction. Lines
+1391–1399 implement the ordinary threefold count, and line 1581 adds the
+en-passant file to the position key when a legal en-passant capture exists.
+The screen flags roots with at least two matching earlier positions in the
+full window and fewer than two after clipping. Earlier positions lost
+from before the root cannot change the at-or-after-root matches.
+
+Across 2,000 R games and 232,013 recorded searches, 924 opening positions
+had positive halfmove clocks and 1,076 had zero. The reversible window
+reached before FEN0 at 1,849 played search roots. Only two roots qualified,
+both in game 701704. At plies 9 and 10 the earlier positions at plies 4
+and 8 were equal, and B retains only ply 8. The opening moves took the
+white queen from d2 to g5 and back and the black bishop from f8 to b4 and
+back. Two terminal openings produced no searches.
+
+This positional screen counts opportunities on the recorded R paths. It
+cannot establish which hypothetical continuations either search visited,
+whether a repetition changed a bound, or whether the change reached a
+reported best move or node count. It also omits any indirect effect from
+a preceding search whose output happened to agree. No engine was run for
+this check.

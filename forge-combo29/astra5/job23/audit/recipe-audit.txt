@@ -1,0 +1,54 @@
+Job 23 driver and process audit
+
+The prediction-only commit bea49f8316aea089b0bb91bbc051d76f539bd0f6
+has a committer timestamp of 16:54:42 UTC. Its only affected path was
+forge-combo29/astra5/job23/prediction.txt. C23 finished at 16:54:12.426.
+The first recorded S1-r15d readyok was 16:54:50.948 and the first
+B1-r15d readyok was 16:54:51.034. All times are UTC on November 19.
+
+The actual driver SHA256 was
+92e54810e5a8c6516b8be79df58bd61877e415ec2af7174924e3f8c60b87adb1
+for selfplay.py and
+34868e8475c51f4d489a1f9b517ed4d01d6c5be1611d197d56cb8e94d7badba5
+for stage.py. Both matched the files present at the prediction-only
+commit. The Job 22 selfplay.py was
+7269eb62375e9249e028a2afbaa9721be9d1a58a4bb81fb3f39e7b1dd00708a8
+at 040834de294a31f81a3d6aa54a605af692a4fcb4.
+
+selfplay.py lines 104–121 handshakes with uci and uciok, checks the
+requested options against engine declarations, sends each listed
+setoption, sends isready and requires readyok, the load/active messages
+and expected net checksum. Options match step0/pc20.txt in order, then
+NNUEArchFile and NNUEArch true. Threads 1 and Hash 16 are included.
+LmrQuietBase is 93 except for the C23 control, which uses 60.
+
+selfplay.py lines 210–244 spawn and configure an engine before the game
+loop, record the child's PID, /proc/PID/exe and process start ticks,
+and send ucinewgame, isready and wait for readyok before each game.
+The method applies to openings that are already terminal. Lines 41–45
+construct the two forms of position. The S command supplies the standard
+start FEN and all random and searched moves. The B command supplies the
+post-opening six-field FEN and searched moves only, including a bare
+moves keyword on the first search. Lines 123–133 and 245–278 send the
+position then go softnodes 2000, take the literal last info line before
+bestmove and save its node label. They use the same python-chess board
+that played the opening, claim_draw=True and a 300 absolute ply limit.
+Lines 306–310 send quit and verify the child's successful exit on normal
+completion. stage.py lines 64–119 start the pair and wait for both whole
+games before releasing another game. They also check the common boundary.
+
+At 16:56:13 UTC a separate reader observed the following four processes.
+Engine IDs, start ticks, argv, executable SHA256 (using its named path)
+and actual CPU masks agreed with driver receipts. The leftmost column
+identifies the arm, followed by PID, kernel start ticks and CPU.
+
+S1-r15d 6319 46470 1
+S1-kF   6315 46465 2
+B1-r15d 6317 46470 3
+B1-kF   6321 46478 4
+
+The sample-uci logs preserve both outbound commands and the full replies
+for the first three searches per arm. The remaining outbound commands are
+reconstructed from the frozen driver, openings and accepted best moves.
+Every search retains its last info line in raw-last data, and every game
+retains a readyok receipt and process identifiers.
