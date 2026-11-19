@@ -1,0 +1,26 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1527,11 +1527,9 @@
+ void Worker::update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus,
+                                    const Move* quiets, int quiet_count) {
+     apply_history(rework_entry(board, ss, best), bonus);
+-    hp33_rework_stamp(board, ss, best) = hp33_search_no_;
+     for (int i = 0; i < quiet_count; ++i) {
+         if (quiets[i] == best) continue;
+         apply_history(rework_entry(board, ss, quiets[i]), -bonus);
+-        hp33_rework_stamp(board, ss, quiets[i]) = hp33_search_no_;
+     }
+ }
+ 
+@@ -2462,10 +2460,7 @@
+         }
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+-        if (tune::HistRework != 0) [[unlikely]] {
+-            apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+-            hp33_rework_stamp(board, ss, best_move) = hp33_search_no_;
+-        }
++        if (tune::HistRework != 0) [[unlikely]] apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
