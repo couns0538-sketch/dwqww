@@ -1,0 +1,18 @@
+JOB 32 — PREDICTION 2 (committed alone before K1's first block)
+Timestamp (UTC): 2026-11-19T22:39:45Z
+
+Bundle under test:
+  kK = X + 19 + 20 + 21 + 22 + 23
+    19: fast inline pawn/knight/pin-free Board::has_legal_move
+    20: NNUE v3 non-king replay fast path + inline 2/3-change pair kernels + zero-diff refresh skips
+    21: prefetch 5x128 KiB correction tables before static_evaluate + closed-form material_key + unrolled non_pawn_key
+    22: branchless MovePicker::push_scored (drop seeded_ running-max branch) + zero-copy check_squares_ pointer
+    23: compact 56B SavedKingLines in Undo/NullUndo + inline halfmove/plies_from_null & Pawn|Rook|Queen draw gates + key_history_ reserve
+
+Predictions on workload T (Hash 16, Threads 1, PC20 + net768.fnn3, go softnodes 2000; ratio = CPU(X) / CPU(kK)):
+1. Row K1 (kK_1 vs X_1, 12 blocks ABBA/BAAB) pooled engine CPU ratio:
+   [1.0160, 1.0320]
+2. Row K2 (kK_2 vs X_2, 6 blocks ABBA/BAAB under the Minute-70 rule since Minute 70 arrived at 22:39:19 UTC before K1/K2) pooled engine CPU ratio:
+   [1.0150, 1.0320]
+3. Bundle reading for kK:
+   PAYS (both K1 and K2 pooled engine CPU >= 1.0116, with >= 10/12 blocks > 1 on K1 and >= 5/6 blocks > 1 on K2).
