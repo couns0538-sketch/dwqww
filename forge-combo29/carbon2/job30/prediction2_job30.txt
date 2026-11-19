@@ -1,0 +1,17 @@
+Job 30 Standalone Prediction 2 (H1, H2, and G20)
+
+1. H1 (A = kH_1, B = kG_1 on workload T, 12 blocks; B / A > 1 means kH uses less CPU than kG):
+   - Predicted pooled CPU ratio range: [1.0140, 1.0450]
+   - Expected reading: PAYS
+   - Reason: Piece 17 removes ~1.70% engine CPU spent in synced stdio character-by-character input (_IO_getc + ungetc + stdio_sync_filebuf) plus per-search vector allocations and stack/move-node zeroing, and Piece 18 streamlines Board::upcoming_repetition (2.81% self time in profile_kG_T.txt) via inline may_repeat null-ply filtering, constexpr co-located CuckooSlot entries, an outlined cold hit handler (0 callee-saved register spills on the 98.6% miss path), and a 2x-unrolled pointer XOR scan.
+
+2. H2 (A = kH_2, B = kG_2 on workload T, 12 blocks; B / A > 1 means kH uses less CPU than kG):
+   - Predicted pooled CPU ratio range: [1.0140, 1.0450]
+   - Expected reading: PAYS
+   - Reason: Same two node-keeping pieces (17 + 18) on independent SP-PGO builds kH_2 vs kG_2; combined ~2.2% to ~3.5% CPU reduction sits comfortably above the 1.0116 threshold even with +/-0.4% ThinLTO/PGO layout variance.
+   - Expected BUNDLE reading (H1 and H2 together): PAYS.
+
+3. G20 (A = kG_1, B = kF_sp_1 on workload T20 at go nodes 20000, 12 blocks; B / A > 1 means kG uses less CPU than kF):
+   - Predicted pooled CPU ratio range: [1.0116, 1.0340]
+   - Expected reading: PAYS
+   - Reason: On T (go softnodes 2000), these exact binaries measured B / A = 1.0190 (G1 in Job 28). At 20,000 hard nodes/search (~2.4x more nodes per search), per-search stack_dirty_limit_ amortization shrinks slightly (~0.2-0.3%), while 64-byte SearchStack cache locality and zero-copy null-move v3 evaluation at deeper plies remain fully active, keeping the expected ratio around ~1.015-1.024 above the 1.0116 gate.
