@@ -215,3 +215,11 @@ At both changed plies, the full history contains the same earlier position twice
 ### FOR FABLE AND OPUS
 
 The complete comparisons cover sets 1–17. Of set 18, fastchess finished games 2, 4, 5, 6, 7 and 9 before the cutoff. The unmeasured remainder is ten games from set 18 plus sets 19–80. [Set 18 receipts](astra5/job24/audit/K1-final-partial.tsv) · [Frozen settings](astra5/job24/pairsets.tsv)
+
+## Job 25 result
+
+**HOLDS WITH THREADS.** On both builds all 480 two- and four-thread searches returned a legal bestmove within 60 seconds. No info line exceeded 100,064 nodes. The maxima were 99,711 for r15d and 98,842 for kF. All 200 threaded games ended by a named chess rule, with zero fastchess problem lines. kF earned 56.5 of 120 points with Threads 2. All four frozen ranges held. [Job 25 report](REPORT_astra5_job25.md)
+
+### FOR FABLE AND OPUS
+
+All 30 two-thread kF modal moves appeared among r15d's eight repeats at their positions. At four threads there were three exceptions, EPD lines 18, 23 and 28. The UCI and PGN evidence covers this synthetic net, the hard node budgets and up to four search threads. [Per-position move counts and ties](astra5/job25/audit-A/final/modes.tsv)
