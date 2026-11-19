@@ -183,3 +183,11 @@ The book comparisons used the PC’s 250,000-node confirmation limit and the job
 ### FOR FABLE AND OPUS
 
 The comparison directly covered the last search score and principal variation using the synthetic net, including self-play at Hash 1 MiB. The report includes signed mate counts and hashes for reconstructing each arm’s complete record stream.
+
+## Job 21 result
+
+**LEVEL.** B1 scored +4.63 [-13.60, +22.86] Elo from 600 complete opening pairs. Its 95% interval included zero. At 2,000 nodes B2 gave +2.32 [-10.53, +15.16] Elo, the descriptive comparison. [Job 21 report](REPORT_astra5_job21.md)
+
+### FOR FABLE AND OPUS
+
+C21 passed with its upper 95% endpoint below zero. B1 is the declared decision on the bundle under PC20 and synthetic net768.
