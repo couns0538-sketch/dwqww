@@ -1,0 +1,16 @@
+Source: verified all 29 Job 16 r15d files. git apply --check succeeded on pristine r15d. patch -p1 -F0 applied cleanly; diff -qr against the development copy returned no differences.
+Patch SHA-256 2b65934e5dad80660712dcb7f42376c805de70d67637cc70e53a9654a4fbb58e
+r15d line numbers before patch: search.hpp:317, uci.cpp:453 and 685–687, search.cpp:176, 1516, 2715–2716, 2810–2811, 2854–2855, 2875–2876, 3232–3233 and 3241. Five direct reads use the existing wall-clock expression when NodeClock == 0; a positive NodeClock uses elapsed_ms().
+include/forge/search.hpp:318 extern int NodeClock;                // nodes per millisecond (0 = wall clock)
+src/search.cpp:177 int NodeClock = 0;
+src/search.cpp:1518 if (tune::NodeClock > 0) return static_cast<std::int64_t>(total_nodes() / tune::NodeClock);
+src/search.cpp:2717 const std::int64_t elapsed = tune::NodeClock > 0
+src/search.cpp:2814 result.elapsed_ms = static_cast<std::uint64_t>(tune::NodeClock > 0
+src/search.cpp:2860 result.elapsed_ms = static_cast<std::uint64_t>(tune::NodeClock > 0
+src/search.cpp:2883 result.elapsed_ms = static_cast<std::uint64_t>(tune::NodeClock > 0
+src/search.cpp:3227 if (emit_info) {
+src/search.cpp:3242 result.elapsed_ms = static_cast<std::uint64_t>(tune::NodeClock > 0
+src/search.cpp:3253 if (emit_info) {
+src/uci.cpp:454 "option name NodeClock type spin default 0 min 0 max 1000000000\n"
+src/uci.cpp:689 } else if (name == "NodeClock") {
+src/uci.cpp:690 apply_spin(0, 1000000000, [](int value) { forge::tune::NodeClock = value; });
