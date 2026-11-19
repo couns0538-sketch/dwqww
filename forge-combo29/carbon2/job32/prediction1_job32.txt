@@ -1,0 +1,25 @@
+Job 32 — PREDICTION 1 (committed alone BEFORE P2's first profile and BEFORE measuring CP or hardware counters)
+
+1. Predicted three largest categories of `Worker::search` and their share (% of `T` total samples):
+   (Recall from Job 31 that `Worker::search` as an outer symbol is ~46.6% of `T`, with `generate_quiets`,
+   `generate_captures`, `make_move`, `see_ge`, `nnue_v3::evaluate`, and `refresh_side` out-of-line.)
+   - #1: `move scoring and history reads` — 12.0% to 16.5% of `T`
+         (MovePicker::next / pick_best_scored selection scan, lazy `b4::lesser_threats` attack-map build,
+         and 6-table quiet-history lookups in `get_quiet_history`).
+   - #2: `hash probe and cutoff test` — 7.0% to 11.0% of `T`
+         (64-byte `TTCluster` loads in `probe_owned_fast` across a 16 MiB L3-resident table plus entry unpack
+         and cutoff checks).
+   - #3: `static evaluation call and correction terms` — 5.5% to 9.0% of `T`
+         (`static_evaluate` wrapper, `material_key`/`non_pawn_key`/`joint_key` scans, 6-table `corrected_eval`
+         reads, and node-exit `update_correction` updates).
+
+2. Do hardware PMU counters (`cache-misses`, `dTLB-load-misses`, `branch-misses`) exist on this VM?
+   - Predicted: NO (`<not supported>`), as virtualized cloud VMs typically do not expose hardware PMU counters
+     to guest `perf stat` / `perf record`.
+
+3. Predicted planted cost of `CP` (200 dependent 64-bit multiplications on a `volatile` at the top of the move
+   loop body, `src/search.cpp:2744`):
+   - ~13M–17M move-loop iterations on `T` x ~1,300–1,600 cycles (~0.42–0.52 us) per 200-step volatile RMW chain
+     = ~6.0s to 10.5s of added CPU on top of `XG`'s ~7.62s replay `(a)`:
+     * Expressing planted cost as `(CPU(CP) - CPU(XG)) / CPU(XG)`:  80% to 140% of `XG`'s `T` runtime.
+     * Expressing planted share of `CP`'s own profile `(CPU(CP) - CPU(XG)) / CPU(CP)`:  44% to 58% of `CP`.
