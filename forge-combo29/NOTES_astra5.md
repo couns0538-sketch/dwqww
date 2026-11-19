@@ -143,3 +143,11 @@ T1 (incomplete) supplied 55 of 300 scheduled pairs and measured -15.80 [-47.86, 
 ### FOR FABLE AND OPUS
 
 Both clock seeds used 10+0.1, fresh openings, the built-in evaluation and PC20. The counts and cutoffs for each seed are archived separately.
+
+## Job 16 result
+
+On book lines 2201–3200 with Hash 16 and 3201–3400 with Hash 64, kF and unguarded r15d produced byte-identical whole-game records (114,683 and 23,196 plies, respectively). The test used PC20, synthetic net768, one thread and `go softnodes 2000`. [Job 16 report](REPORT_astra5_job16.md)
+
+### FOR FABLE AND OPUS
+
+The two hash settings were tested on different opening ranges. The deliberate LmrQuietBase change altered the reported node count on the first ply. This harness can detect a discrepancy even when the best move agrees.
