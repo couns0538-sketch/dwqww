@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Capture each frozen build's full UCI option inventory and the 40 named spins."""
+import json,re,subprocess,sys
+from pathlib import Path
+from arm_timing import ENGINE_ENV, pinned_identity
+out=Path(sys.argv[1]).resolve(strict=True)
+raw=out/'step0'
+expected=tuple(json.loads((out/'draw-D1.txt').read_text()))
+assert len(expected)==40 and expected==tuple(json.loads((out/'draw-D100.txt').read_text()))
+labelled=json.loads((out/'reference-arms.txt').read_text())['arms']
+for label, arm in labelled.items():
+    engine=pinned_identity(Path(arm['path']),arm['sha256'])['path']
+    reply=subprocess.run([engine],input=b'uci\nquit\n',capture_output=True,env=ENGINE_ENV,timeout=30)
+    (raw/f'{label}.uci.stdout.txt').write_bytes(reply.stdout)
+    (raw/f'{label}.uci.stderr.txt').write_bytes(reply.stderr)
+    lines=reply.stdout.decode('utf-8').splitlines()
+    inventory={}
+    for number,line in enumerate(lines,1):
+        match=re.fullmatch(r'option name (.+?) type spin(?: .*)?',line)
+        if match and match[1] in expected:
+            if match[1] in inventory:
+                raise ValueError(f'{label} repeats option {match[1]}')
+            inventory[match[1]]=(number,line)
+    assert reply.returncode==0 and not reply.stderr and 'uciok' in lines, label
+    missing=[name for name in expected if name not in inventory]
+    print(f'{label}: {len(inventory)} of 40 named spins, exit {reply.returncode}', flush=True)
+    assert not missing, (label,missing)
+    with (raw/f'{label}.uci-required-spins.txt').open('x') as receipt:
+        for name in expected:
+            number,line=inventory[name]
+            print(f'{number}\t{line}',file=receipt)
