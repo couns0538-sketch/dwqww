@@ -1,0 +1,39 @@
+Repeat the archived audit with the chess distribution 1.11.2 and Python 3.
+Place replay28.py, stage28.py, score28.py, stats_seed.py and compact28.py
+in one directory. Run "python3 compact28.py MATCH_ARCHIVE L27.epd OUT --final"
+with the committed matches folder as MATCH_ARCHIVE. L27 is byte-identical to the 434 lines used by Job 27. The checked SHA256 is
+271cea0cd131935998b72aeee5e6bda336f8bea8f48bcf060088895f1765b21c.
+
+For the live audit, stage28.py compares every compact search row with its
+original game file and verifies the corresponding wire-digest receipt.
+replay28.py checks both UCI handshakes and side-specific option sequences.
+Before each search it reconstructs the position command from the opening
+and all played moves, and reconstructs go from the two current clocks.
+It compares literal hold, final stop-count and bestmove lines with the row.
+An A or B charge is always total nodes divided by 100, rounded down, including
+C28, where the A-specific setting is TmSoftDivisor 22. A strictly larger
+charge than the previous clock forfeits the game before the move or
+increment. Otherwise the legal move stands and the mover receives 60.
+Each player's final clocks must balance against the applied charges and
+increments at both the game and match levels.
+
+Both readers independently replay all completed positions, testing after
+every move for checkmate, stalemate, insufficient material, claimable
+threefold repetition, the claimable 50-move rule, and the 600-ply cap.
+The compact reader reads each final node/bestmove from its literal saved
+engine text and checks each hold count against the separate table of
+literal engine hold messages. It can reproduce the figures using only the
+committed tables, hold evidence and reconstructed L27. The additional
+live audit observed the full position/go stream and UCI startup sequence.
+
+A block qualifies when all three arms finish both colors on every opening
+in it. The first eight possible blocks hold 50 openings, the last 34.
+The minute-45 forecast counts blocks by the last actual game finish and
+also reports the scheduler receipt count separately. Scoring uses the
+unmodified stats_seed.py from Job 21. Pair points 0, 0.5, 1, 1.5 or 2
+are divided by two. The population standard deviation divided by sqrt of
+the pair count is multiplied by the 0.975 normal quantile. Half the
+difference of the logistic transforms of the two fraction endpoints is
+the symmetric 95% error on logistic Elo. Side A and side B end clocks
+are assigned according to the alternating colors; White/Black means are
+reported separately. Each completed game uses two distinct nc processes.
