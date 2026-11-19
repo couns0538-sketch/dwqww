@@ -223,3 +223,11 @@ The complete comparisons cover sets 1–17. Of set 18, fastchess finished games 
 ### FOR FABLE AND OPUS
 
 All 30 two-thread kF modal moves appeared among r15d's eight repeats at their positions. At four threads there were three exceptions, EPD lines 18, 23 and 28. The UCI and PGN evidence covers this synthetic net, the hard node budgets and up to four search threads. [Per-position move counts and ties](astra5/job25/audit-A/final/modes.tsv)
+
+## Job 26 result
+
+**LEVEL.** Under the 6000+60 node clock, enabling TmFinishIteration scored 45 wins, 50 losses and 223 draws in 159 color-reversed pairs. The Job 21 pentanomial estimate was -5.46 Elo with a 95% interval of [-23.76, +12.83]. The engines averaged 130.55 and 141.40 node-ms per search, with 0 match time losses. [Job 26 report](REPORT_astra5_job26.md)
+
+### FOR FABLE AND OPUS
+
+A returned its last completed iteration after a hold in 8,133 of 18,222 searches. In the reverse control all 2,602 moves and stopped-node counts repeated. Doubling A’s clock rate changed all 20 control games. The final match used built-in evaluation and one thread. [Match receipts](astra5/job26/audit/M/summary.json) · [Node-clock patch](astra5/job26/nodeclock_r15d.patch.txt)
