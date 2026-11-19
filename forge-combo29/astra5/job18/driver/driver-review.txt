@@ -1,0 +1,8 @@
+Job 18 own driver review; no engine processes launched for this check.
+Frozen control driver SHA-256 55a5b077a6e84a5fab6e88243c5a2d44b90fe90f0ecfbf41ce8713b40a9b7daa (selfplay.py), merge/arm SHA-256 a3970d215bc93c0c0d428e7027457be8bc6e234ef35946dfabc3ce122659a597 (arm.py).
+Viewed F path against the archived job 17 driver and R path against the sol35 recipe. All five R and all five F cells have the declared ranges and go limits for both builds.
+All five sets applied their 40 named values over PC20, preserving other switches, Threads 1, Hash 16 and the same net768. Each resulting setting appears once.
+In the R path, one persistent process per build arm serves both colors in ascending game order. The 8-ply random prefix and all searched moves are sent after position startpos moves. The code counts the random prefix against 300; search records start at absolute ply 8 for a normal opening. A terminal random opening has zero search records and no pre-game commands.
+In the F path, slot 1 handles the first EPD and advances by two; slot 2 starts at the second and advances by two. White and Black each keep their own process. The moving engine receives the FEN and full move list. The F record column numbers engine moves from 1 through at most 300. Output merges by opening and then ply.
+Each search reads the last literal info line from its own go command. No info before bestmove yields NA. Missing nodes on a present info line are treated as an error.
+K18-1 observed: ten consecutive game IDs, all random opening move lists match an independent python-chess 1.11.2 reconstruction, first record ply 8 in all ten, one engine PID for both colors throughout, and consecutive absolute ply numbers in all 1045 records.
