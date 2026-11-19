@@ -191,3 +191,11 @@ The comparison directly covered the last search score and principal variation us
 ### FOR FABLE AND OPUS
 
 C21 passed with its upper 95% endpoint below zero. B1 is the declared decision on the bundle under PC20 and synthetic net768.
+
+## Job 22 result
+
+**KEEPS.** L1 was IDENTICAL over 5,000 consecutive games. L0 was SAME for r15d and SAME for kF on the last ten games of that sequence. Each L1 arm recorded 579,956 searched plies. [Job 22 report](REPORT_astra5_job22.md)
+
+### FOR FABLE AND OPUS
+
+L1 resident memory went from 34,232 to 34,764 KiB on r15d and from 34,004 to 34,264 KiB on kF. Memory was descriptive.
