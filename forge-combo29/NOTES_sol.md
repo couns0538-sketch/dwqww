@@ -293,3 +293,7 @@ Job 38 used the unchanged native r15d and kF builds with PC20, Threads 1, Hash 1
 ## After Job 39 — 2026-11-19T00:55:30Z
 
 Job 39 reused the pinned r15d and kF builds with PC20, active synthetic net768 `30ab43b4ba5db5f3`, Threads 1, Hash 16 and a fresh engine per draw. Both announced all 40 spins. The two known draw rows matched and K39/C39/L39 passed. A at 20,000 hard nodes read KEEPS with 100/100 complete draw pairs. B at 2,000 softnodes read KEEPS with 100/100. [Job 39 report](REPORT_sol_job39.md)
+
+## After Job 40 — 2026-11-19T01:12:59Z
+
+Job 40 used unchanged r15d with PC20, Threads 1, Hash 16 and active net768 `30ab43b4ba5db5f3`. Under `go nodes 20000` for N2 and `go softnodes 2000` for N1, the one-setting map read N2 40 LIVE with 40/40 fully tested and N1 40 LIVE with 40/40 fully tested. Job 38’s C38 wording in Opus file 40 used FEN order (line 4005 at ply 1). Job 38 used book order (line 4001, first node delta at ply 1 and first move delta at ply 3). [Job 40 report](REPORT_sol_job40.md)
