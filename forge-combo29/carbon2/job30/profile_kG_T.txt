@@ -1,0 +1,96 @@
+=== JOB 30 PART R: SELF-TIME PROFILE OF kG_1 ON WORKLOAD T ===
+Executable: /tmp/carbon2_job28/bld_sp_stkG_1/forge (sha256=32113ff4731e3a55bf2b6ff7dcdae4e05c0de89a38fec1c7bec6f9193a330ae1)
+Profiler:   /usr/lib/linux-tools/6.8.0-151-generic/perf record -e task-clock -F 4000 --no-children (raw perf.data in /tmp only, NOT in repo)
+Workload:   5 sequential passes x 60 games of T (PC20 + net768, Threads 1, Hash 16, go softnodes 2000; engine pinned CPU 3, driver CPU 1)
+  pass 1/5: sig=6070/26711499/937e1660561173af wall_s=8.3407
+  pass 2/5: sig=6070/26711499/937e1660561173af wall_s=8.2773
+  pass 3/5: sig=6070/26711499/937e1660561173af wall_s=8.3895
+  pass 4/5: sig=6070/26711499/937e1660561173af wall_s=8.3849
+  pass 5/5: sig=6070/26711499/937e1660561173af wall_s=8.3567
+Total wall: 42.1761s | Total task-clock samples: 160288 (effective rate: 3800.4 Hz)
+
+--- Top 25 Functions by Self Time on kG_1 Playing T ---
+Rk |  Samples |  Share% | DSO                    | Function
+------------------------------------------------------------------------------------------------------------------------
+ 1 |    73004 |  45.55% | forge                  | [.] forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+ 2 |    14289 |   8.91% | forge                  | [.] forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+ 3 |    10291 |   6.42% | forge                  | [.] forge::nnue::v3::apply_one_refresh_one_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+ 4 |     8887 |   5.54% | forge                  | [.] forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+ 5 |     4856 |   3.03% | forge                  | [.] forge::Board::has_legal_move() const
+ 6 |     4653 |   2.90% | forge                  | [.] forge::Board::see_ge(forge::Move const&, int) const
+ 7 |     4497 |   2.81% | forge                  | [.] forge::Board::upcoming_repetition(unsigned long) const
+ 8 |     3839 |   2.40% | forge                  | [.] forge::MovePicker::generate_quiets()::{lambda(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long)#1}::operator()(int, forge::MovePicker::generate_quiets()::PieceContRows const&, int, unsigned long) const
+ 9 |     3391 |   2.12% | forge                  | [.] forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)
+10 |     2919 |   1.82% | forge                  | [.] forge::Board::generate_legal_evasions(forge::MoveList&) const
+11 |     2894 |   1.81% | forge                  | [.] forge::MovePicker::generate_evasions()
+12 |     2863 |   1.79% | forge                  | [.] void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best_scored()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>)
+13 |     2752 |   1.72% | forge                  | [.] forge::MovePicker::generate_quiets()
+14 |     2690 |   1.68% | forge                  | [.] forge::MovePicker::generate_captures()
+15 |     2577 |   1.61% | forge                  | [.] forge::nnue::v3::apply_pair_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+16 |     1716 |   1.07% | forge                  | [.] forge::Board::is_legal_complete(forge::Move const&) const
+17 |     1687 |   1.05% | libc.so.6              | [.] _IO_getc
+18 |     1434 |   0.89% | forge                  | [.] forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+19 |     1344 |   0.84% | forge                  | [.] forge::Board::is_pseudo_legal(forge::Move const&) const
+20 |      932 |   0.58% | forge                  | [.] forge::Board::refresh_king_lines() const
+21 |      888 |   0.55% | [kernel.kallsyms]      | [k] _raw_spin_unlock_irqrestore
+22 |      874 |   0.55% | libc.so.6              | [.] ungetc
+23 |      751 |   0.47% | forge                  | [.] forge::TranspositionTable::clear()
+24 |      467 |   0.29% | forge                  | [.] forge::Board::make_move(forge::Move const&, forge::Undo&, unsigned long const*, int)
+25 |      419 |   0.26% | forge                  | [.] forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)
+
+--- Additional Symbols Ranked 26..80 (for per-search / per-go accounting) ---
+26 |      410 |   0.26% | forge                  | [.] forge::MovePicker::next(bool)
+27 |      374 |   0.23% | forge                  | [.] forge::Worker::ensure_threat_map(forge::Board const&, int) const
+28 |      272 |   0.17% | [kernel.kallsyms]      | [k] finish_task_switch.isra.0
+29 |      238 |   0.15% | forge                  | [.] forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)
+30 |      166 |   0.10% | forge                  | [.] forge::MovePicker::pick_best()
+31 |      134 |   0.08% | forge                  | [.] forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)::$_1::operator()(int, int, std::vector<forge::Move, std::allocator<forge::Move> > const&) const
+32 |      129 |   0.08% | forge                  | [.] forge::Worker::search_child(forge::Board&, forge::SearchStack*, int, int, int, bool)
+33 |      115 |   0.07% | forge                  | [.] forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+34 |      106 |   0.07% | [kernel.kallsyms]      | [k] mutex_lock
+35 |       94 |   0.06% | libc.so.6              | [.] 0x00000000001a1640
+36 |       92 |   0.06% | forge                  | [.] forge::Evaluator::clear()
+37 |       91 |   0.06% | forge                  | [.] forge::Board::gives_check_complete(forge::Move const&) const
+38 |       89 |   0.06% | forge                  | [.] void forge::fill_pseudo_legal<(forge::Board::GenMode)0>(forge::Board const&, forge::MoveList&)
+39 |       86 |   0.05% | [kernel.kallsyms]      | [k] mutex_unlock
+40 |       86 |   0.05% | libstdc++.so.6.0.33    | [.] std::basic_istream<char, std::char_traits<char> >& std::getline<char, std::char_traits<char>, std::allocator<char> >(std::basic_istream<char, std::char_traits<char> >&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&, char)
+41 |       83 |   0.05% | libc.so.6              | [.] 0x00000000001a1efa
+42 |       78 |   0.05% | [kernel.kallsyms]      | [k] do_syscall_64
+43 |       71 |   0.04% | [kernel.kallsyms]      | [k] handle_softirqs
+44 |       68 |   0.04% | libstdc++.so.6.0.33    | [.] getc@plt
+45 |       60 |   0.04% | forge                  | [.] void std::vector<unsigned char, std::allocator<unsigned char> >::_M_range_initialize<std::istreambuf_iterator<char, std::char_traits<char> > >(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::input_iterator_tag)
+46 |       56 |   0.03% | forge                  | [.] (anonymous namespace)::apply_position_sv(forge::Board&, std::basic_string_view<char, std::char_traits<char> >, (anonymous namespace)::PositionCache&)
+47 |       56 |   0.03% | libc.so.6              | [.] _IO_sputbackc
+48 |       51 |   0.03% | libc.so.6              | [.] 0x00000000001a16db
+49 |       50 |   0.03% | libc.so.6              | [.] 0x00000000001a16c4
+50 |       50 |   0.03% | libc.so.6              | [.] malloc
+51 |       49 |   0.03% | [kernel.kallsyms]      | [k] fdget_pos
+52 |       46 |   0.03% | [kernel.kallsyms]      | [k] pipe_write
+53 |       45 |   0.03% | libstdc++.so.6.0.33    | [.] __gnu_cxx::stdio_sync_filebuf<char, std::char_traits<char> >::underflow()
+54 |       43 |   0.03% | libc.so.6              | [.] pthread_mutex_lock
+55 |       42 |   0.03% | [vdso]                 | [.] 0x0000000000000c6d
+56 |       42 |   0.03% | libc.so.6              | [.] write
+57 |       41 |   0.03% | libc.so.6              | [.] 0x00000000001a1653
+58 |       41 |   0.03% | libc.so.6              | [.] _IO_fwrite
+59 |       41 |   0.03% | [kernel.kallsyms]      | [k] do_user_addr_fault
+60 |       40 |   0.02% | forge                  | [.] forge::nnue::v3::load(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*)
+61 |       39 |   0.02% | forge                  | [.] forge::uci_loop(std::istream&)
+62 |       37 |   0.02% | [kernel.kallsyms]      | [k] pipe_read
+63 |       36 |   0.02% | libstdc++.so.6.0.33    | [.] __gnu_cxx::stdio_sync_filebuf<char, std::char_traits<char> >::uflow()
+64 |       35 |   0.02% | [kernel.kallsyms]      | [k] _copy_from_iter
+65 |       34 |   0.02% | forge                  | [.] (anonymous namespace)::parse_limits_sv(std::basic_string_view<char, std::char_traits<char> >, forge::Board&)
+66 |       34 |   0.02% | libc.so.6              | [.] 0x00000000000986c1
+67 |       34 |   0.02% | forge                  | [.] memmove@plt
+68 |       33 |   0.02% | libc.so.6              | [.] _IO_fflush
+69 |       32 |   0.02% | forge                  | [.] forge::Worker::qsearch_child(forge::Board&, forge::SearchStack*, int, int)
+70 |       30 |   0.02% | [kernel.kallsyms]      | [k] avc_lookup
+71 |       30 |   0.02% | libc.so.6              | [.] pthread_mutex_unlock
+72 |       30 |   0.02% | libstdc++.so.6.0.33    | [.] std::ostream::sentry::sentry(std::ostream&)
+73 |       29 |   0.02% | libc.so.6              | [.] read
+74 |       28 |   0.02% | forge                  | [.] forge::Board::is_legal(forge::Move const&) const
+75 |       24 |   0.01% | [kernel.kallsyms]      | [k] sched_balance_update_blocked_averages
+76 |       23 |   0.01% | libc.so.6              | [.] 0x00000000001a1690
+77 |       23 |   0.01% | libc.so.6              | [.] clock_gettime
+78 |       22 |   0.01% | libc.so.6              | [.] 0x00000000001a164d
+79 |       22 |   0.01% | [kernel.kallsyms]      | [k] _raw_spin_lock
+80 |       22 |   0.01% | forge                  | [.] forge::Board::has_legal_en_passant_capture() const

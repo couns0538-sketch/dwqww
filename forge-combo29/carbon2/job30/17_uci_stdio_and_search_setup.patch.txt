@@ -1,0 +1,139 @@
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-19 17:18:31.718665192 +0000
++++ b/include/forge/search.hpp	2026-11-19 18:58:18.770665192 +0000
+@@ -780,6 +780,8 @@
+ private:
+     SharedSearchState shared_;
+     std::vector<std::unique_ptr<Worker>> workers_;
++    std::vector<Worker*> all_workers_vec_;
++    std::vector<Worker*> main_worker_vec_;
+ };
+ 
+ // Updates DrawJitter. A changed value drops that searcher's hash, so scores
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-19 17:18:31.722665192 +0000
++++ b/src/search.cpp	2026-11-19 18:58:18.770665192 +0000
+@@ -3226,14 +3226,17 @@
+         time_managed_ = !plan.reserve_empty;
+     }
+     SearchInfo result;
++    result.pv.reserve(64);
+     const MoveList legal = board.legal_moves();
+-    MoveList root_candidates;
+-    for (const Move move : legal) {
+-        if (!root_restricted_ ||
+-            std::any_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+-            root_candidates.push_back(move);
++    MoveList filtered_candidates;
++    if (root_restricted_) {
++        for (const Move move : legal) {
++            if (std::any_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
++                filtered_candidates.push_back(move);
++            }
+         }
+     }
++    const MoveList& root_candidates = root_restricted_ ? filtered_candidates : legal;
+     result.restricted_root_empty = root_restricted_ && !legal.empty() && root_candidates.empty();
+     if (result.restricted_root_empty && emit_info) {
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+@@ -3485,7 +3488,7 @@
+     root_effort_count_ = root_candidates.size();
+     assert(root_effort_count_ <= root_effort_moves_.size());
+     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
+-    root_move_nodes_.fill(0);
++    std::fill_n(root_move_nodes_.begin(), root_effort_count_, std::uint64_t{0});
+     // Secondary lines use their own table and histories, so the primary
+     // iterative deepening stays the MultiPV 1 search.
+     std::unique_ptr<SharedSearchState> alt_shared;
+@@ -3810,6 +3813,10 @@
+     while (workers_.size() < count) {
+         workers_.push_back(std::make_unique<Worker>(shared_, static_cast<int>(workers_.size())));
+     }
++    all_workers_vec_.clear();
++    all_workers_vec_.reserve(workers_.size());
++    for (auto& worker : workers_) all_workers_vec_.push_back(worker.get());
++    main_worker_vec_.assign(1, workers_.front().get());
+ }
+ 
+ void Searcher::resize_hash(std::size_t hash_mb) { shared_.tt.resize(hash_mb); }
+@@ -3846,13 +3853,8 @@
+                                worker_limits.time_ms >= 0 && clock_plan_for(worker_limits).reserve_empty;
+     // Above MultiPV 1 the helpers stay idle. Counting only the main worker
+     // keeps node totals on the Threads 1 path (idle workers may hold old counts).
+-    std::vector<Worker*> all;
+-    if (worker_limits.multipv > 1 || no_clock_left) {
+-        all.push_back(workers_.front().get());
+-    } else {
+-        all.reserve(workers_.size());
+-        for (auto& worker : workers_) all.push_back(worker.get());
+-    }
++    const std::vector<Worker*>& all =
++        (worker_limits.multipv > 1 || no_clock_left) ? main_worker_vec_ : all_workers_vec_;
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
+     std::optional<TranspositionTable::ExclusiveLease> exclusive;
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-19 16:52:56.442665192 +0000
++++ b/src/uci.cpp	2026-11-19 18:58:18.770665192 +0000
+@@ -12,6 +12,7 @@
+ #include <algorithm>
+ #include <array>
+ #include <charconv>
++#include <cstring>
+ #include <chrono>
+ #include <condition_variable>
+ #include <iostream>
+@@ -435,18 +436,39 @@
+                     return stop_requested || (task.limits.ponder && ponder_hit_received);
+                 });
+             }
+-            const std::string best = result.best_move.from == result.best_move.to
+-                ? "0000" : forge::Board::move_to_uci(result.best_move);
+-            std::string prediction;
++            auto put_move = [](char*& dst, const forge::Move& m) noexcept {
++                if (m.from == m.to) {
++                    std::memcpy(dst, "0000", 4);
++                    dst += 4;
++                } else {
++                    *dst++ = static_cast<char>('a' + forge::file_of(m.from));
++                    *dst++ = static_cast<char>('1' + forge::rank_of(m.from));
++                    *dst++ = static_cast<char>('a' + forge::file_of(m.to));
++                    *dst++ = static_cast<char>('1' + forge::rank_of(m.to));
++                    if (m.is_promotion()) {
++                        constexpr std::array<char, 7> promo_chars{' ', ' ', 'n', 'b', 'r', 'q', ' '};
++                        *dst++ = promo_chars[m.promotion];
++                    }
++                }
++            };
++            char bbuf[40];
++            char* bp = bbuf;
++            std::memcpy(bp, "bestmove ", 9);
++            bp += 9;
++            put_move(bp, result.best_move);
+             if (task.ponder_enabled && result.pv.size() > 1 &&
+                 result.pv.front().from == result.best_move.from &&
+                 result.pv.front().to == result.best_move.to &&
+                 result.pv.front().promotion == result.best_move.promotion) {
+-                prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
++                std::memcpy(bp, " ponder ", 8);
++                bp += 8;
++                put_move(bp, result.pv[1]);
+             }
++            *bp++ = '\n';
+             {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-                std::cout << "bestmove " << best << prediction << std::endl;
++                std::cout.write(bbuf, bp - bbuf);
++                std::cout.flush();
+             }
+             {
+                 const std::lock_guard<std::mutex> lock(stop_mutex);
+@@ -986,6 +1008,8 @@
+ 
+ #ifndef FORGE_UCI_NO_MAIN
+ int main() {
++    std::ios_base::sync_with_stdio(false);
++    std::cin.tie(nullptr);
+     return forge::uci_loop(std::cin);
+ }
+ #endif

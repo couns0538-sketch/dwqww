@@ -1,0 +1,228 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-19 16:52:56.442665192 +0000
++++ b/include/forge/board.hpp	2026-11-19 18:58:18.790665192 +0000
+@@ -267,6 +267,7 @@
+     [[nodiscard]] std::uint8_t castling_rights() const { return castling_; }
+     [[nodiscard]] const std::vector<std::uint64_t>& key_history() const { return key_history_; }
+     [[nodiscard]] std::size_t history_size() const { return key_history_.size(); }
++    [[nodiscard]] int plies_from_null() const { return plies_from_null_; }
+     [[nodiscard]] Piece moved_piece(const Move& move) const { return piece_at(move.from); }
+     [[nodiscard]] Piece captured_piece(const Move& move) const {
+         if ((move.flags & EnPassant) != 0U) return side_ == White ? BP : WP;
+@@ -300,6 +301,9 @@
+ #endif
+     [[nodiscard]] bool is_legal_complete(const Move& move) const;
+     [[nodiscard]] bool gives_check_complete(const Move& move) const;
++    [[nodiscard]] bool upcoming_repetition_hit(const std::uint64_t* keys, std::size_t now,
++                                               std::size_t span, std::size_t distance,
++                                               std::size_t root_index) const;
+ 
+     void put_piece(Piece piece, int square);
+     void remove_piece(int square);
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-19 16:52:56.442665192 +0000
++++ b/src/board.cpp	2026-11-19 18:58:18.794665192 +0000
+@@ -1699,25 +1699,26 @@
+ 
+ constexpr std::size_t CuckooSlots = 8192;
+ 
+-struct CuckooMove {
++struct alignas(16) CuckooSlot {
++    std::uint64_t key = 0;
+     std::uint8_t piece = 0;  // Piece (never a pawn); 0 = empty slot
+     std::uint8_t a = 0;      // lower square
+     std::uint8_t b = 0;      // higher square
++    std::uint8_t pad[5]{};
+ };
+ 
+ struct CuckooTable {
+-    std::array<std::uint64_t, CuckooSlots> keys{};  // 0 = empty slot
+-    std::array<CuckooMove, CuckooSlots> moves{};
++    std::array<CuckooSlot, CuckooSlots> slots{};
+     std::size_t entries = 0;
+     bool complete = true;  // every insertion found a slot
+ };
+ 
+ // Two independent 13-bit slot indices from different halves of the key.
+-std::size_t cuckoo_slot_low(std::uint64_t key) { return static_cast<std::size_t>(key) & (CuckooSlots - 1); }
+-std::size_t cuckoo_slot_high(std::uint64_t key) { return static_cast<std::size_t>(key >> 32U) & (CuckooSlots - 1); }
++constexpr std::size_t cuckoo_slot_low(std::uint64_t key) { return static_cast<std::size_t>(key) & (CuckooSlots - 1); }
++constexpr std::size_t cuckoo_slot_high(std::uint64_t key) { return static_cast<std::size_t>(key >> 32U) & (CuckooSlots - 1); }
+ 
+ // Whether a piece of this type connects squares a and b on an empty board.
+-bool reversible_step(int type, int a, int b) {
++constexpr bool reversible_step(int type, int a, int b) {
+     const int df = file_of(a) - file_of(b);
+     const int dr = rank_of(a) - rank_of(b);
+     const int files = df < 0 ? -df : df;
+@@ -1734,13 +1735,13 @@
+     }
+ }
+ 
+-std::uint64_t reversible_move_key(int piece, int a, int b) {
++constexpr std::uint64_t reversible_move_key(int piece, int a, int b) {
+     return piece_key(a, static_cast<Piece>(piece)) ^ piece_key(b, static_cast<Piece>(piece)) ^ Z.side;
+ }
+ 
+ // Cuckoo hashing with two candidate slots per key: an insertion takes its first slot and evicts the occupant,
+ // which moves to its other slot, and so on.
+-CuckooTable build_cuckoo_table() {
++constexpr CuckooTable build_cuckoo_table() {
+     CuckooTable table{};
+     for (int piece = WN; piece <= BK; ++piece) {
+         const int type = piece_type(static_cast<Piece>(piece));
+@@ -1748,19 +1749,22 @@
+         for (int a = 0; a < 64; ++a) {
+             for (int b = a + 1; b < 64; ++b) {
+                 if (!reversible_step(type, a, b)) continue;
+-                std::uint64_t key = reversible_move_key(piece, a, b);
+-                CuckooMove move{static_cast<std::uint8_t>(piece), static_cast<std::uint8_t>(a),
+-                                static_cast<std::uint8_t>(b)};
+-                if (key == 0) table.complete = false;
+-                std::size_t slot = cuckoo_slot_low(key);
+-                for (int evictions = 0; key != 0; ++evictions) {
++                CuckooSlot cur{reversible_move_key(piece, a, b),
++                               static_cast<std::uint8_t>(piece),
++                               static_cast<std::uint8_t>(a),
++                               static_cast<std::uint8_t>(b)};
++                if (cur.key == 0) table.complete = false;
++                std::size_t slot = cuckoo_slot_low(cur.key);
++                for (int evictions = 0; cur.key != 0; ++evictions) {
+                     if (evictions > 4096) {
+                         table.complete = false;
+                         break;
+                     }
+-                    std::swap(table.keys[slot], key);
+-                    std::swap(table.moves[slot], move);
+-                    slot = slot == cuckoo_slot_low(key) ? cuckoo_slot_high(key) : cuckoo_slot_low(key);
++                    const CuckooSlot prev = table.slots[slot];
++                    table.slots[slot] = cur;
++                    cur = prev;
++                    if (cur.key == 0) break;
++                    slot = slot == cuckoo_slot_low(cur.key) ? cuckoo_slot_high(cur.key) : cuckoo_slot_low(cur.key);
+                 }
+                 ++table.entries;
+             }
+@@ -1769,28 +1773,40 @@
+     return table;
+ }
+ 
+-// Built once at program start (Z is a constant, so it is ready before this runs).
+-const CuckooTable CuckooMoves = build_cuckoo_table();
++alignas(64) constexpr CuckooTable CuckooMoves = build_cuckoo_table();
+ // 2 colours x (N 168 + B 280 + R 448 + Q 728 + K 210) = 3,668 reversible moves.
+-const bool CuckooOk = CuckooMoves.complete && CuckooMoves.entries == 3668;
+-
+-const CuckooMove* cuckoo_find(std::uint64_t key) {
+-    if (key == 0) return nullptr;
+-    std::size_t slot = cuckoo_slot_low(key);
+-    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
+-    slot = cuckoo_slot_high(key);
+-    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
+-    return nullptr;
+-}
++static_assert(CuckooMoves.complete && CuckooMoves.entries == 3668, "Cuckoo table must hold all 3,668 moves");
+ 
+ } // namespace
+ 
++[[gnu::noinline]] bool Board::upcoming_repetition_hit(const std::uint64_t* keys, std::size_t now,
++                                                      std::size_t span, std::size_t distance,
++                                                      std::size_t root_index) const {
++    const std::uint64_t earlier = keys[now - distance];
++    const std::uint64_t diff = key_ ^ earlier;
++    if (diff == 0) return false;
++    const CuckooSlot* match = &CuckooMoves.slots[cuckoo_slot_low(diff)];
++    if (match->key != diff) {
++        match = &CuckooMoves.slots[cuckoo_slot_high(diff)];
++        if (match->key != diff) return false;
++    }
++    const Piece piece = static_cast<Piece>(match->piece);
++    if (color_of(piece) != side_) return false;
++    int from = match->a;
++    int to = match->b;
++    if (squares_[static_cast<std::size_t>(from)] != piece) std::swap(from, to);
++    if (squares_[static_cast<std::size_t>(from)] != piece || squares_[static_cast<std::size_t>(to)] != Empty ||
++        (attacks::between(from, to) & occupied()) != 0) {
++        return false;
++    }
++    if (now - distance >= root_index) return true;
++    for (std::size_t further = distance + 2; further < span; further += 2) {
++        if (keys[now - further] == earlier) return true;
++    }
++    return false;
++}
++
+ bool Board::upcoming_repetition(std::size_t root_index) const {
+-    if (!CuckooOk) return false;
+-    // After one more reversible move, is_repetition(root_index) of the new position scans its earlier positions at
+-    // even distances 4 .. span, where span is the smaller of its halfmove clock, its plies since a null move (both
+-    // one more than here, with the same saturation as make_move) and its number of earlier positions. Seen from
+-    // here those are the odd distances 3 .. span-1.
+     const std::size_t size = key_history_.size();
+     const std::size_t clock = std::min<std::size_t>(static_cast<std::size_t>(halfmove_) + 1, 65535);
+     const std::size_t since_null = std::min<std::size_t>(static_cast<std::size_t>(plies_from_null_) + 1, 1024);
+@@ -1798,29 +1814,28 @@
+     if (span < 4) return false;
+     const std::uint64_t* const keys = key_history_.data();
+     const std::size_t now = size - 1;
+-    // Running XOR of the opponent's move deltas (one ply each, side key removed) between the candidate earlier
+-    // position and now.
+-    std::uint64_t opponent = keys[now] ^ keys[now - 1] ^ Z.side;
+-    for (std::size_t distance = 3; distance < span; distance += 2) {
+-        opponent ^= keys[now - distance + 1] ^ keys[now - distance] ^ Z.side;
+-        if (opponent != 0) continue;
+-        const std::uint64_t earlier = keys[now - distance];
+-        const CuckooMove* const move = cuckoo_find(key_ ^ earlier);
+-        if (move == nullptr) continue;
+-        const Piece piece = static_cast<Piece>(move->piece);
+-        if (color_of(piece) != side_) continue;
+-        int from = move->a;
+-        int to = move->b;
+-        if (squares_[static_cast<std::size_t>(from)] != piece) std::swap(from, to);
+-        if (squares_[static_cast<std::size_t>(from)] != piece || squares_[static_cast<std::size_t>(to)] != Empty ||
+-            (attacks::between(from, to) & occupied()) != 0) {
+-            continue;
++    std::uint64_t opp = (keys[now] ^ keys[now - 1]) ^ (keys[now - 2] ^ keys[now - 3]);
++    if (opp == 0) [[unlikely]] {
++        if (upcoming_repetition_hit(keys, now, span, 3, root_index)) return true;
++    }
++    if (span < 6) return false;
++    constexpr std::uint64_t z_side = Z.side;
++    std::size_t d = 5;
++    const std::uint64_t* p = keys + now - 5;
++    for (; d + 2 < span; d += 4, p -= 4) {
++        const std::uint64_t step0 = p[1] ^ p[0];
++        if ((opp ^ step0 ^ z_side) == 0) [[unlikely]] {
++            if (upcoming_repetition_hit(keys, now, span, d, root_index)) return true;
+         }
+-        // As in is_repetition(root_index): one occurrence at or after the root is a draw; before the root a second
+-        // occurrence inside the window is needed.
+-        if (now - distance >= root_index) return true;
+-        for (std::size_t further = distance + 2; further < span; further += 2) {
+-            if (keys[now - further] == earlier) return true;
++        const std::uint64_t step1 = p[-1] ^ p[-2];
++        opp ^= step0 ^ step1;
++        if (opp == 0) [[unlikely]] {
++            if (upcoming_repetition_hit(keys, now, span, d + 2, root_index)) return true;
++        }
++    }
++    if (d < span) {
++        if ((opp ^ p[1] ^ p[0] ^ z_side) == 0) [[unlikely]] {
++            if (upcoming_repetition_hit(keys, now, span, d, root_index)) return true;
+         }
+     }
+     return false;
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-19 17:18:31.722665192 +0000
++++ b/src/search.cpp	2026-11-19 18:58:18.790665192 +0000
+@@ -3075,7 +3075,9 @@
+ // score, the node fails high at once when beta is not above it, and its result is never below the draw.
+ namespace {
+ // A repetition needs at least three reversible plies.
+-[[nodiscard]] inline bool may_repeat(const Board& board) { return board.halfmove_clock() >= 3; }
++[[nodiscard]] inline bool may_repeat(const Board& board) {
++    return board.halfmove_clock() >= 3 && board.plies_from_null() >= 3 && board.history_size() >= 4;
++}
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {

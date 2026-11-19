@@ -1,0 +1,36 @@
+=== JOB 30 PART R: TWO NODE-KEEPING PIECES ON kG AND THEIR KNOWN ANSWERS ===
+Piece 17: 17_uci_stdio_and_search_setup.patch.txt (patch -p1 --fuzz=0 on kG)
+  Targets: once-per-go / once-per-search work (main() sync_with_stdio(false)+cin.tie(nullptr) removing 1.70% _IO_getc/ungetc,
+           stack bestmove buffer, Searcher pre-built worker pointer vectors, Worker::search pv.reserve(64), direct legal MoveList, bounded root_move_nodes_ zeroing).
+Piece 18: 18_fast_upcoming_repetition.patch.txt (patch -p1 --fuzz=0 on kG)
+  Targets: Board::upcoming_repetition (2.81% self time, rank #7 in profile_kG_T.txt; inline may_repeat plies_from_null>=3 & history_size>=4,
+           constexpr 16B CuckooSlot table, outlined cold hit check removing 6 callee-save pushes/pops, immediate d=3 & 2x-unrolled pointer XOR scan).
+
+[p17_1 (kG + 17)] path=/tmp/carbon2_job30/bld_sp_pc17_1/forge (len=38) sha256=0e4cf40efb6cfbc82c8fcb852922c71bea86e5c5f81f9ec03e9d15af59af9cdf
+  sp_profile:           games=60 searches=5531 nodes=18059934 trace=1646ce4566de2f40 (profraws_merged=2, profdata_sha256=740f98ff8876cbbf8bc03ce4f87a341f7bec4cf02b85fe8e7e81330819736d42)
+  no_opts bench 11:     info string bench depth 11 nodes 312866 time 156 nps 2005551
+  no_opts bench 13:     info string bench depth 13 nodes 862329 time 406 nps 2123963
+  no_opts perft 5:      nodes 4865609
+  PC20 no_net 11/13:    278024 / 587276
+  PC20+net512 bench 11: info string bench depth 11 nodes 625258 time 242 nps 2583710
+  PC20+net512 bench 13: info string bench depth 13 nodes 3652372 time 1400 nps 2608837
+  PC20+net768 bench 11: info string bench depth 11 nodes 882074 time 351 nps 2513031
+  PC20+net768 bench 13: info string bench depth 13 nodes 4275906 time 1746 nps 2448972
+  Job 20 60 games:      7670/25641316/ee465caeff9c0fcf
+  Workload T 60 games:  6070/26711499/937e1660561173af
+  (n1) T[1..3] UCI out: EXACT line-for-line match with kG_1 (4950 lines, time & nps masked)
+  (n2) V3_VERIFY T[1..10]: rc=0 failed_lines=0 sig=1089/4497849/b8af7c43c78aca2c
+[p18_1 (kG + 18)] path=/tmp/carbon2_job30/bld_sp_pc18_1/forge (len=38) sha256=316f10781e4bfbb7eec5a6329ef0b8cf84299be55270e110f8cbe406d6cd0f8d
+  sp_profile:           games=60 searches=5531 nodes=18059934 trace=1646ce4566de2f40 (profraws_merged=2, profdata_sha256=ac3dd4144e895e9573400ab7bb38aa3304c1c8a1f9e9d6d628009edc2cb6182a)
+  no_opts bench 11:     info string bench depth 11 nodes 312866 time 158 nps 1980164
+  no_opts bench 13:     info string bench depth 13 nodes 862329 time 407 nps 2118744
+  no_opts perft 5:      nodes 4865609
+  PC20 no_net 11/13:    278024 / 587276
+  PC20+net512 bench 11: info string bench depth 11 nodes 625258 time 248 nps 2521201
+  PC20+net512 bench 13: info string bench depth 13 nodes 3652372 time 1436 nps 2543434
+  PC20+net768 bench 11: info string bench depth 11 nodes 882074 time 354 nps 2491734
+  PC20+net768 bench 13: info string bench depth 13 nodes 4275906 time 1747 nps 2447570
+  Job 20 60 games:      7670/25641316/ee465caeff9c0fcf
+  Workload T 60 games:  6070/26711499/937e1660561173af
+  (n1) T[1..3] UCI out: EXACT line-for-line match with kG_1 (4950 lines, time & nps masked)
+  (n2) V3_VERIFY T[1..10]: rc=0 failed_lines=0 sig=1089/4497849/b8af7c43c78aca2c
