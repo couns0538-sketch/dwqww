@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""Apply a 40-setting Job 23 draw to the frozen Job 13 soft-node replay."""
+
+import argparse
+from functools import cache
+import hashlib
+import json
+from pathlib import Path
+import runpy
+import sys
+from unittest.mock import patch
+
+
+SOFT_DRIVER = Path(__file__).resolve().parent.parent / 'sol2-job13' / 'soft_book_driver.py'
+SOFT_DRIVER_SHA256 = '4c97cffd88d25edaada125ab9cda3e580c0bdaf83ea45a2a09d1c0ef1cb6d659'
+DRAW_NAMES = (
+    'DrawJitter', 'LmrQuietBase', 'LmrQuietDivisor', 'LmrNoisyBase', 'LmrNoisyDivisor',
+    'NullMoveMinDepth', 'NullMoveBase', 'NullMoveDepthDivisor', 'NullMoveEvalDivisor',
+    'RfpDepth', 'RfpMargin', 'RfpImproving', 'RazorDepth', 'RazorBase', 'RazorMultiplier',
+    'FutilityDepth', 'FutilityBase', 'FutilityMultiplier', 'LmpBase', 'HistoryPruneDepth',
+    'HistoryPruneMultiplier', 'SeeQuietMultiplier', 'SeeNoisyMultiplier', 'SingularDepth',
+    'SingularMargin', 'IirDepth', 'ProbcutDepth', 'ProbcutMargin', 'QsFutilityMargin',
+    'AspirationDelta', 'HistoryBonusQuadratic', 'HistoryBonusLinear', 'HistoryBonusMax',
+    'LmrHistoryDivisor', 'CheckExtensionDepth', 'LmrCutoffThreshold', 'MaterialCorrectionWeight',
+    'CaptureFutilityBase', 'FailLowContinuationBonus', 'EvalSwingMult',
+)
+
+
+@cache
+def pinned_soft_driver():
+    if hashlib.sha256(SOFT_DRIVER.read_bytes()).hexdigest() != SOFT_DRIVER_SHA256:
+        raise ValueError('Job 13 soft replay driver SHA-256 mismatch')
+    return runpy.run_path(str(SOFT_DRIVER))
+
+
+def load_draw(path):
+    raw = path.read_bytes()
+    pairs = json.loads(raw, object_pairs_hook=list)
+    if (not isinstance(pairs, list) or len(pairs) != len(DRAW_NAMES)
+            or any(not isinstance(pair, tuple) or len(pair) != 2 for pair in pairs)
+            or tuple(name for name, _ in pairs) != DRAW_NAMES
+            or any(type(value) is not int for _, value in pairs)):
+        raise ValueError('Expected the 40 ordered Job 23 draw options with integer values')
+    return pairs, hashlib.sha256(raw).hexdigest()
+
+
+def apply_draw(proc, send, draw, wire, receipts):
+    for name, value in draw:
+        command = f'setoption name {name} value {value}'
+        wire.write(f'> {command}\n> isready\n')
+        response = []
+        receipts.append({'name': name, 'value': value, 'responses': response})
+        send(proc, f'{command}\nisready\n')
+        refusal = None
+        while True:
+            raw_line = proc.stdout.readline()
+            if not raw_line:
+                if refusal is not None:
+                    raise RuntimeError(f'Draw option refusal ({name}={value}): {refusal}')
+                raise RuntimeError(f'Engine EOF before readyok for draw option {name}={value}')
+            wire.write(f'< {raw_line}')
+            line = raw_line.removesuffix('\n').removesuffix('\r')
+            response.append(line)
+            if refusal is None and any(
+                marker in line.casefold() for marker in ('unknown option', 'invalid value', 'error')
+            ):
+                refusal = line
+            if line.strip() == 'readyok':
+                break
+        wire.flush()
+        if refusal is not None:
+            raise RuntimeError(f'Draw option refusal ({name}={value}): {refusal}')
+
+
+def main():
+    draw_parser = argparse.ArgumentParser(add_help=False)
+    draw_parser.add_argument('--draw', required=True, type=Path)
+    draw_args, soft_args = draw_parser.parse_known_args()
+    draw, digest = load_draw(draw_args.draw)
+    pinned = pinned_soft_driver()
+    soft_main = pinned['main']
+    fen, _ = pinned['reusable_drivers']()
+    frozen_configure = fen['configure']
+    frozen_summarize = pinned['summarize_games']
+    receipts = []
+
+    def configure_with_draw(proc, uci, net, override, wire):
+        frozen_configure(proc, uci, net, override, wire)
+        try:
+            apply_draw(proc, uci['send'], draw, wire, receipts)
+        except RuntimeError as exc:
+            print(json.dumps({'draw_sha256': digest, 'option_receipts': receipts,
+                              'draw_refusal': str(exc)}), flush=True)
+            raise
+
+    def summarize_with_draw(games, fnv, trace_rows):
+        return {**frozen_summarize(games, fnv, trace_rows), 'draw_sha256': digest,
+                'option_receipts': receipts}
+
+    argv = sys.argv
+    try:
+        sys.argv = [argv[0], *soft_args]
+        with patch.dict(fen, {'configure': configure_with_draw}), patch.dict(
+            soft_main.__globals__, {'summarize_games': summarize_with_draw}
+        ):
+            soft_main()
+    finally:
+        sys.argv = argv
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ImportError, OSError, RuntimeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

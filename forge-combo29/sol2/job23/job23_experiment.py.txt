@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""Freeze Job 23 setting-draw signatures and run the balanced timing comparisons."""
+import argparse
+import json
+import os
+from pathlib import Path
+import runpy
+
+import arm_timing as common
+
+HERE = Path(__file__).resolve().parent
+BASE = Path('/workspace/work/sol2-job2')
+DRIVERS = {'standard': Path('/workspace/work/sol2-job13/soft_book_driver.py'),
+           'draw': HERE / 'draw_book_driver.py'}
+WORKLOADS = {'W': ('standard', 2000, None), 'W2200': ('standard', 2200, None),
+             'WD1': ('draw', 2000, 'D1'), 'WD100': ('draw', 2000, 'D100')}
+PAIRS = {'C23': ('W', 'W2200', 'r15d', 'r15d', 8),
+         'D0': ('W', 'W', 'r15d', 'K_1', 16),
+         'D1': ('WD1', 'WD1', 'r15d', 'K_1', 16),
+         'D2': ('WD100', 'WD100', 'r15d', 'K_1', 16)}
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def signature(row):
+    return tuple(row.get(key) for key in common.SIGNATURE_FIELDS)
+
+
+def driver_argv(driver, engine, net, book, name, draw=None):
+    _, nodes, _ = WORKLOADS[name]
+    argv = [driver, '--engine', engine, '--net', net, '--book', book, '--start', '7001',
+            '--games', '20', '--softnodes', str(nodes), '--max-plies', '300', '--json']
+    if draw is not None:
+        argv.extend(('--draw', draw))
+    return argv
+
+
+def common_pins(root, workload):
+    mode, _, draw = WORKLOADS[workload]
+    driver = DRIVERS[mode]
+    recorded = {Path(path): digest for digest, path in
+                (line.split(maxsplit=1) for line in (root / 'workload-pins.raw.txt').read_text().splitlines())}
+    pins = {'net': (BASE / 'net768.fnn3', common.NET_SHA256),
+            'book': (BASE / 'UHO_Lichess_4852_v1.epd', common.BOOK_SHA256),
+            'driver': (driver, recorded[driver])}
+    if draw is not None:
+        draw_path = root / f'draw-{draw}.txt'
+        pins['draw'] = (draw_path, recorded[draw_path])
+    return pins
+
+
+def engine_pin(root, engine):
+    entry = read(root / 'reference-arms.txt')['arms'][engine]
+    return Path(entry['path']), entry['sha256']
+
+
+def known_path(root, workload):
+    return root / ('known-answer.txt' if workload == 'W' else f'known-answer-{workload}.txt')
+
+
+def measure_gate(root, workload, name):
+    output = root / 'draw-gates' / workload
+    output.mkdir(parents=True, exist_ok=True)
+    label = 'A.r15d' if name == 'r15d' else 'B.K_1'
+    expected = None if name == 'r15d' else signature(read(known_path(root, workload)))
+    if name == 'r15d' and known_path(root, workload).exists():
+        raise ValueError(f'{workload} known answer already frozen')
+    identity = {key: common.pinned_identity(*entry) for key, entry in
+                {**common_pins(root, workload), 'engine': engine_pin(root, name)}.items()}
+    draw = identity.get('draw')
+    argv = driver_argv(*(identity[key]['path'] for key in ('driver','engine','net','book')), workload,
+                       draw=draw['path'] if draw else None)
+    driver = runpy.run_path(identity['driver']['path'])['main']
+    row = common.measure_driver(driver, argv, output, label, expected)
+    baseline = signature(read(known_path(root, 'W')))
+    distinct = signature(row) != baseline if row.get('trace_fnv1a64') else None
+    receipt = {**row, 'workload': workload, 'engine_sha256': identity['engine']['sha256'],
+               'expected_signature': expected, 'differs_from_W': distinct}
+    common.write_json(output / f'{label}.result.raw.txt', receipt)
+    if name == 'r15d' and row['eligible']:
+        common.write_json(known_path(root, workload), dict(zip(common.SIGNATURE_FIELDS, signature(row))))
+    print(json.dumps(receipt), flush=True)
+    return 0 if row['eligible'] else 1
+
+
+def time_comparison(root, step):
+    name_a, name_b, label_a, label_b, blocks = PAIRS[step]
+    workloads = {'A': name_a, 'B': name_b}
+    labels = {'A': label_a, 'B': label_b}
+    pins = {**common_pins(root, name_a), **{key: engine_pin(root, label) for key,label in labels.items()}}
+    for arm, workload in workloads.items():
+        path = known_path(root, workload)
+        with path.open('rb') as source:
+            sha = common.hashlib.file_digest(source, 'sha256').hexdigest()
+        pins[f'known_{arm}'] = (path, sha)
+    inputs = {key: common.pinned_identity(*entry) for key, entry in pins.items()}
+    expected = {arm: signature(read(Path(inputs[f'known_{arm}']['path']))) for arm in ('A','B')}
+    shared_expected = expected['A'] if expected['A'] == expected['B'] else None
+    if any(len(inputs[arm]['path']) != 72 for arm in ('A','B')) or list(os.sched_getaffinity(0)) != [2]:
+        raise ValueError('Job 23 requires exact 72-character launch paths and singleton CPU 2')
+    draw = inputs.get('draw')
+    argv = {arm: driver_argv(inputs['driver']['path'], inputs[arm]['path'], inputs['net']['path'],
+                            inputs['book']['path'], workload, draw=draw['path'] if draw else None)
+            for arm, workload in workloads.items()}
+    output = root / step
+    output.mkdir(exist_ok=False)
+    manifest = {'schema': common.SCHEMA, 'inputs': inputs, 'arm_labels': labels, 'argv_by_arm': argv,
+                'order': common.ORDER, 'blocks_requested': blocks, 'worker_affinity': [2],
+                'expected_games_searches_nodes_trace': shared_expected, 'expected_by_arm': expected,
+                'workload_by_arm': workloads, 'identical_floor': False, 'floor': None,
+                'engine_environment': common.ENGINE_ENV_META,
+                'cpu_scope': 'RUSAGE_CHILDREN delta for the engine', 'wall_scope': 'full driver call'}
+    common.write_json(output / 'inputs.txt', manifest)
+    driver = runpy.run_path(inputs['driver']['path'])['main']
+    rows = []
+    failures = []
+    stopped_refusal = None
+    with (output / 'runs.jsonl.txt').open('x') as log:
+        for block in range(1, blocks + 1):
+            order = common.ORDER[(block - 1) % len(common.ORDER)]
+            for index, arm in enumerate(order[0] + order):
+                stem = f'b{block:02d}-r{index}-{arm}'
+                row = common.measure_driver(driver, argv[arm], output, stem, expected[arm])
+                row.update(block=block, order_index=index, warmup=index == 0, arm=arm,
+                           engine=labels[arm], engine_sha256=inputs[arm]['sha256'], workload=workloads[arm])
+                rows.append(row)
+                print(json.dumps(row), file=log, flush=True)
+                if not row['eligible']:
+                    failures.append(f'{stem}: observed {signature(row)} expected {expected[arm]}. {row["error"]}')
+                    if 'draw option refusal' in (row.get('error') or '').lower():
+                        stopped_refusal = row['error']
+                        break
+            if stopped_refusal:
+                break
+    common.T_975[7] = 2.3646242515927844
+    error = ' | '.join(failures) or None
+    try:
+        after = {key: common.pinned_identity(*entry) for key,entry in pins.items()}
+        if after != inputs:
+            raise ValueError('An input path changed during the campaign')
+    except (OSError, ValueError) as exc:
+        summary = common.summarize_runs([], blocks)
+        summary['attempted_runs'] = len(rows)
+        error = f'Post-run identity failed: {exc}'
+    else:
+        summary = common.summarize_runs(rows, blocks)
+        summary['verified_inputs_after'] = after
+    summary.update({key: manifest[key] for key in ('arm_labels','identical_floor','floor',
+                   'expected_games_searches_nodes_trace','expected_by_arm','workload_by_arm',
+                   'engine_environment','worker_affinity')})
+    summary['error'] = error
+    summary['stopped_on_refusal'] = stopped_refusal
+    common.write_json(output / 'summary.txt', summary)
+    print(json.dumps(summary), flush=True)
+    return 0 if summary['complete'] and not error else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest='mode', required=True)
+    gate = commands.add_parser('gate')
+    gate.add_argument('root', type=Path)
+    gate.add_argument('workload', choices=('WD1','WD100','W2200'))
+    gate.add_argument('engine', choices=('r15d','K_1'))
+    timing = commands.add_parser('time')
+    timing.add_argument('root', type=Path)
+    timing.add_argument('step', choices=PAIRS)
+    args = parser.parse_args()
+    root = args.root.resolve(strict=True)
+    if args.mode == 'gate':
+        return measure_gate(root, args.workload, args.engine)
+    return time_comparison(root, args.step)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
