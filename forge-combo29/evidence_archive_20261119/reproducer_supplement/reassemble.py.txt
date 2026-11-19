@@ -1,0 +1,12 @@
+import json,hashlib,pathlib
+p=pathlib.Path(__file__).parent
+m=json.loads((p/'TRANSPORT.json').read_text())
+data=b''.join((p/e['name']).read_bytes() for e in m['parts'])
+for e in m['parts']:
+ b=(p/e['name']).read_bytes()
+ assert len(b)==e['bytes'] and hashlib.sha256(b).hexdigest()==e['sha256'],e['name']
+assert len(data)==m['bytes'] and hashlib.sha256(data).hexdigest()==m['sha256']
+out=p/m['output']
+if out.exists():assert out.read_bytes()==data,'refusing overwrite of different output'
+else:out.write_bytes(data)
+print('PASS reconstructed',len(data),'bytes',m['sha256'])
