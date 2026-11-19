@@ -1,0 +1,22 @@
+# kimi5 job 29 PREDICTION (own commit, before Step 3; no time, no commit ids)
+
+Scope note: the plain-build row wave (base, identity, the two known pairs, the controls) was run
+BEFORE this commit as the base control everything else compares against; those equalities are
+measurements, not predictions, and are not graded below. Graded below: the two stretch tests and
+all counter numbers, none of which have been run at commit time.
+
+## Stretches and pairs (Step 3 runs not yet made)
+1. CheckExtensionDepth: 20 vs 30 -> EQUAL on 200|353 (proven flat [20,30] at root 12: d_max <= 12+7 = 19
+   by the double-extension chain limit). 19 vs 30 -> EQUAL on 200|353 too (d = 19 never reached on
+   these sets: the seen stretch is wider than the proven one).
+2. HistoryBonusMax: 9658 vs 10000 -> EQUAL on 200|353 (proven flat [raw(19), 10000], raw(19) = 9658).
+   9657 vs 10000 -> EQUAL on 200|353 as well (d = 19 not reached: seen wider than proven).
+3. DMAX counter under base on O: largest d at any node in [14, 19]; largest d at a null try in [11, 15].
+
+## Counters on O at depth 12 (sums over the 200 searches; order of magnitude, 0 means 0)
+- base:   HP reached ~3e6, fired ~2e4.  NULL reached ~3e5, fired (cuts) ~2e5.
+          NULLQ reached ~3e5, fired (to qsearch) ~1e5.  DRAW reached ~1e1 (0..100), fired 0.
+          CAPFUT reached ~1e6, fired 0 (CaptureFutilityBase 0 in PC20: gate off).
+- HistoryPruneDepth 0:      HP fired 0 (reading: at lmr_depth == 0 no reached test has history < threshold).
+- HistoryPruneMultiplier 20000: HP fired 0 (no reached test has history < -20000*depth*f).
+- DrawJitter 8: DRAW reached ~1e1 (same as base), fired 0 (no fifty-move/repetition leaf on O).
