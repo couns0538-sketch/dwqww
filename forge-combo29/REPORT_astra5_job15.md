@@ -27,7 +27,7 @@ C15 ended at 23:45:45Z. Commit `c6e22f650fe6d33d79022b50dda454abd48fdc26` contai
 
 ## 4. Clock match results
 
-Both sides used the r15d guard executable, PC20, the built-in evaluation, Threads 1, Hash 16 and OwnBook false. Fastchess ran three concurrent games and applied a 300-move limit. At 10+0.1, each player started with ten seconds and gained one tenth of a second per move. Each opening was scheduled with colors reversed. All 157 starting positions observed in this job were distinct and absent from the 22 earlier match PGNs. [Actual opening check](astra5/job15/T1b/opening-overlap.txt) · [Seeded selection](astra5/job15/C15/opening-selection.txt)
+Both sides used the r15d guard executable, PC20, the built-in evaluation, Threads 1, Hash 16 and OwnBook false. Fastchess ran three concurrent games and applied a 300-move limit. At 10+0.1, each player started with ten seconds and gained one tenth of a second per move. Each opening was scheduled with colors reversed. All 157 starting positions in this job’s scored PGNs were distinct and absent from the 22 earlier match PGNs. Two additional opening positions had games in progress when the run stopped. The seed reconstruction also found both of those positions to be fresh. [Actual opening check](astra5/job15/T1b/opening-overlap.txt) · [Seeded selection](astra5/job15/C15/opening-selection.txt)
 
 | Match | NullMateGuard A vs B | Time control A / B | Seed | Scored / scheduled games | A W–L–D | Pentanomial | Elo [95%] | Endings (mate / rule draw / move limit / A time losses / B time losses) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
