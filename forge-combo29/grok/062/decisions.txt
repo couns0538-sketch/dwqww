@@ -1,0 +1,24 @@
+Seat 062, idea 12, P20. Decided before the match finished.
+
+EXISTS: forge-combo29/src/eval.cpp:516
+The function dead_material_score already skips the network for bare kings,
+king and one minor versus king, king and two knights versus king (score 0),
+and king, bishop and knight versus king (a corner drive). The on/off switch
+already exists: UCI check DeadMaterial, default false, uci.cpp option list.
+The fixed numbers that were not options were CornerWeight 28 and KingWeight 12.
+Those are now spins IdeaP20_Corner (default 28, min 0, max 256) and
+IdeaP20_King (default 12, min 0, max 256). Defaults are today's numbers, so a
+default engine takes the same path.
+
+Why O and G show 0 position differences with the switch on: a depth-12 search
+from those positions never changes a node. KK, king and one minor versus king
+are already insufficient material, so the search returns a draw before
+evaluation. The scores that can change a search are two knights versus a lone
+king, and bishop and knight versus a lone king. The probe file shows those do
+change nodes and the static total, and IdeaP20_Corner=1 changes the bishop
+and knight total again. The opening and game sets simply do not reach a node
+where that score changes the tree.
+
+R positions: python-chess, random.Random(6201), which is seat 62 times 100
+plus 1. A game that ends before ply 43 is dropped. From a game still going at
+ply 43, keep plies 8, 15, 22, 29, 36 and 43. This run dropped 0 games.
