@@ -1,0 +1,11 @@
+Idea 30, id B1, option IdeaB1. Seat 080. Not present in the plain engine (no quiet-move board prior; quiet order is history, killers, and a check bonus).
+
+What B1 asks for. A board-dependent ordering score added only inside the quiet-move group, after the hash move, captures, and killers already have their places, scaled down as this search writes history for that move. The write-up's trained ordering head is not built here: there is no training loop, and the same write-up says a static piece-square bonus does not test the idea.
+
+What was built instead. The live value net is the board prior. At quiet generation, the node's accumulator (the whole piece placement) supplies the derivative of the SCReLU output on 16 hidden units spread across the layer. Each quiet move's bonus is that derivative times the feature change of the move, in centipawns. Killers, the hash move, and captures are still picked before the scored quiet list, so the bonus only reorders quiets. Checking quiets keep their +12000 after the bonus. The bonus is prior_cp * IdeaB1_Scale * IdeaB1_Fade / (IdeaB1_Fade + |history|), then clamped to +/- IdeaB1_Cap. History 0 keeps the full scaled prior. A large history leaves almost none.
+
+Defaults, chosen so a cold node can reorder quiets and one cutoff fades the prior: IdeaB1 false, IdeaB1_Lanes 16, IdeaB1_Fade 1024, IdeaB1_Scale 32, IdeaB1_Cap 4000.
+
+Off path. IdeaB1 false never prepares the prior and never adds a bonus. Quiet scores are the same integers as today.
+
+The accumulator used for the prior is a local copy. The search stack is not written, so a hash hit that skipped evaluation still has a prior, and the evaluation path is unchanged.
