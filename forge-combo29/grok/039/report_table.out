@@ -1,0 +1,20 @@
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt | seat 039, idea 39, model Grok 4.7, 2026-11-20T07:53:26Z, token 242472437622515
+STEP 2 honesty B | done | HONESTY_B.txt | bench11 nodes 312866 expected 312866 OK | bench13 nodes 862329 expected 862329 OK | bench16 nodes 3024920 expected 3024920 OK | perft5 nodes 4865609 expected 4865609 OK | PASS |
+STEP 2 O depth 12 | done | B_O_d12.meta | sum=9500069 positions=200
+STEP 2 G depth 12 | done | B_G_d12.meta | sum=18466239 positions=353
+3b prediction | done | prediction.txt | committed before measuring P
+3c patch applies | done | apply_check_own.txt | own apply --check ok
+3d honesty P | done | HONESTY_P.txt | bench11 nodes 312866 expected 312866 OK | bench13 nodes 862329 expected 862329 OK | bench16 nodes 3024920 expected 3024920 OK | perft5 nodes 4865609 expected 4865609 OK | PASS |
+3d off O | done | cmp_off_O.txt | differ=0 equal=200
+3d off G | done | cmp_off_G.txt | differ=0 equal=353
+3d on O | done | cmp_on_O.txt | differ=200 sum_right=9328352
+3d uci options | done | P_uci.txt | option name IdeaA8 type check default false ; option name IdeaA8_Captures type spin default 1 min 0 max 32
+3d sanitizer | done | asan_G_d10.meta | nm_asan_count=35 sanitizer_lines=0 positions=100
+3d sanitizer canary | done | canary_d10.meta | nm_asan_count=35 sanitizer_lines=1
+3e match | done | match.txt | Elo: -5.03 +/- 10.77, nElo: -9.56 +/- 20.48
+STEP 4 partner patch | done | apply_check_partner.txt | partner apply --check ok
+STEP 4 partner off | done | cmp_partner_off_O.txt | differ=0
+STEP 4 partner on vs own rows | done | cmp_partner_on_O.txt | differ=0 sum_mine=9779075
+STEP 4 partner on vs B | done | cmp_partner_on_vs_B.txt | differ=200 sum_right=9779075
+STEP 4 partner match | done | partner_match.txt | Elo: 1.16 +/- 9.36, nElo: 3.44 +/- 27.80

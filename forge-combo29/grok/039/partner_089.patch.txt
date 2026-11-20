@@ -1,0 +1,138 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..38c3b06a2 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -267,6 +267,7 @@ extern int ProbcutDepth;
+ extern int ProbcutMargin;
+ extern int QsFutilityMargin;
+ extern int QsSeeMargin;
++extern int IdeaA8_Captures;   // dull qsearch captures before non-recaptures are skipped (IdeaA8)
+ extern int AspirationDelta;
+ extern int HistoryBonusQuadratic;
+ extern int HistoryBonusLinear;
+@@ -307,6 +308,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaA8;                  // qsearch: after IdeaA8_Captures dull captures, skip non-recaptures when not in check (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..6161b0687 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -68,6 +68,7 @@ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
++int IdeaA8_Captures = 2;
+ int AspirationDelta = 18;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+@@ -107,6 +108,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaA8 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -129,8 +131,9 @@ const std::vector<Parameter>& parameters() {
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+-        {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+-        {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
++        {"ProbcutMargin", &ProbcutMargin, 0, 1000},              {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
++        {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"IdeaA8_Captures", &IdeaA8_Captures, 0, 16},
++        {"AspirationDelta", &AspirationDelta, 4, 200},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+@@ -1486,18 +1489,33 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
++    // IdeaA8: captures that did not raise alpha (searched fail-lows, plus
++    // futility and SEE skips, which also leave alpha unchanged).
++    int dull_captures = 0;
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
++        // Not in check: after N dull captures, only a recapture (capture on the
++        // square the move that entered this node went to) is still searched.
++        // The flag is read first so a false option takes the existing path.
++        if (tune::IdeaA8 && !in_check && move.is_capture() && dull_captures >= tune::IdeaA8_Captures) {
++            const bool recapture = ply > 0 && !(ss - 1)->current_move.is_none() &&
++                                   move.to == (ss - 1)->current_move.to;
++            if (!recapture) continue;
++        }
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
++                if (tune::IdeaA8 && move.is_capture()) ++dull_captures;
++                continue;
++            }
++            if (!board.see_ge(move, -tune::QsSeeMargin)) {
++                if (tune::IdeaA8 && move.is_capture()) ++dull_captures;
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1520,9 +1538,11 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
++        bool raised_alpha = false;
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
++                raised_alpha = true;
+                 best_move = move;
+                 if (pv_node) {
+                     ss->pv[0] = move;
+@@ -1533,6 +1553,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+                 alpha = score;
+             }
+         }
++        if (tune::IdeaA8 && !in_check && move.is_capture() && !raised_alpha) ++dull_captures;
+     }
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..2ecf7bd25 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaA8 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaA8") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,6 +415,7 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
++                             : name == "IdeaA8" ? &forge::tune::IdeaA8
+                                                         : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
