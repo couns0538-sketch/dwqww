@@ -1,0 +1,224 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..2c26ece03 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -246,6 +246,10 @@ extern int NullMoveMinDepth;
+ extern int NullMoveBase;
+ extern int NullMoveDepthDivisor;
+ extern int NullMoveEvalDivisor;
++extern int IdeaS33_Thin;     // cp: at or below this margin the passer takes the full extra reduction
++extern int IdeaS33_Large;    // cp: at or above this margin the passer takes no extra reduction
++extern int IdeaS33_Extra;    // extra late-move reduction plies at a thin margin
++extern int IdeaS33_Near;     // a null score this many cp under beta buys one real ply, not a verification search
+ extern int RfpDepth;
+ extern int RfpMargin;
+ extern int RfpImproving;
+@@ -299,6 +303,7 @@ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
++extern bool IdeaS33;                  // inside a null tree, scale the passer's reduction by the static margin (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+@@ -409,6 +414,11 @@ struct SearchStack {
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    // IdeaS33. Extra late-move reduction for the side that passed, while this
++    // node is still inside that null-move tree. extra 0 and color -1 are
++    // today's reduction. The search reads these only when IdeaS33 is on.
++    std::int8_t passer_extra = 0;
++    std::int8_t passer_color = -1;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..517fbddf2 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -47,6 +47,10 @@ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
++int IdeaS33_Thin = 50;
++int IdeaS33_Large = 300;
++int IdeaS33_Extra = 2;
++int IdeaS33_Near = 30;
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+@@ -99,6 +103,7 @@ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
++bool IdeaS33 = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+@@ -118,6 +123,10 @@ const std::vector<Parameter>& parameters() {
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
++        {"IdeaS33_Thin", &IdeaS33_Thin, 0, 500},
++        {"IdeaS33_Large", &IdeaS33_Large, 1, 1000},
++        {"IdeaS33_Extra", &IdeaS33_Extra, 0, 4},
++        {"IdeaS33_Near", &IdeaS33_Near, 0, 200},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -1552,6 +1561,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
++    // IdeaS33: the null-tree bias is copied onto the child only when the
++    // option is on. Off, this returns before it writes anything.
++    auto pass_s33 = [&](SearchStack* child) {
++        if (!tune::IdeaS33) return;
++        child->passer_extra = ss->passer_extra;
++        child->passer_color = ss->passer_color;
++    };
++    bool s33_near_miss = false;
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+@@ -1706,6 +1723,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             (ss + 1)->ply = ply + 1;
+             (ss + 1)->arrival_index = 0;
+             record_null_move(ss);
++            if (tune::IdeaS33) {
++                // Thin static margin: reduce the side that passed by more
++                // inside this probe. A large margin adds nothing. The child
++                // to move is the opponent; the color is the side that passed.
++                const int margin = eval - beta;
++                int extra = 0;
++                const int thin = tune::IdeaS33_Thin;
++                const int large = tune::IdeaS33_Large;
++                const int cap = tune::IdeaS33_Extra;
++                if (cap > 0 && margin < large) {
++                    if (large <= thin || margin <= thin) extra = cap;
++                    else extra = cap * (large - margin) / (large - thin);
++                }
++                if (extra < 0) extra = 0;
++                if (extra > 4) extra = 4;
++                (ss + 1)->passer_extra = static_cast<std::int8_t>(extra);
++                (ss + 1)->passer_color = static_cast<std::int8_t>(board.side_to_move());
++            }
+             NullUndo undo;
+             board.make_null_move(undo);
+ #if FORGE_SEARCH_SPEED2
+@@ -1714,7 +1749,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+-            if (null_score >= beta) {
++            if (tune::IdeaS33) {
++                // The biased probe is the whole test. A score that still
++                // reaches beta is a cutoff with no second search. A miss of
++                // at most IdeaS33_Near centipawns buys one ply on the real
++                // moves of this node instead of a verification tree.
++                if (null_score >= beta) {
++                    if (is_mate_score(null_score)) null_score = beta;
++                    ++null_cutoffs_;
++                    return null_score;
++                }
++                if (!is_mate_score(null_score) && beta - null_score <= tune::IdeaS33_Near) s33_near_miss = true;
++            } else if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
+@@ -1764,7 +1810,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    pass_s33(ss + 1);
++                value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+@@ -1780,6 +1827,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+     }
+ 
++    // IdeaS33: a near-miss null probe spends one extra ply on the real moves
++    // of this node. Off, s33_near_miss stays false.
++    if (s33_near_miss) ++depth;
++
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+ 
+@@ -2008,8 +2059,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Inside the null tree, the side that passed is reduced further.
++            // The amount was chosen from the static margin at the null node.
++            if (tune::IdeaS33 && ss->passer_extra > 0 &&
++                static_cast<int>(board.side_to_move()) == static_cast<int>(ss->passer_color)) {
++                r += ss->passer_extra;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            pass_s33(ss + 1);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -2020,6 +2078,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++                    pass_s33(ss + 1);
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                 }
+                 full_depth_needed = false;
+@@ -2030,9 +2089,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         if (full_depth_needed && !aborted_) {
++            pass_s33(ss + 1);
+             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
++            pass_s33(ss + 1);
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+@@ -2338,6 +2399,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
++        ss.passer_extra = 0;
++        ss.passer_color = -1;
+         ss.null_move_allowed = true;
+         ss.arrival_index = 0;
+         ss.killers = {};
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..38225cc0f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -223,6 +223,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
++                         "option name IdeaS33 type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaS33") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,6 +415,7 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
++                             : name == "IdeaS33" ? &forge::tune::IdeaS33
+                                                         : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
