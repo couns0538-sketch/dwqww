@@ -1,0 +1,107 @@
+HONESTY_B
+bench11 nodes 312866 expected 312866 OK
+bench13 nodes 862329 expected 862329 OK
+bench16 nodes 3024920 expected 3024920 OK
+perft5 nodes 4865609 expected 4865609 OK
+HONESTY_B PASS
+HONESTY_P
+honesty_p_bench11.txt nodes 312866 expected 312866 OK
+honesty_p_bench13.txt nodes 862329 expected 862329 OK
+honesty_p_bench16.txt nodes 3024920 expected 3024920 OK
+honesty_p_perft5.txt nodes 4865609 expected 4865609 OK
+HONESTY_P PASS
+BASELINE_SUMS
+B_O_d12.txt sum	9500069 count	200
+B_G_d12.txt sum	18466239 count	353
+OFF_COMPARE
+left B_O_d12.txt sum 9500069 count 200
+right P_off_O_d12.txt sum 9500069 count 200
+positions 200 node_diff 0 move_diff 0 missing 0
+left B_G_d12.txt sum 18466239 count 353
+right P_off_G_d12.txt sum 18466239 count 353
+positions 353 node_diff 0 move_diff 0 missing 0
+ON_COMPARE
+left B_O_d12.txt sum 9500069 count 200
+right P_on_O_d12.txt sum 9856085 count 200
+positions 200 node_diff 200 move_diff 43 missing 0
+UCI_OPTIONS
+option name IdeaS37 type check default false
+option name IdeaS37_Margin type spin default 100 min 0 max 1000
+ASAN_META_TAIL
+exe /tmp/forge-asan/forge
+sha256 4fddcfb8774a3e09d71ec600a8823efb8dddf8b157850d69473f97bda745c89b
+id name Chess Engine Forge 6.4.24 candidate
+setoption name IdeaS37 value true
+sanitizer_lines 0
+fail 
+35
+asan_positions count	100
+asan_stderr_bytes 0
+SCRATCH_SANITIZER_FIRST
+/tmp/scratch-src/src/uci.cpp:46:26: runtime error: load of address 0x5020000000b4 with insufficient space for an object of type 'int'
+MATCH
+--------------------------------------------------
+Results of s37on vs s37off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -3.46 +/- 10.17, nElo: -6.96 +/- 20.48
+LOS: 25.27 %, DrawRatio: 62.57 %, PairsRatio: 0.88
+Games: 1106, Wins: 331, Losses: 342, Draws: 433, Points: 547.5 (49.50 %)
+Ptnml(0-2): [10, 100, 346, 85, 12], WL/DD Ratio: 1.79
+--------------------------------------------------
+Finished match
+Total Time: 00:05:59 (hours:minutes:seconds)
+
+fastchess_exit 0
+end 2026-11-20T08:19:03Z
+pgn_events 1106
+PARTNER
+commit e76c7704be458d8524e00a5ee6d9742a55d8e737
+PARTNER_APPLY_CHECK_OK
+partner_honesty_bench11.txt nodes 312866 expected 312866 OK
+partner_honesty_bench13.txt nodes 862329 expected 862329 OK
+partner_honesty_bench16.txt nodes 3024920 expected 3024920 OK
+partner_honesty_perft5.txt nodes 4865609 expected 4865609 OK
+PARTNER_HONESTY PASS
+left B_O_d12.txt sum 9500069 count 200
+right partner_off_O.txt sum 9500069 count 200
+positions 200 node_diff 0 move_diff 0 missing 0
+mine 200 theirs 200 node_diff 0 length_gap 0
+left B_O_d12.txt sum 9500069 count 200
+right partner_on_O.txt sum 9295011 count 200
+positions 200 node_diff 200 move_diff 34 missing 0
+partner_uci
+option name IdeaS37 type check default false
+option name IdeaS37_Margin type spin default 40 min 0 max 500
+--------------------------------------------------
+Results of s37on vs s37off (20000 nodes, 1t, 16MB, R.epd):
+Elo: -15.06 +/- 9.63, nElo: -43.54 +/- 27.80
+LOS: 0.11 %, DrawRatio: 84.33 %, PairsRatio: 0.38
+Games: 600, Wins: 257, Losses: 283, Draws: 60, Points: 287.0 (47.83 %)
+Ptnml(0-2): [7, 27, 253, 11, 2], WL/DD Ratio: 22.00
+--------------------------------------------------
+Finished match
+Total Time: 00:02:31 (hours:minutes:seconds)
+
+fastchess_exit 0
+end 2026-11-20T09:14:07Z
+partner_pgn_events 600
+partner_unknown_option 0
+PREDICTION
+O depth 12 sum, IdeaS37 true: 8600000
+wrong if sum < 6500000 or sum > 9450000
+test match Elo (on minus off): +6
+wrong if elo < -25 or elo > +35
+ON_SUM sum	9856085
+STEP_TABLE
+step	status	evidence	result
+1 seat	done	SEAT.txt	seat file
+2 honesty B	done	HONESTY_B.txt	HONESTY_B
+2 O and G sums	done	B_O_d12.txt B_G_d12.txt	BASELINE_SUMS
+3 patch	done	idea.patch.txt apply_check.txt	APPLY_CHECK_OK
+3 proof 1 honesty P	done	HONESTY_P.txt	HONESTY_P
+3 proof 2 switch off	done	cmp_off_O.txt cmp_off_G.txt	OFF_COMPARE
+3 proof 3 switch on	done	cmp_on_O.txt	ON_COMPARE
+3 proof 4 uci	done	uci_p.txt	UCI_OPTIONS
+3 proof 5 sanitizer	done	P_asan_G100.meta scratch_asan.stderr	ASAN_META_TAIL
+3 match	done	match_og.log match_og.pgn	MATCH
+4 partner	done	partner_cmp_off.txt partner_cmp_on.txt partner_r.log	PARTNER
+5 report	done	REPORT.md RESULT.txt	this report

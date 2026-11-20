@@ -1,0 +1,124 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..de28d35fc 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -298,6 +298,8 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern bool IdeaS37;                 // off-PV one-ply shave after a reduced move when the eval worsened (false = off)
++extern int IdeaS37_Margin;           // centipawns: smallest same-side worsening over two plies that IdeaS37 shaves
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+@@ -407,7 +409,8 @@ struct SearchStack {
+     int cutoff_count = 0;
+     int double_extensions = 0;
+     // Plies the parent withheld when it searched the move that reached this node.
+-    // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
++    // Zero means that call was not a reduced search. Read only when HindsightDepth
++    // or IdeaS37 is on. Those two options share this field; turn on only one.
+     int withheld_plies = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..744457a2c 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -98,6 +98,8 @@ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
++bool IdeaS37 = false;
++int IdeaS37_Margin = 40;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS37_Margin", &IdeaS37_Margin, 0, 500},
+     };
+     return table;
+ }
+@@ -1579,7 +1582,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
+-    if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
++    if (tune::HindsightDepth || tune::IdeaS37) (ss + 1)->withheld_plies = 0;
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+ 
+@@ -1635,6 +1638,36 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+     }
+ 
++    // IdeaS37: off the PV and not in check, a move the parent already reduced
++    // by at least one ply is searched one ply shallower when this side's
++    // corrected static eval is worse than it was two plies ago by at least
++    // IdeaS37_Margin. A transposition entry already as deep as this depth is
++    // left alone. The paired "search one ply deeper" rule is not implemented.
++    if (tune::IdeaS37) {
++        const int withheld = ss->withheld_plies;
++        ss->withheld_plies = 0;
++        if (withheld >= 1 && !pv_node && !root_node && !in_check && excluded.is_none() &&
++            !(tt_hit && tt_depth >= depth)) {
++            const int earlier = (ss - 2)->static_eval;
++            if (earlier != ValueNone && !is_mate_score(earlier)) {
++                const bool hashed_eval = tt_hit && tte.eval != ValueNone;
++                const int raw = hashed_eval ? tte.eval : static_evaluate(board, ss);
++                if (!hashed_eval) {
++                    reused_raw = raw;
++                    reuse_raw = true;
++                }
++                const int now = rule50_damped_static(corrected_eval(board, raw), board.halfmove_clock());
++                if (now != ValueNone && !is_mate_score(now) && earlier - now >= tune::IdeaS37_Margin) {
++                    --depth;
++                    if (depth <= 0) {
++                        --local_nodes_;
++                        return qsearch(board, ss, alpha, beta);
++                    }
++                }
++            }
++        }
++    }
++
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
+@@ -2009,9 +2042,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+-            if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            if (tune::HindsightDepth || tune::IdeaS37) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+-            if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
++            if (tune::HindsightDepth || tune::IdeaS37) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..e30bc98e9 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -222,6 +222,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
++                         "option name IdeaS37 type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS37") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS37 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
