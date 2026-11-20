@@ -1,0 +1,15 @@
+Idea 5, id S37, option IdeaS37. Full text: engine-ideas/50-agents/IDEAS.md "S37. Off-PV worsening shave" (branch fable/50-agent-engine-ideas).
+
+What it does, only when IdeaS37 is true:
+Off the PV, not in check, not the root, and not a singular re-search, if the parent searched this move at least one ply shallower, compare the parent's corrected static eval with this node's corrected static eval. Their sum is the mover's loss, because the two scores face opposite ways. Loss at least IdeaS37_Margin: search IdeaS37_Shave plies shallower. Loss at most 0 and the parent withheld at least IdeaS37_DeepAt plies: search IdeaS37_Bonus plies deeper. If the transposition entry is already at least as deep as the current depth, leave the depth alone.
+
+Numbers, and why:
+IdeaS37_Margin 100. A pawn. SeePieceValue[Pawn] is 100 in include/forge/eval.hpp. The idea says a modest margin; a pawn is the smallest piece price this engine uses.
+IdeaS37_DeepAt 3. The idea says three withheld plies for the extra ply.
+IdeaS37_Shave 1 and IdeaS37_Bonus 1. The idea says one ply shallower and one ply deeper.
+
+The switch defaults to false. While it is false the new block is not entered, and the withheld-ply stores stay on the same condition as HindsightDepth, which is also false, so the search is today's search.
+
+Not the same as the existing HindsightDepth option (search.cpp, default false). That option uses the same worsening sum and the same one-ply steps, but it skips the change when the transposition depth is at least the proposed depth. S37 skips when the transposition depth is at least the current depth. The one-line swarm summary ("more reduction when the static eval got worse than two plies ago") is the existing line `if (!improving) r += 1` in the late-move reduction. That line stays as it is. The work here follows the full S37 text.
+
+The parent eval used is the static eval already stored for the parent. With EvalRule50Damp left false, that value is the corrected eval. The child value is corrected_eval of the raw net eval. Singular re-searches are excluded so the shave is not applied to the proof search that excluded a move.
