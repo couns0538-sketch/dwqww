@@ -1,0 +1,97 @@
+HONESTY_B
+info string bench depth 11 nodes 312866 time 179 nps 1747854
+info string bench depth 13 nodes 862329 time 467 nps 1846528
+info string bench depth 16 nodes 3024920 time 1587 nps 1906061
+nodes 4865609
+HONESTY_P
+info string bench depth 11 nodes 312866 time 191 nps 1638041
+info string bench depth 13 nodes 862329 time 478 nps 1804035
+info string bench depth 16 nodes 3024920 time 1882 nps 1607290
+nodes 4865609
+PARTNER_HONESTY
+info string bench depth 11 nodes 312866 time 166 nps 1884734
+info string bench depth 13 nodes 862329 time 436 nps 1977818
+info string bench depth 16 nodes 3024920 time 1448 nps 2089033
+nodes 4865609
+PROOFS
+--- cmp_off_O.txt
+positions 200
+differ 0
+equal 200
+--- cmp_off_G.txt
+positions 353
+differ 0
+equal 353
+--- cmp_on_O.txt
+positions 200
+differ 0
+equal 200
+--- cmp_on_G.txt
+positions 353
+differ 0
+equal 353
+--- cmp_probe.txt
+differ 1 nodes 25478 vs 16171 score cp 303 vs cp 676 best e1e2 vs d2b3
+differ 2 nodes 44393 vs 5814 score cp 243 vs cp 0 best d2e4 vs b1a3
+positions 3
+differ 2
+equal 1
+--- sum_on_O.txt
+positions 200
+sum 9500069
+first3 41311 24872 28574
+--- why_o_zero.txt
+O.fens positions 200 min_pieces 26 max_pieces 32 at_most_16 0
+G.epd positions 353 min_pieces 3 max_pieces 32 at_most_16 189
+--- partner_cmp_off_O.txt
+positions 200
+differ 0
+equal 200
+--- partner_cmp_on_O.txt
+positions 200
+differ 0
+equal 200
+--- partner_apply_check.txt
+APPLY_CHECK_OK
+UCI
+id name Chess Engine Forge 6.4.24 candidate
+option name DeadMaterial type check default false
+option name IdeaP20_Corner type spin default 28 min 0 max 1000
+option name IdeaP20_King type spin default 12 min 0 max 1000
+ASAN
+nm_command=nm -C /home/ubuntu/build-asan/forge | grep -c __asan_
+nm_asan_count=35
+asan_error_lines 0
+SCRATCH
+==47631==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000d0 at pc 0x55f751614046 bp 0x7ffd4afbb4f0 sp 0x7ffd4afbb4e0
+SUMMARY: AddressSanitizer: heap-buffer-overflow /home/ubuntu/scratch-forge/src/uci.cpp:47 in apply_position
+MATCH
+Results of P-on vs P-off (20000 nodes, 1t, 16MB, OG.fens):
+Elo: 0.31 +/- 0.62, nElo: 10.46 +/- 20.48
+LOS: 84.16 %, DrawRatio: 99.82 %, PairsRatio: inf
+Games: 1106, Wins: 337, Losses: 336, Draws: 433, Points: 553.5 (50.05 %)
+Ptnml(0-2): [0, 0, 552, 1, 0], WL/DD Ratio: 1.56
+finished_games 1106
+PARTNER_MATCH
+Results of P062-on vs P062-off (20000 nodes, 1t, 16MB, R.fens):
+Elo: -0.00 +/- 0.00, nElo: -nan +/- -nan
+LOS: -nan %, DrawRatio: 100.00 %, PairsRatio: -nan
+Games: 600, Wins: 255, Losses: 255, Draws: 90, Points: 300.0 (50.00 %)
+Ptnml(0-2): [0, 0, 300, 0, 0], WL/DD Ratio: 5.67
+finished_games 600
+TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat file present
+2 honesty B | done | HONESTY_B.txt | 312866
+2 O sum | done | B_O_d12.rows.txt | positions 200 sum 9500069 first3 41311 24872 28574
+2 G sum | done | B_G_d12.rows.txt | positions 353 sum 18466239 first3 37203 70845 144383
+3 patch applies | done | apply_check.txt | APPLY_CHECK_OK
+3 proof off O | done | cmp_off_O.txt | positions 200; differ 0; equal 200
+3 proof off G | done | cmp_off_G.txt | positions 353; differ 0; equal 353
+3 proof on O | done | cmp_on_O.txt | positions 200; differ 0; equal 200
+3 uci options | done | uci_p.txt | option name DeadMaterial type check default false | option name IdeaP20_Corner type spin default 28 min 0 max 1000 | option name IdeaP20_King type spin default 12 min 0 max 1000
+3 sanitizer | done | asan_G100_d10.meta | nm_asan_count=35 error_lines 0
+3 scratch | done | scratch_asan.raw.txt | SUMMARY: AddressSanitizer: heap-buffer-overflow /home/ubuntu/scratch-forge/src/uci.cpp:47 in apply_position
+3 match | done | match_og_summary.txt | 1106 games
+4 partner | done | partner_cmp_on_O.txt | positions 200; differ 0; equal 200
+4 partner match | done | partner_match_summary.txt | 600 games
