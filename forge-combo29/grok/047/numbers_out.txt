@@ -1,0 +1,73 @@
+HONESTY_B
+exe=/tmp/forge-builds/base/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=Chess Engine Forge 6.4.24 candidate
+key command nodes expected result
+bench11 bench 11 312866 312866 PASS
+bench13 bench 13 862329 862329 PASS
+bench16 bench 16 3024920 3024920 PASS
+perft5 go perft 5 4865609 4865609 PASS
+ALL_PASS
+HONESTY_P
+exe=/tmp/forge-builds/work/forge
+sha256=b0430bd7371348e72d10e8283b6206087acf66ab7da78d777a6ee8ca574920cb
+id_name=Chess Engine Forge 6.4.24 candidate
+key command nodes expected result
+bench11 bench 11 312866 312866 PASS
+bench13 bench 13 862329 862329 PASS
+bench16 bench 16 3024920 3024920 PASS
+perft5 go perft 5 4865609 4865609 PASS
+ALL_PASS
+UCI_OPTIONS
+option name IdeaK8 type check default false
+option name IdeaK8_Extra type spin default 1 min 0 max 4
+COMPARE_OFF_O
+left forge-combo29/grok/047/B_O_d12.nodes lines 200 sum 9500069
+right forge-combo29/grok/047/P_off_O_d12.nodes lines 200 sum 9500069
+compared 200
+differ 0
+COMPARE_OFF_G
+left forge-combo29/grok/047/B_G_d12.nodes lines 353 sum 18466239
+right forge-combo29/grok/047/P_off_G_d12.nodes lines 353 sum 18466239
+compared 353
+differ 0
+COMPARE_ON_O
+left forge-combo29/grok/047/B_O_d12.nodes lines 200 sum 9500069
+right forge-combo29/grok/047/P_on_O_d12.nodes lines 200 sum 9332591
+compared 200
+differ 200
+first_differ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+P_ON_O positions 200 sum 9332591 first3 22042 23930 33107
+ASAN_META
+positions=100
+option IdeaK8 true
+nm_command=nm -C /tmp/forge-builds/asan/forge | grep -c __asan_
+nm_asan_count=35
+asan_g100_stderr_bytes 0
+asan_scratch_has_heap_buffer_overflow True
+MATCH_R_LAST
+Results of on vs off (20000 nodes, 1t, 16MB, R.epd):
+Elo: 5.21 +/- 11.17, nElo: 12.98 +/- 27.80
+LOS: 81.99 %, DrawRatio: 79.67 %, PairsRatio: 1.18
+Games: 600, Wins: 268, Losses: 259, Draws: 73, Points: 304.5 (50.75 %)
+Ptnml(0-2): [4, 24, 239, 25, 8], WL/DD Ratio: 18.92
+--------------------------------------------------
+Finished match
+Total Time: 00:02:41 (hours:minutes:seconds)
+
+PARTNER
+partner none: seats for idea 47 are 047 and 097; 097 has no branch at 2026-11-20T09:09:07Z
+APPLY_CHECK
+apply_check_exit=0
+2026-11-20T09:12:47Z
+MATCH_LAST
+--- final block ---
+Results of on vs off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -7.85 +/- 10.27, nElo: -15.67 +/- 20.48
+LOS: 6.68 %, DrawRatio: 65.28 %, PairsRatio: 0.78
+Games: 1106, Wins: 327, Losses: 352, Draws: 427, Points: 540.5 (48.87 %)
+Ptnml(0-2): [15, 93, 361, 70, 14], WL/DD Ratio: 1.73
+--------------------------------------------------
+Finished match
+Total Time: 00:06:17 (hours:minutes:seconds)
+
