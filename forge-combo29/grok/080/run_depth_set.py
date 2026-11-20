@@ -110,6 +110,7 @@ def main() -> None:
     if idea != "omit":
         options.append(f"setoption name IdeaB1 value {idea}")
     session = Session(exe)
+    error = ""
     try:
         session.send("uci")
         session.read_until("uciok", 30)
@@ -117,7 +118,7 @@ def main() -> None:
             session.send(option)
             session.send("isready")
             session.read_until("readyok", 30)
-        per_position = 120 if depth <= 12 else 300
+        per_position = 180 if depth <= 12 else 300
         for fen in fens:
             session.send("ucinewgame")
             session.send("isready")
@@ -127,6 +128,8 @@ def main() -> None:
             session.read_until("readyok", 30)
             session.send(f"go depth {depth}")
             session.read_until("bestmove", per_position)
+    except SystemExit as exc:
+        error = str(exc)
     finally:
         session.close()
     out = pathlib.Path(out_prefix)
@@ -151,6 +154,9 @@ def main() -> None:
     ]
     out.with_suffix(out.suffix + ".meta").write_text("\n".join(meta))
     print(f"wrote {out} positions {len(fens)}", flush=True)
+    if error:
+        print(error, flush=True)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

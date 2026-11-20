@@ -1,0 +1,9 @@
+Idea 30, id B1, option IdeaB1. EXISTS: no. search.cpp quiet scores are history, a threat-history bonus, and +12000 for a direct check. Nothing adds a placement prior that shrinks as main history is written.
+
+What was built. One check, IdeaB1, default false. Two spins: IdeaB1_Scale default 96 (0..500), IdeaB1_Fade default 4 (0..64). With the check false the quiet score is the old expression and the spins are not read.
+
+The prior is not a trained ordering head and not a piece-square table. A head cannot be trained in this run, and BREAKTHROUGHS.md says a static piece-square bonus does not test the idea. The stand-in is the change in this piece's pressure when it steps from its square to the destination: 2 * popcount(attacks & enemy) + popcount(attacks & enemy king zone). Destination attacks use occupancy with the piece removed from the origin. Bonus = delta * Scale * 1024 / (1024 + Fade * |main history of from-to|). It is added only inside quiet scoring, so hash moves, captures, and killers keep the slots they already had. Scale 96 keeps a cold prior of a few hundred points, under the 12000 check bonus, and Fade 4 halves it once |history| reaches 256.
+
+OwnBook is default true because an embedded book is present. The match sets OwnBook false on both sides so every move is a search. That is outside S14 and is the same for both sides.
+
+prediction.txt was committed before any patched search and is not edited.

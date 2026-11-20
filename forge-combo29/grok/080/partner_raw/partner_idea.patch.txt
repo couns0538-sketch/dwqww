@@ -1,0 +1,311 @@
+diff --git a/forge-combo29/include/forge/nnue.hpp b/forge-combo29/include/forge/nnue.hpp
+index 659ae8d36..150678d2a 100644
+--- a/forge-combo29/include/forge/nnue.hpp
++++ b/forge-combo29/include/forge/nnue.hpp
+@@ -91,6 +91,25 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
+ 
+ // Piece changes implied by a move about to be played on `board`.
+ [[nodiscard]] DirtyPieces dirty_pieces(const Board& board, const Move& move);
++
++// First-order quiet-move prior from the live net. `prepare` reads a valid
++// accumulator (the whole board) and the output weights. `centipawns` is the
++// linear change in the network output for `move`, using `lanes` hidden units
++// spread across the layer. It is an ordering hint, not a stored evaluation.
++class QuietPrior {
++public:
++    void prepare(const Board& board, const Accumulator& accumulator, int lanes);
++    [[nodiscard]] int centipawns(const Board& board, Move move) const;
++    [[nodiscard]] bool ready() const { return ready_; }
++
++private:
++    const float* w1_ = nullptr;
++    std::array<int, 64> units_{};
++    std::array<float, 64> grad_us_{};
++    std::array<float, 64> grad_them_{};
++    int lanes_ = 0;
++    bool ready_ = false;
++};
+ // Same change list without the board: `moved` is the piece on the origin,
+ // `captured` is Empty when nothing is taken, and `side` is the mover.
+ // Search stores those four facts when the move is made and calls this only
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..e80e35191 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -304,6 +304,11 @@ extern bool AspCappedReopen;         // root fail: capped reopen, or full open w
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool IdeaB1;                  // fading board prior inside the quiet-move group (false = off)
++extern int IdeaB1_Lanes;             // hidden units in the prior (spread across the layer)
++extern int IdeaB1_Fade;              // history count at which the prior is halved
++extern int IdeaB1_Scale;             // prior centipawns times this, before the fade
++extern int IdeaB1_Cap;               // absolute cap on the ordering bonus
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+diff --git a/forge-combo29/src/nnue.cpp b/forge-combo29/src/nnue.cpp
+index ae7621a71..53cd2219c 100644
+--- a/forge-combo29/src/nnue.cpp
++++ b/forge-combo29/src/nnue.cpp
+@@ -499,4 +499,66 @@ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+     return dirty_from_move(move, board.piece_at(move.from), board.captured_piece(move), board.side_to_move());
+ }
+ 
++void QuietPrior::prepare(const Board& board, const Accumulator& accumulator, int lanes) {
++    ready_ = false;
++    w1_ = nullptr;
++    lanes_ = 0;
++    if (!enabled || !available() || !accumulator.valid) return;
++    int count = lanes;
++    if (count < 1) count = 1;
++    if (count > 64) count = 64;
++    if (count > HiddenSize) count = HiddenSize;
++    int stride = HiddenSize / count;
++    if (stride < 1) {
++        stride = 1;
++        count = HiddenSize;
++    }
++    const Weights& w = weights();
++    if (w.w1 == nullptr) return;
++    const Color us = board.side_to_move();
++    const float* ours = accumulator.values[static_cast<std::size_t>(us)].data();
++    const float* theirs = accumulator.values[static_cast<std::size_t>(opposite(us))].data();
++    const float* w2_ours = w.w2.data();
++    const float* w2_theirs = w.w2.data() + HiddenSize;
++    lanes_ = count;
++    w1_ = w.w1.get();
++    for (int i = 0; i < count; ++i) {
++        const int unit = i * stride;
++        units_[static_cast<std::size_t>(i)] = unit;
++        const float our_activation = ours[static_cast<std::size_t>(unit)];
++        const float their_activation = theirs[static_cast<std::size_t>(unit)];
++        // Derivative of clamp(x, 0, 1)^2 is 2x inside (0, 1) and 0 outside.
++        grad_us_[static_cast<std::size_t>(i)] =
++            (our_activation > 0.0F && our_activation < 1.0F) ? 2.0F * our_activation * w2_ours[static_cast<std::size_t>(unit)] : 0.0F;
++        grad_them_[static_cast<std::size_t>(i)] =
++            (their_activation > 0.0F && their_activation < 1.0F)
++                ? 2.0F * their_activation * w2_theirs[static_cast<std::size_t>(unit)]
++                : 0.0F;
++    }
++    ready_ = true;
++}
++
++int QuietPrior::centipawns(const Board& board, Move move) const {
++    if (!ready_ || w1_ == nullptr) return 0;
++    const DirtyPieces dirty = dirty_pieces(board, move);
++    const Color us = board.side_to_move();
++    float dot = 0.0F;
++    for (int change_index = 0; change_index < dirty.count; ++change_index) {
++        const PieceChange& change = dirty.changes[static_cast<std::size_t>(change_index)];
++        const float sign = change.add ? 1.0F : -1.0F;
++        for (int side = 0; side < 2; ++side) {
++            const Color perspective = side == 0 ? us : opposite(us);
++            const float* gradient = side == 0 ? grad_us_.data() : grad_them_.data();
++            const int index = feature_index(perspective, change.piece, change.square);
++            const float* column = w1_ + static_cast<std::size_t>(index) * static_cast<std::size_t>(HiddenSize);
++            for (int lane = 0; lane < lanes_; ++lane) {
++                const int unit = units_[static_cast<std::size_t>(lane)];
++                dot += sign * gradient[lane] * column[unit];
++            }
++        }
++    }
++    const float centipawns = dot * 400.0F / SigmoidK;
++    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
++}
++
+ } // namespace forge::nnue
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..795363bd8 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -104,6 +104,11 @@ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
++bool IdeaB1 = false;
++int IdeaB1_Lanes = 16;
++int IdeaB1_Fade = 1024;
++int IdeaB1_Scale = 32;
++int IdeaB1_Cap = 4000;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
+@@ -145,6 +150,10 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaB1_Lanes", &IdeaB1_Lanes, 1, 64},
++        {"IdeaB1_Fade", &IdeaB1_Fade, 1, 100000},
++        {"IdeaB1_Scale", &IdeaB1_Scale, 1, 1000},
++        {"IdeaB1_Cap", &IdeaB1_Cap, 0, 30000},
+     };
+     return table;
+ }
+@@ -571,6 +580,77 @@ int TranspositionTable::hashfull() const {
+     return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
+ }
+ 
++// Build this position's network features into `out` without writing the stack.
++// A cold node can still order quiets when the hash already stored the eval.
++bool materialise_features(const Board& board, const SearchStack* ss, nnue::Accumulator& out) {
++    if (ss == nullptr || !nnue::enabled || !nnue::available()) return false;
++    if (ss->accumulator.valid) {
++        out = ss->accumulator;
++        return true;
++    }
++    int back = 0;
++    while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
++    if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
++        nnue::refresh(board, out);
++        return out.valid;
++    }
++    nnue::Accumulator rolling = (ss - back - 1)->accumulator;
++    for (int i = back; i >= 0; --i) {
++        const SearchStack* frame = ss - i;
++        if (frame->entered_null) continue;
++        nnue::DirtyPieces dirty;
++        if (frame->diff_known) {
++            dirty = frame->dirty;
++        } else if (!frame->entered_move.is_none() && frame->entered_piece != Empty) {
++            dirty = nnue::dirty_from_move(frame->entered_move, frame->entered_piece, frame->entered_capture,
++                                           static_cast<Color>(frame->entered_side));
++        } else {
++            nnue::refresh(board, out);
++            return out.valid;
++        }
++        nnue::Accumulator next;
++        nnue::update(rolling, next, dirty);
++        rolling = next;
++    }
++    out = rolling;
++    return out.valid;
++}
++
++// prior_cp is the network's first-order change. history is the quiet-history
++// sum already written for this move. The bonus is prior_cp * scale at history
++// 0 and shrinks as |history| grows. It never leaves [-cap, cap].
++int fading_board_prior(int prior_cp, int history) {
++    const int fade = tune::IdeaB1_Fade > 0 ? tune::IdeaB1_Fade : 1;
++    const int scale = tune::IdeaB1_Scale > 0 ? tune::IdeaB1_Scale : 1;
++    const int cap = tune::IdeaB1_Cap > 0 ? tune::IdeaB1_Cap : 0;
++    const int abs_history = history < 0 ? -history : history;
++    const long long scaled = static_cast<long long>(prior_cp) * static_cast<long long>(scale) *
++                             static_cast<long long>(fade);
++    int bonus = static_cast<int>(scaled / (static_cast<long long>(fade) + abs_history));
++    if (bonus > cap) bonus = cap;
++    if (bonus < -cap) bonus = -cap;
++    return bonus;
++}
++
++// Off: ready stays false and adjust is the identity, so quiet scores stay put.
++struct BoardPriorGate {
++    nnue::QuietPrior prior{};
++    bool ready = false;
++
++    BoardPriorGate(const Board& board, const SearchStack* ss) {
++        if (!tune::IdeaB1 || ss == nullptr) return;
++        nnue::Accumulator local;
++        if (!materialise_features(board, ss, local)) return;
++        prior.prepare(board, local, tune::IdeaB1_Lanes);
++        ready = prior.ready();
++    }
++
++    [[nodiscard]] int adjust(const Board& board, Move move, int history) const {
++        if (!ready) return history;
++        return history + fading_board_prior(prior.centipawns(board, move), history);
++    }
++};
++
+ // ---------------------------------------------------------------------------
+ // Move picker
+ 
+@@ -783,6 +863,7 @@ private:
+         const PieceToHistory* cont4;
+         const Board& board;
+         const Worker& worker;
++        BoardPriorGate gate;
+ 
+         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+@@ -791,11 +872,13 @@ private:
+               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
+               board(b),
+-              worker(searcher) {}
++              worker(searcher),
++              gate(b, ss) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            if (gate.ready) value = gate.adjust(board, move, value);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -927,8 +1010,10 @@ private:
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
++        const BoardPriorGate gate(board_, ss_);
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
++            if (gate.ready) score = gate.adjust(board_, move, score);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -948,9 +1033,11 @@ private:
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
++        const BoardPriorGate gate(board_, ss_);
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
++            if (gate.ready) score = gate.adjust(board_, move, score);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -987,7 +1074,12 @@ private:
+ #if FORGE_SEARCH_SPEED2
+                 score = scorer.score(move, check_squares_);
+ #else
+-                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++                score = searcher_.quiet_history(board_, ss_, move);
++                if (tune::IdeaB1) {
++                    const BoardPriorGate gate(board_, ss_);
++                    if (gate.ready) score = gate.adjust(board_, move, score);
++                }
++                score += direct_check(move) ? 12000 : 0;
+ #endif
+             }
+             push_scored(move, score);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..aea593d20 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaB1 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaB1") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,6 +415,7 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
++                             : name == "IdeaB1" ? &forge::tune::IdeaB1
+                                                         : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
