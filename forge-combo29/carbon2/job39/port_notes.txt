@@ -1,0 +1,5 @@
+# Job 39 Port Notes (one line per place where r15d + v3 differs from 6b98f217)
+# Format: [Port] file:line_in_r15d_v3 | 6b98f217 had | r15d + v3 port wrote | why
+
+[P1 K4 093] src/search.cpp:2085-2091 | `int rfp_margin = tune::RfpMargin * depth - tune::RfpImproving * improving;` | `int rfp_margin = tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening;` before `if (tune::IdeaK4) { ... rfp_margin -= tune::IdeaK4_Shrink; }` | r15d + v3 includes B4 `TtPruneV2`'s `rfp_worsening` (`RfpMargin / 3` when `tt_prune_v2_` is on and opponent fell on 1 ply); keeping `- rfp_worsening` preserves `r15d + v3` identically when `IdeaK4=false` and subtracts `IdeaK4_Shrink` from `r15d`'s actual RFP margin when `IdeaK4=true`.
+[P1 K4 093] src/search.cpp:221-228 | `parameters()` ended at `FailLowContinuationBonus` | appended `{"IdeaK4_Shrink", &IdeaK4_Shrink, 0, 200}` after `r15d`'s `packc28` (`TtCutoffHistory`) entries | `r15d` added `AspFailHighReduce`, `AspFailHighMaxReduce`, `EvalSwingMult`, `EvalSwingMax`, `TtCutoffHistory` (and `#if FORGE_PAWN_HISTORY` entries) to `tune::parameters()`.
