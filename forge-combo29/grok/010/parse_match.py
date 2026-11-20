@@ -5,7 +5,7 @@ import sys
 
 def main():
     text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-    elo = re.findall(r"Elo:\s*([+-]?[0-9.]+)\s*\+/-\s*([+-]?[0-9.]+)", text)
+    elo = re.findall(r"(?<![A-Za-z])Elo:\s*([+-]?[0-9.]+)\s*\+/-\s*([+-]?[0-9.]+)", text)
     games = re.findall(r"Games:\s*(\d+)", text)
     if not elo or not games:
         print("FAIL no result")
