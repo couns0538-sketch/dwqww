@@ -1,0 +1,11 @@
+Idea S27, seat 072. The plain engine does not do this veto. ThreatHistory (B8) is a separate option and stays off under S14.
+
+What I built
+The check option IdeaS27 defaults to false. The spin IdeaS27_DeadZone defaults to 64 (range 0 to 8192).
+Previous-move continuation is the one-ply continuation-history entry. The threat-role statistic is the threat-history table entry for quiet_threat_index, the same table B8 uses.
+A value inside +/- DeadZone has no sign. The veto fires only when both values are outside that band and the signs differ. Then the quiet-history score is only the from-to (main) history: one-ply continuation, two-ply continuation, the optional four-ply term, and the threat bonus are all left out. The ordering check bonus of 12000 is not a history term and stays.
+When the signs do not disagree, the score is today's sum. ThreatHistory still decides whether that sum includes the threat bonus. "Add them as usual" means today's formula, not a new bonus.
+The threat table stays all zeros unless something writes it. Under S14, ThreatHistory is false, so the veto would never see a nonzero threat-role value. While IdeaS27 is on, quiet-history updates also write the threat-role table. While IdeaS27 is off, that write is skipped and the search path is the one ThreatHistory already had.
+The veto is applied in quiet move ordering and in the history value used for reductions.
+
+Dead zone 64: one shallow history update is about 46 points and a depth-2 update is about 172, so a single deep update can leave the band and a one-ply flicker often stays inside it.
