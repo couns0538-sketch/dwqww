@@ -1,0 +1,31 @@
+=== JOB 39 PART P: P6_B8_078 (option `IdeaB8`) ===
+start_utc: Fri Nov 20 01:54:36 PM UTC 2026
+patch_file: P6_B8_078.patch.txt | patch_sha256: b8bf053cdd0f8c22c977a07126c7412b689bbbf8b157d15122717282a32d2a92 | port_notes_lines: 4
+  apply_against_r15d_v3                       : git apply --check -p1 PASS (0 == 0)
+  exe_path: /tmp/carbon2_job39/bld_P6_B8_078/forge | exe_sha256: b2dd50b2f5b2ae03f1eb9ce06358ad2e463c4b3767623bd75e8304367ca84e37 | id name Chess Engine Forge 6.4.24 candidate
+
+--- 1. Switch OFF Verification (Default Off & `IdeaB8=false`) ---
+[P6_B8_078_off] exe=/tmp/carbon2_job39/bld_P6_B8_078/forge | sha256=b2dd50b2f5b2ae03f1eb9ce06358ad2e463c4b3767623bd75e8304367ca84e37 | id name Chess Engine Forge 6.4.24 candidate
+  P6_B8_078_off no-option bench 11            : PASS (312866 == 312866)
+  P6_B8_078_off no-option bench 13            : PASS (862329 == 862329)
+  P6_B8_078_off no-option perft 5             : PASS (4865609 == 4865609)
+  P6_B8_078_off PC20 bench 11                 : PASS (278024 == 278024)
+  P6_B8_078_off PC20 bench 13                 : PASS (587276 == 587276)
+  P6_B8_078_off Set A line L records          : PASS (26741 == 26741)
+  P6_B8_078_off Set A line L nodes            : PASS (107124743 == 107124743)
+  P6_B8_078_off Set A line L sha256           : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  P6_B8_078_off n[1..60] line L records       : PASS (8449 == 8449)
+  P6_B8_078_off n[1..60] line L searches      : PASS (8482 == 8482)
+  P6_B8_078_off n[1..60] line L nodes         : PASS (36688357 == 36688357)
+  P6_B8_078_off n[1..60] line L sha256        : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  P6_B8_078_off O d12 sum vs Step0 OFF        : PASS (8315168 == 8315168)
+  P6_B8_078_off O d12 differing positions     : PASS (0 == 0)
+
+--- 2. Switch ON (`setoption name IdeaB8 value true`, PC20, built-in evaluation) ---
+  P6_B8_078 ON O d12 (200 FENs)  : sum_nodes=8262696 (off=8315168, delta=-52472) | positions_differ=200/200 (nodes_differ=200/200)
+  P6_B8_078 ON G d12 (353 FENs)  : sum_nodes=17342378 (off=17611204, delta=-268826) | positions_differ=282/353 (nodes_differ=282/353)
+  P6_B8_078 ON Set A line L      : attempts=200 finished=200 thrown=0 records=25818 searches=25946 nodes=105263539
+  P6_B8_078 ON Set A line L sha256: 36da9820f07dd4e851b8ef64a253b011969c6d9e39f2cd5c380541ef208b7da8
+
+P6_B8_078 OVERALL: PASS (1 == 1)
+done_utc: Fri Nov 20 01:56:21 PM UTC 2026

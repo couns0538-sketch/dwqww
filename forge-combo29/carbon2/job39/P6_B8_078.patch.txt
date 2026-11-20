@@ -1,0 +1,425 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -299,11 +299,14 @@
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int IdeaB8_Weight;            // threat-role history added to a quiet, in 1/1024 of the stored value
++extern int IdeaB8_Swing;             // centipawns of eval gain that count as the threat being answered
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool IdeaB8;                  // threat-role memory (false = off; off keeps today's search path)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -394,6 +397,10 @@
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
++// [side][victim piece type 0..6][attacker piece type 0..6][role 0..4].
++// Roles: 0 the attacked piece steps away, 1 another piece blocks, 2 the quiet
++// attacks the attacker, 3 the quiet attacks a dearer enemy piece, 4 none.
++using ThreatRoleHistory = std::array<std::array<std::array<std::array<std::int16_t, 5>, 7>, 7>, 2>;
+ // forge/r15: the pawn-structure history is compiled in only with -DFORGE_PAWN_HISTORY=1. Compiled out (the default)
+ // its table is not allocated, its reads and updates are not in the code and its four tunables are not offered.
+ // Reason: with the tunable off the engine was about 2 % slower than without the code (timing t4, 2026-11-15:
+@@ -454,6 +461,9 @@
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+     mutable std::uint64_t corr_mat_mix = 0;
+     mutable std::uint8_t corr_valid = 0;
++    // Set in the visit that wrote static_eval. Read only when IdeaB8 is on,
++    // so a stale flag cannot change the default search.
++    bool role_eval_ready = false;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -499,6 +509,15 @@
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
++    std::unique_ptr<ThreatRoleHistory> threat_role_history_;
++    mutable bool threat_role_cached_ = false;
++    mutable std::uint64_t threat_role_key_ = 0;
++    mutable bool threat_role_present_ = false;
++    mutable int threat_role_victim_sq_ = 0;
++    mutable int threat_role_attacker_sq_ = 0;
++    mutable int threat_role_victim_type_ = 0;
++    mutable int threat_role_attacker_type_ = 0;
++    mutable int threat_role_victim_value_ = 0;
+     std::unique_ptr<PawnHistoryTable> pawn_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+@@ -604,6 +623,10 @@
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
++    [[nodiscard]] int threat_role_bonus(const Board& board, Move move) const;
++    void update_threat_role(const Board& board, Move move, int bonus);
++    void note_threat_swing(const Board& board, SearchStack* ss, Move move, int depth);
++    void ensure_role_threat(const Board& board) const;
+     [[nodiscard]] int pawn_history_value(const Board& board, Piece piece, Move move) const;
+     void update_pawn_history(const Board& board, Piece piece, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -147,6 +147,8 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int IdeaB8_Weight = 1024;
++int IdeaB8_Swing = 48;
+ // packc28 (ported into forge/r12 on 2026-11-15, see forge/tools/make_r12_e.py): three ideas, all 0 = off.
+ int AspFailHighReduce = 0;      // 1: after a root fail-high the re-search is one ply shallower per fail-high in a row
+ int AspFailHighMaxReduce = 3;   //    ... by at most this many plies
+@@ -163,6 +165,7 @@
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool IdeaB8 = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -221,6 +224,8 @@
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
++        {"IdeaB8_Weight", &IdeaB8_Weight, 0, 4096},
++        {"IdeaB8_Swing", &IdeaB8_Swing, 0, 500},
+ #if FORGE_PAWN_HISTORY
+         {"PawnHistory", &PawnHistory, 0, 1},                     {"PawnHistoryBits", &PawnHistoryBits, 9, 13},
+         {"PawnHistoryWeight", &PawnHistoryWeight, 0, 200},       {"PawnHistoryPvBonus", &PawnHistoryPvBonus, 0, 1},
+@@ -934,6 +939,7 @@
+             if (cont2 != nullptr) value += (*cont2)[p][move.to];
+             if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
+             if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
++            if (tune::IdeaB8) [[unlikely]] value += worker.threat_role_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+ #endif
+@@ -1194,6 +1200,7 @@
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
++      threat_role_history_(std::make_unique<ThreatRoleHistory>()),
+ #if FORGE_PAWN_HISTORY
+       pawn_history_(std::make_unique<PawnHistoryTable>()),
+ #else
+@@ -1219,6 +1226,8 @@
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
++    *threat_role_history_ = ThreatRoleHistory{};
++    threat_role_cached_ = false;
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+@@ -1622,6 +1631,7 @@
+         }
+     }
+     if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
++    if (tune::IdeaB8) [[unlikely]] score += threat_role_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+     score += pawn_history_value(board, piece, move);
+ #endif
+@@ -1696,6 +1706,166 @@
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+ 
++namespace {
++
++// One cheaper-attacker threat in the position. The victim is the dearest of our
++// pieces that a cheaper enemy piece attacks. The attacker is the cheapest such
++// piece, lowest square on a tie. Kings are not attackers (SEE prices a king at 0)
++// and pawns are not victims (nothing material is cheaper than a pawn).
++struct RoleThreat {
++    bool present = false;
++    int victim_sq = 0;
++    int attacker_sq = 0;
++    int victim_type = 0;
++    int attacker_type = 0;
++    int victim_value = 0;
++};
++
++[[nodiscard]] Bitboard attacks_after_quiet(const Board& board, Move move) {
++    const int mover = piece_type(board.piece_at(move.from));
++    const Bitboard occ = board.occupied() ^ square_bb(move.from);
++    const Color us = board.side_to_move();
++    if (mover == Pawn) return attacks::pawn(us, move.to);
++    if (mover == Knight) return attacks::knight(move.to);
++    if (mover == Bishop) return attacks::bishop(move.to, occ);
++    if (mover == Rook) return attacks::rook(move.to, occ);
++    if (mover == Queen) return attacks::queen(move.to, occ);
++    if (mover == King) return attacks::king(move.to);
++    return 0;
++}
++
++[[nodiscard]] RoleThreat find_role_threat(const Board& board) {
++    RoleThreat best;
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const Bitboard enemy = board.occupied(them);
++    for (int type = Knight; type <= Queen; ++type) {
++        const int victim_value = SeePieceValue[static_cast<std::size_t>(type)];
++        Bitboard ours = board.pieces(us, static_cast<PieceType>(type));
++        while (ours != 0) {
++            const int square = pop_lsb(ours);
++            Bitboard hits = board.attackers_to(square) & enemy;
++            int cheap_sq = -1;
++            int cheap_value = 0;
++            int cheap_type = 0;
++            while (hits != 0) {
++                const int from = pop_lsb(hits);
++                const int attacker_type = piece_type(board.piece_at(from));
++                const int attacker_value = SeePieceValue[static_cast<std::size_t>(attacker_type)];
++                if (attacker_value <= 0 || attacker_value >= victim_value) continue;
++                if (cheap_sq < 0 || attacker_value < cheap_value ||
++                    (attacker_value == cheap_value && from < cheap_sq)) {
++                    cheap_sq = from;
++                    cheap_value = attacker_value;
++                    cheap_type = attacker_type;
++                }
++            }
++            if (cheap_sq < 0) continue;
++            if (!best.present || victim_value > best.victim_value ||
++                (victim_value == best.victim_value && square < best.victim_sq)) {
++                best.present = true;
++                best.victim_sq = square;
++                best.attacker_sq = cheap_sq;
++                best.victim_type = type;
++                best.attacker_type = cheap_type;
++                best.victim_value = victim_value;
++            }
++        }
++    }
++    return best;
++}
++
++// One role per quiet. First match wins: step away, block a slider, attack the
++// attacker, attack a dearer enemy piece, otherwise none. This engine has no
++// piece-value bonus for stepping off an attacked square, so there is nothing
++// to subtract; the step-away role is only a learned bucket.
++[[nodiscard]] int quiet_threat_role(const Board& board, Move move, const RoleThreat& threat) {
++    if (!threat.present) return -1;
++    if (move.from == threat.victim_sq) return 0;
++    if (threat.attacker_type == Bishop || threat.attacker_type == Rook || threat.attacker_type == Queen) {
++        if ((attacks::between(threat.attacker_sq, threat.victim_sq) & square_bb(move.to)) != 0) return 1;
++    }
++    const Bitboard hits = attacks_after_quiet(board, move);
++    if ((hits & square_bb(threat.attacker_sq)) != 0) return 2;
++    const Color them = opposite(board.side_to_move());
++    for (int type = Queen; type >= Knight; --type) {
++        if (SeePieceValue[static_cast<std::size_t>(type)] <= threat.victim_value) break;
++        if ((hits & board.pieces(them, static_cast<PieceType>(type))) != 0) return 3;
++    }
++    return 4;
++}
++
++[[nodiscard]] RoleThreat cached_role_threat(bool present, int victim_sq, int attacker_sq, int victim_type,
++                                            int attacker_type, int victim_value) {
++    RoleThreat threat;
++    threat.present = present;
++    threat.victim_sq = victim_sq;
++    threat.attacker_sq = attacker_sq;
++    threat.victim_type = victim_type;
++    threat.attacker_type = attacker_type;
++    threat.victim_value = victim_value;
++    return threat;
++}
++
++} // namespace
++
++void Worker::ensure_role_threat(const Board& board) const {
++    if (threat_role_cached_ && threat_role_key_ == board.key()) return;
++    const RoleThreat threat = find_role_threat(board);
++    threat_role_cached_ = true;
++    threat_role_key_ = board.key();
++    threat_role_present_ = threat.present;
++    threat_role_victim_sq_ = threat.victim_sq;
++    threat_role_attacker_sq_ = threat.attacker_sq;
++    threat_role_victim_type_ = threat.victim_type;
++    threat_role_attacker_type_ = threat.attacker_type;
++    threat_role_victim_value_ = threat.victim_value;
++}
++
++int Worker::threat_role_bonus(const Board& board, Move move) const {
++    if (!tune::IdeaB8) return 0;
++    ensure_role_threat(board);
++    if (!threat_role_present_) return 0;
++    const RoleThreat threat = cached_role_threat(threat_role_present_, threat_role_victim_sq_, threat_role_attacker_sq_,
++                                                 threat_role_victim_type_, threat_role_attacker_type_,
++                                                 threat_role_victim_value_);
++    const int role = quiet_threat_role(board, move, threat);
++    if (role < 0 || role > 4) return 0;
++    if (threat.victim_type < 0 || threat.victim_type > 6 || threat.attacker_type < 0 || threat.attacker_type > 6) return 0;
++    const int raw = (*threat_role_history_)[static_cast<std::size_t>(board.side_to_move())]
++                                           [static_cast<std::size_t>(threat.victim_type)]
++                                           [static_cast<std::size_t>(threat.attacker_type)]
++                                           [static_cast<std::size_t>(role)];
++    return raw * tune::IdeaB8_Weight / 1024;
++}
++
++void Worker::update_threat_role(const Board& board, Move move, int bonus) {
++    if (!tune::IdeaB8 || move.is_capture() || move.is_promotion()) return;
++    ensure_role_threat(board);
++    if (!threat_role_present_) return;
++    const RoleThreat threat = cached_role_threat(threat_role_present_, threat_role_victim_sq_, threat_role_attacker_sq_,
++                                                 threat_role_victim_type_, threat_role_attacker_type_,
++                                                 threat_role_victim_value_);
++    const int role = quiet_threat_role(board, move, threat);
++    if (role < 0 || role > 4) return;
++    if (threat.victim_type < 0 || threat.victim_type > 6 || threat.attacker_type < 0 || threat.attacker_type > 6) return;
++    apply_history((*threat_role_history_)[static_cast<std::size_t>(board.side_to_move())]
++                                         [static_cast<std::size_t>(threat.victim_type)]
++                                         [static_cast<std::size_t>(threat.attacker_type)]
++                                         [static_cast<std::size_t>(role)],
++                  bonus);
++}
++
++void Worker::note_threat_swing(const Board& board, SearchStack* ss, Move move, int depth) {
++    if (!tune::IdeaB8) return;
++    if (!(ss + 1)->role_eval_ready) return;
++    if (ss->static_eval == ValueNone || (ss + 1)->static_eval == ValueNone) return;
++    // The child score is from the opponent's side. A drop there is a gain for us.
++    const int gained = -(ss + 1)->static_eval - ss->static_eval;
++    if (gained < tune::IdeaB8_Swing) return;
++    update_threat_role(board, move, history_bonus(std::max(1, depth)) / 2);
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1726,6 +1896,7 @@
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_threat_quiet(board, move, bonus);
++    if (tune::IdeaB8) update_threat_role(board, move, bonus);
+ #if FORGE_PAWN_HISTORY
+     update_pawn_history(board, piece, move, bonus);
+ #endif
+@@ -1735,6 +1906,7 @@
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_threat_quiet(board, quiet, -bonus);
++        if (tune::IdeaB8) update_threat_role(board, quiet, -bonus);
+ #if FORGE_PAWN_HISTORY
+         update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);
+ #endif
+@@ -1764,6 +1936,7 @@
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++    if (tune::IdeaB8) ss->role_eval_ready = false;
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+@@ -1812,12 +1985,14 @@
+     int futility_base;
+     if (in_check) {
+         ss->static_eval = ValueNone;
++        if (tune::IdeaB8) ss->role_eval_ready = true;
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
++        if (tune::IdeaB8) ss->role_eval_ready = true;
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1906,6 +2081,7 @@
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if (tune::IdeaB8) ss->role_eval_ready = false;
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+@@ -2014,13 +2190,16 @@
+     int eval;
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
++        if (tune::IdeaB8) ss->role_eval_ready = true;
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
++        if (tune::IdeaB8) ss->role_eval_ready = true;
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else if (reuse_raw) ss->raw_eval = reused_raw;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
++        if (tune::IdeaB8) ss->role_eval_ready = true;
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -2452,6 +2631,7 @@
+         }
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
++        if (tune::IdeaB8 && quiet) note_threat_swing(board, ss, move, depth);
+ #if FORGE_FIX_ABORT_PUBLISH
+         if (root_node && move == root_prev_best_) root_prev_best_done_ = true;
+ #endif
+@@ -2500,6 +2680,7 @@
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
++        if (tune::IdeaB8) update_threat_role(board, best_move, history_bonus(depth) / 4);
+ #if FORGE_PAWN_HISTORY
+         if (tune::PawnHistoryPvBonus != 0) {
+             update_pawn_history(board, board.moved_piece(best_move), best_move, history_bonus(depth) / 4);
+@@ -2545,6 +2726,7 @@
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if (tune::IdeaB8) ss->role_eval_ready = false;
+     if (tune::CuckooRep) {
+         constexpr int DrawScore = 0;
+         if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
+@@ -2557,6 +2739,7 @@
+ }
+ 
+ int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
++    if (tune::IdeaB8) ss->role_eval_ready = false;
+     if (tune::CuckooRep) {
+         constexpr int DrawScore = 0;
+         if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+@@ -2568,6 +2751,7 @@
+ }
+ 
+ int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if (tune::IdeaB8) ss->role_eval_ready = false;
+     constexpr int DrawScore = 0;
+     // depth <= 0 goes on to qsearch_cuckoo through search(), which applies the bound there; the root, and the
+     // singular verification search of a node (excluded move set), are left alone.
+@@ -2580,6 +2764,7 @@
+ }
+ 
+ int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
++    if (tune::IdeaB8) ss->role_eval_ready = false;
+     constexpr int DrawScore = 0;
+     if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+         if (beta <= DrawScore) return DrawScore;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -756,6 +756,7 @@
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name IdeaB8 type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -967,6 +968,9 @@
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "IdeaB8") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaB8 = value_text == "true";
++                else note_invalid();
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
