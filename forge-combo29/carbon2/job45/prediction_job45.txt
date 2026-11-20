@@ -1,0 +1,27 @@
+=== CARBON2 JOB 45 PREDICTION (committed ALONE before M10's first game) ===
+stamp_utc: Fri Nov 20 07:57:29 PM UTC 2026
+
+(1) Part M10 — IdeaB8b's Elo on top of HindsightDepth (`IdeaB8b=true + HindsightDepth=true` vs
+    `HindsightDepth=true` alone, 4,000 games / 2,000 pairs at `nodes=20000`, `PC20`, built-in evaluation,
+    `bundle8` build `/tmp/carbon2_job45/bld_bundle8/forge`, UHO book lines `2,013,501..2,015,500`):
+    Point prediction : +4.0 Elo (for Side A = IdeaB8b + HindsightDepth on)
+    Predicted range  : [-4.5, +12.5] Elo (any result < -4.5 Elo or > +12.5 Elo proves this prediction wrong)
+    Reasoning        : At `nodes=20000`, `M6 + M6b` (`IdeaB8b + HindsightDepth` vs `all_off`, 6,000 games) measured
+                       `+9.96 +/- 5.83` Elo, while `M4` (`HindsightDepth` alone vs `all_off`, 2,000 games) measured
+                       `+13.73 +/- 10.34` Elo and `M3` (`IdeaB8b` alone vs `all_off`, 2,000 games) measured
+                       `+8.69 +/- 10.21` Elo. Accounting for selection shrinkage on `M4` (~+6 Elo true effect) and
+                       partial sub-additivity between `ThreatRoleHistoryB` quiet ordering/LMR history and
+                       `HindsightDepth`'s off-PV LMR step, `IdeaB8b`'s true marginal gain on top of `HindsightDepth`
+                       should be ~+4.0 Elo (with 4,000-game 95% bar ~+/- 7.1 Elo, so `[-4.5, +12.5]` spans ~2.3 SDs).
+
+(2) Part P10 — `(IdeaB8b + IdeaB8b_Fast) / (IdeaB8b alone)` time per 1,000 nodes on `O` (200 FENs, depth 12,
+    `PC20`, built-in evaluation, pinned core 1, forward + reverse paired means):
+    Point prediction : 0.962
+    Predicted range  : [0.945, 0.988] (any ratio < 0.945 or > 0.988 proves this prediction wrong)
+    Reasoning        : In Job 43 `P9d`, `IdeaB8b` alone cost `0.554719` ms / 1,000 nodes vs `all_off` `0.520901` ms /
+                       1,000 nodes (`+6.49%` overhead), nearly identical to `IdeaB8` alone (`+6.88%`), where the 3-part
+                       fast path (`QuietScorer` constructor hoist + 256-slot `Worker` cache + value-tiered bitmask
+                       threat finder) achieved `0.959944` (`62.25%` of overhead cut). `IdeaB8b` also includes `King`
+                       victims when in check and is read in `Worker::quiet_history` as well as `QuietScorer::score`,
+                       both of which benefit directly from the 256-slot cache and bitmask `role_b8b_fast`, yielding
+                       an expected ratio of ~0.962 inside `[0.945, 0.988]`.
