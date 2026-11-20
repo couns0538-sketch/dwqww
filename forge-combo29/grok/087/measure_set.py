@@ -25,7 +25,14 @@ S14 = [
 ]
 
 
+RAW_PATH = None
+RAW = []
+
+
 def die(msg):
+    if RAW_PATH is not None:
+        with open(RAW_PATH, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(RAW) + "\n")
     sys.stderr.write(msg + "\n")
     sys.exit(2)
 
@@ -55,7 +62,10 @@ def main():
         text=True,
         bufsize=1,
     )
-    raw = []
+    global RAW_PATH, RAW
+    RAW_PATH = raw_path
+    RAW = []
+    raw = RAW
     option_lines = []
 
     def send(line):

@@ -1,0 +1,19 @@
+Idea 37 is IdeaA6. The plain engine already does it.
+
+EXISTS: forge-combo29/src/search.cpp:1951
+When the singular search fails high, the TT move is not singular: some other move
+also beat the singular bound. The engine then returns early if that bound is at
+least beta, and otherwise applies a negative extension: -2 when the stored score
+is at least beta (search.cpp:1951), or -1 on a cut node (search.cpp:1953).
+Those two numbers were literals. SingularDepth and SingularMargin were already
+options; the extension amounts were not.
+
+What I built: check option IdeaA6, default false. Spin options IdeaA6_FailHigh
+default -2 (min -6 max 2) and IdeaA6_Cut default -1 (min -6 max 2). With the
+check false the search uses the literals -2 and -1, so a changed spin cannot
+move the off path. With the check true the search uses the two spins.
+
+Switch true at the default spins therefore assigns the same extensions as today.
+That is why the O depth-12 rows match exe B (0 of 200). It is not a dead option:
+the same switch with IdeaA6_FailHigh 0 and IdeaA6_Cut 0 changes all 200 rows
+(sum 11912888 against 9500069).
