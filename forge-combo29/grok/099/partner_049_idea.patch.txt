@@ -1,0 +1,82 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..fa044df7b 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,9 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaK10;                  // +1 ply for a quiet hash move with very high continuation history (false = off)
++extern int IdeaK10_MinDepth;          // remaining depth at which IdeaK10 may add a ply
++extern int IdeaK10_Threshold;         // continuation-history sum (two plies back) required by IdeaK10
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..2ca4e09fe 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,10 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++// IdeaK10 is off by default. The two spins are read only while it is on.
++bool IdeaK10 = false;
++int IdeaK10_MinDepth = 8;
++int IdeaK10_Threshold = 3072;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -1956,6 +1960,22 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+         }
++        // IdeaK10: one extra ply for a quiet hash move whose continuation history
++        // (the two plies behind this node, not the main-history row) is very high,
++        // once the remaining depth is at least IdeaK10_MinDepth. The switch is read
++        // first, so those tables are not touched when the option is off. A move that
++        // already has a positive extension already received its extra ply.
++        if (tune::IdeaK10 && extension <= 0 && mate_moves_ == 0 && !root_node &&
++            depth >= tune::IdeaK10_MinDepth && move == tt_move && quiet && excluded.is_none()) {
++            int cont = 0;
++            if ((ss - 1)->continuation != nullptr) {
++                cont += (*(ss - 1)->continuation)[static_cast<std::size_t>(moved)][move.to];
++            }
++            if ((ss - 2)->continuation != nullptr) {
++                cont += (*(ss - 2)->continuation)[static_cast<std::size_t>(moved)][move.to];
++            }
++            if (cont >= tune::IdeaK10_Threshold) ++extension;
++        }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
+ 
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..70ccaf3c5 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,10 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaK10 type check default false\n"
++                         "option name IdeaK10_MinDepth type spin default 8 min 1 max 64\n"
++                         "option name IdeaK10_Threshold type spin default 3072 min 0 max 32767\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -471,6 +474,13 @@ int uci_loop(std::istream& in) {
+                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
+             } else if (name == "DrawJitter") {
+                 apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::set_draw_jitter(clamped, searcher); });
++            } else if (name == "IdeaK10") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK10 = value_text == "true";
++                else note_invalid();
++            } else if (name == "IdeaK10_MinDepth") {
++                apply_spin(1, 64, [&](int clamped) { forge::tune::IdeaK10_MinDepth = clamped; });
++            } else if (name == "IdeaK10_Threshold") {
++                apply_spin(0, 32767, [&](int clamped) { forge::tune::IdeaK10_Threshold = clamped; });
+             } else {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string unknown option " << name << std::endl;

@@ -1,0 +1,113 @@
+----- step table -----
+step	status	evidence	result
+1 seat	done	SEAT.txt stamps.txt	seat 099, idea 49, model Grok 4.7, 2026-11-20T07:55:29Z, token 57972632320751
+2 builds and baseline	done	HONESTY_B.txt B_sums.txt	file	positions	sum	first3 | forge-combo29/grok/099/B_O_d12.rows.txt	200	9500069	41311/24872/28574 | forge-combo29/grok/099/B_G_d12.rows.txt	353	18466239	37203/70845/144383 |
+3 idea	done	idea.patch.txt compare_on_O.txt match_result.txt san_G100_d10.san.txt	off differ 0; on differ 198; Elo: -6.60 +/- 9.55, nElo: -14.16 +/- 20.48; Games: 1106, Wins: 320, Losses: 341, Draws: 445, Points: 542.5 (49.05 %)
+4 partner 049	done	partner_compare_on.txt partner_match_result.txt	CONFIRMS; differ 0; Elo: -9.85 +/- 10.29, nElo: -26.62 +/- 27.80; Games: 600, Wins: 256, Losses: 273, Draws: 71, Points: 291.5 (48.58 %)
+5 report	done	REPORT.md RESULT.txt	this file
+
+----- B_sums.txt -----
+file	positions	sum	first3
+forge-combo29/grok/099/B_O_d12.rows.txt	200	9500069	41311/24872/28574
+forge-combo29/grok/099/B_G_d12.rows.txt	353	18466239	37203/70845/144383
+
+----- P_sums.txt -----
+file	positions	sum	first3
+forge-combo29/grok/099/P_on_O_d12.rows.txt	200	16294055	80821/53410/29950
+forge-combo29/grok/099/P_off_O_d12.rows.txt	200	9500069	41311/24872/28574
+forge-combo29/grok/099/P_off_G_d12.rows.txt	353	18466239	37203/70845/144383
+
+----- compare_off_O.txt -----
+left forge-combo29/grok/099/B_O_d12.rows.txt n=200
+right forge-combo29/grok/099/P_off_O_d12.rows.txt n=200
+compared 200
+equal 200
+differ 0
+
+----- compare_off_G.txt -----
+left forge-combo29/grok/099/B_G_d12.rows.txt n=353
+right forge-combo29/grok/099/P_off_G_d12.rows.txt n=353
+compared 353
+equal 353
+differ 0
+
+----- compare_on_O.txt -----
+left forge-combo29/grok/099/B_O_d12.rows.txt n=200
+right forge-combo29/grok/099/P_on_O_d12.rows.txt n=200
+compared 200
+equal 2
+differ 198
+pos 0 left 41311 f1e2 right 80821 f1e2
+pos 1 left 24872 f1c4 right 53410 f1c4
+pos 2 left 28574 e5d4 right 29950 e5d4
+pos 3 left 27838 e1g1 right 45810 e1g1
+pos 4 left 18020 c8e6 right 43177 c8e6
+pos 5 left 43043 g1f3 right 31420 g1f3
+pos 6 left 56414 d2d4 right 117246 d2d4
+pos 7 left 32317 g1f3 right 39067 g1f3
+pos 8 left 37995 f1d3 right 41056 f1d3
+pos 9 left 53959 c5b4 right 98104 c5b6
+pos 10 left 26257 d5e6 right 127732 d5e6
+pos 11 left 58746 h2h3 right 160763 h2h3
+
+----- match_result.txt -----
+Results of on vs off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -6.60 +/- 9.55, nElo: -14.16 +/- 20.48
+LOS: 8.77 %, DrawRatio: 66.18 %, PairsRatio: 0.82
+Games: 1106, Wins: 320, Losses: 341, Draws: 445, Points: 542.5 (49.05 %)
+Ptnml(0-2): [10, 93, 366, 76, 8], WL/DD Ratio: 1.65
+--------------------------------------------------
+Finished match
+result_headers 56
+started_games 1106
+
+----- partner_compare_off.txt -----
+left forge-combo29/grok/099/B_O_d12.rows.txt n=200 sum=9500069
+right forge-combo29/grok/099/partner_off_O.rows.txt n=200 sum=9500069
+compared 200
+equal 200
+differ 0
+
+----- partner_compare_on.txt -----
+left forge-combo29/grok/099/partner_049_o_on.nodes n=200 sum=31066517
+right forge-combo29/grok/099/partner_on_O.rows.txt n=200 sum=31066517
+compared 200
+equal 200
+differ 0
+
+----- partner_compare_off_G.txt -----
+left forge-combo29/grok/099/B_G_d12.rows.txt n=353 sum=18466239
+right forge-combo29/grok/099/partner_off_G.rows.txt n=353 sum=18466239
+compared 353
+equal 353
+differ 0
+
+----- partner_match_result.txt -----
+Results of on vs off (20000 nodes, 1t, 16MB, R.epd):
+Elo: -9.85 +/- 10.29, nElo: -26.62 +/- 27.80
+LOS: 3.03 %, DrawRatio: 81.33 %, PairsRatio: 0.65
+Games: 600, Wins: 256, Losses: 273, Draws: 71, Points: 291.5 (48.58 %)
+Ptnml(0-2): [7, 27, 244, 20, 2], WL/DD Ratio: 19.33
+--------------------------------------------------
+Finished match
+result_headers 31
+started_games 600
+
+----- partner_apply_check.txt -----
+APPLY_CHECK_OK
+
+----- equal positions B_O_d12.rows.txt vs P_on_O_d12.rows.txt -----
+n 200 equal 2 indices [30, 129]
+
+----- san_G100 meta lines -----
+exe: /tmp/forge-asan/forge
+nm -C | grep -c __asan_: 35
+sanitizer lines: 0
+----- scratch sanitizer lines -----
+/tmp/applybase/forge-combo29/src/uci.cpp:48:26: runtime error: load of address 0x5020000000d0 with insufficient space for an object of type 'int'
+==5923==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000d0 at pc 0x561ede028fd7 bp 0x7fff5b0e1730 sp 0x7fff5b0e1720
+SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/applybase/forge-combo29/src/uci.cpp:48 in apply_position
+----- uci options -----
+option name IdeaK10 type check default false
+option name IdeaK10_MinDepth type spin default 8 min 1 max 64
+option name IdeaK10_Threshold type spin default 12000 min -32768 max 32767
