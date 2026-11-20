@@ -1,0 +1,12 @@
+Idea S13. Option IdeaS13, type check, default false.
+The plain engine does not do this. ThreatHistory is a second quiet history keyed by a cheaper enemy attacker. Continuation history is not limited to a quiet piece move that is later followed by a pawn move, with the pawn structure unchanged, that raised the score.
+
+When IdeaS13 is on:
+A pawn move whose search score is above the alpha the node had at the start of the move loop is treated as a pawn move that raised the score. That includes a fail-high, because beta is above that alpha.
+Look back IdeaS13_Window plies (default 4), two plies at a time, so the earlier moves are this side's own moves.
+Credit a move only when it is a quiet non-pawn move and the pawn key of the position after that move equals the pawn key before the pawn move.
+The credit is a separate from-to history. It is added when quiet moves are ordered. It can remove up to IdeaS13_LmrCap plies of reduction (default 1), with IdeaS13_LmrDivisor history points per ply (default 4096). It is not added to the static evaluation, and it is not part of the history value used for history pruning.
+Window 4 is one and two of our earlier moves, which is "a few plies".
+The cap of one ply keeps the reduction change small. Ordering changes as soon as an entry is non-zero.
+
+When IdeaS13 is off the bonus function returns 0 before it reads the table, the credit function returns immediately, the pawn key is not stored, and the reduction block is not entered.
