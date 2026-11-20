@@ -1,0 +1,160 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..e6c336e9c 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,8 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaA2;                  // off-PV, blend a non-mate fail-high toward beta (false = off)
++extern int IdeaA2_MinDepth;          // IdeaA2 applies at this depth and deeper
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..267f06505 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,8 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaA2 = false;
++int IdeaA2_MinDepth = 2;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaA2_MinDepth", &IdeaA2_MinDepth, 1, 64},
+     };
+     return table;
+ }
+@@ -1548,6 +1551,15 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ // ---------------------------------------------------------------------------
+ // Main alpha-beta search
+ 
++// Off the principal line, a fail-high that is not a mate is a lower bound, not
++// a true score. Return (score * depth + beta) / (depth + 1), which stays at
++// least beta. The flag is read first: when it is off this returns score.
++[[nodiscard]] int idea_a2_score(int score, int beta, int depth, bool pv_node) {
++    if (!tune::IdeaA2 || pv_node || depth < tune::IdeaA2_MinDepth || score < beta || is_mate_score(score))
++        return score;
++    return static_cast<int>((static_cast<long long>(score) * depth + beta) / (depth + 1));
++}
++
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+@@ -1571,7 +1583,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) return idea_a2_score(alpha, beta, depth, pv_node);
+     }
+ 
+     const bool in_check = board.in_check();
+@@ -1688,7 +1700,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return idea_a2_score(eval, beta, depth, pv_node);
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -1724,7 +1736,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return idea_a2_score(null_score, beta, depth, pv_node);
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+                 // confirmation also refuses null moves in that whole search.
+@@ -1738,7 +1750,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return idea_a2_score(null_score, beta, depth, pv_node);
+                 }
+             }
+         }
+@@ -1769,12 +1781,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++                    const int returned = idea_a2_score(value, beta, depth, pv_node);
+ #if FORGE_SPD_TT_NOTLS
+-                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    store_tt(tt_probe, board.key(), score_to_tt(returned, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+-                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    shared_.tt.store(tt_probe, board.key(), score_to_tt(returned, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+-                    return value;
++                    return returned;
+                 }
+             }
+         }
+@@ -2089,23 +2102,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+     }
+ 
+-    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++    const int reported = idea_a2_score(best_score, beta, depth, pv_node);
++    const Bound bound = reported >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+-        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++        store_tt(tt_probe, board.key(), score_to_tt(reported, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ #else
+-        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++        shared_.tt.store(tt_probe, board.key(), score_to_tt(reported, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ #endif
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+-    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
++    if (!in_check && excluded.is_none() && !is_mate_score(reported) &&
+         (best_move.is_none() || !best_move.is_capture()) &&
+-        !(bound == BoundLower && best_score <= ss->static_eval) &&
+-        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+-        update_correction(board, depth, best_score, ss->static_eval);
++        !(bound == BoundLower && reported <= ss->static_eval) &&
++        !(bound == BoundUpper && reported >= ss->static_eval)) {
++        update_correction(board, depth, reported, ss->static_eval);
+     }
+-    return best_score;
++    return reported;
+ }
+ 
+ namespace {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..ca1f3f129 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaA2 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -459,6 +460,9 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "IdeaA2") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA2 = value_text == "true";
++                else note_invalid();
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
