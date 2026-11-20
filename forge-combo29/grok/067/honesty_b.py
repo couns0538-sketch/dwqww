@@ -5,8 +5,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXE = Path("/tmp/forge-base/forge")
 OUT = Path(__file__).resolve().parent
+EXE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/forge-base/forge")
+TAG = sys.argv[2] if len(sys.argv) > 2 else "B"
 EXPECT = {
     "bench11": ("bench 11", 312866),
     "bench13": ("bench 13", 862329),
@@ -62,7 +63,7 @@ def main() -> None:
     failed = False
     for key, (command, expected) in EXPECT.items():
         text = run(command)
-        (OUT / f"{key}.txt").write_text(text)
+        (OUT / f"{TAG}_{key}.txt").write_text(text)
         meta = (
             f"exe={EXE}\n"
             f"sha256={digest}\n"
@@ -70,17 +71,17 @@ def main() -> None:
             f"command={command}\n"
             "options=\n"
         )
-        (OUT / f"{key}.meta").write_text(meta)
+        (OUT / f"{TAG}_{key}.meta").write_text(meta)
         got = nodes_of(key, text)
         ok = got == expected
         failed = failed or not ok
         rows.append((command, expected, got, "ok" if ok else "MISMATCH"))
-    lines = ["honesty exe B", f"exe={EXE}", f"sha256={digest}", f"id_name={name}", "setoption=none"]
+    lines = [f"honesty exe {TAG}", f"exe={EXE}", f"sha256={digest}", f"id_name={name}", "setoption=none"]
     for command, expected, got, status in rows:
         lines.append(f"{command} expected {expected} got {got} {status}")
     lines.append("FAIL" if failed else "PASS")
     text = "\n".join(lines) + "\n"
-    (OUT / "HONESTY_B.txt").write_text(text)
+    (OUT / f"HONESTY_{TAG}.txt").write_text(text)
     sys.stdout.write(text)
     if failed:
         raise SystemExit(1)

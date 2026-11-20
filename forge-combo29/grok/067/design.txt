@@ -1,0 +1,22 @@
+IdeaS15, seat 067. The plain engine does not do this. No EXISTS line.
+
+What it does: option IdeaS15, check, default false. Spin IdeaS15_MinPieces, default 8, range 2 to 32.
+With the check false, the new predicate is not called and the reduction is unchanged.
+
+With the check true, after the usual late-move reduction is computed and only if that reduction is still positive:
+a rook move is searched at full depth (reduction forced to 0, no extra extension) when all of these hold
+on the position before the move:
+- no queen, bishop or knight is on the board (kings, rooks and pawns only)
+- popcount of occupied squares is at least IdeaS15_MinPieces (kings count)
+- the move is a rook move whose destination file is the file of a passed pawn
+- the rook reaches that file in 0 moves if it already stood there, else 1
+- the pawn's next step costs 1 move when the stop square is empty, else 2
+A passed pawn is the engine's own test: no enemy pawn on the passed-pawn mask and no own pawn in front.
+One move onto the file is never more than a pawn step of 1 or 2, so the tempo test keeps the written rule
+and does not reject a rook that lands on the file.
+
+Why this shape: IDEAS.md S15 says full depth, not an extension and not an eval term, and only in rook
+endings with eight or more pieces. The one-line swarm title is the same gate.
+
+O has no such root position, so a depth-12 sum equal to the base sum is the prediction. The search can
+still change once a line reaches a rook ending; that is what the G set is for.

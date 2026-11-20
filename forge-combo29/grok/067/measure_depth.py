@@ -69,7 +69,8 @@ class Engine:
         while len(got) < limit:
             line = self.proc.stdout.readline()
             if line == "":
-                raise SystemExit("engine closed stdout early")
+                text = "\n".join(self.lines)
+                raise SystemExit("engine closed stdout early\n" + text[-4000:])
             line = line.rstrip("\n")
             got.append(line)
             self.lines.append(line)
