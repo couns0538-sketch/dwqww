@@ -1,0 +1,92 @@
+START_UTC: Fri Nov 20 07:18:26 AM UTC 2026
+=== JOB 32 ROW K2: kK_2 vs X_2 on T (12 blocks ABBA/BAAB; 6-block prefix also noted) ===
+A: kK_2 (/tmp/carbon2_job32/bld_sp_stkK_2/forge) | go='go softnodes 2000'
+B: X_2 (/tmp/carbon2_job30/bld_sp_stkH_2/forge) | go='go softnodes 2000'
+Roots: first 60 of workload_T_60_roots.txt | PC20 + net768.fnn3, Threads 1, Hash 16
+Design: engine pinned to CPU 3 (harness on CPU 1); 12 blocks; odd [W] A B B A, even [W] B A A B;
+        1 warm-up run per block left out; block ratio = B / A (> 1 means B uses more time than A).
+
+  block 01 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6744 wall_s=7.6749
+  block 01 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5188 wall_s=7.7413 [OK]
+  block 01 leg 2 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6081 wall_s=7.8264 [OK]
+  block 01 leg 3 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6063 wall_s=7.8973 [OK]
+  block 01 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5256 wall_s=7.8783 [OK]
+  --> block 01 summary (ABBA): CPU_B/CPU_A = 15.2144/15.0444 = 1.0113 | wall_B/wall_A = 15.7237/15.6196 = 1.0067
+  block 02 WARMUP(B, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6630 wall_s=8.0417
+  block 02 leg 1 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6367 wall_s=8.0044 [OK]
+  block 02 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5006 wall_s=7.8556 [OK]
+  block 02 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5298 wall_s=7.8787 [OK]
+  block 02 leg 4 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6392 wall_s=8.0222 [OK]
+  --> block 02 summary (BAAB): CPU_B/CPU_A = 15.2759/15.0304 = 1.0163 | wall_B/wall_A = 16.0266/15.7342 = 1.0186
+  block 03 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.5400 wall_s=7.8935
+  block 03 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5149 wall_s=7.8456 [OK]
+  block 03 leg 2 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6538 wall_s=8.0018 [OK]
+  block 03 leg 3 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6298 wall_s=7.9802 [OK]
+  block 03 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.4830 wall_s=7.8131 [OK]
+  --> block 03 summary (ABBA): CPU_B/CPU_A = 15.2836/14.9979 = 1.0191 | wall_B/wall_A = 15.9820/15.6587 = 1.0207
+  block 04 WARMUP(B, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6295 wall_s=7.9708
+  block 04 leg 1 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6582 wall_s=7.9930 [OK]
+  block 04 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5304 wall_s=7.8475 [OK]
+  block 04 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5156 wall_s=7.8304 [OK]
+  block 04 leg 4 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6297 wall_s=7.9444 [OK]
+  --> block 04 summary (BAAB): CPU_B/CPU_A = 15.2879/15.0461 = 1.0161 | wall_B/wall_A = 15.9374/15.6779 = 1.0166
+  block 05 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.5267 wall_s=7.8310
+  block 05 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5362 wall_s=7.8464 [OK]
+  block 05 leg 2 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6471 wall_s=7.9573 [OK]
+  block 05 leg 3 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6625 wall_s=7.9876 [OK]
+  block 05 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5269 wall_s=7.8300 [OK]
+  --> block 05 summary (ABBA): CPU_B/CPU_A = 15.3097/15.0631 = 1.0164 | wall_B/wall_A = 15.9450/15.6764 = 1.0171
+  block 06 WARMUP(B, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6343 wall_s=7.9695
+  block 06 leg 1 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6678 wall_s=7.9970 [OK]
+  block 06 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5386 wall_s=7.8361 [OK]
+  block 06 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5305 wall_s=7.8134 [OK]
+  block 06 leg 4 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6141 wall_s=7.9019 [OK]
+  --> block 06 summary (BAAB): CPU_B/CPU_A = 15.2819/15.0690 = 1.0141 | wall_B/wall_A = 15.8989/15.6495 = 1.0159
+  block 07 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.4912 wall_s=7.7426
+  block 07 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5127 wall_s=7.7858 [OK]
+  block 07 leg 2 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6413 wall_s=7.9265 [OK]
+  block 07 leg 3 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6124 wall_s=7.8814 [OK]
+  block 07 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5522 wall_s=7.8503 [OK]
+  --> block 07 summary (ABBA): CPU_B/CPU_A = 15.2537/15.0649 = 1.0125 | wall_B/wall_A = 15.8080/15.6362 = 1.0110
+  block 08 WARMUP(B, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6022 wall_s=7.8745
+  block 08 leg 1 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6146 wall_s=7.8855 [OK]
+  block 08 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5138 wall_s=7.7791 [OK]
+  block 08 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5298 wall_s=7.7945 [OK]
+  block 08 leg 4 (B): sig=6070/26711499/937e1660561173af cpu_s=7.7242 wall_s=7.9664 [OK]
+  --> block 08 summary (BAAB): CPU_B/CPU_A = 15.3388/15.0436 = 1.0196 | wall_B/wall_A = 15.8519/15.5736 = 1.0179
+  block 09 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6198 wall_s=7.8825
+  block 09 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5830 wall_s=7.8200 [OK]
+  block 09 leg 2 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6059 wall_s=7.8755 [OK]
+  block 09 leg 3 (B): sig=6070/26711499/937e1660561173af cpu_s=7.5972 wall_s=7.8468 [OK]
+  block 09 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.6175 wall_s=7.8536 [OK]
+  --> block 09 summary (ABBA): CPU_B/CPU_A = 15.2031/15.2004 = 1.0002 | wall_B/wall_A = 15.7223/15.6736 = 1.0031
+  block 10 WARMUP(B, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6196 wall_s=7.8577
+  block 10 leg 1 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6595 wall_s=7.8953 [OK]
+  block 10 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.4871 wall_s=7.6959 [OK]
+  block 10 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.4863 wall_s=7.6965 [OK]
+  block 10 leg 4 (B): sig=6070/26711499/937e1660561173af cpu_s=7.5990 wall_s=7.8363 [OK]
+  --> block 10 summary (BAAB): CPU_B/CPU_A = 15.2585/14.9735 = 1.0190 | wall_B/wall_A = 15.7317/15.3924 = 1.0220
+  block 11 WARMUP(A, left out): sig=6070/26711499/937e1660561173af cpu_s=7.4765 wall_s=7.6917
+  block 11 leg 1 (A): sig=6070/26711499/937e1660561173af cpu_s=7.5093 wall_s=7.7311 [OK]
+  block 11 leg 2 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6377 wall_s=7.9645 [OK]
+  block 11 leg 3 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6099 wall_s=7.9698 [OK]
+  block 11 leg 4 (A): sig=6070/26711499/937e1660561173af cpu_s=7.6251 wall_s=7.9869 [OK]
+  --> block 11 summary (ABBA): CPU_B/CPU_A = 15.2475/15.1344 = 1.0075 | wall_B/wall_A = 15.9343/15.7180 = 1.0138
+  block 12 WARMUP(B, left out): sig=6070/26711499/937e1660561173af cpu_s=7.6218 wall_s=7.9686
+  block 12 leg 1 (B): sig=6070/26711499/937e1660561173af cpu_s=7.5942 wall_s=7.9575 [OK]
+  block 12 leg 2 (A): sig=6070/26711499/937e1660561173af cpu_s=7.4799 wall_s=7.8153 [OK]
+  block 12 leg 3 (A): sig=6070/26711499/937e1660561173af cpu_s=7.4885 wall_s=7.8080 [OK]
+  block 12 leg 4 (B): sig=6070/26711499/937e1660561173af cpu_s=7.6116 wall_s=7.9589 [OK]
+  --> block 12 summary (BAAB): CPU_B/CPU_A = 15.2058/14.9683 = 1.0159 | wall_B/wall_A = 15.9164/15.6233 = 1.0188
+
+Reference signatures: A=6070/26711499/937e1660561173af | B=6070/26711499/937e1660561173af | Dropped blocks: 0 ([])
+  [engine_cpu_B_over_A] 12 block ratios (B/A): 1.0113 1.0163 1.0191 1.0161 1.0164 1.0141 1.0125 1.0196 1.0002 1.0190 1.0075 1.0159
+  [engine_cpu_B_over_A] median=1.0160 | pooled(sumB/sumA)=1.0140 (sumA=180.6359s, sumB=183.1607s)
+  [engine_cpu_B_over_A] mean=1.0140, 95% t-CI (df=11) [1.0104, 1.0176] (sd=0.0056, se=0.0016)
+  [engine_cpu_B_over_A] blocks below 1: 0/12 | blocks above 1: 12/12
+
+  [wall_B_over_A] 12 block ratios (B/A): 1.0067 1.0186 1.0207 1.0166 1.0171 1.0159 1.0110 1.0179 1.0031 1.0220 1.0138 1.0188
+  [wall_B_over_A] median=1.0168 | pooled(sumB/sumA)=1.0152 (sumA=187.6333s, sumB=190.4782s)
+  [wall_B_over_A] mean=1.0152, 95% t-CI (df=11) [1.0116, 1.0188] (sd=0.0057, se=0.0016)
+  [wall_B_over_A] blocks below 1: 0/12 | blocks above 1: 12/12
+END_UTC: Fri Nov 20 07:26:23 AM UTC 2026
