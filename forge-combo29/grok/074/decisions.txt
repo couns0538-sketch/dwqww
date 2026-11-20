@@ -1,0 +1,15 @@
+IdeaS32, seat 074. The plain engine does not grade hash proofs inside the null tree.
+search.cpp stores a fail-high at the depth just searched. A null cutoff returns
+without adding depth, so there is no pass bonus to remove. EXISTS: no.
+
+What the option does, and why: after a null probe fails high, read the probe
+node's own return. If that return was a transposition cutoff whose stored depth
+is below the parent depth minus IdeaS32_OwedSlack, the cutoff is not accepted
+until the reduced re-search already used at depth 14 also reaches beta.
+Owed depth is the parent depth, not the reduced probe depth: a hash entry that
+only covers the reduced depth was never searched to the depth the cutoff
+replaces. Default slack is 0, so any proof shallower than the parent depth is
+verified. The option is read first. When it is false the new flags are not
+written and not read, and the null-cutoff branch is the one the plain engine uses.
+
+IdeaS32_OwedSlack is the one number. Range 0..64, default 0.

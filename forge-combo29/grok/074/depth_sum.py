@@ -77,6 +77,8 @@ def main():
     session = Session(args.exe)
     raw_lines = []
     nodes = []
+    out = Path(__file__).resolve().parent
+    failed = None
     try:
         session.send("uci")
         session.read_until(lambda line: line == "uciok", 30)
@@ -107,11 +109,17 @@ def main():
             if index % 25 == 0 or index == len(fens):
                 print(f"{args.tag} {index}/{len(fens)} last {count}", flush=True)
     except UciError as exc:
+        failed = str(exc)
         print(f"STOP {exc}", flush=True)
-        (out / f"{args.tag}.error.txt").write_text(str(exc) + "\n", encoding="utf-8")
-        sys.exit(1)
+        raw_lines = list(session.lines)
     finally:
         session.close()
+    if session.lines and not raw_lines:
+        raw_lines = list(session.lines)
+    (out / f"{args.tag}.raw.txt").write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
+    if failed is not None:
+        (out / f"{args.tag}.error.txt").write_text(failed + "\n", encoding="utf-8")
+        sys.exit(1)
     digest = sha256_file(args.exe)
     (out / f"{args.tag}.raw.txt").write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
     write_meta(out / f"{args.tag}.meta", args.exe, digest, id_name, options)
