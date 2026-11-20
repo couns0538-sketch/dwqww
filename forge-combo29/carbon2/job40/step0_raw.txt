@@ -1,0 +1,69 @@
+=== JOB 40 STEP 0: r15d + v3, Fresh Bundle Build, OFF & Job 39 ALL-ON Known Answers, fastchess & UHO Book ===
+start_utc: Fri Nov 20 02:17:40 PM UTC 2026
+
+--- 1. r15d + v3 Source Tree Verification (/tmp/carbon2_job36/tpl_r15d_v3, LF line endings) ---
+  src/search.cpp CRLF count                   : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/search.cpp): PASS (174e07a5211cb1d56ea47105c7d4b847bdf3cd8b1b6ef3d4473405654242abf4 == 174e07a5211cb1d56ea47105c7d4b847bdf3cd8b1b6ef3d4473405654242abf4)
+  src/uci.cpp CRLF count                      : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/uci.cpp): PASS (2c00871f131d1816cabd7011e5bc345902a501f839c08f307db5b0f09cf52013 == 2c00871f131d1816cabd7011e5bc345902a501f839c08f307db5b0f09cf52013)
+  src/board.cpp CRLF count                    : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/board.cpp): PASS (2da64b7d06f608a5351b7dd5e75d19582cd80a7153b0c1ae1ae6dc2e28b8f3cf == 2da64b7d06f608a5351b7dd5e75d19582cd80a7153b0c1ae1ae6dc2e28b8f3cf)
+  include/forge/board.hpp CRLF count          : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/include/forge/board.hpp): PASS (5fa32c92d35d1000fb1e111985469f4beb17dd11d9c23bab03fb39311a109d77 == 5fa32c92d35d1000fb1e111985469f4beb17dd11d9c23bab03fb39311a109d77)
+
+--- 2. Plain r15d + v3 Clean Release Build (/tmp/carbon2_job40/bld_base_v3/forge) ---
+[plain_r15d_v3] exe=/tmp/carbon2_job40/bld_base_v3/forge | sha256=09d6fe1ea4dcbea333f297962dede9521a2a6ea49d5cc48b2f4f38ae8078f84c | id name Chess Engine Forge 6.4.24 candidate
+  plain_r15d_v3 no-option bench 11            : PASS (312866 == 312866)
+  plain_r15d_v3 no-option bench 13            : PASS (862329 == 862329)
+  plain_r15d_v3 no-option perft 5             : PASS (4865609 == 4865609)
+  plain_r15d_v3 PC20 bench 11                 : PASS (278024 == 278024)
+  plain_r15d_v3 PC20 bench 13                 : PASS (587276 == 587276)
+  plain_r15d_v3 Set A line L records          : PASS (26741 == 26741)
+  plain_r15d_v3 Set A line L nodes            : PASS (107124743 == 107124743)
+  plain_r15d_v3 Set A line L sha256           : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  plain_r15d_v3 n[1..60] line L records       : PASS (8449 == 8449)
+  plain_r15d_v3 n[1..60] line L searches      : PASS (8482 == 8482)
+  plain_r15d_v3 n[1..60] line L nodes         : PASS (36688357 == 36688357)
+  plain_r15d_v3 n[1..60] line L sha256        : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+
+--- 3. Fresh Copy of r15d + v3 + Job 39 bundle_grok.patch.txt (/tmp/carbon2_job40/bld_bundle/forge) ---
+  patch sha256(/agent/repos/dwqww/forge-combo29/carbon2/job39/bundle_grok.patch.txt): PASS (d0ae7f01f33be912ffe07ca2efdbc0f147c0386a77864a5a3547e0af21c001ec == d0ae7f01f33be912ffe07ca2efdbc0f147c0386a77864a5a3547e0af21c001ec)
+  apply_against_fresh_r15d_v3                 : git apply --check -p1 PASS (0 == 0)
+  bundle exe path                             : /tmp/carbon2_job40/bld_bundle/forge
+  bundle exe sha256(/tmp/carbon2_job40/bld_bundle/forge) : e011af0f15569290aa7431d0b53c384cdfc59763ba0fdd94bc33971b9aa5cd63
+  bundle id name                              : id name Chess Engine Forge 6.4.24 candidate
+
+--- 3a. Bundle All Switches OFF (Default Off & Explicit All-Six-False) ---
+[bundle_default_off] exe=/tmp/carbon2_job40/bld_bundle/forge | sha256=e011af0f15569290aa7431d0b53c384cdfc59763ba0fdd94bc33971b9aa5cd63 | id name Chess Engine Forge 6.4.24 candidate
+  bundle_default_off no-option bench 11       : PASS (312866 == 312866)
+  bundle_default_off no-option bench 13       : PASS (862329 == 862329)
+  bundle_default_off no-option perft 5        : PASS (4865609 == 4865609)
+  bundle_default_off PC20 bench 11            : PASS (278024 == 278024)
+  bundle_default_off PC20 bench 13            : PASS (587276 == 587276)
+  bundle_default_off Set A line L records     : PASS (26741 == 26741)
+  bundle_default_off Set A line L nodes       : PASS (107124743 == 107124743)
+  bundle_default_off Set A line L sha256      : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  bundle_default_off n[1..60] line L records  : PASS (8449 == 8449)
+  bundle_default_off n[1..60] line L searches : PASS (8482 == 8482)
+  bundle_default_off n[1..60] line L nodes    : PASS (36688357 == 36688357)
+  bundle_default_off n[1..60] line L sha256   : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  bundle_all_off O d12 sum vs Job 39 OFF      : PASS (8315168 == 8315168)
+  bundle_all_off O d12 equal positions vs J39 : PASS (200 == 200)
+
+--- 3b. Bundle All Six Switches ON vs Job 39 Known Answers ---
+  bundle_all_on O d12 sum vs Job 39 ALL_ON    : PASS (8035170 == 8035170)
+  bundle_all_on O d12 equal positions vs J39  : PASS (200 == 200)
+  bundle_all_on Set A line L records vs J39   : PASS (27991 == 27991)
+  bundle_all_on Set A line L searches vs J39  : PASS (28117 == 28117)
+  bundle_all_on Set A line L nodes vs J39     : PASS (111242459 == 111242459)
+  bundle_all_on Set A line L sha256 vs J39    : PASS (c0da7ec87c6e6928320d0e8db3a15e12051d3f31b3391f09d4d5ef4590c58bce == c0da7ec87c6e6928320d0e8db3a15e12051d3f31b3391f09d4d5ef4590c58bce)
+
+--- 4. fastchess & Official Book UHO_Lichess_4852_v1.epd Verification ---
+  fastchess version                           : fastchess alpha 1.8.3 20261115-d6e3a7a
+  fastchess git commit(fastchess_repo)        : d6e3a7a71f8437a39836856ae78a3dcdc9bf934c
+  fastchess exe sha256(/tmp/carbon2_job40/fastchess) : a3631c3ea944dfe4505d09f642871905e9662d930e9d438c7fb91cd2cb063007
+  book lines(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd): PASS (2632036 == 2632036)
+  book sha256(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd): PASS (7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a == 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a)
+
+  STEP 0 OVERALL                              : PASS (1 == 1)
+done_utc: Fri Nov 20 02:20:24 PM UTC 2026
