@@ -1,0 +1,34 @@
+=== JOB 38 PREDICTION (committed ALONE before Part A's first measuring run, never edited) ===
+
+(1) A1: your rebuild of seat 031's patch gives its committed switch-on O rows exactly:
+    yes
+    Basis: Base commit 6b98f217 built with g++ 13.3.0 Release produced the bit-identical
+    sha256 (e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83) recorded in
+    seat 031's B_O_d12.meta, and seat 031's patch is deterministic at Threads 1, Hash 16, S14.
+
+(2) A3: the match Elo of 031's variant (shrink only between alpha and beta, a frame of its own) against the switch off:
+    0.0 Elo  (range that would prove me wrong: outside [-15.0, +15.0] Elo)
+    Basis: Seat 031 lost -100.06 Elo because shrink_shuffle_score shrank fail-high (>= beta)
+    and fail-low (<= alpha) scores on zero-window nodes (turning cutoffs into fail-lows and
+    fail-lows into bogus cutoffs) and passed the outer node's own SearchStack* ss to the
+    probe (clobbering ss->pv and ss->tt_pv). Restricting the shrink to alpha < best_score < beta
+    confines it to interior PV nodes where all shuffle/flat/probe gates hold, and using an
+    isolated stack slice prevents stack corruption, leaving play within [-15.0, +15.0] Elo of off.
+
+(3) Part B: of the five twin pairs, how many have equal switch-on O rows:
+    0
+    Basis: Static diff reading shows all 5 twin pairs differ in mechanism or default spin values:
+    B1 (030 attack/king-zone delta vs 080 NNUE linear gradient), S32 (024 child hash_proof
+    bubbling vs 074 direct TT cutoff only), K4 (043 Shrink=32 vs 093 Shrink=24), B8 (028 vs 078
+    king victim inclusion, role indexing, Swing=40 vs 48, and cutoff-only vs per-quiet swing
+    updates), and S13 (016 ReduceDivisor=1024 & beta-cutoff credit vs 066 LmrDivisor=4096 &
+    alpha-raise credit).
+
+(4) Part C: the first patch you read has at least one finding:
+    no
+    Basis: With 0 equal twin pairs in Part B, the first patch in Part C's specified reading
+    order is 030's B1; every hunk of 030 is gated behind tune::IdeaB1 (off path untouched),
+    all square/piece/history indices are in [0..63] / [0..1] with king_square >= 0 guarded,
+    no value is read before write, and no search-written state is shared across threads.
+
+UTC written: Fri Nov 20 12:30:07 PM UTC 2026
