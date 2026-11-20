@@ -1,0 +1,14 @@
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 051 idea 1
+2 honesty B | done | HONESTY_B.txt | bench 11 nodes 312866 rc 0 | bench 13 nodes 862329 rc 0 | bench 16 nodes 3024920 rc 0 | go perft 5 nodes 4865609 rc 0
+2 O and G on B | done | B_O.sum B_G.sum | positions 200 | depth 12 | sum 9500069 | first 41311 24872 28574 || positions 353 | depth 12 | sum 18466239 | first 37203 70845 144383
+3a read | done | include/forge/search.hpp | EXISTS include/forge/search.hpp:351
+3b prediction | done | prediction.txt | locked before measuring P
+3c patch | done | idea.patch.txt apply_check.txt | idea.patch.txt git apply --check: ok | partner_001.patch.txt git apply --check on fresh base: ok
+3d honesty P | done | honesty_p_summary.txt | bench 11 nodes 312866 rc 0 | bench 13 nodes 862329 rc 0 | bench 16 nodes 3024920 rc 0 | go perft 5 nodes 4865609 rc 0
+3d off | done | compare_off_O.txt compare_off_G.txt | positions 200 | same 200 | differ 0 | left_sum 9500069 | right_sum 9500069 || positions 353 | same 353 | differ 0 | left_sum 18466239 | right_sum 18466239
+3d on | done | compare_on_O.txt | positions 200 | same 0 | differ 200 | left_sum 9500069 | right_sum 10347764
+3d uci | done | uci_options.txt | option name EvalRule50Damp type check default false | option name IdeaE2 type check default false | option name IdeaE2_Span type spin default 100 min 1 max 200
+3d sanitizer | done | asan_G100_sanitizer.txt asan_G100.meta asan_scratch_sanitizer.txt | sanitizer_lines 0 || sanitizer_lines 1 | /tmp/scratch_engine/src/search.cpp:2154:22: runtime error: load of address 0x502000001080 with insufficient space for an object of type 'int'
+3e match | done | match_result.txt match_og/games.pgn | -------------------------------------------------- | Results of IdeaE2on vs IdeaE2off (20000 nodes, 1t, 16MB, match_OG.epd): | Elo: -22.02 +/- 10.40, nElo: -43.46 +/- 20.48 | LOS: 0.00 %, DrawRatio: 63.47 %, PairsRatio: 0.57 | Games: 1106, Wins: 318, Losses: 388, Draws: 400, Points: 518.0 (46.84 %) | Ptnml(0-2): [22, 107, 351, 65, 8], WL/DD Ratio: 2.08 | -------------------------------------------------- | Finished match
+4 partner | done | partner_cmp_off_O.txt partner_cmp_on_O.txt partner_result.txt | positions 200 | same 200 | differ 0 | left_sum 9500069 | right_sum 9500069 || positions 200 | same 200 | differ 0 | left_sum 10347764 | right_sum 10347764 || -------------------------------------------------- | Results of DampOn vs DampOff (20000 nodes, 1t, 16MB, R.fens): | Elo: -12.17 +/- 8.32, nElo: -40.71 +/- 27.80 | LOS: 0.21 %, DrawRatio: 88.67 %, PairsRatio: 0.42 | Games: 600, Wins: 264, Losses: 285, Draws: 51, Points: 289.5 (48.25 %) | Ptnml(0-2): [7, 17, 266, 10, 0], WL/DD Ratio: 21.17 | -------------------------------------------------- | Finished match
