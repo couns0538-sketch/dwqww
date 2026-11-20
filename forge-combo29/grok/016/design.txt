@@ -1,0 +1,16 @@
+IdeaS13, seat 016. Decision, written before the match.
+
+The plain engine does not keep a history of the quiet piece move that preceded a pawn break.
+ThreatHistory is a different table (cheaper-attacker buckets). EXISTS: no.
+
+What was added, behind option IdeaS13 (check, default false):
+- A butterfly history [side][from][to].
+- When a pawn move fails high, credit each same-side non-capturing non-pawn move 2, 4, ... plies back, up to IdeaS13_Lookback (default 4), if that earlier frame's pawn key equals the pawn key at the break. The pawn move itself is the thing that changes the structure, so the keys are compared before the break.
+- That history is added only when ordering a non-pawn quiet move.
+- A positive entry shortens that move's late-move reduction by min(1, entry / IdeaS13_ReduceDivisor). Default divisor 1024, so one solid credit (history around 1024 or more) removes one ply. The entry is not added to the evaluation and is not added to the history used for history pruning.
+
+Why these numbers: "a few plies" is 4, which reaches the same side's previous two moves. The divisor is low enough that one cutoff can shorten a reduction inside the same search, because ucinewgame clears history before every position.
+
+Why fail-high: the note says cutoff history rewards the break. A pawn move that crosses beta is the break that raised the score.
+
+With the switch false, none of these reads or writes run. The pawn key is still stored on the stack. The off proofs compare node counts, not the stack layout.
