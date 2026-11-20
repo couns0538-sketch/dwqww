@@ -1,0 +1,284 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..b9be383a4 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,9 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaB10;                 // depth-normalised effort repayment (false = off)
++extern int IdeaB10_Ratio;            // best/second nodes-per-depth, in 1/256, required to remember a move
++extern int IdeaB10_Cap;              // most repaid plies on one path from the root
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+@@ -524,6 +527,22 @@ private:
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
+ 
++    // Depth-normalised effort repayment (IdeaB10). The table and the path
++    // counter are not read while the option is off.
++    static constexpr std::size_t EffortSlots = 1U << 16U;
++    struct EffortMark {
++        std::uint64_t key = 0;
++        std::uint32_t move_word = 0;
++        std::uint16_t dominance = 0;
++        std::uint16_t pad = 0;
++    };
++    std::unique_ptr<EffortMark[]> effort_marks_;
++    int path_repaid_ = 0;
++    [[nodiscard]] std::uint64_t effort_key(const Board& board, Move excluded) const;
++    [[nodiscard]] int effort_repay_plies(const Board& board, Move excluded, Move move, int withheld) const;
++    void remember_effort(const Board& board, Move excluded, Move move, std::uint64_t best_rate,
++                         std::uint64_t second_rate);
++
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+     [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..b54aa5059 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <bit>
+ #include <cmath>
+ #include <cstring>
+ #include <iostream>
+@@ -107,6 +108,9 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaB10 = false;
++int IdeaB10_Ratio = 384;
++int IdeaB10_Cap = 3;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +149,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaB10_Ratio", &IdeaB10_Ratio, 257, 4096},            {"IdeaB10_Cap", &IdeaB10_Cap, 0, 16},
+     };
+     return table;
+ }
+@@ -1010,7 +1015,8 @@ Worker::Worker(SharedSearchState& shared, int id)
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+-      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
++      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
++      effort_marks_(std::make_unique<EffortMark[]>(EffortSlots)) {
+     clear();
+ }
+ 
+@@ -1027,9 +1033,55 @@ void Worker::clear() {
+     *material_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
++    if (effort_marks_) std::memset(effort_marks_.get(), 0, EffortSlots * sizeof(EffortMark));
++    path_repaid_ = 0;
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
++std::uint64_t Worker::effort_key(const Board& board, Move excluded) const {
++    std::uint64_t key = board.key();
++    if (!excluded.is_none()) {
++        const auto word = std::bit_cast<std::uint32_t>(excluded);
++        key ^= static_cast<std::uint64_t>(word) * 0x9E3779B97F4A7C15ULL;
++    }
++    return key == 0 ? 1 : key;
++}
++
++int Worker::effort_repay_plies(const Board& board, Move excluded, Move move, int withheld) const {
++    if (withheld <= 0 || path_repaid_ >= tune::IdeaB10_Cap || effort_marks_ == nullptr) return 0;
++    const std::uint64_t key = effort_key(board, excluded);
++    const EffortMark& mark = effort_marks_[key & (EffortSlots - 1U)];
++    if (mark.key != key || mark.dominance < static_cast<std::uint16_t>(tune::IdeaB10_Ratio)) return 0;
++    static_assert(sizeof(Move) == 4);
++    if (std::bit_cast<Move>(mark.move_word) != move) return 0;
++    const int excess = static_cast<int>(mark.dominance) - 256;
++    if (excess <= 0) return 0;
++    int repay = (withheld * excess + 255) / 256;
++    if (repay > withheld) repay = withheld;
++    const int room = tune::IdeaB10_Cap - path_repaid_;
++    if (repay > room) repay = room;
++    return repay > 0 ? repay : 0;
++}
++
++void Worker::remember_effort(const Board& board, Move excluded, Move move, std::uint64_t best_rate,
++                             std::uint64_t second_rate) {
++    if (effort_marks_ == nullptr || second_rate == 0 || best_rate == 0 || move.is_none()) return;
++    const std::uint64_t ratio = static_cast<std::uint64_t>(tune::IdeaB10_Ratio);
++    if (best_rate / second_rate > 256U) {
++        // Far above any stored dominance. Keep the cap below.
++    } else if (best_rate * 256U < second_rate * ratio) {
++        return;
++    }
++    std::uint64_t dominance = best_rate / second_rate > 256U ? 65535U : (best_rate * 256U) / second_rate;
++    if (dominance > 65535U) dominance = 65535U;
++    if (dominance < ratio) return;
++    const std::uint64_t key = effort_key(board, excluded);
++    EffortMark& mark = effort_marks_[key & (EffortSlots - 1U)];
++    mark.key = key;
++    mark.move_word = std::bit_cast<std::uint32_t>(move);
++    mark.dominance = static_cast<std::uint16_t>(dominance);
++}
++
+ namespace {
+ // Hash of the piece counts of both sides, for material-indexed statistics.
+ [[nodiscard]] std::uint64_t material_key(const Board& board) {
+@@ -1811,6 +1863,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
++    // Nodes per depth actually given. Read only when IdeaB10 is on.
++    Move effort_best = Move::none();
++    std::uint64_t effort_best_rate = 0;
++    std::uint64_t effort_second_rate = 0;
++    int effort_samples = 0;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -1956,6 +2013,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+         }
++        // Depth previously withheld from this move, paid back on the next visit.
++        // Zero while IdeaB10 is off, so extension and new_depth stay unchanged.
++        int repay = 0;
++        if (tune::IdeaB10 && mate_moves_ == 0) {
++            int nominal = reduction(quiet, depth, std::max(move_count, 2));
++            if (nominal < 1) nominal = 1;
++            repay = effort_repay_plies(board, excluded, move, nominal);
++            if (repay > 0) extension += repay;
++        }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
+ 
+@@ -1979,6 +2045,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         shared_.tt.prefetch(board.key());
+ #endif
+         const std::uint64_t nodes_before = local_nodes_;
++        if (repay > 0) path_repaid_ += repay;
+         std::size_t root_effort_index = 0;
+         if (root_node) {
+             const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+@@ -1987,6 +2054,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+ 
+         int score = -Infinite;
++        int depth_given = 0;
++        int withheld_before = 0;
+         bool full_depth_needed = !pv_node || move_count > 1;
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+@@ -2008,8 +2077,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Record that this move was reduced, so a later visit can repay it.
++            // The value is unused while IdeaB10 is off.
++            withheld_before = r > 0 ? r : 0;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            depth_given = reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -2020,6 +2093,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++                    depth_given = std::max(depth_given, new_depth);
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                 }
+                 full_depth_needed = false;
+@@ -2030,15 +2104,33 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         if (full_depth_needed && !aborted_) {
++            depth_given = std::max(depth_given, new_depth);
+             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
++            depth_given = std::max(depth_given, new_depth);
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
++        if (repay > 0) path_repaid_ -= repay;
+         if (aborted_) return 0;
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
++        if (tune::IdeaB10 && depth_given >= 1 && withheld_before > 0) {
++            constexpr std::uint64_t kMinNodes = 16;
++            const std::uint64_t spent = local_nodes_ - nodes_before;
++            if (spent >= kMinNodes) {
++                const std::uint64_t rate = spent * 256U / static_cast<std::uint64_t>(depth_given);
++                ++effort_samples;
++                if (rate > effort_best_rate) {
++                    effort_second_rate = effort_best_rate;
++                    effort_best_rate = rate;
++                    effort_best = move;
++                } else if (rate > effort_second_rate) {
++                    effort_second_rate = rate;
++                }
++            }
++        }
+ 
+         if (score > best_score) {
+             best_score = score;
+@@ -2105,6 +2197,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+         update_correction(board, depth, best_score, ss->static_eval);
+     }
++    // Only a fail-low is remembered. A cutoff move is searched first next visit
++    // and has no reduction to give back, so it would fill the slot and never repay.
++    if (tune::IdeaB10 && effort_samples >= 2 && best_move.is_none() && !effort_best.is_none()) {
++        remember_effort(board, excluded, effort_best, effort_best_rate, effort_second_rate);
++    }
+     return best_score;
+ }
+ 
+@@ -2146,6 +2243,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     start_ = origin == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : origin;
+     local_nodes_ = 0;
++    path_repaid_ = 0;
+     nodes_.store(0, std::memory_order_relaxed);
+     all_workers_ = &all;
+     seldepth_ = 0;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..0ae9e5f12 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaB10 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,16 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaB10") {
++                if (value_text == "true" || value_text == "false") {
++                    const bool enabled = value_text == "true";
++                    if (forge::tune::IdeaB10 != enabled) {
++                        forge::tune::IdeaB10 = enabled;
++                        searcher.clear();
++                    }
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";
