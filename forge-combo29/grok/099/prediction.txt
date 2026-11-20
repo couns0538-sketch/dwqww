@@ -1,0 +1,17 @@
+seat 099 idea 49 id IdeaK10 option IdeaK10
+Written before any measurement of exe P.
+
+O depth-12 sum, S14, Threads 1, Hash 16, IdeaK10 true (MinDepth 8, Threshold 3000):
+  10100000
+  This prediction is wrong if the sum is below 9200000 or above 12500000.
+
+Test-match Elo of IdeaK10 true against IdeaK10 false, same engine, S14,
+Threads 1, Hash 16, 20000 nodes, openings O and G, both colours:
+  +5
+  This prediction is wrong if the Elo point estimate is below -25 or above +40.
+
+Why: a quiet hash move whose two-ply continuation history is at least 3000,
+at depth 8 or more, is searched one ply deeper. That should add nodes on
+some of the 200 openings and not leave the sum near the 9500069 baseline
+by more than the band above. The Elo guess is a small gain; the band is
+wide because 1106 games at 20000 nodes is noisy.
