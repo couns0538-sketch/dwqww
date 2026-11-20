@@ -1,0 +1,107 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..259e9660b 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -298,6 +298,12 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern bool IdeaK3;                  // same step as HindsightDepth (false = off)
++extern int IdeaK3_Withheld;          // plies withheld before one ply is given back
++extern int IdeaK3_Margin;            // centipawns of mover loss before one ply is taken
++[[nodiscard]] inline bool hindsight_on() {
++    return HindsightDepth || IdeaK3;
++}
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..d8af0080f 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -98,6 +98,9 @@ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
++bool IdeaK3 = false;
++int IdeaK3_Withheld = 3;
++int IdeaK3_Margin = 100;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK3_Withheld", &IdeaK3_Withheld, 0, 16},
++        {"IdeaK3_Margin", &IdeaK3_Margin, 0, 900},
+     };
+     return table;
+ }
+@@ -1579,7 +1584,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
+-    if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
++    if (tune::hindsight_on()) (ss + 1)->withheld_plies = 0;
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+ 
+@@ -1608,7 +1613,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     // A raw eval computed here is reused below so the position is not evaluated twice.
+     int reused_raw = 0;
+     bool reuse_raw = false;
+-    if (tune::HindsightDepth) {
++    if (tune::hindsight_on()) {
+         const int withheld = ss->withheld_plies;
+         ss->withheld_plies = 0;
+         if (withheld > 0 && !pv_node && !root_node && !in_check && excluded.is_none()) {
+@@ -1621,9 +1626,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     reuse_raw = true;
+                 }
+                 const int mover_loss = parent_eval + corrected_eval(board, raw);
++                // IdeaK3 off keeps today's literals. On uses the spin defaults, which are those literals.
++                const int margin = tune::IdeaK3 ? tune::IdeaK3_Margin : SeePieceValue[Pawn];
++                const int need = tune::IdeaK3 ? tune::IdeaK3_Withheld : 3;
+                 int proposed = depth;
+-                if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
+-                else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
++                if (mover_loss >= margin) proposed = depth - 1;
++                else if (mover_loss <= 0 && withheld >= need) proposed = depth + 1;
+                 if (proposed != depth && !(tt_hit && tt_depth >= proposed)) {
+                     depth = proposed;
+                     if (depth <= 0) {
+@@ -2009,9 +2017,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+-            if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            if (tune::hindsight_on()) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+-            if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
++            if (tune::hindsight_on()) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..7d1c657a1 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -222,6 +222,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
++                         "option name IdeaK3 type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK3") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK3 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;

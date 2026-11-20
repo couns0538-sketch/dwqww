@@ -151,13 +151,13 @@ def setoption(engine: Engine, name: str, value: str) -> None:
     engine.ready()
 
 
-def apply_measured_options(engine: Engine, switch: str | None) -> None:
+def apply_measured_options(engine: Engine, switch: str | None, option_name: str = "HindsightDepth") -> None:
     setoption(engine, "Threads", "1")
     setoption(engine, "Hash", "16")
     for name, value in S14:
         setoption(engine, name, value)
     if switch is not None:
-        setoption(engine, "HindsightDepth", switch)
+        setoption(engine, option_name, switch)
 
 
 def nodes_of(transcript_tail: list[str]) -> tuple[int, int]:
@@ -278,13 +278,14 @@ def main() -> None:
     if mode != "search":
         raise SystemExit(f"unknown mode {mode}")
     out_path, fen_path, depth_s, limit_s, switch = sys.argv[3:8]
+    option_name = sys.argv[8] if len(sys.argv) > 8 else "HindsightDepth"
     limit = None if limit_s == "-" else int(limit_s)
     switch_value = None if switch == "-" else switch
     fens = load_fens(fen_path, limit)
     engine = Engine(exe)
     try:
         engine.handshake()
-        apply_measured_options(engine, switch_value)
+        apply_measured_options(engine, switch_value, option_name)
         search_fens(engine, fens, int(depth_s), out_path)
     finally:
         engine.close()
