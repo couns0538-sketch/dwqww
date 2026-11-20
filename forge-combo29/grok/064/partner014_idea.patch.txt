@@ -1,0 +1,240 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..76a2047e0 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,11 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS5;                  // nothing-to-play: order and reduce improving quiet piece moves (false = off)
++extern int IdeaS5_Margin;            // centipawns a one-ply capture/check probe may beat the quiet eval
++extern int IdeaS5_Less;              // plies taken off the reduction of an improving quiet piece move
++extern int IdeaS5_MinDepth;          // remaining depth at which IdeaS5 may apply
++extern int IdeaS5_Order;             // quiet-order bonus so those piece moves precede pawn breaks
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..b150cd2e4 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,11 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS5 = false;
++int IdeaS5_Margin = 40;
++int IdeaS5_Less = 1;
++int IdeaS5_MinDepth = 4;
++int IdeaS5_Order = 80000;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +150,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS5_Margin", &IdeaS5_Margin, 0, 400},              {"IdeaS5_Less", &IdeaS5_Less, 0, 4},
++        {"IdeaS5_MinDepth", &IdeaS5_MinDepth, 1, 20},           {"IdeaS5_Order", &IdeaS5_Order, 0, 200000},
+     };
+     return table;
+ }
+@@ -578,8 +585,8 @@ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+ 
+-    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+-        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
++    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode, int depth)
++        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move), depth_(depth) {
+         const bool in_check = board.in_check();
+         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
+         if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+@@ -596,6 +603,16 @@ public:
+                 counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
+             }
+         }
++        // Off: not called, so quiet scores and reductions stay on today's path.
++        if (tune::IdeaS5 && mode == Mode::Main) prepare_idea_s5();
++    }
++
++    // True when this quiet piece move was marked for a smaller reduction.
++    [[nodiscard]] bool idea_s5_prefers(Move move) const {
++        for (int i = 0; i < idea_s5_count_; ++i) {
++            if (idea_s5_moves_[static_cast<std::size_t>(i)] == move) return true;
++        }
++        return false;
+     }
+ 
+     [[nodiscard]] Move next(bool skip_quiets) {
+@@ -716,6 +733,14 @@ private:
+     const Worker& searcher_;
+     const SearchStack* ss_;
+     Move tt_move_;
++    int depth_ = 0;
++    bool idea_s5_patient_ = false;
++    int idea_s5_count_ = 0;
++#if FORGE_SPD_NO_ZERO_MOVELISTS
++    std::array<Move, 128> idea_s5_moves_;
++#else
++    std::array<Move, 128> idea_s5_moves_{};
++#endif
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
+@@ -886,6 +911,61 @@ private:
+ #endif
+     }
+ 
++    // Nothing-to-play (Idea S5). A capture whose exchange wins more than the
++    // margin already means there is something to play, so the eval probe is
++    // skipped. Otherwise a one-ply search of legal captures and checks, scored
++    // with the hand-crafted eval (no hash write, no node count), decides.
++    // On a quiet node, non-pawn quiets that raise that eval are remembered:
++    // they sort ahead of pawn breaks and lose IdeaS5_Less plies of reduction.
++    // Pawn moves stay in the list. The board is restored after every probe.
++    void prepare_idea_s5() {
++        idea_s5_patient_ = false;
++        idea_s5_count_ = 0;
++        if (depth_ < tune::IdeaS5_MinDepth || board_.in_check()) return;
++        Board& live = const_cast<Board&>(board_);
++        MoveList caps;
++        live.generate_pseudo_legal(caps, Board::GenMode::Captures);
++        for (const Move move : caps) {
++            if (!live.is_legal(move)) continue;
++            if (live.see_ge(move, tune::IdeaS5_Margin + 1)) return;
++        }
++        const int stand = Evaluator::evaluate_uncached(live);
++        int best = stand;
++        auto consider = [&](Move move) {
++            if (!live.is_legal(move)) return;
++            Undo undo;
++            (void)live.make_move(move, undo);
++            const int score = -Evaluator::evaluate_uncached(live);
++            live.unmake_move(move, undo);
++            if (score > best) best = score;
++        };
++        for (const Move move : caps) consider(move);
++        MoveList quiets;
++        live.generate_pseudo_legal(quiets, Board::GenMode::Quiets);
++        for (const Move move : quiets) {
++            if (live.gives_check(move)) consider(move);
++        }
++        if (best > stand + tune::IdeaS5_Margin) return;
++        idea_s5_patient_ = true;
++        for (const Move move : quiets) {
++            if (piece_type(live.piece_at(move.from)) <= Pawn) continue;
++            if (!live.is_legal(move)) continue;
++            Undo undo;
++            (void)live.make_move(move, undo);
++            const int child = -Evaluator::evaluate_uncached(live);
++            live.unmake_move(move, undo);
++            if (child <= stand) continue;
++            if (idea_s5_count_ < static_cast<int>(idea_s5_moves_.size())) {
++                idea_s5_moves_[static_cast<std::size_t>(idea_s5_count_++)] = move;
++            }
++        }
++    }
++
++    [[nodiscard]] int idea_s5_order_bonus(Move move) const {
++        if (!idea_s5_patient_ || !idea_s5_prefers(move)) return 0;
++        return tune::IdeaS5_Order;
++    }
++
+     void generate_captures() {
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, true);
+@@ -924,13 +1004,13 @@ private:
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+-            push_scored(move, scorer.score(move, check_squares_));
++            push_scored(move, scorer.score(move, check_squares_) + idea_s5_order_bonus(move));
+         }
+ #else
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+-            push_scored(move, score);
++            push_scored(move, score + idea_s5_order_bonus(move));
+         }
+ #endif
+         sort_moves();
+@@ -945,14 +1025,14 @@ private:
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+-            push_scored(move, scorer.score(move, check_squares_));
++            push_scored(move, scorer.score(move, check_squares_) + idea_s5_order_bonus(move));
+         }
+ #else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+-            push_scored(move, score);
++            push_scored(move, score + idea_s5_order_bonus(move));
+         }
+ #endif
+         sort_moves();
+@@ -1483,7 +1563,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+     }
+ 
+-    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
++    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence, 0);
+     Move best_move = Move::none();
+     int move_count = 0;
+     Move move;
+@@ -1746,7 +1826,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+-            MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
++            MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence, 0);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+                 if (move == excluded || !board.is_legal(move)) continue;
+@@ -1783,7 +1863,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+ 
+-    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
++    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main, depth);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+     std::array<Move, 128> quiets_tried;
+@@ -2008,6 +2088,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Improving quiet piece moves at a nothing-to-play node are reduced less.
++            if (tune::IdeaS5 && quiet && picker.idea_s5_prefers(move)) r -= tune::IdeaS5_Less;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..612b1b332 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS5 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,10 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS5") {
++                if (value_text == "true") forge::tune::IdeaS5 = true;
++                else if (value_text == "false") forge::tune::IdeaS5 = false;
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";
