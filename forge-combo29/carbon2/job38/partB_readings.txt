@@ -1,0 +1,79 @@
+=== JOB 38 PART B: TWIN PAIR READINGS OF IDEAS.MD / K4 JOB TEXT ===
+
+1. Pair B1 (Seats 030 and 080) — DIFFERENT SWITCH-ON O ROWS
+   Reference: `IDEAS.md` line 9 -> `BREAKTHROUGHS.md` lines 9-29 ("B1. Fading board prior for quiet moves").
+   `BREAKTHROUGHS.md` calls for a cheap board-placement quiet-move ordering prior added only inside
+   the quiet-move group (after hash, capture, and killer moves) and faded down as search writes
+   quiet history (`"A static piece-square bonus does not test this idea"`). Seat 030 (`src/search.cpp:289-330`)
+   reads "from the piece placement" without touching `nnue.*`: it computes a classical attack-change
+   delta `2 * popcount(att & enemy) + popcount(att & enemy_king_zone)` from `move.from` to `move.to`
+   and fades it only by `main_history[us][from][to]` (`delta * 96 * 1024 / (1024 + 4 * |main_h|)`).
+   Seat 080 (`include/forge/nnue.hpp:98-112`, `src/nnue.cpp:502-562`, `src/search.cpp:585-652`)
+   reads "where it would live: the network" without training new weights: it materialises the node's
+   NNUE accumulator without mutating `SearchStack` and takes a first-order linear Taylor step
+   (`QuietPrior`, sampling `IdeaB1_Lanes = 16` hidden units of `clamp(x,0,1)^2 * w2` dotted with the
+   move's `DirtyPieces` `w1` columns), then fades that prior against the full `quiet_history_sum + threat_quiet_bonus`
+   score (`Fade = 1024, Scale = 32, Cap = 4000`).
+
+2. Pair S32 (Seats 024 and 074) — EQUAL SWITCH-ON O ROWS (200/200 IDENTICAL, SUM 9,547,450)
+   Reference: `IDEAS.md` lines 946-953 ("S32. Grade hash proofs inside the null tree").
+   Note on why all 200 switch-on O rows are equal despite a code difference: both 024 (`IdeaS32_Slack = 0`)
+   and 074 (`IdeaS32_OwedSlack = 0`) record a TT cutoff's depth on `SearchStack` (`hash_proof` /
+   `returned_on_hash`) in `search` and `qsearch`, and at a null-move cutoff (`depth < 14`) require
+   the reduced verification search whenever `(ss + 1)` returned on a TT bound with `hash_proof_depth < depth`.
+   Seat 024 additionally attempts to bubble `(ss + 1)->hash_proof` upward at the end of `search` and
+   `qsearch` via `if (tune::IdeaS32 && best_score >= beta && (ss + 1)->hash_proof)` (`src/search.cpp:1558, 2138`),
+   whereas Seat 074 checks only a direct TT return at `ss + 1`. However, `null_score = -search(board, ss + 1, ..., -beta, -beta + 1)`
+   reaches `null_score >= beta` ONLY when `search(ss + 1)` fails LOW (`best_score <= -beta < -beta + 1 = beta_child`),
+   so `best_score >= beta_child` inside `ss + 1` is ALWAYS false on every null cutoff; 024's bubbling
+   branch can never set `(ss + 1)->hash_proof` on a null cutoff, making 024 and 074 functionally identical
+   on the null-move gate!
+
+3. Pair K4 (Seats 043 and 093) — DIFFERENT SWITCH-ON O ROWS
+   Reference: K4 job text in `043/DESIGN.txt` and `093/idea_design.txt` ("makes the reverse-futility
+   margin smaller when the opponent's static evaluation worsened over two plies").
+   Both Seat 043 (`src/search.cpp:1694-1701`) and Seat 093 (`src/search.cpp:1697-1704`) implement the
+   exact same guard and mechanism in reverse futility pruning: starting from
+   `rfp_margin = RfpMargin * depth - RfpImproving * improving`, when `tune::IdeaK4` is true and both
+   `(ss - 1)->static_eval` and `(ss - 3)->static_eval` are not `ValueNone` and
+   `(ss - 1)->static_eval < (ss - 3)->static_eval`, they subtract `tune::IdeaK4_Shrink` (unscaled by
+   depth and unfloored). Their switch-on O rows differ solely because the job text left the default
+   shrink magnitude open: Seat 043 chose `IdeaK4_Shrink = 32` (`DESIGN.txt`: one step smaller than
+   `RfpImproving = 40`, allowing depth-1 improving margin `72 - 40 - 32 = 0`), whereas Seat 093 chose
+   `IdeaK4_Shrink = 24` (`idea_design.txt`: keeping depth-1 improving margin strictly positive at
+   `72 - 40 - 24 = 8`).
+
+4. Pair B8 (Seats 028 and 078) — DIFFERENT SWITCH-ON O ROWS
+   Reference: `IDEAS.md` line 37 -> `BREAKTHROUGHS.md` lines 159-178 ("B8. Threat-role memory").
+   Both seats add a `[side 2][victim_type 7][attacker_type 7][role 5]` `int16_t` table (`Weight = 1024`)
+   added into `QuietScorer::score` and `Worker::quiet_history` (thus feeding ordering, futility/history
+   pruning, and quiet LMR) while noting Forge has no static piece-value step-off bonus to remove.
+   They diverge on four readings of `BREAKTHROUGHS.md`: (1) victim & role-4 definition: Seat 028
+   (`src/search.cpp:150-154, 224-228`) includes `King` (`worth = 100000`) among threatened victims,
+   assigns `0 = none, 1 = step-away, 2 = block, 3 = attack-attacker, 4 = greater-threat` (requiring
+   `mover_worth < enemy_worth`), and updates occupancy at BOTH `move.from` and `move.to` when computing
+   slider attacks (`line 189`), whereas Seat 078 (`src/search.cpp:178, 162, 226-231`) scans only
+   `Knight..Queen` as victims, assigns `0..3` to the four active roles and `4 = none`, checks any
+   attack on an enemy piece worth more than `threat.victim_value` without requiring `mover_worth < enemy_worth`,
+   and clears only `move.from` in `attacks_after_quiet`; (2) "when the eval swing shows the threat
+   was answered": Seat 028 (`IdeaB8_Swing = 40`, `src/search.cpp:253-259, 322`) calls `note_role_swing`
+   ONLY after a quiet beta cutoff (`best_score >= beta`) with full `history_bonus(depth)` (adding a
+   second bonus on top of `update_quiet_stats`), whereas Seat 078 (`IdeaB8_Swing = 48`,
+   `src/search.cpp:296-304, 375`) calls `note_threat_swing` immediately after EVERY searched quiet
+   move inside the move loop with `history_bonus(max(1, depth)) / 2` even when that move fails low!
+
+5. Pair S13 (Seats 016 and 066) — DIFFERENT SWITCH-ON O ROWS
+   Reference: `IDEAS.md` lines 459-467 ("S13. Credit the quiet move before the break").
+   `IDEAS.md` specifies a `[side][from][to]` history for a non-capturing non-pawn move followed a few
+   plies later, with pawn structure unchanged, by a pawn move that "raised the score", used only to
+   order quiet piece moves and shorten their LMR reduction. Seat 016 (`src/search.cpp:72-73, 150-163, 189-195, 203-206`)
+   reads "raised the score" as a beta cutoff (`best_score >= beta` where `best_move` is a pawn move,
+   with `+1` depth bonus if quiet and `best_score > beta + 100`), checks `previous->pawn_key == ss->pawn_key`
+   at `back = 2, 4` (`IdeaS13_Lookback = 4`), and sets `IdeaS13_ReduceDivisor = 1024` (cap `1` ply).
+   Seat 066 (`src/search.cpp:60-62, 147-166, 182, 191-198, 206-209`) reads "raised the score" as ANY
+   pawn `best_move` that beat the node's entry `alpha` (`best_score > alpha_at_moves`, which includes
+   interior PV improvements below `beta` as well as beta cutoffs), checks `(earlier + 1)->break_pawn_key == board.pawn_key()`
+   at `back = 2, 4` (`IdeaS13_Window = 4`, functionally the same pawn key since `earlier` was a non-pawn
+   non-capture non-promotion move, except when `earlier + 1` entered `qsearch` directly without writing
+   `break_pawn_key`!), and sets `IdeaS13_LmrDivisor = 4096` (`4x` larger divisor than `016`'s `1024`,
+   cap `1` ply).
