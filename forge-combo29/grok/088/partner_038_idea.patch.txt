@@ -1,0 +1,101 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..3d142f97e 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,10 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaA7;                  // after a non-mate alpha raise, search the remaining moves shallower (false = off)
++extern int IdeaA7_MinDepth;          // inclusive node depth where IdeaA7 starts
++extern int IdeaA7_MaxDepth;          // inclusive node depth where IdeaA7 stops
++extern int IdeaA7_Ply;               // plies removed from each remaining move
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..14e35349f 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,10 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaA7 = false;
++int IdeaA7_MinDepth = 2;
++int IdeaA7_MaxDepth = 12;
++int IdeaA7_Ply = 1;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +149,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaA7_MinDepth", &IdeaA7_MinDepth, 0, 64},
++        {"IdeaA7_MaxDepth", &IdeaA7_MaxDepth, 0, 64},
++        {"IdeaA7_Ply", &IdeaA7_Ply, 0, 8},
+     };
+     return table;
+ }
+@@ -1812,6 +1819,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
+ 
++    // Alpha at the first move. A later score above this is an alpha raise.
++    const int alpha_entry = alpha;
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+         if (move == excluded) continue;
+@@ -1958,6 +1967,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
++        // IdeaA7. Once alpha has been raised by a non-mate score, each remaining
++        // move is searched IdeaA7_Ply plies shallower. The check is false unless
++        // the option is on, so new_depth stays on today's path. A cut that lands
++        // in quiescence skips the late-move block: its clamp requires a positive
++        // upper bound, and search() already treats depth <= 0 as quiescence.
++        bool idea_cut_to_quiescence = false;
++        if (tune::IdeaA7 && alpha > alpha_entry && !is_mate_score(alpha) &&
++            depth >= tune::IdeaA7_MinDepth && depth <= tune::IdeaA7_MaxDepth &&
++            tune::IdeaA7_Ply > 0) {
++            new_depth -= tune::IdeaA7_Ply;
++            idea_cut_to_quiescence = new_depth < 1;
++        }
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1988,7 +2009,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
+-        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
++        if (!idea_cut_to_quiescence && mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+             int r = reduction(quiet, depth, move_count);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..d186d33ab 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaA7 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -387,6 +388,9 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaA7") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA7 = value_text == "true";
++                else note_invalid();
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
