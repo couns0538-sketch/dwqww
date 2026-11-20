@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
 # Test match: IdeaS20 on versus IdeaS20 off, both exe P, S14, 20000 nodes.
-# Usage: match.sh BOOK LOG_PREFIX
+# Usage: match.sh BOOK LOG_PREFIX [EXE] [OPTION]
 # Plays every line of BOOK once with both colours (rounds = line count, games 2).
 set -u
 S=$(cat ~/grok_seat.txt)
 cd "$(cat ~/grok_repo.txt)"
 BOOK="$1"
 PREFIX="$2"
-EXE=/tmp/forge-P/forge
+EXE="${3:-/tmp/forge-P/forge}"
+OPTION="${4:-IdeaS20}"
 FC=/tmp/fastchess/fastchess
 ROUNDS=$(grep -cve '^$' "$BOOK")
 mkdir -p /tmp/match-cwd
 cd /tmp/match-cwd
 echo "rounds=$ROUNDS book=$BOOK" > "${PREFIX}.cmd.txt"
 "$FC" \
-  -engine cmd="$EXE" name=on option.IdeaS20=true \
-  -engine cmd="$EXE" name=off option.IdeaS20=false \
+  -engine cmd="$EXE" name=on option.${OPTION}=true \
+  -engine cmd="$EXE" name=off option.${OPTION}=false \
   -each nodes=20000 option.Hash=16 option.Threads=1 option.OwnBook=false \
         option.LmrQuietBase=93 option.LmrQuietDivisor=205 \
         option.LmrNoisyBase=13 option.LmrNoisyDivisor=333 \
