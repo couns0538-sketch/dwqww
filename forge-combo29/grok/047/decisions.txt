@@ -1,0 +1,7 @@
+Idea 47 is IdeaK8: one more ply of reduction for a capture with a losing static exchange.
+
+The plain engine does not do this. Late-move reduction uses the noisy table for captures and then the usual quiet-only adjustments. Static exchange is used to drop very bad captures and to allow a check extension, not to add a reduction ply. No IdeaK8 option existed.
+
+What I built: check option IdeaK8, default false. Spin option IdeaK8_Extra, default 1, range 0 to 4. A capture is losing when see_ge(move, 0) is false, which means the exchange nets less than 0. That flag is taken on the position before make_move. After make_move the captured piece is gone, and the same call does not see a loss, so the branch never runs. The extra ply is added only inside the existing reduction, and only when IdeaK8 is true. With the switch false, see_ge is not called and the reduction is unchanged.
+
+Machine: GCC 13.3.0, AVX-512 and BMI2 present, so the build is the default x86-64-v4 lock, not the portable switch.

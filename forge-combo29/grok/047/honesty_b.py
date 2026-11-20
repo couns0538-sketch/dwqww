@@ -7,6 +7,7 @@ from pathlib import Path
 
 EXE = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2]).resolve()
+TAG = sys.argv[3] if len(sys.argv) > 3 else "b"
 OUT.mkdir(parents=True, exist_ok=True)
 
 EXPECTED = {
@@ -40,11 +41,11 @@ for key, (command, expected) in EXPECTED.items():
         capture_output=True,
         check=False,
     )
-    raw_path = OUT / f"honesty_b_{key}.txt"
+    raw_path = OUT / f"honesty_{TAG}_{key}.txt"
     raw_path.write_text(proc.stdout)
-    err_path = OUT / f"honesty_b_{key}.err"
+    err_path = OUT / f"honesty_{TAG}_{key}.err"
     err_path.write_text(proc.stderr)
-    meta_path = OUT / f"honesty_b_{key}.meta"
+    meta_path = OUT / f"honesty_{TAG}_{key}.meta"
     meta_path.write_text(
         f"exe={EXE}\nsha256={sha}\nid_name={id_name}\noptions_sent=none\ncommand={command}\n"
     )
@@ -61,7 +62,7 @@ for key, (command, expected) in EXPECTED.items():
         failed = True
     rows.append((key, command, nodes, expected, "PASS" if ok else "FAIL"))
 
-summary = OUT / "HONESTY_B.txt"
+summary = OUT / f"HONESTY_{TAG.upper()}.txt"
 lines = [
     f"exe={EXE}",
     f"sha256={sha}",
