@@ -1,0 +1,30 @@
+=== JOB 39 PREDICTION (committed ALONE before Part P's first build, never edited) ===
+
+(1) How many of the six ports pass all OFF numbers with their switch off:
+    6
+    Basis: Every port (P1 K4 093, P2 S32 074, P3 B1 030, P4 S13 016, P5 S10 081, P6 B8 078)
+    initializes its forge::tune::Idea* check option to false, allocates only per-Worker
+    storage, and gates every new search, ordering, pruning, and history-update statement
+    behind tune::Idea*, keeping the switch-off execution path bit-for-bit identical to
+    r15d + v3 across all bench, perft, Set A line L, and n[1..60] line L checks.
+
+(2) The bundle with all six on: its O-set node sum at depth 12 (PC20, built-in evaluation)
+    divided by the same sum with all off:
+    1.00  (range that would prove me wrong: outside [0.91, 1.10])
+    Basis: On 6b98f217 (Job 38) the six individual O-set depth-12 multipliers were
+    K4 093 = 0.9391, S32 074 = 1.0050, B1 030 = 1.0612, S13 016 = 1.0234, S10 081 = 1.0045,
+    and B8 078 = 0.9784, whose product is 1.0074 (~1.01). On r15d + v3 under PC20 (switch-off
+    O sum = 8,315,168), K4 stacks with TtPruneV2's rfp_worsening while B1/S13/B8 interact
+    with HistRework=2, keeping the combined all-on / all-off ratio centered near 1.00 within
+    [0.91, 1.10].
+
+(3) The bundle's checking build with all six on reports nothing on Set C line L and n[1..20] line L:
+    yes
+    Basis: All new history tables (BreakPrepHistory, ThreatRoleHistory) are per-Worker
+    std::arrays with every color [0..1], square [0..63], piece type [0..6], role [0..4],
+    king_square >= 0, and SearchStack / v3 valid_flags offset (ply - 4 >= 0 at stack_[4],
+    ply + 6 <= 133 < MaxPly + 8 = 136) in bounds under -D_GLIBCXX_ASSERTIONS and ASan,
+    081's v3 invalidation writes v3_state_->valid_flags[...] = 0, and all arithmetic stays
+    far inside 32-bit signed int range under UBSan.
+
+UTC written: Fri Nov 20 01:27:56 PM UTC 2026
