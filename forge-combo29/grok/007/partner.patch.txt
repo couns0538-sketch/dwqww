@@ -1,0 +1,162 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..e4a79f335 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -300,6 +300,8 @@ extern bool LmrLateParentRelief;     // one ply less reduction on the first few
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool IdeaS31;                 // verify a null cutoff at every depth only when a cheaper enemy attacks a dearer piece, or the static margin is thin (false = off)
++extern int IdeaS31_Margin;           // static eval minus beta at or above which a quiet null cutoff is accepted immediately
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+@@ -523,6 +525,9 @@ private:
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
++    // True only inside an IdeaS31 verification, so that reduced search does not
++    // use null moves. Stays false unless IdeaS31 is on and a cutoff is being checked.
++    bool idea_s31_blocked_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3f3b7fb67 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -100,6 +100,8 @@ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
++bool IdeaS31 = false;
++int IdeaS31_Margin = 80;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS31_Margin", &IdeaS31_Margin, 0, 2000},
+     };
+     return table;
+ }
+@@ -1693,6 +1696,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
++            (!tune::IdeaS31 || !idea_s31_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+@@ -1716,29 +1720,55 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+-                // Depth >= 14 always verifies, as before. Below that, a cutoff
+-                // stands unless NullThreatVerify is on and a cheaper enemy piece
+-                // attacks a dearer piece of the side to move. The option is read
+-                // first, so the attack scan does not run when it is off.
+-                const bool threat_gate =
+-                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
+-                    ++null_cutoffs_;
+-                    return null_score;
+-                }
+-                // Same reduced depth as the high-depth verification. A threat
+-                // confirmation also refuses null moves in that whole search.
+-                const bool saved_block = null_blocked_;
+-                if (threat_gate) null_blocked_ = true;
+-                ss->null_move_allowed = false;
+-                const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+-                null_blocked_ = saved_block;
+-                ss->double_extensions = inherited_double_extensions;
+-                ss->null_move_allowed = true;
+-                if (aborted_) return 0;
+-                if (verification >= beta) {
+-                    ++null_cutoffs_;
+-                    return null_score;
++                if (!tune::IdeaS31) {
++                    // Depth >= 14 always verifies, as before. Below that, a cutoff
++                    // stands unless NullThreatVerify is on and a cheaper enemy piece
++                    // attacks a dearer piece of the side to move. The option is read
++                    // first, so the attack scan does not run when it is off.
++                    const bool threat_gate =
++                        depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                    if (depth < 14 && !threat_gate) {
++                        ++null_cutoffs_;
++                        return null_score;
++                    }
++                    // Same reduced depth as the high-depth verification. A threat
++                    // confirmation also refuses null moves in that whole search.
++                    const bool saved_block = null_blocked_;
++                    if (threat_gate) null_blocked_ = true;
++                    ss->null_move_allowed = false;
++                    const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                    null_blocked_ = saved_block;
++                    ss->double_extensions = inherited_double_extensions;
++                    ss->null_move_allowed = true;
++                    if (aborted_) return 0;
++                    if (verification >= beta) {
++                        ++null_cutoffs_;
++                        return null_score;
++                    }
++                } else {
++                    // IdeaS31: at every depth, accept a null cutoff immediately when
++                    // no cheaper enemy piece attacks a dearer piece of ours and the
++                    // static margin (static eval minus beta) is at least
++                    // IdeaS31_Margin. Otherwise re-search at the same reduced depth
++                    // with null moves disabled in that whole tree.
++                    const int margin = ss->static_eval - beta;
++                    const bool threat = cheaper_enemy_attacks_dearer(board);
++                    if (!threat && margin >= tune::IdeaS31_Margin) {
++                        ++null_cutoffs_;
++                        return null_score;
++                    }
++                    const bool saved_block = idea_s31_blocked_;
++                    idea_s31_blocked_ = true;
++                    ss->null_move_allowed = false;
++                    const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                    idea_s31_blocked_ = saved_block;
++                    ss->double_extensions = inherited_double_extensions;
++                    ss->null_move_allowed = true;
++                    if (aborted_) return 0;
++                    if (verification >= beta) {
++                        ++null_cutoffs_;
++                        return null_score;
++                    }
+                 }
+             }
+         }
+@@ -2156,6 +2186,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++    idea_s31_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..a05eeba4f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -223,6 +223,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
++                         "option name IdeaS31 type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+@@ -394,6 +395,10 @@ int uci_loop(std::istream& in) {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
+                 else note_invalid();
++            } else if (name == "IdeaS31") {
++                if (value_text == "true") forge::tune::IdeaS31 = true;
++                else if (value_text == "false") forge::tune::IdeaS31 = false;
++                else note_invalid();
+             } else if (name == "DeadMaterial") {
+                 if (value_text != "true" && value_text != "false") note_invalid();
+                 else if (forge::dead_material_enabled != (value_text == "true")) {
