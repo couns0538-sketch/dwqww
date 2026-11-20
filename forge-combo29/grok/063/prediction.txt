@@ -1,0 +1,18 @@
+IdeaS15, switch on, before any patched measurement.
+Written 2026-11-20T08:02:50Z (date -u at the prediction commit). Not to be edited.
+
+O depth 12 sum, exe P, S14, IdeaS15 true, MinPieces 8, MaxRookMoves 1:
+  predicted sum = 9700000
+  proved wrong if the measured sum is below 8500000 or above 14000000
+
+Test match, switch true vs switch false, S14, 1106 games, 20000 nodes:
+  predicted Elo of the switch-on side = 3
+  proved wrong if the point estimate is below -25 or above 40
+
+Why: the change only cancels a late-move reduction for a rook that reaches a
+passed-pawn file in a rook ending of at least 8 pieces. That is a small part
+of an opening search and of a short game, so the node sum should stay near
+the plain 9500069 and the match should stay near 0. Unreducing a move can
+also cut the tree off sooner, so a moderate move in either direction still
+fits. A sum outside that band, or an Elo outside that band, means the gate
+is not the narrow rook-ending test that was written down.
