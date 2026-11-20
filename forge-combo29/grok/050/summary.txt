@@ -1,0 +1,36 @@
+honesty_B 312866 862329 3024920 4865609
+honesty_P 312866 862329 3024920 4865609
+proof1_match True
+proof2_off_O_differ 0
+proof2_off_G_differ 0
+proof3_on_O_differ 200
+proof3_on_line sum 9484082
+proof4
+option name IdeaK11 type check default false
+option name IdeaK11_Base type spin default 64 min 0 max 2000
+option name IdeaK11_Divisor type spin default 160 min 1 max 4000
+option name IdeaK11_Cap type spin default 320 min 0 max 4000
+proof5_nm_asan 35
+proof5_clean_sanitizer_lines 0
+proof5_bad_heap_overflow True
+proof5_bad_nm 35
+base_O sum 9500069
+base_G sum 18466239
+
+| step | status | evidence file | result |
+| --- | --- | --- | --- |
+| 1 seat | done | SEAT.txt | seat 050 idea 50 |
+| 2 honesty B | done | HONESTY_B.txt | 312866 862329 3024920 4865609 |
+| 2 O depth 12 B | done | B_O_d12.rows | sum 9500069 |
+| 2 G depth 12 B | done | B_G_d12.rows | sum 18466239 |
+| 3 prediction | done | prediction.txt | committed before measuring P |
+| 3 patch applies | done | apply_check.txt | APPLY_CHECK_OK apply check exit 0 |
+| 3 proof 1 honesty P | done | HONESTY_P.txt | 312866 862329 3024920 4865609 |
+| 3 proof 2 switch off | done | compare_off_O.txt compare_off_G.txt | O differ 0; G differ 0 |
+| 3 proof 3 switch on | done | compare_on_O.txt | differ 200; sum 9484082 |
+| 3 proof 4 uci | done | uci_ideak11.txt | IdeaK11 false; Base 64; Divisor 160; Cap 320 |
+| 3 proof 5 sanitizer | done | asan_G100.meta asan_bad_runner.txt | nm 35; clean lines 0; bad overflow True |
+| 3 match O+G | done | match_og_result.txt | 1106 games, see that file |
+| 4 partner | not done | partner_none.txt | no branch for-fable-and-opus/grok-100 |
+| 4 second match R | done | match_r_result.txt | 600 games, see that file |
+| 5 report | done | REPORT.md RESULT.txt | this step |
