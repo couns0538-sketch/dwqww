@@ -1,0 +1,113 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..ebbbe35c4 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -297,6 +297,8 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern bool IdeaS15;                  // rook ending: search a rook move that reaches a passer file at full depth (false = off)
++extern int IdeaS15_MinPieces;         // minimum pieces on the board, kings included, before IdeaS15 can apply
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..b6d4c2155 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -97,6 +97,8 @@ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++bool IdeaS15 = false;
++int IdeaS15_MinPieces = 8;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS15_MinPieces", &IdeaS15_MinPieces, 2, 32},
+     };
+     return table;
+ }
+@@ -235,6 +238,35 @@ ReductionTable Reductions;
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
++// Idea S15, read on the position before the move is made. A rook ending here is
++// one rook on each side and no queen, bishop, or knight. The rook move leaves
++// its file and lands on the file of a passed pawn, so it reaches that file in
++// one move. The pawn's next step costs one move when the stop square is empty
++// and two when something stands there. One is never more than that, which is
++// the tempo test. The caller then sets the reduction to 0. This does not
++// extend and it does not touch the evaluation. Only called when IdeaS15 is on.
++[[nodiscard]] bool idea_s15_rook_meets_passer(const Board& board, Move move, Piece moved) {
++    if (piece_type(moved) != Rook) return false;
++    if (file_of(move.from) == file_of(move.to)) return false;
++    if (popcount(board.occupied()) < tune::IdeaS15_MinPieces) return false;
++    if ((board.pieces(Queen) | board.pieces(Bishop) | board.pieces(Knight)) != 0) return false;
++    if (popcount(board.pieces(White, Rook)) != 1 || popcount(board.pieces(Black, Rook)) != 1) return false;
++    constexpr int kRookMovesToFile = 1;
++    Bitboard pawns = board.pieces(Pawn) & file_bb(file_of(move.to));
++    while (pawns != 0) {
++        const int square = pop_lsb(pawns);
++        const Color us = color_of(board.piece_at(square));
++        const Color them = opposite(us);
++        if ((attacks::passed_pawn_mask(us, square) & board.pieces(them, Pawn)) != 0) continue;
++        if ((board.pieces(us, Pawn) & attacks::forward_file(us, square)) != 0) continue;
++        const int stop = square + pawn_push_delta(us);
++        const bool stop_empty = stop >= 0 && stop < 64 && board.piece_at(stop) == Empty;
++        const int pawn_steps = stop_empty ? 1 : 2;
++        if (kRookMovesToFile <= pawn_steps) return true;
++    }
++    return false;
++}
++
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+ }
+@@ -1827,6 +1859,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const bool gives_check = board.gives_check(move);
+         const Piece moved = board.moved_piece(move);
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
++        // Read before make_move. A false option skips the predicate, so the
++        // search path stays the one this engine already had.
++        const bool idea_s15_full_depth =
++            tune::IdeaS15 && idea_s15_rook_meets_passer(board, move, moved);
+ 
+         // Shallow-depth pruning of unpromising moves.
+         // Off by default, so the predicate below is the historical guard.
+@@ -2008,6 +2044,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Full depth for the rook that meets the passer. Zero is not an
++            // extension: reduced_depth becomes new_depth and nothing is added.
++            if (idea_s15_full_depth && r > 0) r = 0;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..447f2c320 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -221,6 +221,7 @@ int uci_loop(std::istream& in) {
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
++                         "option name IdeaS15 type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+@@ -387,6 +388,9 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaS15") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS15 = value_text == "true";
++                else note_invalid();
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();

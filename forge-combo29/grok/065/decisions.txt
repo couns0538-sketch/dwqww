@@ -1,0 +1,15 @@
+Idea S15, option IdeaS15, default false.
+Spin IdeaS15_MinPieces default 8, range 2..32. That is the "eight or more pieces" in the idea. Kings are counted.
+
+A rook ending is exactly one rook for White and one for Black, and no queen, bishop, or knight.
+A qualifying move is a rook move that changes file and lands on the file of a passed pawn.
+Passed pawn uses the engine's own mask: no enemy pawn on the passer mask, and no friendly pawn in front on the file.
+The rook reaches that file in one move. The pawn's next step costs 1 if the stop square is empty and 2 if it is not.
+One is never greater than that, so the tempo test passes for every such move. The reduction is then set to 0.
+That is full depth. It is not an extension, and the evaluation is unchanged.
+The test is read on the position before make_move. The option-off path does not call it.
+
+Why O depth 12 can differ in 0 positions: a counter build of this same patch, S14, IdeaS15 true, reported
+s15true 0 and s15zero 0 across all 200 openings. The same process then searched G line 22 and reported
+s15true 60 and s15zero 19. The code runs. It does not run inside those opening searches.
+G depth 12 with the switch on is not a required proof. It was the check that the code is alive: 59 of 353 differ.
