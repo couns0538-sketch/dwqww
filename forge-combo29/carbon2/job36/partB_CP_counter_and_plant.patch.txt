@@ -1,0 +1,39 @@
+# === kK_to_kK_cp ===
+--- a/kK_to_kK_cp/src/search.cpp
++++ b/kK_to_kK_cp/src/search.cpp
+@@ -3651,6 +3651,7 @@
+             if (!stopped_by_nodes_ && ss->pv_length > 0 &&
+ #endif
+                 !(result.pv.size() > 0 && result.pv[0] == pv_stack_[4][0])) {
++                { const std::lock_guard<std::mutex> output_lock(uci_output_mutex()); std::cout << "info string abortpub" << std::endl; }
+                 result.best_move = pv_stack_[4][0];
+                 result.pv.assign(pv_stack_[4].begin(), pv_stack_[4].begin() + ss->pv_length);
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+# === kK_cp_to_kK_plant ===
+--- a/kK_cp_to_kK_plant/src/search.cpp
++++ b/kK_cp_to_kK_plant/src/search.cpp
+@@ -3650,10 +3650,10 @@
+ #else
+             if (!stopped_by_nodes_ && ss->pv_length > 0 &&
+ #endif
+-                !(result.pv.size() > 0 && result.pv[0] == pv_stack_[4][0])) {
++                !(result.pv.size() > 0 && result.pv[0] == pv_stack_[5][0])) {
+                 { const std::lock_guard<std::mutex> output_lock(uci_output_mutex()); std::cout << "info string abortpub" << std::endl; }
+-                result.best_move = pv_stack_[4][0];
+-                result.pv.assign(pv_stack_[4].begin(), pv_stack_[4].begin() + ss->pv_length);
++                result.best_move = pv_stack_[5][0];
++                result.pv.assign(pv_stack_[5].begin(), pv_stack_[5].begin() + ss->pv_length);
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                 // Publish the revised line so GUIs see a PV consistent with the move.
+                 emit(depth, result.score, result.pv);
+# === kF_to_kF_cp ===
+--- a/kF_to_kF_cp/src/search.cpp
++++ b/kF_to_kF_cp/src/search.cpp
+@@ -3547,6 +3547,7 @@
+             if (!stopped_by_nodes_ && ss->pv_length > 0 &&
+ #endif
+                 !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
++                { const std::lock_guard<std::mutex> output_lock(uci_output_mutex()); std::cout << "info string abortpub" << std::endl; }
+                 result.best_move = ss->pv[0];
+                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();

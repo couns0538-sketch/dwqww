@@ -1,0 +1,43 @@
+UTC start: Fri Nov 20 10:53:15 AM UTC 2026
+
+=== PART B: Verification of the Seven Settled `none` Rows Against kK Source ===
+  - Hunk 46: AGREE — inside `src/search.cpp:1516` (`#elif FORGE_SPD_NO_ZERO_MOVELISTS >= 2`) of `1333` (`#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2`); not compiled under PC defines (`2` and `1`).
+  - Hunk 47: AGREE — inside `src/search.cpp:1529` (`#else` of the same `1333` chain); not compiled on the PC.
+  - Hunk 74: AGREE — inside `src/search.cpp:3601` (`#if FORGE_FIX_ABORT_PUBLISH`, default `0` at `src/search.cpp:78`); not compiled on the PC.
+  - Hunk 40: AGREE — `init_check_squares` `#else` (`src/search.cpp:1032`) is under `#if FORGE_SPD_KING_LINES` (`1024`, default `1` at `board.hpp:73`), `direct_check` (`1046`) has only the 3 callers `1525`, `1546`, `1594` (none compiled on the PC), and `restore_king_lines` (`src/board.cpp:1201`) restores `dst.check_squares[Queen] = src.chk_b | src.chk_r`.
+  - Hunk 10: AGREE — `make_valid` (`include/forge/nnue_v3.hpp:335`) has zero callers across `include/` and `src/` (`matches = ['include/forge/nnue_v3.hpp:335']`); never instantiated.
+  - Hunk 15: AGREE — `candidate.key_history_.reserve(2048)` (`src/board.cpp:364`) is capacity-only; `key_history_.data()` at `src/board.cpp:1849` is inside `const` `Board::upcoming_repetition` (pushes nothing), and `key_history()` (`include/forge/board.hpp:284`) has zero callers (`matches = ['include/forge/board.hpp:284']`).
+  - Hunk 73: AGREE — `root_effort_count_` is set at `src/search.cpp:3549` before `std::fill_n` at `3552`, and every access to `root_move_nodes_` (`2991`, `3049..3050`, `3779..3783`, `3803..3804`) is bounded by `root_effort_count_`.
+
+=== PART B: Scratch Counter & Planted Builds ===
+  kK_cp     : exe=/tmp/carbon2_job36/bld_kk_cp_fast/forge sha256=8f77fa45fc3b25994418d27696e00b89d23297acf98e8e580b6f8ac72e58bd27
+  kK_plant  : exe=/tmp/carbon2_job36/bld_kk_pl_fast/forge sha256=a1c4ba8d0c39438755897b5f78a96f95e0442b2caf8fe3e11e7aecee31b62a54
+  kF_cp     : exe=/tmp/carbon2_job36/bld_kf_cp_fast/forge sha256=8dca7846e67722aabca1cc00e18ef603672dfa2dae2a9c0f20566416fc4da376
+
+Position set: first 200 non-terminal positions of `forge-combo29/carbon2/positions_250.txt` (lines 1..202, skipping terminal checkmate lines [88, 176] which have 0 legal moves).
+
+=== PART B CONTROL CP: `go depth 10` Node Identity on First 20 Non-Terminal Positions ===
+  kK_cp vs kK depth-10 node sum (20 pos)        : PASS (321964 == 321964)
+  kF_cp vs kF depth-10 node sum (20 pos)        : PASS (321964 == 321964)
+
+=== PART B CONTROL CP: Primary 200 Non-Terminal Searches (`positions_250.txt`, `go movetime 30`) ===
+  kK_cp    : searches=200, branch_taken=1, check_passed=200 of 200 (PASS (200 == 200); legal=200/200, pv_match=200/200)
+  kK_plant : searches=200, branch_taken=18, check_passed=182 of 200, check_FAILED=18 of 200 (PASS (18 >= 1); legal=182/200, pv_match=200/200)
+    First planted failure in full: idx=8 | fen=k1r2br1/1p2ppp1/3B1nnp/8/2P1P3/3PKNPB/P4P1P/5RR1 b - - 1 22 | abortpub=1 | bestmove='d6b4' (legal=False) | first_pv='d6b4' (pv_match=True) | last_pv_line='info depth 13 seldepth 22 score cp -290 nodes 43008 nps 2150400 hashfull 17 time 20 pv d6b4 e7e6 f1b1 c6a6 a2a3 a8b8 b1b3 f6d7 g1b1 f8b4 a3b4 g8c8'
+  kF_cp    : searches=200, branch_taken=1, check_passed=200 of 200 (PASS (200 == 200); legal=200/200, pv_match=200/200)
+
+=== PART B CONTROL CP EXTENSION (kK_cp branch_taken=1 < 10 in 200 at movetime 30 -> running 200 at `movetime 10` AND 1,000 non-terminal searches at `movetime 10` & `movetime 30`) ===
+  [200 pos, movetime 10] kK_cp    : searches=200, branch_taken=2, check_passed=200 of 200 (PASS (200 == 200))
+  [200 pos, movetime 10] kK_plant : searches=200, branch_taken=14, check_passed=186 of 200, check_FAILED=14 of 200 (PASS (14 >= 1))
+    First planted 200/mt10 failure in full: idx=44 | fen=8/8/6R1/4k3/1K3R2/6P1/8/N7 w - - 19 77 | abortpub=1 | bestmove='e5d5' (legal=False) | first_pv='e5d5' (pv_match=True) | last_pv_line='info depth 7 seldepth 14 score cp 1523 nodes 3072 nps 3072000 hashfull 1 time 1 pv e5d5 c2e3 d5e5 e3c4 e5d5 g6d6 f6e6'
+  [200 pos, movetime 10] kF_cp    : searches=200, branch_taken=2, check_passed=200 of 200 (PASS (200 == 200))
+  [1000 pos, movetime 10] kK_cp   : searches=1000, branch_taken=12, check_passed=1000 of 1000 (PASS (1000 == 1000))
+  [1000 pos, movetime 10] kK_plant: searches=1000, branch_taken=86, check_passed=914 of 1000, check_FAILED=86 of 1000 (PASS (86 >= 1))
+    First planted 1000/mt10 failure in full: idx=10 | fen=1rbqkb1r/1p2pppp/3p1nn1/2p5/1pP5/NQ1P1N2/P3PPPP/1RB1KBR1 b k - 1 10 | abortpub=1 | bestmove='e2e3' (legal=False) | first_pv='e2e3' (pv_match=True) | last_pv_line='info depth 7 seldepth 12 score cp 456 nodes 2048 nps 2048000 hashfull 1 time 1 pv e2e3 e7e5 f1e2 e5e4 d3e4 f6e4 f8c5'
+  [1000 pos, movetime 10] kF_cp   : searches=1000, branch_taken=10, check_passed=1000 of 1000 (PASS (1000 == 1000))
+  [1000 pos, movetime 30] kK_cp   : searches=1000, branch_taken=5, check_passed=1000 of 1000 (PASS (1000 == 1000))
+  [1000 pos, movetime 30] kK_plant: searches=1000, branch_taken=80, check_passed=920 of 1000, check_FAILED=80 of 1000 (PASS (80 >= 1))
+  [1000 pos, movetime 30] kF_cp   : searches=1000, branch_taken=5, check_passed=1000 of 1000 (PASS (1000 == 1000))
+
+UTC end: Fri Nov 20 10:54:38 AM UTC 2026
+PART B OVERALL: PASS (1 == 1)
