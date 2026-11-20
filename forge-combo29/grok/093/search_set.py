@@ -116,6 +116,8 @@ def main():
     options = S14 + extras
     eng = Engine(exe)
     id_name = ""
+    error = None
+    rows = []
     try:
         eng.send("uci")
         uci_lines = eng.read_until(lambda line: line.startswith("uciok"), 30)
@@ -126,7 +128,6 @@ def main():
             eng.send(f"setoption name {name} value {value}")
             eng.send("isready")
             eng.read_until(lambda line: line.startswith("readyok"), 30)
-        rows = []
         for index, fen in enumerate(fens, start=1):
             eng.send("ucinewgame")
             eng.send("isready")
@@ -147,6 +148,8 @@ def main():
             rows.append((index, nodes, fen))
             if index % 25 == 0:
                 print(f"{out_prefix.name} {index}/{len(fens)}", flush=True)
+    except Exception as exc:
+        error = exc
     finally:
         eng.close()
     out_prefix.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +169,9 @@ def main():
     (out_prefix.parent / (out_prefix.name + ".meta")).write_text(meta)
     total = sum(nodes for _, nodes, _ in rows)
     print(f"SUM {total} count {len(rows)}", flush=True)
+    if error is not None:
+        print(f"ENGINE_ERROR {error}", flush=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

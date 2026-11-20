@@ -1,0 +1,8 @@
+Scratch copy only, not in idea.patch.txt. One read past the end of a four-int heap array,
+in apply_position, after a legal set_fen of 8/8/8/8/8/8/8/K6k w - - 0 1:
+
+    std::vector<int> heap_probe(4);
+    volatile int past_end = heap_probe[4];
+
+Built with the same AddressSanitizer and UndefinedBehaviorSanitizer flags as the
+G100 run, and driven by search_set.py.

@@ -1,0 +1,14 @@
+Idea 43, IdeaK4. The plain engine does not do this. Reverse futility at search.cpp uses
+margin = RfpMargin * depth - RfpImproving * improving
+and returns eval when eval - margin >= beta.
+
+Decision: one check, IdeaK4, default false. One spin, IdeaK4_Shrink, default 24, range 0..200.
+When the check is on, compare the opponent's static evals at the node one ply ago and the node
+three plies ago (both are the opponent to move, both stored from that side's point of view).
+If both exist and the later one is lower, the opponent worsened over two plies and the margin
+is reduced by IdeaK4_Shrink. Sentinels before the root store ValueNone, so the comparison
+cannot fire before both samples exist. The check is read first, so false leaves the margin
+expression unchanged.
+
+24 cp stays positive at depth 1 even when the improving bonus of 40 is also on
+(72 - 40 - 24 = 8). A larger shrink would let the margin go negative at depth 1.
