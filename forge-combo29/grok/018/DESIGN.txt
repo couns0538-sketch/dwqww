@@ -1,0 +1,25 @@
+IdeaS16, seat 018. The plain engine does not do this. No EXISTS line in search.
+
+A friendly pawn is a candidate when three things are true at the node, before the move.
+Its passed-pawn span still contains at least one enemy pawn (a stopper). Every stopper
+is attacked by a friendly pawn (a lever). The square one step in front of the pawn has
+at least as many friendly attackers as enemy attackers, counting every piece. Zero and
+zero passes: nobody attacks that square.
+
+The move that is boosted is one of two kinds.
+A quiet pawn push (not a capture and not a promotion, including a double step) of a
+candidate, after which that pawn's span is empty.
+A capture, including en passant and a promoting capture, of a pawn that is the only
+stopper of some candidate, and whose static exchange is at least 0.
+
+When IdeaS16 is on, that move's picker score gains IdeaS16_OrderBonus and its late-move
+reduction loses IdeaS16_ReductionCut plies. The static evaluation is unchanged.
+When IdeaS16 is off, both sites are skipped and the score and the reduction stay as they
+are today.
+
+OrderBonus default 4000. Quiet history starts near 0 and a direct check already gets
+12000, so 4000 lifts the lever above ordinary quiets and leaves most checks first.
+A pawn capture is scored near 1000 and a minor capture near 3000, so 4000 lifts a
+pawn-capture lever above minor captures and below a rook capture.
+ReductionCut default 1. One ply less is a milder reduction, not a full-depth search.
+The spins are IdeaS16_OrderBonus (0..30000) and IdeaS16_ReductionCut (0..4).
