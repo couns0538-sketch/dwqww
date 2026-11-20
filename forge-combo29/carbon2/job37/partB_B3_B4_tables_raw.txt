@@ -1,0 +1,158 @@
+=== JOB 37 PART B3 — THE TABLE (BASE ON W[1..60], B2 RECORDING) ===
+Total forge samples on W[1..60]: 302199 (= 15.1100 s task-clock; rusage eng_cpu = 15.1137 s)
+
+Rank   Self_Samp   Self_%   Incl_Samp   Incl_%   Function (demangled linkage name)
+-------------------------------------------------------------------------------------------------------------------
+   1       42736   14.14%      297780   98.54%   forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+   2       17297    5.72%       17489    5.79%   forge::nnue::v3::(anonymous namespace)::apply_pair_and_sum_avx512(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, forge::Color, int)
+   3        9626    3.19%       13857    4.59%   forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+   4        9074    3.00%       17951    5.94%   forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+   5        8089    2.68%        8090    2.68%   forge::nnue::v3::(anonymous namespace)::apply_changes_pair_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+   6        7358    2.43%       19031    6.30%   forge::MovePicker::pick_best()
+   7        6863    2.27%       10740    3.55%   forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const
+   8        6730    2.23%       13758    4.55%   forge::Board::see_ge(forge::Move const&, int) const
+   9        6559    2.17%       72984   24.15%   forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+  10        6119    2.02%       10921    3.61%   forge::MovePicker::QuietScorer::score(forge::Move, std::array<unsigned long, 7ul> const&) const
+  11        5824    1.93%       61323   20.29%   forge::MovePicker::next(bool)
+  12        5087    1.68%        5713    1.89%   forge::nnue::v3::(anonymous namespace)::output_sum_avx512(forge::nnue::v3::Net const&, short const*, short const*, int)
+  13        4658    1.54%        7484    2.48%   forge::Board::make_move(forge::Move const&, forge::Undo&)
+  14        4620    1.53%        5474    1.81%   forge::(anonymous namespace)::ensure_piece_diff(forge::SearchStack*)
+  15        4074    1.35%        4075    1.35%   forge::nnue::v3::(anonymous namespace)::add_column_avx512(short*, short const*, int)
+  16        3723    1.23%        5512    1.82%   forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+  17        3363    1.11%        3364    1.11%   forge::nnue::v3::(anonymous namespace)::sub_column_avx512(short*, short const*, int)
+  18        3276    1.08%        3878    1.28%   forge::Board::upcoming_repetition(unsigned long) const
+  19        3147    1.04%        5965    1.97%   forge::Board::unmake_move(forge::Move const&, forge::Undo const&)
+  20        3128    1.04%        4114    1.36%   forge::Board::key_after(forge::Move const&, unsigned long&) const
+  21        3081    1.02%        3533    1.17%   void std::__unguarded_linear_insert<forge::MovePicker::Scored*, __gnu_cxx::__ops::_Val_comp_iter<forge::MovePicker::pick_best()::'lambda'(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)>>(forge::MovePicker::Scored*, __gnu_cxx::__ops::_Val_comp_iter<forge::MovePicker::pick_best()::'lambda'(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)>)
+  22        3071    1.02%       71262   23.58%   forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+  23        3028    1.00%        3028    1.00%   forge::nnue::v3::(anonymous namespace)::apply_changes_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+  24        2770    0.92%        2779    0.92%   forge::attacks::Magic::index(unsigned long) const
+  25        2629    0.87%        3446    1.14%   void forge::TranspositionTable::store_body<false>(forge::TTProbe const&, unsigned long, int, int, forge::Move, int, forge::Bound, bool, unsigned short)
+-------------------------------------------------------------------------------------------------------------------
+
+Group Breakdown (mutually exclusive partition of all samples):
+Group                                      Samples    Share_%
+----------------------------------------------------------------
+the search                                  152200     50.36%
+the net                                      71275     23.59%
+move generation                               5142      1.70%
+the move picker with SEE and the sort        53314     17.64%
+hashing and the transposition table          17326      5.73%
+the game loop itself                           128      0.04%
+the rest                                      2814      0.93%
+----------------------------------------------------------------
+TOTAL (sum == total_samples)                302199    100.00%  PASS (302199 == 302199)
+  (Note: within 'the search', Board state/legality/make-unmake functions account for 57461 samples = 19.01% of total.)
+
+=== JOB 37 PART B4 — THE SP-PGO TABLE (r15d+v3 SP-PGO ON W[1..60]) BESIDE B3 ===
+Total forge samples on W[1..60]: 287324 (= 14.3662 s task-clock; rusage eng_cpu = 14.4384 s)
+
+Rank   Self_Samp   Self_%   Incl_Samp   Incl_%   Function (demangled linkage name)
+-------------------------------------------------------------------------------------------------------------------
+   1       28497    9.92%      282943   98.48%   forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+   2       17501    6.09%       17598    6.12%   forge::nnue::v3::(anonymous namespace)::apply_pair_and_sum_avx512(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, forge::Color, int)
+   3       16736    5.82%       17435    6.07%   forge::TranspositionTable::prefetch(unsigned long) const
+   4       10014    3.49%       14311    4.98%   forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+   5        8989    3.13%       17561    6.11%   forge::nnue::v3::refresh_from_pieces(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, std::array<unsigned long, 13ul> const&, forge::Color, int, short*)
+   6        8186    2.85%        8192    2.85%   forge::nnue::v3::(anonymous namespace)::apply_changes_pair_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+   7        6591    2.29%       18677    6.50%   forge::MovePicker::pick_best()
+   8        6309    2.20%       10477    3.65%   forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const
+   9        5031    1.75%        5680    1.98%   forge::nnue::v3::(anonymous namespace)::output_sum_avx512(forge::nnue::v3::Net const&, short const*, short const*, int)
+  10        5012    1.74%       12313    4.29%   forge::Board::see_ge(forge::Move const&, int) const
+  11        4534    1.58%        5411    1.88%   forge::(anonymous namespace)::ensure_piece_diff(forge::SearchStack*)
+  12        4337    1.51%        6772    2.36%   forge::Board::make_move(forge::Move const&, forge::Undo&)
+  13        4254    1.48%        9529    3.32%   forge::MovePicker::QuietScorer::score(forge::Move, std::array<unsigned long, 7ul> const&) const
+  14        4178    1.45%        4179    1.45%   forge::nnue::v3::(anonymous namespace)::add_column_avx512(short*, short const*, int)
+  15        3728    1.30%        5499    1.91%   forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+  16        3700    1.29%       56864   19.79%   forge::MovePicker::next(bool)
+  17        3503    1.22%        4208    1.46%   forge::Board::upcoming_repetition(unsigned long) const
+  18        3367    1.17%        3692    1.28%   void std::__unguarded_linear_insert<forge::MovePicker::Scored*, __gnu_cxx::__ops::_Val_comp_iter<forge::MovePicker::pick_best()::'lambda'(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)>>(forge::MovePicker::Scored*, __gnu_cxx::__ops::_Val_comp_iter<forge::MovePicker::pick_best()::'lambda'(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)>)
+  19        3323    1.16%        3323    1.16%   forge::b4::blend(int, int, int)
+  20        3236    1.13%        3237    1.13%   forge::nnue::v3::(anonymous namespace)::sub_column_avx512(short*, short const*, int)
+  21        3207    1.12%        5664    1.97%   forge::Board::unmake_move(forge::Move const&, forge::Undo const&)
+  22        3138    1.09%       71050   24.73%   forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+  23        3071    1.07%        3748    1.30%   forge::Board::key_after(forge::Move const&, unsigned long&) const
+  24        3029    1.05%        3030    1.05%   forge::nnue::v3::(anonymous namespace)::apply_changes_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+  25        2952    1.03%        2962    1.03%   forge::attacks::Magic::index(unsigned long) const
+-------------------------------------------------------------------------------------------------------------------
+
+Group Breakdown (mutually exclusive partition of all samples):
+Group                                      Samples    Share_%
+----------------------------------------------------------------
+the search                                  130034     45.26%
+the net                                      67262     23.41%
+move generation                               4849      1.69%
+the move picker with SEE and the sort        48173     16.77%
+hashing and the transposition table          33805     11.77%
+the game loop itself                           193      0.07%
+the rest                                      3008      1.05%
+----------------------------------------------------------------
+TOTAL (sum == total_samples)                287324    100.00%  PASS (287324 == 287324)
+  (Note: within 'the search', Board state/legality/make-unmake functions account for 55793 samples = 19.42% of total.)
+
+=== B3 (BASE -O3) vs B4 (SP-PGO + ThinLTO) SIDE-BY-SIDE GROUP COMPARISON ===
+Total task-clock samples: BASE = 302199 (15.1100s) vs B4_SP_PGO = 287324 (14.3662s), delta = -4.92%
+Group                                      B3_Samp   B3_%     B4_Samp   B4_%     Samp_Change
+--------------------------------------------------------------------------------------------
+the search                                  152200  50.36%    130034  45.26%    -22166 (-14.56%)
+the net                                      71275  23.59%     67262  23.41%     -4013 ( -5.63%)
+move generation                               5142   1.70%      4849   1.69%      -293 ( -5.70%)
+the move picker with SEE and the sort        53314  17.64%     48173  16.77%     -5141 ( -9.64%)
+hashing and the transposition table          17326   5.73%     33805  11.77%    +16479 (+95.11%)
+the game loop itself                           128   0.04%       193   0.07%       +65 (+50.78%)
+the rest                                      2814   0.93%      3008   1.05%      +194 ( +6.89%)
+
+=== WHICH FUNCTIONS THE SP-PGO + THINLTO STEP INLINES INTO OTHERS ===
+A. Direct `callq` counts in `objdump -d -C` (BASE vs B4_SP_PGO) for hot functions whose `callq`s drop in SP-PGO:
+   BASE_calls  B4_calls   Function
+   -----------------------------------------------------------------------------------------------
+            4         5   forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+            5         3   forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)
+            3         4   forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+            2         4   forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)
+            9         6   forge::MovePicker::next(bool)
+            1         0   forge::nnue::v3::apply_pair_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+            4         0   forge::MovePicker::pick_best()
+            1         2   forge::MovePicker::generate_quiets()
+            3         2   forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+            8         7   forge::Board::see_ge(forge::Move const&, int) const
+            1         2   forge::MovePicker::generate_evasions()
+            2         3   forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)
+            2         0   forge::nnue::v3::(anonymous namespace)::apply_changes_pair_avx512(short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, short const*, short*, forge::nnue::v3::(anonymous namespace)::Changes const&, int)
+            2         0   forge::MovePicker::generate_captures()
+            2         6   forge::Board::is_legal(forge::Move const&) const
+            7         5   forge::Board::has_legal_move() const
+            5         3   forge::Board::unmake_move(forge::Move const&, forge::Undo const&)
+            1         0   forge::Worker::quiet_history(forge::Board const&, forge::SearchStack const*, forge::Move) const
+            8         6   forge::Worker::search_child(forge::Board&, forge::SearchStack*, int, int, int, bool)
+            2         0   forge::Board::key_after(forge::Move const&, unsigned long&) const
+            5         6   forge::Board::upcoming_repetition(unsigned long) const
+            4         5   forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)
+            8         4   forge::Board::is_legal_complete(forge::Move const&) const
+            3         1   forge::Worker::record_move(forge::SearchStack*, forge::Board const&, forge::Move const&)
+            6         1   forge::Board::is_repetition(unsigned long) const
+
+B. Measured DWARF inline pairs `(innermost function -> physical host symbol)` in B4_SP_PGO that were NOT inlined
+   into that host in BASE (top 20 by B4 sample count):
+   B4_Samples  B4_%    BASE_Samples  Inlined Function  -->  Host Physical Function
+   ---------------------------------------------------------------------------------------------------------
+        17501   6.09%             0  forge::nnue::v3::  -->  forge::Worker::static_evaluate_v3
+        13415   4.67%           137  forge::TranspositionTable::prefetch  -->  forge::Worker::search
+         8172   2.84%             0  forge::nnue::v3::  -->  forge::nnue::v3::apply_changes_pair
+         6309   2.20%             0  forge::TTProbe forge::TranspositionTable::probe_body<false>  -->  forge::TranspositionTable::probe_owned
+         6085   2.12%             0  forge::Worker::corrected_eval  -->  forge::Worker::search
+         5834   2.03%             0  forge::MovePicker::pick_best  -->  forge::Worker::search
+         3831   1.33%             0  forge::Board::make_move  -->  forge::Worker::search
+         3321   1.16%            13  forge::TranspositionTable::prefetch  -->  forge::Worker::qsearch
+         3229   1.12%             0  forge::MovePicker::QuietScorer::score  -->  forge::MovePicker::generate_quiets
+         2828   0.98%             0  forge::MovePicker::next  -->  forge::Worker::search
+         2787   0.97%             0  forge::Board::unmake_move  -->  forge::Worker::search
+         2497   0.87%             0  forge::Board::key_after  -->  forge::Worker::search
+         2082   0.72%             0  forge::b4::blend  -->  forge::MovePicker::generate_quiets
+         1703   0.59%             0  forge::Worker::quiet_history  -->  forge::Worker::search
+         1534   0.53%             0  forge::Board::is_repetition  -->  forge::Worker::search
+         1672   0.58%           222  forge::  -->  forge::Worker::search
+         1420   0.49%             0  void forge::TranspositionTable::store_body<false>  -->  forge::Worker::search
+         1272   0.44%             0  forge::  -->  forge::Worker::search
+         1254   0.44%             0  forge::TTProbe forge::TranspositionTable::probe_body<false>  -->  forge::TranspositionTable::probe_owned
+         1124   0.39%             0  forge::nnue::v3::finish  -->  forge::Worker::static_evaluate_v3

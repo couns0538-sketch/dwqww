@@ -1,0 +1,86 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -91,6 +91,20 @@
+ #define FORGE_ABORT_FAIL_HIGH_FALLBACK 0
+ #endif
+ 
++namespace {
++[[gnu::always_inline]] inline bool co1_call_see_ge(const forge::Board& b, const forge::Move& m, int thr) {
++    const bool first = b.see_ge(m, thr);
++    volatile bool co1_sink = false;
++#pragma clang loop unroll(full)
++    for (int co1_i = 0; co1_i < 8; ++co1_i) {
++        asm volatile("" ::: "memory");
++        co1_sink = b.see_ge(m, thr);
++    }
++    (void)co1_sink;
++    return first;
++}
++} // namespace
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+@@ -721,7 +735,7 @@
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+-                    if (!board_.see_ge(move, -move_score_threshold(move))) {
++                    if (!co1_call_see_ge(board_, move, -move_score_threshold(move))) {
+ #if FORGE_SDK_BADCAP_PREFIX
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+                         moves_[bad_count_++].move = move;
+@@ -1383,7 +1397,7 @@
+         const int attacker = worth(piece_type(board.moved_piece(move)));
+         const int victim = worth(piece_type(board.captured_piece(move)));
+         if (attacker >= victim) continue;
+-        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
++        if (!board.is_legal(move) || !co1_call_see_ge(board, move, 0)) continue;
+         threat = true;
+         break;
+     }
+@@ -1854,7 +1868,7 @@
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            if (!co1_call_see_ge(board, move, -tune::QsSeeMargin)) continue;
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -2150,7 +2164,7 @@
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+                 if (move == excluded || !board.is_legal(move)) continue;
+-                if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
++                if (!co1_call_see_ge(board, move, probcut_beta - ss->static_eval)) continue;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -2296,7 +2310,7 @@
+                     quiet_fail = true;
+                     continue;
+                 }
+-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                if (!co1_call_see_ge(board, move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+@@ -2316,7 +2330,7 @@
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+-                    !board.see_ge(move, see_threshold)) {
++                    !co1_call_see_ge(board, move, see_threshold)) {
+                     trace_case();
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+@@ -2367,7 +2381,7 @@
+                 extension = -1;
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+-                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
++                   (picker.last_move_see_nonnegative() || co1_call_see_ge(board, move, 0))) {
+             extension = 1;
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);

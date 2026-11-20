@@ -1,0 +1,20 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3393,6 +3393,17 @@
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+                 key0, king0, key1, king1, dirty, board);
++            {
++                static thread_local nnue::v3::Accumulator co2_scratch;
++                volatile int co2_sink = 0;
++#pragma clang loop unroll(full)
++                for (int co2_i = 0; co2_i < 4; ++co2_i) {
++                    asm volatile("" ::: "memory");
++                    co2_sink = nnue::v3::apply_pair_and_evaluate(
++                        net, parent, co2_scratch, key0, king0, key1, king1, dirty, board);
++                }
++                (void)co2_sink;
++            }
+         } else {
+             nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+                 SearchStack* f = &stack_[static_cast<std::size_t>(k)];

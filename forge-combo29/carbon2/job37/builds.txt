@@ -1,0 +1,28 @@
+=== JOB 37 BUILDS.TXT ===
+
+0. Step 0 Plain Build (r15d + selfgame_r15d_v3.patch.txt, SP-PGO, reused from Job 36):
+   path:            /tmp/carbon2_job36/bld_sp_sgr15v/forge (len=38)
+   exe_sha256:      bfabc2841504b4866d201546777a0912cebd53ad4d5c213f5206f7862e611810
+   profdata_path:   /tmp/carbon2_job36/bld_sp_sgr15v/forge.profdata
+   profdata_sha256: e22424266d8f829892498c15d659f8fdbd3068ad9e5a3fa652dc4aedcc863bcc
+
+=== PART A CHECKING BUILDS ===
+Recipe: -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS (no profile step)
+Exact compile flags (template): clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DFORGE_NNUE_HIDDEN=256 -DFORGE_NNUE_WEIGHTS="/tmp/carbon2_job37/src_chk_clean/src/nnue_weights.inc" -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -ffp-contract=off -fno-fast-math -march=sapphirerapids -pthread -I/tmp/carbon2_job37/src_chk_clean/include
+Exact link flags:               clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all -march=sapphirerapids -fuse-ld=lld-18 -pthread /tmp/carbon2_job37/bld_chk_clean/obj/bitboard.o /tmp/carbon2_job37/bld_chk_clean/obj/board.o /tmp/carbon2_job37/bld_chk_clean/obj/book.o /tmp/carbon2_job37/bld_chk_clean/obj/eval.o /tmp/carbon2_job37/bld_chk_clean/obj/eval_params.o /tmp/carbon2_job37/bld_chk_clean/obj/nnue.o /tmp/carbon2_job37/bld_chk_clean/obj/nnue_v3.o /tmp/carbon2_job37/bld_chk_clean/obj/search.o /tmp/carbon2_job37/bld_chk_clean/obj/uci.o -o /tmp/carbon2_job37/bld_chk_clean/forge
+1. v3_chk_clean : /tmp/carbon2_job37/bld_chk_clean/forge | sha256=4cb91052998c98fcb80ba45a5d217bddb37fab01a4882c971b3a19b1d69f1ba1
+2. v3_chk_CPA   : /tmp/carbon2_job37/bld_chk_cpa/forge   | sha256=c3e61538eedb8052ee2c55c362b775dcdee918a1839849bf2aa86d5095e10caf | patch=control_CPA_s3_heap_oob.patch.txt (4e5727a97db3eef20e16fb01563631736d21826da725513f0172dd1bb4122211)
+3. v3_chk_CPU   : /tmp/carbon2_job37/bld_chk_cpu/forge   | sha256=6cf02404e3cf48a389ae8b3dc6d03ca6daf66c7a9a21edc7bdfea272e1d22ae8 | patch=control_CPU_sgend_signed_ovf.patch.txt (7c8e14d209a3fa1994e32f700311af50050ce051ef95082cf27acbdde793aa9c)
+
+=== PART B BUILDS (ONE IDENTICAL RECIPE FOR BASE, CO1, CO2) ===
+Recipe: -O3 -DNDEBUG -g -fno-omit-frame-pointer, no profile step, PC defines
+Exact compile flags (identical for BASE, CO1, CO2): clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -std=c++20 -O3 -DNDEBUG -g -fno-omit-frame-pointer -DFORGE_NNUE_HIDDEN=256 -DFORGE_NNUE_WEIGHTS="/tmp/carbon2_job36/tpl_r15d_v3/src/nnue_weights.inc" -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -ffp-contract=off -fno-fast-math -march=sapphirerapids -pthread -Iinclude
+Exact link flags    (identical for BASE, CO1, CO2): clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -O3 -DNDEBUG -g -fno-omit-frame-pointer -march=sapphirerapids -fuse-ld=lld-18 -pthread <9 .o files> -o <exe>
+1. BASE          : /tmp/carbon2_job37/bld_pB_BASE/forge (len=36) | sha256=000fdc5b8bc01cd0048e48b92b3296673bee3288fd5e9f660929dcf7a77c12fa
+2. CO1 (k=8)    : /tmp/carbon2_job37/bld_pB_CO1_/forge (len=36) | sha256=2b9b9ac5a64381c35f186693c99e17ea8493b5b37717f483731a523cd91011a8 | patch=partB_CO1_see_ge.patch.txt (14a9acdd9bd95e1f0628fa979713f39230b2cbd9b512c434dc8816aca1f93d80)
+3. CO2 (k2=4)   : /tmp/carbon2_job37/bld_pB_CO2_/forge (len=36) | sha256=624b1af67a28e4d8fe189fcb4ed2d40f03ff68f3190f57c620407cc93c957f79 | patch=partB_CO2_apply_pair_and_evaluate.patch.txt (428e384da7c4431b155ba401a5618c9115c07c0f086d69f65ec4ff39766152d8)
+
+=== PART B4 SP-PGO BUILD (Job 35 SP-PGO recipe + -g -fno-omit-frame-pointer) ===
+Exact compile flags: clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -std=c++20 -O3 -DNDEBUG -g -fno-omit-frame-pointer -DFORGE_NNUE_HIDDEN=256 -DFORGE_NNUE_WEIGHTS="/tmp/carbon2_job36/tpl_r15d_v3/src/nnue_weights.inc" -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -ffp-contract=off -fno-fast-math -march=sapphirerapids -pthread -Iinclude -fprofile-use=/tmp/carbon2_job36/bld_sp_sgr15v/forge.profdata -Wno-profile-instr-out-of-date -Wno-profile-instr-unprofiled -flto=thin
+Exact link flags   : clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -O3 -DNDEBUG -g -fno-omit-frame-pointer -march=sapphirerapids -fuse-ld=lld-18 -pthread -fprofile-use=/tmp/carbon2_job36/bld_sp_sgr15v/forge.profdata -flto=thin <9 .o files> -o /tmp/carbon2_job37/bld_pB_B4SP/forge
+4. B4_SP_PGO     : /tmp/carbon2_job37/bld_pB_B4SP/forge (len=36) | sha256=d85299dc25f2bafd896094e6057d6b75c6d86e34c50360cf74ce0d66ffce2dd3 | profdata_sha256=e22424266d8f829892498c15d659f8fdbd3068ad9e5a3fa652dc4aedcc863bcc

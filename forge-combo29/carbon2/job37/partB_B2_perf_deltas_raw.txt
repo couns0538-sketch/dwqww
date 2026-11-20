@@ -1,0 +1,30 @@
+=== JOB 37 PART B2 — PROFILER DELTAS & FUNCTION-LEVEL VERDICTS (perf record -e task-clock -c 50000 -g on W[1..60]) ===
+Event & period: task-clock, fixed period = 50,000 ns (50 us / sample), 60 finished games on W[1..60].
+BASE W[1..60]: total_samples = 302199 (15.1100s; rusage eng_cpu = 15.1137s)
+CO1  W[1..60]: total_samples = 344059 (17.2030s; rusage eng_cpu = 17.2054s)
+CO2  W[1..60]: total_samples = 351907 (17.5953s; rusage eng_cpu = 17.6536s)
+B4   W[1..60]: total_samples = 287324 (14.3662s; rusage eng_cpu = 14.4384s)
+
+--- CO1 (k=8, Board::see_ge) ---
+  Target function               : forge::Board::see_ge(forge::Move const&, int) const
+  Function self samples         : BASE = 6730 (2.23%), CTRL = 29967 (8.71%), diff = +23237
+  Function INCLUSIVE samples    : BASE = 13758 (4.55%), CTRL = 54961 (15.97%), diff = +41203
+  Total forge samples           : BASE = 302199, CTRL = 344059, diff = +41860
+  B1 clock delta (eng_cpu/game) : +39.764125 ms/game (h = 1.508486 ms/game)
+  B2 function delta (incl/game) : +34.335833 ms/game  [(+41203 * 50 us) / 60]
+  B2 total delta (total/game)   : +34.883333 ms/game  [(+41860 * 50 us) / 60]
+  Relative attribution error    : error = (B2 - B1) / B1 = -13.65%
+  Trust gate |B2 - B1| <= 0.25*B1 + h: |34.335833 - 39.764125| = 5.428292 ms/g vs bound 11.449518 ms/g
+  VERDICT                       : TRUSTED (5.428292 <= 11.449518)
+
+--- CO2 (k2=4, nnue::v3::apply_pair_and_evaluate) ---
+  Target function               : forge::nnue::v3::apply_pair_and_evaluate(forge::nnue::v3::Net const&, forge::nnue::v3::Accumulator const&, forge::nnue::v3::Accumulator&, forge::nnue::v3::KingKey, int, forge::nnue::v3::KingKey, int, forge::nnue::DirtyPieces const&, forge::Board const&)
+  Function self samples         : BASE = 532 (0.18%), CTRL = 2028 (0.58%), diff = +1496
+  Function INCLUSIVE samples    : BASE = 20526 (6.79%), CTRL = 67870 (19.29%), diff = +47344
+  Total forge samples           : BASE = 302199, CTRL = 351907, diff = +49708
+  B1 clock delta (eng_cpu/game) : +42.895538 ms/game (h = 1.846326 ms/game)
+  B2 function delta (incl/game) : +39.453333 ms/game  [(+47344 * 50 us) / 60]
+  B2 total delta (total/game)   : +41.423333 ms/game  [(+49708 * 50 us) / 60]
+  Relative attribution error    : error = (B2 - B1) / B1 = -8.02%
+  Trust gate |B2 - B1| <= 0.25*B1 + h: |39.453333 - 42.895538| = 3.442205 ms/g vs bound 12.570210 ms/g
+  VERDICT                       : TRUSTED (3.442205 <= 12.570210)

@@ -1,0 +1,62 @@
+=== JOB 37 PART B — K/K2 SELECTION, OBJDUMP CALL COUNTS, AND PURITY CHECKS ===
+
+1. Control Definitions & Choice of k and k2:
+  CO1 function  : forge::Board::see_ge(const forge::Move&, int) const
+  CO1 call sites: all 7 sites in src/search.cpp (r15d lines 724, 1386, 1857, 2153, 2299, 2319, 2370;
+                  the 1 internal call inside Board::static_exchange in src/board.cpp stays untouched).
+  CO1 k         : k = 8 (started at k = 4 on warm W[1..30]: k = 4 gave +8.16% < 10.0% threshold;
+                  stepped to k = 8 on pre-committed ladder {4, 8, 12, 16, 20}, achieving >= 10% of BASE eng_cpu).
+
+  CO2 function  : forge::nnue::v3::apply_pair_and_evaluate(const Net&, const Accumulator&, Accumulator&,
+                  KingKey, int, KingKey, int, const DirtyPieces&, const Board&)
+  CO2 Job 34 rank: Rank #1 in Job 34 table P2_outside_search_raw.txt (6.32% vs Board::see_ge 2.07% = 3.05x >= 2x;
+                   on r15d+v3 BASE where FORGE_SDK_SEE_HOIST=0, it is also the #1 largest pure function in the engine;
+                   every function above it on BASE — search, search_child, qsearch, static_evaluate, static_evaluate_v3,
+                   MovePicker::next, make_valid — mutates search/TT/MovePicker/RefreshCache state).
+  CO2 call sites: 1 sole call site in the entire codebase: src/search.cpp:3393 (inside Worker::static_evaluate_v3).
+  CO2 k2        : k2 = 4
+  CO2 why pure  : All inputs (net, parent = v3_state_->stack[index-1], key0, king0, key1, king1, dirty, board)
+                  are const values/references; the k2 extra calls pass a dedicated thread_local scratch Accumulator
+                  (co2_scratch, never read anywhere in the engine) as the output child buffer and store the int return
+                  into a volatile int sink after asm volatile("" ::: "memory"). Thus it reads const board/net/parent
+                  data and writes zero bytes read by the search.
+
+2. Proof the Extra Calls Exist (`objdump -d -C` direct `callq` instruction counts, side by side):
+  Board::see_ge calls in BASE vs CO1(k=8):
+    BASE : total=8 (in search.cpp=7, in board.cpp=1)
+    CO1  : total=64 (in search.cpp=63 = 7 * (1 + 8), in board.cpp=1): PASS (63 == 63)
+  nnue::v3::apply_pair_and_evaluate calls in BASE vs CO2(k2=4):
+    BASE : total=1
+    CO2  : total=5 (= 1 + 4): PASS (5 == 5)
+  B4_SP_PGO call counts (for B4 inlining comparison):
+    B4_SP_PGO: see_ge total=7 (search=7, board=0), apply_pair_and_evaluate total=0
+
+3. Known-Answer Purity Checks on W's Attempts 1 to 60 (PC20 + net768, line L):
+  [BASE]
+    bench 11        : PASS (312866 == 312866)
+    perft 5         : PASS (4865609 == 4865609)
+    W[1..60] records: PASS (8449 == 8449)
+    W[1..60] searchs: PASS (8482 == 8482)
+    W[1..60] nodes  : PASS (36688357 == 36688357)
+    W[1..60] sha256 : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  [CO1_k8]
+    bench 11        : PASS (312866 == 312866)
+    perft 5         : PASS (4865609 == 4865609)
+    W[1..60] records: PASS (8449 == 8449)
+    W[1..60] searchs: PASS (8482 == 8482)
+    W[1..60] nodes  : PASS (36688357 == 36688357)
+    W[1..60] sha256 : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  [CO2_k4]
+    bench 11        : PASS (312866 == 312866)
+    perft 5         : PASS (4865609 == 4865609)
+    W[1..60] records: PASS (8449 == 8449)
+    W[1..60] searchs: PASS (8482 == 8482)
+    W[1..60] nodes  : PASS (36688357 == 36688357)
+    W[1..60] sha256 : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  [B4_SP_PGO]
+    bench 11        : PASS (312866 == 312866)
+    perft 5         : PASS (4865609 == 4865609)
+    W[1..60] records: PASS (8449 == 8449)
+    W[1..60] searchs: PASS (8482 == 8482)
+    W[1..60] nodes  : PASS (36688357 == 36688357)
+    W[1..60] sha256 : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
