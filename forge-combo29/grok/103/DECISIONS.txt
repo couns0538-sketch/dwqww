@@ -1,0 +1,26 @@
+Seat 103, idea 3, S38, signed correction on quiet reductions.
+
+The plain engine already does this. EXISTS: include/forge/search.hpp:362
+(apply_lmr_signed_correction) and the call at src/search.cpp:2003, behind
+the check option LmrSignedCorrection, which uci.cpp:222 already advertises
+as "option name LmrSignedCorrection type check default false".
+
+The two fixed numbers were not options: the divisor 64 and the ply cap 1.
+I added spin options IdeaS38_Divisor (default 64, min 1, max 4096) and
+IdeaS38_Cap (default 1, min 0, max 8). I did not add a second on/off named
+IdeaS38, because the on/off is already LmrSignedCorrection. With that switch
+false the new function body is not called, so the search is today's search.
+With the switch true and the spins left at their defaults, the formula is
+the one the engine already had.
+
+The build is the CMake release build. This machine has AVX-512 and BMI2, so
+FORGE_PORTABLE was left off and -march stays the CMake default x86-64-v4.
+
+R positions: seed 10301. python-chess plays a random legal game. A game that
+ends before ply 80 is dropped. From a game still going at ply 79, one FEN is
+kept at every ply after ply 8 that is a multiple of 7 (15, 22, ..., 78).
+Thirty games were started, none ended, 300 FENs were kept. See make_r.py.
+
+The scratch sanitizer engine is not in idea.patch.txt. It is a separate
+worktree with one extra read, heap[8] of a four-int allocation, and only when
+the FEN is k7/8/8/8/8/8/8/7K w - - 0 1.

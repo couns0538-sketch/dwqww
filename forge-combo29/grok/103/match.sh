@@ -26,6 +26,7 @@ OPTS=(
   -openings file="$OPENINGS" format=epd order=sequential \
   -each nodes=20000 \
   -games 2 -rounds "$ROUNDS" -concurrency "$CONC" \
+  -config outname=/tmp/fastchess-seat-config.json \
   -pgnout file="$OUT.pgn" notation=uci nodes=true \
   > "$OUT.log" 2>&1
 echo "exit=$?" >> "$OUT.log"
