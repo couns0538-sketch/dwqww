@@ -1,0 +1,361 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..c8c8f30e0 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -295,6 +295,9 @@ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correctio
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool IdeaB8;                  // threat-role memory (false = off)
++extern int IdeaB8_Weight;            // added quiet-history units per 1024 of the role statistic
++extern int IdeaB8_Swing;             // centipawn static-eval gain that counts the threat as answered
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -380,6 +383,10 @@ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
++// [side][attacked piece type][attacker piece type][role].
++// Role 0 none, 1 the attacked piece steps away, 2 another piece blocks,
++// 3 the quiet attacks the attacker, 4 the quiet creates a greater threat.
++using ThreatRoleHistory = std::array<std::array<std::array<std::array<std::int16_t, 5>, 7>, 7>, 2>;
+ [[nodiscard]] int quiet_threat_index(const Board& board, Move move);
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+@@ -426,6 +433,8 @@ struct SearchStack {
+     std::uint8_t entered_side = 0;
+     bool entered_null = false;
+     bool diff_known = false;
++    // True only after this visit wrote static_eval. Read only when IdeaB8 is on.
++    bool role_eval_valid = false;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -471,6 +480,7 @@ private:
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
++    std::unique_ptr<ThreatRoleHistory> role_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+@@ -551,6 +561,22 @@ private:
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
++    struct RoleThreat {
++        bool present = false;
++        int victim_sq = 0;
++        int attacker_sq = 0;
++        int victim_type = 0;
++        int attacker_type = 0;
++        int victim_worth = 0;
++    };
++    [[nodiscard]] const RoleThreat& role_threat(const Board& board) const;
++    [[nodiscard]] static int threat_role_of(const Board& board, Move move, const RoleThreat& threat);
++    [[nodiscard]] int threat_role_bonus(const Board& board, Move move) const;
++    void update_threat_role(const Board& board, Move move, int bonus);
++    void note_role_swing(const Board& board, SearchStack* ss, Move move, int depth);
++    mutable RoleThreat role_threat_{};
++    mutable std::uint64_t role_key_ = 0;
++    mutable bool role_key_valid_ = false;
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..9183cccf7 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -95,6 +95,9 @@ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool IdeaB8 = false;
++int IdeaB8_Weight = 1024;
++int IdeaB8_Swing = 40;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaB8_Weight", &IdeaB8_Weight, 0, 4096},
++        {"IdeaB8_Swing", &IdeaB8_Swing, 0, 500},
+     };
+     return table;
+ }
+@@ -795,7 +800,8 @@ private:
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move) +
++                        worker.threat_role_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -1004,6 +1010,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
++      role_history_(std::make_unique<ThreatRoleHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+@@ -1020,6 +1027,8 @@ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
++    *role_history_ = ThreatRoleHistory{};
++    role_key_valid_ = false;
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+@@ -1327,7 +1336,7 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                                  ? (ss - 4)->continuation : nullptr,
+                              board.moved_piece(move), move) +
+-           threat_quiet_bonus(board, move);
++           threat_quiet_bonus(board, move) + threat_role_bonus(board, move);
+ #else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+@@ -1338,7 +1347,7 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+         }
+     }
+-    return score + threat_quiet_bonus(board, move);
++    return score + threat_quiet_bonus(board, move) + threat_role_bonus(board, move);
+ #endif
+ }
+ 
+@@ -1354,6 +1363,129 @@ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+ 
++const Worker::RoleThreat& Worker::role_threat(const Board& board) const {
++    const std::uint64_t key = board.key();
++    if (role_key_valid_ && role_key_ == key) return role_threat_;
++    role_key_ = key;
++    role_key_valid_ = true;
++    RoleThreat best;
++    int best_victim_worth = 0;
++    int best_attacker_worth = 0;
++    constexpr int KingWorth = 100000;
++    const Color us = board.side_to_move();
++    const Bitboard enemy = board.occupied(opposite(us));
++    Bitboard ours = board.pieces(us, Knight) | board.pieces(us, Bishop) | board.pieces(us, Rook) |
++                    board.pieces(us, Queen) | board.pieces(us, King);
++    while (ours != 0) {
++        const int square = pop_lsb(ours);
++        const int victim_type = piece_type(board.piece_at(square));
++        const int victim_worth = victim_type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(victim_type)];
++        Bitboard hits = board.attackers_to(square) & enemy;
++        while (hits != 0) {
++            const int from = pop_lsb(hits);
++            const int attacker_type = piece_type(board.piece_at(from));
++            const int attacker_worth = SeePieceValue[static_cast<std::size_t>(attacker_type)];
++            if (attacker_worth <= 0 || attacker_worth >= victim_worth) continue;
++            const bool better = !best.present || victim_worth > best_victim_worth ||
++                                (victim_worth == best_victim_worth &&
++                                 (attacker_worth < best_attacker_worth ||
++                                  (attacker_worth == best_attacker_worth &&
++                                   (square < best.victim_sq || (square == best.victim_sq && from < best.attacker_sq)))));
++            if (!better) continue;
++            best.present = true;
++            best.victim_sq = square;
++            best.attacker_sq = from;
++            best.victim_type = victim_type;
++            best.attacker_type = attacker_type;
++            best.victim_worth = victim_worth;
++            best_victim_worth = victim_worth;
++            best_attacker_worth = attacker_worth;
++        }
++    }
++    role_threat_ = best;
++    return role_threat_;
++}
++
++int Worker::threat_role_of(const Board& board, Move move, const RoleThreat& threat) {
++    if (!threat.present) return 0;
++    if (move.from == threat.victim_sq) return 1;
++    if (threat.attacker_type == Bishop || threat.attacker_type == Rook || threat.attacker_type == Queen) {
++        if ((attacks::between(threat.attacker_sq, threat.victim_sq) & square_bb(move.to)) != 0) return 2;
++    }
++    const int mover_type = piece_type(board.piece_at(move.from));
++    const Color us = board.side_to_move();
++    const Bitboard occupancy = (board.occupied() ^ square_bb(move.from)) | square_bb(move.to);
++    Bitboard attacks_bb = 0;
++    switch (mover_type) {
++    case NoPieceType:
++        break;
++    case Pawn:
++        attacks_bb = attacks::pawn(us, move.to);
++        break;
++    case Knight:
++        attacks_bb = attacks::knight(move.to);
++        break;
++    case Bishop:
++        attacks_bb = attacks::bishop(move.to, occupancy);
++        break;
++    case Rook:
++        attacks_bb = attacks::rook(move.to, occupancy);
++        break;
++    case Queen:
++        attacks_bb = attacks::queen(move.to, occupancy);
++        break;
++    case King:
++        attacks_bb = attacks::king(move.to);
++        break;
++    default: {
++        const int unexpected = mover_type;
++        (void)unexpected;
++        break;
++    }
++    }
++    if ((attacks_bb & square_bb(threat.attacker_sq)) != 0) return 3;
++    const int mover_worth = SeePieceValue[static_cast<std::size_t>(mover_type)];
++    if (mover_worth <= 0) return 0;
++    const Bitboard them = board.occupied(opposite(us));
++    Bitboard targets = attacks_bb & them;
++    while (targets != 0) {
++        const int square = pop_lsb(targets);
++        const int enemy_type = piece_type(board.piece_at(square));
++        const int enemy_worth = enemy_type == King ? 100000 : SeePieceValue[static_cast<std::size_t>(enemy_type)];
++        if (enemy_worth > threat.victim_worth && mover_worth < enemy_worth) return 4;
++    }
++    return 0;
++}
++
++int Worker::threat_role_bonus(const Board& board, Move move) const {
++    if (!tune::IdeaB8) return 0;
++    const RoleThreat& threat = role_threat(board);
++    if (!threat.present) return 0;
++    const int role = threat_role_of(board, move, threat);
++    const int raw = (*role_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(threat.victim_type)]
++                                    [static_cast<std::size_t>(threat.attacker_type)][static_cast<std::size_t>(role)];
++    return raw * tune::IdeaB8_Weight / 1024;
++}
++
++void Worker::update_threat_role(const Board& board, Move move, int bonus) {
++    if (!tune::IdeaB8) return;
++    const RoleThreat& threat = role_threat(board);
++    if (!threat.present) return;
++    const int role = threat_role_of(board, move, threat);
++    apply_history((*role_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(threat.victim_type)]
++                                  [static_cast<std::size_t>(threat.attacker_type)][static_cast<std::size_t>(role)],
++                  bonus);
++}
++
++void Worker::note_role_swing(const Board& board, SearchStack* ss, Move move, int depth) {
++    if (!tune::IdeaB8 || ss->static_eval == ValueNone) return;
++    const SearchStack* child = ss + 1;
++    if (!child->role_eval_valid || child->static_eval == ValueNone) return;
++    const int gained = -child->static_eval - ss->static_eval;
++    if (gained < tune::IdeaB8_Swing) return;
++    update_threat_role(board, move, history_bonus(depth));
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1384,12 +1516,14 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_threat_quiet(board, move, bonus);
++    update_threat_role(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_threat_quiet(board, quiet, -bonus);
++        update_threat_role(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+@@ -1414,6 +1548,7 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++    if (tune::IdeaB8) ss->role_eval_valid = false;
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+@@ -1459,12 +1594,14 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     int futility_base;
+     if (in_check) {
+         ss->static_eval = ValueNone;
++        if (tune::IdeaB8) ss->role_eval_valid = false;
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        if (tune::IdeaB8) ss->role_eval_valid = ss->static_eval != ValueNone;
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1549,6 +1686,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if (tune::IdeaB8) ss->role_eval_valid = false;
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+@@ -1660,6 +1798,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             eval = tt_score;
+         }
+     }
++    if (tune::IdeaB8) ss->role_eval_valid = ss->static_eval != ValueNone;
+ 
+     bool improving = false;
+     if (!in_check) {
+@@ -2075,6 +2214,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     if (best_score >= beta) {
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++            if (tune::IdeaB8) note_role_swing(board, ss, best_move, depth);
+         }
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+@@ -2082,6 +2222,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
++        update_threat_role(board, best_move, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..9d6697b0f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name IdeaB8 type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -401,13 +402,14 @@ int uci_loop(std::istream& in) {
+                     searcher.clear_hash();
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+-                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "ThreatHistory" || name == "IdeaB8" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
++                             : name == "IdeaB8" ? &forge::tune::IdeaB8
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
