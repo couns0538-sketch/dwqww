@@ -1,0 +1,229 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -480,6 +480,8 @@
+         nodes_.store(0, std::memory_order_relaxed);
+     }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
++    // HP38 (job 38 counting copy): one line per search with the K2 counters.
++    void hp38_print_line() const;
+ 
+ private:
+     friend struct SearcherTestProbe;
+@@ -558,6 +560,15 @@
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
++    // HP38 (job 38 counting copy): the K2 counters, reset at each search's start and printed
++    // per search by hp38_print_line(). Read by nothing the search reads.
++    std::uint64_t hp38_B_ = 0, hp38_T_ = 0, hp38_QP_ = 0, hp38_QPc_ = 0, hp38_Q_ = 0, hp38_Q1_ = 0;
++    std::uint64_t hp38_FE_ = 0, hp38_F_ = 0, hp38_Fc_ = 0, hp38_SR_ = 0, hp38_S_ = 0, hp38_Sc_ = 0, hp38_Spv_ = 0;
++    std::uint64_t hp38_NR_ = 0, hp38_NRc_ = 0, hp38_NRq_ = 0, hp38_NRp_ = 0, hp38_CF_ = 0, hp38_NS_ = 0;
++    std::uint64_t hp38_N_ = 0, hp38_Nc_ = 0, hp38_Nq_ = 0, hp38_Npv_ = 0;
++    std::uint64_t hp38_L_ = 0, hp38_Lc_ = 0, hp38_Lpv_ = 0, hp38_X_ = 0, hp38_WL_ = 0, hp38_WF_ = 0;
++    std::uint64_t hp38_HL_ = 0, hp38_HF_ = 0, hp38_HLc_ = 0, hp38_HFc_ = 0, hp38_HP_ = 0, hp38_HC_ = 0;
++    std::uint64_t hp38_W0_ = 0;  // of the WL/WF nodes: no hidden quiet at all
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2053,6 +2053,11 @@
+     Move best_move = Move::none();
+     int move_count = 0;
+     bool skip_quiets = false;
++    // HP38 (job 38 counting copy): the node's own tracking. Read by nothing the search reads.
++    int hp38_first = 0;   // 0 unset, 1 = the late-move rule set skip_quiets first, 2 = a futility fire did
++    bool hp38_broke = false;  // the loop left through the beta break, not by the picker running out
++    std::array<Move, 256> hp38_handed;
++    int hp38_handed_n = 0;
+     bool quiet_fail = false;
+     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+     // Mate-sized losses are refused at the use sites. This gate also keeps the root,
+@@ -2069,6 +2074,7 @@
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
++        if (hp38_handed_n < static_cast<int>(hp38_handed.size())) hp38_handed[hp38_handed_n++] = move;
+         if (move == excluded) continue;
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+@@ -2095,6 +2101,7 @@
+             (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+         if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
++            ++hp38_B_;
+             // Trace stays off in normal play. It records which case skipped a
+             // move, including a quiet check that follows an earlier quiet skip.
+             auto trace_case = [&]() {
+@@ -2118,39 +2125,62 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++                if (in_check) ++hp38_Lc_; else ++hp38_L_;
++                if (pv_node) ++hp38_Lpv_;
++                if (hp38_first == 0) hp38_first = 1;
++                skip_quiets = true;
++            }
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+             // when not improving. With the option off: prunable, + 0, and r7's threshold.
+             const bool prunable = !tt_prune_v2_ || move != tt_move;
++            if (!prunable) ++hp38_T_;
+             const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
+             const int history_prune_threshold = tt_prune_v2_ && !improving
+                                                     ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+                                                     : -tune::HistoryPruneMultiplier * depth;
+             if (quiet && !gives_check && prunable) {
++                ++hp38_QP_;
++                if (in_check) ++hp38_QPc_;
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
++                    ++hp38_Q_;
++                    if (!skip_quiets) ++hp38_Q1_;
++                    if (hp38_first == 0) hp38_first = 2;
+                     quiet_fail = true;
+                     skip_quiets = true;
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) {
++                const bool hp38_fe = lmr_depth <= tune::HistoryPruneDepth;
++                if (hp38_fe) ++hp38_FE_;
++                if (hp38_fe && history < history_prune_threshold) {
+                     trace_case();
++                    ++hp38_F_;
++                    if (in_check) ++hp38_Fc_;
+                     quiet_fail = true;
+                     continue;
+                 }
++                ++hp38_SR_;
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
++                    ++hp38_S_;
++                    if (in_check) ++hp38_Sc_;
++                    if (pv_node) ++hp38_Spv_;
+                     quiet_fail = true;
+                     continue;
+                 }
+             } else if (prunable) {
++                ++hp38_NR_;
++                if (capture) ++hp38_NRc_;
++                else if (quiet && gives_check) ++hp38_NRq_;
++                else ++hp38_NRp_;
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+@@ -2161,12 +2191,18 @@
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
++                    ++hp38_CF_;
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                if (picker.last_move_see_nonnegative() && see_threshold <= 0) ++hp38_NS_;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
++                    ++hp38_N_;
++                    if (capture) ++hp38_Nc_;
++                    else if (quiet && gives_check) ++hp38_Nq_;
++                    if (pv_node) ++hp38_Npv_;
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+                         if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
+@@ -2318,6 +2354,7 @@
+                 }
+                 if (score >= beta) {
+                     ++ss->cutoff_count;
++                    hp38_broke = true;
+                     break;
+                 }
+                 alpha = score;
+@@ -2333,6 +2370,34 @@
+         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+     }
+ 
++    // HP38 (job 38 counting copy): the loop ran to its end only when the picker gave no more
++    // move (not the beta break; the returns above never reach here). At WL/WF nodes count the
++    // legal moves the picker never handed out. Read by nothing the search reads.
++    if (!hp38_broke) {
++        ++hp38_X_;
++        if (!in_check && hp38_first != 0) {
++            const bool hp38_wl = hp38_first == 1;
++            if (hp38_wl) ++hp38_WL_; else ++hp38_WF_;
++            int hp38_hidden_quiets = 0;
++            for (const Move hp38_lm : board.legal_moves()) {
++                if (hp38_lm == excluded) continue;
++                bool hp38_seen = false;
++                for (int hp38_i = 0; hp38_i < hp38_handed_n; ++hp38_i)
++                    if (hp38_handed[hp38_i] == hp38_lm) { hp38_seen = true; break; }
++                if (hp38_seen) continue;
++                const bool hp38_cap = hp38_lm.is_capture();
++                const bool hp38_pro = hp38_lm.is_promotion();
++                if (!hp38_cap && !hp38_pro) {
++                    ++hp38_hidden_quiets;
++                    if (hp38_wl) { ++hp38_HL_; if (board.gives_check(hp38_lm)) ++hp38_HLc_; }
++                    else { ++hp38_HF_; if (board.gives_check(hp38_lm)) ++hp38_HFc_; }
++                } else if (hp38_pro && !hp38_cap) ++hp38_HP_;
++                else ++hp38_HC_;
++            }
++            if (hp38_hidden_quiets == 0) ++hp38_W0_;
++        }
++    }
++
+     if (move_count == 0) {
+         if (!excluded.is_none()) return alpha;
+         if (root_node && root_restricted_) return 0;
+@@ -2456,6 +2521,21 @@
+ 
+ } // namespace
+ 
++// HP38 (job 38 counting copy): one line per search, summed by the committed agg_j38.py.
++// Field order: B T QP QPc Q Q1 FE F Fc SR S Sc Spv NR NRc NRq NRp CF NS N Nc Nq Npv L Lc Lpv
++// X WL WF HL HF HLc HFc HP HC W0.
++void Worker::hp38_print_line() const {
++    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    std::cout << "info string PRC " << hp38_B_ << ' ' << hp38_T_ << ' ' << hp38_QP_ << ' ' << hp38_QPc_ << ' '
++              << hp38_Q_ << ' ' << hp38_Q1_ << ' ' << hp38_FE_ << ' ' << hp38_F_ << ' ' << hp38_Fc_ << ' '
++              << hp38_SR_ << ' ' << hp38_S_ << ' ' << hp38_Sc_ << ' ' << hp38_Spv_ << ' ' << hp38_NR_ << ' '
++              << hp38_NRc_ << ' ' << hp38_NRq_ << ' ' << hp38_NRp_ << ' ' << hp38_CF_ << ' ' << hp38_NS_ << ' '
++              << hp38_N_ << ' ' << hp38_Nc_ << ' ' << hp38_Nq_ << ' ' << hp38_Npv_ << ' ' << hp38_L_ << ' '
++              << hp38_Lc_ << ' ' << hp38_Lpv_ << ' ' << hp38_X_ << ' ' << hp38_WL_ << ' ' << hp38_WF_ << ' '
++              << hp38_HL_ << ' ' << hp38_HF_ << ' ' << hp38_HLc_ << ' ' << hp38_HFc_ << ' ' << hp38_HP_ << ' '
++              << hp38_HC_ << ' ' << hp38_W0_ << std::endl;
++}
++
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+@@ -2472,6 +2552,14 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++    // HP38 (job 38 counting copy): reset this search's counters.
++    hp38_B_ = hp38_T_ = hp38_QP_ = hp38_QPc_ = hp38_Q_ = hp38_Q1_ = 0;
++    hp38_FE_ = hp38_F_ = hp38_Fc_ = hp38_SR_ = hp38_S_ = hp38_Sc_ = hp38_Spv_ = 0;
++    hp38_NR_ = hp38_NRc_ = hp38_NRq_ = hp38_NRp_ = hp38_CF_ = hp38_NS_ = 0;
++    hp38_N_ = hp38_Nc_ = hp38_Nq_ = hp38_Npv_ = 0;
++    hp38_L_ = hp38_Lc_ = hp38_Lpv_ = hp38_X_ = hp38_WL_ = hp38_WF_ = 0;
++    hp38_HL_ = hp38_HF_ = hp38_HLc_ = hp38_HFc_ = hp38_HP_ = hp38_HC_ = 0;
++    hp38_W0_ = 0;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_bare_king_ = board.occupied(White) == board.pieces(White, King) ||
+@@ -3119,6 +3207,7 @@
+         }
+     }
+     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++    workers_.front()->hp38_print_line();
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
