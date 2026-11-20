@@ -1,0 +1,12 @@
+IdeaK11. The cutoff move's history bonus is scaled by how far the score beat beta.
+
+EXISTS: no. search.cpp still gives a quiet cutoff one extra ply of the depth formula when the margin is above 100 centipawns. That is a step, not a scale by the margin. Captures never get even that step. The option leaves both of those paths untouched while it is false.
+
+When IdeaK11 is true, the bonus that path would have used is multiplied by (margin + IdeaK11_Base) / IdeaK11_Divisor.
+margin = score - beta, clamped to 0..IdeaK11_Cap.
+A mate score on either side of the cutoff uses IdeaK11_Cap as the margin, so a mate distance cannot inflate the bonus.
+The product is clamped to +/- HistoryBonusMax.
+Defaults: Base 64, Divisor 160, Cap 320. A 0 cp margin keeps 64/160 of today's bonus. A 96 cp margin keeps 1.0. A 320 cp margin keeps 384/160.
+The quiet path still adds the old +1 depth when the margin is above 100, and that result is what gets scaled. The capture path still starts from the unbumped depth.
+The scaled bonus is passed into the existing history update. Fail-low and PV-only updates are unchanged.
+Option IdeaK11 is a check, default false. The three numbers are spins IdeaK11_Base, IdeaK11_Divisor, IdeaK11_Cap.

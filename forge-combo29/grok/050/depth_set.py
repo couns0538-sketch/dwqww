@@ -74,7 +74,8 @@ def main():
         for _ in range(limit):
             line = proc.stdout.readline()
             if line == "":
-                die("engine closed early, last lines:\n" + "\n".join(raw_lines[-20:]))
+                hits = [item for item in raw_lines if "Sanitizer" in item or "sanitizer" in item]
+                die("engine closed early, sanitizer lines:\n" + "\n".join(hits) + "\nlast lines:\n" + "\n".join(raw_lines[-30:]))
             line = line.rstrip("\n")
             raw_lines.append(line)
             got.append(line)

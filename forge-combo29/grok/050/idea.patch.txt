@@ -1,0 +1,166 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..b9b082698 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -290,6 +290,9 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int IdeaK11_Base;             // cp added to the clamped cutoff margin before the history bonus is scaled
++extern int IdeaK11_Divisor;          // cutoff history bonus *= (margin + base) / divisor
++extern int IdeaK11_Cap;              // cap on (score - beta); also the margin used when the cutoff is a mate score
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+@@ -307,6 +310,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaK11;                  // scale a beta-cutoff history bonus by how far the score beat beta (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+@@ -545,8 +549,9 @@ private:
+     // Score for a repetition or fifty-move leaf. Other draws stay at 0.
+     [[nodiscard]] int draw_leaf_score(const Board& board) const;
+     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
+-                            const Move* quiets, int quiet_count);
+-    void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
++                            const Move* quiets, int quiet_count, const int* bonus_override = nullptr);
++    void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count,
++                              const int* bonus_override = nullptr);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..830eb6564 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,9 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int IdeaK11_Base = 64;
++int IdeaK11_Divisor = 160;
++int IdeaK11_Cap = 320;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -107,6 +110,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaK11 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +149,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK11_Base", &IdeaK11_Base, 0, 2000},
++        {"IdeaK11_Divisor", &IdeaK11_Divisor, 1, 4000},
++        {"IdeaK11_Cap", &IdeaK11_Cap, 0, 4000},
+     };
+     return table;
+ }
+@@ -243,6 +250,28 @@ ReductionTable Reductions;
+     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+ }
+ 
++// IdeaK11. Today's cutoff bonus, then multiplied by (clamped margin + Base) / Divisor.
++// margin is how far the score beat beta, capped. A mate cutoff uses Cap so a mate
++// distance cannot blow the bonus up. Divisor 160 and Base 64 keep a 96 cp margin at 1.0.
++[[nodiscard]] int k11_scaled_bonus(int depth, int best_score, int beta) {
++    const int base = history_bonus(depth);
++    int margin;
++    if (is_mate_score(best_score) || is_mate_score(beta)) {
++        margin = tune::IdeaK11_Cap;
++    } else {
++        margin = best_score - beta;
++        if (margin < 0) margin = 0;
++        if (margin > tune::IdeaK11_Cap) margin = tune::IdeaK11_Cap;
++    }
++    int divisor = tune::IdeaK11_Divisor;
++    if (divisor < 1) divisor = 1;
++    const long long scaled =
++        static_cast<long long>(base) * static_cast<long long>(margin + tune::IdeaK11_Base) / divisor;
++    if (scaled > tune::HistoryBonusMax) return tune::HistoryBonusMax;
++    if (scaled < -tune::HistoryBonusMax) return -tune::HistoryBonusMax;
++    return static_cast<int>(scaled);
++}
++
+ void apply_history(std::int16_t& entry, int bonus) {
+     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+@@ -1370,8 +1399,8 @@ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus
+ }
+ 
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+-                                  int quiet_count) {
+-    const int bonus = history_bonus(depth);
++                                  int quiet_count, const int* bonus_override) {
++    const int bonus = bonus_override != nullptr ? *bonus_override : history_bonus(depth);
+     const Color us = board.side_to_move();
+     if (ss->killers[0] != move) {
+         ss->killers[1] = ss->killers[0];
+@@ -1394,8 +1423,9 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     }
+ }
+ 
+-void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+-    const int bonus = history_bonus(depth);
++void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count,
++                                   const int* bonus_override) {
++    const int bonus = bonus_override != nullptr ? *bonus_override : history_bonus(depth);
+     if (best.is_capture()) {
+         const Piece piece = board.moved_piece(best);
+         const int captured = piece_type(board.captured_piece(best));
+@@ -2073,10 +2103,20 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+ 
+     if (best_score >= beta) {
+-        if (!best_move.is_capture() && !best_move.is_promotion()) {
+-            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++        if (!tune::IdeaK11) {
++            if (!best_move.is_capture() && !best_move.is_promotion()) {
++                update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++            }
++            update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
++        } else {
++            const int quiet_depth = depth + (best_score > beta + 100);
++            const int quiet_bonus = k11_scaled_bonus(quiet_depth, best_score, beta);
++            const int capture_bonus = k11_scaled_bonus(depth, best_score, beta);
++            if (!best_move.is_capture() && !best_move.is_promotion()) {
++                update_quiet_stats(board, ss, best_move, quiet_depth, quiets_tried.data(), quiet_count, &quiet_bonus);
++            }
++            update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count, &capture_bonus);
+         }
+-        update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..9e9fa0d8d 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaK11 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK11") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK11 = value_text == "true";
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";
