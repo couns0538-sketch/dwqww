@@ -6,7 +6,7 @@ set -u
 S=$(cat ~/grok_seat.txt)
 REPO=$(cat ~/grok_repo.txt)
 DIR="$REPO/forge-combo29/grok/$S"
-EXE=/agent/repos/work/forge-combo29/build/forge
+EXE=${EXE_OVERRIDE:-/agent/repos/work/forge-combo29/build/forge}
 FC=/tmp/fastchess/fastchess
 OPEN=$1
 ROUNDS=$2

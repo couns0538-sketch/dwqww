@@ -243,6 +243,11 @@ def cmd_search(args):
         options.append(("IdeaS29", "false"))
     elif args.switch != "omit":
         raise SystemExit("STOP bad switch")
+    for extra in args.extra:
+        if "=" not in extra:
+            raise SystemExit("STOP bad extra option")
+        name, value = extra.split("=", 1)
+        options.append((name, value))
     engine = Engine(args.exe)
     rows = []
     try:
@@ -318,6 +323,7 @@ def main():
     search.add_argument("--switch", default="omit")
     search.add_argument("--s14", action="store_true")
     search.add_argument("--asan", action="store_true")
+    search.add_argument("--extra", action="append", default=[])
     search.set_defaults(func=cmd_search)
     options = sub.add_parser("uci")
     options.add_argument("--exe", required=True)

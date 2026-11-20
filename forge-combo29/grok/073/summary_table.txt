@@ -1,0 +1,15 @@
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 073, idea 23, model Grok 4.7, 2026-11-20T07:54:49Z, token 2441718313384
+2 honesty B | done | HONESTY_B.txt | bench11 bench 11 312866 312866 ok; bench13 bench 13 862329 862329 ok; bench16 bench 16 3024920 3024920 ok; perft5 go perft 5 4865609 4865609 ok
+2 O and G baseline | done | compare not needed; B_O_d12.rows.txt B_G_d12.rows.txt | O sum is the left sum in compare_off_O.txt 9500069; G sum is the left sum in compare_off_G.txt 18466239
+3 prediction | done | prediction.txt | committed before the patched measurements
+3 apply | done | apply_check.txt idea.patch.txt | git apply --check exit 0
+3 honesty P | done | HONESTY_P.txt | bench11 bench 11 312866 312866 ok; bench13 bench 13 862329 862329 ok; bench16 bench 16 3024920 3024920 ok; perft5 go perft 5 4865609 4865609 ok
+3 off O | done | compare_off_O.txt | nodes_differ 0 of 200 sum 9500069
+3 off G | done | compare_off_G.txt | nodes_differ 0 of 353 sum 18466239
+3 on O | done | compare_on_O.txt | nodes_differ 199 of 200 sum 9692566
+3 uci options | done | P_uci.txt | option name IdeaS29 type check default false ; option name IdeaS29_Threshold type spin default 0 min -400 max 400 ; option name IdeaS29_Divisor type spin default 8 min 1 max 64
+3 sanitizer | done | P_asan_G100.meta P_asan_G100.txt P_asan_probe.txt | nm -C /tmp/forge_asan/forge | grep -c __asan_ 35; AddressSanitizer lines in G100 0; heap-buffer-overflow lines in probe 2
+3 match | done | match_on_off.txt match_on_off.pgn | Results of IdeaS29_on vs IdeaS29_off (20000 nodes, 1t, 16MB, OG.epd): | Elo: -1.88 +/- 10.52, nElo: -3.67 +/- 20.48 | LOS: 36.27 %, DrawRatio: 62.39 %, PairsRatio: 0.91 | Games: 1106, Wins: 334, Losses: 340, Draws: 432, Points: 550.0 (49.73 %)
+4 partner 023 | done | partner023_apply_check.txt partner023_HONESTY.txt partner023_compare_off.txt partner023_compare_on.txt partner023_match_R.txt | apply git apply --check exit 0; honesty bench11 bench 11 312866 312866 ok; bench13 bench 13 862329 862329 ok; bench16 bench 16 3024920 3024920 ok; perft5 go perft 5 4865609 4865609 ok; off nodes_differ 0 of 200; on count_theirs 200; count_mine 200; sum_theirs 9540759; sum_mine 9540759; nodes_differ 0 of 200; ; match Results of IdeaS29_on vs IdeaS29_off (20000 nodes, 1t, 16MB, R.fens): | Elo: -6.95 +/- 11.22, nElo: -17.24 +/- 27.80 | LOS: 11.22 %, DrawRatio: 83.33 %, PairsRatio: 0.79 | Games: 600, Wins: 256, Losses: 268, Draws: 76, Points: 294.0 (49.00 %)
+5 report | done | REPORT.md RESULT.txt | this file
