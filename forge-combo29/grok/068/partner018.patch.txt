@@ -1,0 +1,190 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..77690b9a9 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -290,6 +290,8 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int IdeaS16_OrderBonus;       // move-picker points for a quiet lever that clears the last stopper
++extern int IdeaS16_ReductionCut;     // plies taken off that move's late-move reduction
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+@@ -307,6 +309,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS16;                 // quiet lever that clears the last stopper: higher order, milder reduction (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..904ed6592 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int IdeaS16_OrderBonus = 4000;
++int IdeaS16_ReductionCut = 1;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -107,6 +109,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS16 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS16_OrderBonus", &IdeaS16_OrderBonus, 0, 30000},
++        {"IdeaS16_ReductionCut", &IdeaS16_ReductionCut, 0, 4},
+     };
+     return table;
+ }
+@@ -278,6 +283,59 @@ std::string format_score(int score) {
+     return "cp " + std::to_string(score);
+ }
+ 
++// IdeaS16. A friendly pawn is a candidate when it is not passed, every enemy
++// pawn in its passed-pawn span (a stopper) is attacked by a friendly pawn (a
++// lever), and the square one step ahead has at least as many friendly
++// attackers as enemy attackers. The move that clears the last stopper is a
++// quiet pawn push that leaves that pawn's span empty, or a capture of a pawn
++// that is some candidate's only stopper and whose exchange is not losing.
++// Nothing is added to the static evaluation.
++[[nodiscard]] bool idea_s16_candidate(const Board& board, Color us, int pawn_sq) {
++    const Bitboard enemy_pawns = board.pieces(opposite(us), Pawn);
++    const Bitboard stoppers = attacks::passed_pawn_mask(us, pawn_sq) & enemy_pawns;
++    if (stoppers == 0) return false;
++    const Bitboard our_pawns = board.pieces(us, Pawn);
++    Bitboard left = stoppers;
++    while (left != 0) {
++        const int sq = pop_lsb(left);
++        if ((attacks::pawn(opposite(us), sq) & our_pawns) == 0) return false;
++    }
++    const int push_sq = pawn_sq + pawn_push_delta(us);
++    if (push_sq < 0 || push_sq > 63) return false;
++    const int helpers = popcount(board.attackers_to(push_sq) & board.occupied(us));
++    const int foes = popcount(board.attackers_to(push_sq) & board.occupied(opposite(us)));
++    return helpers >= foes;
++}
++
++[[nodiscard]] bool clears_last_stopper(const Board& board, Move move) {
++    const Color us = board.side_to_move();
++    const Piece mover = board.piece_at(move.from);
++    if (piece_type(mover) == Pawn && move.is_quiet()) {
++        if (!idea_s16_candidate(board, us, move.from)) return false;
++        const Bitboard after = attacks::passed_pawn_mask(us, move.to) & board.pieces(opposite(us), Pawn);
++        return after == 0;
++    }
++    if (!move.is_capture()) return false;
++    int victim_sq = move.to;
++    if ((move.flags & EnPassant) != 0U) victim_sq = move.to - pawn_push_delta(us);
++    else if (piece_type(board.piece_at(move.to)) != Pawn) return false;
++    if (!board.see_ge(move, 0)) return false;
++    const Bitboard victim_bb = square_bb(victim_sq);
++    Bitboard ours = board.pieces(us, Pawn);
++    while (ours != 0) {
++        const int pawn_sq = pop_lsb(ours);
++        if (!idea_s16_candidate(board, us, pawn_sq)) continue;
++        const Bitboard stoppers = attacks::passed_pawn_mask(us, pawn_sq) & board.pieces(opposite(us), Pawn);
++        if (popcount(stoppers) == 1 && (stoppers & victim_bb) != 0) return true;
++    }
++    return false;
++}
++
++[[nodiscard]] int idea_s16_order_bonus(const Board& board, Move move) {
++    if (!tune::IdeaS16 || !clears_last_stopper(board, move)) return 0;
++    return tune::IdeaS16_OrderBonus;
++}
++
+ } // namespace
+ 
+ // Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the
+@@ -906,6 +964,7 @@ private:
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+ #endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++            score += idea_s16_order_bonus(board_, move);
+             push_scored(move, score);
+         }
+         sort_moves();
+@@ -924,12 +983,13 @@ private:
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+-            push_scored(move, scorer.score(move, check_squares_));
++            push_scored(move, scorer.score(move, check_squares_) + idea_s16_order_bonus(board_, move));
+         }
+ #else
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            score += idea_s16_order_bonus(board_, move);
+             push_scored(move, score);
+         }
+ #endif
+@@ -945,13 +1005,14 @@ private:
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+-            push_scored(move, scorer.score(move, check_squares_));
++            push_scored(move, scorer.score(move, check_squares_) + idea_s16_order_bonus(board_, move));
+         }
+ #else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            score += idea_s16_order_bonus(board_, move);
+             push_scored(move, score);
+         }
+ #endif
+@@ -990,6 +1051,7 @@ private:
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+ #endif
+             }
++            score += idea_s16_order_bonus(board_, move);
+             push_scored(move, score);
+         }
+         sort_moves();
+@@ -2008,6 +2070,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            if (tune::IdeaS16 && clears_last_stopper(board, move)) r -= tune::IdeaS16_ReductionCut;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..c60973888 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS16 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS16") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS16 = value_text == "true";
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";

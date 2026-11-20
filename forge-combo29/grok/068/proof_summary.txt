@@ -1,0 +1,24 @@
+honesty B
+  bench11 312866
+  bench13 862329
+  bench16 3024920
+  perft5 4865609
+honesty P
+  P_bench11 312866
+  P_bench13 862329
+  P_bench16 3024920
+  P_perft5 4865609
+B O sum 9500069
+B G sum 18466239
+P off O sum 9500069
+P off G sum 18466239
+P on O sum 9515926
+off O vs B differ 0 of 200
+off G vs B differ 0 of 353
+on O vs B differ 190 of 200
+asan clean exe /tmp/forge-asan/forge | asan_symbols 35 | suite_exit 0 | sanitizer_lines 0
+asan scratch exe /tmp/scratch-asan/forge | asan_symbols 35 | suite_exit 1 | sanitizer_lines 3 | first /tmp/scratch-forge/src/uci.cpp:47:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+uci id name Chess Engine Forge 6.4.24 candidate
+uci option name IdeaS16 type check default false
+uci option name IdeaS16_Order type spin default 4000 min 0 max 20000
+uci option name IdeaS16_Relief type spin default 1 min 0 max 4
