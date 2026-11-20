@@ -37,7 +37,13 @@ S14 = [
 STOP_BITS = ("unknown option", "invalid value", "invalid FEN", "illegal move")
 
 
+LOG: list[str] = []
+OUT_PATH: Path | None = None
+
+
 def die(message: str) -> None:
+    if OUT_PATH is not None:
+        OUT_PATH.write_text("".join(LOG) + "HARNESS_STOP " + message + "\n")
     print(message, file=sys.stderr)
     raise SystemExit(1)
 
@@ -59,6 +65,8 @@ def main() -> None:
     fens = load_fens(Path(sys.argv[2]))
     depth = int(sys.argv[3])
     out_path = Path(sys.argv[4])
+    global OUT_PATH
+    OUT_PATH = out_path
     switch = sys.argv[5]
     if switch not in ("none", "false", "true"):
         die("SWITCH must be none, false, or true")
@@ -75,7 +83,6 @@ def main() -> None:
         bufsize=1,
     )
     assert proc.stdin is not None and proc.stdout is not None
-    log: list[str] = []
     options_sent: list[str] = []
 
     def send(command: str) -> None:
@@ -90,7 +97,7 @@ def main() -> None:
             line = proc.stdout.readline()
             if line == "":
                 die(f"engine closed stdout waiting for {marker}")
-            log.append(line)
+            LOG.append(line)
             if any(bit in line for bit in STOP_BITS):
                 die("STOP " + line.rstrip())
             if line.startswith(marker):
@@ -103,7 +110,7 @@ def main() -> None:
     send("uci")
     read_until("uciok", 30.0)
     id_name = ""
-    for line in log:
+    for line in LOG:
         if line.startswith("id name "):
             id_name = line[len("id name ") :].rstrip()
             break
@@ -133,7 +140,7 @@ def main() -> None:
     except subprocess.TimeoutExpired:
         proc.kill()
 
-    out_path.write_text("".join(log))
+    out_path.write_text("".join(LOG))
     meta = out_path.with_suffix(out_path.suffix + ".meta")
     meta.write_text(
         "\n".join(
