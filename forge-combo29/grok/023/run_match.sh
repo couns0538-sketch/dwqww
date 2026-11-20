@@ -8,6 +8,7 @@ ROUNDS="$2"
 OUT="$3"
 EXE="$4"
 FC="${5:-/tmp/fastchess/fastchess}"
+PROFILE="${6:-self}"
 S14=(
   option.LmrQuietBase=93
   option.LmrQuietDivisor=205
@@ -24,9 +25,19 @@ S14=(
   option.IirDepth=2
   option.NonPawnCorrection=true
 )
+if [ "$PROFILE" = "divisor" ]; then
+  ON_OPTS=(option.IdeaS29=true option.IdeaS29_Threshold=0 option.IdeaS29_Divisor=8)
+  OFF_OPTS=(option.IdeaS29=false option.IdeaS29_Threshold=0 option.IdeaS29_Divisor=8)
+elif [ "$PROFILE" = "self" ]; then
+  ON_OPTS=(option.IdeaS29=true option.IdeaS29_Threshold=0 option.IdeaS29_Scale=1)
+  OFF_OPTS=(option.IdeaS29=false option.IdeaS29_Threshold=0 option.IdeaS29_Scale=1)
+else
+  echo "bad profile $PROFILE" >&2
+  exit 2
+fi
 "$FC" \
-  -engine cmd="$EXE" name=IdeaS29-on option.IdeaS29=true option.IdeaS29_Threshold=0 option.IdeaS29_Scale=1 \
-  -engine cmd="$EXE" name=IdeaS29-off option.IdeaS29=false option.IdeaS29_Threshold=0 option.IdeaS29_Scale=1 \
+  -engine cmd="$EXE" name=IdeaS29-on "${ON_OPTS[@]}" \
+  -engine cmd="$EXE" name=IdeaS29-off "${OFF_OPTS[@]}" \
   -each nodes=20000 option.Hash=16 option.Threads=1 "${S14[@]}" \
   -openings "file=$OPENINGS" format=epd order=sequential \
   -rounds "$ROUNDS" -games 2 -repeat \

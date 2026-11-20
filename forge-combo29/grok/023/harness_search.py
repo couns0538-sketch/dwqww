@@ -120,7 +120,7 @@ class Engine:
         self.drain()
 
 
-def option_lines(switch: str) -> list[str]:
+def option_lines(switch: str, profile: str) -> list[str]:
     lines = [f"setoption name {name} value {value}" for name, value in S14]
     lines.insert(0, "setoption name Threads value 1")
     lines.insert(0, "setoption name Hash value 16")
@@ -129,8 +129,15 @@ def option_lines(switch: str) -> list[str]:
     if switch not in ("false", "true"):
         raise SystemExit("switch must be absent, false, or true")
     lines.append(f"setoption name IdeaS29 value {switch}")
-    lines.append("setoption name IdeaS29_Threshold value 0")
-    lines.append("setoption name IdeaS29_Scale value 1")
+    if profile == "self":
+        lines.append("setoption name IdeaS29_Threshold value 0")
+        lines.append("setoption name IdeaS29_Scale value 1")
+    elif profile == "divisor":
+        # Seat 073 names the weight IdeaS29_Divisor and defaults it to 8.
+        lines.append("setoption name IdeaS29_Threshold value 0")
+        lines.append("setoption name IdeaS29_Divisor value 8")
+    else:
+        raise SystemExit("profile must be self or divisor")
     return lines
 
 
@@ -154,11 +161,12 @@ def main() -> int:
     parser.add_argument("--depth", type=int, required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--switch", default="absent")
+    parser.add_argument("--profile", default="self")
     parser.add_argument("--max", type=int, default=0)
     args = parser.parse_args()
     fens = load_fens(args.fens, args.max)
     digest = hashlib.sha256(open(args.exe, "rb").read()).hexdigest()
-    options = option_lines(args.switch)
+    options = option_lines(args.switch, args.profile)
     engine = Engine(args.exe)
     rows = []
     try:
