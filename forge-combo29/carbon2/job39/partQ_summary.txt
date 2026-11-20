@@ -1,0 +1,64 @@
+=== JOB 39 PART Q: THE SIX-PORT BUNDLE (`bundle_grok.patch.txt`) ===
+start_utc: Fri Nov 20 02:03:09 PM UTC 2026
+Q1 bundle_patch: bundle_grok.patch.txt | lines=1102 | sha256=d0ae7f01f33be912ffe07ca2efdbc0f147c0386a77864a5a3547e0af21c001ec
+  apply_against_r15d_v3                       : git apply --check -p1 PASS (0 == 0)
+  rel_exe: /tmp/carbon2_job39/bld_BUNDLE_rel/forge | sha256=e9a195774fcea00849fb39f80b1eafa1609402bb564bf887055b50920f5da4fc | id name Chess Engine Forge 6.4.24 candidate
+  chk_exe: /tmp/carbon2_job39/bld_BUNDLE_chk/forge | sha256=21b258bfdcbf798af48d12d4b9cb09bd98c47cdb6edfe6a6261fe0d661acf53a | id name Chess Engine Forge 6.4.24 candidate
+
+--- Q2a. All Six Switches OFF: Every Step 0 OFF Number ---
+[BUNDLE_all_off] exe=/tmp/carbon2_job39/bld_BUNDLE_rel/forge | sha256=e9a195774fcea00849fb39f80b1eafa1609402bb564bf887055b50920f5da4fc | id name Chess Engine Forge 6.4.24 candidate
+  BUNDLE_all_off no-option bench 11           : PASS (312866 == 312866)
+  BUNDLE_all_off no-option bench 13           : PASS (862329 == 862329)
+  BUNDLE_all_off no-option perft 5            : PASS (4865609 == 4865609)
+  BUNDLE_all_off PC20 bench 11                : PASS (278024 == 278024)
+  BUNDLE_all_off PC20 bench 13                : PASS (587276 == 587276)
+  BUNDLE_all_off Set A line L records         : PASS (26741 == 26741)
+  BUNDLE_all_off Set A line L nodes           : PASS (107124743 == 107124743)
+  BUNDLE_all_off Set A line L sha256          : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  BUNDLE_all_off n[1..60] line L records      : PASS (8449 == 8449)
+  BUNDLE_all_off n[1..60] line L searches     : PASS (8482 == 8482)
+  BUNDLE_all_off n[1..60] line L nodes        : PASS (36688357 == 36688357)
+  BUNDLE_all_off n[1..60] line L sha256       : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  BUNDLE_all_off O d12 sum vs Step0 OFF       : PASS (8315168 == 8315168)
+  BUNDLE_all_off O d12 differing positions    : PASS (0 == 0)
+
+--- Q2b. Each Switch ON Alone vs Single Port P-c on O Set (200 FENs, Depth 12) ---
+  BUNDLE only IdeaK4 O d12 equal positions    : PASS (200 == 200)
+  BUNDLE only IdeaK4 O d12 sum vs P1_K4_093   : PASS (8080229 == 8080229)
+  BUNDLE only IdeaS32 O d12 equal positions   : PASS (200 == 200)
+  BUNDLE only IdeaS32 O d12 sum vs P2_S32_074 : PASS (8339315 == 8339315)
+  BUNDLE only IdeaB1 O d12 equal positions    : PASS (200 == 200)
+  BUNDLE only IdeaB1 O d12 sum vs P3_B1_030   : PASS (8548042 == 8548042)
+  BUNDLE only IdeaS13 O d12 equal positions   : PASS (200 == 200)
+  BUNDLE only IdeaS13 O d12 sum vs P4_S13_016 : PASS (8077984 == 8077984)
+  BUNDLE only IdeaS10 O d12 equal positions   : PASS (200 == 200)
+  BUNDLE only IdeaS10 O d12 sum vs P5_S10_081 : PASS (8314153 == 8314153)
+  BUNDLE only IdeaB8 O d12 equal positions    : PASS (200 == 200)
+  BUNDLE only IdeaB8 O d12 sum vs P6_B8_078   : PASS (8262696 == 8262696)
+
+--- Q2c. All Six Switches ON Together (PC20, Built-in Evaluation) ---
+  BUNDLE ALL ON O d12 (200 FENs)  : sum_nodes=8035170 (off=8315168, delta=-279998, ratio=0.966327) | positions_differ=200/200 (nodes_differ=200/200)
+  BUNDLE ALL ON G d12 (353 FENs)  : sum_nodes=16356627 (off=17611204, delta=-1254577, ratio=0.928763) | positions_differ=353/353 (nodes_differ=353/353)
+  BUNDLE ALL ON Set A line L      : attempts=200 finished=200 thrown=0 records=27991 searches=28117 nodes=111242459
+  BUNDLE ALL ON Set A line L sha256: c0da7ec87c6e6928320d0e8db3a15e12051d3f31b3391f09d4d5ef4590c58bce
+
+--- Q3. Checking Build (`-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS`) ---
+  Harness: forge-combo29/carbon2/job37/run_partA_checking.py (`CheckingEngine` + `run_v3_with_stderr` used unchanged; no new control needed).
+  BUNDLE_chk no-option bench 11               : PASS (312866 == 312866)
+  BUNDLE_chk no-option perft 5                : PASS (4865609 == 4865609)
+  BUNDLE_chk no-option pins stderr_bytes      : PASS (0 == 0)
+  [Set C line L, ALL ON] attempts=100 finished=100 thrown=0 records=12977 searches=13047 nodes=51545138 sha256=9f9b7e19d465f265ee5ace8c0f90ac733cd55245c97b152f4016a1230ab6b735
+  BUNDLE_chk ALL_ON Set C stderr_bytes        : PASS (0 == 0)
+  BUNDLE_chk ALL_ON Set C exit_code           : PASS (0 == 0)
+  BUNDLE_chk vs rel ALL_ON Set C records      : PASS (12977 == 12977)
+  BUNDLE_chk vs rel ALL_ON Set C nodes        : PASS (51545138 == 51545138)
+  BUNDLE_chk vs rel ALL_ON Set C sha256       : PASS (9f9b7e19d465f265ee5ace8c0f90ac733cd55245c97b152f4016a1230ab6b735 == 9f9b7e19d465f265ee5ace8c0f90ac733cd55245c97b152f4016a1230ab6b735)
+  [n[1..20] line L, ALL ON] attempts=20 finished=20 thrown=0 records=2103 searches=2119 nodes=9239955 sha256=0d794e83ca5d2f34197556fd9d78733500a328f56a56a17a09edc28b238c0ac7
+  BUNDLE_chk ALL_ON n[1..20] stderr_bytes     : PASS (0 == 0)
+  BUNDLE_chk ALL_ON n[1..20] exit_code        : PASS (0 == 0)
+  BUNDLE_chk vs rel ALL_ON n[1..20] records   : PASS (2103 == 2103)
+  BUNDLE_chk vs rel ALL_ON n[1..20] nodes     : PASS (9239955 == 9239955)
+  BUNDLE_chk vs rel ALL_ON n[1..20] sha256    : PASS (0d794e83ca5d2f34197556fd9d78733500a328f56a56a17a09edc28b238c0ac7 == 0d794e83ca5d2f34197556fd9d78733500a328f56a56a17a09edc28b238c0ac7)
+
+PART Q OVERALL: PASS (1 == 1)
+done_utc: Fri Nov 20 02:06:52 PM UTC 2026
