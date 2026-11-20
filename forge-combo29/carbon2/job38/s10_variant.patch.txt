@@ -1,0 +1,271 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..21014f9d5 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,16 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++// IdeaS10: shrink a quiet shuffle score toward equality after a restricted probe.
++// Off (the default) leaves the search on today's path. The spins are read only
++// while the check is on.
++extern bool IdeaS10;
++extern int IdeaS10_Margin;   // |static eval| that counts as a large pawn-stable score
++extern int IdeaS10_Flat;     // max |eval - eval two plies ago| while the pawns stay put
++extern int IdeaS10_Probe;    // depth of the restricted probe
++extern int IdeaS10_Close;    // probe may differ from the searched score by at most this
++extern int IdeaS10_Shrink;   // kept fraction of the score, in 1/1024
++extern int IdeaS10_MinDepth; // do not probe below this depth
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+@@ -523,6 +533,12 @@ private:
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
++    // IdeaS10 probe. suppress_ is true only inside that probe, so the probe
++    // cannot start another one. winner_ is the side that may not capture or
++    // push a pawn during the probe. Both stay idle while IdeaS10 is off.
++    bool shuffle_suppress_ = false;
++    Color shuffle_winner_ = White;
++    std::unique_ptr<std::array<SearchStack, MaxPly + 8>> shuffle_stack_;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+@@ -537,6 +553,9 @@ private:
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
++    // IdeaS10. Returns best_score unchanged when the probe does not apply.
++    // Returns 0 and sets aborted_ if the probe search is stopped.
++    int shrink_shuffle_score(Board& board, SearchStack* ss, int depth, int best_score);
+     [[nodiscard]] bool should_stop();
+     [[nodiscard]] bool should_stop_with(std::uint64_t pending_nodes);
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..214eecc19 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,13 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS10 = false;
++int IdeaS10_Margin = 80;
++int IdeaS10_Flat = 40;
++int IdeaS10_Probe = 2;
++int IdeaS10_Close = 30;
++int IdeaS10_Shrink = 768;
++int IdeaS10_MinDepth = 4;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +152,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS10_Margin", &IdeaS10_Margin, 0, 2000},            {"IdeaS10_Flat", &IdeaS10_Flat, 0, 500},
++        {"IdeaS10_Probe", &IdeaS10_Probe, 1, 8},                 {"IdeaS10_Close", &IdeaS10_Close, 0, 500},
++        {"IdeaS10_Shrink", &IdeaS10_Shrink, 0, 1024},            {"IdeaS10_MinDepth", &IdeaS10_MinDepth, 1, 32},
+     };
+     return table;
+ }
+@@ -1028,6 +1038,11 @@ void Worker::clear() {
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
++    shuffle_suppress_ = false;
++    shuffle_winner_ = White;
++    if (shuffle_stack_) {
++        for (SearchStack& entry : *shuffle_stack_) entry = SearchStack{};
++    }
+ }
+ 
+ namespace {
+@@ -1448,7 +1463,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+-    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
++    if (!shuffle_suppress_ && !pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+@@ -1489,6 +1504,12 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
++        // IdeaS10 probe: the winning side may not capture or move a pawn.
++        // shuffle_suppress_ is false for the whole search while the option is off.
++        if (shuffle_suppress_ && board.side_to_move() == shuffle_winner_) {
++            const Piece moving = board.moved_piece(move);
++            if (move.is_capture() || move.is_promotion() || piece_type(moving) == Pawn) continue;
++        }
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+@@ -1548,6 +1569,97 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ // ---------------------------------------------------------------------------
+ // Main alpha-beta search
+ 
++int Worker::shrink_shuffle_score(Board& board, SearchStack* ss, int depth, int best_score) {
++    // A probe must not start another probe. The option is checked by the caller.
++    if (shuffle_suppress_ || ss->ply < 2 || ss->ply >= MaxPly) return best_score;
++    if (depth < tune::IdeaS10_MinDepth || depth <= tune::IdeaS10_Probe) return best_score;
++    if (ss->in_check || !ss->excluded_move.is_none()) return best_score;
++    if (is_mate_score(best_score) || best_score <= -Infinite || best_score >= Infinite) return best_score;
++    const int eval = ss->static_eval;
++    const int earlier = (ss - 2)->static_eval;
++    if (eval == ValueNone || earlier == ValueNone) return best_score;
++    // The network has no separate pawn term. A pawn score that stayed flat is
++    // the static eval staying inside IdeaS10_Flat while neither of the last
++    // two plies moved a pawn (the pawn key is unchanged). No second evaluator.
++    const int delta = eval - earlier;
++    if (delta > tune::IdeaS10_Flat || delta < -tune::IdeaS10_Flat) return best_score;
++    const int magnitude = eval < 0 ? -eval : eval;
++    if (magnitude < tune::IdeaS10_Margin) return best_score;
++    auto shuffle_move = [](const SearchStack* frame) {
++        const Move moved = frame->current_move;
++        if (moved.is_none() || moved.is_capture() || moved.is_promotion()) return false;
++        const Piece piece = frame->moved_piece;
++        return piece != Empty && piece_type(piece) != Pawn;
++    };
++    if (!shuffle_move(ss - 1) || !shuffle_move(ss - 2)) return best_score;
++    const Color winner = eval >= 0 ? board.side_to_move() : opposite(board.side_to_move());
++    const Color defender = opposite(winner);
++    bool defender_holds = board.is_repetition(root_history_index_) || board.is_repetition();
++    if (!defender_holds && board.side_to_move() == defender) {
++        for (const Move move : board.legal_moves()) {
++            if (move.is_capture() || move.is_promotion()) continue;
++            if (piece_type(board.moved_piece(move)) != Pawn) {
++                defender_holds = true;
++                break;
++            }
++        }
++    } else if (!defender_holds && board.side_to_move() == winner) {
++        defender_holds = shuffle_move(ss - 1);
++    }
++    if (!defender_holds) return best_score;
++    const int close = tune::IdeaS10_Close;
++    const int lo = best_score - close;
++    const int hi = best_score + close;
++    if (hi <= lo + 1) return best_score;
++    if (!shuffle_stack_) {
++        shuffle_stack_ = std::make_unique<std::array<SearchStack, MaxPly + 8>>();
++    }
++    auto& pstack = *shuffle_stack_;
++    const int ply = ss->ply;
++    for (int i = 0; i < MaxPly + 8; ++i) {
++        SearchStack& entry = pstack[static_cast<std::size_t>(i)];
++        entry.pv_length = 0;
++        entry.ply = i - 4;
++        entry.current_move = Move::none();
++        entry.excluded_move = Move::none();
++        entry.killers = {};
++        entry.moved_piece = Empty;
++        entry.static_eval = ValueNone;
++        entry.raw_eval = ValueNone;
++        entry.move_count = 0;
++        entry.arrival_index = 0;
++        entry.cutoff_count = 0;
++        entry.double_extensions = 0;
++        entry.withheld_plies = 0;
++        entry.in_check = false;
++        entry.tt_pv = false;
++        entry.null_move_allowed = true;
++        entry.continuation = &(*continuation_history_)[Empty][0];
++        entry.accumulator.valid = false;
++        entry.runtime_psqt.valid = false;
++        entry.entered_null = false;
++        entry.diff_known = false;
++        entry.dirty.count = 0;
++    }
++    for (int k = -4; k <= 0; ++k) {
++        pstack[static_cast<std::size_t>(ply + 4 + k)] = *(ss + k);
++    }
++    SearchStack* probe_ss = &pstack[static_cast<std::size_t>(ply + 4)];
++    probe_ss->excluded_move = Move::none();
++    probe_ss->withheld_plies = 0;
++    const bool saved_suppress = shuffle_suppress_;
++    const Color saved_winner = shuffle_winner_;
++    shuffle_suppress_ = true;
++    shuffle_winner_ = winner;
++    const int probe = search(board, probe_ss, tune::IdeaS10_Probe, lo, hi, false);
++    shuffle_suppress_ = saved_suppress;
++    shuffle_winner_ = saved_winner;
++    if (aborted_) return 0;
++    // The restricted search left the band: a pawn move or a capture still matters.
++    if (probe <= lo || probe >= hi) return best_score;
++    return best_score * tune::IdeaS10_Shrink / 1024;
++}
++
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+@@ -1635,7 +1747,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+     }
+ 
+-    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
++    if (!shuffle_suppress_ && !pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+@@ -1811,6 +1923,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
++    const int orig_alpha = alpha;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -1820,6 +1933,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             continue;
+         }
+         if (!board.is_legal(move)) continue;
++        // IdeaS10 probe: the winning side may not capture or move a pawn.
++        // shuffle_suppress_ is false for the whole search while the option is off.
++        if (shuffle_suppress_ && board.side_to_move() == shuffle_winner_) {
++            const Piece moving = board.moved_piece(move);
++            if (move.is_capture() || move.is_promotion() || piece_type(moving) == Pawn) continue;
++        }
+         ++move_count;
+         ss->move_count = move_count;
+         const bool capture = move.is_capture();
+@@ -2072,6 +2191,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         return in_check ? mated_in(ply) : 0;
+     }
+ 
++    // IdeaS10 is off by default; when on, shrink only interior scores (orig_alpha < best_score < beta).
++    if (tune::IdeaS10 && orig_alpha < best_score && best_score < beta) {
++        best_score = shrink_shuffle_score(board, ss, depth, best_score);
++        if (aborted_) return 0;
++    }
++
+     if (best_score >= beta) {
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..2a7155a1a 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS10 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -471,6 +472,9 @@ int uci_loop(std::istream& in) {
+                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
+             } else if (name == "DrawJitter") {
+                 apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::set_draw_jitter(clamped, searcher); });
++            } else if (name == "IdeaS10") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS10 = value_text == "true";
++                else note_invalid();
+             } else {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string unknown option " << name << std::endl;

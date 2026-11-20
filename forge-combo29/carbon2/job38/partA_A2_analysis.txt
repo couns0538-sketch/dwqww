@@ -1,0 +1,140 @@
+=== JOB 38 PART A2: S10 READING COMPARISON (SEATS 031 AND 081 VS IDEAS.MD) ===
+
+Reference text (`engine-ideas/50-agents/IDEAS.md`, lines 148-155, branch `fable/50-agent-engine-ideas`):
+  "In quiet nodes where the pawn score has stayed large and almost flat while both sides only
+   shuffle, run a short probe that forbids pawn moves and captures for the side that is supposed
+   to be winning. If that probe cannot change the score, and the defender has a shuffle or a
+   repetition, shrink the node toward equality. No second evaluation function and no list of
+   fortress shapes."
+
+-------------------------------------------------------------------------------
+1. CONCEPT-BY-CONCEPT MAPPING
+-------------------------------------------------------------------------------
+
+(a) "the pawn score" (and "large"):
+  - Seat 031 (`wt_031/forge-combo29/src/search.cpp:1575-1584`):
+    Does NOT read a separate pawn-structure evaluation. It takes the full corrected/damped node
+    static evaluation `ss->static_eval` (`eval`) and checks `|eval| >= IdeaS10_Margin` (default
+    `80` cp), arguing that while neither of the last two plies moved a pawn, `ss->static_eval`
+    serves as the pawn-stable score.
+  - Seat 081 (`wt_081/forge-combo29/src/eval.cpp:659-683`, `src/search.cpp:1635-1643`):
+    Adds `Evaluator::pawn_structure_cp(board)` reading the classical evaluator's cached pawn
+    entry (`pawn_cache_`, tapered by game phase to side-to-move centipawns), and requires BOTH
+    `|eval| >= IdeaS10_Margin` AND `|pawn_cp| >= IdeaS10_Margin` (default `25` cp) with matching
+    signs (`(pawn_cp > 0) == (eval > 0)`).
+
+(b) "flat":
+  - Seat 031 (`src/search.cpp:1575-1582`):
+    Compares `ss->static_eval` against `(ss - 2)->static_eval` (neither `ValueNone`) and requires
+    `|eval - (ss - 2)->static_eval| <= IdeaS10_Flat` (default `40` cp).
+  - Seat 081 (`src/search.cpp:1634, 1661-1662, 1798-1799`):
+    Does NOT compare `ss->static_eval` with `(ss - 2)->static_eval`; instead it requires
+    `board.halfmove_clock() >= IdeaS10_Look` (`4` plies without pawn move or capture), requires
+    the 1-ply restricted static probe to stay within `|probe - eval| <= IdeaS10_Flat` (`40` cp)
+    of `eval`, and in `s10_pull` requires any shrunk search score to also lie within
+    `|score - s10_eval_before| <= IdeaS10_Flat` (`40` cp).
+
+(c) "shuffle":
+  - Seat 031 (`src/search.cpp:1585-1591`):
+    Requires the last 2 plies `(ss - 1)` and `(ss - 2)` to have non-none `current_move`,
+    `!is_capture()`, `!is_promotion()`, and `moved_piece != Empty && piece_type(moved_piece) != Pawn`.
+  - Seat 081 (`src/search.cpp:1564-1568, 1634, 1637-1639`):
+    Requires `board.halfmove_clock() >= 4` AND all `IdeaS10_Look = 4` preceding plies `(ss - 1)`
+    through `(ss - 4)` to satisfy `is_shuffle_piece_move` (non-none, non-capture, non-promotion,
+    `piece != Empty && piece_type(piece) != Pawn`).
+
+(d) "the probe":
+  - Seat 031 (`src/search.cpp:1463, 1504-1509, 1606-1620, 1711, 1896-1901`):
+    Runs a recursive alpha-beta `Worker::search(board, ss, tune::IdeaS10_Probe, lo, hi, false)`
+    at depth `IdeaS10_Probe = 2` with window `(lo, hi) = (best_score - 30, best_score + 30)`,
+    setting `shuffle_suppress_ = true` and `shuffle_winner_ = winner` (`eval >= 0 ? stm : ~stm`).
+    While `shuffle_suppress_` is true, non-PV TT cutoffs in `search` (`1711`) and `qsearch`
+    (`1463`) are disabled and move loops in `search` (`1898-1901`) and `qsearch` (`1506-1509`)
+    skip captures, promotions, and pawn moves when `board.side_to_move() == shuffle_winner_`.
+    The probe "cannot change the score" when `lo < probe < hi` (`1620`).
+  - Seat 081 (`src/search.cpp:1572-1602, 1645-1662`):
+    Does NOT run `Worker::search`; runs `Worker::restricted_quiet_score`, a 1-ply loop over legal
+    non-capture, non-promotion, non-pawn moves for the side with `pawn_cp > 0` (making a null move
+    first if that side is not to move, lines `1650-1658`), scoring each child directly with
+    `-static_evaluate(board, child_ss)` and taking the max (`best`). It holds flat if
+    `|probe - eval| <= IdeaS10_Flat` (`40` cp).
+
+(e) "the defender holds":
+  - Seat 031 (`src/search.cpp:1592-1605`):
+    `defender = opposite(winner)`. True if `board.is_repetition(root_history_index_) || board.is_repetition()`;
+    otherwise if `stm == defender`, true if the defender has ANY legal non-capture, non-promotion,
+    non-pawn move (`1596-1602` — true in virtually every normal middlegame!); otherwise (`stm == winner`),
+    true if `shuffle_move(ss - 1)` (`1603`, which is ALREADY guaranteed true by line `1591`!).
+    Thus whenever `stm == winner`, `defender_holds` is tautologically `true` in `031`!
+  - Seat 081 (`src/search.cpp:1604-1628`):
+    `Worker::defender_holds` checks (making a null move if `defender != stm`) whether the defender
+    has a legal non-capture, non-promotion, non-pawn move that EITHER immediately reverses the
+    defender's own move from two plies earlier (`move.from == previous.to && move.to == previous.from`,
+    line `1612`) OR creates an immediate repetition after `make_move` (`b.is_repetition(root_history_index_) || b.is_repetition()`,
+    lines `1615-1617`).
+
+-------------------------------------------------------------------------------
+2. WHERE THE SHRINK IS APPLIED (FILE & LINE) AND TO WHICH SCORES
+-------------------------------------------------------------------------------
+
+- Seat 081 (`wt_081/forge-combo29/src/search.cpp`):
+  Gated strictly to non-PV, non-root, non-check, non-excluded nodes (`!pv_node && !root_node && !in_check && excluded.is_none()`,
+  line `1789`). When `idea_s10_applies` returns true:
+  1. `src/search.cpp:1793`: shrinks `eval = ss->static_eval = eval * IdeaS10_Shrink / 1024` (`896/1024`),
+     which feeds RFP (`1831-1834`) and NMP/ProbCut static margins.
+  2. `src/search.cpp:1826`: `s10_pull(razor)` on razoring fail-low return (`pulled < alpha`), only if `|razor - s10_eval_before| <= 40`.
+  3. `src/search.cpp:1868` & `1885`: `s10_pull(null_score)` on null-move cutoffs (`pulled >= beta`), re-checking `pulled >= beta` before returning!
+  4. `src/search.cpp:1919`: `s10_pull(value)` on ProbCut fail-high, re-checking `value >= probcut_beta` at `1920`!
+  5. `src/search.cpp:2098`: `s10_pull(singular_beta)` on multi-cut, re-checking `pulled >= beta` at `2099`!
+  6. `src/search.cpp:2242`: `best_score = s10_pull(best_score)` at the end of `Worker::search`, ONLY when `|best_score - s10_eval_before| <= 40`.
+
+- Seat 031 (`wt_031/forge-combo29/src/search.cpp`):
+  Applied at `src/search.cpp:2154-2157` (computing `best_score * tune::IdeaS10_Shrink / 1024` at
+  `src/search.cpp:1621`, `768/1024 = 0.75 * best_score`) at the end of `Worker::search`, AFTER the
+  move loop (`2146`) and BEFORE the beta-cutoff history update (`2160`), bound classification (`2177`),
+  TT store (`2180/2182`), and correction-history update (`2187-2192`).
+
+  * Does Seat 031 shrink scores OUTSIDE `(alpha, beta)`?
+    YES! `shrink_shuffle_score(board, ss, depth, best_score)` at `src/search.cpp:2155` has NO
+    check on `alpha`, `beta`, or `pv_node`:
+    - On a fail-high (`best_score >= beta`, including zero-window nodes where `beta = alpha + 1`),
+      if `best_score > 0` (e.g. `beta = 200`, `best_score = 220`), multiplying by `768/1024` drops
+      `best_score` to `165 < alpha < beta`, destroying the beta cutoff (`2160`), misclassifying the
+      node as `BoundUpper` (`2177`), and returning a fail-low to the parent!
+    - On a fail-low (`best_score <= alpha`, including zero-window nodes where `beta = alpha + 1`),
+      if `best_score < 0` (e.g. `alpha = -200, beta = -199`, `best_score = -220`), multiplying by
+      `768/1024` raises `best_score` toward zero to `-165 >= beta`, fabricating a false beta cutoff
+      (`2160`), storing `BoundLower` (`2177`), and returning a bogus fail-high to the parent!
+
+  * Does Seat 031's probe search use the outer node's OWN stack frame?
+    YES! At `src/search.cpp:1615`, `const int probe = search(board, ss, tune::IdeaS10_Probe, lo, hi, false);`
+    passes the outer node's `SearchStack* ss` directly, with wide window `hi - lo = 2 * IdeaS10_Close = 60 > 1`
+    so `pv_node` inside the probe is ALWAYS `true` (`src/search.cpp:1625`).
+
+  * Every field of `ss` read by the outer node (and its parent caller) AFTER `shrink_shuffle_score` returns in `031` (`wt_031/forge-combo29/src/search.cpp`):
+    1. `ss->killers` (`src/search.cpp:2162` -> `Worker::update_quiet_stats` at `src/search.cpp:1388-1391`):
+       read and shifted when `best_score >= beta` and `best_move` is quiet; mutated if the probe
+       itself took a quiet beta cutoff at `ss`.
+    2. `ss->raw_eval` (`src/search.cpp:2180` under `FORGE_SPD_TT_NOTLS`, `src/search.cpp:2182` otherwise):
+       passed to `store_tt` / `shared_.tt.store`; overwritten during the probe at `src/search.cpp:1726-1728`
+       (or `1572` if `depth <= 0`, though `IdeaS10_Probe >= 1`).
+    3. `ss->tt_pv` (`src/search.cpp:2180` / `src/search.cpp:2182`):
+       passed to `store_tt` / `shared_.tt.store`; UNCONDITIONALLY overwritten to `true` by the probe
+       at `src/search.cpp:1675` (`ss->tt_pv = pv_node || ...`) because the probe's `hi - lo = 60 > 1`
+       makes `pv_node == true` even when the outer node was non-PV!
+    4. `ss->static_eval` (`src/search.cpp:2189`, `src/search.cpp:2190`, `src/search.cpp:2191`):
+       read in the correction-history guard (`!(bound == BoundLower && best_score <= ss->static_eval)`
+       and `!(bound == BoundUpper && best_score >= ss->static_eval)`) and passed to
+       `update_correction(board, depth, best_score, ss->static_eval)`; overwritten by the probe at
+       `src/search.cpp:1722-1729`.
+    5. `ss->pv` and `ss->pv_length` (read by the parent `Worker::search` frame `ss_parent` on its
+       child `ss == ss_parent + 1` at `src/search.cpp:2128-2129` immediately after `return best_score`
+       when `pv_node` is true and `score > alpha`):
+       the probe zeroed `ss->pv_length = 0` at entry (`src/search.cpp:1638`) and overwrote `ss->pv` /
+       `ss->pv_length` (`src/search.cpp:2127-2129`) with its 2-ply restricted shuffle line (or left
+       `pv_length = 0` on probe fail-low), truncating/corrupting the outer PV!
+       (Note: lines `2170-2174` read `(ss - 1)->current_move`, `(ss - 1)->moved_piece`, and `(ss - 1)`
+       in `update_continuation(ss - 1, ...)`, which belong to the parent frame `ss - 1`, not `ss`;
+       meanwhile on `ss` itself the probe also clobbered `ss->double_extensions` (`1633`),
+       `ss->move_count` (`1639, 1903`), `ss->in_check` (`1651`), `ss->current_move` (`2076`),
+       `ss->moved_piece` (`2077`), and `ss->continuation` (`2078`).)
