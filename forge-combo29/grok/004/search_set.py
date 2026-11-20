@@ -126,6 +126,7 @@ def main() -> None:
     depth = None
     out = None
     switch = None
+    option_name = "LmrLateParentRelief"
     limit = None
     extras: list[tuple[str, str]] = []
     i = 0
@@ -133,6 +134,10 @@ def main() -> None:
         key = args[i]
         if key == "--switch":
             switch = args[i + 1]
+            i += 2
+            continue
+        if key == "--option":
+            option_name = args[i + 1]
             i += 2
             continue
         if key == "--limit":
@@ -163,7 +168,7 @@ def main() -> None:
         fens = fens[:limit]
     option_lines = [("Hash", "16"), ("Threads", "1")] + S14
     if switch is not None:
-        option_lines.append(("LmrLateParentRelief", switch))
+        option_lines.append((option_name, switch))
     option_lines.extend(extras)
     engine = Engine(exe)
     try:
