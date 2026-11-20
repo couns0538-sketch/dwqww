@@ -1,0 +1,159 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..89752a743 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -300,6 +300,7 @@ extern bool LmrLateParentRelief;     // one ply less reduction on the first few
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool IdeaS32;                  // grade a null-move hash fail-high and verify a shallow one (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+@@ -409,6 +410,12 @@ struct SearchStack {
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    // IdeaS32. Set when this node returns a hash cutoff. hash_proof_depth is
++    // the depth stored on that entry. A null cutoff is the negation of a low
++    // child score, so the entry is often an upper bound. Cleared at every node.
++    // Read only when the option is on, by the parent of a null-move probe.
++    bool hash_proof = false;
++    int hash_proof_depth = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..cb5deb665 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -100,6 +100,8 @@ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
++bool IdeaS32 = false;
++int IdeaS32_Slack = 0;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS32_Slack", &IdeaS32_Slack, 0, 64},
+     };
+     return table;
+ }
+@@ -1414,6 +1417,8 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++    ss->hash_proof = false;
++    ss->hash_proof_depth = 0;
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+@@ -1452,6 +1457,12 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        // Any hash cutoff, including an upper bound. A null cutoff is the
++        // negation of a low score, so the proof is often a fail-low entry.
++        if (tune::IdeaS32) {
++            ss->hash_proof = true;
++            ss->hash_proof_depth = static_cast<int>(tte.depth);
++        }
+         return tt_score;
+     }
+ 
+@@ -1542,6 +1553,12 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ #else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #endif
++    // A fail-high that came from the child carries that child's hash proof up,
++    // so a null-move parent can see a shallow hash the reduced tree relied on.
++    if (tune::IdeaS32 && best_score >= beta && (ss + 1)->hash_proof) {
++        ss->hash_proof = true;
++        ss->hash_proof_depth = (ss + 1)->hash_proof_depth;
++    }
+     return best_score;
+ }
+ 
+@@ -1554,6 +1571,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const int ply = ss->ply;
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    ss->hash_proof = false;
++    ss->hash_proof_depth = 0;
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -1640,6 +1659,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        if (tune::IdeaS32) {
++            ss->hash_proof = true;
++            ss->hash_proof_depth = tt_depth;
++        }
+         return tt_score;
+     }
+ 
+@@ -1722,7 +1745,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
++                // A hash fail-high shallower than the parent depth (minus slack)
++                // is not a deep enough proof of the null cutoff. Verify it.
++                // The stored depth is the depth that was searched: a pass does
++                // not add plies to a fail-high entry.
++                const bool shallow_hash = tune::IdeaS32 && (ss + 1)->hash_proof &&
++                                          (ss + 1)->hash_proof_depth < depth - tune::IdeaS32_Slack;
++                if (depth < 14 && !threat_gate && !shallow_hash) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+@@ -2105,6 +2134,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+         update_correction(board, depth, best_score, ss->static_eval);
+     }
++    // Bubble a hash fail-high out of the cutoff move. A pass does not deepen it.
++    if (tune::IdeaS32 && best_score >= beta && (ss + 1)->hash_proof) {
++        ss->hash_proof = true;
++        ss->hash_proof_depth = (ss + 1)->hash_proof_depth;
++    }
+     return best_score;
+ }
+ 
+@@ -2338,6 +2372,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
++        ss.hash_proof = false;
++        ss.hash_proof_depth = 0;
+         ss.null_move_allowed = true;
+         ss.arrival_index = 0;
+         ss.killers = {};
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..e493ee2da 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -222,6 +222,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
++                         "option name IdeaS32 type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS32") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS32 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
