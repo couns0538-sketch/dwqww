@@ -16,7 +16,7 @@ option name NonPawnCorrection type check default false
 option name LmrDeeperShallower type check default false
 option name EvalRule50Damp type check default false
 option name ThreatHistory type check default false
-option name IdeaS27 type check default false
+option name IdeaS36 type check default false
 option name LmrSignedCorrection type check default false
 option name LmrLateParentRelief type check default false
 option name HindsightDepth type check default false
@@ -82,7 +82,8 @@ option name CaptureFutilityBase type spin default 0 min 0 max 1000
 option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
 option name CaptureFutilityDepth type spin default 6 min 0 max 15
 option name FailLowContinuationBonus type spin default 0 min 0 max 300
-option name IdeaS27_DeadZone type spin default 128 min 0 max 16384
+option name IdeaS36_FailLow type spin default 1 min 0 max 8
+option name IdeaS36_FailHigh type spin default 1 min 0 max 8
 option name Clear Hash type button
 uciok
 readyok
@@ -105,42 +106,42 @@ readyok
 readyok
 readyok
 readyok
-/tmp/scratch-oob/forge-combo29/src/search.cpp:1588:22: runtime error: load of address 0x502000001080 with insufficient space for an object of type 'int'
+/tmp/scratch-oob/forge-combo29/src/search.cpp:1561:22: runtime error: load of address 0x502000001080 with insufficient space for an object of type 'int'
 0x502000001080: note: pointer points here
  be be be be  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
               ^ 
 =================================================================
-==6584==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000001080 at pc 0x55c76262bf55 bp 0x7fadfa5f1690 sp 0x7fadfa5f1680
+==249923==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000001080 at pc 0x5575779b58d3 bp 0x7f4c2d1f16d0 sp 0x7f4c2d1f16c0
 READ of size 4 at 0x502000001080 thread T1
-    #0 0x55c76262bf54 in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) (/tmp/scratch-oob/build/forge+0x5acf54) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #1 0x55c762639cd0 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/scratch-oob/build/forge+0x5bacd0) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #2 0x55c76264d1ba in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/scratch-oob/build/forge+0x5ce1ba) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #3 0x55c7626a1a72 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/scratch-oob/build/forge+0x622a72) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #4 0x7fae012ecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
-    #5 0x7fae0165ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
-    #6 0x7fae0069cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
-    #7 0x7fae00729ecb  (/lib/x86_64-linux-gnu/libc.so.6+0x129ecb) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #0 0x5575779b58d2 in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) (/tmp/scratch-oob/build/forge+0x5b78d2) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #1 0x5575779c0f52 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/scratch-oob/build/forge+0x5c2f52) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #2 0x5575779d422a in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/scratch-oob/build/forge+0x5d622a) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #3 0x557577a2ed22 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/scratch-oob/build/forge+0x630d22) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #4 0x7f4c33eecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #5 0x7f4c3425ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #6 0x7f4c3329cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #7 0x7f4c33329ecb  (/lib/x86_64-linux-gnu/libc.so.6+0x129ecb) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
 
 0x502000001080 is located 0 bytes after 16-byte region [0x502000001070,0x502000001080)
 allocated by thread T1 here:
-    #0 0x7fae016fe6c8 in operator new[](unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:98
-    #1 0x55c76262473f in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) (/tmp/scratch-oob/build/forge+0x5a573f) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #2 0x55c762639cd0 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/scratch-oob/build/forge+0x5bacd0) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #3 0x55c76264d1ba in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/scratch-oob/build/forge+0x5ce1ba) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #4 0x55c7626a1a72 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/scratch-oob/build/forge+0x622a72) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #5 0x7fae012ecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
-    #6 0x7fae0165ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
-    #7 0x7fae0069cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #0 0x7f4c342fe6c8 in operator new[](unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:98
+    #1 0x5575779ab844 in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) (/tmp/scratch-oob/build/forge+0x5ad844) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #2 0x5575779c0f52 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/scratch-oob/build/forge+0x5c2f52) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #3 0x5575779d422a in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/scratch-oob/build/forge+0x5d622a) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #4 0x557577a2ed22 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/scratch-oob/build/forge+0x630d22) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #5 0x7f4c33eecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #6 0x7f4c3425ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #7 0x7f4c3329cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
 
 Thread T1 created by T0 here:
-    #0 0x7fae016f51f9 in pthread_create ../../../../src/libsanitizer/asan/asan_interceptors.cpp:245
-    #1 0x7fae012eceb0 in std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (/lib/x86_64-linux-gnu/libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
-    #2 0x55c7626bab23 in forge::uci_loop(std::istream&) (/tmp/scratch-oob/build/forge+0x63bb23) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
-    #3 0x7fae0062a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
-    #4 0x7fae0062a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
-    #5 0x55c7624298f4 in _start (/tmp/scratch-oob/build/forge+0x3aa8f4) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2)
+    #0 0x7f4c342f51f9 in pthread_create ../../../../src/libsanitizer/asan/asan_interceptors.cpp:245
+    #1 0x7f4c33eeceb0 in std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (/lib/x86_64-linux-gnu/libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 0x557577a47dd3 in forge::uci_loop(std::istream&) (/tmp/scratch-oob/build/forge+0x649dd3) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
+    #3 0x7f4c3322a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x7f4c3322a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #5 0x5575777b0744 in _start (/tmp/scratch-oob/build/forge+0x3b2744) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c)
 
-SUMMARY: AddressSanitizer: heap-buffer-overflow (/tmp/scratch-oob/build/forge+0x5acf54) (BuildId: ceef47b325ac627e63aba5cd15cdd345b88cf4e2) in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/tmp/scratch-oob/build/forge+0x5b78d2) (BuildId: 86c6480a9840bb96435d2c7e4a9e41e23001685c) in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
 Shadow bytes around the buggy address:
   0x502000000e00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
   0x502000000e80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
@@ -172,4 +173,4 @@ Shadow byte legend (one shadow byte represents 8 application bytes):
   ASan internal:           fe
   Left alloca redzone:     ca
   Right alloca redzone:    cb
-==6584==ABORTING
+==249923==ABORTING

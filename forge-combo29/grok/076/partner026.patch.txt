@@ -1,0 +1,128 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..36e45d6d8 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -302,6 +302,9 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern bool IdeaS36;                 // root quiet LMR shift on an aspiration re-search (false = off)
++extern int IdeaS36_FailLow;          // plies taken off later root quiet reductions after a fail-low
++extern int IdeaS36_FailHigh;         // plies added to later root quiet reductions after a fail-high
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+@@ -514,6 +517,9 @@ private:
+ #endif
+     int seldepth_ = 0;
+     int root_depth_ = 0;
++    // S36. Nonzero only on the root re-search after the score leaves the window.
++    // Negative eases quiet reductions; positive deepens them. Cleared each iteration.
++    int root_quiet_shift_ = 0;
+     int mate_moves_ = 0;
+     std::size_t root_history_index_ = 0;
+     std::vector<Move> root_moves_;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..f7b3ceed8 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -102,6 +102,9 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++bool IdeaS36 = false;
++int IdeaS36_FailLow = 1;
++int IdeaS36_FailHigh = 1;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS36_FailLow", &IdeaS36_FailLow, 0, 8},             {"IdeaS36_FailHigh", &IdeaS36_FailHigh, 0, 8},
+     };
+     return table;
+ }
+@@ -2008,6 +2012,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // S36: a root window re-search shifts later quiet reductions. Captures
++            // never enter this quiet arm. The first root moves stay outside the
++            // reduction (move_count gate above). A negative result is clamped so
++            // the shift cannot extend.
++            if (tune::IdeaS36 && root_node && quiet && root_quiet_shift_ != 0) {
++                r += root_quiet_shift_;
++                if (r < 0) r = 0;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+@@ -2391,6 +2403,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     }
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
++        if (tune::IdeaS36) root_quiet_shift_ = 0;
+         // Sample only while a game clock is running and the option is on.
+         // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
+         const bool finish_sampling =
+@@ -2413,7 +2426,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             ss->ply = 0;
+             iteration_score = search(board, ss, depth, alpha, beta, false);
+             if (aborted_) break;
++            int window_side = 0;
+             if (iteration_score <= alpha) {
++                window_side = -1;
+                 failed_window = true;
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
+@@ -2423,6 +2438,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                     alpha = std::max(iteration_score - delta, -Infinite);
+                 }
+             } else if (iteration_score >= beta) {
++                window_side = 1;
+                 failed_window = true;
+                 if (tune::AspCappedReopen) {
+                     beta = capped_fail_high(iteration_score);
+@@ -2433,8 +2449,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             } else {
+                 break;
+             }
++            // The next call in this loop is the re-search. Fail-low eases later
++            // root quiets; fail-high reduces them more. Cleared below so the
++            // following iteration starts on today's path.
++            if (tune::IdeaS36) {
++                root_quiet_shift_ = window_side < 0 ? -tune::IdeaS36_FailLow : tune::IdeaS36_FailHigh;
++            }
+             delta += delta / 2 + 4;
+         }
++        if (tune::IdeaS36) root_quiet_shift_ = 0;
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
+             // A clock or external stop may keep a root move that already raised
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..b4d6e63d9 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -225,6 +225,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
++                         "option name IdeaS36 type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+@@ -433,6 +434,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaS36") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::IdeaS36 = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();

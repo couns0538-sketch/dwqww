@@ -19,8 +19,9 @@ with open(meta_path, "w") as handle:
     handle.write("id_name " + name + "\n")
     handle.write("options none\n")
 need = [
-    "option name IdeaS27 type check default false",
-    "option name IdeaS27_DeadZone type spin default 128 min 0 max 16384",
+    "option name IdeaS36 type check default false",
+    "option name IdeaS36_FailLow type spin default 1 min 0 max 8",
+    "option name IdeaS36_FailHigh type spin default 1 min 0 max 8",
 ]
 for item in need:
     print(("OK" if item in out else "MISSING"), item)

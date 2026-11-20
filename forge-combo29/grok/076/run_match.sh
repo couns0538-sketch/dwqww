@@ -2,7 +2,7 @@
 # Test match. Args: OPENINGS OUT_LOG PGN ROUNDS
 # fastchess keeps only the first ROUNDS openings, then plays -games 2 (both colours).
 # ROUNDS must equal the number of openings. Do not set it higher to repeat the list.
-# Engine on (IdeaS27 true) vs engine off (IdeaS27 false). S14, Threads 1, Hash 16, 20000 nodes.
+# Engine on (IdeaS36 true) vs engine off (IdeaS36 false). S14, Threads 1, Hash 16, 20000 nodes.
 set -u
 OPENINGS=$1
 LOG=$2
@@ -11,8 +11,8 @@ ROUNDS=${4:-1}
 P=/agent/repos/work/forge-combo29/build/forge
 FC=/tmp/fastchess/fastchess
 "$FC" \
-  -engine cmd="$P" name=s27on option.IdeaS27=true \
-  -engine cmd="$P" name=s27off option.IdeaS27=false \
+  -engine cmd="$P" name=s36on option.IdeaS36=true \
+  -engine cmd="$P" name=s36off option.IdeaS36=false \
   -each nodes=20000 option.Threads=1 option.Hash=16 \
         option.LmrQuietBase=93 option.LmrQuietDivisor=205 \
         option.LmrNoisyBase=13 option.LmrNoisyDivisor=333 \
