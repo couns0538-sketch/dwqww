@@ -1,0 +1,9 @@
+Predicted before any search of exe P. Switch is the existing option LmrSignedCorrection. IdeaS38_Divisor and IdeaS38_Cap stay at their defaults 64 and 1, which is today's formula.
+
+O depth 12 node sum, S14, Threads 1, Hash 16, LmrSignedCorrection true: 10450000
+Wrong if that sum is below 8000000 or above 12500000.
+
+Test-match Elo of LmrSignedCorrection true against false, both S14, 20000 nodes, 1106 games: +3
+Wrong if the Elo point is below -25 or above +30.
+
+Why: the signed term already exists and moves a quiet reduction by at most one ply, and only after correction history is non-zero. That should move the depth-12 tree by a modest fraction, not double it or cut it in half. A one-ply late-move tweak at a fixed 20000 nodes is usually a few Elo, so +3 is the centre of the guess.
