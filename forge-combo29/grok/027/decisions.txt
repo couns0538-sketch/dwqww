@@ -1,0 +1,24 @@
+Seat 027, idea 27, id S44, option IdeaS44.
+
+The plain engine already returns eval from reverse futility when depth is at most
+RfpDepth (8) and eval is at least RfpMargin (72) centipawns per ply above beta,
+with 40 centipawns back when the position is improving. That drop does not look
+at the hash move. S44 is not that drop.
+
+IdeaS44 adds a second static return of eval, and only when all of these hold:
+the option is on, the node is already off the PV and out of check (the same
+outer guard as reverse futility), depth is at most IdeaS44_Depth, eval is at
+least IdeaS44_Margin centipawns per ply above beta and is not a mate score, the
+hash move exists and is a non-capture non-promotion pseudo-legal move, that
+move's quiet history is at least IdeaS44_History, and no cheaper enemy piece
+attacks a dearer piece of ours. A capture hash move does not qualify.
+
+Defaults: Depth 8, Margin 48, History 6000. Depth 8 stays inside today's modest
+band. Margin 48 is below today's 72, so the new drop can fire where reverse
+futility does not. History 6000 is a high band against a per-table cap of 16384.
+The flag is first in the conjunction, so with the option false the search does
+not call the history or the attack scan.
+
+SEED for the random positions is 2701. A game is kept only when it is still
+going after ply 80. Positions are the FENs at plies 8, 15, 22, and so on.
+python-chess claims threefold repetition and the 50-move rule as the end.

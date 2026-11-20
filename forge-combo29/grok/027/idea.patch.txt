@@ -1,0 +1,100 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..3086083b9 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -249,6 +249,9 @@ extern int NullMoveEvalDivisor;
+ extern int RfpDepth;
+ extern int RfpMargin;
+ extern int RfpImproving;
++extern int IdeaS44_Depth;     // extra static drop: deepest depth (0 = none)
++extern int IdeaS44_Margin;    // extra static drop: centipawns per ply above beta
++extern int IdeaS44_History;   // extra static drop: minimum quiet-history of the hash move
+ extern int RazorDepth;
+ extern int RazorBase;
+ extern int RazorMultiplier;
+@@ -307,6 +310,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS44;                 // elite-history quiet static drop (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..d9cdfcda9 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -50,6 +50,9 @@ int NullMoveEvalDivisor = 200;
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
++int IdeaS44_Depth = 8;
++int IdeaS44_Margin = 48;
++int IdeaS44_History = 6000;
+ int RazorDepth = 2;
+ int RazorBase = 150;
+ int RazorMultiplier = 350;
+@@ -107,6 +110,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS44 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -119,7 +123,10 @@ const std::vector<Parameter>& parameters() {
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+-        {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"RfpImproving", &RfpImproving, 0, 200},
++        {"IdeaS44_Depth", &IdeaS44_Depth, 0, 15},        {"IdeaS44_Margin", &IdeaS44_Margin, 0, 300},
++        {"IdeaS44_History", &IdeaS44_History, 0, 60000},
++        {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+@@ -1690,6 +1697,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             eval < MateInMaxPly) {
+             return eval;
+         }
++        // IdeaS44: a second static drop, only for a quiet hash move whose
++        // history is in the high band, and only when no cheaper enemy piece
++        // attacks a dearer piece of ours. A capture hash move does not qualify.
++        // The flag defaults off, and the conjunction starts with that flag, so
++        // the search returns and the later probes stay on today's path.
++        if (tune::IdeaS44 && !bare_king_mode && depth <= tune::IdeaS44_Depth && eval < MateInMaxPly &&
++            eval - tune::IdeaS44_Margin * depth >= beta && tt_hit && !tt_move.is_none() &&
++            !tt_move.is_capture() && !tt_move.is_promotion() && board.is_pseudo_legal(tt_move) &&
++            quiet_history(board, ss, tt_move) >= tune::IdeaS44_History &&
++            !cheaper_enemy_attacks_dearer(board)) {
++            return eval;
++        }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..39fb6696d 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS44 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -459,6 +460,10 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "IdeaS44") {
++                if (value_text == "true") forge::tune::IdeaS44 = true;
++                else if (value_text == "false") forge::tune::IdeaS44 = false;
++                else note_invalid();
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
