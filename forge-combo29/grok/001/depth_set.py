@@ -51,6 +51,7 @@ def main() -> int:
     ap.add_argument("out_prefix")
     ap.add_argument("--switch", choices=("true", "false"), default=None)
     ap.add_argument("--span", type=int, default=None)
+    ap.add_argument("--set", action="append", default=[], metavar="NAME=VALUE")
     args = ap.parse_args()
 
     exe = str(Path(args.exe).resolve())
@@ -150,6 +151,12 @@ def main() -> int:
             setoption("EvalRule50Damp", args.switch)
         if args.span is not None:
             setoption("EvalRule50Damp_Span", str(args.span))
+        for item in args.set:
+            if "=" not in item:
+                failed = f"bad --set {item}"
+                break
+            name, value = item.split("=", 1)
+            setoption(name, value)
 
     rows: list[str] = []
     if not failed:

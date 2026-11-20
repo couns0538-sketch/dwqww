@@ -1,0 +1,88 @@
+TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 001 idea 1
+2 builds and honesty | done | HONESTY_B.txt B_O_d12.sum.txt B_G_d12.sum.txt | known nodes and known sums
+3 idea | done | idea.patch.txt apply_check.txt cmp_off_O.txt cmp_on_O.txt asan_G100_d10.meta match_OG.txt | off identical, on differs, match played
+4 partner | done | partner_cmp_off_O.txt partner_cmp_on_O.txt partner_match_R.txt | see partner section
+5 report | done | REPORT.md RESULT.txt | this file
+HONESTY_B
+honesty_b_bench11.txt PASS hits=1 expected_nodes=312866
+info string bench depth 11 nodes 312866 time 215 nps 1455190
+honesty_b_bench13.txt PASS hits=1 expected_nodes=862329
+info string bench depth 13 nodes 862329 time 470 nps 1834742
+honesty_b_bench16.txt PASS hits=1 expected_nodes=3024920
+info string bench depth 16 nodes 3024920 time 1426 nps 2121262
+honesty_b_perft5.txt PASS hits=1 expected_nodes=4865609
+nodes 4865609
+HONESTY_B PASS
+SUM_B_O
+file=forge-combo29/grok/001/B_O_d12.rows.txt
+positions=200
+sum=9500069
+first3=41311 / 24872 / 28574
+SUM_B_G
+file=forge-combo29/grok/001/B_G_d12.rows.txt
+positions=353
+sum=18466239
+first3=37203 / 70845 / 144383
+CMP_OFF_O
+left=forge-combo29/grok/001/B_O_d12.rows.txt
+right=forge-combo29/grok/001/P_off_O_d12.rows.txt
+positions=200
+differ=0 of 200
+CMP_OFF_G
+left=forge-combo29/grok/001/B_G_d12.rows.txt
+right=forge-combo29/grok/001/P_off_G_d12.rows.txt
+positions=353
+differ=0 of 353
+CMP_ON_O
+left=forge-combo29/grok/001/B_O_d12.rows.txt
+right=forge-combo29/grok/001/P_on_O_d12.rows.txt
+positions=200
+differ=200 of 200
+NODE_ON
+left=forge-combo29/grok/001/B_O_d12.rows.txt
+right=forge-combo29/grok/001/P_on_O_d12.rows.txt
+node_differ=200 of 200
+SUM_P_ON
+file=forge-combo29/grok/001/P_on_O_d12.rows.txt
+positions=200
+sum=10347764
+first3=18069 / 37645 / 36805
+NODE_BON_PON
+left=forge-combo29/grok/001/B_on_O_d12.rows.txt
+right=forge-combo29/grok/001/P_on_O_d12.rows.txt
+node_differ=0 of 200
+ASAN_META_TAIL
+rows=100
+failed=
+NM_COUNT=35
+nm_command=nm -C /tmp/asan-work/forge | grep -c __asan_
+ASAN_SCRATCH_HITS
+lines=2
+<< ==8163==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x561bfd612dd7 bp 0x7ffda8a006f0 sp 0x7ffda8a006e0
+<< SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/asan-scratch/forge-combo29/src/uci.cpp:48 in apply_position
+MATCH_OG
+Elo: -22.02 +/- 10.40, nElo: -43.46 +/- 20.48
+Games: 1106, Wins: 318, Losses: 388, Draws: 400, Points: 518.0 (46.84 %)
+PARTNER_OFF
+left=forge-combo29/grok/001/B_O_d12.rows.txt
+right=forge-combo29/grok/001/partner_off_O.rows.txt
+positions=200
+differ=0 of 200
+PARTNER_ON_VS_THEIRS
+left=forge-combo29/grok/001/partner051_P_on_O.nodes
+right=forge-combo29/grok/001/partner_on_O.rows.txt
+node_differ=0 of 200
+PARTNER_ON_VS_B
+left=forge-combo29/grok/001/B_O_d12.rows.txt
+right=forge-combo29/grok/001/partner_on_O.rows.txt
+node_differ=200 of 200
+PARTNER_ON_SUM
+file=forge-combo29/grok/001/partner_on_O.rows.txt
+positions=200
+sum=10347764
+first3=18069 / 37645 / 36805
+PARTNER_MATCH
+Elo: -6.37 +/- 11.05, nElo: -16.04 +/- 27.80
+Games: 600, Wins: 268, Losses: 279, Draws: 53, Points: 294.5 (49.08 %)
