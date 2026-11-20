@@ -67,6 +67,7 @@ class Engine:
             except queue.Empty as exc:
                 raise TimeoutError(f"timeout waiting for {marker}") from exc
             if line is None:
+                self.last_read = collected
                 raise RuntimeError(f"engine exited waiting for {marker}; tail={collected[-8:]}")
             collected.append(line)
             lowered = line.lower()
@@ -74,8 +75,10 @@ class Engine:
                 if bit.lower() in lowered:
                     raise RuntimeError(f"STOP {bit}: {line}")
             if marker == "bestmove" and line.startswith("bestmove "):
+                self.last_read = collected
                 return collected
             if marker != "bestmove" and line == marker:
+                self.last_read = collected
                 return collected
 
     def close(self) -> None:
@@ -146,12 +149,15 @@ def main() -> int:
     fens = load_fens(Path(args.fens), args.limit)
     digest = sha256(exe)
     engine = Engine(str(exe))
+    engine.last_read = []
     raw: list[str] = []
     options_sent: list[str] = []
+    id_name = ""
+    counts: list[int] = []
+    error: BaseException | None = None
     try:
         engine.send("uci")
         raw += engine.read_until("uciok", 30)
-        id_name = ""
         for line in raw:
             if line.startswith("id name "):
                 id_name = line[len("id name ") :]
@@ -176,7 +182,6 @@ def main() -> int:
         elif args.idea == "false":
             setoption("IdeaK5", "false")
 
-        counts: list[int] = []
         for index, fen in enumerate(fens):
             raw.append(f">> ucinewgame {index}")
             engine.send("ucinewgame")
@@ -199,24 +204,30 @@ def main() -> int:
             raw.extend(info)
             counts.append(nodes_of(info))
             print(f"{args.label} {index} {counts[-1]}", flush=True)
+    except BaseException as exc:
+        error = exc
+        raw.extend(engine.last_read)
+        raw.append(f"HARNESS FAIL {exc}")
     finally:
         engine.close()
-
-    (out / f"{args.label}.log").write_text("\n".join(raw) + "\n")
-    (out / f"{args.label}.nodes").write_text("\n".join(str(n) for n in counts) + "\n")
-    (out / f"{args.label}.meta").write_text(
-        f"exe {exe}\n"
-        f"sha256 {digest}\n"
-        f"id name {id_name}\n"
-        + "\n".join(options_sent)
-        + "\n"
-        f"fens {Path(args.fens).resolve()}\n"
-        f"positions {len(fens)}\n"
-        f"depth {args.depth}\n"
-        f"go_nodes {args.go_nodes}\n"
-        f"idea {args.idea}\n"
-        f"sum {sum(counts)}\n"
-    )
+        (out / f"{args.label}.log").write_text("\n".join(raw) + "\n")
+        (out / f"{args.label}.nodes").write_text("\n".join(str(n) for n in counts) + "\n")
+        (out / f"{args.label}.meta").write_text(
+            f"exe {exe}\n"
+            f"sha256 {digest}\n"
+            f"id name {id_name}\n"
+            + "\n".join(options_sent)
+            + "\n"
+            f"fens {Path(args.fens).resolve()}\n"
+            f"positions {len(fens)}\n"
+            f"depth {args.depth}\n"
+            f"go_nodes {args.go_nodes}\n"
+            f"idea {args.idea}\n"
+            f"sum {sum(counts)}\n"
+            f"error {error}\n"
+        )
+    if error is not None:
+        raise error
     print(f"SUM {args.label} {sum(counts)} positions {len(counts)}")
     return 0
 

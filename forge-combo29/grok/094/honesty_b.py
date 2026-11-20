@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Honesty check for exe B. One fresh process per line. No setoption."""
 
+import argparse
 import hashlib
 import subprocess
 import sys
 from pathlib import Path
-
-EXE = Path("/agent/repos/base/build/forge")
-OUT = Path("/agent/repos/dwqww/forge-combo29/grok/094")
 
 CHECKS = [
     ("bench11", ["bench 11", "quit"], 312866),
@@ -25,9 +23,9 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def run(commands: list[str]) -> str:
+def run(exe: Path, commands: list[str]) -> str:
     completed = subprocess.run(
-        [str(EXE)],
+        [str(exe)],
         input=("\n".join(commands) + "\n").encode(),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -50,36 +48,44 @@ def last_nodes(text: str) -> int | None:
 
 
 def main() -> int:
-    digest = sha256(EXE)
-    identity = run(["uci", "quit"])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exe", default="/agent/repos/base/build/forge")
+    parser.add_argument("--tag", default="B")
+    parser.add_argument("--out", default="/agent/repos/dwqww/forge-combo29/grok/094")
+    args = parser.parse_args()
+    exe = Path(args.exe)
+    out = Path(args.out)
+    tag = args.tag
+    digest = sha256(exe)
+    identity = run(exe, ["uci", "quit"])
     id_name = ""
     for line in identity.splitlines():
         if line.startswith("id name "):
             id_name = line[len("id name ") :]
             break
-    (OUT / "HONESTY_B_id.txt").write_text(identity)
+    (out / f"HONESTY_{tag}_id.txt").write_text(identity)
     pieces = []
     failed = False
     for name, commands, expected in CHECKS:
-        text = run(commands)
-        (OUT / f"HONESTY_B_{name}.txt").write_text(text)
+        text = run(exe, commands)
+        (out / f"HONESTY_{tag}_{name}.txt").write_text(text)
         meta = (
-            f"exe {EXE}\n"
+            f"exe {exe}\n"
             f"sha256 {digest}\n"
             f"id name {id_name}\n"
             f"options\n"
             f"commands {commands[0]}\n"
         )
-        (OUT / f"HONESTY_B_{name}.meta").write_text(meta)
+        (out / f"HONESTY_{tag}_{name}.meta").write_text(meta)
         got = last_nodes(text)
         status = "OK" if got == expected else "MISS"
         if got != expected:
             failed = True
         print(f"{name} {status} nodes {got} expected {expected}")
         pieces.append(f"===== {commands[0]} =====\n{text}")
-    (OUT / "HONESTY_B.txt").write_text("".join(pieces))
-    (OUT / "HONESTY_B.meta").write_text(
-        f"exe {EXE}\nsha256 {digest}\nid name {id_name}\noptions\n"
+    (out / f"HONESTY_{tag}.txt").write_text("".join(pieces))
+    (out / f"HONESTY_{tag}.meta").write_text(
+        f"exe {exe}\nsha256 {digest}\nid name {id_name}\noptions\n"
         "commands bench 11; bench 13; bench 16; go perft 5\n"
         "each command is a fresh process with no setoption\n"
     )
