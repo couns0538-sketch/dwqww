@@ -1,0 +1,63 @@
+HONESTY_B
+bench 11 -> nodes 312866 expect 312866 PASS
+bench 13 -> nodes 862329 expect 862329 PASS
+bench 16 -> nodes 3024920 expect 3024920 PASS
+go perft 5 -> nodes 4865609 expect 4865609 PASS
+ALL PASS
+HONESTY_P
+bench 11 -> nodes 312866 expect 312866 PASS
+bench 13 -> nodes 862329 expect 862329 PASS
+bench 16 -> nodes 3024920 expect 3024920 PASS
+go perft 5 -> nodes 4865609 expect 4865609 PASS
+ALL PASS
+COMPARE
+left=/agent/repos/dwqww/forge-combo29/grok/105/O_B.rows right=/agent/repos/dwqww/forge-combo29/grok/105/O_P_off.rows n=200 differ=0 of 200
+left=/agent/repos/dwqww/forge-combo29/grok/105/G_B.rows right=/agent/repos/dwqww/forge-combo29/grok/105/G_P_off.rows n=353 differ=0 of 353
+left=/agent/repos/dwqww/forge-combo29/grok/105/O_B.rows right=/agent/repos/dwqww/forge-combo29/grok/105/O_P_on.rows n=200 differ=200 of 200
+first_diffs 1 2 3 4 5 6 7 8
+O_P_on.rows n=200 sum=9295011
+UCI
+exe=/agent/repos/work/forge-combo29/build-rel/forge
+PASS option name IdeaS37 type check default false
+PASS option name IdeaS37_Margin type spin default 40 min 0 max 500
+ASAN
+clean_exe=/agent/repos/work/forge-combo29/build-asan/forge
+clean_nm_asan=35
+clean_sanitizer_lines=0
+bug_exe=/tmp/asan-bug/build-asan/forge
+bug_nm_asan=35
+bug_line===5735==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x557d5e2b17ee bp 0x7ffe99115470 sp 0x7ffe99115460
+MATCH
+Results of s37on vs s37off (20000 nodes, 1t, 16MB, openings_OG.epd):
+Elo: -6.91 +/- 10.66, nElo: -13.29 +/- 20.48
+LOS: 10.17 %, DrawRatio: 62.03 %, PairsRatio: 0.89
+Games: 1106, Wins: 337, Losses: 359, Draws: 410, Points: 542.0 (49.01 %)
+Ptnml(0-2): [20, 91, 343, 89, 10], WL/DD Ratio: 1.98
+--------------------------------------------------
+Finished match
+PARTNER
+bench 11 -> nodes 312866 expect 312866 PASS
+bench 13 -> nodes 862329 expect 862329 PASS
+bench 16 -> nodes 3024920 expect 3024920 PASS
+go perft 5 -> nodes 4865609 expect 4865609 PASS
+ALL PASS
+left=/agent/repos/dwqww/forge-combo29/grok/105/O_B.rows right=/agent/repos/dwqww/forge-combo29/grok/105/partner005_off.rows n=200 differ=0 of 200
+left=/agent/repos/dwqww/forge-combo29/grok/105/partner005_on_rows.txt right=/agent/repos/dwqww/forge-combo29/grok/105/partner005_on.rows n=200 differ=0 of 200
+Results of s37on vs s37off (20000 nodes, 1t, 16MB, R.fens):
+Elo: -2.90 +/- 12.28, nElo: -6.56 +/- 27.80
+LOS: 32.19 %, DrawRatio: 77.00 %, PairsRatio: 0.92
+Games: 600, Wins: 256, Losses: 261, Draws: 83, Points: 297.5 (49.58 %)
+Ptnml(0-2): [9, 27, 231, 26, 7], WL/DD Ratio: 14.40
+--------------------------------------------------
+Finished match
+APPLY
+my_patch_apply_check=ok
+exit=0
+STEP_TABLE
+1 seat | done | SEAT.txt | seat 105
+2 baseline | done | HONESTY_B.txt O_B.rows G_B.rows | honesty pass O 9500069 G 18466239
+3 patch | done | idea.patch.txt idea_apply_check.txt | apply check ok
+3 proofs | done | compare_O_off.txt compare_G_off.txt compare_O_on.txt | off 0 and 0; on sum 9295011
+3 match | done | match_og_elo.txt | see MATCH block
+4 partner | done | partner005_cmp_off.txt partner005_cmp_on.txt partner005_match_elo.txt | see PARTNER block
+5 report | done | REPORT.md RESULT.txt | this report
