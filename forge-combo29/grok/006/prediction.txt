@@ -1,0 +1,16 @@
+IdeaS34 on, S14, Threads 1, Hash 16, O depth 12 node sum.
+Point: 13200000
+Wrong if the sum is below 9700000 or above 24000000.
+The plain engine's O depth-12 sum is 9500069. Easing the reduction by two plies
+while a ply has seen no beta cutoff, and by one ply until four weighted cutoffs,
+searches many moves deeper, so the sum should rise. A sum still at the plain
+figure would mean the switch never changed a reduction. A sum above 24 million
+would mean the ease escaped the existing depth clamp and exploded the tree.
+
+Test match, IdeaS34 true against IdeaS34 false, both S14, Threads 1, Hash 16,
+20000 nodes a move, openings O and G, both colours, 1106 games.
+Elo of true versus false: -8
+Wrong if the Elo point is above +30 or below -70.
+At a fixed node budget, two extra plies on early moves spends the budget before
+the node has evidence, so a small loss is the expected first look. A gain past
++30 or a loss past -70 would mean that guess was wrong.
