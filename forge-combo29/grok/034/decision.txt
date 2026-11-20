@@ -1,0 +1,22 @@
+Idea 34, IdeaA3: the check extension only for checking moves whose static exchange is not losing.
+
+EXISTS: forge-combo29/src/search.cpp:1955
+The plain engine already does this. In search(), a non-root check is extended by one ply only when
+depth >= CheckExtensionDepth (already a spin, default 2) and either the move was returned from the
+GoodCaptures stage or see_ge(move, 0) is true. GoodCaptures returns a move only after see_ge(move, 0)
+(move_score_threshold is 0). last_move_see_nonnegative() is stage_ == GoodCaptures. So the extension
+is already refused for a checking move whose SEE is losing. Checked in the base tree, not from memory.
+
+The SEE floor 0 is a fixed number and is not an option. CheckExtensionDepth already is.
+
+Decision: keep today's gate when IdeaA3 is false (the original expression, literal 0). When IdeaA3
+is true, use IdeaA3_SeeFloor instead of 0. Default of IdeaA3_SeeFloor is 0, today's number, so the
+switch at its default does not change the search. A positive floor no longer trusts the GoodCaptures
+shortcut, because that shortcut only proves SEE >= 0. A non-positive floor still trusts it, because
+SEE >= 0 implies SEE >= floor.
+
+Option IdeaA3: check, default false.
+Option IdeaA3_SeeFloor: spin, default 0, min -900, max 900 (SEE units: pawn 100, knight 300, bishop 300, rook 500, queen 900).
+
+Why this and not a new extension rule: the brief says that when the engine already does the idea, the
+fixed numbers become options at today's values, so nothing changes.
