@@ -1,0 +1,83 @@
+UTC: Fri Nov 20 10:04:11 AM UTC 2026
+=== JOB 35 PART B — Nine End-Reason Positions (B1..B9), sgstate Check, and Control CE ===
+python-chess version: 1.11.2
+v2 exe:  /tmp/carbon2_job35/bld_sp_sgr15v/forge
+CE exe:  /tmp/carbon2_job35/bld_ce_sgr15d/forge (exe_sha256=c37a760dda12e14e7a0c15cc728892c56a36caf254febceb1e98f2d703b23461)
+CE patch: forge-combo29/carbon2/job35/control_CE_b_before_a.patch.txt (sha256=0f0ef9574d355b319a2bb600229bb57bbb3010192fd55f9218405ff2e5d91542)
+B9 plain-r15d reference search (go softnodes 2000): bestmove=a1a8, score='mate 1', nodes=1152
+
+--- 1. v2 Build: Nine Positions B1..B9 ---
+  B1 [White mated]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result -1 reason mate plies 4 run 0 searches 0 nodes 0 moves
+    expected: sgend result -1 reason mate plies 4 run 0 searches 0 nodes 0 moves
+  B2 [Black stalemated]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 0 reason stalemate plies 19 run 0 searches 0 nodes 0 moves
+    expected: sgend result 0 reason stalemate plies 19 run 0 searches 0 nodes 0 moves
+  B3 [third occurrence]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 0 reason rule plies 8 run 0 searches 0 nodes 0 moves
+    expected: sgend result 0 reason rule plies 8 run 0 searches 0 nodes 0 moves
+  B4 [no rule, maxply 8]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 0 reason plylimit plies 8 run 0 searches 0 nodes 0 moves
+    expected: sgend result 0 reason plylimit plies 8 run 0 searches 0 nodes 0 moves
+  B5 [insufficient material]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+    expected: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+  B6 [halfmove clock 100]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+    expected: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+  B7 [Black mated AND clock 100: (a) comes first]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 1 reason mate plies 0 run 0 searches 0 nodes 0 moves
+    expected: sgend result 1 reason mate plies 0 run 0 searches 0 nodes 0 moves
+  B8 [stalemate AND insufficient material: (a) comes first]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 0 reason stalemate plies 0 run 0 searches 0 nodes 0 moves
+    expected: sgend result 0 reason stalemate plies 0 run 0 searches 0 nodes 0 moves
+  B9 [mate in 1: a1a8]: EQUAL (sg_lines: 0 == 0)
+    printed : sgend result 1 reason matescore plies 0 run 0 searches 1 nodes 1152 moves
+    expected: sgend result 1 reason matescore plies 0 run 0 searches 1 nodes 1152 moves
+v2 B1..B9 check: PASS (equal_positions: 9 == 9)
+
+--- 2. sgstate on B1..B9 vs python-chess 1.11.2 ---
+  B1 [White mated]: EQUAL | sgstate legal 0 check 1 material 0 clock 1 rep3 0 fen rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3
+  B2 [Black stalemated]: EQUAL | sgstate legal 0 check 0 material 0 clock 2 rep3 0 fen 5bnr/4p1pq/4Qpkr/7p/7P/4P3/PPPP1PP1/RNB1KBNR b KQ - 2 10
+  B3 [third occurrence]: EQUAL | sgstate legal 1 check 0 material 0 clock 8 rep3 1 fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5
+  B4 [no rule, maxply 8]: EQUAL | sgstate legal 1 check 0 material 0 clock 1 rep3 0 fen r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 5
+  B5 [insufficient material]: EQUAL | sgstate legal 1 check 0 material 1 clock 0 rep3 0 fen 8/8/8/4k3/8/8/8/4K3 w - - 0 1
+  B6 [halfmove clock 100]: EQUAL | sgstate legal 1 check 0 material 0 clock 100 rep3 0 fen 4k3/8/8/8/8/8/4P3/R3K3 w Q - 100 80
+  B7 [Black mated AND clock 100: (a) comes first]: EQUAL | sgstate legal 0 check 1 material 0 clock 100 rep3 0 fen R5k1/5ppp/8/8/8/8/8/6K1 b - - 100 80
+  B8 [stalemate AND insufficient material: (a) comes first]: EQUAL | sgstate legal 0 check 0 material 1 clock 0 rep3 0 fen k7/2K5/8/2B5/8/8/8/8 b - - 0 1
+  B9 [mate in 1: a1a8]: EQUAL | sgstate legal 1 check 0 material 0 clock 0 rep3 0 fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1
+sgstate B1..B9 differences vs python-chess: PASS (0 == 0)
+
+--- 3. CONTROL CE ((b) tested before (a)): All Nine Lines Side-by-Side ---
+  B1 [UNCHANGED]:
+    v2: sgend result -1 reason mate plies 4 run 0 searches 0 nodes 0 moves
+    CE: sgend result -1 reason mate plies 4 run 0 searches 0 nodes 0 moves
+  B2 [UNCHANGED]:
+    v2: sgend result 0 reason stalemate plies 19 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason stalemate plies 19 run 0 searches 0 nodes 0 moves
+  B3 [UNCHANGED]:
+    v2: sgend result 0 reason rule plies 8 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason rule plies 8 run 0 searches 0 nodes 0 moves
+  B4 [UNCHANGED]:
+    v2: sgend result 0 reason plylimit plies 8 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason plylimit plies 8 run 0 searches 0 nodes 0 moves
+  B5 [UNCHANGED]:
+    v2: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+  B6 [UNCHANGED]:
+    v2: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+  B7 [CHANGED]:
+    v2: sgend result 1 reason mate plies 0 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+  B8 [CHANGED]:
+    v2: sgend result 0 reason stalemate plies 0 run 0 searches 0 nodes 0 moves
+    CE: sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves
+  B9 [UNCHANGED]:
+    v2: sgend result 1 reason matescore plies 0 run 0 searches 1 nodes 1152 moves
+    CE: sgend result 1 reason matescore plies 0 run 0 searches 1 nodes 1152 moves
+
+  CONTROL CE changed set : PASS (['B7', 'B8'] == ['B7', 'B8'])
+  CONTROL CE B7 line     : PASS ('sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves' == 'sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves')
+  CONTROL CE B8 line     : PASS ('sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves' == 'sgend result 0 reason rule plies 0 run 0 searches 0 nodes 0 moves')
+PART B OVERALL: PASS (1 == 1)
