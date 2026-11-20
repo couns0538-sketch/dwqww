@@ -1,0 +1,12 @@
+seat 086 idea 36 IdeaA5
+Written before any measurement of exe P.
+
+O depth 12, S14, Threads 1, Hash 16, IdeaA5 true, IdeaA5_Divisor 2:
+predicted sum 9650000
+wrong if the sum is below 8700000 or above 10500000
+
+Test match, IdeaA5 true versus IdeaA5 false, both S14, Threads 1, Hash 16, 20000 nodes, openings O and G, both colours (1106 games):
+predicted Elo of the true side +6
+wrong if that Elo is below -35 or above +50
+
+Why: reverse futility still cuts off, but the stored fail-high is the midpoint of eval and beta instead of eval. A null window still fails high, so the tree changes only where a later node reads that stored score. I expect a modest rise in the O node sum and a small Elo gain. The range is wide because the sign of a transposition-table score change is not fixed.
