@@ -1,0 +1,12 @@
+idea IdeaK5
+option IdeaK5 default false
+spin IdeaK5_Divisor default 48 min 1 max 1024
+what: when IdeaK5 is true, the quiet-move futility margin gains quiet_history/IdeaK5_Divisor centipawns. quiet_history is the same sum the search already uses (main history plus continuation history). Positive history makes the move harder to prune; negative history makes it easier. The existing low-depth gate (lmr depth <= FutilityDepth) is unchanged. The check false leaves that sum out, so the comparison is the one the engine uses today.
+
+O_depth12_sum_switch_on 9100000
+O_depth12_sum_proved_wrong_if outside 7000000..11500000 or equal to the off sum 9500069
+
+test_match_elo_on_minus_off 6
+test_match_elo_proved_wrong_if point estimate outside -40..40
+test_match_games 1106
+test_match_nodes 20000
