@@ -1,0 +1,30 @@
+=== JOB 37 PREDICTION (committed ALONE before Part A's first checking run, never edited) ===
+
+(1) Part A: every clean checking build gives the plain build's texts with no report:
+    yes
+    Basis: v3 adds stack-buffered Board::sg_fen(), string appends in run_selfgame, and pure
+    string_view / std::from_chars parsing in parse_selfgame_config on top of v1/v2 (v1 passed
+    ASan+UBSan+_GLIBCXX_ASSERTIONS with 0 reports in Job 33 Part C), and run_selfgame runs
+    synchronously on the UCI command-reading thread.
+
+(2) Both planted faults of Part A are reported by the sanitizer named for them:
+    yes
+    Basis: CP-A reads 1 byte past the end of an exact-length `new char[]` copy of the line on
+    S3's missing-value path (AddressSanitizer `heap-buffer-overflow`); CP-U adds the game's
+    positive ply count to `INT_MAX` in a signed `int` stored to a `volatile int` before writing
+    `sgend` on Set A attempt 1 (UndefinedBehaviorSanitizer `signed-integer-overflow`).
+
+(3) CO1 (k extra calls of see_ge, k as you will set it): B1's delta in % of BASE's engine CPU a game:
+    [10.2%, 16.5%]  (selecting the first k in the fixed ladder {4, 8, 12, 16, 20} whose delta >= 10%, expected k = 8 or 12)
+    Basis: Board::see_ge is ~1.8%–2.4% of BASE engine CPU on net768, and each back-to-back
+    L1-hot extra call costs ~1.1%–1.9% of BASE engine CPU, so k = 4 is ~4.5%–7.6% (< 10%) and
+    the first ladder step >= 10% (k = 8 or k = 12) lands in [10.2%, 16.5%].
+
+(4) Part B's verdict for CO1:
+    TRUSTED
+    Basis: Unlike Job 34's 2.29% serial volatile multiply loop, CO1 measures >= 10% of BASE
+    engine CPU made of ordinary calls to Board::see_ge in an `-O3 -g -fno-omit-frame-pointer`
+    build, counted by inclusive samples (`self + children`) across 60 games (~30,000+ delta
+    samples), keeping `|B2 delta - B1 delta| <= 25% of B1 delta + h`.
+
+UTC written: Fri Nov 20 11:13:57 AM UTC 2026
