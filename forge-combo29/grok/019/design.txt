@@ -1,0 +1,10 @@
+IdeaS20 is off by default. The false branch is the previous probcut block, unchanged.
+On, still only off the principal variation and not in check (the block already requires both).
+Forge's margin stays ProbcutMargin. The raised bound stays beta + ProbcutMargin - 50*improving.
+Surplus: static eval >= beta + ProbcutMargin. Witness is one tactical move with SEE >= IdeaS20_SeeFloor (default 0, non-losing).
+Gap: static eval < the raised bound. Witness only if SEE covers the whole gap (raised bound - static eval).
+The band between those two exists only when improving; neither regime runs there.
+Quiescence may reject a candidate. A cutoff is returned only from a real search.
+Witness depth is depth - IdeaS20_Reduction (default 4), then raised to IdeaS20_MinDepth (default 2), and only if that is still shallower than the node.
+Candidates are tried in the existing quiescence order until one real search meets the bound.
+The hash store stays depth-3, the same tag as today's cutoff.

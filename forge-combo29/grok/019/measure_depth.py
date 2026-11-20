@@ -48,7 +48,15 @@ def main() -> None:
     positions = Path(sys.argv[2])
     depth = int(sys.argv[3])
     out_prefix = Path(sys.argv[4])
-    limit = int(sys.argv[5]) if len(sys.argv) > 5 else 0
+    limit = int(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5] not in ("", "-") else 0
+    extra = []
+    if len(sys.argv) > 6 and sys.argv[6] not in ("", "-"):
+        for raw in Path(sys.argv[6]).read_text().splitlines():
+            raw = raw.strip()
+            if not raw or raw.startswith("#"):
+                continue
+            name, value = raw.split(None, 1)
+            extra.append((name, value))
     fens = []
     for raw in positions.read_text().splitlines():
         fen = fen_of(raw)
@@ -111,7 +119,7 @@ def main() -> None:
     for line in read_until("uci"):
         if line.startswith("id name "):
             id_name = line
-    for name, value in S14:
+    for name, value in S14 + extra:
         sent = f"setoption name {name} value {value}"
         options_sent.append(sent)
         send(sent)

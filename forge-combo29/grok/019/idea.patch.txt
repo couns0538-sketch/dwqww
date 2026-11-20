@@ -1,0 +1,137 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..755598795 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,10 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS20;                  // two-regime probcut witness (false = today's probcut)
++extern int IdeaS20_MinDepth;          // witness search is at least this many plies (more than one)
++extern int IdeaS20_Reduction;         // plies taken off the parent depth before the floor
++extern int IdeaS20_SeeFloor;          // surplus regime: SEE must reach this (0 = non-losing)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..0c9a2e5f8 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,10 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS20 = false;
++int IdeaS20_MinDepth = 2;
++int IdeaS20_Reduction = 4;
++int IdeaS20_SeeFloor = 0;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +149,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS20_MinDepth", &IdeaS20_MinDepth, 2, 8},
++        {"IdeaS20_Reduction", &IdeaS20_Reduction, 1, 8},
++        {"IdeaS20_SeeFloor", &IdeaS20_SeeFloor, -200, 200},
+     };
+     return table;
+ }
+@@ -1743,9 +1750,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
++        // IdeaS20 off keeps this block. IdeaS20 on splits the witness:
++        // surplus (static eval already clears beta by the full margin) confirms
++        // one non-losing tactical move; gap (static eval short of the raised
++        // bound) requires the exchange to cover that whole gap. Quiescence may
++        // reject either try. Only a real search of more than one ply may cut.
++        // The enclosing guard already stays off PV nodes and skips checks.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++            if (!tune::IdeaS20) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+@@ -1777,6 +1791,52 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     return value;
+                 }
+             }
++            } else {
++            const bool surplus = ss->static_eval >= beta + tune::ProbcutMargin;
++            const bool gap = ss->static_eval < probcut_beta;
++            int witness = depth - tune::IdeaS20_Reduction;
++            if (witness < tune::IdeaS20_MinDepth) witness = tune::IdeaS20_MinDepth;
++            if ((surplus || gap) && witness >= 2 && witness < depth) {
++            MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
++            Move move;
++            while (!(move = picker.next(false)).is_none()) {
++                if (move == excluded || !board.is_legal(move)) continue;
++                const int see_need = surplus ? tune::IdeaS20_SeeFloor : probcut_beta - ss->static_eval;
++                if (!board.see_ge(move, see_need)) continue;
++                ss->current_move = move;
++                ss->moved_piece = board.moved_piece(move);
++                ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
++                (ss + 1)->ply = ply + 1;
++                (ss + 1)->arrival_index = 0;
++                record_move(ss, board, move);
++                Undo undo;
++                (void)board.make_move(move, undo);
++#if FORGE_SEARCH_SPEED2
++                shared_.tt.prefetch(board.key());
++#endif
++                const int qs_value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
++                if (aborted_) {
++                    board.unmake_move(move, undo);
++                    return 0;
++                }
++                if (qs_value < probcut_beta) {
++                    board.unmake_move(move, undo);
++                    continue;
++                }
++                const int value = -search(board, ss + 1, witness, -probcut_beta, -probcut_beta + 1, !cut_node);
++                board.unmake_move(move, undo);
++                if (aborted_) return 0;
++                if (value >= probcut_beta) {
++#if FORGE_SPD_TT_NOTLS
++                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++#else
++                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++#endif
++                    return value;
++                }
++            }
++            }
++            }
+         }
+     }
+ 
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..c4a93ce5e 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS20 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,12 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS20") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::IdeaS20 = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";
