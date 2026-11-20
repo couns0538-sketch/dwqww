@@ -54,9 +54,10 @@ def nodes_of(lines: list[str]) -> int:
 
 
 def main() -> None:
-    if len(sys.argv) != 6:
-        raise SystemExit("usage: depth_search.py EXE FENS DEPTH OUT_PREFIX SWITCH")
-    exe, fens, depth_s, out_prefix, switch = sys.argv[1:]
+    if len(sys.argv) not in (6, 7):
+        raise SystemExit("usage: depth_search.py EXE FENS DEPTH OUT_PREFIX SWITCH [OPTION]")
+    exe, fens, depth_s, out_prefix, switch = sys.argv[1:6]
+    option_name = sys.argv[6] if len(sys.argv) == 7 else "IdeaS6"
     depth = int(depth_s)
     if switch not in ("true", "false", "omit"):
         raise SystemExit("SWITCH must be true, false, or omit")
@@ -109,7 +110,7 @@ def main() -> None:
         *S14,
     ]
     if switch != "omit":
-        options.append(f"setoption name IdeaS6 value {switch}")
+        options.append(f"setoption name {option_name} value {switch}")
     for option in options:
         command_then_ready(option)
 
