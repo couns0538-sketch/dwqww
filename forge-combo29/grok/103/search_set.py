@@ -104,8 +104,10 @@ class Engine:
 
     def close(self):
         try:
-            self.send("quit")
-        except SystemExit:
+            if self.proc.poll() is None and self.proc.stdin is not None:
+                self.proc.stdin.write("quit\n")
+                self.proc.stdin.flush()
+        except (BrokenPipeError, OSError, SystemExit):
             pass
         try:
             self.proc.wait(timeout=10)

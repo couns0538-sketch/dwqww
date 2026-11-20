@@ -77,11 +77,12 @@ def parse_nodes(tag: str, text: str):
     return None
 
 def main() -> int:
-    if len(sys.argv) != 3:
-        print("usage: honesty_b.py EXE OUTDIR", file=sys.stderr)
+    if len(sys.argv) not in (3, 4):
+        print("usage: honesty_b.py EXE OUTDIR [label]", file=sys.stderr)
         return 2
     exe = Path(sys.argv[1]).resolve()
     out_dir = Path(sys.argv[2]).resolve()
+    label = sys.argv[3] if len(sys.argv) == 4 else "b"
     out_dir.mkdir(parents=True, exist_ok=True)
     digest = sha256_file(exe)
     summary = []
@@ -89,8 +90,8 @@ def main() -> int:
     for tag, (command, expect) in EXPECTED.items():
         raw_lines, id_name = run_case(exe, command)
         text = "".join(raw_lines)
-        raw_path = out_dir / f"honesty_b_{tag}.txt"
-        meta_path = out_dir / f"honesty_b_{tag}.meta"
+        raw_path = out_dir / f"honesty_{label}_{tag}.txt"
+        meta_path = out_dir / f"honesty_{label}_{tag}.meta"
         raw_path.write_text(text)
         meta = (
             f"exe={exe}\n"
@@ -106,10 +107,11 @@ def main() -> int:
             failed = True
         summary.append(f"{command} nodes {got} expected {expect} {'OK' if ok else 'FAIL'}")
         print(summary[-1], flush=True)
-    report = out_dir / "HONESTY_B.txt"
+    report_name = "HONESTY_B.txt" if label == "b" else f"HONESTY_{label}.txt"
+    report = out_dir / report_name
     report.write_text(
         f"exe={exe}\nsha256={digest}\n" + "\n".join(summary) + "\n"
-        + ("HONESTY_B PASS\n" if not failed else "HONESTY_B FAIL\n")
+        + (f"HONESTY_{label} PASS\n" if not failed else f"HONESTY_{label} FAIL\n")
     )
     print(report.read_text(), end="")
     return 1 if failed else 0
