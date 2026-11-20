@@ -1,0 +1,13 @@
+seat 092 idea 42 id K3
+EXISTS: forge-combo29/src/search.cpp:1611 (option HindsightDepth, uci.cpp:224, default false).
+The on/off already exists. The fixed numbers do not: mover-loss threshold SeePieceValue[Pawn] = 100, and withheld-plies threshold 3. Those become spins HindsightDepth_Loss default 100 and HindsightDepth_Withheld default 3, read only while HindsightDepth is true, so the default path is today's path and the true path with default spins is today's true path.
+
+Prediction is exe P, S14, HindsightDepth true, both spins left at those defaults, sum of nodes over O at depth 12.
+point 8800000
+wrong if the sum is below 7200000 or above 10800000
+Why: the off sum is 9500069. A pawn of eval loss searches one ply less and is the common arm (any reduction). One ply more needs a reduction of 3 or more and no eval loss, which is rarer, and a hash hit at the proposed depth cancels the change. Net a modest drop, not a collapse.
+
+Prediction of the test match, exe P with the switch true against exe P with the switch false, S14, 20000 nodes, openings O and G both colours (1106 games).
+elo point +6
+wrong if the point estimate is below -35 or above +40
+Why: the rule spends less depth on a move whose static eval fell and gives a ply back only after a harsh reduction that did not lose eval. That is a small search-shape change. The option ships off, so a large gain is unlikely.
