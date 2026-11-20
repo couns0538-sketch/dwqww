@@ -1,0 +1,73 @@
+HONESTY_B
+honesty_b_bench11 312866 expected 312866 OK
+honesty_b_bench13 862329 expected 862329 OK
+honesty_b_bench16 3024920 expected 3024920 OK
+honesty_b_perft5 4865609 expected 4865609 OK
+HONESTY_P
+honesty_p_bench11 312866 expected 312866 OK
+honesty_p_bench13 862329 expected 862329 OK
+honesty_p_bench16 3024920 expected 3024920 OK
+honesty_p_perft5 4865609 expected 4865609 OK
+BASE_SUMS
+B_O positions 200 sum 9500069 first3 41311 24872 28574
+B_G positions 353 sum 18466239 first3 37203 70845 144383
+PROOFS
+off_O differ 0 of 200
+off_G differ 0 of 353
+on_O differ 200 of 200 sum 9671966
+asan_nm_count 35
+asan_G100_stderr_bytes 0
+asan_G100_positions 100
+probe_has_asan_error True
+MATCH
+Elo: -8.48 +/- 10.67, nElo: -16.29 +/- 20.48
+Games: 1106, Wins: 324, Losses: 351, Draws: 431, Points: 539.5 (48.78 %)
+PARTNER
+command: git -C /agent/repos/partner apply --check /agent/repos/dwqww/forge-combo29/grok/072/partner_idea.patch.txt
+APPLY_CHECK_OK
+partner_bench11 nodes 312866 expected 312866 OK
+partner_bench13 nodes 862329 expected 862329 OK
+partner_bench16 nodes 3024920 expected 3024920 OK
+partner_perft5 nodes 4865609 expected 4865609 OK
+PARTNER_HONESTY PASS
+===== honesty =====
+partner_bench11 nodes 312866 expected 312866 OK
+partner_bench13 nodes 862329 expected 862329 OK
+partner_bench16 nodes 3024920 expected 3024920 OK
+partner_perft5 nodes 4865609 expected 4865609 OK
+PARTNER_HONESTY PASS
+===== off vs B O =====
+left forge-combo29/grok/072/B_O_d12.raw.txt positions 200
+right forge-combo29/grok/072/partner_off_O_d12.raw.txt positions 200
+compared 200
+differ 0 of 200
+first_diffs 
+===== on vs B O =====
+left forge-combo29/grok/072/B_O_d12.raw.txt positions 200
+right forge-combo29/grok/072/partner_on_O_d12.raw.txt positions 200
+compared 200
+differ 200 of 200
+first_diffs 0:41311!=18977 1:24872!=24589 2:28574!=44765 3:27838!=33423 4:18020!=20186 5:43043!=30752 6:56414!=76024 7:32317!=40753
+===== on vs partner node list =====
+mine 200 sum 9605430
+theirs 200 sum 9605430
+compared 200
+differ 0 of 200
+equal True
+first_diffs
+PARTNER_MATCH
+Elo: 5.21 +/- 9.41, nElo: 15.40 +/- 27.80
+Games: 600, Wins: 274, Losses: 265, Draws: 61, Points: 304.5 (50.75 %)
+STEP_TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 072 idea 22
+2 honesty B | done | HONESTY_B.txt | PASS 312866 862329 3024920 4865609
+2 O and G sums | done | B_O_d12.raw.txt B_G_d12.raw.txt | O 9500069 G 18466239
+3 prediction | done | prediction.txt | committed before exe P searches
+3 patch applies | done | apply_check.txt idea.patch.txt | APPLY_CHECK_OK
+3 proof off | done | P_off_O_d12.raw.txt P_off_G_d12.raw.txt | O differ 0 G differ 0
+3 proof on | done | P_on_O_d12.raw.txt | differ 200 of 200 sum 9671966
+3 uci options | done | uci_p.txt | IdeaS27 false, IdeaS27_DeadZone 64
+3 sanitizer | done | asan_G100_d10.err.txt asan_probe.err.txt | nm 35 stderr 0 probe yes
+3 match | done | match_og.log match_og.pgn | see MATCH lines above
+4 partner | done | partner_proofs.txt partner_match_r.log | CONFIRMS off 0 on equal 600 games
