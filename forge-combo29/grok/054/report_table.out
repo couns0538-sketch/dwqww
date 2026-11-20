@@ -1,0 +1,121 @@
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt | seat 054 idea 4
+STEP 2 honesty B | done | HONESTY_B.txt | bench 11/13/16 and perft 5 match
+STEP 2 O and G | done | B_O_d12.meta B_G_d12.meta | O 9500069 G 18466239
+3a read | done | decision.txt | EXISTS search.cpp:2010
+3b prediction | done | prediction.txt | 10200000 and Elo +5, committed before measuring
+3c patch | done | idea.patch.txt apply_check.txt | git apply --check ok
+3d (1) honesty P | done | HONESTY_P.txt | same four node counts, no setoption
+3d (2) switch off | done | cmp_off_O.txt cmp_off_G.txt | 0 of 200 and 0 of 353
+3d (3) switch on | done | cmp_on_O.txt | 200 of 200 differ, sum 9722581
+3d (4) uci | done | HONESTY_P_uci.txt | IdeaS35_Index 7, IdeaS35_Replies 4
+3d (5) sanitizer | done | asan_G100.meta asan_scratch_lines.txt | nm __asan_ 35, clean, trap reports
+3e match | done | match_result.txt match_on_off.pgn | 1106 games, Elo -0.00 +/- 10.81
+STEP 4 partner 104 | done | partner104_cmp_off_O.txt partner104_cmp_on_O.txt partner104_match_result.txt | CONFIRMS
+
+--- HONESTY_B ---
+label HONESTY_B
+exe /agent/repos/base/forge-combo29/build/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+bench11 nodes 312866 expected 312866 exit 0 OK
+bench13 nodes 862329 expected 862329 exit 0 OK
+bench16 nodes 3024920 expected 3024920 exit 0 OK
+perft5 nodes 4865609 expected 4865609 exit 0 OK
+id name Chess Engine Forge 6.4.24 candidate
+uci_exit 0
+options sent: none
+setoption before command: no
+--- HONESTY_P ---
+label HONESTY_P
+exe /agent/repos/work/forge-combo29/build/forge
+sha256 325a36090e18281429f0a9034d96d5176e35fc06321a73ef770ca0f6d8a6df27
+bench11 nodes 312866 expected 312866 exit 0 OK
+bench13 nodes 862329 expected 862329 exit 0 OK
+bench16 nodes 3024920 expected 3024920 exit 0 OK
+perft5 nodes 4865609 expected 4865609 exit 0 OK
+id name Chess Engine Forge 6.4.24 candidate
+uci_exit 0
+options sent: none
+setoption before command: no
+--- cmp_off_O ---
+positions 200
+left_sum 9500069
+right_sum 9500069
+differ 0 of 200
+--- cmp_off_G ---
+positions 353
+left_sum 18466239
+right_sum 18466239
+differ 0 of 353
+--- cmp_on_O ---
+positions 200
+left_sum 9500069
+right_sum 9722581
+differ 200 of 200
+first_diffs 1 2 3 4 5 6 7 8 9 10 11 12
+--- asan clean ---
+file forge-combo29/grok/054/asan_G100.err
+stderr_lines 0
+sanitizer_lines 0
+--- asan trap ---
+file forge-combo29/grok/054/asan_scratch.err
+stderr_lines 55
+sanitizer_lines 3
+/tmp/scratch-s35/forge-combo29/src/uci.cpp:46:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+==7485==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x557d07b03c37 bp 0x7ffeda562ef0 sp 0x7ffeda562ee0
+SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/scratch-s35/forge-combo29/src/uci.cpp:46 in apply_position
+--- match ---
+Results of on vs off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -0.00 +/- 10.81, nElo: 0.00 +/- 20.48
+LOS: 50.00 %, DrawRatio: 62.21 %, PairsRatio: 0.97
+Games: 1106, Wins: 340, Losses: 340, Draws: 426, Points: 553.0 (50.00 %)
+Ptnml(0-2): [15, 91, 344, 85, 18], WL/DD Ratio: 1.75
+--------------------------------------------------
+Finished match
+Total Time: 00:06:53 (hours:minutes:seconds)
+--- partner off vs B ---
+positions 200
+left_sum 9500069
+right_sum 9500069
+differ 0 of 200
+--- partner on vs their rows ---
+positions 200
+left_sum 9722581
+right_sum 9722581
+differ 0 of 200
+--- partner on vs B ---
+positions 200
+left_sum 9500069
+right_sum 9722581
+differ 200 of 200
+first_diffs 1 2 3 4 5 6 7 8 9 10 11 12
+--- partner honesty ---
+label partner104_HONESTY
+exe /agent/repos/partner104/forge-combo29/build/forge
+sha256 73b435d6de6b07d51e77fc9039f15e90e72f234283fb2b61312a5361d498e3c7
+bench11 nodes 312866 expected 312866 exit 0 OK
+bench13 nodes 862329 expected 862329 exit 0 OK
+bench16 nodes 3024920 expected 3024920 exit 0 OK
+perft5 nodes 4865609 expected 4865609 exit 0 OK
+id name Chess Engine Forge 6.4.24 candidate
+uci_exit 0
+options sent: none
+setoption before command: no
+--- partner match ---
+Results of on vs off (20000 nodes, 1t, 16MB, R.fens):
+Elo: 2.90 +/- 9.42, nElo: 8.54 +/- 27.80
+LOS: 72.65 %, DrawRatio: 83.00 %, PairsRatio: 1.22
+Games: 600, Wins: 270, Losses: 265, Draws: 65, Points: 302.5 (50.42 %)
+Ptnml(0-2): [3, 20, 249, 25, 3], WL/DD Ratio: 23.90
+--------------------------------------------------
+Finished match
+Total Time: 00:02:59 (hours:minutes:seconds)
+--- apply ---
+idea.patch.txt git apply --check: ok
+partner104 idea.patch.txt git apply --check: ok
+--- stamps ---
+2026-11-20T07:54:16Z STEP 1
+2026-11-20T08:02:05Z STEP 2
+2026-11-20T08:17:47Z STEP 3
+2026-11-20T08:26:10Z STEP 4
+2026-11-20T08:26:10Z STEP 5
