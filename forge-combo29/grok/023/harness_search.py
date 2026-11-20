@@ -96,6 +96,16 @@ class Engine:
                 return got
         raise SystemExit(f"timeout waiting for {marker}")
 
+    def drain(self) -> None:
+        while True:
+            try:
+                line = self.lines.get_nowait()
+            except queue.Empty:
+                return
+            if line is None:
+                return
+            self.log.append(line)
+
     def close(self) -> None:
         if self.proc.poll() is None:
             try:
@@ -106,6 +116,8 @@ class Engine:
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+        self.reader.join(timeout=2)
+        self.drain()
 
 
 def option_lines(switch: str) -> list[str]:
@@ -171,9 +183,9 @@ def main() -> int:
             chunk = engine.read_until("bestmove", 180)
             rows.append(nodes_of(chunk))
     finally:
+        engine.close()
         raw_path = args.out + ".txt"
         open(raw_path, "w", encoding="utf-8").write("".join(engine.log))
-        engine.close()
     open(args.out + ".rows", "w", encoding="utf-8").write(
         "".join(f"{n}\n" for n in rows)
     )

@@ -1,0 +1,189 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..d9d424c62 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -303,6 +303,9 @@ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper c
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
++extern bool IdeaS29;                 // capture-safety history inside a fixed SEE gate (false = off)
++extern int IdeaS29_Threshold;        // fixed SEE gate for that history; the score does not move it
++extern int IdeaS29_Scale;            // weight of the safety history added to a passing capture
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+@@ -384,6 +387,9 @@ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int1
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
++// [moved piece][to][cheaper enemy attacker of the landing square].
++// Class 0 is "no material attacker". Classes 1..5 are pawn through queen.
++using CaptureSafetyHistory = std::array<std::array<std::array<std::int16_t, 6>, 64>, 13>;
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+@@ -472,6 +478,7 @@ private:
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
++    std::unique_ptr<CaptureSafetyHistory> capture_safety_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+@@ -552,6 +559,8 @@ private:
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
++    [[nodiscard]] int capture_safety_bonus(const Board& board, Move move) const;
++    void update_capture_safety(const Board& board, Move move, int bonus);
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..9cc7e4592 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -103,6 +103,9 @@ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
++bool IdeaS29 = false;
++int IdeaS29_Threshold = 0;
++int IdeaS29_Scale = 1;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS29_Threshold", &IdeaS29_Threshold, -2000, 2000},
++        {"IdeaS29_Scale", &IdeaS29_Scale, 0, 32},
+     };
+     return table;
+ }
+@@ -170,6 +175,28 @@ bool cheaper_enemy_attacks_dearer(const Board& board) {
+     return false;
+ }
+ 
++// Cheapest enemy piece attacking the capture's landing square, as a history class.
++// 0: nobody, or only a king (this engine's SEE value for a king is 0).
++// 1..5: pawn, knight, bishop, rook, queen. Equal SEE values take the lower piece type.
++// This does not decide whether the capture passes the exchange gate.
++int landing_attacker_class(const Board& board, int to) {
++    const Color them = opposite(board.side_to_move());
++    Bitboard hits = board.attackers_to(to) & board.occupied(them);
++    int best_value = 0;
++    int best_type = 0;
++    while (hits != 0) {
++        const int from = pop_lsb(hits);
++        const int type = piece_type(board.piece_at(from));
++        const int value = SeePieceValue[static_cast<std::size_t>(type)];
++        if (value <= 0) continue;
++        if (best_type == 0 || value < best_value || (value == best_value && type < best_type)) {
++            best_value = value;
++            best_type = type;
++        }
++    }
++    return best_type;
++}
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -906,6 +933,11 @@ private:
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+ #endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++            // Off: the score above is the whole order. On: captures that already
++            // pass the fixed SEE gate also take the cheaper-attacker history.
++            // The gate is IdeaS29_Threshold, not a function of any history score,
++            // and the good/bad stage split stays see_ge(move, 0).
++            if (tune::IdeaS29) score += searcher_.capture_safety_bonus(board_, move);
+             push_scored(move, score);
+         }
+         sort_moves();
+@@ -1005,6 +1037,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       main_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
++      capture_safety_(std::make_unique<CaptureSafetyHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+@@ -1021,6 +1054,7 @@ void Worker::clear() {
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
+     *capture_history_ = CaptureHistory{};
++    *capture_safety_ = CaptureSafetyHistory{};
+     *continuation_history_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+@@ -1360,6 +1394,23 @@ int Worker::capture_history_value(const Board& board, Move move) const {
+     return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
+ }
+ 
++int Worker::capture_safety_bonus(const Board& board, Move move) const {
++    if (!tune::IdeaS29) return 0;
++    if (!board.see_ge(move, tune::IdeaS29_Threshold)) return 0;
++    const int cls = landing_attacker_class(board, move.to);
++    const Piece piece = board.moved_piece(move);
++    const int raw = (*capture_safety_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(cls)];
++    return tune::IdeaS29_Scale * raw;
++}
++
++void Worker::update_capture_safety(const Board& board, Move move, int bonus) {
++    if (!tune::IdeaS29 || !move.is_capture()) return;
++    if (!board.see_ge(move, tune::IdeaS29_Threshold)) return;
++    const int cls = landing_attacker_class(board, move.to);
++    const Piece piece = board.moved_piece(move);
++    apply_history((*capture_safety_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(cls)], bonus);
++}
++
+ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
+     for (const int back : {1, 2, 4}) {
+         const SearchStack* previous = ss - back;
+@@ -1400,6 +1451,7 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
+         const Piece piece = board.moved_piece(best);
+         const int captured = piece_type(board.captured_piece(best));
+         apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
++        update_capture_safety(board, best, bonus);
+     }
+     for (int i = 0; i < capture_count; ++i) {
+         const Move capture = captures[i];
+@@ -1407,6 +1459,7 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
+         const Piece piece = board.moved_piece(capture);
+         const int captured = piece_type(board.captured_piece(capture));
+         apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
++        update_capture_safety(board, capture, -bonus);
+     }
+ }
+ 
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..064df9439 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -227,6 +227,7 @@ int uci_loop(std::istream& in) {
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
++                         "option name IdeaS29 type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+@@ -403,6 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
++                       name == "IdeaS29" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+@@ -413,6 +415,7 @@ int uci_loop(std::istream& in) {
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
++                             : name == "IdeaS29" ? &forge::tune::IdeaS29
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
+                                                         : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {

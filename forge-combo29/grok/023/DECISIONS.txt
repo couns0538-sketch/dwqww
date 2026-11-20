@@ -1,0 +1,15 @@
+Idea S29, option IdeaS29, default false. The engine does not already do this.
+ThreatHistory is a quiet-move table. The good/bad capture split is still see_ge(move, 0) and is not moved by any history score.
+
+What was added, only when IdeaS29 is true:
+- A second capture history, [moved piece][landing square][cheaper enemy attacker of that square].
+- Class 0 means no material attacker. A king is class 0 because its SEE value is 0.
+- Classes 1..5 are pawn, knight, bishop, rook, queen. Equal SEE values take the lower piece type.
+- The term is added only when see_ge(move, IdeaS29_Threshold) is true. Default threshold 0, so only captures the existing gate already calls acceptable.
+- IdeaS29_Scale default 1 multiplies that history entry. The threshold is not a function of the history.
+- Updates use the same bonus as capture history, on a cutoff, and only for captures that pass the same gate.
+- With the switch false the score line is not taken, so node counts stay on today's path.
+
+Compiler: g++ 13.3.0, CMake Release, -march=x86-64-v4. This machine has AVX-512 and BMI2, so FORGE_PORTABLE was left off.
+uci newgame in this engine resets the board to the start FEN, so the search harness sends ucinewgame before position, then isready after both, then go.
+R positions: python-chess 1.11.2, Random(2301), games that end before ply 60 are dropped, samples at plies 8,15,22,29,36,43,50,57.
