@@ -46,8 +46,9 @@ def main() -> int:
     meta_path = Path(sys.argv[4])
     depth = int(sys.argv[5])
     idea = sys.argv[6] if len(sys.argv) > 6 else ""
+    option = sys.argv[7] if len(sys.argv) > 7 else "IdeaA5"
     if idea not in ("", "true", "false"):
-        print("IdeaA5 argument must be true, false, or omitted", file=sys.stderr)
+        print("switch argument must be true, false, or omitted", file=sys.stderr)
         return 2
 
     fens = []
@@ -111,7 +112,7 @@ def main() -> int:
         read_until(lambda s: s == "readyok")
 
     if idea:
-        command = f"setoption name IdeaA5 value {idea}"
+        command = f"setoption name {option} value {idea}"
         options_sent.append(command)
         send(command)
         send("isready")

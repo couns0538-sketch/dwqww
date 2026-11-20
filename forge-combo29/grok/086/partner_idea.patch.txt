@@ -1,0 +1,117 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..2a8e24b6f 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -301,6 +301,9 @@ extern bool HindsightDepth;          // off-PV depth step after a reduced move (
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
++extern bool IdeaS36;                  // root quiet LMR shift on an aspiration re-search (false = off)
++extern int IdeaS36_FailLow;           // plies removed from that reduction after a root fail-low
++extern int IdeaS36_FailHigh;          // plies added to that reduction after a root fail-high
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+@@ -514,6 +517,10 @@ private:
+ #endif
+     int seldepth_ = 0;
+     int root_depth_ = 0;
++    // IdeaS36. 0 on the first search of an iteration. Negative after a
++    // fail-low (less reduction), positive after a fail-high (more reduction).
++    // Cleared at the next iteration. Unused while IdeaS36 is false.
++    int root_lmr_shift_ = 0;
+     int mate_moves_ = 0;
+     std::size_t root_history_index_ = 0;
+     std::vector<Move> root_moves_;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..74ea69bee 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -101,6 +101,9 @@ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
++bool IdeaS36 = false;
++int IdeaS36_FailLow = 1;
++int IdeaS36_FailHigh = 1;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS36_FailLow", &IdeaS36_FailLow, 0, 8},             {"IdeaS36_FailHigh", &IdeaS36_FailHigh, 0, 8},
+     };
+     return table;
+ }
+@@ -2008,6 +2012,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Root re-search after the score leaves the window. Later quiet
++            // moves (this block already skips the first root moves and every
++            // capture) lose FailLow plies of reduction after a fail-low and
++            // gain FailHigh plies after a fail-high. The shift is applied to
++            // the reduction that would actually be searched, and a negative
++            // result is clamped to 0 so the shift cannot extend.
++            if (tune::IdeaS36 && root_node && root_lmr_shift_ != 0 && quiet && move_count > 1) {
++                int used = r > 0 ? r : 0;
++                used += root_lmr_shift_;
++                if (used < 0) used = 0;
++                r = used;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+@@ -2400,6 +2416,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         int delta = tune::AspirationDelta;
+         int alpha = -Infinite;
+         int beta = Infinite;
++        // The first search of this iteration is unshifted. A window miss
++        // below sets the shift for the re-search only.
++        if (tune::IdeaS36) root_lmr_shift_ = 0;
+         // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+         // after the previous iteration failed high or low at least once.
+         const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
+@@ -2415,6 +2434,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 failed_window = true;
++                if (tune::IdeaS36) root_lmr_shift_ = -tune::IdeaS36_FailLow;
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
+                     alpha = capped_fail_low(iteration_score);
+@@ -2424,6 +2444,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 }
+             } else if (iteration_score >= beta) {
+                 failed_window = true;
++                if (tune::IdeaS36) root_lmr_shift_ = tune::IdeaS36_FailHigh;
+                 if (tune::AspCappedReopen) {
+                     beta = capped_fail_high(iteration_score);
+                     if (iteration_score >= beta) break;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..b4d6e63d9 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -225,6 +225,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
++                         "option name IdeaS36 type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+@@ -433,6 +434,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaS36") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::IdeaS36 = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
