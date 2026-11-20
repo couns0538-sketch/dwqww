@@ -117,6 +117,8 @@ def main() -> int:
 
     eng = Engine(exe)
     rows: list[str] = []
+    failed = ""
+    id_name = ""
     try:
         eng.send("uci")
         id_lines = eng.read_until(lambda line: line == "uciok")
@@ -149,6 +151,10 @@ def main() -> int:
             rows.append(f"{index}\t{nodes}\t{best}\t{fen}\t{info}")
             if index % 25 == 0 or index == len(fens):
                 print(f"progress {index}/{len(fens)}", file=sys.stderr, flush=True)
+    except Exception as exc:
+        failed = str(exc)
+        eng.transcript.append(f"!! {exc}")
+        print(f"HARNESS FAIL {exc}", file=sys.stderr)
     finally:
         eng.close()
 
@@ -180,12 +186,13 @@ def main() -> int:
                 f"raw={raw.resolve()}",
                 f"rows={rows_path.resolve()}",
                 f"stderr={err_path.resolve()}",
+                f"failed={failed}",
             ]
         )
         + "\n"
     )
-    print(f"positions {len(fens)} nodes_sum {total}")
-    return 0
+    print(f"positions {len(rows)} nodes_sum {total} failed={failed}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

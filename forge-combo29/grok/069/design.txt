@@ -1,0 +1,29 @@
+Idea 19, ID S20, option IdeaS20. Seat 069. SEED 6901.
+
+What the plain engine already does (search.cpp, the probcut block inside the
+guard that requires a non-PV node and not in check): one regime. The witness
+must pass see_ge(move, probcut_beta - static_eval), then a quiescence search
+may reject it, and only a real search at depth - 4 may cut. That is not the
+two-regime witness. EXISTS: no.
+
+Decision, and why:
+- The switch is a UCI check named IdeaS20, default false. The spin is
+  IdeaS20_MinPly, default 2, range 2 to 8. Two is the smallest depth that is
+  more than one ply. Forge's own ProbcutMargin is kept; no second margin.
+- With the switch false, the SEE threshold is still probcut_beta - static_eval
+  and the witness depth is still depth - 4. The extra reads are locals. The
+  off proofs compare every O and G row with exe B.
+- With the switch true, surplus means static_eval >= probcut_beta (the eval
+  already clears beta by Forge's full margin, including the improving term).
+  A surplus witness must be non-losing: see_ge(move, 0). A gap
+  (static_eval < probcut_beta) keeps the exchange gate that covers the whole
+  gap. Both regimes still let quiescence reject a try, and a cutoff is taken
+  only after the real search. The witness depth is max(MinPly, depth - 4),
+  and it is pulled back to depth - 1 if that would not be shallower. If the
+  witness would be 1 ply or less, that node skips the proof.
+- Tactical moves stay the moves the existing quiescence picker already yields.
+  The enclosing guard already stays off principal-variation nodes and skips
+  the proof while in check, so the new code does not move the block.
+- The stored hash depth stays depth - 3, the same store the plain engine uses.
+
+Prediction was committed in 47ab43cb6 before any measurement of exe P.
