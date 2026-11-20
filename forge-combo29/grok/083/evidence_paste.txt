@@ -1,0 +1,148 @@
+file	key
+HONESTY_B.txt	['bench11 312866 312866 yes honesty_b_bench11.txt', 'bench13 862329 862329 yes honesty_b_bench13.txt', 'bench16 3024920 3024920 yes honesty_b_bench16.txt', 'perft5 4865609 4865609 yes honesty_b_perft5.txt']
+--- HONESTY_B ---
+exe /agent/repos/base/forge-combo29/build/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name Chess Engine Forge 6.4.24 candidate
+label nodes expect match file
+bench11 312866 312866 yes honesty_b_bench11.txt
+bench13 862329 862329 yes honesty_b_bench13.txt
+bench16 3024920 3024920 yes honesty_b_bench16.txt
+perft5 4865609 4865609 yes honesty_b_perft5.txt
+--- HONESTY_P ---
+exe /agent/repos/work/forge-combo29/build/forge
+sha256 4f3a4eabd8638f62b24367ace288e958108fccaf05a1e2f36b6e2e47d4ef880a
+id name Chess Engine Forge 6.4.24 candidate
+label nodes expect match file
+bench11 312866 312866 yes honesty_p_bench11.txt
+bench13 862329 862329 yes honesty_p_bench13.txt
+bench16 3024920 3024920 yes honesty_p_bench16.txt
+perft5 4865609 4865609 yes honesty_p_perft5.txt
+--- B_SUMS ---
+file	positions	sum	first3
+O_d12_B.tsv	200	9500069	41311 24872 28574
+G_d12_B.tsv	353	18466239	37203 70845 144383
+--- P_SUMS ---
+file	positions	sum	first3
+O_d12_P_off.tsv	200	9500069	41311 24872 28574
+G_d12_P_off.tsv	353	18466239	37203 70845 144383
+O_d12_P_on.tsv	200	9235597	20289 17907 37480
+--- compare off O ---
+left forge-combo29/grok/083/O_d12_B.tsv
+right forge-combo29/grok/083/O_d12_P_off.tsv
+positions 200
+differ 0
+same 200
+--- compare off G ---
+left forge-combo29/grok/083/G_d12_B.tsv
+right forge-combo29/grok/083/G_d12_P_off.tsv
+positions 353
+differ 0
+same 353
+--- compare on O head ---
+left forge-combo29/grok/083/O_d12_B.tsv
+right forge-combo29/grok/083/O_d12_P_on.tsv
+positions 200
+differ 200
+same 0
+pos 1 41311 20289
+pos 2 24872 17907
+pos 3 28574 37480
+--- match elo ---
+Results of IdeaA2on vs IdeaA2off (20000 nodes, 1t, 16MB, OG_553.epd):
+Elo: -10.06 +/- 10.86, nElo: -18.98 +/- 20.48
+LOS: 3.46 %, DrawRatio: 61.48 %, PairsRatio: 0.78
+Games: 1106, Wins: 327, Losses: 359, Draws: 420, Points: 537.0 (48.55 %)
+Ptnml(0-2): [19, 101, 340, 79, 14], WL/DD Ratio: 1.83
+--------------------------------------------------
+---
+Elo: -10.06 +/- 10.86, nElo: -18.98 +/- 20.48
+Games: 1106, Wins: 327, Losses: 359, Draws: 420, Points: 537.0 (48.55 %)
+--- asan meta tail ---
+setoption name HistoryBonusLinear value 54
+setoption name HistoryBonusMax value 2212
+setoption name SingularDepth value 6
+setoption name IirDepth value 2
+setoption name NonPawnCorrection value true
+nm_asan_count: 35
+--- scratch meta ---
+exe: /tmp/scratch-forge/build-asan/forge
+sha256: 1bb92a4a052cddf17b4266470af1c6c767af2a9683c591e4495ed9ddbde328b8
+nm_asan_count: 35
+fen: 4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1
+runner: python3 search_set.py --exe this --fens scratch_fen.epd --depth 10 --idea true --label scratch_asan
+search_exit: 1
+/tmp/scratch-forge/src/search.cpp:1571:22: runtime error: load of address 0x502000001090 with insufficient space for an object of type 'int'
+--- uci idea lines ---
+option name IdeaA2 type check default false
+option name IdeaA2_MinDepth type spin default 2 min 1 max 64
+--- apply_check ---
+exit:0
+--- prediction ---
+predicted_at: 2026-11-20T08:16:30Z
+O_depth12_sum_IdeaA2_on: 11000000
+wrong_if_outside: 9600000 14000000
+elo_IdeaA2_on_vs_off: -8
+elo_wrong_if_outside: -45 30
+why: A stored fail-high closer to beta cuts off less often later, so the O depth-12 sum should rise above 9500069 and stay inside 9600000..14000000. Blending throws away fail-soft margin, so the match Elo should be a small loss inside -45..30. An unchanged 9500069, or any result outside those bands, shows this prediction was wrong.
+--- partner honesty ---
+exe /agent/repos/partner/forge-combo29/build/forge
+sha256 a7f77b0f8279587a8073fbabfdd9120ba41f7468aebb68f959e73daf5cd7be25
+id name Chess Engine Forge 6.4.24 candidate
+label nodes expect match file
+bench11 312866 312866 yes partner_h_bench11.txt
+bench13 862329 862329 yes partner_h_bench13.txt
+bench16 3024920 3024920 yes partner_h_bench16.txt
+perft5 4865609 4865609 yes partner_h_perft5.txt
+--- partner off ---
+left forge-combo29/grok/083/O_d12_B.tsv
+right forge-combo29/grok/083/partner_O_off.tsv
+positions 200
+differ 0
+same 200
+--- partner on vs claimed ---
+positions 200
+differ 0
+same 200
+my_sum 9490331
+claimed_sum 9490331
+--- partner on vs B head ---
+left forge-combo29/grok/083/O_d12_B.tsv
+right forge-combo29/grok/083/partner_O_on.tsv
+positions 200
+differ 200
+same 0
+pos 1 41311 42509
+--- partner apply ---
+apply_check_exit:0
+patch: /agent/repos/dwqww/forge-combo29/grok/083/partner_033_idea.patch.txt
+clean_tree: /agent/repos/applycheck 6b98f2170a3210e71beed04bbd2553972c253ed7
+--- partner match ---
+Results of IdeaA2on vs IdeaA2off (20000 nodes, 1t, 16MB, R_300.epd):
+Elo: -11.59 +/- 8.85, nElo: -36.42 +/- 27.80
+LOS: 0.51 %, DrawRatio: 83.33 %, PairsRatio: 0.52
+Games: 600, Wins: 258, Losses: 278, Draws: 64, Points: 290.0 (48.33 %)
+Ptnml(0-2): [4, 29, 250, 17, 0], WL/DD Ratio: 26.78
+--------------------------------------------------
+---
+Elo: -11.59 +/- 8.85, nElo: -36.42 +/- 27.80
+Games: 600, Wins: 258, Losses: 278, Draws: 64, Points: 290.0 (48.33 %)
+--- stamps ---
+2026-11-20T07:55:44Z STEP 1 seat
+2026-11-20T08:16:16Z STEP 2 honesty and known sums
+2026-11-20T08:31:36Z STEP 3 idea built, proved, match played
+2026-11-20T09:17:24Z STEP 4 partner 033
+2026-11-20T09:17:24Z STEP 5 report
+--- step table ---
+step	status	evidence	result
+1 seat	done	SEAT.txt stamps.txt	seat 083 idea 33
+2 honesty and known sums	done	HONESTY_B.txt B_SUMS.txt	bench11 312866 312866 yes honesty_b_bench11.txt bench13 862329 862329 yes honesty_b_bench13.txt bench16 3024920 3024920 yes honesty_b_bench16.txt perft5 4865609 4865609 yes honesty_b_perft5.txt
+2 O and G on exe B	done	B_SUMS.txt	O_d12_B.tsv	200	9500069	41311 24872 28574 | G_d12_B.tsv	353	18466239	37203 70845 144383
+3 prediction	done	prediction.txt	committed before measuring exe P; node band missed, elo band hit
+3 proof off	done	compare_O_off.txt compare_G_off.txt	differ 0 O; differ 0 G
+3 proof on	done	compare_O_on.txt P_SUMS.txt	differ 200 of 200; sum 9235597
+3 uci options	done	uci_p.txt	IdeaA2 check default false; IdeaA2_MinDepth spin default 2
+3 sanitizer	done	G_d10_asan.meta scratch_asan.meta	nm_asan_count 35; clean G100; scratch reported a runtime error
+3 match	done	match_og.txt match_og.pgn match_og_elo.txt	Elo: -10.06 +/- 10.86, nElo: -18.98 +/- 20.48; games 1106
+4 partner 033	done	partner_compare_off.txt partner_compare_on.txt partner_match_elo.txt	CONFIRMS; Elo: -11.59 +/- 8.85, nElo: -36.42 +/- 27.80
+5 report	done	REPORT.md RESULT.txt	this file
