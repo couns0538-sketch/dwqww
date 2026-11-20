@@ -1,0 +1,118 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..f85aa1f19 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -265,6 +265,7 @@ extern int SingularMargin;
+ extern int IirDepth;
+ extern int ProbcutDepth;
+ extern int ProbcutMargin;
++extern int IdeaS20_MinPly;          // two-regime probcut: witness search is at least this many plies (more than one)
+ extern int QsFutilityMargin;
+ extern int QsSeeMargin;
+ extern int AspirationDelta;
+@@ -307,6 +308,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS20;                  // two-regime probcut witness (false = today's single SEE gate and depth-4 search)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..0d91f7d28 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -66,6 +66,7 @@ int SingularMargin = 2;
+ int IirDepth = 4;
+ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
++int IdeaS20_MinPly = 2;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
+ int AspirationDelta = 18;
+@@ -107,6 +108,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS20 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -129,7 +131,8 @@ const std::vector<Parameter>& parameters() {
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+-        {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
++        {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"IdeaS20_MinPly", &IdeaS20_MinPly, 2, 8},
++        {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+@@ -1743,14 +1746,31 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
++        // IdeaS20 off: the threshold and the witness depth are the expressions
++        // this block used before (SEE covers probcut_beta - static eval, search
++        // at depth - 4). IdeaS20 on: two regimes. Surplus (static eval already
++        // clears the raised bound) accepts one non-losing tactical move
++        // (SEE >= 0). Gap (static eval is short) keeps the exchange gate that
++        // covers the whole gap. Both regimes confirm with a real search of more
++        // than one ply. Quiescence can reject a try; it never cuts by itself.
++        // The enclosing guard already stays off PV nodes and skips in check.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
++        int see_threshold = probcut_beta - ss->static_eval;
++        int witness_depth = depth - 4;
++        if (tune::IdeaS20) {
++            const bool surplus = ss->static_eval >= probcut_beta;
++            see_threshold = surplus ? 0 : (probcut_beta - ss->static_eval);
++            witness_depth = std::max(tune::IdeaS20_MinPly, depth - 4);
++            if (witness_depth >= depth) witness_depth = depth - 1;
++        }
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+-            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta) &&
++            !(tune::IdeaS20 && witness_depth <= 1)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+                 if (move == excluded || !board.is_legal(move)) continue;
+-                if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
++                if (!board.see_ge(move, see_threshold)) continue;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -1764,7 +1784,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    value = -search(board, ss + 1, witness_depth, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..c4d5a5868 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS20 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,10 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS20") {
++                if (value_text == "true") forge::tune::IdeaS20 = true;
++                else if (value_text == "false") forge::tune::IdeaS20 = false;
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";

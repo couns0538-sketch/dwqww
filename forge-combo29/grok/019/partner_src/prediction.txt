@@ -1,0 +1,9 @@
+IdeaS20 on, IdeaS20_MinPly at its default 2, S14, Threads 1, Hash 16, O depth 12.
+
+O depth-12 node sum of exe P: 10400000.
+This prediction is wrong if that sum is below 7000000 or above 14000000.
+
+Test-match Elo of IdeaS20 true versus IdeaS20 false, 1106 games, 20000 nodes: +3.
+This prediction is wrong if the Elo point is below -40 or above +40.
+
+Why this number: the switch stays off principal-variation nodes and in check, which today's probcut already does. With the switch on, a surplus node (static eval already at or above the raised bound) refuses a losing capture, and every witness is searched at least 2 plies. The depth-12 sum of the plain engine on O is 9500069. Those two gates touch only the probcut witness, so the sum should move, but not by a large fraction. 10400000 is a small rise from the deeper depth-5 witness and the refused losing captures. An Elo near zero follows from the same narrow change; +3 is the point, and a result outside -40 to +40 would mean the patch did something else.
