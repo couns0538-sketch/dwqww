@@ -1,0 +1,20 @@
+Idea 13, S15, option IdeaS15. The plain engine does not do this. Search reductions
+in search.cpp have no rook-versus-passer test.
+
+What it does, and why these numbers:
+A rook ending here means no knight, bishop, or queen on the board, and at least
+one rook on each side. IdeaS15_MinPieces defaults to 8 because the note asks
+for eight or more pieces (kings count). IdeaS15_MaxRookMoves defaults to 1:
+the rook is already on the passer file (0 moves) or this move steps onto that
+file (1 move). A pawn is passed when the engine's passed-pawn mask is empty of
+enemy pawns and no own pawn stands in front on the file. Its next step costs
+1 if the square in front is empty and 2 if that square is occupied. The rook
+is in time when its remaining moves are at most that cost. The reduction is
+set to 0, which searches the move at full depth. The extension is left alone.
+
+The test is not called when IdeaS15 is false, so the reduction is the one the
+plain engine computed.
+
+O at depth 12 changed 0 positions. The same binary changed a rook ending
+(24914 nodes off, 29456 on) and 77 of 353 G positions, so the switch does run.
+Opening trees at depth 12 do not reach a rook ending of this shape.
