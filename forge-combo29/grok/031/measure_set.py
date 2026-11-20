@@ -75,6 +75,9 @@ def main() -> int:
             line = proc.stdout.readline()
             if line == "":
                 err = proc.stderr.read() if proc.stderr is not None else ""
+                out_prefix.parent.mkdir(parents=True, exist_ok=True)
+                (out_prefix.parent / (out_prefix.name + ".txt")).write_text("\n".join(raw) + "\n")
+                (out_prefix.parent / (out_prefix.name + ".err")).write_text(err)
                 die("engine closed stdout\n" + err)
             line = line.rstrip("\r\n")
             raw.append(line)

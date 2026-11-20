@@ -1,0 +1,31 @@
+IdeaS10, seat 031. The plain engine does not already do this. EvalRule50Damp
+shrinks a static score from the half-move clock. The SIMD "shuffle" in
+search.cpp is a register permute. Neither is a probe that forbids pawn moves
+and captures.
+
+Forge's search score is the network plus a correction. There is no pawn-score
+number exposed to search, and the idea forbids a second evaluation function.
+"Pawn score large and almost flat" is therefore the static eval already stored
+on the stack: its magnitude is at least IdeaS10_Margin, and it has moved by at
+most IdeaS10_Flat over two plies, while both of those plies were non-capturing
+non-pawn moves (the pawn key did not change, so the pawn part of the score is
+flat).
+
+The side with the positive static eval is the side that is supposed to be
+winning. The probe is a search of IdeaS10_Probe plies in which that side cannot
+play a capture, a promotion, or a pawn move. It does not call itself again.
+If the probe score stays within IdeaS10_Close of the real score, and the
+defender has a quiet non-pawn move or the position is a repetition, the node
+score is multiplied by IdeaS10_Shrink/1024, toward 0. Mate scores are left
+alone. The check is off by default and the probe is not called, which is why
+the off search matches the plain engine node for node.
+
+Defaults, chosen before the on measurement: Margin 80, Flat 40, Probe 2,
+Close 30, Shrink 768, MinDepth 4. A tighter flat band looked likely to miss
+every opening at depth 12. The probe is short so a depth-12 search stays a
+depth-12 search plus a shallow restricted look.
+
+R positions: python-chess, random.Random(3101), at most 80 plies. A game that
+reaches a chess ending inside those 80 plies is dropped. Ply 8, then every 7
+plies. This seed produced 300 FENs from 28 games and dropped none, because
+none of those games had ended by ply 80.
