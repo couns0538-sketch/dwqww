@@ -1,0 +1,16 @@
+The match is below -20 Elo and the whole +/- interval is below 0
+(-100.06 +/- 11.96, so about -112 to -88). I looked once.
+
+I did not find a sign error, a mate score being shrunk, or an illegal move.
+Mate scores are returned unchanged. The shrink multiplies a non-mate score by
+768/1024, so the sign stays and the value moves toward 0. The PGN endings that
+say threefold repetition, the fifty-move rule, or insufficient mating material
+are legal chess endings, not engine faults.
+
+What the loss matches: the probe is real search, so its nodes count. At a fixed
+20000 nodes the on engine spends part of the budget on that probe and searches
+the position less deeply. The shrink also fires when two quiet plies leave the
+static eval almost flat, including quiet positions that are still wins. The
+idea text says an unconditional probe should be expected to lose strength, and
+that many real wins are quiet before a pawn break. I did not change the code
+after this look.
