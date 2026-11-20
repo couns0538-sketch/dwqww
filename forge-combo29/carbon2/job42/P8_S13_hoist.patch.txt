@@ -1,0 +1,58 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -311,6 +311,7 @@
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool IdeaS13;                 // credit the quiet piece move before a same-side pawn break (false = off)
++extern bool IdeaS13_Hoist;           // read break_prep_order on parent before make_move for LMR (false = off)
+ extern bool IdeaB8;                  // threat-role memory (false = off; off keeps today's search path)
+ extern bool IdeaB8b;                 // seat 028 threat-role memory (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -171,6 +171,7 @@
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool IdeaS13 = false;
++bool IdeaS13_Hoist = false;
+ bool IdeaB8 = false;
+ bool IdeaB8b = false;
+ bool LmrSignedCorrection = false;
+@@ -2998,6 +2999,8 @@
+         (ss + 1)->ply = ply + 1;
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
++        const int s13_hoisted_prep =
++            (tune::IdeaS13 && tune::IdeaS13_Hoist && quiet) ? break_prep_order(board, move) : 0;
+         Undo undo;
+         (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
+@@ -3029,7 +3032,7 @@
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::IdeaS13 && quiet) {
+-                const int prep = break_prep_order(board, move);
++                const int prep = tune::IdeaS13_Hoist ? s13_hoisted_prep : break_prep_order(board, move);
+                 if (prep > 0) {
+                     int shorten = prep / tune::IdeaS13_ReduceDivisor;
+                     if (shorten > 1) shorten = 1;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -757,6 +757,7 @@
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
+                          "option name IdeaS13 type check default false\n"
++                         "option name IdeaS13_Hoist type check default false\n"
+                          "option name IdeaB8 type check default false\n"
+                          "option name IdeaB8b type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+@@ -981,6 +982,9 @@
+             } else if (name == "IdeaB8b") {
+                 if (value_text == "true" || value_text == "false") forge::tune::IdeaB8b = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS13_Hoist") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS13_Hoist = value_text == "true";
++                else note_invalid();
+             } else if (name == "DeadMaterial") {
+                 if (value_text != "true" && value_text != "false") note_invalid();
+                 else if (forge::dead_material_enabled != (value_text == "true")) {
