@@ -1,0 +1,103 @@
+HONESTY_B
+exe /agent/repos/base/forge-combo29/build/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name Chess Engine Forge 6.4.24 candidate
+setoption none
+bench 11 nodes 312866 expected 312866 ok
+bench 13 nodes 862329 expected 862329 ok
+bench 16 nodes 3024920 expected 3024920 ok
+go perft 5 nodes 4865609 expected 4865609 ok
+HONESTY_P
+exe /agent/repos/work/forge-combo29/build/forge
+sha256 dd087d351737e0a3d09f5a5587e51626aea31072ea521dd55012232db4d3b8b0
+id_name Chess Engine Forge 6.4.24 candidate
+setoption none
+bench 11 nodes 312866 expected 312866 ok
+bench 13 nodes 862329 expected 862329 ok
+bench 16 nodes 3024920 expected 3024920 ok
+go perft 5 nodes 4865609 expected 4865609 ok
+SUMS
+tag B_O_d12
+count 200
+depth 12
+sum 9500069
+first 41311 24872 28574
+tag B_G_d12
+count 353
+depth 12
+sum 18466239
+first 37203 70845 144383
+tag P_off_O_d12
+count 200
+depth 12
+sum 9500069
+first 41311 24872 28574
+tag P_off_G_d12
+count 353
+depth 12
+sum 18466239
+first 37203 70845 144383
+tag P_on_O_d12
+count 200
+depth 12
+sum 9796924
+first 18065 31357 37580
+tag asan_on_G_d10
+count 100
+depth 10
+sum 2024891
+first 20133 13249 20150
+tag partner_off_O
+count 200
+depth 12
+sum 9500069
+first 41311 24872 28574
+tag partner_on_O
+count 200
+depth 12
+sum 9500069
+first 41311 24872 28574
+COMPARES
+compare_off_O.txt
+count 200 differ 0 equal 200
+compare_off_G.txt
+count 353 differ 0 equal 353
+compare_on_O.txt
+differ index 1 left 41311 f1e2 right 18065 f1e2
+differ index 2 left 24872 f1c4 right 31357 f1c4
+differ index 3 left 28574 e5d4 right 37580 e5d4
+differ index 4 left 27838 e1g1 right 23026 e1g1
+differ index 5 left 18020 c8e6 right 37575 c8e6
+differ index 6 left 43043 g1f3 right 51147 g1f3
+differ index 7 left 56414 d2d4 right 39938 d2d4
+differ index 8 left 32317 g1f3 right 61828 f2f4
+count 200 differ 200 equal 0
+partner_compare_off.txt
+count 200 differ 0 equal 200
+partner_compare_on.txt
+count 200 differ 0 equal 200
+partner_compare_on_vs_B.txt
+count 200 differ 0 equal 200
+ASAN_META
+exe /tmp/forge-asan/forge
+asan_symbol_count 35
+scratch_sanitizer_lines 2
+g100_sanitizer_lines 0
+MATCH -12.26 10.25 1106
+PARTNER_MATCH -2.90 4.67 600
+APPLY
+mine exit:0
+partner exit:0
+STEP_TABLE
+step | done | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 013 idea 13
+2 honesty B | done | HONESTY_B.txt | 312866 862329 3024920 4865609
+2 O and G | done | B_O_d12.sum.txt B_G_d12.sum.txt | 9500069 and 18466239
+3 prediction | done | prediction.txt | 9200000 and Elo 8, committed before measuring
+3 patch | done | idea.patch.txt apply_check.txt | apply exit 0
+3 proof off | done | compare_off_O.txt compare_off_G.txt | 0 of 200 and 0 of 353
+3 proof on | done | compare_on_O.txt P_on_O_d12.sum.txt | 200 of 200, sum 9796924
+3 uci | done | uci_options.txt | IdeaS13 false, Lag 4, Bonus 160, Divisor 48, Shave 1
+3 sanitizer | done | asan_on_G_d10.meta asan_scratch.raw.txt | symbols 35, G lines 0, scratch heap-buffer-overflow
+3 match | done | match_on_off.log match_on_off.pgn | Elo -12.26 +/- 10.25, 1106 games
+4 partner | done | partner_compare_off.txt partner_compare_on.txt partner_match.log | CONFIRMS, R match Elo -2.90 +/- 4.67, 600 games
