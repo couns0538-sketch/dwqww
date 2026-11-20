@@ -13,6 +13,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXE = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ""
+PREFIX = sys.argv[2] if len(sys.argv) > 2 else "b"
 EXPECTED = [
     ("bench11", ["bench 11"], "info string bench ", 312866),
     ("bench13", ["bench 13"], "info string bench ", 862329),
@@ -74,9 +75,9 @@ def nodes_from(line, prefix):
 
 
 def one(tag, commands, stop_prefix, digest):
-    raw_path = os.path.join(HERE, "b_%s.txt" % tag)
-    err_path = os.path.join(HERE, "b_%s.err" % tag)
-    meta_path = os.path.join(HERE, "b_%s.meta" % tag)
+    raw_path = os.path.join(HERE, "%s_%s.txt" % (PREFIX, tag))
+    err_path = os.path.join(HERE, "%s_%s.err" % (PREFIX, tag))
+    meta_path = os.path.join(HERE, "%s_%s.meta" % (PREFIX, tag))
     with open(err_path, "w", encoding="utf-8") as err_handle:
         proc = subprocess.Popen(
             [EXE],
@@ -139,7 +140,7 @@ def main():
         report.append("%s nodes %s expected %s %s" % (tag, got, expected, "PASS" if ok else "FAIL"))
         report.append(line)
     text = "\n".join(report) + "\n"
-    out = os.path.join(HERE, "HONESTY_B.txt")
+    out = os.path.join(HERE, "HONESTY_%s.txt" % PREFIX.upper())
     with open(out, "w", encoding="utf-8") as handle:
         handle.write(text)
     sys.stdout.write(text)
