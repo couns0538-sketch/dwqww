@@ -41,3 +41,20 @@ step 3 run (replay_j38s3.py, log_R): 18:08:59Z -> 18:09:03Z (log_R.meta); K5 EXA
   PRC sums = K2's R column on all 35 cells (s3/k1_k2_check.txt); `date -u +%s` = 1795198143
 prune_log.patch.txt (diff -u count->log, on top of step 2's copy): -p1 -F0 roundtrip
   PATCH-OK, TREES-IDENTICAL ~18:09:3xZ
+controls (ctrl/): C-ALPHA 200 Q records q200_d1.jsonl; C-SIGN re-run p_d1_r01.jsonl /
+  p_r01_nosign_d1.jsonl (5365 P records each, from job 34's fp.log grep /tmp/j38/p_only_fp.log);
+  C-W w200_16_d1.jsonl + w200_16_1by1.jsonl (the whole log holds only 46 records with 1-6 hidden
+  quiets) + wext5b_1by1.jsonl (5 extension records with n = 22..36, exact-line filtered
+  /tmp/j38/ext5b.qsnw.log after an idx-collision in the first filter was caught and redone):
+  C-ALPHA PASS 197/197 and 0/197 (3 mate-valued excluded); C-SIGN PASS ratio 13.64 vs 0.69;
+  C-W(a) PASS 18 of 20 = 0.900 (at the 0.9 bar); C-W(b) PASS 40 of 46 = 0.870 (bar 0.85):
+  verdicts 18:10:32-18:10:35Z (file mtimes; cw_output.txt, csign_calpha_output.txt)
+prediction.txt committed alone ("kimi5 job 38 prediction") and pushed: 18:10:53Z
+  (`date -u` echoed by the commit command itself)
+step 4 oracle (plain build 068f0927768d on all 32 DONE lines, pc20.opt, Threads 1 Hash 16,
+  4-way parity shards): Q/S/N/W x D1/D2, all records, no every-2nd fallback; D1 batch end
+  ~18:11:0xZ, D2 batch end 18:11:15Z (oracle/*_all.jsonl mtimes); merges + checks
+  (rows = K5 per file, no null values outside the 9 n=0 W records, 12 spot lines
+  fen-matched to the log, PROBLEMS none): oracle/merge_checks.txt 18:11:1xZ
+step 5 table (table_j38.py, prints records read): step5_table.txt 18:12:09Z (file mtime);
+  `date -u +%s` = 1795198338 (18:12:18Z) right after the run
