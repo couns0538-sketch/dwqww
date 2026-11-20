@@ -1,0 +1,16 @@
+Seat 076, idea 26, IdeaS27, id S27. Context-disagreement veto.
+
+The plain engine does not do this. quiet_history adds the from-to history, the previous-move continuation, the two-ply continuation, an optional four-ply term, and (only when ThreatHistory is true) the threat-role bonus. There is no sign check. ThreatHistory defaults to false and S14 does not turn it on, so under S14 the threat-role table is never written and the bonus is 0.
+
+The idea needs that threat-role statistic (IDEAS.md says it depends on B8). IdeaS27 therefore, when true, records and reads the same threat-role table the engine already has. When false, the update and the read stay behind ThreatHistory, which is the path that matched exe B on every O and G position.
+
+Scoring when IdeaS27 is true:
+- previous = continuation history of the move one ply ago (0 if that table is missing)
+- threat = threat-role history of this quiet move
+- dead zone = IdeaS27_DeadZone, default 128 (a value with absolute value at or below 128 has no sign)
+- opposite signs, both outside the zone: the quiet history is the from-to term only
+- otherwise: from-to + previous + the other continuation terms + threat
+
+128 is wide enough that one shallow history update stays inside the zone, and narrow enough that a depth-4 update under S14 (about 568) can leave it. The spin is advertised as 0 to 16384.
+
+The check bonus of 12000 stays outside the history sum, as it does today.
