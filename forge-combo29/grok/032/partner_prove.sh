@@ -66,7 +66,7 @@ echo "---- compare off to exe B ----"
 python3 "$OUT/compare_nodes.py" "$OUT/B_O_d12.nodes" "$OUT/PARTNER_off_O.nodes" 12 | tee "$OUT/partner_off_vs_B.txt"
 if [ "$THEIR_ON" != "-" ] && [ -f "$THEIR_ON" ]; then
   echo "---- compare on to partner rows ----"
-  python3 "$OUT/compare_nodes.py" "$THEIR_ON" "$OUT/PARTNER_on_O.nodes" 12 | tee "$OUT/partner_on_vs_theirs.txt"
+  python3 "$OUT/partner_vs_rows.py" "$THEIR_ON" "$OUT/PARTNER_on_O.nodes" | tee "$OUT/partner_on_vs_theirs.txt"
 else
   echo "NO_PARTNER_ON_ROWS" | tee "$OUT/partner_on_vs_theirs.txt"
 fi

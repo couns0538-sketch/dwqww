@@ -1,0 +1,178 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..d6a740d26 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -304,6 +304,9 @@ extern bool AspCappedReopen;         // root fail: capped reopen, or full open w
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool IdeaA1;                  // quiet LMR history as a 1/IdeaA1_Scale ply fraction with a carry (false = off)
++extern int IdeaA1_Scale;             // one ply of the IdeaA1 history term, in this many parts (1024)
++extern int IdeaA1_Clamp;             // max whole plies one IdeaA1 history term may add or remove
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+@@ -409,6 +412,9 @@ struct SearchStack {
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    // Unused fraction of the quiet-history LMR term, in 1/IdeaA1_Scale of a ply.
++    // Positive means a later quiet is reduced less. Read only when IdeaA1 is on.
++    int lmr_hist_credit = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..ea757d1d0 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -104,6 +104,12 @@ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
++// Quiet late-move reduction: history term in 1/IdeaA1_Scale of a ply, carried
++// until it makes a whole ply. Off uses history/LmrHistoryDivisor, which is 0
++// for every history in (-divisor, +divisor). S14 sets that divisor to 5643.
++bool IdeaA1 = false;
++int IdeaA1_Scale = 1024;
++int IdeaA1_Clamp = 2;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
+@@ -145,6 +151,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaA1_Scale", &IdeaA1_Scale, 128, 8192},
++        {"IdeaA1_Clamp", &IdeaA1_Clamp, 0, 4},
+     };
+     return table;
+ }
+@@ -235,6 +243,34 @@ ReductionTable Reductions;
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
++// History term of a quiet late-move reduction, in fractions of a ply.
++// credit_in is the unused fraction from earlier quiets on this line (positive
++// means reduce less). This move adds history * Scale / LmrHistoryDivisor,
++// capped at ±Clamp plies. Whole plies are applied to `reduction` now. The
++// leftover, in (-Scale, Scale), is credit_out for the child. Called only
++// when IdeaA1 is on, so the integer division below stays the off path.
++void apply_fractional_history_lmr(int history, int credit_in, int& reduction, int& credit_out) {
++    const int scale = tune::IdeaA1_Scale;
++    const int clamp_plies = tune::IdeaA1_Clamp;
++    if (scale <= 0) {
++        credit_out = 0;
++        return;
++    }
++    const long long limit = static_cast<long long>(clamp_plies) * static_cast<long long>(scale);
++    const int divisor = tune::LmrHistoryDivisor;
++    long long raw = 0;
++    if (divisor != 0) raw = static_cast<long long>(history) * static_cast<long long>(scale) / divisor;
++    if (raw > limit) raw = limit;
++    if (raw < -limit) raw = -limit;
++    long long credit = static_cast<long long>(credit_in) + raw;
++    int whole = static_cast<int>(credit / scale);
++    if (whole > clamp_plies) whole = clamp_plies;
++    if (whole < -clamp_plies) whole = -clamp_plies;
++    credit -= static_cast<long long>(whole) * static_cast<long long>(scale);
++    reduction -= whole;
++    credit_out = static_cast<int>(credit);
++}
++
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+ }
+@@ -1711,6 +1747,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
++            if (tune::IdeaA1) (ss + 1)->lmr_hist_credit = ss->lmr_hist_credit;
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1764,6 +1801,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
++                    if (tune::IdeaA1) (ss + 1)->lmr_hist_credit = ss->lmr_hist_credit;
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+@@ -1988,6 +2026,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
++        int child_hist_credit = 0;
++        if (tune::IdeaA1) child_hist_credit = ss->lmr_hist_credit;
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+@@ -1999,7 +2039,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (quiet && !tune::IdeaA1) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            else if (quiet) apply_fractional_history_lmr(history, ss->lmr_hist_credit, r, child_hist_credit);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2010,6 +2051,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            if (tune::IdeaA1) (ss + 1)->lmr_hist_credit = child_hist_credit;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -2020,6 +2062,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++                    if (tune::IdeaA1) (ss + 1)->lmr_hist_credit = child_hist_credit;
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                 }
+                 full_depth_needed = false;
+@@ -2030,9 +2073,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         if (full_depth_needed && !aborted_) {
++            if (tune::IdeaA1) (ss + 1)->lmr_hist_credit = child_hist_credit;
+             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
++            if (tune::IdeaA1) (ss + 1)->lmr_hist_credit = child_hist_credit;
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+@@ -2338,6 +2383,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
++        ss.lmr_hist_credit = 0;
+         ss.null_move_allowed = true;
+         ss.arrival_index = 0;
+         ss.killers = {};
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..3fc26d62b 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaA1 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaA1") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA1 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
