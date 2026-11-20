@@ -1,0 +1,13 @@
+/tmp/asan-bad/src/search.cpp:1615:28: runtime error: load of address 0x502000001090 with insufficient space for an object of type 'int'
+0x502000001090: note: pointer points here
+ 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
+              ^ 
+    #0 0x562cfa7baf8d in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) (/tmp/asan-bad/build/forge+0x5b0f8d) (BuildId: 848d295a80083f4e4867a8c036932e55f5fbe0cf)
+    #1 0x562cfa7cc928 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/asan-bad/build/forge+0x5c2928) (BuildId: 848d295a80083f4e4867a8c036932e55f5fbe0cf)
+    #2 0x562cfa7dfbca in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/asan-bad/build/forge+0x5d5bca) (BuildId: 848d295a80083f4e4867a8c036932e55f5fbe0cf)
+    #3 0x562cfa83a0c2 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/asan-bad/build/forge+0x6300c2) (BuildId: 848d295a80083f4e4867a8c036932e55f5fbe0cf)
+    #4 0x7efd5e4ecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #5 0x7efd5e85ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #6 0x7efd5d89cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #7 0x7efd5d929ecb  (/lib/x86_64-linux-gnu/libc.so.6+0x129ecb) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+

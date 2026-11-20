@@ -162,17 +162,17 @@ def main() -> int:
             engine.send("isready")
             engine.read_until(lambda line: line == "readyok", 30)
             engine.send(f"go depth {depth}")
-            played = engine.read_until(lambda line: line.startswith("bestmove "), 120)
+            played = engine.read_until(lambda line: line.startswith("bestmove "), 300)
             nodes = nodes_of(played)
             move = bestmove_of(played)
             rows.append((index, nodes, move, fen))
             if index % 25 == 0:
                 print(f"progress {index}/{len(fens)}", flush=True)
     finally:
+        engine.close()
         raw_path = pathlib.Path(str(out) + ".raw.txt")
         raw_path.write_text("\n".join(engine.log) + "\n")
         pathlib.Path(str(out) + ".err").write_text(engine.stderr)
-        engine.close()
     node_lines = [f"{index}\t{nodes}\t{move}\t{fen}" for index, nodes, move, fen in rows]
     pathlib.Path(str(out) + ".nodes.txt").write_text("\n".join(node_lines) + "\n")
     options = [*S14, *extra_options]

@@ -1,0 +1,12 @@
+exe /tmp/asan-bad/build/forge
+sha256 11ee878f78eb0b8aec040252e8dd90b12a9d1a8daf5fc6146f868283a9c13c84
+id name Chess Engine Forge 6.4.24 candidate
+options
+setoption name IdeaS6 value true
+plus S14 Threads 1 Hash 16
+fen 4k3/8/8/8/8/4P3/8/4K3 w - - 0 1
+depth 4
+nm_asan_count 37
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
+runner depth_sum.py (same runner as asan_G100)
+result engine closed stdout; stderr has UBSan load past the heap int[4]

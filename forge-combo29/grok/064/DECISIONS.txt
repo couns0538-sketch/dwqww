@@ -1,0 +1,47 @@
+seat 064 idea 14 id S6 option IdeaS6
+SEED = 64 * 100 + 1 = 6401
+
+What the full text asks (engine-ideas/50-agents/IDEAS.md, S6):
+In a position already judged quiet by S5, drop each friendly piece, read how
+far the network evaluation falls, and for one iteration do not apply the usual
+late-move reduction to quiet non-capturing moves of the piece whose removal
+changes the evaluation least.
+
+What this engine already does:
+It does not do that. No idle-piece probe exists in src/search.cpp.
+
+Decisions, and why:
+1. The quiet gate is SEE, not a captures-and-checks search. A real shallow
+   search would write the transposition table. The node is quiet when it is
+   not in check and no capture or check wins more than IdeaS6_Margin
+   centipawns (default 120). A pawn is 100 in SEE, so a bare pawn win is
+   still inside the band and a minor-piece win is not.
+2. The idle piece is a friendly non-king piece that has a quiet legal move.
+   The score is the absolute change in nnue::evaluate after removing that
+   piece's feature from a fresh accumulator. Lowest square wins a tie.
+   The network is the compiled-in residual net (FORGE_NNUE_V3 is 0).
+3. "One iteration" is remaining depth IdeaS6_Depth, default 4.
+4. Setting the late-move reduction to 0 never changed a node. A counter on
+   the first build showed 2502 reduced quiets at depth 4 and 0 of them
+   started on the idle square: those moves are not in the reduced tail.
+   Searching them one ply deeper is the same direction as withholding the
+   reduction, and it does change the tree.
+5. The extra ply is applied once. The child is marked idea_s6_gift. Without
+   that mark the child is again at depth 4 and extends again, and the depth
+   never falls. A queen ending then did not return a move within five
+   minutes. With the mark, that position finishes.
+6. Spins: IdeaS6_Depth default 4 (range 2..16), IdeaS6_Margin default 120
+   (range 0..1000). The check IdeaS6 defaults false.
+7. OwnBook is set false in the match only. A node-limited go is not a book
+   search in this engine; the option is set so a book move cannot replace
+   the search if that rule changes.
+8. R positions: python-chess 1.11.2, random.Random(6401), ply limit 80,
+   a game that ends before ply 80 is dropped, one FEN every 7 plies from
+   ply 8 (8, 15, 22, ...). 400 positions kept.
+9. The host has AVX-512 and BMI2, so the build is the default lock
+   (march x86-64-v4, PEXT and ZMM on), not the portable build.
+10. Sanitizer runs use ASAN_OPTIONS=detect_leaks=0 so a shutdown leak is
+    not counted as a search finding. The deliberate fault is a read of
+    heap[8] on a 4-int allocation when the FEN is
+    4k3/8/8/8/8/4P3/8/4K3 w - - 0 1. UBSan reports it through depth_sum.py,
+    the same runner as the clean 100-position run.

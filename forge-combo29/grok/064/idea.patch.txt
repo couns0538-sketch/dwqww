@@ -1,0 +1,192 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..4a8579b2e 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -290,6 +290,8 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int IdeaS6_Depth;             // one remaining depth where idle-piece quiet moves skip LMR
++extern int IdeaS6_Margin;            // SEE centipawns; a capture or check above this is not a quiet node
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+@@ -297,6 +299,7 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern bool IdeaS6;                  // skip LMR on quiet moves of the least-changed friendly piece (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+@@ -409,6 +412,8 @@ struct SearchStack {
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    // The parent already gave this node IdeaS6's one extra ply. Read only when IdeaS6 is on.
++    bool idea_s6_gift = false;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..12082edff 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int IdeaS6_Depth = 4;
++int IdeaS6_Margin = 120;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -97,6 +99,7 @@ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++bool IdeaS6 = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS6_Depth", &IdeaS6_Depth, 2, 16},                  {"IdeaS6_Margin", &IdeaS6_Margin, 0, 1000},
+     };
+     return table;
+ }
+@@ -172,6 +176,59 @@ bool cheaper_enemy_attacks_dearer(const Board& board) {
+ 
+ namespace {
+ 
++// IdeaS6. S5 calls a node quiet when a shallow captures-and-checks search stays
++// near the quiet evaluation. A real search here would write the transposition
++// table, so the gate is SEE: the node is quiet when it is not in check and no
++// capture or check wins more than `margin` centipawns. The idle piece is the
++// friendly non-king piece that has a quiet move and whose removal changes the
++// network evaluation least (lowest square wins a tie). -1 means leave the
++// search alone. Skipping late-move reduction on that piece never fired in this
++// engine: those quiet moves are not in the reduced tail. The caller therefore
++// searches them one ply deeper for this one iteration, which is the same
++// direction as withholding the reduction.
++[[nodiscard]] int idle_piece_square(const Board& board, int margin) {
++    if (board.in_check()) return -1;
++    if (!nnue::enabled || !nnue::available()) return -1;
++    const MoveList legal = board.legal_moves();
++    int best_see = -100000;
++    bool saw_tactical = false;
++    bool quiet_from[64] = {};
++    for (const Move move : legal) {
++        if (move.is_quiet()) quiet_from[move.from] = true;
++        if (!move.is_capture() && !board.gives_check(move)) continue;
++        saw_tactical = true;
++        const int see = board.static_exchange(move);
++        if (see > best_see) best_see = see;
++    }
++    if (saw_tactical && best_see > margin) return -1;
++
++    nnue::Accumulator base_acc;
++    nnue::refresh(board, base_acc);
++    const int base = nnue::evaluate(board, base_acc);
++    const Color us = board.side_to_move();
++    int best_sq = -1;
++    int best_delta = 0;
++    for (int type = Pawn; type <= Queen; ++type) {
++        Bitboard left = board.pieces(us, static_cast<PieceType>(type));
++        while (left != 0) {
++            const int square = pop_lsb(left);
++            if (!quiet_from[square]) continue;
++            const Piece piece = board.piece_at(square);
++            nnue::DirtyPieces dirty;
++            dirty.remove(piece, square);
++            nnue::Accumulator dropped_acc;
++            nnue::update(base_acc, dropped_acc, dirty);
++            const int dropped = nnue::evaluate(board, dropped_acc);
++            const int delta = dropped > base ? dropped - base : base - dropped;
++            if (best_sq < 0 || delta < best_delta || (delta == best_delta && square < best_sq)) {
++                best_sq = square;
++                best_delta = delta;
++            }
++        }
++    }
++    return best_sq;
++}
++
+ constexpr int HistoryMax = 16384;
+ // A searched quiet missed alpha by at least this many centipawns.
+ constexpr int QuietWideGap = 176;
+@@ -1552,6 +1609,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
++    const bool idea_s6_gifted = ss->idea_s6_gift;
++    if (tune::IdeaS6) ss->idea_s6_gift = false;
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+@@ -1811,6 +1870,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
++    // -2: not computed. Computed once per node, and only when IdeaS6 is on.
++    int idea_s6_square = -2;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -1958,6 +2019,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
++        // One iteration: quiet moves of the idle piece are searched one ply
++        // deeper. The gift flag stops that extra ply from being applied again
++        // at the child, which would keep the depth from falling. Withholding
++        // late-move reduction alone never changed a node: those moves are not
++        // in the reduced tail.
++        if (tune::IdeaS6) (ss + 1)->idea_s6_gift = false;
++        if (tune::IdeaS6 && !idea_s6_gifted && quiet && depth == tune::IdeaS6_Depth) {
++            if (idea_s6_square == -2) idea_s6_square = idle_piece_square(board, tune::IdeaS6_Margin);
++            if (idea_s6_square >= 0 && static_cast<int>(move.from) == idea_s6_square && new_depth < depth) {
++                ++new_depth;
++                (ss + 1)->idea_s6_gift = true;
++            }
++        }
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -2008,6 +2082,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Same iteration: if this idle-piece quiet would still be reduced,
++            // do not apply that reduction.
++            if (tune::IdeaS6 && quiet && r > 0 && depth == tune::IdeaS6_Depth && idea_s6_square >= 0 &&
++                static_cast<int>(move.from) == idea_s6_square) {
++                r = 0;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..7ba216a1a 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -221,6 +221,7 @@ int uci_loop(std::istream& in) {
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
++                         "option name IdeaS6 type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS6") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS6 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
