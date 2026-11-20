@@ -139,6 +139,7 @@ def main() -> int:
     parser.add_argument("--idea", choices=("omit", "false", "true"), default="omit")
     parser.add_argument("--divisor", type=int, default=64)
     parser.add_argument("--history-depth", type=int, default=5)
+    parser.add_argument("--spins", choices=("yes", "no"), default="yes")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--go-nodes", type=int, default=0)
     args = parser.parse_args()
@@ -177,8 +178,9 @@ def main() -> int:
         setoption("Hash", "16")
         if args.idea == "true":
             setoption("IdeaK5", "true")
-            setoption("IdeaK5_Divisor", str(args.divisor))
-            setoption("IdeaK5_Depth", str(args.history_depth))
+            if args.spins == "yes":
+                setoption("IdeaK5_Divisor", str(args.divisor))
+                setoption("IdeaK5_Depth", str(args.history_depth))
         elif args.idea == "false":
             setoption("IdeaK5", "false")
 
