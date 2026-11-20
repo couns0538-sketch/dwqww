@@ -1,0 +1,147 @@
+HONESTY_B
+exe_b=/agent/repos/base/forge-combo29/build/forge
+--- meta bench11 ---
+exe=/agent/repos/base/forge-combo29/build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=id name Chess Engine Forge 6.4.24 candidate
+options_sent=none
+command=bench 11
+started=2026-11-20T07:59:16Z
+--- meta bench13 ---
+exe=/agent/repos/base/forge-combo29/build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=id name Chess Engine Forge 6.4.24 candidate
+options_sent=none
+command=bench 13
+started=2026-11-20T07:59:16Z
+--- meta bench16 ---
+exe=/agent/repos/base/forge-combo29/build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=id name Chess Engine Forge 6.4.24 candidate
+options_sent=none
+command=bench 16
+started=2026-11-20T07:59:18Z
+--- meta perft5 ---
+exe=/agent/repos/base/forge-combo29/build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=id name Chess Engine Forge 6.4.24 candidate
+options_sent=none
+command=go perft 5
+started=2026-11-20T07:59:18Z
+COMMAND bench 11
+LINE info string bench depth 11 nodes 312866 time 168 nps 1862297
+GOT 312866
+EXPECT 312866
+MATCH True
+COMMAND bench 13
+LINE info string bench depth 13 nodes 862329 time 439 nps 1964302
+GOT 862329
+EXPECT 862329
+MATCH True
+COMMAND bench 16
+LINE info string bench depth 16 nodes 3024920 time 1442 nps 2097725
+GOT 3024920
+EXPECT 3024920
+MATCH True
+COMMAND go perft 5
+LINE nodes 4865609
+GOT 4865609
+EXPECT 4865609
+MATCH True
+ALL_MATCH True
+HONESTY_P
+bench11 GOT 312866 EXPECT 312866 MATCH True LINE info string bench depth 11 nodes 312866 time 165 nps 1896157
+bench13 GOT 862329 EXPECT 862329 MATCH True LINE info string bench depth 13 nodes 862329 time 444 nps 1942182
+bench16 GOT 3024920 EXPECT 3024920 MATCH True LINE info string bench depth 16 nodes 3024920 time 1434 nps 2109428
+perft5 GOT 4865609 EXPECT 4865609 MATCH True LINE nodes 4865609
+ALL_MATCH True
+BASE_SUMS
+O_POSITIONS 200
+O_SUM 9500069
+O_FIRST3 41311 24872 28574
+O_EXPECT_SUM 9500069
+O_EXPECT_FIRST3 41311 24872 28574
+O_MATCH True
+G_POSITIONS 353
+G_SUM 18466239
+G_EXPECT_SUM 18466239
+G_MATCH True
+UCI
+option name IdeaK6 type check default false
+option name IdeaK6_Band type spin default 200000 min 0 max 1000000
+CMP_OFF_O
+LEFT forge-combo29/grok/095/B_O_d12.tsv N 200 SUM 9500069
+RIGHT forge-combo29/grok/095/P_off_O_d12.tsv N 200 SUM 9500069
+COMPARED 200
+DIFFER 0
+SAME 200
+CMP_OFF_G
+LEFT forge-combo29/grok/095/B_G_d12.tsv N 353 SUM 18466239
+RIGHT forge-combo29/grok/095/P_off_G_d12.tsv N 353 SUM 18466239
+COMPARED 353
+DIFFER 0
+SAME 353
+CMP_ON_O
+LEFT forge-combo29/grok/095/B_O_d12.tsv N 200 SUM 9500069
+RIGHT forge-combo29/grok/095/P_on_O_d12.tsv N 200 SUM 9781037
+COMPARED 200
+DIFFER 200
+SAME 0
+ON_O_POSITIONS 200
+ON_O_SUM 9781037
+ASAN
+CLEAN_SANITIZER_LINES 0
+asan_symbols=35
+POISON_LINE /tmp/forge-poison-src/src/uci.cpp:47:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+MATCH
+Results of IdeaK6_on vs IdeaK6_off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -4.08 +/- 10.21, nElo: -8.19 +/- 20.48
+Games: 1106, Wins: 323, Losses: 336, Draws: 447, Points: 546.5 (49.41 %)
+PGN_EVENTS 1106
+PGN_RESULTS 1106
+PARTNER
+partner_commit 1f4a45f2025a57e289dfbf4d6083295ebcbd42e1
+partner_cmp_off_O.txt
+LEFT forge-combo29/grok/095/B_O_d12.tsv N 200 SUM 9500069
+RIGHT forge-combo29/grok/095/partner_off_O.tsv N 200 SUM 9500069
+COMPARED 200
+DIFFER 0
+SAME 200
+partner_cmp_off_G.txt
+LEFT forge-combo29/grok/095/B_G_d12.tsv N 353 SUM 18466239
+RIGHT forge-combo29/grok/095/partner_off_G.tsv N 353 SUM 18466239
+COMPARED 353
+DIFFER 0
+SAME 353
+partner_cmp_on_vs_B.txt
+LEFT forge-combo29/grok/095/B_O_d12.tsv N 200 SUM 9500069
+RIGHT forge-combo29/grok/095/partner_on_O.tsv N 200 SUM 9705311
+COMPARED 200
+DIFFER 200
+SAME 0
+partner_cmp_on_rows.txt
+MINE forge-combo29/grok/095/partner_on_O.tsv N 200 SUM 9705311
+THEIRS forge-combo29/grok/095/partner_on_O.rows.txt N 200 SUM 9705311
+COMPARED 200
+DIFFER 0
+SAME 200
+Results of IdeaK6_on vs IdeaK6_off (20000 nodes, 1t, 16MB, R.fens):
+Elo: 1.74 +/- 9.01, nElo: 5.36 +/- 27.80
+LOS: 64.73 %, DrawRatio: 84.00 %, PairsRatio: 1.09
+Games: 600, Wins: 267, Losses: 264, Draws: 69, Points: 301.5 (50.25 %)
+Ptnml(0-2): [2, 21, 252, 22, 3], WL/DD Ratio: 18.38
+--------------------------------------------------
+PARTNER_PGN_RESULTS 600
+HONESTY_PARTNER
+bench11 info string bench depth 11 nodes 312866 time 180 nps 1738144
+bench13 info string bench depth 13 nodes 862329 time 501 nps 1721215
+bench16 info string bench depth 16 nodes 3024920 time 1499 nps 2017958
+perft5 nodes 4865609
+STEP_TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 095 idea 45
+2 builds and honesty | done | HONESTY_B.txt B_known_sums.txt | honesty True base sums True
+3 idea proofs | done | HONESTY_P.txt cmp_off_O.txt cmp_off_G.txt cmp_on_O.txt asan_summary.txt uci_options_ideak6.txt | off_o True off_g True on_differs_200 True asan_clean True poison_reported True
+3e test match | done | match_og.log match_og.pgn match_result.txt | games_1106 True
+4 partner | done | partner_cmp_off_O.txt partner_cmp_on_rows.txt partner_match_R.log | off_identical True on_rows_equal True
+5 report | done | REPORT.md RESULT.txt | this report
