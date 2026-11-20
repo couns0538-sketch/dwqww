@@ -1,0 +1,12 @@
+Idea 28, B8, option IdeaB8 (check, default false).
+
+Forge does not already do this. ThreatHistory (search.cpp, quiet_threat_index) is the cheaper-attacker from-to table, which BREAKTHROUGHS.md calls the companion S28, and it defaults to false. There is no piece-value bonus for stepping off an attacked square, so IdeaB8 does not delete one.
+
+What was added, only when IdeaB8 is true:
+- One threat per node: the dearest friendly piece (king worth 100000, else SEE value) that a strictly cheaper enemy piece attacks. Ties keep the cheaper attacker, then the lower square.
+- The quiet's role against that threat: 1 the attacked piece steps away, 2 another piece lands between a slider and the victim, 3 the moved piece attacks the attacker, 4 the moved piece creates a cheaper-attacks-dearer threat against something worth more than the current victim, else 0.
+- A table [side][victim type][attacker type][role], updated with the same bonus as the main quiet history on a quiet cutoff and on the quiets that did not cut off, and with a quarter bonus when a quiet becomes the best move without a cutoff.
+- That entry, times IdeaB8_Weight/1024, is added to the quiet history used for ordering, history pruning, and the late-move reduction. Default IdeaB8_Weight is 1024, so one full table entry. Default IdeaB8_Swing is 40 centipawns: if the child's static eval, from our side, is at least that much better than the parent static eval, the cutoff quiet gets one extra history bonus. A child that did not write a static eval this visit does not get the extra bonus.
+- With the switch false every new call returns before it reads or writes the table, and the search decisions stay on today's path.
+
+Numbers: Weight 1024 because the table should count like one continuation-history table, not a fraction that can round a small entry to zero. Swing 40 because that is a real improvement and still small enough to occur.
