@@ -47,6 +47,10 @@ def main() -> None:
     extra = f"nm_asan_count {asan_n}\nclean_sanitizer_lines {clean_hits}\n"
     if "nm_asan_count " not in meta:
         meta_path.write_text(meta + extra, encoding="utf-8")
+    print("uci IdeaB10 lines")
+    for line in (HERE / "uci_p.txt").read_text(encoding="utf-8").splitlines():
+        if "IdeaB10" in line:
+            print(line)
 
 
 if __name__ == "__main__":
