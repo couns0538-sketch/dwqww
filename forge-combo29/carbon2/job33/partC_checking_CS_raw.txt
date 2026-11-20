@@ -1,0 +1,20 @@
+UTC: Fri Nov 20 08:06:07 AM UTC 2026
+=== JOB 33 PART C — Checking Builds (ASan+UBSan+_GLIBCXX_ASSERTIONS) & Control CS ===
+checking_exe:    /tmp/carbon2_job33/bld_asan_sgr15d/forge (sha256=b0c64192aaed9aa2234a7f90904b65d480176d45f899a5aee384c1b679f740cb)
+control_cs_exe:  /tmp/carbon2_job33/bld_asan_cs_oob/forge (sha256=487f31ddf3b50cb3bf1ad66a4a637ac4bbdfd13f772b4f464d164a1c0b290895)
+thread_note:     run_selfgame executes synchronously on the UCI command-reading thread after stop_search()
+                 (worker thread stays idle in work_cv.wait; no cross-thread loop execution).
+
+1. Loop on Set C (100 attempts): PASS (0 sanitizer/assertion reports, stderr empty)
+   finished=100 thrown=0 records=2904 searches=2960 nodes=1433776 wall=2.565s
+   full_sha256 = 4d65540c118221b42604320b59b5e5947aac7def9a166a12a9c4c6ca5a6529cf (matches plain build 4d65540c118221b4...)
+
+2. Loop on Set B attempts 1..20 (N=50, includes 11 R4 process restarts): PASS (0 sanitizer/assertion reports, stderr empty)
+   finished=9 thrown=11 records=919 searches=1198 wall=0.738s
+   full_sha256  = 31f43fb43945e0ecf5c5867a287eaa19aae8bb238646e30043020d5271c5a6bf
+   plain_sha256 = 31f43fb43945e0ecf5c5867a287eaa19aae8bb238646e30043020d5271c5a6bf (BYTE-IDENTICAL)
+
+3. CONTROL CS (one-past-end read records[records.size()].ply in run_selfgame): PASS (FIRED)
+   returncode = -6
+   stderr:
+     /usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/stl_vector.h:1128: reference std::vector<SgRecord>::operator[](size_type) [_Tp = SgRecord, _Alloc = std::allocator<SgRecord>]: Assertion '__n < this->size()' failed.
