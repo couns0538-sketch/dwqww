@@ -83,7 +83,7 @@ The first line is 2026-11-20T18:49:31Z STEP 1. Chunk 26 done is 2026-11-20T19:28
 
 ## git status --short and ls -la
 
-Status below was taken after POOL.txt, REPORT.md and RESULT.txt were written, and before the STEP 5 commit.
+Status below was taken after POOL.txt, REPORT.md and RESULT.txt were written, and before the STEP 5 commit. The listing is that command's output. After it, stamps.txt gained the line `2026-11-20T19:30:45Z STEP 5` (committed file is 1013 bytes). REPORT.md in the listing is the size before this listing was appended.
 
 ```
 $ git status --short
