@@ -1,0 +1,32 @@
+=== JOB 44 PART L: IS THE BUNDLE ALIVE AT 2,000 NODES? (O Set, 200 FENs, go nodes 2000, PC20, Built-in Eval) ===
+start_utc: Fri Nov 20 07:30:34 PM UTC 2026
+exe_path: /tmp/carbon2_job44/bld_bundle9/forge
+exe_sha256(/tmp/carbon2_job44/bld_bundle9/forge): 9441524dc1f2e669608f379ab990d80325cc447e4583162b6d51dd194cba45ef
+  O set FENs == UHO_BOOK lines 1..200         : PASS (200 == 200)
+
+  Part L (b) all_off_b equal positions vs (a) all_off_a: PASS (200 == 200)
+  Part L (b) all_off_b node_sum vs (a) all_off_a: PASS (283823 == 283823)
+
+--- Summary Table vs (a) all_off_a ---
+  code | setting                   | sum_nodes | mean_d | any_diff | node_diff | bestmove_diff | score_diff | equal_pos
+  -----+---------------------------+-----------+--------+----------+-----------+---------------+------------+----------
+  (a)  | all_off_a                 |    283823 |   5.96 |        0 |         0 |             0 |          0 |       200
+  (b)  | all_off_b                 |    283823 |   5.96 |        0 |         0 |             0 |          0 |       200
+  (c)  | bundle_B8b_HindsightDepth |    281182 |   5.93 |      178 |       178 |            19 |         60 |        22
+  (d)  | only_IdeaB8b              |    279912 |   5.92 |      125 |       125 |            16 |         51 |        75
+  (e)  | only_HindsightDepth       |    287214 |   5.99 |      148 |       148 |             2 |          9 |        52
+
+  [bundle_B8b_HindsightDepth vs all_off_a]:
+    sample bestmove diff (col 2, pos 8): bundle_B8b_HindsightDepth=(nodes=929, bestmove=f2f4, score=cp 249) vs all_off_a=(nodes=1634, bestmove=g1f3, score=cp 50)
+    sample score-only diff (col 3, pos 1): bundle_B8b_HindsightDepth=(nodes=1928, bestmove=f1e2, score=cp 84) vs all_off_a=(nodes=1505, bestmove=f1e2, score=cp 94)
+  [only_IdeaB8b vs all_off_a]:
+    sample bestmove diff (col 2, pos 8): only_IdeaB8b=(nodes=929, bestmove=f2f4, score=cp 249) vs all_off_a=(nodes=1634, bestmove=g1f3, score=cp 50)
+    sample score-only diff (col 3, pos 1): only_IdeaB8b=(nodes=1934, bestmove=f1e2, score=cp 84) vs all_off_a=(nodes=1505, bestmove=f1e2, score=cp 94)
+  [only_HindsightDepth vs all_off_a]:
+    sample bestmove diff (col 2, pos 46): only_HindsightDepth=(nodes=1988, bestmove=d8d4, score=cp -80) vs all_off_a=(nodes=1673, bestmove=d8e7, score=cp -90)
+    sample score-only diff (col 3, pos 23): only_HindsightDepth=(nodes=1980, bestmove=d1h5, score=cp -46) vs all_off_a=(nodes=965, bestmove=d1h5, score=cp 29)
+
+  PREDICTION (1) CHECK: bundle (c) node_diff vs (a) = 178 / 200 (predicted 194, range [175, 200] -> TRUE)
+  M9 GATE: bundle (c) differs from (a) on 178 / 200 positions -> PLAY PART M9 = True
+  PART L OVERALL                              : PASS (1 == 1)
+done_utc: Fri Nov 20 07:30:36 PM UTC 2026
