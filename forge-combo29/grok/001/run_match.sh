@@ -10,6 +10,9 @@ EXE="/agent/repos/work/forge-combo29/build/forge"
 FC="/tmp/fastchess/fastchess"
 OUT="forge-combo29/grok/$S/${TAG}.txt"
 PGN="forge-combo29/grok/$S/${TAG}.pgn"
+ROUNDS=$(grep -cve '^$' "$OPEN")
+# fastchess truncates the book to -rounds and -repeat sets two games per opening.
+rm -f config.json "$PGN"
 OPTS=(
   option.Hash=16
   option.Threads=1
@@ -36,6 +39,7 @@ OPTS=(
   echo "fastchess=$FC"
   echo "fastchess_sha256=$(sha256sum "$FC" | awk '{print $1}')"
   echo "openings=$OPEN"
+  echo "rounds=$ROUNDS"
   echo "concurrency=3"
   date -u +%Y-%m-%dT%H:%M:%SZ
 } > "forge-combo29/grok/$S/${TAG}.meta"
@@ -43,7 +47,7 @@ OPTS=(
   -engine cmd="$EXE" name=on proto=uci nodes=20000 option.EvalRule50Damp=true "${OPTS[@]}" \
   -engine cmd="$EXE" name=off proto=uci nodes=20000 option.EvalRule50Damp=false "${OPTS[@]}" \
   -openings file="$OPEN" format=epd order=sequential \
-  -rounds 1 -repeat -concurrency 3 \
+  -rounds "$ROUNDS" -repeat -concurrency 3 \
   -pgnout file="$PGN" notation=uci \
   > "$OUT" 2>&1
 echo EXIT:$? >> "$OUT"

@@ -1,0 +1,7 @@
+The match Elo of switch true against switch false is below -20 and the printed interval is entirely below 0, so I looked once for a mistake.
+
+Exe B with EvalRule50Damp true and exe P with EvalRule50Damp true (span left at the default 100) were compared on O at depth 12 by compare_rows.py and node_diff.py. Their output is cmp_Bon_Pon.txt and node_diff_Bon_Pon.txt.
+
+refresh() in search.cpp only rebuilds the late-move reduction tables from LmrQuietBase, LmrQuietDivisor, LmrNoisyBase and LmrNoisyDivisor. The span is read only after the EvalRule50Damp early return. At span 100 the fade is score * (100 - clock) / 100 with clock clamped to 0..100, which is the arithmetic already in the base engine.
+
+I did not find a mistake in the patch. The loss is the existing EvalRule50Damp feature under S14 at 20000 nodes.
