@@ -1,0 +1,149 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..b88aa7d97 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -302,6 +302,8 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern bool IdeaS25;                 // arm a narrow root window only after in-window scores (false = off)
++extern int IdeaS25_ArmAfter;         // in-window root scores required before the narrow window arms
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+@@ -498,6 +500,9 @@ private:
+     std::int64_t soft_limit_ms_ = 0;
+     std::int64_t hard_limit_ms_ = 0;
+     bool time_managed_ = false;
++    // IdeaS25 only: a root re-search that is still outside the window must not
++    // end on the soft time stop. Stays false for the whole default search.
++    bool hold_time_for_window_ = false;
+     // Clock play with no time left after Move Overhead. A hard limit of 0
+     // means "not on a clock", so this flag is what makes the search stop.
+     bool clock_reserve_empty_ = false;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..af81b5695 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -102,6 +102,8 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++bool IdeaS25 = false;
++int IdeaS25_ArmAfter = 1;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -131,6 +133,7 @@ const std::vector<Parameter>& parameters() {
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
++        {"IdeaS25_ArmAfter", &IdeaS25_ArmAfter, 1, 16},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+@@ -1284,6 +1287,9 @@ bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+     }
+     if (hard_limit_ms_ > 0) {
+         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
++        // Soft and movetime share this clock stop. A root re-search that has
++        // not landed inside the window is not a finished iteration.
++        if (hold_time_for_window_) return false;
+         if (elapsed_ms() >= hard_limit_ms_) return true;
+     }
+     return false;
+@@ -2369,6 +2375,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     // AspArmLate: a finished root iteration that failed high or low at least
+     // once makes the following iteration use a full window.
+     bool reopen_full_window = false;
++    // IdeaS25 counts finished root iterations whose score landed inside the
++    // window that searched them. The narrow window stays off until that count
++    // reaches IdeaS25_ArmAfter. Depth 1 is a full window, so the first
++    // resolved score is what arms the later iterations.
++    int idea_s25_inside = 0;
++    bool idea_s25_armed = false;
++    hold_time_for_window_ = false;
+     // Durations of the two finished iterations used by TmFinishIteration.
+     std::int64_t finish_prev_ms = 0;
+     std::int64_t finish_last_ms = 0;
+@@ -2402,16 +2415,22 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         int beta = Infinite;
+         // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+         // after the previous iteration failed high or low at least once.
+-        const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++        // IdeaS25 replaces that depth gate: the window arms only after enough
++        // scores have landed inside their bounds.
++        bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++        if (tune::IdeaS25) narrow = idea_s25_armed && !(tune::AspArmLate && reopen_full_window);
+         if (narrow) {
+             alpha = std::max(score - delta, -Infinite);
+             beta = std::min(score + delta, Infinite);
+         }
+         int iteration_score = score;
+         bool failed_window = false;
++        bool resolved_inside = false;
+         while (true) {
+             ss->ply = 0;
++            if (tune::IdeaS25 && failed_window) hold_time_for_window_ = true;
+             iteration_score = search(board, ss, depth, alpha, beta, false);
++            if (hold_time_for_window_) hold_time_for_window_ = false;
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 failed_window = true;
+@@ -2431,10 +2450,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                     beta = std::min(iteration_score + delta, Infinite);
+                 }
+             } else {
++                resolved_inside = true;
+                 break;
+             }
+             delta += delta / 2 + 4;
+         }
++        if (tune::IdeaS25 && resolved_inside) {
++            ++idea_s25_inside;
++            if (idea_s25_inside >= tune::IdeaS25_ArmAfter) idea_s25_armed = true;
++        }
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
+             // A clock or external stop may keep a root move that already raised
+@@ -2554,7 +2578,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         // keeping this move and score. The hard cap is enforced inside search.
+         if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+         if (should_stop()) break;
+-        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
++        // An unresolved window is not a finished iteration, so it must not trip
++        // the soft time stop. The option off leaves this guard true.
++        const bool iteration_complete_for_soft = !tune::IdeaS25 || resolved_inside;
++        if (iteration_complete_for_soft && time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+             if (finish_sampling) {
+                 const std::int64_t spent = elapsed_ms() - finish_origin;
+                 finish_prev_ms = finish_last_ms;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..c5599cba5 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -226,6 +226,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
++                         "option name IdeaS25 type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+@@ -402,7 +403,7 @@ int uci_loop(std::istream& in) {
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+-                       name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
++                       name == "NullSeeVeto" || name == "AspArmLate" || name == "IdeaS25" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+@@ -412,6 +413,7 @@ int uci_loop(std::istream& in) {
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
++                             : name == "IdeaS25" ? &forge::tune::IdeaS25
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
+                                                         : &forge::tune::TmFinishIteration;
