@@ -2,7 +2,7 @@
 """Fixed-depth node harness. Stops on unknown option, invalid value, invalid FEN, illegal move."""
 import argparse
 import hashlib
-import select
+import queue
 import subprocess
 import sys
 import threading
@@ -26,8 +26,17 @@ class Engine:
         self.stderr_lines: list[str] = []
         self.sanitizer: list[str] = []
         self.fail: str | None = None
+        self.lines: queue.Queue[str | None] = queue.Queue()
+        self._out = threading.Thread(target=self._read_out, daemon=True)
         self._err = threading.Thread(target=self._drain, daemon=True)
+        self._out.start()
         self._err.start()
+
+    def _read_out(self) -> None:
+        assert self.proc.stdout is not None
+        for line in self.proc.stdout:
+            self.lines.put(line.rstrip("\n"))
+        self.lines.put(None)
 
     def _drain(self) -> None:
         assert self.proc.stderr is not None
@@ -42,16 +51,14 @@ class Engine:
         self.proc.stdin.flush()
 
     def read_until(self, done, timeout: float) -> list[str]:
-        assert self.proc.stdout is not None
         lines: list[str] = []
         while True:
-            ready, _, _ = select.select([self.proc.stdout], [], [], timeout)
-            if not ready:
-                raise TimeoutError(f"no engine line within {timeout}s; last={lines[-3:]}")
-            line = self.proc.stdout.readline()
-            if line == "":
+            try:
+                line = self.lines.get(timeout=timeout)
+            except queue.Empty:
+                raise TimeoutError(f"no engine line within {timeout}s; last={lines[-3:]}") from None
+            if line is None:
                 raise EOFError(f"engine closed stdout; last={lines[-3:]}")
-            line = line.rstrip("\n")
             lines.append(line)
             if any(mark in line for mark in BAD):
                 self.fail = line
