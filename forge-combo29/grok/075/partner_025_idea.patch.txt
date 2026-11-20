@@ -1,0 +1,123 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..afd34c108 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -300,6 +300,10 @@ extern bool LmrLateParentRelief;     // one ply less reduction on the first few
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool IdeaS33;                 // scale the null reduction by a thin static margin and skip verification (false = off)
++extern int IdeaS33_Max;              // extra null-move plies when the static margin over beta is 0
++extern int IdeaS33_Divisor;          // centipawns of static margin that remove one of those extra plies
++extern int IdeaS33_Near;             // a null miss of at most this many centipawns grants the real search one ply
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..bad630fad 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -100,6 +100,10 @@ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
++bool IdeaS33 = false;
++int IdeaS33_Max = 3;
++int IdeaS33_Divisor = 80;
++int IdeaS33_Near = 40;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+@@ -1677,6 +1681,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     constexpr bool bare_king_mode = false;
+ #endif
+ 
++    bool s33_near_miss = false;
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+         board.halfmove_clock() + depth < 100) {
+         // Razoring: hopeless positions fall back to quiescence.
+@@ -1698,8 +1703,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
+-            const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+-                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++            int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
++                            std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++            // IdeaS33 replaces only the margin term. A thin static margin adds up
++            // to IdeaS33_Max plies; a large margin adds none. Off keeps the line above.
++            if (tune::IdeaS33) {
++                int margin = ss->static_eval - beta;
++                if (margin < 0) margin = 0;
++                int extra = 0;
++                if (tune::IdeaS33_Divisor > 0) extra = tune::IdeaS33_Max - margin / tune::IdeaS33_Divisor;
++                if (extra < 0) extra = 0;
++                reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor + extra;
++            }
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -1716,6 +1731,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
++                // A probe that still reaches beta is accepted with no second search.
++                if (tune::IdeaS33) {
++                    ++null_cutoffs_;
++                    return null_score;
++                }
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
+                 // attacks a dearer piece of the side to move. The option is read
+@@ -1740,6 +1760,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
++            } else if (tune::IdeaS33 && !is_mate_score(null_score) &&
++                       beta - null_score <= tune::IdeaS33_Near) {
++                // A small miss buys one ply on the real-move search. No verification tree.
++                s33_near_miss = true;
+             }
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+@@ -1782,6 +1806,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    // IdeaS33: a near-miss null probe spends its ply here, after IIR, not in a verification tree.
++    if (s33_near_miss) ++depth;
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..398f04371 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -224,6 +224,10 @@ int uci_loop(std::istream& in) {
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
++                         "option name IdeaS33 type check default false\n"
++                         "option name IdeaS33_Max type spin default 3 min 0 max 6\n"
++                         "option name IdeaS33_Divisor type spin default 80 min 1 max 1000\n"
++                         "option name IdeaS33_Near type spin default 40 min 0 max 500\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+@@ -394,6 +398,16 @@ int uci_loop(std::istream& in) {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
+                 else note_invalid();
++            } else if (name == "IdeaS33") {
++                if (value_text == "true") forge::tune::IdeaS33 = true;
++                else if (value_text == "false") forge::tune::IdeaS33 = false;
++                else note_invalid();
++            } else if (name == "IdeaS33_Max") {
++                apply_spin(0, 6, [&](int clamped) { forge::tune::IdeaS33_Max = clamped; });
++            } else if (name == "IdeaS33_Divisor") {
++                apply_spin(1, 1000, [&](int clamped) { forge::tune::IdeaS33_Divisor = clamped; });
++            } else if (name == "IdeaS33_Near") {
++                apply_spin(0, 500, [&](int clamped) { forge::tune::IdeaS33_Near = clamped; });
+             } else if (name == "DeadMaterial") {
+                 if (value_text != "true" && value_text != "false") note_invalid();
+                 else if (forge::dead_material_enabled != (value_text == "true")) {
