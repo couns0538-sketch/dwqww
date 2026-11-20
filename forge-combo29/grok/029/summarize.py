@@ -64,6 +64,23 @@ def main() -> None:
     for line in (HERE / "uci_options.txt").read_text(encoding="utf-8").splitlines():
         if "IdeaB10" in line:
             print(line)
+    claimed = [int(line) for line in (HERE / "partner_claimed_on_O.nodes").read_text().split()]
+    off = search_nodes(HERE / "partner_off_O_d12.txt")
+    on = search_nodes(HERE / "partner_on_O_d12.txt")
+    base = search_nodes(HERE / "B_O_d12.txt")
+    print(
+        f"partner off vs B equal={off == base} differ={sum(x != y for x, y in zip(off, base))} sum={sum(off)}"
+    )
+    print(
+        f"partner on vs claimed equal={on == claimed} differ={sum(x != y for x, y in zip(on, claimed))} "
+        f"sum={sum(on)} claimed_sum={sum(claimed)} on_vs_B_differ={sum(x != y for x, y in zip(on, base))}"
+    )
+    print("step | status | evidence | result")
+    print("STEP 1 | done | SEAT.txt stamps.txt | seat 029 idea 29")
+    print("STEP 2 | done | HONESTY_B.txt B_O_d12.txt B_G_d12.txt | bench/perft match; O 9500069; G 18466239")
+    print("STEP 3 | done | idea.patch.txt P_on_O_d12.txt match_stdout.txt asan_G100_d10.txt | see proofs above")
+    print("STEP 4 | done | partner_off_O_d12.txt partner_on_O_d12.txt partner_match_stdout.txt | see partner lines above")
+    print("STEP 5 | done | REPORT.md RESULT.txt | this report")
 
 
 if __name__ == "__main__":

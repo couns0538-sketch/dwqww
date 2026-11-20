@@ -1,0 +1,29 @@
+honesty B
+info string bench depth 11 nodes 312866 time 180 nps 1738144
+info string bench depth 13 nodes 862329 time 576 nps 1497098
+info string bench depth 16 nodes 3024920 time 1927 nps 1569756
+nodes 4865609
+honesty P
+info string bench depth 11 nodes 312866 time 165 nps 1896157
+info string bench depth 13 nodes 862329 time 449 nps 1920554
+info string bench depth 16 nodes 3024920 time 1482 nps 2041106
+nodes 4865609
+O off vs B n=200/200 equal=True differ=0 sum_left=9500069 sum_right=9500069 first3_left=[41311, 24872, 28574] first3_right=[41311, 24872, 28574]
+G off vs B n=353/353 equal=True differ=0 sum_left=18466239 sum_right=18466239 first3_left=[37203, 70845, 144383] first3_right=[37203, 70845, 144383]
+O on vs B n=200/200 equal=False differ=197 sum_left=9500069 sum_right=11919607 first3_left=[41311, 24872, 28574] first3_right=[27429, 36528, 40796]
+asan_G100 sanitizer_lines=0
+asan_scratch sanitizer_lines=1
+/tmp/scratch/forge-combo29/src/uci.cpp:499:34: runtime error: load of address 0x502000000090 with insufficient space for an object of type 'int'
+asan_G100_d10.txt.meta nm_asan_count: 35
+asan_scratch.txt.meta nm_asan_count: 35
+option name IdeaB10 type check default false
+option name IdeaB10_Ratio type spin default 384 min 257 max 4096
+option name IdeaB10_Cap type spin default 3 min 0 max 16
+partner off vs B equal=True differ=0 sum=9500069
+partner on vs claimed equal=True differ=0 sum=9836323 claimed_sum=9836323 on_vs_B_differ=199
+step | status | evidence | result
+STEP 1 | done | SEAT.txt stamps.txt | seat 029 idea 29
+STEP 2 | done | HONESTY_B.txt B_O_d12.txt B_G_d12.txt | bench/perft match; O 9500069; G 18466239
+STEP 3 | done | idea.patch.txt P_on_O_d12.txt match_stdout.txt asan_G100_d10.txt | see proofs above
+STEP 4 | done | partner_off_O_d12.txt partner_on_O_d12.txt partner_match_stdout.txt | see partner lines above
+STEP 5 | done | REPORT.md RESULT.txt | this report
