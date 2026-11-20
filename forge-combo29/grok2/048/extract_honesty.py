@@ -6,7 +6,7 @@ from pathlib import Path
 
 d = Path(sys.argv[1])
 for p in sorted(d.glob("honesty_*.txt")):
-    if p.name.endswith("_uci.txt"):
+    if p.name.endswith("_uci.txt") or "table" in p.name:
         continue
     text = p.read_text(encoding="utf-8", errors="replace")
     nodes = re.findall(r"nodes (\d+)", text)
