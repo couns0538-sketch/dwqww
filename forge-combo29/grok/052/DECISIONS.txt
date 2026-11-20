@@ -1,0 +1,11 @@
+Idea S28, option IdeaS28, check, default false.
+
+The plain engine does not do this idea. ThreatHistory (forge-combo29/src/search.cpp quiet_threat_index) is a different table: two bits, origin attacked or not, and destination attacked or not. S28 is four classes of the cheapest cheaper enemy attacker of the origin only: 0 none, 1 pawn, 2 minor, 3 rook.
+
+Equal SEE value is not cheaper, so a knight does not class a bishop. A king is never cheaper. A queen is not one of the four named classes, so a queen-only attack stays class 0. A pawn has no cheaper attacker and stays class 0. The destination is not indexed. There is no added constant threat bonus; the table is the whole change.
+
+The table is updated in the same three places as the main quiet history, with the same bonus the main history already uses (full bonus on a quiet cutoff, the negation for the quiets that failed, and a quarter bonus when a quiet becomes best without a cutoff). It is added inside quiet_history, so ordering and the history term of reductions see the same number. With the option false both the read and the write return before touching the table, so the score is unchanged.
+
+No spin option. The four classes are fixed by the idea text. A scale would be a second change on top of the table. The bonus magnitude is the engine's existing history bonus.
+
+git apply --check of idea.patch.txt on the clean base worktree printed APPLY_CHECK_OK.
