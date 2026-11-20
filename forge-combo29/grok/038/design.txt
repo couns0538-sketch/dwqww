@@ -1,0 +1,9 @@
+IdeaA7, seat 038. The plain engine does not do this. No EXISTS line.
+
+What it is: at a node whose depth is inside IdeaA7_MinDepth..IdeaA7_MaxDepth (defaults 2 and 12), once a searched move has raised alpha and that alpha is not a mate score, every later move is searched IdeaA7_Ply plies shallower (default 1). The cut is applied to new_depth after extensions, so the reduced search, the re-search, and the principal-variation search all use the shallower depth. There is no extra re-search to put the ply back.
+
+Why a zero-window node does not change: a score above alpha is already at least beta, and the node returns. Only a window wider than one pawn keeps searching after the raise.
+
+Why the quiescence guard exists: a one-ply cut from depth 2 lands on depth <= 0. The late-move clamp needs a positive upper bound. Those moves skip that block and enter search(), which already calls quiescence at depth <= 0. With the option off the guard is false, so that block's condition is the one the plain engine uses.
+
+Options: IdeaA7 check default false; IdeaA7_MinDepth spin default 2 min 0 max 64; IdeaA7_MaxDepth spin default 12 min 0 max 64; IdeaA7_Ply spin default 1 min 0 max 8.
