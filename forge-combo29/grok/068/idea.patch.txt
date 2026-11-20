@@ -1,0 +1,212 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..eac2e5df4 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -304,6 +304,9 @@ extern bool AspCappedReopen;         // root fail: capped reopen, or full open w
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool IdeaS16;                 // quiet lever: order and milder reduction, no eval bonus (false = off)
++extern int IdeaS16_Order;            // added to the move score of a move that clears the last stopper
++extern int IdeaS16_Relief;           // plies removed from that move's late-move reduction
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..dde5d8ebc 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -104,6 +104,9 @@ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
++bool IdeaS16 = false;
++int IdeaS16_Order = 4000;
++int IdeaS16_Relief = 1;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS16_Order", &IdeaS16_Order, 0, 20000},             {"IdeaS16_Relief", &IdeaS16_Relief, 0, 4},
+     };
+     return table;
+ }
+@@ -278,6 +282,54 @@ std::string format_score(int score) {
+     return "cp " + std::to_string(score);
+ }
+ 
++// Idea S16. A friendly pawn that is not yet passed, with exactly one stopper
++// (an enemy pawn in its passed-pawn span), every stopper a lever (attacked by
++// a friendly pawn), and at least as many friendly pawn helpers as enemy pawn
++// attackers on the one-step push square. The move that clears that last
++// stopper is a quiet pawn push onto a square that attacks it, or a capture of
++// it whose static exchange is not losing. Nothing is added to the evaluation.
++[[nodiscard]] Bitboard last_lever_stoppers(const Board& board) {
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const Bitboard our_pawns = board.pieces(us, Pawn);
++    const Bitboard their_pawns = board.pieces(them, Pawn);
++    const Bitboard our_pawn_attacks = pawn_attacks_bb(us, our_pawns);
++    Bitboard last = 0;
++    Bitboard pawns = our_pawns;
++    while (pawns != 0) {
++        const int sq = pop_lsb(pawns);
++        if (relative_rank(us, sq) >= 6) continue;
++        const Bitboard stoppers = their_pawns & attacks::passed_pawn_mask(us, sq);
++        if (stoppers == 0 || more_than_one(stoppers)) continue;
++        if ((stoppers & ~our_pawn_attacks) != 0) continue;
++        const int push = sq + pawn_push_delta(us);
++        const int helpers = popcount(attacks::pawn(them, push) & our_pawns);
++        const int attackers = popcount(attacks::pawn(us, push) & their_pawns);
++        if (helpers < attackers) continue;
++        last |= stoppers;
++    }
++    return last;
++}
++
++[[nodiscard]] bool clears_last_stopper(const Board& board, Move move, Bitboard last) {
++    if (last == 0 || move.is_none()) return false;
++    if (move.is_quiet()) {
++        if (piece_type(board.moved_piece(move)) != Pawn) return false;
++        return (attacks::pawn(board.side_to_move(), move.to) & last) != 0;
++    }
++    if (!move.is_capture()) return false;
++    int cap_sq = move.to;
++    if ((move.flags & EnPassant) != 0U) cap_sq = move.to - pawn_push_delta(board.side_to_move());
++    if (cap_sq < 0 || cap_sq > 63) return false;
++    if ((last & square_bb(cap_sq)) == 0) return false;
++    return board.see_ge(move, 0);
++}
++
++[[nodiscard]] int lever_order_bonus(const Board& board, Move move, Bitboard last) {
++    if (!clears_last_stopper(board, move, last)) return 0;
++    return tune::IdeaS16_Order;
++}
++
+ } // namespace
+ 
+ // Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the
+@@ -892,6 +944,7 @@ private:
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
++        const Bitboard lever_last = tune::IdeaS16 ? last_lever_stoppers(board_) : 0;
+ #if FORGE_SEARCH_SPEED2
+         const CaptureHistory& capture_history = *searcher_.capture_history_;
+ #endif
+@@ -906,6 +959,7 @@ private:
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+ #endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++            if (lever_last != 0) score += lever_order_bonus(board_, move, lever_last);
+             push_scored(move, score);
+         }
+         sort_moves();
+@@ -921,15 +975,19 @@ private:
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
++        const Bitboard lever_last = tune::IdeaS16 ? last_lever_stoppers(board_) : 0;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+-            push_scored(move, scorer.score(move, check_squares_));
++            int score = scorer.score(move, check_squares_);
++            if (lever_last != 0) score += lever_order_bonus(board_, move, lever_last);
++            push_scored(move, score);
+         }
+ #else
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (lever_last != 0) score += lever_order_bonus(board_, move, lever_last);
+             push_scored(move, score);
+         }
+ #endif
+@@ -941,17 +999,21 @@ private:
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
++        const Bitboard lever_last = tune::IdeaS16 ? last_lever_stoppers(board_) : 0;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+-            push_scored(move, scorer.score(move, check_squares_));
++            int score = scorer.score(move, check_squares_);
++            if (lever_last != 0) score += lever_order_bonus(board_, move, lever_last);
++            push_scored(move, score);
+         }
+ #else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (lever_last != 0) score += lever_order_bonus(board_, move, lever_last);
+             push_scored(move, score);
+         }
+ #endif
+@@ -974,6 +1036,7 @@ private:
+         // above both quiet history and the legacy promotion scores (captures first).
+         // Quiet evasions keep the same mix generate_quiets uses.
+         const bool history_evasions = tune::EvasionOrdering;
++        const Bitboard lever_last = tune::IdeaS16 ? last_lever_stoppers(board_) : 0;
+         for (const Move move : buffer_) {
+             int score;
+             if (history_evasions && move.is_capture()) {
+@@ -990,6 +1053,7 @@ private:
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+ #endif
+             }
++            if (lever_last != 0) score += lever_order_bonus(board_, move, lever_last);
+             push_scored(move, score);
+         }
+         sort_moves();
+@@ -1811,6 +1875,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
++    const Bitboard lever_stoppers = tune::IdeaS16 ? last_lever_stoppers(board) : 0;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -2008,6 +2073,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            if (tune::IdeaS16 && clears_last_stopper(board, move, lever_stoppers)) r -= tune::IdeaS16_Relief;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..47a39dd97 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaS16 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaS16") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,6 +415,7 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
++                             : name == "IdeaS16" ? &forge::tune::IdeaS16
+                                                         : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";

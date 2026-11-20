@@ -1,0 +1,8 @@
+Idea S16, seat 068. The plain engine does not do this. No EXISTS line.
+
+What was added, and why this shape:
+A friendly pawn is a quiet-lever candidate when it is not on the 7th rank, it has exactly one stopper (an enemy pawn in its passed-pawn span), that stopper is a lever (a friendly pawn attacks it), and the one-step push square has at least as many friendly pawn helpers as enemy pawn attackers. Helpers and attackers are pawns, the published candidate-passer test. Exactly one stopper, because only then does one move clear the last stopper.
+
+The move that clears it is either a quiet pawn push onto a square that attacks that stopper, or any capture of that stopper (including en passant) whose static exchange is not losing. That move gets IdeaS16_Order (default 4000) added to its move-picker score, and IdeaS16_Relief (default 1) plies taken off its late-move reduction. No term is added to the evaluation. The check IdeaS16 defaults false. While it is false the new bitboards are not built and no score or reduction changes, so the search path is today's path.
+
+Order 4000 sits above a zero history and below the existing 12000 check bonus, so a quiet lever moves up among quiets and a pawn-takes-pawn lever (score about 1000) moves up among captures without jumping the queen captures. Relief 1 matches the size of the engine's other one-ply reduction relief.
