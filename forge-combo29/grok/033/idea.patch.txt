@@ -1,0 +1,170 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..8bf0a1d95 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -298,6 +298,8 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern bool IdeaA2;                  // blend a non-PV fail-high toward beta (false = off)
++extern int IdeaA2_MinDepth;          // minimum node depth for that blend
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..1cd5fba45 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -98,6 +98,8 @@ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
++bool IdeaA2 = false;
++int IdeaA2_MinDepth = 2;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaA2_MinDepth", &IdeaA2_MinDepth, 1, 64},
+     };
+     return table;
+ }
+@@ -1554,6 +1557,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const int ply = ss->ply;
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    // Off: the flag fails first and the returned integer is the one this node
++    // already produced. On: a non-PV, non-root fail-high that is not a mate is
++    // pulled toward beta. The hash still stores the unblended score.
++    auto idea_a2_return = [&](int score) {
++        if (!tune::IdeaA2 || pv_node || root_node || depth < tune::IdeaA2_MinDepth || score < beta ||
++            is_mate_score(score)) {
++            return score;
++        }
++        return static_cast<int>((static_cast<long long>(score) * depth + beta) / (depth + 1));
++    };
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -1566,12 +1579,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+-        if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
++        if (is_draw(board, ply)) return idea_a2_return(DrawJitter <= 0 ? 0 : draw_leaf_score(board));
++        if (ply >= MaxPly) return idea_a2_return(board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock()));
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) return idea_a2_return(alpha);
+     }
+ 
+     const bool in_check = board.in_check();
+@@ -1640,7 +1653,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+-        return tt_score;
++        return idea_a2_return(tt_score);
+     }
+ 
+     // Static evaluation. reuse_raw is the hindsight eval of this position.
+@@ -1683,12 +1696,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor < alpha) return idea_a2_return(razor);
+         }
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return idea_a2_return(eval);
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -1724,7 +1737,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return idea_a2_return(null_score);
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+                 // confirmation also refuses null moves in that whole search.
+@@ -1738,7 +1751,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return idea_a2_return(null_score);
+                 }
+             }
+         }
+@@ -1774,7 +1787,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+-                    return value;
++                    return idea_a2_return(value);
+                 }
+             }
+         }
+@@ -1946,7 +1959,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+-                return singular_beta;
++                return idea_a2_return(singular_beta);
+             } else if (tt_score >= beta) {
+                 extension = -2;
+             } else if (cut_node) {
+@@ -2067,9 +2080,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+ 
+     if (move_count == 0) {
+-        if (!excluded.is_none()) return alpha;
++        if (!excluded.is_none()) return idea_a2_return(alpha);
+         if (root_node && root_restricted_) return 0;
+-        return in_check ? mated_in(ply) : 0;
++        return idea_a2_return(in_check ? mated_in(ply) : 0);
+     }
+ 
+     if (best_score >= beta) {
+@@ -2105,7 +2118,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+         update_correction(board, depth, best_score, ss->static_eval);
+     }
+-    return best_score;
++    return idea_a2_return(best_score);
+ }
+ 
+ namespace {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..0812a1e59 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -222,6 +222,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
++                         "option name IdeaA2 type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaA2") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA2 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;

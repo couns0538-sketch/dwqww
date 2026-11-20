@@ -64,23 +64,24 @@ def write_meta(path: Path, exe: Path, digest: str, name: str, options: list[str]
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
-        print("usage: honesty_b.py EXE OUTDIR", file=sys.stderr)
+    if len(sys.argv) not in (3, 4):
+        print("usage: honesty_b.py EXE OUTDIR [tag]", file=sys.stderr)
         return 2
     exe = Path(sys.argv[1]).resolve()
     outdir = Path(sys.argv[2]).resolve()
+    tag = sys.argv[3] if len(sys.argv) == 4 else "honesty_b"
     outdir.mkdir(parents=True, exist_ok=True)
     digest = sha256(exe)
     uci_text = run(exe, "uci\nquit\n")
-    (outdir / "honesty_b_uci.txt").write_text(uci_text, encoding="utf-8")
+    (outdir / f"{tag}_uci.txt").write_text(uci_text, encoding="utf-8")
     name = id_name(uci_text)
-    write_meta(outdir / "honesty_b_uci.meta", exe, digest, name, [])
+    write_meta(outdir / f"{tag}_uci.meta", exe, digest, name, [])
 
     jobs = [
-        ("bench11", "bench 11\nquit\n", "honesty_b_bench11.txt"),
-        ("bench13", "bench 13\nquit\n", "honesty_b_bench13.txt"),
-        ("bench16", "bench 16\nquit\n", "honesty_b_bench16.txt"),
-        ("perft5", "go perft 5\nquit\n", "honesty_b_perft5.txt"),
+        ("bench11", "bench 11\nquit\n", f"{tag}_bench11.txt"),
+        ("bench13", "bench 13\nquit\n", f"{tag}_bench13.txt"),
+        ("bench16", "bench 16\nquit\n", f"{tag}_bench16.txt"),
+        ("perft5", "go perft 5\nquit\n", f"{tag}_perft5.txt"),
     ]
     rows = []
     ok = True
@@ -95,7 +96,7 @@ def main() -> int:
         ok = ok and match
         rows.append((key, got, want, match, filename))
 
-    report = outdir / "HONESTY_B.txt"
+    report = outdir / ("HONESTY_B.txt" if tag == "honesty_b" else tag.upper() + ".txt")
     body = [f"exe={exe}", f"sha256={digest}", f"id_name={name}", "setoption=none"]
     for key, got, want, match, filename in rows:
         body.append(f"{key} nodes={got} expected={want} match={str(match).lower()} file={filename}")

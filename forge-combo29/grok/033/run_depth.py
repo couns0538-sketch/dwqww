@@ -93,21 +93,37 @@ class Engine:
 
 
 def main() -> int:
-    if len(sys.argv) != 6:
-        print("usage: run_depth.py EXE POSITIONS DEPTH OUT_RAW OUT_META", file=sys.stderr)
+    if len(sys.argv) < 6:
+        print("usage: run_depth.py EXE POSITIONS DEPTH OUT_RAW OUT_META [Name=value ...]", file=sys.stderr)
         return 2
     exe = Path(sys.argv[1]).resolve()
     positions = Path(sys.argv[2]).resolve()
     depth = int(sys.argv[3])
     raw_path = Path(sys.argv[4]).resolve()
     meta_path = Path(sys.argv[5]).resolve()
+    extra = []
+    for item in sys.argv[6:]:
+        if "=" not in item:
+            print("extra option must be Name=value", file=sys.stderr)
+            return 2
+        key, value = item.split("=", 1)
+        extra.append((key, value))
     fens = [fen_of(line) for line in positions.read_text(encoding="utf-8").splitlines()]
     fens = [fen for fen in fens if fen]
     name = id_name_of(exe)
     digest = sha256(exe)
+    asan_symbols = subprocess.run(
+        ["nm", "-C", str(exe)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    asan_count = sum(1 for line in asan_symbols.stdout.splitlines() if "__asan_" in line)
     option_lines = [f"setoption name Threads value 1", f"setoption name Hash value 16"]
     option_lines += [f"setoption name {key} value {value}" for key, value in S14]
+    option_lines += [f"setoption name {key} value {value}" for key, value in extra]
     engine = Engine(exe)
+    error = ""
     try:
         for fen in fens:
             engine.send("ucinewgame")
@@ -122,6 +138,8 @@ def main() -> int:
             engine.read_until(lambda line: line.startswith("readyok"))
             engine.send(f"go depth {depth}")
             engine.read_until(lambda line: line.startswith("bestmove "))
+    except RuntimeError as exc:
+        error = str(exc)
     finally:
         engine.close()
     raw_path.write_text("".join(engine.lines), encoding="utf-8")
@@ -132,11 +150,17 @@ def main() -> int:
         f"positions={positions}",
         f"depth={depth}",
         f"count={len(fens)}",
+        f"asan_symbols={asan_count}",
         "options:",
         *option_lines,
     ]
+    if error:
+        meta.append(f"error={error}")
     meta_path.write_text("\n".join(meta) + "\n", encoding="utf-8")
     print(f"wrote {raw_path} lines={len(engine.lines)} positions={len(fens)}")
+    if error:
+        print(error, file=sys.stderr)
+        return 1
     return 0
 
 

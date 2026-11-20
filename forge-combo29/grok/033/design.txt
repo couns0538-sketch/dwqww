@@ -1,0 +1,9 @@
+IdeaA2, seat 033.
+
+The plain engine returns a fail-high unchanged (search.cpp return best_score and the earlier cutoffs). It does not blend that score toward beta. EXISTS no.
+
+What I built: UCI check IdeaA2, default false, and spin IdeaA2_MinDepth, default 2, range 1..64. With the check false, idea_a2_return() returns its argument immediately. With the check true, a non-PV non-root node whose depth is at least IdeaA2_MinDepth returns (score * depth + beta) / (depth + 1) when that score is a fail-high and not a mate. Quiescence is unchanged. Abort returns stay 0. The transposition table, history counters, and correction history keep the unblended score; only the integer handed back to the parent is blended. A later hash cutoff blends that stored score once, the same way a fresh return would.
+
+Root is excluded because it is the principal line, including an aspiration re-search. Integer division stays at least beta when the raw score is, so a cutoff still cuts off. The parent then stores the smaller margin, which is what moves the beta+100 history bonus and later bounds.
+
+MinDepth is the only number the idea states. The blend weights are the formula in the brief, not extra spins.
