@@ -149,6 +149,11 @@ def main() -> int:
             meta.append("option " + line)
         (Path(str(outprefix) + ".meta")).write_text("\n".join(meta) + "\n")
         print(f"positions {len(rows)} last {rows[-1].split()[1]}")
+    except SystemExit as failure:
+        outprefix.parent.mkdir(parents=True, exist_ok=True)
+        (Path(str(outprefix) + ".raw")).write_text("\n".join(eng.log) + "\n")
+        (Path(str(outprefix) + ".fail")).write_text(str(failure) + "\n")
+        raise
     finally:
         eng.close()
     return 0
