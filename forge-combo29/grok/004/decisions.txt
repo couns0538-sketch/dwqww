@@ -1,0 +1,18 @@
+The plain engine already does S35.
+
+EXISTS: forge-combo29/src/search.cpp:2010
+The check option LmrLateParentRelief already exists, default false.
+The fixed numbers on that line were arrival_index >= 7 and move_count <= 4.
+Those two numbers were not options. They are now
+LmrLateParentRelief_Index (default 7) and LmrLateParentRelief_Replies (default 4).
+With the check false, those spins are not read.
+With the check true and the spins left at the defaults, the condition is the
+same comparison the engine already used, and the reduction is still one ply.
+
+The idea text also says to try a second ply on the first reply when the parent
+was far later than the first threshold. That second ply is not in this engine.
+I did not add it. Adding it would change today's on-path, and the order for an
+idea that already exists is to expose today's numbers.
+
+The list's option name is IdeaS35. The engine's name for this idea is
+LmrLateParentRelief. I kept the engine's name.

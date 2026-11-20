@@ -1,0 +1,12 @@
+engine closed stdout
+/tmp/asan_scratch/forge-combo29/src/uci.cpp:46:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+0x5020000000c0: note: pointer points here
+ be be be be  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
+              ^ 
+    #0 0x561f97b4b1ff in (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&) (/tmp/asan_bug/forge+0x62d1ff) (BuildId: 8fc57349d6b4dfbee8085cec1cdbc29c3b1bbb4f)
+    #1 0x561f97b5d065 in forge::uci_loop(std::istream&) (/tmp/asan_bug/forge+0x63f065) (BuildId: 8fc57349d6b4dfbee8085cec1cdbc29c3b1bbb4f)
+    #2 0x7f71b242a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #3 0x7f71b242a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x561f978cb844 in _start (/tmp/asan_bug/forge+0x3ad844) (BuildId: 8fc57349d6b4dfbee8085cec1cdbc29c3b1bbb4f)
+
+
