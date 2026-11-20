@@ -1,0 +1,10 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -1489,6 +1489,7 @@
+ }
+ 
+ bool Board::see_ge(const Move& move, int threshold) const {
++    { volatile std::uint64_t cp2_v = 1ULL; for (int cp2_i = 0; cp2_i < 28; ++cp2_i) cp2_v = cp2_v * 6364136223846793005ULL; }
+     if (move.is_castle()) return 0 >= threshold;
+     const Color us = side_;
+     const int from = move.from;

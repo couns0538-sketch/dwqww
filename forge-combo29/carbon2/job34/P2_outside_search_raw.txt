@@ -1,0 +1,69 @@
+UTC: Fri Nov 20 09:40:20 AM UTC 2026
+=== JOB 34 PART C (P2): Profile Outside Worker::search on T (Inlined Code Counted at Source Function/Line) ===
+Binary: XG = /tmp/carbon2_job32/bld_sp_stXG_1/forge (reused from Job 32, -gline-tables-only, KP0=1.0015)
+Method: sudo perf record -e task-clock -c 50000 (fixed 50,000 ns = 20,000 samples/CPU-s) + perf script -c forge + llvm-symbolizer-18 --inlines
+Primary paired XG recording (perf_XG_p2.data): total=162046, Worker::search=75318 (46.48%), outside Worker::search (P2)=86728 (53.52%)
+Job 32 Table P recording (perf_XG.data):       total=161381, Worker::search=74110 (45.92%), outside Worker::search (P2)=87271 (54.08%)
+
+--- Every Function Outside Worker::search Above 0.50% of T (Primary J34 XG, with J32 XG beside it) ---
+Rk  J34_Samp   J34_%T  J32_Samp   J32_%T  Canonical Function (inlined code counted at source line)
+---------------------------------------------------------------------------------------------------------
+ 1     10241    6.32%     10469    6.49%  forge::nnue::v3::apply_pair_and_evaluate
+ 2      9265    5.72%      9768    6.05%  forge::nnue::v3::apply_one_refresh_one_and_evaluate
+ 3      3358    2.07%      3397    2.10%  forge::Board::see_ge
+ 4      3184    1.96%      3074    1.90%  forge::nnue::v3::apply_changes_pair_avx512
+ 5      2721    1.68%      2607    1.62%  forge::(anon)::square_attacked_with_occupancy
+ 6      2706    1.67%      2620    1.62%  forge::Board::upcoming_repetition
+ 7      2673    1.65%      2575    1.60%  forge::Worker::ensure_piece_diff
+ 8      2426    1.50%      2430    1.51%  forge::Board::has_legal_move
+ 9      2351    1.45%      2450    1.52%  std::__introsort_loop<MovePicker::Scored*>
+10      2129    1.31%      2168    1.34%  forge::MovePicker::generate_quiets()::lambda
+11      1569    0.97%      1605    0.99%  forge::TranspositionTable::probe_owned_fast
+12      1566    0.97%      1550    0.96%  forge::nnue::v3::refresh_from_pieces
+13      1389    0.86%      1477    0.92%  forge::Worker::qsearch
+14      1382    0.85%      1399    0.87%  forge::Worker::corrected_eval
+15      1257    0.78%      1263    0.78%  forge::MovePicker::generate_movies_lambda
+16      1255    0.77%      1261    0.78%  forge::Worker::static_evaluate_v3
+17      1209    0.75%      1240    0.77%  forge::MovePicker::QuietScorer::extra
+18      1204    0.74%      1186    0.73%  forge::MovePicker::push_scored
+19      1126    0.69%      1115    0.69%  forge::MovePicker::generate_evasions
+20      1108    0.68%      1073    0.66%  forge::nnue::v3::finish
+21      1004    0.62%      1020    0.63%  forge::MovePicker::generate_captures
+22       968    0.60%       878    0.54%  forge::attacks::bishop
+23       948    0.59%       984    0.61%  _raw_spin_unlock_irqrestore [[kernel.kallsyms]]
+24       932    0.58%       834    0.52%  forge::Board::generate_legal_evasions
+25       915    0.56%       924    0.57%  forge::nnue::v3::hsum_epi32_pair_avx512
+26       863    0.53%       887    0.55%  forge::Board::pieces
+27       837    0.52%       786    0.49%  forge::Board::is_pseudo_legal
+
+--- Three Hottest Source Lines for each of the Five Largest Functions Outside Worker::search [NOT TRUSTED — CP2 failed <= 25% planted-size check (+67.21% / +78.26%); nothing below the function level is trusted or used] ---
+
+#1. forge::nnue::v3::apply_pair_and_evaluate — 10241 samples (6.32% of T):
+    line 1: src/nnue_v3.cpp:933   |  1946 samp ( 1.20% of T) | sum1 = _mm512_add_epi32(sum1, _mm512_madd_epi16(_mm512_mullo_epi16(c_v1, _mm512_load_si512(reinterpret_cast<const __m512i*>(w1 + h))), c_v1));
+    line 2: src/nnue_v3.cpp:924   |  1252 samp ( 0.77% of T) | _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
+    line 3: src/nnue_v3.cpp:929   |  1025 samp ( 0.63% of T) | _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
+    (note: 90 samp = 0.06% of T in forge::nnue::v3::apply_pair_and_evaluate had DWARF line 0 merged instructions)
+
+#2. forge::nnue::v3::apply_one_refresh_one_and_evaluate — 9265 samples (5.72% of T):
+    line 1: src/nnue_v3.cpp:1088  |  1694 samp ( 1.05% of T) | for (; a < n_add; ++a) {
+    line 2: src/nnue_v3.cpp:1078  |   878 samp ( 0.54% of T) | for (; s < n_sub; ++s) {
+    line 3: src/nnue_v3.cpp:1050  |   609 samp ( 0.38% of T) | for (int h = 0; h < hidden; h += 32) {
+    (note: 1065 samp = 0.66% of T in forge::nnue::v3::apply_one_refresh_one_and_evaluate had DWARF line 0 merged instructions)
+
+#3. forge::Board::see_ge — 3358 samples (2.07% of T):
+    line 1: src/board.cpp:1508  |   545 samp ( 0.34% of T) | int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))] - threshold;
+    line 2: src/board.cpp:1553  |   292 samp ( 0.18% of T) | const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
+    line 3: src/board.cpp:1552  |   212 samp ( 0.13% of T) | const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
+    (note: 851 samp = 0.53% of T in forge::Board::see_ge had DWARF line 0 merged instructions)
+
+#4. forge::nnue::v3::apply_changes_pair_avx512 — 3184 samples (1.96% of T):
+    line 1: src/nnue_v3.cpp:390   |   822 samp ( 0.51% of T) | _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
+    line 2: src/nnue_v3.cpp:395   |   750 samp ( 0.46% of T) | _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
+    line 3: src/nnue_v3.cpp:386   |   367 samp ( 0.23% of T) | const __m512i v0 = _mm512_add_epi16(
+    (note: 3 samp = 0.00% of T in forge::nnue::v3::apply_changes_pair_avx512 had DWARF line 0 merged instructions)
+
+#5. forge::(anon)::square_attacked_with_occupancy — 2721 samples (1.68% of T):
+    line 1: src/board.cpp:427   |  1113 samp ( 0.69% of T) | return (attacks::rook(square, occupancy) & ((pieces(by, Rook) & available) | queens)) != 0;
+    line 2: src/board.cpp:426   |  1067 samp ( 0.66% of T) | if ((attacks::bishop(square, occupancy) & ((pieces(by, Bishop) & available) | queens)) != 0) return true;
+    line 3: src/board.cpp:422   |   347 samp ( 0.21% of T) | if ((attacks::pawn(opposite(by), square) & pieces(by, Pawn) & available) != 0) return true;
+    (note: 42 samp = 0.03% of T in forge::(anon)::square_attacked_with_occupancy had DWARF line 0 merged instructions)

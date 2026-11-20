@@ -1,0 +1,53 @@
+UTC: Fri Nov 20 09:40:20 AM UTC 2026
+=== JOB 34 PART C: P2 Group Breakdown, Sum Check with Job 32 Table P, Warm vs Cold, and Control CP2 ===
+
+--- 1. P2 Groups on T and Control CP2 Group Invariance ---
+Group                                        J32_Samp   J32_%T J34_Samp   J34_%T CP2_Samp  CP2 vs J34
+------------------------------------------------------------------------------------------------------
+1a. the net — accumulator update                18873   11.69%    18861   11.64%    18634      -1.20%
+1b. the net — refresh                            7104    4.40%     6816    4.21%     6950      +1.97%
+1c. the net — forward pass                       8593    5.32%     8358    5.16%     8505      +1.76%
+  --> 1. the net (subtotal = 1a + 1b + 1c)      34570   21.42%    34035   21.00%    34089      +0.16%
+2.  move generation                             19307   11.96%    19418   11.98%    19340      -0.40%
+3.  the quiescence search                        3273    2.03%     3174    1.96%     3347      +5.45%
+4.  make and undo outside Worker::search         1014    0.63%      910    0.56%      906      -0.44%
+5.  the hash table                               3905    2.42%     3975    2.45%     4097      +3.07%
+6.  the rest                                    25202   15.62%    25216   15.56%    23528      -6.69%
+------------------------------------------------------------------------------------------------------
+SUM P2 Groups (outside Worker::search)          87271   54.08%    86728   53.52%    85307      -1.64%
+[CP2_PLANTED_LINE] src/board.cpp:1492               0    0.00%        0    0.00%     7765         n/a
+Worker::search (Job 32 Table P = 45.92%)        74110   45.92%    75318   46.48%    74417      -1.20%
+
+--- 2. Sum Check: Job 32 Table P + P2 Groups ---
+  - Same-recording check (perf_XG.data): Table P (45.9224%) + P2 groups (54.0776%) = 100.00% (exact 161,381 / 161,381 = 100.00%, diff = 0.00% <= 0.50%)
+  - Cross-run check (J32 Table P 45.92% + fresh J34 P2 53.52%): 45.92% + 53.52% = 99.44% (diff = 0.56%)
+  - Fresh J34 self-consistency (J34 WS 46.48% + J34 P2 53.52%): 100.00%
+
+--- 3. Control CP2 Check (Planted Cost in Board::see_ge at src/board.cpp:1492) ---
+  - True planted cost (6 paired runs):       0.175834 s (2.29% of XG = 7.679308s; 2.24% of CP2 = 7.855141s)
+  - Board::see_ge samples (XG -> CP2):       3358 -> 9627 (delta = +6269 samples)
+  - Planted line src/board.cpp:1492 samples: 7765 samples (4.64% of CP2)
+  - Function delta at 50 us/sample:          0.313450 s (rel diff vs true cost: +78.26% — > 25% FAIL)
+  - Planted line at 50 us/sample:            0.388250 s (rel diff vs true cost: +120.80% — > 25% FAIL)
+  - Function delta scaled by CP2 s/sample:   0.294013 s (rel diff vs true cost: +67.21%)
+  - Planted line scaled by CP2 s/sample:     0.364174 s (rel diff vs true cost: +107.11%)
+  - Max |CP2 - XG|/XG across P2's 6 groups:  6.69% (across all 8 lines incl. 1a/1b/1c: 6.69%; threshold <= 10.0%)
+  - CONTROL CP2 VERDICT: NOT TRUSTED
+
+--- 4. P2 Groups: Warm Whole-Game Search vs Cold Single-Position Search ---
+  (Note: in carbon2, T [L.txt, U=60 ucinewgame across 6,070 plies] and BG [L_j20_warm.txt, U=60 across 7,670 plies] are BOTH warm-TT whole-game
+   replays; T_cold1200 runs T's first 1,200 positions with ucinewgame before every search, shown both raw and excluding TT::clear.)
+Group                                        T_warm(J34) BG_warm(j20) Cold1200_raw Cold_noClear
+------------------------------------------------------------------------------------------------
+1a. the net — accumulator update                  11.64%       13.19%        9.13%       13.08%
+1b. the net — refresh                              4.21%        5.20%        3.28%        4.70%
+1c. the net — forward pass                         5.16%        5.64%        3.83%        5.49%
+  --> 1. the net (subtotal)                       21.00%       24.04%       16.24%       23.27%
+2.  move generation                               11.98%       13.26%        8.10%       11.61%
+3.  the quiescence search                          1.96%        3.00%        1.38%        1.98%
+4.  make and undo outside Worker::search           0.56%        0.94%        0.64%        0.92%
+5.  the hash table                                 2.45%        4.00%       32.11%        2.73%
+6.  the rest                                      15.56%       14.38%       17.98%       25.76%
+------------------------------------------------------------------------------------------------
+SUM P2 Groups (outside Worker::search)            53.52%       59.61%       76.46%       66.27%
+Worker::search                                    46.48%       40.39%       23.54%       33.73%
