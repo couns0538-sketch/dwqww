@@ -1,0 +1,56 @@
+honesty
+bench 11 expect 312866 B 312866 P 312866
+bench 13 expect 862329 B 862329 P 862329
+bench 16 expect 3024920 B 3024920 P 3024920
+perft 5 expect 4865609 B 4865609 P 4865609
+partner honesty 312866 862329 3024920 4865609
+O B sum 9500069 first3 [41311, 24872, 28574] n 200
+G B sum 18466239 n 353
+O off differ 0 sums 9500069 9500069
+G off differ 0 sums 18466239 18466239
+O on differ 0 of 200 sums 9500069 9500069
+G on differ 59 of 353 sums 18365205 18466239
+fire
+O_200_depth12_last info string s15true 0 s15zero 0
+G_line22_after_O info string s15true 60 s15zero 19
+asan_nm 35
+asan_clean_errors 0
+asan_scratch_has_heap True
+apply_mine MINE:0
+apply_partner PARTNER:0
+partner off differ 0 sums 9500069 9500069
+partner on vs claimed differ 0 sums 10340773 10340773
+partner on vs B differ 156
+MATCH
+Results of s15on vs s15off (20000 nodes, 1t, 16MB, match_OG.epd):
+Elo: 1.26 +/- 5.78, nElo: 4.46 +/- 20.48
+LOS: 66.51 %, DrawRatio: 85.71 %, PairsRatio: 1.08
+Games: 1106, Wins: 341, Losses: 337, Draws: 428, Points: 555.0 (50.18 %)
+Ptnml(0-2): [1, 37, 474, 39, 2], WL/DD Ratio: 1.69
+--------------------------------------------------
+Finished match
+Total Time: 00:06:38 (hours:minutes:seconds)
+PARTNER_MATCH
+Results of p015on vs p015off (20000 nodes, 1t, 16MB, set_R.fen):
+Elo: 2.90 +/- 9.15, nElo: 8.80 +/- 27.80
+LOS: 73.26 %, DrawRatio: 87.33 %, PairsRatio: 1.00
+Games: 600, Wins: 282, Losses: 277, Draws: 41, Points: 302.5 (50.42 %)
+Ptnml(0-2): [2, 17, 262, 12, 7], WL/DD Ratio: 42.67
+--------------------------------------------------
+Finished match
+Total Time: 00:02:38 (hours:minutes:seconds)
+partner pgn events 600
+own pgn events 1106
+RESULT
+seat=065 idea=15 id=S15 option=IdeaS15 exists=no applies=yes off_identical=yes on_differs=0 of 200 sanitizer=clean elo=1.26 err=5.78 games=1106 partner=015 partner_verdict=CONFIRMS
+STEP_TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 065 idea 15
+2 honesty B | done | HONESTY_B.txt | four known node counts
+3a read | done | decisions.txt | S15 not already in the engine
+3b predict | done | prediction.txt | O sum 9500069 elo 0
+3c patch | done | idea.patch.txt apply_check_mine.txt | apply check exit 0
+3d proofs | done | report_numbers.txt | off 0 differ, on 0 of 200, asan clean
+3e match | done | match_s15_fastchess.txt | 1106 games
+4 partner | done | partner015_match_fastchess.txt | 015 CONFIRMS
+5 report | done | REPORT.md RESULT.txt | this file

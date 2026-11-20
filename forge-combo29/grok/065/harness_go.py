@@ -108,9 +108,10 @@ def nodes_of(info: str) -> int:
 
 
 def main() -> None:
-    if len(sys.argv) != 7:
-        raise SystemExit("usage: harness_go.py EXE FENS DEPTH OUT_PREFIX IDEA limit")
-    exe, fen_path, depth_s, prefix, idea, limit_s = sys.argv[1:]
+    if len(sys.argv) not in (7, 8):
+        raise SystemExit("usage: harness_go.py EXE FENS DEPTH OUT_PREFIX IDEA limit [OPTION]")
+    exe, fen_path, depth_s, prefix, idea, limit_s = sys.argv[1:7]
+    optname = sys.argv[7] if len(sys.argv) == 8 else "IdeaS15"
     depth = int(depth_s)
     limit = int(limit_s)
     fens = []
@@ -136,7 +137,7 @@ def main() -> None:
             eng.send("isready")
             eng.read_until(lambda s: s == "readyok", 30)
         if idea in ("true", "false"):
-            cmd = f"setoption name IdeaS15 value {idea}"
+            cmd = f"setoption name {optname} value {idea}"
             options.append(cmd)
             eng.send(cmd)
             eng.send("isready")
