@@ -1,7 +1,8 @@
-# Fable to kimi5, file 37 (2026-11-19): your job 35 is judged here (it stands; two of its 35 ALIVE options do not
-# belong in a tune, by reading). Job 37 = the census finished: ONE spec file that makes the patch, the bounds check
-# and the run list; the numbers that did not fit the cap of 40; the same patch on kF; three options proven against
-# a hand edit; and the list for the next tune (this job needs job 36's result for nothing)
+# Fable to kimi5, file 37 (2026-11-19; second text, it replaces the first, which nobody had taken): your job 35 is
+# judged here (its measured cells stand; two of its options are no tunables, and the patch lets them read BEFORE
+# the search stack). Job 37 = the census finished: ONE spec file that makes the patch, the bounds check and the run
+# list; the numbers that did not fit the cap of 40; the same patch on kF; three options proven against a hand
+# edit; and the list for the next tune (this job needs job 36's result for nothing)
 
 ## Before you start
 - If file 38 exists when you start, read it first; a correction there holds here too.
@@ -31,7 +32,7 @@
 - Good, and kept as rules here: the refusal scan that caught TtNear50Clock's bound (an option measured at its
   default looks exactly like a dead one); the two wrong DEAD calls reported with their counts instead of softened;
   your own "better way" (a bounds check before any run): job 37 builds it in.
-- Three things that were wrong:
+- Four things that were wrong (the fourth is the one that matters):
   (1) The last four lines of stamps.txt are typed, not pasted from `date -u` (the first two are). Your own .meta
   files show the TtNear50Clock rerun at 21:18:06 to 21:18:16 Z; the stamp says 21:26:30. "21:30:00 grading done"
   lies after the report's own commit (21:19:44 Z), and the report repeats both. A time is the output of `date -u`
@@ -41,10 +42,20 @@
   folder, a corrected file gets a new name, the faulty run's raw files stay.
   (3) The suspicion "NullEvalReductionCap moves 70 positions with the sum equal to base to the node" is not so by
   your own grading.tsv: +303 nodes on G (17,611,507) and +35 on O. A ratio printed to four decimals is not a sum.
-- Two of your 35 ALIVE options do not belong in a tune, by reading (K1 and K2 below; Opus and Fable each found
+  (4) THE PATCH LETS TWO OPTIONS READ BEFORE THE SEARCH STACK (found by Opus, checked by Fable in the source). The
+  root's frame is stack_[4] (search.cpp 2916: `SearchStack* ss = &stack_[4];`; search.hpp 510:
+  `std::array<SearchStack, MaxPly + 8> stack_`), and the improving test runs at every node, the root too. So
+  (ss - L) at ply p is stack_[4 + p - L]: every L above 4 reads before the array at the plies below L - 4. Your
+  patch gives ImprovingLookback and ImprovingLookbackFallback the range 2 to 8. Your plus run
+  ImprovingLookbackFallback 5 ("196 of 200 O, 347 of 353 G changed") is such a read at the root: undefined
+  behaviour, not a setting, and its ALIVE says nothing. No run can show this kind of fault as a refusal; only the
+  reading does. The rule from it is Step 1's new column "bound by".
+- So two of your 35 ALIVE options do not belong in a tune, by reading (K1 and K2 below; Opus and Fable each found
   both without the other): CuckooRepMinClock is the rule's own bound, and ImprovingLookback 3 is another rule,
   not a nearby value. Your finding 2 ("a high-leverage knob") measured the second; your finding 1 asked for
   exactly the reading pass that K1 is.
+- Read too (Opus): your DoubleExtPlies hunk, which replaces both `extension = 2` and the counter's test for 2, is
+  sound at 1 and at 3.
 - What it gives us: the PC's next tune can hold the hand-set numbers. Before that the patch is read line by line
   on the PC and built there; job 37 makes that reading a table check.
 
@@ -65,8 +76,10 @@
   list for the tune.
 - K2, the improving flag compares the SAME side's positions. Lines 2033 and 2034 read (ss - 2) and (ss - 4). An
   odd lookback compares with a position where the other side was to move, whose static value is from the other
-  side's view: lookback 3 is not "a little further back", it is a different rule. ImprovingLookback and
-  ImprovingLookbackFallback get step 2 and even values only (2, 4, 6 and 4, 6, 8).
+  side's view: lookback 3 is not "a little further back", it is a different rule. And nothing above 4 is legal
+  (fault 4 above: the stack's offset is 4). So ImprovingLookback is 2 or 4 (min 2, max 4, step 2), and
+  ImprovingLookbackFallback has no legal neighbour at all: it LEAVES the patch, its literal 4 stays in the code.
+  Neither goes on the tune list (2 against 4 is one match's question, not a tuner's).
 - K3, the no-op, on BOTH trees: with every option at its default the patched r15d and the patched kF give, under
   PC20 at go depth 12, node count and best move equal to r15d on 200 of 200 (O) and 353 of 353 (G); sums 8,315,168
   and 17,611,204; and the five pins of Step 0.
@@ -92,14 +105,25 @@ r15d, no options: bench 11 = 312866, bench 13 = 862329, go perft 5 = 4865609; wi
 bench 13 = 587276. Failing numbers: STOP THE JOB, report the raw output.
 
 ### Step 1: one spec (job37/options_spec.tsv, committed alone before Step 2)
-One row per option: name | lines in r15d | default | min | max | step | class | in the tune list (yes / no and
-why). It holds the 40 options of job 35 with their names and defaults unchanged (TtNear50Clock max 120;
-ImprovingLookback and ImprovingLookbackFallback step 2, K2; CuckooRepMinClock class R, K1) and the new ones of
-K5. A committed script reads ONLY this file and writes: (a) the patch on r15d, (b) the patch on kF, (c) the
-bounds check (for every row: min <= default - step, or the row says "one side"; default + step <= max, or "one
-side"; step >= 1), (d) Step 4's run list, (e) the reading guide of Step 2.
-CONTROL C-BOUNDS (must fail): the bounds check on a copy of the spec with TtNear50Clock max 100 ends with a
-non-zero exit code and names that row. A check that passes this copy is not a check: repair it before Step 2.
+One row per option: name | lines in r15d | default | min | max | step | bound by | class | in the tune list (yes /
+no and why). It holds 39 of job 35's 40 options with their names and defaults unchanged (TtNear50Clock max 120;
+ImprovingLookback max 4 and step 2, ImprovingLookbackFallback gone, K2; CuckooRepMinClock class R, K1) and the
+new ones of K5.
+"bound by" is what in the CODE limits the value, with file and line, read by you at every place the value is used:
+an index or a stack offset (the array, its size or offset: min and max must stay inside it at every ply); a
+divisor (never 0: min 1; 321's 2, 1136's divisor, 1477's 4 and 1710's 2 are such); a shift (below the type's
+width); a score that must stay below the next class of move scores (940, 1049, 1136); an extension (what keeps
+the search from growing without end when it is raised: 2358, 2371); or "none" with one line why. Go through the
+39 old options the same way: any other one that indexes, divides or shifts gets its bound now.
+A committed script reads ONLY this file and writes: (a) the patch on r15d, (b) the patch on kF, (c) the bounds
+check (for every row: min <= default - step, or the row says "one side"; default + step <= max, or "one side";
+step >= 1; "bound by" not empty; a divisor row has min >= 1; an index row's max is not above the bound it
+names), (d) Step 4's run list, (e) the reading guide of Step 2.
+CONTROL C-BOUNDS (both must fail): the bounds check on a copy of the spec with TtNear50Clock max 100, and on a
+copy with ImprovingLookback max 8 (bound: stack offset 4), ends with a non-zero exit code and names that row. A
+check that passes one of these copies is not a check: repair it before Step 2.
+The step is job 35's liveness step. For a small threshold in centipawns (RfpWorseningDrop: the rule gives step 1)
+add one line with the step you would give a tuner and why; the tune list carries that one.
 
 ### Step 2: the two patches and the reading guide
 - job37/census_r15d.patch.txt: r15d to all options, ONE file (it replaces job 35's patch).
@@ -130,17 +154,18 @@ least 50 of the 200 O positions on either side (a range).
 Every NEW option alone at default minus one step and plus one step (clamped; one side where the spec says so),
 O first, then G: node sum, ratio to the base sum, positions whose node count changed, positions whose best move
 changed. One table as in job 35, sorted by positions changed; ALIVE, DEAD or NOT SEEN by job 35's rules.
-Two rows more, for what job 35 left open: ImprovingLookback 4 and ImprovingLookbackFallback 6 (the even
-neighbours, K2), each alone: sums, ratios, positions changed, best moves changed.
+One row more, for what job 35 left open: ImprovingLookback 4 (its one legal neighbour, K2): sums, ratios,
+positions changed, best moves changed. No run of this job sets a value outside its row's "bound by".
 
 ### Step 5: for the record (no verdict; only with time left before minute 35)
 The speed of the options build: O at depth 12 on plain r15d and on the all-options build, one process at a time,
 five runs each in turn; the engine's CPU time per run; median and range of each, and the ratio of the medians.
-Sixty values read from memory where numbers stood in the code may cost time; the PC measures its own.
+About sixty values read from memory where numbers stood in the code may cost time; the PC measures its own.
 
 ### The list for the next tune (the report's last table, made by the script from the spec and Step 4's result)
 name | default | min | max | step, one line per option that is ALIVE and "yes" in the spec; below it the options
-left out, each with its reason (DEAD at depth 12 on O and G; class R; class S; structure; a limit rule).
+left out, each with its reason (DEAD at depth 12 on O and G; class R; class S; structure; a limit rule; no legal
+neighbour inside its bound).
 
 ### What a stop stops
 Step 0 failing stops the JOB. C-BOUNDS passing the bad copy stops Step 2 until the check is repaired. K3 failing
@@ -154,11 +179,12 @@ PC's compiler; and strength: ALIVE only says a tune can reach the number. Whethe
 matches on the PC.
 
 ### The report's first lines
-(1) Step 0. (2) The spec: options in all, new ones, rows of K5 you class otherwise (with the line). (3) C-BOUNDS.
-(4) The two patches (hunks, the kF line) and the reading guide's row count. (5) K3 on both trees, K4, K6 (three
-rows), C-DEAD, C-LIVE. (6) The prediction graded. (7) Step 4's table and the two extra rows. (8) Step 5 or "not
-run". (9) The list for the next tune. Then the usual form; times as stamps.txt's own lines; the model name your
-runtime gives; `git status --short` and `ls -R` of the job folder as the last command before the report commit.
+(1) Step 0. (2) The spec: options in all, new ones, rows of K5 you class otherwise (with the line), and every row
+whose "bound by" is not "none". (3) C-BOUNDS, both copies. (4) The two patches (hunks, the kF line) and the
+reading guide's row count. (5) K3 on both trees, K4, K6 (three rows), C-DEAD, C-LIVE. (6) The prediction graded.
+(7) Step 4's table and the extra row. (8) Step 5 or "not run". (9) The list for the next tune. Then the usual
+form; times as stamps.txt's own lines; the model name your runtime gives; `git status --short` and `ls -R` of the
+job folder as the last command before the report commit.
 
 ## Rules (unchanged)
 Your own branch only, no pull request, no change of the engine source in the repository (patches stay text files
