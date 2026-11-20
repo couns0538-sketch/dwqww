@@ -1,0 +1,122 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..258facc1c 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -274,6 +274,11 @@ extern int HistoryBonusMax;
+ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
++extern bool IdeaS34;              // front-loaded cutoff-count ease of the reduction (false = off)
++extern int IdeaS34_None;          // plies eased while this ply has seen no beta cutoff
++extern int IdeaS34_After;         // plies eased once a cutoff has been seen and before IdeaS34_Stop
++extern int IdeaS34_Stop;          // weighted cutoff count at which the ease is removed
++extern int IdeaS34_Bare;          // weight of a beta cutoff at a node with no transposition move
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+@@ -405,6 +410,10 @@ struct SearchStack {
+     // reached by a counted move (root, null move, or a probcut capture).
+     int arrival_index = 0;
+     int cutoff_count = 0;
++    // Weighted beta cutoffs of moves already tried from the parent node.
++    // Read only when IdeaS34 is on. A cutting node with no transposition move
++    // adds IdeaS34_Bare; any other beta cutoff adds one.
++    int s34_cutoffs = 0;
+     int double_extensions = 0;
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..0e0d142dd 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,6 +75,11 @@ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++bool IdeaS34 = false;
++int IdeaS34_None = 2;
++int IdeaS34_After = 1;
++int IdeaS34_Stop = 4;
++int IdeaS34_Bare = 2;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -137,6 +142,10 @@ const std::vector<Parameter>& parameters() {
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"IdeaS34_None", &IdeaS34_None, 0, 4},
++        {"IdeaS34_After", &IdeaS34_After, 0, 4},
++        {"IdeaS34_Stop", &IdeaS34_Stop, 1, 32},
++        {"IdeaS34_Bare", &IdeaS34_Bare, 1, 8},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -1579,6 +1588,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
++    (ss + 1)->s34_cutoffs = 0;
+     if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+@@ -1999,6 +2009,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++            // IdeaS34: ease the reduction by IdeaS34_None plies while this ply has
++            // seen no beta cutoff, by IdeaS34_After plies after the first and
++            // before IdeaS34_Stop, and by nothing from IdeaS34_Stop on. A shallow
++            // score above alpha still takes the full-depth re-search below, which
++            // puts every omitted ply back. The switch stays off the path when false.
++            int s34_ease = 0;
++            if (tune::IdeaS34) {
++                const int seen = (ss + 1)->s34_cutoffs;
++                if (seen <= 0) s34_ease = tune::IdeaS34_None;
++                else if (seen < tune::IdeaS34_Stop) s34_ease = tune::IdeaS34_After;
++                r -= s34_ease;
++            }
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+@@ -2013,6 +2035,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
++            // Any shallow score above alpha restores the full omitted depth.
++            if (tune::IdeaS34 && s34_ease > 0 && score > alpha && reduced_depth < new_depth)
++                full_depth_needed = true;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+@@ -2051,6 +2076,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 }
+                 if (score >= beta) {
+                     ++ss->cutoff_count;
++                    if (tune::IdeaS34)
++                        ss->s34_cutoffs += tt_move.is_none() ? tune::IdeaS34_Bare : 1;
+                     break;
+                 }
+                 alpha = score;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..442855d54 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -221,6 +221,7 @@ int uci_loop(std::istream& in) {
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
++                         "option name IdeaS34 type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+@@ -400,6 +401,9 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "IdeaS34") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS34 = value_text == "true";
++                else note_invalid();
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||

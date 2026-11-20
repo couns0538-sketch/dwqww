@@ -1,0 +1,120 @@
+HONESTY_B
+bench11 nodes 312866 expect 312866 OK
+bench13 nodes 862329 expect 862329 OK
+bench16 nodes 3024920 expect 3024920 OK
+perft5 nodes 4865609 expect 4865609 OK
+HONESTY_B PASS
+HONESTY_P
+bench11 nodes 312866 expect 312866 OK
+bench13 nodes 862329 expect 862329 OK
+bench16 nodes 3024920 expect 3024920 OK
+perft5 nodes 4865609 expect 4865609 OK
+HONESTY PASS
+HONESTY_PARTNER
+bench11 nodes 312866 expect 312866 OK
+bench13 nodes 862329 expect 862329 OK
+bench16 nodes 3024920 expect 3024920 OK
+perft5 nodes 4865609 expect 4865609 OK
+HONESTY PASS
+APPLY
+my_patch
+APPLY_CHECK_OK
+partner_patch
+PARTNER_APPLY_CHECK_OK
+OFF_O
+RUN /agent/repos/dwqww/forge-combo29/grok/056/B_O_d12.nodes /agent/repos/dwqww/forge-combo29/grok/056/P_off_O_d12.nodes
+left=/agent/repos/dwqww/forge-combo29/grok/056/B_O_d12.nodes n=200 sum=9500069
+right=/agent/repos/dwqww/forge-combo29/grok/056/P_off_O_d12.nodes n=200 sum=9500069
+compared=200 equal=200 differ=0
+RUN /agent/repos/dwqww/forge-combo29/grok/056/B_G_d12.nodes /agent/repos/dwqww/forge-combo29/grok/056/P_off_G_d12.nodes
+left=/agent/repos/dwqww/forge-combo29/grok/056/B_G_d12.nodes n=353 sum=18466239
+right=/agent/repos/dwqww/forge-combo29/grok/056/P_off_G_d12.nodes n=353 sum=18466239
+compared=353 equal=353 differ=0
+RUN /agent/repos/dwqww/forge-combo29/grok/056/B_O_d12.nodes /agent/repos/dwqww/forge-combo29/grok/056/P_on_O_d12.nodes
+left=/agent/repos/dwqww/forge-combo29/grok/056/B_O_d12.nodes n=200 sum=9500069
+right=/agent/repos/dwqww/forge-combo29/grok/056/P_on_O_d12.nodes n=200 sum=14553823
+compared=200 equal=0 differ=200
+diff 0 41311 24769
+diff 1 24872 54313
+diff 2 28574 51193
+diff 3 27838 58747
+diff 4 18020 27249
+diff 5 43043 86802
+diff 6 56414 50459
+diff 7 32317 68692
+diff 8 37995 49161
+diff 9 53959 80360
+diff 10 26257 56538
+diff 11 58746 64071
+diff 12 30949 44839
+diff 13 34274 91102
+diff 14 21125 40647
+diff 15 51393 73652
+diff 16 71168 127188
+diff 17 50554 89295
+diff 18 52621 69852
+diff 19 38831 58507
+RUN /agent/repos/dwqww/forge-combo29/grok/056/B_O_d12.nodes /agent/repos/dwqww/forge-combo29/grok/056/partner_off_O_d12.nodes
+left=/agent/repos/dwqww/forge-combo29/grok/056/B_O_d12.nodes n=200 sum=9500069
+right=/agent/repos/dwqww/forge-combo29/grok/056/partner_off_O_d12.nodes n=200 sum=9500069
+compared=200 equal=200 differ=0
+RUN /agent/repos/dwqww/forge-combo29/grok/056/B_G_d12.nodes /agent/repos/dwqww/forge-combo29/grok/056/partner_off_G_d12.nodes
+left=/agent/repos/dwqww/forge-combo29/grok/056/B_G_d12.nodes n=353 sum=18466239
+right=/agent/repos/dwqww/forge-combo29/grok/056/partner_off_G_d12.nodes n=353 sum=18466239
+compared=353 equal=353 differ=0
+RUN /agent/repos/dwqww/forge-combo29/grok/056/partner_on_O_d12.nodes /agent/repos/dwqww/forge-combo29/grok/056/partner006_P_on_O_d12.rows
+mine=/agent/repos/dwqww/forge-combo29/grok/056/partner_on_O_d12.nodes n=200 sum=11275663
+theirs=/agent/repos/dwqww/forge-combo29/grok/056/partner006_P_on_O_d12.rows n=200 sum=11275663
+compared=200 equal=200 differ=0
+UCI
+option name IdeaS34 type check default false
+option name IdeaS34_EaseZero type spin default 2 min 0 max 8
+option name IdeaS34_EaseMid type spin default 1 min 0 max 8
+option name IdeaS34_Couple type spin default 2 min 0 max 32
+option name IdeaS34_Full type spin default 4 min 0 max 32
+option name IdeaS34_NoTt type spin default 2 min 1 max 8
+ASAN_META_TAIL
+option=setoption name IdeaS34_Full value 4
+option=setoption name IdeaS34_NoTt value 2
+asan_symbol_count=35
+sanitizer_lines=0
+PROBE_META_TAIL
+option=setoption name IdeaS34_Full value 4
+option=setoption name IdeaS34_NoTt value 2
+asan_symbol_count=35
+sanitizer_lines=2
+PROBE_LINE
+/tmp/asan-bad/forge-combo29/src/uci.cpp:48:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+MATCH
+Results of on vs off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -4.40 +/- 10.41, nElo: -8.65 +/- 20.48
+LOS: 20.37 %, DrawRatio: 63.47 %, PairsRatio: 0.91
+Games: 1106, Wins: 341, Losses: 355, Draws: 410, Points: 546.0 (49.37 %)
+Ptnml(0-2): [16, 90, 351, 84, 12], WL/DD Ratio: 1.97
+--------------------------------------------------
+PARTNER_MATCH
+Results of on vs off (20000 nodes, 1t, 16MB, R.fens):
+Elo: -1.16 +/- 10.03, nElo: -3.21 +/- 27.80
+LOS: 41.04 %, DrawRatio: 83.00 %, PairsRatio: 0.89
+Games: 600, Wins: 269, Losses: 271, Draws: 60, Points: 299.0 (49.83 %)
+Ptnml(0-2): [4, 23, 249, 19, 5], WL/DD Ratio: 26.67
+--------------------------------------------------
+NM
+asan_symbols 35
+TABLE
+| step | status | evidence file | result |
+| --- | --- | --- | --- |
+| seat | done | SEAT.txt | seat 056, idea 6 |
+| honesty B | done | HONESTY_B.txt | PASS |
+| baseline O | done | B_O_d12.meta | node_sum=9500069 |
+| baseline G | done | B_G_d12.meta | node_sum=18466239 |
+| prediction | done | prediction.txt | file present, not edited after the measuring runs |
+| patch applies | done | apply_check.txt | my_patch APPLY_CHECK_OK partner_patch PARTNER_APPLY_CHECK_OK |
+| proof 1 honesty P | done | HONESTY_P.txt | PASS |
+| proof 2 off O | done | P_off_O_d12.nodes | compared=200 equal=200 differ=0 |
+| proof 2 off G | done | P_off_G_d12.nodes | compared=353 equal=353 differ=0 |
+| proof 3 on O | done | P_on_O_d12.nodes | compared=200 equal=0 differ=200 sum=14553823 |
+| proof 4 uci | done | P_uci.txt | IdeaS34 option lines=6 |
+| proof 5 sanitizer | done | asan_G100_d10.meta | sanitizer_lines=0 symbols=35 probe sanitizer_lines=2 |
+| match | done | match_stdout.txt | Elo: -4.40 +/- 10.41, nElo: -8.65 +/- 20.48; Games: 1106, Wins: 341, Losses: 355, Draws: 410, Points: 546.0 (49.37 %) |
+| partner | done | partner_on_O_d12.nodes | compared=200 equal=200 differ=0 | Elo: -1.16 +/- 10.03, nElo: -3.21 +/- 27.80; Games: 600, Wins: 269, Losses: 271, Draws: 60, Points: 299.0 (49.83 %) |
