@@ -9,13 +9,13 @@ def main() -> int:
     out = Path(sys.argv[1]).read_text().splitlines()
     config = json.loads(Path(sys.argv[2]).read_text())
     pgn = Path(sys.argv[3]).read_text().splitlines()
-    capture = False
-    for line in out:
-        if line.startswith("Results of "):
-            capture = True
-        if capture:
-            print(line)
-        if capture and line.startswith("Finished match"):
+    starts = [i for i, line in enumerate(out) if line.startswith("Results of ")]
+    if not starts:
+        print("no results")
+        return 2
+    for line in out[starts[-1]:]:
+        print(line)
+        if line.startswith("Finished match"):
             break
     print(f"finished_games {sum(1 for line in out if line.startswith('Finished game '))}")
     print(f"pgn_events {sum(1 for line in pgn if line.startswith('[Event '))}")
