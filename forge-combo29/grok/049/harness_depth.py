@@ -145,6 +145,8 @@ def main():
     parser.add_argument("--meta", required=True)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--idea", choices=["absent", "false", "true"], default="absent")
+    parser.add_argument("--min-depth", type=int, default=8)
+    parser.add_argument("--threshold", type=int, default=3072)
     parser.add_argument("--timeout", type=int, default=120)
     args = parser.parse_args()
 
@@ -157,8 +159,8 @@ def main():
     option_lines.append("setoption name Hash value 16")
     if args.idea != "absent":
         option_lines.append(f"setoption name IdeaK10 value {args.idea}")
-        option_lines.append("setoption name IdeaK10_MinDepth value 8")
-        option_lines.append("setoption name IdeaK10_Threshold value 3072")
+        option_lines.append(f"setoption name IdeaK10_MinDepth value {args.min_depth}")
+        option_lines.append(f"setoption name IdeaK10_Threshold value {args.threshold}")
 
     engine = Engine(args.exe)
     counts = []
