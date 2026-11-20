@@ -1,0 +1,11 @@
+O depth-12 sum, IdeaS32 on: 11200000
+wrong if that sum is below 9700000 or above 16000000
+test-match Elo, switch on minus switch off: -15
+wrong if Elo is above 20 or below -70
+
+Why, written before any patched measurement: the plain engine accepts a null-move
+fail-high immediately below depth 14. With the switch on, a fail-high that is
+only a hash bound shallower than the parent depth is verified by the same reduced
+re-search. That visits more nodes to finish depth 12, so the O sum should rise
+above the plain 9500069. At a fixed 20000 nodes the extra verification spends
+budget the tuned null-move already uses, so the match should lose a little.
