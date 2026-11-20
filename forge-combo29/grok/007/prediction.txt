@@ -1,0 +1,15 @@
+seat 007 idea 7 id S31
+written 2026-11-20T08:00:26Z
+EXISTS. The plain engine already does S31: a null-move cutoff below depth 14 is accepted at once unless NullThreatVerify is on and a cheaper enemy piece attacks a dearer friendly piece, in which case a reduced re-search with null moves disabled must also reach beta. Depth 14 and above always verifies. See forge-combo29/src/search.cpp threat_gate and include/forge/search.hpp NullThreatVerify (default false).
+The fixed split at 14 was not an option. exe P only turns that split into the spin NullThreatVerify_Depth, default 14. With the spin left at 14 the branches are today's branches. This prediction leaves the spin at 14.
+Switch means NullThreatVerify. I have not run exe P.
+
+O depth 12, S14, Threads 1, Hash 16, NullThreatVerify true:
+predicted sum 10260000
+wrong if the sum is below 9700000 or above 12500000
+why: a depth-12 search never reaches depth 14, so the option off accepts every null cutoff immediately. The option on re-searches the cutoff when a cheaper enemy piece attacks a dearer piece. The extra search, and the nodes kept when that search misses beta, should raise the 9500069 baseline by about eight percent.
+
+test match, switch true versus switch false, both S14, 20000 nodes, openings O and G, both colours, 1106 games:
+predicted Elo +6
+wrong if the reported Elo is below -20 or above +30
+why: the re-search should avoid a few tactical null-move mistakes and spend some of the node budget to do it. A small plus is the guess.
