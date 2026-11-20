@@ -1,0 +1,1 @@
+Scratch engine only, not in idea.patch.txt. In apply_position, after a legal set_fen, if the FEN is exactly "8/8/8/8/8/8/8/K6k w - - 0 1", the copy does `int* heap = new int[4]; volatile int past_end = heap[4];`. That is one read past the end of a heap array. The same harness.py depth runner sent that FEN.

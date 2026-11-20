@@ -1,0 +1,59 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..14801845c 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -290,6 +290,8 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int NullSeeVeto_SeeMargin;    // centipawns; SEE gate of the lesser-attacker null veto (0 = not a loss)
++extern int NullSeeVeto_KingWorth;    // king price inside that veto (100000 = dearer than every other piece)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3291da6ba 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int NullSeeVeto_SeeMargin = 0;
++int NullSeeVeto_KingWorth = 100000;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -145,6 +147,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"NullSeeVeto_SeeMargin", &NullSeeVeto_SeeMargin, -400, 400},
++        {"NullSeeVeto_KingWorth", &NullSeeVeto_KingWorth, 1, 1000000},
+     };
+     return table;
+ }
+@@ -1174,9 +1178,11 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+ bool null_see_veto_threat(Board& board) {
+     // Same prices as SEE, except the king. SeePieceValue prices a king at 0
+     // because the exchange walk treats it as a sentinel, not as the cheapest piece.
+-    constexpr int KingWorth = 100000;
+-    auto worth = [](int type) {
+-        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
++    // Both numbers are the UCI spins NullSeeVeto_KingWorth (100000) and
++    // NullSeeVeto_SeeMargin (0). Those defaults are today's constants.
++    const int king_worth = tune::NullSeeVeto_KingWorth;
++    auto worth = [king_worth](int type) {
++        return type == King ? king_worth : SeePieceValue[static_cast<std::size_t>(type)];
+     };
+     NullUndo undo;
+     board.make_null_move(undo);
+@@ -1187,7 +1193,7 @@ bool null_see_veto_threat(Board& board) {
+         const int attacker = worth(piece_type(board.moved_piece(move)));
+         const int victim = worth(piece_type(board.captured_piece(move)));
+         if (attacker >= victim) continue;
+-        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
++        if (!board.is_legal(move) || !board.see_ge(move, tune::NullSeeVeto_SeeMargin)) continue;
+         threat = true;
+         break;
+     }
