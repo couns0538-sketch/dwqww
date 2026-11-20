@@ -1,0 +1,30 @@
+IdeaS33 (seat 075, idea 25). Full text is IDEAS.md "S33. Scale the passer’s reduction by the margin".
+The short list's "passed-pawn" wording is the null-move passer: the side that passed.
+
+EXISTS: no. search.cpp already adds (eval - beta) / NullMoveEvalDivisor, capped at 3, to the
+null reduction itself, and it verifies every cutoff at depth >= 14. That is the opposite
+direction (more reduction when the margin is large) and it is not a reduction of the
+passer's own moves inside the null tree. S33 is not that formula.
+
+What the option does, only when IdeaS33 is true:
+- At a null move, margin = eval - beta.
+  extra = IdeaS33_Extra when margin <= IdeaS33_Thin,
+  extra = 0 when margin >= IdeaS33_Large,
+  else extra = IdeaS33_Extra * (Large - margin) / (Large - Thin) (integer division).
+  Defaults: Thin 50, Large 300, Extra 2, Near 30.
+  Chosen so a barely-above-beta null (under half a pawn) takes two extra plies, a
+  margin past three pawns takes none, and the step between them is one ply for
+  margins up to 175 centipawns.
+- That extra is late-move reduction, inside this null tree only, and only on moves
+  of the side that passed. The child of the null (the opponent) stores the color
+  and the extra; real-move recursion copies them. A nested null replaces them for
+  its own subtree.
+- If the biased probe still reaches beta, the cutoff stands with no verification
+  search, including at depth >= 14.
+- If the probe misses beta by at most IdeaS33_Near centipawns and the score is not
+  a mate score, this node's real-move search is one ply deeper. No verification tree.
+- A larger miss falls through to the ordinary move loop at the ordinary depth.
+
+Off (the default): the new branches are not taken. The null block is the previous
+one, and the extra reduction is not added. Spin defaults are unused while the
+check is false.
