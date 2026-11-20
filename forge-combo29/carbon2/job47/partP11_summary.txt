@@ -1,0 +1,66 @@
+=== JOB 47 PART P11: K4b (SEAT 043) PORTED, KNOWN ANSWER, STACK PROOF, OFF IDENTITY, LIVENESS ===
+start_utc: Fri Nov 20 10:07:11 PM UTC 2026
+
+--- (a) Seat 043 Patch Read-Only Inspection ---
+  grok-043 idea.patch.txt line count          : PASS (90 == 90)
+  grok-043 idea.patch.txt CRLF count          : PASS (0 == 0)
+  read_only_copy_sha256(/tmp/carbon2_job47/grok_043_idea.patch.txt): b325e8c17842f9dc4d70213aef8ab14897c733f609860807ea85e930d902dc81 (from for-fable-and-opus/grok-043:forge-combo29/grok/043/idea.patch.txt)
+  mechanism: adds IdeaK4 (check, default false) and IdeaK4_Shrink (spin, default 32, 0..200); in Worker::search reverse futility pruning, when (ss - 1)->static_eval != ValueNone && (ss - 3)->static_eval != ValueNone && (ss - 1)->static_eval < (ss - 3)->static_eval, subtracts IdeaK4_Shrink (32) from rfp_margin (whereas seat 093 K4a in bundle uses Shrink = 24).
+
+--- (b) Known Answer on Helpers' Tree 6b98f217 (S14, Built-In Eval, O Depth 12) ---
+  git apply --check grok-043 on 6b98f217      : PASS (0 == 0)
+  exe_path: /tmp/carbon2_job47/bld_043_base/forge
+  exe_sha256(/tmp/carbon2_job47/bld_043_base/forge): 56a73dc402d07e94344aa1953b5a50e303be29b0bf6dfec1effca93ec1a3b655
+  bld_043_base uci declares IdeaK4 (check=false): PASS (True == True)
+  bld_043_base IdeaK4 pre-readyok lines       : PASS (0 == 0)
+  bld_043_base uci declares IdeaK4_Shrink (spin=32): PASS (True == True)
+  bld_043_base IdeaK4_Shrink pre-readyok lines: PASS (0 == 0)
+  6b98+043 no-option bench 11                 : PASS (312866 == 312866)
+  6b98+043 no-option bench 13                 : PASS (862329 == 862329)
+  6b98+043 no-option perft 5                  : PASS (4865609 == 4865609)
+  6b98+043 IdeaK4=false O d12 sum             : PASS (9500069 == 9500069)
+  6b98+043 IdeaK4=false nodes equal vs job38/043_off_O_d12: PASS (200 == 200)
+  6b98+043 IdeaK4=false nodes equal vs job38/B_O_d12: PASS (200 == 200)
+  6b98+043 IdeaK4=true O d12 sum              : PASS (8983632 == 8983632)
+  6b98+043 IdeaK4=true nodes equal vs job38/043_on_O_d12: PASS (200 == 200)
+
+--- (c) Search Stack Safety Check (Before Build), Port P11_K4b.patch.txt, and OFF Identity ---
+  include/forge/search.hpp stack_ declaration line: PASS (585 == 585)
+  src/search.cpp entry.static_eval = ValueNone line: PASS (3937 == 3937)
+  src/search.cpp root ss = &stack_[4] line    : PASS (3953 == 3953)
+  entries below root entry (&stack_[4])       : PASS (4 == 4)
+  stack_proof: stack_ has MaxPly + 8 entries (include/forge/search.hpp:585); Worker::search_root initializes stack_[0..init_limit] with static_eval = ValueNone (src/search.cpp:3930-3952) and sets root SearchStack* ss = &stack_[4] (src/search.cpp:3953, ply=0). 4 entries (stack_[0..3]) lie below root: (ss - 3) is stack_[1] at root (ply 0), stack_[2] at ply 1, and stack_[3] at ply 2 (all in-bounds with static_eval == ValueNone), and stack_[4 + ply - 3] for ply >= 3.
+  P11_K4b.patch.txt CRLF count                : PASS (0 == 0)
+  git apply --check -p1 P11_K4b.patch.txt on bundle10: PASS (0 == 0)
+  patch sha256(/agent/repos/dwqww/forge-combo29/carbon2/job47/P11_K4b.patch.txt): 60209ff7852b5b2d8bd217579744242d3350f4e6e155a1fc0d4e388b165d3548
+  bundle11 exe path: /tmp/carbon2_job47/bld_bundle11_k4b/forge
+  bundle11 exe sha256(/tmp/carbon2_job47/bld_bundle11_k4b/forge): 7499b3e1b8b589606e46d227e48f06b7cc481a75cac1dfa67ddc19197ab47c2e
+  bundle11 id name: id name Chess Engine Forge 6.4.24 candidate
+  bld_bundle11_k4b uci declares IdeaK4b (check=false): PASS (True == True)
+  bld_bundle11_k4b IdeaK4b pre-readyok lines  : PASS (0 == 0)
+  bld_bundle11_k4b uci declares IdeaK4b_Shrink (spin=32): PASS (True == True)
+  bld_bundle11_k4b IdeaK4b_Shrink pre-readyok lines: PASS (0 == 0)
+  bld_bundle11_k4b uci declares IdeaK4 (check=false): PASS (True == True)
+  bld_bundle11_k4b IdeaK4 pre-readyok lines   : PASS (0 == 0)
+  bld_bundle11_k4b uci declares IdeaK4_Shrink (spin=24): PASS (True == True)
+  bld_bundle11_k4b IdeaK4_Shrink pre-readyok lines: PASS (0 == 0)
+  bundle11 no-option bench 11                 : PASS (312866 == 312866)
+  bundle11 no-option bench 13                 : PASS (862329 == 862329)
+  bundle11 no-option perft 5                  : PASS (4865609 == 4865609)
+  bundle11 OFF O d12 sum                      : PASS (8315168 == 8315168)
+  bundle11 OFF O d12 equal vs bundle10 OFF O  : PASS (200 == 200)
+  bundle11 OFF O d12 equal vs job39 OFF_O     : PASS (200 == 200)
+  bundle11 OFF G d12 sum                      : PASS (17611204 == 17611204)
+  bundle11 OFF G d12 equal vs bundle10 OFF G  : PASS (353 == 353)
+  bundle11 OFF G d12 equal vs job39 OFF_G     : PASS (353 == 353)
+
+--- (d) Liveness: IdeaK4b Alone (IdeaK4b_Shrink=32) Under PC20 on O at Depth 12 ---
+  IdeaK4b alone PC20 O d12 sum                : 7491020 (OFF = 8315168, delta = -824148 nodes)
+  IdeaK4b vs OFF node-count diffs (of 200)    : 200 / 200
+  IdeaK4b vs OFF best-move diffs  (of 200)    : 56 / 200
+  IdeaK4b vs OFF score diffs      (of 200)    : 193 / 200
+  IdeaK4b liveness (at least 1 node diff > 0) : PASS (True == True)
+  PREDICTION (1) CHECK: node_diffs = 200 / 200 (predicted 199, falsification range outside [180, 200] -> TRUE)
+
+  PART P11 OVERALL                            : PASS (1 == 1)
+done_utc: Fri Nov 20 10:08:01 PM UTC 2026

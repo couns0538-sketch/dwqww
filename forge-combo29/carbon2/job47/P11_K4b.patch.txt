@@ -1,0 +1,71 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -321,6 +321,8 @@
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool IdeaK4;                  // smaller reverse-futility margin when the opponent worsened (false = off)
+ extern int IdeaK4_Shrink;            // centipawns removed from the reverse-futility margin when IdeaK4 fires
++extern bool IdeaK4b;                 // seat 043: smaller reverse-futility margin when opponent worsened over two plies (false = off)
++extern int IdeaK4b_Shrink;           // centipawns removed from the reverse-futility margin when IdeaK4b fires (default 32)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool IdeaS32;                 // verify a null cutoff whose probe fail-high rests on a shallow hash proof (false = off)
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -150,6 +150,7 @@
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ int IdeaK4_Shrink = 24;
++int IdeaK4b_Shrink = 32;
+ int IdeaB8_Weight = 1024;
+ int IdeaB8_Swing = 48;
+ int IdeaB8b_Weight = 1024;
+@@ -180,6 +181,7 @@
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool IdeaK4 = false;
++bool IdeaK4b = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool IdeaS32 = false;
+@@ -249,6 +251,7 @@
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+         {"IdeaK4_Shrink", &IdeaK4_Shrink, 0, 200},
++        {"IdeaK4b_Shrink", &IdeaK4b_Shrink, 0, 200},
+         {"IdeaS32_OwedSlack", &IdeaS32_OwedSlack, 0, 64},
+         {"IdeaB1_Scale", &IdeaB1_Scale, 0, 500},                 {"IdeaB1_Fade", &IdeaB1_Fade, 0, 64},
+         {"IdeaS10_Margin", &IdeaS10_Margin, 0, 500},             {"IdeaS10_Flat", &IdeaS10_Flat, 0, 400},
+@@ -3060,6 +3063,13 @@
+                 rfp_margin -= tune::IdeaK4_Shrink;
+             }
+         }
++        if (tune::IdeaK4b) {
++            const int parent_eval = (ss - 1)->static_eval;
++            const int older_eval = (ss - 3)->static_eval;
++            if (parent_eval != ValueNone && older_eval != ValueNone && parent_eval < older_eval) {
++                rfp_margin -= tune::IdeaK4b_Shrink;
++            }
++        }
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+             eval - rfp_margin >= beta &&
+             eval < MateInMaxPly) {
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -766,6 +766,7 @@
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name IdeaK4 type check default false\n"
++                         "option name IdeaK4b type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name IdeaS32 type check default false\n"
+@@ -970,6 +971,9 @@
+             } else if (name == "IdeaK4") {
+                 if (value_text == "true" || value_text == "false") forge::tune::IdeaK4 = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK4b") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK4b = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
