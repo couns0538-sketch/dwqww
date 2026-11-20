@@ -1,0 +1,18 @@
+EXISTS: forge-combo29/src/search.cpp:1604
+
+The plain engine already does IdeaK3. HindsightDepth (default false) is that step.
+After a reduced move, the child adds the two static evaluations (parent eval plus the
+corrected eval of the side now to move). That sum is how far the mover's eval fell.
+A fall of one pawn (SeePieceValue[Pawn], 100) searches one ply less. A fall of 0 or
+less, after the parent withheld 3 or more plies, searches one ply more. The hash is
+left alone when it is already deep enough. The comment and the step are at
+search.cpp:1604 and search.cpp:1611 in the base tree.
+
+The on/off switch and those two numbers were not both options. HindsightDepth is the
+switch. 3 and 100 were literals. IdeaK3 is a second switch for the same step, default
+false. IdeaK3_Withheld defaults to 3 and IdeaK3_Margin defaults to 100. While IdeaK3
+is false the step still uses the literals, so HindsightDepth on keeps today's search.
+While IdeaK3 is true the same step uses the spins. At the defaults that is the same
+arithmetic, and the O depth-12 rows match exe B with HindsightDepth true.
+
+I did not add a different depth rule. The idea is already in the engine.
