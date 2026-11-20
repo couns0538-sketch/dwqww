@@ -103,7 +103,22 @@ class Engine:
     def close(self) -> None:
         try:
             self.send("quit")
-            self.proc.wait(timeout=15)
+        except Exception:
+            self.proc.kill()
+            return
+        assert self.proc.stdout is not None
+        while True:
+            line = self.proc.stdout.readline()
+            if line == "":
+                break
+            line = line.rstrip("\r\n")
+            self.log.append(line)
+            for mark in STOP_MARKS:
+                if mark in line:
+                    # Record it; the caller already finished the search.
+                    break
+        try:
+            self.proc.wait(timeout=20)
         except Exception:
             self.proc.kill()
 
@@ -173,8 +188,8 @@ def main() -> None:
             if index % 25 == 0:
                 print(f"done {index}/{len(fens)}", file=sys.stderr, flush=True)
     finally:
-        Path(out_prefix + ".raw.txt").write_text("\n".join(engine.log) + "\n")
         engine.close()
+        Path(out_prefix + ".raw.txt").write_text("\n".join(engine.log) + "\n")
     Path(out_prefix + ".rows.txt").write_text("\n".join(rows) + "\n")
     print(f"WROTE {len(rows)} {out_prefix}")
 
