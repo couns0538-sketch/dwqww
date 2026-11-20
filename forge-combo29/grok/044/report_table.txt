@@ -1,0 +1,41 @@
+step | status | evidence | result
+STEP 1 | done | SEAT.txt stamps.txt | seat 044 idea 44
+STEP 2 | done | HONESTY_B.txt B_SUMS.txt | plain engine matches the known sums
+STEP 3 proofs | done | P_COMPARE.txt honesty_p_bench11.txt | switch off identical, switch on differs
+STEP 3 match | done | match/fastchess.log match/games.pgn | 1106 games
+STEP 4 | done | partner_compare.txt partner_match/fastchess.log | partner 094
+STEP 5 | done | REPORT.md RESULT.txt | this report
+--- honesty B ---
+info string bench depth 11 nodes 312866 time 163 nps 1919423
+info string bench depth 13 nodes 862329 time 439 nps 1964302
+info string bench depth 16 nodes 3024920 time 1420 nps 2130225
+nodes 4865609
+--- honesty P ---
+info string bench depth 11 nodes 312866 time 171 nps 1829625
+info string bench depth 13 nodes 862329 time 447 nps 1929147
+info string bench depth 16 nodes 3024920 time 1566 nps 1931621
+nodes 4865609
+--- my switch ---
+off_O differ 0 of 200 sum 9500069
+off_G differ 0 of 353 sum 18466239
+on_O differ 200 of 200 sum 9524101
+asan_clean_lines 0 nm_asan_count=35
+asan_scratch_heap 2
+--- my match ---
+Results of K5on vs K5off (20000 nodes, 1t, 16MB, openings_OG.epd):
+Elo: 3.14 +/- 10.49, nElo: 6.14 +/- 20.48
+LOS: 72.15 %, DrawRatio: 62.75 %, PairsRatio: 1.04
+Games: 1106, Wins: 344, Losses: 334, Draws: 428, Points: 558.0 (50.45 %)
+Ptnml(0-2): [11, 90, 347, 88, 17], WL/DD Ratio: 1.78
+--------------------------------------------------
+--- partner ---
+partner_off_O differ 0 of 200 sum 9500069
+partner_off_G differ 0 of 353 sum 18466239
+partner_on_vs_claim differ 0 of 200 sum 9725707
+partner_on_vs_B differ 200 of 200
+Results of K5on vs K5off (20000 nodes, 1t, 16MB, R.epd):
+Elo: 0.58 +/- 9.01, nElo: 1.79 +/- 27.80
+LOS: 55.01 %, DrawRatio: 87.00 %, PairsRatio: 1.05
+Games: 600, Wins: 272, Losses: 271, Draws: 57, Points: 300.5 (50.08 %)
+Ptnml(0-2): [4, 15, 261, 16, 4], WL/DD Ratio: 19.08
+--------------------------------------------------
