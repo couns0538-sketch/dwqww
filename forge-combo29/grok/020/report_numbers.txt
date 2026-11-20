@@ -1,0 +1,97 @@
+honesty_B
+exe /agent/repos/base/forge-combo29/build/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+setoption none
+command nodes expect status raw
+bench 11 312866 312866 ok honesty_b_bench11.txt
+bench 13 862329 862329 ok honesty_b_bench13.txt
+bench 16 3024920 3024920 ok honesty_b_bench16.txt
+go perft 5 4865609 4865609 ok honesty_b_perft5.txt
+PASS
+honesty_P
+exe /agent/repos/work/forge-combo29/build/forge
+sha256 e1becf833d75fa0f2c51861f1750c5cf497a41cce363d120821c6bdcd188ad6f
+setoption none
+command nodes expect status raw
+bench 11 312866 312866 ok honesty_p_bench11.txt
+bench 13 862329 862329 ok honesty_p_bench13.txt
+bench 16 3024920 3024920 ok honesty_p_bench16.txt
+go perft 5 4865609 4865609 ok honesty_p_perft5.txt
+PASS
+baseline
+B_O_d12.nodes.tsv n=200 sum=9500069 first3=41311 24872 28574
+B_G_d12.nodes.tsv n=353 sum=18466239 first3=37203 70845 144383
+off_O
+left B_O_d12.nodes.tsv
+right P_off_O_d12.nodes.tsv
+positions 200
+left_sum 9500069
+right_sum 9500069
+differ 0
+off_G
+left B_G_d12.nodes.tsv
+right P_off_G_d12.nodes.tsv
+positions 353
+left_sum 18466239
+right_sum 18466239
+differ 0
+on_O
+positions 200
+left_sum 9500069
+right_sum 9571899
+differ 194
+uci
+id name Chess Engine Forge 6.4.24 candidate
+option name IdeaS22 type check default false
+option name IdeaS22_Plies type spin default 1 min 0 max 8
+asan_good symbols 35 sanitizer_lines 0 done 100
+asan_scratch symbols 35 sanitizer_lines 1
+/tmp/forge-bug-src/src/uci.cpp:48:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+match
+Results of s22on vs s22off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -5.65 +/- 9.85, nElo: -11.77 +/- 20.48
+LOS: 13.00 %, DrawRatio: 62.93 %, PairsRatio: 0.85
+Games: 1106, Wins: 334, Losses: 352, Draws: 420, Points: 544.0 (49.19 %)
+Ptnml(0-2): [9, 102, 348, 86, 8], WL/DD Ratio: 2.00
+--------------------------------------------------
+Finished match
+Total Time: 00:06:23 (hours:minutes:seconds)
+partner_honesty
+bench 11 312866 312866 ok partner_h_bench11.txt
+bench 13 862329 862329 ok partner_h_bench13.txt
+bench 16 3024920 3024920 ok partner_h_bench16.txt
+go perft 5 4865609 4865609 ok partner_h_perft5.txt
+PASS
+partner_off
+differ 0
+right_sum 9500069
+partner_on_vs_B
+differ 194
+right_sum 9571899
+partner_on_vs_claim
+measured 200 sum 9571899
+claimed 200 sum 9571899
+differ 0 of 200
+partner_match
+Results of s22on vs s22off (20000 nodes, 1t, 16MB, R.fen):
+Elo: 2.32 +/- 11.00, nElo: 5.85 +/- 27.80
+LOS: 66.01 %, DrawRatio: 80.67 %, PairsRatio: 1.00
+Games: 600, Wins: 267, Losses: 263, Draws: 70, Points: 302.0 (50.33 %)
+Ptnml(0-2): [4, 25, 242, 21, 8], WL/DD Ratio: 19.17
+--------------------------------------------------
+Finished match
+Total Time: 00:02:43 (hours:minutes:seconds)
+step | status | evidence | result
+1 seat | done | SEAT.txt | 020 idea 20
+2 honesty B | done | HONESTY_B.txt | PASS
+2 baseline O G | done | B_OG_sums.txt | 9500069 and 18466239
+3 prediction | done | prediction.txt | pushed before measuring P
+3 patch applies | done | idea.patch.txt | git apply --check passed
+3 proof 1 honesty P | done | HONESTY_P.txt | PASS
+3 proof 2 off | done | off_O_vs_B.txt off_G_vs_B.txt | differ 0 and differ 0
+3 proof 3 on | done | on_O_vs_B.txt | differ 194 sum 9571899
+3 proof 4 uci | done | uci_p.txt | IdeaS22 false, IdeaS22_Plies 1
+3 proof 5 sanitizer | done | asan_G100.meta asan_scratch.meta | 0 lines, scratch 1 line, asan symbols 35
+3 match | done | match_og_final.txt | 1106 games Elo -5.65 +/- 9.85
+4 partner | done | partner_on_vs_claim.txt partner_match_final.txt | CONFIRMS
+5 report | done | REPORT.md RESULT.txt | this file
