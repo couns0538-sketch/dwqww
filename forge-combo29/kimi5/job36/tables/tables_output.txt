@@ -1,0 +1,52 @@
+== T1: how the searches end ==
+run | n | SOFT HOLD HARDEND ABORTKEPT ABORTNEW CAP OTHER | T | W_kept W_new (x10000 of T)
+O_A | 200 | 200 0 0 0 0 0 0 | 54326 | 0 0
+G_A | 353 | 345 0 0 1 0 7 0 | 98026 | 99 0
+G_B | 353 | 345 0 0 2 0 6 0 | 45372 | 149 0
+G_C | 353 | 340 0 0 7 0 6 0 | 20715 | 277 0
+G_A_chard | 353 | 254 0 0 90 2 7 0 | 80174 | 1173 47
+G_A_cfloor | 353 | 342 0 0 2 0 9 0 | 160642 | 140 0
+G_A_fin | 353 | 183 162 0 1 0 7 0 | 82001 | 119 0
+G_B_fin | 353 | 183 163 0 1 0 6 0 | 36739 | 85 0
+G_C_fin | 353 | 180 163 0 4 0 6 0 | 16446 | 200 0
+G_A_ns | 353 | 346 0 0 1 0 6 0 | 88565 | 110 0
+G_B_ns | 353 | 345 0 0 2 0 6 0 | 42324 | 160 0
+G_C_ns | 353 | 340 0 0 7 0 6 0 | 19221 | 299 0
+G_A_both | 353 | 198 148 0 1 0 6 0 | 74862 | 130 0
+G_B_both | 353 | 174 172 0 1 0 6 0 | 33832 | 92 0
+G_C_both | 353 | 194 149 0 4 0 6 0 | 15509 | 212 0
+
+== T2: how late (elapsed/soft classes; SOFT-stop lateness) ==
+run | <=0.5 <=1 <=2 <=4 >4 | SOFT: sum(elapsed)/sum(target), n(elapsed>1.5*target)
+O_A | 23 132 40 4 1 | 1.4195 55
+G_A | 55 206 77 13 2 | 1.3360 73
+G_B | 54 196 80 19 4 | 1.3726 93
+G_C | 45 181 101 26 0 | 1.4069 92
+G_A_chard | 55 298 0 0 0 | 1.2289 34
+G_A_cfloor | 7 5 298 40 3 | 1.3442 78
+G_A_fin | 123 173 48 7 2 | 1.3046 34
+G_B_fin | 111 173 58 9 2 | 1.2970 32
+G_C_fin | 120 153 66 14 0 | 1.3295 33
+G_A_ns | 119 157 65 10 2 | 1.3679 86
+G_B_ns | 94 166 72 17 4 | 1.4101 104
+G_C_ns | 88 151 91 23 0 | 1.4347 112
+G_A_both | 167 136 41 7 2 | 1.3307 39
+G_B_both | 148 143 54 6 2 | 1.3439 39
+G_C_both | 147 130 64 12 0 | 1.3583 46
+
+== T3: which rule (base runs; LAST ITER per search | all ITER with depth>=6) ==
+G_A LAST | n=353 | S6 244 S3 57 U 11 N 41 | mean effort1000 781 | falling>1000 36.8% | floor1 43.3% | mean factor1000 670
+G_A D6+ | n=4561 | S6 2193 S3 945 U 605 N 818 | mean effort1000 907 | falling>1000 38.8% | floor1 25.6% | mean factor1000 916
+G_B LAST | n=353 | S6 208 S3 86 U 11 N 48 | mean effort1000 806 | falling>1000 38.8% | floor1 34.6% | mean factor1000 707
+G_B D6+ | n=3706 | S6 1576 S3 833 U 553 N 744 | mean effort1000 934 | falling>1000 40.4% | floor1 20.6% | mean factor1000 967
+G_C LAST | n=353 | S6 178 S3 97 U 12 N 66 | mean effort1000 825 | falling>1000 39.7% | floor1 29.7% | mean factor1000 739
+G_C D6+ | n=3006 | S6 1162 S3 698 U 494 N 652 | mean effort1000 959 | falling>1000 40.6% | floor1 16.8% | mean factor1000 1008
+
+== T4: the hold's own claim (base vs TmFinishIteration) ==
+G_A_fin vs G_A: holds 162 RIGHT 132 WRONG 30 NO_NEXT_LINE 0 (base ended: {}) MISSED 144
+  T base 98026 fin 82001 saved 16025 (right part 13887, wrong part 2138); bestmove differs vs base: right [31, 39, 204, 300, 311, 313, 317, 333] wrong [266] nonext []
+G_B_fin vs G_B: holds 163 RIGHT 128 WRONG 34 NO_NEXT_LINE 1 (base ended: {'ABORTKEPT': 1}) MISSED 133
+  T base 45372 fin 36739 saved 8633 (right part 7255, wrong part 1011); bestmove differs vs base: right [75, 95, 145, 148, 173, 186, 215, 219, 264, 268, 301, 308] wrong [179] nonext []
+G_C_fin vs G_C: holds 163 RIGHT 137 WRONG 25 NO_NEXT_LINE 1 (base ended: {'ABORTKEPT': 1}) MISSED 117
+  T base 20715 fin 16446 saved 4269 (right part 3774, wrong part 422); bestmove differs vs base: right [21, 53, 98, 103, 112, 171, 221, 236, 322, 348] wrong [301] nonext []
+
