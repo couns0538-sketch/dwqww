@@ -7,6 +7,8 @@ from pathlib import Path
 
 EXE = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2]).resolve()
+PREFIX = sys.argv[3] if len(sys.argv) > 3 else "honesty_b"
+SUMMARY_NAME = sys.argv[4] if len(sys.argv) > 4 else "HONESTY_B.txt"
 OUT.mkdir(parents=True, exist_ok=True)
 
 CASES = [
@@ -57,9 +59,9 @@ def main() -> None:
     rows = []
     for label, commands, expect in CASES:
         text = run_case(EXE, commands)
-        raw = OUT / f"honesty_b_{label}.txt"
+        raw = OUT / f"{PREFIX}_{label}.txt"
         raw.write_text(text)
-        meta = OUT / f"honesty_b_{label}.meta"
+        meta = OUT / f"{PREFIX}_{label}.meta"
         option_lines = "(none)"
         meta.write_text(
             f"exe: {EXE}\n"
@@ -78,7 +80,7 @@ def main() -> None:
         ok = "yes" if nodes == expect else "NO"
         rows.append((label, nodes, expect, ok, raw.name))
         print(f"{label} nodes {nodes} expect {expect} {ok}")
-    summary = OUT / "HONESTY_B.txt"
+    summary = OUT / SUMMARY_NAME
     lines = [
         f"exe {EXE}",
         f"sha256 {digest}",

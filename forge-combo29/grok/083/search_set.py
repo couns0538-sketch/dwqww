@@ -70,6 +70,9 @@ class Engine:
             if line == "":
                 self.proc.wait(timeout=5)
                 self.err_thread.join(timeout=5)
+                self.raw.write("\n# stderr\n")
+                self.raw.write(self.err_text)
+                self.raw.flush()
                 raise SystemExit(f"engine closed before {marker}\n{self.err_text}")
             self.raw.write(line)
             self.raw.flush()

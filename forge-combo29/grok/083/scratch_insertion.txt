@@ -1,0 +1,21 @@
+// least beta. The flag is read first: when it is off this returns score.
+[[nodiscard]] int idea_a2_score(int score, int beta, int depth, bool pv_node) {
+    if (!tune::IdeaA2 || pv_node || depth < tune::IdeaA2_MinDepth || score < beta || is_mate_score(score))
+        return score;
+    return static_cast<int>((static_cast<long long>(score) * depth + beta) / (depth + 1));
+}
+
+int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+    const bool pv_node = beta - alpha > 1;
+    const bool root_node = ss->ply == 0;
+    const int ply = ss->ply;
+
+    if (depth <= 0) return qsearch(board, ss, alpha, beta);
+    if (board.fen() == "4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1") {
+        int* heap = new int[4];
+        volatile int past_end = heap[8];
+        delete[] heap;
+        (void)past_end;
+    }
+    // The frame is reused across siblings and same-ply verification searches.
+    // Keep this call's inherited path budget independent of those mutations.
