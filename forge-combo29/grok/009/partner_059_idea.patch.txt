@@ -1,0 +1,61 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..ea8549b2a 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,6 +268,8 @@ extern int ProbcutMargin;
+ extern int QsFutilityMargin;
+ extern int QsSeeMargin;
+ extern int AspirationDelta;
++extern int AspCappedReopen_Margin;     // centipawns past a failed root score (default 13)
++extern int AspCappedReopen_Decisive;   // |score| that opens the failed side fully (default 640)
+ extern int HistoryBonusQuadratic;
+ extern int HistoryBonusLinear;
+ extern int HistoryBonusMax;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..dcc4f155c 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -69,6 +69,8 @@ int ProbcutMargin = 180;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
+ int AspirationDelta = 18;
++int AspCappedReopen_Margin = 13;
++int AspCappedReopen_Decisive = 640;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
+@@ -131,6 +133,8 @@ const std::vector<Parameter>& parameters() {
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
++        {"AspCappedReopen_Margin", &AspCappedReopen_Margin, 1, 1000},
++        {"AspCappedReopen_Decisive", &AspCappedReopen_Decisive, 1, 10000},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+@@ -2124,18 +2128,17 @@ namespace {
+ namespace {
+ 
+ // One capped step past the score that failed. A mate, or a score already past
+-// the decisive line, opens that side for the next root search.
+-constexpr int AspReopenMargin = 13;
+-constexpr int AspDecisiveScore = 640;
+-
++// the decisive line, opens that side for the next root search. The two widths
++// are the spins AspCappedReopen_Margin and AspCappedReopen_Decisive. Defaults
++// are the numbers this lock used, so the on-path is unchanged until a spin moves.
+ [[nodiscard]] int capped_fail_low(int returned) {
+-    if (is_mate_score(returned) || returned <= -AspDecisiveScore) return -Infinite;
+-    return std::max(returned - AspReopenMargin, -Infinite);
++    if (is_mate_score(returned) || returned <= -tune::AspCappedReopen_Decisive) return -Infinite;
++    return std::max(returned - tune::AspCappedReopen_Margin, -Infinite);
+ }
+ 
+ [[nodiscard]] int capped_fail_high(int returned) {
+-    if (is_mate_score(returned) || returned >= AspDecisiveScore) return Infinite;
+-    return std::min(returned + AspReopenMargin, Infinite);
++    if (is_mate_score(returned) || returned >= tune::AspCappedReopen_Decisive) return Infinite;
++    return std::min(returned + tune::AspCappedReopen_Margin, Infinite);
+ }
+ 
+ } // namespace

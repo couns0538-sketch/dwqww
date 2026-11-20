@@ -1,0 +1,48 @@
+honesty_B
+  bench11 312866 OK
+  bench13 862329 OK
+  bench16 3024920 OK
+  perft5 4865609 OK
+honesty_P
+  bench11 312866 OK
+  bench13 862329 OK
+  bench16 3024920 OK
+  perft5 4865609 OK
+honesty_PARTNER
+  bench11 312866 OK
+  bench13 862329 OK
+  bench16 3024920 OK
+  perft5 4865609 OK
+sum B_O count 200 sum 9500069 first 41311 24872 28574
+sum B_G count 353 sum 18466239 first 37203 70845 144383
+sum P_off_O count 200 sum 9500069 first 41311 24872 28574
+sum P_off_G count 353 sum 18466239 first 37203 70845 144383
+sum P_on_O count 200 sum 9449926 first 21210 24516 34920
+sum partner_off_O count 200 sum 9500069 first 41311 24872 28574
+sum partner_on_O count 200 sum 9449926 first 21210 24516 34920
+differ off_O compared 200 differ 0
+differ off_G compared 353 differ 0
+differ on_O_vs_B compared 200 differ 150
+differ partner_off_vs_B compared 200 differ 0
+differ partner_on_vs_B compared 200 differ 150
+differ partner_on_vs_mine compared 200 differ 0
+uci_options
+  option name AspCappedReopen type check default false
+  option name IdeaS23_Margin type spin default 13 min 0 max 400
+  option name IdeaS23_Decisive type spin default 640 min 0 max 10000
+asan_meta
+  exe /tmp/forge-asan/forge
+  nm_asan_count 35
+  asan_lines 0
+asan_canary
+  /tmp/forge-bad-src/src/search.cpp:2149:22: runtime error: load of address 0x502000001080 with insufficient space for an object of type 'int'
+partner_nodes_file
+  compared 200 mine 200 theirs 200 differ 0
+step_table
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt stamps.txt | seat 009 idea 9
+STEP 2 builds and sums | done | HONESTY_B.txt B_SUMS.txt | O 9500069 G 18466239 honesty pass
+STEP 3 patch and proofs | done | idea.patch.txt tables.txt | off differ 0 on differ 150 of 200
+STEP 3 match | done | match_on_vs_off.txt | Elo -7.23 +/- 10.57 games 1106
+STEP 4 partner 059 | done | partner_off_vs_B.txt partner_on_vs_theirs.txt partner_match.summary.txt | CONFIRMS
+STEP 5 report | done | REPORT.md RESULT.txt | this file
