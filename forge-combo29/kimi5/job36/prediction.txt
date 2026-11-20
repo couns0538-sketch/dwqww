@@ -1,0 +1,20 @@
+kimi5 job 36 prediction (own commit "kimi5 job 36 prediction"; never edited; no time, no commit id).
+Written after L0 (O at A and G at A on the N+L build both reproduce K6's hashes) and before
+the first Step 3 run. L0's G at A ledger exists already at writing time; where it informs a
+line I say so.
+
+(a) searches of G that stop inside an iteration (ABORTKEPT + ABORTNEW), of 353:
+    at A: 0 to 3   (L0's G_A ledger, a Step-3 run already in hand, shows exactly 1: position 142
+                    ABORTKEPT at nodes 1,585,152; I anchor the range on it)
+    at B: 2 to 12  (hard/typical-search ratio slightly smaller than at A)
+    at C: 8 to 40  (hard 174,080 is about 3x the average C search; an unstable or falling
+                    search that starts a 50-150k-node iteration past elapsed ~100 crosses it)
+(b) T with TmFinishIteration true divided by T of the base run, G at A: 0.90 to 0.97
+    (file 37's measured matches say the hold ends 38-39 of 100 searches early and saves
+     5 to 7 percent of the time)
+(c) of the holds on G at A, the share RIGHT by table T4 (base run's ITER at depth d+1 has
+    elapsed above the held target t): 0.70 to 0.92
+    (iteration cost grows ~2x per depth at these budgets, so "2 x last > left" is usually
+     true; the target itself can grow on the next line, which is where the misses come from)
+(d) the most frequent rule (S6, S3, U, N) at the LAST soft test of the base searches on
+    G at A: S6. (L0's G_A ledger already shows S6 244, S3 57, N 41, U 11.)
