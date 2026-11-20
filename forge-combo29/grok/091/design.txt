@@ -1,0 +1,25 @@
+IdeaK2, seat 091. The plain engine does not already do this.
+EXISTS no. ThreatHistory is a threat-keyed quiet table, and ContHist4PlyRead
+reads a continuation table four plies back. Neither is a history of the quiet
+moves played in the first plies from the root.
+
+What was built
+- option IdeaK2, type check, default false
+- option IdeaK2_PlyLimit, type spin, default 4, min 1, max 8
+- option IdeaK2_Scale, type spin, default 1024, min 0, max 4096
+
+The table is one butterfly history (side, from, to) for each of the first
+LowPlyHistoryPlies (8) plies. It is allocated on every worker and cleared with
+the other histories. While IdeaK2 is false the search never reads it and never
+writes it, and the quiet ordering score adds 0.
+
+While IdeaK2 is true, a quiet cutoff (and the smaller bonus for a quiet PV
+move that did not cut) is also written into the row for that ply, with the
+same malus for the other quiet moves tried. Only plies 0 .. PlyLimit-1 are
+used. Ordering, and only ordering, adds entry * Scale / 1024 to the quiet
+score and to a quiet evasion's score. Reductions and history pruning still
+use the old quiet_history() total, which does not include this table.
+
+Scale 1024 means the stored value is added in full, on the same scale as main
+history. PlyLimit 4 is the "first 4 plies" in the idea. Each ply has its own
+row so a root quiet and a ply-3 quiet do not share a score.
