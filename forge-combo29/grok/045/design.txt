@@ -1,0 +1,9 @@
+IdeaK6. The plain engine does not already do this.
+
+search.cpp QuietScorer::score adds 12000 only for a direct check. quiet_history_sum is main history plus two continuation histories plus an optional half-weight fourth, each an int16 clamped to +/-16384, and threat history can add another. A non-checking quiet can therefore outrank a direct check, and a discovered check gets no bonus. That is a bonus, not "ordered before the other quiet moves".
+
+What I built: option IdeaK6, check, default false. Spin IdeaK6_Band, default 200000, min 0, max 1000000. When the check is false the band is not added and gives_check is not called, so the score is today's score. When the check is true, a quiet move for which Board::gives_check is true (direct or discovered) gets IdeaK6_Band on top of today's score, in the quiet list and in the quiet part of an evasion list.
+
+Why 200000: four int16 histories top out at 16384*3+8192+16384 = 73728. The worst check plus 200000 still beats the best non-check, so every quiet check is ordered before every other quiet in that list. Order inside each group stays the history order, including today's +12000 on direct checks. Good captures stay in their stage. Evasion captures are scored at 1000000 or 2000000, which is still above the band, so captures stay ahead of checking quiets. Killers and the countermove stay in their stages in front of the quiet list: they are the previous cutoff moves, not the history-ordered quiet band this idea reorders.
+
+EXISTS: no

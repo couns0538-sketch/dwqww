@@ -109,6 +109,8 @@ def main() -> None:
     fens = load_fens(fen_file)
     engine = Engine(exe)
     id_name = ""
+    rows: list[tuple[int, int, str]] = []
+    failed: BaseException | None = None
     try:
         engine.send("uci")
         for line in engine.read_until("uciok"):
@@ -144,8 +146,13 @@ def main() -> None:
                 raise SystemExit(f"no nodes for position {index}")
             rows.append((index, nodes, best))
             print(f"{index} {nodes} {best}", flush=True)
+    except BaseException as exc:
+        failed = exc
     finally:
-        engine.close()
+        try:
+            engine.close()
+        except BaseException:
+            pass
     prefix.parent.mkdir(parents=True, exist_ok=True)
     raw_path = prefix.with_suffix(".raw.txt")
     rows_path = prefix.with_suffix(".rows.txt")
@@ -164,6 +171,8 @@ def main() -> None:
     )
     total = sum(nodes for _index, nodes, _best in rows)
     print(f"SUM {total} N {len(rows)}")
+    if failed is not None:
+        raise failed
 
 
 if __name__ == "__main__":

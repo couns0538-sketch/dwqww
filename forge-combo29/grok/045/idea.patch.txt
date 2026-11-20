@@ -1,0 +1,93 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..b8168df13 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,8 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaK6;                  // quiet checks before other quiets in the history list (false = off)
++extern int IdeaK6_Band;              // added to a quiet check's score when IdeaK6 is on
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..8fd504e54 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,8 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaK6 = false;
++int IdeaK6_Band = 200000;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK6_Band", &IdeaK6_Band, 0, 1000000},
+     };
+     return table;
+ }
+@@ -797,6 +800,10 @@ private:
+             const Piece piece = board.piece_at(move.from);
+             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
++            // IdeaK6 off: this term is not added, so the score is today's score.
++            // IdeaK6 on: every quiet check, including a discovered check, sits above
++            // every non-checking quiet. 200000 clears the int16 history range.
++            if (tune::IdeaK6 && board.gives_check(move)) value += tune::IdeaK6_Band;
+             return value;
+         }
+     };
+@@ -930,6 +937,7 @@ private:
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (tune::IdeaK6 && board_.gives_check(move)) score += tune::IdeaK6_Band;
+             push_scored(move, score);
+         }
+ #endif
+@@ -952,6 +960,7 @@ private:
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (tune::IdeaK6 && board_.gives_check(move)) score += tune::IdeaK6_Band;
+             push_scored(move, score);
+         }
+ #endif
+@@ -988,6 +997,7 @@ private:
+                 score = scorer.score(move, check_squares_);
+ #else
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++                if (tune::IdeaK6 && board_.gives_check(move)) score += tune::IdeaK6_Band;
+ #endif
+             }
+             push_scored(move, score);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..744e9cb22 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaK6 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -459,6 +460,9 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "IdeaK6") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK6 = value_text == "true";
++                else note_invalid();
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
