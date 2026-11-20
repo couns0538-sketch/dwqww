@@ -74,8 +74,12 @@ def main():
     pos_path = Path(sys.argv[2])
     depth = int(sys.argv[3])
     tag = sys.argv[4]
-    limit = int(sys.argv[5]) if len(sys.argv) > 5 else 0
-    extra = sys.argv[6:]  # pairs already flattened? remaining are "name value" pairs
+    rest = sys.argv[5:]
+    limit = 0
+    if rest and rest[0].isdigit():
+        limit = int(rest[0])
+        rest = rest[1:]
+    extra = rest
     if len(extra) % 2 != 0:
         raise SystemExit("extra options must be name value pairs")
     out = Path(__file__).resolve().parent
@@ -93,7 +97,7 @@ def main():
         eng.send("uci", "uciok", 30)
         ident = id_name(eng.lines)
         setup = [("Threads", "1"), ("Hash", "16")] + S14
-        for name, value in extra:
+        for name, value in zip(extra[0::2], extra[1::2]):
             setup.append((name, value))
         for name, value in setup:
             command = f"setoption name {name} value {value}"
