@@ -1,0 +1,108 @@
+--- HONESTY_B.txt ---
+exe /tmp/build-b/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name Chess Engine Forge 6.4.24 candidate
+bench11 expect 312866 line info string bench depth 11 nodes 312866 time 272 nps 1150242 ok True rc 0
+bench13 expect 862329 line info string bench depth 13 nodes 862329 time 504 nps 1710970 ok True rc 0
+bench16 expect 3024920 line info string bench depth 16 nodes 3024920 time 1888 nps 1602182 ok True rc 0
+perft5 expect 4865609 line nodes 4865609 ok True rc 0
+--- HONESTY_P.txt ---
+exe /tmp/build-p/forge
+sha256 364f47e6d00affa06ce4eb0438072528a62b90c407324e590957a286b926fb16
+id name Chess Engine Forge 6.4.24 candidate
+bench11 expect 312866 line info string bench depth 11 nodes 312866 time 185 nps 1691167 ok True rc 0
+bench13 expect 862329 line info string bench depth 13 nodes 862329 time 484 nps 1781671 ok True rc 0
+bench16 expect 3024920 line info string bench depth 16 nodes 3024920 time 1571 nps 1925474 ok True rc 0
+perft5 expect 4865609 line nodes 4865609 ok True rc 0
+--- B_O_summary.txt ---
+count 200
+sum 9500069
+first3 41311 / 24872 / 28574
+--- B_G_summary.txt ---
+count 353
+sum 18466239
+first3 37203 / 70845 / 144383
+--- compare_off_O.txt ---
+left raw_B_O_d12.txt count 200 sum 9500069
+right raw_P_off_O_d12.txt count 200 sum 9500069
+differ 0 of 200
+--- compare_off_G.txt ---
+left raw_B_G_d12.txt count 353 sum 18466239
+right raw_P_off_G_d12.txt count 353 sum 18466239
+differ 0 of 353
+--- compare_on_O.txt ---
+left raw_B_O_d12.txt count 200 sum 9500069
+right raw_P_on_O_d12.txt count 200 sum 9500069
+differ 0 of 200
+--- P_on_O_summary.txt ---
+count 200
+sum 9500069
+first3 41311 / 24872 / 28574
+--- probe_off_d12_summary.txt ---
+count 1
+sum 136029
+first3 136029
+--- probe_on_d12_summary.txt ---
+count 1
+sum 127559
+first3 127559
+--- match_OG_summary.txt ---
+Results of S15on vs S15off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -0.63 +/- 5.84, nElo: -2.20 +/- 20.48
+LOS: 41.65 %, DrawRatio: 86.44 %, PairsRatio: 0.97
+Games: 1106, Wins: 339, Losses: 341, Draws: 426, Points: 552.0 (49.91 %)
+summary elo -0.63 err 5.84 games 1106 wins 339 losses 341 draws 426 finished_lines 1106
+--- compare_partner_067_off.txt ---
+left raw_B_O_d12.txt count 200 sum 9500069
+right raw_partner_067_off_O_d12.txt count 200 sum 9500069
+differ 0 of 200
+--- compare_partner_067_on_vs_B.txt ---
+left raw_B_O_d12.txt count 200 sum 9500069
+right raw_partner_067_on_O_d12.txt count 200 sum 9500069
+differ 0 of 200
+--- compare_partner_067_on_vs_theirs.txt ---
+mine 200 sum 9500069
+theirs 200 sum 9500069
+differ 0 of 200
+--- match_partner_067_summary.txt ---
+Results of PartnerOn vs PartnerOff (20000 nodes, 1t, 16MB, R.epd):
+Elo: -0.58 +/- 4.09, nElo: -3.93 +/- 27.80
+LOS: 39.07 %, DrawRatio: 95.67 %, PairsRatio: 0.86
+Games: 600, Wins: 270, Losses: 271, Draws: 59, Points: 299.5 (49.92 %)
+summary elo -0.58 err 4.09 games 600 wins 270 losses 271 draws 59 finished_lines 600
+--- partner_067_cmp_O_off.txt ---
+N 200 DIFFER 0 SAME 200
+--- partner_067_cmp_O_on.txt ---
+N 200 DIFFER 0 SAME 200
+--- partner_067_HONESTY_P.txt ---
+honesty exe P
+exe=/tmp/forge-work/forge
+sha256=d14193dd2026dd378818779622207652451b510da25895b040f573eca19d4672
+id_name=Chess Engine Forge 6.4.24 candidate
+setoption=none
+bench 11 expected 312866 got 312866 ok
+bench 13 expected 862329 got 862329 ok
+bench 16 expected 3024920 got 3024920 ok
+go perft 5 expected 4865609 got 4865609 ok
+PASS
+--- raw_asan_G100_d10.txt.meta nm ---
+nm -C /tmp/build-asan/forge | grep -c __asan_
+35
+asan_err_bytes 0
+--- scratch sanitizer line ---
+/tmp/scratch-src/src/uci.cpp:46:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+--- step table ---
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt | seat 017 idea 17
+STEP 2 honesty B | done | HONESTY_B.txt | 312866 862329 3024920 4865609
+STEP 2 known sums | done | B_O_summary.txt B_G_summary.txt | O 9500069 G 18466239
+STEP 3 prediction | done | prediction.txt | committed before measuring P
+STEP 3 patch applies | done | idea.patch.txt | git apply --check
+proof 1 honesty P | done | HONESTY_P.txt | same four node counts
+proof 2 switch off | done | compare_off_O.txt compare_off_G.txt | 0 of 200 and 0 of 353
+proof 3 switch on | done | compare_on_O.txt | 0 of 200
+proof 4 uci options | done | uci_P.txt | IdeaS15 false, IdeaS15_MinPieces 8
+proof 5 sanitizer | done | raw_asan_G100_d10.txt.meta raw_asan_scratch.txt.err | nm 35, clean stderr, scratch reported
+STEP 3 match | done | match_OG_summary.txt | elo -0.63 +/- 5.84 games 1106
+STEP 4 partner | done | compare_partner_067_off.txt compare_partner_067_on_vs_theirs.txt match_partner_067_summary.txt | 067 CONFIRMS on the repeated proofs
+handoff minute 60 | done | gate_notes.txt | no FABLE_TO_grok file
