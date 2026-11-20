@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fixed-depth search of a FEN list. S14, Threads 1, Hash 16.
 
-Usage: search_set.py EXE FENS DEPTH OUTPREFIX [true|false|none]
-none does not send IdeaS24 (the plain engine does not know it).
+Usage: search_set.py EXE FENS DEPTH OUTPREFIX [true|false|none] [OPTION]
+none does not send the check option. OPTION defaults to IdeaS24.
 Writes OUTPREFIX.tsv, OUTPREFIX.raw, OUTPREFIX.meta.
 Stops on unknown option, invalid value, invalid FEN, illegal move.
 """
@@ -68,21 +68,22 @@ def depth_of(info_line):
 
 
 def main():
-    if len(sys.argv) != 6:
-        sys.stderr.write("usage: search_set.py EXE FENS DEPTH OUTPREFIX SWITCH\n")
+    if len(sys.argv) not in (6, 7):
+        sys.stderr.write("usage: search_set.py EXE FENS DEPTH OUTPREFIX SWITCH [OPTION]\n")
         sys.exit(2)
     exe = os.path.abspath(sys.argv[1])
     fen_path = sys.argv[2]
     depth = int(sys.argv[3])
     prefix = sys.argv[4]
     switch = sys.argv[5]
+    option_name = sys.argv[6] if len(sys.argv) == 7 else "IdeaS24"
     if switch not in ("true", "false", "none"):
         sys.stderr.write("switch must be true, false, or none\n")
         sys.exit(2)
     fens = load_fens(fen_path)
     options = list(S14)
     if switch != "none":
-        options.append(("IdeaS24", switch))
+        options.append((option_name, switch))
     proc = subprocess.Popen(
         [exe],
         stdin=subprocess.PIPE,
