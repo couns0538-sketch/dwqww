@@ -1,0 +1,33 @@
+Idea S26, seat 071. The plain engine already keeps one continuation history and
+updates it on every quiet cutoff (search.cpp update_continuation). It does not
+split that memory, and it does not wait for a reduced fail-high to be confirmed.
+EXISTS: no.
+
+What I built, behind option IdeaS26 (check, default false):
+- A second continuation table, the confirmed memory.
+- IdeaS26_Floor default 6 (spin 1..32). A quiet beta cutoff at depth greater than
+  this writes the confirmed table with the same bonus and the same malus the
+  shallow table gets.
+- IdeaS26_HighDepth default 8 (spin 1..64). At a node whose depth is at least
+  this, quiet ordering reads the confirmed table instead of the shallow one.
+  Butterfly history, killers and capture history stay as they are. Late-move
+  reduction still reads the shallow history.
+- A quiet that fails high in a reduced search and again on the full-depth
+  re-search also writes the confirmed table. If that move then cuts off, it is
+  written once, at the cutoff. If it only raises alpha, it is written then.
+  A later search of the same move that falls back to alpha or below cancels the
+  mark.
+
+Why these numbers: depth 12 still has a band of nodes (depth 8 and up) that
+order from the confirmed memory, and cutoffs deeper than 6 are common enough
+that the table is not empty. Below depth 8 the search keeps today's ordering,
+so the switch is not "ignore continuation history everywhere".
+
+When IdeaS26 is false the new reads and writes are skipped. The shallow
+continuation pointer is stored by the same assignment as before.
+
+R positions: python-chess 1.11.2, random.Random(7101). A sample is the FEN at
+ply 8, 15, 22, ... taken before the move, and only while the game is not over.
+A game that ends before ply 8 contributes nothing. That is what "games that
+end are dropped" means here: no position from a finished game, and no game that
+never reached ply 8.

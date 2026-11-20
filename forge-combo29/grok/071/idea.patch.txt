@@ -1,0 +1,363 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..d7f64837d 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -291,6 +291,9 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
++extern bool IdeaS26;                  // depth-confirmed continuation memory (false = off)
++extern int IdeaS26_Floor;             // quiet cutoff depth above this writes the confirmed memory
++extern int IdeaS26_HighDepth;         // at this remaining depth and above, order quiets from the confirmed memory
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+@@ -413,6 +416,9 @@ struct SearchStack {
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+     PieceToHistory* continuation = nullptr;
++    // Slot in the depth-confirmed continuation table. Written only while IdeaS26
++    // is on, and read only when that option orders from the confirmed memory.
++    PieceToHistory* continuation_confirmed = nullptr;
+     // Network features are not updated when the move is made. The move's
+     // pieces are remembered here; the change list and the accumulator are
+     // built the first time an evaluation needs this ply (or a descendant).
+@@ -473,6 +479,7 @@ private:
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
++    std::unique_ptr<ContinuationHistory> continuation_confirmed_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
+@@ -548,7 +555,11 @@ private:
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+-    [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
++    void note_continuation(SearchStack* ss, Piece piece, int to);
++    void update_confirmed_continuation(SearchStack* ss, Piece piece, int to, int bonus);
++    void update_confirmed_quiets(const Board& board, SearchStack* ss, Move move, int bonus, const Move* quiets,
++                                 int quiet_count);
++    [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move, int depth = 0) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3dfcee2e4 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -91,6 +91,9 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
++bool IdeaS26 = false;
++int IdeaS26_Floor = 6;
++int IdeaS26_HighDepth = 8;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+@@ -578,8 +581,9 @@ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+ 
+-    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+-        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
++    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode,
++               int node_depth = 0)
++        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move), node_depth_(node_depth) {
+         const bool in_check = board.in_check();
+         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
+         if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+@@ -716,6 +720,7 @@ private:
+     const Worker& searcher_;
+     const SearchStack* ss_;
+     Move tt_move_;
++    int node_depth_ = 0;
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
+@@ -784,12 +789,21 @@ private:
+         const Board& board;
+         const Worker& worker;
+ 
+-        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
++        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss, int depth)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+-              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+-              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+-              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                        ? (ss - 4)->continuation : nullptr),
++              cont1((tune::IdeaS26 && depth >= tune::IdeaS26_HighDepth && ss != nullptr)
++                        ? (ss - 1)->continuation_confirmed
++                        : (ss != nullptr ? (ss - 1)->continuation : nullptr)),
++              cont2((tune::IdeaS26 && depth >= tune::IdeaS26_HighDepth && ss != nullptr)
++                        ? (ss - 2)->continuation_confirmed
++                        : (ss != nullptr ? (ss - 2)->continuation : nullptr)),
++              cont4((tune::IdeaS26 && depth >= tune::IdeaS26_HighDepth && ss != nullptr)
++                        ? (tune::ContHist4PlyRead && !(ss - 4)->current_move.is_none()
++                               ? (ss - 4)->continuation_confirmed
++                               : nullptr)
++                        : (tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++                               ? (ss - 4)->continuation
++                               : nullptr)),
+               board(b),
+               worker(searcher) {}
+ 
+@@ -922,7 +936,7 @@ private:
+         count_ = quiet_start();
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+-        const QuietScorer scorer(board_, searcher_, ss_);
++        const QuietScorer scorer(board_, searcher_, ss_, node_depth_);
+         for (const Move move : buffer_) {
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+@@ -942,7 +956,7 @@ private:
+         count_ = quiet_start();
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+-        const QuietScorer scorer(board_, searcher_, ss_);
++        const QuietScorer scorer(board_, searcher_, ss_, node_depth_);
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             push_scored(move, scorer.score(move, check_squares_));
+@@ -967,7 +981,7 @@ private:
+         count_ = 0;
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+-        const QuietScorer scorer(board_, searcher_, ss_);
++        const QuietScorer scorer(board_, searcher_, ss_, node_depth_);
+ #endif
+         // Off: the historical most-valuable-victim score, so default benches stay put.
+         // On: a capture is victim value plus capture history, and that band sits
+@@ -1006,6 +1020,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
++      continuation_confirmed_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
+@@ -1022,6 +1037,7 @@ void Worker::clear() {
+     *threat_history_ = ThreatQuietHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
++    *continuation_confirmed_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
+@@ -1319,13 +1335,22 @@ int Worker::draw_leaf_score(const Board& board) const {
+     return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
+ }
+ 
+-int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
++int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move, int depth) const {
+ #if FORGE_SEARCH_SPEED2
++    if (!tune::IdeaS26 || depth < tune::IdeaS26_HighDepth) {
++        return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
++                                 ss != nullptr ? (ss - 1)->continuation : nullptr,
++                                 ss != nullptr ? (ss - 2)->continuation : nullptr,
++                                 tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++                                     ? (ss - 4)->continuation : nullptr,
++                                 board.moved_piece(move), move) +
++               threat_quiet_bonus(board, move);
++    }
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+-                             ss != nullptr ? (ss - 1)->continuation : nullptr,
+-                             ss != nullptr ? (ss - 2)->continuation : nullptr,
++                             ss != nullptr ? (ss - 1)->continuation_confirmed : nullptr,
++                             ss != nullptr ? (ss - 2)->continuation_confirmed : nullptr,
+                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                                 ? (ss - 4)->continuation : nullptr,
++                                 ? (ss - 4)->continuation_confirmed : nullptr,
+                              board.moved_piece(move), move) +
+            threat_quiet_bonus(board, move);
+ #else
+@@ -1369,6 +1394,35 @@ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus
+     }
+ }
+ 
++void Worker::note_continuation(SearchStack* ss, Piece piece, int to) {
++    ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)];
++    if (tune::IdeaS26) {
++        ss->continuation_confirmed =
++            &(*continuation_confirmed_)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)];
++    }
++}
++
++void Worker::update_confirmed_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
++    if (!tune::IdeaS26) return;
++    for (const int back : {1, 2, 4}) {
++        const SearchStack* previous = ss - back;
++        if (previous->continuation_confirmed == nullptr || previous->current_move.is_none()) continue;
++        apply_history((*previous->continuation_confirmed)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
++                      back == 4 ? bonus / 2 : bonus);
++    }
++}
++
++void Worker::update_confirmed_quiets(const Board& board, SearchStack* ss, Move move, int bonus, const Move* quiets,
++                                     int quiet_count) {
++    if (!tune::IdeaS26) return;
++    update_confirmed_continuation(ss, board.moved_piece(move), move.to, bonus);
++    for (int i = 0; i < quiet_count; ++i) {
++        const Move quiet = quiets[i];
++        if (quiet == move) continue;
++        update_confirmed_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
++    }
++}
++
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+                                   int quiet_count) {
+     const int bonus = history_bonus(depth);
+@@ -1506,7 +1560,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ #endif
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+-        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
++        note_continuation(ss, ss->moved_piece, move.to);
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;
+@@ -1702,7 +1756,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+-            ss->continuation = &(*continuation_history_)[Empty][0];
++            note_continuation(ss, Empty, 0);
+             (ss + 1)->ply = ply + 1;
+             (ss + 1)->arrival_index = 0;
+             record_null_move(ss);
+@@ -1753,7 +1807,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+-                ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
++                note_continuation(ss, ss->moved_piece, move.to);
+                 (ss + 1)->ply = ply + 1;
+                 (ss + 1)->arrival_index = 0;
+                 record_move(ss, board, move);
+@@ -1783,7 +1837,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+ 
+-    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
++    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main, depth);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+     std::array<Move, 128> quiets_tried;
+@@ -1811,6 +1865,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
++    bool lmr_confirmed_cutoff = false;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -1966,7 +2021,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #endif
+         ss->current_move = move;
+         ss->moved_piece = moved;
+-        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
++        note_continuation(ss, moved, move.to);
+         (ss + 1)->ply = ply + 1;
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+@@ -1988,6 +2043,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
++        bool reduced_fail_high = false;
++        bool confirmed_no_cutoff = false;
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+@@ -2012,6 +2069,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
++            if (tune::IdeaS26 && quiet && score > alpha && reduced_depth < new_depth) reduced_fail_high = true;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+@@ -2040,6 +2098,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
+ 
++        // A confirmation is the reduced fail-high and the full re-search both
++        // beating alpha. A later search of this move that falls back erases it.
++        if (score <= alpha) reduced_fail_high = false;
++
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
+@@ -2050,12 +2112,17 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+                 if (score >= beta) {
++                    lmr_confirmed_cutoff = reduced_fail_high;
+                     ++ss->cutoff_count;
+                     break;
+                 }
++                confirmed_no_cutoff = reduced_fail_high;
+                 alpha = score;
+             }
+         }
++        if (confirmed_no_cutoff) {
++            update_confirmed_continuation(ss, moved, move.to, history_bonus(depth));
++        }
+         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
+         if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
+             ++wide_quiet_misses;
+@@ -2074,7 +2141,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     if (best_score >= beta) {
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+-            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++            const int quiet_depth = depth + (best_score > beta + 100);
++            update_quiet_stats(board, ss, best_move, quiet_depth, quiets_tried.data(), quiet_count);
++            if (tune::IdeaS26 && (depth > tune::IdeaS26_Floor || lmr_confirmed_cutoff)) {
++                update_confirmed_quiets(board, ss, best_move, history_bonus(quiet_depth), quiets_tried.data(), quiet_count);
++            }
+         }
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+@@ -2335,7 +2406,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.excluded_move = Move::none();
+         ss.moved_piece = Empty;
+         ss.static_eval = ValueNone;
+-        ss.continuation = &(*continuation_history_)[Empty][0];
++        note_continuation(&ss, Empty, 0);
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
+         ss.null_move_allowed = true;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..dc4d1643f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -214,7 +214,10 @@ int uci_loop(std::istream& in) {
+                              "option name NNUEArchFile type string default <empty>\n";
+ #endif
+             }
+-            std::cout << "option name ContHist4PlyRead type check default false\n"
++            std::cout << "option name IdeaS26 type check default false\n"
++                         "option name IdeaS26_Floor type spin default 6 min 1 max 32\n"
++                         "option name IdeaS26_HighDepth type spin default 8 min 1 max 64\n"
++                         "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+@@ -400,6 +403,13 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "IdeaS26") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS26 = value_text == "true";
++                else note_invalid();
++            } else if (name == "IdeaS26_Floor") {
++                apply_spin(1, 32, [&](int clamped) { forge::tune::IdeaS26_Floor = clamped; });
++            } else if (name == "IdeaS26_HighDepth") {
++                apply_spin(1, 64, [&](int clamped) { forge::tune::IdeaS26_HighDepth = clamped; });
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
