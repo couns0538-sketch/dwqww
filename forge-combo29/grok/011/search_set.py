@@ -61,7 +61,7 @@ class Engine:
         self.proc.stdin.write(line + "\n")
         self.proc.stdin.flush()
 
-    def read_until(self, done, timeout):
+    def read_until(self, done, timeout, sink):
         lines = []
         deadline = time.monotonic() + timeout
         while True:
@@ -72,6 +72,7 @@ class Engine:
                 die("STOP engine closed stdout")
             line = line.rstrip("\r\n")
             lines.append(line)
+            sink.append(line)
             for mark in STOP_MARKS:
                 if mark in line:
                     die("STOP " + line)
@@ -128,46 +129,41 @@ def main():
     option_lines = []
     try:
         engine.send("uci")
-        hello = engine.read_until(lambda s: s == "uciok", 30)
-        raw.extend(hello)
+        raw.append(">> uci")
+        hello = engine.read_until(lambda s: s == "uciok", 30, raw)
         for line in hello:
             if line.startswith("id name "):
                 id_name = line[len("id name ") :]
         for name, value in S14:
             command = f"setoption name {name} value {value}"
             option_lines.append(command)
+            raw.append(">> " + command)
             engine.send(command)
             engine.send("isready")
-            ready = engine.read_until(lambda s: s == "readyok", 30)
-            raw.append(">> " + command)
-            raw.extend(ready)
+            engine.read_until(lambda s: s == "readyok", 30, raw)
         if switch != "none":
             value = "true" if switch == "on" else "false"
             command = f"setoption name IdeaS25 value {value}"
             option_lines.append(command)
+            raw.append(">> " + command)
             engine.send(command)
             engine.send("isready")
-            ready = engine.read_until(lambda s: s == "readyok", 30)
-            raw.append(">> " + command)
-            raw.extend(ready)
+            engine.read_until(lambda s: s == "readyok", 30, raw)
         rows = []
         for index, fen in enumerate(fens):
+            raw.append(">> ucinewgame")
             engine.send("ucinewgame")
             engine.send("isready")
-            ready = engine.read_until(lambda s: s == "readyok", 30)
-            raw.append(">> ucinewgame")
-            raw.extend(ready)
+            engine.read_until(lambda s: s == "readyok", 30, raw)
             pos = f"position fen {fen}"
+            raw.append(">> " + pos)
             engine.send(pos)
             engine.send("isready")
-            ready = engine.read_until(lambda s: s == "readyok", 30)
-            raw.append(">> " + pos)
-            raw.extend(ready)
+            engine.read_until(lambda s: s == "readyok", 30, raw)
             go = f"go depth {depth}"
-            engine.send(go)
-            played = engine.read_until(lambda s: s.startswith("bestmove "), 180)
             raw.append(">> " + go)
-            raw.extend(played)
+            engine.send(go)
+            played = engine.read_until(lambda s: s.startswith("bestmove "), 180, raw)
             got = nodes_at_depth(played, depth)
             if got is None:
                 die(f"STOP no depth {depth} nodes at index {index}")
