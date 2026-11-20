@@ -1,0 +1,126 @@
+Ledger patch for job 36 (on top of nodeclock.patch.txt = patch N). It only prints:
+one ITER line at every soft test and one LEDGER line when a time-managed search ends.
+No search arithmetic changes: factor/effort/falling values are captured, not recomputed.
+
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2964,6 +2964,8 @@
+         alt_worker->parent_worker_ = this;
+         alt_list.push_back(alt_worker.get());
+     }
++    // Ledger (job 36): which exit ends the root loop. CAP when the loop runs out its depth bound.
++    const char* ledger_kind = "CAP";
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
+         // Sample only while a game clock is running and the option is on.
+@@ -3057,6 +3059,9 @@
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                 // Publish the revised line so GUIs see a PV consistent with the move.
+                 emit(depth, result.score, result.pv);
++                ledger_kind = "ABORTNEW";
++            } else {
++                ledger_kind = "ABORTKEPT";
+             }
+             break;
+         }
+@@ -3158,11 +3163,11 @@
+         const int iteration_previous_score = previous_score;
+         previous_score = score;
+ 
+-        if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
++        if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) { ledger_kind = "OTHER:mate"; break; }
+         // The iteration above is finished. Passing the soft budget stops here,
+         // keeping this move and score. The hard cap is enforced inside search.
+-        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+-        if (should_stop()) break;
++        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) { ledger_kind = "OTHER:softnodes"; break; }
++        if (should_stop()) { ledger_kind = "HARDEND"; break; }
+         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+             if (finish_sampling) {
+                 const std::int64_t spent = elapsed_ms() - finish_origin;
+@@ -3171,9 +3176,13 @@
+             }
+             // Stop early when the best move has been stable; spend longer when it keeps changing.
+             double factor = 1.0;
+-            if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+-            else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+-            else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
++            const char* ledger_rule = "N";
++            double ledger_effort = 1.0;
++            double ledger_falling = 1.0;
++            int ledger_floor = 0;
++            if (stable_iterations >= 6) { factor = tune::TmStableFactor / 100.0; ledger_rule = "S6"; }
++            else if (stable_iterations >= 3) { factor = tune::TmSemiStableFactor / 100.0; ledger_rule = "S3"; }
++            else if (stable_iterations == 0 && depth >= 6) { factor = tune::TmUnstableFactor / 100.0; ledger_rule = "U"; }
+             // A best move that absorbed most of the effort is clearly best;
+             // spend longer when the alternatives still draw attention.
+             if (local_nodes_ > 0 && depth >= 6) {
+@@ -3184,15 +3193,21 @@
+                     const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
+                     // TmNodeShare on: this factor stays 1. The share is applied
+                     // only by decide_node_share_timing below.
+-                    factor *= effort_share_factor(effort, tune::TmEffortBase, tune::TmNodeShare);
++                    ledger_effort = effort_share_factor(effort, tune::TmEffortBase, tune::TmNodeShare);
++                    factor *= ledger_effort;
+                 }
+             }
+             // A falling evaluation deserves more thought.
+             if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+                 const int drop = std::min(iteration_previous_score - score, 150);
+-                factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
++                ledger_falling = 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
++                factor *= ledger_falling;
++            }
++            {
++                const double ledger_prefloor = factor;
++                factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
++                ledger_floor = factor > ledger_prefloor ? 1 : 0;
+             }
+-            factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+             // TmNodeShare is clock play only: this block is skipped for depth,
+             // nodes, movetime, infinite, and ponder before ponderhit. Off, the
+             // soft limit is the one already planned. TmFinishIteration measures
+@@ -3218,7 +3233,19 @@
+                 }
+                 soft_basis = decision.soft_ms;
+             }
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) break;
++            if (emit_info) {
++                const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                std::cout << "info string ITER depth " << depth
++                          << " elapsed " << elapsed_ms()
++                          << " target " << static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)
++                          << " rule " << ledger_rule
++                          << " effort1000 " << static_cast<std::int64_t>(ledger_effort * 1000.0)
++                          << " falling1000 " << static_cast<std::int64_t>(ledger_falling * 1000.0)
++                          << " floor " << ledger_floor
++                          << " factor1000 " << static_cast<std::int64_t>(factor * 1000.0)
++                          << " basis " << soft_basis << std::endl;
++            }
++            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) { ledger_kind = "SOFT"; break; }
+             if (finish_sampling) {
+                 const std::int64_t used_ms = elapsed_ms();
+                 const auto deadline = static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor);
+@@ -3230,12 +3257,22 @@
+                                   << " prev " << finish_prev_ms << " last " << finish_last_ms
+                                   << " remaining " << left_ms << std::endl;
+                     }
++                    ledger_kind = "HOLD";
+                     break;
+                 }
+             }
+         }
+     }
+ 
++    if (emit_info && time_managed_) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string LEDGER kind " << ledger_kind
++                  << " soft " << soft_limit_ms_
++                  << " hard " << hard_limit_ms_
++                  << " elapsed " << elapsed_ms()
++                  << " nodes " << total_nodes()
++                  << " depth " << result.depth << std::endl;
++    }
+     nodes_.store(local_nodes_, std::memory_order_relaxed);
+     result.nodes = total_nodes() + extra_nodes_;
+     result.seldepth = std::max(result.seldepth, seldepth_);
