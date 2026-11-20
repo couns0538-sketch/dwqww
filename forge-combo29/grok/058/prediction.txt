@@ -1,0 +1,11 @@
+Seat 058, idea 8, S45. The plain engine already refuses the null move through option NullSeeVeto (default false). The patch only turns the two fixed numbers in that veto into spins, both left at today's values: NullSeeVeto_SeeMargin 0 and NullSeeVeto_KingWorth 100000. The switch in this prediction is NullSeeVeto true, with those spins at their defaults.
+
+O depth 12, S14, Threads 1, Hash 16, exe P, switch on.
+Predicted node sum: 10300000
+Proved wrong if the sum is below 9600000 or above 13000000.
+Why: the off sum on exe B is 9500069. Refusing a null cutoff when a cheaper piece has a non-losing capture of a dearer piece drops some cutoffs, so the tree should grow, but the exchange filter should not ban null move in quiet positions. An unchanged 9500069 is below 9600000 and would mean the switch did not run. A sum above 13000000 would mean the veto is far more common than that filter.
+
+Test match, switch on versus switch off, both exe P, S14, Threads 1, Hash 16, 20000 nodes, openings O and G, both colours, 1106 games.
+Predicted Elo of on versus off: +5
+Proved wrong if the point estimate is below -25 or above +40.
+Why: the filter is a narrow tactical exception to a strong pruning rule. I expect a small gain, not a swing of tens of Elo.
