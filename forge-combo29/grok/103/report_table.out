@@ -1,0 +1,112 @@
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat 103, idea 3, model Grok 4.7, 2026-11-20T07:55:34Z, token 1426815293849
+2 honesty B | done | HONESTY_B.txt | HONESTY_B PASS
+2 O depth 12 | done | compare_off_O.txt | see proof 2
+2 G depth 12 | done | compare_off_G.txt | see proof 2
+3 prediction | done | prediction.txt | committed before measuring P
+3 patch | done | apply_check_own.txt | own_apply_check_exit=0
+3 proof 1 | done | HONESTY_p.txt | HONESTY_p PASS
+3 proof 2 O | done | compare_off_O.txt | differ=0 of 200
+3 proof 2 G | done | compare_off_G.txt | differ=0 of 353
+3 proof 3 | done | compare_on_O.txt | differ=3 of 200
+3 proof 4 | done | uci_p.txt | options listed below
+3 proof 5 | done | asan_G100_d10.meta | sanitizer_lines from meta
+3 match | done | match_og_summary.txt | Elo: 3.14 +/- 8.26, nElo: 7.79 +/- 20.48
+4 partner | done | partner003_on_vs_claim.txt | base_mismatch_positions=114,127,191
+4 partner match | done | partner003_match_summary.txt | Elo: 4.05 +/- 6.51, nElo: 17.33 +/- 27.80
+
+HONESTY_B
+exe=/tmp/forge-base-build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+bench 11 nodes 312866 expected 312866 OK
+bench 13 nodes 862329 expected 862329 OK
+bench 16 nodes 3024920 expected 3024920 OK
+go perft 5 nodes 4865609 expected 4865609 OK
+HONESTY_B PASS
+
+HONESTY_P
+exe=/tmp/forge-work-build/forge
+sha256=f7a0026777ad38e2ec4f91275291687ea14fc68235092f5fa8f7015810cf84b7
+bench 11 nodes 312866 expected 312866 OK
+bench 13 nodes 862329 expected 862329 OK
+bench 16 nodes 3024920 expected 3024920 OK
+go perft 5 nodes 4865609 expected 4865609 OK
+HONESTY_p PASS
+
+COMPARE_OFF_O
+left=forge-combo29/grok/103/B_O_d12.txt
+right=forge-combo29/grok/103/P_off_O_d12.txt
+left_count=200 right_count=200
+left_sum=9500069 right_sum=9500069
+differ=0 of 200
+
+COMPARE_OFF_G
+left=forge-combo29/grok/103/B_G_d12.txt
+right=forge-combo29/grok/103/P_off_G_d12.txt
+left_count=353 right_count=353
+left_sum=18466239 right_sum=18466239
+differ=0 of 353
+
+COMPARE_ON_O
+left=forge-combo29/grok/103/B_O_d12.txt
+right=forge-combo29/grok/103/P_on_O_d12.txt
+left_count=200 right_count=200
+left_sum=9500069 right_sum=9501220
+differ=3 of 200
+first_differ_positions=114,127,191
+
+UCI_OPTIONS
+option name LmrSignedCorrection type check default false
+option name IdeaS38_Divisor type spin default 64 min 1 max 4096
+option name IdeaS38_Cap type spin default 1 min 0 max 8
+
+ASAN_META_LINES
+nm -C /tmp/forge-asan-build/forge | grep -c __asan_ = 35
+sanitizer_lines=0
+ASAN_SCRATCH
+/tmp/forge-scratch/forge-combo29/src/uci.cpp:46:26: runtime error: load of address 0x5020000000d0 with insufficient space for an object of type 'int'
+
+MATCH
+Results of signed vs plain (20000 nodes, 1t, 16MB, openings_OG.epd):
+Elo: 3.14 +/- 8.26, nElo: 7.79 +/- 20.48
+LOS: 77.21 %, DrawRatio: 76.13 %, PairsRatio: 1.06
+Games: 1106, Wins: 349, Losses: 339, Draws: 418, Points: 558.0 (50.45 %)
+Ptnml(0-2): [5, 59, 421, 57, 11], WL/DD Ratio: 1.79
+--------------------------------------------------
+Finished match
+
+PARTNER_OFF
+left=forge-combo29/grok/103/B_O_d12.txt
+right=forge-combo29/grok/103/partner003_off_O.txt
+left_count=200 right_count=200
+left_sum=9500069 right_sum=9500069
+differ=0 of 200
+
+PARTNER_ON
+base_count=200 claim_count=201 mine_count=200
+base_sum=9500069 claim_sum=19002440 mine_sum=9501220
+mine_vs_base differ=3 of 200
+mine_vs_partner_claim differ=0 of 200
+base_mismatch_positions=114,127,191
+
+PARTNER_HONESTY
+exe=/tmp/forge-partner-build/forge
+sha256=1221bd95215e764d3a07a3d442a20cd6cb6d92c93363396f25cd5279a9e34213
+bench 11 nodes 312866 expected 312866 OK
+bench 13 nodes 862329 expected 862329 OK
+bench 16 nodes 3024920 expected 3024920 OK
+go perft 5 nodes 4865609 expected 4865609 OK
+HONESTY_partner003 PASS
+
+PARTNER_MATCH
+Results of signed vs plain (20000 nodes, 1t, 16MB, R.epd):
+Elo: 4.05 +/- 6.51, nElo: 17.33 +/- 27.80
+LOS: 88.91 %, DrawRatio: 91.00 %, PairsRatio: 1.45
+Games: 600, Wins: 273, Losses: 266, Draws: 61, Points: 303.5 (50.58 %)
+Ptnml(0-2): [0, 11, 273, 14, 2], WL/DD Ratio: 14.17
+--------------------------------------------------
+Finished match
+
+B_O_SUM_LINE
+count=200 sum=9500069 first3=41311,24872,28574
+G count=353 sum=18466239

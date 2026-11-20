@@ -9,6 +9,7 @@ OPENINGS="${2:?openings}"
 ROUNDS="${3:?rounds}"
 OUT="${4:?out-prefix}"
 CONC="${5:-3}"
+SWITCH="${6:-LmrSignedCorrection}"
 FC=/tmp/fastchess/fastchess
 OPTS=(
   option.Threads=1 option.Hash=16
@@ -21,8 +22,8 @@ OPTS=(
   option.IirDepth=2 option.NonPawnCorrection=true
 )
 "$FC" \
-  -engine cmd="$EXE" name=signed proto=uci "${OPTS[@]}" option.LmrSignedCorrection=true \
-  -engine cmd="$EXE" name=plain proto=uci "${OPTS[@]}" option.LmrSignedCorrection=false \
+  -engine cmd="$EXE" name=signed proto=uci "${OPTS[@]}" "option.${SWITCH}=true" \
+  -engine cmd="$EXE" name=plain proto=uci "${OPTS[@]}" "option.${SWITCH}=false" \
   -openings file="$OPENINGS" format=epd order=sequential \
   -each nodes=20000 \
   -games 2 -rounds "$ROUNDS" -concurrency "$CONC" \
