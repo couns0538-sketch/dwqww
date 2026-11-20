@@ -1,0 +1,6 @@
+seat 002 idea 2 id S28 option IdeaS28
+O depth 12 sum, IdeaS28 true, Threads 1, Hash 16, S14: 9100000
+proved wrong if that sum is below 6500000 or above 13000000
+test-match Elo, IdeaS28 true versus false, 1106 games, 20000 nodes: +4
+proved wrong if that Elo is below -20 or above +25
+why: the table starts at zero after ucinewgame, so a depth-12 search can diverge only after quiet cutoffs inside that search. That is an ordering change, so I expect a small node drop from the baseline 9500069, not a different shape of search. The same ordering change is too small for a large Elo swing at 20000 nodes.
