@@ -1,0 +1,42 @@
+=== JOB 43 PART P9a: IdeaB8 (078) COUNTER SUMMATION OVER ALL O DEPTH-12 SEARCHES (sum_p9_counters.py) ===
+utc: Fri Nov 20 06:44:18 PM UTC 2026
+counter_raw_path: /agent/repos/dwqww/forge-combo29/carbon2/job43/P9a_B8_counters_O_d12.raw.txt
+counter_raw_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job43/P9a_B8_counters_O_d12.raw.txt): 5e7aa1d1ebbb7cfd8377ff6f15ba6362a0f40ad749d88711dac19b048949d6c6
+clean_bundle8_b8_rows_path: /agent/repos/dwqww/forge-combo29/carbon2/job43/P9_bundle8_only_IdeaB8_O_d12.rows.txt
+clean_bundle8_b8_rows_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job43/P9_bundle8_only_IdeaB8_O_d12.rows.txt): 7812ced3a10349fe1af896310b9f412480673afcfcc472fcd045df696ba0b056
+
+searches_summed = 200
+total_nodes     = 8262696 (mean 41313.5 nodes/search)
+
+--- 1. find_role_threat & Per-Worker Cache (ensure_role_threat) ---
+  ensure_role_threat total calls       : 35883443 (4.343 / node)
+  find_role_threat runs (cache misses) : 2514947 (7.01% of ensure calls; 0.304 / node)
+    of which threat.present == true    : 230896 (9.18% of find_role_threat runs)
+  per-Worker cache hits (answered)     : 33368496 (92.99% of ensure calls; 4.038 / node)
+
+--- 2. quiet_threat_role Calls & Returned Role Distribution (-1, 0..4) ---
+  quiet_threat_role total runs         : 4753914 (0.575 / node)
+    from threat_role_bonus             : 4688901 (98.63%)
+    from update_threat_role            : 65013 (1.37%)
+  role = -1 (no threat)                : 0 (0.00%)
+  role =  0 (step away: from==victim)  : 942239 (19.82%)
+  role =  1 (block slider ray)         : 41772 (0.88%)
+  role =  2 (counter-attack attacker)  : 313536 (6.60%)
+  role =  3 (counter-attack dearer)    : 61331 (1.29%)
+  role =  4 (other quiet under threat) : 3395036 (71.42%)
+
+--- 3. note_threat_swing Calls & Table Updates ---
+  note_threat_swing total runs         : 4938069 (0.598 / node)
+  note_threat_swing gained >= Swing(48): 36831 (0.75% of swing runs)
+  note_threat_swing table updates      : 12790 (0.26% of swing runs)
+  all-callers ThreatRoleHistory updates: 65013 (cutoff/malus/PV + swing)
+
+--- 4. Verification Checks ---
+  P9a searches_summed                         : PASS (200 == 200)
+  P9a counter node_sum vs IdeaB8 O known answer: PASS (8262696 == 8262696)
+  P9a counter equal_pos vs clean bundle8 IdeaB8 O: PASS (200 == 200)
+  P9a counter equal_pos vs Job 39 P6 IdeaB8 O : PASS (200 == 200)
+  P9a ensure_calls == find_runs + cache_hits  : PASS (35883443 == 35883443)
+  P9a qtr_runs == qtr_from_bonus + qtr_from_update: PASS (4753914 == 4753914)
+  P9a qtr_runs == sum(role_-1..role_4)        : PASS (4753914 == 4753914)
+  P9a COUNTER SUMMATION OVERALL               : PASS (1 == 1)

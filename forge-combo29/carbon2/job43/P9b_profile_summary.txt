@@ -1,0 +1,25 @@
+=== JOB 43 PART P9b: SIDE-BY-SIDE TOP-10 FUNCTION SHARES ON O DEPTH 12 (IdeaB8 Alone ON vs All OFF) ===
+utc: Fri Nov 20 06:45:01 PM UTC 2026
+profile_exe_path: /tmp/carbon2_job43/bld_p9_prof/forge
+profile_exe_sha256(/tmp/carbon2_job43/bld_p9_prof/forge): bcefa1d39d373e32433576004fb37c26ce43cd30f9871d0c55f2a760ee267c10
+method_b8 : perf record -e cpu-clock:u -F 4999 (2x O depth 12) (total_nodes = 16525392)
+method_off: perf record -e cpu-clock:u -F 4999 (2x O depth 12) (total_nodes = 16630336)
+
+Rank | IdeaB8 Alone ON (% self share | symbol) | All OFF (% self share | symbol)
+-----+-----------------------------------------+-----------------------------------------
+  1  |  16.89%  int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .llvm.480988623892047651] |  17.83%  int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .llvm.480988623892047651]
+  2  |  13.93%  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) |  14.58%  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+  3  |  10.73%  forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&) |  11.15%  forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+  4  |   5.26%  forge::Board::see_ge(forge::Move const&, int) const |   5.39%  forge::Board::see_ge(forge::Move const&, int) const
+  5  |   4.80%  forge::MovePicker::QuietScorer::score(forge::Move, std::array<unsigned long, 7ul> const&) const |   4.98%  forge::MovePicker::pick_best()
+  6  |   4.58%  forge::MovePicker::pick_best()                 |   4.70%  forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+  7  |   4.41%  forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const |   4.02%  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)
+  8  |   3.88%  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*) |   4.01%  forge::MovePicker::QuietScorer::score(forge::Move, std::array<unsigned long, 7ul> const&) const
+  9  |   2.95%  forge::MovePicker::next(bool)                  |   3.16%  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+ 10  |   2.77%  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) |   3.15%  forge::MovePicker::next(bool)
+
+--- All IdeaB8-Specific Symbols Observed in IdeaB8-Alone Profile ---
+    1.78%  forge::(anonymous namespace)::find_role_threat(forge::Board const&)
+    1.37%  forge::Worker::threat_role_bonus(forge::Board const&, forge::Move) const
+    0.52%  forge::(anonymous namespace)::quiet_threat_role(forge::Board const&, forge::Move, forge::(anonymous namespace)::RoleThreat const&)
+    0.07%  forge::Worker::update_threat_role(forge::Board const&, forge::Move, int)

@@ -1,0 +1,34 @@
+=== JOB 43 PART P9d: COST PER 1,000 NODES (O Set, 200 FENs, Depth 12, PC20, Built-in Eval, Pinned Core 1) ===
+exe_path: /tmp/carbon2_job43/bld_bundle9/forge
+exe_sha256(/tmp/carbon2_job43/bld_bundle9/forge): dd3396801f23390a60f97b8e46255b443a4f851ad969da89d7a59baceb9366d2
+variant_scope: IdeaB8_Fast covers IdeaB8 (078) only; it does nothing unless IdeaB8 is on (IdeaB8b is reported alone).
+mean_all_off_4_runs  : 0.520901 ms / 1,000 nodes (520.901 us / 1,000 nodes)
+mean_all_off_forward : 0.524507 ms / 1,000 nodes
+mean_all_off_reverse : 0.517296 ms / 1,000 nodes
+drift (rev / fwd)    : 0.986251
+
+--- All 10 Runs in Execution Order (Forward 01..05, Reverse 06..10) ---
+  run_id                                 | pass | setting         | node_sum | wall_s  | ms/1k_nodes | us/1k_nodes | ratio_vs_mean4
+  ---------------------------------------+------+-----------------+----------+---------+-------------+-------------+---------------
+  P9d_partT_01_fwd_all_off_1             | fwd  | all_off_1       |  8315168 |  4.3580 |    0.524107 |     524.107 |      1.006154
+  P9d_partT_02_fwd_all_off_2             | fwd  | all_off_2       |  8315168 |  4.3647 |    0.524907 |     524.907 |      1.007690
+  P9d_partT_03_fwd_only_B8               | fwd  | only_B8         |  8262696 |  4.6002 |    0.556745 |     556.745 |      1.068810
+  P9d_partT_04_fwd_B8_and_B8_Fast        | fwd  | B8_and_B8_Fast  |  8262696 |  4.3930 |    0.531665 |     531.665 |      1.020664
+  P9d_partT_05_fwd_only_B8b              | fwd  | only_B8b        |  8483711 |  4.6606 |    0.549360 |     549.360 |      1.054633
+  P9d_partT_06_rev_only_B8b              | rev  | only_B8b        |  8483711 |  4.7515 |    0.560078 |     560.078 |      1.075209
+  P9d_partT_07_rev_B8_and_B8_Fast        | rev  | B8_and_B8_Fast  |  8262696 |  4.4386 |    0.537182 |     537.182 |      1.031255
+  P9d_partT_08_rev_only_B8               | rev  | only_B8         |  8262696 |  4.5999 |    0.556703 |     556.703 |      1.068730
+  P9d_partT_09_rev_all_off_2             | rev  | all_off_2       |  8315168 |  4.3242 |    0.520038 |     520.038 |      0.998344
+  P9d_partT_10_rev_all_off_1             | rev  | all_off_1       |  8315168 |  4.2786 |    0.514553 |     514.553 |      0.987812
+
+--- Forward + Reverse Paired Means per Setting ---
+  setting         | node_sum | fwd_ms/1k  | rev_ms/1k  | mean_ms/1k | mean_us/1k | ratio_vs_all_off
+  ----------------+----------+------------+------------+------------+------------+-----------------
+  all_off_1       |  8315168 |   0.524107 |   0.514553 |   0.519330 |    519.330 |        0.996983
+  all_off_2       |  8315168 |   0.524907 |   0.520038 |   0.522473 |    522.473 |        1.003017
+  only_B8         |  8262696 |   0.556745 |   0.556703 |   0.556724 |    556.724 |        1.068770
+  B8_and_B8_Fast  |  8262696 |   0.531665 |   0.537182 |   0.534423 |    534.423 |        1.025959
+  only_B8b        |  8483711 |   0.549360 |   0.560078 |   0.554719 |    554.719 |        1.064921
+
+  KEY RATIO: (IdeaB8 + IdeaB8_Fast) / (IdeaB8 alone) = 0.534423 / 0.556724 = 0.959944
+  Incremental IdeaB8 overhead vs all_off cut by      : 62.25% (from +6.88% to +2.60%)

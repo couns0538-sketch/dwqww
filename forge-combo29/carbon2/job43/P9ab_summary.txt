@@ -1,0 +1,86 @@
+=== JOB 43 PART P9a & P9b: IdeaB8 (078) Counters & Side-by-Side Profiles ===
+start_utc: Fri Nov 20 06:44:02 PM UTC 2026
+
+--- 1. Clean Bundle8 IdeaB8 Alone ON O Depth-12 Reference Rows ---
+  bundle8 IdeaB8 O d12 sum vs J39 P6          : PASS (8262696 == 8262696)
+  bundle8 IdeaB8 O d12 equal pos vs J39 P6    : PASS (200 == 200)
+
+--- 2. Scratch Counter Build (P9a, /tmp/carbon2_job43/bld_p9_counter/forge) ---
+  counter exe path                            : /tmp/carbon2_job43/bld_p9_counter/forge
+  counter exe sha256(/tmp/carbon2_job43/bld_p9_counter/forge) : ccf171451cd63b299fc48ddb593cde7f99e5d2dc485d6bdce7c241d96a2dbb67
+=== JOB 43 PART P9a: IdeaB8 (078) COUNTER SUMMATION OVER ALL O DEPTH-12 SEARCHES (sum_p9_counters.py) ===
+utc: Fri Nov 20 06:44:18 PM UTC 2026
+counter_raw_path: /agent/repos/dwqww/forge-combo29/carbon2/job43/P9a_B8_counters_O_d12.raw.txt
+counter_raw_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job43/P9a_B8_counters_O_d12.raw.txt): 5e7aa1d1ebbb7cfd8377ff6f15ba6362a0f40ad749d88711dac19b048949d6c6
+clean_bundle8_b8_rows_path: /agent/repos/dwqww/forge-combo29/carbon2/job43/P9_bundle8_only_IdeaB8_O_d12.rows.txt
+clean_bundle8_b8_rows_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job43/P9_bundle8_only_IdeaB8_O_d12.rows.txt): 7812ced3a10349fe1af896310b9f412480673afcfcc472fcd045df696ba0b056
+
+searches_summed = 200
+total_nodes     = 8262696 (mean 41313.5 nodes/search)
+
+--- 1. find_role_threat & Per-Worker Cache (ensure_role_threat) ---
+  ensure_role_threat total calls       : 35883443 (4.343 / node)
+  find_role_threat runs (cache misses) : 2514947 (7.01% of ensure calls; 0.304 / node)
+    of which threat.present == true    : 230896 (9.18% of find_role_threat runs)
+  per-Worker cache hits (answered)     : 33368496 (92.99% of ensure calls; 4.038 / node)
+
+--- 2. quiet_threat_role Calls & Returned Role Distribution (-1, 0..4) ---
+  quiet_threat_role total runs         : 4753914 (0.575 / node)
+    from threat_role_bonus             : 4688901 (98.63%)
+    from update_threat_role            : 65013 (1.37%)
+  role = -1 (no threat)                : 0 (0.00%)
+  role =  0 (step away: from==victim)  : 942239 (19.82%)
+  role =  1 (block slider ray)         : 41772 (0.88%)
+  role =  2 (counter-attack attacker)  : 313536 (6.60%)
+  role =  3 (counter-attack dearer)    : 61331 (1.29%)
+  role =  4 (other quiet under threat) : 3395036 (71.42%)
+
+--- 3. note_threat_swing Calls & Table Updates ---
+  note_threat_swing total runs         : 4938069 (0.598 / node)
+  note_threat_swing gained >= Swing(48): 36831 (0.75% of swing runs)
+  note_threat_swing table updates      : 12790 (0.26% of swing runs)
+  all-callers ThreatRoleHistory updates: 65013 (cutoff/malus/PV + swing)
+
+--- 4. Verification Checks ---
+  P9a searches_summed                         : PASS (200 == 200)
+  P9a counter node_sum vs IdeaB8 O known answer: PASS (8262696 == 8262696)
+  P9a counter equal_pos vs clean bundle8 IdeaB8 O: PASS (200 == 200)
+  P9a counter equal_pos vs Job 39 P6 IdeaB8 O : PASS (200 == 200)
+  P9a ensure_calls == find_runs + cache_hits  : PASS (35883443 == 35883443)
+  P9a qtr_runs == qtr_from_bonus + qtr_from_update: PASS (4753914 == 4753914)
+  P9a qtr_runs == sum(role_-1..role_4)        : PASS (4753914 == 4753914)
+  P9a COUNTER SUMMATION OVERALL               : PASS (1 == 1)
+
+--- 3. Side-by-Side Profiles on O Depth 12 (P9b: IdeaB8 Alone ON vs All OFF) ---
+  profile exe path                            : /tmp/carbon2_job43/bld_p9_prof/forge
+  profile exe sha256(/tmp/carbon2_job43/bld_p9_prof/forge) : bcefa1d39d373e32433576004fb37c26ce43cd30f9871d0c55f2a760ee267c10
+  profile exe all_off O d12 equal pos vs OFF O: PASS (200 == 200)
+  profile exe IdeaB8 O d12 equal pos vs bundle8 B8: PASS (200 == 200)
+  perf IdeaB8 2x O d12 total nodes            : PASS (16525392 == 16525392)
+  perf all_off 2x O d12 total nodes           : PASS (16630336 == 16630336)
+=== JOB 43 PART P9b: SIDE-BY-SIDE TOP-10 FUNCTION SHARES ON O DEPTH 12 (IdeaB8 Alone ON vs All OFF) ===
+utc: Fri Nov 20 06:45:01 PM UTC 2026
+profile_exe_path: /tmp/carbon2_job43/bld_p9_prof/forge
+profile_exe_sha256(/tmp/carbon2_job43/bld_p9_prof/forge): bcefa1d39d373e32433576004fb37c26ce43cd30f9871d0c55f2a760ee267c10
+method_b8 : perf record -e cpu-clock:u -F 4999 (2x O depth 12) (total_nodes = 16525392)
+method_off: perf record -e cpu-clock:u -F 4999 (2x O depth 12) (total_nodes = 16630336)
+
+Rank | IdeaB8 Alone ON (% self share | symbol) | All OFF (% self share | symbol)
+-----+-----------------------------------------+-----------------------------------------
+  1  |  16.89%  int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .llvm.480988623892047651] |  17.83%  int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .llvm.480988623892047651]
+  2  |  13.93%  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) |  14.58%  forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+  3  |  10.73%  forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&) |  11.15%  forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+  4  |   5.26%  forge::Board::see_ge(forge::Move const&, int) const |   5.39%  forge::Board::see_ge(forge::Move const&, int) const
+  5  |   4.80%  forge::MovePicker::QuietScorer::score(forge::Move, std::array<unsigned long, 7ul> const&) const |   4.98%  forge::MovePicker::pick_best()
+  6  |   4.58%  forge::MovePicker::pick_best()                 |   4.70%  forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const
+  7  |   4.41%  forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const |   4.02%  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)
+  8  |   3.88%  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*) |   4.01%  forge::MovePicker::QuietScorer::score(forge::Move, std::array<unsigned long, 7ul> const&) const
+  9  |   2.95%  forge::MovePicker::next(bool)                  |   3.16%  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+ 10  |   2.77%  forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) |   3.15%  forge::MovePicker::next(bool)
+
+--- All IdeaB8-Specific Symbols Observed in IdeaB8-Alone Profile ---
+    1.78%  forge::(anonymous namespace)::find_role_threat(forge::Board const&)
+    1.37%  forge::Worker::threat_role_bonus(forge::Board const&, forge::Move) const
+    0.52%  forge::(anonymous namespace)::quiet_threat_role(forge::Board const&, forge::Move, forge::(anonymous namespace)::RoleThreat const&)
+    0.07%  forge::Worker::update_threat_role(forge::Board const&, forge::Move, int)
+  PART P9a+P9b OVERALL                        : PASS (1 == 1)
