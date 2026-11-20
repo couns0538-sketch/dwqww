@@ -1,0 +1,59 @@
+bench 11 nodes 312866
+bench 13 nodes 862329
+bench 16 nodes 3024920
+perft 5 nodes 4865609
+
+honesty_p_bench11.txt nodes 312866 expected 312866 OK
+honesty_p_bench13.txt nodes 862329 expected 862329 OK
+honesty_p_bench16.txt nodes 3024920 expected 3024920 OK
+honesty_p_perft5.txt nodes 4865609 expected 4865609 OK
+
+O_off positions 200 differ 0 sum_base 9500069 sum_other 9500069
+
+G_off positions 353 differ 0 sum_base 18466239 sum_other 18466239
+
+O_on positions 200 differ 200 sum_base 9500069 sum_other 9547450
+
+Results of on vs off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: 5.97 +/- 9.47, nElo: 12.91 +/- 20.48
+LOS: 89.17 %, DrawRatio: 66.37 %, PairsRatio: 1.16
+Games: 1106, Wins: 338, Losses: 319, Draws: 449, Points: 562.5 (50.86 %)
+Ptnml(0-2): [6, 80, 367, 89, 11], WL/DD Ratio: 1.62
+--------------------------------------------------
+Finished match
+Total Time: 00:06:27 (hours:minutes:seconds)
+
+partner_honesty_bench11.txt nodes 312866 expected 312866 OK
+partner_honesty_bench13.txt nodes 862329 expected 862329 OK
+partner_honesty_bench16.txt nodes 3024920 expected 3024920 OK
+partner_honesty_perft5.txt nodes 4865609 expected 4865609 OK
+
+off_vs_B positions 200 differ 0 sum_off 9500069 sum_B 9500069
+on_vs_partner_claim positions 200 differ 0 sum_on 9547450 sum_claim 9547450
+
+Results of on vs off (20000 nodes, 1t, 16MB, R.epd):
+Elo: 5.21 +/- 9.95, nElo: 14.57 +/- 27.80
+LOS: 84.79 %, DrawRatio: 82.33 %, PairsRatio: 1.04
+Games: 600, Wins: 267, Losses: 258, Draws: 75, Points: 304.5 (50.75 %)
+Ptnml(0-2): [0, 26, 247, 19, 8], WL/DD Ratio: 15.47
+--------------------------------------------------
+Finished match
+Total Time: 00:02:55 (hours:minutes:seconds)
+
+id name Chess Engine Forge 6.4.24 candidate
+option name IdeaS32 type check default false
+option name IdeaS32_Slack type spin default 0 min 0 max 64
+
+nm_cmd=nm -C /tmp/forge-asan/forge | grep -c __asan_
+nm_asan_count=35
+
+positions 100
+depth 10
+sum 2083110
+first3 10586 11160 32018
+
+poison_sanitizer_lines 3
+
+/tmp/poison/forge-combo29/src/uci.cpp:48:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+
+==7285==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x55b3a4a4bb95 bp 0x7ffe89cf6870 sp 0x7ffe89cf6860
