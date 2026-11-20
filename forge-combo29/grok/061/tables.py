@@ -10,7 +10,11 @@ def searches(text):
     current = []
     blocks = []
     for line in text.splitlines():
-        if line.startswith(">>> position fen ") or line.startswith("position fen "):
+        if (
+            line.startswith(">>> position fen ")
+            or line.startswith(">> position fen ")
+            or line.startswith("position fen ")
+        ):
             if current:
                 blocks.append(current)
             current = [line]
@@ -30,6 +34,8 @@ def searches(text):
         for line in block:
             if line.startswith(">>> position fen "):
                 fen = line[len(">>> position fen ") :]
+            elif line.startswith(">> position fen "):
+                fen = line[len(">> position fen ") :]
             elif line.startswith("position fen "):
                 fen = line[len("position fen ") :]
             if line.startswith("info depth ") and " nodes " in line:

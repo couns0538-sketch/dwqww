@@ -1,0 +1,22 @@
+Idea S25 is not already in the engine. The root window becomes narrow at depth >= 4
+(search.cpp, the line that sets narrow). That is a depth gate, not "arm only after
+one score has landed inside the bounds". AspArmLate and AspCappedReopen are other
+ideas and default off.
+
+Decision: option IdeaS25, type check, default false. Spin IdeaS25_Resolved, default 1,
+range 1..64, the number of in-window root scores required before the narrow window
+arms. Off, the narrow expression is the previous one (depth >= 4, and AspArmLate's
+one-iteration full window). On, the window stays full until that many root scores
+have landed inside their bounds, then it narrows the same way as today. A score
+counts only when the aspiration loop returns it inside the final alpha and beta
+and the search was not aborted. The first iteration is therefore full-width, and
+with the default 1 the window arms at depth 2.
+
+The soft-time half: the soft stop already runs only after the aspiration loop.
+With IdeaS25 on, that stop is skipped when the iteration is still outside the
+window, so an unresolved re-search is not treated as a finished iteration.
+Off, the added clause is true and the previous condition remains.
+
+Why these numbers: the idea says "one" resolved score. No other constant is
+introduced. Depth-limited and node-limited searches do not use the soft stop, so
+the node-count change is the earlier arm.
