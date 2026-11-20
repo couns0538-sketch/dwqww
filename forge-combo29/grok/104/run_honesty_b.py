@@ -7,6 +7,7 @@ from pathlib import Path
 
 EXE = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2]).resolve()
+TAG = sys.argv[3] if len(sys.argv) > 3 else "b"
 OUT.mkdir(parents=True, exist_ok=True)
 
 CASES = [
@@ -43,7 +44,7 @@ for name, payload, expect in CASES:
     raw = run.stdout
     if run.stderr:
         raw += "\n# stderr\n" + run.stderr
-    (OUT / f"honesty_b_{name}.txt").write_text(raw)
+    (OUT / f"honesty_{TAG}_{name}.txt").write_text(raw)
     nodes = None
     for line in raw.splitlines():
         if " nodes " in line or line.startswith("nodes "):
@@ -60,12 +61,12 @@ for name, payload, expect in CASES:
         f"nodes={nodes}\n"
         f"expect={expect}\n"
     )
-    (OUT / f"honesty_b_{name}.meta").write_text(meta)
+    (OUT / f"honesty_{TAG}_{name}.meta").write_text(meta)
     ok = nodes == expect
     rows.append((name, nodes, expect, ok))
     print(f"{name} nodes={nodes} expect={expect} {'OK' if ok else 'FAIL'}", flush=True)
 
-lines = ["HONESTY_B"]
+lines = [f"HONESTY_{TAG.upper()}"]
 lines.append(f"exe={EXE}")
 lines.append(f"sha256={digest}")
 lines.append(f"id_name={id_name}")
@@ -74,6 +75,6 @@ for name, nodes, expect, ok in rows:
     lines.append(f"{name} nodes={nodes} expect={expect} {'OK' if ok else 'FAIL'}")
 lines.append("PASS" if all_ok else "FAIL")
 text = "\n".join(lines) + "\n"
-(OUT / "HONESTY_B.txt").write_text(text)
+(OUT / f"HONESTY_{TAG.upper()}.txt").write_text(text)
 print(text, end="")
 sys.exit(0 if all_ok else 1)

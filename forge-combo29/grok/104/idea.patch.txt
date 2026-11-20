@@ -1,0 +1,87 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..b85ea4232 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -297,6 +297,11 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern bool IdeaS35;                 // same late-parent relief, plus one more ply on the first reply when the parent was far (false = off)
++extern int IdeaS35_Index;            // parent arrival index at or above which the parent is late (today 7)
++extern int IdeaS35_Replies;          // how many leading replies lose IdeaS35_Plies (today 4)
++extern int IdeaS35_Plies;            // plies of reduction removed from those replies (today 1)
++extern int IdeaS35_Far;              // parent arrival index at or above which the first reply loses a second IdeaS35_Plies (24; used only when IdeaS35 is on)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..2da40b787 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -97,6 +97,11 @@ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++bool IdeaS35 = false;
++int IdeaS35_Index = 7;
++int IdeaS35_Replies = 4;
++int IdeaS35_Plies = 1;
++int IdeaS35_Far = 24;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -145,6 +150,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS35_Index", &IdeaS35_Index, 0, 64},            {"IdeaS35_Replies", &IdeaS35_Replies, 0, 64},
++        {"IdeaS35_Plies", &IdeaS35_Plies, 0, 4},             {"IdeaS35_Far", &IdeaS35_Far, 0, 64},
+     };
+     return table;
+ }
+@@ -2007,7 +2014,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+-            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // The three numbers are IdeaS35_Index / _Replies / _Plies (defaults 7, 4, 1).
++            // IdeaS35 also arms this relief, and takes one further ply off the first
++            // reply when that parent was tried at IdeaS35_Far or later (default 24).
++            const bool late_parent = tune::LmrLateParentRelief || tune::IdeaS35;
++            if (late_parent && ss->arrival_index >= tune::IdeaS35_Index &&
++                move_count <= tune::IdeaS35_Replies) {
++                r -= tune::IdeaS35_Plies;
++                if (tune::IdeaS35 && move_count == 1 && ss->arrival_index >= tune::IdeaS35_Far)
++                    r -= tune::IdeaS35_Plies;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..7e41d1058 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -221,6 +221,7 @@ int uci_loop(std::istream& in) {
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
++                         "option name IdeaS35 type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+@@ -402,6 +403,7 @@ int uci_loop(std::istream& in) {
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "IdeaS35" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+@@ -410,6 +412,7 @@ int uci_loop(std::istream& in) {
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
++                             : name == "IdeaS35" ? &forge::tune::IdeaS35
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering

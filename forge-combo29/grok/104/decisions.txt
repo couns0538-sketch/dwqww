@@ -1,0 +1,25 @@
+seat 104 idea 4 IdeaS35 S35
+SEED = 104 * 100 + 1 = 10401
+
+EXISTS: forge-combo29/src/search.cpp:2010 (base file; the patch moves the line).
+The plain engine already takes one ply of reduction off the first four replies when the
+parent move's arrival index is at least 7, behind LmrLateParentRelief, default false.
+Those three numbers were fixed. They are now spin options IdeaS35_Index default 7,
+IdeaS35_Replies default 4, IdeaS35_Plies default 1. With IdeaS35 false and those
+defaults, LmrLateParentRelief true still does today's subtraction of one ply, and both
+switches false never enters the block.
+
+What IdeaS35 adds, from IDEAS.md S35, which the engine did not do: a second ply of
+relief on the first reply only, when the parent try is far past the late gate. "Two
+dozen tries" in that note is the far line, so IdeaS35_Far default 24. The second ply
+is subtracted only when IdeaS35 is true. Replies after IdeaS35_Replies keep the normal
+reduction. reduced_depth is still clamped to new_depth, so the relief cannot extend.
+
+Far is an absolute arrival index, not Index plus a margin, so the default pair (7, 24)
+matches the old gate plus the two-dozen line. A user who sets Far at or below Index
+gives every late parent's first reply the extra ply. That is a tuning choice, not the default.
+
+R positions: python-chess 1.11.2, random.Random(10401) only. A game that ends before
+ply 80 is dropped whole. A game still going at ply 80 keeps positions at plies
+15,22,29,36,43,50,57,64,71,78 (every 7 plies after ply 8, first sample at ply 15).
+Terminal positions are not written.
