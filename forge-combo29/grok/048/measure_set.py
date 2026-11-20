@@ -129,9 +129,17 @@ def nodes_from_last_depth(lines: list[str], depth: int) -> int:
 
 
 def main() -> None:
-    if len(sys.argv) != 6:
-        raise SystemExit("usage: measure_set.py EXE FENS DEPTH RAW_OUT NODES_OUT")
-    exe, fen_path, depth_s, raw_out, nodes_out = sys.argv[1:]
+    if len(sys.argv) < 6:
+        raise SystemExit(
+            "usage: measure_set.py EXE FENS DEPTH RAW_OUT NODES_OUT [Name=value ...]"
+        )
+    exe, fen_path, depth_s, raw_out, nodes_out = sys.argv[1:6]
+    extras = []
+    for item in sys.argv[6:]:
+        if "=" not in item:
+            raise SystemExit(f"extra option must be Name=value, got {item}")
+        name, value = item.split("=", 1)
+        extras.append((name, value))
     depth = int(depth_s)
     fens = load_fens(Path(fen_path))
     sha = hashlib.sha256(Path(exe).read_bytes()).hexdigest()
@@ -140,7 +148,7 @@ def main() -> None:
     try:
         eng.send("uci")
         eng.read_until(lambda line: line == "uciok", 30)
-        for name, value in [("Threads", "1"), ("Hash", "16"), *S14]:
+        for name, value in [("Threads", "1"), ("Hash", "16"), *S14, *extras]:
             command = f"setoption name {name} value {value}"
             sent.append(command)
             eng.send(command)
