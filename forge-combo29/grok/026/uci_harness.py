@@ -114,13 +114,15 @@ class Engine:
 
     def quit(self) -> None:
         try:
-            self.send("quit")
+            if self.proc.poll() is None:
+                self.send("quit")
         except Exception:
             pass
         try:
             self.proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.proc.kill()
+        self.thread.join(timeout=2)
 
 
 def sha256_file(path: str) -> str:
@@ -214,12 +216,12 @@ def cmd_honesty(args: argparse.Namespace) -> None:
         else:
             eng.read_until(lambda s: s.startswith("bestmove "), 300.0)
     finally:
+        eng.quit()
         raw = "\n".join(eng.lines) + "\n"
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(raw, encoding="utf-8")
         write_meta(out, eng, [f"send {args.send}"])
-        eng.quit()
     print(f"wrote {args.out} lines {len(eng.lines)}")
 
 
@@ -255,6 +257,7 @@ def cmd_search(args: argparse.Namespace) -> None:
             if index % 25 == 0 or index == len(fens):
                 print(f"progress {index}/{len(fens)}", flush=True)
     finally:
+        eng.quit()
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text("\n".join(eng.lines) + "\n", encoding="utf-8")
@@ -271,7 +274,6 @@ def cmd_search(args: argparse.Namespace) -> None:
                 f"rows {rows_path.resolve()}",
             ],
         )
-        eng.quit()
     print(f"wrote {args.out} positions {len(rows)}")
 
 

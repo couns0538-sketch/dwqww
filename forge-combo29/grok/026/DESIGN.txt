@@ -1,0 +1,23 @@
+Idea S36, seat 026. Option IdeaS36, default false.
+
+What was added
+On the root re-search after the aspiration score leaves the window, later quiet
+moves are reduced IdeaS36_FailLow plies less after a fail-low (default 1) and
+IdeaS36_FailHigh plies more after a fail-high (default 1). The shift is stored
+on the worker only for the next search call of that same iteration, then cleared.
+The first window of an iteration is unshifted.
+
+What was left alone
+Captures are not quiet, so they are not shifted. The engine already skips
+reduction for the first two root moves (move_count > 2 at the root). The shift
+is applied only inside that existing reduction, so those moves stay unreduced.
+A negative reduction is clamped to 0, and the existing depth clamp still
+refuses an extension.
+
+Why these numbers
+The idea text says one ply each way. The spins exist so the size is an option.
+Range 0..8. Default 1, which is the idea's own number.
+
+Exists
+The engine already has AspCappedReopen and AspArmLate. Those change the window.
+S36 does not. No root quiet shift on a re-search was in search.cpp before this patch.
