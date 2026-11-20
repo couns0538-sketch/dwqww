@@ -1,0 +1,14 @@
+O depth 12 sum, exe P, S14, IdeaA1 true: 9850000
+wrong if that sum is outside 8500000..11500000
+test-match Elo, IdeaA1 true vs IdeaA1 false, 1106 games, 20000 nodes: +6
+wrong if the Elo point estimate is outside -40..+50
+
+Why: under S14, LmrHistoryDivisor is 5643, so the integer term
+history/5643 is 0 for every quiet history in [-5642,5642]. IdeaA1
+keeps that divisor and scores the same term in 1/1024 of a ply, then
+rounds half toward zero. A quiet history whose absolute value is above
+2821 then changes the reduction by one ply: good quiets one ply less
+reduced, bad quiets one ply more reduced. The tree should change, and
+the node sum should rise, because the extra ply on good moves expands
+more than the saved ply on bad moves. At 20000 nodes that is a small
+Elo effect. +6 is the center of a wide band.
