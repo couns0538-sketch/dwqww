@@ -1,0 +1,13 @@
+IdeaB10, depth-normalised effort repayment.
+
+The plain engine does not do this. Root node-share (TmNodeShare) splits time at the root from raw node counts. It is not a per-node nodes/depth memory and it does not give depth back.
+
+What was built, and why:
+- UCI check IdeaB10, default false. While it is false the new branches are not taken, so reductions and extensions stay on today's path.
+- UCI spin IdeaB10_Ratio default 384: the best reduced move's nodes-per-depth must be at least 384/256 (1.5x) the next reduced move.
+- UCI spin IdeaB10_Cap default 3: at most 3 extra plies are added along one path from the root.
+- A move is scored only when a reduction was applied and the search of that move spent at least 16 nodes. The first move is searched deeper, so scoring every move filled the slot with a move that is never reduced on the next visit (measured: stores and lookups, zero repays, identical nodes).
+- The mark is written only when the node failed low. A cutoff move is ordered first next time and has no reduction left to repay (same measurement).
+- On the next visit the marked move is given extra depth in proportion to how far its rate beat 1.0, and never more than the cap still left on the path. Fail-low marks are what make the switch change the search: 197 of 200 O positions differ.
+
+The table is 65536 entries on each search thread, keyed by the position and the excluded move. It is cleared with the searcher. Nothing is stored in the transposition table beyond the ordinary search result.
