@@ -15,6 +15,7 @@ def sha256(path: Path) -> str:
 def main() -> int:
     exe = Path(sys.argv[1]).resolve()
     out_dir = Path(sys.argv[2]).resolve()
+    label = sys.argv[3] if len(sys.argv) > 3 else "b"
     out_dir.mkdir(parents=True, exist_ok=True)
     digest = sha256(exe)
     ident = subprocess.run(
@@ -40,7 +41,7 @@ def main() -> int:
         raw = proc.stdout
         if proc.stderr:
             raw += "\n" + proc.stderr
-        (out_dir / f"honesty_b_{name}.txt").write_text(raw)
+        (out_dir / f"honesty_{label}_{name}.txt").write_text(raw)
         meta = "\n".join(
             [
                 f"exe={exe}",
@@ -51,7 +52,7 @@ def main() -> int:
                 f"returncode={proc.returncode}",
             ]
         ) + "\n"
-        (out_dir / f"honesty_b_{name}.meta").write_text(meta)
+        (out_dir / f"honesty_{label}_{name}.meta").write_text(meta)
         nodes = None
         if kind == "bench":
             for line in raw.splitlines():
@@ -66,7 +67,7 @@ def main() -> int:
         failed = failed or not ok
         summary.append(f"{name} nodes {nodes} expected {expected} {'OK' if ok else 'FAIL'}")
     text = "\n".join(summary) + "\n"
-    (out_dir / "HONESTY_B.txt").write_text(text)
+    (out_dir / f"HONESTY_{label.upper()}.txt").write_text(text)
     sys.stdout.write(text)
     return 1 if failed else 0
 

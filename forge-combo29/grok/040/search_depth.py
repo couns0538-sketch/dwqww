@@ -86,6 +86,10 @@ class Engine:
                 continue
             chunk = self.proc.stdout.read(65536)
             if not chunk:
+                if self.buf:
+                    tail = self.buf.decode(errors="replace").rstrip("\r")
+                    self.raw.append(tail)
+                    self.buf = b""
                 raise SystemExit("engine closed stdout")
             self.buf += chunk
         raw, self.buf = self.buf.split(b"\n", 1)
@@ -140,6 +144,7 @@ def main() -> int:
             id_name = line[len("id name "):]
             break
     eng = Engine(exe)
+    failed = None
     try:
         eng.send("uci")
         eng.read_until(lambda line: line == "uciok", 30)
@@ -156,7 +161,10 @@ def main() -> int:
             eng.send("isready")
             eng.read_until(lambda line: line == "readyok", 60)
             eng.send(f"go depth {depth}")
-            eng.read_until(lambda line: line.startswith("bestmove "), 120)
+            eng.read_until(lambda line: line.startswith("bestmove "), 180)
+    except SystemExit as exc:
+        failed = str(exc)
+        eng.raw.append("!! " + failed)
     finally:
         eng.close()
     prefix.parent.mkdir(parents=True, exist_ok=True)
@@ -176,6 +184,9 @@ def main() -> int:
     ) + "\n"
     prefix.with_suffix(".meta").write_text(meta)
     print(f"wrote {prefix.with_suffix('.raw')} positions {len(fens)}")
+    if failed:
+        print(failed, file=sys.stderr)
+        return 2
     return 0
 
 if __name__ == "__main__":

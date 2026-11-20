@@ -1,0 +1,78 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..0af21aa63 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaK1;                  // hash probcut: shallower TT lower bound returns beta + margin (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..fbb22ef40 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,8 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaK1 = false;
++int IdeaK1_Margin = 120;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK1_Margin", &IdeaK1_Margin, 0, 1000},
+     };
+     return table;
+ }
+@@ -1643,6 +1646,20 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         return tt_score;
+     }
+ 
++    // IdeaK1 (hash probcut). Off the principal line, a transposition lower bound
++    // from a search at least four plies shallower, and at least IdeaK1_Margin
++    // above beta, returns beta + margin. An exact bound counts: it proves the
++    // same floor. Mate scores are left to the normal cutoff. The flag is read
++    // first, so a false option takes today's path.
++    if (tune::IdeaK1 && !pv_node && excluded.is_none() && depth >= 4 && tt_hit &&
++        tt_score != ValueNone && tt_depth >= depth - 4 && board.halfmove_clock() < 90 &&
++        !is_mate_score(beta) && !is_mate_score(tt_score) &&
++        (tt_bound == BoundLower || tt_bound == BoundExact) &&
++        beta + tune::IdeaK1_Margin < MateInMaxPly &&
++        tt_score >= beta + tune::IdeaK1_Margin) {
++        return beta + tune::IdeaK1_Margin;
++    }
++
+     // Static evaluation. reuse_raw is the hindsight eval of this position.
+     int eval;
+     if (in_check) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..91d771d34 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaK1 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -387,6 +388,9 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaK1") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK1 = value_text == "true";
++                else note_invalid();
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();

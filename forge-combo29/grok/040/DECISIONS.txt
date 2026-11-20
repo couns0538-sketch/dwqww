@@ -1,0 +1,22 @@
+Idea 40, IdeaK1, hash probcut. The plain engine does not do this.
+EXISTS: no. The full-depth transposition cutoff in search.cpp returns a
+hash score only when the stored depth is at least the current depth.
+Capture probcut (ProbcutMargin) searches a capture; it is not a hash cutoff.
+
+What the option does, and why:
+- Check IdeaK1, default false. While false the new block is not entered.
+- Spin IdeaK1_Margin, default 120, range 0..1000. 120 centipawns is a
+  clear fail-high (more than a pawn) without waiting for the capture
+  probcut margin of 180. A smaller margin would cut on noisy shallow
+  bounds; a larger one would rarely fire at depth 12.
+- Off the principal line only, and not inside a singular search (a move
+  is excluded there). Root nodes are PV nodes, so they are untouched.
+- The stored search must be at least depth-4 deep, and the node itself
+  at least depth 4, so the formula stays non-negative.
+- BoundLower or BoundExact. An exact score is a lower bound of itself.
+  BoundUpper is not.
+- Mate scores are not converted into beta+margin.
+- The half-move clock must be below 90, the same guard as the existing
+  transposition cutoff.
+- The returned value is beta+margin, not the stored score, and nothing
+  new is written into the hash. The stored entry stays as it was.
