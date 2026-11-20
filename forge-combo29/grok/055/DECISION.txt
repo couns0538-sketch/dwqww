@@ -1,0 +1,29 @@
+Idea 5 is S37, option IdeaS37, from engine-ideas/50-agents/IDEAS.md
+("Off-PV worsening shave"), not from another engine's source.
+
+What was built
+- check IdeaS37, default false
+- spin IdeaS37_Margin, default 100, range 0..1000
+- off the PV, not in check, not the root, no excluded move:
+  if the parent withheld at least one ply and
+  parent corrected eval + current corrected eval >= IdeaS37_Margin,
+  and the hash entry is not already as deep as this depth,
+  search this node one ply shallower
+- the paired deepen (no worsening and three withheld plies) is not implemented
+
+Why these choices
+- Margin 100 is one pawn. The in-tree HindsightDepth comment calls a pawn a
+  modest worsening. S14 leaves EvalRule50Damp off, so static_eval is the
+  corrected eval. The sum is the mover's loss, the same comparison this
+  engine already uses inside HindsightDepth.
+- HindsightDepth (search.cpp, the block that starts "HindsightDepth: the
+  parent already reduced this move") is a different option, default false.
+  It shaves and it also deepens. S37 says to keep that deepen off. The
+  default search does not shave, so this is not reported as EXISTS.
+- withheld_plies is written only when IdeaS37 or HindsightDepth is on.
+  With IdeaS37 false the branch condition is the old HindsightDepth test.
+
+Prediction, not edited
+- predicted O depth-12 sum 8600000, wrong outside 6500000..9450000
+- measured sum 9856085, so the prediction is wrong: the tree grew
+- predicted match Elo +6, wrong outside -25..+35

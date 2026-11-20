@@ -149,6 +149,7 @@ def main() -> int:
         print(f"sum {total} positions {len(rows)} out {out}")
     finally:
         engine.close()
+        engine._err.join(timeout=2)
         Path(args.stderr).write_text("".join(engine.stderr_lines))
         option_lines = [f"setoption name {name} value {value}" for name, value in args.sets]
         Path(args.meta).write_text(
