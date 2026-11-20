@@ -1,0 +1,101 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -569,6 +569,9 @@
+     std::uint64_t hp38_L_ = 0, hp38_Lc_ = 0, hp38_Lpv_ = 0, hp38_X_ = 0, hp38_WL_ = 0, hp38_WF_ = 0;
+     std::uint64_t hp38_HL_ = 0, hp38_HF_ = 0, hp38_HLc_ = 0, hp38_HFc_ = 0, hp38_HP_ = 0, hp38_HC_ = 0;
+     std::uint64_t hp38_W0_ = 0;  // of the WL/WF nodes: no hidden quiet at all
++    // HP38 (job 38 logging copy): the per-search samplers (a record when the counter reaches a
++    // multiple of the kind's k). Reset with the counters above; read by nothing the search reads.
++    std::uint64_t hp38_q_seen_ = 0, hp38_s_seen_ = 0, hp38_n_seen_ = 0, hp38_w_seen_ = 0;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2151,6 +2151,16 @@
+                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
+                     ++hp38_Q_;
++                    if (++hp38_q_seen_ % 15 == 0) {
++                        // HP38 (job 38 logging copy): one Q line per 15th quiet-futility fire of
++                        // this search. Printing only; no value the search reads is touched.
++                        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                        std::cout << "info string Q38 d=" << depth << " l=" << lmr_depth << " a=" << alpha
++                                  << " e=" << ss->static_eval << " i=" << (improving ? 1 : 0) << " p=" << (pv_node ? 1 : 0)
++                                  << " s=" << (alpha - (ss->static_eval + tune::FutilityBase + futility_improving +
++                                                        tune::FutilityMultiplier * lmr_depth))
++                                  << " mv=" << Board::move_to_uci(move) << " fen=" << board.fen() << std::endl;
++                    }
+                     if (!skip_quiets) ++hp38_Q1_;
+                     if (hp38_first == 0) hp38_first = 2;
+                     quiet_fail = true;
+@@ -2171,6 +2181,13 @@
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
+                     ++hp38_S_;
++                    if (++hp38_s_seen_ % 200 == 0) {
++                        // HP38 (job 38 logging copy): one S line per 200th SEE-quiet fire.
++                        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                        std::cout << "info string S38 d=" << depth << " l=" << lmr_depth << " a=" << alpha
++                                  << " k=" << (in_check ? 1 : 0) << " p=" << (pv_node ? 1 : 0)
++                                  << " mv=" << Board::move_to_uci(move) << " fen=" << board.fen() << std::endl;
++                    }
+                     if (in_check) ++hp38_Sc_;
+                     if (pv_node) ++hp38_Spv_;
+                     quiet_fail = true;
+@@ -2200,6 +2217,14 @@
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
+                     ++hp38_N_;
++                    if (++hp38_n_seen_ % 125 == 0) {
++                        // HP38 (job 38 logging copy): one N line per 125th noisy-SEE fire.
++                        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                        std::cout << "info string N38 d=" << depth << " a=" << alpha
++                                  << " t=" << (capture ? 'c' : 'q') << " k=" << (in_check ? 1 : 0)
++                                  << " p=" << (pv_node ? 1 : 0)
++                                  << " mv=" << Board::move_to_uci(move) << " fen=" << board.fen() << std::endl;
++                    }
+                     if (capture) ++hp38_Nc_;
+                     else if (quiet && gives_check) ++hp38_Nq_;
+                     if (pv_node) ++hp38_Npv_;
+@@ -2379,6 +2404,8 @@
+             const bool hp38_wl = hp38_first == 1;
+             if (hp38_wl) ++hp38_WL_; else ++hp38_WF_;
+             int hp38_hidden_quiets = 0;
++            std::array<Move, 256> hp38_hq;
++            int hp38_hq_n = 0;
+             for (const Move hp38_lm : board.legal_moves()) {
+                 if (hp38_lm == excluded) continue;
+                 bool hp38_seen = false;
+@@ -2389,12 +2416,23 @@
+                 const bool hp38_pro = hp38_lm.is_promotion();
+                 if (!hp38_cap && !hp38_pro) {
+                     ++hp38_hidden_quiets;
++                    if (hp38_hq_n < static_cast<int>(hp38_hq.size())) hp38_hq[hp38_hq_n++] = hp38_lm;
+                     if (hp38_wl) { ++hp38_HL_; if (board.gives_check(hp38_lm)) ++hp38_HLc_; }
+                     else { ++hp38_HF_; if (board.gives_check(hp38_lm)) ++hp38_HFc_; }
+                 } else if (hp38_pro && !hp38_cap) ++hp38_HP_;
+                 else ++hp38_HC_;
+             }
+             if (hp38_hidden_quiets == 0) ++hp38_W0_;
++            if (++hp38_w_seen_ % 100 == 0) {
++                // HP38 (job 38 logging copy): one W line per 100th WL/WF node of this search.
++                const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                std::cout << "info string W38 d=" << depth << " a=" << alpha << " b=" << best_score
++                          << " c=" << (hp38_wl ? 'L' : 'F') << " p=" << (pv_node ? 1 : 0)
++                          << " n=" << hp38_hidden_quiets << " hq=";
++                for (int hp38_i = 0; hp38_i < hp38_hq_n; ++hp38_i)
++                    std::cout << (hp38_i ? "," : "") << Board::move_to_uci(hp38_hq[hp38_i]);
++                std::cout << " fen=" << board.fen() << std::endl;
++            }
+         }
+     }
+ 
+@@ -2560,6 +2598,7 @@
+     hp38_L_ = hp38_Lc_ = hp38_Lpv_ = hp38_X_ = hp38_WL_ = hp38_WF_ = 0;
+     hp38_HL_ = hp38_HF_ = hp38_HLc_ = hp38_HFc_ = hp38_HP_ = hp38_HC_ = 0;
+     hp38_W0_ = 0;
++    hp38_q_seen_ = hp38_s_seen_ = hp38_n_seen_ = hp38_w_seen_ = 0;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_bare_king_ = board.occupied(White) == board.pieces(White, King) ||
