@@ -26,7 +26,7 @@ proof 3 switch on | done | PROOF_NODES.txt | on O differ 195 of 200 sum 9452727
 proof 4 uci options | done | UCI_OPTIONS.txt | PASS option name IdeaS20 type check default false | PASS option name IdeaS20_MinDepth type spin default 2 min 2 max 8 | PASS option name IdeaS20_Reduction type spin default 4 min 1 max 8 | PASS option name IdeaS20_SeeFloor type spin default 0 min -200 max 200
 proof 5 sanitizer | done | SANITIZER.txt | real nm nm_asan_count=37 asan_or_ubsan_lines 0 | scratch nm nm_asan_count=37 asan_or_ubsan_lines 3 | scratch_has_heap_overflow YES
 test match | done | MATCH.txt | Elo: 2.20 +/- 9.83, nElo: 4.58 +/- 20.48 games 1106
-partner 069 | done | partner_compare.txt | REFUTES; honesty partner_h_bench11.txt nodes 312866 expected 312866 PASS | honesty partner_h_bench13.txt nodes 862329 expected 862329 PASS | honesty partner_h_bench16.txt nodes 3024920 expected 3024920 PASS | honesty partner_h_perft5.txt nodes 4865609 expected 4865609 PASS | off_vs_B differ 0 of 200 sum 9500069 PASS | on_vs_partner_rows differ 0 of 200 sum 9581616 partner_sum 9581616 PASS | on_vs_B differ 194 of 200 | honesty_all PASS
+partner 069 | done | partner_compare.txt | CONFIRMS; honesty partner_h_bench11.txt nodes 312866 expected 312866 PASS | honesty partner_h_bench13.txt nodes 862329 expected 862329 PASS | honesty partner_h_bench16.txt nodes 3024920 expected 3024920 PASS | honesty partner_h_perft5.txt nodes 4865609 expected 4865609 PASS | off_vs_B differ 0 of 200 sum 9500069 PASS | on_vs_partner_rows differ 0 of 200 sum 9581616 partner_sum 9581616 PASS | on_vs_B differ 194 of 200 | honesty_all PASS
 partner R match | done | partner_match.log | Elo: -3.47 +/- 11.12, nElo: -8.69 +/- 27.80
 
 Proofs:
@@ -52,7 +52,7 @@ Finished match
 
 Prediction in prediction.txt was O sum 9850000 (wrong below 9200000 or above 11000000) and Elo 6 (wrong below -30 or above 45). Actual O sum 9452727 and Elo 2.20 are inside those ranges. The sum moved down, not up.
 
-Partner: seat 069, the next seat with idea 19 that had a branch at minute 75 (119 had none). Fetched 9f45537abf508874880059d0042df82352146a25. git apply --check passed. Their IdeaS20 off matched exe B on all 200 O rows. Their IdeaS20 on matched their own P_on_O_d12.rows.tsv on all 200 rows (sum 9581616, 194 differ from exe B, the count in their compare_on_O.txt). Honesty numbers matched. Verdict: REFUTES.
+Partner: seat 069, the next seat with idea 19 that had a branch at minute 75 (119 had none). Fetched 9f45537abf508874880059d0042df82352146a25. git apply --check passed. Their IdeaS20 off matched exe B on all 200 O rows. Their IdeaS20 on matched their own P_on_O_d12.rows.tsv on all 200 rows (sum 9581616, 194 differ from exe B, the count in their compare_on_O.txt). Honesty numbers matched. Verdict: CONFIRMS.
 Partner switch on versus off, 300 R openings, both colours, same harness settings:
 Results of on vs off (20000 nodes, 1t, 16MB, R.epd):
 Elo: -3.47 +/- 11.12, nElo: -8.69 +/- 27.80
