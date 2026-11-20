@@ -114,6 +114,7 @@ def main() -> int:
     digest = sha256(exe)
     eng = Engine(exe)
     id_name = ""
+    failed = None
     try:
         eng.send("uci")
         eng.read_until(lambda s: s.startswith("uciok"), 30)
@@ -140,21 +141,27 @@ def main() -> int:
             eng.raw.append("### POS %d NODES %d\n" % (index, nodes))
             if index % 25 == 0 or index == len(fens):
                 print("pos", index, "nodes", nodes, flush=True)
+    except Exception as exc:
+        failed = exc
     finally:
         eng.close()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text("".join(eng.raw))
-    meta = Path(str(out_path) + ".meta")
-    opts = S14 + extra
-    meta.write_text(
-        "exe=" + str(exe.resolve()) + "\n"
-        "sha256=" + digest + "\n"
-        "id_name=" + id_name + "\n"
-        "depth=" + str(depth) + "\n"
-        "fens=" + str(fens_path.resolve()) + "\n"
-        "count=" + str(len(fens)) + "\n"
-        "options_sent=\n" + "\n".join(opts) + "\n"
-    )
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text("".join(eng.raw))
+        meta = Path(str(out_path) + ".meta")
+        opts = S14 + extra
+        meta.write_text(
+            "exe=" + str(exe.resolve()) + "\n"
+            "sha256=" + digest + "\n"
+            "id_name=" + id_name + "\n"
+            "depth=" + str(depth) + "\n"
+            "fens=" + str(fens_path.resolve()) + "\n"
+            "count=" + str(len(fens)) + "\n"
+            "options_sent=\n" + "\n".join(opts) + "\n"
+            "error=" + ("" if failed is None else str(failed)) + "\n"
+        )
+    if failed is not None:
+        print("FAIL", failed, file=sys.stderr)
+        return 1
     print("WROTE", out_path)
     return 0
 
