@@ -1,0 +1,11 @@
+Job 34 — Prediction 2 (committed alone before any Part C profile; never edited)
+
+Target: P2 profile of everything outside Worker::search on T (replay (a) on XG, with inlined code counted where the source line lives).
+
+1. Three largest functions outside Worker::search by share of T (inlined code counted at its source function):
+   - #1 forge::nnue::v3::apply_one_refresh_one_and_evaluate: [4.8%, 7.2%] of T
+   - #2 forge::nnue::v3::screlu_dot_pair_avx512:             [4.0%, 7.5%] of T
+   - #3 forge::Board::see_ge:                                [1.8%, 3.3%] of T
+
+2. Total share of T spent in "the net" outside Worker::search (accumulator update + refresh + forward pass together):
+   - the net: [18.5%, 22.5%] of T
