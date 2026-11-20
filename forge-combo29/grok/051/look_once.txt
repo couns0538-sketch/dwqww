@@ -1,0 +1,8 @@
+Look-once after the match, because Elo -22.02 +/- 10.40 has its whole interval below 0.
+
+Checked:
+- With IdeaE2 false the O and G depth-12 rows match exe B on every position (compare_off_O.txt, compare_off_G.txt).
+- With IdeaE2 true and IdeaE2_Span 100 the O sum is 10347764. Seat 001's EvalRule50Damp true, span 100, produced the same 200 rows (partner_cmp_on_O.txt). The on-path is the existing damp, not a different formula.
+- rule50_damped_static returns before it reads the span when both switches are false. Mate scores and ValueNone are not scaled. The hash store in search.cpp writes ss->raw_eval, which is the undamped evaluation.
+- match_og/fastchess.err is empty. The two colours of the first opening diverge, so the switch is in the games. The sample draws are threefold repetition, which is a legal result.
+- No second code change. The loss is the existing one-percent-per-half-move fade at 20000 nodes on the built-in net. The prediction said an Elo below -20 would prove it wrong, and -22.02 does.

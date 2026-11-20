@@ -1,0 +1,54 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..b4530b3ff 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -294,6 +294,7 @@ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
++extern int EvalRule50DampSpan;       // full fade at this half-move clock; 100 is one percent per ply
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+@@ -345,13 +346,17 @@ void refresh();
+ } // namespace tune
+ 
+ // Static evaluation as a node reads it. Clock 0 keeps the whole score. Each
+-// half-move already played drops one percent, so a clock near 100 keeps only
+-// a sliver. Mate scores and ValueNone are never scaled. The hash table stores
+-// the unscaled raw evaluation; this is not applied on the way in.
++// half-move already played drops one span-th of the score (span 100 is one
++// percent), so a clock of EvalRule50DampSpan keeps nothing. Mate scores and
++// ValueNone are never scaled. The hash table stores the unscaled raw
++// evaluation; this is not applied on the way in. The span is not read while
++// EvalRule50Damp is false, so the default search path stays today's path.
+ [[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
+     if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
++    const int span = tune::EvalRule50DampSpan < 1 ? 1 : tune::EvalRule50DampSpan;
+     const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+-    return score * (100 - clock) / 100;
++    const int used = clock > span ? span : clock;
++    return score * (span - used) / span;
+ }
+ 
+ // Quiet late-move reduction with a signed fraction of a ply from the eval
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..073cdaf2f 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -94,6 +94,7 @@ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
++int EvalRule50DampSpan = 100;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+@@ -145,6 +146,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"EvalRule50Damp_Span", &EvalRule50DampSpan, 1, 200},
+     };
+     return table;
+ }
