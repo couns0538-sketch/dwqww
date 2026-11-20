@@ -1,0 +1,18 @@
+IdeaS36, written before any search of the patched engine.
+
+O depth 12, S14, Threads 1, Hash 16, IdeaS36 true (FailLow 1, FailHigh 1):
+node sum 9350000
+This prediction is wrong if that sum is below 7000000 or above 12500000.
+
+Test match, IdeaS36 true versus IdeaS36 false, both S14, Threads 1, Hash 16,
+20000 nodes a move, openings O and G, both colours, 1106 games:
+Elo of the true side +4
+This prediction is wrong if that Elo is below -40 or above +40.
+
+Why: the shift touches only the root re-search after an aspiration miss, and
+only quiet moves that already take a reduction. A fail-high re-search reduces
+those moves one ply more, a fail-low re-search one ply less, and the depth is
+clamped so the shift cannot extend. Fail-high re-searches are the ones that
+open the window and then still search the later quiets, so I expect a modest
+drop in the depth-12 node sum, not a different search. At 20000 nodes the Elo
+of a one-ply root-only shift should be small.
