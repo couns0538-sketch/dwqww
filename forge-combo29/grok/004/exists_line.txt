@@ -1,0 +1,5 @@
+  2008	            // A parent tried after at least six earlier moves is speculative. Its first
+  2009	            // four replies are the likely refutations, so they lose one ply of reduction.
+  2010	            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+  2011	            const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  2012	            if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
