@@ -1,0 +1,14 @@
+Idea S34 is not already in the engine.
+The existing cutoff term is LmrCutoffThreshold (search.cpp, the line that adds one ply when (ss+1)->cutoff_count is above 3). That makes a reduction larger after many child cutoffs. S34 eases the reduction while the ply has seen few cutoffs. Those are different, so this is a new option, default false.
+
+Schedule, with the spins at their defaults:
+- weighted cutoffs seen at this ply == 0: subtract IdeaS34_None (2) from the reduction
+- 0 < weighted cutoffs < IdeaS34_Stop (4): subtract IdeaS34_After (1)
+- weighted cutoffs >= 4: subtract nothing
+"No beta cutoff" is only a count of zero, so the first counted cutoff already leaves the two-ply ease. The one-ply band is the "after a couple" step and it runs until four. A couple is not a separate threshold.
+
+A beta cutoff at a node with no transposition move adds IdeaS34_Bare (2). Any other beta cutoff adds 1. The weight sits on the child stack frame, the same frame the engine already uses for cutoff_count, and it is cleared at the same time. The increment runs only when IdeaS34 is true, so the old cutoff_count is unchanged when the switch is off.
+
+A shallow score above alpha still re-searches at the unreduced depth. That puts the omitted plies back, including plies the ease had removed. The re-search was already there; the option forces it when an ease was applied and the reduced score is above alpha.
+
+The extra stack field is written every node and read only when the switch is on. Switch false matched exe B on every O and G depth-12 position.
