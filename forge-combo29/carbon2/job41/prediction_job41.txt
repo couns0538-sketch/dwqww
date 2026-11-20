@@ -1,0 +1,30 @@
+=== CARBON2 JOB 41 PREDICTION (committed alone BEFORE Part P7s first build) ===
+stamp_utc: Fri Nov 20 04:05:47 PM UTC 2026
+
+(1) IdeaB8b alone on (seat 028 port), O set depth 12, PC20, built-in eval — node sum divided by OFF sum 8,315,168:
+    Point prediction : 1.008 (approx. 8,381,689 nodes / 8,315,168)
+    Predicted range  : [0.965, 1.055]
+    Reasoning        : On 6b98f217, seat 028 had O depth-12 sum 9,718,009 / 9,500,069 = 1.02294 (+2.29% nodes),
+                       unlike 078 which had 0.97836 on 6b98f217 and 8,262,696 / 8,315,168 = 0.99369 on r15d + v3.
+                       Seat 028 uses a denser [2][7][7][5] table (no mover_type dimension), also updates/reads role 0
+                       when threat.present is true, and applies note_role_swing only on beta cutoff with full
+                       history_bonus(depth). On r15d + v3 with PC20 (HistRework=2 already active), history-driven
+                       node-sum shifts in Job 39 all fell inside [0.9715, 1.0280], so we expect a mild positive ratio
+                       near 1.008 within [0.965, 1.055].
+
+(2) M3 — IdeaB8b alone against all off (2,000 games, nodes=20000, PC20, built-in eval):
+    Point prediction : +5.0 Elo (for ON = IdeaB8b=true)
+    Predicted range  : [-4.0, +14.0] Elo
+    Reasoning        : Seat 028 scored +10.92 Elo [+8.47, +13.38] over 33,500 fixed-node games on 6b98f217 (no nps tax
+                       at fixed nodes=20000), while PC20 on r15d + v3 already enables HistRework=2 which partially
+                       overlaps threat-based quiet ordering. Combined with 2,000-game sampling noise (~ +/- 7.5 Elo
+                       95% CI, sigma ~ 3.8 Elo), we predict +5.0 Elo inside [-4.0, +14.0] Elo.
+
+(3) M4 — HindsightDepth alone against all off (2,000 games, nodes=20000, PC20, built-in eval):
+    Point prediction : +4.0 Elo (for ON = HindsightDepth=true)
+    Predicted range  : [-4.5, +12.5] Elo
+    Reasoning        : HindsightDepth scored +5.44 Elo [+2.98, +7.89] over 34,000 games in Grok swarm 2 on 6b98f217
+                       and +2.08 / +4.86 Elo in earlier PC tests, and changes all 200 O depth-12 positions on r15d + v3
+                       (8,732,910 vs 8,315,168, +5.02% nodes) with orthogonal LMR/parent-eval hindsight logic rather
+                       than quiet-history overlap. Accounting for 2,000-game sampling noise (~ +/- 7.5 Elo), we predict
+                       +4.0 Elo inside [-4.5, +12.5] Elo.
