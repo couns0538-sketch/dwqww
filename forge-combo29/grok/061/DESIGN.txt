@@ -1,0 +1,7 @@
+Idea S25 is not already in the engine. The plain search narrows the root window from depth 4 (search.cpp, the depth >= 4 gate). That is a fixed depth, not "after one score has landed inside the bounds", and a movetime search can still stop on the clock while a re-search is outside the window.
+
+IdeaS25 (check, default false) replaces that depth gate. Depth 1 stays a full window. Each finished iteration whose score lands inside the window increments a counter. When the counter reaches IdeaS25_ArmAfter (spin, default 1, range 1..16), later iterations use the usual narrow window. With the default, the window arms at depth 2.
+
+While a root re-search is still outside the window, hold_time_for_window_ makes the clock stop return false, so that attempt is not a finished iteration for the soft stop. The node budget still stops the search. The flag stays false whenever IdeaS25 is false, so fixed-depth and fixed-node searches with the switch off take today's path.
+
+The soft-time hold does not run in the depth-12 proofs or in the 20000-node match. Those change only because the window arms at depth 2.

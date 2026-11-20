@@ -1,0 +1,80 @@
+exe=/tmp/forge-asan-bug/forge
+sha256=d3cf93a7ecab348b906ba9986f64760c166844f7e1ab889dc976afc9e5ee4316
+id_name=Chess Engine Forge 6.4.24 candidate
+asan_symbols=35
+stopped=
+timed_out=False
+options:
+setoption name Threads value 1
+setoption name Hash value 16
+setoption name LmrQuietBase value 93
+setoption name LmrQuietDivisor value 205
+setoption name LmrNoisyBase value 13
+setoption name LmrNoisyDivisor value 333
+setoption name LmrHistoryDivisor value 5643
+setoption name NullMoveBase value 5
+setoption name LmpBase value 8
+setoption name HistoryPruneMultiplier value 2220
+setoption name HistoryBonusQuadratic value 24
+setoption name HistoryBonusLinear value 54
+setoption name HistoryBonusMax value 2212
+setoption name SingularDepth value 6
+setoption name IirDepth value 2
+setoption name NonPawnCorrection value true
+setoption name IdeaS25 value true
+stderr:
+/tmp/forge-bug-src/src/uci.cpp:47:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+0x5020000000c0: note: pointer points here
+ be be be be  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
+              ^ 
+=================================================================
+==7726==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x558f207cda07 bp 0x7fff82dfda30 sp 0x7fff82dfda20
+READ of size 4 at 0x5020000000c0 thread T0
+    #0 0x558f207cda06 in apply_position /tmp/forge-bug-src/src/uci.cpp:47
+    #1 0x558f207ddd65 in forge::uci_loop(std::istream&) /tmp/forge-bug-src/src/uci.cpp:489
+    #2 0x7fb088a2a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #3 0x7fb088a2a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x558f2054a7a4 in _start (/tmp/forge-asan-bug/forge+0x3b07a4) (BuildId: 4bf14a8ce9b2428d6ec3222fd97c87cada4c5b9c)
+
+0x5020000000c0 is located 0 bytes after 16-byte region [0x5020000000b0,0x5020000000c0)
+allocated by thread T0 here:
+    #0 0x7fb089afe6c8 in operator new[](unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:98
+    #1 0x558f207cbfa4 in apply_position /tmp/forge-bug-src/src/uci.cpp:46
+    #2 0x558f207ddd65 in forge::uci_loop(std::istream&) /tmp/forge-bug-src/src/uci.cpp:489
+    #3 0x7fb088a2a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x7fb088a2a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #5 0x558f2054a7a4 in _start (/tmp/forge-asan-bug/forge+0x3b07a4) (BuildId: 4bf14a8ce9b2428d6ec3222fd97c87cada4c5b9c)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/forge-bug-src/src/uci.cpp:47 in apply_position
+Shadow bytes around the buggy address:
+  0x501ffffffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501ffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x502000000000: fa fa fd fa fa fa 00 fa fa fa 00 fa fa fa fd fa
+=>0x502000000080: fa fa 00 fa fa fa 00 00[fa]fa fa fa fa fa fa fa
+  0x502000000100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==7726==ABORTING
