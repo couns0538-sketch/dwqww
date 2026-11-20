@@ -1,0 +1,32 @@
+=== JOB 36 PREDICTION (committed ALONE before Part A's first comparison, never edited) ===
+UTC written: Fri Nov 20 10:29:00 AM UTC 2026
+
+(1) v3 leaves every `sg` line, and every `sgend` field but the new one, as v2 wrote them on A, B, C and n:
+    yes
+    Basis: A1 only inserts `" fen " + board.sg_fen()` after `nodes <total_nodes>` and before `" moves"` when
+    formatting `sgend` after the `for (;;)` game loop has already broken out; A2 parses the seven key/value
+    pairs strictly before calling `run_selfgame`, producing the identical `SgConfig` on valid lines.
+
+(2) On every finished game of A, B, C and n, `fen` equals python-chess's board after the moves:
+    yes
+    Basis: `Board::sg_fen()` uses the legal en-passant convention (`!has_legal_en_passant_capture() -> '-'`),
+    matching python-chess 1.11.2's default `board.fen()` (`0` differences across 500,060 positions in Job 33
+    KB1), and every `break` out of `run_selfgame` (`mate`, `stalemate`, `rule`, `plylimit`, `matescore`,
+    `evallimit`, `drawadj`) occurs before `make_move`/`loop_moves.push_back` for an unplayed move, so `board`
+    is in the exact state reached by the opening plus `moves`.
+
+(3) Part B: of 200 searches of `go movetime 30`, how many take hunk 75's branch:
+    [4, 24]
+    Basis: Under `go movetime 30` (`hard_limit_ms_ = 20` at default `MoveOverhead = 10`, `PC20` + built-in v1,
+    `Hash 16`, `Threads 1`), every search aborts by clock (`!stopped_by_nodes_`), `Worker::search` resets
+    `ss->pv_length = 0` on entry (including every aspiration fail-low/fail-high re-search), and root move #1
+    usually equals `result.pv[0]`; thus the branch requires the clock cut to land inside an iteration after a
+    different root move (`move_count >= 2`, or a re-searched new move inside `(alpha, beta)`) has completed
+    and raised `alpha`, before the remaining root moves finish (~2% to 12% of 200 searches).
+
+(4) The planted break of CONTROL CP fails the check at least once:
+    yes
+    Basis: `pv_stack_[5]` is the ply-1 (opponent-turn) PV slot rather than root `pv_stack_[4]`, so replacing
+    `pv_stack_[4]` with `pv_stack_[5]` in lines 3653..3655 publishes a ply-1 opponent move (or empty `0000`)
+    as `result.best_move`, which immediately fails `python-chess` root legality whenever `ss->pv_length > 0`
+    at clock abort.
