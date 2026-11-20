@@ -1,0 +1,10 @@
+Switch true at the default IdeaA3_SeeFloor of 0 differs in 0 of 200 O positions (compare_on_O.txt, sum 9500069).
+
+Why this is not a dead option: the plain engine already extends a check only when SEE >= 0
+(search.cpp, the check-extension gate; GoodCaptures has already passed see_ge(move, 0)).
+The default floor is that same 0, and a non-positive floor still trusts the GoodCaptures shortcut,
+so the predicate is the one the engine already uses.
+
+The option does run. With IdeaA3 true and IdeaA3_SeeFloor 100 (extend a check only when SEE
+wins at least a pawn), all 200 O positions change (compare_on_floor100.txt). First three nodes
+41311/24872/28574 become 19960/17388/46301.

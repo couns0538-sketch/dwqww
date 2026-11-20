@@ -1,0 +1,88 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..4f1e93574 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -273,6 +273,7 @@ extern int HistoryBonusLinear;
+ extern int HistoryBonusMax;
+ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
++extern int IdeaA3_SeeFloor;      // SEE floor used by the check extension when IdeaA3 is on (0 = not losing)
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+ // Time management (sudden-death / increment controls).
+@@ -307,6 +308,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaA3;                   // check extension uses IdeaA3_SeeFloor instead of the fixed floor 0 (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..807720892 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -74,6 +74,7 @@ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
++int IdeaA3_SeeFloor = 0;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+@@ -107,6 +108,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaA3 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -136,6 +138,7 @@ const std::vector<Parameter>& parameters() {
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
++        {"IdeaA3_SeeFloor", &IdeaA3_SeeFloor, -900, 900},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+@@ -1953,7 +1956,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 extension = -1;
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+-                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
++                   (tune::IdeaA3
++                        ? ((tune::IdeaA3_SeeFloor <= 0 && picker.last_move_see_nonnegative()) ||
++                           board.see_ge(move, tune::IdeaA3_SeeFloor))
++                        : (picker.last_move_see_nonnegative() || board.see_ge(move, 0)))) {
++            // IdeaA3 off: the same SEE >= 0 gate the engine already uses (line kept as the
++            // false branch so a false switch does not call see_ge on a different set of moves).
++            // IdeaA3 on: the floor is IdeaA3_SeeFloor. A non-positive floor still trusts the
++            // GoodCaptures stage, because that stage already proved SEE >= 0.
+             extension = 1;
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..e6048fc45 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaA3 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaA3") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA3 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
