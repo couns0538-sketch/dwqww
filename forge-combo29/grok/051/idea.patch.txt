@@ -1,0 +1,89 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..12c4ba92c 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -294,6 +294,8 @@ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
++extern bool IdeaE2;                   // same shrink as EvalRule50Damp; the named seat switch (false = off)
++extern int IdeaE2_Span;               // half-moves from a full static score down to 0 (100 = today's scale)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+@@ -345,13 +347,15 @@ void refresh();
+ } // namespace tune
+ 
+ // Static evaluation as a node reads it. Clock 0 keeps the whole score. Each
+-// half-move already played drops one percent, so a clock near 100 keeps only
+-// a sliver. Mate scores and ValueNone are never scaled. The hash table stores
+-// the unscaled raw evaluation; this is not applied on the way in.
++// half-move already played drops one part in IdeaE2_Span, which is 100 today,
++// so a clock near that span keeps only a sliver. Mate scores and ValueNone are
++// never scaled. The hash table stores the unscaled raw evaluation; this is
++// not applied on the way in. Both switches off is the historical path.
+ [[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
+-    if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
+-    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+-    return score * (100 - clock) / 100;
++    if ((!tune::EvalRule50Damp && !tune::IdeaE2) || score == ValueNone || is_mate_score(score)) return score;
++    const int span = tune::IdeaE2_Span < 1 ? 1 : tune::IdeaE2_Span;
++    const int clock = halfmove < 0 ? 0 : (halfmove > span ? span : halfmove);
++    return score * (span - clock) / span;
+ }
+ 
+ // Quiet late-move reduction with a signed fraction of a ply from the eval
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..36c76c4c5 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -94,6 +94,8 @@ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
++bool IdeaE2 = false;
++int IdeaE2_Span = 100;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+@@ -203,7 +205,7 @@ constexpr int QuietWideGap = 176;
+ // is reused only at that same clock. The raw eval slot stays unscaled and is
+ // scaled again for whatever clock reads it. Option off keeps every score usable.
+ [[nodiscard]] bool rule50_score_for_this_clock(std::uint8_t stored_clock, int halfmove) {
+-    if (!tune::EvalRule50Damp) return true;
++    if (!tune::EvalRule50Damp && !tune::IdeaE2) return true;
+     const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+     return stored_clock == static_cast<std::uint8_t>(clock);
+ }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..f4a3b9d20 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -218,6 +218,8 @@ int uci_loop(std::istream& in) {
+                          "option name NonPawnCorrection type check default false\n"
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
++                         "option name IdeaE2 type check default false\n"
++                         "option name IdeaE2_Span type spin default 100 min 1 max 200\n"
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+@@ -427,6 +429,18 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaE2") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::IdeaE2 = value_text == "true";
++                    searcher.clear_hash();
++                } else {
++                    note_invalid();
++                }
++            } else if (name == "IdeaE2_Span") {
++                apply_spin(1, 200, [&](int clamped) {
++                    forge::tune::IdeaE2_Span = clamped;
++                    searcher.clear_hash();
++                });
+             } else if (name == "AspCappedReopen") {
+                 if (value_text == "true" || value_text == "false") {
+                     forge::tune::AspCappedReopen = value_text == "true";

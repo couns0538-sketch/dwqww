@@ -4,9 +4,11 @@
 S14, then Threads 1, Hash 16, then the IdeaE2 switch if requested.
 ucinewgame + isready before every go. isready after every setoption and position.
 Stops on unknown option, invalid value, invalid FEN, illegal move.
+Raw files are written even when the engine dies, so a sanitizer abort is kept.
 """
 import argparse
 import hashlib
+import os
 import subprocess
 import sys
 import threading
@@ -59,6 +61,11 @@ def main() -> None:
 
     log: list[str] = []
     stderr_lines: list[str] = []
+    node_rows: list[str] = []
+    id_name = ""
+    env = os.environ.copy()
+    env.setdefault("ASAN_OPTIONS", "detect_leaks=0")
+    env.setdefault("UBSAN_OPTIONS", "halt_on_error=1:print_stacktrace=1")
     proc = subprocess.Popen(
         [str(exe)],
         stdin=subprocess.PIPE,
@@ -66,6 +73,7 @@ def main() -> None:
         stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
+        env=env,
     )
     assert proc.stdin and proc.stdout and proc.stderr
 
@@ -94,70 +102,83 @@ def main() -> None:
                     raise SystemExit("STOP " + line)
             if done(line):
                 return got
-        return got
 
-    send("uci")
-    uci_lines = read_until(lambda line: line == "uciok")
-    id_name = ""
-    for line in uci_lines:
-        if line.startswith("id name "):
-            id_name = line[len("id name ") :]
-    for option in options:
-        send(option)
-        send("isready")
-        read_until(lambda line: line == "readyok")
+    failure = ""
+    try:
+        send("uci")
+        uci_lines = read_until(lambda line: line == "uciok")
+        for line in uci_lines:
+            if line.startswith("id name "):
+                id_name = line[len("id name ") :]
+        for option in options:
+            send(option)
+            send("isready")
+            read_until(lambda line: line == "readyok")
 
-    node_rows: list[str] = []
-    depth = args.depth
-    for index, fen in enumerate(fens, start=1):
-        send("ucinewgame")
-        send("isready")
-        read_until(lambda line: line == "readyok")
-        send("position fen " + fen)
-        send("isready")
-        read_until(lambda line: line == "readyok")
-        send(f"go depth {depth}")
-        go_lines = read_until(lambda line: line.startswith("bestmove "))
-        nodes = ""
-        marker = f"info depth {depth} "
-        for line in go_lines:
-            if line.startswith(marker) or line == f"info depth {depth}":
-                parts = line.split()
-                if "nodes" in parts:
-                    nodes = parts[parts.index("nodes") + 1]
-        if nodes == "":
-            raise SystemExit(f"no depth {depth} nodes for position {index}")
-        node_rows.append(f"{index} {nodes}")
-        print(f"{index} {nodes}", flush=True)
-
-    send("quit")
-    proc.stdin.close()
-    proc.wait(timeout=30)
-
-    prefix.with_suffix(".txt").write_text("\n".join(log) + "\n")
-    prefix.with_suffix(".nodes").write_text("\n".join(node_rows) + "\n")
-    prefix.with_suffix(".stderr").write_text("".join(stderr_lines))
-    total = sum(int(row.split()[1]) for row in node_rows)
-    summary = [
-        f"positions {len(node_rows)}",
-        f"depth {depth}",
-        f"sum {total}",
-    ]
-    if node_rows:
-        summary.append("first " + " ".join(row.split()[1] for row in node_rows[:3]))
-    prefix.with_suffix(".sum").write_text("\n".join(summary) + "\n")
-    meta = [
-        f"exe: {exe}",
-        f"sha256: {sha}",
-        f"id_name: {id_name}",
-        f"fens: {fens_path}",
-        f"depth: {depth}",
-        f"switch: {args.switch}",
-        "options_sent:",
-        *options,
-    ]
-    prefix.with_suffix(".meta").write_text("\n".join(meta) + "\n")
-    print("\n".join(summary))
+        depth = args.depth
+        for index, fen in enumerate(fens, start=1):
+            send("ucinewgame")
+            send("isready")
+            read_until(lambda line: line == "readyok")
+            send("position fen " + fen)
+            send("isready")
+            read_until(lambda line: line == "readyok")
+            send(f"go depth {depth}")
+            go_lines = read_until(lambda line: line.startswith("bestmove "))
+            nodes = ""
+            marker = f"info depth {depth} "
+            for line in go_lines:
+                if line.startswith(marker) or line == f"info depth {depth}":
+                    parts = line.split()
+                    if "nodes" in parts:
+                        nodes = parts[parts.index("nodes") + 1]
+            if nodes == "":
+                raise SystemExit(f"no depth {depth} nodes for position {index}")
+            node_rows.append(f"{index} {nodes}")
+            print(f"{index} {nodes}", flush=True)
+        send("quit")
+    except SystemExit as exc:
+        failure = str(exc)
+        print(failure, file=sys.stderr)
+    finally:
+        try:
+            proc.stdin.close()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=15)
+        except Exception:
+            proc.kill()
+        prefix.with_suffix(".txt").write_text("\n".join(log) + "\n")
+        prefix.with_suffix(".nodes").write_text(("\n".join(node_rows) + "\n") if node_rows else "")
+        prefix.with_suffix(".stderr").write_text("".join(stderr_lines))
+        total = sum(int(row.split()[1]) for row in node_rows) if node_rows else 0
+        summary = [
+            f"positions {len(node_rows)}",
+            f"depth {args.depth}",
+            f"sum {total}",
+        ]
+        if node_rows:
+            summary.append("first " + " ".join(row.split()[1] for row in node_rows[:3]))
+        if failure:
+            summary.append("failure " + failure)
+        prefix.with_suffix(".sum").write_text("\n".join(summary) + "\n")
+        meta = [
+            f"exe: {exe}",
+            f"sha256: {sha}",
+            f"id_name: {id_name}",
+            f"fens: {fens_path}",
+            f"depth: {args.depth}",
+            f"switch: {args.switch}",
+            f"ASAN_OPTIONS: {env.get('ASAN_OPTIONS', '')}",
+            f"UBSAN_OPTIONS: {env.get('UBSAN_OPTIONS', '')}",
+            "options_sent:",
+            *options,
+        ]
+        prefix.with_suffix(".meta").write_text("\n".join(meta) + "\n")
+        print("\n".join(summary))
+    if failure:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
