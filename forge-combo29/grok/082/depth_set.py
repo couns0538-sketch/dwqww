@@ -103,7 +103,8 @@ def main():
         while True:
             line = proc.stdout.readline()
             if line == "":
-                raise SystemExit("stdout closed during go")
+                err = proc.stderr.read()
+                raise SystemExit("stdout closed during go\n" + err)
             line = line.rstrip("\r\n")
             raw.write(line + "\n")
             low = line.lower()

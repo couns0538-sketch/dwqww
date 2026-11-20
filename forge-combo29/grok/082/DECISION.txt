@@ -1,0 +1,23 @@
+Idea 32, IdeaA1. The plain engine does not already do this.
+The off path is the old line: quiet reduction loses
+clamp(history / LmrHistoryDivisor, -2, 2) whole plies.
+Under S14 that divisor is 5643, so a history in -5642..5642 changes nothing.
+
+What I built, and why:
+The on path adds history * IdeaA1_Scale / LmrHistoryDivisor to a carried
+fraction, with IdeaA1_Scale default 1024, so the unit is 1/1024 of a ply.
+The add is capped at ±IdeaA1_Clamp plies (default 2, the old cap).
+Whole plies change the reduction now. The leftover, strictly inside one
+ply, is stored on the child and added at the next quiet reduction.
+A leftover is carried through null-move and probcut searches too.
+
+I carried the fraction instead of rounding it away. Rounding to the nearest
+ply would still ignore every history under about half of 5643, which is
+the dead zone this idea is aimed at.
+
+The option is a check, default false. With it false the history line is the
+old division and the carry is neither read nor written, so the search nodes
+stay on today's path. Spin options: IdeaA1_Scale (1024) and IdeaA1_Clamp (2).
+
+Random positions, if needed: SEED = 82 * 100 + 1 = 8201. Each random draw
+uses the next integer seed, starting at 8201.
