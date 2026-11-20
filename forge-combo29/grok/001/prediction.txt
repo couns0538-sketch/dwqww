@@ -1,0 +1,10 @@
+idea=1 id=E2 option=EvalRule50Damp
+EXISTS: the engine already scales a node's static eval toward 0 with the half-move clock when EvalRule50Damp is true, and stores the unscaled raw eval in the hash (include/forge/search.hpp rule50_damped_static). The fixed number in that formula is 100. This patch only adds the spin EvalRule50Damp_Span, default 100, read only while the switch is true, so span 100 is today's on-path.
+
+O depth-12 sum of exe P with EvalRule50Damp true and EvalRule50Damp_Span 100: 10400000
+Wrong if that sum is below 8000000 or above 13000000.
+
+Test-match Elo of switch true against switch false, both S14, 20000 nodes, openings O and G both colours: +8
+Wrong if the measured Elo is below -30 or above +45.
+
+Why: O clocks are 0 to 6, so a depth-12 search only reaches a modest fade, and a smaller eval prunes less. The built-in net at 20000 nodes should not move the match far from zero.
