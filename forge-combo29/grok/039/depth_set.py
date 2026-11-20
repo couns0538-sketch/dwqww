@@ -32,6 +32,11 @@ S14 = [
 BAD = ("unknown option", "invalid value", "invalid FEN", "illegal move")
 
 
+def is_sanitizer(line):
+    low = line.lower()
+    return "sanitizer" in low or "runtime error:" in low
+
+
 def args():
     out = {}
     raw = sys.argv[1:]
@@ -218,17 +223,25 @@ def main():
         meta.append(f"fens={opt['fens']}")
         meta.append(f"positions={len(nodes)}")
         meta.append(f"sum={sum(nodes)}")
-        sanitizer = [line.rstrip("\n") for line in eng.err if "Sanitizer" in line or "sanitizer" in line]
+        sanitizer = [line.rstrip("\n") for line in eng.err if is_sanitizer(line)]
+        nm = subprocess.run(
+            ["bash", "-c", f"nm -C '{exe}' | grep -c __asan_ || true"],
+            capture_output=True,
+            text=True,
+        )
+        meta.append(f"nm_asan_count={nm.stdout.strip()}")
         meta.append(f"sanitizer_lines={len(sanitizer)}")
         meta.extend(sanitizer)
         prefix.with_suffix(".meta").write_text("\n".join(meta) + "\n")
+        for line in sanitizer:
+            print(line)
     print(f"positions {len(nodes)} sum {sum(nodes)}")
     if nodes[:3]:
         print("first3 " + " ".join(str(n) for n in nodes[:3]))
     if eng.err:
         print(f"stderr_lines {len(eng.err)}")
         for line in eng.err:
-            if "Sanitizer" in line or "sanitizer" in line:
+            if is_sanitizer(line):
                 print(line.rstrip("\n"))
 
 

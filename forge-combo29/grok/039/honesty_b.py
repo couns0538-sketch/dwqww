@@ -7,6 +7,8 @@ from pathlib import Path
 
 EXE = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2]).resolve()
+PREFIX = sys.argv[3] if len(sys.argv) > 3 else ""
+SUMMARY = sys.argv[4] if len(sys.argv) > 4 else "HONESTY_B.txt"
 OUT.mkdir(parents=True, exist_ok=True)
 
 EXPECTED = {
@@ -51,7 +53,7 @@ for kind, cmd in COMMANDS.items():
     raw = proc.stdout
     if proc.stderr:
         raw += "\n# stderr\n" + proc.stderr
-    (OUT / f"{kind}.txt").write_text(raw)
+    (OUT / f"{PREFIX}{kind}.txt").write_text(raw)
     got = nodes_of(proc.stdout, kind)
     meta = (
         f"exe={EXE}\n"
@@ -62,7 +64,7 @@ for kind, cmd in COMMANDS.items():
         f"nodes={got}\n"
         f"returncode={proc.returncode}\n"
     )
-    (OUT / f"{kind}.meta").write_text(meta)
+    (OUT / f"{PREFIX}{kind}.meta").write_text(meta)
     exp = EXPECTED[kind]
     flag = "OK" if got == exp else "MISS"
     if got != exp:
@@ -70,6 +72,6 @@ for kind, cmd in COMMANDS.items():
     summary.append(f"{kind} nodes {got} expected {exp} {flag}")
 
 text = "\n".join(summary) + ("\nPASS\n" if ok else "\nFAIL\n")
-(OUT / "HONESTY_B.txt").write_text(text)
+(OUT / SUMMARY).write_text(text)
 print(text, end="")
 sys.exit(0 if ok else 1)

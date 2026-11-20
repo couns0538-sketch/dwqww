@@ -1,0 +1,23 @@
+Idea 39, id A8, option IdeaA8 (check, default false).
+Spin IdeaA8_Captures (default 1, min 0, max 32).
+
+In quiescence, when the side to move is not in check, a capture that is searched
+and does not raise alpha counts as a miss. After IdeaA8_Captures misses at that
+node, later captures are skipped unless the capture lands on the square the
+parent move just moved to. A quiet promotion is not a capture, so it is kept.
+The gate is not used in check.
+
+A miss is only a capture whose qsearch result came back. Moves dropped by the
+existing futility or static-exchange tests are not counted.
+
+A recapture is a capture whose destination equals the parent move's destination.
+The parent must be a real move (ply above 0, not a null move). An en-passant
+capture is a recapture only when its destination is that square.
+
+N is 1 because the existing futility and exchange gates already drop most
+captures, so a second searched miss is rare. One searched miss is the signal to
+stop taking further non-recaptures.
+
+With IdeaA8 false the new tests are not taken, so the search stays on today's path.
+The plain engine does not already do this. qsearch has futility and a static
+exchange margin, and no miss counter.
