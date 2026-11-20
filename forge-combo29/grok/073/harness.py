@@ -246,28 +246,38 @@ def cmd_search(args):
     engine = Engine(args.exe)
     rows = []
     try:
-        handshake(engine, 60)
-        send_options(engine, options, 60)
+        handshake(engine, 90)
+        send_options(engine, options, 90)
         for index, fen in enumerate(positions):
             engine.send("ucinewgame")
             engine.send("isready")
-            engine.read_until(lambda line: line.strip() == "readyok", 60)
+            engine.read_until(lambda line: line.strip() == "readyok", 90)
             engine.send("position fen " + fen)
             engine.send("isready")
-            engine.read_until(lambda line: line.strip() == "readyok", 60)
+            engine.read_until(lambda line: line.strip() == "readyok", 90)
             mark = len(engine.lines)
             if args.nodes:
                 engine.send("go nodes " + str(args.nodes))
             else:
                 engine.send("go depth " + str(args.depth))
-            engine.read_until(lambda line: line.startswith("bestmove "), 180)
+            engine.read_until(lambda line: line.startswith("bestmove "), 300)
             nodes, move = last_go_nodes(engine.lines, mark)
             rows.append((index, nodes, move, fen))
             if (index + 1) % 25 == 0:
                 print(args.tag, index + 1, "of", len(positions), "nodes", nodes, flush=True)
+    finally:
         write_log(os.path.join(args.outdir, args.tag + ".txt"), engine)
         write_meta(os.path.join(args.outdir, args.tag + ".meta"), engine, options)
-    finally:
+        if args.asan:
+            counted = subprocess.run(
+                ["bash", "-c", "nm -C \"$1\" | grep -c __asan_ || true", "bash", engine.exe],
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            with open(os.path.join(args.outdir, args.tag + ".meta"), "a", encoding="utf-8") as handle:
+                handle.write("nm -C " + engine.exe + " | grep -c __asan_\n")
+                handle.write(counted.stdout.strip() + "\n")
         engine.close()
     rows_path = os.path.join(args.outdir, args.tag + ".rows.txt")
     with open(rows_path, "w", encoding="utf-8") as handle:
@@ -307,6 +317,7 @@ def main():
     search.add_argument("--limit", type=int, default=0)
     search.add_argument("--switch", default="omit")
     search.add_argument("--s14", action="store_true")
+    search.add_argument("--asan", action="store_true")
     search.set_defaults(func=cmd_search)
     options = sub.add_parser("uci")
     options.add_argument("--exe", required=True)
