@@ -1,0 +1,25 @@
+Idea 45, IdeaK6. A quiet move that gives check is ordered before the other quiet moves.
+
+EXISTS no. The plain engine does not do this. In forge-combo29/src/search.cpp the quiet
+scorer adds 12000 only when the destination is a direct check square. History entries
+are bounded by HistoryMax 16384, and a quiet score adds the main history to two
+continuation histories, so a non-checking quiet can still sort first. A discovered
+check gets no bonus. Killers and the counter move are separate earlier stages.
+
+What I built, and why:
+- Option IdeaK6, check, default false.
+- Option IdeaK6_Band, spin, default 200000, min 0, max 1000000.
+- Only generate_quiets adds the band, and only when IdeaK6 is true. gives_check is
+  not called when the option is false, so the score and the path stay today's.
+- gives_check covers a direct check and a discovered check, including a checking castle.
+- The band is larger than the gap between the lowest quiet-check score and the highest
+  non-check score (about 2 * (16384*3 + 8192 + 16384) = 147456), so every checking
+  quiet sorts before every other quiet. Every check receives the same band, so the
+  old order among checks is kept.
+- Evasions are left alone. A capture evasion is not "another quiet", and a band there
+  could pull a quiet check in front of a capture.
+- The spin is a search constant the idea needs. Default 200000 is the value used in
+  every "on" measurement. The harness does not set the spin, so refresh() is not
+  called for it.
+
+apply check: git apply --check on /agent/repos/base succeeded (APPLY_CHECK_OK).
