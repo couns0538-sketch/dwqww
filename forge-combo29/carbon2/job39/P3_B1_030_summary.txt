@@ -1,0 +1,31 @@
+=== JOB 39 PART P: P3_B1_030 (option `IdeaB1`) ===
+start_utc: Fri Nov 20 01:38:32 PM UTC 2026
+patch_file: P3_B1_030.patch.txt | patch_sha256: e551a303a2c46f9c947bb7fd775079e1871112a97b935c0cf3de71725c4f7f98 | port_notes_lines: 2
+  apply_against_r15d_v3                       : git apply --check -p1 PASS (0 == 0)
+  exe_path: /tmp/carbon2_job39/bld_P3_B1_030/forge | exe_sha256: 8e0f8a1622d7719fa18594b117087771a21e7e7609a1a6dda812c2cd555b4cb5 | id name Chess Engine Forge 6.4.24 candidate
+
+--- 1. Switch OFF Verification (Default Off & `IdeaB1=false`) ---
+[P3_B1_030_off] exe=/tmp/carbon2_job39/bld_P3_B1_030/forge | sha256=8e0f8a1622d7719fa18594b117087771a21e7e7609a1a6dda812c2cd555b4cb5 | id name Chess Engine Forge 6.4.24 candidate
+  P3_B1_030_off no-option bench 11            : PASS (312866 == 312866)
+  P3_B1_030_off no-option bench 13            : PASS (862329 == 862329)
+  P3_B1_030_off no-option perft 5             : PASS (4865609 == 4865609)
+  P3_B1_030_off PC20 bench 11                 : PASS (278024 == 278024)
+  P3_B1_030_off PC20 bench 13                 : PASS (587276 == 587276)
+  P3_B1_030_off Set A line L records          : PASS (26741 == 26741)
+  P3_B1_030_off Set A line L nodes            : PASS (107124743 == 107124743)
+  P3_B1_030_off Set A line L sha256           : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  P3_B1_030_off n[1..60] line L records       : PASS (8449 == 8449)
+  P3_B1_030_off n[1..60] line L searches      : PASS (8482 == 8482)
+  P3_B1_030_off n[1..60] line L nodes         : PASS (36688357 == 36688357)
+  P3_B1_030_off n[1..60] line L sha256        : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  P3_B1_030_off O d12 sum vs Step0 OFF        : PASS (8315168 == 8315168)
+  P3_B1_030_off O d12 differing positions     : PASS (0 == 0)
+
+--- 2. Switch ON (`setoption name IdeaB1 value true`, PC20, built-in evaluation) ---
+  P3_B1_030 ON O d12 (200 FENs)  : sum_nodes=8548042 (off=8315168, delta=+232874) | positions_differ=200/200 (nodes_differ=200/200)
+  P3_B1_030 ON G d12 (353 FENs)  : sum_nodes=16916340 (off=17611204, delta=-694864) | positions_differ=353/353 (nodes_differ=353/353)
+  P3_B1_030 ON Set A line L      : attempts=200 finished=200 thrown=0 records=26366 searches=26495 nodes=105800976
+  P3_B1_030 ON Set A line L sha256: 703cbabe40efb32ac0782f2a84a984bc937f11b597ed216da4a75438daa0c2fd
+
+P3_B1_030 OVERALL: PASS (1 == 1)
+done_utc: Fri Nov 20 01:40:16 PM UTC 2026
