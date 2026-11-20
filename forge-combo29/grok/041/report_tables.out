@@ -1,0 +1,188 @@
+== honesty B ==
+file forge-combo29/grok/041/HONESTY_B.txt
+# bench11
+info string bench depth 11 nodes 312866 time 195 nps 1604441
+# bench13
+info string bench depth 13 nodes 862329 time 449 nps 1920554
+# bench16
+info string bench depth 16 nodes 3024920 time 1468 nps 2060572
+# perft5
+nodes 4865609
+
+== honesty P ==
+file forge-combo29/grok/041/HONESTY_P.txt
+# bench11
+info string bench depth 11 nodes 312866 time 166 nps 1884734
+# bench13
+info string bench depth 13 nodes 862329 time 429 nps 2010090
+# bench16
+info string bench depth 16 nodes 3024920 time 1411 nps 2143812
+# perft5
+nodes 4865609
+
+== baseline B ==
+file forge-combo29/grok/041/baseline_B.txt
+O
+COUNT 200
+SUM 9500069
+FIRST3 41311 24872 28574
+G
+COUNT 353
+SUM 18466239
+FIRST3 37203 70845 144383
+
+== compare O off ==
+file forge-combo29/grok/041/raw_p/compare_O_off.txt
+left 200 right 200
+equal 200
+differ 0
+left_only 0
+right_only 0
+
+== compare G off ==
+file forge-combo29/grok/041/raw_p/compare_G_off.txt
+left 353 right 353
+equal 353
+differ 0
+left_only 0
+right_only 0
+
+== compare O on ==
+file forge-combo29/grok/041/raw_p/compare_O_on.txt
+left 200 right 200
+equal 0
+differ 200
+left_only 0
+right_only 0
+0 left 12 41311 right 12 30328
+1 left 12 24872 right 12 23836
+2 left 12 28574 right 12 34993
+3 left 12 27838 right 12 39584
+4 left 12 18020 right 12 60870
+5 left 12 43043 right 12 67712
+6 left 12 56414 right 12 100458
+7 left 12 32317 right 12 26631
+
+== sum O on ==
+file forge-combo29/grok/041/raw_p/sum_O_on.txt
+COUNT 200
+SUM 9752024
+FIRST3 30328 23836 34993
+
+== apply check ==
+file forge-combo29/grok/041/apply_check.txt
+exit:0
+tree:6b98f2170a3210e71beed04bbd2553972c253ed7
+
+== match ==
+file forge-combo29/grok/041/match/result_block.txt
+Results of k2on vs k2off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -5.65 +/- 10.15, nElo: -11.41 +/- 20.48
+LOS: 13.73 %, DrawRatio: 60.58 %, PairsRatio: 0.83
+Games: 1106, Wins: 318, Losses: 336, Draws: 452, Points: 544.0 (49.19 %)
+Ptnml(0-2): [8, 111, 335, 89, 10], WL/DD Ratio: 1.66
+--------------------------------------------------
+
+== asan meta counts ==
+file forge-combo29/grok/041/raw_asan/G100_d10.meta
+exe=/agent/repos/work/forge-combo29/build-asan/forge
+option=setoption name IdeaK2 value true
+option=setoption name IdeaK2_Plies value 4
+nm_command=nm -C /agent/repos/work/forge-combo29/build-asan/forge | grep -c __asan_
+nm_asan_count=35
+file forge-combo29/grok/041/raw_asan/scratch_overrun.meta
+exe=/tmp/apply-check/forge-combo29/build-asan/forge
+option=setoption name IdeaK2 value true
+option=setoption name IdeaK2_Plies value 4
+nm_command=nm -C /tmp/apply-check/forge-combo29/build-asan/forge | grep -c __asan_
+nm_asan_count=35
+
+== sanitizer lines ==
+G100_d10.err hits 0 bytes 0
+scratch_overrun.err hits 3 bytes 4179
+
+== uci IdeaK2 lines ==
+option name IdeaK2 type check default false
+option name IdeaK2_Plies type spin default 4 min 1 max 8
+
+== prediction ==
+O depth 12 sum, exe P, IdeaK2 true, IdeaK2_Plies 4, S14, Threads 1, Hash 16.
+prediction 9050000
+wrong if the sum is below 7500000 or above 11500000
+test-match Elo, IdeaK2 true against IdeaK2 false, S14, Threads 1, Hash 16, 20000 nodes, openings O and G, both colours, 1106 games.
+prediction +6
+wrong if Elo is below -30 or above +40
+== step table ==
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | 2026-11-20T07:53:23Z STEP 1 seat
+2 honesty B | done | HONESTY_B.txt | info string bench depth 11 nodes 312866 time 195 nps 1604441
+2 baseline O | done | baseline_B.txt | SUM 9500069
+3 off O | done | raw_p/compare_O_off.txt | differ 0
+3 off G | done | raw_p/compare_G_off.txt | differ 0
+3 on O | done | raw_p/compare_O_on.txt raw_p/sum_O_on.txt | differ 200 SUM 9752024
+3 uci | done | raw_p/uci.txt | option name IdeaK2 type check default false
+3 sanitizer | done | raw_asan/G100_d10.err raw_asan/scratch_overrun.err | clean_hits 0 scratch_hits 3
+3 match | done | match/result_block.txt | Elo: -5.65 +/- 10.15, nElo: -11.41 +/- 20.48
+3 apply | done | apply_check.txt | exit:0
+4 partner off | done | partner/compare_off_vs_B.txt | differ 0
+4 partner on | done | partner/compare_on_vs_091.txt | differ 0
+4 partner match | done | partner/match/result_block.txt | Elo: 3.47 +/- 8.64, nElo: 11.19 +/- 27.80
+4 verdict | done | partner compare files | CONFIRMS
+
+== partner ==
+== partner apply_check.txt ==
+file forge-combo29/grok/041/partner/apply_check.txt
+reverse_check_exit:0
+
+== partner HONESTY.txt ==
+file forge-combo29/grok/041/partner/HONESTY.txt
+# bench11
+info string bench depth 11 nodes 312866 time 168 nps 1862297
+# bench13
+info string bench depth 13 nodes 862329 time 441 nps 1955394
+# bench16
+info string bench depth 16 nodes 3024920 time 1497 nps 2020654
+# perft5
+nodes 4865609
+
+== partner compare_off_vs_B.txt ==
+file forge-combo29/grok/041/partner/compare_off_vs_B.txt
+left 200 right 200
+equal 200
+differ 0
+left_only 0
+right_only 0
+
+== partner compare_on_vs_091.txt ==
+file forge-combo29/grok/041/partner/compare_on_vs_091.txt
+left 200 right 200
+equal 200
+differ 0
+left_only 0
+right_only 0
+
+== partner compare_on_vs_B.txt ==
+file forge-combo29/grok/041/partner/compare_on_vs_B.txt
+left 200 right 200
+equal 0
+differ 200
+left_only 0
+right_only 0
+0 left 12 41311 right 12 30328
+1 left 12 24872 right 12 23836
+2 left 12 28574 right 12 34993
+3 left 12 27838 right 12 39584
+4 left 12 18020 right 12 60870
+5 left 12 43043 right 12 67712
+6 left 12 56414 right 12 100458
+7 left 12 32317 right 12 26631
+
+== partner match/result_block.txt ==
+file forge-combo29/grok/041/partner/match/result_block.txt
+Results of k2on vs k2off (20000 nodes, 1t, 16MB, R.fens):
+Elo: 3.47 +/- 8.64, nElo: 11.19 +/- 27.80
+LOS: 78.48 %, DrawRatio: 87.67 %, PairsRatio: 1.18
+Games: 600, Wins: 277, Losses: 271, Draws: 52, Points: 303.0 (50.50 %)
+Ptnml(0-2): [2, 15, 263, 15, 5], WL/DD Ratio: 22.91
+--------------------------------------------------
+

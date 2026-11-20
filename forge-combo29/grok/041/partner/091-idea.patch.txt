@@ -1,0 +1,203 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..c9cbab002 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -304,6 +304,9 @@ extern bool AspCappedReopen;         // root fail: capped reopen, or full open w
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool IdeaK2;                  // low-ply quiet history in ordering for the first few plies (false = off)
++extern int IdeaK2_PlyLimit;          // plies from the root that keep their own quiet history (1..8)
++extern int IdeaK2_Scale;             // ordering weight of that history, in 1/1024 of the stored value
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+@@ -377,6 +380,9 @@ void refresh();
+ 
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
++// One butterfly per ply from the root. Only the first LowPlyHistoryPlies slots exist.
++constexpr int LowPlyHistoryPlies = 8;
++using LowPlyHistory = std::array<ButterflyHistory, LowPlyHistoryPlies>;
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+@@ -470,6 +476,7 @@ private:
+     int id_ = 0;
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
++    std::unique_ptr<LowPlyHistory> low_ply_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+@@ -549,6 +556,9 @@ private:
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
++    // Extra quiet-history term for ordering at ply < IdeaK2_PlyLimit. Zero when IdeaK2 is off.
++    [[nodiscard]] int low_ply_order_bonus(const Board& board, const SearchStack* ss, Move move) const;
++    void update_low_ply_quiet(const Board& board, int ply, Move move, int bonus);
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..548318eb3 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -104,6 +104,9 @@ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
++bool IdeaK2 = false;
++int IdeaK2_PlyLimit = 4;
++int IdeaK2_Scale = 1024;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK2_PlyLimit", &IdeaK2_PlyLimit, 1, 8},             {"IdeaK2_Scale", &IdeaK2_Scale, 0, 4096},
+     };
+     return table;
+ }
+@@ -783,19 +787,22 @@ private:
+         const PieceToHistory* cont4;
+         const Board& board;
+         const Worker& worker;
++        const SearchStack* ss;
+ 
+-        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
++        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* stack)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+-              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+-              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+-              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                        ? (ss - 4)->continuation : nullptr),
++              cont1(stack != nullptr ? (stack - 1)->continuation : nullptr),
++              cont2(stack != nullptr ? (stack - 2)->continuation : nullptr),
++              cont4(tune::ContHist4PlyRead && stack != nullptr && !(stack - 4)->current_move.is_none()
++                        ? (stack - 4)->continuation : nullptr),
+               board(b),
+-              worker(searcher) {}
++              worker(searcher),
++              ss(stack) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            value += worker.low_ply_order_bonus(board, ss, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -928,7 +935,7 @@ private:
+         }
+ #else
+         for (const Move move : buffer_) {
+-            int score = searcher_.quiet_history(board_, ss_, move);
++            int score = searcher_.quiet_history(board_, ss_, move) + searcher_.low_ply_order_bonus(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -950,7 +957,7 @@ private:
+ #else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+-            int score = searcher_.quiet_history(board_, ss_, move);
++            int score = searcher_.quiet_history(board_, ss_, move) + searcher_.low_ply_order_bonus(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -987,7 +994,8 @@ private:
+ #if FORGE_SEARCH_SPEED2
+                 score = scorer.score(move, check_squares_);
+ #else
+-                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++                score = searcher_.quiet_history(board_, ss_, move) + searcher_.low_ply_order_bonus(board_, ss_, move) +
++                        (direct_check(move) ? 12000 : 0);
+ #endif
+             }
+             push_scored(move, score);
+@@ -1003,6 +1011,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+     : shared_(shared),
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
++      low_ply_history_(std::make_unique<LowPlyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+@@ -1019,6 +1028,7 @@ Worker::~Worker() = default;
+ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
++    *low_ply_history_ = LowPlyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+@@ -1319,6 +1329,20 @@ int Worker::draw_leaf_score(const Board& board) const {
+     return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
+ }
+ 
++int Worker::low_ply_order_bonus(const Board& board, const SearchStack* ss, Move move) const {
++    if (!tune::IdeaK2 || ss == nullptr || low_ply_history_ == nullptr) return 0;
++    const int ply = ss->ply;
++    if (ply < 0 || ply >= tune::IdeaK2_PlyLimit || ply >= LowPlyHistoryPlies) return 0;
++    const int entry = (*low_ply_history_)[static_cast<std::size_t>(ply)][static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
++    return entry * tune::IdeaK2_Scale / 1024;
++}
++
++void Worker::update_low_ply_quiet(const Board& board, int ply, Move move, int bonus) {
++    if (!tune::IdeaK2 || low_ply_history_ == nullptr) return;
++    if (ply < 0 || ply >= tune::IdeaK2_PlyLimit || ply >= LowPlyHistoryPlies) return;
++    apply_history((*low_ply_history_)[static_cast<std::size_t>(ply)][static_cast<std::size_t>(board.side_to_move())][move.from][move.to], bonus);
++}
++
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+ #if FORGE_SEARCH_SPEED2
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+@@ -1392,6 +1416,14 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+         update_threat_quiet(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
++    if (tune::IdeaK2) {
++        update_low_ply_quiet(board, ss->ply, move, bonus);
++        for (int i = 0; i < quiet_count; ++i) {
++            const Move quiet = quiets[i];
++            if (quiet == move) continue;
++            update_low_ply_quiet(board, ss->ply, quiet, -bonus);
++        }
++    }
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -2082,6 +2114,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
++        if (tune::IdeaK2) update_low_ply_quiet(board, ss->ply, best_move, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..8db01c0a1 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaK2 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK2") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK2 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
