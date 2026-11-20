@@ -1,0 +1,20 @@
+Idea 35, id A4, option IdeaA4 (check, default false).
+The plain engine does not fold capture history into SEE pruning.
+EXISTS: no.
+
+The two capture SEE thresholds today:
+1. Main search, captures only (quiet checks in the same branch stay on the old threshold):
+   -SeeNoisyMultiplier * depth
+2. Quiescence, captures only:
+   -QsSeeMargin
+
+When IdeaA4 is true, both thresholds move by
+clamp(capture_history / IdeaA4_Divisor, -cap, +cap)
+and the main-search cap is IdeaA4_Clamp * depth. Positive history lowers the
+threshold, so a capture that has caused cutoffs is kept through a worse exchange.
+Negative history raises it. Defaults: IdeaA4_Divisor 16, IdeaA4_Clamp 64.
+When IdeaA4 is false the adjustment function returns 0 before it reads either
+number, and see_ge is called with today's threshold.
+
+Chosen because a history of a few hundred points then moves the quiescence
+margin (40) and the depth-1 capture margin (150) without replacing the depth term.

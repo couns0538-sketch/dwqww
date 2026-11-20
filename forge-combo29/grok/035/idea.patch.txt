@@ -1,0 +1,104 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..e89accc9b 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,9 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaA4;                  // fold capture history into the two capture SEE thresholds (false = off)
++extern int IdeaA4_Divisor;           // capture-history centipawns per this many history points
++extern int IdeaA4_Clamp;             // cap on that adjustment (main search multiplies by depth)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..dea637644 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,9 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaA4 = false;
++int IdeaA4_Divisor = 16;
++int IdeaA4_Clamp = 64;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaA4_Divisor", &IdeaA4_Divisor, 1, 256},
++        {"IdeaA4_Clamp", &IdeaA4_Clamp, 0, 512},
+     };
+     return table;
+ }
+@@ -243,6 +248,16 @@ ReductionTable Reductions;
+     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+ }
+ 
++// IdeaA4: centipawn shift of a capture SEE threshold from capture history.
++// Positive history lowers the threshold (a proven capture survives a worse exchange).
++// Returns 0 while the option is off, so both thresholds stay exactly today's numbers.
++[[nodiscard]] int idea_a4_see_adjust(int history, int cap) {
++    if (!tune::IdeaA4) return 0;
++    const int divisor = tune::IdeaA4_Divisor > 0 ? tune::IdeaA4_Divisor : 1;
++    const int limit = cap > 0 ? cap : 0;
++    return std::clamp(history / divisor, -limit, limit);
++}
++
+ void apply_history(std::int16_t& entry, int bonus) {
+     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+@@ -1497,7 +1512,11 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            int qs_see_threshold = -tune::QsSeeMargin;
++            if (tune::IdeaA4 && move.is_capture()) {
++                qs_see_threshold -= idea_a4_see_adjust(capture_history_value(board, move), tune::IdeaA4_Clamp);
++            }
++            if (!board.see_ge(move, qs_see_threshold)) continue;
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1900,7 +1919,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     trace_case();
+                     continue;
+                 }
+-                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                if (tune::IdeaA4 && capture) {
++                    const int depth_cap = tune::IdeaA4_Clamp * std::max(depth, 1);
++                    see_threshold -= idea_a4_see_adjust(history, depth_cap);
++                }
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..6717c4cf4 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaA4 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaA4") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA4 = value_text == "true";
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";

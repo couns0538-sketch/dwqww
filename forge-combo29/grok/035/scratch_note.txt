@@ -1,0 +1,6 @@
+The sanitizer proof uses two builds, both with -fsanitize=address,undefined.
+The real build is /tmp/forge-asan/forge from the patched work tree. Its meta nm_asan_count is 35.
+The scratch build is /tmp/forge-asan-bug/forge. It is the same patch plus one inserted read,
+only in that copy, not in idea.patch.txt: on the FEN 8/8/8/8/8/8/8/K6k w - - 0 1,
+uci.cpp allocates int[4] on the heap and reads index 8. The same runner, san_run.py,
+reports that line. ASAN_OPTIONS sets detect_leaks=0 so a shutdown leak is not counted.
