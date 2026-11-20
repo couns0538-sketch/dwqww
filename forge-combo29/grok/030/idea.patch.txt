@@ -1,0 +1,165 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..696947f79 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -304,6 +304,9 @@ extern bool AspCappedReopen;         // root fail: capped reopen, or full open w
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool IdeaB1;                  // fading board prior on quiet ordering (false = off)
++extern int IdeaB1_Scale;             // points per pressure point while history is cold
++extern int IdeaB1_Fade;              // history magnitude that shrinks the prior (0 = no fade)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..8d601c61e 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -104,6 +104,9 @@ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
++bool IdeaB1 = false;
++int IdeaB1_Scale = 96;
++int IdeaB1_Fade = 4;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaB1_Scale", &IdeaB1_Scale, 0, 500},                 {"IdeaB1_Fade", &IdeaB1_Fade, 0, 64},
+     };
+     return table;
+ }
+@@ -278,6 +282,55 @@ std::string format_score(int score) {
+     return "cp " + std::to_string(score);
+ }
+ 
++// IdeaB1. Quiet-move ordering prior from the current placement, not a
++// piece-square table. Pressure is attacks on the enemy army (weight 2) plus
++// attacks into the enemy king zone (weight 1). The bonus is that change from
++// the move's origin to its destination, then shrunk as this search writes
++// main history for the same from-to: Scale * delta * 1024 / (1024 + Fade * |h|).
++// Callers add it only to quiet scores, after hash, capture, and killer slots.
++[[nodiscard]] int fading_board_prior(const Board& board, Move move, int main_history) {
++    const int type = piece_type(board.piece_at(move.from));
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const Bitboard enemy = board.occupied(them);
++    const int their_king = board.king_square(them);
++    const Bitboard zone = their_king >= 0 ? attacks::king_zone(their_king) : Bitboard{0};
++    const Bitboard occ = board.occupied();
++    const Bitboard occ_to = (occ ^ square_bb(move.from)) | square_bb(move.to);
++    auto pressure = [&](int square, Bitboard occupancy) {
++        Bitboard att = 0;
++        switch (type) {
++        case Pawn:
++            att = attacks::pawn(us, square);
++            break;
++        case Knight:
++            att = attacks::knight(square);
++            break;
++        case Bishop:
++            att = attacks::bishop(square, occupancy);
++            break;
++        case Rook:
++            att = attacks::rook(square, occupancy);
++            break;
++        case Queen:
++            att = attacks::queen(square, occupancy);
++            break;
++        case King:
++            att = attacks::king(square);
++            break;
++        default:
++            att = 0;
++            break;
++        }
++        return 2 * popcount(att & enemy) + popcount(att & zone);
++    };
++    const int delta = pressure(move.to, occ_to) - pressure(move.from, occ);
++    const int mag = main_history >= 0 ? main_history : -main_history;
++    const int denom = 1024 + tune::IdeaB1_Fade * mag;
++    if (denom <= 0) return 0;
++    return delta * tune::IdeaB1_Scale * 1024 / denom;
++}
++
+ } // namespace
+ 
+ // Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the
+@@ -797,6 +850,7 @@ private:
+             const Piece piece = board.piece_at(move.from);
+             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
++            if (tune::IdeaB1) value += fading_board_prior(board, move, main[move.from][move.to]);
+             return value;
+         }
+     };
+@@ -930,6 +984,10 @@ private:
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (tune::IdeaB1) {
++                score += fading_board_prior(board_, move,
++                                            (*searcher_.main_history_)[static_cast<std::size_t>(board_.side_to_move())][move.from][move.to]);
++            }
+             push_scored(move, score);
+         }
+ #endif
+@@ -952,6 +1010,10 @@ private:
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (tune::IdeaB1) {
++                score += fading_board_prior(board_, move,
++                                            (*searcher_.main_history_)[static_cast<std::size_t>(board_.side_to_move())][move.from][move.to]);
++            }
+             push_scored(move, score);
+         }
+ #endif
+@@ -988,6 +1050,11 @@ private:
+                 score = scorer.score(move, check_squares_);
+ #else
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++                if (tune::IdeaB1) {
++                    score += fading_board_prior(
++                        board_, move,
++                        (*searcher_.main_history_)[static_cast<std::size_t>(board_.side_to_move())][move.from][move.to]);
++                }
+ #endif
+             }
+             push_scored(move, score);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..f3315ea2c 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaB1 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaB1") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,7 +415,8 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
+-                                                        : &forge::tune::TmFinishIteration;
++                             : name == "TmFinishIteration" ? &forge::tune::TmFinishIteration
++                                                        : &forge::tune::IdeaB1;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
