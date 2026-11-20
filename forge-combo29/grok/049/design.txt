@@ -1,0 +1,11 @@
+IdeaK10, seat 049. The plain engine does not do this. search.cpp extends a hash move for a singular score or a SEE-non-losing check, and it reads continuation history only inside quiet ordering and late-move reduction. There is no extra ply for a quiet hash move based on continuation history.
+
+What the switch does, only when IdeaK10 is true:
+A non-root node at depth >= IdeaK10_MinDepth (default 8) gives one more ply to the hash move when that move is quiet, it is not an excluded singular move, its extension so far is not already positive, and the sum of the two continuation-history tables behind the node (ply-1 and ply-2, the same tables quiet history adds, not the main-history row) is >= IdeaK10_Threshold (default 3072).
+
+3072 is a bit more than one capped history bonus under S14 (HistoryBonusMax 2212), so the move has been confirmed more than once, or both recent plies agree. The switch is tested first, so the tables are not read when the option is off.
+
+Options:
+IdeaK10 check default false
+IdeaK10_MinDepth spin default 8 min 1 max 64
+IdeaK10_Threshold spin default 3072 min 0 max 32767
