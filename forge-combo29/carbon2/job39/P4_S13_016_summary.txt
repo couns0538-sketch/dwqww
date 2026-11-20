@@ -1,0 +1,31 @@
+=== JOB 39 PART P: P4_S13_016 (option `IdeaS13`) ===
+start_utc: Fri Nov 20 01:44:15 PM UTC 2026
+patch_file: P4_S13_016.patch.txt | patch_sha256: 94440264ecdea4314df8b793d297d53d4d0bc86126c516f1ee375d34704957ca | port_notes_lines: 4
+  apply_against_r15d_v3                       : git apply --check -p1 PASS (0 == 0)
+  exe_path: /tmp/carbon2_job39/bld_P4_S13_016/forge | exe_sha256: d5b097f04a68f508c8d36ddba173e051f51bbb99ea79ed8611b8ff37f5539a9d | id name Chess Engine Forge 6.4.24 candidate
+
+--- 1. Switch OFF Verification (Default Off & `IdeaS13=false`) ---
+[P4_S13_016_off] exe=/tmp/carbon2_job39/bld_P4_S13_016/forge | sha256=d5b097f04a68f508c8d36ddba173e051f51bbb99ea79ed8611b8ff37f5539a9d | id name Chess Engine Forge 6.4.24 candidate
+  P4_S13_016_off no-option bench 11           : PASS (312866 == 312866)
+  P4_S13_016_off no-option bench 13           : PASS (862329 == 862329)
+  P4_S13_016_off no-option perft 5            : PASS (4865609 == 4865609)
+  P4_S13_016_off PC20 bench 11                : PASS (278024 == 278024)
+  P4_S13_016_off PC20 bench 13                : PASS (587276 == 587276)
+  P4_S13_016_off Set A line L records         : PASS (26741 == 26741)
+  P4_S13_016_off Set A line L nodes           : PASS (107124743 == 107124743)
+  P4_S13_016_off Set A line L sha256          : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  P4_S13_016_off n[1..60] line L records      : PASS (8449 == 8449)
+  P4_S13_016_off n[1..60] line L searches     : PASS (8482 == 8482)
+  P4_S13_016_off n[1..60] line L nodes        : PASS (36688357 == 36688357)
+  P4_S13_016_off n[1..60] line L sha256       : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  P4_S13_016_off O d12 sum vs Step0 OFF       : PASS (8315168 == 8315168)
+  P4_S13_016_off O d12 differing positions    : PASS (0 == 0)
+
+--- 2. Switch ON (`setoption name IdeaS13 value true`, PC20, built-in evaluation) ---
+  P4_S13_016 ON O d12 (200 FENs)  : sum_nodes=8077984 (off=8315168, delta=-237184) | positions_differ=200/200 (nodes_differ=200/200)
+  P4_S13_016 ON G d12 (353 FENs)  : sum_nodes=17460346 (off=17611204, delta=-150858) | positions_differ=344/353 (nodes_differ=344/353)
+  P4_S13_016 ON Set A line L      : attempts=200 finished=200 thrown=0 records=26212 searches=26339 nodes=104043062
+  P4_S13_016 ON Set A line L sha256: 1f50071a233c8f86fab955f95eda851cc594090b1ffdf150d6debd87337077cd
+
+P4_S13_016 OVERALL: PASS (1 == 1)
+done_utc: Fri Nov 20 01:45:56 PM UTC 2026

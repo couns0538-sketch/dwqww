@@ -1,0 +1,234 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -281,6 +281,8 @@
+ extern int HistoryBonusLinear;
+ extern int HistoryBonusMax;
+ extern int LmrHistoryDivisor;
++extern int IdeaS13_Lookback;       // plies back, same side only (even distances)
++extern int IdeaS13_ReduceDivisor;  // positive break-prep history / this, capped at 1 ply
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+@@ -304,6 +306,7 @@
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool IdeaS13;                 // credit the quiet piece move before a same-side pawn break (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -391,6 +394,9 @@
+ 
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
++// [side][from][to]. Quiet non-pawn moves that were followed, structure unchanged,
++// by a same-side pawn move that failed high. Read only when IdeaS13 is on.
++using BreakPrepHistory = ButterflyHistory;
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+@@ -454,6 +460,9 @@
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+     mutable std::uint64_t corr_mat_mix = 0;
+     mutable std::uint8_t corr_valid = 0;
++    // Pawn structure of the position this frame searched. IdeaS13 compares it
++    // with earlier frames. Unused by the default search.
++    std::uint64_t pawn_key = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -499,6 +508,7 @@
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
++    std::unique_ptr<BreakPrepHistory> break_prep_history_;
+     std::unique_ptr<PawnHistoryTable> pawn_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+@@ -604,6 +614,10 @@
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
++    // Ordering bonus for a non-pawn quiet. 0 when IdeaS13 is off or the mover is a pawn.
++    [[nodiscard]] int break_prep_order(const Board& board, Move move) const;
++    // After a pawn move fails high, credit same-side quiet piece moves a few plies back.
++    void credit_break_prep(const Board& board, const SearchStack* ss, int depth);
+     [[nodiscard]] int pawn_history_value(const Board& board, Piece piece, Move move) const;
+     void update_pawn_history(const Board& board, Piece piece, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -130,6 +130,8 @@
+ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
++int IdeaS13_Lookback = 4;
++int IdeaS13_ReduceDivisor = 1024;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+@@ -163,6 +165,7 @@
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool IdeaS13 = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -208,6 +211,8 @@
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
++        {"IdeaS13_Lookback", &IdeaS13_Lookback, 2, 12},
++        {"IdeaS13_ReduceDivisor", &IdeaS13_ReduceDivisor, 256, 16384},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+@@ -934,6 +939,7 @@
+             if (cont2 != nullptr) value += (*cont2)[p][move.to];
+             if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
+             if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
++            if (tune::IdeaS13) [[unlikely]] value += worker.break_prep_order(board, move);
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+ #endif
+@@ -1070,6 +1076,7 @@
+ #else
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
++            if (tune::IdeaS13) score += searcher_.break_prep_order(board_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -1092,6 +1099,7 @@
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
++            if (tune::IdeaS13) score += searcher_.break_prep_order(board_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+@@ -1139,7 +1147,9 @@
+ #if FORGE_SEARCH_SPEED2
+             return scorer.score(move, check_squares_);
+ #else
+-            return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++            int score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++            if (tune::IdeaS13) score += searcher_.break_prep_order(board_, move);
++            return score;
+ #endif
+         };
+ 
+@@ -1194,6 +1204,7 @@
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
++      break_prep_history_(std::make_unique<BreakPrepHistory>()),
+ #if FORGE_PAWN_HISTORY
+       pawn_history_(std::make_unique<PawnHistoryTable>()),
+ #else
+@@ -1219,6 +1230,7 @@
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
++    *break_prep_history_ = BreakPrepHistory{};
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+@@ -1696,6 +1708,28 @@
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+ 
++int Worker::break_prep_order(const Board& board, Move move) const {
++    if (!tune::IdeaS13) return 0;
++    if (piece_type(board.piece_at(move.from)) <= Pawn) return 0;
++    return (*break_prep_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
++}
++
++void Worker::credit_break_prep(const Board& board, const SearchStack* ss, int depth) {
++    if (!tune::IdeaS13) return;
++    const int bonus = history_bonus(depth);
++    const std::uint64_t structure = ss->pawn_key;
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    const int look = tune::IdeaS13_Lookback;
++    for (int back = 2; back <= look && back <= ss->ply; back += 2) {
++        const SearchStack* previous = ss - back;
++        const Move earlier = previous->current_move;
++        if (earlier.is_none() || earlier.is_capture() || earlier.is_promotion()) continue;
++        if (previous->moved_piece == Empty || piece_type(previous->moved_piece) <= Pawn) continue;
++        if (previous->pawn_key != structure) continue;
++        apply_history((*break_prep_history_)[side][earlier.from][earlier.to], bonus);
++    }
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1766,6 +1800,7 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
++    if (tune::IdeaS13) ss->pawn_key = board.pawn_key();
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+@@ -1909,6 +1944,7 @@
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
++    if (tune::IdeaS13) ss->pawn_key = board.pawn_key();
+ 
+     if (depth <= 0) return qsearch_child(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+@@ -2414,6 +2450,14 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::IdeaS13 && quiet) {
++                const int prep = break_prep_order(board, move);
++                if (prep > 0) {
++                    int shorten = prep / tune::IdeaS13_ReduceDivisor;
++                    if (shorten > 1) shorten = 1;
++                    r -= shorten;
++                }
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2495,6 +2539,10 @@
+             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
+         }
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
++        if (tune::IdeaS13 && !best_move.is_none() && piece_type(board.moved_piece(best_move)) == Pawn) {
++            const int prep_depth = depth + (!best_move.is_capture() && !best_move.is_promotion() && best_score > beta + 100 ? 1 : 0);
++            credit_break_prep(board, ss, prep_depth);
++        }
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -756,6 +756,7 @@
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name IdeaS13 type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -968,13 +969,14 @@
+                     searcher.clear_hash();
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+-                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "ThreatHistory" || name == "IdeaS13" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
++                             : name == "IdeaS13" ? &forge::tune::IdeaS13
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
