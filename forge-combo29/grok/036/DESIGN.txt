@@ -1,0 +1,23 @@
+IdeaS36. Root quiet shift on an aspiration re-search.
+
+What I built
+The check option IdeaS36 defaults false. Two spins, IdeaS36_FailLow and
+IdeaS36_FailHigh, default to 1 (the one ply named in the idea) and accept 0..8.
+On a root re-search after the score leaves the aspiration window, later quiet
+moves that already take a late-move reduction lose FailLow plies after a
+fail-low and gain FailHigh plies after a fail-high. The shift is added to the
+reduction that would actually be searched (a negative raw reduction already
+searches full depth). A negative result is clamped to 0, so the shift cannot
+extend. Captures never enter that quiet reduction. The first root moves are
+already outside the reduction block (the engine searches the first two root
+moves at full depth), so they are left alone. The shift is cleared at the
+start of the next iteration, so the first search of every iteration is the
+normal one.
+
+Why not also reduce the second root move
+That move is not reduced today. Giving it a reduction only while the switch
+is on would be a new reduction, not a shift of one that exists. The off path
+does not read the shift, so it stays on today's nodes.
+
+The patch is idea.patch.txt. It is the git diff of the work tree against the
+base commit. No engine source is committed.
