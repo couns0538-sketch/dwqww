@@ -1,0 +1,9 @@
+IdeaS10, seat 081. Written before any measuring command.
+
+O depth-12 node sum of exe P with IdeaS10 true (S14, Threads 1, Hash 16): 9350000
+Wrong if that sum is below 8000000, above 11000000, or equal to the plain sum 9500069.
+
+Test-match Elo of IdeaS10 true against IdeaS10 false, 1106 games, 20000 nodes: -8
+Wrong if the whole error interval lies above +20 or the whole interval lies below -60.
+
+Why: the switch pulls some quiet non-PV scores 896/1024 of the way toward the same sign, only after four shuffle plies, a pawn-structure score and an eval of at least 25 cp, and a one-ply restricted probe that stays within 40 cp. That should move the opening node sum, not double it. Shrinking real advantages should cost a little Elo and should not be a blowout.
