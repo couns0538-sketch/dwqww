@@ -1,0 +1,10 @@
+idea=33 IdeaA2
+option=IdeaA2 default false
+spin=IdeaA2_MinDepth default 2
+O_depth12_sum_switch_on=10600000
+O_depth12_sum_wrong_if_below=7500000
+O_depth12_sum_wrong_if_above=14000000
+test_match_elo=3
+test_match_elo_wrong_if_below=-35
+test_match_elo_wrong_if_above=45
+why=A non-PV fail-high stays at least beta after (score*depth+beta)/(depth+1), so the cutoff still happens. The parent stores and compares that smaller margin, so the beta+100 history bonus and later hash bounds change. I expect a modest node increase from weaker crushing-fail-high history, and a small Elo gain from less inflated cutoffs. The Elo band is the range a 1106-game 20k-node match would have to leave before the guess is wrong.
