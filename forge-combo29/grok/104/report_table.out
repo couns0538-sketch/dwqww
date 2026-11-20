@@ -1,0 +1,20 @@
+step | done / partly / not done | evidence file | result
+STEP 1 seat | done | SEAT.txt | seat 104, idea 4, model Grok 4.7, 2026-11-20T07:55:39Z, token 24771265646295
+STEP 2 honesty B | done | HONESTY_B.txt | PASS
+STEP 2 O depth 12 exe B | done | B_O_d12.tsv | sum 9500069
+STEP 2 G depth 12 exe B | done | B_G_d12.tsv | sum 18466239
+STEP 3 prediction | done | prediction.txt | committed before the P measurements
+STEP 3 patch applies | done | idea.patch.txt | git apply --check on a fresh base printed APPLY_CHECK_OK
+proof 1 honesty P | done | HONESTY_P.txt | PASS
+proof 2 switch off O | done | compare_off_O.txt | positions=200 differ=0 sum_a=9500069 sum_b=9500069
+proof 2 switch off G | done | compare_off_G.txt | positions=353 differ=0 sum_a=18466239 sum_b=18466239
+proof 3 switch on O | done | compare_on_O.txt | positions=200 differ=200 sum_a=9500069 sum_b=9722581
+proof 4 uci options | done | uci_p.txt | IdeaS35 check false; spins 7, 4, 1, 24
+proof 5 sanitizer | done | asan_G100.meta | asan_symbols 35, sanitizer_lines 0, 100 positions
+proof 5 trap | done | asan_trap.stderr.txt | heap-buffer-overflow on the special FEN
+STEP 3 match | done | match_OG_result.txt | Elo: -0.00 +/- 10.81, nElo: 0.00 +/- 20.48
+STEP 4 partner apply | done | partner004_apply_check.txt | APPLY_CHECK_OK
+STEP 4 partner honesty | done | HONESTY_PARTNER004.txt | PASS
+STEP 4 partner off vs B | done | partner004_off_vs_B.txt | positions_a=200 positions_b=200 compared=200 differ=0 sum_a=9500069 sum_b=9500069
+STEP 4 partner on vs claim | done | partner004_on_vs_claim.txt | positions_a=200 positions_b=200 compared=200 differ=0 sum_a=9722581 sum_b=9722581
+STEP 4 partner match | done | partner004_match.txt | Elo: -5.21 +/- 9.82, nElo: -14.77 +/- 27.80

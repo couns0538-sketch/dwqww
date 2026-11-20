@@ -1,0 +1,47 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..3c907fa60 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -297,6 +297,8 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern int LmrLateParentReliefIndex;    // parent arrival index at which that relief starts (today 7)
++extern int LmrLateParentReliefReplies;  // how many early replies lose one ply (today 4)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..4ac4d331b 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -97,6 +97,8 @@ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++int LmrLateParentReliefIndex = 7;
++int LmrLateParentReliefReplies = 4;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -145,6 +147,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"LmrLateParentRelief_Index", &LmrLateParentReliefIndex, 0, 64},
++        {"LmrLateParentRelief_Replies", &LmrLateParentReliefReplies, 0, 64},
+     };
+     return table;
+ }
+@@ -2007,7 +2011,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+-            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // The two bounds are today's numbers unless a spin option says otherwise.
++            if (tune::LmrLateParentRelief &&
++                ss->arrival_index >= tune::LmrLateParentReliefIndex &&
++                move_count <= tune::LmrLateParentReliefReplies) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);

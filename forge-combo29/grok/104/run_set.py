@@ -45,8 +45,8 @@ def load_fens(path):
     return fens
 
 def main():
-    if len(sys.argv) != 7:
-        die("usage: run_set.py EXE FENS DEPTH SWITCH OUT_PREFIX LIMIT")
+    if len(sys.argv) not in (7, 8):
+        die("usage: run_set.py EXE FENS DEPTH SWITCH OUT_PREFIX LIMIT [OPTION]")
     exe = str(Path(sys.argv[1]).resolve())
     fens = load_fens(sys.argv[2])
     depth = int(sys.argv[3])
@@ -59,8 +59,9 @@ def main():
         fens = fens[:limit]
     prefix.parent.mkdir(parents=True, exist_ok=True)
     options = [("Threads", "1"), ("Hash", "16")] + S14
+    option_name = sys.argv[7] if len(sys.argv) > 7 else "IdeaS35"
     if switch != "omit":
-        options.append(("IdeaS35", switch))
+        options.append((option_name, switch))
     digest = hashlib.sha256(Path(exe).read_bytes()).hexdigest()
     proc = subprocess.Popen(
         [exe],
