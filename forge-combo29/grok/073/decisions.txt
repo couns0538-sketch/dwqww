@@ -1,0 +1,11 @@
+Seat 073, idea 23, IdeaS29, id S29.
+EXISTS: no. ThreatHistory (search.hpp) is a quiet-move table. Capture history is added to every capture and is not gated by SEE. Nothing orders only the captures that pass a fixed exchange threshold by the cheaper enemy attacker of the landing square.
+
+What I built, and why:
+- Check option IdeaS29, default false. While it is false the new term is not read and see_ge is not called for it, so scores stay the ones the plain engine uses.
+- The gate is see_ge(move, IdeaS29_Threshold). Default threshold 0: the capture does not lose material. The history value is not added to that threshold.
+- The axis is the piece type of the cheapest enemy attacker of the landing square (king excluded, because SEE prices a king at 0). Class 0 means no such attacker. The table is [moved piece][class][to].
+- IdeaS29_Divisor default 8. The stored entry uses the same bonus as capture history (up to 16384). Dividing by 8 caps the ordering term near 2048, about two pawns of the 10x victim score, so it reorders captures that already passed the gate instead of replacing most-valuable-victim.
+- Updates use that same bonus, and only for captures that pass the gate.
+
+R positions: python-chess, random.Random(7301). A game that ends before ply 80, including a claimable fifty-move draw or threefold repetition, is dropped. From a game still going at ply 80, FENs at plies 8, 15, 22, ..., 78.
