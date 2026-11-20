@@ -1,0 +1,29 @@
+exe=/tmp/canary-engine/build-asan/forge
+sha256=7c0dac6ffc9a2102f1c990ab7cd1699c80cffd395dd4f436bf512294adecdb72
+id_name=Chess Engine Forge 6.4.24 candidate
+fens=/agent/repos/dwqww/forge-combo29/grok/059/canary.fen
+depth=1
+positions=1
+options:
+setoption name Threads value 1
+setoption name Hash value 16
+setoption name LmrQuietBase value 93
+setoption name LmrQuietDivisor value 205
+setoption name LmrNoisyBase value 13
+setoption name LmrNoisyDivisor value 333
+setoption name LmrHistoryDivisor value 5643
+setoption name NullMoveBase value 5
+setoption name LmpBase value 8
+setoption name HistoryPruneMultiplier value 2220
+setoption name HistoryBonusQuadratic value 24
+setoption name HistoryBonusLinear value 54
+setoption name HistoryBonusMax value 2212
+setoption name SingularDepth value 6
+setoption name IirDepth value 2
+setoption name NonPawnCorrection value true
+setoption name AspCappedReopen value true
+failed=engine exited 1; last=[]
+nm_asan_symbols=35
+nm_command=nm -C <exe> | grep -c __asan_
+sanitizer_lines=1
+sanitizer_line=/tmp/canary-engine/src/uci.cpp:47:26: runtime error: load of address 0x5020000000d0 with insufficient space for an object of type 'int'

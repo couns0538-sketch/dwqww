@@ -1,0 +1,29 @@
+EXISTS: forge-combo29/src/search.cpp:2128
+The plain engine already does S23. AspCappedReopen (default false) is a UCI
+check. On a root fail it calls capped_fail_low / capped_fail_high. A mate
+score, or a score at or past 640 centipawns, opens that side to the win or
+loss bound. Any other fail places the bound 13 centipawns past the score
+that failed, and does not move the other bound except for the midpoint
+assignment that was already there. Those two numbers were constexpr, not
+options. The patch makes them spins:
+  AspCappedReopen_Margin default 13, min 1, max 1000
+  AspCappedReopen_Decisive default 640, min 1, max 10000
+Min 1 keeps the failed score strictly inside the new window. A margin of 0
+would make the re-search stop at once, which is not today's behaviour.
+The check stays named AspCappedReopen. Adding a second check named IdeaS23
+would be a different switch from the one the engine already has.
+
+Switch off in the proofs sends AspCappedReopen=false after S14. The spins
+are left at their defaults, so the on-path is today's on-path.
+
+R positions, for a later match: python-chess, random.Random(5901). Each
+move is a uniform legal move. A game that ends before ply 80 is dropped
+with none of its positions kept. A game that reaches ply 80 without ending
+contributes the positions at plies 8, 15, 22, 29, 36, 43, 50, 57, 64, 71
+and 78. Stop at 300 positions.
+
+Sanitizer runs set ASAN_OPTIONS=detect_leaks=0 so a hash table left allocated
+at quit is not the result. The canary is a separate build, not part of
+idea.patch.txt. On the FEN 4k3/8/8/8/8/8/8/4K3 w - - 0 1 it reads past a
+four-int heap array. The same search_set.py runner is used for that build
+and for the first 100 positions of G at depth 10.

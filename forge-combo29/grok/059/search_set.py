@@ -6,6 +6,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 S14 = [
@@ -62,11 +63,17 @@ class Engine:
 
     def read_until(self, prefixes: tuple[str, ...], timeout: float) -> list[str]:
         got: list[str] = []
+        deadline = time.monotonic() + timeout
         while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(f"no {prefixes} within {timeout}s; last={got[-3:]}")
             try:
-                line = self.lines.get(timeout=timeout)
-            except queue.Empty as exc:
-                raise TimeoutError(f"no {prefixes} within {timeout}s; last={got[-3:]}") from exc
+                line = self.lines.get(timeout=min(0.2, remaining))
+            except queue.Empty:
+                if self.proc.poll() is not None:
+                    raise RuntimeError(f"engine exited {self.proc.returncode}; last={got[-3:]}")
+                continue
             got.append(line)
             for bad in BAD:
                 if bad in line:
