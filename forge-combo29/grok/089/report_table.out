@@ -1,0 +1,71 @@
+HONESTY_B
+exe=/agent/repos/base/forge-combo29/build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=Chess Engine Forge 6.4.24 candidate
+bench11 rc=0 info string bench depth 11 nodes 312866 time 166 nps 1884734
+bench13 rc=0 info string bench depth 13 nodes 862329 time 441 nps 1955394
+bench16 rc=0 info string bench depth 16 nodes 3024920 time 1531 nps 1975780
+perft5 rc=0 nodes 4865609
+HONESTY_P
+exe=/agent/repos/work/forge-combo29/build/forge
+sha256=2c123f4fda40c4b0619bd5497a90d0dd1dca5aa7c9a2dcbc21a58214f2d73c0e
+id_name=Chess Engine Forge 6.4.24 candidate
+bench11 rc=0 info string bench depth 11 nodes 312866 time 179 nps 1747854
+bench13 rc=0 info string bench depth 13 nodes 862329 time 465 nps 1854470
+bench16 rc=0 info string bench depth 16 nodes 3024920 time 1557 nps 1942787
+perft5 rc=0 nodes 4865609
+HONESTY_PARTNER
+exe=/agent/repos/partner/forge-combo29/build/forge
+sha256=1488adfe2c46619f6c806d1a205efa31402aae31daed8a67f7430f1fa038442f
+id_name=Chess Engine Forge 6.4.24 candidate
+bench11 rc=0 info string bench depth 11 nodes 312866 time 196 nps 1596255
+bench13 rc=0 info string bench depth 13 nodes 862329 time 474 nps 1819259
+bench16 rc=0 info string bench depth 16 nodes 3024920 time 1671 nps 1810245
+perft5 rc=0 nodes 4865609
+PROOFS
+off_O n=200 a_sum=9500069 b_sum=9500069 differ=0
+off_G n=353 a_sum=18466239 b_sum=18466239 differ=0
+on_O n=200 a_sum=9500069 b_sum=9779075 differ=200
+partner_off_O n=200 a_sum=9500069 b_sum=9500069 differ=0
+partner_on_vs_B n=200 a_sum=9500069 b_sum=9328352 differ=200
+measured=forge-combo29/grok/089/partner_on_O_d12.txt claimed=forge-combo29/grok/089/partner039_on_O.nodes n=200 differ=0 measured_sum=9328352 claimed_sum=9328352
+UCI
+option name IdeaA8 type check default false
+option name IdeaA8_Captures type spin default 2 min 0 max 16
+ASAN
+nm_asan_count=35
+g100_stderr_bytes=0
+g100_stderr_empty=True
+scratch_has_heap_buffer_overflow=True
+scratch_stderr_bytes=5091
+MATCH
+finished_game_lines=1106
+Results of IdeaA8on vs IdeaA8off (20000 nodes, 1t, 16MB, openings_OG.epd):
+Elo: -12.26 +/- 10.17, nElo: -24.69 +/- 20.48
+LOS: 0.90 %, DrawRatio: 64.38 %, PairsRatio: 0.71
+Games: 1106, Wins: 327, Losses: 366, Draws: 413, Points: 533.5 (48.24 %)
+Ptnml(0-2): [16, 99, 356, 72, 10], WL/DD Ratio: 1.94
+--------------------------------------------------
+PARTNER_MATCH
+finished_game_lines=600
+Results of on vs off (20000 nodes, 1t, 16MB, set_R.epd):
+Elo: -0.00 +/- 12.33, nElo: 0.00 +/- 27.80
+LOS: 50.00 %, DrawRatio: 71.67 %, PairsRatio: 1.02
+Games: 600, Wins: 245, Losses: 245, Draws: 110, Points: 300.0 (50.00 %)
+Ptnml(0-2): [6, 36, 215, 38, 5], WL/DD Ratio: 10.94
+--------------------------------------------------
+TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat 089 idea 39
+2 honesty B | done | HONESTY_B.txt | info string bench depth 11 nodes 312866 time 166 nps 1884734 ; nodes 4865609
+2 base O G | done | B_O_sum.txt | file=B_O_d12.txt n=200 sum=9500069 first3=41311/24872/28574 ; file=B_G_d12.txt n=353 sum=18466239 first3=37203/70845/144383
+3 prediction | done | prediction.txt | committed before measuring P
+3 patch applies | done | idea.patch.txt | git apply --check on the seat tree returned 0 before this report
+3 proof off | done | proof_off_O.txt | a=B_O_d12.txt sum=9500069 b=P_off_O_d12.txt sum=9500069 n=200 differ=0 ; a=B_G_d12.txt sum=18466239 b=P_off_G_d12.txt sum=18466239 n=353 differ=0
+3 proof on | done | proof_on_O.txt | a=B_O_d12.txt sum=9500069 b=P_on_O_d12.txt sum=9779075 n=200 differ=200
+3 uci options | done | uci_P.txt | IdeaA8 check false, IdeaA8_Captures spin 2
+3 sanitizer | done | asan_summary.txt | nm_asan_count=35 | g100_stderr_bytes=0 | g100_stderr_empty=True | scratch_has_heap_buffer_overflow=True | scratch_stderr_bytes=5091
+3 match | done | match_summary.txt | 1106 games, see match_summary.txt
+4 partner | done | partner_on_vs_claim.txt | a=B_O_d12.txt sum=9500069 b=partner_off_O_d12.txt sum=9500069 n=200 differ=0 ; measured=forge-combo29/grok/089/partner_on_O_d12.txt claimed=forge-combo29/grok/089/partner039_on_O.nodes n=200 differ=0 measured_sum=9328352 claimed_sum=9328352
+4 partner match | done | partner_match_summary.txt | 600 games
+5 report | done | REPORT.md | this file
