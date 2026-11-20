@@ -86,30 +86,67 @@ def main():
         bufsize=1,
     )
     lines = queue.Queue()
+    err_lines = queue.Queue()
 
-    def pump(stream):
+    def pump(stream, dest):
         for line in stream:
-            lines.put(line)
-        lines.put(None)
+            dest.put(line)
+        dest.put(None)
 
-    threading.Thread(target=pump, args=(proc.stdout,), daemon=True).start()
+    threading.Thread(target=pump, args=(proc.stdout, lines), daemon=True).start()
+    threading.Thread(target=pump, args=(proc.stderr, err_lines), daemon=True).start()
     err_box = []
 
-    def pump_err():
-        err_box.extend(proc.stderr.readlines())
-
-    threading.Thread(target=pump_err, daemon=True).start()
+    def drain_err(wait_close=False, timeout=3.0):
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                line = err_lines.get(timeout=0.1)
+            except queue.Empty:
+                if not wait_close or time.monotonic() >= deadline:
+                    return
+                continue
+            if line is None:
+                return
+            err_box.append(line)
 
     engine_out = []
     sent = []
 
-    def fail(message):
+    def write_outputs():
         out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text("".join(engine_out))
         Path(str(out_path) + ".err").write_text("".join(err_box))
         Path(str(out_path) + ".sent").write_text("\n".join(sent) + "\n")
+        nm_cmd = f"nm -C {exe} | grep -c __asan_"
+        nm = subprocess.run(nm_cmd, shell=True, capture_output=True, text=True, check=False)
+        asan_count = nm.stdout.strip() or "0"
+        meta = (
+            f"exe {exe}\n"
+            f"sha256 {sha}\n"
+            f"id name {id_name}\n"
+            f"depth {args.depth}\n"
+            f"positions {args.positions}\n"
+            f"count {len(positions)}\n"
+            f"{nm_cmd}\n"
+            f"{asan_count}\n"
+            "options\n"
+            + "\n".join(option_lines)
+            + "\n"
+        )
+        Path(str(out_path) + ".meta").write_text(meta)
+
+    def fail(message):
+        if proc.poll() is None:
+            proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+        drain_err(wait_close=True, timeout=3)
+        write_outputs()
         print(message, file=sys.stderr)
-        proc.kill()
         sys.exit(1)
 
     def send(line):
@@ -122,6 +159,7 @@ def main():
     def read_until(predicate, timeout):
         deadline = time.monotonic() + timeout
         while True:
+            drain_err()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 fail("timeout waiting for engine")
@@ -159,25 +197,10 @@ def main():
         proc.wait(timeout=30)
     except subprocess.TimeoutExpired:
         proc.kill()
-
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text("".join(engine_out))
-    Path(str(out_path) + ".err").write_text("".join(err_box))
-    Path(str(out_path) + ".sent").write_text("\n".join(sent) + "\n")
-    meta = (
-        f"exe {exe}\n"
-        f"sha256 {sha}\n"
-        f"id name {id_name}\n"
-        f"depth {args.depth}\n"
-        f"positions {args.positions}\n"
-        f"count {len(positions)}\n"
-        "options\n"
-        + "\n".join(option_lines)
-        + "\n"
-    )
-    Path(str(out_path) + ".meta").write_text(meta)
-    print(f"wrote {out_path}", flush=True)
+        proc.wait(timeout=5)
+    drain_err(wait_close=True, timeout=3)
+    write_outputs()
+    print(f"wrote {args.out}", flush=True)
 
 
 if __name__ == "__main__":

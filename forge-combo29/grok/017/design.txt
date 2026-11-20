@@ -1,0 +1,33 @@
+Idea 17, IdeaS15, from engine-ideas/50-agents/IDEAS.md section S15.
+The plain engine does not do this. No file already skips a reduction for a rook that meets a passer.
+
+What was added
+Option IdeaS15, type check, default false.
+Option IdeaS15_MinPieces, type spin, default 8, minimum 2, maximum 32.
+With IdeaS15 false the predicate is not called and the reduction is left as it was.
+
+When IdeaS15 is true, a rook move that is about to be reduced is searched at full depth
+(the reduction is set to 0) when all of the following hold. Nothing is added to the
+extension and nothing is added to the evaluation.
+
+- The moving piece is a rook.
+- The position is a rook ending: exactly one white rook, exactly one black rook, and
+  no queen, bishop, or knight.
+- The number of pieces on the board, kings included, is at least IdeaS15_MinPieces.
+- The move's destination file is the file of a passed pawn. A pawn is passed when no
+  enemy pawn stands on its file or the adjacent files in front of it, and no friendly
+  pawn stands on its file in front of it. Either colour's passer counts.
+- The rook needs 0 moves to be on that file when it already is, and 1 move otherwise.
+  The pawn's next step costs 1 move when the square in front is empty and 2 when it
+  is occupied. The rook move qualifies only when its cost is no greater than the
+  pawn's. With those two costs the comparison holds for every rook move that lands
+  on the file; the piece count and the rook-ending test are what actually select.
+
+The reduction is cleared only when it is still positive, so a move that was already
+at full depth is not made shallower and is not extended.
+
+Why the 200 openings did not change at depth 12
+The gate is a rook ending. A depth-12 search from those opening positions never
+changed a node count. The same binary, on the rook ending in probe_rook.fen, does
+change the count: depth 12 is 136029 with the switch off and 127559 with it on.
+The code runs. It does not run inside those 200 depth-12 trees.
