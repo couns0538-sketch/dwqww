@@ -1,0 +1,21 @@
+Idea S22, option IdeaS22 (check, default false), spin IdeaS22_Ply (default 1, min 0, max 16).
+
+IDEAS.md S22: refuse the shallow proof for one ply after a capture or a check,
+including when the side to move is no longer in check. Leave the margin unchanged.
+
+The shallow proof in this engine is ProbCut in src/search.cpp (the block that
+searches a good capture at depth - 4). Nothing there already skips it because
+the previous move was a capture or the previous node was in check. In-check
+nodes already skip the whole pruning block, so a cooldown that only looked at
+the current check would not change a single node.
+
+Decision: when IdeaS22 is on, skip ProbCut if any of the last IdeaS22_Ply
+ancestor frames was in check or stored a capture as current_move. The walk is
+capped by ply, so it never reads the sentinel under the root. Default ply 1
+is the move that entered this node (a capture) or the parent node (it was in
+check, and this quiet reply is no longer in check). The bool is tested before
+the walk. The probcut margin is not touched. Null moves are not captures and
+are not checks, so they do not start the cooldown.
+
+Why this and not "skip only while in check": that path already exists, and the
+idea explicitly includes the node that is no longer in check.
