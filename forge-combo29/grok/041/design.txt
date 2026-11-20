@@ -1,0 +1,20 @@
+IdeaK2, seat 041. A low-ply quiet history for ordering.
+
+The plain engine does not have this. ThreatHistory is a different table (cheaper-attacker buckets) and stays off.
+
+What was added
+- UCI check IdeaK2, default false.
+- UCI spin IdeaK2_Plies, default 4, min 1, max 8.
+- LowPlyHistory: side, ply slot 0..7, from square, to square, int16.
+- While IdeaK2 is on and the node ply is in 0 .. IdeaK2_Plies-1, the quiet-move ordering score adds that ply's from-to entry. Root ply is 0 (stack_[4].ply).
+- The same quiet bonus and malus the main history already uses is written into that ply's entry, including the quarter bonus on a new principal-variation quiet.
+- quiet_history() is not changed, so late-move reduction and history pruning do not read this table. The idea is ordering only.
+
+Why a separate table per ply
+The first four plies do different jobs. One shared from-to table would mix the root move with the reply. Eight slots exist so the spin can be raised without a new build; the reader refuses a ply index outside the array.
+
+Why the off path keeps today's nodes
+low_ply_bonus returns 0 before it touches the table when IdeaK2 is false, and update_low_ply returns immediately. The added term is zero, so move scores stay the scores the plain engine computed. The table is still allocated and cleared. That does not change which moves are searched.
+
+Match
+Both sides are exe P. k2on sets IdeaK2 true and IdeaK2_Plies 4. k2off sets both the other way. Both get S14, Threads 1, Hash 16, and OwnBook false. OwnBook false is extra: go nodes is not a clock search, and the book is only consulted on clock or movetime searches, but both sides are set the same so a book hit cannot favour one side. Depth proofs did not send OwnBook.
