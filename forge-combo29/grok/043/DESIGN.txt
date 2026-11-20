@@ -1,0 +1,9 @@
+Idea 43, IdeaK4. The plain engine does not do this. Reverse futility is search.cpp, the block commented "Reverse futility pruning": a non-PV node returns its eval when eval minus (RfpMargin * depth - RfpImproving * improving) is at least beta, depth is at most RfpDepth, and the eval is not a mate score. improving is our own static eval being higher than two plies ago.
+
+What I add, off by default:
+- option IdeaK4, type check, default false
+- option IdeaK4_Shrink, type spin, default 32, min 0, max 200
+
+When IdeaK4 is true and the parent static eval and the static eval two plies before the parent are both real numbers (not the in-check sentinel) and the parent eval is strictly lower, the reverse-futility margin is reduced by IdeaK4_Shrink. Those two plies are the opponent to move both times, so the comparison is the opponent's static eval getting worse. A check leaves static_eval unset, so a check does not count as worsening. The margin is not floored and is not scaled by depth. 32 was chosen because RfpImproving is 40: one smaller step, enough to move some pruning decisions, not a new margin.
+
+When IdeaK4 is false the margin is still RfpMargin * depth - RfpImproving * improving and those parent evals are not read. The search path is the one the engine has today.
