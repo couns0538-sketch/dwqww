@@ -1,0 +1,128 @@
+HONESTY_B
+exe=/agent/repos/base/forge-combo29/build/forge
+sha256=e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id_name=Chess Engine Forge 6.4.24 candidate
+bench 11 nodes 312866 expected 312866 ok
+bench 13 nodes 862329 expected 862329 ok
+bench 16 nodes 3024920 expected 3024920 ok
+go perft 5 nodes 4865609 expected 4865609 ok
+PASS
+HONESTY_P
+exe=/agent/repos/work/forge-combo29/build/forge
+sha256=ae8e1d1b45dfc603943304eed224a768516f610c648a62c984659565b19d77a5
+id_name=Chess Engine Forge 6.4.24 candidate
+bench 11 nodes 312866 expected 312866 ok
+bench 13 nodes 862329 expected 862329 ok
+bench 16 nodes 3024920 expected 3024920 ok
+go perft 5 nodes 4865609 expected 4865609 ok
+PASS
+HONESTY_PARTNER
+exe=/agent/repos/partner/forge-combo29/build/forge
+sha256=aeeb1198f5b147f0674d9c76387e5b7d2e7b8376da8b5374078dd5fde46358e8
+id_name=Chess Engine Forge 6.4.24 candidate
+bench 11 nodes 312866 expected 312866 ok
+bench 13 nodes 862329 expected 862329 ok
+bench 16 nodes 3024920 expected 3024920 ok
+go perft 5 nodes 4865609 expected 4865609 ok
+PASS
+NODES
+B_O.nodes first 1 41311 2 24872 3 28574 sum 9500069 count 200
+B_G.nodes first 1 37203 2 70845 3 144383 sum 18466239 count 353
+P_off_O.nodes first 1 41311 2 24872 3 28574 sum 9500069 count 200
+P_off_G.nodes first 1 37203 2 70845 3 144383 sum 18466239 count 353
+P_on_O.nodes first 1 21210 2 24516 3 34920 sum 9449926 count 200
+partner_off_O.nodes first 1 41311 2 24872 3 28574 sum 9500069 count 200
+partner_on_O.nodes first 1 21210 2 24516 3 34920 sum 9449926 count 200
+COMPARE
+-- proof_off_O.txt
+positions 200
+differ 0
+same 200
+-- proof_off_G.txt
+positions 353
+differ 0
+same 353
+-- proof_on_O.txt
+positions 200
+differ 150
+same 50
+example 1 41311 21210
+example 2 24872 24516
+example 3 28574 34920
+example 4 27838 32684
+example 6 43043 39170
+-- partner_off_vs_B.txt
+positions 200
+differ 0
+same 200
+-- partner_on_vs_B.txt
+positions 200
+differ 150
+same 50
+example 1 41311 21210
+example 2 24872 24516
+example 3 28574 34920
+example 4 27838 32684
+example 6 43043 39170
+-- partner_on_vs_theirs.txt
+mine 200 partner 200
+differ 0
+same 200
+UCI
+option name AspCappedReopen type check default false
+option name AspCappedReopen_Margin type spin default 13 min 1 max 1000
+option name AspCappedReopen_Decisive type spin default 640 min 1 max 10000
+ASAN_G100
+exe=/agent/repos/work/forge-combo29/build-asan/forge
+failed=None
+nm_asan_symbols=35
+sanitizer_lines=0
+ASAN_CANARY
+exe=/tmp/canary-engine/build-asan/forge
+failed=engine exited 1; last=[]
+nm_asan_symbols=35
+sanitizer_lines=1
+sanitizer_line=/tmp/canary-engine/src/uci.cpp:47:26: runtime error: load of address 0x5020000000d0 with insufficient space for an object of type 'int'
+MATCH
+Results of on vs off (20000 nodes, 1t, 16MB, match_openings.epd):
+Elo: -7.23 +/- 10.57, nElo: -14.01 +/- 20.48
+LOS: 8.99 %, DrawRatio: 62.93 %, PairsRatio: 0.83
+Games: 1106, Wins: 329, Losses: 352, Draws: 425, Points: 541.5 (48.96 %)
+Ptnml(0-2): [17, 95, 348, 80, 13], WL/DD Ratio: 1.78
+--------------------------------------------------
+Finished match
+finished_games 1106
+pgn_events 1106
+rounds 553 games 2 concurrency 3
+engine on nodes 20000 [['AspCappedReopen', 'true'], ['Threads', '1'], ['Hash', '16'], ['NonPawnCorrection', 'true']]
+engine off nodes 20000 [['AspCappedReopen', 'false'], ['Threads', '1'], ['Hash', '16'], ['NonPawnCorrection', 'true']]
+PARTNER_MATCH
+Results of on vs off (20000 nodes, 1t, 16MB, R300.epd):
+Elo: -11.01 +/- 9.63, nElo: -31.81 +/- 27.80
+LOS: 1.25 %, DrawRatio: 83.67 %, PairsRatio: 0.58
+Games: 600, Wins: 261, Losses: 280, Draws: 59, Points: 290.5 (48.42 %)
+Ptnml(0-2): [7, 24, 251, 17, 1], WL/DD Ratio: 26.89
+--------------------------------------------------
+Finished match
+finished_games 600
+pgn_events 600
+rounds 300 games 2 concurrency 3
+engine on nodes 20000 [['AspCappedReopen', 'true'], ['Threads', '1'], ['Hash', '16'], ['NonPawnCorrection', 'true']]
+engine off nodes 20000 [['AspCappedReopen', 'false'], ['Threads', '1'], ['Hash', '16'], ['NonPawnCorrection', 'true']]
+APPLY
+git apply --check: ok
+git apply --check: ok
+TABLE
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt stamps.txt | seat 059, idea 9, model Grok 4.7, 2026-11-20T07:54:21Z, token 82131824422593
+STEP 2 honesty B | done | HONESTY_B.txt | PASS
+STEP 2 O and G | done | B_O.nodes B_G.nodes | O 9500069 G 18466239
+STEP 3 prediction | done | prediction.txt | committed before any P measurement
+STEP 3 patch | done | idea.patch.txt apply_check.txt | git apply --check: ok
+proof 1 honesty P | done | HONESTY_P.txt | PASS
+proof 2 switch off | done | proof_off_O.txt proof_off_G.txt | O differ 0 G differ 0
+proof 3 switch on | done | proof_on_O.txt P_on_O.nodes | differ 150 of 200 sum 9449926
+proof 4 uci | done | P_uci.txt | option name AspCappedReopen type check default false option name AspCappedReopen_Margin type spin default 13 min 1 max 1000 option name AspCappedReopen_Decisive type spin default 640 min 1 max 10000
+proof 5 sanitizer | done | P_asan_G100.meta P_asan_canary.meta | nm 35 lines 0 canary 1
+STEP 3 match | done | match_summary.txt | Games: 1106 Elo: -7.23 +/- 10.57, nElo: -14.01 +/- 20.48
+STEP 4 partner | done | partner_on_vs_theirs.txt partner_R_summary.txt | their rows differ 0 Games: 600 Elo: -11.01 +/- 9.63, nElo: -31.81 +/- 27.80
