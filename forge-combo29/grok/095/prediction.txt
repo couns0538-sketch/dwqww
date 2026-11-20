@@ -1,0 +1,14 @@
+IdeaK6 on, S14, Threads 1, Hash 16, built-in net.
+
+O depth 12 node sum: 9100000
+Wrong if the measured sum is below 8000000 or above 10500000.
+
+Test match Elo, IdeaK6 on versus IdeaK6 off, 1106 games, 20000 nodes: +4
+Wrong if the measured Elo point is below -30 or above +45.
+
+Why: the plain engine already adds 12000 to a direct check, and quiet history can
+reach about +/-16384 per table, so a non-checking quiet can still be ordered
+first. Forcing every quiet that gives check (direct or discovered) ahead of the
+other quiets should produce earlier cutoffs on some positions and a small node
+drop, not a different engine. The Elo gain should be small because direct checks
+are already near the front of the quiet list.
