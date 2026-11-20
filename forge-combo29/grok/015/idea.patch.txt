@@ -1,0 +1,216 @@
+diff --git a/forge-combo29/include/forge/board.hpp b/forge-combo29/include/forge/board.hpp
+index 1c7a2b5ef..c73e749fc 100644
+--- a/forge-combo29/include/forge/board.hpp
++++ b/forge-combo29/include/forge/board.hpp
+@@ -211,6 +211,9 @@ public:
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+     void unmake_null_move(const NullUndo& undo);
++    // Drop the piece on square. IdeaS6 calls this on a copy of the board so the
++    // network evaluation of the position without that piece can be read.
++    void lift_piece_for_probe(int square);
+ 
+     [[nodiscard]] bool square_attacked(int square, Color by) const;
+     [[nodiscard]] Bitboard attackers_to(int square, Bitboard occupancy) const;
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..bb01acfbc 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -297,6 +297,8 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern bool IdeaS6;                  // no late-move reduction on quiet moves of the root idle piece (false = off)
++extern int IdeaS6_Margin;            // centipawns a captures-and-checks reply may gain before the root is tactical
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+@@ -409,6 +411,9 @@ struct SearchStack {
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    // Square of the piece IdeaS6 chose at the root, tracked as that piece moves.
++    // -1 when the option is off or the root was not quiet. Read only when IdeaS6 is on.
++    int idle_square = -1;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/board.cpp b/forge-combo29/src/board.cpp
+index b3a80138f..5b04c1bb5 100644
+--- a/forge-combo29/src/board.cpp
++++ b/forge-combo29/src/board.cpp
+@@ -199,6 +199,14 @@ void Board::remove_piece(int square) {
+     squares_[static_cast<std::size_t>(square)] = Empty;
+ }
+ 
++void Board::lift_piece_for_probe(int square) {
++    remove_piece(square);
++#if FORGE_SPD_KING_LINES
++    king_lines_.valid = false;
++#endif
++    checkers_ = compute_checkers();
++}
++
+ void Board::move_piece(int from, int to) {
+     const Piece piece = squares_[static_cast<std::size_t>(from)];
+     const Bitboard bits = square_bb(from) | square_bb(to);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3283a34e2 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -97,6 +97,8 @@ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++bool IdeaS6 = false;
++int IdeaS6_Margin = 80;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS6_Margin", &IdeaS6_Margin, 0, 1000},
+     };
+     return table;
+ }
+@@ -1545,6 +1548,66 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     return best_score;
+ }
+ 
++// ---------------------------------------------------------------------------
++// IdeaS6. At a quiet root, the friendly non-king piece whose removal changes
++// the network evaluation the least is idle. Quiet non-captures of that piece
++// are not late-move reduced. The piece is chosen once; its square is tracked
++// as it moves. Nothing here runs unless the option is on.
++
++namespace {
++
++[[nodiscard]] int probe_network_eval(const Board& board) {
++    return Evaluator::static_eval_components(board).total;
++}
++
++// -1 when the root is not quiet, or when the side to move has no non-king piece.
++// Quiet: not in check, and no legal capture, promotion, or check gains more than
++// IdeaS6_Margin centipawns over the static evaluation (S5's shallow agreement).
++[[nodiscard]] int choose_idle_square(const Board& board) {
++    if (board.in_check()) return -1;
++    const int quiet_eval = probe_network_eval(board);
++    int best_tactical = quiet_eval;
++    const MoveList legal = board.legal_moves();
++    for (const Move move : legal) {
++        if (!move.is_capture() && !move.is_promotion() && !board.gives_check(move)) continue;
++        Board child = board;
++        Undo undo;
++        if (!child.make_move(move, undo)) continue;
++        const int score = -probe_network_eval(child);
++        if (score > best_tactical) best_tactical = score;
++    }
++    if (best_tactical - quiet_eval > tune::IdeaS6_Margin) return -1;
++    int best_square = -1;
++    int least = std::numeric_limits<int>::max();
++    const Color us = board.side_to_move();
++    for (int square = 0; square < 64; ++square) {
++        const Piece piece = board.piece_at(square);
++        if (piece == Empty || color_of(piece) != us || piece_type(piece) == King) continue;
++        Board dropped = board;
++        dropped.lift_piece_for_probe(square);
++        const int score = probe_network_eval(dropped);
++        const int change = score > quiet_eval ? score - quiet_eval : quiet_eval - score;
++        if (change < least) {
++            least = change;
++            best_square = square;
++        }
++    }
++    return best_square;
++}
++
++void relay_idle_square(SearchStack* child, const SearchStack* parent, Move move, bool null_move) {
++    if (!tune::IdeaS6) return;
++    if (null_move || parent->idle_square < 0) {
++        child->idle_square = parent->idle_square;
++        return;
++    }
++    if (static_cast<int>(move.from) == parent->idle_square) child->idle_square = static_cast<int>(move.to);
++    else if (move.is_capture() && static_cast<int>(move.to) == parent->idle_square) child->idle_square = -1;
++    else child->idle_square = parent->idle_square;
++}
++
++} // namespace
++
+ // ---------------------------------------------------------------------------
+ // Main alpha-beta search
+ 
+@@ -1711,6 +1774,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
++            relay_idle_square(ss + 1, ss, Move::none(), true);
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1759,6 +1823,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++                relay_idle_square(ss + 1, ss, move, false);
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
+@@ -1972,6 +2037,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++        relay_idle_square(ss + 1, ss, move, false);
+ #if FORGE_SPD_PREFETCH_EARLY
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+@@ -2008,6 +2074,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            // Quiet non-capture of the idle piece: do not apply the usual reduction.
++            // The option is read first, so this square is ignored when IdeaS6 is off.
++            if (tune::IdeaS6 && quiet && ss->idle_square >= 0 && static_cast<int>(move.from) == ss->idle_square) r = 0;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+@@ -2338,6 +2407,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
++        ss.idle_square = -1;
+         ss.null_move_allowed = true;
+         ss.arrival_index = 0;
+         ss.killers = {};
+@@ -2361,6 +2431,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         nnue::refresh(board, ss->accumulator);
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
++    if (tune::IdeaS6) ss->idle_square = choose_idle_square(board);
+ 
+     Move previous_best = Move::none();
+     int stable_iterations = 0;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..562a65bbd 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -221,6 +221,7 @@ int uci_loop(std::istream& in) {
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
++                         "option name IdeaS6 type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+@@ -459,6 +460,9 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "IdeaS6") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS6 = value_text == "true";
++                else note_invalid();
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {

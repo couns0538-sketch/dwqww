@@ -1,0 +1,32 @@
+Seat 015, idea 15, IdeaS6, id S6.
+
+The one-line list says "more reduction for a move of a piece that has been idle".
+The full text in engine-ideas/50-agents/IDEAS.md (S6. Idle-piece reduction) says the
+opposite action: do not apply the usual late-move reduction to quiet non-capturing
+moves of the piece whose removal changes the evaluation the least. The full text
+is what was built.
+
+What was built
+- UCI check IdeaS6, default false.
+- UCI spin IdeaS6_Margin, default 80, range 0..1000. Centipawns.
+- When IdeaS6 is false the new code does not evaluate, does not choose a piece,
+  and does not change a reduction. The square is only read inside `if (tune::IdeaS6 ...)`.
+- When IdeaS6 is true, once per root, before iterative deepening:
+  the root is quiet when it is not in check and no legal capture, promotion, or
+  check gains more than IdeaS6_Margin over the static evaluation. That is the S5
+  gate (a one-ply search of captures and checks agrees with the quiet evaluation).
+  The probe uses Evaluator::static_eval_components, which does not write the hash,
+  history, or pawn cache, and does not increment the node counter.
+  Among friendly non-king pieces, the idle piece is the one whose removal changes
+  that evaluation the least. Ties keep the lowest square.
+- That piece's square is stored on the search stack and updated when the piece
+  moves or is captured. Quiet non-captures of that piece get reduction 0.
+- The piece is chosen once per root search and the exemption applies at every
+  depth of that search. Probing every node would repeat a network evaluation for
+  every friendly piece at every node; the idea names that time cost as a risk.
+  "For one iteration" is read as one probe per position, not one probe per node.
+
+EXISTS: no. Nothing in the plain engine skips late-move reduction for an idle piece.
+
+Margin 80: a pawn is 100, so a capture or check that wins a pawn is not a quiet
+position, and a smaller swing still counts as quiet.
