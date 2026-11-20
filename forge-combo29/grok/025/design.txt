@@ -1,0 +1,20 @@
+Idea S33, option IdeaS33 (check, default false).
+
+The stock null reduction is
+  NullMoveBase + depth / NullMoveDepthDivisor + min((eval - beta) / NullMoveEvalDivisor, 3).
+The last term adds up to 3 plies when the margin is large.
+
+With the switch on, that term is replaced. The static margin is
+max(0, static_eval - beta). Extra plies are
+max(0, IdeaS33_Max - margin / IdeaS33_Divisor).
+Defaults: Max 3, Divisor 80, so a margin of 0 adds 3 plies and a margin of 240 centipawns or more adds none. The base and the depth term stay.
+
+If that probe still reaches beta, it is a cutoff with no verification search, including at depth 14 and above. If it misses beta by at most IdeaS33_Near centipawns (default 40) and the score is not a mate score, the real-move search of this node is one ply deeper, applied after internal iterative reduction. A larger miss does nothing extra. NullThreatVerify's second search is not used while IdeaS33 is on.
+
+With the switch off, the reduction expression and the verification branch are the original ones. The near-miss flag stays false.
+
+Spins: IdeaS33_Max 3 (0..6), IdeaS33_Divisor 80 (1..1000), IdeaS33_Near 40 (0..500).
+
+The match sets OwnBook false. The book only applies to clock searches, and this match is nodes-only, but the option is sent so a book move cannot replace a search if a time field is also present.
+
+EXISTS: no. The engine already adds reduction when the margin is large, which is the opposite of this scale, and it still verifies null cutoffs from depth 14.
