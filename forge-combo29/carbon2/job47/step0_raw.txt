@@ -1,0 +1,147 @@
+=== JOB 47 STEP 0: r15d + v3, Bundle9, and Bundle10 (bundle9 + P10_on_bundle9.patch.txt) ===
+start_utc: Fri Nov 20 09:56:06 PM UTC 2026
+harness_policy: Every runner checks that every sent option is in the exe's uci list, keeps every line before readyok, and STOPS on unknown option, invalid value, illegal, invalid FEN, and ERROR.
+
+--- 1. r15d + v3 Source Tree & Plain Release Executable ---
+  src/search.cpp CRLF count                   : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/search.cpp): PASS (174e07a5211cb1d56ea47105c7d4b847bdf3cd8b1b6ef3d4473405654242abf4 == 174e07a5211cb1d56ea47105c7d4b847bdf3cd8b1b6ef3d4473405654242abf4)
+  src/uci.cpp CRLF count                      : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/uci.cpp): PASS (2c00871f131d1816cabd7011e5bc345902a501f839c08f307db5b0f09cf52013 == 2c00871f131d1816cabd7011e5bc345902a501f839c08f307db5b0f09cf52013)
+  src/board.cpp CRLF count                    : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/board.cpp): PASS (2da64b7d06f608a5351b7dd5e75d19582cd80a7153b0c1ae1ae6dc2e28b8f3cf == 2da64b7d06f608a5351b7dd5e75d19582cd80a7153b0c1ae1ae6dc2e28b8f3cf)
+  include/forge/board.hpp CRLF count          : PASS (0 == 0)
+  tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/include/forge/board.hpp): PASS (5fa32c92d35d1000fb1e111985469f4beb17dd11d9c23bab03fb39311a109d77 == 5fa32c92d35d1000fb1e111985469f4beb17dd11d9c23bab03fb39311a109d77)
+  plain r15d+v3 sha256(/tmp/carbon2_job44/bld_base_v3/forge): PASS (09d6fe1ea4dcbea333f297962dede9521a2a6ea49d5cc48b2f4f38ae8078f84c == 09d6fe1ea4dcbea333f297962dede9521a2a6ea49d5cc48b2f4f38ae8078f84c)
+  bld_base_v3 uci declares HindsightDepth (check=false): PASS (True == True)
+  bld_base_v3 HindsightDepth pre-readyok lines: PASS (0 == 0)
+[plain_r15d_v3] exe=/tmp/carbon2_job44/bld_base_v3/forge | sha256=09d6fe1ea4dcbea333f297962dede9521a2a6ea49d5cc48b2f4f38ae8078f84c | id name Chess Engine Forge 6.4.24 candidate
+  plain_r15d_v3 no-option bench 11            : PASS (312866 == 312866)
+  plain_r15d_v3 no-option bench 13            : PASS (862329 == 862329)
+  plain_r15d_v3 no-option perft 5             : PASS (4865609 == 4865609)
+  plain_r15d_v3 PC20 bench 11                 : PASS (278024 == 278024)
+  plain_r15d_v3 PC20 bench 13                 : PASS (587276 == 587276)
+  plain_r15d_v3 Set A line L records          : PASS (26741 == 26741)
+  plain_r15d_v3 Set A line L searches         : PASS (26867 == 26867)
+  plain_r15d_v3 Set A line L nodes            : PASS (107124743 == 107124743)
+  plain_r15d_v3 Set A line L sha256           : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  plain_r15d_v3 Set A pre-readyok lines       : PASS (0 == 0)
+  plain_r15d_v3 n[1..60] line L records       : PASS (8449 == 8449)
+  plain_r15d_v3 n[1..60] line L searches      : PASS (8482 == 8482)
+  plain_r15d_v3 n[1..60] line L nodes         : PASS (36688357 == 36688357)
+  plain_r15d_v3 n[1..60] line L sha256        : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  plain_r15d_v3 n[1..60] bad pre-readyok lines (kept=2): PASS (0 == 0)
+    kept_n60_pre_readyok: [selfgame_options] info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+    kept_n60_pre_readyok: [selfgame_options] info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  plain_r15d_v3 no-PC20 HindsightDepth=false bench 13: PASS (862329 == 862329)
+  plain_r15d_v3 no-PC20 HindsightDepth=true bench 13: PASS (840387 == 840387)
+
+--- 2. Bundle9 Verification & git apply --check of job45/P10_B8b_fast.patch.txt ---
+  bundle9 exe sha256(/tmp/carbon2_job44/bld_bundle9/forge): PASS (9441524dc1f2e669608f379ab990d80325cc447e4583162b6d51dd194cba45ef == 9441524dc1f2e669608f379ab990d80325cc447e4583162b6d51dd194cba45ef)
+  fresh_bundle9_source_apply                  : bundle_grok7 + P8_S13_hoist + P9_B8_fast git apply --check -p1 PASS (0 == 0)
+  git apply --check job45/P10_B8b_fast.patch.txt on bundle9: rc=1 (expected non-zero due to P9_B8_fast context; rebasing onto bundle9 as job47/P10_on_bundle9.patch.txt)
+  P10_on_bundle9.patch.txt CRLF count         : PASS (0 == 0)
+  git apply --check P10_on_bundle9 on bundle9 : PASS (0 == 0)
+  patch sha256(/agent/repos/dwqww/forge-combo29/carbon2/job47/P10_on_bundle9.patch.txt): b72e4c953571f708c016beba9e7dc164a63b5f1b849e5a4e2197a6c4e95b88fe
+# Context lines changed relative to job45/P10_B8b_fast.patch.txt (all due to job43/P9_B8_fast.patch.txt in bundle9):
+#   1. include/forge/search.hpp hunk 1: context above `extern bool IdeaB8b;` has `extern bool IdeaB8_Fast;` (line 316).
+#   2. include/forge/search.hpp hunk 2: line offset +15 (`@@ -704,6 +705,26 @@`) below `B8FastEntry`.
+#   3. src/search.cpp hunk 1: context above `bool IdeaB8b = false;` has `bool IdeaB8_Fast = false;` (line 176).
+#   4. src/search.cpp hunk 2-3 (`QuietScorer`): context around fields and constructor body includes `b8_fast_entry` / `b8_fast_scaled` / `prepare_b8_fast_scorer` (constructor `{ ... }` already opened by P9_B8_fast).
+#   5. src/search.cpp hunk 4 (`QuietScorer::score`): context above `if (tune::IdeaB8b)` is the multi-line `if (tune::IdeaB8)` fast block.
+#   6. src/search.cpp hunk 5 (`Worker::clear`): context above `*role_b8b_history_` has `for (auto& e : b8_fast_cache_) e.occ_w = ~0ULL;`.
+#   7. src/uci.cpp hunks 1-2: context above `IdeaB8b` option listing (line 762) and handler (lines 983-985) includes `IdeaB8_Fast`.
+
+--- 3. Build Bundle10 (/tmp/carbon2_job47/bld_bundle10/forge) & Verify Pins + Fast Paths ---
+  bundle10 exe path                           : /tmp/carbon2_job47/bld_bundle10/forge
+  bundle10 exe sha256(/tmp/carbon2_job47/bld_bundle10/forge): cb49d8824518cf392cf0763ac79e389febd3f6156f063145ef5cbe5cee6daee5
+  bundle10 id name                            : id name Chess Engine Forge 6.4.24 candidate
+  bld_bundle10 uci declares HindsightDepth (check=false): PASS (True == True)
+  bld_bundle10 HindsightDepth pre-readyok lines: PASS (0 == 0)
+  bld_bundle10 uci declares IdeaB8b (check=false): PASS (True == True)
+  bld_bundle10 IdeaB8b pre-readyok lines      : PASS (0 == 0)
+  bld_bundle10 uci declares IdeaB8b_Fast (check=false): PASS (True == True)
+  bld_bundle10 IdeaB8b_Fast pre-readyok lines : PASS (0 == 0)
+  bld_bundle10 uci declares IdeaB8 (check=false): PASS (True == True)
+  bld_bundle10 IdeaB8 pre-readyok lines       : PASS (0 == 0)
+  bld_bundle10 uci declares IdeaB8_Fast (check=false): PASS (True == True)
+  bld_bundle10 IdeaB8_Fast pre-readyok lines  : PASS (0 == 0)
+  bld_bundle10 uci declares IdeaS13 (check=false): PASS (True == True)
+  bld_bundle10 IdeaS13 pre-readyok lines      : PASS (0 == 0)
+  bld_bundle10 uci declares IdeaS13_Hoist (check=false): PASS (True == True)
+  bld_bundle10 IdeaS13_Hoist pre-readyok lines: PASS (0 == 0)
+  bld_bundle10 uci declares IdeaS10 (check=false): PASS (True == True)
+  bld_bundle10 IdeaS10 pre-readyok lines      : PASS (0 == 0)
+  bld_bundle10 uci declares IdeaK4 (check=false): PASS (True == True)
+  bld_bundle10 IdeaK4 pre-readyok lines       : PASS (0 == 0)
+[bundle10_default_off] exe=/tmp/carbon2_job47/bld_bundle10/forge | sha256=cb49d8824518cf392cf0763ac79e389febd3f6156f063145ef5cbe5cee6daee5 | id name Chess Engine Forge 6.4.24 candidate
+  bundle10_default_off no-option bench 11     : PASS (312866 == 312866)
+  bundle10_default_off no-option bench 13     : PASS (862329 == 862329)
+  bundle10_default_off no-option perft 5      : PASS (4865609 == 4865609)
+  bundle10_default_off PC20 bench 11          : PASS (278024 == 278024)
+  bundle10_default_off PC20 bench 13          : PASS (587276 == 587276)
+  bundle10_default_off Set A line L records   : PASS (26741 == 26741)
+  bundle10_default_off Set A line L searches  : PASS (26867 == 26867)
+  bundle10_default_off Set A line L nodes     : PASS (107124743 == 107124743)
+  bundle10_default_off Set A line L sha256    : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  bundle10_default_off Set A pre-readyok lines: PASS (0 == 0)
+  bundle10_default_off n[1..60] line L records: PASS (8449 == 8449)
+  bundle10_default_off n[1..60] line L searches: PASS (8482 == 8482)
+  bundle10_default_off n[1..60] line L nodes  : PASS (36688357 == 36688357)
+  bundle10_default_off n[1..60] line L sha256 : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  bundle10_default_off n[1..60] bad pre-readyok lines (kept=2): PASS (0 == 0)
+    kept_n60_pre_readyok: [selfgame_options] info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+    kept_n60_pre_readyok: [selfgame_options] info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+[bundle10_explicit_11_false] exe=/tmp/carbon2_job47/bld_bundle10/forge | sha256=cb49d8824518cf392cf0763ac79e389febd3f6156f063145ef5cbe5cee6daee5 | id name Chess Engine Forge 6.4.24 candidate
+  bundle10_explicit_11_false no-option bench 11: PASS (312866 == 312866)
+  bundle10_explicit_11_false no-option bench 13: PASS (862329 == 862329)
+  bundle10_explicit_11_false no-option perft 5: PASS (4865609 == 4865609)
+  bundle10_explicit_11_false PC20 bench 11    : PASS (278024 == 278024)
+  bundle10_explicit_11_false PC20 bench 13    : PASS (587276 == 587276)
+  bundle10_explicit_11_false Set A line L records: PASS (26741 == 26741)
+  bundle10_explicit_11_false Set A line L searches: PASS (26867 == 26867)
+  bundle10_explicit_11_false Set A line L nodes: PASS (107124743 == 107124743)
+  bundle10_explicit_11_false Set A line L sha256: PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  bundle10_explicit_11_false Set A pre-readyok lines: PASS (0 == 0)
+  bundle10_explicit_11_false n[1..60] line L records: PASS (8449 == 8449)
+  bundle10_explicit_11_false n[1..60] line L searches: PASS (8482 == 8482)
+  bundle10_explicit_11_false n[1..60] line L nodes: PASS (36688357 == 36688357)
+  bundle10_explicit_11_false n[1..60] line L sha256: PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  bundle10_explicit_11_false n[1..60] bad pre-readyok lines (kept=2): PASS (0 == 0)
+    kept_n60_pre_readyok: [selfgame_options] info string NNUE v3 loaded: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+    kept_n60_pre_readyok: [selfgame_options] info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  bundle9 no-PC20 HindsightDepth=false bench 13: PASS (862329 == 862329)
+  bundle9 no-PC20 HindsightDepth=true bench 13: PASS (840387 == 840387)
+  bundle10 no-PC20 HindsightDepth=false bench 13: PASS (862329 == 862329)
+  bundle10 no-PC20 HindsightDepth=true bench 13: PASS (840387 == 840387)
+
+--- 4. O and G Depth-12 Known-Answer Sweeps on Bundle9 and Bundle10 (PC20) ---
+  bundle9 OFF O d12 sum                       : PASS (8315168 == 8315168)
+  bundle9 OFF O d12 equal vs J39 OFF_O        : PASS (200 == 200)
+  bundle9 OFF G d12 sum                       : PASS (17611204 == 17611204)
+  bundle9 OFF G d12 equal vs J39 OFF_G        : PASS (353 == 353)
+  bundle9 IdeaB8b O d12 sum                   : PASS (8483711 == 8483711)
+  bundle9 IdeaB8b O d12 equal vs J41 P7_B8b   : PASS (200 == 200)
+  bundle9 IdeaS10 O d12 sum                   : PASS (8314153 == 8314153)
+  bundle9 IdeaS10 O d12 equal vs J41 P7_S10   : PASS (200 == 200)
+  bundle9 IdeaS10 vs OFF node diffs           : PASS (17 == 17)
+  bundle9 IdeaS10 vs OFF bestmove diffs       : PASS (2 == 2)
+  bundle9 IdeaS13 (no hoist) O d12 sum        : PASS (8077984 == 8077984)
+  bundle9 IdeaS13 O d12 equal vs J41 P7_S13   : PASS (200 == 200)
+  bundle9 IdeaS13 vs OFF node diffs           : PASS (200 == 200)
+  bundle10 OFF O d12 sum                      : PASS (8315168 == 8315168)
+  bundle10 OFF O d12 equal vs J39 OFF_O       : PASS (200 == 200)
+  bundle10 OFF G d12 sum                      : PASS (17611204 == 17611204)
+  bundle10 OFF G d12 equal vs J39 OFF_G       : PASS (353 == 353)
+  bundle10 B8b+B8b_Fast O sum                 : PASS (8483711 == 8483711)
+  bundle10 B8b+B8b_Fast equal to B8b alone    : PASS (200 == 200)
+  bundle10 B8b+B8b_Fast equal to J45 P10c     : PASS (200 == 200)
+  bundle10 B8+B8_Fast O sum                   : PASS (8262696 == 8262696)
+  bundle10 B8+B8_Fast equal to B8 alone       : PASS (200 == 200)
+  bundle10 B8+B8_Fast equal to J43 P9c        : PASS (200 == 200)
+
+--- 5. fastchess & UHO Book Prerequisites ---
+  book lines(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd): PASS (2632036 == 2632036)
+  book sha256(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd): PASS (7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a == 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a)
+
+  STEP 0 OVERALL                              : PASS (1 == 1)
+done_utc: Fri Nov 20 09:58:54 PM UTC 2026

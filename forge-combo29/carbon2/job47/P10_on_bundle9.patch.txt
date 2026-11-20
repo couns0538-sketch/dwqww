@@ -1,0 +1,374 @@
+# P10_on_bundle9.patch.txt — Rebase of job45/P10_B8b_fast.patch.txt onto bundle9 (context lines only)
+# Context lines changed relative to job45/P10_B8b_fast.patch.txt (all due to job43/P9_B8_fast.patch.txt in bundle9):
+#   1. include/forge/search.hpp hunk 1: context above `extern bool IdeaB8b;` has `extern bool IdeaB8_Fast;` (line 316).
+#   2. include/forge/search.hpp hunk 2: line offset +15 (`@@ -704,6 +705,26 @@`) below `B8FastEntry`.
+#   3. src/search.cpp hunk 1: context above `bool IdeaB8b = false;` has `bool IdeaB8_Fast = false;` (line 176).
+#   4. src/search.cpp hunk 2-3 (`QuietScorer`): context around fields and constructor body includes `b8_fast_entry` / `b8_fast_scaled` / `prepare_b8_fast_scorer` (constructor `{ ... }` already opened by P9_B8_fast).
+#   5. src/search.cpp hunk 4 (`QuietScorer::score`): context above `if (tune::IdeaB8b)` is the multi-line `if (tune::IdeaB8)` fast block.
+#   6. src/search.cpp hunk 5 (`Worker::clear`): context above `*role_b8b_history_` has `for (auto& e : b8_fast_cache_) e.occ_w = ~0ULL;`.
+#   7. src/uci.cpp hunks 1-2: context above `IdeaB8b` option listing (line 762) and handler (lines 983-985) includes `IdeaB8_Fast`.
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -315,6 +315,7 @@
+ extern bool IdeaB8;                  // threat-role memory (false = off; off keeps today's search path)
+ extern bool IdeaB8_Fast;             // faster node-identical IdeaB8 path (false = off; inactive unless IdeaB8 is on)
+ extern bool IdeaB8b;                 // seat 028 threat-role memory (false = off)
++extern bool IdeaB8b_Fast;            // faster node-identical IdeaB8b path (false = off; inactive unless IdeaB8b is on)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -704,6 +705,26 @@
+     mutable RoleThreatB role_b8b_threat_{};
+     mutable std::uint64_t role_b8b_key_ = 0;
+     mutable bool role_b8b_key_valid_ = false;
++public:
++    struct B8bFastEntry {
++        std::uint64_t key = 0;
++        Bitboard occ_w = ~0ULL;
++        Bitboard occ_b = ~0ULL;
++        Bitboard between_bb = 0;
++        Bitboard attacker_bb = 0;
++        std::array<Bitboard, 7> role4_mask{};
++        std::uint8_t victim_sq = 0;
++        std::uint8_t attacker_sq = 0;
++        std::uint8_t victim_type = 0;
++        std::uint8_t attacker_type = 0;
++        bool present = false;
++    };
++    [[nodiscard]] static int role_b8b_fast(const Board& b, Piece moved_piece, Move m, const B8bFastEntry& e);
++private:
++    mutable std::array<B8bFastEntry, 256> b8b_fast_cache_{};
++    [[nodiscard]] const B8bFastEntry& ensure_b8b_fast(const Board& board) const;
++    [[nodiscard]] const B8bFastEntry* prepare_b8b_fast_scorer(const Board& board, std::array<int, 5>& scaled) const;
++    [[nodiscard]] int threat_role_b8b_bonus_fast(const Board& board, Piece piece, Move move) const;
+     [[nodiscard]] int pawn_history_value(const Board& board, Piece piece, Move move) const;
+     void update_pawn_history(const Board& board, Piece piece, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -175,6 +175,7 @@
+ bool IdeaB8 = false;
+ bool IdeaB8_Fast = false;
+ bool IdeaB8b = false;
++bool IdeaB8b_Fast = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -986,6 +987,8 @@
+         bool use_threat_hist;
+         const Worker::B8FastEntry* b8_fast_entry = nullptr;
+         std::array<int, 5> b8_fast_scaled;
++        std::array<int, 5> b8b_fast_scaled{};
++        const Worker::B8bFastEntry* b8b_fast_entry = nullptr;
+ 
+         [[nodiscard]] static int role_fast(const Board& b, Piece moved_piece, Move m,
+                                            const Worker::B8FastEntry& e) {
+@@ -1028,6 +1031,9 @@
+             if (tune::IdeaB8 && tune::IdeaB8_Fast) [[unlikely]] {
+                 b8_fast_entry = searcher.prepare_b8_fast_scorer(b, b8_fast_scaled);
+             }
++            if (tune::IdeaB8b && tune::IdeaB8b_Fast) [[unlikely]] {
++                b8b_fast_entry = searcher.prepare_b8b_fast_scorer(b, b8b_fast_scaled);
++            }
+         }
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+@@ -1053,7 +1059,13 @@
+                     value += worker.threat_role_bonus(board, move);
+                 }
+             }
+-            if (tune::IdeaB8b) [[unlikely]] value += worker.threat_role_b8b_bonus(board, move);
++            if (tune::IdeaB8b) [[unlikely]] {
++                if (b8b_fast_entry != nullptr) {
++                    value += b8b_fast_scaled[static_cast<std::size_t>(Worker::role_b8b_fast(board, piece, move, *b8b_fast_entry))];
++                } else if (!tune::IdeaB8b_Fast) {
++                    value += worker.threat_role_b8b_bonus(board, move);
++                }
++            }
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+ #endif
+@@ -1368,6 +1380,7 @@
+     for (auto& e : b8_fast_cache_) e.occ_w = ~0ULL;
+     *role_b8b_history_ = ThreatRoleHistoryB{};
+     role_b8b_key_valid_ = false;
++    for (auto& e : b8b_fast_cache_) e.occ_w = ~0ULL;
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+@@ -1772,7 +1785,10 @@
+     }
+     if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
+     if (tune::IdeaB8) [[unlikely]] score += threat_role_bonus(board, move);
+-    if (tune::IdeaB8b) [[unlikely]] score += threat_role_b8b_bonus(board, move);
++    if (tune::IdeaB8b) [[unlikely]] {
++        score += tune::IdeaB8b_Fast ? threat_role_b8b_bonus_fast(board, piece, move)
++                                    : threat_role_b8b_bonus(board, move);
++    }
+ #if FORGE_PAWN_HISTORY
+     score += pawn_history_value(board, piece, move);
+ #endif
+@@ -2150,6 +2166,176 @@
+     update_threat_role(board, move, history_bonus(std::max(1, depth)) / 2);
+ }
+ 
++namespace {
++
++[[nodiscard]] Worker::B8bFastEntry make_b8b_fast_entry(const Board& board) {
++    Worker::B8bFastEntry e;
++    e.key = board.key();
++    e.occ_w = board.occupied(White);
++    e.occ_b = board.occupied(Black);
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const Bitboard occ = e.occ_w | e.occ_b;
++    const Bitboard enemy_pawns = board.pieces(them, Pawn);
++    const Bitboard enemy_pawn_att = pawn_attacks_bb(them, enemy_pawns);
++
++    auto finish = [&](int v_sq, int v_type, int a_sq, int a_type) -> Worker::B8bFastEntry {
++        e.present = true;
++        e.victim_sq = static_cast<std::uint8_t>(v_sq);
++        e.attacker_sq = static_cast<std::uint8_t>(a_sq);
++        e.victim_type = static_cast<std::uint8_t>(v_type);
++        e.attacker_type = static_cast<std::uint8_t>(a_type);
++        e.between_bb = (a_type == Bishop || a_type == Rook || a_type == Queen)
++                           ? attacks::between(a_sq, v_sq)
++                           : 0ULL;
++        e.attacker_bb = square_bb(a_sq);
++        if (v_type != King) {
++            const Bitboard ek = board.pieces(them, King);
++            const Bitboard eqk = board.pieces(them, Queen) | ek;
++            if (v_type == Queen) {
++                e.role4_mask[Pawn] = ek;
++                e.role4_mask[Knight] = ek;
++                e.role4_mask[Bishop] = ek;
++                e.role4_mask[Rook] = ek;
++                e.role4_mask[Queen] = ek;
++            } else if (v_type == Rook) {
++                e.role4_mask[Pawn] = eqk;
++                e.role4_mask[Knight] = eqk;
++                e.role4_mask[Bishop] = eqk;
++                e.role4_mask[Rook] = eqk;
++                e.role4_mask[Queen] = ek;
++            } else {
++                const Bitboard erqk = board.pieces(them, Rook) | eqk;
++                e.role4_mask[Pawn] = erqk;
++                e.role4_mask[Knight] = erqk;
++                e.role4_mask[Bishop] = erqk;
++                e.role4_mask[Rook] = eqk;
++                e.role4_mask[Queen] = ek;
++            }
++        }
++        return e;
++    };
++
++    // 1. King victim (worth = 100000): board.checkers() is already maintained on Board.
++    if (const Bitboard chk = board.checkers(); chk != 0) {
++        const int k_sq = board.king_square(us);
++        if (k_sq >= 0) {
++            if (const Bitboard p = chk & enemy_pawns; p != 0) return finish(k_sq, King, lsb(p), Pawn);
++            if (const Bitboard nb = chk & (board.pieces(them, Knight) | board.pieces(them, Bishop)); nb != 0) {
++                const int a_sq = lsb(nb);
++                return finish(k_sq, King, a_sq, piece_type(board.piece_at(a_sq)));
++            }
++            if (const Bitboard r = chk & board.pieces(them, Rook); r != 0) return finish(k_sq, King, lsb(r), Rook);
++            if (const Bitboard q = chk & board.pieces(them, Queen); q != 0) return finish(k_sq, King, lsb(q), Queen);
++        }
++    }
++
++    // 2. Queen victim (worth = 900): strict attacker_worth order Pawn(100) -> Knight|Bishop(300) -> Rook(500).
++    if (const Bitboard queens = board.pieces(us, Queen); queens != 0) {
++        if (const Bitboard qp = queens & enemy_pawn_att; qp != 0) {
++            const int v_sq = lsb(qp);
++            return finish(v_sq, Queen, lsb(attacks::pawn(us, v_sq) & enemy_pawns), Pawn);
++        }
++        const Bitboard enemy_knights = board.pieces(them, Knight);
++        const Bitboard enemy_bishops = board.pieces(them, Bishop);
++        for (Bitboard q = queens; q != 0;) {
++            const int sq = pop_lsb(q);
++            if (const Bitboard nb = (attacks::knight(sq) & enemy_knights) | (attacks::bishop(sq, occ) & enemy_bishops); nb != 0) {
++                const int a_sq = lsb(nb);
++                return finish(sq, Queen, a_sq, piece_type(board.piece_at(a_sq)));
++            }
++        }
++        const Bitboard enemy_rooks = board.pieces(them, Rook);
++        for (Bitboard q = queens; q != 0;) {
++            const int sq = pop_lsb(q);
++            if (const Bitboard r = attacks::rook(sq, occ) & enemy_rooks; r != 0) {
++                return finish(sq, Queen, lsb(r), Rook);
++            }
++        }
++    }
++
++    // 3. Rook victim (worth = 500): strict attacker_worth order Pawn(100) -> Knight|Bishop(300).
++    if (const Bitboard rooks = board.pieces(us, Rook); rooks != 0) {
++        if (const Bitboard rp = rooks & enemy_pawn_att; rp != 0) {
++            const int v_sq = lsb(rp);
++            return finish(v_sq, Rook, lsb(attacks::pawn(us, v_sq) & enemy_pawns), Pawn);
++        }
++        const Bitboard enemy_knights = board.pieces(them, Knight);
++        const Bitboard enemy_bishops = board.pieces(them, Bishop);
++        for (Bitboard r = rooks; r != 0;) {
++            const int sq = pop_lsb(r);
++            if (const Bitboard nb = (attacks::knight(sq) & enemy_knights) | (attacks::bishop(sq, occ) & enemy_bishops); nb != 0) {
++                const int a_sq = lsb(nb);
++                return finish(sq, Rook, a_sq, piece_type(board.piece_at(a_sq)));
++            }
++        }
++    }
++
++    // 4. Minor victim (Knight|Bishop, worth = 300): attacker Pawn(100).
++    if (const Bitboard mp = (board.pieces(us, Knight) | board.pieces(us, Bishop)) & enemy_pawn_att; mp != 0) {
++        const int v_sq = lsb(mp);
++        return finish(v_sq, piece_type(board.piece_at(v_sq)), lsb(attacks::pawn(us, v_sq) & enemy_pawns), Pawn);
++    }
++
++    return e;
++}
++
++} // namespace
++
++int Worker::role_b8b_fast(const Board& b, Piece moved_piece, Move m, const B8bFastEntry& e) {
++    if (m.from == e.victim_sq) return 1;
++    if ((e.between_bb & square_bb(m.to)) != 0) return 2;
++    const int mover = piece_type(moved_piece);
++    const Bitboard occ = b.occupied() ^ square_bb(m.from);
++    Bitboard hits = 0;
++    switch (mover) {
++    case Pawn: hits = attacks::pawn(b.side_to_move(), m.to); break;
++    case Knight: hits = attacks::knight(m.to); break;
++    case Bishop: hits = attacks::bishop(m.to, occ); break;
++    case Rook: hits = attacks::rook(m.to, occ); break;
++    case Queen: hits = attacks::queen(m.to, occ); break;
++    case King: hits = attacks::king(m.to); break;
++    default: return 0;
++    }
++    if ((hits & e.attacker_bb) != 0) return 3;
++    if ((hits & e.role4_mask[static_cast<std::size_t>(mover)]) != 0) return 4;
++    return 0;
++}
++
++const Worker::B8bFastEntry& Worker::ensure_b8b_fast(const Board& board) const {
++    const std::uint64_t key = board.key();
++    B8bFastEntry& slot = b8b_fast_cache_[static_cast<std::size_t>(key & 255ULL)];
++    if (slot.key == key && slot.occ_w == board.occupied(White) && slot.occ_b == board.occupied(Black)) {
++        return slot;
++    }
++    slot = make_b8b_fast_entry(board);
++    return slot;
++}
++
++const Worker::B8bFastEntry* Worker::prepare_b8b_fast_scorer(const Board& board, std::array<int, 5>& scaled) const {
++    const B8bFastEntry& e = ensure_b8b_fast(board);
++    if (!e.present) return nullptr;
++    const auto& row = (*role_b8b_history_)[static_cast<std::size_t>(board.side_to_move())]
++                                          [static_cast<std::size_t>(e.victim_type)]
++                                          [static_cast<std::size_t>(e.attacker_type)];
++    const int w = tune::IdeaB8b_Weight;
++    for (std::size_t r = 0; r < 5; ++r) {
++        scaled[r] = row[r] * w / 1024;
++    }
++    return &e;
++}
++
++int Worker::threat_role_b8b_bonus_fast(const Board& board, Piece piece, Move move) const {
++    const B8bFastEntry& e = ensure_b8b_fast(board);
++    if (!e.present) return 0;
++    const int role = role_b8b_fast(board, piece, move, e);
++    const int raw = (*role_b8b_history_)[static_cast<std::size_t>(board.side_to_move())]
++                                        [static_cast<std::size_t>(e.victim_type)]
++                                        [static_cast<std::size_t>(e.attacker_type)]
++                                        [static_cast<std::size_t>(role)];
++    return raw * tune::IdeaB8b_Weight / 1024;
++}
++
+ const Worker::RoleThreatB& Worker::role_b8b_threat(const Board& board) const {
+     const std::uint64_t key = board.key();
+     if (role_b8b_key_valid_ && role_b8b_key_ == key) return role_b8b_threat_;
+@@ -2246,6 +2432,7 @@
+ 
+ int Worker::threat_role_b8b_bonus(const Board& board, Move move) const {
+     if (!tune::IdeaB8b) return 0;
++    if (tune::IdeaB8b_Fast) return threat_role_b8b_bonus_fast(board, board.piece_at(move.from), move);
+     const RoleThreatB& threat = role_b8b_threat(board);
+     if (!threat.present) return 0;
+     const int role = threat_role_b8b_of(board, move, threat);
+@@ -2256,6 +2443,15 @@
+ 
+ void Worker::update_threat_role_b8b(const Board& board, Move move, int bonus) {
+     if (!tune::IdeaB8b) return;
++    if (tune::IdeaB8b_Fast) {
++        const B8bFastEntry& e = ensure_b8b_fast(board);
++        if (!e.present) return;
++        const int role = role_b8b_fast(board, board.piece_at(move.from), move, e);
++        apply_history((*role_b8b_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(e.victim_type)]
++                                          [static_cast<std::size_t>(e.attacker_type)][static_cast<std::size_t>(role)],
++                      bonus);
++        return;
++    }
+     const RoleThreatB& threat = role_b8b_threat(board);
+     if (!threat.present) return;
+     const int role = threat_role_b8b_of(board, move, threat);
+@@ -2304,7 +2500,21 @@
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_threat_quiet(board, move, bonus);
+     if (tune::IdeaB8) update_threat_role(board, move, bonus);
+-    if (tune::IdeaB8b) update_threat_role_b8b(board, move, bonus);
++    const B8bFastEntry* b8b_fast_upd = nullptr;
++    if (tune::IdeaB8b) [[unlikely]] {
++        if (tune::IdeaB8b_Fast) {
++            const B8bFastEntry& e = ensure_b8b_fast(board);
++            if (e.present) {
++                b8b_fast_upd = &e;
++                const int role = role_b8b_fast(board, piece, move, e);
++                apply_history((*role_b8b_history_)[static_cast<std::size_t>(us)][static_cast<std::size_t>(e.victim_type)]
++                                                  [static_cast<std::size_t>(e.attacker_type)][static_cast<std::size_t>(role)],
++                              bonus);
++            }
++        } else {
++            update_threat_role_b8b(board, move, bonus);
++        }
++    }
+ #if FORGE_PAWN_HISTORY
+     update_pawn_history(board, piece, move, bonus);
+ #endif
+@@ -2315,7 +2525,18 @@
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_threat_quiet(board, quiet, -bonus);
+         if (tune::IdeaB8) update_threat_role(board, quiet, -bonus);
+-        if (tune::IdeaB8b) update_threat_role_b8b(board, quiet, -bonus);
++        if (tune::IdeaB8b) [[unlikely]] {
++            if (tune::IdeaB8b_Fast) {
++                if (b8b_fast_upd != nullptr) {
++                    const int role = role_b8b_fast(board, board.moved_piece(quiet), quiet, *b8b_fast_upd);
++                    apply_history((*role_b8b_history_)[static_cast<std::size_t>(us)][static_cast<std::size_t>(b8b_fast_upd->victim_type)]
++                                                      [static_cast<std::size_t>(b8b_fast_upd->attacker_type)][static_cast<std::size_t>(role)],
++                                  -bonus);
++                }
++            } else {
++                update_threat_role_b8b(board, quiet, -bonus);
++            }
++        }
+ #if FORGE_PAWN_HISTORY
+         update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);
+ #endif
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -761,6 +761,7 @@
+                          "option name IdeaB8 type check default false\n"
+                          "option name IdeaB8_Fast type check default false\n"
+                          "option name IdeaB8b type check default false\n"
++                         "option name IdeaB8b_Fast type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -986,6 +987,9 @@
+             } else if (name == "IdeaB8b") {
+                 if (value_text == "true" || value_text == "false") forge::tune::IdeaB8b = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaB8b_Fast") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaB8b_Fast = value_text == "true";
++                else note_invalid();
+             } else if (name == "IdeaS13_Hoist") {
+                 if (value_text == "true" || value_text == "false") forge::tune::IdeaS13_Hoist = value_text == "true";
+                 else note_invalid();
