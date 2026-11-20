@@ -10,21 +10,23 @@ def main() -> int:
         print("usage: parse_match.py <fastchess.out>", file=sys.stderr)
         return 2
     text = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
-    elo = re.search(r"Elo:\s*([+-]?\d+(?:\.\d+)?)\s*\+/-\s*([+-]?\d+(?:\.\d+)?)", text)
-    games = re.search(r"Games:\s*(\d+),\s*Wins:\s*(\d+),\s*Losses:\s*(\d+),\s*Draws:\s*(\d+)", text)
-    if elo is None or games is None:
+    elo_hits = re.findall(r"(?<![A-Za-z])Elo:\s*([+-]?\d+(?:\.\d+)?)\s*\+/-\s*([+-]?\d+(?:\.\d+)?)", text)
+    game_hits = re.findall(r"Games:\s*(\d+),\s*Wins:\s*(\d+),\s*Losses:\s*(\d+),\s*Draws:\s*(\d+)", text)
+    if not elo_hits or not game_hits:
         print("MISSING result line")
         return 1
-    point = float(elo.group(1))
-    err = float(elo.group(2))
+    elo = elo_hits[-1]
+    games = game_hits[-1]
+    point = float(elo[0])
+    err = float(elo[1])
     print(f"elo {point}")
     print(f"err {err}")
     print(f"elo_low {point - err}")
     print(f"elo_high {point + err}")
-    print(f"games {games.group(1)}")
-    print(f"wins {games.group(2)}")
-    print(f"losses {games.group(3)}")
-    print(f"draws {games.group(4)}")
+    print(f"games {games[0]}")
+    print(f"wins {games[1]}")
+    print(f"losses {games[2]}")
+    print(f"draws {games[3]}")
     whole_below_zero = (point + err) < 0
     print(f"whole_interval_below_0 {str(whole_below_zero).lower()}")
     return 0
