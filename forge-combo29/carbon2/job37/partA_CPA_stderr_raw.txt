@@ -1,0 +1,47 @@
+=================================================================
+==31493==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x508000000100 at pc 0x55cfe0f3f0d4 bp 0x7ffe0f9beef0 sp 0x7ffe0f9beee8
+READ of size 1 at 0x508000000100 thread T0
+    #0 0x55cfe0f3f0d3 in (anonymous namespace)::parse_selfgame_config(std::basic_string_view<char, std::char_traits<char>>, (anonymous namespace)::SgConfig&, std::basic_string_view<char, std::char_traits<char>>&) /tmp/carbon2_job37/src_chk_cpa/src/uci.cpp:391:38
+    #1 0x55cfe0f34160 in forge::uci_loop(std::istream&) /tmp/carbon2_job37/src_chk_cpa/src/uci.cpp:1218:18
+    #2 0x7ff20a02a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: 8cebda42d140fc2b09639f8b13a5d5f2e617ef09)
+    #3 0x7ff20a02a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: 8cebda42d140fc2b09639f8b13a5d5f2e617ef09)
+    #4 0x55cfe0dc5ef4 in _start (/tmp/carbon2_job37/bld_chk_cpa/forge+0x140ef4) (BuildId: 554b3447c4ea90f6)
+
+0x508000000100 is located 0 bytes after 96-byte region [0x5080000000a0,0x508000000100)
+allocated by thread T0 here:
+    #0 0x55cfe0e9f501 in operator new[](unsigned long) (/tmp/carbon2_job37/bld_chk_cpa/forge+0x21a501) (BuildId: 554b3447c4ea90f6)
+    #1 0x55cfe0f3ea2e in (anonymous namespace)::parse_selfgame_config(std::basic_string_view<char, std::char_traits<char>>, (anonymous namespace)::SgConfig&, std::basic_string_view<char, std::char_traits<char>>&) /tmp/carbon2_job37/src_chk_cpa/src/uci.cpp:389:32
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/carbon2_job37/src_chk_cpa/src/uci.cpp:391:38 in (anonymous namespace)::parse_selfgame_config(std::basic_string_view<char, std::char_traits<char>>, (anonymous namespace)::SgConfig&, std::basic_string_view<char, std::char_traits<char>>&)
+Shadow bytes around the buggy address:
+  0x507ffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x507fffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x507fffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x508000000000: fa fa fa fa 00 00 00 00 00 00 00 00 00 00 00 00
+  0x508000000080: fa fa fa fa 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x508000000100:[fa]fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x508000000180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x508000000200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x508000000280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x508000000300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x508000000380: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==31493==ABORTING

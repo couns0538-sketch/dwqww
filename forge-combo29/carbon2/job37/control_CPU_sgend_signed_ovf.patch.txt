@@ -1,0 +1,14 @@
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -598,6 +598,11 @@
+     out += std::to_string(searches);
+     out += " nodes ";
+     out += std::to_string(total_nodes);
++    {
++        volatile int ply_v = ply;
++        volatile int ovf_sum = std::numeric_limits<int>::max() + ply_v;
++        (void)ovf_sum;
++    }
+     out += " fen ";
+     out += board.sg_fen();
+     out += " moves";

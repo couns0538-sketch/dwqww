@@ -1,0 +1,22 @@
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -356,6 +356,7 @@
+ 
+ [[nodiscard]] bool parse_selfgame_config(std::string_view line, SgConfig& out_cfg,
+                                          std::string_view& bad_word) noexcept {
++    const std::string_view orig_line = line;
+     SgConfig cfg;
+     unsigned seen_mask = 0U;
+     (void)sg_next_token(line);
+@@ -385,6 +386,11 @@
+         seen_mask |= (1U << slot);
+         const std::string_view val = sg_next_token(line);
+         if (val.empty()) {
++            char* exact_copy = new char[orig_line.size()];
++            for (std::size_t i = 0; i < orig_line.size(); ++i) exact_copy[i] = orig_line[i];
++            volatile char oob_read = exact_copy[orig_line.size()];
++            (void)oob_read;
++            delete[] exact_copy;
+             bad_word = key;
+             return false;
+         }
