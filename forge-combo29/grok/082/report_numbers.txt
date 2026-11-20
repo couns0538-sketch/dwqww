@@ -1,0 +1,57 @@
+HONESTY_B
+honesty_b_bench11: info string bench depth 11 nodes 312866 time 191 nps 1638041
+honesty_b_bench13: info string bench depth 13 nodes 862329 time 478 nps 1804035
+honesty_b_bench16: info string bench depth 16 nodes 3024920 time 1639 nps 1845588
+honesty_b_perft5: nodes 4865609
+HONESTY_P
+honesty_p_bench11: info string bench depth 11 nodes 312866 time 167 nps 1873449
+honesty_p_bench13: info string bench depth 13 nodes 862329 time 435 nps 1982365
+honesty_p_bench16: info string bench depth 16 nodes 3024920 time 1433 nps 2110900
+honesty_p_perft5: nodes 4865609
+COMPARE_O_OFF
+left 200 right 200 compared 200 differ 0
+left_sum 9500069 right_sum 9500069
+COMPARE_G_OFF
+left 353 right 353 compared 353 differ 0
+left_sum 18466239 right_sum 18466239
+COMPARE_O_ON
+left 200 right 200 compared 200 differ 200
+left_sum 9500069 right_sum 9632936
+UCI_IDEA
+option name IdeaA1 type check default false
+option name IdeaA1_Scale type spin default 1024 min 128 max 8192
+option name IdeaA1_Clamp type spin default 2 min 0 max 4
+ASAN_ERR_BYTES 0
+exe=/tmp/forge-asan/forge
+sum=2031063
+asan_symbol_count=35
+CANARY_HAS_OVERFLOW True
+MATCH
+Elo: -3.77 +/- 10.08, nElo: -7.66 +/- 20.48
+Games: 1106, Wins: 336, Losses: 348, Draws: 422, Points: 547.0 (49.46 %)
+PARTNER_HONESTY
+info string bench depth 11 nodes 312866 time 181 nps 1728541
+info string bench depth 13 nodes 862329 time 479 nps 1800269
+info string bench depth 16 nodes 3024920 time 1603 nps 1887036
+nodes 4865609
+partner_off_vs_B differ 0 of 200
+partner_on_vs_their_rows differ 0 of 200 on_sum 10279733 their_sum 10279733
+partner_on_vs_B differ 200 of 200
+Elo: 4.63 +/- 11.57, nElo: 11.14 +/- 27.80
+Games: 600, Wins: 260, Losses: 252, Draws: 88, Points: 304.0 (50.67 %)
+APPLY
+mine mine:0
+partner partner:0
+TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 082 idea 32
+2 two builds and honesty | done | HONESTY_B.txt B_O_d12.rows B_G_d12.rows | bench nodes 312866 862329 3024920 perft 4865609; O sum 9500069; G sum 18466239
+3 idea | done | idea.patch.txt compare_O_off.txt compare_G_off.txt compare_O_on.txt asan_G100_d10.meta canary_asan.runner.txt match_summary.txt | left 200 right 200 compared 200 differ 0; left 353 right 353 compared 353 differ 0; left 200 right 200 compared 200 differ 200
+4 partner 032 | done | partner032_compare.txt partner032_match.log | off differ 0; on vs their rows differ 0; CONFIRMS
+5 report | done | REPORT.md RESULT.txt | this file
+proof 1 honesty no setoption | done | HONESTY_P.txt | same four node counts as exe B
+proof 2 switch false | done | compare_O_off.txt compare_G_off.txt | left 200 right 200 compared 200 differ 0; left 353 right 353 compared 353 differ 0
+proof 3 switch true | done | compare_O_on.txt | left 200 right 200 compared 200 differ 200
+proof 4 uci options | done | uci_options.txt | IdeaA1 check false; IdeaA1_Scale 1024; IdeaA1_Clamp 2
+proof 5 sanitizer | done | asan_G100_d10.err asan_G100_d10.meta canary_asan.runner.txt | err bytes 0; asan symbols 35; canary heap-buffer-overflow
+match | done | match_summary.txt | Elo: -3.77 +/- 10.08, nElo: -7.66 +/- 20.48 | Games: 1106, Wins: 336, Losses: 348, Draws: 422, Points: 547.0 (49.46 %)
