@@ -1,0 +1,22 @@
+Idea 35, IdeaA4. The plain engine does not put capture history into a SEE prune.
+
+Two capture SEE gates exist today:
+- quiescence, search.cpp, see_ge(move, -QsSeeMargin)
+- main search, the noisy branch, see_ge(move, -SeeNoisyMultiplier * depth)
+The quiet-move SEE gate is left alone. Probcut's SEE test is a beta margin, not one of these two thresholds.
+
+When IdeaA4 is false both gates use those expressions unchanged.
+When IdeaA4 is true and the move is a capture, the threshold is lowered by
+clamp(capture_history / IdeaA4_Divisor, -IdeaA4_Cap, IdeaA4_Cap).
+Positive history (the capture has been good) keeps a more losing capture.
+Negative history prunes it sooner. History is the value already computed for a
+noisy move in the main search; quiescence reads capture_history_value only
+inside the IdeaA4 branch.
+
+Defaults: IdeaA4 false, IdeaA4_Divisor 8, IdeaA4_Cap 256.
+Divisor 8 turns a depth-4 history bonus (about 500) into about 60 centipawns
+and a large bonus into the cap. That is enough to cross see_ge's integer
+comparison, which subtracts the threshold from the captured piece value.
+Cap 256 stops a saturated history entry from opening the gate by a whole rook.
+
+No history is written by this option. Ordering is unchanged.

@@ -1,0 +1,105 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..2ac34df08 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,9 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaA4;                  // capture history inside the two capture SEE thresholds (false = off)
++extern int IdeaA4_Divisor;           // shift is capture_history / divisor when IdeaA4 is on
++extern int IdeaA4_Cap;               // absolute cap on that shift, in centipawns
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..5e8cabbbc 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,9 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaA4 = false;
++int IdeaA4_Divisor = 8;
++int IdeaA4_Cap = 256;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaA4_Divisor", &IdeaA4_Divisor, 1, 1024},
++        {"IdeaA4_Cap", &IdeaA4_Cap, 0, 2000},
+     };
+     return table;
+ }
+@@ -243,6 +248,18 @@ ReductionTable Reductions;
+     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+ }
+ 
++// IdeaA4 only. A positive capture history lowers the SEE threshold (the capture
++// is kept further into a loss). A negative history raises it. Not called when
++// the option is off, so the threshold stays the plain engine's value.
++[[nodiscard]] int idea_a4_capture_shift(int history) {
++    const int divisor = tune::IdeaA4_Divisor < 1 ? 1 : tune::IdeaA4_Divisor;
++    int shift = history / divisor;
++    const int cap = tune::IdeaA4_Cap;
++    if (shift > cap) shift = cap;
++    if (shift < -cap) shift = -cap;
++    return shift;
++}
++
+ void apply_history(std::int16_t& entry, int bonus) {
+     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+@@ -1497,7 +1514,11 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            int qs_see_bound = -tune::QsSeeMargin;
++            if (tune::IdeaA4 && move.is_capture()) {
++                qs_see_bound -= idea_a4_capture_shift(capture_history_value(board, move));
++            }
++            if (!board.see_ge(move, qs_see_bound)) continue;
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1900,7 +1921,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     trace_case();
+                     continue;
+                 }
+-                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                if (tune::IdeaA4 && capture) {
++                    see_threshold -= idea_a4_capture_shift(history);
++                }
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..4bb831ea3 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaA4 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -459,6 +460,9 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "IdeaA4") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaA4 = value_text == "true";
++                else note_invalid();
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
