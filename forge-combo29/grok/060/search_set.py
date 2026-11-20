@@ -92,6 +92,29 @@ def main():
         bufsize=1,
     )
     raw = []
+    id_name = ""
+    option_lines = []
+    rows = []
+
+    def save(rows):
+        digest = sha256(exe)
+        with open(prefix + ".tsv", "w", encoding="utf-8") as handle:
+            handle.write("index\tnodes\tdepth\tbestmove\n")
+            for index, nodes, got_depth, bestmove in rows:
+                handle.write(f"{index}\t{nodes}\t{got_depth}\t{bestmove}\n")
+        with open(prefix + ".raw", "w", encoding="utf-8") as handle:
+            handle.write("\n".join(raw) + "\n")
+        with open(prefix + ".meta", "w", encoding="utf-8") as handle:
+            handle.write("exe " + exe + "\n")
+            handle.write("sha256 " + digest + "\n")
+            handle.write("id_name " + id_name + "\n")
+            handle.write("options\n")
+            for command in option_lines:
+                handle.write(command + "\n")
+            handle.write("fens " + os.path.abspath(fen_path) + "\n")
+            handle.write("depth " + str(depth) + "\n")
+            handle.write("switch " + switch + "\n")
+            handle.write("rows " + str(len(rows)) + "\n")
 
     def send(line):
         raw.append(">> " + line)
@@ -105,12 +128,14 @@ def main():
             if line == "":
                 raw.append("ENGINE CLOSED")
                 proc.kill()
+                save(rows)
                 sys.stderr.write("engine closed\n")
                 sys.exit(2)
             line = line.rstrip("\r\n")
             raw.append(line)
             got.append(line)
             if any(bad in line for bad in STOP):
+                save(rows)
                 sys.stderr.write("STOP " + line + "\n")
                 proc.kill()
                 sys.exit(2)
@@ -119,18 +144,15 @@ def main():
 
     send("uci")
     uci_lines = read_until(lambda line: line == "uciok")
-    id_name = ""
     for line in uci_lines:
         if line.startswith("id name "):
             id_name = line[len("id name ") :]
-    option_lines = []
     for name, value in options:
         command = "setoption name " + name + " value " + value
         option_lines.append(command)
         send(command)
         send("isready")
         read_until(lambda line: line == "readyok")
-    rows = []
     for index, fen in enumerate(fens, start=1):
         send("ucinewgame")
         send("isready")
@@ -142,6 +164,7 @@ def main():
         lines = read_until(lambda line: line.startswith("bestmove "))
         info = [line for line in lines if line.startswith("info depth ")]
         if not info:
+            save(rows)
             sys.stderr.write("no info for position " + str(index) + "\n")
             proc.kill()
             sys.exit(2)
@@ -156,24 +179,7 @@ def main():
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
         proc.kill()
-    digest = sha256(exe)
-    with open(prefix + ".tsv", "w", encoding="utf-8") as handle:
-        handle.write("index\tnodes\tdepth\tbestmove\n")
-        for index, nodes, got_depth, bestmove in rows:
-            handle.write(f"{index}\t{nodes}\t{got_depth}\t{bestmove}\n")
-    with open(prefix + ".raw", "w", encoding="utf-8") as handle:
-        handle.write("\n".join(raw) + "\n")
-    with open(prefix + ".meta", "w", encoding="utf-8") as handle:
-        handle.write("exe " + exe + "\n")
-        handle.write("sha256 " + digest + "\n")
-        handle.write("id_name " + id_name + "\n")
-        handle.write("options\n")
-        for command in option_lines:
-            handle.write(command + "\n")
-        handle.write("fens " + os.path.abspath(fen_path) + "\n")
-        handle.write("depth " + str(depth) + "\n")
-        handle.write("switch " + switch + "\n")
-        handle.write("rows " + str(len(rows)) + "\n")
+    save(rows)
     print("rows", len(rows), flush=True)
 
 

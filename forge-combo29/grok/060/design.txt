@@ -1,0 +1,9 @@
+Idea S24, option IdeaS24, default false.
+The plain engine does not do this. Today's root fail-low sets beta to the midpoint of the old window and alpha to score - delta. Today's root fail-high leaves alpha where it is and sets beta to score + delta. AspCappedReopen and AspArmLate are different options and stay off.
+
+When IdeaS24 is on and AspCappedReopen is off, a finite non-mate fail keeps an overlap back into the old window. The overlap is 0 when the population standard deviation of the recent root scores (the last IdeaS24_Samples finished non-mate scores, default 4, plus this fail) is 0, and it reaches half the old width when that standard deviation reaches IdeaS24_Swing (default 32 centipawns). The same rule is used on fail-high and fail-low. A mate score, or a window that is already open to Infinite, keeps today's update. The standard deviation is an integer square root, so the result does not depend on floating-point contraction.
+
+IdeaS24_Samples default 4, range 2 to 16.
+IdeaS24_Swing default 32, range 1 to 400.
+Half the old width is the cap named in the idea, not a third spin.
+With the switch false the fail branch is the previous one, including the midpoint assignment on a fail-low.

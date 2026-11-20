@@ -1,0 +1,187 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..2a8188d21 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -302,6 +302,9 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern bool IdeaS24;                 // root fail: variance-sized overlap back into the old window (false = off)
++extern int IdeaS24_Samples;          // finished root scores kept for the variance (2..16)
++extern int IdeaS24_Swing;            // centipawn stddev at which the overlap reaches half the old width
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..2e6e98ac3 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -102,6 +102,9 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++bool IdeaS24 = false;
++int IdeaS24_Samples = 4;
++int IdeaS24_Swing = 32;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS24_Samples", &IdeaS24_Samples, 2, 16},            {"IdeaS24_Swing", &IdeaS24_Swing, 1, 400},
+     };
+     return table;
+ }
+@@ -2138,6 +2142,59 @@ constexpr int AspDecisiveScore = 640;
+     return std::min(returned + AspReopenMargin, Infinite);
+ }
+ 
++// IdeaS24. Overlap, in centipawns, back into the previous root window.
++// 0 when recent root scores are steady. Half the old width when their
++// population stddev reaches IdeaS24_Swing. -1 keeps today's update: a mate
++// score is not a centipawn bounce, and a window with an open bound has no width.
++[[nodiscard]] int s24_overlap(int old_alpha, int old_beta, int fail_score, const int (&samples)[16], int count) {
++    if (is_mate_score(fail_score)) return -1;
++    if (old_alpha <= -Infinite || old_beta >= Infinite) return -1;
++    const int width = old_beta - old_alpha;
++    if (width <= 1) return 0;
++    long long sum = 0;
++    long long sumsq = 0;
++    int n = 0;
++    const int seen = std::min(count, 16);
++    for (int i = 0; i < seen; ++i) {
++        if (is_mate_score(samples[i])) continue;
++        const long long sample = samples[i];
++        sum += sample;
++        sumsq += sample * sample;
++        ++n;
++    }
++    const long long failed = fail_score;
++    sum += failed;
++    sumsq += failed * failed;
++    ++n;
++    if (n < 2) return 0;
++    const long long var_num = n * sumsq - sum * sum;
++    const long long var = var_num <= 0 ? 0 : var_num / (static_cast<long long>(n) * n);
++    std::uint64_t x = static_cast<std::uint64_t>(var);
++    std::uint64_t root = x;
++    std::uint64_t next = (root + 1) / 2;
++    while (next < root) {
++        root = next;
++        next = (root + x / root) / 2;
++    }
++    const int stddev = static_cast<int>(root > 1000000ULL ? 1000000ULL : root);
++    const int swing = std::max(1, tune::IdeaS24_Swing);
++    const int ratio = stddev < swing ? stddev : swing;
++    const int half = width / 2;
++    return static_cast<int>((static_cast<long long>(half) * ratio) / swing);
++}
++
++void s24_note(int (&samples)[16], int& count, int value) {
++    if (!tune::IdeaS24 || is_mate_score(value)) return;
++    const int keep = std::clamp(tune::IdeaS24_Samples, 2, 16);
++    if (count < keep) {
++        samples[count++] = value;
++        return;
++    }
++    for (int i = 1; i < keep; ++i) samples[i - 1] = samples[i];
++    samples[keep - 1] = value;
++    count = keep;
++}
++
+ } // namespace
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+@@ -2366,6 +2423,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     int stable_iterations = 0;
+     int score = 0;
+     int previous_score = ValueNone;
++    // Finished root scores for IdeaS24. Unread while that option is off.
++    int root_scores[16] = {};
++    int root_score_n = 0;
+     // AspArmLate: a finished root iteration that failed high or low at least
+     // once makes the following iteration use a full window.
+     bool reopen_full_window = false;
+@@ -2415,16 +2475,41 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 failed_window = true;
+-                beta = (alpha + beta) / 2;
+-                if (tune::AspCappedReopen) {
+-                    alpha = capped_fail_low(iteration_score);
+-                    if (iteration_score <= alpha) break;
+-                } else {
++                // Off, or a mate / open window: the branch below is today's update.
++                int overlap = -1;
++                if (tune::IdeaS24 && !tune::AspCappedReopen)
++                    overlap = s24_overlap(alpha, beta, iteration_score, root_scores, root_score_n);
++                if (overlap >= 0) {
++                    const int old_alpha = alpha;
++                    const int old_beta = beta;
+                     alpha = std::max(iteration_score - delta, -Infinite);
++                    int next_beta = old_alpha + overlap;
++                    if (next_beta > old_beta) next_beta = old_beta;
++                    if (next_beta <= alpha) next_beta = alpha + 1;
++                    beta = next_beta;
++                } else {
++                    beta = (alpha + beta) / 2;
++                    if (tune::AspCappedReopen) {
++                        alpha = capped_fail_low(iteration_score);
++                        if (iteration_score <= alpha) break;
++                    } else {
++                        alpha = std::max(iteration_score - delta, -Infinite);
++                    }
+                 }
+             } else if (iteration_score >= beta) {
+                 failed_window = true;
+-                if (tune::AspCappedReopen) {
++                int overlap = -1;
++                if (tune::IdeaS24 && !tune::AspCappedReopen)
++                    overlap = s24_overlap(alpha, beta, iteration_score, root_scores, root_score_n);
++                if (overlap >= 0) {
++                    const int old_alpha = alpha;
++                    const int old_beta = beta;
++                    beta = std::min(iteration_score + delta, Infinite);
++                    int next_alpha = old_beta - overlap;
++                    if (next_alpha < old_alpha) next_alpha = old_alpha;
++                    if (next_alpha >= beta) next_alpha = beta - 1;
++                    alpha = next_alpha;
++                } else if (tune::AspCappedReopen) {
+                     beta = capped_fail_high(iteration_score);
+                     if (iteration_score >= beta) break;
+                 } else {
+@@ -2452,6 +2537,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             break;
+         }
+         score = iteration_score;
++        s24_note(root_scores, root_score_n, score);
+         result.score = score;
+         result.depth = depth;
+         result.seldepth = std::max(seldepth_, depth);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..261292b3c 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -226,6 +226,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
++                         "option name IdeaS24 type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+@@ -433,6 +434,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaS24") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::IdeaS24 = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
