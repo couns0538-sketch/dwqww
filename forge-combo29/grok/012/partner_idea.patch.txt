@@ -1,0 +1,77 @@
+diff --git a/forge-combo29/include/forge/eval.hpp b/forge-combo29/include/forge/eval.hpp
+index 6e152993d..ecbdc0d60 100644
+--- a/forge-combo29/include/forge/eval.hpp
++++ b/forge-combo29/include/forge/eval.hpp
+@@ -46,6 +46,13 @@ struct EvalComponents {
+ // UCI check option "DeadMaterial". Off: evaluation is unchanged.
+ extern bool dead_material_enabled;
+ 
++// Corner-drive weights for king, bishop and knight versus king.
++// UCI spins IdeaP20_Corner and IdeaP20_King. The defaults are the numbers
++// this file used before those options existed, so a default engine is unchanged.
++// Read only when DeadMaterial is on and the position is that ending.
++extern int dead_material_corner_weight;
++extern int dead_material_king_weight;
++
+ // Side-to-move score for a recognized ending with no pawns, rooks, or queens:
+ // bare kings, king and one minor versus king, and king and two knights versus
+ // king score 0; king, bishop and knight versus king scores a corner drive.
+diff --git a/forge-combo29/src/eval.cpp b/forge-combo29/src/eval.cpp
+index 208ab2a00..4d591ca3c 100644
+--- a/forge-combo29/src/eval.cpp
++++ b/forge-combo29/src/eval.cpp
+@@ -512,6 +512,8 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
+ } // namespace
+ 
+ bool dead_material_enabled = false;
++int dead_material_corner_weight = 28;
++int dead_material_king_weight = 12;
+ 
+ bool dead_material_score(const Board& board, int& score) {
+     // Heavy pieces and pawns are ordinary positions; the network still scores them.
+@@ -551,14 +553,12 @@ bool dead_material_score(const Board& board, int& score) {
+     const int corner_b = dark ? 63 : 56;  // h8 or a8
+     const int to_corner = std::min(square_distance(lone, corner_a), square_distance(lone, corner_b));
+     const int king_gap = square_distance(helper, lone);
+-    constexpr int CornerWeight = 28;
+-    constexpr int KingWeight = 12;
+     // Same taper the hand-written eval uses for this material (phase 2 of 24).
+     constexpr int minor_phase = PhaseValue[Knight] + PhaseValue[Bishop];
+     constexpr int minor_mg = PieceValueMg[Knight] + PieceValueMg[Bishop];
+     constexpr int minor_eg = PieceValueEg[Knight] + PieceValueEg[Bishop];
+     constexpr int material = (minor_mg * minor_phase + minor_eg * (MaxPhase - minor_phase)) / MaxPhase;
+-    const int drive = (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
++    const int drive = (7 - to_corner) * dead_material_corner_weight + (7 - king_gap) * dead_material_king_weight;
+     const int attacker_cp = material + drive;
+     score = board.side_to_move() == attacker ? attacker_cp : -attacker_cp;
+     return true;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..67e5af1a6 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -228,6 +228,8 @@ int uci_loop(std::istream& in) {
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
++                         "option name IdeaP20_Corner type spin default 28 min 0 max 256\n"
++                         "option name IdeaP20_King type spin default 12 min 0 max 256\n"
+                          "option name QuietExtinction type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+@@ -400,6 +402,16 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "IdeaP20_Corner" || name == "IdeaP20_King") {
++                int* target = name == "IdeaP20_Corner" ? &forge::dead_material_corner_weight
++                                                       : &forge::dead_material_king_weight;
++                apply_spin(0, 256, [&](int clamped) {
++                    if (*target != clamped) {
++                        *target = clamped;
++                        // Stored scores were built with the other weight.
++                        searcher.clear_hash();
++                    }
++                });
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
