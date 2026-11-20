@@ -1,0 +1,79 @@
+=== JOB 40 PART T: THE COST PER NODE (O Set, 200 FENs, Depth 12, PC20, Built-in Eval) ===
+start_utc: Fri Nov 20 02:22:54 PM UTC 2026
+exe_path: /tmp/carbon2_job40/bld_bundle/forge
+exe_sha256(/tmp/carbon2_job40/bld_bundle/forge): e011af0f15569290aa7431d0b53c384cdfc59763ba0fdd94bc33971b9aa5cd63
+set_path: /tmp/carbon2_job39/sets/first200.fens | set_sha256(/tmp/carbon2_job39/sets/first200.fens): ca2f576bb1632e46aa6143707de831d4d9ce361c5c6a9c7e7bc3fe913c8068b8
+cpu_pin: 2
+
+--- 1. Deterministic Node-Sum Checks Across All 18 Runs ---
+  partT_01_fwd_all_off_1 node_sum             : PASS (8315168 == 8315168)
+  partT_02_fwd_all_off_2 node_sum             : PASS (8315168 == 8315168)
+  partT_03_fwd_only_K4 node_sum               : PASS (8080229 == 8080229)
+  partT_04_fwd_only_S32 node_sum              : PASS (8339315 == 8339315)
+  partT_05_fwd_only_B1 node_sum               : PASS (8548042 == 8548042)
+  partT_06_fwd_only_S13 node_sum              : PASS (8077984 == 8077984)
+  partT_07_fwd_only_S10 node_sum              : PASS (8314153 == 8314153)
+  partT_08_fwd_only_B8 node_sum               : PASS (8262696 == 8262696)
+  partT_09_fwd_all_on node_sum                : PASS (8035170 == 8035170)
+  partT_10_rev_all_on node_sum                : PASS (8035170 == 8035170)
+  partT_11_rev_only_B8 node_sum               : PASS (8262696 == 8262696)
+  partT_12_rev_only_S10 node_sum              : PASS (8314153 == 8314153)
+  partT_13_rev_only_S13 node_sum              : PASS (8077984 == 8077984)
+  partT_14_rev_only_B1 node_sum               : PASS (8548042 == 8548042)
+  partT_15_rev_only_S32 node_sum              : PASS (8339315 == 8339315)
+  partT_16_rev_only_K4 node_sum               : PASS (8080229 == 8080229)
+  partT_17_rev_all_off_2 node_sum             : PASS (8315168 == 8315168)
+  partT_18_rev_all_off_1 node_sum             : PASS (8315168 == 8315168)
+
+--- 2. All Four All-Off Runs Side by Side (Noise & Drift Check) ---
+  mean_all_off_4_runs  : 0.520985 ms / 1,000 nodes (520.985 us / 1,000 nodes)
+  mean_all_off_forward : 0.520904 ms / 1,000 nodes
+  mean_all_off_reverse : 0.521065 ms / 1,000 nodes
+  drift (rev / fwd)    : 1.000310
+
+  run_id                     | pass | setting   | node_sum | wall_s   | ms/1k_nodes | us/1k_nodes | ratio_vs_mean4
+  ---------------------------+------+-----------+----------+----------+-------------+-------------+---------------
+  partT_01_fwd_all_off_1     | fwd  | all_off_1 |  8315168 |   4.3534 |    0.523551 |     523.551 |      1.004927
+  partT_02_fwd_all_off_2     | fwd  | all_off_2 |  8315168 |   4.3094 |    0.518256 |     518.256 |      0.994763
+  partT_17_rev_all_off_2     | rev  | all_off_2 |  8315168 |   4.3106 |    0.518402 |     518.402 |      0.995044
+  partT_18_rev_all_off_1     | rev  | all_off_1 |  8315168 |   4.3549 |    0.523729 |     523.729 |      1.005267
+
+--- 3. All 18 Runs in Execution Order (Forward 01..09, Then Reverse 10..18) ---
+  run_id                     | pass | setting   | node_sum | wall_s   | ms/1k_nodes | us/1k_nodes | ratio_vs_mean4 | ratio_vs_pass_off
+  ---------------------------+------+-----------+----------+----------+-------------+-------------+----------------+------------------
+  partT_01_fwd_all_off_1     | fwd  | all_off_1 |  8315168 |   4.3534 |    0.523551 |     523.551 |       1.004927 |         1.005082
+  partT_02_fwd_all_off_2     | fwd  | all_off_2 |  8315168 |   4.3094 |    0.518256 |     518.256 |       0.994763 |         0.994918
+  partT_03_fwd_only_K4       | fwd  | only_K4   |  8080229 |   4.1831 |    0.517694 |     517.694 |       0.993684 |         0.993838
+  partT_04_fwd_only_S32      | fwd  | only_S32  |  8339315 |   4.2755 |    0.512688 |     512.688 |       0.984076 |         0.984228
+  partT_05_fwd_only_B1       | fwd  | only_B1   |  8548042 |   4.6411 |    0.542945 |     542.945 |       1.042152 |         1.042314
+  partT_06_fwd_only_S13      | fwd  | only_S13  |  8077984 |   4.1926 |    0.519010 |     519.010 |       0.996210 |         0.996364
+  partT_07_fwd_only_S10      | fwd  | only_S10  |  8314153 |   4.2984 |    0.516995 |     516.995 |       0.992342 |         0.992496
+  partT_08_fwd_only_B8       | fwd  | only_B8   |  8262696 |   4.5540 |    0.551154 |     551.154 |       1.057909 |         1.058073
+  partT_09_fwd_all_on        | fwd  | all_on    |  8035170 |   4.6687 |    0.581027 |     581.027 |       1.115249 |         1.115422
+  partT_10_rev_all_on        | rev  | all_on    |  8035170 |   4.7060 |    0.585671 |     585.671 |       1.124161 |         1.123987
+  partT_11_rev_only_B8       | rev  | only_B8   |  8262696 |   4.5581 |    0.551649 |     551.649 |       1.058858 |         1.058694
+  partT_12_rev_only_S10      | rev  | only_S10  |  8314153 |   4.3226 |    0.519913 |     519.913 |       0.997943 |         0.997788
+  partT_13_rev_only_S13      | rev  | only_S13  |  8077984 |   4.2178 |    0.522133 |     522.133 |       1.002204 |         1.002049
+  partT_14_rev_only_B1       | rev  | only_B1   |  8548042 |   4.6986 |    0.549671 |     549.671 |       1.055061 |         1.054898
+  partT_15_rev_only_S32      | rev  | only_S32  |  8339315 |   4.3395 |    0.520362 |     520.362 |       0.998805 |         0.998650
+  partT_16_rev_only_K4       | rev  | only_K4   |  8080229 |   4.2130 |    0.521391 |     521.391 |       1.000779 |         1.000624
+  partT_17_rev_all_off_2     | rev  | all_off_2 |  8315168 |   4.3106 |    0.518402 |     518.402 |       0.995044 |         0.994889
+  partT_18_rev_all_off_1     | rev  | all_off_1 |  8315168 |   4.3549 |    0.523729 |     523.729 |       1.005267 |         1.005111
+
+--- 4. Forward + Reverse Paired Means per Setting (Ratio to Mean of All 4 All-Off Runs) ---
+  setting   | node_sum | fwd_wall_s | rev_wall_s | mean_wall_s | fwd_ms/1k  | rev_ms/1k  | mean_ms/1k | mean_us/1k | ratio_vs_all_off
+  ----------+----------+------------+------------+-------------+------------+------------+------------+------------+-----------------
+  all_off_1 |  8315168 |     4.3534 |     4.3549 |      4.3542 |   0.523551 |   0.523729 |   0.523640 |    523.640 |        1.005097
+  all_off_2 |  8315168 |     4.3094 |     4.3106 |      4.3100 |   0.518256 |   0.518402 |   0.518329 |    518.329 |        0.994903
+  only_K4   |  8080229 |     4.1831 |     4.2130 |      4.1980 |   0.517694 |   0.521391 |   0.519542 |    519.542 |        0.997231
+  only_S32  |  8339315 |     4.2755 |     4.3395 |      4.3075 |   0.512688 |   0.520362 |   0.516525 |    516.525 |        0.991440
+  only_B1   |  8548042 |     4.6411 |     4.6986 |      4.6699 |   0.542945 |   0.549671 |   0.546308 |    546.308 |        1.048607
+  only_S13  |  8077984 |     4.1926 |     4.2178 |      4.2052 |   0.519010 |   0.522133 |   0.520571 |    520.571 |        0.999207
+  only_S10  |  8314153 |     4.2984 |     4.3226 |      4.3105 |   0.516995 |   0.519913 |   0.518454 |    518.454 |        0.995142
+  only_B8   |  8262696 |     4.5540 |     4.5581 |      4.5561 |   0.551154 |   0.551649 |   0.551402 |    551.402 |        1.058384
+  all_on    |  8035170 |     4.6687 |     4.7060 |      4.6873 |   0.581027 |   0.585671 |   0.583349 |    583.349 |        1.119705
+
+  SUMMARY all_on / all_off time-per-1000-nodes ratio (mean of 2 all_on / mean of 4 all_off): 1.119705
+  (forward all_on / forward all_off = 1.115422; reverse all_on / reverse all_off = 1.123987)
+  PART T OVERALL                              : PASS (1 == 1)
+done_utc: Fri Nov 20 02:24:17 PM UTC 2026
