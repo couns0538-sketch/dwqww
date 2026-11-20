@@ -1,0 +1,17 @@
+=== CARBON2 JOB 47 PREDICTION (COMMITTED ALONE BEFORE FIRST SEARCH OF PART P11) ===
+prediction_utc: Fri Nov 20 10:00:14 PM UTC 2026
+
+1. Part P11 (d) — Number of O positions (out of 200) changing node count with IdeaK4b alone under PC20 at depth 12:
+   - Point prediction: 199 of 200 positions change node count.
+   - Range that would prove me wrong: outside [180, 200] (i.e., < 180 of 200 positions changing node count).
+   - Basis: IdeaK4b subtracts IdeaK4b_Shrink = 32 cp from rfp_margin at non-PV, non-check nodes with depth <= RfpDepth (8) whenever (ss - 1)->static_eval < (ss - 3)->static_eval (both != ValueNone, which holds from ply >= 3 onward whenever the opponent had static evals two plies apart). Every depth-12 root search on the 200 balanced/UHO-like O openings traverses thousands of ply >= 3, depth <= 8 non-PV nodes, so shifting the RFP threshold by 32 cp alters pruning decisions in virtually every tree.
+
+2. Part M14 — IdeaK4b Elo on top of the bundle (IdeaB8b + IdeaB8b_Fast + HindsightDepth + IdeaK4b vs IdeaB8b + IdeaB8b_Fast + HindsightDepth, PC20, built-in evaluation, nodes=20000, 3,000 games on UHO lines 2,022,501..2,024,000):
+   - Point prediction: -5.0 Elo (for the +IdeaK4b side).
+   - Range that would prove me wrong: outside [-14.0, +4.0] Elo (i.e., measured Elo < -14.0 or > +4.0).
+   - Basis: Alone on 6b98f217 under S14 (TtPruneV2=false), K4b (Shrink=32) lost -4.53 +/- 1.58 Elo [-6.11, -2.95] over 82,000 games from over-aggressive reverse futility pruning. Under PC20, TtPruneV2=true already subtracts RfpMargin/3 (24 cp) on opponent-worsening nodes, and neither IdeaB8b (quiet move history ordering after RFP) nor HindsightDepth (ply-boundary depth adjustment) rescues refutations pruned before move generation by an additional 32-cp RFP margin cut. Stacking -32 cp onto TtPruneV2's -24 cp compounds RFP over-pruning.
+
+3. Part T3 — B / A wall-time ratio on Set A line L with the fast path (B = IdeaB8b + IdeaB8b_Fast + HindsightDepth, A = all off, on bundle10, 12 runs fwd + rev):
+   - Point prediction: 1.090 (B takes 1.090 times A's wall time).
+   - Range that would prove me wrong: outside [1.068, 1.115] (i.e., B / A wall-time ratio < 1.068 or > 1.115).
+   - Basis: Because IdeaB8b_Fast changes zero nodes, T3 has the exact deterministic node ratio measured in Job 44 Part T2: nodes_B / nodes_A = 112,503,041 / 107,124,743 = 1.050206. In T2 (without IdeaB8b_Fast), B / A wall time was 1.137204, implying a per-node time ratio of 1.137204 / 1.050206 = 1.082839 (+8.284%). In Job 45 Part P10(d), IdeaB8b_Fast removed 56.34% of IdeaB8b's extra per-node time (1.088499 -> 1.038636). Retaining ~44% of T2's +8.284% per-node overhead yields an expected per-node time ratio of ~1.0375, and 1.050206 * 1.0375 = 1.0896 (~1.090).
