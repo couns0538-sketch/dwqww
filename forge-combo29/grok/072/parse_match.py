@@ -8,7 +8,14 @@ finished = 0
 for line in text.splitlines():
     if line.startswith("Finished game "):
         finished += 1
-    if line.startswith("Score of ") or line.startswith("Elo difference") or "Elo difference" in line:
+    if (
+        line.startswith("Score of ")
+        or line.startswith("Results of ")
+        or line.startswith("Elo:")
+        or line.startswith("Games:")
+        or line.startswith("LOS:")
+        or "Elo difference" in line
+    ):
         print(line)
 print(f"finished_games {finished}")
 if "MATCH_EXIT:" in text:
