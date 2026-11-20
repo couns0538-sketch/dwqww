@@ -135,6 +135,12 @@ def main() -> int:
             if index % 25 == 0:
                 print(f"pos {index} nodes {nodes} sum {total}", flush=True)
         send("quit")
+        assert proc.stdin is not None and proc.stdout is not None
+        proc.stdin.close()
+        rest = proc.stdout.read()
+        if rest:
+            raw.write(rest)
+            raw.flush()
         print(f"SUM {total} POSITIONS {len(fens)}", flush=True)
 
     meta_path.write_text(
