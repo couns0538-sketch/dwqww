@@ -1,0 +1,16 @@
+Idea S5, seat 014. The plain engine does not do this. No EXISTS line.
+
+What was added, behind option IdeaS5 (check, default false):
+A node with remaining depth at least IdeaS5_MinDepth (default 4), and the side not in
+check, is a nothing-to-play node when a one-ply search of legal captures and checks
+does not beat the quiet evaluation by more than IdeaS5_Margin centipawns (default 40).
+The quiet evaluation and the probe both use Evaluator::evaluate_uncached, the engine's
+hand-crafted eval. That call does not write the hash and is not counted as a search node.
+A capture whose static exchange already wins more than the margin skips the probe: there
+is something to play. On a nothing-to-play node, a quiet move of a knight, bishop, rook,
+queen or king that raises that eval is ordered IdeaS5_Order points earlier (default 80000,
+above the check bonus of 12000 and ordinary history) and its late-move reduction loses
+IdeaS5_Less plies (default 1). Pawn moves, including pawn breaks, stay in the list and
+are not removed. With IdeaS5 false the probe is not called and no score or reduction changes.
+
+Spins, all defaulting to the values above: IdeaS5_Margin, IdeaS5_Less, IdeaS5_MinDepth, IdeaS5_Order.

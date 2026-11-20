@@ -20,8 +20,9 @@ def die(msg: str) -> None:
 
 
 class Engine:
-    def __init__(self, exe: str) -> None:
+    def __init__(self, exe: str, log_path: Path | None) -> None:
         self.exe = exe
+        self.log_path = log_path
         self.proc = subprocess.Popen(
             [exe],
             stdin=subprocess.PIPE,
@@ -36,14 +37,22 @@ class Engine:
         self.proc.stdin.write(line + "\n")
         self.proc.stdin.flush()
 
+    def note(self, line: str) -> None:
+        if self.log_path is None:
+            return
+        with self.log_path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+
     def read_until(self, done) -> list[str]:
         assert self.proc.stdout is not None
         lines: list[str] = []
         while True:
             line = self.proc.stdout.readline()
             if line == "":
+                self.note("engine closed stdout")
                 die("engine closed stdout")
             line = line.rstrip("\r\n")
+            self.note(line)
             lines.append(line)
             low = line.lower()
             for bad in BAD:
@@ -90,7 +99,9 @@ def main() -> None:
     options = [ln.strip() for ln in Path(opt_path).read_text().splitlines() if ln.strip()]
     fens = [fen_of(ln) for ln in Path(fenfile).read_text().splitlines() if ln.strip()]
     sha = hashlib.sha256(Path(exe).read_bytes()).hexdigest()
-    eng = Engine(exe)
+    log_path = Path(out_path + ".log")
+    log_path.write_text("")
+    eng = Engine(exe, log_path)
     eng.send("uci")
     uci_lines = eng.read_until(lambda line: line == "uciok")
     eng.ready()

@@ -1,0 +1,26 @@
+honesty B
+bench11 info string bench depth 11 nodes 312866 time 165 nps 1896157
+bench13 info string bench depth 13 nodes 862329 time 469 nps 1838654
+bench16 info string bench depth 16 nodes 3024920 time 2105 nps 1437016
+perft5 nodes 4865609
+honesty P no setoption
+bench11 info string bench depth 11 nodes 312866 time 162 nps 1931271
+bench13 info string bench depth 13 nodes 862329 time 448 nps 1924841
+bench16 info string bench depth 16 nodes 3024920 time 1426 nps 2121262
+perft5 nodes 4865609
+uci IdeaS5 lines
+option name IdeaS5 type check default false
+option name IdeaS5_Margin type spin default 40 min 0 max 400
+option name IdeaS5_Less type spin default 1 min 0 max 4
+option name IdeaS5_MinDepth type spin default 4 min 1 max 20
+option name IdeaS5_Order type spin default 80000 min 0 max 200000
+O off vs B differ 0 of 200 SUM	9500069 SUM	9500069
+G off vs B differ 0 of 353 SUM	18466239 SUM	18466239
+O on vs B differ 200 of 200 SUM	9500069 SUM	9620456
+asan sha256=1c3810ccf1820623c351bc1b581aada7ce927aedcea9a318c83662b2a753321c
+asan nm_asan_count=35
+asan G100 SUM	2085896
+asan clean error lines 0
+asan bug lines 2
+/tmp/grok014/bugsrc/src/uci.cpp:47:26: runtime error: load of address 0x5020000000d0 with insufficient space for an object of type 'int'
+==6142==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000d0 at pc 0x5626e7104547 bp 0x7fff51b04630 sp 0x7fff51b04620
