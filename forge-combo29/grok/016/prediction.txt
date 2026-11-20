@@ -1,0 +1,9 @@
+IdeaS13 on, S14, Threads 1, Hash 16, O depth 12 node sum.
+Predicted sum: 10200000
+Wrong if the sum is below 8000000 or above 14000000.
+Why: the baseline sum is 9500069. The switch credits a quiet non-pawn move only after a same-side pawn fail-high, then adds that history to ordering and may drop one ply of reduction. History is cleared before every position, so the change appears only inside one depth-12 search. I expect more nodes, because a shorter reduction adds nodes and the ordering bonus is small at this depth.
+
+Test match, IdeaS13 true versus false, both S14, Threads 1, Hash 16, 20000 nodes, openings O and G both colours, 1106 games.
+Predicted Elo of true versus false: +6
+Wrong if the point estimate is below -30 or above +40.
+Why: the credit is a small ordering hint for the move before a break. At 20000 nodes I expect a small gain, not a large one, and a loss is possible if the hint promotes moves that only happened to precede a break.
