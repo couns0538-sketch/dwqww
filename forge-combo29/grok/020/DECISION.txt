@@ -1,0 +1,15 @@
+IdeaS22, seat 020. The plain engine does not already do this. ProbCut is in
+src/search.cpp and already refuses to run while the side to move is in check.
+The new option refuses the whole ProbCut attempt (the shallow depth-4 proof and
+the qsearch filter in front of it) on the ply after a capture, and on the ply
+after a check has been answered. The margin line is unchanged.
+
+IdeaS22 is a check, default false. IdeaS22_Plies is a spin, default 1, range
+0 to 8. A capture, or a parent node that was in check, sets the counter to
+IdeaS22_Plies. Any other node decrements it. The refusal is the counter being
+above zero. When IdeaS22 is false the counter is not read, and the ProbCut
+condition is the old one.
+
+The in-check node itself is not the cooldown ply: ProbCut is already off there.
+The following ply, where the side to move is no longer in check, is the ply
+the idea names. A capture on that ply refreshes the counter instead of stacking.
