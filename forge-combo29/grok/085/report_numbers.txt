@@ -1,0 +1,141 @@
+HONESTY_B
+honesty exe B
+exe: /agent/repos/base/forge-combo29/build/forge
+sha256: e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name: Chess Engine Forge 6.4.24 candidate
+
+bench 11 -> nodes 312866 expected 312866 OK raw HONESTY_B_bench11.txt
+bench 13 -> nodes 862329 expected 862329 OK raw HONESTY_B_bench13.txt
+bench 16 -> nodes 3024920 expected 3024920 OK raw HONESTY_B_bench16.txt
+go perft 5 -> nodes 4865609 expected 4865609 OK raw HONESTY_B_perft5.txt
+ALL OK
+HONESTY_P
+honesty exe P
+exe: /agent/repos/work/forge-combo29/build/forge
+sha256: de22eb4496d657a107bc0aec4db8fdbb57fa86ccb3f820a7b71634198d9ae055
+id name: Chess Engine Forge 6.4.24 candidate
+
+bench 11 -> nodes 312866 expected 312866 OK raw HONESTY_P_bench11.txt
+bench 13 -> nodes 862329 expected 862329 OK raw HONESTY_P_bench13.txt
+bench 16 -> nodes 3024920 expected 3024920 OK raw HONESTY_P_bench16.txt
+go perft 5 -> nodes 4865609 expected 4865609 OK raw HONESTY_P_perft5.txt
+ALL OK
+O_B
+positions 200
+sum 9500069
+first3 41311 24872 28574
+G_B
+positions 353
+sum 18466239
+first3 37203 70845 144383
+O_OFF
+positions 200
+equal 200
+differ 0
+G_OFF
+positions 353
+equal 353
+differ 0
+O_ON
+positions 200
+equal 0
+differ 200
+pos 1 41311 30185
+pos 2 24872 24796
+pos 3 28574 39955
+pos 4 27838 41553
+pos 5 18020 18124
+pos 6 43043 39188
+pos 7 56414 67281
+pos 8 32317 48273
+pos 9 37995 34680
+pos 10 53959 63546
+pos 11 26257 31640
+pos 12 58746 41578
+pos 13 30949 65699
+pos 14 34274 52188
+pos 15 21125 25824
+pos 16 51393 55361
+pos 17 71168 59766
+pos 18 50554 70572
+pos 19 52621 55317
+pos 20 38831 43931
+... 180 more
+O_ON_SUM
+positions 200
+sum 9967809
+first3 30185 24796 39955
+UCI
+option name IdeaA4 type check default false
+option name IdeaA4_Divisor type spin default 8 min 1 max 1024
+option name IdeaA4_Cap type spin default 256 min 0 max 2000
+ASAN_NM
+35
+ASAN_G100
+positions 100
+sum 2065646
+first3 10921 11100 37927
+ASAN_SCRATCH_NM
+35
+ASAN_SCRATCH_HIT
+141:==26861==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000d0 at pc 0x55e4bb6749a3 bp 0x7ffc37853010 sp 0x7ffc37853000
+MATCH
+Results of IdeaA4on vs IdeaA4off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -10.37 +/- 10.48, nElo: -20.28 +/- 20.48
+LOS: 2.61 %, DrawRatio: 60.94 %, PairsRatio: 0.77
+Games: 1106, Wins: 327, Losses: 360, Draws: 419, Points: 536.5 (48.51 %)
+Ptnml(0-2): [15, 107, 337, 84, 10], WL/DD Ratio: 1.96
+--------------------------------------------------
+Finished match
+OWN_APPLY
+own_apply_check_exit:0
+PARTNER_APPLY
+partner_apply_check_exit:0
+PARTNER_HONESTY
+honesty partner exe
+exe: /agent/repos/partner/build/forge
+sha256: 25cb29353019821c7c46912ad496fe05fc651508573bd194ab9d7f41695a6138
+id name: Chess Engine Forge 6.4.24 candidate
+
+bench 11 -> nodes 312866 expected 312866 OK raw partner_HONESTY_bench11.txt
+bench 13 -> nodes 862329 expected 862329 OK raw partner_HONESTY_bench13.txt
+bench 16 -> nodes 3024920 expected 3024920 OK raw partner_HONESTY_bench16.txt
+go perft 5 -> nodes 4865609 expected 4865609 OK raw partner_HONESTY_perft5.txt
+ALL OK
+PARTNER_OFF
+left forge-combo29/grok/085/O_d12_B.nodes.txt n 200 sum 9500069
+right forge-combo29/grok/085/partner_O_d12_off.nodes.txt n 200 sum 9500069
+positions 200
+fen_or_index_mismatch 0
+node_differ 0
+node_equal 200
+PARTNER_ON
+left forge-combo29/grok/085/partner_035_p_on_O_d12.nodes n 200 sum 9759675
+right forge-combo29/grok/085/partner_O_d12_on.nodes.txt n 200 sum 9759675
+positions 200
+fen_or_index_mismatch 0
+node_differ 0
+node_equal 200
+PARTNER_MATCH
+Results of PartnerOn vs PartnerOff (20000 nodes, 1t, 16MB, R_positions.fens):
+Elo: 1.74 +/- 11.06, nElo: 4.37 +/- 27.80
+LOS: 62.09 %, DrawRatio: 78.33 %, PairsRatio: 0.97
+Games: 600, Wins: 262, Losses: 259, Draws: 79, Points: 301.5 (50.25 %)
+Ptnml(0-2): [3, 30, 235, 25, 7], WL/DD Ratio: 18.58
+--------------------------------------------------
+Finished match
+TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt stamps.txt | seat 085, idea 35, model Grok 4.7, 2026-11-20T07:55:07Z, token 75611273685
+2 honesty B | done | HONESTY_B.txt | ALL OK
+2 O depth 12 B | done | O_d12_B.sum.txt | positions 200 sum 9500069 first3 41311 24872 28574
+2 G depth 12 B | done | G_d12_B.sum.txt | positions 353 sum 18466239 first3 37203 70845 144383
+3 patch applies | done | idea.patch.txt own_apply_check.txt | own_apply_check_exit:0
+3 honesty P | done | HONESTY_P.txt | ALL OK
+3 off O and G | done | compare_O_off.txt compare_G_off.txt | O differ 0; G differ 0
+3 on O | done | compare_O_on.txt O_d12_P_on.sum.txt | differ 200; sum 9967809
+3 uci options | done | uci_options_IdeaA4.txt | option name IdeaA4 type check default false option name IdeaA4_Divisor type spin default 8 min 1 max 1024 option name IdeaA4_Cap type spin default 256 min 0 max 2000
+3 sanitizer | done | asan_nm_count.txt asan_scratch_hit.txt | nm 35 asan_errors 0
+3 match | done | match_result.txt match_on_off.pgn | Elo: -10.37 +/- 10.48, nElo: -20.28 +/- 20.48; Games: 1106, Wins: 327, Losses: 360, Draws: 419, Points: 536.5 (48.51 %)
+4 partner 035 | done | partner_compare_off.txt partner_compare_on.txt partner_match_r.log | off node_differ 0; on node_differ 0; Games: 600, Wins: 262, Losses: 259, Draws: 79, Points: 301.5 (50.25 %)
+5 report | done | REPORT.md RESULT.txt | written this step
