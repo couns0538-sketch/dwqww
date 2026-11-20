@@ -1,0 +1,31 @@
+Idea 44, IdeaK5. The move's history is added to the futility margin of quiet moves at low depth.
+
+EXISTS: no. Quiet futility in src/search.cpp uses
+static_eval + FutilityBase + FutilityMultiplier * lmr_depth
+and does not read history. Capture futility can add history/8, but only when
+CaptureFutilityBase > 0, and that default is 0, so it is off. This idea is the
+quiet-move margin, which is on today.
+
+What changes when IdeaK5 is true:
+the same quiet non-check futility test adds history / IdeaK5_Divisor to the
+margin, and only when lmr_depth <= IdeaK5_Depth. history is the quiet-history
+sum already computed for ordering (main history plus continuation histories).
+A positive history makes the margin larger, so a quiet that has been cutting
+off is pruned less often. A negative history makes the margin smaller, so a
+quiet that has been failing is pruned sooner. Integer division, toward zero.
+
+Defaults and why:
+IdeaK5_Divisor = 64 (spin, min 1, max 1024). Under S14 one ply of late-move
+reduction is about history/5643, and one ply of this margin is FutilityMultiplier
+110. 5643/110 is about 51, so 64 puts one ply of history on about one ply of
+margin.
+IdeaK5_Depth = 5 (spin, min 0, max 15). The existing futility window goes to
+FutilityDepth 7. "Low depth" is the stricter cap: history is not added on the
+two deepest plies of that window, where the plain margin is already 760 to 870
+and a history term rarely decides.
+
+When IdeaK5 is false the added term is not computed and the margin expression
+is the one the engine uses today. QuietExtinction's later tight margin is not
+touched. That option stays off, and S14 does not turn it on.
+
+The check is the only switch. The spins are read only inside the true branch.
