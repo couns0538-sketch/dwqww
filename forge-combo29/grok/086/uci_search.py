@@ -80,6 +80,9 @@ def main() -> int:
             line = proc.stdout.readline()
             if line == "":
                 err = proc.stderr.read() if proc.stderr is not None else ""
+                if err:
+                    log.append("---- stderr ----")
+                    log.extend(err.splitlines())
                 raw_path.write_text("\n".join(log) + "\n")
                 raise SystemExit("engine closed stdout\n" + err)
             line = line.rstrip("\n")
@@ -129,7 +132,7 @@ def main() -> int:
     rest = proc.stdout.read()
     if rest:
         log.extend(rest.splitlines())
-    proc.wait(timeout=30)
+    proc.wait(timeout=60)
     if proc.stderr is not None:
         err = proc.stderr.read()
         if err:

@@ -1,0 +1,19 @@
+IdeaA5, seat 086. The lock returns the static eval from reverse futility
+(search.cpp, the block commented "Reverse futility pruning"). It does not
+already return (eval + beta) / 2. EXISTS: no.
+
+Switch: UCI check IdeaA5, default false.
+Number: UCI spin IdeaA5_Divisor, default 2, min 2, max 8.
+On, the same prune returns (eval + beta) / IdeaA5_Divisor. If that integer
+is below beta, beta is returned so the line stays a cutoff. With the default
+divisor 2 and the lock's Rfp margins the midpoint is already above beta, so
+the clamp does not change the default-on value. Off returns eval on the
+same condition as the lock.
+
+The divisor is unused while the check is false. S14 still sets the existing
+spins; those calls refresh the reduction table either way.
+
+Sanitizer scratch: a copy of this tree under /tmp/forge-scratch, not in the
+patch. On the FEN in asan_probe.fen only, apply_position reads index 8 of a
+4-int heap array. The same uci_search.py runner reports the AddressSanitizer
+line. That read is not in idea.patch.txt.
