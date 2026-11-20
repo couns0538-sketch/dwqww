@@ -1,0 +1,16 @@
+seat 014 idea 14 id S5 option IdeaS5
+written before any measurement of the patched engine
+
+O depth 12, IdeaS5 true, S14, Threads 1, Hash 16, 200 positions:
+predicted sum 11200000
+proved wrong if the sum is below 7500000 or above 18000000
+
+test match, IdeaS5 true versus IdeaS5 false, both S14, Threads 1, Hash 16,
+20000 nodes, openings O and G, both colours, 1106 games:
+predicted elo +8
+proved wrong if the point estimate is below -60 or above +60
+
+why: the switch only reorders and reduces a subset of quiet piece moves, and
+the probe itself is not counted as search nodes. The depth-12 sum should move
+off 9500069 but stay in the same order of magnitude. The match should stay
+near even, because the change is an ordering preference on quiet nodes.
