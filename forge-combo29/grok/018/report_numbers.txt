@@ -1,0 +1,58 @@
+HONESTY_B
+info string bench depth 11 nodes 312866 time 195 nps 1604441
+info string bench depth 13 nodes 862329 time 532 nps 1620919
+info string bench depth 16 nodes 3024920 time 1496 nps 2022005
+nodes 4865609
+HONESTY_P
+info string bench depth 11 nodes 312866 time 169 nps 1851278
+info string bench depth 13 nodes 862329 time 446 nps 1933473
+info string bench depth 16 nodes 3024920 time 1447 nps 2090476
+nodes 4865609
+COMPARE
+compare_off_O.txt left 200 right 200 missing 0 differ 0
+compare_off_G.txt left 353 right 353 missing 0 differ 0
+compare_on_O.txt left 200 right 200 missing 0 differ 165
+O_FIRST3
+41311 24872 28574
+O_SUMS
+b_O_d12.tsv SUM	9500069
+p_off_O_d12.tsv SUM	9500069
+p_on_O_d12.tsv SUM	9482592
+b_G_d12.tsv SUM	18466239
+p_off_G_d12.tsv SUM	18466239
+ASAN
+hits 0
+depth 10
+positions 100
+asan_symbols 35
+MATCH
+Results of s16on vs s16off (20000 nodes, 1t, 16MB, openings_OG.epd):
+Elo: -3.77 +/- 9.66, nElo: -8.00 +/- 20.48
+Games: 1106, Wins: 333, Losses: 345, Draws: 428, Points: 547.0 (49.46 %)
+PARTNER_HONESTY
+info string bench depth 11 nodes 312866 time 176 nps 1777647
+info string bench depth 13 nodes 862329 time 441 nps 1955394
+info string bench depth 16 nodes 3024920 time 1435 nps 2107958
+nodes 4865609
+PARTNER_COMPARE
+partner_compare_off_O.txt left 200 right 200 missing 0 differ 0
+partner_compare_on_O.txt mine 200 sum 9515926 theirs 200 claimed_sum 9515926 missing 0 differ 0
+partner_apply_check.txt EXIT:0
+PARTNER_MATCH
+Results of s16on vs s16off (20000 nodes, 1t, 16MB, R.epd):
+Elo: 6.95 +/- 10.25, nElo: 18.85 +/- 27.80
+Games: 600, Wins: 271, Losses: 259, Draws: 70, Points: 306.0 (51.00 %)
+STEPS
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat 018, idea 18, model Grok 4.7, 2026-11-20T07:52:11Z, token 2217374222915
+2 honesty | done | HONESTY_B.txt honesty_p_*.txt | see HONESTY_B and HONESTY_P above
+2 baseline | done | b_O_d12.tsv b_G_d12.tsv | SUM	9500069		 ; SUM	18466239		
+3 apply | done | apply_check.txt idea.patch.txt | APPLY_CHECK_EXIT:0
+3 off | done | compare_off_O.txt compare_off_G.txt | left 200 right 200 missing 0 differ 0 ; left 353 right 353 missing 0 differ 0
+3 on | done | compare_on_O.txt p_on_O_d12.tsv | left 200 right 200 missing 0 differ 165 ; SUM	9482592		
+3 uci | done | uci_p.txt | option name IdeaS16 type check default false | option name IdeaS16_OrderBonus type spin default 4000 min 0 max 30000 | option name IdeaS16_ReductionCut type spin default 1 min 0 max 4
+3 sanitizer | done | asan_G100_d10.meta asan_G100_hits.txt asan_scratch.raw | asan_symbols 35 hits 0
+3 match | done | match_OG.log | elo -3.77 err 9.66
+4 partner | done | partner_apply_check.txt partner_compare_off_O.txt partner_compare_on_O.txt partner_match_R.log | EXIT:0 ; left 200 right 200 missing 0 differ 0 ; mine 200 sum 9515926 theirs 200 claimed_sum 9515926 missing 0 differ 0
+RESULT_FIELDS
+elo=-3.77 err=9.66 on_differs=165 of 200
