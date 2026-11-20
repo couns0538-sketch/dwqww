@@ -158,7 +158,13 @@ def main():
         log.flush()
 
     send("quit")
-    proc.wait(timeout=30)
+    while True:
+        line = proc.stdout.readline()
+        if line == "":
+            break
+        log.write(line)
+        log.flush()
+    proc.wait(timeout=60)
     log.close()
 
     with open(meta_path, "w", encoding="utf-8") as meta:
