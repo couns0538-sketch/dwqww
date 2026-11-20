@@ -1,0 +1,152 @@
+diff -ruN a/include/forge/eval.hpp b/include/forge/eval.hpp
+--- a/include/forge/eval.hpp	2026-11-20 21:07:54.214220955 +0000
++++ b/include/forge/eval.hpp	2026-11-20 21:07:55.906220955 +0000
+@@ -52,6 +52,18 @@
+ // Returns false for every other position and leaves `score` untouched.
+ [[nodiscard]] bool dead_material_score(const Board& board, int& score);
+ 
++// UCI check option "LoneKingGuard". Off: evaluation is unchanged.
++extern bool lone_king_guard_enabled;
++
++// Fixed value for a lone king against mating material (file 39's K1, exact
++// integers): 2000 + the stronger side's material + a drive of the lone king
++// to the edge (to the bishops' corner for knight plus same-colour bishops)
++// and of the kings together. +V when the stronger side is to move, -V when
++// the lone side is to move, 0 when the lone side is to move, is not in check
++// and has no legal move (stalemate). Returns false for every other position
++// and leaves `score` untouched.
++[[nodiscard]] bool lone_king_guard_score(const Board& board, int& score);
++
+ class Evaluator {
+ public:
+     // Search-local state only: public evaluation and tuning always recompute.
+diff -ruN a/src/eval.cpp b/src/eval.cpp
+--- a/src/eval.cpp	2026-11-20 21:07:54.210220955 +0000
++++ b/src/eval.cpp	2026-11-20 21:08:02.318220955 +0000
+@@ -564,6 +564,63 @@
+     return true;
+ }
+ 
++bool lone_king_guard_enabled = false;
++
++bool lone_king_guard_score(const Board& board, int& score) {
++    // The lone side L has only its king; the other side S is scored.
++    const bool white_lone = (board.pieces(White, Pawn) | board.pieces(White, Knight) | board.pieces(White, Bishop) |
++                             board.pieces(White, Rook) | board.pieces(White, Queen)) == 0;
++    const bool black_lone = (board.pieces(Black, Pawn) | board.pieces(Black, Knight) | board.pieces(Black, Bishop) |
++                             board.pieces(Black, Rook) | board.pieces(Black, Queen)) == 0;
++    if (white_lone == black_lone) return false;
++    const Color lone = white_lone ? White : Black;
++    const Color strong = opposite(lone);
++    const int queens = popcount(board.pieces(strong, Queen));
++    const int rooks = popcount(board.pieces(strong, Rook));
++    const int bishops = popcount(board.pieces(strong, Bishop));
++    const int knights = popcount(board.pieces(strong, Knight));
++    const int pawns = popcount(board.pieces(strong, Pawn));
++    const Bitboard strong_bishops = board.pieces(strong, Bishop);
++    const bool heavy = queens > 0 || rooks > 0;
++    const bool both_colours = (strong_bishops & DarkSquares) != 0 && (strong_bishops & LightSquares) != 0;
++    // Guarded: a queen or a rook (anything else allowed), or, with no queen,
++    // rook or pawn, bishop+knight or bishops on both square colours.
++    if (!heavy && (pawns > 0 || (bishops == 0 || knights == 0) && !both_colours)) return false;
++    const int material = 900 * queens + 500 * rooks + 300 * (bishops + knights) + 100 * pawns;
++    const int lone_sq = board.king_square(lone);
++    const int strong_sq = board.king_square(strong);
++    const int lf = file_of(lone_sq);
++    const int lr = rank_of(lone_sq);
++    int edge = lf < lr ? lf : lr;
++    const int fe = 7 - lf < 7 - lr ? 7 - lf : 7 - lr;
++    if (fe < edge) edge = fe;
++    const int kd = square_distance(lone_sq, strong_sq);
++    // Corner case: no queen, no rook, a knight, and all bishops on one colour.
++    const bool corner_case = !heavy && knights > 0 && !both_colours;
++    int push;
++    if (corner_case) {
++        const bool dark = (strong_bishops & DarkSquares) != 0;
++        const int corner_a = dark ? 0 : 56;   // a1 or a8
++        const int corner_b = dark ? 63 : 7;   // h8 or h1
++        const int cd = std::min(square_distance(lone_sq, corner_a), square_distance(lone_sq, corner_b));
++        push = 50 * (7 - cd) + 20 * (7 - kd);
++    } else {
++        push = 100 * edge + 20 * (7 - kd);
++    }
++    const int value = 2000 + material + push;
++    if (board.side_to_move() == lone) {
++        // Stalemate: the lone side to move, not in check, with no legal move.
++        if (!board.in_check() && board.legal_moves().size() == 0) {
++            score = 0;
++            return true;
++        }
++        score = -value;
++    } else {
++        score = value;
++    }
++    return true;
++}
++
+ Evaluator::Evaluator() : pawn_cache_(PawnCacheSize) {}
+ 
+ void Evaluator::clear() {
+@@ -584,6 +641,13 @@
+     // evaluator so the searcher's pawn cache, hash and history stay untouched.
+     EvalComponents parts;
+     parts.in_check = board.in_check();
++    if (lone_king_guard_enabled) {
++        int fixed = 0;
++        if (lone_king_guard_score(board, fixed)) {
++            parts.total = fixed;
++            return parts;
++        }
++    }
+     if (dead_material_enabled) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) {
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-20 21:07:54.214220955 +0000
++++ b/src/search.cpp	2026-11-20 21:08:03.370220955 +0000
+@@ -1175,6 +1175,10 @@
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     // Score recognized endings before any accumulator refresh or network call.
++    if (lone_king_guard_enabled) {
++        int fixed = 0;
++        if (lone_king_guard_score(board, fixed)) return fixed;
++    }
+     if (dead_material_enabled) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+@@ -1289,6 +1293,10 @@
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
++    if (lone_king_guard_enabled) {
++        int fixed = 0;
++        if (lone_king_guard_score(board, fixed)) return fixed;
++    }
+     if (dead_material_enabled) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-20 21:07:54.214220955 +0000
++++ b/src/uci.cpp	2026-11-20 21:08:05.254220955 +0000
+@@ -343,6 +343,7 @@
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
++                         "option name LoneKingGuard type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+@@ -541,6 +542,12 @@
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "LoneKingGuard") {
++                if (value_text != "true" && value_text != "false") note_invalid();
++                else if (forge::lone_king_guard_enabled != (value_text == "true")) {
++                    forge::lone_king_guard_enabled = value_text == "true";
++                    searcher.clear_hash();
++                }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
