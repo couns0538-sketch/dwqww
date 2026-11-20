@@ -1,0 +1,62 @@
+=================================================================
+==6372==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000001090 at pc 0x55a9d10f852e bp 0x7fd7b7df4ae0 sp 0x7fd7b7df4ad0
+READ of size 4 at 0x502000001090 thread T1
+    #0 0x55a9d10f852d in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/asan-scratch/forge+0x5d552d) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #1 0x55a9d10fb0aa in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/asan-scratch/forge+0x5d80aa) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #2 0x55a9d1151952 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/asan-scratch/forge+0x62e952) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #3 0x7fd7be4ecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #4 0x7fd7be85ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #5 0x7fd7bd89cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #6 0x7fd7bd929ecb  (/lib/x86_64-linux-gnu/libc.so.6+0x129ecb) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+
+0x502000001090 is located 16 bytes after 16-byte region [0x502000001070,0x502000001080)
+allocated by thread T1 here:
+    #0 0x7fd7be8fe548 in operator new(unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:95
+    #1 0x55a9d10e5e5d in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (/tmp/asan-scratch/forge+0x5c2e5d) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #2 0x55a9d10fb0aa in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) (/tmp/asan-scratch/forge+0x5d80aa) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #3 0x55a9d1151952 in forge::uci_loop(std::istream&)::{lambda()#3}::operator()() (/tmp/asan-scratch/forge+0x62e952) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #4 0x7fd7be4ecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #5 0x7fd7be85ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #6 0x7fd7bd89cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+
+Thread T1 created by T0 here:
+    #0 0x7fd7be8f51f9 in pthread_create ../../../../src/libsanitizer/asan/asan_interceptors.cpp:245
+    #1 0x7fd7be4eceb0 in std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (/lib/x86_64-linux-gnu/libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 0x55a9d116aa03 in forge::uci_loop(std::istream&) (/tmp/asan-scratch/forge+0x647a03) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+    #3 0x7fd7bd82a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x7fd7bd82a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #5 0x55a9d0ed4924 in _start (/tmp/asan-scratch/forge+0x3b1924) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/tmp/asan-scratch/forge+0x5d552d) (BuildId: be30d781d72e1a5cf357342bcd62cd24680bddbf) in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+Shadow bytes around the buggy address:
+  0x502000000e00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000e80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000f00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000f80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001000: fa fa 00 fa fa fa 00 fa fa fa 00 fa fa fa 00 00
+=>0x502000001080: fa fa[fa]fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==6372==ABORTING
