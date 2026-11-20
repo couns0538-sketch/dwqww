@@ -1,0 +1,10 @@
+O depth 12 with IdeaS33 true, S14, Threads 1, Hash 16.
+Predicted node sum: 12400000
+Wrong if the sum is below 8000000 or above 20000000.
+A sum of 9500069 would mean the switch did not change the search.
+
+Test match, IdeaS33 true against IdeaS33 false, both S14, Threads 1, Hash 16, 20000 nodes, 1106 games.
+Predicted Elo: +6
+Wrong if Elo is below -30 or above +35.
+
+Why this number: the stock null reduction adds up to 3 plies when (eval - beta) is large. IdeaS33 drops that term and adds plies only while the static margin is thin (none once the margin reaches IdeaS33_Max * IdeaS33_Divisor = 240 centipawns). Comfortable null probes are therefore searched deeper, and a miss of at most 40 centipawns adds one ply to the real-move search. Depth 12 never enters the depth-14 verification, so that part of the idea is idle in this sum. The match guess is a small gain, because a thin cutoff is reduced harder and a fat one is searched with more of its depth. A loss past -30 would mean the inverted margin term is dropping tactics the old reduction kept.
