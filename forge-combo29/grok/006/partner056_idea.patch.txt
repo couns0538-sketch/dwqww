@@ -1,0 +1,104 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..f46ab6d8e 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -304,6 +304,7 @@ extern bool AspCappedReopen;         // root fail: capped reopen, or full open w
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool IdeaS34;                 // front-loaded cutoff-count reduction (false = today's step)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..e0d5703e5 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,6 +75,13 @@ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++// IdeaS34: front-loaded steps of the cutoff-count term. Off leaves today's path.
++bool IdeaS34 = false;
++int IdeaS34_EaseZero = 2;
++int IdeaS34_EaseMid = 1;
++int IdeaS34_Couple = 2;
++int IdeaS34_Full = 4;
++int IdeaS34_NoTt = 2;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -137,6 +144,11 @@ const std::vector<Parameter>& parameters() {
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"IdeaS34_EaseZero", &IdeaS34_EaseZero, 0, 8},
++        {"IdeaS34_EaseMid", &IdeaS34_EaseMid, 0, 8},
++        {"IdeaS34_Couple", &IdeaS34_Couple, 0, 32},
++        {"IdeaS34_Full", &IdeaS34_Full, 0, 32},
++        {"IdeaS34_NoTt", &IdeaS34_NoTt, 1, 8},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -1998,7 +2010,17 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (tt_capture && quiet) r += 1;
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++            // IdeaS34 eases the reduction while this ply's child cutoffs are still
++            // few, and removes that ease once they reach Full. Off: the historical
++            // single step (one more ply after LmrCutoffThreshold) is unchanged.
++            // A shallow score above alpha still restores the omitted depth below.
++            if (tune::IdeaS34) {
++                const int cuts = (ss + 1)->cutoff_count;
++                if (cuts < tune::IdeaS34_Couple) r -= tune::IdeaS34_EaseZero;
++                else if (cuts < tune::IdeaS34_Full) r -= tune::IdeaS34_EaseMid;
++            } else if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) {
++                r += 1;
++            }
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+@@ -2050,7 +2072,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+                 if (score >= beta) {
+-                    ++ss->cutoff_count;
++                    // A cutoff with no transposition move counts as IdeaS34_NoTt
++                    // (default 2). Off, every cutoff still counts as one.
++                    if (tune::IdeaS34 && !(best_move == tt_move)) ss->cutoff_count += tune::IdeaS34_NoTt;
++                    else ++ss->cutoff_count;
+                     break;
+                 }
+                 alpha = score;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..55bf00a8f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaS34 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaS34") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,7 +415,8 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
+-                                                        : &forge::tune::TmFinishIteration;
++                             : name == "TmFinishIteration" ? &forge::tune::TmFinishIteration
++                                                          : &forge::tune::IdeaS34;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
