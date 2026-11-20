@@ -1,0 +1,112 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..a611caac1 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,8 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS22;                 // refuse ProbCut for a cooldown after a capture or a check (false = off)
++extern int IdeaS22_Plies;            // cooldown length in plies, counting the ply after the tactic
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+@@ -409,6 +411,9 @@ struct SearchStack {
+     // Plies the parent withheld when it searched the move that reached this node.
+     // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+     int withheld_plies = 0;
++    // Plies of ProbCut refusal still left, including this node. Stays 0 unless
++    // IdeaS22 is on. The search writes it at node entry and reads it only then.
++    int tactic_cooldown = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..5a54c1877 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,8 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS22 = false;
++int IdeaS22_Plies = 1;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS22_Plies", &IdeaS22_Plies, 0, 8},
+     };
+     return table;
+ }
+@@ -1576,6 +1579,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
++    // IdeaS22: one-ply cooldown after a capture, and one ply after a check has
++    // been answered (this node is no longer in check; ProbCut already skips the
++    // in-check node). A new capture or a new answered check refreshes the
++    // counter. The option is read first, so the off path does not touch it.
++    if (tune::IdeaS22) {
++        int cool = 0;
++        if (!root_node) {
++            const Move prev = (ss - 1)->current_move;
++            const bool after_capture = !prev.is_none() && prev.is_capture();
++            const bool after_check = (ss - 1)->in_check;
++            if (after_capture || after_check) cool = tune::IdeaS22_Plies;
++            else if ((ss - 1)->tactic_cooldown > 0) cool = (ss - 1)->tactic_cooldown - 1;
++        }
++        ss->tactic_cooldown = cool;
++    }
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
+@@ -1743,8 +1761,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
++        // IdeaS22 refuses that shallow proof during the cooldown. The margin
++        // formula is the one above either way. Off, the refusal is false and
++        // the depth test is the same one as before.
++        const bool idea_s22_refuse = tune::IdeaS22 && ss->tactic_cooldown > 0;
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+-        if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
++        if (!idea_s22_refuse && depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+@@ -2338,6 +2360,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
++        ss.tactic_cooldown = 0;
+         ss.null_move_allowed = true;
+         ss.arrival_index = 0;
+         ss.killers = {};
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..4cdc21b87 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS22 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -387,6 +388,9 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaS22") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS22 = value_text == "true";
++                else note_invalid();
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
