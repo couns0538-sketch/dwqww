@@ -5,8 +5,8 @@
 set -u
 S=$(cat ~/grok_seat.txt)
 cd "$(cat ~/grok_repo.txt)"
-BOOK="$1"
-PREFIX="$2"
+BOOK=$(readlink -f "$1")
+PREFIX=$(readlink -f "$2")
 EXE="${3:-/tmp/forge-P/forge}"
 OPTION="${4:-IdeaS20}"
 FC=/tmp/fastchess/fastchess
