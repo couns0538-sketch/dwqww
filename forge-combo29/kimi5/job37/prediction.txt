@@ -1,0 +1,38 @@
+# kimi5 job 37 prediction (before Step 4; never edited)
+# Base: patched r15d build at defaults == r15d (K3 proven this run): O sum 8,315,168 (200), G sum 17,611,204 (353).
+# Runs: every NEW option alone at default -/+ one spec step, PC20, Threads 1, Hash 16, depth 12, O first then G.
+# ALIVE/DEAD by job 35's rule: ALIVE = at least one position's node count changes on any of the four runs.
+
+## ALIVE/DEAD for the 20 new options
+LmpNotImprovingDiv        ALIVE
+HistoryBonusOffset        ALIVE
+TtAgePenalty              DEAD   (16 MB hash stays near-empty at depth-12 searches; replacement rarely evicts)
+TtStoreDepthSlack         ALIVE  (proven already by K6(c): value 3 moves the O sum to 8,630,133)
+QuietCheckBonus           ALIVE
+CaptureValueWeight        ALIVE
+PromoQueenScore           ALIVE
+PromoUnderScore           ALIVE  (K6(a): -4000 moves the O sum by +79 nodes; G carries far more promotions)
+NoisyValueWeight          ALIVE
+NoisyMoverDiv             ALIVE
+CorrectionClampDiv        ALIVE
+CorrectionWeightCap       ALIVE
+ContHistBack4Div          ALIVE
+SingularExtPlies          ALIVE
+SingularTtCutExt          ALIVE  (K6(b): -1 gives ratio 1.0696)
+SingularCutNodeExt        ALIVE
+CheckExtPlies             ALIVE
+LmrFullDepthMoves         ALIVE
+LmrFullDepthMovesRoot     ALIVE
+AspDeltaGrowAdd           ALIVE
+=> 19 ALIVE, 1 DEAD (TtAgePenalty)
+
+## The five biggest O-sum movers (option, side, ratio range to the base sum)
+1. LmpNotImprovingDiv  minus (divisor 1: the not-improving lmp threshold doubles)   ratio [1.25, 1.80]
+2. LmrFullDepthMoves   minus (0: LMR from the first move on)                        ratio [0.72, 0.92]
+3. SingularTtCutExt    plus  (-1; K6(b) measured 1.0696 before this prediction)     ratio [1.05, 1.09]
+4. TtStoreDepthSlack   minus (3; K6(c) measured 1.0379 before this prediction)      ratio [1.02, 1.06]
+5. SingularExtPlies    minus (0: singular extension off)                            ratio [0.88, 0.97]
+
+## Best moves
+Of the 20 new options, how many change the best move on at least 50 of the 200 O positions
+on either side (minus or plus run): [4, 9]
