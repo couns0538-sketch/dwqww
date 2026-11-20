@@ -1,0 +1,17 @@
+Idea B8, threat-role memory. Seat 078. The plain engine does not do this.
+
+EXISTS: no. ThreatHistory in src/search.cpp is the cheaper-attacker from-to table (idea S28) and it defaults off. There is no statistic indexed by victim type, attacker type, and the quiet's role.
+
+What I built, behind option IdeaB8 (check, default false):
+- A threat is the dearest of our knights, bishops, rooks, or queens that a cheaper enemy piece attacks. The attacker kept is the cheapest, lowest square on a tie. Kings are not attackers. Pawns are not victims.
+- Each quiet in that position gets one role, first match: 0 the attacked piece moves, 1 another piece steps onto the between-ray of a sliding attacker, 2 the quiet attacks the attacker, 3 the quiet attacks an enemy piece dearer than the victim, 4 none.
+- The statistic is [side][victim type][attacker type][role]. It is added to the quiet history used for ordering, history pruning, and late-move reduction, scaled by IdeaB8_Weight / 1024. Default weight 1024, so one stored point is one history point.
+- It is updated with the usual history bonus when that quiet is the cutoff or the new best move, and with half a bonus when the child's static eval is at least IdeaB8_Swing centipawns worse for the opponent than the parent's static eval. Default swing 48.
+- With no such threat, the bonus is 0 and nothing is written, so continuation history is unchanged.
+- This engine has no piece-value bonus for stepping off an attacked square (quiet scores are history, the optional ThreatHistory table, and 12000 for a direct check). There was nothing to remove.
+- IdeaB8 false returns before any of that, so the added term is 0 and the updates do not run.
+
+Spin options: IdeaB8_Weight default 1024 (0..4096), IdeaB8_Swing default 48 (0..500).
+Seed for any random choice: 7801.
+S14 is sent in the brief's order, then Threads 1, then Hash 16.
+The static step-off bonus is absent, so "remove it" does not change a number.
