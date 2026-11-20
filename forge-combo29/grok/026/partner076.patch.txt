@@ -1,0 +1,113 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..ab073f99b 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -295,6 +295,9 @@ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correctio
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool IdeaS36;                 // root quiet-move shift on an aspiration re-search (false = off)
++extern int IdeaS36_FailLow;          // plies less reduction for later root quiets after a fail-low
++extern int IdeaS36_FailHigh;         // plies more reduction for later root quiets after a fail-high
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -505,6 +508,9 @@ private:
+     // Set only when the node budget itself trips should_stop. A clock stop or an
+     // external stop leaves this false so those paths keep the partial root move.
+     bool stopped_by_nodes_ = false;
++    // IdeaS36. Cleared at the start of every root iteration. Set only for the
++    // re-search after the aspiration score leaves the window.
++    int root_quiet_shift_ = 0;
+     Worker* parent_worker_ = nullptr;
+     std::uint64_t extra_nodes_ = 0;
+ #if FORGE_SPD_TT_NOTLS
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..99252ef24 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -95,6 +95,9 @@ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool IdeaS36 = false;
++int IdeaS36_FailLow = 1;
++int IdeaS36_FailHigh = 1;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS36_FailLow", &IdeaS36_FailLow, 0, 8},
++        {"IdeaS36_FailHigh", &IdeaS36_FailHigh, 0, 8},
+     };
+     return table;
+ }
+@@ -2000,6 +2005,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            // IdeaS36. Later root quiets only: this block already starts at the
++            // third root move, and the quiet test leaves captures alone. A
++            // negative result is clamped to 0 so the shift cannot extend.
++            if (tune::IdeaS36 && root_node && quiet && root_quiet_shift_ != 0) {
++                r += root_quiet_shift_;
++                if (r < 0) r = 0;
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2391,6 +2403,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     }
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
++        root_quiet_shift_ = 0;
+         // Sample only while a game clock is running and the option is on.
+         // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
+         const bool finish_sampling =
+@@ -2415,6 +2428,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 failed_window = true;
++                if (tune::IdeaS36) root_quiet_shift_ = -tune::IdeaS36_FailLow;
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
+                     alpha = capped_fail_low(iteration_score);
+@@ -2424,6 +2438,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 }
+             } else if (iteration_score >= beta) {
+                 failed_window = true;
++                if (tune::IdeaS36) root_quiet_shift_ = tune::IdeaS36_FailHigh;
+                 if (tune::AspCappedReopen) {
+                     beta = capped_fail_high(iteration_score);
+                     if (iteration_score >= beta) break;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..914c579ec 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name IdeaS36 type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -401,13 +402,14 @@ int uci_loop(std::istream& in) {
+                     searcher.clear_hash();
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+-                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "ThreatHistory" || name == "IdeaS36" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
++                             : name == "IdeaS36" ? &forge::tune::IdeaS36
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
