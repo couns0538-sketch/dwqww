@@ -1,0 +1,65 @@
+option	file	r15d line	old text	new text
+(registration)	src/search.cpp	134	int LmrCutoffThreshold = 3;	+ 59 option rows
+(registration)	src/search.cpp	212	{"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},	+ 59 option rows
+(registration)	include/forge/search.hpp	285	extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)	+ 59 option decls
+TtNear50Clock	src/search.cpp	1797,1954	const bool near50 = board.halfmove_clock() >= 90;	const bool near50 = board.halfmove_clock() >= tune::TtNear50Clock;
+TtNear50Clock	src/search.cpp	2000	board.halfmove_clock() < 90 &&	board.halfmove_clock() < tune::TtNear50Clock &&
+ImprovingLookback	src/search.cpp	2033	if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;	if ((ss - tune::ImprovingLookback)->static_eval != ValueNone) improving = ss->static_eval > (ss - tune::ImprovingLookback)->static_eval;
+RfpWorseningDrop	src/search.cpp	2086	ss->static_eval + (ss - 1)->static_eval > 2	ss->static_eval + (ss - 1)->static_eval > tune::RfpWorseningDrop
+RfpWorseningDiv	src/search.cpp	2087	? tune::RfpMargin / 3 : 0;	? tune::RfpMargin / tune::RfpWorseningDiv : 0;
+NullGateSlope,NullGateOffset	src/search.cpp	2094	ss->static_eval >= beta - 24 * depth + 180 &&	ss->static_eval >= beta - tune::NullGateSlope * depth + tune::NullGateOffset &&
+NullEvalReductionCap	src/search.cpp	2102	std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);	std::min((eval - beta) / tune::NullMoveEvalDivisor, tune::NullEvalReductionCap);
+NullVerifyDepth	src/search.cpp	2124	depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);	depth < tune::NullVerifyDepth && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+NullVerifyDepth	src/search.cpp	2125	if (depth < 14 && !threat_gate) {	if (depth < tune::NullVerifyDepth && !threat_gate) {
+ProbcutImprovingDiscount	src/search.cpp	2146	const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;	const int probcut_beta = beta + tune::ProbcutMargin - tune::ProbcutImprovingDiscount * improving;
+ProbcutTtDepthMargin	src/search.cpp	2148	!(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {	!(tt_hit && tt_depth >= depth - tune::ProbcutTtDepthMargin && tt_score != ValueNone && tt_score < probcut_beta)) {
+ProbcutSearchReduction	src/search.cpp	2167	value = -search_child(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);	value = -search_child(board, ss + 1, depth - tune::ProbcutSearchReduction, -probcut_beta, -probcut_beta + 1, !cut_node);
+ProbcutTtDepthMargin	src/search.cpp	2173,2175	, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());	, move, depth - tune::ProbcutTtDepthMargin, BoundLower, ss->tt_pv, board.halfmove_clock());
+TtPruneIirOffset	src/search.cpp	2187	depth >= tune::IirDepth + 2 && cut_node &&	depth >= tune::IirDepth + tune::TtPruneIirOffset && cut_node &&
+FutilityImprovingDiv	src/search.cpp	2278	? tune::FutilityBase / 2 : 0;	? tune::FutilityBase / tune::FutilityImprovingDiv : 0;
+HistPruneWeakNum	src/search.cpp	2280	? -tune::HistoryPruneMultiplier * depth * 3 / 4	? -tune::HistoryPruneMultiplier * depth * tune::HistPruneWeakNum / 4
+SingularTtDepthMargin	src/search.cpp	2344	!is_mate_score(tt_score) && tt_depth >= depth - 3) {	!is_mate_score(tt_score) && tt_depth >= depth - tune::SingularTtDepthMargin) {
+SingularDepthDiv	src/search.cpp	2349	const int singular_depth = std::max(1, (depth - 1) / 2);	const int singular_depth = std::max(1, (depth - 1) / tune::SingularDepthDiv);
+DoubleExtMargin,DoubleExtLimit	src/search.cpp	2359	if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {	if (!pv_node && singular_score < singular_beta - tune::DoubleExtMargin && inherited_double_extensions <= tune::DoubleExtLimit) {
+DoubleExtPlies	src/search.cpp	2360	extension = 2;	extension = tune::DoubleExtPlies;
+DoubleExtPlies	src/search.cpp	2373	ss->double_extensions = inherited_double_extensions + (extension == 2);	ss->double_extensions = inherited_double_extensions + (extension == tune::DoubleExtPlies);
+LmrMinDepth	src/search.cpp	2405	board.halfmove_clock() + new_depth < 100 && depth >= 2 &&	board.halfmove_clock() + new_depth < 100 && depth >= tune::LmrMinDepth &&
+LmrNoisyMoveCount	src/search.cpp	2407	(quiet || !ss->tt_pv || move_count > 4)) {	(quiet || !ss->tt_pv || move_count > tune::LmrNoisyMoveCount)) {
+LmrTtPv	src/search.cpp	2409	if (ss->tt_pv) r -= 1;	if (ss->tt_pv) r -= tune::LmrTtPv;
+LmrNotImproving	src/search.cpp	2410	if (!improving) r += 1;	if (!improving) r += tune::LmrNotImproving;
+LmrCutNode	src/search.cpp	2411	if (cut_node) r += 2;	if (cut_node) r += tune::LmrCutNode;
+LmrTtCapture	src/search.cpp	2412	if (tt_capture && quiet) r += 1;	if (tt_capture && quiet) r += tune::LmrTtCapture;
+LmrGiveCheck	src/search.cpp	2413	if (gives_check) r -= 1;	if (gives_check) r -= tune::LmrGiveCheck;
+LmrInCheck	src/search.cpp	2414	if (in_check) r -= 1;	if (in_check) r -= tune::LmrInCheck;
+LmrCutoffAdd	src/search.cpp	2415	(ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;	(ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += tune::LmrCutoffAdd;
+LmrHistoryClamp	src/search.cpp	2416	r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);	r -= std::clamp(history / tune::LmrHistoryDivisor, -tune::LmrHistoryClamp, tune::LmrHistoryClamp);
+LmrDeeperBase,LmrDeeperDepthMul	src/search.cpp	2433	const bool do_deeper = score > best_score + 40 + 2 * new_depth;	const bool do_deeper = score > best_score + tune::LmrDeeperBase + tune::LmrDeeperDepthMul * new_depth;
+LmrShallowerBase,LmrShallowerDepthMul	src/search.cpp	2434	const bool do_shallower = score < best_score + new_depth;	const bool do_shallower = score < best_score + tune::LmrShallowerBase + tune::LmrShallowerDepthMul * new_depth;
+LmrQuietBoostDiv	src/search.cpp	2444	update_continuation(ss, moved, move.to, history_bonus(depth) / 2);	update_continuation(ss, moved, move.to, history_bonus(depth) / tune::LmrQuietBoostDiv);
+HistBonusBetaMargin	src/search.cpp	2495	depth + (best_score > beta + 100)	depth + (best_score > beta + tune::HistBonusBetaMargin)
+PvQuietBonusDiv	src/search.cpp	2501,2502,2505,2509	history_bonus(depth) / 4	history_bonus(depth) / tune::PvQuietBonusDiv
+CuckooRepMinClock	src/search.cpp	2544	{ return board.halfmove_clock() >= 3; }	{ return board.halfmove_clock() >= tune::CuckooRepMinClock; }
+AspStartDepth	src/search.cpp	2970	const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);	const bool narrow = depth >= tune::AspStartDepth && !(tune::AspArmLate && reopen_full_window);
+AspDeltaGrowDiv,AspDeltaGrowAdd	src/search.cpp	3021	delta += delta / 2 + 4;	delta += delta / tune::AspDeltaGrowDiv + tune::AspDeltaGrowAdd;
+LmpNotImprovingDiv	src/search.cpp	321	return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;	return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / tune::LmpNotImprovingDiv;
+HistoryBonusOffset	src/search.cpp	325	return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);	return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - tune::HistoryBonusOffset);
+TtAgePenalty	src/search.cpp	511	? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)	? replace->depth - tune::TtAgePenalty * static_cast<int>((32U + generation - replace->generation()) & 31U)
+TtAgePenalty	src/search.cpp	517	const int score = entry.depth - 4 * age;	const int score = entry.depth - tune::TtAgePenalty * age;
+TtAgePenalty	src/search.cpp	626	if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;	if (entry.depth - tune::TtAgePenalty * relative_age(entry) < replace->depth - tune::TtAgePenalty * relative_age(*replace)) replace = &entry;
+TtStoreDepthSlack	src/search.cpp	556,650	depth + 4 > entry->depth ||	depth + tune::TtStoreDepthSlack > entry->depth ||
+QuietCheckBonus	src/search.cpp	940	if ((check_squares[pt] & square_bb(move.to)) != 0) value += 12000;	if ((check_squares[pt] & square_bb(move.to)) != 0) value += tune::QuietCheckBonus;
+QuietCheckBonus	src/search.cpp	1142	return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);	return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? tune::QuietCheckBonus : 0);
+CaptureValueWeight	src/search.cpp	1045	int score = 10 * value + capture_history[moved][move.to][victim];	int score = tune::CaptureValueWeight * value + capture_history[moved][move.to][victim];
+CaptureValueWeight	src/search.cpp	1047	int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);	int score = tune::CaptureValueWeight * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+PromoQueenScore,PromoUnderScore	src/search.cpp	1049	if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;	if (move.is_promotion()) score += move.promotion == Queen ? tune::PromoQueenScore : tune::PromoUnderScore;
+NoisyValueWeight,NoisyMoverDiv	src/search.cpp	1136	return 1'000'000 + 10 * capture_value(board_, move) -
+                       SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;	return 1'000'000 + tune::NoisyValueWeight * capture_value(board_, move) -
+                       SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / tune::NoisyMoverDiv;
+CorrectionClampDiv	src/search.cpp	1477	const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);	const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / tune::CorrectionClampDiv, CorrectionLimit / tune::CorrectionClampDiv);
+CorrectionWeightCap	src/search.cpp	1478	const int weight = std::min(depth + 1, 16);	const int weight = std::min(depth + 1, tune::CorrectionWeightCap);
+ContHistBack4Div	src/search.cpp	1710	back == 4 ? bonus / 2 : bonus	back == 4 ? bonus / tune::ContHistBack4Div : bonus
+SingularExtPlies	src/search.cpp	2358	extension = 1;	extension = tune::SingularExtPlies;
+SingularTtCutExt	src/search.cpp	2365	extension = -2;	extension = tune::SingularTtCutExt;
+SingularCutNodeExt	src/search.cpp	2367	extension = -1;	extension = tune::SingularCutNodeExt;
+CheckExtPlies	src/search.cpp	2371	extension = 1;	extension = tune::CheckExtPlies;
+LmrFullDepthMoves,LmrFullDepthMovesRoot	src/search.cpp	2406	move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&	move_count > tune::LmrFullDepthMoves + (root_node ? tune::LmrFullDepthMovesRoot : 0) && !bare_king_mode &&

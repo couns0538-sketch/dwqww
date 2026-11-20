@@ -1,0 +1,72 @@
+# kimi5 job 37 options spec: ONE row per option. Tab-separated.
+# columns: name | lines in r15d | default | min | max | step | bound by | class | in the tune list (yes/no and why)
+# "lines in r15d" = the src/search.cpp lines whose literal(s) the option replaces (script-verified).
+# "bound by" starts with a kind word the bounds check parses: divisor | index | score | extension | rule | none.
+# "one side" inside "bound by" = the row has only one legal direction from default.
+# classes: T threshold, A amount, S scale (never an option), R rule/format/size.
+# Holds 39 of job 35's 40 options (ImprovingLookbackFallback removed per K2: no legal neighbour inside the
+# stack bound; its literal 4 stays in the code at 2034) + 20 new options of K5. TtNear50Clock max 120,
+# ImprovingLookback max 4 step 2 (K2), CuckooRepMinClock class R (K1).
+# TUNER-STEP RfpWorseningDrop 8: the spec step is 1 by the job's rule; for the next tune I would give 8,
+# because +-1 moved the O node sum by only 0.5 % in job 35 (s4 grading) - resolution 1 spends games below
+# the noise; step 8 spans [0,100] in 12 moves. The tune list carries this row with step 8.
+name	lines	default	min	max	step	bound by	class	in tune list
+LmrDeeperBase	2433	40	0	100000	8	none: cp base of the gated do-deeper test (2432 gates on LmrDeeperShallower, false under PC20)	A	no: gated off under PC20 (DEAD by gate; it is C-DEAD's control)
+LmrDeeperDepthMul	2433	2	0	64	1	none: cp-per-ply slope of the same gated test	A	no: gated off under PC20
+LmrShallowerBase	2434	0	-100000	400	8	none: cp base of the gated do-shallower test (same gate)	A	no: gated off under PC20
+LmrShallowerDepthMul	2434	1	0	64	1	none: slope of the same gated test	A	no: gated off under PC20
+DoubleExtMargin	2359	24	0	400	4	none: cp margin below singular_beta	T	yes: ALIVE in job 35
+DoubleExtLimit	2359	6	-1	64	1	extension: the budget the double-extensions counter of 2374 is checked against here at 2359; it is itself the cap, nothing bounds it from above	A	yes: ALIVE in job 35 (G side)
+LmrTtPv	2409	1	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+LmrNotImproving	2410	1	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+LmrCutNode	2411	2	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+LmrTtCapture	2412	1	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+LmrGiveCheck	2413	1	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+LmrInCheck	2414	1	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+LmrCutoffAdd	2415	1	0	4	1	none: reduction amount in plies	A	yes: ALIVE in job 35
+TtNear50Clock	1797,1954,2000	90	0	100	18	rule: compared with halfmove_clock() (0..100, then the game is a draw); a value above 100 switches the distrust off	T	no: DEAD at depth 12 in job 35 and a near-50 rule bound
+ImprovingLookback	2033	2	2	4	2	index: stack offset, reads (ss - L) at 2033; the root's frame is stack_[4] (search.hpp:510, search.cpp:2916), so L <= 4 keeps the read inside the array at every ply; odd L compares the other side's static eval (K2), one side: plus only	A	no: K2 - 2 against 4 is one match's question, not a tuner's
+RfpWorseningDrop	2086	2	0	100	1	none: cp threshold of the worsening test	T	yes: ALIVE in job 35 (carries tuner step 8, see header)
+RfpWorseningDiv	2087	3	1	10	1	divisor: RfpMargin / x at 2087, never 0	A	yes: ALIVE in job 35
+NullGateSlope	2094	24	0	100	4	none: cp per depth of the null gate	T	yes: ALIVE in job 35
+NullGateOffset	2094	180	0	400	36	none: cp offset of the null gate	T	yes: ALIVE in job 35
+NullEvalReductionCap	2102	3	0	10	1	none: plies cap of the eval-based null reduction	A	yes: ALIVE in job 35
+NullVerifyDepth	2124,2125	14	2	30	1	none: depth threshold of the null verification search	T	yes: ALIVE in job 35 (weakly: 6 of 353 G on one side only)
+ProbcutImprovingDiscount	2146	50	0	200	10	none: cp discount when improving	A	yes: ALIVE in job 35
+ProbcutTtDepthMargin	2148,2173,2175	3	0	10	1	none: plies margin of the probcut TT gate and store	T	yes: ALIVE in job 35
+ProbcutSearchReduction	2167	4	1	10	1	none: plies of the probcut re-search reduction	A	yes: ALIVE in job 35
+TtPruneIirOffset	2187	2	0	10	1	none: plies above IirDepth for the cut-node reduction	T	yes: ALIVE in job 35
+FutilityImprovingDiv	2278	2	1	10	1	divisor: FutilityBase / x at 2278, never 0	A	yes: ALIVE in job 35
+HistPruneWeakNum	2280	3	0	4	1	none: numerator of the 3/4 history-prune threshold (the /4 is class S, job 35 census)	T	yes: ALIVE in job 35
+SingularTtDepthMargin	2344	3	0	10	1	none: plies margin of the singular TT depth test	T	yes: ALIVE in job 35
+SingularDepthDiv	2349	2	1	8	1	divisor: (depth - 1) / x at 2349, never 0	A	yes: ALIVE in job 35
+DoubleExtPlies	2360,2374	2	1	2	1	extension: amount 2 is exactly what the double-extensions counter counts (2374); at 3+ the count misses it and the path grows without a cap, so max 2, one side: minus only	A	yes: 1 against 2 is a real tune question
+LmrMinDepth	2405	2	1	8	1	none: depth floor of the LMR gate	T	yes: ALIVE in job 35
+LmrNoisyMoveCount	2407	4	1	16	1	none: move count of the LMR noisy exemption	T	yes: ALIVE in job 35
+LmrHistoryClamp	2416	2	0	8	1	none: plies clamp of the LMR history term	A	yes: ALIVE in job 35
+LmrQuietBoostDiv	2444	2	1	8	1	divisor: history_bonus / x at 2444, never 0	A	yes: ALIVE in job 35
+HistBonusBetaMargin	2495	100	0	400	20	none: cp margin above beta for the extra bonus depth	T	yes: ALIVE in job 35
+PvQuietBonusDiv	2501,2502,2509	4	1	16	1	divisor: history_bonus / x at three compiled sites (2505 not compiled), never 0	A	yes: ALIVE in job 35
+CuckooRepMinClock	2544	3	0	100	1	rule: reversible-ply count; K1 - below 3 no repetition can exist (board.cpp:1705-1708 needs a span of 4), above it real repetitions are missed; a rule, kept as a control	R	no: class R (K1)
+AspStartDepth	2970	4	1	16	1	none: depth from which the aspiration window narrows	T	yes: ALIVE in job 35
+AspDeltaGrowDiv	3021	2	1	8	1	divisor: delta / x at 3021, never 0	A	yes: ALIVE in job 35
+LmpNotImprovingDiv	321	2	1	8	1	divisor: lmp_threshold / x when not improving (321), never 0	A	yes: new (K5)
+HistoryBonusOffset	325	32	-100	200	6	none: subtracted term of history_bonus; a negative value only raises every bonus	A	yes: new (K5)
+TtAgePenalty	511,517,626	4	0	32	1	none: replacement-preference weight on TT age (age is 0..31); any value only re-orders which entry is replaced	A	yes: new (K5)
+TtStoreDepthSlack	556,650	4	0	64	1	none: depth slack of the TT store admit rule; any value only changes which stores are admitted	T	yes: new (K5)
+QuietCheckBonus	940,1138	12000	0	926272	2400	score: quiet scores share one scale with the 1000000 capture band of the evasion scorer (1136-1138); quiet history is clamped to +-HistoryMax 16384 per table (apply_history, 328-331) and at most about 5 tables sum, so the bonus must stay under 1000000 - 73728	A	yes: new (K5)
+CaptureValueWeight	1045,1047	10	0	100	2	none: weight inside the capture stage's own sorted buffer (1040-1052); no other class shares that scale	A	yes: new (K5)
+PromoQueenScore	1049	20000	1	200000	4000	score: inside the capture stage; must stay positive to keep queen promotions ordered above underpromotions (PromoUnderScore < 0)	A	yes: new (K5)
+PromoUnderScore	1049	-5000	-100000	-1	1000	score: inside the capture stage; at 0 underpromotions lose their mark against plain captures, so max -1	A	yes: new (K5)
+NoisyValueWeight	1136	10	0	100	2	score: evasion capture scores (the 1000000 band) must stay above the quiet ceiling (history + QuietCheckBonus); the band base carries this at any weight >= 0	A	yes: new (K5)
+NoisyMoverDiv	1136	10	1	100	2	divisor: SeePieceValue[moved] / x at 1137, never 0	A	yes: new (K5)
+CorrectionClampDiv	1477	4	1	64	1	divisor: CorrectionLimit / x in the clamp at 1477, never 0	A	yes: new (K5)
+CorrectionWeightCap	1478	16	1	64	3	none: cap on the correction-history update weight	A	yes: new (K5)
+ContHistBack4Div	1710	2	1	16	1	divisor: bonus / x for the 4-ply-back continuation entry at 1710, never 0	A	yes: new (K5)
+SingularExtPlies	2358	1	0	2	1	extension: new_depth = depth - 1 + extension (2373); at 2 the double-extensions counter (2374) still counts it, at 3+ nothing caps the path, so max 2	A	yes: new (K5)
+SingularTtCutExt	2365	-2	-8	0	1	extension: a negative value only shrinks the search; at 1+ it would extend on a TT cut with no gate and no counter (2374 counts == 2 only), so max 0	A	yes: new (K5)
+SingularCutNodeExt	2367	-1	-8	0	1	extension: same reading as SingularTtCutExt, so max 0	A	yes: new (K5)
+CheckExtPlies	2371	1	0	2	1	extension: same cap story as SingularExtPlies (2373-2374), so max 2	A	yes: new (K5)
+LmrFullDepthMoves	2406	1	0	8	1	none: move count of the LMR gate	A	yes: new (K5)
+LmrFullDepthMovesRoot	2406	1	0	8	1	none: the root's extra count of the same gate	A	yes: new (K5)
+AspDeltaGrowAdd	3021	4	1	64	1	rule: the aspiration loop widens delta += delta / x + add; add >= 1 guarantees strict growth even at delta 0, else the loop can stall	A	yes: new (K5)

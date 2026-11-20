@@ -1,0 +1,597 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -132,6 +132,66 @@
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++// job 37 census options (kimi5): defaults are today's hand-set numbers.
++int LmrDeeperBase = 40;
++int LmrDeeperDepthMul = 2;
++int LmrShallowerBase = 0;
++int LmrShallowerDepthMul = 1;
++int DoubleExtMargin = 24;
++int DoubleExtLimit = 6;
++int LmrTtPv = 1;
++int LmrNotImproving = 1;
++int LmrCutNode = 2;
++int LmrTtCapture = 1;
++int LmrGiveCheck = 1;
++int LmrInCheck = 1;
++int LmrCutoffAdd = 1;
++int TtNear50Clock = 90;
++int ImprovingLookback = 2;
++int RfpWorseningDrop = 2;
++int RfpWorseningDiv = 3;
++int NullGateSlope = 24;
++int NullGateOffset = 180;
++int NullEvalReductionCap = 3;
++int NullVerifyDepth = 14;
++int ProbcutImprovingDiscount = 50;
++int ProbcutTtDepthMargin = 3;
++int ProbcutSearchReduction = 4;
++int TtPruneIirOffset = 2;
++int FutilityImprovingDiv = 2;
++int HistPruneWeakNum = 3;
++int SingularTtDepthMargin = 3;
++int SingularDepthDiv = 2;
++int DoubleExtPlies = 2;
++int LmrMinDepth = 2;
++int LmrNoisyMoveCount = 4;
++int LmrHistoryClamp = 2;
++int LmrQuietBoostDiv = 2;
++int HistBonusBetaMargin = 100;
++int PvQuietBonusDiv = 4;
++int CuckooRepMinClock = 3;
++int AspStartDepth = 4;
++int AspDeltaGrowDiv = 2;
++int LmpNotImprovingDiv = 2;
++int HistoryBonusOffset = 32;
++int TtAgePenalty = 4;
++int TtStoreDepthSlack = 4;
++int QuietCheckBonus = 12000;
++int CaptureValueWeight = 10;
++int PromoQueenScore = 20000;
++int PromoUnderScore = -5000;
++int NoisyValueWeight = 10;
++int NoisyMoverDiv = 10;
++int CorrectionClampDiv = 4;
++int CorrectionWeightCap = 16;
++int ContHistBack4Div = 2;
++int SingularExtPlies = 1;
++int SingularTtCutExt = -2;
++int SingularCutNodeExt = -1;
++int CheckExtPlies = 1;
++int LmrFullDepthMoves = 1;
++int LmrFullDepthMovesRoot = 1;
++int AspDeltaGrowAdd = 4;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -210,6 +270,65 @@
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"LmrDeeperBase", &LmrDeeperBase, 0, 100000},
++        {"LmrDeeperDepthMul", &LmrDeeperDepthMul, 0, 64},
++        {"LmrShallowerBase", &LmrShallowerBase, -100000, 400},
++        {"LmrShallowerDepthMul", &LmrShallowerDepthMul, 0, 64},
++        {"DoubleExtMargin", &DoubleExtMargin, 0, 400},
++        {"DoubleExtLimit", &DoubleExtLimit, -1, 64},
++        {"LmrTtPv", &LmrTtPv, 0, 4},
++        {"LmrNotImproving", &LmrNotImproving, 0, 4},
++        {"LmrCutNode", &LmrCutNode, 0, 4},
++        {"LmrTtCapture", &LmrTtCapture, 0, 4},
++        {"LmrGiveCheck", &LmrGiveCheck, 0, 4},
++        {"LmrInCheck", &LmrInCheck, 0, 4},
++        {"LmrCutoffAdd", &LmrCutoffAdd, 0, 4},
++        {"TtNear50Clock", &TtNear50Clock, 0, 120},
++        {"ImprovingLookback", &ImprovingLookback, 2, 4},
++        {"RfpWorseningDrop", &RfpWorseningDrop, 0, 100},
++        {"RfpWorseningDiv", &RfpWorseningDiv, 1, 10},
++        {"NullGateSlope", &NullGateSlope, 0, 100},
++        {"NullGateOffset", &NullGateOffset, 0, 400},
++        {"NullEvalReductionCap", &NullEvalReductionCap, 0, 10},
++        {"NullVerifyDepth", &NullVerifyDepth, 2, 30},
++        {"ProbcutImprovingDiscount", &ProbcutImprovingDiscount, 0, 200},
++        {"ProbcutTtDepthMargin", &ProbcutTtDepthMargin, 0, 10},
++        {"ProbcutSearchReduction", &ProbcutSearchReduction, 1, 10},
++        {"TtPruneIirOffset", &TtPruneIirOffset, 0, 10},
++        {"FutilityImprovingDiv", &FutilityImprovingDiv, 1, 10},
++        {"HistPruneWeakNum", &HistPruneWeakNum, 0, 4},
++        {"SingularTtDepthMargin", &SingularTtDepthMargin, 0, 10},
++        {"SingularDepthDiv", &SingularDepthDiv, 1, 8},
++        {"DoubleExtPlies", &DoubleExtPlies, 1, 2},
++        {"LmrMinDepth", &LmrMinDepth, 1, 8},
++        {"LmrNoisyMoveCount", &LmrNoisyMoveCount, 1, 16},
++        {"LmrHistoryClamp", &LmrHistoryClamp, 0, 8},
++        {"LmrQuietBoostDiv", &LmrQuietBoostDiv, 1, 8},
++        {"HistBonusBetaMargin", &HistBonusBetaMargin, 0, 400},
++        {"PvQuietBonusDiv", &PvQuietBonusDiv, 1, 16},
++        {"CuckooRepMinClock", &CuckooRepMinClock, 0, 100},
++        {"AspStartDepth", &AspStartDepth, 1, 16},
++        {"AspDeltaGrowDiv", &AspDeltaGrowDiv, 1, 8},
++        {"LmpNotImprovingDiv", &LmpNotImprovingDiv, 1, 8},
++        {"HistoryBonusOffset", &HistoryBonusOffset, -100, 200},
++        {"TtAgePenalty", &TtAgePenalty, 0, 32},
++        {"TtStoreDepthSlack", &TtStoreDepthSlack, 0, 64},
++        {"QuietCheckBonus", &QuietCheckBonus, 0, 926272},
++        {"CaptureValueWeight", &CaptureValueWeight, 0, 100},
++        {"PromoQueenScore", &PromoQueenScore, 1, 200000},
++        {"PromoUnderScore", &PromoUnderScore, -100000, -1},
++        {"NoisyValueWeight", &NoisyValueWeight, 0, 100},
++        {"NoisyMoverDiv", &NoisyMoverDiv, 1, 100},
++        {"CorrectionClampDiv", &CorrectionClampDiv, 1, 64},
++        {"CorrectionWeightCap", &CorrectionWeightCap, 1, 64},
++        {"ContHistBack4Div", &ContHistBack4Div, 1, 16},
++        {"SingularExtPlies", &SingularExtPlies, 0, 2},
++        {"SingularTtCutExt", &SingularTtCutExt, -8, 0},
++        {"SingularCutNodeExt", &SingularCutNodeExt, -8, 0},
++        {"CheckExtPlies", &CheckExtPlies, 0, 2},
++        {"LmrFullDepthMoves", &LmrFullDepthMoves, 0, 8},
++        {"LmrFullDepthMovesRoot", &LmrFullDepthMovesRoot, 0, 8},
++        {"AspDeltaGrowAdd", &AspDeltaGrowAdd, 1, 64},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -318,11 +437,11 @@
+ }
+ 
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+-    return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
++    return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / tune::LmpNotImprovingDiv;
+ }
+ 
+ [[nodiscard]] int history_bonus(int depth) {
+-    return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
++    return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - tune::HistoryBonusOffset);
+ }
+ 
+ void apply_history(std::int16_t& entry, int bonus) {
+@@ -508,13 +627,13 @@
+     }
+     TTEntry* replace = &cluster.entries[0];
+     int replace_score = replace->occupied()
+-                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
++                            ? replace->depth - tune::TtAgePenalty * static_cast<int>((32U + generation - replace->generation()) & 31U)
+                             : 0;
+ #pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+-        const int score = entry.depth - 4 * age;
++        const int score = entry.depth - tune::TtAgePenalty * age;
+         if (score < replace_score) {
+             replace = &entry;
+             replace_score = score;
+@@ -553,7 +672,7 @@
+     }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[probe.slot_];
+-    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++    const bool admit = bound == BoundExact || !same_position || depth + tune::TtStoreDepthSlack > entry->depth ||
+                        entry->generation() != generation_;
+     // Same-slot stores still refresh the move when the new score is rejected.
+     // A stale slot must not paint that rejected move onto the deeper entry.
+@@ -623,7 +742,7 @@
+     };
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+-        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
++        if (entry.depth - tune::TtAgePenalty * relative_age(entry) < replace->depth - tune::TtAgePenalty * relative_age(*replace)) replace = &entry;
+     }
+     return snapshot(*replace, false);
+ }
+@@ -647,7 +766,7 @@
+     }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[probe.slot_];
+-    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++    const bool admit = bound == BoundExact || !same_position || depth + tune::TtStoreDepthSlack > entry->depth ||
+                        entry->generation() != generation_;
+     // Same rule as store_body: keep a rejected shallow move off a different slot.
+     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+@@ -937,7 +1056,7 @@
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+ #endif
+-            if ((check_squares[pt] & square_bb(move.to)) != 0) value += 12000;
++            if ((check_squares[pt] & square_bb(move.to)) != 0) value += tune::QuietCheckBonus;
+             return value;
+         }
+     };
+@@ -1042,11 +1161,11 @@
+             const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
+             int value = SeePieceValue[victim];
+             if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
+-            int score = 10 * value + capture_history[moved][move.to][victim];
++            int score = tune::CaptureValueWeight * value + capture_history[moved][move.to][victim];
+ #else
+-            int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
++            int score = tune::CaptureValueWeight * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+ #endif
+-            if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++            if (move.is_promotion()) score += move.promotion == Queen ? tune::PromoQueenScore : tune::PromoUnderScore;
+             push_scored(move, score);
+         }
+         sort_moves();
+@@ -1133,13 +1252,13 @@
+                 return 2'000'000 + victim + searcher_.capture_history_value(board_, move);
+             }
+             if (move.is_capture() || move.is_promotion()) {
+-                return 1'000'000 + 10 * capture_value(board_, move) -
+-                       SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
++                return 1'000'000 + tune::NoisyValueWeight * capture_value(board_, move) -
++                       SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / tune::NoisyMoverDiv;
+             }
+ #if FORGE_SEARCH_SPEED2
+             return scorer.score(move, check_squares_);
+ #else
+-            return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++            return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? tune::QuietCheckBonus : 0);
+ #endif
+         };
+ 
+@@ -1474,8 +1593,8 @@
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval, const SearchStack* ss) {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+-    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+-    const int weight = std::min(depth + 1, 16);
++    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / tune::CorrectionClampDiv, CorrectionLimit / tune::CorrectionClampDiv);
++    const int weight = std::min(depth + 1, tune::CorrectionWeightCap);
+     auto apply = [&](std::int32_t& entry) {
+         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+     };
+@@ -1707,7 +1826,7 @@
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+         apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+-                      back == 4 ? bonus / 2 : bonus);
++                      back == 4 ? bonus / tune::ContHistBack4Div : bonus);
+     }
+ }
+ 
+@@ -1794,7 +1913,7 @@
+ #endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+-    const bool near50 = board.halfmove_clock() >= 90;
++    const bool near50 = board.halfmove_clock() >= tune::TtNear50Clock;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
+                                  rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+@@ -1951,7 +2070,7 @@
+ #endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+-    const bool near50 = board.halfmove_clock() >= 90;
++    const bool near50 = board.halfmove_clock() >= tune::TtNear50Clock;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
+                                  rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+@@ -1997,7 +2116,7 @@
+ 
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+-        board.halfmove_clock() < 90 &&
++        board.halfmove_clock() < tune::TtNear50Clock &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         // packc28, TtCutoffHistory: a stored fail-high by a quiet move teaches the ordering tables.
+@@ -2030,7 +2149,7 @@
+ 
+     bool improving = false;
+     if (!in_check) {
+-        if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
++        if ((ss - tune::ImprovingLookback)->static_eval != ValueNone) improving = ss->static_eval > (ss - tune::ImprovingLookback)->static_eval;
+         else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
+         else improving = true;
+     }
+@@ -2083,15 +2202,15 @@
+         // B4 TtPruneV2: when the opponent's static eval fell on their move ("opponent worsening"), the fail high is a
+         // third of a margin step cheaper. 0 with the option off, so the condition is r7's.
+         const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+-                                          ss->static_eval + (ss - 1)->static_eval > 2
+-                                      ? tune::RfpMargin / 3 : 0;
++                                          ss->static_eval + (ss - 1)->static_eval > tune::RfpWorseningDrop
++                                      ? tune::RfpMargin / tune::RfpWorseningDiv : 0;
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+         // Null move pruning.
+-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - tune::NullGateSlope * depth + tune::NullGateOffset &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+@@ -2099,7 +2218,7 @@
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+-                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, tune::NullEvalReductionCap);
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -2121,8 +2240,8 @@
+                 // attacks a dearer piece of the side to move. The option is read
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+-                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
++                    depth < tune::NullVerifyDepth && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                if (depth < tune::NullVerifyDepth && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+@@ -2143,9 +2262,9 @@
+             }
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+-        const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
++        const int probcut_beta = beta + tune::ProbcutMargin - tune::ProbcutImprovingDiscount * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+-            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++            !(tt_hit && tt_depth >= depth - tune::ProbcutTtDepthMargin && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+@@ -2164,15 +2283,15 @@
+ #endif
+                 int value = -qsearch_child(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search_child(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    value = -search_child(board, ss + 1, depth - tune::ProbcutSearchReduction, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
+ #if FORGE_SPD_TT_NOTLS
+-                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - tune::ProbcutTtDepthMargin, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+-                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - tune::ProbcutTtDepthMargin, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+                     return value;
+                 }
+@@ -2184,7 +2303,7 @@
+     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+     // B4 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
+     // (Exclusive with the IIR above: that one needs no TT move, this one a TT move; mate search left alone as above.)
+-    else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
++    else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + tune::TtPruneIirOffset && cut_node &&
+              !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+@@ -2275,9 +2394,9 @@
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+             // when not improving. With the option off: prunable, + 0, and r7's threshold.
+             const bool prunable = !tt_prune_v2_ || move != tt_move;
+-            const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
++            const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / tune::FutilityImprovingDiv : 0;
+             const int history_prune_threshold = tt_prune_v2_ && !improving
+-                                                    ? -tune::HistoryPruneMultiplier * depth * 3 / 4
++                                                    ? -tune::HistoryPruneMultiplier * depth * tune::HistPruneWeakNum / 4
+                                                     : -tune::HistoryPruneMultiplier * depth;
+             if (quiet && !gives_check && prunable) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+@@ -2341,12 +2460,12 @@
+         // Extensions.
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+-            tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++            tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - tune::SingularTtDepthMargin) {
+             const int singular_beta = tt_score - tune::SingularMargin * depth;
+             // grok47/r4-08 (audit finding 7): (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch,
+             // which never reads excluded_move, so the singular search would cut off on this node's own
+             // TT entry. Keep the verification in search(). No change at the default SingularDepth 7.
+-            const int singular_depth = std::max(1, (depth - 1) / 2);
++            const int singular_depth = std::max(1, (depth - 1) / tune::SingularDepthDiv);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+             const int singular_score = search_child(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+@@ -2355,22 +2474,22 @@
+             ss->excluded_move = Move::none();
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+-                extension = 1;
+-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+-                    extension = 2;
++                extension = tune::SingularExtPlies;
++                if (!pv_node && singular_score < singular_beta - tune::DoubleExtMargin && inherited_double_extensions <= tune::DoubleExtLimit) {
++                    extension = tune::DoubleExtPlies;
+                 }
+             } else if (singular_beta >= beta) {
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+-                extension = -2;
++                extension = tune::SingularTtCutExt;
+             } else if (cut_node) {
+-                extension = -1;
++                extension = tune::SingularCutNodeExt;
+             }
+         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+-            extension = 1;
++            extension = tune::CheckExtPlies;
+         }
+-        ss->double_extensions = inherited_double_extensions + (extension == 2);
++        ss->double_extensions = inherited_double_extensions + (extension == tune::DoubleExtPlies);
+         int new_depth = depth - 1 + extension;
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
+@@ -2402,18 +2521,18 @@
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
+-        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+-            move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+-            (quiet || !ss->tt_pv || move_count > 4)) {
++        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= tune::LmrMinDepth &&
++            move_count > tune::LmrFullDepthMoves + (root_node ? tune::LmrFullDepthMovesRoot : 0) && !bare_king_mode &&
++            (quiet || !ss->tt_pv || move_count > tune::LmrNoisyMoveCount)) {
+             int r = reduction(quiet, depth, move_count);
+-            if (ss->tt_pv) r -= 1;
+-            if (!improving) r += 1;
+-            if (cut_node) r += 2;
+-            if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (ss->tt_pv) r -= tune::LmrTtPv;
++            if (!improving) r += tune::LmrNotImproving;
++            if (cut_node) r += tune::LmrCutNode;
++            if (tt_capture && quiet) r += tune::LmrTtCapture;
++            if (gives_check) r -= tune::LmrGiveCheck;
++            if (in_check) r -= tune::LmrInCheck;
++            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += tune::LmrCutoffAdd;
++            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -tune::LmrHistoryClamp, tune::LmrHistoryClamp);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2430,8 +2549,8 @@
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+-                    const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+-                    const bool do_shallower = score < best_score + new_depth;
++                    const bool do_deeper = score > best_score + tune::LmrDeeperBase + tune::LmrDeeperDepthMul * new_depth;
++                    const bool do_shallower = score < best_score + tune::LmrShallowerBase + tune::LmrShallowerDepthMul * new_depth;
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+@@ -2441,7 +2560,7 @@
+             }
+             if (!aborted_ && quiet && score > alpha) {
+                 // A late quiet move that beat expectations deserves a history boost.
+-                update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
++                update_continuation(ss, moved, move.to, history_bonus(depth) / tune::LmrQuietBoostDiv);
+             }
+         }
+         if (full_depth_needed && !aborted_) {
+@@ -2492,21 +2611,21 @@
+ 
+     if (best_score >= beta) {
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+-            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + tune::HistBonusBetaMargin), quiets_tried.data(), quiet_count);
+         }
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+-                      history_bonus(depth) / 4);
+-        update_threat_quiet(board, best_move, history_bonus(depth) / 4);
++                      history_bonus(depth) / tune::PvQuietBonusDiv);
++        update_threat_quiet(board, best_move, history_bonus(depth) / tune::PvQuietBonusDiv);
+ #if FORGE_PAWN_HISTORY
+         if (tune::PawnHistoryPvBonus != 0) {
+-            update_pawn_history(board, board.moved_piece(best_move), best_move, history_bonus(depth) / 4);
++            update_pawn_history(board, board.moved_piece(best_move), best_move, history_bonus(depth) / tune::PvQuietBonusDiv);
+         }
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+-        if (tune::HistRework != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++        if (tune::HistRework != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / tune::PvQuietBonusDiv);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+@@ -2541,7 +2660,7 @@
+ // score, the node fails high at once when beta is not above it, and its result is never below the draw.
+ namespace {
+ // A repetition needs at least three reversible plies.
+-[[nodiscard]] inline bool may_repeat(const Board& board) { return board.halfmove_clock() >= 3; }
++[[nodiscard]] inline bool may_repeat(const Board& board) { return board.halfmove_clock() >= tune::CuckooRepMinClock; }
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+@@ -2967,7 +3086,7 @@
+         int beta = Infinite;
+         // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+         // after the previous iteration failed high or low at least once.
+-        const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++        const bool narrow = depth >= tune::AspStartDepth && !(tune::AspArmLate && reopen_full_window);
+         if (narrow) {
+             alpha = std::max(score - delta, -Infinite);
+             beta = std::min(score + delta, Infinite);
+@@ -3018,7 +3137,7 @@
+             } else {
+                 break;
+             }
+-            delta += delta / 2 + 4;
++            delta += delta / tune::AspDeltaGrowDiv + tune::AspDeltaGrowAdd;
+         }
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -283,6 +283,65 @@
+ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
++extern int LmrDeeperBase;
++extern int LmrDeeperDepthMul;
++extern int LmrShallowerBase;
++extern int LmrShallowerDepthMul;
++extern int DoubleExtMargin;
++extern int DoubleExtLimit;
++extern int LmrTtPv;
++extern int LmrNotImproving;
++extern int LmrCutNode;
++extern int LmrTtCapture;
++extern int LmrGiveCheck;
++extern int LmrInCheck;
++extern int LmrCutoffAdd;
++extern int TtNear50Clock;
++extern int ImprovingLookback;
++extern int RfpWorseningDrop;
++extern int RfpWorseningDiv;
++extern int NullGateSlope;
++extern int NullGateOffset;
++extern int NullEvalReductionCap;
++extern int NullVerifyDepth;
++extern int ProbcutImprovingDiscount;
++extern int ProbcutTtDepthMargin;
++extern int ProbcutSearchReduction;
++extern int TtPruneIirOffset;
++extern int FutilityImprovingDiv;
++extern int HistPruneWeakNum;
++extern int SingularTtDepthMargin;
++extern int SingularDepthDiv;
++extern int DoubleExtPlies;
++extern int LmrMinDepth;
++extern int LmrNoisyMoveCount;
++extern int LmrHistoryClamp;
++extern int LmrQuietBoostDiv;
++extern int HistBonusBetaMargin;
++extern int PvQuietBonusDiv;
++extern int CuckooRepMinClock;
++extern int AspStartDepth;
++extern int AspDeltaGrowDiv;
++extern int LmpNotImprovingDiv;
++extern int HistoryBonusOffset;
++extern int TtAgePenalty;
++extern int TtStoreDepthSlack;
++extern int QuietCheckBonus;
++extern int CaptureValueWeight;
++extern int PromoQueenScore;
++extern int PromoUnderScore;
++extern int NoisyValueWeight;
++extern int NoisyMoverDiv;
++extern int CorrectionClampDiv;
++extern int CorrectionWeightCap;
++extern int ContHistBack4Div;
++extern int SingularExtPlies;
++extern int SingularTtCutExt;
++extern int SingularCutNodeExt;
++extern int CheckExtPlies;
++extern int LmrFullDepthMoves;
++extern int LmrFullDepthMovesRoot;
++extern int AspDeltaGrowAdd;
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
