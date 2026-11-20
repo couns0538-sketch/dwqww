@@ -6,8 +6,9 @@ d = Path("/home/ubuntu/grok_repo.txt").read_text().strip()
 d = Path(d) / "forge-combo29" / "grok" / S
 log = (d / "match_on_off.log").read_text(errors="replace").splitlines()
 finished = sum(1 for ln in log if ln.startswith("Finished game "))
-start = next(i for i, ln in enumerate(log) if ln.startswith("Results of "))
-end = next(i for i, ln in enumerate(log) if ln.startswith("Finished match"))
+starts = [i for i, ln in enumerate(log) if ln.startswith("Results of ")]
+start = starts[-1]
+end = next(i for i in range(start, len(log)) if log[i].startswith("Finished match"))
 block = log[start:end + 1]
 print(f"finished_games {finished}")
 print("\n".join(block))
