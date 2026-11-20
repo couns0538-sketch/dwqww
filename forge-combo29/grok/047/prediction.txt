@@ -1,0 +1,10 @@
+IdeaK8, switch on, S14, Threads 1, Hash 16, O depth 12.
+Predicted node sum: 9140000.
+This prediction is wrong if the measured sum is below 8600000 or above 9450000.
+The baseline sum is 9500069. A measured sum equal to 9500069 also proves this prediction wrong.
+
+Test match, IdeaK8 true versus IdeaK8 false, S14, Threads 1, Hash 16, 20000 nodes, openings O and G, both colours, 1106 games.
+Predicted Elo of the switch-on engine: +5.
+This prediction is wrong if the measured Elo point is below -15 or above +25.
+
+Why: a capture with SEE below 0 that already enters late-move reduction is searched one ply shallower. Most of those moves fail low, so the tree should shrink by a few percent. A few will fail high and be searched again, which puts a floor under the saving. The same change is small next to pruning that already drops the worst exchanges, so the match Elo should be a small gain.
