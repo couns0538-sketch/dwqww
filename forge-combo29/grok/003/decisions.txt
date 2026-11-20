@@ -1,0 +1,21 @@
+Idea 3 is S38, signed correction on quiet reductions.
+
+EXISTS: include/forge/search.hpp:365 apply_lmr_signed_correction
+and the call at src/search.cpp (LmrSignedCorrection, default false).
+The on/off switch is already the option LmrSignedCorrection.
+The two fixed numbers are not options: divisor 64 and ply clamp 1.
+
+Decision: keep that path. Add option IdeaS38 (check, default false) as the
+name in the idea list. It turns on the same adjustment. With IdeaS38 false
+and LmrSignedCorrection false the branch is not taken, so the search is
+today's search. Add spin options IdeaS38_Divisor default 64 (min 1 max 4096)
+and IdeaS38_Clamp default 1 (min 0 max 8). At those defaults the formula is
+correction_cp/64 clamped to -1..+1, which is the code that is already there.
+A zero divisor would divide by zero, so the minimum is 1 and a non-positive
+divisor contributes 0.
+
+Machine has AVX-512 and BMI2, so the release build is g++ -DCMAKE_CXX_COMPILER=g++
+without FORGE_PORTABLE. GCC 13.3.0.
+
+S14 is sent in the listed order, then Threads 1, then Hash 16.
+Exe B is not sent IdeaS38, because that option does not exist there.
