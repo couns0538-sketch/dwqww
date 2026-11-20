@@ -1,0 +1,28 @@
+IdeaA1, seat 032. The plain engine does not do this. The quiet LMR history
+term is still an integer division:
+
+    r -= clamp(history / LmrHistoryDivisor, -2, 2);
+
+Under S14 that divisor is 5643, so a history in [-5642, 5642] changes
+nothing. EXISTS: no.
+
+Decision: when IdeaA1 is on, score the same quotient in 1/IdeaA1_Scale of
+a ply (default 1024) and round half toward zero. Strictly more than half a
+ply changes r by one. An exact half does not. The result is then clamped
+with IdeaA1_Clamp whole plies (default 2, the integer term's cap).
+
+    units = history * Scale / LmrHistoryDivisor
+    units = clamp(units, -Clamp*Scale, Clamp*Scale)
+    plies = round_half_toward_zero(units / Scale)
+    r -= plies
+
+With the defaults a history must pass 2821 before it moves r, instead of
+5643. Zero history leaves r unchanged. The off branch is the original
+integer expression, so the search path is the same.
+
+The two spins are IdeaA1_Scale (2..8192, default 1024) and IdeaA1_Clamp
+(0..8, default 2). Both are read only when IdeaA1 is true.
+
+R positions: python-chess 1.11.2, random.Random(3201). A game that ends
+at or before ply 64 is dropped. From a game still going at ply 64, FENs
+at plies 8, 15, 22, 29, 36, 43, 50 and 57 are kept. 300 FENs.

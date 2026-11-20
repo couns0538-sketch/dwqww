@@ -1,0 +1,112 @@
+>> setoption name Hash value 16
+>> isready
+readyok
+>> setoption name Threads value 1
+>> isready
+readyok
+>> setoption name LmrQuietBase value 93
+>> isready
+readyok
+>> setoption name LmrQuietDivisor value 205
+>> isready
+readyok
+>> setoption name LmrNoisyBase value 13
+>> isready
+readyok
+>> setoption name LmrNoisyDivisor value 333
+>> isready
+readyok
+>> setoption name LmrHistoryDivisor value 5643
+>> isready
+readyok
+>> setoption name NullMoveBase value 5
+>> isready
+readyok
+>> setoption name LmpBase value 8
+>> isready
+readyok
+>> setoption name HistoryPruneMultiplier value 2220
+>> isready
+readyok
+>> setoption name HistoryBonusQuadratic value 24
+>> isready
+readyok
+>> setoption name HistoryBonusLinear value 54
+>> isready
+readyok
+>> setoption name HistoryBonusMax value 2212
+>> isready
+readyok
+>> setoption name SingularDepth value 6
+>> isready
+readyok
+>> setoption name IirDepth value 2
+>> isready
+readyok
+>> setoption name NonPawnCorrection value true
+>> isready
+readyok
+>> setoption name IdeaA1 value true
+>> isready
+readyok
+>> ucinewgame
+>> isready
+readyok
+>> position fen 8/8/8/8/8/8/8/K6k w - - 0 1
+>> isready
+/tmp/forge-bug-src/src/uci.cpp:47:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+0x5020000000c0: note: pointer points here
+ be be be be  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
+              ^ 
+=================================================================
+==5558==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x55791bc49df7 bp 0x7ffe3d1ee770 sp 0x7ffe3d1ee760
+READ of size 4 at 0x5020000000c0 thread T0
+    #0 0x55791bc49df6 in (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&) (/tmp/forge-bug-asan/forge+0x633df6) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072)
+    #1 0x55791bc5a155 in forge::uci_loop(std::istream&) (/tmp/forge-bug-asan/forge+0x644155) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072)
+    #2 0x7f4cc862a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #3 0x7f4cc862a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x55791b9c68b4 in _start (/tmp/forge-bug-asan/forge+0x3b08b4) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072)
+
+0x5020000000c0 is located 0 bytes after 16-byte region [0x5020000000b0,0x5020000000c0)
+allocated by thread T0 here:
+    #0 0x7f4cc96fe6c8 in operator new[](unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:98
+    #1 0x55791bc48394 in (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&) (/tmp/forge-bug-asan/forge+0x632394) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072)
+    #2 0x55791bc5a155 in forge::uci_loop(std::istream&) (/tmp/forge-bug-asan/forge+0x644155) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072)
+    #3 0x7f4cc862a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x7f4cc862a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #5 0x55791b9c68b4 in _start (/tmp/forge-bug-asan/forge+0x3b08b4) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/tmp/forge-bug-asan/forge+0x633df6) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072) in (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&)
+Shadow bytes around the buggy address:
+  0x501ffffffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501ffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x502000000000: fa fa fd fa fa fa 00 fa fa fa 00 fa fa fa fd fa
+=>0x502000000080: fa fa 00 fa fa fa 00 00[fa]fa fa fa fa fa fa fa
+  0x502000000100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==5558==ABORTING
+>> quit

@@ -1,0 +1,15 @@
+exe=/tmp/forge-bug-asan/forge
+id_name=scratch copy with one heap read past the end
+fen=8/8/8/8/8/8/8/K6k w - - 0 1
+runner=depth_set.py
+options:
+setoption name Hash value 16
+setoption name Threads value 1
+setoption name IdeaA1 value true
+note=same runner as ASAN_G100; engine aborted
+nm_command=nm -C /tmp/forge-bug-asan/forge | grep -c __asan_
+nm_asan_count=35
+sanitizer_lines=3
+/tmp/forge-bug-src/src/uci.cpp:47:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+==5558==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x55791bc49df7 bp 0x7ffe3d1ee770 sp 0x7ffe3d1ee760
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/tmp/forge-bug-asan/forge+0x633df6) (BuildId: d9598ab0bc2807d9bc7a0f6ac9ae712b781c5072) in (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&)

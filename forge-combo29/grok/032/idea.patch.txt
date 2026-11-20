@@ -1,0 +1,104 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..721289f68 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -297,6 +297,7 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern bool IdeaA1;                  // quiet LMR history in 1/IdeaA1_Scale ply, round half toward zero (false = integer division)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..a8bf00ccf 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -97,6 +97,9 @@ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++bool IdeaA1 = false;
++int IdeaA1_Scale = 1024;
++int IdeaA1_Clamp = 2;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -135,6 +138,8 @@ const std::vector<Parameter>& parameters() {
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
++        {"IdeaA1_Scale", &IdeaA1_Scale, 2, 8192},
++        {"IdeaA1_Clamp", &IdeaA1_Clamp, 0, 8},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+@@ -229,6 +234,27 @@ struct ReductionTable {
+ };
+ ReductionTable Reductions;
+ 
++// Quiet-history part of LMR, in whole plies. The integer engine divides history
++// by LmrHistoryDivisor and clamps to +/-2, so under S14 (divisor 5643) every
++// history in [-5642, 5642] contributes 0. IdeaA1 scores that same quotient in
++// 1/IdeaA1_Scale of a ply and rounds half toward zero: strictly more than half
++// a ply changes the reduction, and an exact half does not. The cap is
++// IdeaA1_Clamp whole plies, the same +/-2 the integer term uses at its default.
++[[nodiscard]] int idea_a1_history_plies(int history) {
++    const int scale = tune::IdeaA1_Scale;
++    const int divisor = tune::LmrHistoryDivisor;
++    long long units = static_cast<long long>(history) * scale / divisor;
++    const long long cap = static_cast<long long>(tune::IdeaA1_Clamp) * scale;
++    if (units > cap) units = cap;
++    if (units < -cap) units = -cap;
++    const long long sign = units < 0 ? -1 : 1;
++    const long long absolute = units < 0 ? -units : units;
++    long long plies = absolute / scale;
++    const long long remainder = absolute % scale;
++    if (remainder * 2 > static_cast<long long>(scale)) ++plies;
++    return static_cast<int>(sign * plies);
++}
++
+ [[nodiscard]] int reduction(bool quiet, int depth, int moves) {
+     const std::size_t d = static_cast<std::size_t>(std::min(depth, 63));
+     const std::size_t m = static_cast<std::size_t>(std::min(moves, 63));
+@@ -1999,7 +2025,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (quiet) {
++                if (!tune::IdeaA1) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++                else r -= idea_a1_history_plies(history);
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..5a9b3faa3 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -221,6 +221,7 @@ int uci_loop(std::istream& in) {
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
++                         "option name IdeaA1 type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+@@ -401,7 +402,7 @@ int uci_loop(std::istream& in) {
+                     searcher.clear_hash();
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+-                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "ThreatHistory" || name == "LmrSignedCorrection" ||                        name == "LmrLateParentRelief" || name == "IdeaA1" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+@@ -410,6 +411,7 @@ int uci_loop(std::istream& in) {
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
++                             : name == "IdeaA1" ? &forge::tune::IdeaA1
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
