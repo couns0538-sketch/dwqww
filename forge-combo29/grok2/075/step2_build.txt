@@ -1,0 +1,17 @@
+arm 5 S10 SRC 081
+commit b3cd11a46a7c966ed3a87fcbf1fca67f76ce09fa
+patch 196a7d108427fdf4a3456ba5587ec89207fa0365f39ac52806b7e30831c4e368  /home/ubuntu/arm.patch
+git apply --check then git apply: exit 0 (applied before this note)
+worktree diff stat:
+ forge-combo29/include/forge/eval.hpp   |   3 +
+ forge-combo29/include/forge/search.hpp |  10 ++
+ forge-combo29/src/eval.cpp             |  26 ++++++
+ forge-combo29/src/search.cpp           | 163 +++++++++++++++++++++++++++++++--
+ forge-combo29/src/uci.cpp              |  13 ++-
+ 5 files changed, 208 insertions(+), 7 deletions(-)
+fens ca2f576bb1632e46aa6143707de831d4d9ce361c5c6a9c7e7bc3fe913c8068b8  /home/ubuntu/first200.fens
+fens lines 200
+build: CXX=g++ cmake -S forge-combo29 -B /tmp/build-B and /tmp/build-P -DCMAKE_BUILD_TYPE=Release
+reason: /proc/cpuinfo has avx512f and bmi2, so FORGE_PORTABLE left OFF and FORGE_MARCH left at the CMake default x86-64-v4
+exe B e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83  /tmp/build-B/forge
+exe P 8430a8b654d504f7e69d11b1dc3daf73854fa5e2c9a477cc893c7eb1dddf80bc  /tmp/build-P/forge
