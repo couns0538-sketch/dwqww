@@ -1,0 +1,19 @@
+step | status | evidence | result
+honesty B | done | HONESTY_B.txt | bench11 312866 bench13 862329 bench16 3024920 perft5 4865609
+honesty P | done | HONESTY_P.txt | bench11 312866 bench13 862329 bench16 3024920 perft5 4865609
+baseline O | done | O_B.meta | sum 9500069
+baseline G | done | G_B.meta | sum 18466239
+apply | done | apply_check.txt | git apply --check: ok
+proof off O | done | compare_O_off.txt | left forge-combo29/grok/094/O_B.nodes rows 200 sum 9500069 ; right forge-combo29/grok/094/O_P_off.nodes rows 200 sum 9500069 ; compared 200 ; differ 0
+proof off G | done | compare_G_off.txt | left forge-combo29/grok/094/G_B.nodes rows 353 sum 18466239 ; right forge-combo29/grok/094/G_P_off.nodes rows 353 sum 18466239 ; compared 353 ; differ 0
+proof on O | done | compare_O_on.txt | left forge-combo29/grok/094/O_B.nodes rows 200 sum 9500069 ; right forge-combo29/grok/094/O_P_on.nodes rows 200 sum 9725707 ; compared 200 ; differ 200
+uci | done | UCI_OPTIONS_IDEA.txt | option name IdeaK5 type check default false ; option name IdeaK5_Divisor type spin default 64 min 1 max 1024 ; option name IdeaK5_Depth type spin default 5 min 0 max 15
+asan nm | done | asan_nm_count.txt G100_asan.meta | count 35
+asan real lines | done | G100_asan.log | AddressSanitizer 0 runtime error 0
+asan scratch | done | scratch_asan_report.log | heap-buffer-overflow 2
+match | done | match_summary.txt | Elo: -9.74 +/- 9.89, nElo: -20.19 +/- 20.48 ; Games: 1106, Wins: 316, Losses: 347, Draws: 443, Points: 537.5 (48.60 %)
+partner apply | done | partner_apply_check.txt | git apply --check: ok
+partner honesty | done | partner_honesty.progress | bench11 OK nodes 312866 expected 312866 ; bench13 OK nodes 862329 expected 862329 ; bench16 OK nodes 3024920 expected 3024920 ; perft5 OK nodes 4865609 expected 4865609
+partner off | done | partner_compare_off.txt | left forge-combo29/grok/094/O_B.nodes rows 200 sum 9500069 ; right forge-combo29/grok/094/partner_O_off.nodes rows 200 sum 9500069 ; compared 200 ; differ 0
+partner on | done | partner_compare_on.txt | partner rows 200 sum 9524101 ; mine rows 200 sum 9524101 ; compared 200 ; differ 0
+partner match | done | partner_match.log | Elo: 6.95 +/- 16.64, nElo: 20.13 +/- 48.15 ; Games: 200, Wins: 91, Losses: 87, Draws: 22, Points: 102.0 (51.00 %) ; Elo: 1.74 +/- 11.29, nElo: 5.24 +/- 34.05 ; Games: 400, Wins: 178, Losses: 176, Draws: 46, Points: 201.0 (50.25 %) ; Elo: -1.74 +/- 9.15, nElo: -5.28 +/- 27.80 ; Games: 600, Wins: 263, Losses: 266, Draws: 71, Points: 298.5 (49.75 %) ; MATCH_EXIT:0

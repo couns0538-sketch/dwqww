@@ -1,0 +1,101 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..caf09243d 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -290,6 +290,7 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int IdeaK5_Divisor;           // quiet history / this is added to the quiet futility margin when IdeaK5 is on
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+@@ -307,6 +308,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaK5;                  // add this quiet move's history to its futility margin (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3d1926c7d 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,7 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int IdeaK5_Divisor = 48;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -107,6 +108,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaK5 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK5_Divisor", &IdeaK5_Divisor, 1, 1024},
+     };
+     return table;
+ }
+@@ -1866,11 +1869,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
++                // IdeaK5 off: history_margin is 0, so the comparison is today's margin.
++                const int quiet_margin = tune::FutilityBase + tune::FutilityMultiplier * lmr_depth;
++                const int history_margin = tune::IdeaK5 ? history / tune::IdeaK5_Divisor : 0;
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    ss->static_eval + quiet_margin + history_margin <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+@@ -1919,8 +1925,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             move != ss->killers[0] && move != ss->killers[1] && move != counter_move) {
+             const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
+             if (tight_depth <= tune::FutilityDepth) {
++                // Same history term as the main quiet futility margin. Off adds nothing.
+                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+-                if (ss->static_eval + tight_margin <= alpha) continue;
++                const int history_margin = tune::IdeaK5 ? history / tune::IdeaK5_Divisor : 0;
++                if (ss->static_eval + tight_margin + history_margin <= alpha) continue;
+             }
+         }
+ 
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..646e5afe1 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaK5 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -471,6 +472,10 @@ int uci_loop(std::istream& in) {
+                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
+             } else if (name == "DrawJitter") {
+                 apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::set_draw_jitter(clamped, searcher); });
++            } else if (name == "IdeaK5") {
++                if (value_text == "true") forge::tune::IdeaK5 = true;
++                else if (value_text == "false") forge::tune::IdeaK5 = false;
++                else note_invalid();
+             } else {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string unknown option " << name << std::endl;
