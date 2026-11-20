@@ -1,0 +1,9 @@
+O depth 12 sum, exe P, IdeaS33 true, S14, Threads 1, Hash 16: 10400000
+Wrong if the sum is below 6000000 or above 16000000.
+Test-match Elo, IdeaS33 true versus false, 1106 games, 20000 nodes: -15
+Wrong if Elo is below -80 or above 40.
+Why: most depth-12 null cutoffs are already accepted below depth 14, so dropping
+the deep verification saves little there. The thin-margin extra reduction makes
+some probes miss, and a miss within 30 centipawns searches the real node one ply
+deeper, which I expect to raise the node sum a little. The same extra ply and the
+missing verification are why I expect a small Elo loss rather than a gain.
