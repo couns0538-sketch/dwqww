@@ -1,0 +1,27 @@
+IdeaS34, seat 056. Front-loaded steps of the cutoff-count term.
+
+The engine already has one late step: search.cpp adds one ply of reduction when
+(ss+1)->cutoff_count is above LmrCutoffThreshold (default 3). That counter is
+the next ply's fail-highs, accumulated across the moves already searched at
+this node. It is not the front-loaded schedule in IDEAS.md S34.
+
+What the option does, only when IdeaS34 is true:
+- 0 up to IdeaS34_Couple (default 2) child cutoffs: subtract IdeaS34_EaseZero
+  (default 2) from the reduction.
+- from Couple up to IdeaS34_Full (default 4): subtract IdeaS34_EaseMid (default 1).
+- at Full and after: no ease. The old +1 past LmrCutoffThreshold is not applied.
+- a beta cutoff whose move is not the transposition move adds IdeaS34_NoTt
+  (default 2) to cutoff_count. A transposition-move cutoff still adds 1.
+  A missing transposition move counts as "no transposition move".
+
+Count 1 stays in the EaseZero band because it is not yet a couple. The three
+spin boundaries are the numbers the idea names (two plies, one ply, a couple, four).
+
+The re-search that restores the full omitted depth when the shallow score is
+above alpha is already in search() (full_depth_needed when score > alpha and
+the reduced depth is shorter). It is left as it is, on and off, so the off
+path stays today's path. "Test this schedule alone" is why the option replaces
+only the cutoff-count term.
+
+When IdeaS34 is false the reduction line is the old comparison and every
+cutoff still increments by one. The new spins are not read.
