@@ -1,0 +1,18 @@
+Seat 081, idea 31, IdeaS10. The plain engine does not already shrink a shuffling score. The word shuffle in search.cpp is an SIMD register shuffle, not this idea.
+
+What was added, default off:
+- UCI check IdeaS10, default false.
+- Spins IdeaS10_Margin 25, IdeaS10_Flat 40, IdeaS10_Look 4, IdeaS10_Shrink 896, IdeaS10_Depth 5.
+
+When the check is false the new block is not entered, so the search path is the one already measured.
+
+When the check is true, a non-PV node that is not in check and not a singular re-search qualifies only if all of these hold:
+- remaining depth is at least IdeaS10_Depth
+- the last IdeaS10_Look plies are non-pawn, non-capture piece moves, and the half-move clock is at least that long, so the pawn structure has stayed flat
+- both the static eval and the existing pawn-structure term are at least IdeaS10_Margin centipawns and they have the same sign
+- a one-ply probe that allows the side with the pawn advantage only non-pawn non-captures stays within IdeaS10_Flat of the eval
+- the other side has a reverse shuffle of its previous move, or a legal quiet piece move that repeats
+
+The node then keeps IdeaS10_Shrink/1024 of that eval. A later cutoff or the backed-up score is pulled the same way only when it is still within IdeaS10_Flat of the original eval, and only when the pulled score still fails the bound it was going to return. Mate scores are left alone. The probe uses the pawn term already in the evaluator and the same static evaluation the search uses. It does not add a second evaluation function or a list of fortress shapes.
+
+PV nodes are left alone so the displayed line is not scaled by this suspicion. Non-PV nodes are where the node count can change.
