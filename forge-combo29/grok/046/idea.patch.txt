@@ -1,0 +1,212 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..35ba97a68 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -292,6 +292,8 @@ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
++extern bool IdeaK7;                  // correction history of the last two moves, added to static eval (false = off)
++extern int IdeaK7_Weight;            // percent of that entry mixed in; 100 matches the pawn-correction grain
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+@@ -478,6 +480,9 @@ private:
+     std::unique_ptr<CorrectionHistory> material_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
++    // [side][older piece][older to][recent piece][recent to], heap only. Read and
++    // written only while IdeaK7 is on, so the default search never touches it.
++    std::unique_ptr<std::int32_t[]> pair_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+ #if FORGE_NNUE_V3
+     std::unique_ptr<nnue::v3::WorkerState> v3_state_;
+@@ -552,8 +557,8 @@ private:
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+-    void update_correction(const Board& board, int depth, int best_score, int static_eval);
++    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const;
++    void update_correction(const Board& board, int depth, int best_score, int static_eval, const SearchStack* ss);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+ #if FORGE_NNUE_V3
+     [[nodiscard]] int static_evaluate_v3(const Board& board, SearchStack* ss);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..5b8719f29 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -92,6 +92,8 @@ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
++bool IdeaK7 = false;
++int IdeaK7_Weight = 100;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK7_Weight", &IdeaK7_Weight, 0, 400},
+     };
+     return table;
+ }
+@@ -999,6 +1002,40 @@ private:
+ // ---------------------------------------------------------------------------
+ // Searcher
+ 
++namespace {
++// Direct table: side to move, then the older move, then the move that just
++// entered the node. Piece is the engine's 0..12 encoding; square is 0..63.
++constexpr std::size_t PairPieceCount = 13;
++constexpr std::size_t PairSquareCount = 64;
++constexpr std::size_t PairCorrectionEntries =
++    2 * PairPieceCount * PairSquareCount * PairPieceCount * PairSquareCount;
++
++[[nodiscard]] bool pair_moves_ready(const SearchStack* ss) {
++    if (ss == nullptr) return false;
++    const SearchStack* recent = ss - 1;
++    const SearchStack* older = ss - 2;
++    if (recent->current_move.is_none() || recent->moved_piece == Empty) return false;
++    if (older->current_move.is_none() || older->moved_piece == Empty) return false;
++    return static_cast<unsigned>(recent->moved_piece) < PairPieceCount &&
++           static_cast<unsigned>(older->moved_piece) < PairPieceCount &&
++           recent->current_move.to < PairSquareCount && older->current_move.to < PairSquareCount;
++}
++
++// Last two moves that reached this node: (ss-2) is older, (ss-1) is the most recent.
++[[nodiscard]] std::size_t pair_correction_index(const Board& board, const SearchStack* ss) {
++    const SearchStack* recent = ss - 1;
++    const SearchStack* older = ss - 2;
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    const std::size_t older_piece = static_cast<std::size_t>(older->moved_piece);
++    const std::size_t older_to = older->current_move.to;
++    const std::size_t recent_piece = static_cast<std::size_t>(recent->moved_piece);
++    const std::size_t recent_to = recent->current_move.to;
++    return ((((side * PairPieceCount + older_piece) * PairSquareCount + older_to) * PairPieceCount + recent_piece) *
++                PairSquareCount +
++            recent_to);
++}
++} // namespace
++
+ Worker::Worker(SharedSearchState& shared, int id)
+     : shared_(shared),
+       id_(id),
+@@ -1010,7 +1047,8 @@ Worker::Worker(SharedSearchState& shared, int id)
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+-      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
++      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
++      pair_correction_(std::make_unique<std::int32_t[]>(PairCorrectionEntries)) {
+     clear();
+ }
+ 
+@@ -1027,6 +1065,7 @@ void Worker::clear() {
+     *material_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
++    std::memset(pair_correction_.get(), 0, PairCorrectionEntries * sizeof(std::int32_t));
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1207,7 +1246,7 @@ void Worker::record_null_move(SearchStack* ss) {
+     child->runtime_psqt.valid = false;
+ }
+ 
+-int Worker::corrected_eval(const Board& board, int raw_eval) const {
++int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+         int fixed = 0;
+@@ -1223,10 +1262,14 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+         correction += (np_w + np_b) / 2;
+     }
++    // Off: this block is skipped and the correction integer is today's value.
++    if (tune::IdeaK7 && tune::IdeaK7_Weight != 0 && pair_moves_ready(ss)) {
++        correction += pair_correction_[pair_correction_index(board, ss)] * tune::IdeaK7_Weight / 100;
++    }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+-void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
++void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval, const SearchStack* ss) {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
+@@ -1239,6 +1282,7 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+     }
++    if (tune::IdeaK7 && pair_moves_ready(ss)) apply(pair_correction_[pair_correction_index(board, ss)]);
+ }
+ 
+ std::int64_t Worker::elapsed_ms() const {
+@@ -1464,7 +1508,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1620,7 +1664,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     reused_raw = raw;
+                     reuse_raw = true;
+                 }
+-                const int mover_loss = parent_eval + corrected_eval(board, raw);
++                const int mover_loss = parent_eval + corrected_eval(board, raw, ss);
+                 int proposed = depth;
+                 if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
+                 else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
+@@ -1653,7 +1697,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else if (reuse_raw) ss->raw_eval = reused_raw;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, ss), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -2103,7 +2147,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         (best_move.is_none() || !best_move.is_capture()) &&
+         !(bound == BoundLower && best_score <= ss->static_eval) &&
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+-        update_correction(board, depth, best_score, ss->static_eval);
++        update_correction(board, depth, best_score, ss->static_eval, ss);
+     }
+     return best_score;
+ }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..93ad0fb3d 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -216,6 +216,7 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
++                         "option name IdeaK7 type check default false\n"
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
+@@ -403,7 +404,7 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaK7") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+@@ -414,6 +415,7 @@ int uci_loop(std::istream& in) {
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
++                             : name == "IdeaK7" ? &forge::tune::IdeaK7
+                                                         : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";

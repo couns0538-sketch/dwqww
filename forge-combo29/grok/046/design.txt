@@ -1,0 +1,11 @@
+Idea 46, IdeaK7. The plain engine does not do this.
+EXISTS: no. corrected_eval in src/search.cpp indexes the pawn key, the material key, and (when NonPawnCorrection is on) two non-pawn keys. Nothing is indexed by the last two moves.
+
+What I built
+A check option IdeaK7, default false. A spin option IdeaK7_Weight, default 100, range 0 to 400.
+The table is one heap array, indexed by the side to move, then the older move's piece and destination, then the most recent move's piece and destination. Piece is the engine's 0..12 encoding. A missing move, a null move, or an empty piece adds nothing and is not updated.
+When the option is on and the weight is not 0, that entry times the weight / 100 is added to the same correction sum the pawn history already uses, then divided by the existing grain of 256. The update uses the same difference and depth weight as the other correction tables, and only when those tables are updated.
+When the option is off the new table is not read and not written, so the correction integer is today's value.
+Weight 100 is the full entry, the same scale as the pawn correction. I picked 100 because a smaller weight would hide the feature in a short match, and the option can still turn the whole thing off.
+
+Threads 1 and Hash 16 are sent before S14. S14 is then sent in the listed order. IdeaK7 is sent after S14.
