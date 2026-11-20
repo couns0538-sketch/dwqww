@@ -1,0 +1,192 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..455dc5aef 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,11 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaS13;                  // history for a quiet piece move before a pawn break (false = off)
++extern int IdeaS13_Lag;               // plies to look back (1..4; 4 is the sentinel depth)
++extern int IdeaS13_Bonus;             // history points given to that earlier piece move
++extern int IdeaS13_Divisor;           // break history / divisor, in plies, shaved from a quiet reduction
++extern int IdeaS13_Shave;             // cap on that shave, in plies
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+@@ -426,6 +431,8 @@ struct SearchStack {
+     std::uint8_t entered_side = 0;
+     bool entered_null = false;
+     bool diff_known = false;
++    // Pawn key of this node. Written only while IdeaS13 is on, and read only then.
++    std::uint64_t node_pawn_key = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -470,6 +477,7 @@ private:
+     int id_ = 0;
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
++    std::unique_ptr<ButterflyHistory> break_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+@@ -551,6 +559,9 @@ private:
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
++    // Separate from quiet_history: ordering and a reduction shave only, never eval.
++    [[nodiscard]] int break_quiet_value(const Board& board, Move move) const;
++    void credit_break_quiets(const Board& board, SearchStack* ss);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3974e4322 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,11 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaS13 = false;
++int IdeaS13_Lag = 4;
++int IdeaS13_Bonus = 160;
++int IdeaS13_Divisor = 48;
++int IdeaS13_Shave = 1;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +150,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS13_Lag", &IdeaS13_Lag, 1, 4},                    {"IdeaS13_Bonus", &IdeaS13_Bonus, 0, 4000},
++        {"IdeaS13_Divisor", &IdeaS13_Divisor, 1, 8192},         {"IdeaS13_Shave", &IdeaS13_Shave, 0, 4},
+     };
+     return table;
+ }
+@@ -796,6 +803,7 @@ private:
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            if (tune::IdeaS13) value += worker.break_quiet_value(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -988,6 +996,7 @@ private:
+                 score = scorer.score(move, check_squares_);
+ #else
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++                if (tune::IdeaS13) score += searcher_.break_quiet_value(board_, move);
+ #endif
+             }
+             push_scored(move, score);
+@@ -1003,6 +1012,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+     : shared_(shared),
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
++      break_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+@@ -1019,6 +1029,7 @@ Worker::~Worker() = default;
+ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
++    *break_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+@@ -1354,6 +1365,31 @@ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+ 
++int Worker::break_quiet_value(const Board& board, Move move) const {
++    if (!tune::IdeaS13) return 0;
++    const int type = piece_type(board.moved_piece(move));
++    if (type == NoPieceType || type == Pawn) return 0;
++    return (*break_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
++}
++
++void Worker::credit_break_quiets(const Board& board, SearchStack* ss) {
++    if (!tune::IdeaS13 || tune::IdeaS13_Bonus == 0) return;
++    const std::uint64_t structure = ss->node_pawn_key;
++    int lag = tune::IdeaS13_Lag;
++    if (lag < 1) lag = 1;
++    if (lag > 4) lag = 4;
++    for (int k = 1; k <= lag; ++k) {
++        const SearchStack* earlier = ss - k;
++        const Move move = earlier->current_move;
++        if (move.is_none() || move.is_capture() || move.is_promotion()) continue;
++        const int type = piece_type(earlier->moved_piece);
++        if (type == NoPieceType || type == Pawn) continue;
++        if ((ss - k + 1)->node_pawn_key != structure) continue;
++        const Color side = (k % 2 == 0) ? board.side_to_move() : opposite(board.side_to_move());
++        apply_history((*break_history_)[static_cast<std::size_t>(side)][move.from][move.to], tune::IdeaS13_Bonus);
++    }
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1554,6 +1590,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const int ply = ss->ply;
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    if (tune::IdeaS13) ss->node_pawn_key = board.pawn_key();
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -2008,6 +2045,17 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
++            if (tune::IdeaS13 && quiet) {
++                const int type = piece_type(moved);
++                if (type != NoPieceType && type != Pawn && tune::IdeaS13_Divisor > 0) {
++                    const int bh = break_quiet_value(board, move);
++                    if (bh > 0) {
++                        int shave = bh / tune::IdeaS13_Divisor;
++                        if (shave > tune::IdeaS13_Shave) shave = tune::IdeaS13_Shave;
++                        r -= shave;
++                    }
++                }
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+@@ -2089,6 +2137,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+     }
+ 
++    if (tune::IdeaS13 && !best_move.is_none() && piece_type(board.moved_piece(best_move)) == Pawn)
++        credit_break_quiets(board, ss);
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..d3ae06a39 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS13 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS13") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS13 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;

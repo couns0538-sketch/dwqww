@@ -118,6 +118,8 @@ def main() -> None:
     options.extend(args.extra)
     engine = Engine(exe)
     id_name = ""
+    failed = None
+    rows = []
     try:
         engine.send("uci")
         engine.read_until(lambda line: line == "uciok", 30)
@@ -126,7 +128,6 @@ def main() -> None:
             engine.send(option)
             engine.send("isready")
             engine.read_until(lambda line: line == "readyok", 30)
-        rows = []
         for index, fen in enumerate(fens, start=1):
             engine.send("ucinewgame")
             engine.send("isready")
@@ -149,10 +150,29 @@ def main() -> None:
             rows.append((index, nodes, best))
             if index % 50 == 0:
                 print(f"{args.tag} {index}/{len(fens)} running_sum {sum(n for _, n, _ in rows)}", flush=True)
+    except SystemExit as exc:
+        failed = exc
     finally:
         engine.close()
     raw = out / f"{args.tag}.raw.txt"
     raw.write_text("\n".join(engine.lines) + "\n", encoding="utf-8")
+    if failed is not None and not rows:
+        asan = subprocess.run(["nm", "-C", str(exe)], capture_output=True, text=True, check=False)
+        asan_count = sum(1 for line in asan.stdout.splitlines() if "__asan_" in line)
+        (out / f"{args.tag}.meta").write_text(
+            "\n".join([
+                f"exe {exe}",
+                f"sha256 {sha256(exe)}",
+                f"id_name {id_name}",
+                f"asan_symbol_count {asan_count}",
+                "options",
+                *options,
+                f"failed {failed}",
+            ]) + "\n",
+            encoding="utf-8",
+        )
+        print(f"saved partial {raw} after {failed}", flush=True)
+        raise failed
     tsv = out / f"{args.tag}.rows.tsv"
     tsv.write_text("".join(f"{i}\t{n}\t{b}\n" for i, n, b in rows), encoding="utf-8")
     total = sum(n for _, n, _ in rows)

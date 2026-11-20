@@ -1,0 +1,8 @@
+IdeaS13. The plain engine does not keep a history of the quiet piece move that stood before a pawn break. EXISTS: no.
+
+What was added, and why:
+A butterfly table, break_history, indexed by side, from and to. It is not added to the evaluation and it is not mixed into quiet_history, so history pruning and the existing late-move history term stay on today's formula.
+When a pawn move raises the score (it becomes best_move, which happens only after the score goes above alpha), look back IdeaS13_Lag plies. Credit a non-capturing, non-promoting move of a knight, bishop, rook, queen or king if the pawn key after that move is still the pawn key at the break. A pawn move in between changes the key, so the earlier piece move is not credited. Lag is at most 4 because the root frame sits four sentinel frames above the start of the stack.
+The table is used in two places only: added to the quiet ordering score of non-pawn moves, and, when positive, subtracted from that move's late-move reduction by min(IdeaS13_Shave, history / IdeaS13_Divisor) plies.
+Chosen numbers: Lag 4, Bonus 160, Divisor 48, Shave 1. One credit is 160. 160/48 is 3, and the cap cuts that to 1 ply, so the next time that from-to is tried it is ordered 160 higher and reduced one ply less.
+The check IdeaS13 defaults false. While it is false the search does not read or write the table and does not change a reduction. clear() still zeroes the table.
