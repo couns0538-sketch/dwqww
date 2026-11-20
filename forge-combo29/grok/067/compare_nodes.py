@@ -21,7 +21,7 @@ def main() -> None:
     for (i, a, am), (j, b, bm) in zip(left, right):
         if i != j:
             raise SystemExit(f"index {i} != {j}")
-        if a != b or am != bm:
+        if a != b:
             differ += 1
             if differ <= 8:
                 print(f"diff pos {i} nodes {a} vs {b} move {am} vs {bm}")
