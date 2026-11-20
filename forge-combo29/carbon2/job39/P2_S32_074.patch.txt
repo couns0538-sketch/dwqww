@@ -1,0 +1,168 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -309,6 +309,8 @@
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool IdeaS32;                 // verify a null cutoff whose probe fail-high rests on a shallow hash proof (false = off)
++extern int IdeaS32_OwedSlack;        // hash proof is deep enough at the parent depth minus this many plies
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+@@ -454,6 +456,10 @@
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+     mutable std::uint64_t corr_mat_mix = 0;
+     mutable std::uint8_t corr_valid = 0;
++    // IdeaS32 only. True when this call returned a transposition cutoff.
++    bool returned_on_hash = false;
++    // Depth stored on that hash bound. -1 when the call did not return on one.
++    int hash_proof_depth = -1;
+ };
+ 
+ // State shared by every worker of one Searcher.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -168,6 +168,8 @@
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
++bool IdeaS32 = false;
++int IdeaS32_OwedSlack = 0;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+@@ -221,6 +223,7 @@
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
++        {"IdeaS32_OwedSlack", &IdeaS32_OwedSlack, 0, 64},
+ #if FORGE_PAWN_HISTORY
+         {"PawnHistory", &PawnHistory, 0, 1},                     {"PawnHistoryBits", &PawnHistoryBits, 9, 13},
+         {"PawnHistoryWeight", &PawnHistoryWeight, 0, 200},       {"PawnHistoryPvBonus", &PawnHistoryPvBonus, 0, 1},
+@@ -1805,6 +1808,10 @@
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        if (tune::IdeaS32) {
++            ss->returned_on_hash = true;
++            ss->hash_proof_depth = tte.depth;
++        }
+         return tt_score;
+     }
+ 
+@@ -1906,6 +1913,12 @@
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    // Cleared on every entry so a later null-move parent never reads a sibling's proof.
++    // Skipped when the option is off, so that path does not touch these fields.
++    if (tune::IdeaS32) {
++        ss->returned_on_hash = false;
++        ss->hash_proof_depth = -1;
++    }
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+@@ -2007,6 +2020,10 @@
+             apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][tt_move.from][tt_move.to], bonus);
+             update_continuation(ss, board.moved_piece(tt_move), tt_move.to, bonus);
+         }
++        if (tune::IdeaS32) {
++            ss->returned_on_hash = true;
++            ss->hash_proof_depth = tt_depth;
++        }
+         return tt_score;
+     }
+ 
+@@ -2122,7 +2139,16 @@
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
++                // The reduced probe still owed this node's depth. A hash bound
++                // shallower than depth - IdeaS32_OwedSlack is not that proof, so
++                // the cutoff stands only if the same reduced re-search reaches beta.
++                // The option is read first: when it is off, the probe flags are not read.
++                bool shallow_hash = false;
++                if (tune::IdeaS32) {
++                    const int owed = depth - tune::IdeaS32_OwedSlack;
++                    shallow_hash = (ss + 1)->returned_on_hash && (ss + 1)->hash_proof_depth < owed;
++                }
++                if (depth < 14 && !threat_gate && !shallow_hash) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+@@ -2515,6 +2541,8 @@
+     }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++    // IdeaS32 does not add depth to a fail-high stored after a pass. The depth
++    // written here is the depth just searched, including when the parent move was null.
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+         store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+@@ -2545,6 +2573,10 @@
+ } // namespace
+ 
+ int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if (tune::IdeaS32) {
++        ss->returned_on_hash = false;
++        ss->hash_proof_depth = -1;
++    }
+     if (tune::CuckooRep) {
+         constexpr int DrawScore = 0;
+         if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
+@@ -2557,6 +2589,10 @@
+ }
+ 
+ int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
++    if (tune::IdeaS32) {
++        ss->returned_on_hash = false;
++        ss->hash_proof_depth = -1;
++    }
+     if (tune::CuckooRep) {
+         constexpr int DrawScore = 0;
+         if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+@@ -2568,6 +2604,10 @@
+ }
+ 
+ int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if (tune::IdeaS32) {
++        ss->returned_on_hash = false;
++        ss->hash_proof_depth = -1;
++    }
+     constexpr int DrawScore = 0;
+     // depth <= 0 goes on to qsearch_cuckoo through search(), which applies the bound there; the root, and the
+     // singular verification search of a node (excluded move set), are left alone.
+@@ -2580,6 +2620,10 @@
+ }
+ 
+ int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
++    if (tune::IdeaS32) {
++        ss->returned_on_hash = false;
++        ss->hash_proof_depth = -1;
++    }
+     constexpr int DrawScore = 0;
+     if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
+         if (beta <= DrawScore) return DrawScore;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -761,6 +761,7 @@
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
++                         "option name IdeaS32 type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+@@ -961,6 +962,10 @@
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
+                 else note_invalid();
++            } else if (name == "IdeaS32") {
++                if (value_text == "true") forge::tune::IdeaS32 = true;
++                else if (value_text == "false") forge::tune::IdeaS32 = false;
++                else note_invalid();
+             } else if (name == "DeadMaterial") {
+                 if (value_text != "true" && value_text != "false") note_invalid();
+                 else if (forge::dead_material_enabled != (value_text == "true")) {
