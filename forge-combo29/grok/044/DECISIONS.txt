@@ -1,0 +1,14 @@
+IdeaK5 (idea 44). The plain engine does not add quiet-move history to the quiet futility margin.
+EXISTS: no. Capture futility already adds capture history/8 (search.cpp, the capture branch). Quiet futility does not.
+
+What I built
+- UCI check IdeaK5, default false.
+- UCI spin IdeaK5_Divisor, default 48, min 1, max 1024.
+- When the check is true, both quiet futility margins (the main one, and the QuietExtinction tight one) gain quiet_history / IdeaK5_Divisor.
+- quiet_history is Worker::quiet_history: main history plus continuation history, the same integer the search already uses for ordering and history pruning.
+- Low depth stays the existing gate: reduced depth <= FutilityDepth (7 under the defaults, and S14 does not change it).
+- Divisor 48: one ply of late-move history is about LmrHistoryDivisor (5643 under S14). One ply of futility margin is FutilityMultiplier (110). 5643/110 is about 51, so 48 maps one ply of history onto about one ply of margin. The spin minimum is 1 so the division is never by zero.
+- When the check is false the added term is 0, so the comparison is the same sum as today.
+- QuietExtinction is off in S14, so the tight margin is not used in the measured searches. It still gets the same term so the idea is not only half-present.
+
+The patch is idea.patch.txt. git apply --check on a clean base worktree printed nothing and exited 0.

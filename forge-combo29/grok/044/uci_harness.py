@@ -34,7 +34,9 @@ S14 = [
 
 
 class HarnessError(RuntimeError):
-    pass
+    def __init__(self, message, lines=None):
+        super().__init__(message)
+        self.lines = lines or []
 
 
 def sha256_file(path):
@@ -72,11 +74,17 @@ def read_id_name(exe):
     return name
 
 
+def asan_symbol_count(exe):
+    proc = subprocess.run(["nm", "-C", exe], check=False, capture_output=True, text=True)
+    return sum(1 for line in proc.stdout.splitlines() if "__asan_" in line)
+
+
 def write_meta(path, exe, command, options):
     text = [
         f"exe={exe}",
         f"sha256={sha256_file(exe)}",
         f"id_name={read_id_name(exe)}",
+        f"nm_asan_count={asan_symbol_count(exe)}",
         f"command={command}",
         "options_sent:",
     ]
@@ -116,7 +124,7 @@ class Engine:
         while True:
             line = self.proc.stdout.readline()
             if line == "":
-                raise HarnessError("engine closed stdout early")
+                raise HarnessError("engine closed stdout early", list(self.lines))
             line = line.rstrip("\n")
             self.lines.append(line)
             _check_line(line)
@@ -216,20 +224,31 @@ def search_set(exe, options, fen_path, depth, out_prefix, workers):
     from concurrent.futures import ThreadPoolExecutor
 
     results = []
+    crashed = []
 
     def run_job(job):
         exe_path, opts, fen_list, dep, indices = job
-        rows, blocks = search_chunk(exe_path, opts, fen_list, dep, 0)
+        try:
+            rows, blocks = search_chunk(exe_path, opts, fen_list, dep, 0)
+        except HarnessError as exc:
+            return exc
         paired = []
-        for (idx, _nodes, _fen), (row, block) in zip(
-            [(i, None, fens[i]) for i in indices], zip(rows, blocks)
-        ):
+        for idx, (row, block) in zip(indices, zip(rows, blocks)):
             paired.append((idx, row[1], fens[idx], block))
         return paired
 
     with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
         for paired in pool.map(run_job, jobs):
-            results.extend(paired)
+            if isinstance(paired, HarnessError):
+                crashed.append(paired)
+            else:
+                results.extend(paired)
+    if crashed:
+        raw_path = Path(str(out_prefix) + ".raw")
+        chunks = ["\n".join(err.lines) for err in crashed]
+        raw_path.write_text("\n".join(chunks) + "\n", encoding="utf-8")
+        write_meta(meta_path := Path(str(out_prefix) + ".meta"), exe, f"go depth {depth} CRASH positions={fen_path}", options)
+        raise crashed[0]
     results.sort(key=lambda item: item[0])
     if [item[0] for item in results] != list(range(len(fens))):
         raise HarnessError("position coverage is not 0..n-1")
