@@ -1,0 +1,12 @@
+Inserted only in /tmp/scratch-forge/src/board.cpp, after a successful set_fen.
+The idea patch does not contain this.
+
+366:    *this = std::move(candidate);
+367:    // Scratch probe only: one heap read past the end, on one FEN.
+368:    if (fen() == "k7/8/8/8/8/8/8/7K w - - 0 1") {
+369:        int* heap = new int[4];
+370:        volatile int past_end = heap[8];
+371:        if (past_end == 0x7fffffff) halfmove_ = 1;
+372:        delete[] heap;
+373:    }
+374:    return true;
