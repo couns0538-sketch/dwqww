@@ -1,0 +1,55 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..f93b16c8d 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -299,6 +299,7 @@ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
++extern int NullThreatVerifyDepth;    // at this depth and above a null cutoff is always verified; below it, only a cheaper-attacker threat verifies when NullThreatVerify is on (14 = today)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..276f9787a 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -99,6 +99,7 @@ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
++int NullThreatVerifyDepth = 14;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+@@ -145,6 +146,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"NullThreatVerify_Depth", &NullThreatVerifyDepth, 1, 64},
+     };
+     return table;
+ }
+@@ -1716,13 +1718,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+-                // Depth >= 14 always verifies, as before. Below that, a cutoff
+-                // stands unless NullThreatVerify is on and a cheaper enemy piece
+-                // attacks a dearer piece of the side to move. The option is read
+-                // first, so the attack scan does not run when it is off.
++                // Depth >= NullThreatVerify_Depth always verifies, as before
++                // (today that depth is 14). Below it, a cutoff stands unless
++                // NullThreatVerify is on and a cheaper enemy piece attacks a
++                // dearer piece of the side to move. The option is read first,
++                // so the attack scan does not run when it is off. The default
++                // depth keeps today's branch.
+                 const bool threat_gate =
+-                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
++                    depth < tune::NullThreatVerifyDepth && tune::NullThreatVerify &&
++                    cheaper_enemy_attacks_dearer(board);
++                if (depth < tune::NullThreatVerifyDepth && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }

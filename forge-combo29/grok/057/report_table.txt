@@ -1,0 +1,14 @@
+step | status | evidence | result
+honesty B | done | HONESTY_B.txt | info string bench depth 11 nodes 312866 time 163 nps 1919423 | info string bench depth 13 nodes 862329 time 426 nps 2024246 | info string bench depth 16 nodes 3024920 time 1427 nps 2119775 | nodes 4865609
+baseline O G | done | B_O.rows.txt B_G.rows.txt | O n 200 sum 9500069; G n 353 sum 18466239
+patch applies | done | apply_check.txt idea.patch.txt | git apply --check exit 0
+honesty P | done | HONESTY_P.txt | info string bench depth 11 nodes 312866 time 161 nps 1943267 | info string bench depth 13 nodes 862329 time 439 nps 1964302 | info string bench depth 16 nodes 3024920 time 1417 nps 2134735 | nodes 4865609
+proof off O | done | compare_off_O.txt | n 200; sum_a 9500069; sum_b 9500069; differ 0; equal 200
+proof off G | done | compare_off_G.txt | n 353; sum_a 18466239; sum_b 18466239; differ 0; equal 353
+proof on O | done | compare_on_O.txt | n 200; sum_a 9500069; sum_b 9536516; differ 200; equal 0; sum 9536516
+uci options | done | honesty_p_bench11.txt | option name IdeaS31 type check default false | option name IdeaS31_Margin type spin default 80 min 0 max 2000
+sanitizer G100 | done | asan_g100.meta asan_g100.stderr.txt | nm_asan_count 35; note completed; stderr bytes 0
+sanitizer scratch | done | asan_scratch.stderr.txt asan_scratch.meta | note sanitizer reported
+match on vs off | done | match_summary.txt match_on_off.log match_on_off.pgn | Elo: -1.26 +/- 9.89, nElo: -2.60 +/- 20.48
+partner 007 | done | partner_007_off_vs_B.txt partner_007_on_vs_theirs.txt partner_007_on_vs_B.txt | off n 200; sum_a 9500069; sum_b 9500069; differ 0; equal 200 | on vs theirs n 200; sum_mine 9501877; sum_theirs 9501877; differ 0; equal 200 | on vs B n 200; sum_a 9500069; sum_b 9501877; differ 147; equal 53
+partner R match | done | match_partner_summary.txt | Elo: -0.00 +/- 9.63, nElo: 0.00 +/- 27.80
