@@ -1,0 +1,31 @@
+=== JOB 39 PART P: P5_S10_081 (option `IdeaS10`) ===
+start_utc: Fri Nov 20 01:49:25 PM UTC 2026
+patch_file: P5_S10_081.patch.txt | patch_sha256: b38dba369d2ed25a86ba26dfc72ad38d28e46a1a0df16cce735f917b7eebc6a9 | port_notes_lines: 4
+  apply_against_r15d_v3                       : git apply --check -p1 PASS (0 == 0)
+  exe_path: /tmp/carbon2_job39/bld_P5_S10_081/forge | exe_sha256: 072736baee60a50b2c1eb90d52d465544fa797c87b994ed98a906445fe76947a | id name Chess Engine Forge 6.4.24 candidate
+
+--- 1. Switch OFF Verification (Default Off & `IdeaS10=false`) ---
+[P5_S10_081_off] exe=/tmp/carbon2_job39/bld_P5_S10_081/forge | sha256=072736baee60a50b2c1eb90d52d465544fa797c87b994ed98a906445fe76947a | id name Chess Engine Forge 6.4.24 candidate
+  P5_S10_081_off no-option bench 11           : PASS (312866 == 312866)
+  P5_S10_081_off no-option bench 13           : PASS (862329 == 862329)
+  P5_S10_081_off no-option perft 5            : PASS (4865609 == 4865609)
+  P5_S10_081_off PC20 bench 11                : PASS (278024 == 278024)
+  P5_S10_081_off PC20 bench 13                : PASS (587276 == 587276)
+  P5_S10_081_off Set A line L records         : PASS (26741 == 26741)
+  P5_S10_081_off Set A line L nodes           : PASS (107124743 == 107124743)
+  P5_S10_081_off Set A line L sha256          : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  P5_S10_081_off n[1..60] line L records      : PASS (8449 == 8449)
+  P5_S10_081_off n[1..60] line L searches     : PASS (8482 == 8482)
+  P5_S10_081_off n[1..60] line L nodes        : PASS (36688357 == 36688357)
+  P5_S10_081_off n[1..60] line L sha256       : PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  P5_S10_081_off O d12 sum vs Step0 OFF       : PASS (8315168 == 8315168)
+  P5_S10_081_off O d12 differing positions    : PASS (0 == 0)
+
+--- 2. Switch ON (`setoption name IdeaS10 value true`, PC20, built-in evaluation) ---
+  P5_S10_081 ON O d12 (200 FENs)  : sum_nodes=8314153 (off=8315168, delta=-1015) | positions_differ=17/200 (nodes_differ=17/200)
+  P5_S10_081 ON G d12 (353 FENs)  : sum_nodes=17536908 (off=17611204, delta=-74296) | positions_differ=98/353 (nodes_differ=98/353)
+  P5_S10_081 ON Set A line L      : attempts=200 finished=200 thrown=0 records=26130 searches=26245 nodes=104621754
+  P5_S10_081 ON Set A line L sha256: 429d5042b167d0b350399308014a755d057043e3cfa5561db2ee1e70e8ffd60e
+
+P5_S10_081 OVERALL: PASS (1 == 1)
+done_utc: Fri Nov 20 01:51:09 PM UTC 2026
