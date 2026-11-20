@@ -1,0 +1,10 @@
+Seat 054, idea 4, id S35, option name IdeaS35.
+
+EXISTS: forge-combo29/src/search.cpp:2010
+The plain engine already takes one ply of reduction off the first four replies when the parent arrival index is at least 7. The switch is LmrLateParentRelief, type check, default false (uci.cpp lists it). The numbers 7 and 4 were fixed, not options.
+
+Decision: do not add a second copy of the search change. Expose the two fixed numbers as spin options IdeaS35_Index (default 7, min 1, max 64) and IdeaS35_Replies (default 4, min 1, max 64). With the switch false the new reads are not taken, so the search path stays today's path. With the switch true and the defaults, the predicate is the same as the old constants.
+
+The IDEAS.md sentence about a second ply for a very late parent is not in the engine. Adding it would change today's on-path, so it stays out. The defaults must reproduce today's numbers.
+
+git apply --check of idea.patch.txt succeeded on the grok-seat tree and on the clean base worktree before any measurement of exe P.

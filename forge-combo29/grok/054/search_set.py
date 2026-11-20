@@ -30,17 +30,19 @@ STOP_MARKS = ("unknown option", "invalid value", "invalid FEN", "illegal move")
 
 
 class Engine:
-    def __init__(self, exe: Path, transcript: Path):
+    def __init__(self, exe: Path, transcript: Path, err_path: Path):
+        self.err_file = err_path.open("w", encoding="utf-8")
         self.proc = subprocess.Popen(
             [str(exe)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=self.err_file,
             text=True,
             bufsize=1,
         )
         self.transcript = transcript.open("w", encoding="utf-8")
         self.options_sent: list[str] = []
+        self.died = False
 
     def send(self, line: str) -> None:
         assert self.proc.stdin is not None
@@ -55,10 +57,9 @@ class Engine:
         while True:
             line = self.proc.stdout.readline()
             if line == "":
-                err = ""
-                if self.proc.stderr is not None:
-                    err = self.proc.stderr.read()
-                raise SystemExit(f"engine closed stdout. stderr={err!r} lines={lines[-5:]}")
+                self.died = True
+                self.transcript.write("!! engine closed stdout\n")
+                return lines
             self.transcript.write(line)
             self.transcript.flush()
             stripped = line.strip()
@@ -90,6 +91,7 @@ class Engine:
         except subprocess.TimeoutExpired:
             self.proc.kill()
         self.transcript.close()
+        self.err_file.close()
 
 
 def fen_of(line: str) -> str:
@@ -129,27 +131,45 @@ def main() -> int:
         fens = fens[: args.limit]
     prefix = Path(args.out)
     prefix.parent.mkdir(parents=True, exist_ok=True)
-    engine = Engine(exe, prefix.with_suffix(".raw"))
+    engine = Engine(exe, prefix.with_suffix(".raw"), prefix.with_suffix(".err"))
+    id_name = ""
+    nodes: list[int] = []
     try:
         engine.send("uci")
         uci_lines = engine.read_until(lambda line: line == "uciok")
-        id_name = ""
         for line in uci_lines:
             if line.startswith("id name "):
                 id_name = line[len("id name ") :]
-        for name, value in S14:
-            engine.setoption(name, value)
-        for item in args.extra:
-            name, value = item.split("=", 1)
-            engine.setoption(name, value)
-        nodes: list[int] = []
+        if not engine.died:
+            for name, value in S14:
+                engine.setoption(name, value)
+                if engine.died:
+                    break
+        if not engine.died:
+            for item in args.extra:
+                name, value = item.split("=", 1)
+                engine.setoption(name, value)
+                if engine.died:
+                    break
         for index, fen in enumerate(fens, start=1):
+            if engine.died:
+                print(f"DIED before {index}", flush=True)
+                break
             engine.send("ucinewgame")
             engine.ready()
+            if engine.died:
+                print(f"DIED at {index} ucinewgame", flush=True)
+                break
             engine.send(f"position fen {fen}")
             engine.ready()
+            if engine.died:
+                print(f"DIED at {index} position", flush=True)
+                break
             engine.send(f"go depth {args.depth}")
             got = engine.read_until(lambda line: line.startswith("bestmove "))
+            if engine.died:
+                print(f"DIED at {index} go", flush=True)
+                break
             count = nodes_of(got)
             nodes.append(count)
             print(f"{index} {count}", flush=True)
@@ -165,12 +185,13 @@ def main() -> int:
         f"depth {args.depth}",
         f"positions {len(nodes)}",
         f"sum {sum(nodes)}",
+        f"engine_died {engine.died}",
         "options sent:",
         *engine.options_sent,
     ]
     prefix.with_suffix(".meta").write_text("\n".join(meta_lines) + "\n", encoding="utf-8")
-    print(f"SUM {sum(nodes)} N {len(nodes)}", flush=True)
-    return 0
+    print(f"SUM {sum(nodes)} N {len(nodes)} died {engine.died}", flush=True)
+    return 1 if engine.died else 0
 
 
 if __name__ == "__main__":
