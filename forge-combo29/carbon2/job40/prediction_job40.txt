@@ -1,0 +1,22 @@
+=== JOB 40 PREDICTION (committed ALONE before Part T's first run, never edited) ===
+
+(1) M1: the bundle's Elo, all on against all off (3,000 games, nodes=20000, PC20, built-in evaluation):
+    +5.0 Elo  (range that would prove me wrong: outside [-8.0, +20.0] Elo)
+    Basis: At fixed 20,000 nodes per move per-node CPU cost does not penalize M1, while winner's-curse
+    shrinkage from the 90-seat Grok swarm and partial overlap with PC20's HistRework=2 (quiet history
+    blending vs IdeaB1/IdeaS13/IdeaB8) and TtPruneV2 (rfp_worsening vs IdeaK4) compress the sum of the
+    six individual base-tree gains toward a modest positive net gain (~+5 Elo, +/- ~6.5 Elo 95% CI).
+
+(2) M0: the 20,000-node side's Elo against the 10,000-node side (400 games, all switches off, PC20, built-in evaluation):
+    +80.0 Elo  (range that would prove me wrong: outside [+45.0, +120.0] Elo)
+    Basis: Doubling fixed search nodes from 10,000 to 20,000 in an alpha-beta NNUE engine around depth 9-11
+    on UHO_Lichess_4852_v1.epd without adjudication typically yields ~70-90 Elo (+/- ~20 Elo at 400 games).
+
+(3) Part T: the bundle's time per 1,000 nodes all on divided by all off (O set, 200 positions, depth 12, PC20, built-in evaluation):
+    1.10  (range that would prove me wrong: outside [1.01, 1.25])
+    Basis: Built-in AVX-512 768->256->1 evaluation runs very fast (~220-250 ns/node), so IdeaB1's per-quiet
+    fading_board_prior attack/popcount work and IdeaB8's find_role_threat + quiet_threat_role checks add a
+    measurable ~8-12% per-node wall-time overhead, whereas IdeaK4, IdeaS32, IdeaS13, and rare IdeaS10 add
+    minimal average per-node time.
+
+stamp_utc: Fri Nov 20 02:21:28 PM UTC 2026
