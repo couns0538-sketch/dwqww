@@ -29,6 +29,11 @@ S14 = (
 )
 
 
+def asan_symbols(exe: Path) -> int:
+    proc = subprocess.run(["nm", "-C", str(exe)], text=True, capture_output=True, check=False)
+    return sum(1 for line in proc.stdout.splitlines() if "__asan_" in line)
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -122,6 +127,10 @@ def main() -> None:
     raw_path = Path(sys.argv[4])
     meta_path = Path(sys.argv[5])
     nodes_path = Path(sys.argv[6])
+    extra = []
+    for item in sys.argv[7:]:
+        name, value = item.split("=", 1)
+        extra.append((name, value))
     fens = load_fens(fen_path)
     id_name = "MISSING"
     probe = subprocess.run([str(exe)], input="uci\nquit\n", text=True, capture_output=True, check=False)
@@ -129,7 +138,7 @@ def main() -> None:
         if line.startswith("id name "):
             id_name = line[len("id name ") :]
             break
-    option_lines = [f"setoption name {n} value {v}" for n, v in S14]
+    option_lines = [f"setoption name {n} value {v}" for n, v in S14 + tuple(extra)]
     meta_path.write_text(
         f"exe={exe}\n"
         f"sha256={sha256(exe)}\n"
@@ -137,6 +146,7 @@ def main() -> None:
         f"depth={depth}\n"
         f"fen_file={fen_path}\n"
         f"positions={len(fens)}\n"
+        f"asan_symbols={asan_symbols(exe)}\n"
         + "".join(f"option={line}\n" for line in option_lines)
     )
     nodes = []

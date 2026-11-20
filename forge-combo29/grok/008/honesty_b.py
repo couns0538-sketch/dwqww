@@ -5,8 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXE = Path("/agent/repos/base/forge-combo29/build/forge")
 OUT = Path("/agent/repos/dwqww/forge-combo29/grok/008")
+EXE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/agent/repos/base/forge-combo29/build/forge")
+PREFIX = sys.argv[2] if len(sys.argv) > 2 else "honesty_b"
+REPORT = sys.argv[3] if len(sys.argv) > 3 else "HONESTY_B.txt"
 EXPECT = {
     "bench11": 312866,
     "bench13": 862329,
@@ -72,7 +74,7 @@ def main() -> None:
         raw = proc.stdout
         if proc.stderr:
             raw = raw + "\n# stderr\n" + proc.stderr
-        (OUT / f"honesty_b_{key}.txt").write_text(raw)
+        (OUT / f"{PREFIX}_{key}.txt").write_text(raw)
         nodes = parse_nodes(key, proc.stdout)
         ok = nodes == EXPECT[key]
         if not ok:
@@ -86,9 +88,9 @@ def main() -> None:
             f"command={command!r}\n"
             f"returncode={proc.returncode}\n"
         )
-        (OUT / f"honesty_b_{key}.meta").write_text(meta)
+        (OUT / f"{PREFIX}_{key}.meta").write_text(meta)
     report = "\n".join(lines) + "\n"
-    (OUT / "HONESTY_B.txt").write_text(report)
+    (OUT / REPORT).write_text(report)
     sys.stdout.write(report)
     if failed:
         raise SystemExit(1)

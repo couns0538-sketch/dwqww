@@ -1,0 +1,111 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..fcc199473 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -300,6 +300,9 @@ extern bool LmrLateParentRelief;     // one ply less reduction on the first few
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool IdeaS45;                 // same veto as NullSeeVeto, with the two spin numbers below (false = off, today's path)
++extern int IdeaS45_KingWorth;        // king price inside the S45 exchange filter (today 100000)
++extern int IdeaS45_SeeMargin;        // SEE threshold; a capture below it does not veto (today 0)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+@@ -373,7 +376,7 @@ void refresh();
+ // Side to move is the defender. True when the opponent has a legal capture of a
+ // dearer piece by a cheaper piece and static exchange evaluation does not call
+ // that capture a material loss. A capture SEE calls losing is not a threat.
+-[[nodiscard]] bool null_see_veto_threat(Board& board);
++[[nodiscard]] bool null_see_veto_threat(Board& board, int king_worth, int see_margin);
+ 
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..1aa6ad649 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -100,6 +100,9 @@ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
++bool IdeaS45 = false;
++int IdeaS45_KingWorth = 100000;
++int IdeaS45_SeeMargin = 0;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS45_KingWorth", &IdeaS45_KingWorth, 0, 1000000},
++        {"IdeaS45_SeeMargin", &IdeaS45_SeeMargin, -2000, 2000},
+     };
+     return table;
+ }
+@@ -1171,12 +1176,12 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+     child->runtime_psqt.valid = false;
+ }
+ 
+-bool null_see_veto_threat(Board& board) {
++bool null_see_veto_threat(Board& board, int king_worth, int see_margin) {
+     // Same prices as SEE, except the king. SeePieceValue prices a king at 0
+     // because the exchange walk treats it as a sentinel, not as the cheapest piece.
+-    constexpr int KingWorth = 100000;
+-    auto worth = [](int type) {
+-        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
++    // king_worth 100000 and see_margin 0 are today's numbers.
++    auto worth = [king_worth](int type) {
++        return type == King ? king_worth : SeePieceValue[static_cast<std::size_t>(type)];
+     };
+     NullUndo undo;
+     board.make_null_move(undo);
+@@ -1187,7 +1192,7 @@ bool null_see_veto_threat(Board& board) {
+         const int attacker = worth(piece_type(board.moved_piece(move)));
+         const int victim = worth(piece_type(board.captured_piece(move)));
+         if (attacker >= victim) continue;
+-        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
++        if (!board.is_legal(move) || !board.see_ge(move, see_margin)) continue;
+         threat = true;
+         break;
+     }
+@@ -1696,7 +1701,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+-            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
++            !(tune::NullSeeVeto && null_see_veto_threat(board, 100000, 0)) &&
++            !(tune::IdeaS45 && null_see_veto_threat(board, tune::IdeaS45_KingWorth, tune::IdeaS45_SeeMargin))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..e1a43b110 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -224,6 +224,7 @@ int uci_loop(std::istream& in) {
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
++                         "option name IdeaS45 type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+@@ -402,7 +403,7 @@ int uci_loop(std::istream& in) {
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+-                       name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
++                       name == "NullSeeVeto" || name == "IdeaS45" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+@@ -411,6 +412,7 @@ int uci_loop(std::istream& in) {
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
++                             : name == "IdeaS45" ? &forge::tune::IdeaS45
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
