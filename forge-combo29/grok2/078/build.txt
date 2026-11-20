@@ -1,0 +1,10 @@
+g++: Ubuntu 13.3.0
+cpu: AVX-512 and BMI2 present, so FORGE_PORTABLE was left OFF and FORGE_MARCH stayed the CMake default x86-64-v4
+base: cmake -S /agent/repos/base/forge-combo29 -B /agent/repos/base/forge-combo29/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+base: cmake --build /agent/repos/base/forge-combo29/build -j4
+work: cmake -S /agent/repos/work/forge-combo29 -B /agent/repos/work/forge-combo29/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+work: cmake --build /agent/repos/work/forge-combo29/build -j4
+patch: git show 2f38a63656ec17062b581c933fcc77d961b946f1:forge-combo29/grok/043/idea.patch.txt applied in ../work
+patch_sha256: b325e8c17842f9dc4d70213aef8ab14897c733f609860807ea85e930d902dc81
+git_apply: check and apply both succeeded
+decision: S14 options are sent in the listed order, then Threads 1, then Hash 16, then IdeaK4 true or false on exe P. IdeaK4_Shrink is never sent.
