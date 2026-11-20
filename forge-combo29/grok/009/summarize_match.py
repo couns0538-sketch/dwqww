@@ -8,15 +8,16 @@ def main() -> int:
         print("usage: summarize_match.py LOG", file=sys.stderr)
         return 2
     text = Path(sys.argv[1]).read_text()
-    finished = sum(1 for line in text.splitlines() if line.startswith("Finished game "))
+    lines = text.splitlines()
+    finished = sum(1 for line in lines if line.startswith("Finished game "))
     print(f"finished_games {finished}")
-    keep = False
-    for line in text.splitlines():
-        if line.startswith("Results of "):
-            keep = True
-        if keep:
-            print(line)
-        if keep and line.startswith("Finished match"):
+    starts = [i for i, line in enumerate(lines) if line.startswith("Results of ")]
+    if not starts:
+        print("no results block")
+        return 1
+    for line in lines[starts[-1]:]:
+        print(line)
+        if line.startswith("Finished match"):
             break
     return 0
 
