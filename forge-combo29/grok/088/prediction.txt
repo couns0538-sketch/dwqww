@@ -1,0 +1,11 @@
+IdeaA7. Seat 088. Written before any measurement of exe P.
+
+O depth 12, S14, Threads 1, Hash 16, IdeaA7 true (MinDepth 2, MaxDepth 12, Plies 1):
+predicted sum = 7100000
+This prediction is wrong if the sum is below 4000000 or above 9400000.
+
+Test match, IdeaA7 true vs IdeaA7 false, both S14, Threads 1, Hash 16, 20000 nodes, 1106 games:
+predicted Elo of the true side = +6
+This prediction is wrong if Elo is below -30 or above +40.
+
+Why: after a non-mate score raises alpha, later moves at depths 2 to 12 are one ply shallower. Fail-high cutoffs never reach those later moves, so the cut lands on PV and on moves that improve alpha without beating beta. That is a real slice of depth-12 work, not the whole tree, so the sum should fall by roughly a quarter and not collapse. At a fixed node count the move that raised alpha keeps a larger share of the budget, which I expect to be a small Elo gain.
