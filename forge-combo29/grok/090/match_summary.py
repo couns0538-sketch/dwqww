@@ -7,7 +7,7 @@ import sys
 folder = pathlib.Path(__file__).resolve().parent
 name = sys.argv[1] if len(sys.argv) > 1 else "match_og.txt"
 text = (folder / name).read_text()
-elos = re.findall(r"Elo:\s*([+-]?\d+(?:\.\d+)?)\s*\+/-\s*([+-]?\d+(?:\.\d+)?)", text)
+elos = re.findall(r"(?:^|[^A-Za-z])Elo:\s*([+-]?\d+(?:\.\d+)?)\s*\+/-\s*([+-]?\d+(?:\.\d+)?)", text)
 games = re.findall(r"Games:\s*(\d+)", text)
 if not elos or not games:
     print(f"{name} PARSE_FAIL")
