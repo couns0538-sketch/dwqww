@@ -1,0 +1,48 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..bf8ed737b 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -298,6 +298,8 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern int HindsightDepth_Loss;      // centipawns; mover-loss at or above this searches one ply less
++extern int HindsightDepth_Withheld;  // withheld plies required, with no eval loss, before one ply more
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..abc1b6b58 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -98,6 +98,10 @@ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
++// Today's literals: a pawn of static-eval loss, and three withheld plies.
++// Read only inside the HindsightDepth block, so the default (off) path is unchanged.
++int HindsightDepth_Loss = SeePieceValue[Pawn];
++int HindsightDepth_Withheld = 3;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+@@ -145,6 +149,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"HindsightDepth_Loss", &HindsightDepth_Loss, 0, 2000},
++        {"HindsightDepth_Withheld", &HindsightDepth_Withheld, 0, 32},
+     };
+     return table;
+ }
+@@ -1622,8 +1628,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 }
+                 const int mover_loss = parent_eval + corrected_eval(board, raw);
+                 int proposed = depth;
+-                if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
+-                else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
++                if (mover_loss >= tune::HindsightDepth_Loss) proposed = depth - 1;
++                else if (mover_loss <= 0 && withheld >= tune::HindsightDepth_Withheld) proposed = depth + 1;
+                 if (proposed != depth && !(tt_hit && tt_depth >= proposed)) {
+                     depth = proposed;
+                     if (depth <= 0) {

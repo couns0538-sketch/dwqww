@@ -1,0 +1,50 @@
+HONESTY_B
+bench11 info string bench depth 11 nodes 312866 time 188 nps 1664180
+bench13 info string bench depth 13 nodes 862329 time 463 nps 1862481
+bench16 info string bench depth 16 nodes 3024920 time 1449 nps 2087591
+perft5 nodes 4865609
+HONESTY_P
+bench11 info string bench depth 11 nodes 312866 time 206 nps 1518766
+bench13 info string bench depth 13 nodes 862329 time 471 nps 1830847
+bench16 info string bench depth 16 nodes 3024920 time 1538 nps 1966788
+perft5 nodes 4865609
+PARTNER_HONESTY
+bench11 info string bench depth 11 nodes 312866 time 218 nps 1435165
+bench13 info string bench depth 13 nodes 862329 time 527 nps 1636297
+bench16 info string bench depth 16 nodes 3024920 time 1875 nps 1613290
+perft5 nodes 4865609
+B_O 200 9500069 [41311, 24872, 28574]
+B_G 353 18466239 [37203, 70845, 144383]
+P_OFF_O n 200/200 differ 0 sum 9500069 vs 9500069
+P_OFF_G n 353/353 differ 0 sum 18466239 vs 18466239
+P_ON_O n 200/200 differ 200 sum 9845650 vs 9500069
+P_ON_VS_HINDSIGHT n 200/200 differ 0 sum 9845650 vs 9845650
+PARTNER_OFF n 200/200 differ 0 sum 9500069 vs 9500069
+PARTNER_ON_VS_THEIRS n 200/200 differ 0 sum 9845650 vs 9845650
+PARTNER_ON_VS_B n 200/200 differ 200 sum 9845650 vs 9500069
+ASAN_META
+exe /tmp/forge-asan/forge
+sha256 8fe33d8d88788a031294565abf3e36596f0829fad1f16b37900fadf2d4965028
+count 100
+asan_symbols 35
+asan_clean_err absent
+ASAN_SCRATCH /tmp/forge-scratch/forge-combo29/src/uci.cpp:46:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+ASAN_SCRATCH_META nm_asan 35
+MATCH_OG
+Results of IdeaK3on vs IdeaK3off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: 4.08 +/- 10.50, nElo: 7.97 +/- 20.48
+LOS: 77.71 %, DrawRatio: 61.48 %, PairsRatio: 1.11
+Games: 1106, Wins: 332, Losses: 319, Draws: 455, Points: 559.5 (50.59 %)
+Ptnml(0-2): [12, 89, 340, 98, 14], WL/DD Ratio: 1.54
+--------------------------------------------------
+PARTNER_MATCH_R
+Results of HDon vs HDoff (20000 nodes, 1t, 16MB, R.epd):
+Elo: 1.16 +/- 6.42, nElo: 5.02 +/- 27.80
+LOS: 63.82 %, DrawRatio: 91.33 %, PairsRatio: 1.00
+Games: 600, Wins: 233, Losses: 231, Draws: 136, Points: 301.0 (50.17 %)
+Ptnml(0-2): [0, 13, 274, 11, 2], WL/DD Ratio: 3.89
+--------------------------------------------------
+UCI_OPTIONS
+option name IdeaK3 type check default false
+option name IdeaK3_Withheld type spin default 3 min 0 max 16
+option name IdeaK3_Margin type spin default 100 min 0 max 900
