@@ -1,0 +1,73 @@
+HONESTY_B
+HONESTY_B
+exe /agent/repos/base/forge-combo29/build-rel/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name Chess Engine Forge 6.4.24 candidate
+honesty_b_bench11 nodes 312866 expected 312866 PASS
+honesty_b_bench13 nodes 862329 expected 862329 PASS
+honesty_b_bench16 nodes 3024920 expected 3024920 PASS
+honesty_b_perft5 nodes 4865609 expected 4865609 PASS
+ALL_PASS
+HONESTY_P
+HONESTY P
+exe /agent/repos/work/forge-combo29/build-rel/forge
+sha256 a6cdfaabddb86459a20a7aed9a6f84e962cd859b3201bb6a1b89c48a41ff6468
+id name Chess Engine Forge 6.4.24 candidate
+P_bench11 nodes 312866 expected 312866 PASS
+P_bench13 nodes 862329 expected 862329 PASS
+P_bench16 nodes 3024920 expected 3024920 PASS
+P_perft5 nodes 4865609 expected 4865609 PASS
+ALL_PASS
+SUMS
+B O 9500069 first 1 41311 f1e2 second 2 24872 f1c4 third 3 28574 e5d4
+B G 18466239
+P off O 9500069 positions 200 | differ 0 | same 200
+P off G 18466239 positions 353 | differ 0 | same 353
+P on O 9500069 positions 200 | differ 0 | same 200
+P on G 18466239 positions 353 | differ 0 | same 353
+UCI_OPTIONS
+option name DeadMaterial type check default false
+option name IdeaP20_Corner type spin default 28 min 0 max 256
+option name IdeaP20_King type spin default 12 min 0 max 256
+ASAN_META_TAIL
+count 100
+sum 2093371
+nm_command nm -C /tmp/forge-asan-build/forge | grep -c __asan_
+nm_asan_count 35
+ASAN_BUG_HITS 2
+MATCH_FINAL
+Elo: 0.31 +/- 0.62, nElo: 10.46 +/- 20.48
+Games: 1106, Wins: 337, Losses: 336, Draws: 433, Points: 553.5 (50.05 %)
+Ptnml(0-2): [0, 0, 552, 1, 0], WL/DD Ratio: 1.56
+PARTNER
+B vs partner off positions 200 differ 0 sum_left 9500069 sum_right 9500069
+partner published on vs my rerun on positions 200 differ 0 sum_left 9500069 sum_right 9500069
+B vs partner on positions 200 differ 0 sum_left 9500069 sum_right 9500069
+HONESTY partner012
+exe /tmp/partner-build/forge
+sha256 ae070d3f1ec8b470d9281e1969142b1dfc49125c39558e56133b638a31a261c9
+id name Chess Engine Forge 6.4.24 candidate
+partner012_bench11 nodes 312866 expected 312866 PASS
+partner012_bench13 nodes 862329 expected 862329 PASS
+partner012_bench16 nodes 3024920 expected 3024920 PASS
+partner012_perft5 nodes 4865609 expected 4865609 PASS
+ALL_PASS
+partner R final
+Elo: -0.58 +/- 1.96, nElo: -8.19 +/- 27.80
+Games: 600, Wins: 243, Losses: 244, Draws: 113, Points: 299.5 (49.92 %)
+APPLY MY_APPLY_CHECK_OK
+TABLE
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat 062 idea 12
+2 honesty B | done | HONESTY_B.txt | bench 11/13/16 and perft 5 match
+2 O depth 12 B | done | b_O_d12.meta | 9500069
+2 G depth 12 B | done | b_G_d12.meta | 18466239
+3 prediction | done | prediction.txt | committed before measuring
+3 patch applies | done | my_apply_check.txt | MY_APPLY_CHECK_OK
+3 proof 1 honesty P | done | HONESTY_P.txt | ALL_PASS
+3 proof 2 off | done | cmp_off_O.txt cmp_off_G.txt | 0 of 200 and 0 of 353
+3 proof 3 on O | done | cmp_on_O.txt | 0 of 200
+3 proof 4 uci | done | P_idname.txt | DeadMaterial false, Corner 28, King 12
+3 proof 5 sanitizer | done | asan_G_d10.meta asan_bug.stderr | nm 35, clean run, bug run reports overflow
+3 match | done | match_full.txt | 1106 games
+4 partner 012 | done | partner012_cmp.txt partner012_match.txt | CONFIRMS
