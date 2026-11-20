@@ -1,0 +1,11 @@
+exe=/tmp/forge-poison/forge
+sha256=94447fab8009f00757ebf008f797175f10a96d709d5f01f5b0ad250d5a344c98
+id_name=Chess Engine Forge 6.4.24 candidate
+options_sent:
+setoption name IdeaS32 value true
+fens=forge-combo29/grok/024/poison.fen
+depth=4
+runner=search_set.py
+nm_cmd=nm -C /tmp/forge-poison/forge | grep -c __asan_
+nm_asan_count=35
+note=same runner as asan_G100_d10; this scratch binary reads one past a heap array of 4 ints when the FEN is the poison fen

@@ -1,0 +1,28 @@
+Idea S32, option IdeaS32 (check, default false), spin IdeaS32_Slack (default 0, range 0..64).
+
+The plain engine does not grade hash proofs inside the null tree. A null-move
+fail-high below depth 14 is returned immediately (search.cpp, the depth < 14
+branch). Transposition entries are stored at the depth that was searched. A
+pass does not add plies. EXISTS: no.
+
+What the switch does when it is on:
+- A node that returns because of a hash cutoff records that fact and the stored
+  depth on the search stack. The stored depth is not increased because the
+  previous move was a pass.
+- After a null probe, if that record exists and its depth is below the parent
+  depth minus IdeaS32_Slack, the parent does not take the cutoff at once. It
+  uses the same reduced re-search the engine already uses at depth 14 or more,
+  and keeps the cutoff only when that re-search also reaches beta.
+- Slack 0 means the hash must cover the parent depth. A reduced probe's hash
+  is usually shallower than that, so it is verified. A hash that already
+  reaches the parent depth is trusted.
+- The null score is the negation of the child's score. The hash behind a null
+  cutoff is often an upper bound in the child, not a fail-high. The record is
+  therefore written for every hash cutoff, not only for a fail-high.
+
+Why the first version changed nothing: it marked only a child fail-high. Those
+are the probes that do not cut off. Marking every hash cutoff is what makes
+the parent see the proof it would otherwise trust.
+
+With the switch off, the new branches are not taken. Node counts stay on
+today's path.
