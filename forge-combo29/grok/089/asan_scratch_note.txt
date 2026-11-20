@@ -1,0 +1,3 @@
+The scratch engine is not the measured engine. It is a copy of the patched sources with one extra read, and only that copy was built in /tmp/forge-scratch-build.
+
+The read is at the start of Worker::search(Board, SearchLimits, ...). It runs only when the board is exactly two kings, white on a1 and black on h8. It allocates int[4] on the heap and reads index 4. The FEN that produces that board is asan_special.fen. The same measure_depth.py runner sent IdeaA8=true and go depth 10. AddressSanitizer reported heap-buffer-overflow. The real sanitizer build has no such read; its stderr on the first 100 positions of G at depth 10 is empty.

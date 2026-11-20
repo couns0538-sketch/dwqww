@@ -42,6 +42,7 @@ class Engine:
             bufsize=1,
         )
         self.log = []
+        self.err_buf = ""
 
     def send(self, line: str) -> None:
         self.log.append(">> " + line)
@@ -57,6 +58,7 @@ class Engine:
                 err = ""
                 if self.proc.stderr is not None:
                     err = self.proc.stderr.read() or ""
+                self.err_buf += err
                 raise RuntimeError(f"eof waiting for {what}\n" + "\n".join(self.log[-30:]) + "\n" + err)
             line = line.rstrip("\n")
             self.log.append("<< " + line)
@@ -70,6 +72,15 @@ class Engine:
         self.send("isready")
         self.read_until(lambda s: s == "readyok", "readyok")
 
+    def stderr_text(self) -> str:
+        if self.proc.stderr is None:
+            return self.err_buf
+        try:
+            self.err_buf += self.proc.stderr.read() or ""
+        except Exception:
+            pass
+        return self.err_buf
+
     def close(self) -> None:
         try:
             self.send("quit")
@@ -79,6 +90,7 @@ class Engine:
             self.proc.wait(timeout=10)
         except Exception:
             self.proc.kill()
+            self.proc.wait(timeout=10)
 
 
 def main() -> None:
@@ -167,9 +179,14 @@ def main() -> None:
         first = [int(row.split("\t", 2)[1]) for row in rows[:3]]
         print(f"SUM {total} FIRST {first} N {len(rows)} FILE {out_prefix}")
     finally:
+        eng.close()
+        err = eng.stderr_text()
+        Path(str(out_prefix) + ".stderr").write_text(err)
         log_path = Path(str(out_prefix) + ".log")
         log_path.write_text("\n".join(eng.log) + "\n")
-        eng.close()
+        if err.strip():
+            print("STDERR_NONEMPTY", file=sys.stderr)
+            print(err, file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+IdeaA8 (idea 39). The plain engine does not do this. Quiescence already has a futility margin and a static-exchange skip. It does not count captures that failed to raise alpha and then drop the rest.
+
+What I built
+- UCI check IdeaA8, default false.
+- UCI spin IdeaA8_Captures, default 2, min 0, max 16.
+- With IdeaA8 false the new branches are not taken, so the move loop is the one that shipped.
+- With IdeaA8 true, and only when the side to move is not in check: each capture that does not raise alpha counts. That includes a capture whose search score stays at or below alpha, a futility skip (it cannot raise alpha), and a static-exchange skip (alpha is left unchanged). After IdeaA8_Captures such captures, a later capture is searched only when it is a recapture. A recapture is a capture whose to-square is the to-square of the move that entered the node. Ply 0 has no parent move, so nothing there is a recapture. Non-capture promotions are not skipped. Evasions while in check are unchanged. The count does not reset when a capture does raise alpha.
+
+Why 2: one failed capture is ordinary after stand-pat. Two means the extra captures are not improving the score, which is when skipping non-recaptures should change the tree without deleting every capture.

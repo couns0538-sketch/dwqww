@@ -7,6 +7,7 @@ from pathlib import Path
 
 exe = Path(sys.argv[1]).resolve()
 out_dir = Path(sys.argv[2]).resolve()
+tag = sys.argv[3] if len(sys.argv) > 3 else "B"
 out_dir.mkdir(parents=True, exist_ok=True)
 sha = hashlib.sha256(exe.read_bytes()).hexdigest()
 
@@ -39,7 +40,7 @@ for name, payload in commands:
         capture_output=True,
         timeout=300,
     )
-    raw_path = out_dir / f"honesty_B_{name}.txt"
+    raw_path = out_dir / f"honesty_{tag}_{name}.txt"
     raw_path.write_text(proc.stdout)
     meta = (
         f"exe={exe}\n"
@@ -51,12 +52,12 @@ for name, payload in commands:
     )
     if proc.stderr:
         meta += "stderr_begin\n" + proc.stderr + "stderr_end\n"
-    (out_dir / f"honesty_B_{name}.meta").write_text(meta)
+    (out_dir / f"honesty_{tag}_{name}.meta").write_text(meta)
     last = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
     summary.append(f"{name} rc={proc.returncode} {last}")
     print(summary[-1], flush=True)
 
-(out_dir / "HONESTY_B.txt").write_text(
+(out_dir / f"HONESTY_{tag}.txt").write_text(
     f"exe={exe}\nsha256={sha}\nid_name={id_name}\n" + "\n".join(summary) + "\n"
 )
-print("WROTE", out_dir / "HONESTY_B.txt")
+print("WROTE", out_dir / f"HONESTY_{tag}.txt")
