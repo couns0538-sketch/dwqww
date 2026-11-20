@@ -1,0 +1,19 @@
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt stamps.txt | seat 053, idea 3, model Grok 4.7, 2026-11-20T07:53:34Z, token 45201400732411
+honesty B | done | HONESTY_B.txt | bench11 nodes 312866 expected 312866 OK | bench13 nodes 862329 expected 862329 OK | bench16 nodes 3024920 expected 3024920 OK | perft5 nodes 4865609 expected 4865609 OK | PASS
+baseline O d12 | done | B_O_d12.sum.txt | sum=9500069
+baseline G d12 | done | B_G_d12.sum.txt | sum=18466239
+prediction | done | prediction.txt | committed before measuring
+patch applies | done | apply_check.txt | git apply --check: ok
+honesty P | done | HONESTY_P.txt | bench11 nodes 312866 expected 312866 OK | bench13 nodes 862329 expected 862329 OK | bench16 nodes 3024920 expected 3024920 OK | perft5 nodes 4865609 expected 4865609 OK | PASS
+uci options | done | uci_options_p.txt | option name IdeaS38 type check default false YES | option name IdeaS38_Divisor type spin default 64 min 1 max 4096 YES | option name IdeaS38_Clamp type spin default 1 min 0 max 8 YES
+proof off O | done | cmp_off_O.txt | off_O positions 200 differ 0
+proof off G | done | cmp_off_G.txt | off_G positions 353 differ 0
+proof on O | done | cmp_on_O.txt | on_O positions 200 differ 3 | first_differ 114 127 191 sum=9501220
+sanitizer clean | done | asan_G100_d10.meta | nm_asan_symbol_lines=35 crashed= asan_lines=0 tag=asan_G100_d10 positions=100 depth=10 switch=true sum=2091663 first3=10526 11083 31798
+sanitizer trap | done | scratch_special.raw.txt | SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/scratch/forge-combo29/src/uci.cpp:47 in apply_position
+match O+G | done | match_OG.summary.txt | elo=3.14 | err=8.26 | games_line=1106 | wins=349 | losses=339 | draws=418 | pgn_result_headers=1106 | fastchess_finished_games=1106 | bad_lines=0
+partner apply | done | partner_apply_check.txt | APPLY_CHECK_OK
+partner honesty | done | partner_honesty.txt | bench11 nodes 312866 expected 312866 OK | bench13 nodes 862329 expected 862329 OK | bench16 nodes 3024920 expected 3024920 OK | perft5 nodes 4865609 expected 4865609 OK | PASS
+partner nodes | done | partner_compare.txt | partner_off_vs_my_B positions 200 differ 0 sum_off 9500069 sum_B 9500069 | partner_on_vs_claim positions 200 differ 0 sum_on 9501220 sum_claim 9501220 | partner_on_vs_my_B differ 3 first [114, 127, 191]
+partner match | done | partner_match.summary.txt | elo=-0.58 | err=8.87 | games_line=600 | wins=253 | losses=254 | draws=93 | pgn_result_headers=600 | finished_lines=600

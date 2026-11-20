@@ -94,6 +94,7 @@ def main() -> int:
     ap.add_argument("--depth", type=int, required=True)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--switch", choices=["omit", "false", "true"], default="omit")
+    ap.add_argument("--option", default="IdeaS38")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -105,7 +106,7 @@ def main() -> int:
 
     options = list(S14)
     if args.switch != "omit":
-        options.append(("IdeaS38", args.switch))
+        options.append((args.option, args.switch))
 
     eng = Engine(str(exe))
     eng.send("uci")
