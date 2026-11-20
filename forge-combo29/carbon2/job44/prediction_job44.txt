@@ -1,0 +1,35 @@
+=== CARBON2 JOB 44 PREDICTION (committed ALONE before Part L's first search) ===
+stamp_utc: Fri Nov 20 07:29:35 PM UTC 2026
+
+(1) Part L — Of the 200 O positions (UHO book lines 1..200), how many change their node count at `go nodes 2000`
+    (last finished iteration's UCI `info ... nodes N` before the 2,000-node hard stop) with the bundle on
+    (IdeaB8b=true + HindsightDepth=true) against all_off:
+    Point prediction : 194 of 200
+    Predicted range  : [175, 200] (any count < 175 proves this prediction wrong)
+    Reasoning        : Under `go nodes 2000`, Forge stops on the unfinished iteration at 2,000 nodes (`stopped_by_nodes_`)
+                       without emitting a partial `info` line, so the reported node count is the exact node count at the
+                       end of the last finished iteration (typically depth 5..8, <= 2,000 nodes). Both IdeaB8b (quiet
+                       ordering + ThreatRoleHistoryB updates from depth 1 onward) and HindsightDepth (off-PV depth +/-1
+                       on reduced moves from depth 2 onward) perturb search trees well before 2,000 nodes on nearly all
+                       200 UHO positions.
+
+(2) Part M9 — The bundle's Elo at `nodes=2000` (IdeaB8b=true + HindsightDepth=true vs all_off, 4,000 games / 2,000
+    pairs, PC20, built-in evaluation, UHO book lines 2,011,501..2,013,500), and whether it is above or below Job 43's
+    M6 + M6b pooled number (+9.96 +/- 5.83 Elo):
+    Point prediction : +5.5 Elo (for Side A = IdeaB8b + HindsightDepth on)
+    Predicted range  : [-3.0, +14.0] Elo (any result < -3.0 Elo or > +14.0 Elo proves this prediction wrong)
+    Above or below M6 + M6b pooled (+9.96 Elo)? : BELOW (+5.5 < +9.96)
+    Reasoning        : At 2,000 nodes (~depth 6..7 vs ~depth 10..11 at 20,000 nodes), ThreatRoleHistoryB accumulates
+                       10x fewer updates per move with smaller depth^2 bonuses, HindsightDepth's +1 extension
+                       (`(ss-1)->reduction >= 3`) triggers less frequently at shallow depth, and hard `nodes=2000`
+                       truncation discards unfinished partial iterations. Thus the bundle should remain positive (~+5.5
+                       Elo, 4,000-game 95% bar ~+/- 7.1 Elo) but measure below +9.96 Elo.
+
+(3) Part T2 — Set A line L wall time of the bundle (B = IdeaB8b + HindsightDepth on) divided by all_off's (A), across
+    the 12-run pinned-core rotation (`A B A B A B`, then `B A B A B A`, 200 attempts per run, PC20, built-in eval):
+    Point prediction : 1.065
+    Predicted range  : [1.020, 1.115] (any ratio < 1.020 or > 1.115 proves this prediction wrong)
+    Reasoning        : In Job 41 & Job 43 Part T (built-in eval), IdeaB8b alone cost ~1.065x per node and HindsightDepth
+                       alone cost ~1.020x per node (~1.080x combined per-node cost), while on Set A line L in Job 41 each
+                       switch searched ~0.991x..0.996x as many total nodes as all_off (106.65M and 106.15M vs 107.12M).
+                       Combining ~0.986x total nodes with ~1.080x time per node gives ~1.065x inside [1.020, 1.115].
