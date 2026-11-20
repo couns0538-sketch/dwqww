@@ -1,0 +1,14 @@
+IdeaS27, seat 076, written before any measurement of the patched engine.
+
+What the switch does: with IdeaS27 false the quiet-history sum is unchanged. With IdeaS27 true the engine records the threat-role quiet history (that statistic is otherwise off under S14) and, when scoring a quiet move, compares the previous-move continuation with that threat-role value. If they have opposite signs and both sit outside IdeaS27_DeadZone (default 128), the score is the from-to history alone. Otherwise the usual sum is used and the threat term is included.
+
+O depth 12, S14, Threads 1, Hash 16, IdeaS27 true.
+Predicted sum: 10070000
+Proved wrong if the sum is below 9600000 or above 11200000.
+The unchanged baseline 9500069 is outside that range on purpose: a sum that close to baseline would mean the new code did not move the search.
+
+Test match, IdeaS27 true versus false, S14, 20000 nodes, openings O and G, both colours, 1106 games.
+Predicted Elo of the switch-on side: +6
+Proved wrong if the point estimate is below -30 or above +45.
+
+Dead zone 128 was chosen so one shallow history update (about 50 to 200) stays inside the zone and a deeper update (depth 4 is about 568 under S14) can leave it. Not a random draw. Seed 7601 is reserved for the random position set.
