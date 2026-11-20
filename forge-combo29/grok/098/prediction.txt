@@ -1,0 +1,16 @@
+idea 48 IdeaK9
+EXISTS: forge-combo29/src/search.cpp:1701
+The plain engine already adds min((eval - beta) / NullMoveEvalDivisor, 3) to the null-move reduction.
+NullMoveEvalDivisor is already a UCI spin (src/search.cpp:49 default 200, advertised at src/search.cpp:120, range 50 to 1000).
+The remaining fixed number on that term is the cap 3. It is not an option.
+I will add check IdeaK9 default false and spin IdeaK9_Cap default 3 (range 0 to 6).
+False keeps the literal cap 3, which is today's reduction.
+True uses IdeaK9_Cap. The default 3 is today's cap, so true at the default is the same integer reduction as false.
+
+O depth-12 sum, S14, Threads 1, Hash 16, IdeaK9 true, IdeaK9_Cap 3: 9500069
+wrong if that sum is not exactly 9500069
+
+test-match Elo, IdeaK9 true versus IdeaK9 false, both IdeaK9_Cap 3, S14, 20000 nodes: 0
+wrong if the Elo interval excludes 0
+
+why: both sides use cap 3, so the null-move reduction is the same number as today.
