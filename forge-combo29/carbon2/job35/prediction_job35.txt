@@ -1,0 +1,14 @@
+Job 35 Pre-Experiment Predictions (committed ALONE before Part A's first comparison; never edited)
+UTC: Fri Nov 20 09:53:30 AM UTC 2026
+
+(1) B's 59 thrown rows equal Ref's at the first try: yes
+    Basis: In run_selfgame, ++searches and total_nodes += info.nodes execute immediately after searcher.search(...) and before `if (info.depth <= 0)`, where SearchInfo::nodes equals the exact `result.nodes` printed in `info string softnodes nodes <N>`. Emitting `searches <k> nodes <sum>` in `sgerror` and parsing both in loop_driver.py matches Ref's per-attempt counters identically on all 59 thrown attempts.
+
+(2) kF + the patch gives the r15d texts of A, B, C and n: yes
+    Basis: Every piece in kF (stack_r15d_to_final.patch.txt, = forge/r15f) is node-, score-, and bestmove-identical to plain r15d across both built-in v1 NNUE (A, B, C) and v3 net768 (n), and all three patch files (board.hpp, board.cpp, uci.cpp) preserve matching context around v2's hunks.
+
+(3) Loop / Ref wall per game on set n, 1 pair pinned: [0.8800, 0.9050]
+    Basis: Ratio of pooled wall time per game (Loop / Ref) on set n attempts 1..60 (1 pair pinned, CPU 0 driver + CPU 3 engine, 6 ABBA/BAAB blocks). On set A (Job 33 Part D) Loop/Ref was 0.9021 (240.268 ms / 266.329 ms), while unpinned set n (Job 33 KB3) was 0.8933 because v3 net768 engine CPU per game (~212-225 ms/g) is lower than built-in v1 (~248.5 ms/g) while per-ply pipe + python-chess savings (~26 ms/g) stay constant.
+
+(4) The driver's CPU share in Ref on set n: [6.40%, 8.40%]
+    Basis: Python driver RUSAGE_SELF share `driver_cpu / (driver_cpu + engine_cpu)` in Ref on set n attempts 1..60 (1 pair pinned). Set A measured 6.75% (17.99 ms / 266.47 ms) and unpinned set n measured 7.03% (1.601 s / 22.775 s); faster v3 engine time per search raises Python's share slightly relative to set A.
