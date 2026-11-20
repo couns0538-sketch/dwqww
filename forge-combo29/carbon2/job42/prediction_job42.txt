@@ -1,0 +1,26 @@
+=== CARBON2 JOB 42 PREDICTION (committed alone BEFORE Part P8s first build) ===
+stamp_utc: Fri Nov 20 05:22:46 PM UTC 2026
+
+(1) P8 — Number of the 200 O positions (depth 12, PC20, built-in evaluation) whose node count changes with
+    IdeaS13=true and IdeaS13_Hoist=true both on against IdeaS13=true alone (IdeaS13_Hoist=false):
+    Point prediction : 194 of 200 positions
+    Predicted range  : [150, 200] positions (any count < 150 proves this prediction wrong)
+    Reasoning        : Under PC20 (HistoryBonusQuadratic=24, HistoryBonusLinear=54, HistoryBonusMax=2212),
+                       history_bonus(6) = 1156 >= 1024 (IdeaS13_ReduceDivisor) in a single pawn-break beta cutoff
+                       (and two depth-4 pawn cutoffs give 1116 >= 1024), while break_prep_history_ receives only
+                       positive updates and no maluses. Across 200 UHO opening positions searched to depth 12
+                       (~40,000 nodes/pos), hoisted prep >= 1024 on reduced non-pawn quiet moves (move_count >= 2)
+                       should trigger shorten = 1 (r -= 1) in almost every position: 194 of 200, range [150, 200].
+
+(2) M6 — The leaders bundle (IdeaB8b=true + HindsightDepth=true vs all_off, 3,000 games, nodes=20000, PC20,
+    built-in evaluation, UHO book lines 2,007,501..2,009,000):
+    Point prediction : +14.5 Elo (for Side A = IdeaB8b + HindsightDepth on)
+    Predicted range  : [+5.0, +24.0] Elo (outside [+5.0, +24.0] proves this prediction wrong)
+    Above max(Job 41 M3=+8.69, M4=+13.73) = +13.73 Elo? : YES (predicted +14.5 > +13.73 Elo)
+    Reasoning        : In Job 41 on bundle_grok7 (PC20, built-in eval, nodes=20000), IdeaB8b alone scored
+                       +8.69 +/- 10.21 Elo (M3, 2,000g; Grok swarm 2: +10.25 Elo) and HindsightDepth alone scored
+                       +13.73 +/- 10.34 Elo (M4, 2,000g; Grok swarm 2: +6.75 Elo). Accounting for upward noise in
+                       M4s 2,000-game sample (true single-idea effects ~ +7 to +9 Elo each), orthogonal mechanisms
+                       (quiet threat-role ordering/history vs post-LMR child depth step), and zero fixed-node speed
+                       tax at nodes=20000, we expect ~ +14.5 Elo inside [+5.0, +24.0] Elo (~ +/- 8.4 Elo 95% CI at
+                       3,000 built-in-eval games), lying above +13.73 Elo.
