@@ -1,0 +1,93 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..1d3c19de3 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -296,6 +296,9 @@ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR befor
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
++extern bool IdeaS38;                 // same signed quiet-LMR gate; false leaves today's path
++extern int IdeaS38_Divisor;          // centipawns per ply of that term (today 64)
++extern int IdeaS38_Clamp;            // maximum plies that term may add or remove (today 1)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+@@ -357,12 +360,16 @@ void refresh();
+ // Quiet late-move reduction with a signed fraction of a ply from the eval
+ // correction. correction_cp is the corrected static eval minus the uncorrected
+ // eval (negative when results came back worse). The adjustment is
+-// correction_cp/64 rounded toward zero, then limited to -1..+1 ply. The
+-// returned reduction is never negative.
++// correction_cp/IdeaS38_Divisor rounded toward zero, then limited to
++// ±IdeaS38_Clamp plies. Defaults 64 and 1 are the previous literals, so a
++// search that never turns the gate on does not call this. The returned
++// reduction is never negative.
+ [[nodiscard]] inline int apply_lmr_signed_correction(int reduction_plies, int correction_cp) {
+-    int delta = correction_cp / 64;
+-    if (delta > 1) delta = 1;
+-    if (delta < -1) delta = -1;
++    const int divisor = tune::IdeaS38_Divisor > 0 ? tune::IdeaS38_Divisor : 1;
++    int delta = correction_cp / divisor;
++    const int cap = tune::IdeaS38_Clamp > 0 ? tune::IdeaS38_Clamp : 0;
++    if (delta > cap) delta = cap;
++    if (delta < -cap) delta = -cap;
+     const int adjusted = reduction_plies - delta;
+     return adjusted > 0 ? adjusted : 0;
+ }
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..f64604765 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -96,6 +96,9 @@ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
++bool IdeaS38 = false;
++int IdeaS38_Divisor = 64;
++int IdeaS38_Clamp = 1;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+@@ -145,6 +148,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS38_Divisor", &IdeaS38_Divisor, 1, 4096},           {"IdeaS38_Clamp", &IdeaS38_Clamp, 0, 8},
+     };
+     return table;
+ }
+@@ -2000,7 +2004,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+-            if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
++            if ((tune::LmrSignedCorrection || tune::IdeaS38) && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+                 if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..2ab7610a2 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -220,6 +220,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
++                         "option name IdeaS38 type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+@@ -403,11 +404,12 @@ int uci_loop(std::istream& in) {
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+-                       name == "QuietExtinction" || name == "TmFinishIteration") {
++                       name == "QuietExtinction" || name == "TmFinishIteration" || name == "IdeaS38") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
++                             : name == "IdeaS38" ? &forge::tune::IdeaS38
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
