@@ -1,0 +1,27 @@
+Seat 079, idea 29, id B10, option IdeaB10.
+The plain engine does not do this. HindsightDepth and root node-share time
+management are different mechanisms. EXISTS no.
+
+What it does, when IdeaB10 is true:
+After a node finishes, each searched move is scored by nodes spent divided by
+the depth it was actually given. If the best rate is at least IdeaB10_Ratio
+percent of the next rate, and the move searched at least IdeaB10_MinNodes
+nodes, that move is remembered. A later visit of the same position gives that
+move back withheld late-move reduction, one ply plus one more ply for every
+IdeaB10_Step percent of extra dominance. The plies given back along a path
+from the root never exceed IdeaB10_Cap. A shallower mark is kept in preference
+to a deeper one in the same table slot, so the first move's raw node share is
+not the signal and a deep one-off node does not erase a mark the search will
+meet again.
+
+Defaults, chosen before the on measurement: Ratio 150, MinNodes 32, Step 100, Cap 3.
+Off (the default, and an explicit false) does not read the table and does not
+change a reduction.
+
+git apply --check of idea.patch.txt on a clean worktree of
+6b98f2170a3210e71beed04bbd2553972c253ed7 printed APPLY_CHECK_OK.
+
+Match adjudication, so games end: resign 800 centipawns for 6 moves, both
+sides; draw if after move 50 the score stays within 10 for 8 moves; draw at
+200 moves. Openings are O then G, sequential, both colours, 20000 nodes.
+Concurrency 3 because this machine has 4 cores.

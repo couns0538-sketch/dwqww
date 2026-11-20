@@ -78,8 +78,18 @@ class Engine:
                         raise Stop(line)
                 if marker in line:
                     return line
-            if self.proc.poll() is not None and not self._pending:
-                break
+            if self.proc.poll() is not None:
+                try:
+                    while True:
+                        chunk = os.read(self._fd, 1 << 16)
+                        if not chunk:
+                            break
+                        self._pending += chunk
+                except BlockingIOError:
+                    pass
+                if b"\n" not in self._pending:
+                    break
+                continue
             remain = max(0.0, deadline - time.time())
             readable, _, _ = select.select([self._fd], [], [], min(0.5, remain))
             if not readable:
@@ -172,7 +182,7 @@ def last_nodes(lines: list[str]) -> int:
     return found
 
 
-def cmd_honesty(exe: str, out_dir: Path) -> None:
+def cmd_honesty(exe: str, out_dir: Path, tag: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     jobs = [
         ("bench11", "bench 11"),
@@ -181,7 +191,7 @@ def cmd_honesty(exe: str, out_dir: Path) -> None:
         ("perft5", "go perft 5"),
     ]
     summary = []
-    for tag, command in jobs:
+    for job, command in jobs:
         engine = Engine(exe)
         try:
             id_name = handshake(engine)
@@ -193,10 +203,10 @@ def cmd_honesty(exe: str, out_dir: Path) -> None:
                 engine.read_until("nodes ", 120.0)
             chunk = engine.lines[before:]
             nodes = last_nodes(chunk)
-            raw_path = out_dir / f"honesty_b_{tag}.txt"
+            raw_path = out_dir / f"honesty_{tag}_{job}.txt"
             raw_path.write_text("\n".join(engine.lines) + "\n", encoding="utf-8")
             write_meta(
-                out_dir / f"honesty_b_{tag}.meta",
+                out_dir / f"honesty_{tag}_{job}.meta",
                 exe,
                 id_name,
                 [],
@@ -206,12 +216,13 @@ def cmd_honesty(exe: str, out_dir: Path) -> None:
             print(summary[-1], flush=True)
         finally:
             engine.close()
-    (out_dir / "HONESTY_B.txt").write_text("\n".join(summary) + "\n", encoding="utf-8")
+    (out_dir / f"HONESTY_{tag.upper()}.txt").write_text("\n".join(summary) + "\n", encoding="utf-8")
 
 
 def cmd_depth(exe: str, fens_path: Path, depth: int, out_stem: Path, extra: list[tuple[str, str]]) -> None:
     fens = load_fens(fens_path)
     engine = Engine(exe)
+    failed = True
     try:
         id_name = handshake(engine)
         options = S14 + extra
@@ -248,17 +259,23 @@ def cmd_depth(exe: str, fens_path: Path, depth: int, out_stem: Path, extra: list
             ],
         )
         print("SUM", out_stem.name, sum(int(item) for item in nodes_out), flush=True)
+        failed = False
     finally:
+        if failed:
+            out_stem.parent.mkdir(parents=True, exist_ok=True)
+            (out_stem.parent / (out_stem.name + ".partial.txt")).write_text(
+                "\n".join(engine.lines) + "\n", encoding="utf-8"
+            )
         engine.close()
 
 
 def main() -> None:
     if len(sys.argv) < 3:
-        print("usage: harness.py honesty EXE OUTDIR | depth EXE FENS DEPTH OUTSTEM [Name=Value ...]", file=sys.stderr)
+        print("usage: harness.py honesty EXE OUTDIR TAG | depth EXE FENS DEPTH OUTSTEM [Name=Value ...]", file=sys.stderr)
         sys.exit(2)
     mode = sys.argv[1]
     if mode == "honesty":
-        cmd_honesty(sys.argv[2], Path(sys.argv[3]))
+        cmd_honesty(sys.argv[2], Path(sys.argv[3]), sys.argv[4])
         return
     if mode == "depth":
         extra = []

@@ -1,0 +1,18 @@
+honesty B
+bench 11 nodes 312866
+bench 13 nodes 862329
+bench 16 nodes 3024920
+go perft 5 nodes 4865609
+honesty P
+bench 11 nodes 312866
+bench 13 nodes 862329
+bench 16 nodes 3024920
+go perft 5 nodes 4865609
+B O first3 41311 24872 28574
+B_O_d12.nodes vs P_off_O_d12.nodes n=200/200 differ=0 sum_left=9500069 sum_right=9500069
+B_G_d12.nodes vs P_off_G_d12.nodes n=353/353 differ=0 sum_left=18466239 sum_right=18466239
+B_O_d12.nodes vs P_on_O_d12.nodes n=200/200 differ=199 sum_left=9500069 sum_right=9836323
+asan exe /tmp/forge-asan/forge
+nm -C grep -c __asan_ 35
+clean sanitizer lines 0
+bad summary SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/bad-src/src/uci.cpp:46 in apply_position
