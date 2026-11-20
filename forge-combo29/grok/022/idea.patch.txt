@@ -1,0 +1,169 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..6d0d9901e 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -295,6 +295,8 @@ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correctio
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool IdeaS27;                 // veto when previous-move continuation and threat-role disagree (false = off)
++extern int IdeaS27_DeadZone;         // |history| at or below this is not a sign for IdeaS27
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -550,6 +552,8 @@ private:
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
++    // Threat-role table when ThreatHistory or IdeaS27 is on. Zero when both are off.
++    [[nodiscard]] int threat_role_stat(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..8bd9ab615 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -95,6 +95,8 @@ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool IdeaS27 = false;
++int IdeaS27_DeadZone = 64;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -145,6 +147,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS27_DeadZone", &IdeaS27_DeadZone, 0, 8192},
+     };
+     return table;
+ }
+@@ -269,6 +272,21 @@ void apply_history(std::int16_t& entry, int bonus) {
+ }
+ #endif
+ 
++// IdeaS27. cont_prev is the continuation history of the previous move. cont_rest
++// is the other continuation terms. threat is the threat-role statistic. A value
++// inside the dead zone has no sign. Opposite signs outside that zone drop both
++// contextual terms and keep the from-to history. Every other case adds the
++// terms in the same order as the plain quiet sum, then the threat-role statistic.
++[[nodiscard]] int context_veto(int from_to, int cont_prev, int cont_rest, int threat) {
++    const int dead = tune::IdeaS27_DeadZone;
++    const bool prev_pos = cont_prev > dead;
++    const bool prev_neg = cont_prev < -dead;
++    const bool threat_pos = threat > dead;
++    const bool threat_neg = threat < -dead;
++    if ((prev_pos && threat_neg) || (prev_neg && threat_pos)) return from_to;
++    return from_to + cont_prev + cont_rest + threat;
++}
++
+ std::string format_score(int score) {
+     if (is_mate_score(score)) {
+         const int distance = MateValue - std::abs(score);
+@@ -796,6 +814,15 @@ private:
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            if (tune::IdeaS27) {
++                const std::size_t p = static_cast<std::size_t>(piece);
++                const int from_to = main[move.from][move.to];
++                const int cont_prev = cont1 != nullptr ? (*cont1)[p][move.to] : 0;
++                int cont_rest = 0;
++                if (cont2 != nullptr) cont_rest += (*cont2)[p][move.to];
++                if (cont4 != nullptr) cont_rest += (*cont4)[p][move.to] / 2;
++                value = context_veto(from_to, cont_prev, cont_rest, worker.threat_role_stat(board, move));
++            }
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -1320,26 +1347,33 @@ int Worker::draw_leaf_score(const Board& board) const {
+ }
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
++    const Piece piece = board.moved_piece(move);
++    const auto& main = (*main_history_)[static_cast<std::size_t>(board.side_to_move())];
++    const PieceToHistory* cont1 = ss != nullptr ? (ss - 1)->continuation : nullptr;
++    const PieceToHistory* cont2 = ss != nullptr ? (ss - 2)->continuation : nullptr;
++    const PieceToHistory* cont4 = tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++                                      ? (ss - 4)->continuation
++                                      : nullptr;
+ #if FORGE_SEARCH_SPEED2
+-    return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+-                             ss != nullptr ? (ss - 1)->continuation : nullptr,
+-                             ss != nullptr ? (ss - 2)->continuation : nullptr,
+-                             tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                                 ? (ss - 4)->continuation : nullptr,
+-                             board.moved_piece(move), move) +
+-           threat_quiet_bonus(board, move);
++    if (!tune::IdeaS27) {
++        return quiet_history_sum(main, cont1, cont2, cont4, piece, move) + threat_quiet_bonus(board, move);
++    }
+ #else
+-    const Piece piece = board.moved_piece(move);
+-    int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+-    if (ss != nullptr) {
+-        if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+-        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+-        if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+-            score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+-        }
++    if (!tune::IdeaS27) {
++        int score = main[move.from][move.to];
++        if (cont1 != nullptr) score += (*cont1)[static_cast<std::size_t>(piece)][move.to];
++        if (cont2 != nullptr) score += (*cont2)[static_cast<std::size_t>(piece)][move.to];
++        if (cont4 != nullptr) score += (*cont4)[static_cast<std::size_t>(piece)][move.to] / 2;
++        return score + threat_quiet_bonus(board, move);
+     }
+-    return score + threat_quiet_bonus(board, move);
+ #endif
++    const std::size_t p = static_cast<std::size_t>(piece);
++    const int from_to = main[move.from][move.to];
++    const int cont_prev = cont1 != nullptr ? (*cont1)[p][move.to] : 0;
++    int cont_rest = 0;
++    if (cont2 != nullptr) cont_rest += (*cont2)[p][move.to];
++    if (cont4 != nullptr) cont_rest += (*cont4)[p][move.to] / 2;
++    return context_veto(from_to, cont_prev, cont_rest, threat_role_stat(board, move));
+ }
+ 
+ int Worker::threat_quiet_bonus(const Board& board, Move move) const {
+@@ -1348,8 +1382,14 @@ int Worker::threat_quiet_bonus(const Board& board, Move move) const {
+     return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
+ }
+ 
++int Worker::threat_role_stat(const Board& board, Move move) const {
++    if (!tune::ThreatHistory && !tune::IdeaS27) return 0;
++    const int index = quiet_threat_index(board, move);
++    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
++}
++
+ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+-    if (!tune::ThreatHistory) return;
++    if (!tune::ThreatHistory && !tune::IdeaS27) return;
+     const int index = quiet_threat_index(board, move);
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..1d741ffe9 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name IdeaS27 type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -400,6 +401,9 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "IdeaS27") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS27 = value_text == "true";
++                else note_invalid();
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||

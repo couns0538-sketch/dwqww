@@ -1,0 +1,9 @@
+Seat 022, idea 22, IdeaS27. The plain engine does not veto. ThreatHistory (search.cpp, threat_quiet_bonus) is the threat-role table and stays off unless its own option is on.
+
+IdeaS27 default false. IdeaS27_DeadZone default 64. History bonuses under S14 are hundreds of centipawn-units after one update, and the history cap is 16384, so 64 is a dead zone around zero rather than a second search term.
+
+While IdeaS27 is on, the threat-role table is read and updated even if ThreatHistory is off. A veto needs that statistic. With the table left at zero the option cannot change a node. While IdeaS27 is off, threat_quiet_bonus and the update guard match the old ThreatHistory-only tests, and quiet scoring returns the old sum.
+
+The previous-move continuation is the one-ply table. The two-ply term and the optional four-ply half-weight term are the rest. Opposite signs outside the dead zone keep only the from-to history. Every other case adds from-to, then the previous-move continuation, then the rest, then the threat-role value. The check-ordering bonus of 12000 stays outside that sum.
+
+SEED is 2201. Random openings in r.fens use that seed. A game that ends is dropped. A kept game contributes the position every 7 plies from ply 8.
