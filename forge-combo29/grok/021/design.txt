@@ -1,0 +1,14 @@
+Idea S26 is not already in the engine. Quiet ordering reads one continuation table, and update_continuation writes that table on every quiet cutoff (forge-combo29/src/search.cpp). There is no shallow-versus-confirmed split.
+
+IdeaS26 (check, default false) adds a second continuation table, confirmed_continuation_history_.
+
+IdeaS26_Floor (spin, default 7): a quiet cutoff whose node depth is greater than this floor writes the confirmed table.
+IdeaS26_OrderDepth (spin, default 6): in the main search, quiet ordering and quiet-evasion ordering read the confirmed table when the remaining depth is at least this value. Below it they read the ordinary table. Quiescence and probcut keep the ordinary table (their picker is passed depth -1).
+
+The confirmed table also moves when the same quiet fails high on a reduced search (score >= beta and the reduced depth is strictly shallower) and the re-search also returns score >= beta. That path does not require the floor.
+
+The ordinary table is still updated exactly as before, whether the switch is on or off. History pruning still reads the ordinary table. The idea text is about ordering.
+
+With the switch false, point_confirmed returns without writing, order_continuation returns the ordinary pointers, and update_confirmed_quiets is not called. The floor and order-depth spins are not read on that path.
+
+Floor 7 means depth 8 and deeper always confirm, so the shallowest cutoffs do not fill the table the deep nodes order from. Order depth 6 is the middle of a depth-12 search, which is the "high remaining depth" the idea names.

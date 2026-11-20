@@ -101,11 +101,14 @@ def main() -> int:
     parser.add_argument("--extra", action="append", default=[], help="name=value set after S14")
     parser.add_argument("--expect-sum", type=int)
     parser.add_argument("--expect-first", default="")
+    parser.add_argument("--limit", type=int, default=0)
     args = parser.parse_args()
 
     exe = Path(args.exe).resolve()
     out_dir = Path(__file__).resolve().parent
     fens = load_fens(Path(args.positions))
+    if args.limit > 0:
+        fens = fens[: args.limit]
     extras = []
     for item in args.extra:
         name, value = item.split("=", 1)
@@ -117,6 +120,10 @@ def main() -> int:
     option_lines = []
     nodes: list[int] = []
     moves: list[str] = []
+    raw_path = out_dir / f"{args.tag}.out"
+    tsv_path = out_dir / f"{args.tag}.tsv"
+    meta_path = out_dir / f"{args.tag}.meta"
+    failed = None
     try:
         engine.send("uci")
         while True:
@@ -158,18 +165,23 @@ def main() -> int:
                 raise RuntimeError(f"first nodes {nodes} expected {expect_first}")
             if (index + 1) % 50 == 0 or index + 1 == len(fens):
                 print(f"{args.tag} {index + 1}/{len(fens)} sum {sum(nodes)}", flush=True)
+    except Exception as exc:
+        failed = exc
     finally:
         raw = "".join(engine.lines)
         engine.close()
-
-    raw_path = out_dir / f"{args.tag}.out"
-    tsv_path = out_dir / f"{args.tag}.tsv"
-    meta_path = out_dir / f"{args.tag}.meta"
-    raw_path.write_text(raw)
+        raw_path.write_text(raw)
+        nm = subprocess.run(["nm", "-C", str(exe)], capture_output=True, text=True)
+        asan_count = sum(1 for line in nm.stdout.splitlines() if "__asan_" in line)
+        meta_path.write_text(
+            f"exe={exe}\nsha256={sha256(exe)}\nid_name={id_name}\nnm_asan_count={asan_count}\noptions:\n"
+            + "\n".join(option_lines)
+            + "\n"
+        )
+    if failed is not None:
+        print(f"{args.tag} FAIL {failed}", flush=True)
+        return 1
     tsv_path.write_text("".join(f"{i}\t{nodes[i]}\t{moves[i]}\n" for i in range(len(nodes))))
-    meta_path.write_text(
-        f"exe={exe}\nsha256={sha256(exe)}\nid_name={id_name}\noptions:\n" + "\n".join(option_lines) + "\n"
-    )
     total = sum(nodes)
     print(f"{args.tag} SUM {total} N {len(nodes)}", flush=True)
     if expect_first:
