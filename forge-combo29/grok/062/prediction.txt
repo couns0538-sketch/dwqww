@@ -1,0 +1,21 @@
+Predicted before any measuring command. Seat 062, idea 12, P20.
+The engine already implements this idea as the check option DeadMaterial
+(default false). This run only turns the two corner-drive weights into
+spins, IdeaP20_Corner default 28 and IdeaP20_King default 12, which are
+the numbers already in eval.cpp. "Switch on" below means DeadMaterial true
+with those two spins left at 28 and 12.
+
+O depth-12 node sum, exe P, switch on: 9500069
+Range that proves this wrong: any sum other than 9500069.
+Why: DeadMaterial changes a score only when a node has no pawn, rook, or
+queen and the minors are a recognized draw or king, bishop and knight
+versus king. Every opening in first200.fens still has at least 18 such
+pieces. A 12-ply search removes at most one of them per ply except for a
+promoting capture, and no opening pawn is close enough to promote six
+times. The special score is never returned, so the tree matches exe B.
+
+Test-match Elo, switch on versus switch off, 1106 games: 0
+Range that proves this wrong: a point estimate below -30 or above +30.
+Why: the same gate does not change opening games. A few positions in set G
+can reach a bare king, so some games can differ, but the built-in net
+already scores those leaves near a draw. I expect no Elo outside noise.
