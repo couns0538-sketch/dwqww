@@ -1,0 +1,21 @@
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat 081, idea 31, model Grok 4.7, 2026-11-20T07:55:08Z, token 15773208504359
+2 honesty B | done | HONESTY_B.txt | exe B honesty | bench 11: 312866 | bench 13: 862329 | bench 16: 3024920 | perft 5: 4865609 | expected: 312866 862329 3024920 4865609
+2 O depth 12 B | done | O_b_d12.sum.txt | file forge-combo29/grok/081/O_b_d12.nodes.txt | positions 200 | sum 9500069 | first3 41311 24872 28574
+2 G depth 12 B | done | G_b_d12.sum.txt | file forge-combo29/grok/081/G_b_d12.nodes.txt | positions 353 | sum 18466239 | first3 37203 70845 144383
+3 patch applies | done | idea.patch.txt | git apply --check on a fresh base of 6b98f2170 exited 0
+3 proof 1 honesty P | done | HONESTY_P.txt | exe P honesty, no setoption | bench 11: 312866 | bench 13: 862329 | bench 16: 3024920 | perft 5: 4865609 | expected: 312866 862329 3024920 4865609
+3 proof 2 off O | done | O_off_compare.txt | left forge-combo29/grok/081/O_b_d12.nodes.txt | right forge-combo29/grok/081/O_p_off_d12.nodes.txt | positions 200 200 | differ 0 of 200
+3 proof 2 off G | done | G_off_compare.txt | left forge-combo29/grok/081/G_b_d12.nodes.txt | right forge-combo29/grok/081/G_p_off_d12.nodes.txt | positions 353 353 | differ 0 of 353
+3 proof 3 on O | done | O_on_compare.txt | differ 10 of 200
+3 proof 3 on sum | done | O_p_on_d12.sum.txt | file forge-combo29/grok/081/O_p_on_d12.nodes.txt | positions 200 | sum 9542904 | first3 41311 24872 28574
+3 proof 4 uci | done | uci_p.txt | IdeaS10 check default false; five IdeaS10_ spins at their defaults
+3 proof 5 sanitizer | done | asan_g100.sanitizer.txt | asan_symbol_lines 35 | sanitizer_lines 0
+3 proof 5 scratch | done | asan_scratch.sanitizer.txt | asan_symbol_lines 35 | sanitizer_lines 1 | stopped: no readyok | /tmp/scratch-src/forge-combo29/src/uci.cpp:46:26: runtime error: load of address 0x5020000000c0 with insufficient space for an object of type 'int'
+3 match | done | match_og.summary.txt | Elo: 6.91 +/- 8.69, nElo: 16.29 +/- 20.48 ; Games: 1106, Wins: 349, Losses: 327, Draws: 430, Points: 564.0 (50.99 %)
+4 partner apply | done | partner_apply.txt | apply_check_exit 0
+4 partner honesty | done | partner_honesty.txt | partner rebuild honesty, no setoption | bench 11: 312866 | bench 13: 862329 | bench 16: 3024920 | perft 5: 4865609 | expected: 312866 862329 3024920 4865609
+4 partner off | done | partner_off_compare.txt | differ 0 of 200
+4 partner on vs published | done | partner_on_compare.txt | differ 0 of 200
+4 partner on vs B | done | partner_on_vs_b.txt | differ 195 of 200
+4 partner R match | done | partner_match.summary.txt | Elo: -52.51 +/- 12.02, nElo: -123.41 +/- 27.80 ; Games: 600, Wins: 204, Losses: 294, Draws: 102, Points: 255.0 (42.50 %)
