@@ -1,0 +1,34 @@
+Idea S37, seat 105. Decided before measuring exe P.
+
+The one-line index says: more reduction off the principal line when the static
+evaluation got worse than two plies ago. The full text in IDEAS.md (S37,
+Off-PV worsening shave) says: off the PV, not in check, if the parent searched
+this move at least one ply reduced and the two corrected static evals show a
+worsening past a modest margin, search this node one ply shallower. Skip that
+when the transposition entry is already at least as deep as the current depth.
+Do not add the paired rule that searches one ply deeper when there is no
+worsening and three plies were withheld.
+
+The plain engine does not do this. search.cpp adds one ply of late-move
+reduction when the node is not improving, including on the PV, with a margin
+of zero, and that changes the child's reduction rather than this node's depth.
+HindsightDepth (default false) is the paired deeper-and-shallower rule and it
+compares the parent eval with this eval, not this side's eval two plies ago.
+
+What I built, off unless IdeaS37 is true:
+- IdeaS37, check, default false.
+- IdeaS37_Margin, spin, default 40, range 0 to 500. 40 is the engine's own
+  RfpImproving scale for a modest eval change. A worsening counts when the
+  corrected static eval two plies ago exceeds the corrected static eval now
+  by at least this many centipawns. Both values are the same static_eval the
+  search already stores (correction history, then the 50-move scale, which is
+  off under S14).
+- The parent records how many plies it withheld only on the reduced search of
+  a move, and only while IdeaS37 or HindsightDepth is on. A later full-depth
+  re-search of that move records zero, so only the reduced call can be shaved.
+- The shave is one ply, before the transposition cutoff, so the shallower node
+  is the node that is searched. Depth 0 goes to quiescence and the node already
+  counted for search() is given back, the same way HindsightDepth does.
+- IdeaS37 and HindsightDepth share withheld_plies. The tests turn on only one.
+
+SEED = 105 * 100 + 1 = 10501. The margin is a written choice, not a random draw.
