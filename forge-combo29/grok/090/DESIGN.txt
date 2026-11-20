@@ -1,0 +1,37 @@
+IdeaK1 is hash probcut. It is not the capture ProbCut already in search.cpp
+(the block commented "ProbCut: a good capture that beats beta by a margin").
+That one searches a capture. This one only reads a hash lower bound.
+EXISTS: no.
+
+The check option IdeaK1 defaults false. While it is false the new if is not
+entered, so the search is the one already there.
+
+While it is true, and only then, a node that is not on the principal line
+(the window is one centipawn wide) returns beta + IdeaK1_Margin when all of
+these hold:
+- no move is excluded (a singular-exclusion search is asking a different
+  question; the ordinary hash cutoff already refuses it)
+- the mate-search mode is off
+- the node depth is at least IdeaK1_MinDepth
+- the half-move clock is below 90, which is the same refusal the ordinary
+  hash cutoff already makes
+- the hash bound is a lower bound, not an exact score and not an upper bound
+- the stored score is not a mate score, and beta is not a mate score
+- the stored depth is at least depth - IdeaK1_DepthSlack
+- the stored score is at least beta + IdeaK1_Margin
+- beta + IdeaK1_Margin is itself not a mate score
+The value returned is beta + the margin, including when the stored depth
+would already have satisfied the ordinary cutoff. A deep lower bound that
+clears beta by the margin therefore answers beta + margin rather than the
+stored score. That is the idea's sentence.
+
+Defaults, and why:
+- IdeaK1_Margin 180. The engine's own capture ProbcutMargin is 180, so both
+  "clearly above beta" tests start from the same distance. Range 0..1000.
+- IdeaK1_DepthSlack 4. The idea says a search at least depth - 4 deep.
+  Range 0..16.
+- IdeaK1_MinDepth 5. Below depth 5, depth - 4 is below 1, so a quiescence
+  hash entry would cut a full node. Range 1..32.
+
+The three spins are registered with the other integer parameters. The check
+is registered beside the other check options and accepts only true and false.

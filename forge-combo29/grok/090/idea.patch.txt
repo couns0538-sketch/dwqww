@@ -1,0 +1,84 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..060a01632 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -298,6 +298,10 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern bool IdeaK1;                  // hash probcut: shallow TT lower bound above beta returns beta+margin (false = off)
++extern int IdeaK1_Margin;            // centipawns the TT lower bound must clear beta by
++extern int IdeaK1_DepthSlack;        // TT depth may be this many plies shallower than the node
++extern int IdeaK1_MinDepth;          // node depth below which hash probcut does not run
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..3df0ab5c0 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -98,6 +98,10 @@ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
++bool IdeaK1 = false;
++int IdeaK1_Margin = 180;
++int IdeaK1_DepthSlack = 4;
++int IdeaK1_MinDepth = 5;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+@@ -145,6 +149,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK1_Margin", &IdeaK1_Margin, 0, 1000},
++        {"IdeaK1_DepthSlack", &IdeaK1_DepthSlack, 0, 16},
++        {"IdeaK1_MinDepth", &IdeaK1_MinDepth, 1, 32},
+     };
+     return table;
+ }
+@@ -1635,6 +1642,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+     }
+ 
++    // IdeaK1, hash probcut. The option is read first. While it is false this
++    // block does not run and the cutoff below is the one the engine has today.
++    // Off the principal line, a hash lower bound that is at least beta plus the
++    // margin, from a search at least (depth - slack) deep, returns beta plus the
++    // margin. Exact scores stay with the ordinary cutoff. A singular-exclusion
++    // search is not answered here, and neither is a mate score or a fifty-move
++    // clock that the ordinary cutoff already refuses.
++    if (tune::IdeaK1 && !pv_node && excluded.is_none() && mate_moves_ == 0 &&
++        depth >= tune::IdeaK1_MinDepth && board.halfmove_clock() < 90 && tt_hit &&
++        tt_score != ValueNone && !is_mate_score(tt_score) && !is_mate_score(beta) &&
++        tt_bound == BoundLower && tt_depth + tune::IdeaK1_DepthSlack >= depth) {
++        const int hashed_floor = beta + tune::IdeaK1_Margin;
++        if (!is_mate_score(hashed_floor) && tt_score >= hashed_floor) return hashed_floor;
++    }
++
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..573e0ccaf 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -222,6 +222,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
++                         "option name IdeaK1 type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK1") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK1 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
