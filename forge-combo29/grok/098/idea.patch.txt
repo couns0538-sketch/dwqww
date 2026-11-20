@@ -1,0 +1,82 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..93f9b9496 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -246,6 +246,7 @@ extern int NullMoveMinDepth;
+ extern int NullMoveBase;
+ extern int NullMoveDepthDivisor;
+ extern int NullMoveEvalDivisor;
++extern int NullMoveEvalCap; // cap of (eval - beta) / NullMoveEvalDivisor in the null reduction; 3 is today's literal
+ extern int RfpDepth;
+ extern int RfpMargin;
+ extern int RfpImproving;
+@@ -300,6 +301,7 @@ extern bool LmrLateParentRelief;     // one ply less reduction on the first few
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool IdeaK9;                  // false = literal null-eval cap 3; true = NullMoveEvalCap (UCI IdeaK9_Cap, default 3)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..c8003fb1b 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -47,6 +47,7 @@ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
++int NullMoveEvalCap = 3;
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+@@ -100,6 +101,7 @@ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
++bool IdeaK9 = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
+@@ -118,6 +120,7 @@ const std::vector<Parameter>& parameters() {
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
++        {"IdeaK9_Cap", &NullMoveEvalCap, 0, 6},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -1698,8 +1701,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
++            // IdeaK9 false keeps the literal cap 3. True reads IdeaK9_Cap (default 3).
++            const int null_eval_cap = tune::IdeaK9 ? tune::NullMoveEvalCap : 3;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+-                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, null_eval_cap);
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..7225041b7 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -224,6 +224,7 @@ int uci_loop(std::istream& in) {
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
++                         "option name IdeaK9 type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+@@ -394,6 +395,9 @@ int uci_loop(std::istream& in) {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
+                 else note_invalid();
++            } else if (name == "IdeaK9") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK9 = value_text == "true";
++                else note_invalid();
+             } else if (name == "DeadMaterial") {
+                 if (value_text != "true" && value_text != "false") note_invalid();
+                 else if (forge::dead_material_enabled != (value_text == "true")) {
