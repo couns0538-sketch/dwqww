@@ -1,0 +1,9 @@
+O depth 12, exe P, S14, IdeaA3 true, IdeaA3_SeeFloor left at its default 0: 9500069
+Wrong if the sum is any number other than 9500069.
+
+Test match, IdeaA3 true (SeeFloor default 0) vs IdeaA3 false, 1106 games, 20000 nodes: Elo 0
+Wrong if the point estimate is outside -15 to +15.
+
+Why: the plain engine already extends a check only when SEE >= 0 (search.cpp, the check-extension
+gate). IdeaA3_SeeFloor defaults to 0, and a non-positive floor keeps the GoodCaptures shortcut,
+so switch true at the default floor is the same search as switch false and as exe B.
