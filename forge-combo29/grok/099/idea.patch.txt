@@ -1,0 +1,98 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..16b2f9622 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -290,6 +290,8 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int IdeaK10_MinDepth;         // quiet hash move gets one more ply only at this depth or more
++extern int IdeaK10_Threshold;        // two-ply continuation history at or above this is "very high"
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+@@ -307,6 +309,7 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern bool IdeaK10;                 // one more ply for a quiet hash move with very high continuation history (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..1dd146a81 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int IdeaK10_MinDepth = 8;
++int IdeaK10_Threshold = 12000;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -107,6 +109,7 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++bool IdeaK10 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +148,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaK10_MinDepth", &IdeaK10_MinDepth, 1, 64},
++        {"IdeaK10_Threshold", &IdeaK10_Threshold, -32768, 32767},
+     };
+     return table;
+ }
+@@ -1957,6 +1962,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             extension = 1;
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
++        // IdeaK10. Off: this block does not change extension, so new_depth matches
++        // the engine without the option. On: a quiet transposition move searched
++        // at MinDepth or deeper gets one more ply when the sum of the previous
++        // two plies' continuation-history entries for this piece and destination
++        // is at least Threshold. Main history is not included. The tables are
++        // read only when the flag, depth, and move tests pass.
++        if (tune::IdeaK10 && depth >= tune::IdeaK10_MinDepth && move == tt_move && quiet &&
++            excluded.is_none()) {
++            int cont = 0;
++            const std::size_t piece_index = static_cast<std::size_t>(moved);
++            if ((ss - 1)->continuation != nullptr) {
++                cont += (*(ss - 1)->continuation)[piece_index][move.to];
++            }
++            if ((ss - 2)->continuation != nullptr) {
++                cont += (*(ss - 2)->continuation)[piece_index][move.to];
++            }
++            if (cont >= tune::IdeaK10_Threshold) ++extension;
++        }
+         int new_depth = depth - 1 + extension;
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..d7c0ef96f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -229,6 +229,7 @@ int uci_loop(std::istream& in) {
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
++                         "option name IdeaK10 type check default false\n"
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK10") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK10 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;

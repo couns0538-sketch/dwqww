@@ -1,0 +1,39 @@
+IdeaK10, seat 099. The plain engine does not do this.
+Extensions today are singular (search.cpp, the block that sets extension to 1 or 2)
+and a one-ply check extension. Nothing reads continuation history to add a ply.
+
+What I built, in ../work only, default off:
+  option name IdeaK10 type check default false
+  option name IdeaK10_MinDepth type spin default 8 min 1 max 64
+  option name IdeaK10_Threshold type spin default 3000 min -32768 max 32767
+
+When IdeaK10 is true, after the existing extension is chosen, a move gets one
+more ply when all of these hold:
+  depth >= IdeaK10_MinDepth (8)
+  the move is the hash move
+  the move is quiet (not a capture, not a promotion)
+  this node is not searching an excluded move
+  the sum of the previous ply's continuation history and the ply before that,
+  for this piece and destination, is >= IdeaK10_Threshold (3000)
+
+That sum is the continuation part of quiet history. The main-history table and
+the threat-history bonus are not added. Four-ply continuation is not read,
+because ContHist4PlyRead stays at its default false under S14.
+
+The extra ply is applied after the double-extension counter is updated, so a
+hit does not count as a singular double extension. When the check is false the
+extension value is left as it was, and new_depth is the same expression as before.
+
+The first chosen threshold was 3000. Measured with the switch on, all 200
+openings changed and the depth-12 sum was 64848074 against the baseline
+9500069. A +1 extension makes new_depth = depth, so a run of hits does not
+get shallower. 3000 is only a little above one depth-8 history update under
+S14 (about 1900), so the hits chained.
+
+The shipped threshold is 12000. Each continuation table saturates toward
+16384, so 12000 on the sum of the two tables is a very high bar: one table
+nearly full, or both clearly strong. A probe of the first 8 openings at
+12000 still changed every position (about 1.6x nodes, not 7x) and finished
+at once. 8000 was in between, about 3x, and was rejected for the same
+chaining reason. The prediction file still says 3000; it was written first
+and is not edited.
