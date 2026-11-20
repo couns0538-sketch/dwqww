@@ -135,6 +135,7 @@ def main() -> None:
     if args.limit:
         fens = fens[: args.limit]
     engine = Engine(args.exe)
+    raw_path = out / f"{args.label}.raw"
     try:
         engine.send("uci")
         uci_lines = engine.read_until(lambda line: line == "uciok")
@@ -169,7 +170,6 @@ def main() -> None:
             rows.append(f"{index} {nodes} {depth} {score} {best}")
             if index % 50 == 0 or index == len(fens):
                 print(f"{args.label} {index}/{len(fens)}", file=sys.stderr)
-        raw_path = out / f"{args.label}.raw"
         rows_path = out / f"{args.label}.rows"
         meta_path = out / f"{args.label}.meta"
         raw_path.write_text("\n".join(engine.log) + "\n")
@@ -183,6 +183,9 @@ def main() -> None:
         total = sum(int(row.split()[1]) for row in rows)
         first = " ".join(row.split()[1] for row in rows[:3])
         print(f"{args.label} sum {total} first {first} n {len(rows)}")
+    except BaseException:
+        raw_path.write_text("\n".join(engine.log) + "\n")
+        raise
     finally:
         engine.close()
 
