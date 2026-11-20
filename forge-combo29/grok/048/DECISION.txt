@@ -1,0 +1,18 @@
+Idea 48 is IdeaK9: the null-move reduction also grows with (eval - beta) / a divisor.
+
+EXISTS: forge-combo29/src/search.cpp:1701
+The plain engine already does this. The reduction is
+
+    tune::NullMoveBase + depth / tune::NullMoveDepthDivisor
+        + std::min((eval - beta) / tune::NullMoveEvalDivisor, 3)
+
+NullMoveEvalDivisor is already a UCI spin (default 200, min 50, max 1000),
+printed from tune::parameters() in uci.cpp. NullMoveBase and
+NullMoveDepthDivisor are already spins too. S14 sets NullMoveBase to 5 and
+leaves the divisor at 200.
+
+The only literal left in that formula is the cap 3. The idea's number, the
+divisor, is already an option, so this seat does not add another switch.
+The time goes to STEP 4 on another seat's patch.
+
+Decision time is the date in stamps.txt on the STEP 2 line.
