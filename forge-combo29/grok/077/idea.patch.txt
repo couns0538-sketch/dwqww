@@ -1,0 +1,86 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..69fe4cc71 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,10 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern int IdeaS44_Margin;           // S44: centipawns the eval must sit above beta (read only if IdeaS44)
++extern int IdeaS44_Depth;            // S44: maximum depth of the elite-history quiet drop
++extern int IdeaS44_History;          // S44: quiet-history sum that counts as the very high band
++extern bool IdeaS44;                 // elite-history quiet static drop (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..17f99f539 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,12 @@ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++// S44 elite-history quiet static drop. Off leaves today's path. The three
++// numbers are read only when IdeaS44 is true.
++int IdeaS44_Margin = 40;
++int IdeaS44_Depth = 5;
++int IdeaS44_History = 5000;
++bool IdeaS44 = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -145,6 +151,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IdeaS44_Margin", &IdeaS44_Margin, 0, 400},
++        {"IdeaS44_Depth", &IdeaS44_Depth, 1, 8},
++        {"IdeaS44_History", &IdeaS44_History, 0, 32767},
+     };
+     return table;
+ }
+@@ -1690,6 +1699,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             eval < MateInMaxPly) {
+             return eval;
+         }
++        // S44: a quieter static drop than reverse futility, only for a quiet
++        // transposition move whose history is in a very high band, and only
++        // when no cheaper enemy piece attacks a dearer piece of ours. A
++        // capture transposition move does not qualify. The option is read
++        // first, so the history read and the attack scan do not run when it
++        // is off, and the search path stays today's.
++        if (tune::IdeaS44 && !bare_king_mode && depth >= 1 && depth <= tune::IdeaS44_Depth &&
++            eval < MateInMaxPly && !tt_move.is_none() && tt_move.is_quiet() &&
++            eval - tune::IdeaS44_Margin >= beta &&
++            quiet_history(board, ss, tt_move) >= tune::IdeaS44_History &&
++            !cheaper_enemy_attacks_dearer(board)) {
++            return eval;
++        }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..5fa772e5f 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@ int uci_loop(std::istream& in) {
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name IdeaS44 type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -436,6 +437,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS44") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS44 = value_text == "true";
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";

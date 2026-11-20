@@ -1,0 +1,27 @@
+Idea S44, option IdeaS44, seat 077. The plain engine does not do this.
+Reverse futility at search.cpp returns eval when the gap is about 72 centipawns
+times depth. It does not look at the transposition move, its history, or a
+cheaper attacker. EXISTS does not apply.
+
+What was added, only when IdeaS44 is true:
+a static return of eval, off the PV, out of check, no excluded move, depth 1
+to IdeaS44_Depth, eval at least IdeaS44_Margin above beta, the transposition
+move present and quiet, its quiet-history sum at least IdeaS44_History, and
+cheaper_enemy_attacks_dearer false. A capture transposition move does not
+qualify. The option is tested first, so the history read and the attack scan
+do not run when it is off.
+
+Defaults, and why:
+IdeaS44_Margin 40. Smaller than reverse futility at depth 2 and deeper
+(72*depth, or 40 less when improving), so the drop can fire where today's
+prune does not. At depth 1 while improving, reverse futility is already
+tighter (32) and this drop adds nothing.
+IdeaS44_Depth 5. Modest. Reverse futility already goes to 8, and a wrong
+drop past that is expensive.
+IdeaS44_History 5000. quiet_history is a sum of 16-bit tables. Under S14 one
+cutoff bonus is at most 2212, and four of those on one table land near 7200.
+5000 is a very high band on the sum, reachable after repeated cutoffs.
+
+Seed for the random positions is 77*100+1 = 7701.
+Partner seats for idea 27 are 027 and 077. This seat is 077, so the partner
+is 027 if that branch exists.
