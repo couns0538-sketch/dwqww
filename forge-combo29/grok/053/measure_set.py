@@ -67,8 +67,12 @@ class Engine:
             self.send("quit")
         except Exception:
             pass
+        if self.proc.stdout is not None:
+            rest = self.proc.stdout.read()
+            if rest:
+                self.lines.extend(rest.splitlines())
         try:
-            self.proc.wait(timeout=10)
+            self.proc.wait(timeout=30)
         except subprocess.TimeoutExpired:
             self.proc.kill()
 
@@ -111,6 +115,7 @@ def main() -> int:
         if line.startswith("id name "):
             id_name = line[len("id name "):]
     rows = []
+    crashed = ""
     try:
         for index, fen in enumerate(fens, start=1):
             eng.send("ucinewgame")
@@ -141,10 +146,24 @@ def main() -> int:
             rows.append((index, nodes, depth_seen, best))
             if index <= 3 or index % 50 == 0 or index == len(fens):
                 print(f"{args.tag} {index} depth {depth_seen} nodes {nodes}", flush=True)
+    except SystemExit as exc:
+        crashed = str(exc)
     finally:
+        eng.close()
         raw_path = out / f"{args.tag}.raw.txt"
         raw_path.write_text("\n".join(eng.lines) + "\n")
-        eng.close()
+        nm = subprocess.run(["nm", "-C", str(exe)], capture_output=True, text=True)
+        asan_lines = 0
+        if nm.returncode == 0:
+            asan_lines = sum(1 for line in nm.stdout.splitlines() if "__asan_" in line)
+        opt_lines = "\n".join(f"setoption name {n} value {v}" for n, v in options)
+        (out / f"{args.tag}.meta").write_text(
+            f"exe={exe}\nsha256={sha}\nid_name={id_name}\nuciok_line={uciok}\n"
+            f"switch={args.switch}\ndepth={args.depth}\nfens={args.fens}\n"
+            f"nm_asan_symbol_lines={asan_lines}\n"
+            f"crashed={crashed}\n"
+            f"options_sent:\n{opt_lines}\n"
+        )
 
     tsv = out / f"{args.tag}.nodes.tsv"
     with tsv.open("w") as fh:
@@ -157,19 +176,10 @@ def main() -> int:
         f"tag={args.tag}\npositions={len(rows)}\ndepth={args.depth}\nswitch={args.switch}\n"
         f"sum={total}\nfirst3={rows[0][1] if rows else ''} {rows[1][1] if len(rows)>1 else ''} {rows[2][1] if len(rows)>2 else ''}\n"
     )
-    nm = subprocess.run(["nm", "-C", str(exe)], capture_output=True, text=True)
-    asan_lines = 0
-    if nm.returncode == 0:
-        asan_lines = sum(1 for line in nm.stdout.splitlines() if "__asan_" in line)
-    meta = out / f"{args.tag}.meta"
-    opt_lines = "\n".join(f"setoption name {n} value {v}" for n, v in options)
-    meta.write_text(
-        f"exe={exe}\nsha256={sha}\nid_name={id_name}\nuciok_line={uciok}\n"
-        f"switch={args.switch}\ndepth={args.depth}\nfens={args.fens}\n"
-        f"nm_asan_symbol_lines={asan_lines}\n"
-        f"options_sent:\n{opt_lines}\n"
-    )
     print(summary.read_text(), end="")
+    if crashed:
+        print(crashed)
+        return 1
     return 0
 
 
