@@ -1,0 +1,12 @@
+IdeaA7, seat 088. The plain engine does not do this. There is no option that shortens the remaining moves after alpha rises.
+
+What it does, when IdeaA7 is true:
+At a node whose depth is between IdeaA7_MinDepth and IdeaA7_MaxDepth (defaults 2 and 12), after this node has stored a non-mate score into alpha, every later move is searched IdeaA7_Plies fewer plies (default 1). The depth is not taken below 1, so the existing late-move clamp (low 1, high new_depth) stays defined. A mate score does not arm the cut, and a later mate score disarms it. Fail-high cutoffs leave the node immediately, so the cut never applies to moves that were not going to be searched.
+
+When IdeaA7 is false the flag stays false and new_depth is not written. The three spins are read only inside that same true branch.
+
+Why these defaults: the idea text is depth 2 to 12 and one ply shallower. The spins exist so those three numbers are UCI options rather than hidden constants.
+
+OwnBook is set false in the match script. The engine's default is true when an embedded book is present. A nodes-only go does not take the book path (that path needs a clock). OwnBook false keeps a book move from replacing the search if a clock is also sent. The smoke log shows `go nodes 20000` and no book line.
+
+Set R: python-chess, random.Random(8801). A game that ends is dropped. A game still going at ply 80 is kept. Kept positions are ply 8, 15, 22, and so on. The first 300 kept positions are R.epd. The first 28 games with this seed all reached ply 80, so none were dropped.
