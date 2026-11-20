@@ -1,0 +1,8 @@
+decision: this machine's /proc/cpuinfo has avx512f and bmi2, so the release build does not pass FORGE_PORTABLE and keeps the CMake default march x86-64-v4.
+decision: /usr/bin/c++ is Clang 18 and failed to link (-lstdc++ missing). The brief asks for g++ (GCC 13 or newer) and GCC's own C++ library, so both trees were configured with -DCMAKE_CXX_COMPILER=g++ (g++ 13.3.0).
+base exe: /tmp/build-base/forge
+work exe: /tmp/build-work/forge
+cmake: cmake -S <tree>/forge-combo29 -B /tmp/build-<base|work> -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build ... -j4
+patch: ~/arm.patch sha256 d9e077d7365c96807200f52126e7a2823db65b2c4e5113371050317b019e8196
+patch commit: e778c1358711c0571e8f5cc4df87083cce98e03a (for-fable-and-opus/grok-080)
+git apply --check and git apply both succeeded on ../work
