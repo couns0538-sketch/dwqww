@@ -133,16 +133,14 @@ I am not sure the RESULT field `id` is specified anywhere except the arm label. 
 
 ## git status --short and ls -la
 
-Taken after POOL.txt, REPORT.md, RESULT.txt and the STEP 5 stamp line were written, before the STEP 5 commit.
+The first snapshot was taken one command before RESULT.txt was written, so that listing did not show RESULT.txt. This replacement was taken with POOL.txt, REPORT.md, RESULT.txt and stamps.txt all on disk.
 
 ```
- M forge-combo29/grok2/010/stamps.txt
-?? forge-combo29/grok2/010/POOL.txt
-?? forge-combo29/grok2/010/REPORT.md
+ M forge-combo29/grok2/010/REPORT.md
 ```
 
 ```
-total 3484
+total 3488
 drwxr-xr-x 2 ubuntu ubuntu   4096 Nov 20 15:03 .
 drwxr-xr-x 3 ubuntu ubuntu   4096 Nov 20 13:21 ..
 -rw-r--r-- 1 ubuntu ubuntu   2250 Nov 20 13:27 arrive_check.txt
@@ -225,7 +223,8 @@ drwxr-xr-x 3 ubuntu ubuntu   4096 Nov 20 13:21 ..
 -rw-r--r-- 1 ubuntu ubuntu    154 Nov 20 15:03 POOL.txt
 -rw-r--r-- 1 ubuntu ubuntu    180 Nov 20 13:26 P_perft5.meta
 -rw-r--r-- 1 ubuntu ubuntu   5223 Nov 20 13:26 P_perft5.txt
--rw-r--r-- 1 ubuntu ubuntu   5951 Nov 20 15:03 REPORT.md
+-rw-r--r-- 1 ubuntu ubuntu   5972 Nov 20 15:04 REPORT.md
+-rw-r--r-- 1 ubuntu ubuntu    229 Nov 20 15:03 RESULT.txt
 -rw-r--r-- 1 ubuntu ubuntu     77 Nov 20 13:21 SEAT.txt
 -rw-r--r-- 1 ubuntu ubuntu    818 Nov 20 15:03 stamps.txt
 -rw-r--r-- 1 ubuntu ubuntu   2913 Nov 20 13:25 summarize.py
