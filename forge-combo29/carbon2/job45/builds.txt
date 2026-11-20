@@ -26,3 +26,20 @@
 5. Official opening book: /tmp/carbon2_job40/UHO_Lichess_4852_v1.epd
    lines(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd) = 2632036
    book sha256(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd) = 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a
+
+=== PART P10a SCRATCH COUNTER BUILD (NOT used for bundle rows or games) ===
+   exe path = /tmp/carbon2_job45/bld_p10_counter/forge
+   exe sha256(/tmp/carbon2_job45/bld_p10_counter/forge) = 8b4be37c9a4c0e7f562117629fd128db1b49cf47c170b97c600e7fcd50482122
+   id_name = id name Chess Engine Forge 6.4.24 candidate
+   compile_flags = (built from fresh bundle8 + inject_p10a_counters in /tmp/carbon2_job45/src_p10_counter)
+   link_flags    = (lld-18 ThinLTO Release link into /tmp/carbon2_job45/bld_p10_counter/forge)
+
+=== PART P10b..d BUNDLE8_P10 BUILD (bundle8 + job45/P10_B8b_fast.patch.txt) ===
+   patch path = /agent/repos/dwqww/forge-combo29/carbon2/job45/P10_B8b_fast.patch.txt
+   patch lines(/agent/repos/dwqww/forge-combo29/carbon2/job45/P10_B8b_fast.patch.txt) = 372
+   patch sha256(/agent/repos/dwqww/forge-combo29/carbon2/job45/P10_B8b_fast.patch.txt) = 47c4f2e84d67f3f507c6000ba43ec40a5b0a157eba8c54659da7ed02aba74c6e
+   exe path = /tmp/carbon2_job45/bld_bundle8_p10/forge
+   exe sha256(/tmp/carbon2_job45/bld_bundle8_p10/forge) = d0e88a3d658941dc7cbb7891df694181dfce98955d270f5e0a9c43dfb6f0fdd6
+   id_name = id name Chess Engine Forge 6.4.24 candidate
+   compile_flags = clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_NNUE_WEIGHTS="/tmp/carbon2_job45/src_bundle8_p10/src/nnue_weights.inc" -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -ffp-contract=off -fno-fast-math -march=sapphirerapids -flto=thin -pthread -I/tmp/carbon2_job45/src_bundle8_p10/include
+   link_flags    = clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -O3 -march=sapphirerapids -flto=thin -fuse-ld=lld-18 -Wl,--thinlto-jobs=4 -pthread /tmp/carbon2_job45/bld_bundle8_p10/obj/bitboard.o /tmp/carbon2_job45/bld_bundle8_p10/obj/board.o /tmp/carbon2_job45/bld_bundle8_p10/obj/book.o /tmp/carbon2_job45/bld_bundle8_p10/obj/eval.o /tmp/carbon2_job45/bld_bundle8_p10/obj/eval_params.o /tmp/carbon2_job45/bld_bundle8_p10/obj/nnue.o /tmp/carbon2_job45/bld_bundle8_p10/obj/nnue_v3.o /tmp/carbon2_job45/bld_bundle8_p10/obj/search.o /tmp/carbon2_job45/bld_bundle8_p10/obj/uci.o -o /tmp/carbon2_job45/bld_bundle8_p10/forge

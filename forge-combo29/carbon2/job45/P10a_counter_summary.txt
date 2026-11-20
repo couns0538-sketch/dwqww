@@ -1,0 +1,42 @@
+=== JOB 45 PART P10a: IdeaB8b (028) COUNTER SUMMATION OVER ALL 200 O DEPTH-12 SEARCHES (sum_p10_counters.py) ===
+utc: Fri Nov 20 08:37:52 PM UTC 2026
+counter_raw_path: /agent/repos/dwqww/forge-combo29/carbon2/job45/P10a_B8b_counters_O_d12.raw.txt
+counter_raw_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job45/P10a_B8b_counters_O_d12.raw.txt): 1dfd38900f928fedff353581038693a03211093e1a0e4d3e91a742ff194abecb
+clean_bundle8_b8b_rows_path: /agent/repos/dwqww/forge-combo29/carbon2/job45/step0_bundle8_only_IdeaB8b_O_d12.rows.txt
+clean_bundle8_b8b_rows_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job45/step0_bundle8_only_IdeaB8b_O_d12.rows.txt): 7e53751747817f9670b9446f96d473ad90fb2fdadddd2928ab69e63e3eea8c2c
+
+searches_summed = 200
+total_nodes     = 8483711 (mean 42418.6 nodes/search)
+
+--- 1. role_b8b_threat Calls, Computations, One-Key Cache Hits, and threat.present ---
+  role_b8b_threat total calls                  : 36640558 (4.319 / node)
+  role_b8b_threat computations (cache misses)  : 2581760 (7.05% of calls; 0.304 / node)
+  one-key cache hits (answered from cache)     : 34058798 (92.95% of calls; 4.015 / node)
+  threat.present == true on computations       : 590062 (22.86% of 2581760 computations)
+  threat.present == true across all calls      : 8737334 (23.85% of 36640558 calls)
+
+--- 2. threat_role_b8b_of Calls & Returned Roles 0..4 (called whenever threat.present == true) ---
+  threat_role_b8b_of total calls               : 8737334 (1.030 / node)
+    from threat_role_b8b_bonus (order + qhist) : 8613327 (98.58%)
+    from update_threat_role_b8b (updates)      : 124007 (1.42%)
+  role = 0 (none / other quiet under threat)   : 5367504 (61.43%)
+  role = 1 (victim steps away: from==victim)   : 1799338 (20.59%)
+  role = 2 (another piece blocks slider ray)   : 1008644 (11.54%)
+  role = 3 (quiet attacks the attacker)        : 496223 (5.68%)
+  role = 4 (creates greater threat / check)    : 65625 (0.75%)
+
+--- 3. note_role_b8b_swing & ThreatRoleHistoryB Updates ---
+  note_role_b8b_swing total calls              : 595061 (0.070 / node)
+  note_role_b8b_swing gained >= Swing(40)      : 22891 (3.85% of swing calls)
+  total ThreatRoleHistoryB table updates       : 124007 (cutoff + maluses + PV + swing)
+
+--- 4. Verification Checks ---
+  P10a searches_summed                        : PASS (200 == 200)
+  P10a counter node_sum vs IdeaB8b O known answer: PASS (8483711 == 8483711)
+  P10a counter equal_pos vs clean bundle8 IdeaB8b O: PASS (200 == 200)
+  P10a counter equal_pos vs Job 41 P7 IdeaB8b O: PASS (200 == 200)
+  P10a threat_calls == threat_computes + cache_hits: PASS (36640558 == 36640558)
+  P10a trob_calls == call_present             : PASS (8737334 == 8737334)
+  P10a trob_calls == trob_from_bonus + trob_from_update: PASS (8737334 == 8737334)
+  P10a trob_calls == sum(role_0..role_4)      : PASS (8737334 == 8737334)
+  P10a COUNTER SUMMATION OVERALL              : PASS (1 == 1)

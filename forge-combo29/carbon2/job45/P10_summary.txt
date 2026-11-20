@@ -1,0 +1,172 @@
+=== JOB 45 PART P10: AN IdeaB8b THAT COSTS LESS, WITH EVERY NODE EQUAL (P10a..P10d) ===
+start_utc: Fri Nov 20 08:37:52 PM UTC 2026
+
+--- 1. P10a: Scratch Counter Build on Copy of Bundle8 (/tmp/carbon2_job45/bld_p10_counter/forge) ---
+  counter exe path                            : /tmp/carbon2_job45/bld_p10_counter/forge
+  counter exe sha256(/tmp/carbon2_job45/bld_p10_counter/forge) : 8b4be37c9a4c0e7f562117629fd128db1b49cf47c170b97c600e7fcd50482122
+  counter exe id name                         : id name Chess Engine Forge 6.4.24 candidate
+=== JOB 45 PART P10a: IdeaB8b (028) COUNTER SUMMATION OVER ALL 200 O DEPTH-12 SEARCHES (sum_p10_counters.py) ===
+utc: Fri Nov 20 08:37:52 PM UTC 2026
+counter_raw_path: /agent/repos/dwqww/forge-combo29/carbon2/job45/P10a_B8b_counters_O_d12.raw.txt
+counter_raw_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job45/P10a_B8b_counters_O_d12.raw.txt): 1dfd38900f928fedff353581038693a03211093e1a0e4d3e91a742ff194abecb
+clean_bundle8_b8b_rows_path: /agent/repos/dwqww/forge-combo29/carbon2/job45/step0_bundle8_only_IdeaB8b_O_d12.rows.txt
+clean_bundle8_b8b_rows_sha256(/agent/repos/dwqww/forge-combo29/carbon2/job45/step0_bundle8_only_IdeaB8b_O_d12.rows.txt): 7e53751747817f9670b9446f96d473ad90fb2fdadddd2928ab69e63e3eea8c2c
+
+searches_summed = 200
+total_nodes     = 8483711 (mean 42418.6 nodes/search)
+
+--- 1. role_b8b_threat Calls, Computations, One-Key Cache Hits, and threat.present ---
+  role_b8b_threat total calls                  : 36640558 (4.319 / node)
+  role_b8b_threat computations (cache misses)  : 2581760 (7.05% of calls; 0.304 / node)
+  one-key cache hits (answered from cache)     : 34058798 (92.95% of calls; 4.015 / node)
+  threat.present == true on computations       : 590062 (22.86% of 2581760 computations)
+  threat.present == true across all calls      : 8737334 (23.85% of 36640558 calls)
+
+--- 2. threat_role_b8b_of Calls & Returned Roles 0..4 (called whenever threat.present == true) ---
+  threat_role_b8b_of total calls               : 8737334 (1.030 / node)
+    from threat_role_b8b_bonus (order + qhist) : 8613327 (98.58%)
+    from update_threat_role_b8b (updates)      : 124007 (1.42%)
+  role = 0 (none / other quiet under threat)   : 5367504 (61.43%)
+  role = 1 (victim steps away: from==victim)   : 1799338 (20.59%)
+  role = 2 (another piece blocks slider ray)   : 1008644 (11.54%)
+  role = 3 (quiet attacks the attacker)        : 496223 (5.68%)
+  role = 4 (creates greater threat / check)    : 65625 (0.75%)
+
+--- 3. note_role_b8b_swing & ThreatRoleHistoryB Updates ---
+  note_role_b8b_swing total calls              : 595061 (0.070 / node)
+  note_role_b8b_swing gained >= Swing(40)      : 22891 (3.85% of swing calls)
+  total ThreatRoleHistoryB table updates       : 124007 (cutoff + maluses + PV + swing)
+
+--- 4. Verification Checks ---
+  P10a searches_summed                        : PASS (200 == 200)
+  P10a counter node_sum vs IdeaB8b O known answer: PASS (8483711 == 8483711)
+  P10a counter equal_pos vs clean bundle8 IdeaB8b O: PASS (200 == 200)
+  P10a counter equal_pos vs Job 41 P7 IdeaB8b O: PASS (200 == 200)
+  P10a threat_calls == threat_computes + cache_hits: PASS (36640558 == 36640558)
+  P10a trob_calls == call_present             : PASS (8737334 == 8737334)
+  P10a trob_calls == trob_from_bonus + trob_from_update: PASS (8737334 == 8737334)
+  P10a trob_calls == sum(role_0..role_4)      : PASS (8737334 == 8737334)
+  P10a COUNTER SUMMATION OVERALL              : PASS (1 == 1)
+
+--- 2. P10b: Emit job45/P10_B8b_fast.patch.txt on Top of Bundle8 & Build (/tmp/carbon2_job45/bld_bundle8_p10/forge) ---
+  P10_B8b_fast.patch.txt CRLF count           : PASS (0 == 0)
+  P10_B8b_fast.patch.txt git apply --check -p1 on bundle8: PASS (0 == 0)
+  patch path                                  : /agent/repos/dwqww/forge-combo29/carbon2/job45/P10_B8b_fast.patch.txt
+  patch lines(/agent/repos/dwqww/forge-combo29/carbon2/job45/P10_B8b_fast.patch.txt) : 372
+  patch sha256(/agent/repos/dwqww/forge-combo29/carbon2/job45/P10_B8b_fast.patch.txt) : 47c4f2e84d67f3f507c6000ba43ec40a5b0a157eba8c54659da7ed02aba74c6e
+  bundle8_p10 exe path                        : /tmp/carbon2_job45/bld_bundle8_p10/forge
+  bundle8_p10 exe sha256(/tmp/carbon2_job45/bld_bundle8_p10/forge) : d0e88a3d658941dc7cbb7891df694181dfce98955d270f5e0a9c43dfb6f0fdd6
+  bundle8_p10 id name                         : id name Chess Engine Forge 6.4.24 candidate
+  bld_bundle8_p10 uci lists IdeaB8b_Fast      : PASS (True == True)
+  bld_bundle8_p10 IdeaB8b_Fast bad responses  : PASS (0 == 0)
+  bld_bundle8_p10 IdeaB8b_Fast stderr bytes   : PASS (0 == 0)
+  bld_bundle8_p10 uci lists IdeaB8b           : PASS (True == True)
+  bld_bundle8_p10 IdeaB8b bad responses       : PASS (0 == 0)
+  bld_bundle8_p10 IdeaB8b stderr bytes        : PASS (0 == 0)
+  bld_bundle8_p10 uci lists IdeaB8            : PASS (True == True)
+  bld_bundle8_p10 IdeaB8 bad responses        : PASS (0 == 0)
+  bld_bundle8_p10 IdeaB8 stderr bytes         : PASS (0 == 0)
+  bld_bundle8_p10 uci lists HindsightDepth    : PASS (True == True)
+  bld_bundle8_p10 HindsightDepth bad responses: PASS (0 == 0)
+  bld_bundle8_p10 HindsightDepth stderr bytes : PASS (0 == 0)
+  bld_bundle8_p10 uci lists IdeaS13_Hoist     : PASS (True == True)
+  bld_bundle8_p10 IdeaS13_Hoist bad responses : PASS (0 == 0)
+  bld_bundle8_p10 IdeaS13_Hoist stderr bytes  : PASS (0 == 0)
+
+--- 3. P10c: All-OFF, IdeaB8b_Fast-Alone=OFF, and Exact Identity (IdeaB8b + IdeaB8b_Fast == IdeaB8b Alone on O, G, Set A Line L) ---
+[bundle8_p10_default_off] exe=/tmp/carbon2_job45/bld_bundle8_p10/forge | sha256=d0e88a3d658941dc7cbb7891df694181dfce98955d270f5e0a9c43dfb6f0fdd6 | id name Chess Engine Forge 6.4.24 candidate
+  bundle8_p10_default_off no-option bench 11  : PASS (312866 == 312866)
+  bundle8_p10_default_off no-option bench 13  : PASS (862329 == 862329)
+  bundle8_p10_default_off no-option perft 5   : PASS (4865609 == 4865609)
+  bundle8_p10_default_off PC20 bench 11       : PASS (278024 == 278024)
+  bundle8_p10_default_off PC20 bench 13       : PASS (587276 == 587276)
+  bundle8_p10_default_off Set A line L records: PASS (26741 == 26741)
+  bundle8_p10_default_off Set A line L nodes  : PASS (107124743 == 107124743)
+  bundle8_p10_default_off Set A line L sha256 : PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  bundle8_p10_default_off n[1..60] line L records: PASS (8449 == 8449)
+  bundle8_p10_default_off n[1..60] line L searches: PASS (8482 == 8482)
+  bundle8_p10_default_off n[1..60] line L nodes: PASS (36688357 == 36688357)
+  bundle8_p10_default_off n[1..60] line L sha256: PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+[bundle8_p10_explicit_9_false] exe=/tmp/carbon2_job45/bld_bundle8_p10/forge | sha256=d0e88a3d658941dc7cbb7891df694181dfce98955d270f5e0a9c43dfb6f0fdd6 | id name Chess Engine Forge 6.4.24 candidate
+  bundle8_p10_explicit_9_false no-option bench 11: PASS (312866 == 312866)
+  bundle8_p10_explicit_9_false no-option bench 13: PASS (862329 == 862329)
+  bundle8_p10_explicit_9_false no-option perft 5: PASS (4865609 == 4865609)
+  bundle8_p10_explicit_9_false PC20 bench 11  : PASS (278024 == 278024)
+  bundle8_p10_explicit_9_false PC20 bench 13  : PASS (587276 == 587276)
+  bundle8_p10_explicit_9_false Set A line L records: PASS (26741 == 26741)
+  bundle8_p10_explicit_9_false Set A line L nodes: PASS (107124743 == 107124743)
+  bundle8_p10_explicit_9_false Set A line L sha256: PASS (d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2 == d5b527108ec685795a8411ebe92adce25adb84d21fc13cdab79b46433d9e94b2)
+  bundle8_p10_explicit_9_false n[1..60] line L records: PASS (8449 == 8449)
+  bundle8_p10_explicit_9_false n[1..60] line L searches: PASS (8482 == 8482)
+  bundle8_p10_explicit_9_false n[1..60] line L nodes: PASS (36688357 == 36688357)
+  bundle8_p10_explicit_9_false n[1..60] line L sha256: PASS (b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15 == b6bf7600d07e4fbb33d88c25f2804fd59e37201bde4838d1593f3ebba1a0cd15)
+  bundle8_p10 no-PC20 HindsightDepth=false bench 13: PASS (862329 == 862329)
+  bundle8_p10 no-PC20 HindsightDepth=true bench 13: PASS (840387 == 840387)
+  IdeaB8b_Fast=true (IdeaB8b=false) O sum vs OFF O: PASS (8315168 == 8315168)
+  IdeaB8b_Fast=true (IdeaB8b=false) O equal pos vs OFF O: PASS (200 == 200)
+  bundle8_p10 only_B8b O equal pos vs J41 P7 O: PASS (200 == 200)
+  bundle8_p10 only_B8b G equal pos vs J41 P7 G: PASS (353 == 353)
+  B8b+B8b_Fast vs only_B8b O sum_nodes        : PASS (8483711 == 8483711)
+  B8b+B8b_Fast vs only_B8b O equal positions  : PASS (200 == 200)
+  B8b+B8b_Fast vs only_B8b G sum_nodes        : PASS (17366116 == 17366116)
+  B8b+B8b_Fast vs only_B8b G equal positions  : PASS (353 == 353)
+  B8b+B8b_Fast Set A line L records vs J41 P7 known answer: PASS (26709 == 26709)
+  B8b+B8b_Fast Set A line L searches vs J41 P7 known answer: PASS (26829 == 26829)
+  B8b+B8b_Fast Set A line L nodes vs J41 P7 known answer: PASS (106651211 == 106651211)
+  B8b+B8b_Fast Set A line L full_sha256 vs J41 P7 known answer: PASS (de20b5698c77baabb8be38bb219829d4265c69f1cfeaf14ebe232a01c53d4f31 == de20b5698c77baabb8be38bb219829d4265c69f1cfeaf14ebe232a01c53d4f31)
+  B8b+B8b_Fast Set A line L equal attempts vs only_B8b: PASS (200 == 200)
+  B8b+B8b_Fast Set A line L equal attempts vs J41 P7: PASS (200 == 200)
+
+--- 4. P10d: Part T Cost per 1,000 Nodes (Forward + Reverse, Pinned Core 1, O Set Depth 12, PC20) ---
+  P10d_partT_01_fwd_all_off_1 node_sum        : PASS (8315168 == 8315168)
+  P10d_partT_01_fwd_all_off_1 equal_pos       : PASS (200 == 200)
+  P10d_partT_02_fwd_all_off_2 node_sum        : PASS (8315168 == 8315168)
+  P10d_partT_02_fwd_all_off_2 equal_pos       : PASS (200 == 200)
+  P10d_partT_03_fwd_only_B8b node_sum         : PASS (8483711 == 8483711)
+  P10d_partT_03_fwd_only_B8b equal_pos        : PASS (200 == 200)
+  P10d_partT_04_fwd_B8b_and_B8b_Fast node_sum : PASS (8483711 == 8483711)
+  P10d_partT_04_fwd_B8b_and_B8b_Fast equal_pos: PASS (200 == 200)
+  P10d_partT_05_rev_B8b_and_B8b_Fast node_sum : PASS (8483711 == 8483711)
+  P10d_partT_05_rev_B8b_and_B8b_Fast equal_pos: PASS (200 == 200)
+  P10d_partT_06_rev_only_B8b node_sum         : PASS (8483711 == 8483711)
+  P10d_partT_06_rev_only_B8b equal_pos        : PASS (200 == 200)
+  P10d_partT_07_rev_all_off_2 node_sum        : PASS (8315168 == 8315168)
+  P10d_partT_07_rev_all_off_2 equal_pos       : PASS (200 == 200)
+  P10d_partT_08_rev_all_off_1 node_sum        : PASS (8315168 == 8315168)
+  P10d_partT_08_rev_all_off_1 equal_pos       : PASS (200 == 200)
+=== JOB 45 PART P10d: COST PER 1,000 NODES (O Set, 200 FENs, Depth 12, PC20, Built-in Eval, Pinned Core 1) ===
+exe_path: /tmp/carbon2_job45/bld_bundle8_p10/forge
+exe_sha256(/tmp/carbon2_job45/bld_bundle8_p10/forge): d0e88a3d658941dc7cbb7891df694181dfce98955d270f5e0a9c43dfb6f0fdd6
+variant_scope: IdeaB8b_Fast covers IdeaB8b (028) only; it does nothing unless IdeaB8b is on.
+mean_all_off_4_runs  : 0.514364 ms / 1,000 nodes (514.364 us / 1,000 nodes)
+mean_all_off_forward : 0.514132 ms / 1,000 nodes
+mean_all_off_reverse : 0.514596 ms / 1,000 nodes
+drift (rev / fwd)    : 1.000901
+
+--- All 8 Runs in Execution Order (Forward 01..04, Reverse 05..08) ---
+  run_id                                   | pass | setting          | node_sum | wall_s  | ms/1k_nodes | us/1k_nodes | ratio_vs_mean4
+  -----------------------------------------+------+------------------+----------+---------+-------------+-------------+---------------
+  P10d_partT_01_fwd_all_off_1              | fwd  | all_off_1        |  8315168 |  4.2562 |    0.511855 |     511.855 |      0.995122
+  P10d_partT_02_fwd_all_off_2              | fwd  | all_off_2        |  8315168 |  4.2940 |    0.516410 |     516.410 |      1.003978
+  P10d_partT_03_fwd_only_B8b               | fwd  | only_B8b         |  8483711 |  4.7345 |    0.558067 |     558.067 |      1.084965
+  P10d_partT_04_fwd_B8b_and_B8b_Fast       | fwd  | B8b_and_B8b_Fast |  8483711 |  4.5331 |    0.534332 |     534.332 |      1.038821
+  P10d_partT_05_rev_B8b_and_B8b_Fast       | rev  | B8b_and_B8b_Fast |  8483711 |  4.5315 |    0.534141 |     534.141 |      1.038450
+  P10d_partT_06_rev_only_B8b               | rev  | only_B8b         |  8483711 |  4.7653 |    0.561702 |     561.702 |      1.092033
+  P10d_partT_07_rev_all_off_2              | rev  | all_off_2        |  8315168 |  4.2715 |    0.513702 |     513.702 |      0.998712
+  P10d_partT_08_rev_all_off_1              | rev  | all_off_1        |  8315168 |  4.2864 |    0.515490 |     515.490 |      1.002189
+
+--- Forward + Reverse Paired Means per Setting ---
+  setting          | node_sum | fwd_ms/1k  | rev_ms/1k  | mean_ms/1k | mean_us/1k | ratio_vs_all_off
+  -----------------+----------+------------+------------+------------+------------+-----------------
+  all_off_1        |  8315168 |   0.511855 |   0.515490 |   0.513672 |    513.672 |        0.998655
+  all_off_2        |  8315168 |   0.516410 |   0.513702 |   0.515056 |    515.056 |        1.001345
+  only_B8b         |  8483711 |   0.558067 |   0.561702 |   0.559885 |    559.885 |        1.088499
+  B8b_and_B8b_Fast |  8483711 |   0.534332 |   0.534141 |   0.534237 |    534.237 |        1.038636
+
+  TWO ALL-OFF PAIRS SPREAD: all_off_1=0.513672 vs all_off_2=0.515056 ms/1k (diff=0.27%)
+  KEY RATIO: (IdeaB8b + IdeaB8b_Fast) / (IdeaB8b alone) = 0.534237 / 0.559885 = 0.954191
+  Incremental IdeaB8b overhead vs all_off cut by        : 56.34% (from +8.85% to +3.86%)
+  PREDICTION (2) CHECK: observed 0.954191 vs predicted 0.962 [0.945, 0.988] -> TRUE
+
+  PART P10 OVERALL                            : PASS (1 == 1)
+done_utc: Fri Nov 20 08:42:14 PM UTC 2026
