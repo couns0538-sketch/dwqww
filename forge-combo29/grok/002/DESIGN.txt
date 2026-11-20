@@ -1,0 +1,20 @@
+IdeaS28, seat 002. The plain engine does not already do this.
+
+EXISTS check: forge-combo29/src/search.cpp ThreatHistory (default false) is a second quiet
+history keyed by two bits, "attacked by any cheaper enemy" on the origin and on the
+destination. S28 asks for the cheaper-attacker class on the origin only: none, pawn,
+minor, or rook. That class table is not in the engine. ThreatHistory stays as it is.
+
+What was added, behind option IdeaS28 (check, default false):
+- A quiet from-to history [side][class 0..3][from][to].
+- Class is the cheapest enemy attacker of the origin whose SEE value is positive and
+  strictly below the mover. King is never cheaper (SEE value 0). Queen is not a class.
+  Pawn beats minor beats rook. The destination is not part of the key.
+- The value is added to the quiet score (ordering and the history used by reduction
+  and pruning) and updated on the same quiet cutoffs and quiet PV updates as ThreatHistory.
+- No constant is added for being attacked. The table is the whole change.
+- No spin option. The four classes are labels, not a tuned magnitude. Updates use the
+  existing history bonus. The stored value is added in full.
+
+Off path: both the read and the write return before they touch the table, so the score
+is the same number as today.

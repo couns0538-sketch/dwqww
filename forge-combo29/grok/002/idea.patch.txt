@@ -1,0 +1,189 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..7a48e0c6d 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -295,6 +295,7 @@ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correctio
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool IdeaS28;                 // quiet from-to history by cheaper-attacker class on the origin (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -381,6 +382,11 @@ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+ [[nodiscard]] int quiet_threat_index(const Board& board, Move move);
++// [side][class 0..3][from][to]. Class is the cheapest cheaper enemy attacker of
++// the origin only: 0 none, 1 pawn, 2 minor (knight or bishop), 3 rook.
++// The destination is not part of the key. Queen and king are never a class.
++using AttackerClassQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
++[[nodiscard]] int quiet_attacker_class(const Board& board, Move move);
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+@@ -471,6 +477,7 @@ private:
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
++    std::unique_ptr<AttackerClassQuietHistory> attacker_class_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+@@ -551,6 +558,8 @@ private:
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
++    [[nodiscard]] int attacker_class_quiet_bonus(const Board& board, Move move) const;
++    void update_attacker_class_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..d4f954583 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -95,6 +95,7 @@ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool IdeaS28 = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -308,6 +309,27 @@ int quiet_threat_index(const Board& board, Move move) {
+     return (cheaper(move.from, from_occ) ? 2 : 0) | (cheaper(move.to, to_occ) ? 1 : 0);
+ }
+ 
++// Cheapest cheaper enemy attacker of the origin. 0 none, 1 pawn, 2 minor, 3 rook.
++// "Cheaper" is the same SEE test as quiet_threat_index: the attacker value is
++// positive and strictly below the mover, and a king (SEE value 0) is never
++// cheaper. A queen is not a class. The destination is not consulted. Nothing
++// is cheaper than a pawn, so pawn quiets stay in class 0.
++int quiet_attacker_class(const Board& board, Move move) {
++    const int type = piece_type(board.piece_at(move.from));
++    if (type <= Pawn || type >= King) return 0;
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const int square = move.from;
++    const Bitboard occ = board.occupied();
++    if ((attacks::pawn(us, square) & board.pieces(them, Pawn)) != 0) return 1;
++    if (type <= Bishop) return 0;
++    if ((attacks::knight(square) & board.pieces(them, Knight)) != 0) return 2;
++    if ((attacks::bishop(square, occ) & board.pieces(them, Bishop)) != 0) return 2;
++    if (type <= Rook) return 0;
++    if ((attacks::rook(square, occ) & board.pieces(them, Rook)) != 0) return 3;
++    return 0;
++}
++
+ void tune::refresh() { Reductions.refresh(); }
+ 
+ // ---------------------------------------------------------------------------
+@@ -795,7 +817,8 @@ private:
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move) +
++                        worker.attacker_class_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -1004,6 +1027,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
++      attacker_class_history_(std::make_unique<AttackerClassQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+@@ -1020,6 +1044,7 @@ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
++    *attacker_class_history_ = AttackerClassQuietHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+@@ -1327,7 +1352,7 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                                  ? (ss - 4)->continuation : nullptr,
+                              board.moved_piece(move), move) +
+-           threat_quiet_bonus(board, move);
++           threat_quiet_bonus(board, move) + attacker_class_quiet_bonus(board, move);
+ #else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+@@ -1338,7 +1363,7 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+         }
+     }
+-    return score + threat_quiet_bonus(board, move);
++    return score + threat_quiet_bonus(board, move) + attacker_class_quiet_bonus(board, move);
+ #endif
+ }
+ 
+@@ -1354,6 +1379,18 @@ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+ 
++int Worker::attacker_class_quiet_bonus(const Board& board, Move move) const {
++    if (!tune::IdeaS28) return 0;
++    const int klass = quiet_attacker_class(board, move);
++    return (*attacker_class_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(klass)][move.from][move.to];
++}
++
++void Worker::update_attacker_class_quiet(const Board& board, Move move, int bonus) {
++    if (!tune::IdeaS28) return;
++    const int klass = quiet_attacker_class(board, move);
++    apply_history((*attacker_class_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(klass)][move.from][move.to], bonus);
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1384,12 +1421,14 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_threat_quiet(board, move, bonus);
++    update_attacker_class_quiet(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_threat_quiet(board, quiet, -bonus);
++        update_attacker_class_quiet(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+@@ -2082,6 +2121,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
++        update_attacker_class_quiet(board, best_move, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..2ae9df1c5 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name IdeaS28 type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaS28") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaS28 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
