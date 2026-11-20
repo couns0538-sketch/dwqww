@@ -1,0 +1,87 @@
+nm -C /tmp/forge-asan/forge | grep -c __asan_ 35
+===== prediction.txt =====
+seat 060 idea 10 id S24 option IdeaS24
+O depth-12 sum, IdeaS24 true, S14, Threads 1, Hash 16: 9720000
+Wrong if that sum is below 8550000 or above 10900000.
+Test-match Elo, IdeaS24 true versus false, 20000 nodes: +3
+Wrong if that Elo point estimate is below -30 or above +30.
+Why: only the root window moves after a fail. A steady score drops the overlap, so some re-searches fail the other way and the node count rises a little. A swinging score keeps up to half the old width, which fail-low already does. The known off sum is 9500069. A root-window change of this size stays inside about 15 percent of that and is a few Elo, not a new strength class.
+===== proof_B_O_sum.txt =====
+count 200
+sum 9500069
+first 41311 24872 28574
+===== proof_B_G_sum.txt =====
+count 353
+sum 18466239
+first 37203 70845 144383
+===== proof_off_O.txt =====
+left 200
+right 200
+differ 0 of 200
+first_diff 
+===== proof_off_G.txt =====
+left 353
+right 353
+differ 0 of 353
+first_diff 
+===== proof_on_O.txt =====
+left 200
+right 200
+differ 128 of 200
+first_diff 1 2 3 6 7
+===== proof_on_O_sum.txt =====
+count 200
+sum 9785481
+first 40607 24995 49667
+===== match_summary.txt =====
+finished_games 1106
+Results of s24on vs s24off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: -9.43 +/- 10.02, nElo: -19.28 +/- 20.48
+LOS: 3.25 %, DrawRatio: 66.55 %, PairsRatio: 0.78
+Games: 1106, Wins: 329, Losses: 359, Draws: 418, Points: 538.0 (48.64 %)
+Ptnml(0-2): [17, 87, 368, 71, 10], WL/DD Ratio: 1.83
+--------------------------------------------------
+Finished match
+===== asan_G100_finding.txt =====
+sanitizer_lines 0
+===== asan_scratch_finding.txt =====
+sanitizer_lines 3
+==5706==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000c0 at pc 0x555db1bd96c2 bp 0x7fff7c71fc90 sp 0x7fff7c71fc80
+    #0 0x7f14760fe548 in operator new(unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:95
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/tmp/forge-asan-scratch/forge+0x6346c1) (BuildId: b008542cd221fab91c9f79491a20d82d244fca81) in (anonymous namespace)::apply_position(forge::Board&, std::__cxx11::basic_istringstream<char, std::char_traits<char>, std::allocator<char> >&)
+===== apply_check.txt =====
+MY_APPLY_CHECK_OK
+PARTNER_APPLY_CHECK_OK
+===== partner_proof_off.txt =====
+left 200
+right 200
+differ 0 of 200
+first_diff 
+===== partner_proof_on.txt =====
+left 200
+right 200
+differ 0 of 200
+first_diff 
+===== partner_off_sum.txt =====
+count 200
+sum 9500069
+first 41311 24872 28574
+===== partner_on_sum.txt =====
+count 200
+sum 9569208
+first 40604 42076 33776
+===== partner_on_O.sum =====
+positions 200 sum 9569208 first 40604 42076 33776
+===== partner_match.parse =====
+elo -1.88 err 10.38 games 1106
+===== partner_match_summary.txt =====
+finished_games 600
+Results of on vs off (20000 nodes, 1t, 16MB, R.fens):
+Elo: 1.16 +/- 9.50, nElo: 3.39 +/- 27.80
+LOS: 59.45 %, DrawRatio: 86.67 %, PairsRatio: 1.11
+Games: 600, Wins: 272, Losses: 270, Draws: 58, Points: 301.0 (50.17 %)
+Ptnml(0-2): [5, 14, 260, 16, 5], WL/DD Ratio: 17.57
+--------------------------------------------------
+Finished match
+===== partner_commit.txt =====
+f6a17dc5cea473249fe8f90fa7a2c057988d76c6

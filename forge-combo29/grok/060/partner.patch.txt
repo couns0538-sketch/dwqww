@@ -1,0 +1,200 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..99c81e61f 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,6 +268,9 @@ extern int ProbcutMargin;
+ extern int QsFutilityMargin;
+ extern int QsSeeMargin;
+ extern int AspirationDelta;
++extern int IdeaS24_Samples;          // recent resolved root scores kept for the variance
++extern int IdeaS24_Steady;           // variance (cp^2) at or below which the overlap is 0
++extern int IdeaS24_Swing;            // variance (cp^2) at or above which the overlap is half the old width
+ extern int HistoryBonusQuadratic;
+ extern int HistoryBonusLinear;
+ extern int HistoryBonusMax;
+@@ -302,6 +305,7 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern bool IdeaS24;                 // root fail: overlap back into the old window, sized by recent score variance (false = off)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..e965de394 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -69,6 +69,9 @@ int ProbcutMargin = 180;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
+ int AspirationDelta = 18;
++int IdeaS24_Samples = 4;
++int IdeaS24_Steady = 16;
++int IdeaS24_Swing = 400;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
+@@ -102,6 +105,7 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++bool IdeaS24 = false;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -131,6 +135,9 @@ const std::vector<Parameter>& parameters() {
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
++        {"IdeaS24_Samples", &IdeaS24_Samples, 2, 16},
++        {"IdeaS24_Steady", &IdeaS24_Steady, 0, 1000000},
++        {"IdeaS24_Swing", &IdeaS24_Swing, 1, 1000000},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+@@ -278,6 +285,48 @@ std::string format_score(int score) {
+     return "cp " + std::to_string(score);
+ }
+ 
++// IdeaS24. After a root fail, the failing bound is still the true score shifted
++// by the current delta (a bound sitting on the score fails again forever).
++// The other bound keeps an overlap back into the previous window: none when
++// the recent resolved root scores are steady, up to half the old width when
++// they are swinging. The same rule is used on fail-high and fail-low.
++// Variance is the integer mean of squared deviations from the integer mean.
++void s24_note(int* scores, int& count, int value) {
++    if (is_mate_score(value)) return;
++    if (count < 16) {
++        scores[count++] = value;
++        return;
++    }
++    for (int i = 1; i < 16; ++i) scores[i - 1] = scores[i];
++    scores[15] = value;
++}
++
++[[nodiscard]] int s24_overlap(int old_alpha, int old_beta, const int* scores, int count) {
++    const int width = old_beta - old_alpha;
++    if (width <= 0 || count < 2) return 0;
++    const int half = width / 2;
++    int keep = tune::IdeaS24_Samples;
++    if (keep < 2) keep = 2;
++    if (keep > 16) keep = 16;
++    const int used = count < keep ? count : keep;
++    if (used < 2) return 0;
++    const int* window = scores + (count - used);
++    long long sum = 0;
++    for (int i = 0; i < used; ++i) sum += window[i];
++    const long long mean = sum / used;
++    long long acc = 0;
++    for (int i = 0; i < used; ++i) {
++        const long long delta = window[i] - mean;
++        acc += delta * delta;
++    }
++    const long long var = acc / used;
++    const long long steady = tune::IdeaS24_Steady;
++    const long long swing = tune::IdeaS24_Swing;
++    if (var <= steady) return 0;
++    if (swing <= steady || var >= swing) return half;
++    return static_cast<int>((static_cast<long long>(half) * (var - steady)) / (swing - steady));
++}
++
+ } // namespace
+ 
+ // Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the
+@@ -2376,6 +2425,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     assert(root_effort_count_ <= root_effort_moves_.size());
+     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
+     root_move_nodes_.fill(0);
++    // IdeaS24 reads these only while the option is on. They are not consulted
++    // on the default path, so that path stays the one measured today.
++    int s24_scores[16] = {};
++    int s24_count = 0;
+     // Secondary lines use their own table and histories, so the primary
+     // iterative deepening stays the MultiPV 1 search.
+     std::unique_ptr<SharedSearchState> alt_shared;
+@@ -2415,20 +2468,43 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 failed_window = true;
+-                beta = (alpha + beta) / 2;
+-                if (tune::AspCappedReopen) {
+-                    alpha = capped_fail_low(iteration_score);
+-                    if (iteration_score <= alpha) break;
+-                } else {
++                if (tune::IdeaS24) {
++                    const int old_alpha = alpha;
++                    const int old_beta = beta;
++                    const int overlap = s24_overlap(old_alpha, old_beta, s24_scores, s24_count);
+                     alpha = std::max(iteration_score - delta, -Infinite);
++                    beta = old_alpha + overlap;
++                    if (beta > Infinite) beta = Infinite;
++                    // A bound sitting on the score fails the other way forever.
++                    if (beta <= iteration_score) beta = std::min(iteration_score + 1, Infinite);
++                    if (beta <= alpha) break;
++                } else {
++                    beta = (alpha + beta) / 2;
++                    if (tune::AspCappedReopen) {
++                        alpha = capped_fail_low(iteration_score);
++                        if (iteration_score <= alpha) break;
++                    } else {
++                        alpha = std::max(iteration_score - delta, -Infinite);
++                    }
+                 }
+             } else if (iteration_score >= beta) {
+                 failed_window = true;
+-                if (tune::AspCappedReopen) {
+-                    beta = capped_fail_high(iteration_score);
+-                    if (iteration_score >= beta) break;
+-                } else {
++                if (tune::IdeaS24) {
++                    const int old_beta = beta;
++                    const int overlap = s24_overlap(alpha, old_beta, s24_scores, s24_count);
+                     beta = std::min(iteration_score + delta, Infinite);
++                    alpha = old_beta - overlap;
++                    if (alpha < -Infinite) alpha = -Infinite;
++                    // A bound sitting on the score fails the other way forever.
++                    if (alpha >= iteration_score) alpha = std::max(iteration_score - 1, -Infinite);
++                    if (alpha >= beta) break;
++                } else {
++                    if (tune::AspCappedReopen) {
++                        beta = capped_fail_high(iteration_score);
++                        if (iteration_score >= beta) break;
++                    } else {
++                        beta = std::min(iteration_score + delta, Infinite);
++                    }
+                 }
+             } else {
+                 break;
+@@ -2436,6 +2512,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             delta += delta / 2 + 4;
+         }
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
++        if (!aborted_ && tune::IdeaS24) s24_note(s24_scores, s24_count, iteration_score);
+         if (aborted_) {
+             // A clock or external stop may keep a root move that already raised
+             // alpha in this unfinished iteration, and the score stays the last
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..261292b3c 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -226,6 +226,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
++                         "option name IdeaS24 type check default false\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+@@ -433,6 +434,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "IdeaS24") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::IdeaS24 = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();

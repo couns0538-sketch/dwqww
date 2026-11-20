@@ -1,0 +1,11 @@
+Idea S24, option IdeaS24, default false.
+The plain engine does not do this. AspCappedReopen and AspArmLate are different aspiration ideas and stay on their own path.
+
+What it does when IdeaS24 is true, and only then:
+After a root fail, the failing bound is the returned score shifted by the current aspiration delta. A bound placed on the score itself fails again on the same value, so the shift stays. The other bound then keeps an overlap back into the previous window. The overlap is 0 when the variance of recent resolved root scores is at or below IdeaS24_Steady, and half the old window width when the variance is at or above IdeaS24_Swing, linear in between. Fail-high and fail-low use that same rule. Today, fail-low always sets the other bound to the midpoint and fail-high leaves the other bound where it was. Those two lines are unchanged while IdeaS24 is false.
+
+The opposite bound is then pushed one centipawn past the returned score when it would otherwise sit on that score. A bound on the score fails the other way on the next try, the delta grows without a resolved window, and the signed add overflows. UBSan reported that overflow at search.cpp on the first build. The off path does not use this adjustment.
+
+Resolved mate scores are not stored. Fewer than two stored scores means overlap 0. Variance is the integer mean of squared deviations from the integer mean, over the last IdeaS24_Samples scores (default 4). Defaults: IdeaS24_Steady 16, IdeaS24_Swing 400. If both IdeaS24 and AspCappedReopen are true, IdeaS24 takes the fail. The tests turn on only IdeaS24.
+
+Spins: IdeaS24_Samples, IdeaS24_Steady, IdeaS24_Swing.
