@@ -1,0 +1,12 @@
+Idea 33, IdeaA2. The plain engine does not already do this. Searched search.cpp and uci.cpp for a blend of a fail-high toward beta; there is none.
+
+What the switch does, and why:
+- Option IdeaA2, type check, default false.
+- Spin IdeaA2_MinDepth, default 2, range 1 to 64. The description's only chosen number is "depth 2 or more". The blend weights stay (depth) and (1), as written, so they are not extra options.
+- At a non-PV node, when the score about to be returned is >= beta, depth >= IdeaA2_MinDepth, and the score is not a mate, the returned value is (score * depth + beta) / (depth + 1). Integer division. For integer score >= beta and depth >= 1 this stays >= beta, so the node still fails high.
+- Applied on the main search returns that are this node's own fail-high: mate-distance pruning, reverse futility, both null-move cutoffs, probcut, and the move-loop result (hash store, correction, and the value returned). A transposition hit is returned as stored, so a blended score is not blended a second time. Quiescence has no depth of 2 or more and is unchanged.
+- History updates still see the raw score. The value other nodes see is the blended one, and that is what is stored.
+- When IdeaA2 is false, idea_a2_score returns its input before any arithmetic. The search result is the same score as today.
+
+Prediction, written before any measurement of the patched engine:
+- Fail-highs still cut off, but the stored bound sits closer to beta, so a later cutoff against a higher beta happens less often. I expect the O depth-12 node sum to rise, not fall.
