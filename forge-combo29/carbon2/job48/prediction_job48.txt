@@ -1,0 +1,22 @@
+=== CARBON2 JOB 48 PREDICTION (COMMITTED ALONE AFTER PART L AND BEFORE FIRST GAME OF PART M15) ===
+prediction_utc: Fri Nov 20 11:07:01 PM UTC 2026
+
+All 5 leave-one-out bases (L1..L5) were LIVE in Part L (0 DEAD bases out of 553 O+G positions), so all 6 matches M15-0..M15-5 are eligible (12,000 games = 6,000 UHO pairs each, nodes=2000, IdeaB8b+HindsightDepth vs all_off on the same base; 95% half-width ~ +/- 4.9 Elo per match, ~ +/- 7.0 Elo on M15-k minus M15-0).
+
+1. Per-Match Bundle Elo Predictions and Falsification Ranges:
+   - M15-0 (base PC20, UHO lines 2,024,001..2,030,000):
+     * Point prediction: +9.5 Elo | Range that would prove me wrong: outside [+2.5, +16.5] Elo.
+   - M15-2 (base L2: HistRework=0, UHO lines 2,030,001..2,036,000):
+     * Point prediction: +14.5 Elo | Range that would prove me wrong: outside [+7.5, +21.5] Elo.
+   - M15-4 (base L4: CorrHistV2=false, UHO lines 2,036,001..2,042,000):
+     * Point prediction: +10.5 Elo | Range that would prove me wrong: outside [+3.5, +17.5] Elo.
+   - M15-1 (base L1: CuckooRep=false, UHO lines 2,042,001..2,048,000):
+     * Point prediction: +9.5 Elo | Range that would prove me wrong: outside [+2.5, +16.5] Elo.
+   - M15-3 (base L3: TtPruneV2=false, UHO lines 2,048,001..2,054,000):
+     * Point prediction: +11.0 Elo | Range that would prove me wrong: outside [+4.0, +18.0] Elo.
+   - M15-5 (base L5: MateAlphaGuard=false, UHO lines 2,054,001..2,060,000):
+     * Point prediction: +9.5 Elo | Range that would prove me wrong: outside [+2.5, +16.5] Elo.
+
+2. Which Switch (If Any) Takes the Bundle's Gain:
+   - Prediction: HistRework (HistRework=2 in PC20 vs HistRework=0 in L2, tested by M15-2) takes the primary share (~ +4 to +6 Elo) of the S14-to-PC20 bundle difference, because HistRework=2 blends 3/4 of quiet move history from a cheaper-attacker (from, to) twin table that already encodes IdeaB8b's role-1 ("evacuate the threatened piece") signal, with TtPruneV2 (L3, sharing two-ply static-eval worsening with HindsightDepth) taking at most a secondary ~1-2 Elo share, while CuckooRep (L1) and MateAlphaGuard (L5, changing only 15/553 O+G positions) take ~0 Elo.
+   - What would prove this switch-attribution prediction wrong: (a) M15-2 minus M15-0 <= 0.0 Elo while another leave-one-out match (M15-1, M15-3, M15-4, or M15-5) exceeds M15-0 by >= +7.0 Elo, OR (b) M15-0 itself measures >= +14.0 Elo with every (M15-k minus M15-0) inside [-3.0, +3.0] Elo (which would show M9's +8.69 +/- 8.53 was downward noise and none of the five switches materially compresses the bundle).
