@@ -1,0 +1,6 @@
+seat 038 idea 38 IdeaA7
+O depth-12 sum, IdeaA7 on: 6200000
+wrong if that sum is below 3500000 or above 9200000
+test-match Elo, IdeaA7 on versus off: -15
+wrong if that Elo is below -60 or above 30
+why: after a non-mate alpha raise, every later move at depth 2..12 is searched one ply shallower, including the re-search. Zero-window nodes return on the raise, so only PV windows change. At depth 12 the root is inside the window, so every root move after the first loses a ply. That should cut the 9500069-node O sum by roughly a third, and give up some tactics, so a small Elo loss at 20000 nodes.
