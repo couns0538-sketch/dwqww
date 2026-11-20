@@ -1,0 +1,24 @@
+Idea 37 is IdeaA6: a negative extension when the singular search fails high,
+because the transposition move is not singular and other moves also beat the bound.
+
+EXISTS: forge-combo29/src/search.cpp:1951
+The plain engine already does this. After the singular search returns at least
+singular_beta, and the position is not a multi-cut (singular_beta < beta):
+  tt_score >= beta  -> extension = -2
+  cut node          -> extension = -1
+Those two integers were literals. They were not options.
+
+What I built, off by default:
+  IdeaA6          check  default false
+  IdeaA6_TtBeta   spin   default -2   min -8 max 2
+  IdeaA6_Cut      spin   default -1   min -8 max 2
+Switch false uses the literals -2 and -1 and does not read the spins.
+Switch true uses the spins. The spin defaults are today's literals, so the
+default "on" search is the same tree. That is why O depth 12 differs in 0 of 200
+positions. The spins are not dead: IdeaA6 true with both spins set to 0 changes
+all 200 positions (sum 11912888 against 9500069).
+
+SEED = 3701. R.epd is 300 positions from python-chess. One Random(3701) stream.
+A game is kept only if it is still going at ply 71. Sample plies are 15, 22, 29,
+36, 43, 50, 57, 64, 71 (every 7 plies after ply 8). Games that end before ply 71
+are dropped. 35 attempts, 1 dropped, first 300 of the 306 kept positions.

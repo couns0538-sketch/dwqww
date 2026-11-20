@@ -75,6 +75,7 @@ def run_one(exe: Path, commands):
 def main() -> int:
     exe = Path(sys.argv[1]).resolve()
     out_dir = Path(sys.argv[2]).resolve()
+    tag = sys.argv[3] if len(sys.argv) > 3 else "B"
     out_dir.mkdir(parents=True, exist_ok=True)
     digest = sha256(exe)
     cases = [
@@ -93,7 +94,7 @@ def main() -> int:
     ok = True
     for name, commands in cases:
         text, sent, id_name = run_one(exe, commands)
-        raw = out_dir / f"HONESTY_B_{name}.txt"
+        raw = out_dir / f"HONESTY_{tag}_{name}.txt"
         raw.write_text(text)
         nodes = None
         for line in text.splitlines():
@@ -103,7 +104,7 @@ def main() -> int:
                     nodes = int(parts[parts.index("nodes") + 1])
             if name == "perft5" and line.startswith("nodes "):
                 nodes = int(line.split()[1])
-        meta = out_dir / f"HONESTY_B_{name}.meta"
+        meta = out_dir / f"HONESTY_{tag}_{name}.meta"
         option_lines = [c for c in sent if c.startswith("setoption ")]
         meta.write_text(
             "\n".join(
@@ -124,7 +125,7 @@ def main() -> int:
         ok = ok and match
         summary.append(f"{name} nodes {nodes} expected {expected[name]} {'OK' if match else 'MISMATCH'}")
         print(summary[-1], flush=True)
-    (out_dir / "HONESTY_B.txt").write_text("\n".join(summary) + "\n")
+    (out_dir / f"HONESTY_{tag}.txt").write_text("\n".join(summary) + "\n")
     return 0 if ok else 1
 
 

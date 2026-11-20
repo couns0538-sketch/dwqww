@@ -1,0 +1,28 @@
+exe=/tmp/scratch-asan/forge
+sha256=08557d3d06eb82aed18bd14b94734d57b544ce028764a4818599d6b926a8199d
+id_name=Chess Engine Forge 6.4.24 candidate
+nm_asan_count=35
+options_sent:
+setoption name LmrQuietBase value 93
+setoption name LmrQuietDivisor value 205
+setoption name LmrNoisyBase value 13
+setoption name LmrNoisyDivisor value 333
+setoption name LmrHistoryDivisor value 5643
+setoption name NullMoveBase value 5
+setoption name LmpBase value 8
+setoption name HistoryPruneMultiplier value 2220
+setoption name HistoryBonusQuadratic value 24
+setoption name HistoryBonusLinear value 54
+setoption name HistoryBonusMax value 2212
+setoption name SingularDepth value 6
+setoption name IirDepth value 2
+setoption name NonPawnCorrection value true
+setoption name Threads value 1
+setoption name Hash value 16
+setoption name IdeaA6 value true
+depth=1
+positions=1
+sanitizer_lines=3
+/tmp/scratch-engine/src/board.cpp:232:22: runtime error: load of address 0x5020000000a0 with insufficient space for an object of type 'int'
+==6517==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000000a0 at pc 0x5588816d72d3 bp 0x7ffcbaa331f0 sp 0x7ffcbaa331e0
+SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/scratch-engine/src/board.cpp:232 in forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*)
