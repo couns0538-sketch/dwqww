@@ -1,0 +1,103 @@
+file HONESTY_B.txt
+bench11=312866
+bench13=862329
+bench16=3024920
+perft5=4865609
+expect_bench11=312866
+expect_bench13=862329
+expect_bench16=3024920
+expect_perft5=4865609
+file HONESTY_P.txt
+bench11=312866
+bench13=862329
+bench16=3024920
+perft5=4865609
+expect_bench11=312866
+expect_bench13=862329
+expect_bench16=3024920
+expect_perft5=4865609
+file PARTNER_HONESTY.txt
+bench11=312866
+bench13=862329
+bench16=3024920
+perft5=4865609
+expect_bench11=312866
+expect_bench13=862329
+expect_bench16=3024920
+expect_perft5=4865609
+file compare_O_off.txt
+positions 200
+differ 0 of 200
+sum_left 9500069
+sum_right 9500069
+file compare_G_off.txt
+positions 353
+differ 0 of 353
+sum_left 18466239
+sum_right 18466239
+file compare_O_on.txt
+positions 200
+differ 3 of 200
+sum_left 9500069
+sum_right 9501220
+pos 114 left 52364 right 56029
+pos 127 left 39098 right 38775
+pos 191 left 54617 right 52426
+file partner_compare_off.txt
+positions 200
+differ 0 of 200
+sum_left 9500069
+sum_right 9500069
+file partner_compare_on.txt
+positions 200
+differ 3 of 200
+sum_left 9500069
+sum_right 9501220
+pos 114 left 52364 right 56029
+pos 127 left 39098 right 38775
+pos 191 left 54617 right 52426
+asan_nm 35
+asan_G100_error 0
+asan_G100_runtime 0
+asan_G100 SUM 2091663
+asan_bug_error 1
+asan_bug_heap 2
+uci
+option name IdeaS38 type check default false
+option name IdeaS38_Divisor type spin default 64 min 1 max 4096
+option name IdeaS38_Clamp type spin default 1 min 0 max 8
+O_P_on SUM 9501220
+prediction
+O depth 12, exe P, S14, IdeaS38 true, divisor 64, clamp 1.
+Predicted node sum: 10200000.
+That prediction is wrong if the measured sum is below 8000000 or above 12000000.
+
+Test match, IdeaS38 true against false, 1106 games, 20000 nodes.
+Predicted Elo of the true side: +6.
+That prediction is wrong if the point estimate is below -15 or above +25.
+file match.txt
+Results of IdeaS38on vs IdeaS38off (20000 nodes, 1t, 16MB, OG.epd):
+Elo: 3.14 +/- 8.26, nElo: 7.79 +/- 20.48
+LOS: 77.21 %, DrawRatio: 76.13 %, PairsRatio: 1.06
+Games: 1106, Wins: 349, Losses: 339, Draws: 418, Points: 558.0 (50.45 %)
+file partner_match.txt
+Results of IdeaS38on vs IdeaS38off (20000 nodes, 1t, 16MB, R.epd):
+Elo: 5.79 +/- 5.52, nElo: 29.16 +/- 27.80
+LOS: 98.01 %, DrawRatio: 93.00 %, PairsRatio: 2.50
+Games: 600, Wins: 284, Losses: 274, Draws: 42, Points: 305.0 (50.83 %)
+step | status | evidence | result
+1 seat | done | SEAT.txt | seat 003, idea 3, model Grok 4.7, 2026-11-20T07:52:05Z, token 8168252358750
+2 honesty B | done | HONESTY_B.txt | 312866 862329 3024920 4865609
+2 baseline O | done | O_B.nodes | SUM 9500069
+2 baseline G | done | G_B.nodes | SUM 18466239
+3 prediction | done | prediction.txt | committed before measuring exe P
+3 proof 1 | done | HONESTY_P.txt | 312866 862329 3024920 4865609
+3 proof 2 O off | done | compare_O_off.txt | differ 0 of 200
+3 proof 2 G off | done | compare_G_off.txt | differ 0 of 353
+3 proof 3 O on | done | compare_O_on.txt | differ 3 of 200 SUM 9501220
+3 proof 4 | done | uci_p.txt | IdeaS38 lines printed above
+3 proof 5 | done | asan_nm.txt asan_G100.raw asan_bug.raw | nm 35 G100_errors 0 bug_errors 1
+3 match | done | match.txt | last Results block above
+4 partner rows | done | partner_compare_off.txt partner_compare_on.txt | differ 0 of 200 / differ 3 of 200
+4 partner match | done | partner_match.txt | last Results block above
+5 report | done | REPORT.md RESULT.txt | written with this script's output
