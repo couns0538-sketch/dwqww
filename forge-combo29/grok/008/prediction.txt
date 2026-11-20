@@ -1,0 +1,22 @@
+seat 008 idea 8 id S45 option IdeaS45
+written 2026-11-20T07:59:18Z
+before any measurement of exe P
+
+The plain engine already does this veto behind NullSeeVeto (default false),
+search.cpp null_see_veto_threat. The two fixed numbers there are king price
+100000 and SEE margin 0. IdeaS45 is a check default false. IdeaS45_KingWorth
+default 100000. IdeaS45_SeeMargin default 0. With the check false the new
+call is not made, so the search stays on today's path. With the check true
+the existing veto runs at those defaults.
+
+O depth 12 sum, S14, Threads 1, Hash 16, IdeaS45 true, spins at default: 9850000
+Wrong if the sum is below 9200000 or above 12000000, or if it equals the baseline 9500069.
+
+Test-match Elo, IdeaS45 true versus false, both S14, 20000 nodes, 1106 games: +3
+Wrong if the Elo point is below -25 or above +40.
+
+Why: the veto drops a null-move cutoff only when a cheaper piece has a capture
+of a dearer piece that static exchange does not call a loss. That is a sparse
+filter, so the tree should grow a little, not double. A sparse tactical veto
+should sit near zero Elo, a few points to the good if the skipped cutoff was
+unsound.
