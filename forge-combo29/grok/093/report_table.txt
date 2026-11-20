@@ -1,0 +1,13 @@
+step | status | evidence | result
+STEP 1 seat | done | SEAT.txt stamps.txt | seat 093 idea 43
+STEP 2 honesty B and O/G | done | HONESTY_B.txt O_B_d12.raw.txt G_B_d12.raw.txt | pins match; O n 200 sum 9500069; G n 353 sum 18466239
+STEP 3 prediction | done | prediction.txt | pushed before the patched measurements
+STEP 3 patch | done | idea.patch.txt apply_check.txt | git apply --check exit 0
+proof 1 honesty P | done | HONESTY_P.txt | bench 11 nodes 312866 expected 312866 OK bench 13 nodes 862329 expected 862329 OK bench 16 nodes 3024920 expected 3024920 OK go perft 5 nodes 4865609 expected 4865609 OK
+proof 2 switch off | done | proof_off_O.txt proof_off_G.txt | O differ 0; G differ 0
+proof 3 switch on | done | proof_on_O.txt O_P_on.raw.txt | differ 200; positions 200 sum 8921190
+proof 4 uci | done | uci_P.txt | option name IdeaK4 type check default false | option name IdeaK4_Shrink type spin default 24 min 0 max 200
+proof 5 sanitizer | done | G100_asan.meta asan_probe.raw.txt | asan_symbols 35; G100 ERROR lines 0; probe AddressSanitizer lines 1
+STEP 3 match | done | match_summary.txt | Elo: 5.03 +/- 9.77, nElo: 10.54 +/- 20.48
+STEP 4 partner 043 | done | proof_partner_off.txt proof_partner_on.txt match_partner_summary.txt | off differ 0; on vs their rows differ 0; Elo: 1.16 +/- 8.94, nElo: 3.60 +/- 27.80
+STEP 5 report | done | REPORT.md RESULT.txt | this commit

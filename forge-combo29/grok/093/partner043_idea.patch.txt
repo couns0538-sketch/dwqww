@@ -1,0 +1,90 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..c07fb04d7 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -249,6 +249,7 @@ extern int NullMoveEvalDivisor;
+ extern int RfpDepth;
+ extern int RfpMargin;
+ extern int RfpImproving;
++extern int IdeaK4_Shrink;    // centipawns taken off the reverse-futility margin when IdeaK4 fires
+ extern int RazorDepth;
+ extern int RazorBase;
+ extern int RazorMultiplier;
+@@ -298,6 +299,7 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern bool IdeaK4;                  // smaller reverse-futility margin when the opponent static eval worsened over two plies (false = off)
+ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..bd40052c5 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -50,6 +50,7 @@ int NullMoveEvalDivisor = 200;
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
++int IdeaK4_Shrink = 32;
+ int RazorDepth = 2;
+ int RazorBase = 150;
+ int RazorMultiplier = 350;
+@@ -98,6 +99,7 @@ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
++bool IdeaK4 = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+@@ -119,7 +121,8 @@ const std::vector<Parameter>& parameters() {
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+-        {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"RfpImproving", &RfpImproving, 0, 200},         {"IdeaK4_Shrink", &IdeaK4_Shrink, 0, 200},
++        {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+@@ -1686,7 +1689,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
+-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        // IdeaK4 false keeps today's margin. The flag is read first, so the
++        // parent evals are not touched and the arithmetic stays the same.
++        int rfp_margin = tune::RfpMargin * depth - tune::RfpImproving * improving;
++        if (tune::IdeaK4) {
++            const int parent_eval = (ss - 1)->static_eval;
++            const int older_eval = (ss - 3)->static_eval;
++            if (parent_eval != ValueNone && older_eval != ValueNone && parent_eval < older_eval)
++                rfp_margin -= tune::IdeaK4_Shrink;
++        }
++        if (!bare_king_mode && depth <= tune::RfpDepth && eval - rfp_margin >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..6be79abdb 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -222,6 +222,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
++                         "option name IdeaK4 type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+@@ -390,6 +391,9 @@ int uci_loop(std::istream& in) {
+             } else if (name == "HindsightDepth") {
+                 if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                 else note_invalid();
++            } else if (name == "IdeaK4") {
++                if (value_text == "true" || value_text == "false") forge::tune::IdeaK4 = value_text == "true";
++                else note_invalid();
+             } else if (name == "NullThreatVerify") {
+                 if (value_text == "true") forge::tune::NullThreatVerify = true;
+                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
