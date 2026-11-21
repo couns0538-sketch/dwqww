@@ -1,0 +1,38 @@
+Timestamp (UTC, taken in same command writing file): Sat Nov 21 02:09:18 AM UTC 2026
+Job: carbon2 job 51 (FABLE_TO_carbon2_51.md) — HistRework two-mechanism split on bundle13
+Executable: /tmp/carbon2_job51/bld_bundle13/forge (sha256=53db89f4fcbdb18a1d34fbcfd7b6e6a0344a33771fd61dc8743e40a8c9fa4b10)
+Baseline Side B (`all_off_PC20`): PC20 + all 9 Idea switches false + HindsightDepth=false (HistRework=2, HistReworkQuiet=-1 -> 2, HistReworkCorrection=-1 -> 2).
+
+1. M20-2k (Side A adds HistReworkCorrection=0 [joint_correction_ off, twin at 2] vs Side B, nodes=2000, 12,000 games, book 2,088,501..2,094,500):
+   Predicted Side A Elo: -7.0 Elo
+   Falsification range:  [-14.5, -0.5] Elo
+   Mechanism: Turning off joint_correction_ removes the pawn_key ^ mix64(non_pawn_material + 1) static-eval correction (weight 50/100 at level 2), which calibrates pawn-structure evals across material phases for RFP, futility, razoring, null-move, and probcut margins (increasing O depth-12 nodes by +6.00%, from 8,315,168 to 8,814,382).
+
+2. M21-2k (Side A adds HistReworkQuiet=0 [twin off, joint_correction_ at 2] vs Side B, nodes=2000, 12,000 games, book 2,094,501..2,100,500):
+   Predicted Side A Elo: -5.5 Elo
+   Falsification range:  [-13.0, +1.0] Elo
+   Mechanism: With ThreatHistory=false, IdeaB8=false, and IdeaB8b=false in all_off_PC20, the rework_history_ lesser-threat butterfly twin (2/4 blend at level 2) is the sole threat-aware quiet-move ordering and LMR/history-pruning signal; turning it off degrades cutoff ordering (+1.92% depth-12 nodes on O) while fixed nodes=2000 grants zero speed credit for skipping b4::lesser_threats(board).
+
+3. M22-2k (Side A adds HistReworkQuiet=3 [twin 3/4 blend, joint_correction_ at 2] vs Side B, nodes=2000, 12,000 games, book 2,100,501..2,106,500):
+   Predicted Side A Elo: -1.5 Elo
+   Falsification range:  [-8.0, +5.0] Elo
+   Mechanism: Raising threat_quarters from 2/4 (50%) to 3/4 (75%) weights the 4x-sparser [2][2][64][64] twin three times as heavily as unconditioned main_history_[64][64]; at 2,000 nodes per move, early/mid-game cell sparsity slightly outweighs tighter tactical threat separation (+1.29% depth-12 nodes on O).
+
+4. M23-2k (Side A adds HistReworkCorrection=3 [joint_correction_ 100/100 weight, twin at 2] vs Side B, nodes=2000, 12,000 games, book 2,106,501..2,112,500):
+   Predicted Side A Elo: -2.0 Elo
+   Falsification range:  [-8.5, +4.5] Elo
+   Mechanism: Doubling joint_weight from 50/100 to 100/100 while pawn correction_history_, NonPawnCorrection=true, MaterialCorrectionWeight, and CorrHistV2=true are all simultaneously active double-counts part of the (best_score - static_eval) residual and mildly over-steers static_eval pruning margins.
+
+5. M20-20k (Side A adds HistReworkCorrection=0 vs Side B, nodes=20000, 3,000 games, book 2,112,501..2,114,000):
+   Predicted Side A Elo: -5.0 Elo
+   Falsification range:  [-15.0, +4.0] Elo
+   Mechanism: Deeper 20,000-node search resolves part of static-eval miscalibration directly via tactical subtrees (parallel to M17 shrinking in magnitude from -12.17 at 2k to -7.64 at 20k in Job 49), while still losing Elo from weaker static-eval pruning bounds.
+
+6. M21-20k (Side A adds HistReworkQuiet=0 vs Side B, nodes=20000, 3,000 games, book 2,114,001..2,115,500):
+   Predicted Side A Elo: -4.0 Elo
+   Falsification range:  [-14.0, +5.0] Elo
+   Mechanism: At 20,000 nodes rework_history_ cells populate more densely within each move, preserving the twin ordering/LMR advantage, partially tempered by 1-ply/2-ply continuation history filling in move-ordering context deeper in the tree.
+
+7. Sign of (M20-2k + M21-2k - M17-2k), where M17-2k = -12.17 Elo (Job 49):
+   Predicted sign: NEGATIVE (M20-2k + M21-2k - M17-2k < 0; point estimate (-7.0) + (-5.5) - (-12.17) = -0.33 Elo; expected 95% CI (~ +/- 8.4 Elo) likely spanning zero).
+   Mechanistic reason: Algebraically, M20 + M21 - M17 = [E(2,0) + E(0,2) - E(0,0) - E(2,2)]. Joint static-eval correction and the lesser-threat quiet-history twin reinforce each other across search: calibrated static_eval sharpens beta/RFP/futility bounds so quiet beta-cutoffs recorded into rework_history_ reflect sounder refutations, while threat-aware quiet move ordering finds earlier move-1/2 beta-cutoffs at lower LMR reductions so best_score residuals recorded into joint_correction_ are less noisy (mirroring K4 on O, where N(2,0)-N(2,2)=+499,214 and N(0,2)-N(2,2)=+159,293 sum to +658,507 > N(0,0)-N(2,2)=+342,891). Because the two halves are mild complements (super-additive synergy), losing either half alone forfeits slightly more than its isolated share (|M20| + |M21| > |M17-2k|), making M20 + M21 - M17-2k negative.
