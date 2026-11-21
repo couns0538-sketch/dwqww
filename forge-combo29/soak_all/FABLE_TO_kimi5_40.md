@@ -69,8 +69,10 @@ real (position 3 still unfinished after 17 minutes). This job puts your node cap
 controls, finishes that cell, scans the extension options to their spec bounds, and writes a tune table whose
 bounds are measured. Fifty minutes, no match.
 
-## Known answers (ours; your chain and settings of job 34: PC20 with pc20_all1024.opt, Threads 1, Hash 16, the
+## Known answers (ours; your chain and settings of job 34: PC20 with pc20.opt, Threads 1, Hash 16, the
 ## built-in evaluation; the census-patched r15d build of job 37 with every option at its default)
+- The options file is pc20.opt (20 lines), NOT pc20_all1024.opt: its four HistoryAge* lines are unknown options on
+  this chain, as your job 39 found (the known answers below are the same; your runner rightly stops on such a line).
 - K1, file 38's K1 at go depth 12 (ucinewgame + isready before every search): node sums O 8,315,168; G 17,611,204
   (your job 37 met them to the node on the plain and on the patched build).
 - K2, from your own job 37: CheckExtPlies 2 on G did not finish position 3 in about 17 minutes of one thread (your
