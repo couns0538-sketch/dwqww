@@ -1,0 +1,31 @@
+=== JOB 50 PREDICTION (COMMITTED ALONE AFTER PART L2 AND BEFORE FIRST GAME) ===
+utc_timestamp: Sat Nov 21 01:19:57 AM UTC 2026
+
+1. L2 "all three" (HdLowerWithheld=2, HdLowerDepth=2, HdLowerLoss=167) depth-12 O node sum vs defaults (1, 1, 100):
+   - Blind pre-L2 prediction (committed BEFORE Step 0 and Part L2 in commit 1c9b351f1, pre_L2_nodesum_note.txt):
+     ABOVE the defaults' O node sum (reason given before L2: restricting the depth-1 lower step at fixed depth 12
+     while keeping the depth+1 raise step unchanged was expected to expand reduced leaves directly, based on K4's
+     no-PC20 bench 13 dropping from 862,329 to 840,387).
+   - Observed in Part L2 (commit e3d1bd3bc, run immediately prior per File 50 line 137 commit order):
+     BELOW the defaults' O node sum (8,519,678 vs 8,732,910, delta = -213,232 nodes, -2.44%) — so our blind pre-L2
+     direction prediction is FALSE (FALSIFIED). Specifically, HdLowerWithheld=2 (+39,935) and HdLowerDepth=2 (+48,347)
+     each rose slightly above defaults, whereas HdLowerLoss=167 dropped by -206,604 nodes (to 8,526,306): on heavily
+     reduced moves with moderate static loss (100..166 cp), NOT shaving a further ply off the child's refutation search
+     lets the opponent refute at reduced depth (and store a 1-ply deeper BoundLower TT entry) instead of failing to
+     refute and triggering full-depth unreduced LMR re-searches.
+
+2. Per-match Side A Elo predictions (Side A = Stockfish threshold(s) + PC20 + bundle vs Side B = defaults + PC20 + bundle;
+   all three options are LIVE in Part L2, so M18 Side A includes all three):
+   - M18-2k  (nodes=2000,  12,000 games, UHO lines 2,075,001..2,081,000; all three: 2, 2, 167):
+     Predicted Side A Elo = +2.0 Elo | Falsification range: outside [-5.0, +9.0] Elo.
+   - M18-20k (nodes=20000,  3,000 games, UHO lines 2,081,001..2,082,500; all three: 2, 2, 167):
+     Predicted Side A Elo = +2.5 Elo | Falsification range: outside [-8.0, +13.0] Elo.
+   - M19-2k  (nodes=2000,  12,000 games, UHO lines 2,082,501..2,088,500; HdLowerLoss=167 alone, if >=25m left after M18):
+     Predicted Side A Elo = +2.0 Elo | Falsification range: outside [-5.0, +9.0] Elo.
+
+   Reason for match predictions:
+   In Part L2, Stockfish's thresholds (driven primarily by HdLowerLoss=167) save ~2.4% of depth-12 nodes on O by
+   avoiding premature depth-1 cuts on 100..166 cp moves that otherwise trigger costly LMR re-searches, while changing
+   35/200 best moves on O. On a fixed node budget (2,000 and 20,000 nodes), ~2.4% better search efficiency plus cleaner
+   refutations of 100..166 cp reduced moves points to a modest positive gain (+1.5 to +3.0 Elo), bounded by ~+/- 4.9 Elo
+   (12,000 games) and ~+/- 8.3 Elo (3,000 games) sampling uncertainty.
