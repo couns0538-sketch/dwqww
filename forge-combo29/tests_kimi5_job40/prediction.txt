@@ -1,0 +1,27 @@
+kimi5 job 40 prediction — Step 3 on G, EXPLODED positions per run (cap = 10 x base nodes, go depth 12 nodes cap).
+A row is EXPLODED when its reported depth is below 12 or its nodes reach the cap.
+"KNOWN" = the cell (option, value, set G) was already measured elsewhere (job 37 step 4 uncapped, ucinewgame per
+search): for those the ratio is known and the exploded count follows from it; not graded.
+
+option             value   predicted EXPLODED on G (of 353)
+DoubleExtLimit     -1      0 to 0     (gate inherited<=-1 never true: double extension disabled, trees only shrink)
+DoubleExtLimit     8       0 to 2
+DoubleExtLimit     12      0 to 4
+DoubleExtLimit     24      0 to 6
+DoubleExtLimit     64      0 to 10
+DoubleExtPlies     1       0 to 0     (extension 1 < 2, and the budget counter now also counts singular extensions:
+                                      extension==DoubleExtPlies==SingularExtPlies==1, so the budget drains faster;
+                                      both effects shrink trees. Cell measured on O in job 35, blind on G.)
+SingularExtPlies   0       0 to 0     KNOWN (job 37 G ratio 0.5363: trees shrink)
+SingularExtPlies   2       2 to 12    KNOWN (job 37 G ratio 3.2526: average x3.25, tail positions cross the 10x cap)
+SingularTtCutExt   -1      0 to 0     KNOWN (job 37 G ratio 1.0174)
+SingularTtCutExt   0       0 to 0     (blind; monotone continuation of -3/-2/-1 ratios 0.98/1.00/1.02, still near 1)
+SingularCutNodeExt 0       0 to 0     KNOWN (job 37 G ratio 1.0044)
+CheckExtPlies      0       0 to 0     KNOWN (job 37 G ratio 0.7536: trees shrink)
+DoubleExtMargin    0       3 to 20    (margin 0: every singular non-pv node within the limit double-extends)
+DoubleExtMargin    12      0 to 4
+DoubleExtMargin    48      0 to 0     (stricter than default 24: fewer double extensions)
+DoubleExtMargin    96      0 to 0
+
+Most exploded positions on G: DoubleExtMargin 0 — with the margin gone, every singular non-pv node inside the
+limit 6 budget takes extension 2; no other Step 3 value widens the tree on so many nodes at once.
