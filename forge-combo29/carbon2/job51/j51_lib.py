@@ -333,6 +333,15 @@ def run_match_strict_j51(
         rf.write(f"fastchess_txt_sha256({fc_out_path}): {sha256_file(fc_out_path)}\n")
     if not ok_bad:
         raise RuntimeError(f"{tag} fastchess output had error lines: {bad_fc_lines[:5]}")
+    rec["W"] = int(rec["w"])
+    rec["L"] = int(rec["l"])
+    rec["D"] = int(rec["d"])
+    rec["hw95"] = round(float(rec["err95"]), 2) if rec.get("err95") is not None else 0.0
+    rec["elo"] = round(float(rec["elo"]), 2) if rec.get("elo") is not None else 0.0
+    rec["ci_lo"] = round(rec["elo"] - rec["hw95"], 2)
+    rec["ci_hi"] = round(rec["elo"] + rec["hw95"], 2)
+    rec["fc_elo"] = round(float(rec.get("fc_elo", rec["elo"])), 2)
+    rec["fc_hw95"] = round(float(rec.get("fc_err95", rec["hw95"])), 2)
     rec["wall_s"] = wall_s
     rec["was_cut"] = was_cut
     return rec
