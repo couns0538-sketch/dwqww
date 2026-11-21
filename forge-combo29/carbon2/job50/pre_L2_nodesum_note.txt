@@ -1,0 +1,19 @@
+=== JOB 50 PRE-BUILD / PRE-L2 BLIND MECHANISTIC NOTE ON L2 NODE SUM ===
+Recorded and committed with Part P12 BEFORE building bundle12 and BEFORE running Step 0 or Part L2
+(so our blind prediction of L2's "all three" node sum direction is timestamped in git prior to any search,
+and will also be included in prediction_job50.txt committed alone after Part L2 per File 50 lines 137-140).
+
+Blind prediction for Part L2 ("all three": HdLowerWithheld=2, HdLowerDepth=2, HdLowerLoss=167 vs defaults 1, 1, 100
+on O at fixed depth 12 under PC20 + HindsightDepth=true):
+- Predicted direction: ABOVE the defaults' depth-12 O node sum.
+- Reason:
+  1. At fixed root depth 12, HindsightDepth's lower step (`proposed = depth - 1`) shrinks subtrees (and at
+     `depth == 1` drops straight into `qsearch_child`), whereas its raise step (`proposed = depth + 1` when
+     `mover_loss <= 0 && withheld >= 3`) grows subtrees. In K4 (`bench 13` with `HindsightDepth=true`), the
+     lower step dominates the raise step so total nodes drop from 862,329 to 840,387 (-21,942 nodes).
+  2. Raising the lower-step thresholds from `(withheld >= 1, depth >= 1, mover_loss >= 100)` to Stockfish's
+     `(withheld >= 2, depth >= 2, mover_loss >= 167)` is strictly more restrictive on every axis while leaving
+     the `mover_loss <= 0 && withheld >= 3` raise step completely unchanged (`167 > 100 > 0`).
+  3. Consequently, every post-reduction off-PV node with `withheld == 1`, `depth == 1`, or `100 <= mover_loss <= 166`
+     stops taking `depth - 1` (searching full `depth` instead of `depth - 1`, or full depth-1 instead of qsearch),
+     while every `depth + 1` extension still fires, pushing the fixed-depth-12 node sum ABOVE the defaults' sum.

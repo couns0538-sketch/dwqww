@@ -1,0 +1,31 @@
+=== JOB 50 BUILDS.TXT ===
+1. r15d + v3 source tree: /tmp/carbon2_job36/tpl_r15d_v3
+   tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/search.cpp) = 174e07a5211cb1d56ea47105c7d4b847bdf3cd8b1b6ef3d4473405654242abf4
+   tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/uci.cpp) = 2c00871f131d1816cabd7011e5bc345902a501f839c08f307db5b0f09cf52013
+   tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/src/board.cpp) = 2da64b7d06f608a5351b7dd5e75d19582cd80a7153b0c1ae1ae6dc2e28b8f3cf
+   tree file sha256(/tmp/carbon2_job36/tpl_r15d_v3/include/forge/board.hpp) = 5fa32c92d35d1000fb1e111985469f4beb17dd11d9c23bab03fb39311a109d77
+   eval.hpp SeePieceValue[Pawn] = 100 (SeePieceValue{0, 100, 300, 300, 500, 900, 0})
+
+2. Base bundle9 executable (same as Jobs 44, 46, 48, 49): /tmp/carbon2_job44/bld_bundle9/forge
+   provenance = reused /tmp/carbon2_job44/bld_bundle9/forge with matching sha256
+   exe sha256(/tmp/carbon2_job44/bld_bundle9/forge) = 9441524dc1f2e669608f379ab990d80325cc447e4583162b6d51dd194cba45ef
+   id_name = id name Chess Engine Forge 6.4.24 candidate
+   patch 1 sha256(/agent/repos/dwqww/forge-combo29/carbon2/job41/bundle_grok7.patch.txt) = b5ae73776326495977125ac7712ecb0832473dcd5f748db2a398b8afc5b41146 (expected b5ae73776326495977125ac7712ecb0832473dcd5f748db2a398b8afc5b41146)
+   patch 2 sha256(/agent/repos/dwqww/forge-combo29/carbon2/job42/P8_S13_hoist.patch.txt) = 16afbb689ed9ace2494d1ca8ea597e0e1deb9b2109931e6abafaa19c458b8326 (expected 16afbb689ed9ace2494d1ca8ea597e0e1deb9b2109931e6abafaa19c458b8326)
+   patch 3 sha256(/agent/repos/dwqww/forge-combo29/carbon2/job43/P9_B8_fast.patch.txt) = bc0bb2b7aa2a7a817c3aca6ef7765ff81796feeb825e2670204d0c04e2b24395 (expected bc0bb2b7aa2a7a817c3aca6ef7765ff81796feeb825e2670204d0c04e2b24395)
+
+3. Patched bundle12 executable (bundle12 = bundle9 + P12_hd_lower.patch.txt): /tmp/carbon2_job50/bld_bundle12/forge
+   how_built = fresh copy of /tmp/carbon2_job36/tpl_r15d_v3 into /tmp/carbon2_job50/src_bundle12, git apply -p1 of bundle_grok7 + P8_S13_hoist + P9_B8_fast + /agent/repos/dwqww/forge-combo29/carbon2/job50/P12_hd_lower.patch.txt, compiled with Release SapphireRapids ThinLTO clang++-18/lld-18
+   patch 4 sha256(/agent/repos/dwqww/forge-combo29/carbon2/job50/P12_hd_lower.patch.txt) = 4b4000cce46dd057c4fabef1984480053164a9a4bac053314c6012d999c9d971
+   exe sha256(/tmp/carbon2_job50/bld_bundle12/forge) = 9aa41d9055b487ef2fde2e867f78950c7e5609181d312f5501fe76c25a569a9e
+   id_name = id name Chess Engine Forge 6.4.24 candidate
+   compile_flags = clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_NNUE_WEIGHTS="/tmp/carbon2_job50/src_bundle12/src/nnue_weights.inc" -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 -ffp-contract=off -fno-fast-math -march=sapphirerapids -flto=thin -pthread -I/tmp/carbon2_job50/src_bundle12/include
+   link_flags    = clang++-18 --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -O3 -march=sapphirerapids -flto=thin -fuse-ld=lld-18 -Wl,--thinlto-jobs=4 -pthread /tmp/carbon2_job50/bld_bundle12/obj/bitboard.o /tmp/carbon2_job50/bld_bundle12/obj/board.o /tmp/carbon2_job50/bld_bundle12/obj/book.o /tmp/carbon2_job50/bld_bundle12/obj/eval.o /tmp/carbon2_job50/bld_bundle12/obj/eval_params.o /tmp/carbon2_job50/bld_bundle12/obj/nnue.o /tmp/carbon2_job50/bld_bundle12/obj/nnue_v3.o /tmp/carbon2_job50/bld_bundle12/obj/search.o /tmp/carbon2_job50/bld_bundle12/obj/uci.o -o /tmp/carbon2_job50/bld_bundle12/forge
+
+4. Official fastchess executable: /tmp/carbon2_job40/fastchess
+   git_commit(/tmp/carbon2_job40/fastchess_repo) = d6e3a7a71f8437a39836856ae78a3dcdc9bf934c
+   exe sha256(/tmp/carbon2_job40/fastchess) = a3631c3ea944dfe4505d09f642871905e9662d930e9d438c7fb91cd2cb063007
+
+5. Official opening book: /tmp/carbon2_job40/UHO_Lichess_4852_v1.epd
+   lines(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd) = 2632036
+   book sha256(/tmp/carbon2_job40/UHO_Lichess_4852_v1.epd) = 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a (expected 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a)
