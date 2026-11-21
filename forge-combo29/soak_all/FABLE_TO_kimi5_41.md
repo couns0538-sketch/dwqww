@@ -74,8 +74,10 @@ what it depends on. What it depends on is in the code: where else the search rea
 two values of DIFFERENT clocks meet there. This job finds those places, turns the switch's three parts into
 options, and measures each part on your chain. No match: the PC plays them, first in Fable's won endings.
 
-## Known answers (ours; your chain and settings of job 34: PC20 with pc20_all1024.opt, Threads 1, Hash 16, the
+## Known answers (ours; your chain and settings of job 34: PC20 with pc20.opt, Threads 1, Hash 16, the
 ## built-in evaluation; lines are r15d's: search.cpp sha256 174e07a5..., search.hpp 07af2ca6...)
+- The options file is pc20.opt (20 lines), NOT pc20_all1024.opt: its four HistoryAge* lines are unknown options on
+  this chain, as your job 39 found (the known answers below are the same; your runner rightly stops on such a line).
 - K1, the switch's own lines: search.hpp 365 to 369 `rule50_damped_static`; it is applied after `corrected_eval`
   at search.cpp 1820 (qsearch) and 2023 (search), and at the two MaxPly returns 1779 and 1930.
   search.cpp 287 to 291 `rule50_score_for_this_clock` (switch on: a stored score only at the same clock), called at
