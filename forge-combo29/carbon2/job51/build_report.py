@@ -275,11 +275,12 @@ def main() -> None:
         meta = read_meta_kv(JOB51 / f"{t}_fastchess.txt.meta")
         st_lbl = "CUT" if m["was_cut"] else "COMPLETE"
         add_opt_s = [tok for tok in meta["command"].split() if tok.startswith("option.HistReworkQuiet=") or tok.startswith("option.HistReworkCorrection=")][0]
+        fc_col = "partial (`CUT`)" if m["was_cut"] else f"`{m['fc_elo']:+.2f} +/- {m['fc_hw95']:.2f}`"
         md.append(
             f"| `{t}` | `{add_opt_s}` | `{meta['start_line']}..{meta['end_line_target']}` | "
             f"`{m['games']}` (`{st_lbl}`) | `{m['W']} - {m['L']} - {m['D']}` | `{m['ptnml']}` | "
             f"**`{m['elo']:+.2f} +/- {m['hw95']:.2f}`** (`[{m['ci_lo']:+.2f}, {m['ci_hi']:+.2f}]`) | "
-            f"`{m['fc_elo']:+.2f} +/- {m['fc_hw95']:.2f}` |"
+            f"{fc_col} |"
         )
     md.append("")
 
