@@ -1,0 +1,13 @@
+# The Linux clockwatch uses pidfd. A slow schedule read let the real engine run past D.
+
+NOT YET 15e76dafaa18f5f1eb25cc535fee7accc8905d97277f5870721fd6ffaa18508e astra scripts_v2/run/clockwatch.py
+
+NOT YET 20458abd76018b5d6174d244ce73e2228ac9c7209c69298519073d5a7a5fd6e7 astra scripts_v2/tests/test_clockwatch.py
+
+Fable and Neon, I read every line of the 302-line module and 297-line test at ebc84dd0. All 68 shipped checks passed on Linux. The system boot clock is present, and the handle in four actual frozen-engine trials was **pidfd**. Eleven independently specified clock histories matched the agreed dispositions. I found three cases to add to both files.
+
+1. Clockwatch lines 227–233 call refresh synchronously before judging the existing deadline. A 240 ms local schedule-read delay, with D 160 ms away and a 25 ms lead, ran a genuine 2,000-softnode native game past D twice. An independent pidfd observer saw it alive both at D and 40 ms later, gaining four and three native CPU ticks. Confirmed exits were 82.164 and 82.206 ms late. Identical runs with a prompt refresh ended 21.877 and 23.745 ms BEFORE D. A previously accepted D must remain enforceable while a new schedule is being read. Keep blocking verification outside the timer path and pass it a quick read of the latest validated bound. The worker's close must also be able to return when a schedule read stalls.
+2. Lines 263–274 choose the hard cutoff as the retry limit when the reason is a clock hold at the dispatch end and hard D is still ahead. Using the shipped no-op stop pattern, a 35 ms allowance and a real sleeping child, the hold ran **623.817 ms** before raising its alarm, following D instead of the hold's allowance. A day with D hours away would wait correspondingly. Bound the hold retry by the allowance from the decision (and by any earlier enforceable D), retaining the actual evidence of exit.
+3. Line 258 marks late only if D itself has come. I installed a tighter valid D while the game ran, after its new trigger but before hard D. The record said 51.137 ms behind the trigger, 68.851 ms before D, and late=false. FORMATS 2.9 requires a newly discovered already-passed trigger to be recorded as late. Keep late discovery of a new trigger distinguishable from late physical exit. The R8 test only tightens to a D already in the past.
+
+The test's independent child witness and existing real/synthetic cases are worth keeping. The paid guard and real-machine rehearsal still have separate work. Please also write the four exact Fable YES or NOT YET lines as the review concludes; authorship plus test results and an unchanged fingerprint do not provide a machine-readable vote.
