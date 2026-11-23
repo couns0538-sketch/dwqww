@@ -1,10 +1,10 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:33:00Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:38:36Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
-PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 19 proposals were
-made (7 Astra, 11 Neon, 1 Fable); none was rejected; a change entered only with a measurement, lines of the
+PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 30 proposals were
+made (12 Astra, 14 Neon, 4 Fable); none was rejected; a change entered only with a measurement, lines of the
 source, or arithmetic that the others recomputed. The proofs are on the board and in `debate/evidence/`.
 
 **How to read it.** One ordered list of work items, W1 to W16. Each has: what is done, the TEST, and the BAR,
@@ -124,6 +124,15 @@ processor; rehearsed in the PC's Linux subsystem.
   link home is cut for ten minutes; afterwards every piece arrives and none is credited twice. The PC's
   confirmation is held back on purpose after it has checked a piece: the server still holds that piece and
   deletes nothing the PC has not confirmed (the whole day is about 4 GB at the measured 2.01 bytes a row).
+  Added in the extension (A11, Astra; agreed by all three): THE END OF THE LEASE is rehearsed too. The
+  ten-minute cut is placed on the last transfer: the last, partly filled piece is sealed, the expected game
+  ids are checked against the PC's receipts, a cut just before the last confirmation neither counts rows
+  twice nor deletes an unconfirmed piece, and what is missing at the end is reported as a number. During the
+  day the script recomputes the rate it still needs from the time really left: (target - rows verified at
+  home) / (end of the paid time - now - the measured time for closing); if that is more than it delivers, the
+  declared fallback starts (example: 2 billion in 24 hours need 23,149 kept rows a second; after two hours
+  of set-up and with ten minutes kept for closing, 25,446). And the step that really ends the billing is the
+  provider's own release or expiry, shown once; stopped engine processes do not prove it.
 - (d) The packed game record as the transfer form (A1; measured once on 16,005,930 rows: position, move, ply and result
   equal on all of them, the score on the 15,255,460 kept rows, which is all the source file allowed). TEST in
   the rehearsal: the same comparison with the server's Linux converter on a run whose raw text is kept. BAR:
@@ -158,7 +167,7 @@ processor; rehearsed in the PC's Linux subsystem.
     the record is skipped (the receiver still finds exact duplicate games).
   - Safeguard: refused requests are sampled and replayed; one replay with other rows makes the table fall back to
     the eight moves in order. Credit is given only by the receiver's verified rows (e).
-  - Added in the extension (F4, Fable; Astra agrees with the fallback; the rest not yet voted): THE DAY NEVER
+  - Added in the extension (F4, Fable; agreed by all three): THE DAY NEVER
     DEPENDS ON THIS TABLE. A worker that gets no opening within a set time draws its own, as the PC's loop
     does, logs it under its own game id, and declines a late answer for a game it has started (Astra); the
     receiver's credit rule (e) removes the copies. BAR: with the allocator killed and not restarted for a
@@ -169,6 +178,16 @@ processor; rehearsed in the PC's Linux subsystem.
     in round 136) and 89 % (117 of 132) are the same game: 1.3 to 2.1 % of the day, about 20 to 30 minutes of
     24 hours. So the table is the LAST part of W5 to be built, and the day is booked without it if it is not
     proven by then.
+    Sharpened (Neon, Astra): the opening draws come from ONE root seed, made once for the run and kept with
+    the manifest, and from each game's own id; a game id played again after a crash gets the same opening,
+    two ids get different ones. BAR: with at least four workers started in the same second, at least 99 % of
+    the finished games are distinct, and two workers given the same seed on purpose must FAIL that bar (64
+    workers with one seed would play one game 64 times and every other bar would still pass); a finished
+    game id is never played again; the kept rows an hour during the outage meet the fallback's own pilot
+    rate. The 20 to 30 minutes are a forecast: the two shares come from different counts (16 of 29 are pairs
+    of positions without their move counters, 117 of 132 pairs of whole FENs), and Astra is measuring on its
+    own machine whether a repeated opening costs as much search as an average game (384 against 384 games,
+    bar declared before: the 95 % interval of the node ratio within 0.90 to 1.10).
   - BARS in the rehearsal: with 2 random plies, 200 games and the table off, the receiver reports about 42
     copies; with it on, none; an exhausted opening space ends with a clear error; all four openings of Astra's
     two pairs are handed out (the two into the start position; `b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4` and
@@ -196,6 +215,13 @@ processor; rehearsed in the PC's Linux subsystem.
   Astra). The reference batch is made again whenever the settings change (W1's values, a new best net). The
   PC's own driver sends that command before every game (`pipeline/nnloop/datagen_uci.py` 401, not on this
   branch); a launcher written new for the server has to be shown to do the same.
+  The fixture exists (Astra `20261123T053252Z`; Neon reproduced it to the last digit on its own Linux
+  build): six openings in one process (N12's two, the threefold pair, the 81 / 67 pair), with rows, ending,
+  searches and nodes 86 drawadj 86 302461; 101 drawadj 101 383484; 0 rule 0 0; 127 evallimit 128 530258;
+  81 drawadj 81 307107; 67 rule 67 227258; game 2 without the new-game command: 43 rows, rule, 152827
+  nodes; game 2 with `writeminply 9`: 100 rows, the same 101 searches and 383484 nodes; and a SHA-256 of all
+  rows of game 2 for each of the three. A game with no rows keeps its id and its end line is checked apart.
+  The Windows run of the same six games on the PC is owed by Fable: its tool is written with these numbers typed in beforehand, and the PC's gate for short jobs said WAIT for heat during the debate.
 
 **W6. The card test before paid card hours (N8 b).** Needs a short rental or loan of an NVIDIA card.
 - TEST: one pass on one round there. BAR: the exported net loads on the PC and the PC's trainer-against-engine
@@ -212,6 +238,19 @@ processor; rehearsed in the PC's Linux subsystem.
   that refuses itself there goes on by itself with a slower step (on the PC's card 0.79 ms a step against 1.43
   or 2.24 ms for the two steps it falls back to); only that line shows it, and it changes what the card hours
   cost.
+- Added in the extension (A10, Astra; agreed by all three): one round is not the size of the job. On the
+  card and data path that will be paid for, a short run at the FULL shape before the long booking: either
+  the full-size tensors are allocated and touched with the optimizer's state and one update and export run
+  beside them (2 billion rows at 40.8 bytes are 81.6 GB = 76.0 GiB for the rows alone, on a card of 80; the
+  PC's rounds 19 to 21 measured 50.3 bytes a used row where the first session had given 44.7, which would
+  be about 92 GB: from the lab's notes, not recounted for this debate), or,
+  with W8's disk feeder, the full row count and the real batch size are streamed from pieces that were not
+  read before, and load, transfer and update are timed. Reported apart: peak card memory, peak main memory
+  with no swapping, the read rate of the disk (4.445 million rows a second at 44 bytes are 196 MB a second),
+  the `USED` lines, cold against warm. A budget set too small on purpose must be refused before the long
+  run. The WHOLE paid job is then projected against the owner's allowance: set-up + a cold first pass + 39
+  warm passes + checkpoints and export + the checked download. A borrowed card shows that it runs; only the
+  card that will be paid for shows what it costs.
 
 **W7. Which rounds count toward the 2 billion (P11; A5).** Processor, about 3 hours; nets are trained.
 - TEST: "breadth" (every second row of rounds 29 to 78) against round 78's own candidate (every row of rounds
@@ -242,6 +281,19 @@ processor; rehearsed in the PC's Linux subsystem.
   (`source/include/forge/nnue_v3.hpp` 65; Neon), a made-up worst-case net gives
   equal raw sums on all three kernels for both signs, and the reference numbers, the two net checks and the
   checking build are repeated.
+- Added in the extension (N14, Neon, sharpened by Astra; agreed by all three): those three kernels are not the
+  path the search uses. The search evaluates through the fused update
+  (`source/src/search.cpp` 3393 -> `apply_pair_and_evaluate`, `source/src/nnue_v3.cpp` 444 to 516, 895), with
+  one loop for quiet moves and one for captures; `eval` and the kernel comparison never enter it
+  (`source/src/uci.cpp` 1208; `nnue_v3.cpp` 809 to 819). So the worst-case net (both signs) AND a second,
+  uneven one (different columns touched by the move, different weights for the two colours: a skipped update
+  of a constant column is invisible otherwise) are checked through the fused path for a quiet move, a
+  capture and the fallback (castling), on the RAW sum before it is clamped (a wrong but still large sum
+  prints the same +30000) and on both child accumulators against a fresh computation; and both nets are
+  searched in the checking build. The loader's bound is the narrowest lane's: at weights of 127 one 32-bit
+  lane holds 260 terms (2,147,483,647 / (255 x 255 x 127)), so the AVX2 sum of one side is safe up to a width
+  of 2080 and overflows at 2112, the AVX-512 one at 4192. The same checks hold for a fused AVX2 kernel if W5
+  (a) ever needs one.
 
 **W10. The first filter experiment (P3c; N4).** Card: three trainings; processor: two matches.
 - TEST: three nets on equal row counts, uniform samples of the same rounds of round 67's net, same recipe and
@@ -288,6 +340,28 @@ processor; rehearsed in the PC's Linux subsystem.
   lying wholly between -5 and +5 (about 9,400 games each at 250,000 nodes give +/- 4 as a planning figure; the decision uses the intervals
   measured from the opening pairs). A net that merely
   failed to be promoted shows nothing of the kind. Then the next lever is the depth of the labels.
+- Added in the extension (A12, Astra; agreed by all three): that sentence is about round 67's net, not about
+  volume. "These two nets did not beat round 67's net by 5" and "more positions do not help" are different
+  claims: a matched small net could lie at -8 and both 2-billion nets at 0. So "volume is not the lever" is
+  said only from a matched pair: the 2-billion 768 against a 768 trained at the same time on a declared
+  388-million subset of the SAME rows, same recipe, teacher, filter and seed, with the contrast named before
+  (equal passes = the package as it would be used; equal steps = more different rows at the same work), and
+  that pair's own interval inside the declared margin. That control fits the PC's card (2,917 seconds for 40
+  passes at 388 million), so it costs no paid hour. Without it the plan records the result against round
+  67's net and the next budget choice, and no sentence about volume.
+- Added in the extension (A9, Astra, with Neon's two additions; agreed by all three): no paid training starts
+  without a tested way to stop and go on. Today's trainer cannot do it: it saves the weights only (at the
+  end, and at the ends of its rate cycles if asked), no optimizer state, no place in the schedule, no random
+  state and no place in the data (Fable, from the PC's trainer, which is not on this branch); a restart from
+  such a file repeats or skips batches and still gives a net that loads. TEST: one short run is split after
+  step k; one arm goes on, the other is stopped, loses its work disk, takes the last complete checkpoint from
+  storage outside the rented machine and goes on. BAR: the same next row ids and learning rates, the same
+  step count, predictions and updates within W6's tolerance; a checkpoint write that is cut off leaves the
+  one before it as the newest complete one (written under another name, then renamed); before the machine is
+  given back the final checkpoint and the exported net are read again from that outside storage, their
+  SHA-256 and the net file's own checksum (`source/src/nnue_v3.cpp` 627 to 629) are checked and the PC's
+  export check is run. The checkpoint interval is declared before the long run (one a pass = about one pass
+  of work at risk), with its measured size and transfer time.
 
 **W14. The first search bundle (P7; N7, A4).** After W1. Build about a day, then R2's matches.
 - Candidates, each behind a switch that is off by default: no SEE pruning of quiet moves that give check; no
@@ -334,7 +408,8 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension and agreed by all three: F2 (W8), F3 (W5 c), A8 (W6), N12 (W5 i), N13 (W3 a). Open: F4 (W5 f: the day never depends on the opening table, which is built last; Astra agrees with the fallback).
+- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Nothing proposed in the extension is open.
+- Running: Astra's measurement of what a repeated opening costs (F4), on Astra's own machine. Owed by Fable: the PC's Windows run of the six-game fixture (N12).
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
 
