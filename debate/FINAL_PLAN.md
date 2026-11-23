@@ -1,10 +1,10 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:58:33Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:01:04Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
-PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 34 proposals were
-made (14 Astra, 14 Neon, 6 Fable); none was rejected; a change entered only with a measurement, lines of the
+PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 35 proposals were
+made (14 Astra, 15 Neon, 6 Fable); none was rejected; a change entered only with a measurement, lines of the
 source, or arithmetic that the others recomputed. The proofs are on the board and in `debate/evidence/`.
 
 **How to read it.** One ordered list of work items, W1 to W16. Each has: what is done, the TEST, and the BAR,
@@ -77,7 +77,7 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
   every opening (the wiring test; Astra). The stop's answer on that table is NOT "no information" under the
   formula below: every such pair adds +0.008672, so 339 pairs give +2.9398 and no stop, 340 pairs +2.9485 and
   H1; a stop that divides by a spread of zero there fails (Fable, after Astra's tables with empty outcomes;
-  F5; Astra agrees and withdrew its earlier special case, and its simulation of R1 is unchanged by that; Neon's vote is awaited); a candidate
+  F5; agreed by all three: Astra withdrew its earlier special case and its simulation of R1 is unchanged by that; Neon recomputed the closed forms and ran the repaired script on the four one-outcome tables); a candidate
   at half the nodes ends in H0, one at double the nodes in H1; Astra's two made-up logs, (win, win), (loss,
   loss) and (win, loss), (loss, win), give the pair counts [1,0,0,0,1] and [0,0,2,0,0] and different statistics.
   Added in the extension (N13, Neon; agreed by all three): the stop's formula is written down before it is
@@ -113,7 +113,7 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
   the rows gained are timed). LB at or below 0 and UB at or above +5: inconclusive, nothing changes.
   A "depth effect" is claimed only if the difference between 50,000 and 250,000 nodes on the same three nets has
   its own lower bound above 0.
-- Added in the extension (A13, Astra; agreed by Astra and Fable, Neon's vote is awaited): in the pooled
+- Added in the extension (A13, Astra; agreed by all three): in the pooled
   interval an opening counts once. The three matches get three different declared opening seeds (the loop's
   matches pass `order=random` and `-srand <seed>` to the match program and draw from a book of 2,632,036
   different lines, so three seeds share about 1 opening in 3,000 by chance; equal seeds are refused). Before
@@ -254,7 +254,7 @@ processor; rehearsed in the PC's Linux subsystem.
   nodes; game 2 with `writeminply 9`: 100 rows, the same 101 searches and 383484 nodes; and a SHA-256 of all
   rows of game 2 for each of the three. A game with no rows keeps its id and its end line is checked apart.
   The Windows run of the same six games on the PC is DONE (Fable, during the debate; Astra's numbers were typed into the tool before its first run): the PC's Windows program gives the same rows, end reasons, searches and nodes in all six games and the same digest over every row of game 2; both planted faults change game 2 exactly as on Linux (43 rows; 100 rows; digests equal) and leave the other five games alone; a second process repeats all of it row for row (`debate/evidence/fable_n12_sixgames_windows.txt`).
-  Added in the extension (A14, Astra; agreed by Astra and Fable, Neon's vote is awaited): THE RULES THAT CORRECT
+  Added in the extension (A14, Astra; agreed by all three): THE RULES THAT CORRECT
   A GAME'S RESULT AFTER IT ENDED are part of the rehearsal. On the PC the driver relabels a drawn game whose
   last position is a won ending (`pipeline/nnloop/datagen_uci.py` 320 to 339 and 441, not on this branch; the
   endgame tables, 291 files, 0.9 GB, lie on the PC). In round 137 that was 947 of 124,544 games (0.76 %)
@@ -278,6 +278,22 @@ processor; rehearsed in the PC's Linux subsystem.
   The engine's own result and end reason stay stored beside the corrected result. A probe that FAILED is
   recorded apart from a probe that answered "draw", and a single failed probe is shown even when other
   games of the piece were relabelled.
+  Added in the extension (N15, Neon; agreed by all three): AN OPTION THAT DID NOT ARRIVE STOPS THE START. The
+  engine answers a misspelt option name, a value out of range and a misspelt boolean with one `info string`
+  line, says `readyok` and plays on with the default; an option line that is MISSING gives no line at all. Of
+  the 21 options of the frozen list that are neither a path nor the thread count, 19 change the known node
+  counts of (a) and (b) when left out; two do not: `OwnBook false` and `MateAlphaGuard true`. Without the
+  guard all six games of the fixture above stay the same, while 57 of the 64 games of Astra's sample that
+  ended by a mate score change (Neon; a selected subset, not a share of the day's games: Astra). So (1) the
+  server's start script reads every answer line up to `readyok` and refuses to start on `unknown option`,
+  `invalid value`, `ERROR` or `cannot load` (the PC's own match and self-play code has refused such lines
+  since 16 November; the server's start gets the same); planted and required to FAIL: one misspelt name, one
+  value out of range. (2) The option lines actually sent are compared with the frozen list, line by line, in
+  number and values, and with the names and bounds of the engine's own `uci` list (Astra). (3) A seventh game
+  joins the fixture, opening `h2h4 b7b5 g2g4 g7g5 h1h2 c8a6 e2e3 d7d5`: with the guard 172 rows, 173 searches,
+  741342 nodes; without it 171, 172, 737195 (Neon, the same on two Linux builds, digests in its message; the
+  PC's Windows run of this game is owed by Fable: its tool is written with these numbers typed in, the PC's
+  gate said WAIT).
 
 **W6. The card test before paid card hours (N8 b).** Needs a short rental or loan of an NVIDIA card.
 - TEST: one pass on one round there. BAR: the exported net loads on the PC and the PC's trainer-against-engine
@@ -488,7 +504,7 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Open from the extension: A13 (W4), A14 (W5 i) and F5 (W3 a) are agreed by Astra and Fable and wait for Neon's vote, and so is F6 (W8) in Astra's form (one test that may continue to 40,000 games).
+- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4), A14 and N15 (W5 i), F5 (W3 a). Open from the extension: only F6 (W8), agreed by Astra and Fable in Astra's form (one test that may continue to 40,000 games; it changes F2's cap) and waiting for Neon's vote. Owed by Fable: the PC's Windows run of N15's seventh game.
 - After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
