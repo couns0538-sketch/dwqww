@@ -1,34 +1,33 @@
-# Neon Memory (8h Continuation — Phase 1: Engine Plan & Later Stages)
+# Neon Memory (8h Continuation — Phase 2: Server-Day Plan)
 
-Updated: 2026-11-23T20:35:00Z (UTC).
-Active branch: `debate/server-plan-20261123` (canonical `ENGINE_PLAN_8H.md` locked at `dfc0a0c2c1`, SHA-256 `f8fb8197...`).
+Updated: 2026-11-23T22:04:00Z (UTC).
+Active branch: `debate/server-plan-20261123` (Astra branch: `origin/debate/server-plan-20261123-astra`).
 
 ## Phase & Schedule (`232555Z`, `FABLE OUT` `001806Z`)
 - **Phase 0 COMPLETE (`17:25Z`):** `FORMATS.md` 2.9 (`ac566296`), `SETUP_PLAN.md` 2.7 (`4100b2a5`), 7/9 `scripts_v2/` files **3/3 YES**.
-- **ACTIVE NOW — Phase 1 (Hours 1–4, `17:25Z` – `21:25Z`): ENGINE PLAN & LATER STAGES (`~50m` left).**
-  - **CANONICAL PLAN INSTALLED & LOCKED (`dfc0a0c2c1`, `201408Z`):** `debate/engine_plan/ENGINE_PLAN_8H.md` (`28,404` bytes, `73` LF lines, SHA-256 **`f8fb81979f803c587b76a44a2d374f04a37c16797ad8b493a61f8b56d6655867`**) HOLDS **2/2 EXACT `AGREE`** (Astra `70a40dc587`, Neon `410c5ef25b`; embeds `A27` `5dd40b02...` + cache clause `6dc1f370...`; `20/20` links verified). Fable inspects once at `21:55Z`.
-- **UP NEXT — Phase 2 (Hours 5–8, `21:25Z` – `01:25Z` Nov 24): SERVER-DAY PLAN.**
-  - Queued Opus drops for `21:25Z` line-by-line audit & votes (ALL acknowledged by Neon):
-    1. `b9e369f9d1`: worker + packer (4 files).
-    2. `8abf479326`: `clockwatch` v5 + `test_clockwatch` + missing-PID-handle question.
-    3. `45b2cc7d3a`: server guard (`A3a`) and its test.
-    4. `6380e7491e`: `A3b` boot guard (repaired), launcher, systemd service unit, and their 3 tests.
-    5. `fc6f89221b`: `A3e` control maker + test, and Linux guard verification.
-  - Remaining Phase 2 deliverables: `debate/server_day/specs/` (`171134Z`, `171332Z`, `172109Z` + all unwritten programs); ordered rehearsal + measurements (`171712Z`, `172415Z`); plain-words `FINAL_FOR_THE_OWNER.md` + 2/2 `AGREE` by `01:25Z` (Fable checks at `01:55Z`).
+- **Phase 1 COMPLETE (`17:25Z` – `21:25Z`):** Canonical `debate/engine_plan/ENGINE_PLAN_8H.md` (`dfc0a0c2c1`, `28,404` bytes, `73` lines, SHA-256 **`f8fb81979f803c587b76a44a2d374f04a37c16797ad8b493a61f8b56d6655867`**) holds **2/2 EXACT `AGREE`** (ready for Fable's `21:55Z` inspection). Exp 8C (`8B_divV`) closed honestly (`56.56%` pooled `1.5+0.02`, `46.25%` on 20p `3.0+0.04` -> stays unpromoted candidate).
+- **ACTIVE NOW — Phase 2 (Hours 5–8, `21:25Z` – `01:25Z` Nov 24): SERVER-DAY PLAN (`~3h21m` left).**
 - **Strict rules:** Only touch `debate/` (never `source/`); nothing personal/secret; update memory ~every 10 minutes; plain pushes only.
 
-## Completed Phase 1 Proofs (`17:25Z` – `20:35Z`)
-- **`A27` (`5dd40b02...`), cache clause (`6dc1f370...`), canonical `ENGINE_PLAN_8H.md` (`dfc0a0c2c1`, `f8fb8197...`):** all 2/2 exact `AGREE`.
-- **Exp 1 + Exp 7 (`L-TM` COMPLETE, 840 clock games, `0/0` ff):** Fixed `TmNodeShare` did NOT generalize on `FRESH-60` (`4+0.04` `47.08%`, `10+0.10` `49.58%`, pooled `48.33%`). Both seats agreed: no `L-TM` default promotion.
-- **Exp 6 (`FORGE_PAWN_HISTORY=1`, concurred):** keep compiled OUT.
-- **Astra 768-game external teacher suite (`5ab111eeb7` + `91615457c3`, concurred):** external teacher failed vs no-teacher (`53.12%/48.44%`), historical surrogate (`47.66%/45.31%`), and equal-price deeper Forge (`49.22%/46.48%`).
-- **Exp 2 + Exp 5 + Exp 8 interim (`L-SMP`):**
-  - `orig_T4` vs `T1` (`+183.2` Elo wall / `-82.6` Elo equal-CPU `3.97x`); standalone `postlock_rbw_T4` `+7.1%` kn/mv, `50.62%`; naive skip (`48.33%`), un-diversified vote (`46.88%`), and `8A_div` without helper selection (`48.12%`) all failed to move Elo.
-  - **`8B_divV` (`postlock_rbw` + dynamic `depth_started` skip + helper aspiration/LMR diversity + strictly-deeper guard, 1T bit-exact `226187`) on `FRESH-60[:40]` (`40p = 80g`, `1.5+0.02`, `Hash=64`, dedicated 4 cores):** **`+15 -3 =62`, `57.50% [52.79%, 62.21%]` (`+52.5` Elo, `penta=[0, 3, 22, 15, 0]`, `d=16.33/15.77`, `procCPU=733.6s/737.9s`, `0/0` ff)**!
+## Phase 2 Vote & Audit Ledger (`MANIFEST.sha256` at `8e705146`)
+### Already 3/3 `YES` (Phase 0) — 7 files
+- `run/engine_lines.py`, `run/uciproc.py`, `tests/test_uciproc.py`, `run/record.py`, `tests/test_record.py`, `tools/budget.py`, `tests/test_budget.py`.
 
-## Running Now (`20:35Z` – `21:25Z`)
-1. **Exp 8C frozen confirmation (`~20:36Z–20:52Z`) on exact untouched `/tmp/neon_smp_div_vote/forge`:**
-   - TSan 4T race check + full-game `diff_mv` audit.
-   - Disjoint `PGO[:40]` (`40p = 80g`, `1.5+0.02`, `T4`, `Hash=64`).
-   - Untouched `FRESH-60[40:60]` holdout at **2x longer clock (`3.0+0.04`, `20p = 40g`, `T4`, `Hash=64`)**.
-2. **Phase 1 close-out (`20:52Z–21:20Z`):** Publish Exp 8C verdict, review Astra's bounded-reader 512g match if complete, verify `ENGINE_PLAN_8H.md` (`f8fb8197...`) ready for Fable's `21:55Z` check, and pivot cleanly to **Phase 2 (`21:25Z` sharp)**!
+### Newly 2/2 `YES` (Astra + Neon, awaiting Fable) — 4 files
+- `run/clockwatch.py` (`b55857dc...`) + `tests/test_clockwatch.py` (`c103d0c2...`): Neon **YES** (`220400Z`; 139/139 PASS incl. Linux P1 high-FD pidfd; 20/20 plants exit=1). Answered Opus `pidfd` fallback Q#3.
+- `unit/forgeday.service` (`e389cd99...`) + `tests/test_unit.py` (`57d018bb...`): Neon **YES** (`220400Z`; 13/13 PASS; 9/9 plants exit=1; `systemd-analyze verify` rc=0 on systemd 255.4; flagged `systemd >= 254` gate for `RestartSteps`/`RestartMaxDelaySec`).
+
+### Remaining 8 `scripts_v2/` Pairs (16 files) — Astra voted `NOT YET` on all 8; Neon independent audit + extra bug hunt NEXT
+1. `run/worker.py` (`218f7eae...`) + `tests/test_worker.py` (`a602037e...`) — Astra: finalizer accepts foreign/empty range seal.
+2. `run/packer.py` (`1db13462...`) + `tests/test_packer.py` (`ee1e0db6...`) — Astra: idle restart in fallback forgets `probe_piece`.
+3. `run/launcher.py` (`f9545304...`) + `tests/test_launcher.py` (`2cf7e0f4...`) — Astra: accepts `>= 10000` rounds rejected by worker/packer.
+4. `run/bootguard.py` (`fa8ab1b5...`) + `tests/test_bootguard.py` (`06fb0c24...`) — Astra: missing journal/withheld slot yields `-1` contradicting prior RESUME.
+5. `run/terminal.py` (`9d640c11...`) + `tests/test_terminal.py` (`51702bf8...`) — Astra: missing whole range seal silently drops completed games from closing count.
+6. `tools/make_control.py` (`5f8dacae...`) + `tests/test_make_control.py` (`14ed7d71...`) — Astra: old run's pilot report accepted on substitute header + FORMATS 1.2 evidence-hash doc split.
+7. `home/custody.py` (`d46817f2...`) + `tests/test_custody.py` (`a42965f1...`) — Astra: confirms old run A receipts under run B + missing-header explicit confirm exits 0.
+8. `run/guard.py` (`67384d4b...`) + `tests/test_guard.py` (`a0802304...`) — Astra: wrong-run/empty `CLOSED.json` exits 0 + wrong-run/empty round seal in `sealed_rounds()` authorizes extension + `terminal: null`.
+
+### Remaining Phase 2 Deliverables (Target completion before `01:25Z`)
+1. **Batch 2 (`22:05Z–23:05Z`):** Independent line-by-line audits, test executions, additional bug hunts, and exact-hash votes on all 8 remaining `scripts_v2/` pairs (in two clean batches so Opus gets complete defect lists fast!).
+2. **Batch 3 (`23:05Z–23:55Z`):** Full line-by-line review of all 14 files in `debate/server_day/specs/` (`7ed7b3ec2c`, set hash `430a52d6...`) — verify every hand-computed number, link, failure case, and `systemd >= 254` / `pidfd` / rehearsal check -> issue exact corrections or `AGREE 430a52d6...`.
+3. **Batch 4 (`23:55Z–01:20Z`):** Re-audit any revised Opus drops + co-author & jointly `AGREE` plain-words `debate/server_day/FINAL_FOR_THE_OWNER.md` before `01:25Z` (Fable checks once at `01:55Z`).
