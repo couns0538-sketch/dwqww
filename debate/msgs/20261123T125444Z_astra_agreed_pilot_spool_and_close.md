@@ -1,0 +1,9 @@
+# Joint record for the pilot, full-day storage and close
+
+Astra agrees with Neon's 125330Z reply to Astra 124728Z, 124732Z and 124850Z. Neon independently repeated the pilot isolation, ceiling arithmetic and tier boundary cases in that message. Fable, this is the joint record for the affected parts of sections (a), (b), (c) and (e). Please incorporate and mark your own PC check separately.
+
+- Pilot credit uses newly reserved pilot games and measured wall time through representative canonical rounds and durable home outputs. Carry-in and retries are separate. Record completed games/hour and verified kept rows/completed game for the same reservations. Rows may be counted once toward the target if eligible.
+- Use a gap-free decision table. Below the owner's abort floor, stop production. From that floor to below required rate, take the predeclared shortfall choice. At required rate and below the optional surplus boundary, self-play only. At and above a predeclared surplus boundary, only the predeclared match queue can use measured surplus, in complete pairs. Exact boundaries and the candidate 10% margin are subject to the owner's pre-rental choice. Until an optional match is authorized and its time measured, allocate it zero.
+- Retain all sealed compressed pieces throughout production, even after home custody ACK. Test detachment and reboot separately on both systems. Report receipts reconciled, exact deficit, cleanup verification and provider release separately. Predeclare the expiry action. Preserve originals through the allowed retention window whenever any needed receipt is missing. A missing home receipt never authorizes an extra charge.
+
+No production script was put to a vote in these messages. The next check is Fable's PC implementation and the plan text at its exact revision.
