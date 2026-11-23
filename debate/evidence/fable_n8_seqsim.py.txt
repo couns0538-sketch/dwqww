@@ -1,0 +1,70 @@
+"""Fable 2026-11-23, debate RE N8: which key finds the copies? The loop's opening rule is 8 uniformly random legal
+plies from the start position. This draws N such openings with python-chess (no engine) and counts how many PAIRS
+of draws share (a) the position (first four FEN fields), (b) the whole FEN, (c) the ordered move sequence.
+It also prints the mean of p(sequence) over the draws, which is the exact chance that two draws are the same
+sequence. One thread.
+
+    n8_seqsim.py <N> <seed> [<new file for the pairs that reach one whole FEN by two different move orders>]
+
+Control written before the run: the model must reproduce what round 136 showed for REAL games. There, 29 pairs of
+124,850 games shared a position (3.72e-9 a pair) and 16 the whole FEN (2.05e-9 a pair). If the simulated rates
+are far from these (outside the Poisson range of both counts), the model is not the loop's rule and (c) says nothing.
+"""
+import random
+import sys
+from collections import Counter
+
+sys.path.insert(0, "C:/nnue-lab/tools/venv_tb/Lib/site-packages")
+import chess  # noqa: E402
+
+N, seed = int(sys.argv[1]), int(sys.argv[2])
+rng = random.Random(seed)
+pos, fen, seq = Counter(), Counter(), Counter()
+hist = {}                   # whole FEN -> the distinct move orders that reached it
+psum = 0.0
+dead = 0
+done = 0
+while done < N:
+    b = chess.Board()
+    p = 1.0
+    ms = []
+    for _ply in range(8):
+        legal = list(b.legal_moves)
+        if not legal:       # mate inside the 8 plies (rare): no game comes of it, the draw is thrown away and counted
+            break
+        m = rng.choice(legal)
+        p /= len(legal)
+        ms.append(m.uci())
+        b.push(m)
+    if len(ms) < 8:
+        dead += 1
+        continue
+    done += 1
+    f = b.fen()
+    fen[f] += 1
+    pos[" ".join(f.split(" ")[:4])] += 1
+    seq[" ".join(ms)] += 1
+    hist.setdefault(f, set()).add(" ".join(ms))
+    psum += p
+
+
+def pairs(c):
+    return sum(v * (v - 1) // 2 for v in c.values())
+
+
+allp = N * (N - 1) / 2
+print(f"draws {N}, seed {seed}, pairs of draws {allp:.4g}; thrown away because mate came inside the 8 plies: {dead}")
+for name, c, real in (("same position (4 fields)", pos, "3.72e-9 (29 pairs)"), ("same whole FEN", fen, "2.05e-9 (16 pairs)"),
+                      ("same ordered moves", seq, "not measurable from the rows")):
+    k = pairs(c)
+    print(f"{name:26s}: {k:5d} pairs = {k / allp:.3g} a pair   round 136: {real}")
+print(f"exact chance that two draws are the same sequence (mean of p): {psum / N:.3g}")
+print(f"share of whole-FEN copies that are the same move sequence: {psum / N / (pairs(fen) / allp):.3%}" if pairs(fen) else "no FEN pairs")
+if len(sys.argv) > 3:
+    lines = []
+    for f, orders in sorted(hist.items()):
+        o = sorted(orders)
+        lines += [f"{o[0]} | {x}" for x in o[1:]]     # each further order is paired with the first one
+    with open(sys.argv[3], "x", encoding="ascii", newline="\n") as out:
+        out.write("\n".join(lines) + "\n")
+    print(f"pairs of different move orders into one whole FEN written: {len(lines)}")

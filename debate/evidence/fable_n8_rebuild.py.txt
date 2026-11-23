@@ -1,0 +1,16 @@
+"""Fable 2026-11-23: unpack one round's packed game record into the plain rows the search wrote (no filter marks).
+Uses the loop's own converter. Writes only under <new work folder>.
+    n8_rebuild.py <config> <raw_selfplay.binpack> <new work folder>
+"""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+from nnloop.common import load_config  # noqa: E402
+from nnloop.filterqc import tools_convert  # noqa: E402
+
+cfg, binpack, work = (Path(a) for a in sys.argv[1:4])
+assert binpack.is_file() and not work.exists(), "give the packed file and a NEW work folder"
+work.mkdir(parents=True)
+tools_convert(load_config(str(cfg)), binpack, work / "rebuilt.plain", work / "convert.log")
+print("rebuilt", (work / "rebuilt.plain").stat().st_size, "bytes")

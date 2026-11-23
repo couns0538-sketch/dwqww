@@ -1,0 +1,54 @@
+"""Fable 2026-11-23, debate RE N8 (Astra's opening key): the games of one round that share an opening POSITION
+(first four FEN fields of the game's first row): which of them also share the move counters (the whole FEN), and
+which are the same game row for row? Reads the round's filtered.plain; prints a 2 x 2 table and every group.
+
+    n8_pairs.py <filtered.plain>
+
+Known before the run (the game-level run of 03:19): 124,850 games, 29 shared openings (58 games), 16 whole copies.
+"""
+import hashlib
+import sys
+from collections import defaultdict
+
+KEYS = ("fen ", "move ", "score ", "ply ", "result ")
+
+
+def rows(path):
+    with open(path, "r", encoding="ascii", newline="\n") as f:
+        while True:
+            rec = [f.readline() for _ in range(6)]
+            if not rec[0]:
+                return
+            yield tuple(r[len(k):].rstrip() for r, k in zip(rec, KEYS))
+
+
+games = defaultdict(list)       # 4-field key -> [(whole first FEN, digest of the game's FENs and moves, rows)]
+prev = None
+cur = None
+n_games = 0
+for r in rows(sys.argv[1]):
+    ply = int(r[3])
+    if prev is None or ply <= prev:
+        if cur is not None:
+            games[cur[0]].append((cur[1], cur[2].hexdigest(), cur[3]))
+        cur = [" ".join(r[0].split(" ")[:4]), r[0], hashlib.blake2b(digest_size=8), 0]
+        n_games += 1
+    prev = ply
+    cur[2].update((r[0] + r[1]).encode("ascii"))
+    cur[3] += 1
+games[cur[0]].append((cur[1], cur[2].hexdigest(), cur[3]))
+
+shared = {k: v for k, v in games.items() if len(v) > 1}
+table = {(True, True): 0, (True, False): 0, (False, True): 0, (False, False): 0}
+for k, v in sorted(shared.items()):
+    assert len(v) == 2, v
+    same_counters = v[0][0] == v[1][0]
+    same_game = v[0][1] == v[1][1]
+    table[(same_counters, same_game)] += 1
+    print(f"counters {'same ' if same_counters else 'DIFFER'}  game {'same ' if same_game else 'DIFFER'}  rows {v[0][2]:4d} {v[1][2]:4d}  "
+          f"{v[0][0].split(' ', 4)[4]} | {v[1][0].split(' ', 4)[4]}  {k}")
+print("games", n_games, " shared openings", len(shared))
+print("same counters & same game:", table[(True, True)], "  same counters & other game:", table[(True, False)],
+      "  other counters & same game:", table[(False, True)], "  other counters & other game:", table[(False, False)])
+assert n_games == 124850 and len(shared) == 29 and table[(True, True)] + table[(False, True)] == 16, "known answers missed"
+print("KNOWN ANSWERS MET")

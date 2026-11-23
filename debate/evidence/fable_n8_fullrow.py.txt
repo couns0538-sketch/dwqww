@@ -1,0 +1,84 @@
+"""Fable 2026-11-23, debate, Astra's MEASURE on N8: the 29 pairs of games of round 136 that share an opening
+position, compared over the ordered FIVE-field records (whole FEN, proposed move, score, ply, result).
+
+    n8_fullrow.py <filtered.plain>
+
+The file holds the round's KEPT rows, six lines a record (fen, move, score, ply, result, e). A new game begins
+where the ply does not rise. Prints per pair: rows, FEN sequence equal?, all five fields equal?, and for a pair
+equal in FENs but not in all fields the first differing row and field. Then a planted fault: one score changed
+in a copy of one game; the FEN-only comparison must accept it and the five-field comparison must refuse it.
+Known before the run: 124,850 games, 29 pairs, 16 with equal FEN sequences. Astra's prediction: 16 equal in all five.
+"""
+import sys
+from collections import defaultdict
+
+NAMES = ("fen", "move", "score", "ply", "result")
+PRE = ("fen ", "move ", "score ", "ply ", "result ")
+
+
+def games(path):
+    """yield (ordinal, rows) where rows is a list of 5-tuples"""
+    with open(path, "r", encoding="ascii", newline="\n") as f:
+        cur, prev, n = [], None, 0
+        while True:
+            rec = [f.readline() for _ in range(6)]
+            if not rec[0]:
+                break
+            for line, pre in zip(rec, PRE):
+                assert line.startswith(pre), (n, line[:40])
+            assert rec[5].rstrip() == "e", (n, rec[5][:20])
+            r = tuple(line[len(pre):].rstrip("\n") for line, pre in zip(rec, PRE))
+            ply = int(r[3])
+            if prev is not None and ply <= prev:
+                yield n, cur
+                n, cur = n + 1, []
+            prev = ply
+            cur.append(r)
+        yield n, cur
+
+
+path = sys.argv[1]
+by_key = defaultdict(list)
+total = 0
+for n, rows in games(path):
+    by_key[" ".join(rows[0][0].split(" ")[:4])].append(n)
+    total += 1
+pairs = sorted(v for v in by_key.values() if len(v) > 1)
+assert all(len(v) == 2 for v in pairs)
+want = {n for v in pairs for n in v}
+kept = {n: rows for n, rows in games(path) if n in want}
+
+fen_eq = all_eq = 0
+first_full = None
+for a, b in pairs:
+    A, B = kept[a], kept[b]
+    fe = [r[0] for r in A] == [r[0] for r in B]
+    ae = A == B
+    fen_eq += fe
+    all_eq += ae
+    note = ""
+    if fe and not ae:
+        k = next(i for i, (x, y) in enumerate(zip(A, B)) if x != y)
+        fld = next(NAMES[j] for j in range(5) if A[k][j] != B[k][j])
+        per = {NAMES[j]: sum(x[j] != y[j] for x, y in zip(A, B)) for j in range(5)}
+        note = f"  rows differing per field: {per}; first difference: row {k}, field {fld}: {A[k]} | {B[k]}"
+    if ae and first_full is None:
+        first_full = a
+    print(f"games {a:6d} {b:6d}  rows {len(A):4d} {len(B):4d}  FEN sequence {'equal ' if fe else 'DIFFERS'}  "
+          f"five fields {'equal ' if ae else 'DIFFER'}{note}")
+print(f"games {total}  pairs {len(pairs)}  equal FEN sequence {fen_eq}  equal in all five fields {all_eq}")
+
+# planted fault: one score changed in a copy
+if first_full is None:
+    sys.exit("no pair is equal in all five fields: the plant needs one (is this the file with the filter's marks?)")
+G = kept[first_full]
+k = len(G) // 2
+planted = list(G)
+planted[k] = (G[k][0], G[k][1], str(int(G[k][2]) + 1), G[k][3], G[k][4])
+fen_only_accepts = [r[0] for r in planted] == [r[0] for r in G]
+full_refuses = planted != G
+print(f"planted fault (game {first_full}, row {k}, score {G[k][2]} -> {planted[k][2]}): "
+      f"FEN-only comparison accepts it: {fen_only_accepts}; five-field comparison refuses it: {full_refuses}")
+assert total == 124850 and len(pairs) == 29 and fen_eq == 16, "known answers missed"
+assert fen_only_accepts and full_refuses, "the planted fault was not handled as declared"
+print("KNOWN ANSWERS MET, PLANT CAUGHT")

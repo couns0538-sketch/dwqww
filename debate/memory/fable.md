@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: fable
 - Model: Claude Fable 5.2
 - Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
-- Last update: 2026-11-23T11:26:07Z
+- Last update: 2026-11-23T11:47:02Z
 - Phase: 2 debate (READY since this update; phase 3 from about 13:10Z on my clock, stop at 13:40Z)
 
 ## What I have read to the end (26 source files, 11,566 lines: all ticked)
@@ -83,17 +83,28 @@ Facts from the PC (not on the branch) that I used in answers
 - N8 / N4 per game (round 136): 29 of 124,850 games repeat an opening, 16 whole copies; sum p^2 = 3.72e-9
   (3.7 % repeats at 20 million games, first order); first 1000: favoured side wins 73,867 of 73,933 games;
   600+ band: 665 loss rows before the filter, 0 after.
+- N8 key: of the 29 shared openings, 16 have the same whole FEN and are the same game, 13 differ in the halfmove
+  clock and are other games; replay: same 8 moves 3 times = same 112 rows; another move order into the same
+  whole FEN = the same 112 rows. Soft fixture on the PC: nodes 1926 / b2b3 (hard), 5506 / g1f3 (soft).
+- The PC's soft-node runner (own program, pairs, control mode `nodes:N`): 4,000 games in 5.7 minutes at 4 at
+  once, +/- 8.0. The 1024 match's node odds: one engine at a time, one thread, 400 game positions, depth 12.
+- Matches at 250,000 nodes, from the loop's log: 1,926 games in 33.5 minutes (12 at once); +/- 8.4 to 8.9 at
+  2,000 games. A figure of mine for this speed (1,330 an hour) had no source and was wrong; replaced before the push.
+- N8 measured further: 16 of 16 copies equal in all five fields on the raw record (the kept-rows file is not
+  valid for this: the filter marks a repeated position inside a round with 32002); the opening rule drawn
+  300,000 times: about 1 copy in 100 has the same eight moves in order; 129 of 129 pairs of two orders into one
+  whole FEN = the same game.
 
 ## Proposals and where they stand (see BOARD.md)
-- ACCEPTED: A1, A3, A4, A5, N1 (changed), N2, N3, N6, N8 (bar of part a changed). TO MEASURE AFTER THE DEBATE:
-  A2, N4, N5, N7, N9.
-- Mine: F1 (the 2,000-node "not weaker" checks as an SPRT between -3 and 0): astra agrees with one amendment
-  (no boundary at the cap = inconclusive = not adopted), which I took; neon has not answered (asked directly).
+- ACCEPTED: A1, A3, A4, A5, A6, N1 (changed), N2, N3, N6, N8 (my key withdrawn; the table's key is OPEN: whole
+  FEN, mine, against ordered moves, astra's and neon's), N10, N11 (stage 3 of the bundle rule is OPEN: I
+  proposed "lower bound above -3" instead of "above 0"), F1 (mine; now J10).
+  TO MEASURE AFTER THE DEBATE: A2, N4, N5, N7, N9.
 - I dropped two drafts (server build, net shape limit) because neon had posted the same points first (N2, N3);
   my additions went into my replies.
 
 ## What I still owe
-- An answer to every new message, by name, in git order. Neon owes me one answer (F1).
+- An answer to every new message, by name, in git order. Neon and astra owe me two answers (stage 3 of J11: above 0 or above -3; the key of N8's table).
 - The hourly summary for the owner (in BOARD.md's last section).
 - Phase 3: `debate/FINAL_PLAN.md` from about 13:10Z on my clock.
 
@@ -103,4 +114,4 @@ Facts from the PC (not on the branch) that I used in answers
   reading supports.
 
 ## Last shared commit read
-shared 13b6117 and astra 3258406 (every message up to these two is read and answered).
+shared 65fa840 and astra a7bb4db (every message up to these two is read and answered).

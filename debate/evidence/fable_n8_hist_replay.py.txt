@@ -1,0 +1,93 @@
+"""Fable 2026-11-23, debate RE N8: does the whole FEN after the random plies decide the self-play game, or does
+the ORDER of the eight opening moves matter? Plays, for every pair "order A | order B" (both reach the same whole
+FEN; file from n8_seqsim.py), both histories with the loop's program, options and `selfgame` line, and counts the
+pairs whose rows or end line differ. One engine process, one thread.
+
+    n8_hist_replay.py <config> <exe> <LOOP_OPTIONS.txt> <net file> <pairs file> <new out file>
+
+Controls: (1) the first pair's order A is played twice: must be equal (same request = same game); (2) a pair of
+two DIFFERENT positions (order A of pair 1 against order A of pair 2) must differ, or the comparison sees nothing.
+Prediction written here before the run (not on the debate branch: the push came after): fewer than 5 of the
+pairs differ, because the order can matter only through a later return to a position of the first eight plies.
+"""
+import subprocess
+import sys
+
+sys.path.insert(0, "C:/nnue-lab/tools/venv_tb/Lib/site-packages")
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+import chess  # noqa: E402
+from nnloop.common import load_config  # noqa: E402
+
+cfg, exe, options, net, pairs_file, out_file = sys.argv[1:7]
+g = load_config(cfg)["datagen"]
+PLACE = "<the full path of the net file forge65_r0067.fnn3>"
+opts = [ln.strip().replace(PLACE, net) for ln in open(options, encoding="ascii") if ln.strip().startswith("setoption")]
+BAD = ("unknown option", "invalid value", "ERROR", "No such option", "sgerror", "illegal")
+SELFGAME = (f"selfgame softnodes {int(g['soft_nodes'])} evallimit {int(g['eval_limit'])} maxply {int(g['max_ply'])} "
+            f"writeminply {int(g['write_min_ply'])} drawply {int(g['draw_adj_ply'])} "
+            f"drawscore {int(g['draw_adj_score'])} drawcount {int(g['draw_adj_count'])}")
+p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+
+
+def cmd(lines, word):
+    p.stdin.write("\n".join(lines) + "\n")
+    p.stdin.flush()
+    seen = []
+    while True:
+        ln = p.stdout.readline()
+        assert ln, "the engine ended"
+        ln = ln.rstrip()
+        seen.append(ln)
+        assert not any(b in ln for b in BAD), ln
+        if ln.startswith(word):
+            return seen
+
+
+def game(hist):
+    cmd(["ucinewgame", "isready"], "readyok")
+    seen = cmd(["position startpos moves " + hist, SELFGAME], "sgend")
+    rows = [s for s in seen if s.startswith("sg ")]
+    end = seen[-1].split(" moves ")[0]          # result, reason, plies, searches, nodes, final FEN
+    return rows, end
+
+
+def fen_of(hist):
+    b = chess.Board()
+    for m in hist.split():
+        b.push_uci(m)
+    return b.fen()
+
+
+assert any("NNUE v3 active" in s for s in cmd(opts + ["isready"], "readyok")), "the net is not active"
+pairs = [tuple(x.strip() for x in ln.split("|")) for ln in open(pairs_file, encoding="ascii") if "|" in ln]
+for a, b in pairs:
+    assert a != b and fen_of(a) == fen_of(b), (a, b)
+out = open(out_file, "x", encoding="ascii", newline="\n")
+
+
+def say(s):
+    print(s)
+    out.write(s + "\n")
+    out.flush()
+
+
+say("selfgame line: " + SELFGAME)
+c1, c1b, c2 = game(pairs[0][0]), game(pairs[0][0]), game(pairs[1][0])
+say(f"control 1, the same request twice: equal = {c1 == c1b}")
+say(f"control 2, two different openings: differ = {c1 != c2}")
+assert c1 == c1b and c1 != c2, "a control failed"
+same = diff = 0
+for i, (a, b) in enumerate(pairs):
+    ra, rb = game(a), game(b)
+    if ra == rb:
+        same += 1
+    else:
+        diff += 1
+        k = next((j for j, (x, y) in enumerate(zip(ra[0], rb[0])) if x != y), min(len(ra[0]), len(rb[0])))
+        say(f"DIFFER pair {i}: rows {len(ra[0])} / {len(rb[0])}, first different row {k}; end A: {ra[1]} | end B: {rb[1]}")
+        say(f"   order A: {a}")
+        say(f"   order B: {b}")
+        say(f"   whole FEN: {fen_of(a)}")
+say(f"pairs of two move orders into one whole FEN: {len(pairs)}; same game: {same}; other game: {diff}")
+p.stdin.write("quit\n")
+p.stdin.flush()

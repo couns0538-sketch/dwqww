@@ -64,6 +64,25 @@ Where this file says "not checked", nobody has checked it.
   repeated on 23 November. It holds above all for the net that plays the rented server day (P3b).
 - **J8. The loop's gate is not changed on one match and a plausible story.** A gate change is tested like
   any other change. (A gate at default settings once promoted a net that was weaker as a whole engine.)
+- **J10 (from the debate, F1; accepted by all three). "Not weaker at 2,000 soft nodes" has one form.** A
+  paired SPRT between -3 and 0 Elo (alpha = beta = 0.05), every opening played from both sides, the error taken
+  from the pairs, cap 100,000 games. H1 = holds; H0 = does not hold; no boundary at the cap = inconclusive = no
+  adoption. Reason: a fixed match with a bar on its interval either refuses 88 of 100 level changes (6,000 games,
+  "lower bound above -3" needs a measured +4.5) or passes a 5-Elo loss half the time ("point value not below
+  -5"). Measured cost on the PC's own soft-node runner: 11.7 games a second with 4 games at once, +/- 8.0 at
+  4,000 games; about 39,000 games (55 minutes) when the change is level, 2.4 hours at the cap. Before its first
+  use: the runner's transcript on one fixed position must show the soft command's known answer (nodes 5506,
+  g1f3) and its hard-node mode must fail that check (nodes 1926, b2b3); a level pair and a pair with half the
+  nodes are run as controls of the pipeline (two H0 in a row from level pairs = look at the harness). To build:
+  the sequential stop over the runner's pair results. If a timed run shows more than 4 hours at the cap, the
+  declared fallback is -5 / 0.
+- **J11 (from the debate, N11). One rule for a search bundle** (J4, P7 and P12 named three different ones):
+  (1) every switch off = equal node counts, and per switch a count of how many of 600 positions change;
+  (2) SPRT between 0 and 5 at 20,000 nodes on each of two declared opening seeds; (3) 4,000 games at 250,000
+  nodes; (4) J10 before self-play uses it. The bar of stage 3 is still OPEN in the debate: "lower bound above
+  0" (Neon; a bundle truly worth +5 at depth passes 36 %) or "lower bound above -3" (Fable; +5 passes 72 %,
+  a true -3 passes 2.5 %). Both from the measured error of this depth: +/- 6.1 at 4,000 games; 4,000 games are
+  about 70 minutes with 12 at once.
 
 ## 3. Where the work stands
 
@@ -126,7 +145,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 - The five matches as declared on the PC on 17 November, before the tune's first game, played in this order,
   the first that does not hold ends it: 20,000 nodes SPRT [0, 5] with a cap of 8,000 games (H1, or at the cap
   a lower bound above 0); the same with a second opening seed; 250,000 nodes, 4,000 games, lower bound above 0;
-  2,000 soft nodes, 4,000 games, point value not below -5 (the form of this bar is proposal F1); a second net
+  2,000 soft nodes, 4,000 games, point value not below -5 (by J10 this bar becomes the paired SPRT between -3
+  and 0, as an addendum to the tune's declaration, written before that match has a result); a second net
   (round 27's 512-wide net) at 20,000 nodes, 2,000 games, point value not below 0. The net is the loop's best
   when they start; round 33's net (the tune's own) is played too and both must hold.
 - A consequence to plan for: new search values change self-play itself (J6: +79 at 2,000 nodes for the last
@@ -156,6 +176,9 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   A "depth effect" is claimed only if the difference between the two depths on the same three nets has its own
   lower bound above 0. For the 2-billion time: a direct SPRT at 250,000 nodes is run BESIDE the old gate on the
   first candidates before it replaces it (J8).
+- Repair 1 (the gate that printed its verdict and did not exit; P12) gets one more test (N11, Neon): the
+  stand-in also starts a child that never ends; after the loop has ended it no child may be left, and the games
+  and the verdict must be intact. Whether today's loop code ends such children: not checked.
 
 ### P3. Data first: one training on 2 billion positions (a trainer that reads the window in pieces). TO BUILD (partly built); the direction is given (3a)
 - Known: the window (388 million kept positions = 25 rounds) is what fits on the card. Since the cap is
@@ -262,11 +285,32 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   a finite space: in round 136, 29 of 124,850 games repeat an opening and 16 of them are whole copies
   (`debate/evidence/fable_n8_games_round136.md`). First order, the share of repeats is 3.7 % at 20 million games
   and 7.4 % at 40 million, and a server game has about a 6 % chance of an opening the games at home already used.
-  A pilot is far too small to show it. So: one table of opening keys shared by all workers on the server, loaded
-  with the keys of the games already played at home; a worker draws again on a key that is in it. The receiver
-  keeps one key per game and credits a game once, over the whole day. Controls: with the table off and 2 random
-  plies the receiver must report the copies; with it on, none. Each worker's seed and each game's number are
-  logged, and a restarted worker never reuses a game number (Astra).
+  A pilot is far too small to show it. What makes two games the same (Astra's correction of Fable's first key,
+  then measured: `debate/evidence/fable_n8_opening_key_and_soft_fixture.md`): of the 29 pairs, the 16 with the
+  same whole FEN (position and both move counters) are the same game in all five fields of every row, and the
+  13 whose halfmove clock differs are other games; 130 of 130 pairs of two different move orders into one whole
+  FEN replayed to the same game; and of 100 copies about 99 come from another move order, 1 from the same
+  eight moves (the opening rule drawn 300,000 times). So: (1) credit is decided at the receiver, over the whole
+  day, by logical game IDs, exactly-once piece receipts and row hashes over all five fields; (2) to avoid paying
+  for a search twice, inside ONE frozen producer only (same program, net, options, limits; never across
+  manifests, whose games are new labels), one allocator process hands the workers their openings in batches
+  (Neon) and refuses an opening it has handed out before; the PC's earlier games count only if they are the
+  same producer. THE KEY OF THAT TABLE IS OPEN in the debate: the whole FEN after the random plies (Fable:
+  stopped 16 of 16 observed copies and refused 0 of 13 distinct games) or the eight moves in order (Astra, Neon:
+  refuses no distinct game, stops about 1 copy in 100); (3) each game's eight opening moves are logged (today
+  they are in no row); (4) controls (Astra): the identical request under one manifest is credited once; two
+  histories or two manifests with the same position both stay eligible; a planted duplicate payload under a
+  fresh delivery ID is recognised; (Neon) with 2 random plies, the table off and 200 games the receiver must
+  report about 42 copies, with it on none, and an exhausted opening space ends with a clear error. A restarted
+  worker never reuses a game number. A fact of the PC's filter: it marks a row whose position was already seen
+  in the same round, so inside one round a copy never reaches the trainer; across rounds nothing removes it.
+- **What the paid day plays (N11 d, Neon, with Astra's default; accepted).** Written down before the rental:
+  the net = the one best proven net (J9), no second player; the settings = P1's final values only if all five
+  deciding matches hold, else today's list; 2,000 soft nodes; games end at 2000 unless the "cut at 1000" net
+  of P3c passed its matches and J10. A deeper search or another ending rule goes onto paid hours only after a
+  pilot that was declared before and succeeded. If the 2-billion test is unfinished or inconclusive when the
+  rental comes: the proven configuration, or the day is moved; neither state says that 2,000-node labels are
+  too shallow.
 - **The card before the paid hours (N8 b, Neon, with Astra's separation).** The trainer has only ever run on the
   PC's AMD card. Before a rented NVIDIA card is booked for the long run: one pass on one round there, the exported
   net loads on the PC, the trainer-against-engine check passes on at least 1,000 named positions (the PC's own
@@ -325,7 +369,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   17 November), while a 768 net on only 96 million positions had lost about -10 against 512.
 - Plan: the wide net is trained again when one training can read at least 1 billion positions (P3), and is
   then judged against the best net with node odds for its speed. Which shape (width, king buckets, output
-  buckets) is open.
+  buckets) is open. (A6, Astra; accepted: the wide net is trained on the same rows as the 768 net of that size
+  whether or not that 768 net beat round 67's; P11, step 4.)
 - The limit of today's engine (N3, Neon; accepted as a precondition): it loads one hidden layer of at most
   1024 units (`source/include/forge/nnue_v3.hpp` 65; loader `source/src/nnue_v3.cpp` 595 to 629), and at 1024
   the AVX2 output sum uses 2,114,092,800 of the 2,147,483,647 a 32-bit sum holds (1.55 % of room; recomputed
@@ -343,6 +388,16 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   4,000 games at 250,000 nodes; if the interval crosses zero the recipe stays. For the 2 billion both versions
   are prepared before the rental, and only a matched pair at that size decides (Astra); the small result sets
   the order.
+- How a wider or other net is judged when its speed differs (N10, Neon, with Astra's changes; accepted). The
+  node odds of the 1024 match (236,000 against 250,000) came from one engine at a time on one thread (400 game
+  positions, depth 12, the engine's own speed figure): not at the match's concurrency, not wall time. From now:
+  (1) the odds are measured with as many one-thread engines at once as the match will run, elapsed time by
+  paired opening and colour, and are frozen before the match; that match at 250,000 nodes is a SCREEN; (2) the
+  proof under J9 is a match at one declared time control with equal clocks, on a quiet machine; (3) before the
+  net plays self-play: J10, and the positions a second of 16 workers with it, reported beside the gain. One
+  source fact (Astra, confirmed by Neon; `source/include/forge/nnue_v3.hpp` 65 and 120): the per-ply buffers
+  are already allocated for 1024 units whatever the net's width; what grows with width is the first layer
+  (Neon: 9 MiB at 768, 12 MiB at 1024) and the lanes touched per update.
 
 ### P5. The training recipe as a bundle, four declared rounds. READY
 - What: one learning-rate cycle instead of several, a smaller weight decay on the first layer (0.1), a result
@@ -353,6 +408,11 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   net gave +3.72 and +3.22. Smoothed labels (TD): eight rounds +3.37 [+1.01, +5.72] against round 67's net,
   the plain rounds before them -0.81 [-3.02, +1.40]; but against only the last six plain rounds the difference
   halves, so it was recorded as "level alone" (STATE section 5). Its twin match is trained and waits.
+- Changed in the debate (N11, Neon; accepted): the four-round trial in the loop is replaced by ONE offline
+  matched pair (same rounds, rows and seed; only the recipe differs), judged by 4,000 games at 250,000 nodes.
+  The comparison with earlier plain rounds carries the drift that halved the TD result, and it would end if the
+  per-round training is paused (P2). A pair on today's window may run when the card is free and sets the
+  order; the pair that decides the 2-billion recipe is trained at that size.
 
 ### P6. A second player in part of self-play. TO BUILD
 - What: while no candidate passes the gate, every round is played by the same net, so the window fills with one
@@ -364,6 +424,10 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   chosen after seeing the numbers. Neither is a result; only the intervention can tell.
 - To build: where self-play takes its net (a share setting, default 0 = today), and a record of which net
   played each game.
+- Changed in the debate (N11, Neon; accepted): DEFERRED. In a 25-round window a share s of four trial rounds
+  is on average only 0.10 x s of the data the four candidates see (5 % at s = 0.5), far too little for four
+  gates to show. No second player on the paid day. If it is tested later: offline, at full dose, on matched
+  rows.
 
 ### P7. Search work on today's engine. WAITING for P1
 - Why waiting: the tune moves 40 settings; a bundle measured on the old values would have to be measured again.
@@ -373,8 +437,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   by the loop). That it is the rule the match measured: both trees search 616966 nodes with it off and 595569
   with it on (`debate/evidence/fable_a4_lmr_switch_same_rule.md`). It enters P7's first bundle under these
   bars: on P1's final settings; H1 for [0, +5] at 20,000 nodes on each of two declared opening seeds; the
-  4,000-game match at 250,000 nodes with its lower bound above 0; and at 2,000 soft nodes a lower bound above
-  -3 before self-play uses it. The +8.7 below is not credited to today's engine.
+  4,000-game match at 250,000 nodes (its bar: J11, stage 3); and J10 at 2,000 soft nodes before self-play uses
+  it. The +8.7 below is not credited to today's engine.
   The list: the reduction's seven hand-set terms as settings; a deeper / shallower re-search
   after a reduced search beats alpha (+8.7 [+0.3, +17.1] in 2,000 games at 250,000 nodes, one seed; its tree
   is 12 % larger on game positions and 14 % smaller on openings at depth 16); limits of the double extension
@@ -393,7 +457,7 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   quiescence (1853 to 1857); and the switch of A4. Order: (1) per item, how many of the PC's 200 openings and
   400 game positions change their node count with the switch on, depth 12; an item that changes almost none
   is left out; (2) the composition and every rounding are written down before any game; (3) the bundle's
-  matches by J4 and P12, the 2,000-node part in the form of F1. A node count is a cost screen, never a
+  matches by J11, the 2,000-node part by J10. A node count is a cost screen, never a
   strength result (J7). Realistic cost of four switches under P8's duties: about a day.
 - Never measured here: more than one thread; the time handling without an increment.
 
@@ -428,8 +492,7 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 4. The match slot meanwhile: breadth (do older rounds count?) -> the TD twin (P5).
 5. The first trainings on 1 to 2 billion positions: 768 and 1024 wide on the same data, each judged against
    the best net (P4).
-6. P5 or P6 as a four-round trial in the loop only if it does not disturb 3 (one trial at a time, or their
-   effects mix).
+6. (changed in the debate, N11) P5 as one offline matched pair when the card is free; P6 deferred.
 7. P7 after the tune's values are in.
 
 ## 6. What we most want from the debate
@@ -491,10 +554,20 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   group gets its own decision. If breadth wins, a stride control (same rounds, same quota per round, only the
   sampling inside a game differs) tells whether older rounds or the thinner sampling did it. (2) The loader reads today's 388-million window
   in pieces and must give a net whose hold-out loss is within 0.0001 of today's trainer's before any larger run.
-  (3) The 2-billion 768 net must win the loop's gate and confirmation against round 67's net. (4) Only then the
-  1024 net on the same 2 billion, against that 768 net with node odds for the slower net, at 250,000 nodes.
+  (3) The 2-billion 768 net is judged against round 67's net by the loop's gate and confirmation, and the result
+  is recorded whatever it is. (4) (changed in the debate: A6, Astra; accepted by all three) The 1024 net on the
+  same 2 billion rows needs the verified store (A2), the passed trainer, export and engine checks (N8 b) and a
+  technically valid 768 net on the same rows, recipe and seed. It does NOT need that 768 net to have beaten
+  round 67's: a level 768 says what 768 units take from the data, not what a wider net can. 1024 against 768
+  on equal rows answers the width question (N10's screen, 4,000 games at 250,000 nodes); to be adopted the wide
+  net must beat the proven best net of that day with equal clocks (N10) and pass J10 and the speed count. Its
+  cost is taken from a timed 1024 pilot, not from the 768 figure above. A wide training put off for cost is
+  recorded as "width at 2 billion: not tested"; whether the paid card hours go to it or to deeper labels is
+  the owner's choice.
 - WHAT WOULD CHANGE OUR MIND: a 2-billion 768 net level with today's: then volume at this label depth is not
-  the lever, and the next lever is label quality (deeper self-play searches per position).
+  the lever, and the next lever is label quality (deeper self-play searches per position). (A6: that
+  conclusion needs the 1024 net on the same rows to be level too; a level 768 alone says only that 768 units
+  take no more from this data.)
 
 ### P12 (Opus): Keep the loop's one decision rule sound, and test search ideas only as bundles.
 - WHY: two faults found on 23 November: round 112's gate printed its verdict and then did not exit for
@@ -533,4 +606,8 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   mixing check in P3, "the server sends every row" in P3b. N8 (Neon) "no game twice" and the card test in
   P3b, with the opening measurement. N9 (Neon) the teacher in P4. Astra on N2: the start-up check of the live
   searcher in P3b. N5: Neon's four outcomes in Astra's wording in P2. Astra on N4: the per-game table and the
-  definition of the "cut at 1000" net in P3c.
+  definition of the "cut at 1000" net in P3c. F1 (Fable; accepted by all three) is J10. N11 (Neon): one bundle
+  rule (J11, its stage 3 still open), P5 as an offline pair, P6 deferred, what the paid day plays (P3b), one
+  more test for repair 1 (P2). N10 (Neon): how a net of another speed is judged (P4). Astra on N8: the opening
+  key corrected, its replacement still open (P3b). A6 (Astra): the wide net after the data does not wait for
+  the 768 net to win (P11 step 4, P4).

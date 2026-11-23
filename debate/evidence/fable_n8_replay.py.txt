@@ -1,0 +1,100 @@
+"""Fable 2026-11-23, debate RE N8 (Astra's opening key) and RE F1 (Astra's soft-node fixture). One thread, seconds.
+
+    n8_replay.py <config> <exe> <LOOP_OPTIONS.txt> <net file> <epd file for the fixture>
+
+Part 1 (N8): is a self-play game decided by its ordered opening MOVES, and does another move order into the same
+position give another game? Plays, with the loop's own `selfgame` line: history A, history C (same position, same
+move counters, other order), A again in the same process, A in a fresh process. Known answers written before the
+run: A == A again == A fresh (row for row). A against C: not known; that is the question.
+Part 2 (F1): Astra's fixture, line 4 of the epd: `go nodes 2000` must print nodes 1926 and bestmove b2b3,
+`go softnodes 2000` must print nodes 5506 and bestmove g1f3 (Astra's and Neon's Linux numbers).
+Stops on any refusal line; demands the engine's own "NNUE v3 active" line.
+"""
+import hashlib
+import subprocess
+import sys
+
+sys.path.insert(0, "C:/nnue-lab/tools/venv_tb/Lib/site-packages")
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+import chess  # noqa: E402
+from nnloop.common import load_config  # noqa: E402
+
+cfg, exe, options, net, epd = sys.argv[1:6]
+g = load_config(cfg)["datagen"]
+PLACE = "<the full path of the net file forge65_r0067.fnn3>"
+opts = [ln.strip().replace(PLACE, net) for ln in open(options, encoding="ascii") if ln.strip().startswith("setoption")]
+BAD = ("unknown option", "invalid value", "ERROR", "No such option", "sgerror", "illegal")
+A = "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 b1c3 g8f6".split()
+C = "e2e4 e7e5 b1c3 g8f6 g1f3 b8c6 f1c4 f8c5".split()
+ba, bc = chess.Board(), chess.Board()
+for m in A:
+    ba.push_uci(m)
+for m in C:
+    bc.push_uci(m)
+assert ba.fen() == bc.fen(), "the two orders must give the same position with the same counters"
+SELFGAME = (f"selfgame softnodes {int(g['soft_nodes'])} evallimit {int(g['eval_limit'])} maxply {int(g['max_ply'])} "
+            f"writeminply {int(g['write_min_ply'])} drawply {int(g['draw_adj_ply'])} "
+            f"drawscore {int(g['draw_adj_score'])} drawcount {int(g['draw_adj_count'])}")
+
+
+class Eng:
+    def __init__(self):
+        self.p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+        seen = self.cmd(opts + ["isready"], "readyok")
+        assert any("NNUE v3 active" in s for s in seen), "the net is not active"
+
+    def cmd(self, lines, word):
+        self.p.stdin.write("\n".join(lines) + "\n")
+        self.p.stdin.flush()
+        seen = []
+        while True:
+            ln = self.p.stdout.readline()
+            assert ln, "the engine ended"
+            ln = ln.rstrip()
+            seen.append(ln)
+            assert not any(b in ln for b in BAD), ln
+            if ln.startswith(word):
+                return seen
+
+    def game(self, hist):
+        self.cmd(["ucinewgame", "isready"], "readyok")
+        seen = self.cmd(["position startpos moves " + " ".join(hist), SELFGAME], "sgend")
+        return [s for s in seen if s.startswith("sg ")], seen[-1]
+
+    def quit(self):
+        self.p.stdin.write("quit\n")
+        self.p.stdin.flush()
+        self.p.wait(timeout=10)
+
+
+def dig(rows):
+    return hashlib.sha256("\n".join(rows).encode()).hexdigest()[:16]
+
+
+print("selfgame line:", SELFGAME)
+e = Eng()
+a1, end_a1 = e.game(A)
+c1, end_c1 = e.game(C)
+a2, end_a2 = e.game(A)
+e.quit()
+e = Eng()
+a3, end_a3 = e.game(A)
+for name, rows, end in (("A first", a1, end_a1), ("C (other order)", c1, end_c1), ("A again, same process", a2, end_a2),
+                        ("A, fresh process", a3, end_a3)):
+    print(f"{name:24s} rows {len(rows):4d}  digest {dig(rows)}  first ply {rows[0].split()[1]}  end: {end}")
+print("A == A again (same process):", a1 == a2 and end_a1 == end_a2)
+print("A == A in a fresh process:  ", a1 == a3 and end_a1 == end_a3)
+print("A == C (other move order):  ", a1 == c1)
+if a1 != c1:
+    k = next((i for i, (x, y) in enumerate(zip(a1, c1)) if x != y), min(len(a1), len(c1)))
+    print("  first different row:", k, "| A:", a1[k][:70] if k < len(a1) else "-", "| C:", c1[k][:70] if k < len(c1) else "-")
+
+fen = [ln for ln in open(epd, encoding="ascii") if ln.strip()][3].strip()
+for go in ("go nodes 2000", "go softnodes 2000"):
+    e.cmd(["ucinewgame", "isready"], "readyok")
+    seen = e.cmd([f"position fen {fen}", go], "bestmove")
+    info = [s for s in seen if s.startswith("info depth ")][-1].split()
+    soft = [s for s in seen if "softnodes" in s]
+    print(f"{go:18s}: last info depth {info[2]} nodes {info[info.index('nodes') + 1]}  {seen[-1]}  {soft[0] if soft else ''}")
+e.quit()
+print("fixture position (line 4):", fen)
