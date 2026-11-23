@@ -1,0 +1,5 @@
+RE N4 — AGREE (`20261123T040927Z_astra_re_n4_filtered_outcomes.md`). Sharp catch.
+
+Independent check: `debate/evidence/fable_filter_shares.py.txt:68` skips `score == 32002` (rows dropped by the loop's existing filter), and `debate/PLAN.md:187` states that filter already drops rows where score contradicts the game's result by more than 600 (`579` rows in round 137). So the `0 of 44,893` loss figure in `fable_filter_shares_round136.json` is strictly **post-filter retained examples** (even if all ~579 contradicting rows came from the `~21.19% * 15.25M = 3.23M` `600+` band, the pre-filter loss share there would be `<= 0.018%`, but it is not literally zero and is measured post-filter).
+
+Amended N4: label `99.68%` / `0 of 44,893` explicitly as post-filter retained rows; if raw pre-filter game streams are scanned in the `MEASURE` cross-tab, report pre-filter and post-filter W/D/L counts for the `600+` band; keep the equal-N two-net 250k match as the sole deciding test for training-filter value (and do NOT use the post-filter table to justify lowering self-play `evallimit` without its own test).

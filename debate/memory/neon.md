@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: neon
 - Model: Gemini 4 Neon
 - Started: 2026-11-23T03:40:08Z
-- Last update: 2026-11-23T03:57:47Z
+- Last update: 2026-11-23T04:10:38Z
 - Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -48,28 +48,31 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 
 ## What I found (each with file and line, or with the figures I recomputed)
 - Local Linux builds (`g++ 13.3.0`) verified bit-exact pins (`312866/862329/4865609` defaults; `226187/616966` loop+r67) across AVX-512+PEXT (`260-268 ms`), AVX2+PEXT (`284-290 ms`), AVX2 no-PEXT (`363 ms`). Stock `CMakeLists.txt` lacks `FORGE_NNUE_V3=1` & `FORGE_MATE_ALPHA_GUARD=1` (gives `278016`).
-- Local Linux ASan+UBSan (`-fsanitize=address,undefined`) passed cleanly with 0 findings on `bench 11` (`226187`), `perft 4` (`197281`), and 30-ply `selfgame softnodes 2000` (`99365` nodes).
-- `nnue_v3.cpp:125,134-151,156,197,678,780-783`: AVX2 `int32` output sum leaves 1.55% headroom at 1024 (`2,114,092,800` vs `INT32_MAX`), overflows at 1056. Verified independently by Astra.
-- `STATE.md:19-21,55-58`: Plain 388M rounds 68-78 (`36,916g, -0.81`) and 129-136 (`29,968g, -0.07`) pool to `-0.48 [-2.12, +1.16]` across `66,884` games at 50k; r87 (`+2.35`) was a TD round (`STATE.md:55`), not plain. Only 250k depth scaling (J3) remains untested for Q1.
-- `PLAN.md:25-30`: 21 daily 50k gates burn `5.09` 16-thread CPU h/day and `17.02` GPU h/day on flat 388M nets; pausing if r136 vs r67 is flat at 250k recovers +50% self-play yield (`479M` vs `320M` kept/day) or accelerates P1/matches.
-- `search.cpp:2432-2452`: `LmrDeeperShallower` mutates `new_depth` in place (affecting PV re-search at `2450-2452`) and skips null-window re-search when `do_shallower` makes `new_depth == reduced_depth` (`2437`).
-- `search.cpp:2282,2304,2317-2328` (quiet checks SEE-pruned), `2184` (IIR at root), `2416` (`LmrHistoryDivisor` truncation), `1853-1857` (QS checking captures SEE-pruned), `2547-2588` (`CuckooRep` guards + dead duplicates), `1804,2000` (near-50 TT cutoff mismatch), `uci.cpp:457` (FEN ply reset), `1124-1134` (`go perft` exit 2).
+- Verified Astra's Hash blind-spot catch (`uci.cpp:1245` constructs local `Searcher(16, 1)`): both Hash 16 and Hash 32 print `bench 13 = 616966`, while live `go depth 18` gives `375880` (`hashfull 156`) vs `375868` (`hashfull 78`).
+- `loop/forge65_r0067.fnn3`: FNV-1a 64-bit format checksum `290bbb0b2e578ac`, file SHA-256 `737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28`.
+- Local Linux ASan+UBSan (`-fsanitize=address,undefined`) passed with 0 findings on `bench 11`, `perft 4`, and 30-ply `selfgame softnodes 2000`.
+- `nnue_v3.cpp:125,134-151,156,197,678,780-783`: AVX2 `int32` output sum leaves 1.55% headroom at 1024 (`2,114,092,800` vs `INT32_MAX`), overflows at 1056.
+- `STATE.md:19-21,55-58`: Plain 388M rounds 68-78 (`36,916g, -0.81`) and 129-136 (`29,968g, -0.07`) pool to `-0.48 [-2.12, +1.16]` across `66,884` games at 50k; r87 (`+2.35`) was a TD round (`STATE.md:55`), not plain.
+- `fable_filter_shares.py.txt:68` & `PLAN.md:187`: `0 of 44,893` losses at `600+` is post-filter (loop filter already drops ~579 rows contradicting result by >600, `<= 0.018%` of `~3.23M` `600+` rows).
+- `source/src/uci.cpp:448-615`, `board.cpp:364-367`, `search.cpp:1804,1853-1857,2000,2184,2282,2304,2317-2328,2416,2432-2452,2547-2588,3412-3423`, `uci.cpp:1124-1134`: all source facts verified and cross-checked with Astra/Fable.
 
 ## My proposals and their status
-- `N1` (`20261123T035243Z_neon_n1_p1_p10_2k_and_dead_params.md`, amended `035747Z`): Reconcile P1/P10 (2k soft-node bar + second net/seed + static guard audit). Astra: AGREE (with amendments accepted). Fable: pending reading.
-- `N2` (`20261123T035243Z_neon_n2_p3b_linux_build_and_avx2.md`, amended `035747Z`): P3b Linux ThinLTO+PGO recipe, decoupled PEXT/ZMM, optional AVX2 fused kernel if unfused misses target, SHA-pinned ref checks. Astra: AGREE (with amendments accepted). Fable: pending.
-- `N3` (`20261123T035243Z_neon_n3_p4_p8_nnue_v3_int32_guard.md`, amended `035747Z`): P4/P8 `int32` output-sum widening + load-time guard + both-sign raw-sum test before `hidden > 1024`. Astra: AGREE (with amendments accepted). Fable: pending.
-- `N4` (`20261123T035243Z_neon_n4_p3c_score_tail_and_measure.md`, amended `035747Z`): P3c equal-N score-tail filter test (piece-count fixed) + `MEASURE` cross-tab request to Fable. Astra: AGREE (with amendments accepted). Fable: pending.
-- `N5` (`20261123T035747Z_neon_n5_q1_q3_standstill_and_250k_gate.md`): Q1 r136-vs-r67 250k test, pause redundant 388M train+gates if flat, direct 250k SPRT in 2B era (Q3). Status: OPEN.
-- `N6` (`20261123T035747Z_neon_n6_q5_p8_source_correctness.md`): Q5/P8 source correctness items (`go perft`, `selfgame` ply, `CuckooRep` cleanup, near-50 TT doc). Status: OPEN.
-- `N7` (`20261123T035747Z_neon_n7_q4_p7_search_bundle.md`): Q4/P7 first post-P1 search bundle (`quiet && gives_check` SEE, root IIR, `LmrHistoryDivisor`, QS checking-capture SEE, paired with A4's `LmrDeeperShallower`). Status: OPEN.
+- `N1` (`035243Z`, amended `035747Z`): Reconcile P1/P10 (2k soft-node bar + second net/seed + static guard audit). Astra: AGREE. Fable: pending reading.
+- `N2` (`035243Z`, amended `035747Z`, `040027Z`, `040731Z`): P3b Linux ThinLTO+PGO recipe, decoupled PEXT/ZMM, optional AVX2 fused kernel if unfused misses target, FNV-1a + SHA-256 pinned ref checks + live-searcher Hash/Threads preflight & Hash-32 negative control. Astra: AGREE. Fable: pending.
+- `N3` (`035243Z`, amended `035747Z`): P4/P8 `int32` output-sum widening + load-time guard + both-sign raw-sum test before `hidden > 1024`. Astra: AGREE. Fable: pending.
+- `N4` (`035243Z`, amended `035747Z`, `041038Z`): P3c equal-N score-tail filter test (piece-count fixed, post-filter label clarified) + `MEASURE` cross-tab request to Fable. Astra: AGREE. Fable: pending.
+- `N5` (`035747Z`, amended `040027Z`, `040159Z`, `040257Z`): Q1 3-candidate pooled 250k test with exact 4-cell verdict (`LB > 0` / `UB < +5`, fresh confirmation of winner), operational pause + measured thermal throughput, Q3 direct 250k SPRT shadowed over multiple candidates at `<= 1/day`. Astra: converged after wording/bound fixes. Fable: pending.
+- `N6` (`035747Z`, amended `040027Z`): Q5/P8 source correctness items (`go perft`, `selfgame` ply convention, `CuckooRep` differential guard check + dead cleanup, near-50 TT doc). Astra: AGREE. Fable: pending.
+- `N7` (`035747Z`, amended `040027Z`): Q4/P7 first post-P1 search bundle (`quiet && gives_check` SEE, root IIR, scaled fixed-point `LmrHistoryDivisor`, QS checking-capture SEE, paired with A4). Astra: AGREE. Fable: pending.
+- `N8` (`040257Z`, amended `040427Z`): P3b persistent disjoint game-ID/seed restart gate + NVIDIA Triton smoke & quantized-trainer-vs-engine 1,000-FEN parity check. Astra: AGREE. Fable: pending.
+- `N9` (`040257Z`, amended `040427Z`): P3/P4 fixed older teacher audit (`QUESTION` to Fable) + matched-scale ablation (`teacher_weight = 0`, no-change default on inconclusive). Astra: AGREE. Fable: pending.
 
 ## What I still owe (questions to me that have no answer yet)
-- Replied to ALL Astra proposals so far (`RE A1`, `RE A2`, `RE A3`, `RE A4`) and accepted all Astra refinements to `N1-N4`.
-- Waiting for Fable to finish reading (~04:25Z latest) and post Fable's proposals (`F1`, ...) + `MEASURE` result + `BOARD.md` dispositions, and for Astra's replies to `N5-N7` and any further `A5+`.
+- Replied to ALL Astra proposals (`RE A1`–`RE A5`) and ALL Astra replies on `N1`–`N9` — zero unanswered items.
+- Waiting on Fable to finish reading (latest ~`04:25Z`), carry Astra's commits over, update `BOARD.md`, post Fable's proposals (`F1+`), and answer our `MEASURE` (`N4`) and `QUESTION` (`N9`).
 
 ## My next step
-- Push RE A4, N1-N4 amendments, and N5-N7; stay polling both branches so replies to Astra and Fable go out within seconds.
+- Push `RE N4` post-filter clarification + memory update; continue polling both branches so every message from Fable or Astra gets an immediate checked reply.
 
 ## Last shared commit read
-cc83a21011 (shared), e5058e37c7 (Astra).
+f84ff57be5 (shared), 69b8735f48 (Astra).
