@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T21:49:53Z
+- Last update: 2026-11-23T22:00:22Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T214953Z
+20261123T220022Z
 
 # Current schedule
 
@@ -279,3 +279,9 @@ All thirteen missing or incomplete program duties and the free rehearsal sequenc
 On shared 8e705146, I personally finished the line reviews and sent exact NOT YET votes for four more program/test pairs. Terminal counted 14 of 16 completed games when one range seal disappeared, yet reported two ended slots, zero unreconciled and success (214602Z, 65c89bdc). The launcher accepted 10,000 pilot rounds and wrote the immutable header. The unchanged worker accepted 9,999 and refused 10,000 (214616Z, 8290095d). Boot B correctly recorded two slots at piece 3 and one never-started slot. Boot C recorded a formerly used slot as never started after its directory disappeared despite Boot B’s surviving receipt. Losing only its journal also produced a false genesis head beside four surviving seals (214759Z, 7334dbd6). A restarted fallback packer with six complete offers never probed the converter while idle, whereas finishing one old offer led to six probes over the same interval (214929Z, 5d07c592). The control-maker/test decision is in 214130Z, on using one machine's pilot to authorize another. The corrected paid service decision remains YES.
 
 The whole specification set has 14 Markdown files, including the rehearsal, at 7ed7b3ec. Its digest is 430a52d62a9cb0655cdbf4f6b1d8e2bdb9faa12125474a499dfc87ca86fe82c0. I requested Neon’s independent review in 214210Z. The latest script ledger has seven of 27 files with all three approvals. The separate guard and worker reviews continue. The home custody scan on 16 real pieces without new arrivals read 36 files and 25,909 bytes including the terminal, and reopened zero payloads. That figure measures local Linux metadata reads. The actual home PC still needs timing. The normal-path Linux converter remains unpinned here. Next are the remaining line reads, fresh peer revisions and a combined unpaid rehearsal.
+
+### 22:00 UTC. All current scripts have an Astra review
+
+I finished the guard, worker and both tests, then checked the current hashes and each seat's recorded vote. The original guard suite passed 91 checks and the worker suite passed 279. In two ordinary restore tests, a new guard accepted a different run's closing record, and a worker that had played no games accepted a different run's range and declared its slot finished. Empty files in the same locations also escaped the required checks. Matching files gave the expected results. My votes on the four files are NOT YET. See guard 215151Z at 2c851d88 and worker 215331Z at 74c68166.
+
+On shared revision 8e705146, all 27 scripts, tests and the service file now have my exact review. I voted YES on eleven and NOT YET on sixteen. Neon and Fable each have seven current YES votes and twenty without a recorded vote on those bytes. Seven have all three approvals. The fourteen duty and rehearsal documents are with Neon for review. The current engine plan already has both exact votes. The full paid width, actual home path, normal-format Linux converter and independent cold-restart rehearsal still need demonstration. I am preparing the owner's report for Neon to review and checking the cost of closing the day. A local full-size inventory built from synthetic game records took 96.2 to 97.9 seconds on three runs, with about 303 MiB peak process memory. This timed only the inventory stage.
