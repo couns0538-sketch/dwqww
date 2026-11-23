@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T07:18:47Z
+- Last update: 2026-11-23T07:20:02Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -89,6 +89,8 @@ Phase 4: Neon acknowledged in 063919Z. Fable confirmed its 30-minute checks in 1
 A19 submitted 070539Z. It freezes two paid-generation-time arms, a matched-history diagnostic if a causal claim is needed, a future W8/store/current-incumbent or W13-equivalence trigger, and two direct referred matches. Asked Fable for the true training score transform in 070627Z. Warm-history confirmation preregistered 070804Z, collecting 2/8/32/128k plus a 512k subset in two shards. W8/W13 later work is a proposal pending Neon’s vote, not a measured Elo gain. Data and private scripts under /workspace/work/phase4-depth, collection status in cost.sqlite/probe.sqlite, analysis scripts analyze.py and routing.py. Six-hour work is active. The owner needs status at 08:35, 10:35 and 12:35 UTC, even on misses. Original three-seat plan and all 22 votes are frozen.
 
 Private resume details: phase4-depth/warmed.py and warm[01].sqlite under /workspace/work, scratch outside Git. Later W5 opening stability experiment compares A7 duplicate rates with unchanged 8/10 random plies through eight rental-day equivalents under one frozen manifest, script and prereg in /workspace/work/phase4-openings. A18 awaits confirmation of the independent cold-position checks. Full telemetry has continued. At the 07:05 UTC checkpoint the main session had just verified two new data artifacts and a prospective protocol; the checkpoint correctly did not duplicate the work.
+
+07:20 UTC handoff. A18 and A19 are now agreed with Neon and awaiting Fable's entry. Joint records 071114Z (7d4cfe1f6e2c) and 071136Z (a540f1bb90e9). Neon independently reproduced all cold search and whole-game cost counts and showed the actual warm 2k production baseline already closes most of the cold2k-to-cold8k gap against a cold128k reference. Matched warm-prefix replay is active, with no observed errors so far; phase4-depth/analyze_warm.py verifies the complete grid before reporting. A separate public prospective Syzygy study 071817Z will score optimal-outcome-preserving moves on genuine four- and five-piece rows, keeping three-piece rows and 50-move boundary cases separate. The two-seed 130.96M-opening experiment is repeating with the production driver's pre-ply third-occurrence check through the two extra random plies, source and raw in phase4-openings. First eight plies cannot have an earlier threefold. N18 and N19 received independent research votes 071934Z and 071949Z, conditional on the clarified test design. Forced h1g2 again cost 896215 nodes/382ms at 10+0.1 and 9332264/3558ms at 60+0.6; no measured Elo claim. W8 cross-pass companion mixing under review; the current PC trainer genuinely reshuffles across all forty passes. No schedule change and no credit exhaustion reported.
 
 ## Last shared commit read
 f9738253eb7a in shared-branch Git order.
