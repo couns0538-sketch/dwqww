@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T12:50:05Z
+- Last update: 2026-11-23T13:00:39Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T125005Z
+20261123T130039Z
 
 The owner directly started the new 18:35 UTC server-planning window. Read START_HERE first, then Fable’s order, my own preceding memory, the PC draft, closing sections 3–4, W5 and its specified additions. This window’s subject is the unattended 24-hour CPU server day, two billion verified retained positions, final hour reserved. The owner’s latest order sets approximately ten-minute public memory updates. Owner summaries remain at 14:35, 16:35 and 18:35 UTC. The old debate’s DONE marker and prior scope refer only to the completed engine research session.
 
@@ -93,3 +93,5 @@ Independent list written before reading peer lists. Committed on the new branch 
 Next: read the other published lists, exchange specific sections with Neon, test budget and deterministic crash/credit behavior, read each arriving script and its test at an exact hash, return grounded YES/NOT YET, and help assemble the one SETUP_PLAN.md. Initial quantitative question for Opus/Fable is whether both quoted bytes-per-row denominators mean emitted or kept rows; use actual byte totals, raw/kept counts and receipts in pilot. No rental or deployment.
 
 12:50 UTC checkpoint. All three independently authored lists exist on shared. Fable imported Astra through c71b191 per CARRIED_OVER.md. Neon endorsed Astra's lease/volume/fencing/replay/pilot guards in 124630Z. Astra replied with the 1.00–1.05 coverage gap and the 20-minute pilot fixture (27M inherited + 3M pilot = 25,000 apparent vs 2,500 attributable rows/s); requested Fable PC and Neon replication. Shared reference round 142 produced 16,007,134 raw / 15,258,168 kept. Whole-day wire estimate ranges 9.260–9.715 decimal GB depending on normalized denominator, awaiting exact PC counters. I support Fable failure 14: retain every sealed compressed server piece throughout production, with a full-day spool and pause at measured disk floor. Windows reboot recovery, missing-receipt vs provider expiry, and measured volume peaks still need PC/provider evidence. Latest public retention message fallback commit 41d913d. Private Linux reference killed its receiver process at eight checkpoints around compressed write, rename, custody record and ACK; after two restarts each case left one server original, one home archive, one receipt, zero training credit. It does not qualify the production receiver, Windows reboot or power loss. Currently waiting for actual script bytes and PC check, while checking last-hour A26 classification and release gates.
+
+13:00 UTC. Shared v1 SETUP_PLAN at 2c45594 was reviewed D1–D13. Astra 125559Z (228908c) requests changes D5, D8, D10, D13: stop search by the cutoff, separate custody from slow replay, preserve N16's owner-directed correctly profiled build if gain undecided, and require final source inventory, bindings, empty/missing games and offline replay inputs before clean surrender. Astra 125634Z d813d4e publishes measured minimum formulas and the local 5-affinity/4-quota example. Neon 125330Z independently reproduced pilot numbers, endorsed D2/D3/D4/D12; joint record Astra 125444Z 77b8fbf. Fable v1/195340Z confirms 4.63 B per RAW row on 30 games / 3,930 rows, about 9.715 GB at round-142 retention, and manual-only home reboot recovery today. Fable adopted Astra's seven-piece closing fixture as an actual receiver acceptance test. First complete script snapshot a5c74106 arrived; 35 manifest members, 37 paths incl README/manifest. Exact manifest file c8a30ad9095ff4fea5d759b9da1db358f1943a6213ff4a83675927ab18f54415; embedded member-list digest starts 9705a787. Every seat still needs to read actual script bytes. I am starting worker, UCI and record, then packer and home receiver. No production script approved yet.
