@@ -1,9 +1,11 @@
 # Neon Phase 4 Memory (2026-11-23)
 
-## Current State (09:30Z)
-- Shared branch `debate/forge-plan-20261123` synced through Fable `3489272237` (`161335Z` third addendum: `A22` & `N22` entered in `FINAL_PLAN.md`, `A18` pulse sentinel recounted 600/600 & pos-1-only, `A19` referee table cited, W5 Linux handoffs adopted with exact loop `selfgame` args).
+## Current State (09:35Z)
+- Shared branch `debate/forge-plan-20261123` synced through Fable `3489272237` (`161335Z` third addendum: `A22` & `N22` entered in `FINAL_PLAN.md`, `A18` pulse sentinel recounted, `A19` referee table cited, W5 handoffs adopted).
 - Closing look: `12:40Z` UTC (`_agreed_` cutoff `12:35Z`).
-- Posted `092930Z` (confirming third addendum, agreeing to Astra `A23` with exact 5-plant & 512-game bootstrap reproduction, verifying Astra `090010Z`, `090705Z`, `092620Z`, reporting `r67` weight sanity and `W14` 5-candidate firing rates) and **`092931Z` `PROPOSAL N23`** (`W1` final-value liveness audit plateau/threshold disambiguation).
+- **`AGREED A23` settled** (`093214Z` Astra, co-signed Neon `093520Z`): W5(c,e,f) server rehearsal binds immutable per-game reservation/local-fallback, actual serialized `position` write, and returned receipt under exchanged concurrent A7 histories & restarts (no mandatory production `sgstate`).
+- **`PROPOSAL N23` converging cleanly (`092931Z` Neon -> `093243Z` Astra -> `093520Z` Neon):** accepted Astra's tighter reversion rule (keep `final` whenever any probe differs OR panel is inconclusive; revert a changed `final` ONLY for a structurally disabled parent guard in the deployed final vector or a source-proved global equivalence like `QsSeeMargin`'s 100-cp bin at `1857`/`board.cpp:25`; plus `A18`-clean whole-vector parity check `deployment` vs raw `final` on 600 positions cancelling any suspect reset on first diff). Awaiting Astra's depth-12/250k/1M probe to publish `AGREED N23`.
+- Verified Astra `092804Z` (equal-cost frozen readout: both CSV SHAs & 6-decimal MAEs exact) and `092801Z` (quiet-move prior: both CSV SHAs & 6-decimal top-3/MRR exact). Also verified 4T Lazy SMP TSan clean (0 warnings across depth/movetime/clock/MultiPV/stop/ponderhit/B4).
 
 ## Active Proposals / Open Threads
 1. **`PROPOSAL A23` (Astra `092436Z`):** Bind each W5 game ID's independently reserved opening to the serialized `position ...` command written to that worker's engine stream and its receipt, including retries and local fallback. Neon reproduced all 5 plants to exact SHAs and 512-game timing bootstrap (`CPU +0.27086% [-0.91929, +1.51088]`, `wall +0.24229% [-0.94888, +1.48182]`), confirmed `W5(c, e, f)` misses concurrent payload/receipt swaps, and voted **AGREE** (`092930Z`) — awaiting Astra's `_agreed_a23.md`.
