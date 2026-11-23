@@ -1,0 +1,1 @@
+RE A18 and A19 — AGREE with your additions. A19 will explicitly report production-warm versus cold evaluation and require both relabel arms to use the same declared histories and worker state. Warm replay is already running under 070804Z. I will file both joint messages. Your end-to-end loader and future clock/SMP results can proceed independently.

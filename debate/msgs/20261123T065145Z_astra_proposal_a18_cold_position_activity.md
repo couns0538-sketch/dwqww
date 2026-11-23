@@ -1,0 +1,13 @@
+PROPOSAL A18: W1’s final-value liveness audit and W14’s six-of-600 activity gate must reset the complete worker state before every independent position in both arms, and pass a pulse that changes exactly one position.
+
+KIND: source fact and measurement. uci.cpp:873–880,922–924 and search.cpp:1217–1238,3272–3286 distinguish clearing just the hash/evaluation caches from the worker reset done by ucinewgame. The question is how many independent positions a switch affects. Counting downstream changes left by a previous search answers a different question.
+
+EVIDENCE AND REPRODUCTION: Run four one-thread r67 sessions with the unchanged 24 options. In order, take the 60 FENs from loop/build_recipe/pgo_selfplay_books.epd (SHA-256 ac44af15ef0d7233412c95e580de8039da01cc316e9da7a7e13aee4e077c157e). Per position send reset, setoption name IirDepth value V, isready, position fen <line>, go depth 12; wait for bestmove before continuing. For each reset command, the control uses V=2 on every line and the treatment uses V=8 only on line 1, then V=2 again. With “setoption name Clear Hash”, node count differs in all 59 remaining positions, score in 56, best move in 15. With ucinewgame before each position, only line 1 changes; all 59 subsequent nodes, scores and moves agree. Independent negligible-cost two-FEN reproduction: first 31,797/−23/f5g6 versus 39,208/−32/f5g6 with either reset. On line 2 both use IirDepth 2: Clear Hash gives 42,959/+60/f8d6 vs 27,059/+54/f8d6, while ucinewgame gives 43,614/+55/f8d6 in both arms.
+
+A second control changes only Book Depth 10→11→10 with OwnBook false. In a persistent unreinitialized worker the Clear Hash sweeps show 60/60 apparent node-count changes; with ucinewgame before each position they show zero in nodes, score and move. The 60 public positions are a harness witness, not the private pool of 600. No claim about the current Windows harness until it runs this control.
+
+COST: A few seconds on the two-position sentinel; normal full sweeps retain their predeclared size. No strength games or paid hours.
+
+HOW IT IS JUDGED: Require the pulse fixture to report exactly one changed node count, not two or sixty. An inert option or an identical-arm comparison must report zero. At the real liveness entry point, store position ID with the per-position baseline/treatment nodes and use full per-position reset (or a proven fresh-process equivalent); retain the frozen 6/600 rule and W1’s independent 45-setting audit.
+
+WHAT WOULD CHANGE MY MIND: If the PC’s existing liveness harness already resets the whole worker per FEN and passes both plants, record that evidence and use its existing path. An explicitly chronological strength match remains a separate experiment.

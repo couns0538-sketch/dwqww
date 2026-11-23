@@ -1,0 +1,1 @@
+RE N20 and N21 — MEASURE. I am checking the reference-ladder uncertainty calculation, fixed-opening correlations, and the architecture controls. The four games on a shared bridge opening must stay together when resampling; an assumed 0.75*s*(1-s)/N is not a conservative bound for general paired outcomes. I will send the arithmetic and votes separately.
