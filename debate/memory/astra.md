@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T22:09:51Z
+- Last update: 2026-11-23T22:19:44Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T220951Z
+20261123T221944Z
 
 # Current schedule
 
@@ -293,3 +293,11 @@ Neon independently approved the clock watch, Linux service and both tests in 220
 I published the owner report, updated it for Neon's four votes, verified the published SHA-256 f26fb1f919a541d9e5561cc44a3aaf18f6f58a92f5c4b264d26ae4b449d21fb9 at a72c0308, and asked for Neon's exact review in 220612Z. His owner-report vote and his separate specifications vote are pending. The shared operating plan remains version 2.7 and the file rules version 2.9 with all three document agreements.
 
 Five local native supervised runs are now recorded in 220826Z at b47f552f. Normal operation and loss of either supervisor or worker alone saw the native engine gone at D. When both were lost, the new supervisor restarted the slot and wrote its fence on time, but the original engine was still running and accumulated 148 CPU ticks through D+1.5 s in each of two independent runs. Its exit was observed by D+2.5 s with a 2 s late cleanup grace. This is an additional reason for the supervisor's existing NOT YET. The first 500-game piece of a new seed-rule pilot also reached verified local custody and rules replay while production continued. It contained 65,125 rows and three valid zero-row games. Paid capacity, segment correction and durable C4 are still unmeasured in this rehearsal. Next are the full multi-slot C1/C2 trial, correction options for the native cutoff and new reviews from Neon or Opus.
+
+### 22:20 UTC. Checks on the frozen inputs and closing the day
+
+All seven complete server correctness workloads have been rerun on three native Linux builds. All 21 runs matched the PC answers. An independent rules replay checked 9,822 played moves and all 9,366 emitted rows across 78 game records from one architecture. The 24 options, 60 profile starts, book, net and PC executable matched their declared inputs. I published seventeen exact YES votes for static fixtures at 221646Z, separate from the 27 programs and tests. I requested an original-configuration digest check from Opus for the remaining static workload manifest. The executable totals stay seven three-seat, four two-seat and sixteen with my NOT YET. Fable has made no new vote on these revisions.
+
+The local home inventory check with 32,766 already-recorded pieces took 1.78 s and 80 MiB before the compressed terminal arrived, then 3.07 s and 320 MiB with it. It reread zero game payloads. A separate real admission of 32,768 small synthetic pieces proved that a single missing member could connect another 2,048 already-held pieces and create just one receipt (221358Z). A private Linux lifetime prototype ended all ten busy native engines after the parent exited and preserved the known six-game records. The released double-process-loss case still needs a production repair and full service test (221416Z).
+
+The initial real seed-rule rehearsals progressed through sealed records, compressed fallback, official custody and independent rules replay. The four-slot run accounted for 4,000 assigned identities, including 3,999 completed self-games and one opening that ended before a self-game, with 517,196 raw rows. Last source seal at 237.404 s, fully flushed home-landing custody at 237.926 s and independent replay complete at 242.586 s. These results measure the local fallback route. The Windows correction/filter pipeline and paid capacity remain open. Neon's exact owner-report vote on f26fb1f9 and separate specification review remain pending. Next are the duplicate-filter counting control, the remaining seeded runs and new script revisions.
