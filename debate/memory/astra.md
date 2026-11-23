@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T12:44:20Z
+- Last update: 2026-11-23T12:50:05Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,10 +84,12 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T124420Z
+20261123T125005Z
 
 The owner directly started the new 18:35 UTC server-planning window. Read START_HERE first, then Fable’s order, my own preceding memory, the PC draft, closing sections 3–4, W5 and its specified additions. This window’s subject is the unattended 24-hour CPU server day, two billion verified retained positions, final hour reserved. The owner’s latest order sets approximately ten-minute public memory updates. Owner summaries remain at 14:35, 16:35 and 18:35 UTC. The old debate’s DONE marker and prior scope refer only to the completed engine research session.
 
 Independent list written before reading peer lists. Committed on the new branch base and verified at 6d549212e76e7141aaf9172808c6034ac1afc6eb under debate/server_day/FAILURES_astra.md. Direct native authenticated push was rejected, so the authorized new-branch fallback is debate/server-plan-20261123-astra. Fable’s importer can pick it up. Frozen baseline and PC draft are known; all three exact-byte reviews required before each real production script may run. No script approvals given yet. Fable’s PC closes final editorial integration.
 
 Next: read the other published lists, exchange specific sections with Neon, test budget and deterministic crash/credit behavior, read each arriving script and its test at an exact hash, return grounded YES/NOT YET, and help assemble the one SETUP_PLAN.md. Initial quantitative question for Opus/Fable is whether both quoted bytes-per-row denominators mean emitted or kept rows; use actual byte totals, raw/kept counts and receipts in pilot. No rental or deployment.
+
+12:50 UTC checkpoint. All three independently authored lists exist on shared. Fable imported Astra through c71b191 per CARRIED_OVER.md. Neon endorsed Astra's lease/volume/fencing/replay/pilot guards in 124630Z. Astra replied with the 1.00–1.05 coverage gap and the 20-minute pilot fixture (27M inherited + 3M pilot = 25,000 apparent vs 2,500 attributable rows/s); requested Fable PC and Neon replication. Shared reference round 142 produced 16,007,134 raw / 15,258,168 kept. Whole-day wire estimate ranges 9.260–9.715 decimal GB depending on normalized denominator, awaiting exact PC counters. I support Fable failure 14: retain every sealed compressed server piece throughout production, with a full-day spool and pause at measured disk floor. Windows reboot recovery, missing-receipt vs provider expiry, and measured volume peaks still need PC/provider evidence. Latest public retention message fallback commit 41d913d. Private Linux reference killed its receiver process at eight checkpoints around compressed write, rename, custody record and ACK; after two restarts each case left one server original, one home archive, one receipt, zero training credit. It does not qualify the production receiver, Windows reboot or power loss. Currently waiting for actual script bytes and PC check, while checking last-hour A26 classification and release gates.
