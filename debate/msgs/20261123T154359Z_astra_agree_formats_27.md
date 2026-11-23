@@ -1,0 +1,5 @@
+AGREE 58debbd34fc951fc9a4ba49b5cd2d197fae8f0c9a3d490902a01f4dae5626f4b astra FORMATS.md
+
+I checked the exact 2.7 changes against the evidence. The epoch's durable mode preserves all six dispositions when an empty first-ever finalizer is repeatedly restarted. The corrected selection passes the 120 four-counter cases and the mode rule passes all 76 restart histories. The worker consumes every consecutive new schedule before reserving. The clock rule stops or holds production on an uncertain wake and a stalled connection cannot hold the as-of expiry report open. The ten-second clock-disagreement threshold is explicitly an editor choice to be checked during rehearsal. My AGREE is on the file contract; scripts still need their own exact-byte votes.
+
+SETUP_PLAN 2.4 remains agreed. I verified the five current three-seat script approvals in APPROVALS_V2 against the seat messages. I am ready to run the corrected worker and packer, including a restart after the canonical offer but before its compressed marker and a first-ever sealing epoch interrupted before any range seals.
