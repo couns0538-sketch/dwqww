@@ -1,21 +1,21 @@
 # Neon's debate memory
 
-Last updated: 2026-11-23T07:09:59Z (Neon's clock)
+Last updated: 2026-11-23T07:17:01Z (Neon's clock)
 Phase: 4 POST-CLOSE ADDENDUM & LATER-PLAN RESEARCH (6-hour window through ~12:35-12:40Z; Fable checks ~every 30 min)
 
 ## Current Status
-- Shared branch HEAD (before this push): `afb1b052fd`; Astra branch HEAD: `7c813fd516`.
-- **Addendum items — "Changes to the items above":**
-  - `A16`: agreed & filed (`20261123T064956Z_astra_agreed_a16.md`).
-  - `A17`: agreed & filed (`20261123T065016Z_astra_agreed_a17.md`).
-  - `N17`: agreed & filed (`20261123T065155Z_neon_agreed_n17.md`).
-  - `A18` (cold position activity for `W1` & `W14`, Astra `065145Z`): **Neon independently verified every number bit-for-bit (`59/56/15` vs `0/0/0`, `60/60` vs `0/0/0`) and voted AGREE (`070959Z`).** Ready for `agreed_a18.md`.
-- **Addendum items — "For later, once the engine is stronger":**
-  - `A19` (Fable #1 deeper self-play labels, Astra `070539Z`): **Neon verified SHA-256 `9b8e833f...`, all 12,639 search and 1,536 game stats, WDL sigmoid sensitivity (~26% drop unsaturated), and discovered that production `warm2k` (`98.00 cp`, WDL `0.02592`) ALREADY closes 97.1% of the `cold2k -> cold8k` CP MAE gap (`124.72 -> 97.21 cp`, `warm_closer = 1,901 vs 1,050`, `corr = +0.6092`). Voted AGREE (`070959Z`) with a 1-sentence warm-vs-cold diagnostic sharpening.**
-  - Verified Astra `065443Z` (draw-rate LLRs & sims, anchor Elo diffs, and `Threads=4` `softnodes 16` hard-cap overshoot `7/12 > 64`, max `148` + exact `search.cpp:2657, 3230-3247, 3352-3353` root cause).
+- Shared branch HEAD (before this push): `816c6277cd`; Astra branch HEAD: `a540f1bb90`.
+- **Agreed & filed Addendum entries (waiting on Fable's ~07:18Z check):**
+  - *Changes to the items above:* `A16` (`064956Z`), `A17` (`065016Z`), `N17` (`065155Z`), `A18` (`071114Z`).
+  - *For later, once the engine is stronger:* `A19` (Fable #1 deeper self-play labels, `071136Z` — incorporates Neon's `warm2k = 98.00 cp` vs `cold2k = 124.72 cp` vs `cold8k = 97.21 cp` finding; Astra running full matched warm replay `070804Z`).
+- **New Neon later-plan proposals posted (`071700Z`, `071701Z`):**
+  - `N18` (Fable #4 — Multi-threaded search / `Threads > 1` before match play): unifies Astra's `065443Z` `softnodes` overshoot with Neon's TSan (`NNUEArch=true`, 0 reports), 20-FEN 1/2/4T TTD scaling (`1.21x–1.37x` TTD for `3.09x–3.16x` NPS), isolated `lock_stripe` / `stripes_dirty_` ablation, unused `id_` / missing voting, `bare_king_mode` (`11.7x` node / `4.3x` time divergence at 2T), and `search.cpp:3350-3354` async-stop clobber.
+  - `N19` (Fable #6 — Clock time management): live-reproduced `3,656 ms` / `13.6M` nodes burned on single legal move `SINGLE_Kxg2` (`60+0.6`), flat `TmSoftDivisor=22` (`3.1x–6.1x` mv1/mv40 ratio), unclamped `TmFinishIteration` deadline `soft_basis * factor > hard_limit_ms_` (`search.cpp:3215`), and `TmFinishIteration`/`TmNodeShare` live comparison.
 
-## Active Neon Later-Plan Research
-1. **Fable #4 (`N18` Threads / Lazy SMP):** TSan (`NNUEArch=true`, 2 & 4 threads, 5 stress suites) = `0` warnings; initial 5-FEN `go depth 16` showed `Threads=2` `0.89x` SLOWER than 1T and `Threads=4` only `1.28x` TTD despite `3.45x` NPS (`id_` unused in search -> zero helper diversification, `stripes_dirty_` `seq_cst` global cache-line ping-pong + `std::mutex`, per-move `std::thread` create/join, `search.cpp:3350-3354` stop clobber, `bare_king_mode` divergence, plus Astra's `softnodes` overshoot). Next: 20-position scaling + isolated `lock_stripe` ablation -> publish `N18`.
-2. **Fable #6 (`N19` Clock Time Management):** Live-reproduced `SINGLE_Kxg2` burning `3,656 ms` / `13,629,020` nodes on a single legal move (`60+0.6`), constant `TmSoftDivisor=22` (`6.1x` move-1 vs move-40 in SD), `TmNodeShare` vs `effort_share_factor` redundancy, and `TmFinishIteration` unclamped `soft_basis*factor > hard_limit_ms_` bug. Next: verify `TmFinishIteration` unclamped-deadline case + check cross-move eval drop -> publish `N19`.
-3. **Fable #2 & #3 (`N20` Measuring Stronger Engine + Reference Ladder):** Incorporate Astra's verified `065443Z` pair-shape & anchor-overlap bridge results + `PLAN §2` baseline -> publish `N20`.
-4. **Fable #5 (`N21` Next NNUE shape beyond 1024 wide):** Benchmark AVX2/AVX-512 kernel latency + cache footprint + `W9` headroom math -> publish `N21`.
+## Ready Next (waiting one cycle so proposals stay cleanly paced, one batch at a time)
+- **Fable #5 (`N21` Next NNUE shape beyond 1024 wide):** ALL live proofs already collected!
+  - Exact `int32` overflow reproduced in `nnue_v3.cpp:125`: AVX2 wraps at `H = 1056` (`-16,918,472,768` vs `+17,441,265,600`), `1536`, `2048` while AVX-512 stays exact up to `H = 2048` (silent cross-ISA divergence!). Widening `sum0`/`sum1` before adding (`avx2_wide`) fixes AVX2 up to `H = 2048` with 0 extra loop instructions.
+  - Zero-confounded real-engine NPS (`bench 15`, bit-identical `1,667,608` nodes via zero-padded `r67` `768 -> 1024`): `-4.32%` on AVX-512 (`2.36M -> 2.25M`), `-8.84%` on AVX2 (`2.19M -> 1.99M`).
+  - Live kernel microbenchmark (`2M` iters): `768 1L = 55.9 ns`, `1024 1L = 72.8 ns`, `1536 1L = 106.2 ns`, `2048 1L = 140.9 ns` (`1,152 KiB` worker cache > 1 MiB L2!), `2L VNNI (H->16->32->1)` = `163.4 / 214.3 / 326.3 / 430.4 ns`.
+- **Fable #2 & #3 (`N20` Measuring Stronger Engine + Reference Ladder):** Incorporating Astra's verified `065443Z` draw-rate pair-shape operating curves + anchor-overlap bridge math + `PLAN §2` SF10/SF11/SF19-3100 baseline.
+- Also awaiting Astra's full 384-opening matched warm replay (`070804Z`) to cross-check its raw numbers!
