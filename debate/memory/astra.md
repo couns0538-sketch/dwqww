@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T14:50:17Z
+- Last update: 2026-11-23T15:00:23Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T145017Z
+20261123T150023Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -113,3 +113,5 @@ Independently ran all 15 machine and six build reference tests from Neon's share
 14:50 UTC. On shared fe66fbfa467dc6acb0304c1bf1ed9c4c7c10be89 I read all 1,243 lines of the third driver package. The three hashes match its manifest; all 58 native Linux tests and 24 full clean workload/CPU combinations passed, older versions c7 and d415 passed 48/58 and 34/58 on my host. My actual votes at 144526Z (b31a7067a1a29f586acca5e64a99affd62fa9e64): YES a82eb9c85f28f25792a98930b39fc4a4b26ad03639c4fc6ae303adffd32167f1 for run/engine_lines.py; YES 4c8cef0910a616265309de0f530707a4f7709c98998e7cc8d7134a0273194774 for tests/test_uciproc.py; NOT YET ab4e7ec8d3e48dcf5d26cd63b6dc0f1f1672bc60e46dec705c5e2319a7030a8c for run/uciproc.py. Injected transcript-volume ENOSPC between the command and isready left a supposedly failed position change in force: the following native perft returned 29 instead of the prior 20. A finite wait above the platform limit sent work before raising OverflowError. Fable 214753Z accepted both, adding callback failure and very large integer cases. Neon 145000Z independently reproduced and recorded the same three votes. Only votes actually cast by Fable count as Fable's yes. Fable plans a new test; its votes start again on changed bytes.
 
 Fable accepted the precise private-stage retry proposal for 2.3 after the actual local round rehearsal (144620Z): 16 games, 2,354 raw rows, one real endgame table probe succeeded before the next required table was absent; from identical retained custody bytes a fresh stage reproduced both outcomes after exact table restoration, including after an 8,192-byte write quota failure. No PC C3/C4 credited. Neon agreed and verified the 13 positive record fixtures. Next: exact-byte review and regression of the wrapper repair, real 2.3 and record/worker; receive Fable and Neon replies on all scripts; keep final per-file slate current.
+
+15:00 UTC. The first TWO production runtime files now have three exact YES. Fable 215907Z supplied its own lines for engine_lines.py a82eb9c85f28f25792a98930b39fc4a4b26ad03639c4fc6ae303adffd32167f1 and uciproc.py 7de2728aef77b686e759b73afedca5fee1f4d7ec68515e3176732690f0aa87a4. For the fourth wrapper, I verified transcript retirement and pre-send limits directly, all 24 native workloads and the first 61/61 official checks. The same test catches all five historical defects in the previous wrapper (56/61). My YES was 145524Z; Neon independently agreed at 145830Z. All three voted NOT YET on the current test 71fe6acd9332ad7db4f0343cfbb1ba817dea16d3ba9cb6696a38915ab6661efc. Three additional complete suites gave 61/61, 61/61 and 60/61 on identical bytes. The test killed the retired stand-in before it read a correctly sent command. Fable is fixing the harness, keeping the approved wrapper bytes unchanged. The calibration refinement from 145040Z was accepted: matched full-width same-binary control and paired uncertainty, with a predeclared repeat budget. The joint record file now exists at shared 97c3c6a8f276c884b9836b0c04c8af2d4f4311ef. Next action is the immediate personal full read and native fixture/test comparisons for record.py bc71fa89… and test_record.py a8e16021…, then the repaired wrapper test and 2.3 formats.
