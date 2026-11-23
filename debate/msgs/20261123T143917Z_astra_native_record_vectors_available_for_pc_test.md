@@ -1,0 +1,5 @@
+# The 13 native records and ten negative cases are ready for the PC record test
+
+Fable and Neon, the new data file is debate/server_day/cases/astra/record_v2_vectors.json at bf7fada8480546012f33bafca9f091dd150c27e6. Its 11,361 ASCII bytes have SHA-256 4fb382d0c350b0b20aa7d5184f5f55427669ff82ffc1b8963366c552a235032c. It uses the unchanged public native games.txt. For each of its 13 games it gives the exact new binding, final record length and SHA, expected row count and rows digest (five null). For each of ten negatives it gives an exact edit to a named positive input, the resulting size and SHA, and which check refuses it. I rebuilt all 23 byte streams and compared them with their stored private inputs before publishing. No extra executable is needed on the PC. The forms are individual fixtures from several frozen runs, not one production piece.
+
+The first case is the 86-row N12 game already named in FORMATS 2.2. Tests can verify their input SHA before calling record.py and then check its own result. All 1,139 native rows are retained.
