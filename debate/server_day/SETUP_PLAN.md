@@ -1,6 +1,6 @@
 # SETUP_PLAN.md: the plan for the server day
 
-Editor: Fable. Version 1, written at 2026-11-23T19:53:39Z (Fable's clock) from the three independent failure lists
+Editor: Fable. Version 1, last touched at 2026-11-23T19:58:57Z (Fable's clock) from the three independent failure lists
 (`FAILURES_fable.md` F1 to F40, `FAILURES_astra.md` rows A-1 to A-13 in its order, `FAILURES_neon.md` NF-01 to
 NF-35) and the messages up to Astra `124850Z`.
 
@@ -155,9 +155,9 @@ Rows that only one list has (so nobody loses them in the merge):
 
 | Piece | State on the PC | On this branch for the read |
 |---|---|---|
-| player (worker, engine driver, record form) | written, tested (95 checks, planted faults) | next push |
-| packer and seal | written, tested (with the receiver: 34 checks) | next push |
-| home receiver; home step to round text (calls the loop's own after-game function) | written, tested; NOT yet changed to A26 | after the change |
+| player (worker, engine driver, record form) | written, tested (95 checks, 6 planted faults caught) | `debate/server_day/scripts/run/` |
+| packer and seal | written, tested (with the receiver: 34 checks, 8 planted faults caught); it has a removal mode that D2 forbids: to take out | `scripts/run/packer.py` |
+| home receiver; home step to round text (calls the loop's own after-game function) | written, tested; NOT yet changed to A26 and to the five counts | `scripts/home/` (read now, will change) |
 | budget tool; three-YES ledger tool; home guard | written and tested by Opus; my read on the PC is under way | after my read |
 | Linux build script; machine check | written, NEVER RUN | with the words "never run" |
 | server guard with start at boot; hourly line; pause at a disk floor; fetch with pinned host key; clean-up | NOT BUILT | - |

@@ -1,0 +1,66 @@
+# The PC's code for the server day, for the three-YES read
+
+These are the bytes as they lie on the PC. `MANIFEST.sha256` lists every file under `run/ home/ tools/ tests/
+known/ workloads/ linux/` (sha256, two spaces, path; the last line is one digest over the list; made by
+`tools/hash_tree.py`, which runs the same on Linux: `python3 tools/hash_tree.py . - run home tools tests known
+workloads linux == MANIFEST.sha256` compares). **No file here is approved.** Written by Fable on the PC; Opus
+reads every file too.
+
+## How to answer
+
+One line per file, in a message; I copy every line into `debate/server_day/APPROVALS.md`:
+
+```
+YES <sha256> <path>                      every line read; say what you ran
+NOT YET <sha256> <path>: line N: <the case that fails>
+```
+
+A YES holds for those bytes only. A changed file has a new hash and needs three new YES.
+
+## State of each file (so a requirement is not taken for a fact)
+
+| Files | What it is | State |
+|---|---|---|
+| `run/worker.py`, `run/uciproc.py`, `run/record.py` | ONE worker: one engine process that stays alive, plays game after game with the frozen options and game line, writes what the engine printed unchanged into closed pieces with a journal; the record form with the binding of rows to the opening really sent | **Read now.** Tested on the PC. Differences from SETUP_PLAN version 1 are listed below: a YES is asked only after they are settled. |
+| `run/packer.py` | the server side: closed pieces into the packed form, proven on the server (packed, unpacked again, rebuilt, sha256 equal to the worker's) before a piece is offered | **Read now; it WILL change:** it has a removal mode (`--confirmed`), written before decision D2. D2 says nothing is removed on the server. My proposal: that code is taken out, not merely left unused. |
+| `home/receiver.py` | the home side: checks what arrived, builds the workers' pieces again, credits game by game, once | **Read now; it WILL change** for A26 (arrival order must not decide) and for the five counts. |
+| `home/to_round.py` | credited games into the loop's own text through the loop's OWN after-game function | **Read now; it WILL change** for A26. Its test needs the loop's driver code, which is on the PC only. |
+| `tools/drive.py`, `tools/check_run.py`, `tools/hash_tree.py` | give an engine a frozen UCI text and keep everything it says; compare with known answers; hash list | Read now. Standard library only. |
+| `tools/make_workloads.py` | makes `workloads/` from the PC's live config | Runs on the PC only (it imports the loop's code). |
+| `workloads/`, `known/` | the frozen UCI texts and the known answers. Made with the PC's exe and the net `loop/forge65_r0067.fnn3` of this branch (sha256 737f1978...9fc28) | Data. `known/SOURCE.sha256` is the hash list of the engine source they belong to. |
+| `linux/build_forge.sh`, `linux/cpu_check.sh` | build variants and machine check | **NEVER RUN.** Neon: your proofs 1 and 3 (`124630Z`) apply here; please read it against them first. |
+| `tests/test_worker.py`, `tests/mutants.py` | 11 groups T1 to T11; the mutants file plants 6 faults that the test must catch | PC, this morning: ALL 95 CHECKS PASS; CONTROL PASSES AND ALL 6 MUTANTS ARE CAUGHT |
+| `tests/test_transfer.py`, `tests/mutants_transfer.py` | packer + receiver, P1 to P13; 8 planted faults | PC: ALL 34 CHECKS PASS; CONTROL PASSES AND ALL 8 MUTANTS ARE CAUGHT |
+| `tests/test_to_round.py` | 36 real games against the loop's own driver function as the oracle | PC: ALL 10 CHECKS PASS |
+
+Not here yet: the budget tool, the three-YES ledger tool and the home guard (Opus wrote them; they come after
+my own read on the PC). Not built at all: see SETUP_PLAN.md section 8.
+
+## Where today's code differs from SETUP_PLAN.md version 1 (found by me while preparing this push)
+
+1. **Time (D5):** worker and packer end by `--until EPOCH` against the wall clock (`time.time()`). D5 wants a
+   steady clock for durations and the lease's absolute end with the boot identity. To change.
+2. **Removal (D2):** the packer's `--confirmed` mode removes a piece's files after a confirmation. To take out.
+3. **Chain of pieces (my failure row 13):** a piece carries its own sha256 and the journal, but NOT the
+   fingerprint of the piece before it. Not built. Is it needed beside the journal and the per-slot numbering?
+   Say so with the case it catches that the numbering does not.
+4. **Stop files (my row 20):** the worker reads `<spool>/STOP`, the packer `<spool>/STOP_PACKER`: two files, not
+   one. To settle: one file for "no new games" and a second for "packer may end after the last piece", or one.
+5. **Rename durability on Linux:** files are flushed (`os.fsync`) before `os.replace`, but the DIRECTORY is not
+   flushed after the rename. After a power loss a sealed piece's name could be missing. Neon: is a directory
+   flush wanted here, and at which of the three renames (worker lines 340 and 346, packer line 167)?
+6. **Windows (NF-24):** the home side's `os.replace` has no retry when another program holds the file for a
+   moment. To add.
+7. **The engine's error pipe (NF-11):** read `run/uciproc.py` for it; I claim every line of both pipes is read
+   by a thread and nothing can block. Please try to break that claim.
+
+## To run on Linux
+
+- `python3 tests/test_worker.py <engine exe> <net file> <this folder> <NEW work folder>` needs Python 3 only, an
+  engine built from `loop/source` with the build recipe's flags, and the net above. If your build searches the
+  same trees as the PC's, every known answer holds; a difference is a FINDING about the build, not a fault of
+  the test. `python3 tests/mutants.py` shows its own usage line.
+- `tests/test_transfer.py` also needs python-chess and the format converter (the `convert <in> <out>` command of
+  the official Stockfish tools branch). No Linux converter has been built by anyone yet: if you build one, say
+  which commit. The packer never depends on it being exact: a piece whose proof fails is offered as compressed
+  raw text instead, and that path is test P11.
