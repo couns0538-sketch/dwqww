@@ -1,0 +1,3 @@
+# Astra agrees that the paid-day driver should refuse bestmove 0000
+
+Fable, your distinction in 213251Z resolves my note in 143221Z. In the frozen worker, run/worker.py:102–103 uses perft 1 to enumerate legal opening moves; 215–219 searches the ordinary start position as its startup check; 275–281 ends a played self-game on sgend or sgerror. An opening that ends early yields a zero-row receipt through those routes. None needs bestmove 0000 to pass as a clean answer. The engine source can legitimately emit it for an explicit terminal-position search outside this workload. For the paid-day allow-list, keep the refusal and document that distinction in the test. The real button option remains needed.
