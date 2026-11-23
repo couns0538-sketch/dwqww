@@ -1,23 +1,24 @@
 # Neon Phase 4 Memory (2026-11-23)
 
-## Current State (09:02Z)
-- Shared branch `debate/forge-plan-20261123` synced; Fable entered Batch 2 (`A20`, `N18`–`N21`, `A21`, `A19` warm recount).
-- Waiting for Fable's next event-driven look (~45 min after first new `_agreed_` / `_to_fable`; closing look `12:40Z` UTC, deadline `12:35Z`):
-  - `AGREED A22` (`083324Z`, Astra): 40-pass max pairwise co-batch retention `<= 0.10`.
-  - `AGREED N22` (`083557Z`, Neon; confirmed on stock binary by Astra `085538Z`): post-stronger-net & high-depth two-stage search re-calibration ("For later").
-  - `084106Z_neon_to_fable_kill_tree.md`: answered Fable `153513Z` on Windows `psutil 7.2.2` kill-tree / `TerminateProcess` / `EnumProcesses` / Job Objects.
-- Independently verified Astra measurements:
-  - `081746Z` (`A19` SF17.1 referee) + `082109Z` (offline TB bound) -> posted `084238Z`.
-  - `085039Z` (castling-rights sensitivity), `085323Z` (phase-`K` calibration negative), `085538Z` (`N22` stock panel) -> posted `090214Z`.
+## Current State (09:49Z)
+- Shared branch `debate/forge-plan-20261123` synced through Fable `3489272237` (`161335Z` third addendum). Closing look `12:40Z` UTC (`_agreed_` cutoff `12:35Z`).
+- **TWO NEW AGREED ITEMS READY FOR FABLE'S NEXT REVIEW (Batch 4):**
+  1. **`AGREED A23`** (`093214Z` Astra, co-signed Neon `093520Z`): W5(c,e,f) server rehearsal binds immutable per-game reservation/local-fallback, actual serialized `position` write, and returned receipt under exchanged concurrent A7 histories & restarts (no mandatory production `sgstate`).
+  2. **`AGREED N23`** (`093730Z` Neon; Neon `092931Z`/`093520Z`, Astra `093243Z`/`093458Z`/`093539Z`/`093840Z`): W1 final-value liveness audit & N22 Stage A — adds `final vs start` & `final vs [min, max]` descriptors for `0/600` local-step settings, restricts automatic reversion of a changed `final` strictly to structurally disabled parent guards in the deployed final vector (`EvalSwingMax`, `CaptureFutilityDepth`/`Multiplier`, `AspFailHighMaxReduce`) or source-proved global equivalence (`QsSeeMargin` 100-cp bin `floor(M/100)` at `1857`/`board.cpp:25`), and requires an `A18`-clean whole-vector parity check (`deployment` vs raw `final` on 600 positions, cancelling any suspect reset on first diff). Both seats reproduced 60-opening d12 plateaus, `SingularDepth 14 vs 15` 250k censoring (`58/60`), and legal `-1000` SEE witness `8/7k/8/1R6/8/7K/p7/1n6 w - - 0 1` `b5b1`.
 
-## Completed Local Diagnostics (Scratch in `/tmp/`, `source/` untouched)
-1. **`r67_h768` weight & activation audit (`n=5,881` selfgame rows, `max_err=0`):**
-   - King-bucket residual RMS `3.86/88.58`, yet shifts eval `mean|diff|=25.39 cp` (`max=256 cp`); output buckets `mean|8ob-1ob|=47.78 cp` (`132.5 cp` in `ob=0`); SCReLU median active `7.89%`, `8/768` dead, `14/12,288` `w2` at `|w2|==127` (`11` in `ob=0`).
-2. **Correction-history saturation & LOO residual audit (`search.cpp`, cold `2k..1M` + warm persistent `20k/250k` games):**
-   - Clean negative: all 6 tables (`pawn`, `mat`, `np_w`/`np_b`, `joint`, `cont0`, `cont1`) reduce MAE (`LOO - corr > 0` in all regimes; warm `250k` MAE `63.68 -> 45.44 cp`), saturation `<= 4.25%`, cancellation `1.378x`. Do NOT propose changing.
-3. **Full `source/` audit (`search.cpp`, `uci.cpp`, `board.cpp`, `nnue_v3.cpp`, `clock_plan.hpp`, `tm_*.hpp`) + ASan/UBSan sweep:**
-   - Compiled unmodified `source/` with `-fsanitize=address,undefined -DFORGE_PAWN_HISTORY=1 -DFORGE_SDK_BADCAP_PREFIX=1`; ran ALL 26+ currently-OFF search options ON together across `1T`, `4T` (`HistRework=0..3`), `MultiPV=4`, clock searches, `selfgame`, option toggles, malformed UCI: **0 ASan/UBSan errors**.
-   - Noted minor latent details to test/check next:
-     - `nnue_v3.cpp` AVX2 path lacks fused `apply_pair_and_evaluate` (also double-calls `collect_changes`), lacks 2x unroll in `output_sum_avx2`, and lacks 4-column batching in `refresh_from_pieces` (relevant if rented Linux CPU or Fable's PC uses AVX2, especially for `W13` `H=1024`).
-     - `search.cpp:1224` `Worker::clear()` skips clearing `pawn_history_` when `PawnHistory==0` (stale state if toggled off before `ucinewgame` and back on).
-     - Still to check: TSan on 4T Lazy SMP, `W14` individual option activity & interactions (A18-style), `nnue_v3` `w2` `|w2|<=127` quantization/clipping & AVX2 speed impact at `H=768`/`H=1024`, `eval.cpp` / `nnue.cpp` / `book.cpp`, and Astra's pending results (`082001Z`, `082621Z`, `083029Z`, `085142Z`, `085343Z`).
+## Independently Verified Astra Results (All Exact)
+- `090010Z` (W5 Linux build handoff), `090705Z` (510 board-finished continuations), `092804Z` (equal-cost readout), `092801Z` (offline quiet-move prior), `093458Z` (`N23` deeper panel & SEE witness), `093502Z` (`768->640` width compression negative), `094234Z` (live quiet-tie negative closure: `3.040937%` tied, prior rank `3.135775` vs native `2.802292`, `-0.333483 [-0.403080, -0.260419]`; `events.csv` SHA-256 `ed02a6a9...` & all 11 6-decimal CIs exact).
+
+## Pending Astra Measurements to Verify When Posted
+- `094111Z` (`has_legal_move()` pawn shortcut benchmark)
+- `094601Z` (`N20` opening-suite information-rate diagnostic, 4k vs 2k hard nodes, 2x128 pairs)
+- Earlier pending: `085142Z` natural castling, `090046Z` output-bucket head ablations.
+
+## Completed Local Diagnostics & Active Profiling Work (Scratch in `/tmp/`, `source/` untouched)
+- `r67` weight/activation audit, correction-history saturation/LOO audit, ASan/UBSan sweep, 4T Lazy SMP TSan sweep (0 warnings), `W14` 5-candidate firing-rate audit, `FORGE_NNUE_V3_VERIFY=1` + asserts torture test on `r67` + max-boundary `1024/16KB` & `1024/32KB` nets across AVX-512 and AVX2 (bit-exact `353/353` rows, 0 mismatches).
+- Noted compile check for `W5(a)`: `-DFORGE_SPD_NNUE_ZMM=1` hard-fails on non-AVX-512 targets (`source/src/nnue.cpp:28`, must set `=0` for AVX2 variants).
+- **2,000 Hz `SIGPROF` profile of 60 `r67` `selfgame softnodes 2000` games (`29.8M` nodes):**
+  - `has_legal_move()`: `1.22%` AVX-512 / `1.63%` AVX2.
+  - `nnue::v3`: `22.2%` AVX-512 / `27.9%` AVX2 (`AVX2` is `+5.62%` slower than `AVX-512` on `r67`).
+  - Exact v3 path counts (`13,351,483` evals): `3,089,300` `refresh_from_pieces` calls (`75.3%` `n_sub<=3`, `75.4%` `n_add<=3` — skipping the 4-col AVX-512 loop!), `4,068,120` `make_valid` evals (`30.5%` of all evals) unfused before `evaluate()`, and on AVX2 all `9,104,938` `fast_pair` evals run unfused + double `collect_changes`.
+- **Next:** Pre-declare and rigorously measure an exact 0-node-change `nnue_v3` kernel/fusion benchmark (single-pass tiled `refresh_from_pieces`, fused `make_valid` final ply, fused AVX2 `apply_pair_and_evaluate`) across `H=768` (`r67`) and `H=1024` (16 KB) on both AVX-512 and AVX2, ONLY proposing if it delivers a clean, repeatable, zero-regression speedup!
