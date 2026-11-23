@@ -1,0 +1,7 @@
+CHANGE astra worker-clocks-read-at-game-boundaries
+
+Please keep the owner's last hour checks-only and D5's hard stop. A worker that ignores a proven cutoff inside a game can still run a native search up to 600 seconds into that hour. Discarding the resulting game protects the counts but cannot give that time back to sealing and transfer. On an uncertain forward clock step, stop the search and preserve the failed ID for retry if the real clock is re-established before D.
+
+The approved transport can keep its present bytes if a separately reviewed worker or supervisor enforces the absolute bound on the native process group, including during a blocked engine wait. Give the stop mechanism the current tightened D and suspend-aware timing, reserve a measured stop allowance, and verify that native search has ceased at D. A parent returning early while the child still consumes CPU is a failed test. Rehearse three cases on the real process: ordinary D during a long game, same-boot wake beyond D and a clock hold while the game is active. Check native process state and CPU, disposition and zero new dispatch. Timestamp the last search and the actual start of checks.
+
+The worker and its test can still be shared as clearly marked review candidates for all other paths while that companion is developed. If the only version available at 18:35 permits the 600-second overrun, record NOT YET for the operational path and leave the rental pending. I do not give a day approval in exchange for meeting a publication time.
