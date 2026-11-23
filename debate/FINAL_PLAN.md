@@ -923,6 +923,92 @@ proof, and what Fable's own check showed and did not show.
     targets. So nothing that exists satisfies the item for the reader from disk: it goes into W8's reader
     harness on the fixture of A17, A20 and A22, before the qualification training.
 
+- **THE OWNER'S DIRECTION OF 23 NOVEMBER FOR THE SERVER DAY (changes W5 (c), (e), (g) and A11; his own, not
+  an item that was voted on).** Entered at 2026-11-23T18:49:18Z (Fable's clock); put to Astra and Neon in Fable's
+  `183232Z` and `183849Z`; the arithmetic checked by Astra (`113741Z`).
+  - 23 hours produce; the LAST hour only makes sure that everything is right and at home. A11's closing term
+    is one hour, or the measured closing time if that is longer. 2 billion kept rows in 23 hours need 24,155
+    verified kept rows a second (2,000,000,000 / 82,800 s = 24,154.59); with two hours of set-up inside the
+    23, 26,456. A11's formula stays: (target - rows verified at home) / (end of production - now). Rows that
+    are queued, raw or on the server's disk are not verified rows.
+  - Everything runs from scripts and goes on with no session of any AI attached, the whole day, so that as
+    little as possible is lost when nobody is there. Every piece is compressed and sent as soon as it is
+    closed. Filtering at home begins with the first complete round, not after the day.
+  - How much fits is calculated before the rental from measured rates only: kept rows an hour of the frozen
+    producer at the day's real worker count, and games an hour of any match that is to run on that machine.
+    A match gets core-hours of the day only if it was declared before the rental with its bar, and only from
+    what the pilot shows is left over after the 2 billion (Fable's reading of his words).
+  - No mistake is allowed. The set-up of the server is planned first: that is the next step of Astra and
+    Neon, on his word, with a first draft from the PC. Then every script of the day is checked by Astra,
+    Neon and Fable and needs the yes of each, in a session he starts himself. This debate has approved no
+    script of the day.
+  - The plan must hold for another machine. The one he named (one AMD EPYC 8534P, 64 cores / 128 threads,
+    576 GB of memory, two NVMe disks of 3.84 TB, Ubuntu 26.04) may not be free on the day; then he takes
+    another one or the day waits. Nothing is assumed from a model name: core and thread count, processor
+    flags, memory and disks are read on the day, each with a stated minimum below which the day does not
+    start.
+  - One number nobody has yet and the rehearsal must measure: how many rows a second the PC can receive,
+    rebuild, check, write as round text and filter. Below the server's rate the filtering ends after the
+    day; nothing is lost by that, and the plan must say it.
+  - After the server day he decides between graphics-card servers and more processor servers.
+
+- **A26 (changes W5 (e); Astra, with precisions by Fable and safeguards by Astra). The text of a home round is
+  a function of the credited games alone, never of the order in which pieces arrive.** Entered at 2026-11-23T18:49:18Z
+  (Fable's clock). Agreed wording: `20261123T114850Z_astra_agreed_a26.md` (Astra `112803Z`, `113105Z`, `113741Z`, `114050Z`; Neon
+  `114741Z`; Fable `183232Z`, `183951Z`).
+  - THE ORDER. A round holds fixed integer ranges of game numbers, written down before play (unequal last
+    ranges included). The accepted games are written in the order (logical worker slot, game number, row
+    inside the game) BEFORE the existing filter is applied. The slot is the logical one frozen in the
+    manifest, also when a replacing process finishes the game. A retried identical receipt is credited once.
+  - THE RELEASE. A slot's range is released only when the home side holds and has verified every piece of
+    that slot from its first through the one up to which the SOURCE has declared the range sealed. It is
+    never inferred from the game ids at home, from a later piece or from time. A game without rows is an
+    explicit record. There is no exact timeout rule for a slow slot: recovery goes on (a replacement under
+    the same logical id, seed, input, program, net, options and new-game command), other complete ranges are
+    staged and verified meanwhile, and nothing is released early.
+  - ONE GAME ID WITH TWO DIFFERENT COMPLETE RECORDS. The digests of both are kept. The record of the lower
+    piece number is the only candidate, and it is credited only when its binding (A23) holds and an
+    independent replay from the reservation gives the same record; anything else puts the id in quarantine
+    and counts it as a deficit, never as verified rows. (Fable's `183951Z` had said: the copy that equals
+    the replay; the joint record's stricter rule stands.)
+  - AFTER THE SEAL. The same sealed piece again is acknowledged again; other bytes under a sealed index stop
+    the writer, which never rewrites a round.
+  - THE LAST HOUR reports three classes apart: verified sealed rounds; empty records confirmed by the
+    source; incomplete rounds with their missing ids and pieces. Only verified kept rows count toward the
+    target; a partial snapshot is marked partial and never gets the standing of a complete round.
+  - JUDGED in W5 (e)'s rehearsal: the same logical games delivered forward, in reverse and mixed, cut into
+    pieces differently, with a predecessor piece arriving late, interrupted and restarted before a round
+    closes, with one identical receipt retried, give the same
+    raw round text byte for byte, then the same kept records and counts from the real filter and the same
+    credited ids. A planted writer that follows arrival must keep +19 in one arrangement and +42 in the
+    other, or the fixture is inert; so must a writer that orders by the process that really played a game
+    instead of its logical slot; a release on id coverage must FAIL on the prefixes below; two unrelated
+    keys both stay; a repeated key across two ranges shows that the filter starts afresh in every round.
+  - Why: the PC's filter keeps the FIRST row of a repeated position in a round's text (files in name order,
+    rows in file order, nothing sorted). Two natural rows with the same four fields, game 408 (+19) and game
+    4090 (+42): A then B keeps +19, B then A keeps +42. So a writer that follows arrival lets the transport
+    choose a training label after every game was credited correctly; counts, checksums of unordered games
+    and valid ids do not see it.
+  - Proof (Astra): 517 and 421 raw key labels change when two sets of 4,096 games are reversed (exposure,
+    not what the PC keeps). Five pieces of two slots with one game without rows and two different copies of
+    one id, in all 120 delivery orders: one result once everything sealed is at home; in 24 prefixes every
+    id is at home while the slot's first piece is missing, and a release there keeps +42 where the full set
+    keeps +19. 18 whole games replayed in a fresh process equal the persistent producer byte for byte; 16 of
+    18 differ when the new-game command is left out; two engines killed in the middle of games 408 and 4090
+    gave all 292 rows again with the original digest (Astra's machine; repeated by Neon on its own with
+    the same digests: 18 of 18, 16 of 18 different without the new-game command, both kills).
+  - Fable's check: the PC's real filter, unchanged, on the two rows (`debate/evidence/fable_w5e_filter_order.txt`):
+    +19 and +42 as said, also across two files; two different keys both stay. The 120 orders with a script
+    of Fable's own (`debate/evidence/fable_a26_fixture_recount.txt`): one result for all 120; the 24
+    prefixes, each keeping +42; closing without one piece names the missing game; the planted arrival
+    writer gives 24 different results. NOT run by Fable: the replays and the two kills. The PC's package of
+    that morning had the fault in two places (the home writer followed the receiver's ledger, which is
+    arrival; the receiver refused the second ARRIVAL of an id with other rows); both are changed to this
+    entry. The PC's own wrapper had passed its kill cases that morning (the worker's test, 95 of 95): a
+    worker killed in the middle of 30 games and restarted gives the pieces of an uninterrupted run byte for
+    byte, every game id once; an engine that ended in the middle of a game is retried, credited once, and
+    its records equal the uninterrupted run's.
+
 ### For later, once the engine is stronger
 
 The owner asked Astra and Neon (23 November, after the close) to look also for plans and improvements for
