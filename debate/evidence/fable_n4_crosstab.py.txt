@@ -1,0 +1,118 @@
+"""Fable 2026-11-23, debate proposal N4 (Neon), MEASURE: in one production round, how do piece count and |score|
+go together on the kept rows, and how much of a game lies after its first |score| >= 600 (>= 1000)?
+Reads the round; writes only under <new work folder> and <new out json>.
+
+    n4_crosstab.py <config> <round's raw_selfplay.binpack> <round's filtered.plain> <new work folder> <new out json>
+
+Scores come from the unpacked game record (the ORIGINAL score of every row); "kept" comes from filtered.plain
+(same rows in the same order; a dropped row carries 32002 there). A game ends where the next row's ply is not higher.
+Controls (known before the run, from the every-72nd sample of 23 November and the round's qc.json):
+rows 16,005,930; kept 15,255,460; kept share with |score| >= 600 in 21.0 .. 21.4 %; kept share with <= 16 pieces
+in 49.8 .. 50.2 %.
+"""
+import json
+import statistics
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+from nnloop.common import load_config  # noqa: E402
+from nnloop.filterqc import tools_convert  # noqa: E402
+
+cfg_path, binpack, filtered, work, out = (Path(a) for a in sys.argv[1:6])
+assert not out.exists() and not work.exists(), "give a new work folder and a new out file"
+work.mkdir(parents=True)
+KEYS = ("fen ", "move ", "score ", "ply ", "result ")
+NOT_PIECES = str.maketrans("", "", "12345678/")
+BANDS = ((50, "0-49"), (150, "50-149"), (300, "150-299"), (600, "300-599"), (1000, "600-999"), (10 ** 9, "1000+"))
+PIECES = ((8, "4-8"), (16, "9-16"), (24, "17-24"), (32, "25-32"))
+
+
+def rows(path):
+    with open(path, "r", encoding="ascii", newline="\n") as f:
+        while True:
+            rec = [f.readline() for _ in range(6)]
+            if not rec[0]:
+                return
+            yield tuple(r[len(k):].rstrip() for r, k in zip(rec, KEYS))
+
+
+def bucket(v, table):
+    for lim, name in table:
+        if v < lim or (table is PIECES and v <= lim):
+            return name
+    raise ValueError(v)
+
+
+rebuilt = work / "rebuilt.plain"
+tools_convert(load_config(str(cfg_path)), binpack, rebuilt, work / "convert.log")
+
+cross = {p: {b: 0 for _, b in BANDS} for _, p in PIECES}
+n_rows = n_kept = games = 0
+after = {600: {"games_crossing": 0, "kept_after": [], "kept_after_total": 0, "kept_after_below_600": 0,
+               "kept_after_below_300": 0, "kept_after_by_pieces": {p: 0 for _, p in PIECES}},
+         1000: {"games_crossing": 0, "kept_after": [], "kept_after_total": 0, "kept_after_below_600": 0,
+                "kept_after_below_300": 0, "kept_after_by_pieces": {p: 0 for _, p in PIECES}}}
+kept_at_or_after_600 = 0
+crossed = {600: False, 1000: False}
+count = {600: 0, 1000: 0}
+prev_ply = None
+
+
+def close_game():
+    for t in (600, 1000):
+        if crossed[t]:
+            after[t]["games_crossing"] += 1
+            after[t]["kept_after"].append(count[t])
+        crossed[t] = False
+        count[t] = 0
+
+
+for ra, rf in zip(rows(rebuilt), rows(filtered)):
+    assert ra[0] == rf[0] and ra[3] == rf[3], (n_rows, ra, rf)
+    ply = int(ra[3])
+    if prev_ply is None or ply <= prev_ply:
+        if prev_ply is not None:
+            close_game()
+        games += 1
+    prev_ply = ply
+    n_rows += 1
+    s = abs(int(ra[2]))
+    kept = rf[2] != "32002"
+    if kept:
+        n_kept += 1
+        pb = bucket(len(ra[0].split(" ", 1)[0].translate(NOT_PIECES)), PIECES)
+        cross[pb][bucket(s, BANDS)] += 1
+        kept_at_or_after_600 += crossed[600] or s >= 600
+        for t in (600, 1000):
+            if crossed[t]:                       # strictly after the first row at or above t
+                count[t] += 1
+                a = after[t]
+                a["kept_after_total"] += 1
+                a["kept_after_below_600"] += s < 600
+                a["kept_after_below_300"] += s < 300
+                a["kept_after_by_pieces"][pb] += 1
+    for t in (600, 1000):
+        if s >= t:
+            crossed[t] = True
+close_game()
+
+for t in (600, 1000):
+    lst = after[t].pop("kept_after")
+    after[t]["kept_after_per_crossing_game"] = {"mean": round(statistics.fmean(lst), 2), "median": statistics.median(lst),
+                                                "p25": statistics.quantiles(lst, n=4)[0], "p75": statistics.quantiles(lst, n=4)[2]}
+    after[t]["share_of_all_kept"] = round(after[t]["kept_after_total"] / n_kept, 5)
+pieces_tot = {p: sum(cross[p].values()) for p in cross}
+tail = sum(cross[p][b] for p in cross for b in ("600-999", "1000+")) / n_kept
+low = (pieces_tot["4-8"] + pieces_tot["9-16"]) / n_kept
+controls = {"rows_16005930": n_rows == 16005930, "kept_15255460": n_kept == 15255460,
+            "tail_share_21.0_to_21.4": 0.210 <= tail <= 0.214, "le16_pieces_share_49.8_to_50.2": 0.498 <= low <= 0.502}
+res = {"rows": n_rows, "kept": n_kept, "games_by_ply_order": games,
+       "kept_share_abs_score_ge_600": round(tail, 5), "kept_share_le_16_pieces": round(low, 5),
+       "cross_kept_rows_pieces_x_abs_score": cross,
+       "row_percent_within_pieces": {p: {b: round(100 * v / pieces_tot[p], 2) for b, v in cross[p].items()} for p in cross},
+       "kept_share_at_or_after_first_600": round(kept_at_or_after_600 / n_kept, 5),
+       "after_first_abs_score_ge": after, "controls": controls, "CONTROLS_PASS": all(controls.values())}
+out.write_text(json.dumps(res, indent=1), encoding="ascii")
+print(json.dumps(res, indent=1))
+rebuilt.unlink()
