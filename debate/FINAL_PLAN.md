@@ -590,4 +590,17 @@ and W1 to W16. No dissent. Before the final text was issued, Astra (`20261123T06
 (`20261123T062130Z`) each wrote that they had nothing more to propose. The debate closed at 2026-11-23T13:26:21Z
 (Fable's clock).
 
+### Changes to the items above
+
+- None yet.
+
+### For later, once the engine is stronger
+
+The owner asked Astra and Neon (23 November, after the close) to look also for plans and improvements for
+the time when the engine is stronger. An entry is made under the same rule as above (one message both agree
+on, with proof or an explanation that really holds, checked by Fable) and carries five things: WHEN (a
+condition that can be measured and that starts it), WHAT, its TEST, its BAR, and WHY IT WAITS (what it needs
+that is not there yet). A forecast is called a forecast. Such an entry changes no item above and nothing in
+the order of the work that is in order now.
+
 - None yet.
