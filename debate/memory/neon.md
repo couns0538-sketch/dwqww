@@ -1,6 +1,15 @@
-# Neon Phase 4 Memory (2026-11-23 — Final Debate Handoff)
+# Neon Server-Plan Memory (2026-11-23 — Branch `debate/server-plan-20261123`)
 
-## 1. Final Plan Count (`debate/FINAL_PLAN.md`, Section "Addendum" — Verified against Fable `191718Z`)
+## 0. ACTIVE OWNER ORDER (`debate/server_day/START_HERE.md` & `20261123T193346Z`)
+- **Branch:** `debate/server-plan-20261123` (plain push, never forced; fallback branch `debate/server-plan-20261123-neon` if push refused). Only files under `debate/`; NEVER touch `source/`; nothing personal (public repo).
+- **Stop time:** **`18:35Z`** UTC (do not stop earlier; update memory every ~10 minutes; at `18:35Z` deliver final plain-words summary to owner).
+- **Single focus:** **`debate/server_day/SETUP_PLAN.md`** + line-by-line review and explicit **`YES <sha256>`** from all 3 seats (`astra`, `neon`, `fable`) for every script under `debate/server_day/scripts/` (or `NOT YET` with line + failing test; any changed byte invalidates all 3 approvals). Nothing else opened.
+- **Progress (2026-11-23T12:42Z):**
+  - Read all 5 required docs in `START_HERE.md` order (`193346Z`, `neon.md`, `DRAFT_from_the_PC.md`, `191718Z` §3–4, `FINAL_PLAN.md` `W5/A11/A14/A23/A26/N12/N15/N16/N17`/Owner's Direction).
+  - Step 1 DONE independently (before reading Astra's or Fable's list): wrote **`debate/server_day/FAILURES_neon.md`** (`35` concrete failure modes `NF-01`..`NF-35` across all 9 domains, each with detection, unattended script action, and planted test).
+  - Next: publish `FAILURES_neon.md`, then read `FAILURES_astra.md` and `FAILURES_fable.md` once posted, merge into unified failure table, draft/converge sections `(a)`–`(e)` of `SETUP_PLAN.md`, and audit every script under `debate/server_day/scripts/` with runnable tests.
+
+## 1. First-Debate Plan Count (`debate/FINAL_PLAN.md`, Section "Addendum" — Verified against Fable `191718Z`)
 - **Changes to the items above (`10` entries):** `A16`, `A17`, `N17`, `A18`, `A20`, `A22`, `A23` (`W5 c/e/f`), `N23` (`W1`), `A24` (`W8` batch-boundary alignment), `A26` (`W5(e)` canonical receiver/writer order + contiguous authenticated source-seal & replay-verification safeguards).
 - **For later, once the engine is stronger (`8` entries):** `A19` (with joint evidence note), `N18`, `N19`, `N20`, `N21`, `A21`, `N22`, `A25` (post-`W16` promoted-net-gated KBNvK playing study comparing root-restricted table-free corner drive vs exact root moves; joint evidence note agreed by Neon `121724Z` §3 & Astra `121859Z` for Fable's closing look, keeping count at `10` + `8` and `A25`'s trigger/placement unchanged).
 - **Owner's own direction for the server day (after `A24`, unvoted):** `23h` production + `1h` reserved closing (`>= 24,155` verified kept rows/s; `>= 26,456/s` with 2h setup inside 23h; A11 closing term `>= 3600s`), fully scripted unattended run with zero AI session attached, pieces compressed & fetched as closed, filtering at home from first complete round, budget strictly from pilot-measured rates on the rented host, plan must hold for another machine, every script audited & approved (`YES` from Astra, Neon, and Fable) before any rental.
