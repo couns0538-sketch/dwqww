@@ -103,12 +103,15 @@ def read_games(source):
 
 def legal_move(board, token):
     try:
-        return board.parse_uci(token)
+        move = board.parse_uci(token)
     except ValueError as exc:
         raise ReplayError("move is illegal on the replayed board: " + token) from exc
+    # python-chess also accepts Chess960 UCI spellings for standard castling.
+    require(move and move.uci() == token, "noncanonical standard-chess move: " + token)
+    return move
 
 
-def check_game(game, reservation, game_line=FROZEN_GAME):
+def check_game(game, reservation, *, game_line):
     """Return a rules verdict. The caller owns the exact input bytes and credit decisions."""
     require(game_line == FROZEN_GAME, "different selfgame policy requires review")
     reserved_id, moves, completed_opening = reservation
@@ -142,7 +145,7 @@ def check_game(game, reservation, game_line=FROZEN_GAME):
     played = end[8].split()
     extra_search = reason in ("matescore", "evallimit", "drawadj")
     require(plies == len(moves) + len(played) and plies <= MAX_PLY, "incorrect number of plies")
-    require(searches == len(played) + int(extra_search) and (searches > 0 or nodes == 0), "incorrect search count or nodes")
+    require(searches == len(played) + int(extra_search) and nodes >= searches and (searches or nodes == 0), "incorrect search count or nodes")
     written = max(0, plies - max(len(moves), WRITE_PLY)) + int(reason == "drawadj" and plies >= WRITE_PLY)
     rows = game["rows"]
     require(len(rows) == written, "incorrect number of written rows")
@@ -191,16 +194,28 @@ def check_game(game, reservation, game_line=FROZEN_GAME):
     return {"id": game["id"], "state": "done", "reason": reason, "rows": len(rows), "moves": len(played), "searches": searches}
 
 
+def unique_fields(pairs):
+    fields = dict(pairs)
+    require(len(fields) == len(pairs), "duplicate manifest key")
+    return fields
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw", type=Path, required=True)
     parser.add_argument("--work-dir", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True, help="the qualified producing workload manifest")
+    parser.add_argument("--manifest-sha256", required=True, help="digest pinned by the independent run record")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--root-seed")
     group.add_argument("--fixed-openings", type=Path)
     args = parser.parse_args()
     try:
         require(chess.__version__ == "1.11.2", "this reference was qualified with chess==1.11.2")
+        manifest = args.manifest.read_bytes()
+        require(hashlib.sha256(manifest).hexdigest() == args.manifest_sha256, "producing manifest digest mismatch")
+        metadata = json.loads(manifest.decode("utf-8"), object_pairs_hook=unique_fields)
+        require(isinstance(metadata, dict) and metadata.get("selfgame_line") == FROZEN_GAME, "different producing policy")
         args.work_dir.mkdir(exist_ok=False)
         table = None
         if args.fixed_openings:
@@ -212,7 +227,7 @@ def main():
             for game in read_games(source):
                 fixed = None if table is None else table[(game_number(game["id"]) - 1) % len(table)]
                 reserved = reserve(game["id"], seed=args.root_seed, fixed=fixed)
-                verdict = check_game(game, reserved)
+                verdict = check_game(game, reserved, game_line=metadata["selfgame_line"])
                 dest.write(json.dumps(verdict, sort_keys=True, separators=(",", ":")) + "\n")
                 count += 1
             require(count > 0, "empty piece")

@@ -1,6 +1,7 @@
 """Review-only regression test. Run with -I -B and a new --work-dir."""
 import argparse
 import copy
+import hashlib
 import json
 import subprocess
 import sys
@@ -9,6 +10,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import rules_replay as rr
+
+# Independent input copied from the pinned workload manifest, separate from the implementation.
+POLICY = "selfgame softnodes 2000 evallimit 2000 maxply 300 writeminply 8 drawply 80 drawscore 5 drawcount 8"
 
 
 def require(condition, name):
@@ -19,7 +23,7 @@ def require(condition, name):
 
 def rejected(game, reservation, name):
     try:
-        rr.check_game(game, reservation)
+        rr.check_game(game, reservation, game_line=POLICY)
     except rr.ReplayError:
         print("PASS", name)
         return
@@ -35,7 +39,7 @@ def run(work):
     for g, case in zip(games, cases):
         require(g["id"] == case["id"], "frozen case identity " + case["id"])
         reservation = rr.reserve(g["id"], seed=case.get("seed"), fixed=case.get("opening"))
-        result = rr.check_game(g, reservation)
+        result = rr.check_game(g, reservation, game_line=POLICY)
         want = case["expected"]
         require(all(result[key] == want[key] for key in ("reason", "rows", "moves", "searches")),
                 "native independent counts " + case["id"] + " " + want["reason"])
@@ -57,6 +61,15 @@ def run(work):
     tokens[-2] = str(int(tokens[-2]) + 1)
     wrong["rows"][0] = " ".join(tokens)
     rejected(wrong, reservation, "one wrong row halfmove clock")
+    for score in (2000, -2000):
+        wrong = copy.deepcopy(first)
+        tokens = wrong["rows"][0].split()
+        tokens[2] = str(score)
+        wrong["rows"][0] = " ".join(tokens)
+        rejected(wrong, reservation, "evaluation limit cannot emit row at " + str(score))
+    wrong = copy.deepcopy(first)
+    wrong["end"] = wrong["end"].replace("nodes 302461 ", "nodes 85 ")
+    rejected(wrong, reservation, "fewer visited nodes than successful searches")
     wrong = copy.deepcopy(first)
     wrong["rows"] = wrong["rows"][:-1]
     rejected(wrong, reservation, "missing unplayed draw decision")
@@ -72,6 +85,12 @@ def run(work):
     wrong = copy.deepcopy(first)
     wrong["rows"][0] = wrong["rows"][0].replace(" b1c3 ", " a1a8 ", 1)
     rejected(wrong, reservation, "illegal move or mismatched played move")
+    for standard, alternate in (("e1g1","e1h1"), ("e8g8","e8h8")):
+        wrong = copy.deepcopy(first)
+        wrong["rows"] = [r.replace(" " + standard + " ", " " + alternate + " ") for r in wrong["rows"]]
+        prefix, suffix = wrong["end"].split(" moves ", 1)
+        wrong["end"] = prefix + " moves " + " ".join(alternate if m == standard else m for m in suffix.split())
+        rejected(wrong, reservation, "noncanonical standard-chess castling " + alternate)
     wrong = copy.deepcopy(first)
     wrong["sent"] = "none"
     wrong["rows"] = []
@@ -97,13 +116,38 @@ def run(work):
             if line.startswith(b"bind "):
                 break
     one.write_bytes(b"".join(lines))
+    manifest = work / "input policy.json"
+    manifest.write_text(json.dumps({"selfgame_line": POLICY}), encoding="ascii")
+    pin = hashlib.sha256(manifest.read_bytes()).hexdigest()
     cmd = [sys.executable, "-I", "-B", str(HERE / "rules_replay.py"), "--raw", str(one),
+           "--manifest", str(manifest), "--manifest-sha256", pin,
            "--fixed-openings", str(fixed_file), "--work-dir", str(work / "first pass")]
     observed = subprocess.run(cmd, capture_output=True, text=True)
     require(observed.returncode == 0, "normal CLI publishes one rules report")
     report = work / "first pass" / "rules.jsonl"
     require(json.loads(report.read_text(encoding="ascii"))["rows"] == 86, "correct CLI row count")
     require(subprocess.run(cmd, capture_output=True).returncode != 0, "existing work folder refused")
+    cmd[-1] = str(work / "wrong policy hash")
+    cmd[cmd.index(pin)] = "0" * 64
+    require(subprocess.run(cmd, capture_output=True).returncode != 0 and
+            not (work / "wrong policy hash/rules.jsonl").exists(), "wrong producing manifest hash refused")
+    modified = work / "different producing policy.json"
+    modified.write_text(json.dumps({"selfgame_line": POLICY.replace("writeminply 8", "writeminply 9")}), encoding="ascii")
+    cmd[cmd.index("0" * 64)] = hashlib.sha256(modified.read_bytes()).hexdigest()
+    cmd[cmd.index(str(manifest))] = str(modified)
+    cmd[-1] = str(work / "different policy")
+    require(subprocess.run(cmd, capture_output=True).returncode != 0 and
+            not (work / "different policy/rules.jsonl").exists(), "different pinned game policy refused")
+    duplicate = work / "ambiguous producing policy.json"
+    duplicate.write_text('{"selfgame_line":"other","selfgame_line":' + json.dumps(POLICY) + '}', encoding="ascii")
+    cmd[cmd.index(str(modified))] = str(duplicate)
+    old_pin = hashlib.sha256(modified.read_bytes()).hexdigest()
+    cmd[cmd.index(old_pin)] = hashlib.sha256(duplicate.read_bytes()).hexdigest()
+    cmd[-1] = str(work / "duplicate policy")
+    require(subprocess.run(cmd, capture_output=True).returncode != 0 and
+            not (work / "duplicate policy/rules.jsonl").exists(), "duplicate producing policy key refused")
+    cmd[cmd.index(str(duplicate))] = str(manifest)
+    cmd[cmd.index(hashlib.sha256(duplicate.read_bytes()).hexdigest())] = pin
     interrupted = work / "cut.raw"
     interrupted.write_bytes(one.read_bytes() + b"game interrupted")
     cmd[cmd.index(str(one))] = str(interrupted)
