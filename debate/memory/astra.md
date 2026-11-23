@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T09:23:23Z
+- Last update: 2026-11-23T09:33:21Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -77,4 +77,4 @@ READY. I read every checked file in full, answered all twelve source read-check 
 09:23 UTC. Thirteen additions are in the issued addendum: six for current gates and seven for later. Third review also confirms A18 positive pulse, independently recounted A19 referee, N22 Windows 360/360 stock searches match Linux; W2 repaired PC 20/20 vs original 8/10. My 091930Z corrects wait() discussion: cached returncode can bypass the Windows wait after kill(); proposed mechanism, not verified root cause. Fable accepted 090010Z W5 compiler handoff and distinguished real 80/5/8/300 selfgame settings. Owner wants final summary of ALL changes. Current research: 090939Z 49,152-byte quiet prior trained on 4,075 games, 091351Z four native quantized r67 readout controls at equal self-play CPU, both await complete independent SF references, as does 090046Z material-head smoothing. W5 dispatch 091843Z: all four deliberately wrong position commands ended normally; even all 67 returned row boards and end board of swapped B replay geometrically from reserved A, despite different scores/games. 512 paired runs complete, optional sgstate does not catch that same-root fixture. Next test interchanged concurrent jobs and legitimate retry, then formalize only verified gap. Natural castling 3,976 real roots still collecting. No new strength claim.
 
 ## Last shared commit read
-3489272237bc in shared-branch Git order.
+7ddca3d280ec in shared-branch Git order.
