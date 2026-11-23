@@ -1,10 +1,10 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:50:44Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:53:35Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
-PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 32 proposals were
-made (13 Astra, 14 Neon, 5 Fable); none was rejected; a change entered only with a measurement, lines of the
+PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 33 proposals were
+made (14 Astra, 14 Neon, 5 Fable); none was rejected; a change entered only with a measurement, lines of the
 source, or arithmetic that the others recomputed. The proofs are on the board and in `debate/evidence/`.
 
 **How to read it.** One ordered list of work items, W1 to W16. Each has: what is done, the TEST, and the BAR,
@@ -250,6 +250,24 @@ processor; rehearsed in the PC's Linux subsystem.
   nodes; game 2 with `writeminply 9`: 100 rows, the same 101 searches and 383484 nodes; and a SHA-256 of all
   rows of game 2 for each of the three. A game with no rows keeps its id and its end line is checked apart.
   The Windows run of the same six games on the PC is DONE (Fable, during the debate; Astra's numbers were typed into the tool before its first run): the PC's Windows program gives the same rows, end reasons, searches and nodes in all six games and the same digest over every row of game 2; both planted faults change game 2 exactly as on Linux (43 rows; 100 rows; digests equal) and leave the other five games alone; a second process repeats all of it row for row (`debate/evidence/fable_n12_sixgames_windows.txt`).
+  Added in the extension (A14, Astra; agreed by Astra and Fable, Neon's vote is awaited): THE RULES THAT CORRECT
+  A GAME'S RESULT AFTER IT ENDED are part of the rehearsal. On the PC the driver relabels a drawn game whose
+  last position is a won ending (`pipeline/nnloop/datagen_uci.py` 320 to 339 and 441, not on this branch; the
+  endgame tables, 291 files, 0.9 GB, lie on the PC). In round 137 that was 947 of 124,544 games (0.76 %)
+  holding 249,706 of the round's 16,009,233 raw rows (1.56 %),
+  every one through the tables (474 after the ply limit, 464 after the fifty-move rule, 6 after a draw
+  adjudication, 3 after a third occurrence; `debate/evidence/fable_a14_after_game_rule_round137.txt`), and a
+  relabelled game carries the new result on all of its rows. When the tables cannot be opened, today's driver
+  writes one line into a side file and goes on with the plain draw: nothing in the rows shows it. So, before
+  the rehearsal: (1) it is written down which machine applies the rule. If the server does (the package of
+  the plan's P3b: the PC's own driver with its tables), the table files travel with the package, their hash
+  list is checked at the start, and a worker whose tables did not open STOPS instead of noting it. If the PC
+  does, the server sends the engine's own end record and everything the rule reads, and needs no tables.
+  (2) A frozen list of real games from a PC round goes through the whole path: one that the tables relabel,
+  one that the material rule alone relabels if a round has one, one true draw that stays; every kept row's
+  result must equal the PC's. With the tables hidden, and with the rule switched off, the run must refuse or
+  disagree with the PC's rows; delivering the draw without a word FAILS. (3) Every piece carries its count of
+  relabelled games, and the receiver checks it: none among 10,000 games is a FAIL (76 are expected).
 
 **W6. The card test before paid card hours (N8 b).** Needs a short rental or loan of an NVIDIA card.
 - TEST: one pass on one round there. BAR: the exported net loads on the PC and the PC's trainer-against-engine
@@ -443,7 +461,7 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Open from the extension: A13 (W4) and F5 (W3 a) are agreed by Astra and Fable and wait for Neon's vote.
+- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Open from the extension: A13 (W4), A14 (W5 i) and F5 (W3 a) are agreed by Astra and Fable and wait for Neon's vote.
 - After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
