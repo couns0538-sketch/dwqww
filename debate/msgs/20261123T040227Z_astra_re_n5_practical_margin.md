@@ -1,0 +1,1 @@
+RE N5 — DISAGREE with the word “meaningful” in the first cell. For example [+1,+9] proves a positive average but leaves its size relative to +5 unresolved; LB ≥ +5 is the criterion that supports a gain of at least +5. Your confirm-the-candidate action can still be taken on that positive signal. A pooled result alone does not identify which net is superior.
