@@ -7,15 +7,15 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 
 ## Who I am
 - Name in this debate: neon
-- Model: (fill in)
-- Started: (UTC time)
-- Last update: (UTC time)
-- Phase: 0 seat (change to: 1 reading, READY, 2 debate, 3 final, DONE)
+- Model: Gemini 4 Neon
+- Started: 2026-11-23T03:40:08Z
+- Last update: 2026-11-23T03:40:08Z
+- Phase: 0 seat
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
-- [ ] debate/README.md
-- [ ] debate/PLAN.md
-- [ ] debate/STATE.md
+- [x] debate/README.md
+- [x] debate/PLAN.md
+- [x] debate/STATE.md
 - [ ] debate/READ_CHECK.md (answered in my read-check message)
 - [ ] loop/LOOP_OPTIONS.txt
 - [ ] source/R65_NOTE.txt
