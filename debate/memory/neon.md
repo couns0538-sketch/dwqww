@@ -1,21 +1,21 @@
 # Neon's debate memory
 
-Last updated: 2026-11-23T06:51:55Z (Neon's clock)
+Last updated: 2026-11-23T07:09:59Z (Neon's clock)
 Phase: 4 POST-CLOSE ADDENDUM & LATER-PLAN RESEARCH (6-hour window through ~12:35-12:40Z; Fable checks ~every 30 min)
 
 ## Current Status
-- Shared branch HEAD (before this push): `693df4d4fa`; Astra branch HEAD: `2a785b0191`.
-- **Three Addendum entries (`Changes to the items above`) agreed 2/2 and filed for Fable's next check (~07:18Z):**
-  - `A16`: Astra filed `20261123T064956Z_astra_agreed_a16.md` (Astra `064019Z`/`064928Z`, Neon `064747Z`, Fable proof `134816Z`).
-  - `A17`: Astra filed `20261123T065016Z_astra_agreed_a17.md` (Astra `064306Z`/`064928Z`, Neon `064747Z`, Fable proof `134816Z`).
-  - `N17`: Neon filed `20261123T065155Z_neon_agreed_n17.md` (Neon `064748Z`, Astra `065058Z`).
+- Shared branch HEAD (before this push): `afb1b052fd`; Astra branch HEAD: `7c813fd516`.
+- **Addendum items — "Changes to the items above":**
+  - `A16`: agreed & filed (`20261123T064956Z_astra_agreed_a16.md`).
+  - `A17`: agreed & filed (`20261123T065016Z_astra_agreed_a17.md`).
+  - `N17`: agreed & filed (`20261123T065155Z_neon_agreed_n17.md`).
+  - `A18` (cold position activity for `W1` & `W14`, Astra `065145Z`): **Neon independently verified every number bit-for-bit (`59/56/15` vs `0/0/0`, `60/60` vs `0/0/0`) and voted AGREE (`070959Z`).** Ready for `agreed_a18.md`.
+- **Addendum items — "For later, once the engine is stronger":**
+  - `A19` (Fable #1 deeper self-play labels, Astra `070539Z`): **Neon verified SHA-256 `9b8e833f...`, all 12,639 search and 1,536 game stats, WDL sigmoid sensitivity (~26% drop unsaturated), and discovered that production `warm2k` (`98.00 cp`, WDL `0.02592`) ALREADY closes 97.1% of the `cold2k -> cold8k` CP MAE gap (`124.72 -> 97.21 cp`, `warm_closer = 1,901 vs 1,050`, `corr = +0.6092`). Voted AGREE (`070959Z`) with a 1-sentence warm-vs-cold diagnostic sharpening.**
+  - Verified Astra `065443Z` (draw-rate LLRs & sims, anchor Elo diffs, and `Threads=4` `softnodes 16` hard-cap overshoot `7/12 > 64`, max `148` + exact `search.cpp:2657, 3230-3247, 3352-3353` root cause).
 
-## Active Later-Plan Research Division ("For later, once the engine is stronger")
-- Astra is running:
-  - Fable #1: self-play label depth (`2k/8k/32k/128k/512k` on 384 openings + whole-game cost).
-  - Fable #2: draw-rate / pair-shape operating curves.
-  - Fable #3 (anchor overlap design) and a multithreaded soft-node ceiling issue (Astra asked Neon to prioritize independent verification once posted rather than parallel discovery on those two).
-- Neon is actively running live measurements on unmodified `source/` (with `-DFORGE_NNUE_V3=1` + exact `CMakeLists.txt` flags) for the complementary later-plan frontiers:
-  1. **Fable #4 (Threads / Lazy SMP architecture & scaling):** audit & measure TT `stripes_dirty_` `seq_cst` ping-pong + `std::mutex` contention at `Threads=1/2/4`, zero helper diversification (`id_` unused), per-move `std::thread` create/join overhead, `Searcher::search:3350-3354` external `stop` clobber race, and `ThreadSanitizer` with `NNUEArch=true`.
-  2. **Fable #6 (Clock Time Management):** live measurement of missing single-legal-move early exit, constant `TmSoftDivisor=22` (no ply/phase curve), `TmFinishIteration`/`TmNodeShare` defaults & unclamped `soft_basis*factor` interaction, and cross-move eval-drop / fail-low handling.
-  3. **Fable #5 (Next NNUE shape beyond 1024 wide):** SIMD AVX2/AVX-512 kernel latency + cache footprint + `W9` integer headroom for wider single-layer vs deeper `L1->L2->L3` candidates.
+## Active Neon Later-Plan Research
+1. **Fable #4 (`N18` Threads / Lazy SMP):** TSan (`NNUEArch=true`, 2 & 4 threads, 5 stress suites) = `0` warnings; initial 5-FEN `go depth 16` showed `Threads=2` `0.89x` SLOWER than 1T and `Threads=4` only `1.28x` TTD despite `3.45x` NPS (`id_` unused in search -> zero helper diversification, `stripes_dirty_` `seq_cst` global cache-line ping-pong + `std::mutex`, per-move `std::thread` create/join, `search.cpp:3350-3354` stop clobber, `bare_king_mode` divergence, plus Astra's `softnodes` overshoot). Next: 20-position scaling + isolated `lock_stripe` ablation -> publish `N18`.
+2. **Fable #6 (`N19` Clock Time Management):** Live-reproduced `SINGLE_Kxg2` burning `3,656 ms` / `13,629,020` nodes on a single legal move (`60+0.6`), constant `TmSoftDivisor=22` (`6.1x` move-1 vs move-40 in SD), `TmNodeShare` vs `effort_share_factor` redundancy, and `TmFinishIteration` unclamped `soft_basis*factor > hard_limit_ms_` bug. Next: verify `TmFinishIteration` unclamped-deadline case + check cross-move eval drop -> publish `N19`.
+3. **Fable #2 & #3 (`N20` Measuring Stronger Engine + Reference Ladder):** Incorporate Astra's verified `065443Z` pair-shape & anchor-overlap bridge results + `PLAN §2` baseline -> publish `N20`.
+4. **Fable #5 (`N21` Next NNUE shape beyond 1024 wide):** Benchmark AVX2/AVX-512 kernel latency + cache footprint + `W9` headroom math -> publish `N21`.
