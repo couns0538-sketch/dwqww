@@ -1,17 +1,15 @@
 # Neon's debate memory
 
-Last updated: 2026-11-23T06:18:45Z (Neon's clock)
-Phase: 2 DEBATE (owner-extended window through 07:17Z; new proposals before ~06:25Z; final text ~06:40Z; post-07:17Z Astra+Neon addendum workflow noted)
+Last updated: 2026-11-23T06:24:10Z (Neon's clock)
+Phase: 3 FINAL (voted AGREE on R1–R6 and W1–W16; monitoring for Astra's final vote, Fable's Phase 3 close, and any post-vote / post-07:17Z Astra+Neon addendum work)
 
 ## Current Status
-- Shared branch HEAD (before this push): `763f07bb8a`; Astra branch HEAD: `e95154ecb8`.
-- **All 37 proposals (`A1`–`A15`, `N1`–`N16`, `F1`–`F6`) now have 3/3 agreement, zero open dissent:**
-  - `A15`: ACCEPTED 3/3 (`4a08233e36`); Neon's 9 independently verified values named in `W8`.
-  - `N16`: ACCEPTED 3/3 in full — Fable (`131212Z`) accepted all checks and added them to `W5 (a)`, `R3`, and `W14`, and proposed the undecided-timing rule ("when the predeclared repeat budget leaves the paired speed interval straddling 0, use the rightly profiled build and record 'gain not shown'"). Astra (`061302Z`) and Neon (`061418Z`) both voted `AGREE` (with Astra's reminder that this never waives `W5 (g)`'s absolute verified-kept-rows pilot bar).
-- Completed a full line-by-line audit of `debate/FINAL_PLAN.md` Draft 2 (`R1`–`R6`, `W1`–`W16`), plus checked `source/src/uci.cpp` (`selfgame` parser, `setoption`, `go`, `position`) and `loop/build_recipe/*` + `loop/source/` diffs (only `#if FORGE65` differs between `source/` and `loop/source/`). No remaining contradictions or unclosed silent gaps found.
+- Issued final text: `debate/FINAL_PLAN.md` at commit `a281365300`, SHA-256 `bc4de197f3fb8865c116fad7a5aa082b4610256d22c81ae52868ab1628040048`.
+- Neon Phase 3 vote pushed: `debate/msgs/20261123T062351Z_neon_final.md` (commit `22f01a9ebd`) — `AGREE` on all `R1`–`R6` and `W1`–`W16`, zero dissent.
+- Fable Phase 3 vote pushed: `debate/msgs/20261123T132211Z_fable_final.md` — `AGREE` on all `R1`–`R6` and `W1`–`W16`, zero dissent.
+- Waiting on Astra's `..._astra_final.md` vote and Fable's Phase 3 close.
 
 ## Next Steps
-1. Watch both branches for Fable's update recording `N16` closed 3/3 and any last-minute proposals before `~06:25Z`.
-2. Keep updating `debate/memory/neon.md` every ~10 minutes (next due ~`06:29Z`).
-3. Once Fable issues the final `debate/FINAL_PLAN.md` (without DRAFT, at `~06:40Z` or earlier), read it line-by-line, verify every `R1`–`R6` and `W1`–`W16`, commit & push `debate/msgs/<UTC>_neon_final.md` with explicit `AGREE`/`DISSENT` on every item, and update `debate/memory/neon.md` to `DONE`.
-4. Never reply to the user until Phase 3 Final is complete (then check post-07:17Z instructions if applicable).
+1. Watch both branches for Astra's final vote and Fable's close of Phase 3.
+2. Per owner's instructions ("focus till credits run out" & "Astra and Neon may go on between themselves until one runs out of credit; Fable checks every 30 minutes and takes agreed proven improvements into ADDENDUM"), stay available for any post-vote / post-07:17Z addendum debate with Astra; only propose an addendum if we find a genuine, source-backed / measured gap not already covered by `FINAL_PLAN.md`.
+3. Keep updating `debate/memory/neon.md` every ~10 minutes while active, and mark DONE only once Phase 3 & any post-vote addendum exchange have concluded.
