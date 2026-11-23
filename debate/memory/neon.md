@@ -1,22 +1,23 @@
 # Neon Phase 4 Memory (2026-11-23)
 
-## Current State (08:30Z)
-- Shared branch `debate/forge-plan-20261123` synced at `764dd67b70`; Fable entered Batch 2 (`A20`, `N18`, `N19`, `N20`, `N21`, `A21`, plus `A19` warm recount). All 6 entries verified cleanly in `debate/FINAL_PLAN.md`.
-- Fable's look schedule from now: event-driven (~45 min after first new `_agreed_` or question), closing look at `12:40Z` UTC (`_agreed_` messages due by `12:35Z`).
-- Just posted:
-  1. `083018Z_neon_w5_linux_build_handoff.md`: Complete 1-message response to Fable's Request #6 — 12 verified Linux builds (`gcc 13.3.0` PGO+Full LTO AVX-512+PEXT / AVX2+PEXT / AVX2 no-PEXT, 3 `VERIFY=1` builds including scalar, 6 `clang 18.1.3` builds including ThinLTO/FullLTO via `--gcc-install-dir`), all pins 12/12 bit-exact (`312866/862329/perft5=4865609`, `226187/616966`, `W5(b)` `375880(156)/375868(78)`), plus 7 reproduced Linux build traps.
-  2. `083019Z_neon_re_n22_full120_clustered.md`: Addressed Astra `080943Z` on `PROPOSAL N22` with full 120-pos `20k/250k/1M` dataset (`SHA-256=6c8aa8481a767862`, `60` game clusters + pure `60` openings) and tightened cross-evaluator framing.
+## Current State (09:02Z)
+- Shared branch `debate/forge-plan-20261123` synced; Fable entered Batch 2 (`A20`, `N18`–`N21`, `A21`, `A19` warm recount).
+- Waiting for Fable's next event-driven look (~45 min after first new `_agreed_` / `_to_fable`; closing look `12:40Z` UTC, deadline `12:35Z`):
+  - `AGREED A22` (`083324Z`, Astra): 40-pass max pairwise co-batch retention `<= 0.10`.
+  - `AGREED N22` (`083557Z`, Neon; confirmed on stock binary by Astra `085538Z`): post-stronger-net & high-depth two-stage search re-calibration ("For later").
+  - `084106Z_neon_to_fable_kill_tree.md`: answered Fable `153513Z` on Windows `psutil 7.2.2` kill-tree / `TerminateProcess` / `EnumProcesses` / Job Objects.
+- Independently verified Astra measurements:
+  - `081746Z` (`A19` SF17.1 referee) + `082109Z` (offline TB bound) -> posted `084238Z`.
+  - `085039Z` (castling-rights sensitivity), `085323Z` (phase-`K` calibration negative), `085538Z` (`N22` stock panel) -> posted `090214Z`.
 
 ## Completed Local Diagnostics (Scratch in `/tmp/`, `source/` untouched)
-- `r67_h768` weight & activation audit (`loop/forge65_r0067.fnn3`, `n=5,881` selfgame positions, `max_err=0` vs engine `eval`):
-  - King-bucket residual RMS = `3.86 / 88.58` (`0.19%` variance; factorizer signature), yet still shifts eval by `mean|diff| = 25.39 cp` (`rms = 34.53 cp`, `max = 256 cp`) vs 1-bucket mean!
-  - Output-bucket specialization: `mean|8ob-1ob| = 47.78 cp` (`132.5 cp` in `ob=0` endgame).
-  - SCReLU hidden sparsity: median neuron active `7.89%` (`acc > 0`), `8/768` dead (`<0.1%`), `1/768` frequently saturated (`>10% >= 255`); `14/12,288` `w2` weights at `|w2|==127` (`11` in `ob=0`).
-  - King bucket distribution: `kb=1 (b1/g1)` = `30.18%`, `kb=7 (ranks 4-8)` = `18.47%`, `kb=6` = `15.24%`.
-
-## Next Research & Collaboration Queue
-1. Monitor Astra's branch for: (a) `N22` check/vote, (b) Stockfish 17.1 independent move referee results (`074712Z`), (c) search-score phase `K` calibration (`080055Z`), (d) offline tablebase target bound (`080904Z`), (e) `W7` follow-up, and (f) Astra's W5 build handoff.
-2. Explore next high-leverage "for later, once the engine is stronger" research topics (only propose if backed by hard local proof, never fluff!):
-   - Candidate 1: **Post-`W14` Search Architecture Roadmap (`search.cpp`)** — audit the ~18 already-wired-but-OFF search switches in `source/src/search.cpp` AND structural omissions (e.g., `PawnHistory`, `ContHist4PlyRead`, `FailLowContinuationBonus`, `CaptureFutility`, `EvalSwingMult`, `TtCutoffHistory`, `AspFailHighReduce`, `LmrSignedCorrection`, `LmrLateParentRelief`, `HindsightDepth`, `NullThreatVerify`, `NullSeeVeto`, `QuietExtinction`, `EvasionOrdering`, `EvalRule50Damp`, `MaterialCorrectionWeight`) — check for **latent bugs, dead code, `A18` activity, or genuine structural interactions**!
-   - Candidate 2: **`r67` `w2` clamp (`|w2| <= 127` in `ob=0` endgame) & NNUE quantization / output-head diagnostics** — check if `|w2| == 127` clamping in `ob=0` (`11` weights!) or `QA/QB` / pairwise-mul / L2 architecture has real measurable signal on `r67`!
-   - Candidate 3: **Closing Fable's `A20` cycle-of-`>=35`-partitions edge** (only if Astra wants it).
+1. **`r67_h768` weight & activation audit (`n=5,881` selfgame rows, `max_err=0`):**
+   - King-bucket residual RMS `3.86/88.58`, yet shifts eval `mean|diff|=25.39 cp` (`max=256 cp`); output buckets `mean|8ob-1ob|=47.78 cp` (`132.5 cp` in `ob=0`); SCReLU median active `7.89%`, `8/768` dead, `14/12,288` `w2` at `|w2|==127` (`11` in `ob=0`).
+2. **Correction-history saturation & LOO residual audit (`search.cpp`, cold `2k..1M` + warm persistent `20k/250k` games):**
+   - Clean negative: all 6 tables (`pawn`, `mat`, `np_w`/`np_b`, `joint`, `cont0`, `cont1`) reduce MAE (`LOO - corr > 0` in all regimes; warm `250k` MAE `63.68 -> 45.44 cp`), saturation `<= 4.25%`, cancellation `1.378x`. Do NOT propose changing.
+3. **Full `source/` audit (`search.cpp`, `uci.cpp`, `board.cpp`, `nnue_v3.cpp`, `clock_plan.hpp`, `tm_*.hpp`) + ASan/UBSan sweep:**
+   - Compiled unmodified `source/` with `-fsanitize=address,undefined -DFORGE_PAWN_HISTORY=1 -DFORGE_SDK_BADCAP_PREFIX=1`; ran ALL 26+ currently-OFF search options ON together across `1T`, `4T` (`HistRework=0..3`), `MultiPV=4`, clock searches, `selfgame`, option toggles, malformed UCI: **0 ASan/UBSan errors**.
+   - Noted minor latent details to test/check next:
+     - `nnue_v3.cpp` AVX2 path lacks fused `apply_pair_and_evaluate` (also double-calls `collect_changes`), lacks 2x unroll in `output_sum_avx2`, and lacks 4-column batching in `refresh_from_pieces` (relevant if rented Linux CPU or Fable's PC uses AVX2, especially for `W13` `H=1024`).
+     - `search.cpp:1224` `Worker::clear()` skips clearing `pawn_history_` when `PawnHistory==0` (stale state if toggled off before `ucinewgame` and back on).
+     - Still to check: TSan on 4T Lazy SMP, `W14` individual option activity & interactions (A18-style), `nnue_v3` `w2` `|w2|<=127` quantization/clipping & AVX2 speed impact at `H=768`/`H=1024`, `eval.cpp` / `nnue.cpp` / `book.cpp`, and Astra's pending results (`082001Z`, `082621Z`, `083029Z`, `085142Z`, `085343Z`).
