@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:38:36Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:43:24Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 30 proposals were
@@ -23,7 +23,7 @@ at completely equal settings says so. Correctness comes first.
 - **R1 (was F1, now J10). "Not weaker at the depth of self-play"** is always this one test: a paired SPRT
   between -3 and 0 Elo at 2,000 soft nodes (alpha = beta = 0.05), every opening from both sides, the error from
   the pairs, at most 100,000 games. H1 = holds. H0 = does not hold. No boundary at the cap = inconclusive = not
-  adopted. Fallback -5 / 0 only if a timed run shows more than 4 hours at the cap (so far 2.4 hours, extrapolated from one run of 4,000 games in 5.7 minutes; W3 times it).
+  adopted. Fallback -5 / 0 only if a timed run shows more than 4 hours at the cap (so far 2.4 hours, extrapolated from one run of 4,000 games in 5.7 minutes; W3 times it). That run's own pair counts, read from its game list during the debate: [141, 438, 757, 486, 178] in 2,000 pairs (`debate/evidence/fable_r1_old_run_pairs.txt`); with that spread the test needs about 39,000 games when the truth is exactly level (Fable's arithmetic).
 - **R2 (J11). A search change is tested as a bundle, in four stages:** (1) every switch off = the old node
   counts, and per switch a count of how many of 600 positions change; (2) SPRT between 0 and 5 at 20,000 nodes
   on each of two declared opening seeds, both H1; (3) 4,000 games at 250,000 nodes; (4) R1 before self-play
@@ -53,6 +53,13 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
 - BAR: matches 1 and 2: H1, or at the cap a lower bound above 0. Match 3: lower bound above 0. Match 4: H1 of
   R1. Match 5: point value not below 0. All five, or the values do not enter the loop. A setting that is dead at
   the final values keeps its start value; a partner setting that came alive is named before match 1.
+- Held against the tune's own declaration on the PC (17 November 22:08; Fable, during the debate): matches,
+  order and bars above are the declared ones. Its text says "A = the final values (all 40)" and "no snapshot
+  is picked by its result", so the rule for dead settings is an ADDENDUM to it, written before match 1 has a
+  game, and the liveness table alone names the settings (no match result). Its other duties stay: 8 games at
+  once in chunks of 1,000 through its own runner; the sanitizer run of the final values before anything is
+  placed (its addendum 5); and, as a record and not a bar, 400 games on the clock against Stockfish 19 at
+  3100 after the placing.
 
 **W2. The loop's two repairs (P2, P12; N11).** Build, minutes of processor.
 - TEST 1: a stand-in for the match program prints its verdict, never exits and has started a child that never
@@ -185,9 +192,14 @@ processor; rehearsed in the PC's Linux subsystem.
     workers with one seed would play one game 64 times and every other bar would still pass); a finished
     game id is never played again; the kept rows an hour during the outage meet the fallback's own pilot
     rate. The 20 to 30 minutes are a forecast: the two shares come from different counts (16 of 29 are pairs
-    of positions without their move counters, 117 of 132 pairs of whole FENs), and Astra is measuring on its
-    own machine whether a repeated opening costs as much search as an average game (384 against 384 games,
-    bar declared before: the 95 % interval of the node ratio within 0.90 to 1.10).
+    of positions without their move counters, 117 of 132 pairs of whole FENs).
+    MEASURED by Astra on its own machine (16,370,000 openings drawn by the loop's rule, 768 games played with
+    the frozen producer): 304,347 requests were repeats (1.86 %); a repeated opening cost 1.04 times the nodes
+    of an average game [0.98, 1.11] (the bar declared before, within 0.90 to 1.10, was missed at the upper
+    end, so the measured ratio is used): 28 minutes of the day [26.3, 29.7]. Seeding the table from home
+    rounds adds about as much again (1.85 % of the requests with full move logs, 1.57 % with the careful
+    importer) ONLY if those rounds were made by the same net, program and settings; for a new net or new
+    settings on the server day that share is zero by design.
   - BARS in the rehearsal: with 2 random plies, 200 games and the table off, the receiver reports about 42
     copies; with it on, none; an exhausted opening space ends with a clear error; all four openings of Astra's
     two pairs are handed out (the two into the start position; `b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4` and
@@ -254,7 +266,9 @@ processor; rehearsed in the PC's Linux subsystem.
 
 **W7. Which rounds count toward the 2 billion (P11; A5).** Processor, about 3 hours; nets are trained.
 - TEST: "breadth" (every second row of rounds 29 to 78) against round 78's own candidate (every row of rounds
-  54 to 78, equal row counts), 250,000 nodes.
+  54 to 78; 346,393,625 rows against 346,976,049), 250,000 nodes, 2,000 games fixed, 8 at once: as declared on
+  the PC on 20 November before the net existed. Its error is about +/- 9 and both guesses written there are
+  +2, so "inconclusive" is the likely word.
 - BAR: lower bound above 0: that mixture may count. Upper bound below 0: recent rounds only. Anything else:
   inconclusive, the rounds of the current net are the practical default (not evidence that older rows hurt).
   If breadth wins, a stride control (same rounds and quota, only the sampling inside a game differs) follows.
@@ -321,7 +335,8 @@ processor; rehearsed in the PC's Linux subsystem.
   four-round trial in the loop.)
 - The TD twin (Neon: it must not drop out): round 82's candidate, trained with smoothed labels, against its
   twin trained on the same rounds with plain labels; both nets exist. It is played in the match slot after W7.
-  BAR: by its declaration on the PC if one was written before the match; if there is none, 4,000 games at
+  BAR (Fable looked during the debate: the twin's folder and the log of its training hold no declaration of
+  this match; a declaration found before the match stands instead): 4,000 games at
   250,000 nodes and a lower bound above 0 = smoothed labels become one arm of the pair at 2 billion (R6);
   anything else = recorded, no further trial in the loop.
 
@@ -345,7 +360,9 @@ processor; rehearsed in the PC's Linux subsystem.
   claims: a matched small net could lie at -8 and both 2-billion nets at 0. So "volume is not the lever" is
   said only from a matched pair: the 2-billion 768 against a 768 trained at the same time on a declared
   388-million subset of the SAME rows, same recipe, teacher, filter and seed, with the contrast named before
-  (equal passes = the package as it would be used; equal steps = more different rows at the same work), and
+  (equal passes = the package as it would be used; equal steps = more different rows at the same work; agreed:
+  equal passes is the contrast the decision uses, equal steps stays a separate question; the two nets are
+  trained on two different cards, so W6's update check is run between them and the difference is recorded), and
   that pair's own interval inside the declared margin. That control fits the PC's card (2,917 seconds for 40
   passes at 388 million), so it costs no paid hour. Without it the plan records the result against round
   67's net and the next budget choice, and no sentence about volume.
@@ -409,7 +426,8 @@ teacher; judging a training by its hold-out loss.
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
 - Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Nothing proposed in the extension is open.
-- Running: Astra's measurement of what a repeated opening costs (F4), on Astra's own machine. Owed by Fable: the PC's Windows run of the six-game fixture (N12).
+- Owed by Fable: the PC's Windows run of the six-game fixture (N12).
+- After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
 
