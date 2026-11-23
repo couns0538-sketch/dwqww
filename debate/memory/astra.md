@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:19:58Z
+- Last update: 2026-11-23T15:29:43Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T151958Z
+20261123T152943Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -123,3 +123,7 @@ SETUP_PLAN 2.3 cff7c298d7a3552f88bf13493e285940a5e556d5a4e6ef0efc9ae01c72412197 
 15:20 UTC. Shared f456c914 contains Neon's three YES at 151130Z. All five currently published v2 files now have three exact approvals: engine_lines.py, uciproc.py and its test, record.py and its test. SETUP_PLAN 2.3 has my AGREE and Neon's AGREE on the editor's current bytes. Both seats requested CHANGE on FORMATS 2.3. In 151303Z I also agreed to Neon's two corrections: a second worker start on the same reboot needs a chain back to the original RESUME anchor, and a fence with no schedule 1 copies the immutable header cutoff. No worker, packer or home pipeline has been approved from unpublished bytes.
 
 I completed the independent rules replay of the 500 native games in 151219Z: 62,162 raw rows, three runs at 27,874–30,702 rows/s and the same verdict and ordered seal fingerprints. Four zero-row games counted; zlib wire plus original used 94.028 allocated bytes/raw row. These Linux measurements do not qualify the server or measure the integrated PC. In 151513Z a genuine final board demonstrated a required WDL lookup that fails with its root table present if either child is missing; 127/127 passed with the local table set, 15/127 failed with the root table alone. In 151735Z the same three native records yielded 345 valid C2-side rows unchanged, 198 with an individually wrong sent line under a valid binding, zero with a broken binding. Proposed aligning SETUP_PLAN §2 RECEIVED versus C1 and §6.2 individual versus whole-piece failures. At 151916Z sized the closing ID fragments on 16,384,000 already scheduled but untouched game IDs: 2,409,435,136 allocated bytes for retained canonical and compressed fragments; one open 128,000-ID round took 18,829,312 bytes. Sent the guard a concrete close-at-the-floor test. Next: revised format, worker bytes and direct guard/transport cases. Next owner report 16:35 UTC; end 18:35 UTC.
+
+15:30 UTC. Shared e3330196: SETUP_PLAN 2.4 be886e29954b8141786eeb8442d1543efdcb7e2330c9c367e518c1f97ce97361 now incorporates corrected custody/semantic counts, real closing-space admission, two rounds of lookahead during ongoing production and five unanimous v2 file votes. Astra AGREE 152716Z, Neon AGREE 152800Z, Fable editor 222530Z. FORMATS 2.4 6a469247c404b4c75965e1806f42ad1a8d1c0ba3e6367c765659b504fb15fd47 fixes four earlier findings and compresses never-dispatched tails to intervals. Neon AGREE on these bytes. Astra CHANGE §1.8.3: g1 done/g2 failed/g3–4 no line means g2 unfinished, g3–4 never dispatched and zero unknown; the current “lowest counter with no line” wrongly selects g3 as unknown. A clean STOP with an ended line and a pause without any durable boundary are different. Sent exact case at 152716Z and 152920Z. Fable privately read its 1,057-line draft worker and withheld approval; its date parser accepted November 31, and the worker/test need the revised contract and review. No new paid-package executable was published in this interval.
+
+Native 1,500-game, three-slot compressed recovery fixture, 152429Z: 188,004 rows independently replayed, 3 receipts, 3,474,309 unique member bytes, 5,770,999 actually copied under two interruptions, one damaged prefix and one lost kept member. Ordinary listing revisits must not be counted as fresh confirmations; Fable included the distinction in formats 2.4. Rechecking an entire 32,800-offer directory on every minute poll would make 22,647,720 piece visits on the stated uniform-arrival scenario. Both seats measured the proposed interval saving: my 152820Z, 71,229,440 allocated bytes vs the old 2,409,435,136 for 16,384,000 still-unplayed IDs, with 16,386 file entries including both terminal fragments; Neon's independent result was 71.246 MB. Reconstructed interval counts and contiguous coverage exactly. Next: resolve failed-ID rule, run provided worker/packer bytes and native recovery cases as soon as they arrive, and keep the per-file owner report current. No full rental-day rehearsal or paid capacity yet.
