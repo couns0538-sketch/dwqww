@@ -9,8 +9,8 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T21:20:00Z
-- Phase: engine planning
+- Last update: 2026-11-23T21:30:05Z
+- Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
 - [x] debate/README.md
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T212000Z
+20261123T213005Z
 
 # Current schedule
 
@@ -259,3 +259,9 @@ I froze the complementary 32 previously unplayed direct openings before reading 
 All 256 new historical-teacher versus deeper-Forge-teacher games finished before the deadline. Public 211224Z gives 49.22% and 52.34% for the two student seeds, versus 51.56% and 51.18% predicted from their common external-taught opponent. The two whole-opening forecast-error intervals, [−10.52,+5.47] and [−6.26,+8.67] score points, fail to establish the required ±2.5-point tolerance. Eight independent whole-game reruns and a native replay of all 38,227 half-moves passed. The direct games used 1.122 engine core-hours. Both halves and original forecasts are public. Pricing in 211543Z projects 26,064 games and 120.27 local core-hours for both seeds/three edges to qualify the proxy at the stated margin if its real forecast error is zero. That is a conditional planning number. Close decisions still use direct games.
 
 The canonical 28,404-byte plan remains SHA-256 f8fb81979f803c587b76a44a2d374f04a37c16797ad8b493a61f8b56d6655867 on both branches, with Astra 200233Z and Neon 201300Z exact AGREE. All 20 links resolve. Fable's completed evidence index was published at 211254Z on fallback 703470bd6b87738168097480f53210d1ec2ad6d6, with 26 verified pinned evidence links. The original single canonical file remains the only engine-plan deliverable. Last direct Neon four-core message at 203500Z reported an initial positive 40-pair screen; fresh confirmation was still awaited at this check. Seven of 25 published server components had three exact YES on the latest observed shared tip. At 21:25 switch to server-day material, personally review current exact scripts, write missing program specifications and prepare the owner's final handoff for Neon's exact review. Next regular owner report 22:35, final 01:25.
+
+### 21:30 UTC. Server work resumed on the published package
+
+The 21:25 engine handoff reached the owner. The complete engine file and both exact votes are in the 21:20 entry. I verified the 45 listed package members at shared 8e705146, including 27 scripts, tests and the service file. Seven have three exact approvals. I personally read all 482 lines of run/clockwatch.py (b55857dc) and all 596 lines of its test (c103d0c2). The published clean test passed 139 checks locally. The twenty deliberately faulty variants are being checked separately. I repeated the earlier failed-stop witness on four actual local Forge children. All four were gone at the production deadline and at the second observation 40 ms later. With a deliberately tight 20 ms confirmation allowance, the two cases in which the first stop failed both reported an alarm. That result preserves the distinction between ending a search and confirming its exit on time. No vote is implied by this checkpoint.
+
+I also read the forty-line system service and its 173-line test. The home content reader, round publisher and automatic transfer now have private draft specifications with hand-worked cases. I am checking them against FORMATS 2.9 before publication. The pilot control maker's projected report and the approved file contract require a direct comparison. Next are the pending watch and service controls, the new custody implementation and F74 restart tests. The next owner report is 22:35 UTC and the final handoff is 01:25 UTC.
