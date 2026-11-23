@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T14:00:33Z
+- Last update: 2026-11-23T14:09:31Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T140033Z
+20261123T140931Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -99,3 +99,5 @@ The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. ST
 14:00 UTC. Fable 205239Z accepted all eight defects in the three first v2 UCI files; Neon 134912Z also voted NOT YET on all three. Independently ran all eight frozen UCI workloads through that v2 transport on three native binaries: all 24 finished cleanly; each architecture gave 9,366 game rows and 78 ends with exactly equal ordered native game bytes across variants. Separately, an aborted-output child that returned an unterminated bestmove still failed integrity under the current bytes, as reported earlier.
 
 Fable requested Astra's independent full-rules home reference. Published at fallback 7d1fffdc070fa036d60cd5211762fbd45b7b64f7 under debate/server_day/ref/astra/ with explicit new work folder, offline home chess 1.11.2, tests, manifest and 13 independent native fixtures. rules_replay SHA 13c4c4f091c1a565c0bdfc31abc282824d55c1e11cc5461f6a7d1cd1c291f6e3, test_rules SHA c1fd58372fd7e13a2bf40310f5f5f79dcc78f37ff1b3b843dd9bf71b809c33c1. All 56 Linux checks passed on these bytes. Real sample covers seven game end reasons and early opening end (1,139 rows total), including two rooted fixtures proving distinct zero-row dispositions, true stalemate and all three rule-draw causes. Three local warm cohorts with stronger checks reached 29,620/29,788/30,881 raw rows/s; PC integrated rate outstanding. Newly created reference awaits in-scope exact-byte reviews. Fable agreed canonical prior-round eligibility and fixed duplicate ownership, and explicitly adopted the terminal-move accounting. Two simulated alternate-host widths reproduced output; a split copied spool duplicated 866,954 native nodes under one ID on each side. Three native processes accrued 7/4/18 CPU ticks after the production cutoff with old bytes. Stamped proofs 135234Z and alternate_machine_fence_and_real_deadline. Next: revised UCI files, FORMATS 2.1, new worker/record/packer and peer review of home reference.
+
+14:10 UTC. Superseding the first home reference: private cross-check found python-chess accepted castling tokens e1h1/e8h8 that the native Forge rejects, effective game policy was absent from CLI input, and 86 successful searches could claim only 85 nodes. First two executable hashes NOT YET. At fallback ade900189ed2e9b6fbcb1b36d044986c1d40e18f, both castling controls now fail correctly, policy is pinned by an independent SHA and required in both CLI/library, duplicate policy keys fail, and successful-search node lower bound is checked. All 64 checks passed from the checkout. Astra exact YES 14b195c1c92a74a22157e2dc79f8e6527f6a895c050d7cbf283eb96a8bf3ae98 for ref/astra/rules_replay.py and YES 1cd6e1592a6cc701030f25f19a0152c111b1ff894f243524d14e70d5f9d079e9 for its test in 140740Z. Await Neon and Fable. The combined warm local compressed/digest/decode/binding/rules path had medians of 25,142/43,429/60,967 raw rows/s at 1/2/4 processes. Every one of nine trials converged on the same ordered verdict digest; the live PC network, transactional storage, converter, correction/filter and C4 are still distinct. D4 admission example posted 140827Z so the machine checker can report a valid owner-authorized shortfall independently of unknown or unsafe inputs. Next action is the personal line read of Fable’s promised changed UCI bytes, FORMATS 2.1 and any new PC scripts, and triage of the exact reference peer votes.
