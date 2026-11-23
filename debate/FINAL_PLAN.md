@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT, pushed at 2026-11-23T12:01:01Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT, pushed at 2026-11-23T12:03:04Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 18 proposals were
@@ -65,8 +65,10 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
   from single games (Neon; shown on a made-up list of pair results whose answer is known). TEST and BAR before
   its first use: the runner's own
   transcript on the fixed position shows `go softnodes 2000`, nodes 5506, best move g1f3, and its hard-node mode
-  FAILS that check (nodes 1926, b2b3); a level pair must not end in H0 twice in a row; a pair with half the
-  nodes on one side must end in H0. The time of these runs is written down (it sets the fallback of R1).
+  FAILS that check (nodes 1926, b2b3); the same engine against itself gives a pair total of exactly 1 on
+  every opening and the stop answers "no information" (a wiring test with a known answer; Astra); a candidate
+  at half the nodes ends in H0, one at double the nodes in H1; Astra's two made-up logs, (win, win), (loss,
+  loss) and (win, loss), (loss, win), give the pair counts [1,0,0,0,1] and [0,0,2,0,0] and different statistics. The time of these runs is written down (it sets the fallback of R1).
 - (b) The speed measurement for R3: as many one-thread engines at once as the match will run, elapsed time by
   paired opening and colour. BAR: two repeats agree within their own spread before any odds are frozen.
 
@@ -75,8 +77,9 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
   round 67's net, pooled; LB and UB are the ends of the pooled 95 % interval.
 - BAR, four outcomes: LB above 0 and UB at or above +5: a gain of unsettled size; the best of the three is
   confirmed alone with a fresh seed before any promotion; no pause. LB above 0 and UB below +5: a gain under +5;
-  the best may be confirmed; the 2 billion keep their priority. LB at or below 0 and UB below +5: level within
-  +5; the per-round training and gate may be paused until W8's trainer runs (a code change with its own test;
+  the best may be confirmed; the 2 billion keep their priority. LB at or below 0 and UB below +5: a gain of +5
+  is ruled out ("the three lost on average" is added if UB is below 0; "within +/- 5" only for an interval
+  wholly between -5 and +5; Astra); the per-round training and gate may be paused until W8's trainer runs (a code change with its own test;
   the rows gained are timed). LB at or below 0 and UB at or above +5: inconclusive, nothing changes.
   A "depth effect" is claimed only if the difference between 50,000 and 250,000 nodes on the same three nets has
   its own lower bound above 0.

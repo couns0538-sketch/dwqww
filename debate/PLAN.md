@@ -72,8 +72,13 @@ Where this file says "not checked", nobody has checked it.
   -5"). Measured cost on the PC's own soft-node runner: 11.7 games a second with 4 games at once, +/- 8.0 at
   4,000 games; about 39,000 games (55 minutes) when the change is level, 2.4 hours at the cap. Before its first
   use: the runner's transcript on one fixed position must show the soft command's known answer (nodes 5506,
-  g1f3) and its hard-node mode must fail that check (nodes 1926, b2b3); a level pair and a pair with half the
-  nodes are run as controls of the pipeline (two H0 in a row from level pairs = look at the harness). To build:
+  g1f3) and its hard-node mode must fail that check (nodes 1926, b2b3); controls of the pipeline (Astra's
+  correction of the first version, which asked for "a level pair"): (1) the same engine against itself is a
+  wiring test with a known answer: at fixed soft nodes the reversed game is the same game, so every pair must
+  total exactly 1, and the stop must answer with a documented "no information" status, never with a variance
+  taken from single games; (2) a candidate at half the nodes must end in H0, one at double the nodes in H1;
+  (3) two made-up logs with the same wins and losses, paired as (win, win), (loss, loss) and as (win, loss),
+  (loss, win), must give the pair counts [1,0,0,0,1] and [0,0,2,0,0] and different statistics. To build:
   the sequential stop over the runner's pair results (Neon: its statistic must come from the pairs, not from
   single games; the wrapper that exists is checked for that or replaced, on a made-up list of pair results whose
   answer is known). If a timed run shows more than 4 hours at the cap, the
@@ -172,7 +177,9 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   positive average whose size against +5 is not settled ("at least +5" only if LB itself is at or above +5):
   no pause; the candidate with the highest point value is confirmed alone, with a fresh seed, before any
   promotion. LB above 0 and UB below +5 = a gain, but under +5: both facts are reported, the best candidate may
-  be confirmed, the 2 billion keep their priority. LB at or below 0 and UB below +5 = level within +5: the
+  be confirmed, the 2 billion keep their priority. LB at or below 0 and UB below +5 = a gain of +5 is ruled out
+  (Astra, agreed by all: not "level"; the interval is printed, "the three candidates lost on average" is added
+  when UB is below 0, and "within +/- 5" is said only of an interval that lies wholly between -5 and +5): the
   per-round training and gate may be paused until the 2-billion trainer runs (the loop has no setting for that
   today: a change to its code, with a test; the rows gained are timed, not computed). LB at or below 0 and UB
   at or above +5 = inconclusive: nothing is claimed and the loop stays as it is.
@@ -624,4 +631,5 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   key corrected, its replacement still open (P3b). A6 (Astra): the wide net after the data does not wait for
   the 768 net to win (P11 step 4, P4). After the second hour: J11's stage 3 closed at a lower bound above -3
   (all three); the opening key changed again after Astra's counterexample (the whole FEN plus the positions
-  since the last pawn move or capture; P3b); Neon's note on J10 (the stop's statistic comes from the pairs).
+  since the last pawn move or capture; P3b); Neon's note on J10 (the stop's statistic comes from the pairs). Astra: the lower-tail cell of P2's test is "a
+  +5 gain is ruled out", not "level"; J10's controls (the same engine against itself is a wiring test).

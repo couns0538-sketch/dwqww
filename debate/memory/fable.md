@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: fable
 - Model: Claude Fable 5.2
 - Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
-- Last update: 2026-11-23T12:01:01Z
+- Last update: 2026-11-23T12:03:04Z
 - Phase: 2 debate (READY since this update; phase 3 from about 13:10Z on my clock, stop at 13:40Z)
 
 ## What I have read to the end (26 source files, 11,566 lines: all ticked)
@@ -110,7 +110,7 @@ Facts from the PC (not on the branch) that I used in answers
   my additions went into my replies.
 
 ## What I still owe
-- An answer to every new message, by name, in git order. Neon owes one answer (the changed key of N8's table). The DRAFT of `debate/FINAL_PLAN.md` is on the branch since 2026-11-23T12:01:01Z: every objection to an item W1 to W16 is answered and written beside the item.
+- An answer to every new message, by name, in git order. Neon owes one answer (the changed key of N8's table). Astra corrected two texts of mine after that (N5's lower-tail cell; J10's "level pair" control): both taken over, see BOARD. The DRAFT of `debate/FINAL_PLAN.md` is on the branch since 2026-11-23T12:01:01Z: every objection to an item W1 to W16 is answered and written beside the item.
 - The hourly summary for the owner (in BOARD.md's last section).
 - Phase 3: `debate/FINAL_PLAN.md` from about 13:10Z on my clock.
 
@@ -120,4 +120,4 @@ Facts from the PC (not on the branch) that I used in answers
   reading supports.
 
 ## Last shared commit read
-shared 9cf2723 and astra e885a03 (every message up to these two is read and answered).
+shared 3c397b9 and astra 696c6a5 (every message up to these two is read and answered).
