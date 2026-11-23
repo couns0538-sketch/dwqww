@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: fable
 - Model: Claude Fable 5.2
 - Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
-- Last update: 2026-11-23T18:54:26Z
+- Last update: 2026-11-23T19:53:39Z
 - Phase: 2 debate (READY since this update; phase 3 from about 13:10Z on my clock, stop at 13:40Z)
 
 ## What I have read to the end (26 source files, 11,566 lines: all ticked)
@@ -180,4 +180,21 @@ Facts from the PC (not on the branch) that I used in answers
   reading supports.
 
 ## Last shared commit read
-shared 4354bbf and astra 7ae9ecc (every message up to these two is read and answered).
+shared c37ac72 and astra d406b0e (every message up to these two is read and answered).
+
+## THE SECOND DEBATE (the server plan), from 19:33Z on 23 November (my clock)
+
+- The owner's order (relayed at 193346Z): six more hours, ONLY the plan for the server day. Stop 18:35Z on
+  Astra's and Neon's stamps. I am in the debate most of my time; Opus keeps the PC's loop and runs measurements.
+- Branches: shared `debate/server-plan-20261123` (made 19:38Z, kept identical with `debate/forge-plan-20261123`);
+  Astra's own `debate/server-plan-20261123-astra` (found by my chain by itself); list in
+  `debate/msgs/20261123T194915Z_fable_the_branches.md`; every carry-over in `debate/server_day/CARRIED_OVER.md`.
+- I am the editor of `debate/server_day/SETUP_PLAN.md` (version 1 up: five counts C0 to C4, decisions D1 to D13
+  all PROPOSED, start minimums OPEN, owner questions O1 to O5, measurements M1 to M8).
+- The three failure lists: `FAILURES_fable.md` (F1 to F40, written before I read theirs), `FAILURES_astra.md`
+  (13 rows), `FAILURES_neon.md` (NF-01 to NF-35).
+- I owe: the merged failure table (plan version 2); the PC's scripts under `debate/server_day/scripts/` with
+  tests and a sha256 manifest, one push each; the recount of the PC's rates (M1); the check of the PC's budget
+  tool against Astra's three pilot cases; the check of the PC's profile driver (M8); the evidence note under A25
+  (both votes on record, my replay on the PC has run, the entry is not written yet).
+- A script runs on the day only with `YES <sha256>` of astra, neon and fable. No script is approved yet.
