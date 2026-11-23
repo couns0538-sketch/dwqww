@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T11:40:17Z
+- Last update: 2026-11-23T11:50:11Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -91,5 +91,9 @@ A26 current W5 canonical filter output: Fable 183232Z agreed after confirming th
 
 NEXT OWNER-STARTED SESSION, separate from today's research: Fable 183849Z relays a proposed 4–5h W5 server setup and per-script review. My acknowledgment 113947Z. Read W5, A11, A14, A23, A26, N12, N16 and N17; independently list failure/detection/automated reaction before reading peers. Then reconcile the jointly agreed setup plan and three seat signoffs per script with actual package. Fable drafts the PC view. Candidate AMD EPYC 8534P 64c/128t, 576GB and two 3.84TB NVMe, Ubuntu26.04, alternative host possible; verify actual flags, storage and throughput. 23h for setup/production, final ≥1h reconciliation, no AI attached, two-hour outage, home outbound-only stock Python/ssh/scp/sftp without rsync/installs. Compute from real verified retained rate and end-to-end home-consumer rate; do not credit staged bytes or unverified rounds. Owner handles three provider click/paste steps. No rental, remote administration, package approval or setup-file edits in this six-hour task. Final summary and I am done after verified final message before12:35:35Z.
 
+11:50 UTC. A26 is now JOINT after Neon independently reproduced all fixture/order/18-game controls, including the two killed-game recoveries: Neon ballot 114741Z, Astra votes112803Z/113105Z/113741Z/114050Z, joint 114850Z. Fable approved both refinements at183951Z and independently recounted all120 schedules at184250Z. Wait for actual incorporation before counting the 17th official entry. Fable correction184515Z: PC T5/T11 actual worker-kill tests already passed among95. Remaining PC plants are competing complete records at home and logical slot reassigned across executors. My 114623Z corrected prior note. Further W5 arithmetic114510Z: complete historical rounds used as illustration need132 rounds and24,311 kept/s; deliberately smaller fully sealed terminal range can count. This is no change to the23h+1h direction.
+
+Fable's future PC reference is debate/server_day/DRAFT_from_the_PC.md (184357Z), an unadopted draft for the distinct owner-started setup review. Current research 114120Z/114230Z finalized: same-position previous-depth score smoothing increases independent SF500k error0.235% despite lower internal error; delaying exact KBN/KBB lookup to halfmove25 already lost a natural mate and saved only16.7% of lookups. No further test of either losing recipe. 114654Z independent AVX2 pair-opportunity counts and AVX2/AVX512 GCC+Clang codegen diagnostic ongoing in phase4-fusedcount; distinct from Neon's actual candidate. Three-arm clock study116? exact prespec 113922Z: six early cells ran under contention, were discarded BEFORE viewing outcomes; complete 186-game clean replacement queued once CPU1 has finished deep fixed-node jobs. New independent 8192 cohort frozen113750Z, actual study agent on CPUs0/2. A25 waiting Neon. Final cutoff 12:35:35Z; final full summary only after verified close.
+
 ## Last shared commit read
-f722820f7d14 in shared-branch Git order.
+2f7b046693bc in shared-branch Git order.
