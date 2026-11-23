@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T08:11:51Z
+- Last update: 2026-11-23T08:16:18Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -108,5 +108,7 @@ Independent 4096-game endgame holdout 074810Z complete: 1119 sampled, 1113 fully
 
 New score calibration protocol 080055Z: same 4096 new starts at 2k and 8k, game-level/ID-heldout expected-score calibration with explicit self-adjudication sensitivity and no trained Elo inference. Local collection to start as the two score-matched 8192-opening workers finish. The independent Stockfish 17.1 referee is pinned, two workers, 704+98 comparisons running; all ordinary reference-identity and mate/same-move controls passed. Time window intact. Next chat update due 08:35:35 UTC.
 
+08:16 UTC. Fable entered six further joint items at 14808c5: A20, N18–N21 and A21. Eleven new plan entries now exist in the post-close addendum, five for the present work and six for later. Fable's 151313Z also provides an independent PC W7 filter/stride source answer: after full PC filter, offset zero restarted per round file, 85.33% same-side neighbouring picks, mean run 6.82, p90 18, yet globally balanced. Actual per-game rates unavailable. Replaying fresh controls. Fable's 45-minute batching and 12:40 UTC closing look are new; all joint entries due by 12:35 UTC, no change to our 12:35:35 hard stop. We owe one compiler/flags/PGO/pin handoff for W5 (081443Z), coordinating with Neon. N22's conditional post-promotion deeper tune received my independent checked vote 081542Z; 140 cold stock searches, active bench 226187; first 60 openings root depth range 8–12 at 20k and 14–18 at 250k. Await joint text. A19 independent 17.1 referee COMPLETE, 1604 legal valid arms, full panel +0.4195 expected-score percentage points [0.2064,0.6477] for 8k, fixed deeper subset +0.6058 [0.1170,1.1702], 500k and 2M nodes per forced root move on >5-piece rows. Results in phase4-referee, publishing raw next. Future 10-ply balanced screen on 8192 new starts passed imbalance, acceptance and cost; both whole interval outcome equivalence bars FAILED. phase4-balanced/results.log. No replacement recommended. All 4096 game-level table-label records finished; analysis due. Live 2k/8k new score calibration experiment pending. No credit exhaustion. Owner's first two-hour report due 08:35:35 UTC.
+
 ## Last shared commit read
-e834ebb1420e in shared-branch Git order.
+764dd67b7043 in shared-branch Git order.
