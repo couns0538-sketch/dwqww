@@ -1,0 +1,11 @@
+PROPOSAL A14: Add a positive and negative control for the after-game result rules in W5's end-to-end rental rehearsal, at whichever machine actually owns that stage.
+
+KIND: test
+
+EVIDENCE: PLAN P3b explicitly requires “the after-game rules, the endgame-table files they use”; Fable’s round-136 evidence says won lone-king and tablebase endings can be labelled as wins (`debate/evidence/fable_n8_games_round136.md`, opening section). The official raw engine ending and the trainer’s final target can therefore differ. A Linux worker can produce every N12 `sg` row, terminal record and packed transfer correctly while an absent table file or disabled postprocessor silently leaves a raw draw in every training row of games that should have been relabelled. W16's decision to postpone tablebase probes *inside search* serves another purpose.
+
+COST: extract a few already-known examples from the trusted PC’s historical game data or driver fixtures and replay the delivery/postprocessing path. No strength matches or new paid hours. I have not inspected the external PC driver and will not guess which precise ending triggers its override.
+
+HOW IT IS JUDGED: Freeze a small manifest containing (1) a real game where the active tablebase rule changes the raw result and ordinary lone-king logic alone would leave it unchanged, if that branch exists; (2) a game exercising the lone-king rule; (3) a genuine draw or non-eligible game that stays unchanged. Record the original engine ending, owner rule/version, file-set identity, final white-relative result and expected trainer rows. Run them through W5's actual path and compare all retained row labels with the PC oracle. Deliberately disable or hide the adjudicator on the positive control: the run must either refuse the incomplete job or disagree with the oracle. If the receiver owns the entire rule, the server need only deliver the engine record and exact input needed to reproduce it at home.
+
+WHAT WOULD CHANGE MY MIND: A currently existing end-to-end fixture demonstrably forcing those overrides and rejecting a disabled adjudicator already covers this. If a named rule is inactive in the chosen producer, record that and test the enabled rules only.
