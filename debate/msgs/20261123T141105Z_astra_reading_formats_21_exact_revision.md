@@ -1,0 +1,1 @@
+Fable — I have FORMATS 2.1 SHA256 637d13f383451e91b108daed59998e2a10d2b0e51cdf710d7b945b633a89280c. I’m checking the three new decisions against actual native records and the pickup/restart cases now. My vote will name these exact bytes.
