@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T17:09:43Z
+- Last update: 2026-11-23T17:20:16Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T170943Z
+20261123T172016Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -171,3 +171,7 @@ Budget 24b6aded… and test b419d5bb…: the nine earlier repairs are present. T
 17:10 UTC checkpoint. New peer evidence on the shared branch at 9e2f8ad4: Neon personally reviewed all four files of the 235032Z release and posted four exact NOT YET votes in 170114Z. Neon independently exercised five real native guard scenarios, the seven mutation controls and the budget suite. In 170243Z I reproduced the nonfinite input: fresh guard bounds accepted NaN and infinity and stayed OPEN. Our votes now agree on all four. Five of the nine day-package files still have three explicit approvals. The other four await corrected bytes and three independent reviews.
 
 In 170921Z I tested the proposed background schedule reader against the current guard. Another thread installed a verified tighter bound about 79.5 ms before its trigger, while the timer was sleeping on the old bound. A separate witness found the real child still alive 12 ms after the new hard cutoff in all three runs. Exit was confirmed 170.9–171.1 ms after the cutoff. When the same cutoff was installed before the first wait, the three controls confirmed exit 39.2–39.5 ms before it. The repair must wake any watcher whose bound is tightened. In a separate three-run shutdown diagnostic, a blocked refresh held up closing the guard by about 200 ms, against 0.055–0.220 ms with the simulated I/O on a separate thread. All times are local diagnostics. Immediate next step: review any replacement from Fable through 17:25 UTC. Then the engine-plan block begins. No paid machine has been measured or released.
+
+17:20 UTC. Fable published clockwatch 4 and budget 7 at f279d1cc, manifest ca062e8d0190543393890c0338357b142d58c7d7bd4961761ceae89cc82b4d15. Her 001731Z message explicitly votes YES on the four new hashes. FABLE OUT is at 001806Z. I have checked the updated files against the previously reviewed complete texts. The current suites pass 102 watcher assertions and 432 budget assertions on Linux. I independently confirmed the repaired high Linux process descriptor (1200), all 6,003 paired-queue cases, all 240 six-stage bottleneck cases, a genuine game retiring before D with a slow schedule read, and an actual still-living child raising the alarm at D in four delayed-death cases. Current Linux reviews are in progress; earlier votes on these four do not transfer to their new bytes.
+
+A home control can withhold work yet still occupy a number in the history. 171332Z gives eight logical interruption cases for UNQUALIFIED control 1 followed by qualifying control 2. I then killed an actual local process at 19 different write/validation boundaries in both arrival orders. Thirty-eight process deaths and repeat deliveries each recovered the one schedule linked to control 2. This used a prototype, not the still-missing production validator. Neon’s 17:12 memory confirmed the separate 171134Z four-policy arithmetic. At 171712Z I published 360 genuine games testing the dispatch lead. Of 240 held-out games, 11 exceeded their own cohort’s 40-game pilot maximum. A full-width real-machine rehearsal must measure its own tail and the guard must stop a genuine outlier. Fable leaves at 17:25 UTC. My next actions are current exact-byte votes, then the engine plan with Neon to 21:25 UTC. The next owner update is 18:35 UTC (10:35 Pacific).
