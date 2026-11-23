@@ -1,0 +1,124 @@
+"""Fable 2026-11-23: what share of one round's kept positions would each skip rule of the official trainer
+(src/nnue-pytorch/data_loader/cpp/training_data_loader.cpp, make_skip_predicate, lines 926 to 1175) drop,
+and how many of the round's positions also occur in the round before it. Reads only; one thread.
+
+    filter_shares.py <round's filtered.plain> <the round before's filtered.plain> <every Nth record> <out json>
+"""
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+import chess
+
+cur, prev, step, out = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3]), Path(sys.argv[4])
+assert not out.exists(), f"{out} exists: give a new name"
+
+
+def records(path):
+    """yield (fen, move, score, ply, result) for every record of a plain file."""
+    with open(path, "r", encoding="ascii", newline="\n") as f:
+        while True:
+            a = f.readline()
+            if not a:
+                return
+            b, c, d, e, end = (f.readline() for _ in range(5))
+            assert a.startswith("fen ") and b.startswith("move ") and c.startswith("score ") \
+                and d.startswith("ply ") and e.startswith("result ") and end.strip() == "e", (a, b, c, d, e, end)
+            yield a[4:].rstrip(), b[5:].rstrip(), int(c[6:]), int(d[4:]), int(e[7:])
+
+
+def key(fen):  # the position without its two move counters
+    return " ".join(fen.split()[:4])
+
+
+def early_accept(ply):  # the trainer's soft early-ply rule, defaults of data_loader/config.py
+    pts = [(0.0, 0.1), (6.0, 0.15), (10.0, 0.25), (18.0, 0.75), (20.0, 1.0)]
+    if ply >= 20:
+        return 1.0
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        if x0 <= ply <= x1:
+            return y0 + (ply - x0) / (x1 - x0) * (y1 - y0)
+    return pts[0][1]
+
+
+def pc_target(pc):  # the trainer's piece-count spline, y = 0, 0.4, 1, 1, 0.75 at 0, 8, 16, 24, 32 pieces
+    y = [0.0, 0.4, 1.0, 1.0, 0.75]
+    if pc >= 32:
+        return y[4]
+    i = min(int(pc / 8.0), 3)
+    t = (pc - i * 8.0) / 8.0
+    slope = lambda k: (y[1] - y[0]) if k == 0 else (y[4] - y[3]) if k == 4 else (y[k + 1] - y[k - 1]) / 2.0
+    t2, t3 = t * t, t * t * t
+    return max(0.0, (2 * t3 - 3 * t2 + 1) * y[i] + (t3 - 2 * t2 + t) * slope(i)
+               + (-2 * t3 + 3 * t2) * y[i + 1] + (t3 - t2) * slope(i + 1))
+
+
+assert abs(pc_target(4) - 0.1875) < 1e-12 and pc_target(16) == 1.0 and abs(early_accept(8) - 0.2) < 1e-12
+
+total = kept = 0
+n = cap = chk = either = 0
+early_keep = 0.0
+under20 = 0
+pcs = Counter()
+bands = Counter()          # (|score| band, outcome for the side to move)
+sample = {}                # key -> ply band
+for fen, mv, score, ply, result in records(cur):
+    total += 1
+    if score == 32002:          # marked as dropped by the loop's own filter
+        continue
+    kept += 1
+    if kept % step:
+        continue
+    board = chess.Board(fen)
+    move = chess.Move.from_uci(mv)
+    assert board.is_legal(move), (fen, mv)
+    n += 1
+    c, k = board.is_capture(move), board.is_check()
+    cap += c
+    chk += k
+    either += c or k
+    early_keep += early_accept(ply)
+    under20 += ply < 20
+    pcs[chess.popcount(board.occupied)] += 1
+    a = abs(score)
+    band = "0-49" if a < 50 else "50-149" if a < 150 else "150-299" if a < 300 else "300-599" if a < 600 else "600+"
+    ahead = result if score >= 0 else -result       # +1: the side the score favours won
+    bands[(band, ahead)] += 1
+    sample[key(fen)] = "ply<20" if ply < 20 else "ply 20-39" if ply < 40 else "ply 40+"
+
+# the piece-count rule as the trainer applies it: accept = clamp(alpha * ratio), alpha = 0.025 / smallest ratio
+tsum = sum(pc_target(i) for i in range(33))
+ratio = {pc: (pc_target(pc) / tsum) / (cnt / n) for pc, cnt in pcs.items() if pc_target(pc) > 0}
+alpha = 0.025 / min(ratio.values())
+pc_keep = sum(cnt / n * min(1.0, alpha * ratio.get(pc, 0.0)) for pc, cnt in pcs.items())
+
+by_band = Counter(sample.values())
+seen = Counter()
+prev_total = 0
+for fen, _, sc, _, _ in records(prev):
+    if sc == 32002:
+        continue
+    prev_total += 1
+    b = sample.get(key(fen))
+    if b is not None:
+        seen[b] += 1
+        sample[key(fen)] = None     # count a sampled position once
+res = {
+    "file": str(cur), "records": total, "kept_by_loop_filter": kept, "sampled": n, "every": step,
+    "best_move_capture": cap / n, "in_check": chk / n, "capture_or_check": either / n,
+    "ply_under_20": under20 / n, "kept_by_soft_early_ply_rule": early_keep / n,
+    "kept_by_piece_count_rule_as_coded": pc_keep,
+    "kept_if_thinned_exactly_to_target_shape": min((cnt / n) / (pc_target(pc) / tsum) for pc, cnt in pcs.items() if pc_target(pc) > 0),
+    "pieces_histogram": {str(pc): pcs[pc] for pc in sorted(pcs)},
+    "pieces_share": {b: sum(c for pc, c in pcs.items() if lo <= pc <= hi) / n
+                     for b, lo, hi in (("4-8", 4, 8), ("9-16", 9, 16), ("17-24", 17, 24), ("25-32", 25, 32))},
+    "outcome_by_abs_score": {b: {o: bands[(b, k)] / max(1, sum(bands[(b, j)] for j in (1, 0, -1)))
+                                 for o, k in (("side_ahead_won", 1), ("draw", 0), ("side_ahead_lost", -1))}
+                             | {"share_of_all": sum(bands[(b, j)] for j in (1, 0, -1)) / n}
+                             for b in ("0-49", "50-149", "150-299", "300-599", "600+")},
+    "previous_round": {"file": str(prev), "records": prev_total, "distinct_sampled_positions": len(sample),
+                       "also_in_previous_round": {b: [seen[b], by_band[b]] for b in sorted(by_band)}},
+}
+out.write_text(json.dumps(res, indent=1), encoding="ascii")
+print(json.dumps(res, indent=1))
