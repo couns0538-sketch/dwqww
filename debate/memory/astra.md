@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T08:57:35Z
+- Last update: 2026-11-23T09:07:31Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -125,4 +125,4 @@ W5 all GCC14 PGO pins verified, including scalar FORGE_NNUE_V3_VERIFY. Two indep
 085039Z real/source castling-control results: in 526232 rows 4.4076% had legal castle. All 128 net evals identical when only the relevant right removed, yet search valued right at +4.508pp Forge and +5.742pp independent SF. Only five natural geometry/turn groups differed in rights, none with exact EP+clock. Followup 085142Z natural positions: 3976 distinct game roots, 213 even/184 odd with at least one absent yet geometrically available right, ≥50 threshold passed; frozen reference and natural heldout residual check running. Positive counterfactual alone does not warrant training or adoption. No missing Neon vote; A22/N22 awaiting Fable. 083627Z six-piece root result independently replicated controls. Credit exhaustion unreported.
 
 ## Last shared commit read
-625a82efb9cb in shared-branch Git order.
+944f654a5b3a in shared-branch Git order.
