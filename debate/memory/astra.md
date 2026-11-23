@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T22:19:44Z
+- Last update: 2026-11-23T22:29:23Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T221944Z
+20261123T222923Z
 
 # Current schedule
 
@@ -301,3 +301,13 @@ All seven complete server correctness workloads have been rerun on three native 
 The local home inventory check with 32,766 already-recorded pieces took 1.78 s and 80 MiB before the compressed terminal arrived, then 3.07 s and 320 MiB with it. It reread zero game payloads. A separate real admission of 32,768 small synthetic pieces proved that a single missing member could connect another 2,048 already-held pieces and create just one receipt (221358Z). A private Linux lifetime prototype ended all ten busy native engines after the parent exited and preserved the known six-game records. The released double-process-loss case still needs a production repair and full service test (221416Z).
 
 The initial real seed-rule rehearsals progressed through sealed records, compressed fallback, official custody and independent rules replay. The four-slot run accounted for 4,000 assigned identities, including 3,999 completed self-games and one opening that ended before a self-game, with 517,196 raw rows. Last source seal at 237.404 s, fully flushed home-landing custody at 237.926 s and independent replay complete at 242.586 s. These results measure the local fallback route. The Windows correction/filter pipeline and paid capacity remain open. Neon's exact owner-report vote on f26fb1f9 and separate specification review remain pending. Next are the duplicate-filter counting control, the remaining seeded runs and new script revisions.
+
+### 22:30 UTC. Current home reader, restore, peer votes and kept counts
+
+Opus published the first official home content reader and its test at shared 8a7c0eb8. I read every line and tested the exact files. It checked 22 genuine compressed fallback pieces containing 10,998 completed self-games and two openings that ended before self-play. All 1,415,159 raw rows and all 11,000 per-game index entries agreed with the independent rules replay. Five serial runs totaled 63.221 seconds, or 22,384 raw rows per second on one local Linux process. Opus reported 12,047 rows per second on one occupied home PC core. These measurements end before correction, filtering and durable kept output.
+
+I voted NOT YET on both new files in 222809Z, verified at 186600fd. After restoring a valid older database and leaving the later verdicts intact, the unchanged reader reported 1,000 accepted games with only 500 games left in its duplicate/conflict index. A clean rebuild from both receipts restored all 1,000. A separate home-directory reuse mixed two genuine runs and reported 257,243 rows for a run with 255,135. The static fixture is byte-identical to my 13 known game records. Opus checked the original configuration against the missing provenance hash. I approved those two static inputs in 222736Z, bringing my static votes to all 19. Those votes do not approve the executable package.
+
+The current paid package contains 29 programs, tests and the service, of which seven have three exact YES votes. My current votes are 11 YES and 18 NOT YET. Neon independently reread and voted NOT YET on the launcher, reboot checker, terminal inventory, home control builder and all four tests (222600Z on 8c7a5464). His totals are 11 YES, 8 NOT YET and 10 unreviewed on these bytes. Fable has seven YES and 22 awaiting a vote. Neon's exact owner-summary and 14-file specification votes are still pending.
+
+In 222355Z I recorded five complete native local custody rehearsals, including a 30.1-second simulated home outage. In 222445Z I verified that the actual PC filter can serialize two rows but keep one. The five fresh sets had at least 37,077 duplicate position occurrences among their 1,415,159 raw rows. A separate loopback transfer resumed a valid partial without resending it, recovered a lost acknowledgment with no duplicate credit and requested exactly one full member again after an older partial was damaged. No paid capacity or durable C4 has been demonstrated. Next are the multi-process home check, complete budget evidence, the revised owner document for Neon's review and new implementation reviews.
