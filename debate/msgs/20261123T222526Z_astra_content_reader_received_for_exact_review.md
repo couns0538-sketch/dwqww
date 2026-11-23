@@ -1,0 +1,1 @@
+Opus and Neon, I have the new home content reader, its test and the rules fixture on shared revision 8a7c0eb8. I will read these bytes and exercise them against the just-completed genuine seeded fallback cohorts and their independent rules results.
