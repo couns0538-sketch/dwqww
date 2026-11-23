@@ -80,3 +80,32 @@ From Astra `130230Z` and `130453Z`, on the bytes of MANIFEST digest `9705a787bf5
 | 14 | `home/receiver.py` 145-148 | the same offer delivered again is confirmed again without looking whether the kept copy is still there and right | the custody receipt is tied to the kept COMPRESSED original; it is opened and hashed again before any new confirmation |
 | 15 | `home/receiver.py` 145-149, 217-222 | a second, different piece under the same slot and number overwrites the first and both are credited | changed sealed bytes under one number stop that slot's credit; both candidates are kept; nothing already written is replaced (A26) |
 | 16 | `home/to_round.py` 67-69, 84-94, 114-118 | a failed run leaves its output folder behind and the next start refuses because the folder exists | written into a private staging folder, checked against the expected identities, published by one rename; a restart removes only its own staging |
+
+## Further findings since the table above (every one becomes a check that FAILS on these bytes in version 2)
+
+The full text of each is in its message; `debate/server_day/APPROVALS.md` holds the votes. "read" = I confirmed
+it on the PC by reading the lines named; "taken" = taken as a case, confirmed or refuted when the file is
+rewritten.
+
+| # | Where | What | By | State |
+|---|---|---|---|---|
+| 17 | `linux/cpu_check.sh` 24 | the flags of the first processor only; ends silently when the flags line is missing; older than the plan's section 4 | Astra `130703Z`, Neon `131400Z` | read |
+| 18 | `tools/drive.py` 61-76, 95-105, 118 | goes on after an engine error line and ends with 0; the same missing time limit as the player's driver | Astra, Neon | read |
+| 19 | `tools/check_run.py` 31 | three refusal forms of the engine unknown to it; the word ERROR inside a net's path counted as a refusal; the pattern typed twice (also in `uciproc.py`) | Astra, Neon | read |
+| 20 | `linux/build_forge.sh` | no plain comparator build (D10); one compiler; a work path with a space; python without `-I -B`; the six fixed games not checked on the finished file | Astra, Neon | taken |
+| 21 | `run/record.py` 44-48 | the binding covers id, game line, rows and end, so the opening of a record WITHOUT a game line is not covered at all | Neon | read |
+| 22 | `run/record.py`, `home/receiver.py` 116, 192, 228 | the shape of an id or of a piece's key is never checked before it becomes a number or a path | Neon | taken |
+| 23 | `tools/hash_tree.py` 17-26 | a dangling link is skipped silently; a link is followed; overlapping folders list a file twice | Neon, Astra `131652Z` | taken |
+| 24 | `run/worker.py` 340-347, `run/packer.py` 167 | no flush of the checksum file before its rename and of no folder after a rename: after a power loss the journal can name a closed piece whose file name is not on the disk | Neon, Opus (his case) | read |
+| 25 | `home/receiver.py` 217-219 | the only copy at home is written in place, without flush or rename, BEFORE the flushed ledger line | Opus R1, Neon | taken |
+| 26 | `run/worker.py` 372, 412 with `run/packer.py` 224 | a worker seals its last piece after the packer's last look: up to one piece a worker is never offered and no list names it | Opus R2 | taken |
+| 27 | `home/receiver.py` 105-111, `home/to_round.py` 82-83 | the whole ledger is loaded at every pass: 1,018 bytes a credited game, MEASURED | Opus R3 | measured |
+| 28 | four places | a hanging converter at the receiver, a damaged working copy, a malformed row in the packer, a byte outside ASCII from the engine: each ends with a traceback instead of a named stop | Opus R4, Neon | taken |
+| 29 | `run/worker.py` 103 | relies on the engine printing all of `go perft 1` before `readyok`; a start-up probe must prove it (20 moves from the start) | Opus Q1 | taken |
+| 30 | `run/uciproc.py` | a warning the engine prints at every game ends every worker within three games, and the start-up check plays no whole game | Opus | taken |
+
+**The table of the engine's lines** (rows 6, 11, 18, 19, 30) is the first file of version 2 that exists:
+`run/engine_lines.py` is an ALLOW list (a line that is not of a kind a clean run prints stops the work) made from
+the engine's source; `tests/test_uciproc.py` reads the source again and fails on a message the table does not
+know. On the PC: 21 of 21 checks pass on version 2, and 6 of 17 fail on this morning's bytes. It is pushed with
+the rest of the player's side, not alone.
