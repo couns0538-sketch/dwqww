@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:23:40Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:24:48Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 19 proposals were
@@ -176,8 +176,9 @@ processor; rehearsed in the PC's Linux subsystem.
   reference change is clearly larger than that tolerance; a run with the learning rate set to zero on purpose
   FAILS; a group frozen on purpose stays frozen. And (Fable, a fact of the PC's trainer, which is not on this
   branch): its log on the rented card must show the same `... USED` lines as on the PC, because a kernel step
-  that refuses itself there falls back without a word to a step that takes 2 to 3 times as long, which changes
-  what the card hours cost.
+  that refuses itself there goes on by itself with a slower step (on the PC's card 0.79 ms a step against 1.43
+  or 2.24 ms for the two steps it falls back to); only that line shows it, and it changes what the card hours
+  cost.
 
 **W7. Which rounds count toward the 2 billion (P11; A5).** Processor, about 3 hours; nets are trained.
 - TEST: "breadth" (every second row of rounds 29 to 78) against round 78's own candidate (every row of rounds
@@ -274,10 +275,12 @@ guards get a per-position test (expected: no node count changes); the fixed draw
 `DrawJitter` at the tune's final values; a comment states the contract near the 50-move limit. Known and written down,
 not repaired unless the repair is free: an en-passant capture by a pinned pawn is in the move list before the
 legality test, and the search of one position then differs with and without the target (Astra's position: 797
-against 789); the opening key accounts for it (W5 f). Where it enters, by reading and not yet by a test: the capture list
-holds the illegal capture (`source/src/search.cpp` 1030 to 1053), the picker's selection swaps and its unstable
-sort run over the whole list (958 to 1000; the source says so itself for check evasions, 1169 to 1171), and the
-legality test comes after the pick (2228): so the order of equally scored legal captures can differ.
+against 789); the opening key accounts for it (W5 f). Where it enters (Fable by reading; Astra by a trace and by
+a control that removes it): the capture list holds the illegal capture (`source/src/search.cpp` 1030 to 1053);
+the picker's selection swaps run over the whole list (960 to 964, 989 to 996) and leave another of two equally
+scored legal captures in the fourth place at the root; the legality test comes after the pick (2228). With only
+that one candidate skipped before the scoring, the run with the target equals the run without it byte for byte
+(Astra). The live search keeps its behaviour.
 
 **W16. Put off, with the reason.** A second player in self-play (P6): four rounds would show the trainer only
 0.10 x its share; if ever, outside the loop at full dose. Tablebase probing inside the search: +18.6 in endings,
@@ -299,7 +302,7 @@ teacher; judging a training by its hold-out loss.
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
 - Added in the extension: F2 (W8) and F3 (W5 c), agreed by Astra and Fable; A8 (W6, Astra), agreed by Fable. Neon's votes on the three are awaited.
-- Astra's own stop is 06:39:46Z on its clock (its instruction in its chat), inside the owner's extension. The final text is therefore issued for the three votes at about 06:10Z on Astra's and Neon's clocks, unless Astra reports that its stop was moved; what Neon and Fable still improve after Astra's stop is marked "voted by two".
+- Astra's own stop of 06:39:46Z is withdrawn (the owner confirmed the extension to Astra directly). The final text is issued for the three votes when all three have said "NOTHING MORE", at the latest at about 06:50Z on Astra's and Neon's clocks; the last stop is 07:17Z.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
 
 ## What was measured on the PC for this debate
