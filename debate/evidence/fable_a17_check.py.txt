@@ -1,0 +1,65 @@
+"""Fable 2026-11-23: check of the arithmetic in astra's proposal A17 (same-game concentration in a batch).
+    a17_check.py <new output file>
+Expected values are astra's (message 20261123T064306Z), typed in before the first run. No engine, no game.
+Fixture: 128 games x 64 rows, game g in stratum g mod 8; 64 batches, each 16 rows from each of the 8 strata.
+C of a batch = sum over games of n_g (n_g - 1) / (128 x 127).
+"""
+import collections
+import random
+import sys
+from fractions import Fraction
+
+out_path = sys.argv[1]
+lines = []
+bad = 0
+
+
+def check(label, got, want, tol=5e-13):
+    global bad
+    ok = abs(float(got) - want) <= tol
+    bad += 0 if ok else 1
+    lines.append(f"{'ok ' if ok else 'BAD'} {label}: got {float(got):.12f}, astra {want:.12f}")
+
+
+def mean_c(strata):
+    batches = [sum((v[i:i + 16] for v in strata), []) for i in range(0, 1024, 16)]
+    assert len(batches) == 64 and all(len(z) == 128 for z in batches)
+    total = sum(sum(n * (n - 1) for n in collections.Counter(z).values()) for z in batches)
+    games = sum(len(set(z)) for z in batches) / 64
+    return Fraction(total, 64 * 128 * 127), games
+
+
+def strata():
+    return [[g for g in range(r, 128, 8) for _p in range(64)] for r in range(8)]
+
+
+# closed forms
+check("expected C of a shuffled reader (15/127)(63/1023)", Fraction(15, 127) * Fraction(63, 1023), 0.007273650911)
+check("C of the reader that keeps a game's plies together, 15/127", Fraction(15, 127), 0.118110236220)
+# astra's deterministic reference: one Random(202611230639) across strata 0 to 7
+rng = random.Random(202611230639)
+a = strata()
+for v in a:
+    rng.shuffle(v)
+c_ref, g_ref = mean_c(a)
+check("mean C of astra's seeded reference shuffle", c_ref, 0.007353054257)
+check("distinct games a batch, reference", g_ref, 82.484375, tol=5e-7)
+# the planted reader: lists left in game and ply order
+c_pl, g_pl = mean_c(strata())
+check("mean C of the planted reader, measured on the fixture", c_pl, 0.118110236220)
+check("distinct games a batch, planted", g_pl, 8.0, tol=5e-7)
+lines.append(f"    ratio planted / reference: {float(c_pl / c_ref):.2f} (astra: 16.06)")
+# my own addition: 200 other seeds, to see how far a healthy shuffle strays (astra: 1st/99th pct 0.006999/0.007528)
+vals = []
+for s in range(200):
+    r = random.Random(1000 + s)
+    b = strata()
+    for v in b:
+        r.shuffle(v)
+    vals.append(float(mean_c(b)[0]))
+vals.sort()
+lines.append(f"    200 other seeds of mine: min {vals[0]:.6f}, median {vals[100]:.6f}, max {vals[-1]:.6f} "
+             f"(the plant is {0.118110236220 / vals[-1]:.1f} times the largest)")
+lines.append("ALL SIX NUMBERS AS ASTRA'S" if bad == 0 else f"{bad} NUMBER(S) DIFFER")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")
+print("\n".join(lines))

@@ -2,7 +2,7 @@
 confirmation matches (new candidate against the best net, 250,000 nodes a move for both, fastchess) and prints
 their pair tables. No game is played; the logs are only read.
 
-    f2_pair_tables.py <fastchess .out file> [...]
+    f2_pair_tables.py [cap=<games>] <fastchess .out file> [...]
 
 fastchess prints Ptnml(0-2) = pairs by the first engine's pair score: [0, 1/2, 1, 3/2, 2 points] = [LL, LD,
 DD+WL, WD, WW]. A match that its SPRT stopped early is marked: its table is shaped by the stop.
@@ -26,25 +26,43 @@ def stats(p):
     return n, mean, var, elo(mean), elo(mean - 1.96 * se), elo(mean + 1.96 * se)
 
 
+# Repaired after astra's A16 (20261123T064019Z): the four summary lines are taken from ONE block, the last one
+# (before, each was the last of its kind in the file, so a cut or foreign last block borrowed the lines of the
+# block before it); the counts must agree with each other; and "played to its cap" is said only against a cap
+# given on the command line (cap=N), never from "no boundary" alone.
+args = sys.argv[1:]
+cap = None
+if args and args[0].startswith("cap="):
+    cap = int(args.pop(0)[4:])
 complete = []
-for path in sys.argv[1:]:
+for path in args:
     text = open(path, encoding="utf-8", errors="replace").read()
-    heads = re.findall(r"Results of (.+?) \((.+?)\):", text)
-    games = re.findall(r"Games: (\d+), Wins: (\d+), Losses: (\d+), Draws: (\d+)", text)
-    ptn = re.findall(r"Ptnml\(0-2\): \[(\d+), (\d+), (\d+), (\d+), (\d+)\]", text)
-    llr = re.findall(r"LLR: (\S+) \(\S+\) \((\S+), (\S+)\) \[(\S+), (\S+)\]", text)
-    if not (heads and games and ptn and llr):
-        sys.exit(f"REFUSED: no result block in {path}")
-    g, w, l, d = (int(v) for v in games[-1])
-    p = [int(v) for v in ptn[-1]]
-    ll, lo, hi = float(llr[-1][0]), float(llr[-1][1].rstrip(",")), float(llr[-1][2])
+    blocks = re.split(r"(?m)^(?=Results of )", text)
+    block = blocks[-1]
+    head = re.match(r"Results of (.+?) \((.+?)\):", block)
+    games = re.findall(r"Games: (\d+), Wins: (\d+), Losses: (\d+), Draws: (\d+)", block)
+    ptn = re.findall(r"Ptnml\(0-2\): \[(\d+), (\d+), (\d+), (\d+), (\d+)\]", block)
+    llr = re.findall(r"LLR: (\S+) \(\S+\) \((\S+), (\S+)\) \[(\S+), (\S+)\]", block)
+    if not head or len(games) != 1 or len(ptn) != 1 or len(llr) != 1:
+        sys.exit(f"REFUSED: the last result block of {path} is not one whole block "
+                 f"(head {bool(head)}, Games lines {len(games)}, Ptnml lines {len(ptn)}, LLR lines {len(llr)})")
+    g, w, l, d = (int(v) for v in games[0])
+    p = [int(v) for v in ptn[0]]
+    if w + l + d != g:
+        sys.exit(f"REFUSED: {path}: W + L + D = {w + l + d} is not the game count {g}")
+    if g == 2 * sum(p) and sum(i * c for i, c in enumerate(p)) != 2 * w + d:
+        sys.exit(f"REFUSED: {path}: the pair table's points do not equal 2 W + D")
+    ll, lo, hi = float(llr[0][0]), float(llr[0][1].rstrip(",")), float(llr[0][2])
     stopped = ll <= lo or ll >= hi
     n, mean, var, e, e_lo, e_hi = stats(p)
     rnd = re.search(r"(r\d{4})", path.replace("\\", "/")).group(1)
-    print(f"{rnd} | {heads[-1][1]} | games {g} W-L-D {w}-{l}-{d} | pairs {n} (2 x pairs = {2 * n}) | "
+    at_cap = (not stopped) and cap is not None and g == cap and g == 2 * n
+    how = ("STOPPED EARLY by its SPRT" if stopped else "played to its cap" if at_cap
+           else f"no boundary at {g} games; cap {'not given' if cap is None else cap}: NOT counted as complete")
+    print(f"{rnd} | {head.group(2)} | games {g} W-L-D {w}-{l}-{d} | pairs {n} (2 x pairs = {2 * n}) | "
           f"[LL, LD, DD+WL, WD, WW] = {p} | Elo from the pairs {e:+.2f} [{e_lo:+.2f}, {e_hi:+.2f}] | "
-          f"pair variance {var:.5f} | {'STOPPED EARLY by its SPRT' if stopped else 'played to its cap'}")
-    if not stopped and g == 2 * n:
+          f"pair variance {var:.5f} | {how}")
+    if at_cap:
         complete.append(p)
 
 if complete:

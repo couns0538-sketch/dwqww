@@ -1,0 +1,54 @@
+"""Fable 2026-11-23: check of the numbers in astra's proposal A16 (match pair identity).
+    a16_check.py <n13_recount.py> <the F2 reader .py> <new scratch folder> <new output file>
+Expected values are astra's, typed in from its message 20261123T064019Z before the first run.
+"""
+import os
+import runpy
+import subprocess
+import sys
+
+recount, reader, scratch, out_path = sys.argv[1:5]
+if os.path.exists(out_path) or os.path.exists(scratch):
+    sys.exit("REFUSED: the output file or the scratch folder exists already")
+os.makedirs(scratch)
+d = runpy.run_path(recount)
+llr = d["llr_exact"]
+lines = []
+bad = 0
+
+
+def check(label, got, want, tol=5e-7):
+    global bad
+    ok = abs(got - want) <= tol
+    bad += 0 if ok else 1
+    lines.append(f"{'ok ' if ok else 'BAD'} {label}: got {got:+.6f}, astra {want:+.6f}")
+
+
+# (1) 250 groups of two openings: candidate wins both colours on A, loses both on B
+check("(1) grouped by opening [250,0,0,0,250], -3/0", llr([250, 0, 0, 0, 250], -3, 0), 0.018639)
+check("(1) grouped by adjacent finishes [0,0,500,0,0], -3/0", llr([0, 0, 500, 0, 0], -3, 0), 4.335986)
+# (2) fixture A of A15 at look 21, and the same with one WW pair missing (10,499 distinct pairs)
+check("(2) look 21 of fixture A [210,2562,5040,2478,210], -5/0", llr([210, 2562, 5040, 2478, 210], -5, 0), 3.017664)
+check("(2) look 20 of fixture A [200,2440,4800,2360,200], -5/0", llr([200, 2440, 4800, 2360, 200], -5, 0), 2.873966)
+v = llr([210, 2562, 5040, 2478, 209], -5, 0)
+lines.append(f"    (2) 10,499 distinct pairs [210,2562,5040,2478,209], -5/0: {v:+.6f} "
+             f"({'above' if v >= 2.944439 else 'below'} the bound 2.944439)")
+# (3) the mixed summary file through the F2 reader
+mixed = os.path.join(scratch, "r0052-mixed.out")
+first = os.path.join(scratch, "r0052-first.out")
+second = os.path.join(scratch, "r0052-second.out")
+b1 = ("Results of A vs B (round52):\n"
+      "Games: 2000, Wins: 516, Losses: 483, Draws: 1001\n"
+      "Ptnml(0-2): [20, 240, 456, 255, 29]\n"
+      "LLR: 0.00 (0%) (-2.94, 2.94) [0.00, 5.00]\n")
+b2 = ("Results of B vs A (different match, colors reversed):\n"
+      "Games: 2000, Wins: 483, Losses: 516, Draws: 1001\n")
+for p, t in ((mixed, b1 + b2), (first, b1), (second, b2)):
+    open(p, "w", encoding="utf-8", newline="\n").write(t)
+for name, p in (("mixed", mixed), ("first block alone", first), ("second block alone", second)):
+    r = subprocess.run([sys.executable, "-I", "-B", reader, p], capture_output=True, text=True)
+    first_line = (r.stdout.strip().splitlines() or [r.stderr.strip()])[0]
+    lines.append(f"    (3) {name}: exit {r.returncode}: {first_line[:230]}")
+lines.append("ALL FIVE NUMBERS AS ASTRA'S" if bad == 0 else f"{bad} NUMBER(S) DIFFER")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")
+print("\n".join(lines))
