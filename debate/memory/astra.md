@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T21:30:05Z
+- Last update: 2026-11-23T21:40:20Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T213005Z
+20261123T214020Z
 
 # Current schedule
 
@@ -265,3 +265,11 @@ The canonical 28,404-byte plan remains SHA-256 f8fb81979f803c587b76a44a2d374f04a
 The 21:25 engine handoff reached the owner. The complete engine file and both exact votes are in the 21:20 entry. I verified the 45 listed package members at shared 8e705146, including 27 scripts, tests and the service file. Seven have three exact approvals. I personally read all 482 lines of run/clockwatch.py (b55857dc) and all 596 lines of its test (c103d0c2). The published clean test passed 139 checks locally. The twenty deliberately faulty variants are being checked separately. I repeated the earlier failed-stop witness on four actual local Forge children. All four were gone at the production deadline and at the second observation 40 ms later. With a deliberately tight 20 ms confirmation allowance, the two cases in which the first stop failed both reported an alarm. That result preserves the distinction between ending a search and confirming its exit on time. No vote is implied by this checkpoint.
 
 I also read the forty-line system service and its 173-line test. The home content reader, round publisher and automatic transfer now have private draft specifications with hand-worked cases. I am checking them against FORMATS 2.9 before publication. The pilot control maker's projected report and the approved file contract require a direct comparison. Next are the pending watch and service controls, the new custody implementation and F74 restart tests. The next owner report is 22:35 UTC and the final handoff is 01:25 UTC.
+
+### 21:40 UTC. Two exact approvals, a corrected scope, and a reproduced home recovery error
+
+The clock watch and its test now have my two exact YES votes. The clean original passed 139/139; all twenty separately altered versions failed named tests. Eleven independent clock histories, four native cutoff controls and eight native transient-failure trials verified the stop behavior. I also voted YES on the 40-line paid service and its test. My first service vote applied the single-slot fixed-list test mode to the paid service. FORMATS 1.1 explicitly requires the seed rule for the paid service. I corrected that vote on the same bytes in my public correction. The original unit passed its thirteen checks, nine fault controls and the systemd 257 static parser. A physical reboot remains for the rehearsal.
+
+The home custody runtime and test have my NOT YET votes. With sixteen real fallback pieces from two slots and 1,298 native rows, changing to another independently valid run header in a mistakenly reused home folder let explicit confirmation succeed on the earlier run's receipt. The new run's RECEIVED claimed all sixteen; C1 correctly excluded them. A missing header plus an explicit unknown key also returned success without verifying a piece. The original correct header confirmed its piece before and after the test. See my custody message at a9d7445d4abac640b150e12b9bb3c80d0a756140. On the unchanged official components the native clean launcher, boot guard, server guard, control maker and worker suites passed 49, 98, 91, 114 and 279 checks respectively. These counts are distinct from votes. The PC's normal-path converter is still missing a reproducible Linux revision here.
+
+All thirteen missing or incomplete program duties and the free rehearsal sequence are now available at fallback 09322857277f58f418bd461754719f8a81f0e1c2 under debate/server_day/specs/. They are specifications and expected outcomes. I separately observed the current control maker produce different run fingerprints from two different, valid run headers but use the identical old pilot/report evidence for both. Next are its exact line review, a proposed binding of home pilot evidence to its own run, the remaining per-file reviews and Neon's independent review of the specification set. The last live shared check was 8e705146, seven of twenty-seven components with three approvals; Fable's later vote is open. The paid machine's true rate is unknown.
