@@ -1,0 +1,64 @@
+forge/r65 = forge/r15dsg (the tree of the loop's exe) + the compile switch FORGE65: the PLAY build "Forge 6.5"
+(Fable, 2026-11-23 PC clock; the owner's order of 23 November 2026, teamwork/OWNER_ORDER_2311.md).
+NOT IN THE LOOP and not meant for it: the loop keeps forge/r15dsg and runs/forge/engines/v3-r15dsg-sp-clang/forge.exe.
+
+WHAT IT IS FOR
+The owner downloads one program that plays as the loop's engine does with nothing to set: the net inside the exe,
+the loop's settings active from the first line.
+
+WHAT CHANGES (all of it inside "#if FORGE65"; without -DFORGE65=1 the tree is r15dsg)
+- include/forge/forge65.hpp, src/forge65.cpp (new): the net's bytes (#embed "forge65_net.fnn3") and the start-up
+  lines: ALL 24 setoption lines the loop sends (Threads 1, Hash 16, OwnBook false, the 19 search settings,
+  NNUEArchFile, NNUEArch true), in the loop's order; only the net's path is "<forge65>" = the net inside the exe.
+- src/forge65_net.fnn3 (new): runs/forge/r0067/train/cand.fnn3, sha256 737f197808fef489..., 9,463,528 bytes
+  (the loop's best net since round 67).
+- src/nnue_v3.cpp, load(): the path "<forge65>" takes the built-in bytes; every other path is a file as before.
+  The built-in bytes pass through the same checks as a file's.
+- src/uci.cpp: (1) before the first input line the start-up lines pass through the engine's OWN option handlers,
+  exactly as when the loop sends them; (2) the "uci" answer says "id name Forge 6.5", "id author Couns" and lists
+  every switch with its LIVE value as the default (a chess program that sends every listed default back must
+  change nothing), Hash with the start-up value 16; same options, types, ranges and order as r15dsg.
+Nothing in search, evaluation, move generation, time handling or the selfgame command is touched.
+
+BUILD
+forge/tools/build_forge65_clang_pgo.sh <out_exe> <net.fnn3> = the loop exe's own recipe
+(build_forge_v3r15dsg_sp_clang_pgo.sh: clang 23.1.5, -march=znver5, ThinLTO, profile-guided with bench 11 / 13 / 16
+on the net and 60 self-play games through pgo_selfgame.py, GCC's libstdc++) with -DFORGE65=1 added; it stops when
+src/forge65_net.fnn3 is not the net named for the profile step.
+The compiler's one note per build pass: "#embed is a Clang extension [-Wc23-extensions]" (forge65.cpp line 13).
+
+HISTORY
+- exe_p1 (built 2026-11-23 01:49:36, sha256 627930ab...): the first design left Threads, Hash and OwnBook to the
+  engine's defaults (1, 32 MB, book on). Its checks were met (Fable 13 of 13; Opus: pins, 200 of 200 openings equal),
+  but Opus's runner showed two listed defaults that differ from the loop (Hash 32 against 16, OwnBook true against
+  false) and, on 400 game positions at depth 12, equal best moves with other node counts (24,331,783 against
+  24,384,618): Hash. The owner's word is "make sure everything matches fully", and the opening book never played
+  in a measurement of ours, so the design was changed to the loop's whole list. exe_p1 was never published.
+
+CHECKS ON THE PUBLISHED EXE (exe_p2)
+- BUILD (2026-11-23 02:10:43 to 02:11:27, Fable, 2 compile jobs): tmp/fable_scratch/forge65/exe_p2/forge.exe,
+  sha256 9ba55d4669acb64b3d87d469667f50c35c9b4557c5a3d17812646337fe22f22d, 11,863,040 bytes. Profile step:
+  bench 11 / 13 / 16 = 226187 / 616966 / 2624134 nodes, "60 games, 8549 searches, 32573879 nodes, 8039 records,
+  0 thrown" (the same numbers as the loop exe's own build).
+- K0 (02:13, Fable; tmp/fable_scratch/forge65/k0b/): with the switch OFF uci.cpp and nnue_v3.cpp preprocess to
+  r15dsg's text (clang -E -P with the build's defines, non-blank lines: sha256 aaff919765926dcb and
+  f4446a894743a84c on both trees; control with the switch ON: 6172cfe5fa9be8a1, 18c902518d511e0d), forge65.cpp to
+  nothing, and every other file is r15dsg's byte for byte (diff -rq). The 24 start-up lines read back from
+  forge65.cpp equal loop/LOOP_OPTIONS.txt with the net's path set to <forge65> (cmp).
+- K1 to K5 (02:12, Fable; tmp/fable_scratch/forge65/k_checks.py, out checks_run2, log checks_run2.log; 13 of 13):
+  known answers written BEFORE the play exe ran (known_step2.json: the LOOP exe with its 24 options and net 67 gives
+  bench 11 = 226187, bench 13 = 616966).
+  K4a with no input the exe says "NNUE v3 active: v3 <forge65>", nothing refused.
+  K1  put back to the old values (old_defaults.txt, 20 lines from the loop exe's own listing) it prints the three
+      reference numbers 312866 / 862329 / 4865609; control: the loop exe given its options and then the same lines
+      prints them too; negative control: with no option the play exe is NOT at those numbers.
+  K2  with no option: 226187 / 616966 = the known answers.
+  K3a id lines; 94 options, same names, types, ranges and order as the loop exe; every listed default = the loop's
+      value; exactly 23 defaults differ from the loop exe's own list.
+  K3b every listed default sent back (93 lines): same nodes, nothing refused; control: the LOOP exe's listed
+      defaults sent to the play exe give the three reference numbers.
+  K5  net 67 from its file = the built-in net, and back; a missing file is still refused loudly.
+- K6 (02:12, Fable; k6_client.py, python-chess 1.11.2 as a real UCI client, 5 of 5): id, the option list as the
+  client reads it, a searched move at 20,000 nodes, king and queen against king +2594, a searched move on the clock
+  from the start position (803,592 nodes: the book is off).
+- Move rules (02:12): pipeline/tools/perft_suite.py, 12 of 12 published counts.

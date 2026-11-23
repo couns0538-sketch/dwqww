@@ -1,0 +1,39 @@
+forge/r15d = forge/r15c + step E1 of the helper carbon2 (Opus, 2026-11-17). Same searches, same output, faster
+self-play. IN THE LOOP since 2026-11-17 16:42 (acts from round 38); config backup
+pipeline/config.forge.toml.before_r15d_1642 (written by tmp/carbon_bundle/adopt_r15x.py); every option the loop
+sends is taken by this exe (nnloop.engine.check_options, 16:42).
+
+SOURCE
+- carbon2 job 3, step E1 (legal check evasions: board.hpp, board.cpp, search.cpp), copied here as
+  CARBON2_E1_legal_check_evasions.patch.txt (= tmp/carbon_e1/e1_legal_check_evasions.patch.txt, sha256 20cca107...).
+  Applied with patch -p1 --fuzz=0 to forge/r15c in tmp/carbon_e1/r15d; this tree is that folder copied (same sha256
+  for every file, SOURCE_INPUTS.sha256). It differs from forge/r15c in exactly those three files.
+- Read line by line by Opus before any build. No search or evaluation rule changes.
+
+THE EXE IN THE LOOP
+- runs/forge/engines/v3-r15d-clang/forge.exe = tmp/carbon_e1/exe_d1/forge.exe byte for byte (sha256 48bb19b5...),
+  the build every check below ran on (forge/tools/build_forge_v3r15c_clang_pgo.sh with FORGE_SRC = this tree, the
+  profile step with round 30's net and the four switches on, the way forge/tools/build_forge_v3r15d_clang_pgo.sh
+  builds it). Pins on the placed copy 16:41: 312866 / 862329 / 4865609; profile bench 234127 865458 3440104, equal to
+  the r15c exe's.
+
+CHECKS (tmp/carbon_e1/r15d_checks.sh, log tmp/carbon_e1/r15d_checks.out; prediction
+tmp/carbon_e1/PREDICTION_r15d_by_opus.txt written 12:02, before any r15d exe existed). Every check met.
+- K1 pins on two builds d1 and d2: 312866 / 862329 / 4865609.
+- K2 identity at depth 12 with the loop's options: node count AND best move equal to r15c on 200 openings + 400 game
+  positions with round 30's 768 net and round 27's 512 net: 1,200 of 1,200.
+- K3 control: carbon2's planted fault (equal-scored evasions reversed) gives bench 11 = 366263 and differs from r15c's
+  rows (position 10: 88,666 against 85,241).
+- K4 whole UCI output on 65 positions / 208 go commands equal line for line after masking nps, time and hashfull.
+- K5 half stack (512 KB): 400 positions at depth 16 and 40 at depth 22 like r15c's exe; a 64 KB control dies.
+- K6 AddressSanitizer + UBSan build: 150 of 150 searches at 1 thread (3,601,559 nodes, equal to r15c's sanitizer run)
+  and 80 of 80 at 4 threads, exit 0, stderr 0 bytes; five planted controls each reported. (The log line says
+  "bestmoves 0": that counter looked for a key the result file does not have; the result files show every search.)
+- P1 self-play timing on the PC (tmp/carbon_speed/sp_timing.py, 12 games x 10 rounds, A = r15c, B = r15d, round 30's
+  net, the loop's options, out tmp/carbon_e1/out/sp_timing_d.json): one trace in all 40 runs (same games); wall
+  median 1.0435, 10 of 10 rounds faster (smallest 1.0188); CPU median 1.0417, 10 of 10; A/A wall 0.985, B/B 1.010.
+
+WHY NOW AND NOT TOGETHER WITH r15e
+The plan at 14:44 was one placement of r15e (= r15d + carbon2's job 5 bundle) when its checks pass. Those checks have
+waited since 14:45 for a cool processor and a free match slot; r15d's gain is checked and was not used for two hours.
+r15e is placed later on top of r15d (its adoption script then needs r15d's two lines as the old ones).
