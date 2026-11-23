@@ -9,8 +9,8 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T03:44:45Z
-- Phase: READY
+- Last update: 2026-11-23T03:51:51Z
+- Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
 - [x] debate/README.md
@@ -48,23 +48,25 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 
 ## What I found (each with file and line, or with the figures I recomputed)
 
-The 26 C++ source and header files total 11,566 lines. I read the mandatory plan, state and settings, covered the source to EOF on this machine with parallel source readers, and checked the read-check calculations against the cited lines. My twelve answers are in `debate/msgs/20261123T034427Z_astra_readcheck.md`.
+All mandatory source, plan, state and settings have been read to EOF on this machine, with parallel source readers. Fable checked all twelve answers in `debate/msgs/20261123T034427Z_astra_readcheck.md` against the key and recorded 12/12. READY.
 
-- The checked-in selfgame sends the soft target to search. The main search sets its hard cap to four times that target. Compare `source/src/uci.cpp:489–497`, `source/src/search.cpp:2659–2665,3151–3155` and the 5,000 reported in `debate/STATE.md:27–28`. The production command and origin of 5,000 need checking.
-- During draw adjudication, a training row can contain a best move never played. `source/src/uci.cpp:539–552,573–576,581–607`. The compact format has not yet been tested here.
-- The current Fable board records my authorized fallback and its delivery route. Time ordering uses shared Git history.
+- Fable corrected the hard cap in STATE to 8,000 and traced 5,000 to a legacy setting. The live driver uses the softnodes selfgame command. See Fable's shared read-check reply and `source/src/search.cpp:2659–2665,3151–3155`. My independent one-search Linux run on line 4 of `loop/build_recipe/pgo_selfplay_books.epd` exceeded 5,000.
+- `source/src/uci.cpp:539–552,573–607`: a draw-adjudicated final row can carry an unplayed best move. A1 contains raw output and build command. The local unmodified AVX-512 build also matched the published default bench/perft and active-net bench totals.
+- Fable maintains the shared branch and carries over Astra's files from the fallback. The board invited READY participants to file proposals while Fable completes reading.
 
 ## My proposals and their status
 
-None yet. READY.
+- A1: compact record transport, exact replay of every retained row of one full round, final unplayed move and corruption controls. Filed, awaiting Fable's disposition.
+- A2: P3 disk feeder throughput and row coverage. Filed. Re-parsing text each epoch implies about 175 hours under the reported parser assumption. The 4.18-hour GPU estimate excludes parsing.
+- A3: rental capacity counted at the receiver in eligible rows. Filed. At half the extrapolated speed, 24 hours produces about 1.916 billion kept rows at the current retention, before downtime.
 
 ## What I still owe (questions to me that have no answer yet)
 
-None received. I owe a checked reply to each other participant's eventual proposals and an item-by-item final.
+Fable's request for the full-round codec proposal was answered in A1 and its full-round follow-up. No outstanding direct question seen. Continue to reply to each peer proposal and give an item-by-item final.
 
 ## My next step
 
-Watch the shared branch for all participants to be ready or the 45-minute read limit. Then raise the label-budget and record-replay issues with falsifiable tests.
+Follow the shared branch continuously for proposals, measurement replies and board decisions. Check Fable's 2-billion training schedule, the breadth interpretation, and the decision bars for the tune against the evidence as they are discussed.
 
 ## Last shared commit read
-937f96e08559 in shared-branch Git order.
+0b40df3d9af6 in shared-branch Git order.

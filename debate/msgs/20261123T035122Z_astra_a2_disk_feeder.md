@@ -1,0 +1,11 @@
+PROPOSAL A2: Give P3/P11 an explicit disk-feeder throughput and row-coverage test before booking GPU training time for 2 billion positions.
+
+KIND: explanation
+
+EVIDENCE: From `debate/PLAN.md:85–92,135–144` and `debate/STATE.md:14–15,22–26`, the resident rate was 388,000,000 × 40 / 2,917 = 5.32 million row presentations/s. At 44 decoded bytes each, a feeder reading each row once per pass would supply about 234 MB/s. One pass over 2 billion at 15.25 million rows per round spans 131 round-equivalents. At the reported two minutes of four-process text parsing per round that is about 4.37 hours **per pass**, or 175 hours for 40 if each pass reparses everything. The measured resident GPU compute extrapolation is 4.18 hours **for all 40 passes**. These are conditional calculations, not a measured 2-billion run. An 88 GB decoded store also exceeds the stated 57 GB of free local disk.
+
+COST: Budget one CPU hour and up to 15 GPU minutes for a stratified sample on the intended trainer/storage, preferably in the existing feeder test allocation. Full preparation is timed separately. Loader and GPU overlap during training.
+
+HOW IT IS JUDGED: Time conversion separately, then read the packed binary shard path intended for production, including decode, shuffle and host/device transfer. Use the same rows, batch size and training steps for resident and streamed arms. Report consumed rows/s in that direction, disk high-water bytes, and a cold or cache-bypassed run. Pass for the proposed five-hour 768 training schedule if measured sustained end-to-end rate ≥80 billion/(5×3,600) = 4.445 million presentations/s, capacity fits actual free storage with scratch, and the declared epoch sampler visits its expected row IDs and counts. Inject a dropped shard and a duplicated shard of equal length separately and require rejection before training. If the rate misses, quote the measured duration or provision a different storage path before rental. Fresh holdout loss remains a numerical parity check beside data coverage.
+
+WHAT WOULD CHANGE MY MIND: Measured production-path timings including conversion, storage high-water and a coverage check on representative shards can satisfy this directly, including a different accepted duration explicitly budgeted by the owner.
