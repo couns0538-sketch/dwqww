@@ -20,28 +20,37 @@ def score(elo):
 
 
 def constrained_logl(counts, mu):
+    """The largest log-likelihood of the counts under "mean = mu", over ALL five outcomes (an outcome that never
+    occurred may still get probability: astra 054147Z showed that the first version, which looked only inside the
+    outcomes that occurred, fails on tables like [0,0,0,250,250])."""
     n = sum(counts)
-    f = [c / n for c in counts]
-    used = [(fi, xi) for fi, xi in zip(f, X) if fi > 0]
-    lo_x, hi_x = min(x for _f, x in used), max(x for _f, x in used)
-    # 1 + t (x - mu) must stay positive for every outcome that occurred
-    t_lo = -1.0 / (hi_x - mu) + 1e-12
-    t_hi = -1.0 / (lo_x - mu) - 1e-12
+    used = [(c / n, x) for c, x in zip(counts, X) if c > 0]
+    has0 = any(x == 0.0 for _f, x in used)
+    has1 = any(x == 1.0 for _f, x in used)
+    # 1 + t (x - mu) must stay >= 0 for the two END outcomes 0 and 1, whether they occurred or not
+    t_lo, t_hi = -1.0 / (1.0 - mu), 1.0 / mu
 
     def g(t):                                 # mean under p(t) minus mu; falls as t grows
         return sum(fi * (xi - mu) / (1.0 + t * (xi - mu)) for fi, xi in used)
 
-    a, b = t_lo, t_hi
-    for _ in range(200):
-        m = 0.5 * (a + b)
-        if g(m) > 0:
-            a = m
-        else:
-            b = m
-    t = 0.5 * (a + b)
+    if not has0 and g(t_hi) >= 0:             # even at the limit the mean is too high: the rest goes to outcome 0
+        t = t_hi
+    elif not has1 and g(t_lo) <= 0:           # the mirror case: the rest goes to outcome 1
+        t = t_lo
+    else:
+        a, b = t_lo + 1e-12, t_hi - 1e-12
+        for _ in range(200):
+            m = 0.5 * (a + b)
+            if g(m) > 0:
+                a = m
+            else:
+                b = m
+        t = 0.5 * (a + b)
     p = [fi / (1.0 + t * (xi - mu)) for fi, xi in used]
-    assert abs(sum(p) - 1.0) < 1e-9, sum(p)
-    assert abs(sum(pi * xi for pi, (_f, xi) in zip(p, used)) - mu) < 1e-9
+    rest = 1.0 - sum(p)                       # probability of outcomes that did not occur
+    assert rest > -1e-9, rest
+    mean = sum(pi * xi for pi, (_f, xi) in zip(p, used)) + (rest if t == t_lo else 0.0)
+    assert abs(mean - mu) < 1e-9, (mean, mu)
     return sum(c * math.log(pi) for c, pi in zip([c for c in counts if c > 0], p))
 
 
@@ -89,3 +98,23 @@ c4 = TABLES[3][0]
 print(f"  sides swapped on table 4: {llr_exact(tuple(reversed(c4)), -3.0, 0.0):+.4f} -> "
       f"{verdict(llr_exact(tuple(reversed(c4)), -3.0, 0.0))} (right: H1)")
 print("ALL FOUR AS EXPECTED" if bad == 0 else f"{bad} TABLE(S) NOT AS EXPECTED")
+
+# Tables with empty outcomes (astra 054147Z). Known answers without any search: when every outcome that occurred
+# lies above both means, LLR = N log(mu1 / mu0); the mirror case N log((1 - mu1) / (1 - mu0)).
+print()
+print("tables with empty outcomes | pairs | exact LLR(-3, 0) | closed form | decision")
+mu0, mu1 = score(-3.0), score(0.0)
+SPARSE = (
+    ((0, 0, 0, 250, 250), 500 * math.log(mu1 / mu0), "H1"),
+    ((250, 250, 0, 0, 0), 500 * math.log((1 - mu1) / (1 - mu0)), "H0"),
+    ((0, 0, 340, 0, 0), 340 * math.log(mu1 / mu0), "H1"),          # the same engine against itself, 340 pairs
+    ((0, 0, 339, 0, 0), 339 * math.log(mu1 / mu0), "no stop"),     # one pair fewer
+)
+bad2 = 0
+for counts, closed, want in SPARSE:
+    e = llr_exact(counts, -3.0, 0.0)
+    ok = abs(e - closed) < 1e-6 and verdict(e) == want
+    bad2 += 0 if ok else 1
+    print(f"{list(counts)} | {sum(counts)} | {e:+.6f} | {closed:+.6f} | {verdict(e)}{'' if ok else '   <-- NOT AS EXPECTED'}")
+print(f"one pair of the same engine against itself (pair score exactly 1/2) adds {math.log(mu1 / mu0):+.7f}")
+print("ALL SPARSE TABLES AS EXPECTED" if bad2 == 0 else f"{bad2} SPARSE TABLE(S) NOT AS EXPECTED")
