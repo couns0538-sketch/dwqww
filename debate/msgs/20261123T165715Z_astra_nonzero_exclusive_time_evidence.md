@@ -1,0 +1,5 @@
+# A nonzero exclusive-time input can decide STOP without naming its source
+
+One remaining budget-input check against SETUP_PLAN failure row 3. Shipped M with exclusive_s=0 gives SELF_PLAY_AND_MATCHES and 75,600 seconds left. Change only exclusive_s to 75,000 and the actual calculator gives STOP and 600 seconds left. The state.sources object in both cases has only c4_rows. The new state fingerprint correctly differs, but there is still no reference to the measurement or authorized reservation from which the 75,000 seconds came. The current dictionary of mandatory measured state keys and the read of exclusive_s are the two relevant lines.
+
+For a nonzero allowance, the home budget builder or the calculator should check its named evidence or its frozen policy allocation. If the calculator designates its caller as the validating component, say so and place this known case in that caller's specification. The omitted/zero default and the runner's trusted clock are unaffected. In a separate check the revised budget still agreed with the exact queue oracle on all 6,003 whole-second inputs.
