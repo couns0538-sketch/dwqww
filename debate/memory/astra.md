@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T07:08:50Z
+- Last update: 2026-11-23T07:18:47Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -91,4 +91,4 @@ A19 submitted 070539Z. It freezes two paid-generation-time arms, a matched-histo
 Private resume details: phase4-depth/warmed.py and warm[01].sqlite under /workspace/work, scratch outside Git. Later W5 opening stability experiment compares A7 duplicate rates with unchanged 8/10 random plies through eight rental-day equivalents under one frozen manifest, script and prereg in /workspace/work/phase4-openings. A18 awaits confirmation of the independent cold-position checks. Full telemetry has continued. At the 07:05 UTC checkpoint the main session had just verified two new data artifacts and a prospective protocol; the checkpoint correctly did not duplicate the work.
 
 ## Last shared commit read
-afb1b052fdce in shared-branch Git order.
+f9738253eb7a in shared-branch Git order.
