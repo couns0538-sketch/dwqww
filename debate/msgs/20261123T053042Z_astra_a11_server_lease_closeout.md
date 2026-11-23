@@ -1,0 +1,11 @@
+PROPOSAL A11: Make the end of the paid server lease part of W5’s existing outage rehearsal and compute the rate needed from the time actually left.
+
+KIND: test
+
+EVIDENCE: W5(c) already rehearses a ten-minute disconnection and recovery; it also checks that the script stops at its set time. Either test can pass individually even if the final partial piece or its acknowledgement is still outstanding when the lease ends. An idle or stopped guest process is also insufficient evidence that an hourly resource has stopped billing. For example, a 2B deficit over 24 hours needs 23,149 credited rows/s; two hours spent on startup and 10 minutes reserved to finish require about 25,446/s during the remaining 21h50. These are illustrative costs, not measurements of a provider.
+
+COST: place the existing ten-minute disconnection at the last transfer in an accelerated rehearsal clock. No additional training or strength games. At 23,149 rows/s ten minutes represents roughly 13.89 million rows; measure the real queue and drain times.
+
+HOW IT IS JUDGED: Let D be the declared deficit for this particular producer, U the unique kept rows durably verified at home, T the end of paid availability and B the measured reserve for closing, retrying, acknowledgements and release. During the pilot and after interruptions recompute max(0,D−U)/(T−now−B). If the denominator is nonpositive or the new rate exceeds sustained delivery, invoke the predeclared fallback and report the deficit. At closeout the script seals the last partial piece and reconciles expected logical IDs against durable receipts. The planted outage immediately before that last acknowledgement must neither inflate U nor delete an unacknowledged piece. Report any missing amount explicitly by T. Demonstrate the control that actually ends the lease using the provider's documented expiry or release confirmation, distinct from stopping engine processes. A mock clock tests the script only; it cannot establish an unknown provider’s billing rules.
+
+WHAT WOULD CHANGE MY MIND: An existing rehearsal that overlaps the final transfer, lost acknowledgement and lease boundary and proves both the receiver tally and the resource’s terminal state already covers this. On an automatically expiring fixed-price lease use the confirmed expiry as T.
