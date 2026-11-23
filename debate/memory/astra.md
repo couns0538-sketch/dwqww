@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T04:55:14Z
+- Last update: 2026-11-23T05:04:38Z
 - Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -62,19 +62,19 @@ The active Hash option changes the live searcher while bench constructs its own 
 
 - A6 ACCEPTED by all three. A technically valid same-data 768 control and verified 2B store can support one budgeted 1024 width trial even if 768 fails to beat r67. Any promotion still needs a direct equal-clock win over the reigning net and F1 for self-play.
 
-- A7 FILED, Neon agrees, awaiting Fable. Manifest + full FEN + ordered repetition-relevant positions since the last pawn move/capture catches 114 of 129 observed cross-order duplicates. Two targeted legal nonterminal openings with the identical full FEN and rep3=0 give −15 vs −30 on the second training row and 81 vs 67 rows in all. Both Linux builds reproduced the witness. Use it in PC/rental tests. For exhaustive engine-state claims keep raw and canonical en-passant distinct.
+- A7 ADOPTED IN FIRST DRAFT by Fable; Neon agrees. Manifest + full FEN + ordered repetition-relevant positions since the last pawn move/capture catches 114 of 129 observed cross-order duplicates. Two targeted legal nonterminal openings with the identical full FEN and rep3=0 give −15 vs −30 on the second training row and 81 vs 67 rows in all. Both Linux builds reproduced the witness. Fable independently replayed the terminal fixture: 0/127 rows; the PC driver admits both. The PC found 113/132 using raw historic en passant; the two Linux tests get 117/132 using legal historical en passant, three same-order pairs included. Four pairs account for the difference. Both estimates assume canonical current EP. For exhaustive engine-state claims keep raw and canonical en-passant distinct.
 
 ## What I still owe (questions to me that have no answer yet)
 
 Replies are posted to N1–N11 and F1. Fable accepted the no-boundary-at-cap = inconclusive amendment to F1. A real-runner softnodes transcript is needed before any 2k match: two Linux builds on the fourth shipped opening give b2b3 with hard nodes and g1f3 at 5,506 with softnodes. Fable reproduced the Hash preflight on two PC programs. N4 now uses per-game original-outcome agreement and replay of the full treatment; on round 136, an early 1,000-cp adjudication changes 66 of 73,933 crossing-game outcomes. One in-band zero-loss claim was conditioned on filtering: 665 favoured-side losses before filtering, zero after in the 600+ score band. These are Fable's PC measurements.
 
-A3 is closed: chunk receipts and the reference-round filter partition serve different purposes. The PC replay found 16 of the 29 opening-position pairs identical on all five raw fields, and the score-only mutation was caught. Fable then proposed full FEN plus manifest, provisionally accepted subject to one counterexample. The terminal example and the nonterminal example in the A7 ledger satisfy that condition. F1/J10 is accepted with a capped paired SPRT, no adoption when inconclusive. The real softnodes runner is custom and its sequential wrapper requires paired-LLR verification. N11's fixed 4k deep search-bundle bar is lower bound >−3; the original tune retains >0. N10 uses concurrent single-thread engines for node-odds calibration and direct equal-clock proof for promotion.
+A3 is closed: chunk receipts and the reference-round filter partition serve different purposes. The PC replay found 16 of the 29 opening-position pairs identical on all five raw fields, and the score-only mutation was caught. Fable then proposed full FEN plus manifest, provisionally accepted subject to one counterexample. The terminal example and the nonterminal example in the A7 ledger satisfy that condition. Fable withdrew the whole-FEN key and adopted the ordered-history alternative in draft W5f. F1/J10 is accepted with a capped paired SPRT, no adoption when inconclusive. The real softnodes runner is custom and its sequential wrapper requires paired-LLR verification. N11's fixed 4k deep search-bundle bar is lower bound >−3; the original tune retains >0. N10 uses concurrent single-thread engines for node-odds calibration and direct equal-clock proof for promotion.
 
-No unanswered direct question known. The final plan review remains due. Fable expects the final phase at about 06:10 UTC on this machine. My hard stop is 06:39:46 UTC.
+Read all 16 items of the first DRAFT (e5c8993), answered Fable’s invitation in draft_item_votes. Objections W1 (all 45 settings, W3a before match 4), W3 (timing precision), W4 (exclude +5 does not prove equivalence), W5 (score evidence scope and nonterminal witness), W10 (advance criterion), W13 (opponents and evidence of plateau), W14 (define activity threshold). Others agreed. Submitted paired W/D/L fixture, with two synthetic logs having equal aggregates and different pair histograms; deterministic A/A can give zero variance. No unanswered peer question known. Phase-3 vote remains due. Fable expects the final phase at about 06:10 UTC on this machine. My hard stop is 06:39:46 UTC.
 
 ## My next step
 
 Continue watching Fable and Neon on the shared branch, review each new proposal immediately, check measured results, and audit the eventual ordered final plan against the agreed tests. Astra publishes only on its authorized fallback branch.
 
 ## Last shared commit read
-9b944b2e0412 in shared-branch Git order.
+3c397b9f296c in shared-branch Git order.
