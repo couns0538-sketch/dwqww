@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T20:30:08Z
+- Last update: 2026-11-23T20:39:59Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T203008Z
+20261123T203959Z
 
 # Current schedule
 
@@ -223,3 +223,11 @@ I also played and legally replayed 2,048 games on two independent opening-family
 20:20 UTC. The revised engine plan is now installed and verified on BOTH branches. Exact SHA-256 f8fb81979f803c587b76a44a2d374f04a37c16797ad8b493a61f8b56d6655867, 28,404 bytes, 73 lines. Astra's whole-file AGREE is 200233Z at 70a40dc5, Neon's independent whole-file AGREE is 201300Z at 410c5ef2, canonical Astra push dfc0a0c2, shared copy 7f16a1c2. Fable/Neon notice 201408Z a5531b07. The original 512 teacher games are complete: external student vs no teacher 53.12% [48.83,57.81] and 48.44% [44.53,51.95]; vs local historical teacher 47.66% [42.97,52.34] and 45.31% [41.41,49.22]. The two-seed playing test failed. Six trainings 207.91 CPU seconds, external labeling 1221.91 and games 2.404 core-hours. All eight fresh repeats and 74,493 native replay plies passed. Full score ledger a7d78620892cf500e4ade44e982a29703b2639b2d9e20825dd665816b2dfa3ba, public 201634Z at 5ab111ee. Under a true +2.5-point advantage, the conservative full four-cell design projects 6,064 fresh games and 28.5 local game core-hours. The real paid PC teacher remains to be tested on its own recipe; this particular external teacher did not earn scale-up. Other panels at 20:19: reader 377/512 and equal-price teacher 205/256. Neon 202000Z confirmed the fresh NodeShare results, 47.08% at 4+0.04 and 49.58% at 10+0.10, zero forfeits in 240 games. Keep off. Opus 031825Z published the control maker and its test, and Linux evidence for guard; queued, reply 201941Z at efcba9b1. Latest paid scope 23 code/test/unit files, seven with all three votes. Next memory ~20:30, scheduled owner report 20:35, engine boundary 21:25, server final 01:25.
 
 20:30 UTC. The 256 direct, equal-price teacher games are complete. The external student's scores against the equally priced Forge-teacher student were 49.22% [44.92,53.52] and 46.48% [42.19,50.78] on the two training seeds. Neither direction met the predeclared advantage gate. Bank means 50.00/48.44 and 49.22/43.75. All four whole-game repeats and independent native checks passed, 35,639 new plies, 37,687 including openings, 1.216 local game core-hours. Native complete verdict 1bd8bef3; game ledger 23c682d3b656ea3ee030bd7605731b78980a4717c104e4bba8bda975d9a68af7; public 202725Z at 91615457. Observed variances imply a conservative 2,280 fresh games (~10.8 local core-hours) for a future true +2.5-point two-seed design. The mini-students' improved reference-score fit has now failed to establish a repeatable playing advantage in all three comparisons (768 games total). W8 reader games are 460/512 as of 20:29; await full ledger and fresh sentinels before interpretation. Both branches still contain the exact f8fb8197 canonical engine plan, shared 7f16a1c2. Both full-file votes are preserved. No new Fable vote. Next owner report in five minutes at 20:35, next memory ~20:40, engine close 21:25, final 01:25.
+
+### 20:40 UTC. Native reader games, real training restart and the next four-core test
+
+The revised ENGINE_PLAN_8H.md remains approved by Astra 200233Z and Neon 201300Z, SHA-256 f8fb81979f803c587b76a44a2d374f04a37c16797ad8b493a61f8b56d6655867 on both branches. The 20:35 owner report was delivered. At 203901Z, all 512 native 250k reader games and eight fresh reruns completed plus independent full replay. Against full shuffle, four fresh chunks scored 47.66% [43.36,51.95] and 51.17% [47.66,54.69]. Neither interval fit the declared equivalence band. Fresh-four also failed to prove superiority over fixed-four. Training took 967 CPU seconds, games 2.409 core-hours. Six fresh-process measurements per arm gave 7,344 versus 19,310 KiB median sampled extra resident memory at group handoff on this input. W8 remains a conditional PC trial.
+
+At 203918Z, two new processes resumed the real sparse reader and floating optimizer inside chunk groups. Each reproduced its first floating update, every original row and its complete native file byte for byte. Half files, bad checksum, misplaced cursor, zero moments and inference-only restores were detected. Roughly 39.1 MB compressed, 2.28–2.29 seconds to pack/copy/test, and 0.21–0.23 seconds to verify and load on this local machine. Actual PC and power-loss rehearsal remain outstanding.
+
+At 203500Z Neon concurred on the completed 768 teacher games. His four-core diversity-only experiment scored 48.12%. Restricting a helper override to a deeper completed search scored 57.50% [52.79,62.21] in the first 40 pairs. Neon froze the version for disjoint and longer-clock confirmation. Astra requested changed-move denominators and the separate results at 203628Z. Opus’s new unlisted-policy startup finding is queued for the server phase. Fable has not issued a new vote. Next review is the confirmed helper result and the Fable evidence handoff. Engine ends 21:25 UTC, server work then continues to 01:25.
