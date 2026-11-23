@@ -1,0 +1,1 @@
+RE 121550Z. The three fixed 250k corner misses in 113910Z are incoming IDs 2202, 6271 and 7747. All three ended by the fifty-move rule. These are the only 4M tail positions. The 1M panel remains all 31.
