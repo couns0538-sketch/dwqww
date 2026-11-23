@@ -1,16 +1,23 @@
 # Neon's debate memory
 
-Last updated: 2026-11-23T06:34:26Z (Neon's clock)
-Phase: 3 FINAL — CLOSED (3/3 AGREE on R1–R6 and W1–W16, zero dissent; monitoring branch for owner follow-up or proven addendum work)
+Last updated: 2026-11-23T06:47:48Z (Neon's clock)
+Phase: 4 POST-CLOSE ADDENDUM & LATER-PLAN RESEARCH (6-hour window through ~12:35-12:40Z; Fable checks ~every 30 min)
 
 ## Current Status
-- Shared branch HEAD (before this push): `b6ded89c3e`; Astra branch HEAD: `95a4c62329`.
-- **Three-party debate CLOSED at `2026-11-23T13:26:21Z` (Fable's clock) / `06:26:21Z` UTC (`5ed482d6ad`):**
-  - Final votes recorded in `debate/FINAL_PLAN.md`'s Addendum header: Fable `20261123T132211Z`, Astra `20261123T062329Z`, Neon `20261123T062351Z` — all three `AGREE` on every item `R1`–`R6` and `W1`–`W16`, zero dissent.
-  - Integrity verified: `git diff a281365300..b6ded89c3e -- debate/FINAL_PLAN.md` confirms zero bytes modified above `## Addendum`; Neon commit path audit confirms only `debate/memory/neon.md` and `debate/msgs/*_neon_*.md` were touched.
-- Post-close code audit checked `source/src/nnue_v3.cpp` (refresh_from_pieces subset-bound invariant, `hsum_epi32_pair_*` widening vs `W9` bounds), `source/src/board.cpp` (`sg_fen` legal EP, `sg_insufficient_material`, `upcoming_repetition` cuckoo invariant), and `source/src/search.cpp` (`stack_dirty_limit_` clearing invariant, `tune::parameters()` / `ReductionTable::refresh()`): no unclosed defect found so far.
+- Shared branch HEAD (before this push): `281c1a7ba3`; Astra branch HEAD: `c2cbc8aa8c`.
+- Phase 3 closed 3/3 AGREE on `R1`–`R6` and `W1`–`W16` (`5ed482d6ad`); Fable opened two Addendum lists in `debate/FINAL_PLAN.md` (`f367231ae2`, `20261123T134155Z_fable_owner_six_hours.md`):
+  1. "Changes to the items above"
+  2. "For later, once the engine is stronger" (requires `WHEN / WHAT / TEST / BAR / WHY IT WAITS` + proof/reproducible mechanism).
+  - Entry rule: one `..._<name>_agreed_<item>.md` with final wording, reproducible proof, and both vote message IDs; Fable verifies and appends to `FINAL_PLAN.md`.
+- **Addendum item tracking:**
+  - `A16` (Astra `064019Z` + `064041Z` half-cap control): **Neon independently verified all 3 checks + half-cap control and voted AGREE (`064747Z`).** Waiting for Astra's 1-line OK on folding `064041Z` half-cap/verdict check into `..._agreed_a16.md`.
+  - `A17` (Astra `064306Z`): **Neon independently verified all numbers (`0.007353054257` vs `0.118110236220`, closed forms, 2,048-shuffle `p1/p99 = 0.006999/0.007528`) and voted AGREE (`064747Z`).** Ready for `..._agreed_a17.md`.
+  - `N17` (Neon `064748Z`): Full `768`/`1024` `nnue_v3` loader/cross-ISA/UCI failure-path audit posted with 1-command reproducer. All 7 positive 768/1024 fixtures and 4-build (`AVX-512`/`AVX2`/`scalar`+`VERIFY=1`, `ASan+UBSan`) UCI parity passed cleanly; 5 real failure-path bugs reproduced in `source/src/uci.cpp` & `nnue_v3.cpp` (`eval` silent fallback, `UseNNUE false` silent HCE lie, Linux directory `SIGABRT`, `NNUEArch`-before-`NNUEArchFile` `N15` `ERROR` trap, `load()` accepting `FlagResidual`). Awaiting Astra's independent verification and vote.
 
-## Next Steps
-1. Per the owner's instructions ("focus till credits run out" and Astra+Neon post-close addendum channel, with Fable checking every ~30 min starting ~`06:47Z` / `07:14Z`), remain available on the branch through `07:17Z`+ for any new message or proven addendum proposal from Astra.
-2. Follow Fable's rule: only open a public addendum thread if a genuine, source-backed or measured defect not already covered by `FINAL_PLAN.md` is proven (no noise or restatements).
-3. Keep updating `debate/memory/neon.md` periodically while monitoring.
+## Parallel Later-Plan Research Division
+- Astra is running Fable #1 (`measure_future_label_depth.md`: 384 openings, `2k/8k/32k/128k/512k` label depth + online cost).
+- Neon is investigating complementary later-plan tracks on this 4-core AVX-512 Linux VM:
+  1. Fable #4: Multi-threaded search (`Threads > 1` / Lazy SMP) code audit + ThreadSanitizer (2 and 4 threads) + 1/2/4-thread NPS/TT/time-to-depth benchmarks on unmodified `source/`.
+  2. Fable #6: Clock time management audit (`source/src/search.cpp`, `uci.cpp`).
+  3. Fable #2 & #3: Draw-rate variance/sample-size collapse curve + reference ladder past SF12/14/15/16.
+  4. Fable #5: Next NNUE architecture beyond `1024` wide (SIMD microbenchmarks + `W9` headroom math).
