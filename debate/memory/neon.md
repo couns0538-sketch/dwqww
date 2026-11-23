@@ -5,33 +5,25 @@
 - **Stop time:** **`18:35Z`** UTC (do not stop earlier; update memory every ~10 minutes; at `18:35Z` deliver final plain-words summary to owner).
 - **Single focus:** **`debate/server_day/SETUP_PLAN.md`** + **`debate/server_day/FORMATS.md`** + line-by-line review and explicit **`YES <sha256>`** from all 3 seats (`astra`, `neon`, `fable`) for every script under `debate/server_day/scripts/` (or `NOT YET` with line + failing test; any changed byte invalidates all 3 approvals). Nothing else opened.
 
-## 1. Current Server-Plan State (`2026-11-23T13:24Z`, ~5h 11m remaining until `18:35Z`)
+## 1. Current Server-Plan State (`2026-11-23T13:33Z`, ~5h 02m remaining until `18:35Z`)
 - **`SETUP_PLAN.md` v2.1 (`0151a133`, SHA-256 `69693c6b09b4...`):**
-  - **ALL 15 DECISIONS (`D1`–`D15`), SECTION 2, AND SECTION 4 NOW HAVE TWO-SEAT JOINT AGREEMENT** (Astra `132125Z` + Neon `131930Z` + earlier `130332Z`):
-    - Already marked SETTLED: `D2`, `D4`, `D12`, `D3` sentence 1.
-    - Jointly agreed on v2.1 ready for Fable to mark SETTLED: `Section 2`, `Section 4` (with total allocated server spool sizing: raw + offers + seals + logs), `D1`, `D3` (K >= 1 whole rounds end-to-end vs stage capacities, lower decides), `D5`, `D6` (latest review per `(path, sha256, seat)` wins; `python3 -I -B` + `chmod -R a-w`), `D7`, `D8`, `D9` (independent per-ID seeded 8-ply draw mode declared for day 1), `D10`, `D11`, `D13` (same-day forecast labeled empirical lower scenario; only durable C4 unconditional), `D14`, `D15`.
-- **`FORMATS.md` v1 (`ce24899cc866...`, Fable `201222Z`):**
-  - Both Astra (`131547Z`) and Neon (`132000Z`) voted **`CHANGE`** while agreeing on all 3 architectural choices (canonical ASCII JSONL, zero upstream ACKs to server, 1 piece never spans 2 rounds).
-  - Key changes pending `FORMATS.md` v2: split `completed_zero_rows` vs `opening_ended_nomoves` (proven critical by 5/500 real Linux games = 1.00% `matescore` at ply 8 with legal moves!), non-circular pilot/production schedule, per-slot range endpoints, `<run>-wNNN-gNNNNNNNN` exact grammar, `bind()` hashing `opening`, `codec` field (`lzma`/`zlib` per `D1`/`M7`), `run_fingerprint` on all artifacts, `epoch >= prev.epoch` in Stage `a1`, explicit `C2` scope (`132008Z`: lossless 5-field parity + independent legal replay; full engine replay only on hour-1 parity / A26 conflict / spot audit), `A26` `duplicate`/`conflict` states, `tb_probe_failures` gating, and explicit server raw+offer retention in §0.
+  - **ALL 15 DECISIONS (`D1`–`D15`), SECTION 2, AND SECTION 4 HAVE TWO-SEAT JOINT AGREEMENT** (Astra `132125Z` + Neon `131930Z` + earlier `130332Z`), awaiting Fable's v2.2 settlement mark + spool-sizing update (`158–282 GB` total retained server bytes, not `9.7–16 GB`).
+- **`FORMATS.md` v1 (`ce24899cc866...`):** Both Astra (`131547Z`) and Neon (`132000Z`) voted `CHANGE` (agreeing on all 3 architecture choices), awaiting Fable's `FORMATS.md` v2 incorporating: split `completed_zero_rows` vs `opening_ended_nomoves`, non-circular pilot/production schedule, per-slot range endpoints, `<run>-wNNN-gNNNNNNNN`, `bind()` hashing `opening`, `codec` field (`lzma`/`zlib`), `run_fingerprint` on all artifacts, `epoch >= prev.epoch`, `C2` scope (`132008Z`), W5 independent-opening mode (`132138Z`), converter timeout circuit breaker (`132505Z`), `recovery_margin_s` in `progress.jsonl` (`132844Z`), and `engine_sha256` enforcement on every worker restart (`133017Z`).
 - **Package 1 Script Audit (`debate/server_day/scripts/`, 17 scripts, `MANIFEST.sha256` digest `9705a787bf51...`):**
-  - **Verdict tally (`APPROVALS.md`):** **`0` effective `YES`**, **`17 / 17` `NOT YET`** from BOTH Neon (`131400Z`) and Astra (`130230Z`/`130453Z`/`130703Z`/`131652Z` withdrawing `hash_tree.py` YES after independently reproducing Neon's dangling-symlink bug / `131942Z`).
-  - **Runnable failing cases committed:** `debate/server_day/cases/astra/` (`9` cases, `33f11225`) + `debate/server_day/cases/neon/` (`10` cases `N1`–`N10`, `9fb548df43`, verified `0 PASS, 10 FAIL` on v1 in `4.4 s`).
-  - **Complete `loop/source/` `info string` + `sgerror` table posted (`132330Z`)**: found 4 additional refusal forms (`search.cpp:3417` `V3 VERIFY FAILED`, `uci.cpp:797/897/933`) and gave exact normal whitelist + fail-closed rule for Fable's single engine-line table.
+  - **`0` effective `YES`**, **`17 / 17` `NOT YET`** from BOTH Neon and Astra (Astra withdrew `hash_tree.py` YES in `131652Z`).
+  - Runnable failing suites committed: `debate/server_day/cases/astra/` (`9` cases) + `debate/server_day/cases/neon/` (`10` cases `N1`–`N10`, verified `0 PASS, 10 FAIL` on v1 in `4.4 s`).
 
-## 2. Live Linux 500-Game (`65,537`-Row) Benchmark Results (`132330Z`, `/tmp/server_day_bench/m5_m7_500g`)
-- Built `avx2_pext LTO=full` with `linux/build_forge.sh` (GCC 13.3.0, matched Windows `profile.json`, `verify.json`, `startup.json`, `n12_batch.json` bit-for-bit); ran 4 parallel workers x 125 games = **`500` games, `65,537` rows in `29.26 s`** (`2,240` raw r/s, `0` faults).
-- **`M7` PACKER BOTTLENECK FOUND:** On the real 500-game piece (`4.92 MB` raw, `500 KB` meta):
-  - `raw` `lzma-6`: **`36,953` r/s (`108%` of 1 core @ `40k/s` — FALLS BEHIND!)**, `14.46 B/row`, `74.88 MiB` RSS.
-  - `raw` `lzma-1`: **`249,027` r/s (`6.7x` faster, `16%` of 1 core @ `40k/s`)**, `17.60 B/row`, `47.28 MiB` RSS.
-  - `raw` `zlib-6`: **`430,912` r/s (`11.7x` faster, `9.3%` of 1 core @ `40k/s`)**, `18.40 B/row`, `47.28 MiB` RSS.
-  - `meta` `lzma-6`: **`424,457` r/s (`9.4%` of 1 core @ `40k/s`)**, `2.30 B/row`, `47.28 MiB` RSS.
-  - Pure Python `parse+faults+meta_of+plain_of`: `924k` r/s (`< 4.3%` of 1 core @ `40k/s`).
-  - **Recommendation for `D1`/`M7`:** `lzma-6` for `meta` + **`lzma-1` or `zlib-6` for `raw` fallback**!
-- **`M5` scale bytes & allocated blocks:** `raw` `75.04 B/row` logical / **`75.37 B/row` allocated** (`158.1 GB` @ `2B` kept; `249.6 GB` @ `40k/s` for 23 h); `meta.xz` `2.30 B/row` (`4.29 B/row` w/ binpack -> `9.00 GB` @ `2B` kept); `plain` `94.78 B/row`.
-- **Whole-group memory (Section 4):** `peak_group_PSS = 168.76 MiB` (**`42.19 MiB/worker`**) vs summed RSS `217.86 MiB` (`54.47 MiB/worker`, `+29%` overcount).
-- **Zero-row games & duplicates:** **`5/500 (1.00%)`** zero-row `sgend matescore` at ply 8; **`0/495 (0.00%)`** duplicate games; `plies` median `126` / max `300`, `nodes` median `468k` / max `1.25M` (`2.67x`).
+## 2. Verified Linux Benchmarks (All Executed Live on Frozen `loop/source` + `loop/forge65_r0067.fnn3`)
+- **500-game 4-worker run (`65,537` rows, `29.26 s`, `2,240` r/s, `132330Z`):**
+  - **`M7` packer ceiling:** `raw` `lzma-6` = `36,953` r/s (`108%` of 1 core @ `40k/s` — **TOO SLOW!**), `74.88 MiB` RSS; `raw` **`lzma-1`** = `249,027` r/s (`17.60 B/row`, `47.28 MiB`); `raw` **`zlib-6`** = `430,912` r/s (`18.40 B/row`, `47.28 MiB`); `meta` **`lzma-6`** = `424,457` r/s (`2.30 B/row`, `47.28 MiB`); pure Python `parse+faults+meta_of+plain_of` = `924k` r/s.
+  - **`M5` scale bytes:** `raw` `75.04 B/row` logical / **`75.37 B/row` allocated** (`158.1 GB` @ `2B` kept; `249.6 GB` @ `40k/s` for 23 h); `meta.xz` `2.30 B/row` (`4.29 B/row` w/ binpack -> `9.00 GB` @ `2B` kept); `plain` `94.78 B/row`.
+  - **Whole-group memory:** `peak_group_PSS = 168.76 MiB` (`42.19 MiB/worker`) vs summed RSS `217.86 MiB` (`54.47 MiB/worker`, `+29%` overcount).
+  - **Zero-row & duplicates:** `5/500 (1.00%)` zero-row `sgend matescore` at ply 8 (legal moves left!); `0/495 (0.00%)` duplicates; `plies` med `126`/max `300`, `nodes` med `468k`/max `1.25M` (`2.67x`).
+- **`D10`/`N16` 4-way interleaved benchmark on frozen `loop/source` (`avx2_pext`, GCC 13.3.0, `480` games / `61,280` rows each, `133300Z`):**
+  - `plain_o3`: `2,115.5` r/s (`+0.00%`); `plain_o3_lto`: `2,182.0` r/s (`+3.14%`); `pgo_nolto` (`profile.uci`): `2,203.0` r/s (`+4.13%`, fixed `115806Z`'s `bench`-profile regression!); `pgo_lto` (`LTO=full`): **`2,230.6` r/s (`+5.44%`, won 3/3 reps)**; use `-flto=auto` instead of serial `-flto`.
+- **Complete `info string` + `sgerror` inventory (`132330Z`):** Audited all `loop/source/src/{uci,search}.cpp` emissions; found 4 more refusal forms (`search.cpp:3417` `V3 VERIFY FAILED`, `uci.cpp:797/897/933`) and proposed normal whitelist + fail-closed default.
 
 ## 3. Next Actions
-1. Commit and push `132330Z` + memory update.
-2. Monitor `debate/server-plan-20261123` for Fable's `SETUP_PLAN.md` v2.2 (marking `D1`–`D15` SETTLED), `FORMATS.md` v2, Opus's PC measurements (`M1`–`M3`, `M5`–`M8`) and tools (budget tool, three-YES ledger tool, home guard), and v2 scripts (`hash_tree.py`, `uciproc.py`, `record.py`, `worker.py`, `packer.py`, `drive.py`, `check_run.py`, `cpu_check.sh`, `build_forge.sh`, `receiver.py`, `to_round.py`).
-3. Audit every v2 file line by line + run `cases/neon/run_all.py` & live Linux suites to issue `YES <sha256>` (or `NOT YET`) cleanly; keep memory updated every ~10 min until `18:35Z`.
+1. Commit & push `133300Z` + memory update.
+2. Wait/poll cleanly for Fable's next drop (`SETUP_PLAN.md` v2.2, `FORMATS.md` v2, Opus's measurements `M1`–`M3`/`M5`–`M8`, Opus's budget/ledger/home-guard tools, and v2 scripts for three-YES read).
+3. Audit every v2 script line-by-line + run `cases/neon/run_all.py` & live Linux suites to issue `YES <sha256>` (or `NOT YET`) until `18:35Z`.
