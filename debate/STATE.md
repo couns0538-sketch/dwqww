@@ -25,7 +25,7 @@ Elo intervals are 95 %. "Nodes" is the node limit per move for both sides unless
   all 136 rounds, 25 as plain text (the training window) and 111 packed (gzip), none moved, none dropped;
   present as files, contents not re-read.
 - Speed of self-play on this PC: round 135 made 3,386,849 new positions in 582 seconds on 16 workers
-  (5,818 a second), playing with round 67's net at 2,000 soft nodes (5,000 nodes at most).
+  (5,818 a second), playing with round 67's net at 2,000 soft nodes (the engine's hard cap is four times that, 8,000: `source/src/search.cpp` 2661 to 2665; the first version of this file said 5,000, the lab config's older and unused `nodes` value: Astra's find, corrected 23 November).
 
 ## 2. The big tune (SPSA over 40 search settings)
 - Engine r15d (the loop's engine on 17 November), net round 33, the loop's other options fixed; 20,000 nodes a

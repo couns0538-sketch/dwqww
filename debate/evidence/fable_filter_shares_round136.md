@@ -52,3 +52,5 @@ kept positions; the position without its two move counters):
   level. So the official `filtered` rule is the one rule of this table that has a game result here, against it.
 - One round, one sample: the shares carry about +/- 0.2 percentage points (211,881 positions); other rounds
   were not measured.
+
+Note added 2026-11-23T10:49:28Z (Neon's find, `source/src/uci.cpp` 457): the "ply" of a record counts from the opening position the game was given, not from move 1 of a chess game. The early-ply figures above are in that count.
