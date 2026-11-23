@@ -782,6 +782,101 @@ proof, and what Fable's own check showed and did not show.
     8,192 rows: a reader that mixes only inside pieces of the store that are larger than this fixture cannot
     show on it; that belongs to W8's test on the real store.
 
+- **A23 (changes W5 (c), (e), (f); Astra). Every game's rows are tied to the opening that was really sent for
+  its game id.** Entered at 2026-11-23T17:15:53Z (Fable's clock). Agreed wording: `20261123T093214Z_astra_agreed_a23.md`
+  (Astra `092436Z`, `093116Z`; Neon `092930Z`).
+  - In W5's server rehearsal three things are bound together for every game: the reservation made
+    independently for its game id (its opening; also an opening that a worker legitimately drew by itself,
+    which is logged), the final position command actually written to the intended worker's engine, and the
+    result returned under that game id. Two valid opening histories that end in the SAME position but give
+    different games run at the same time. Exchanging the two final writes, or exchanging which result belongs
+    to which id, also after a restart, must be detected before either wrong game is credited. A legitimate
+    retry is still credited once. A binding that exists already and is tested end to end in this way
+    satisfies the item. W5 (g)'s bar on the real rate stands; no extra question to the engine before a game
+    and no second search is required.
+  - Why: W5's plants so far (replayed reservations, opening logs, row and content parity, the receiver's
+    duplicates) never exchange two DIFFERENT valid openings while reservations and receipts stay under their
+    own ids. The engine cannot show it afterwards: both histories end in the same position, the first written
+    row is the same, and the game's end line lists only the moves played after the opening. And a `position`
+    line whose first word is neither `startpos` nor `fen` is dropped without a word, and a misspelt `moves`
+    drops the moves (`uci.cpp` 54 to 82): the engine then plays from another position than the one meant.
+  - Proof by both seats (round 67's net, the loop's options, the loop's own self-play command): history A
+    `b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4` gives 81 rows and history B
+    `b1c3 g8f6 c3e4 f6g8 e4c3 g8f6 c3d5 f6e4` gives 67 rows from the same position (digests of the row and end
+    lines `da48aacf...` and `4881d19f...`); the first row is equal, the second has the same move and position
+    with -15 against -30. Three more plants end as ordinary games: `mvoes` for `moves` 35 rows, the last two
+    plies cut off 63 rows, `startposs` after another position 129 rows. A state line asked before every game
+    costs nothing measurable (+0.27 % [-0.92, +1.51] rows a CPU second, 512 games) but does not see the
+    exchanged pair, so it is not required.
+  - Fable's check (`debate/evidence/fable_a23_check.txt`): the two histories are legal and end in the same
+    position (a rules library). The PC's own Windows program had played both in its N12 batch for W5 before
+    this item existed: 81 rows (ended by the small-score draw rule, 307,107 nodes) and 67 rows (ended by a
+    rule draw, 227,258 nodes), both digests equal to theirs, the first rows equal, the second rows -15 and
+    -30. `uci.cpp` 54 to 82 read: as described. NOT run by Fable: the three other plants and the timing.
+  - Where the PC's package stands (the worker is written and not yet run): a game's opening is a function of
+    the run's root seed and the game id alone, so the home side can compute it again without the worker, and
+    every record begins with its id and opening. STILL TO BUILD AND TO PLANT: the record takes the position
+    line from what was really written to the engine; one digest binds id, that line, the rows and the end
+    line; the home side compares; and the plants above (the exchanged final write between two workers that
+    run at once, the exchanged results, both after a restart, the retry that is credited once).
+
+- **N23 (changes W1: refines N1's table at the final values; cross-reference N22 stage A; Neon, the narrower
+  set-back rule by Astra). A setting that shows no change one step up and one step down is not thereby dead,
+  and a tuned final value is not set back on that alone.** Entered at 2026-11-23T17:15:53Z (Fable's clock). Agreed
+  wording: `20261123T093730Z_neon_agreed_n23.md` (Neon `092931Z`, `093520Z`; Astra `093243Z`, `093458Z`,
+  `093539Z`, a precision of wording `093840Z`). It changes no game of W1's deciding matches and adds none.
+  - (1) Descriptors. In W1's table at the final values (45 settings, 600 positions, each at final minus step
+    and final plus step, the other 44 at their final values): where BOTH ends change 0 of 600, the final
+    value is also compared with the start value (if they differ) and with the two ends of the setting's
+    range, on the same 600 positions. The counts go into the table as descriptors.
+  - (2) The set-back rule. Every tuned final value is KEPT whenever any of these comparisons differs, and
+    also whenever the panel is inconclusive. A changed final value goes back to its start value ONLY when
+    (a) every use of the setting stands under a parent switch that is off in the final vector as deployed
+    (read in the source: `EvalSwingMax` under `EvalSwingMult != 0`, `search.cpp` 2041 to 2050;
+    `CaptureFutilityDepth` and `CaptureFutilityMultiplier` under `CaptureFutilityBase > 0`, 2307 to 2314;
+    `AspFailHighMaxReduce` under `AspFailHighReduce != 0` on the main thread, 2988 to 2989), or (b) final and
+    start are equal on every chess position by the source (`QsSeeMargin`: one unscaled threshold at 1857 over
+    piece values that are all multiples of 100, `board.cpp` 25, so only floor(M / 100) counts; this proof
+    does NOT carry over to the two multipliers that are scaled by depth). An untuned value inside its start
+    bin (`QsSeeMargin` 40) needs no set-back and is called "quantized in steps of 100", not dead: a later
+    tune must move it into another bin (99 -> 100 is one; +100 crosses from anywhere).
+  - (3) The whole vector. After the set-backs the parent switches are looked at together once more, and the
+    complete vector to be deployed is compared with the raw final vector on the same 600 positions, with the
+    A18 sentinels: one differing position cancels the set-back in question.
+  - (4) If the PC's script already sets back only under (a) or (b) and checks the whole vector, writing that
+    down satisfies the item.
+  - Why: exchange values are multiples of 100, so a SEE threshold is a step function of its setting; and a
+    depth threshold above 12 cannot show at depth 12. Proof by both seats (round 67's net, the loop's
+    options, 60 book openings, depth 12, an empty table before every search; base 2,283,377 nodes):
+    `QsSeeMargin` 40 against 0, 39, 41, 99: 0 of 60; against 100: 59 of 60. `SeeNoisyMultiplier` 150 against
+    145: 59 of 60, while 145 against 141 and 149: 0 of 60; yet 141 and 145 are not equal everywhere (in
+    `8/7k/8/1R6/8/7K/p7/1n6 w - - 0 1` the capture `b5b1` loses exactly 1,000, and at depth 7 the thresholds
+    are -987 and -1,015). `SeeQuietMultiplier` 24 against 26: 60 of 60, while 26 against 25 and 27: 0 of 60.
+    `SingularDepth` 6 against 14: 60 of 60, while 14 against 13 and 15: 0 of 60 at depth 12, and at 250,000
+    nodes on the same positions 14 against 15 differs on 58 of 60 (7 best moves). The four settings under a
+    switch that is off: 0 of 60 at both ends of their ranges.
+  - Fable's check (`debate/evidence/fable_n23_check.txt`): the cited lines read in the loop's source: as
+    described. On the PC's own Windows program with the lab's measuring tool (the base arm twice: equal on 60
+    of 60; the one-position pulse changes position 1 and no other) EVERY number above came out equal: the
+    base sum and position 1 (31,797 nodes, `f5g6`); 0 and 59 of 60 (9 moves, 2,252,636) for `QsSeeMargin` 99
+    and 100; 59 of 60 (10 moves, 2,258,263) and twice 0 for `SeeNoisyMultiplier` 145, 141, 149; 60 of 60 (15
+    moves, 2,381,002) for 106; 60 of 60 (12 moves, 2,439,481) and twice 0 for `SeeQuietMultiplier` 26, 25,
+    27; 60 of 60 (20 moves, 1,988,496) and twice 0 for `SingularDepth` 14, 13, 15; twice 0 for `EvalSwingMax`
+    50 and 400; and at 250,000 nodes 58 of 60 with 7 moves (sums 11,763,461 and 11,201,869). NOT run by
+    Fable: the position with the exchange of exactly 1,000 (it needs a small program around `board.cpp`; the
+    arithmetic 141 x 7 = 987 and 145 x 7 = 1,015 is plain).
+  - What the PC adds: the big tune's own steps are 12 for `SeeNoisyMultiplier` and 3 for
+    `SeeQuietMultiplier`, not the 4, 6 and 1 of the examples, and with them these examples are NOT silent (145
+    against 133 and 157: 55 and 59 of 60; 106 against 94 and 118: 60 and 52; 26 against 23 and 29: 60 and
+    15). Silent at the tune's own step of 1 are the depth thresholds once they end at 14 or more
+    (`SingularDepth` as measured; by the same reading `IirDepth`, `ProbcutDepth`, `CheckExtensionDepth`). And
+    the four gated settings together with `QsSeeMargin` are exactly the five settings this tune does not
+    move: so on this tune (a) and (b) set back NO tuned value.
+  - What it changes on the PC: W1's own addendum of 23 November said "a tuned setting that is dead at the
+    final values keeps its start value" and counted the whole vector against the final values as a record
+    only. Its script was read before its placing and is not placed in that form; the tune's declaration takes
+    the rule above before the long run ends (Opus writes it, Fable reads it before it is placed).
+
 ### For later, once the engine is stronger
 
 The owner asked Astra and Neon (23 November, after the close) to look also for plans and improvements for

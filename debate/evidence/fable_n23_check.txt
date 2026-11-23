@@ -1,0 +1,54 @@
+Fable's check of N23 on the PC (23 November). Every expected value was typed into the checking script from
+Neon's 092931Z and 093730Z BEFORE the first run; the guesses about the tune's own steps were written before too.
+
+How it was run: the PC's own Windows program (the loop's exe), round 67's net, the loop's options, ONE thread,
+`ucinewgame` + `isready` before every search, the 60 openings of loop/build_recipe/pgo_selfplay_books.epd
+(first four FEN fields + " 0 1"). Depth 12: the lab's measuring tool (tree_factor.py), 23 arms, 25 seconds.
+250,000 nodes: a second small harness that reads every answer line, stops on a refused option and demands the
+engine's line "NNUE v3 active"; a row is (best move, nodes, depth) of the LAST info line before bestmove.
+Source lines read in source/src: board.cpp 25; search.cpp 1857, 2041-2050, 2299, 2307-2319, 2988-2989.
+
+The tune's rows for the settings named (name, start, low, high, step):
+  SeeQuietMultiplier 24 0 200 3      SeeNoisyMultiplier 150 0 1000 12    SingularDepth 6 2 20 1
+  IirDepth 2 1 20 1                  ProbcutDepth 5 1 20 1               CheckExtensionDepth 2 1 30 1
+  QsSeeMargin 40 0 500 6             CaptureFutilityBase 0 0 1000 20     CaptureFutilityMultiplier 250 0 1000 25
+  CaptureFutilityDepth 6 0 15 1      AspFailHighMaxReduce 3 1 6 1        EvalSwingMult 0 0 64 3
+  EvalSwingMax 200 50 400 20
+Not moved by the tune (its five settings found dead on 17 November): QsSeeMargin, CaptureFutilityMultiplier,
+CaptureFutilityDepth, AspFailHighMaxReduce, EvalSwingMax.
+
+The checking script's output (cmp = [positions with another node count, with another best move, node sum]):
+exe (inside the lab) runs\forge\engines\v3-r15dsg-sp-clang\forge.exe; 60 positions, depth 12; node-limited: 60 positions, go nodes 250000
+  ok   every engine ended with exit code 0: []
+  ok   every depth-12 search ended at depth 12: 0
+the harness is clean (A18): base2 = base on all, the pulse changes position 1 only
+  ok   base2 against base: [0, 0]
+  ok   pulse IirDepth 8: positions that differ: [1]
+their numbers (60 openings, depth 12):
+  ok   base: node sum, position 1 nodes, position 1 move: [2283377, 31797, 'f5g6']
+  ok   QsSeeMargin 99 against base (40): [0, 0, 2283377]
+  ok   QsSeeMargin 100 against base: [59, 9, 2252636]
+  ok   SeeNoisyMultiplier 145 against base (150): [59, 10, 2258263]
+  ok   SeeNoisyMultiplier 141 against 145: [0, 0]
+  ok   SeeNoisyMultiplier 149 against 145: [0, 0]
+  ok   SeeNoisyMultiplier 106 against base: [60, 15, 2381002]
+  ok   SeeQuietMultiplier 26 against base (24): [60, 12, 2439481]
+  ok   SeeQuietMultiplier 25 against 26: [0, 0]
+  ok   SeeQuietMultiplier 27 against 26: [0, 0]
+  ok   SingularDepth 14 against base (6): [60, 20, 1988496]
+  ok   SingularDepth 13 against 14: [0, 0]
+  ok   SingularDepth 15 against 14: [0, 0]
+  ok   EvalSwingMax 50 against base (200): [0, 0]
+  ok   EvalSwingMax 400 against base: [0, 0]
+their numbers (the same 60 openings, go nodes 250000):
+  ok   SingularDepth 14 against 15: other node count, other move: [58, 7]
+  ok   node sums [14, 15]: [11763461, 11201869]
+MY OWN ADDITION, the tune's real steps (candidates.txt: SeeNoisyMultiplier 12, SeeQuietMultiplier 3). GUESS,
+written before the run: with these steps both ends leave the plateau, so each pair shows a difference:
+  as guessed SeeNoisyMultiplier 133 against 145: 55 of 60 node counts, 2 moves
+  as guessed SeeNoisyMultiplier 157 against 145: 59 of 60 node counts, 10 moves
+  as guessed SeeNoisyMultiplier 94 against 106: 60 of 60 node counts, 14 moves
+  as guessed SeeNoisyMultiplier 118 against 106: 52 of 60 node counts, 5 moves
+  as guessed SeeQuietMultiplier 23 against 26: 60 of 60 node counts, 13 moves
+  as guessed SeeQuietMultiplier 29 against 26: 15 of 60 node counts, 0 moves
+ALL OF THEIR NUMBERS REPRODUCED

@@ -1,0 +1,28 @@
+Fable's check of A23 on the PC (23 November).
+
+1. The two histories (a rules library, python-chess):
+   A = b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4
+   B = b1c3 g8f6 c3e4 f6g8 e4c3 g8f6 c3d5 f6e4
+   both legal from the start position; both end in
+   rnbqkb1r/pppppppp/8/3N4/4n3/8/PPPPPPPP/R1BQKBNR w KQkq - 8 5
+
+2. The PC's own Windows program (the loop's exe, round 67's net, the loop's options, `ucinewgame` before every
+   game, the loop's self-play command) had played both as games 5 and 6 of the N12 batch for W5, at 08:37 PC
+   clock, before A23 existed (the batch's known answers were compared with Astra's Linux numbers at 08:39):
+   game 5 (A): 81 rows; sgend result 0 reason drawadj plies 88 run 8 searches 81 nodes 307107
+   game 6 (B): 67 rows; sgend result 0 reason rule plies 75 run 0 searches 67 nodes 227258
+   sha256 over the LF-terminated sg and sgend lines:
+     A da48aacf4b6da5a253d1a6bb74f142e62a932929f339d3cbce7ad22cf4f28751   equal to both seats'
+     B 4881d19f7cd299bf47e6be0010bf06f76f365a5999744826b5713d6a0a0dee40   equal to both seats'
+   first two rows:
+     A: sg 8 34 d2d3 rnbqkb1r/pppppppp/8/3N4/4n3/8/PPPPPPPP/R1BQKBNR w KQkq - 8 5
+        sg 9 -15 e4f6 rnbqkb1r/pppppppp/8/3N4/4n3/3P4/PPP1PPPP/R1BQKBNR b KQkq - 0 5
+     B: sg 8 34 d2d3 rnbqkb1r/pppppppp/8/3N4/4n3/8/PPPPPPPP/R1BQKBNR w KQkq - 8 5
+        sg 9 -30 e4f6 rnbqkb1r/pppppppp/8/3N4/4n3/3P4/PPP1PPPP/R1BQKBNR b KQkq - 0 5
+   The end line's move list begins with d2d3 e4f6 in both: it holds the moves played AFTER the opening, so
+   nothing the engine writes says which of the two histories it was given.
+
+3. source/src/uci.cpp 54 to 82 read: a first word other than `startpos` or `fen` returns at once; after the
+   position the words are skipped until the exact word `moves`.
+
+NOT run by Fable: the plants `mvoes`, the two plies cut off, `startposs`; the 512-game timing.
