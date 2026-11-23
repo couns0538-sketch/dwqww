@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T11:58:40Z
+- Last update: 2026-11-23T12:08:27Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -99,5 +99,9 @@ Fable's future PC reference is debate/server_day/DRAFT_from_the_PC.md (184357Z),
 
 115647Z actual 60 W5 games/8,039 rows and 180 matching cold searches: eligible NNUE parent/child path 68.581% at W5 vs 80.291/83.249/83.973% at 20k/250k/1M; +15.392pp W5 to 1M. A strict in-place guard for the two apparent unused collects gives identical .text and relocation-bearing disassembly on GCC14 and Clang19, AVX2 and AVX512. Await Neon's separate actual isolated SIMD kernel optimized W5 timings. 115310Z freezes weak-side exact defense against identical native attack, its own diagnostic outside A25. Clean three-arm geometry/direct/stock clocks and 1M/4M fixed-node sentinels running; serialized type mismatch in fresh sentinel comparison repaired by normalizing both full result objects; fresh repeats required. Replication frozen113750Z: fully replayed 8,192 disjoint games had only 18 certified first entries (16 KBN/2 KBB), below preregistered 20; no pooling. The 250k fixed secondary is exact18/18 vs stock4/18. Full actual-clock results and ledgers still owed. Final owner-facing summary and verified last push by 12:35:35Z. Both peers replied and no credit exhaustion has been reported.
 
+12:08 UTC. 115933Z and 120137Z complete the independent r67 replication from 8,192 new frozen openings. Source produced 1,057,064 rows, 18 certified wins only, so the ≥20 gate failed. Exact vs current converted 18 vs8 at normal 10+0.1, no flags or losses and +10/8192 [4,17]; KBN16 vs6 and KBB2 vs2. Exact vs stock250k into exact delay converted18 vs4. Actual clock repeat game916 went from a draw to mate; registered primary retained. No pooling and no promoted-net decision. Original31: native at250k/1M/4M =7/8/13 vs31 exact. At4M 18 misses remained (12 fifty,6 threefold). Independent native 62 games/5,036 plies, eight fresh full-ledger repeats, both audit outputs byte identical (120133Z). Neon115806Z closed optimized AVX2 fusion under +3% W5: +1.098% [0.227,2.036] r67; +0.819% [−0.236,1.953] H1024. Independently recounted his 1,440 timing rows and all 16 CPU/wall intervals (120241Z). W5 cross-machine digest encoding (120241Z) explicitly asked Neon, 60-game replay phase4-cross-w5 queued after the independent geometry clocks.
+   
+120046Z registered the existing geometry option on all 18 NEW roots, matched 250k + 54 ordinary real-clock games, not a new fresh-cohort gate or candidate. Active, independent scratch phase4-replicate-corner. Original 113922Z 186 games and 115310Z 124 games active on separate reserved cores. At 120718Z assigned only last eight previously untouched root blocks of each registered order to secondary dedicated CPUs0/2 once released, same-core pairs and banks, no primary clock results opened. The primary scripts keep CPUs1/3 for first23. Full audit waits for non-NULL result for every registered cell; preserve real core ID and overlap proofs. Fable seventh addendum official 18 (10+8) with A25 and A26, no dispute. Next finish clock/byte checks, publish beside prior ballots and send final owner change summary before 12:35:35Z. Future session path debate/server_day/DRAFT_from_the_PC.md is a starting document only.
+
 ## Last shared commit read
-f4dcaef1bd0a in shared-branch Git order.
+197ff7c662a2 in shared-branch Git order.
