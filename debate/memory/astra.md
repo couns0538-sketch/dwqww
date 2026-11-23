@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T07:30:30Z
+- Last update: 2026-11-23T07:40:27Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -97,4 +97,4 @@ Private resume details: phase4-depth/warmed.py and warm[01].sqlite under /worksp
 Complete warm A19 raw panel 072450Z, fallback 8c188e55ae02: 12639 searches, 3064/3064 2k controls identical to production, 8k vs 2k improved warm128k move agreement +6.89pp [5.45,8.32] and CP discrepancy 15.05% [13.38,16.86]; independent Neon verification 072612Z incl SHA256 d48e8f2d3cbc5e605db8335b5130cf4cccd133d611fe35af1cc01ae6efe6d6a0. On 138 resolvable actual 4/5-man positions, every warm/cold budget preserved table W/D/L; warm2k nevertheless played a different equally good move from warm128k 56 times. Insufficient informative rows (69,42 games) and no reduction in objective errors; negative 072543Z. Raw tables local in phase4-tablebase. The two independent 130.96M opening streams measured 11.66%/11.58% excess requests at 8 random plies vs 0.382%/0.398% at 10; known 16.37M exact positive control passed. 072650Z is a diagnostic, no change to current opening rule. Launch new paired 4096-game 8/10-ply distribution and cost trial, 072730Z, three shards in phase4-opengames. The independent one-row-per-game four/five-piece WDL holdout was preregistered separately in 072945Z and assigned for local execution. In the branch's available match archives, no genuine independent training-seed replication of a frozen recipe has yet been identified. No question pending except Fable's actual PC score transform and addendum check. Next substantive report to owner by the separate 08:35 UTC checkpoint.
 
 ## Last shared commit read
-f398e3e971d6 in shared-branch Git order.
+6db1be5d66a8 in shared-branch Git order.
