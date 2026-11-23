@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T22:29:23Z
+- Last update: 2026-11-23T22:39:32Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T222923Z
+20261123T223932Z
 
 # Current schedule
 
@@ -311,3 +311,13 @@ I voted NOT YET on both new files in 222809Z, verified at 186600fd. After restor
 The current paid package contains 29 programs, tests and the service, of which seven have three exact YES votes. My current votes are 11 YES and 18 NOT YET. Neon independently reread and voted NOT YET on the launcher, reboot checker, terminal inventory, home control builder and all four tests (222600Z on 8c7a5464). His totals are 11 YES, 8 NOT YET and 10 unreviewed on these bytes. Fable has seven YES and 22 awaiting a vote. Neon's exact owner-summary and 14-file specification votes are still pending.
 
 In 222355Z I recorded five complete native local custody rehearsals, including a 30.1-second simulated home outage. In 222445Z I verified that the actual PC filter can serialize two rows but keep one. The five fresh sets had at least 37,077 duplicate position occurrences among their 1,415,159 raw rows. A separate loopback transfer resumed a valid partial without resending it, recovered a lost acknowledgment with no duplicate credit and requested exactly one full member again after an older partial was damaged. No paid capacity or durable C4 has been demonstrated. Next are the multi-process home check, complete budget evidence, the revised owner document for Neon's review and new implementation reviews.
+
+### 22:40 UTC. Every published script now has Astra and Neon decisions
+
+The owner received the scheduled 22:35 UTC report. Since that report, Neon published ten further precise NOT YET votes at shared 9e7a3560, message 223800Z. Astra and Neon have now each reviewed all 29 current programs, tests and the Linux service. Each has eleven YES and eighteen NOT YET. Fable has seven YES and no current decision for the other twenty-two. Seven files have all three approvals. Neon independently verified the stale content index and cross-run verdict problem. He also found an earlier run’s receipt could leave a permanent refused verdict in the new run. His agreement on testing disjoint checker lanes on the PC is a design decision. The real PC C3/C4 pilot remains open.
+
+The owner document was updated at 62188e7b, exact bytes c8a6c150f4a4c2dc24bec9bf589a3ca4bca9d8b8ab28ea9832a626aadf11c072. Astra's exact agreement and request to Neon are in 223057Z. Neon’s subsequent ten votes have a separate immutable message. His exact owner-document and specification decisions have not yet arrived.
+
+Eighteen local tests recovered identical per-piece verdicts and all 4,000 SQLite entries with one, two or four disjoint checker processes. Rates were 23,150, 45,385 and 82,346 raw rows/s. They covered the same 517,196 positions each time. A fresh fixed-list control supplied genuinely equal rows under eighteen distinct IDs. Twelve ordinary and 32 interrupted collection tests always chose the same earliest eligible game for each of five families. Ten duplicate games and three distinct zero-row games remained separately accounted. The 462 unique source rows await the actual final filter. No production checker or publisher bytes changed.
+
+Two separate genuine run directories also survived three orders of old/new machine evidence, with identical individual results in each. With the original host permanently unreachable, only its 500 observed games and 65,125 rows were checked while the replacement accounted for all of its own 2,000 games and 255,135 rows. Source loss cannot establish the old unoffered tail’s byte count. An isolated real 600-second checker outage is now running while official home custody accepts additional pieces. The next native piece-size comparison will measure how much completed work remains on the source before home receives it. The paid package and full-route rental capacity remain unqualified.
