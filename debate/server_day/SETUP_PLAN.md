@@ -1,6 +1,9 @@
 # SETUP_PLAN.md: the plan for the server day
 
-Editor: Fable. **Version 2.2**, written at 2026-11-23T20:34:07Z (Fable's clock). Sources: the three independent failure lists
+Editor: Fable. **Version 2.3**, written at 2026-11-23T22:07:30Z (Fable's clock). **2.3 changes no decision's text.** It
+enters, below the decision table, what all three seats agreed after 2.2 (five entries marked **[2.3]**, each
+with its messages), brings section 8 up to what exists in version 2, and adds one owed measurement (M2b).
+Version 2.2 was written at 2026-11-23T20:34:07Z (Fable's clock). Sources: the three independent failure lists
 (`FAILURES_fable.md` F1 to F40, `FAILURES_astra.md` rows A-1 to A-13 in its order, `FAILURES_neon.md` NF-01 to
 NF-35) and the messages up to Astra `125634Z`. Changed against version 1 (2c45594): D3, D4, D5, D6, D8, D10,
 D12, D13 after Astra's votes (`125559Z`); new D14, D15; section 4 filled with Astra's formulas (`125634Z`);
@@ -91,6 +94,64 @@ reported apart.
 - **Games without rows are about 1 % of all games** (Neon: 5 of 500; the PC: 16 of 2,000): completed games that
   end by a mate score straight after the opening. They are counted as completed games with zero rows, never
   refused (`FORMATS.md` 1.4 and 2.2).
+- **[2.3] D10, how the profiled and the plain build are timed** (Astra `144008Z`, `145040Z`; Neon `145000Z`,
+  `145830Z`; Fable `215209Z`: agreed by all three). Two binaries with the same sha256 are never compared: the
+  verdict is `identical_binary` and no effect is reported. Before the comparison ONE binary is timed against
+  ITSELF, at the comparison's own length, width, opening blocks and day load: Astra gave the same binary under
+  both labels eight times and the rule of that hour answered faster twice, slower twice, undecided four times
+  (the same bytes read +7 % and -8 %, and five cohorts later -17 % and -10 %), so a short pair of repetitions
+  is no yardstick. The number of repetitions and a paired uncertainty criterion are declared before the first
+  timing; the rule is symmetric (slower is called by the same rule as faster, so that a truly worse profile
+  still reaches "repair it or use the plain build"); the paired raw wall times are kept; when the time ends
+  before the two separate, the qualified profile is used and the report says "gain not shown". The
+  comparator's record of a game carries whether the opening loop COMPLETED, beside its move list; its two
+  required cases: root seed `edge3146` (mate at ply 7: nothing is sent, `sent none`, `openingend plies 7 reason
+  nomoves`) and `edge4013` (mate exactly at ply 8: the game command IS sent, zero rows).
+- **[2.3] D3 and D4, the budget tool's boundaries** (Astra `140827Z`, `143323Z`; Neon `144130Z`). Every
+  comparison is an exact inequality of integers, cross-multiplied BEFORE any rounding (rates in thousandths of
+  a kept row a second). The order of the decision, each with its required case: (1) the target is already
+  durable = target reached, no dispatch needed, whatever the rate (900 s left, 2 billion durable, rate 0);
+  (2) no time left with rows outstanding = SHORT by the exact count (0 s, 1,999,999,999 durable: short by one
+  row, never "invalid input"); both come before any rate is qualified; (3) the floor (with a floor of half the
+  needed rate: 1,000 s, 25,000,001 rows to make, 12,500 rows a second is BELOW it, because 2 x 12,500,000 is
+  less than 25,000,001); (4) the surplus for matches: self-play only while n <= r < 1.10 n, a queue of whole
+  pairs becomes eligible from r >= 1.10 n (80,000 s, 2 billion: 26,000 a second is self-play only, 27,500 is
+  eligible). The floor and the 10 % are the owner's values (O1). **Section 4's processor minimum is expressed
+  against the target the owner AUTHORIZED**, and the tool gives two separate answers: are the resources and
+  the evidence valid, and is the full target covered. Required case: 80,000 s, 20,000 a second at the largest
+  safely tested width, a floor of 12,500: QUALIFIED evidence of a shortfall with a measured scenario of 1.6
+  billion; with O1 "take the lower total" self-play runs under the declared lower target, with O1 "stop" it
+  stops, without O1 dispatch is held; a rate guessed from one worker, or unknown disk headroom, stays
+  UNQUALIFIED in all three. The capability probe before the rental and the paid first hour's pilot have
+  separate states, so that a missing paid rate can never block the pilot itself.
+- **[2.3] Section 4, what the machine check reads** (Neon `133500Z`; Astra `141912Z`, `143622Z`). Limits are
+  read along the WHOLE chain of enclosing groups (at the root of a host without a namespace the files do not
+  exist): processors = min(affinity, the smallest quota on the chain), memory = min(total, the smallest
+  limit), processes = min(the user's limit, the smallest group limit, the kernel's thread limit); the throttle
+  counters before and after the pilot. Instruction flags are the INTERSECTION over every processor of the
+  affinity set. Per file system (folders grouped by device number, their budgets SUMMED): free bytes and free
+  file entries, not read-only, not `noexec` where the engine lies. Core dumps off for the engine, enough open
+  files, the boot id, the service manager as process 1 (D15). **A ceiling is not headroom** (Astra `143622Z`):
+  for the launch the EXTRA peak is compared with (limit - current use) at EVERY enclosing level and with the
+  host's available memory, the baseline subtracted once. Required fixture: leaf memory limit 4 GiB with 0 used
+  and 1 of 512 processes; parent 8 GiB with 7 GiB used and 510 of 512 processes; host 32 GiB available; 2 GiB
+  and four tasks asked = REFUSED (a check of ceilings alone says yes). **Room in two modes** (Astra `141912Z`):
+  the disk probe reports the capacity for the normal form AND for a packer that stays in fallback (originals
+  plus offers for the target: about 168 GB all normal, 175 GB with a quarter in fallback, 197 GB all fallback;
+  263 and 310 GB at 40,000 raw rows a second for 23 hours; logical bytes of two samples, the real machine
+  measures ALLOCATED bytes for both). A volume that covers only the normal mode is admitted with the fallback
+  envelope reserved, or with the settled pause or the owner's lower total enacted BEFORE the floor is crossed,
+  the open slots' last seals budgeted. A closed original is never discarded for room.
+- **[2.3] D14 and D15, which machine goes on after a restart** (`FORMATS.md` 1.1 and 1.3; Neon `143000Z` 4;
+  Astra `135328Z`, `141212Z`). The boot guard goes on by itself only on the SAME instance, proved by the machine
+  id and at least one hardware value that is not a placeholder. A copy of the spool on a second machine, and a
+  machine whose identity cannot be proved, hold for a person. A REPLACEMENT machine (the first is gone or not
+  reachable) is a NEW run with its own header, machine check and first hour; nothing of the old spool is
+  continued there, and what the old machine sealed counts only through its own chain and receipts.
+- **[2.3] D8 and D13, a local outage at home is not a verdict on the games** (Astra `144620Z`; Neon `145000Z`;
+  `FORMATS.md` 2.3): a table file or the staging volume that goes away during stage b leaves the round PENDING,
+  the failed attempt recorded for good, and the round is made again as a whole once the identical inputs are
+  back by their hashes. No missing prerequisite supports a clean release.
 
 ## 4. Start minimums for ANY candidate machine (**SETTLED**: joint record Neon `131930Z` with Astra `132125Z`, with the room counted as below; Astra `125634Z`, my wording)
 
@@ -220,6 +281,29 @@ test fails without the guard, on the real script, in the rehearsal.
 
 ## 8. What exists on the PC today, and the scripts for the three YES
 
+**[2.3] Version 2, as it stands at the time in the head line** (`scripts_v2/` is the package to be; `ref/astra`
+and `ref/neon` are independent Linux references and fixtures OUTSIDE the package; this morning's `scripts/` is
+superseded and launches nothing):
+
+| Piece of version 2 | State | Votes on the exact bytes |
+|---|---|---|
+| `run/engine_lines.py` (the table of every line the engine may write) | written, tested | three YES (`a82eb9c8...`) |
+| `run/uciproc.py` (the engine process wrapper) | written; 61 checks, the version before fails 5 of them | three YES (`7de2728a...`) |
+| `tests/test_uciproc.py` | 61 of 61 in 3 of 3 runs on the PC and in Astra's three native runs | YES Astra, Fable; Neon asked (`690b3243...`) |
+| `run/record.py` (the record of 0.1, binding 2) and `tests/test_record.py` | written; 29 checks on Astra's 23 vectors; this morning's module fails all 24 module checks; Astra ran 288 native games through it | YES Astra, Fable; Neon asked (`bc71fa89...`, `a8e16021...`) |
+| `run/worker.py` and its test | written by Opus to `FORMATS.md` 2.2 and the 2.3 readings; his count: 105 of 105 on the three-YES wrapper, this morning's worker 27 of 77; one repair in work (1.4, "the cut leaves its evidence"); then Fable's line-by-line read | not published yet |
+| `run/packer.py` and its test | being written by Opus (the offer's `.zz` last, the control files' `.zz`) | not published yet |
+| `tools/budget.py` | written by Opus; the four boundary cases above still to be run against it | not published yet |
+| home reader (a1, a2 with the rules replay, b), home guard | NOT WRITTEN in version 2 | - |
+| server guard with start at boot, boot guard, finalizer, launcher, fetch with a pinned host key, terminal inventory | NOT WRITTEN in version 2 | - |
+| machine check and Linux build for the package | NOT WRITTEN for the package; `ref/neon` holds an independent reference of both (Astra ran its tests natively), not yet read line by line on the PC | - |
+| full rehearsal at home (cable pulled, program killed, disk full, PC restarted) | NOT DONE | - |
+
+**What this means, said plainly:** five files of the package have their bytes fixed, two of them with three
+YES. The worker and the packer exist on the PC and are not through their reads. The home side, the guards and
+the launcher of version 2 are not written. No machine is rented before all of them exist, have three YES, and
+have passed a full rehearsal. The table below is this morning's state (version 1), kept for the record.
+
 | Piece | State on the PC | On this branch for the read |
 |---|---|---|
 | player (worker, engine driver, record form) | written, tested (95 checks, 6 planted faults caught) | `debate/server_day/scripts/run/` |
@@ -262,6 +346,9 @@ nobody there (rows 16 to 25, 28 to 31), the pilot and budget (8 to 10), the five
 - M5 bytes a row at scale and bytes really sent with retries. M6 recovery times at home (program killed; PC
   restarted). M7 the real packer and reader with `lzma` against `zlib` on both platforms.
 - M8 the PC's own profile driver: does it end with an error on an engine error line (Neon's proof 3)?
+- **[2.3] M2b** stage a2 as `FORMATS.md` 2.3 defines it (decode, the seal's fields recomputed, the record parse
+  with binding 2, the rules replay), rows a second on the PC with the version 2 reader: NOT MEASURED (that
+  reader is not written; M2 below is this morning's reader).
 
 ### Measured on the PC, 12:10 to 12:17 PC clock (M2, M3, M5, M6, M7)
 
