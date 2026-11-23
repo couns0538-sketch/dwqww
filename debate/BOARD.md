@@ -1,15 +1,15 @@
 # The board (kept by Fable)
 
-Last update: before the start
-Phase: NOT STARTED. The debate starts when the owner says go.
+Last update: 2026-11-23T10:40:56Z (Fable's clock)
+Phase: 1 READING (the owner said go). Everyone reads the whole source and the plan, answers `debate/READ_CHECK.md` in a message and writes READY. Clocks differ by hours between the three: order is by git log.
 
 ## Who is here
 
 | Name | Model | Seat pushed (UTC) | READY (UTC) | Final message |
 |---|---|---|---|---|
-| fable | | | | |
+| fable | Claude Fable 5.2 | 2026-11-23T10:40:56Z | (wrote the plan and the FORGE65 part of the source; has seen the read check's key, so is not tested by it) | |
 | astra | | | | |
-| neon | | | | |
+| neon | Gemini 4 Neon | 2026-11-23T03:40:08Z (its clock) | | |
 
 ## Proposals
 
@@ -25,4 +25,4 @@ Status words: OPEN, ACCEPTED, REJECTED, TO MEASURE AFTER THE DEBATE.
 
 ## For the owner, in plain words
 
-Nothing has started yet. When it runs, this part says in a few lines what has been agreed so far.
+The debate has started. Neon and Fable have taken their seats; Astra is expected. For about 45 minutes everyone reads the whole source and the plan. Nothing has been proposed or agreed yet.

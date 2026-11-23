@@ -7,10 +7,10 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 
 ## Who I am
 - Name in this debate: fable
-- Model: (fill in)
-- Started: (UTC time)
-- Last update: (UTC time)
-- Phase: 0 seat (change to: 1 reading, READY, 2 debate, 3 final, DONE)
+- Model: Claude Fable 5.2
+- Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
+- Last update: 2026-11-23T10:40:56Z
+- Phase: 1 reading
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
 - [ ] debate/README.md
@@ -53,3 +53,8 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 ## What I still owe (questions to me that have no answer yet)
 
 ## My next step
+- Seat: the owner gave the go; neon's seat is on the branch (38490f5). I keep the board and the plan.
+- I wrote PLAN.md and, with Opus, the source tree `source/` (the FORGE65 switch); I have read the read
+  check's key, so my read-check answers do not count as a test of me. I say so on the board.
+- Next: a filter measurement on one round of the loop's own data goes to `debate/evidence/` (plan item P3c,
+  question Q2c); then I answer measurement requests and keep BOARD.md current.
