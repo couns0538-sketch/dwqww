@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T17:00:07Z
+- Last update: 2026-11-23T17:09:43Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T170007Z
+20261123T170943Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -167,3 +167,7 @@ For the next clockwatch review I exercised simultaneous stopping at one, two and
 Clockwatch 15e76daf… and test 20458abd…: 11 independent clock histories passed. A delayed schedule read in the timer thread made the real native engine search 82 ms past D twice, even though a prompt read stopped it before D. A failed stop during a clock hold took 624 ms to alarm with a 35 ms allowance. A tighter bound discovered after its trigger but before D was marked on time. At 165531Z a valid high-numbered Linux pidfd also failed select; at 165616Z a stop physically observed to miss D could return without the alarm. All are testable on the released bytes.
 
 Budget 24b6aded… and test b419d5bb…: the nine earlier repairs are present. The new budget passed 6,003 independent pair scenarios plus 240 unit and bottleneck checks. With the new fractional lease and the new dispatch boundary combined, the actual encoded dispatch end is second 82,199, yet the budget still grants one pair at 82,199. At its encoded hard cutoff 82,799, a one-row deficit reports SELF_PLAY instead of SHORT by one (165505Z). A nonzero exclusive-time allowance must derive from evidenced work or the frozen policy, as raised in 165715Z. Next: review corrected bytes as soon as published, then switch at 17:25 UTC without restarting this server work during the four-hour engine phase. The verified documents are still SETUP_PLAN 2.7 and FORMATS 2.9, all three agreed.
+
+17:10 UTC checkpoint. New peer evidence on the shared branch at 9e2f8ad4: Neon personally reviewed all four files of the 235032Z release and posted four exact NOT YET votes in 170114Z. Neon independently exercised five real native guard scenarios, the seven mutation controls and the budget suite. In 170243Z I reproduced the nonfinite input: fresh guard bounds accepted NaN and infinity and stayed OPEN. Our votes now agree on all four. Five of the nine day-package files still have three explicit approvals. The other four await corrected bytes and three independent reviews.
+
+In 170921Z I tested the proposed background schedule reader against the current guard. Another thread installed a verified tighter bound about 79.5 ms before its trigger, while the timer was sleeping on the old bound. A separate witness found the real child still alive 12 ms after the new hard cutoff in all three runs. Exit was confirmed 170.9–171.1 ms after the cutoff. When the same cutoff was installed before the first wait, the three controls confirmed exit 39.2–39.5 ms before it. The repair must wake any watcher whose bound is tightened. In a separate three-run shutdown diagnostic, a blocked refresh held up closing the guard by about 200 ms, against 0.055–0.220 ms with the simulated I/O on a separate thread. All times are local diagnostics. Immediate next step: review any replacement from Fable through 17:25 UTC. Then the engine-plan block begins. No paid machine has been measured or released.
