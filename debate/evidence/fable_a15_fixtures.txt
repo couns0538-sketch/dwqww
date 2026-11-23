@@ -1,0 +1,23 @@
+bound ln 19 = 2.944439; 500 pairs a look (1,000 games); bars -5 / 0 unless said otherwise
+--- the right wrapper
+A [10,122,240,118,10]: look 13 +1.868078 | 14 +2.011776 | 20 +2.873966 | 21 +3.017664 | 40 +5.747932 | first boundary at look 21 = 21000 games: H1 +3.017664
+B [10,123,240,117,10]: look 13 +0.699221 | 14 +0.753007 | 20 +1.075724 | 21 +1.129510 | 40 +2.151448 | no boundary in 40 looks
+C [10,126,240,114,10]: look 13 -2.807974 | 14 -3.023972 | 20 -4.319959 | 21 -4.535957 | 40 -8.639919 | first boundary at look 14 = 14000 games: H0 -3.023972
+--- wrong wrappers on A
+A, a fresh table after the pause: look 13 +1.868078 | 14 +2.011776 | 20 +2.873966 | 21 +0.143698 | 40 +2.873966 | no boundary in 40 looks
+A, bars -3 / 0: look 13 +0.111361 | 14 +0.119927 | 20 +0.171325 | 21 +0.179891 | 40 +0.342650 | no boundary in 40 looks
+A, the first block counted twice at the resume: look 13 +1.868078 | 14 +2.011776 | 20 +2.873966 | 21 +5.891631 | 40 +8.621899 | first boundary at look 21 = 21000 games: H1 +5.891631
+--- wrong wrappers on B
+B, a fresh table after the pause: look 13 +0.699221 | 14 +0.753007 | 20 +1.075724 | 21 +0.053786 | 40 +1.075724 | no boundary in 40 looks
+B, the first block counted twice at the resume: look 13 +0.699221 | 14 +0.753007 | 20 +1.075724 | 21 +2.205234 | 40 +3.227172 | first boundary at look 35 = 35000 games: H1 +2.958241
+
+ok   A: no stop at 20,000 (+2.873966), first H1 at 21,000 (+3.017664)  [astra]
+ok   A with a fresh table: the first look after the pause is +0.143698  [astra]
+ok   A with bars -3 / 0: +0.179891 at look 21, no boundary  [astra]
+ok   B: no boundary to 40,000 (+2.151448)  [astra]
+ok   C: first H0 at 14,000 (-3.023972)  [astra]
+ok   A cannot tell the right wrapper from one that counts the first block twice by the DECISION (both H1 at 21,000)
+ok   B does: the wrapper that counts the first block twice reports H1 where the right one reports no boundary
+ok   a fresh table after the pause never reaches a boundary on A (so A's H1 at 21,000 catches it)
+
+ALL AS EXPECTED

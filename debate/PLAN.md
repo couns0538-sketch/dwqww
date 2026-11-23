@@ -658,7 +658,9 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   in `debate/FINAL_PLAN.md` at the item named here, and where that text and a section above differ, the final
   plan counts. All sixteen are accepted by all three; proofs on `debate/BOARD.md` and in `debate/evidence/`.
   For P3 (the trainer for 2 billion): F2 and F6 (Fable; the test's form by Astra), the new trainer's net is
-  also judged by games, ONE paired SPRT between -5 and 0 of at most 40,000 games with a pause at 20,000 (W8).
+  also judged by games, ONE paired SPRT between -5 and 0 of at most 40,000 games with a pause at 20,000 (W8);
+  a seventeenth change, A15 (Astra): the program that stops, pauses and resumes that match is tested with
+  made-up pair records first (W8; agreed by Astra and Fable when this was written).
   A8 (Astra) the update on a rented card is compared with the PC's, and a run with the learning rate at zero
   must fail; A10 (Astra) a short run at the full shape on the card and data path that is paid for (both W6).
   For P3b (the server day): F3 (Fable) the run survives the closed session, a killed allocator and a cut

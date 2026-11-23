@@ -1,0 +1,94 @@
+"""Fable 2026-11-23: A15 (Astra): the synthetic two-block fixtures for the wrapper that stops, pauses at 20,000
+games and resumes, recomputed with my own stop function (the repaired n13_recount.py), plus what three wrong
+wrappers would report. Arithmetic only: no engine, no games.
+    a15_check.py <n13_recount.py> <new output file>
+"""
+import contextlib
+import io
+import math
+import runpy
+import sys
+
+with contextlib.redirect_stdout(io.StringIO()):
+    d = runpy.run_path(sys.argv[1])
+llr = d["llr_exact"]
+out = open(sys.argv[2], "x", encoding="ascii", newline="\n")
+B = math.log(19)
+
+
+def say(s=""):
+    print(s)
+    out.write(s + "\n")
+
+
+def walk(q, e0, pairs_at_look):
+    """pairs_at_look(k) = how many chunks' worth of pairs the wrapper holds at look k. First boundary or None."""
+    for k in range(1, 41):
+        v = llr([pairs_at_look(k) * n for n in q], e0, 0)
+        if abs(v) >= B:
+            return k, ("H1" if v > 0 else "H0"), v
+    return None
+
+
+def show(label, q, e0, pairs_at_look):
+    r = walk(q, e0, pairs_at_look)
+    at = {k: llr([pairs_at_look(k) * n for n in q], e0, 0) for k in (1, 13, 14, 20, 21, 40)}
+    say(f"{label}: look 13 {at[13]:+.6f} | 14 {at[14]:+.6f} | 20 {at[20]:+.6f} | 21 {at[21]:+.6f} | 40 {at[40]:+.6f} | "
+        + (f"first boundary at look {r[0]} = {r[0] * 1000} games: {r[1]} {r[2]:+.6f}" if r else "no boundary in 40 looks"))
+    return r
+
+
+def right(k):
+    return k
+
+
+def reset_at_pause(k):          # a fresh table after the pause at look 20
+    return k if k <= 20 else k - 20
+
+
+def block_one_twice(k):         # the first block added a second time at the resume
+    return k if k <= 20 else k + 20
+
+
+QA, QB, QC = (10, 122, 240, 118, 10), (10, 123, 240, 117, 10), (10, 126, 240, 114, 10)
+say(f"bound ln 19 = {B:.6f}; 500 pairs a look (1,000 games); bars -5 / 0 unless said otherwise")
+say("--- the right wrapper")
+a = show("A [10,122,240,118,10]", QA, -5, right)
+b = show("B [10,123,240,117,10]", QB, -5, right)
+c = show("C [10,126,240,114,10]", QC, -5, right)
+say("--- wrong wrappers on A")
+a_reset = show("A, a fresh table after the pause", QA, -5, reset_at_pause)
+a_m3 = show("A, bars -3 / 0", QA, -3, right)
+a_twice = show("A, the first block counted twice at the resume", QA, -5, block_one_twice)
+say("--- wrong wrappers on B")
+b_reset = show("B, a fresh table after the pause", QB, -5, reset_at_pause)
+b_twice = show("B, the first block counted twice at the resume", QB, -5, block_one_twice)
+
+fails = []
+
+
+def check(what, ok):
+    say(("ok   " if ok else "FAIL ") + what)
+    if not ok:
+        fails.append(what)
+
+
+say()
+check("A: no stop at 20,000 (+2.873966), first H1 at 21,000 (+3.017664)  [astra]",
+      a is not None and a[0] == 21 and a[1] == "H1" and f"{a[2]:+.6f}" == "+3.017664"
+      and f"{llr([20 * n for n in QA], -5, 0):+.6f}" == "+2.873966")
+check("A with a fresh table: the first look after the pause is +0.143698  [astra]",
+      f"{llr([1 * n for n in QA], -5, 0):+.6f}" == "+0.143698")
+check("A with bars -3 / 0: +0.179891 at look 21, no boundary  [astra]",
+      a_m3 is None and f"{llr([21 * n for n in QA], -3, 0):+.6f}" == "+0.179891")
+check("B: no boundary to 40,000 (+2.151448)  [astra]", b is None and f"{llr([40 * n for n in QB], -5, 0):+.6f}" == "+2.151448")
+check("C: first H0 at 14,000 (-3.023972)  [astra]", c is not None and c[0] == 14 and c[1] == "H0" and f"{c[2]:+.6f}" == "-3.023972")
+check("A cannot tell the right wrapper from one that counts the first block twice by the DECISION (both H1 at 21,000)",
+      a_twice is not None and a_twice[0] == 21 and a_twice[1] == "H1" and f"{a_twice[2]:+.6f}" != f"{a[2]:+.6f}")
+check("B does: the wrapper that counts the first block twice reports H1 where the right one reports no boundary",
+      b_twice is not None and b_twice[1] == "H1")
+check("a fresh table after the pause never reaches a boundary on A (so A's H1 at 21,000 catches it)", a_reset is None)
+say()
+say("ALL AS EXPECTED" if not fails else f"{len(fails)} CHECK(S) NOT AS EXPECTED")
+out.close()
+sys.exit(0 if not fails else 1)
