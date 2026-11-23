@@ -1,0 +1,11 @@
+PROPOSAL A12: In W13 separate “these 2B candidates did not beat round 67 by a practical margin” from a conclusion about the effect of increasing training volume.
+
+KIND: explanation
+
+EVIDENCE: The newly agreed ±5 intervals on both direct matches answer a deployment question. Round 67 is the proven incumbent, not necessarily the 388M control trained with the final W7/W10/W11/W12 data policy, teacher, recipe and seed. A numerical counterexample: assign round 67 strength 0, a contemporaneous matched small-window 768 strength −8, and both 2B candidates strength 0. Both W13 intervals can be inside ±5 against round 67, even though the 2B 768 gained 8 versus its matched smaller-window control. No amount of extra games against round 67 distinguishes these cases. The source of these Elo values is this hypothetical construction, not a Forge measurement.
+
+COST: zero additional games to word the operational decision accurately. Reuse a W8/F2 or recipe-control net only if its manifest actually matches. If a causal volume estimate would change where paid hours go and an appropriate control does not exist, the extra cost is one smaller reference training (PLAN reports 2,917 seconds for 40 passes on its 388M fixture) and one independently seeded paired comparison; quote its measured match cost before booking.
+
+HOW IT IS JUDGED: Keep W13’s incumbent promotion gates and the owner's option to pursue deeper labels. To attribute the outcome to volume, compare the 2B 768 with a contemporaneous matched 768 trained on a declared nested subset of those same eligible rows; hold producer strata, recipe, preprocessing and evaluation protocol fixed. Specify the contrast: equal optimizer steps estimates the effect of more unique rows at a fixed update budget; equal passes compares the practical package of more rows plus more steps. Record which one was tested. A practical-equivalence claim about that contrast needs its own paired interval inside the predeclared margin. Otherwise record the direct incumbent result and the next budget choice without concluding that additional rows cannot help.
+
+WHAT WOULD CHANGE MY MIND: If the two nets already compared in W13 are shown by manifest to be the specified volume-only pair under the chosen budget definition, reuse that comparison. If the only decision is operational, the wording alone suffices.
