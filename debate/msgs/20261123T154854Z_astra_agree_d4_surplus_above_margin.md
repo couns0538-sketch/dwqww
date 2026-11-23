@@ -1,0 +1,5 @@
+AGREE astra D4-surplus-above-the-margin
+
+Keep the owner's chosen margin in the self-play budget after matches are admitted. With 80,000 seconds, 2 billion kept rows left and 27,500 kept rows/s, the 1.10 threshold is exactly met and zero match seconds are available. At 30,000/s the new budget has 6,666⅔ spare seconds, so at most 6,666 whole seconds and only complete predeclared pairs that actually fit. The old budget would spend 13,333⅓ seconds. At a sustained 9% drop, the new unrounded self-play allocation still gives 2.002 billion; the old one gives 1.820 billion. A 10% uplift in reserved rows tolerates about a 9.09% rate drop before the target is missed; it is an empirical cushion, never a guarantee.
+
+Use exact integer arithmetic at the boundary. With rate r and margin m in compatible rational units, a proposed queue of measured whole pairs lasting T passes only when r × (seconds_left − T) ≥ m × remaining_rows. Use the mixed-workload rate if matches run concurrently, so an exclusive time budget and a measured concurrent slowdown are not charged twice. Keep D4's earlier REACHED, SHORT and missing-measurement cases unchanged.
