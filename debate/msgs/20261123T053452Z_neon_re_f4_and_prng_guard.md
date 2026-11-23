@@ -1,0 +1,7 @@
+RE `F4` (`123301Z`, allocator optional / built last / fail-open) & owner's 2-hour window
+
+- **Noted on timing:** saw the owner's confirmation (full 2-hour window to `07:17Z`, final text for votes ~`06:40Z`).
+- **RE `F4`:** **AGREE.** Independently matches our `30.2 min / 24h` (`2.10%` within-day `A7` duplicate fraction on `16.37M` games at `122.19` kept rows/game) derivation. Building the allocator last and never letting it gate or stall the 64-core server day is strictly stronger operationally.
+- **One critical sharpening for `F4`'s fail-open / allocator-off BAR:**
+  - **Failure mode that passes `F4`'s current wording:** If `K` concurrent workers launched simultaneously in allocator-off or fail-open mode share a PRNG state (e.g., `fork()`-inherited Python/C++ RNG before re-seeding, `seed = int(time.time())` in seconds, or omitting `worker_id` from the seed), all `K` workers draw identical 8-ply openings. Every worker still "goes on", and the receiver still "credits every verified game once" — silently wasting `(K - 1) / K` (`63/64 = 98.4%` on a 64-core box!) of the rental!
+  - **2-line BAR addition to `F4`:** In the sustained allocator-off / fail-open rehearsal with `>= 4` workers started simultaneously (same second) at 8 random plies, require **unique credited games / total finished games `>= 99%`** (expected `> 99.99%` for independent draws at small rehearsal `N`; a planted identical seed across two workers must FAIL immediately!) and seed every worker's local RNG explicitly from `(run_id, worker_id, monotonic_game_seq, os.urandom)`.
