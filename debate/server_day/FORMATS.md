@@ -1,13 +1,19 @@
 # FORMATS.md: every file the server day writes, field by field
 
-Editor: Fable. **Version 2.8**, written at 2026-11-23T23:09:55Z (Fable's clock): 2.7 (sha256 `58debbd3...`) is agreed by all three
+Editor: Fable. **Version 2.9**, written at 2026-11-23T23:14:33Z (Fable's clock). In 2.8 (sha256 `2c6d08de...`) every part
+is agreed but the watch's wording and two precisions (Astra `161219Z`, Neon `161230Z`). 2.9 changes five
+sentences, each marked **[2.9]**: the watch inside a worker ends the native engine process ALONE, never a
+process group; the stop allowance covers the whole way from the planned trigger to the confirmed exit, and the
+watch never sleeps past its trigger; a schedule that only adds ranges is said exactly; in 1.2 the evidence
+travels before the control record and a decision that stops the day publishes the fence; section 3 gets the
+planted tick. Every other byte is 2.8's. **PROPOSED: your votes on these exact bytes, please.**
+Version 2.8 was written at 2026-11-23T23:09:55Z (Fable's clock): 2.7 (sha256 `58debbd3...`) is agreed by all three
 (Astra `154359Z`, Neon `154410Z`). 2.8 changes three places, each by CHANGE votes of both seats: the bound is
 enforced INSIDE a game by a watch beside every engine wait (1.8 point 1; `155748Z`, `160117Z`, `160235Z`,
 `160345Z`, `160439Z`); a progress line reports what WAITS at each transition instead of differences of counts
 (2.4; `155631Z`, `155704Z`, `155820Z`); and ONE thing may travel to the server, the control record by which home's
 decision on the pilot creates a schedule (section 0 and 1.2; `160610Z`, `160655Z`). Section 3 gets their cases.
 Each place is marked **[2.8]**; every other byte is 2.7's.
-**PROPOSED: your votes on these exact bytes, please.**
 Version 2.7 was written at 2026-11-23T22:41:51Z (Fable's clock): 2.6 (sha256 `4c97d083...`) had AGREE from
 Neon (`153530Z`) and Astra's agreement on all of it but one more restart boundary (`153602Z`: a finalizer that
 is started again must not create an unknown id) and one precision of 1.2's schedule reading. 2.7 adds `mode`
@@ -206,7 +212,9 @@ and D4 are decided from home's durable kept rows, and two servers with the same 
 whether home published the pilot round or lost a table after the same fetch; no rule on the server alone can
 start the day. Home sends the decision: `CONTROL.<k>.json`, k = 1, 2, ..., immutable and canonical, sent by home
 over the connection home opens itself (the server never calls home), compressed like everything that travels
-(`CONTROL.<k>.json.zz`, and the evidence file it names beside it, compressed). Fields: `schema`,
+(`CONTROL.<k>.json.zz`, and the evidence file it names beside it, compressed; **[2.9]** (Neon `161230Z`) home
+sends the evidence file first and the control record LAST, the order of an offer, so the guard never reads a
+record whose evidence is still landing). Fields: `schema`,
 `run_fingerprint`, `k`, `prev` (sha256 of control k - 1; for k = 1 the text `first`), `kind` (`pilot_decision`,
 `matches`, `target` or `fence`), `decision` (the row of D4 that holds, in the budget tool's words; for `matches`
 the pairs assigned), `evidence` (sha256 of the report it rests on: the budget tool's output, which names the
@@ -219,8 +227,10 @@ authorizes, with the record's sha256 as that schedule's `evidence`, and only the
 ranges. The same record sent again changes nothing (create-only, equal bytes). A record with a known k and
 other bytes, a missing or differing evidence file, a broken link or a later bound HOLDS: nothing changes, the
 guard writes an alarm, and the work already authorized goes on. Home learns of the acceptance from the schedule
-it fetches, never from a reply. A `pilot_decision` that authorizes nothing (UNQUALIFIED, STOP) creates no
-schedule: the server keeps to its pilot ranges and the day ends by the fence and D5. **What survives a home
+it fetches, never from a reply. A `pilot_decision` that authorizes nothing creates no schedule. **[2.9]** With
+UNQUALIFIED the server keeps to its pilot ranges until a later record or D. With STOP, and with every record
+of kind `fence`, the guard publishes `FENCE.json` (1.8 point 1; its `why` names the record's sha256) and the
+day ends by the fence and D5: a fence is never a schedule. **What survives a home
 outage:** inside the `scope`, the room reserve and the D that an accepted record authorized, the guard extends
 the rolling schedule by itself, each such schedule naming the same control record as its `evidence`; it never
 moves D later, never starts or lengthens matches, and never changes the target without a new record.
@@ -392,14 +402,23 @@ the ids of the four other states only (noselfgame, refused, unfinished, dispatch
    engine process therefore keeps a WATCH beside every wait for the engine, in the same reviewed program
    and with the driver's bytes unchanged. About every quarter of a second the watch judges the dispatch end
    and D by the three clocks as above, with the D in force: a valid newer schedule that TIGHTENS D while
-   the game runs is taken, one that lengthens it is read at the next reservation. When D less the stop
-   allowance has come by the earliest clock, or the hold applies, the watch ends the native process (its
-   whole group), verifies that it is gone and notes its reason; the driver's wait then returns with its
+   the game runs is taken; **[2.9]** (Neon `161230Z`) a schedule that only adds ranges is read at the next
+   reservation (D never moves later, 1.2). When D less the stop allowance has come by the earliest clock,
+   or the hold applies, the watch ends the native engine process, **[2.9]** that process ALONE and never a
+   process group (the unchanged driver starts the engine inside its worker's own group, Neon: worker and
+   engine showed the same group id, so ending the group would end the worker that has to write the reason
+   and seal the piece), verifies that it is gone and notes its reason; the driver's wait then returns with its
    error, and the worker, alive, records the game by that reason: `unfinished` at D; `failed` with `why`
    "clock" in the hold, played again only by a `play` start that is admitted anew before D. The native
-   process must be gone AT D. The stop allowance is the time from the watch's decision to the process being
-   gone, measured in the rehearsal on the real platform (Astra's Linux trials read about a millisecond and
-   are no allowance for the paid machine); until it is measured it is 2 seconds, the editor's choice. A
+   process must be gone AT D. **[2.9]** (Astra `161219Z`) The stop allowance covers the WHOLE way: from the
+   planned trigger (D less the allowance) through the watch's wake, its scheduling, the reading of the bound
+   in force, the stop and the confirmed exit, measured under the rehearsal's load on the real platform, with
+   headroom (the trials' millisecond from the stop to the exit is no allowance: with 2 ms and a look every
+   250 ms, 249 of 250 phases of the look end late, by up to 249 ms). The watch therefore never sleeps past
+   its trigger: each of its waits ends at the earlier of the regular look and the trigger of the bound in
+   force. A tighter D that is found when its trigger has already passed is acted on at once and recorded as
+   LATE with the actual time of the stop; it is never written as on time. Until the allowance is measured
+   it is 2 seconds, the editor's choice. A
    watch that has fired and does not find the process gone when D comes is an alarm and exit code 8. The
    steady cutoff the worker hands the driver is computed afresh before every wait, as now plus the least
    time left by any clock (Neon; never once at the start, or an early suspension would shift it for good).
@@ -720,7 +739,9 @@ hold back until its search is over): ordinary D, a wake on the same boot beyond 
 with the native process gone at D or at the hold inside the allowance, the parent returning only after it
 and alive to write the reason, the disposition of 1.8 point 1, zero new dispatch, and for the hold a retry
 of that id after a new admission that gives its record back byte for byte; a planted watch whose stop
-does nothing (the process is found alive at D: the alarm and exit code 8, never a silent return); a worker
+does nothing (the process is found alive at D: the alarm and exit code 8, never a silent return); **[2.9]** a D
+planted just after one of the watch's looks (an observer of its own finds the native process gone before D;
+Astra `161219Z`); a worker
 killed in the middle of a search (Astra `160235Z`: the guard ends the group before D, the finalizer names
 the id); **[2.8]** the control record (Astra `160610Z`): two servers with identical bytes, home's pilot round
 published for one and its last table lost for the other (the first is scheduled, the second stays in its

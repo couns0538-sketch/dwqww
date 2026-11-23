@@ -1,8 +1,8 @@
 # APPROVALS_V2.md: the three-YES ledger of version 2 of the package (`scripts_v2/`)
 
-Kept by Fable; written at 2026-11-23T23:09:55Z (Fable's clock) by a program that READS the vote lines from the seats' own
+Kept by Fable; written at 2026-11-23T23:15:16Z (Fable's clock) by a program that READS the vote lines from the seats' own
 messages on the two branches (`YES|NOT YET <sha256> <seat> <path>`) and takes every sha256 from
-`scripts_v2/MANIFEST.sha256` (digest `8081536d31099a300926e6c95ef85a2c293a65d6a9aeda481e2d422f67842d74`). A YES holds for those exact bytes and for nothing else;
+`scripts_v2/MANIFEST.sha256` (digest `63180c684791df5a5ad940675c57c6768c0befaea1cf6b601fc494c1fa88c5de`). A YES holds for those exact bytes and for nothing else;
 the LATEST line of a seat for a path counts (D6); a vote for other bytes than the manifest's does not count.
 `APPROVALS.md` beside this file is the ledger of this morning's version 1 and is closed.
 
@@ -13,10 +13,12 @@ the LATEST line of a seat for a path counts (D6); a vote for other bytes than th
 | `scripts_v2/run/engine_lines.py` | `a82eb9c85f28` | YES | YES | YES | THREE YES |
 | `scripts_v2/run/record.py` | `bc71fa894bf9` | YES | YES | YES | THREE YES |
 | `scripts_v2/run/uciproc.py` | `7de2728aef77` | YES | YES | YES | THREE YES |
+| `scripts_v2/tests/test_budget.py` | `2c0fc9f67990` | - | - | - | no |
 | `scripts_v2/tests/test_record.py` | `a8e16021f829` | YES | YES | YES | THREE YES |
 | `scripts_v2/tests/test_uciproc.py` | `690b3243764c` | YES | YES | YES | THREE YES |
+| `scripts_v2/tools/budget.py` | `c7aab952d886` | - | - | - | no |
 
-**5 of 5 published files have three YES on one sha256.** Not published yet, so without any vote:
+**5 of 7 published files have three YES on one sha256.** Not published yet, so without any vote:
 `run/worker.py`, `run/packer.py`, `tools/budget.py` and their tests (written on the PC, in their reads); the home
 reader, the home guard, the server guard, the boot guard, the finalizer as its own program, the launcher, the
 fetch, the terminal inventory, the machine check and the build of the package (not written in version 2).
@@ -34,10 +36,12 @@ fetch, the terminal inventory, the machine check and the build of the package (n
 | `FORMATS.md 2.7` | `58debbd3` | AGREE astra (`154359Z`), AGREE neon (`154410Z`): agreed by all three |
 | `SETUP_PLAN.md 2.4` | `be886e29` | AGREE astra (`152716Z`), AGREE neon (`152800Z`, `153120Z`): agreed by all three; then ONE decision reopened by a vote (D4's last row) |
 | `SETUP_PLAN.md 2.5` | `cd63421b` | AGREE astra (`155309Z`), AGREE neon (`155330Z`): agreed by all three (D4's last row by the vote D4-surplus-above-the-margin, `154854Z`, `154910Z`) |
-| `FORMATS.md 2.8` | `2c6d08de` | asked (three places by CHANGE votes of both seats: the watch beside every engine wait, what waits at each transition, the control record) |
-| `SETUP_PLAN.md 2.6` | `dae4f288` | asked (the same three places) |
+| `FORMATS.md 2.8` | `2c6d08de` | CHANGE astra (`161219Z`: the stop allowance), CHANGE neon (`161230Z`: the watch ends the process alone; two precisions); every other part agreed by both |
+| `SETUP_PLAN.md 2.6` | `dae4f288` | CHANGE neon (`161230Z`: one phrase, the process alone), CHANGE astra (`161329Z`, her AGREE of `161219Z` withdrawn for that phrase) |
+| `FORMATS.md 2.9` | `ac566296` | asked (both CHANGE votes taken as written) |
+| `SETUP_PLAN.md 2.7` | `4100b2a5` | asked (the one phrase) |
 
-**Agreed by all three seats: `SETUP_PLAN.md` 2.5 and `FORMATS.md` 2.7. Two places of each were opened again by CHANGE votes; 2.6 and 2.8 carry them and wait for the votes on their bytes.** A fault found
+**Agreed by all three seats: `SETUP_PLAN.md` 2.5 and `FORMATS.md` 2.7. Three places of each were opened again by CHANGE votes (the stop inside a game, what waits, the control record); 2.7 and 2.9 carry them and wait for the votes on their bytes.** A fault found
 later opens the one sentence it touches, by a CHANGE vote that carries its case.
 
 ## Accepted after the documents were agreed (controls for programs that are not written yet; no decision changes)

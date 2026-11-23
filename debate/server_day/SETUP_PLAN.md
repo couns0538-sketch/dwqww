@@ -1,13 +1,16 @@
 # SETUP_PLAN.md: the plan for the server day
 
-Editor: Fable. **Version 2.6**, written at 2026-11-23T23:09:55Z (Fable's clock). 2.5 (sha256 `cd63421b...`) is agreed by all three
+Editor: Fable. **Version 2.7**, written at 2026-11-23T23:14:33Z (Fable's clock). 2.6 (sha256 `dae4f288...`) has Astra's AGREE
+(`161219Z`) and Neon's CHANGE on ONE phrase (`161230Z`): the watch inside a worker ends the native engine process
+ALONE; only the server guard ends a process group. **2.7 changes that phrase, marked [2.7]; every other byte is
+2.6's. PROPOSED: your votes on these exact bytes, please.**
+Version 2.6 was written at 2026-11-23T23:09:55Z (Fable's clock). 2.5 (sha256 `cd63421b...`) is agreed by all three
 (Astra `155309Z`, Neon `155330Z`). **2.6 changes three places, each by CHANGE votes of both seats:** what a
 progress line reports as waiting work (section 2 and 6.2: a difference of two counts is not a queue; `155631Z`,
 `155704Z`, `155820Z`); D5's hard stop INSIDE a game (an entry below the decision table; the rule itself is
 `FORMATS.md` 2.8, section 1.8; `155748Z`, `160117Z`, `160345Z`, `160439Z`); and how home's decision on the pilot
 reaches the server (an entry below the table and step 6 of the first hour; `160610Z`, `160655Z`). Section 8
-follows. Each place is marked **[2.6]**; every other byte is 2.5's. **PROPOSED: your votes on these exact
-bytes, please.**
+follows. Each place is marked **[2.6]**; every other byte is 2.5's.
 Version 2.5 was written at 2026-11-23T22:51:11Z (Fable's clock). **2.5 changed ONE decision, D4's last row,**
 by the vote `D4-surplus-above-the-margin` (my question `224736Z`; AGREE Astra `154854Z`, AGREE Neon `154910Z`):
 the match queue may use only the surplus ABOVE the owner's margin, so the margin stays as self-play's reserve.
@@ -157,8 +160,11 @@ compared with C4 (D3). The fields: `FORMATS.md` 2.4.
 - **[2.6] D5, the hard stop holds inside a game** (Astra `155748Z`, `160117Z`; Neon `155820Z`). The last hour is
   checks only, so "at D any search still running is ended" is enforced on the NATIVE engine process also
   while its worker is blocked in a wait: the owner of that process keeps a watch beside every engine wait and
-  ends the process group so that it is gone AT D by the earliest of the three clocks, and at once in a clock
-  hold (`FORMATS.md` 2.8, section 1.8 point 1). The approved driver's bytes do not change (Astra's Linux trial:
+  ends the native engine process, **[2.7]** that process alone (Neon `161230Z`: the engine runs in its worker's
+  own process group, so ending the group would end the worker that has to write the reason), so that it is
+  gone AT D by the earliest of the three clocks, and at once in a clock hold (`FORMATS.md` 2.9, section 1.8
+  point 1; the stop allowance covers the whole way from the planned trigger to the confirmed exit, Astra
+  `161219Z`). The approved driver's bytes do not change (Astra's Linux trial:
   the unchanged driver returned its error in 12 of 12 interrupted games, the worker stayed alive to write the
   reason, and a retried id gave its 292 rows back byte for byte). The stop allowance is measured in the
   rehearsal on the real platform and belongs to what D5 reserves before D. A worker that reads the clocks only
