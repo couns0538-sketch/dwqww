@@ -1,10 +1,10 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:08:13Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:12:11Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 4) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
-PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 36 proposals were
-made (15 Astra, 15 Neon, 6 Fable); none was rejected; a change entered only with a measurement, lines of the
+PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 37 proposals were
+made (15 Astra, 16 Neon, 6 Fable); none was rejected; a change entered only with a measurement, lines of the
 source, or arithmetic that the others recomputed. The proofs are on the board and in `debate/evidence/`.
 
 **How to read it.** One ordered list of work items, W1 to W16. Each has: what is done, the TEST, and the BAR,
@@ -31,7 +31,8 @@ at completely equal settings says so. Correctness comes first.
 - **R3 (N10). A net whose speed differs** is judged in three stages: a screen at 250,000 nodes with node odds
   measured at the match's real concurrency (lower bound above 0 to go on); the proof with equal clocks at one
   declared time control on a quiet machine (lower bound above 0); then R1 and its positions a second with 16
-  workers before it plays self-play.
+  workers before it plays self-play. Both arms of a timed comparison of two widths run the IDENTICAL program
+  (R4), profiled on a mix of both widths that is declared beforehand (N16; Neon, Astra).
 - **R4 (J9). Completely equal settings** in every comparison of two nets: the same program, settings, node
   limit and openings from both sides. **R5 (J1).** Nets are judged by games, never by loss.
 - **R6.** A test of one recipe, filter or teacher change on today's window only sets the ORDER of work; the
@@ -137,6 +138,30 @@ processor; rehearsed in the PC's Linux subsystem.
   self-play, not by `bench`. Owner's direction, after the debate: full link-time optimisation against ThinLTO,
   two builds each. A fused AVX2 kernel is written only if the server has no AVX-512 AND the plain AVX2 build misses
   (g)'s rate (Neon).
+  Added in the extension (N16, Neon; its checks agreed by all three; the rule for an undecided timing is
+  Fable's wording and waits for Astra's and Neon's votes): THE PROFILE OF A PROFILE-GUIDED BUILD IS PART OF
+  THE TEST. A build profiled on the wrong work passes every bar above. Neon built three programs from one
+  source (no profile; profiled on `bench` with the net off; profiled with the loop's net, options and 30
+  `selfgame` games): all three print the same known numbers, the wrongly profiled one makes 2.8 % fewer rows
+  a second than the one without a profile and takes 4.8 % [3.7, 5.9] longer than the rightly profiled one
+  for the same games; and a profile that is missing was dropped with a warning and exit code 0. The PC's
+  own recipe
+  (`loop/build_recipe/`) profiles with the net, the options and 60 `selfgame` games and stops when no
+  self-play profile was written; it does not check the bench profile or what the optimised build did with
+  the merged one. So: (1) the profile run uses the frozen net, the whole frozen option list and `selfgame`
+  games; (2) the build FAILS when a profile file is missing or empty, or when the optimised build reports
+  that it could not use the profile; compiler and profile-tool versions, flags, source and the profile's
+  digest are kept; planted and required to fail: a missing profile and one from another source (Astra);
+  (3) the speed is timed against the same build without a profile: two builds a variant, the order rotated,
+  openings that were not in the profile run, equal rows a second of wall time at the day's real number of
+  workers, and a repeat budget with three outcomes declared beforehand: measurably slower = the profile is
+  wrong, it is repaired or the build without a profile is used; measurably faster = kept; neither = the
+  rightly profiled build is used, as the owner directed, and the report says "gain not shown". In Neon's three
+  rounds the build without a profile takes 1.85 % [-5.0, +9.2] longer than the rightly profiled one: not
+  decided (Astra's interval). On the PC two builds
+  of one source differed by up to 1.5 %, and the self-play profile gained 2.2 % in processor time over the
+  bench profile in 9 of 10 rounds (the lab's notes of 15 and 17 November, not recounted for this debate). A
+  timing from one machine is never quoted as a gain on another (Astra).
 - (b) The start-up check of the live searcher (Astra). BAR: after the option list, one fixed search (new game,
   start position, depth 18) gives 375880 nodes and table fill 156; with Hash 32 on purpose (375868, fill 78)
   the start script refuses to start.
@@ -369,18 +394,19 @@ processor; rehearsed in the PC's Linux subsystem.
   truly level trainer passes in 96.4 % and stays undecided in 0.5 %, after 10,400 games on average = 3.0
   hours at 3,400 games an hour, at most 40,000 games = 11.8 hours; one truly 5 Elo weaker passes in 3.2 %,
   one 2.5 weaker in 45.7 %.
-  Added in the extension (A15, Astra; agreed by Astra and Fable, Neon's vote is awaited): THE PROGRAM THAT
+  Added in the extension (A15, Astra; agreed by all three): THE PROGRAM THAT
   STOPS, PAUSES AND RESUMES THIS MATCH IS TESTED FIRST, with made-up pair records and no games, through the
   real entry point. Per 1,000-game look the same 500 pairs, every pair with an opening id of its own:
   (A) [10, 122, 240, 118, 10]: no stop at 20,000 games (+2.873966), the pause, and after the resume the first
   H1 at 21,000 (+3.017664, 10,500 pairs). (B) [10, 123, 240, 117, 10]: no boundary up to 40,000 (+2.151448) =
   not qualified. (C) [10, 126, 240, 114, 10]: the first H0 at 14,000 (-3.023972), and a winning block handed
   in afterwards must not reopen it. Planted and required to FAIL: a fresh table after the pause (it sees
-  +0.143698 at 21,000 and never stops on A) and the bars -3 / 0 (+0.179891 at 21,000). The statistic and the
-  pair count that the program prints at every look are compared too, not only the decision (Fable): a program
+  +0.143698 at 21,000 and never stops on A) and the bars -3 / 0 (+0.179891 at 21,000). At every look the
+  program prints the five pair counts so far, the number of finished pairs and the unrounded statistic, and
+  all of them are compared, not only the decision; no block may count twice (Fable, Astra): a program
   that counts the first block a second time at the resume gives the SAME decision at the same look on A
   (H1 at 21,000, with +5.891631 instead of +3.017664); it shows in the value there and on B, where it reports
-  H1 at 35,000. All values recomputed with Fable's own stop function:
+  H1 at 35,000. All values recomputed with Fable's own stop function and by Neon with a third program:
   `debate/evidence/fable_a15_fixtures.txt`.
   For comparison only, these are NOT rules: stopping for good at 20,000 games would send back one sound
   trainer in eight (H1 87.7 %, no boundary 9.2 %, H0 3.1 %); a fresh run after any failure (Fable's first
@@ -487,6 +513,9 @@ processor; rehearsed in the PC's Linux subsystem.
   down, and an item that changes the node count on fewer than 6 of the 600 positions is left out and listed.
   (The number 6 is a convention declared here, before the sweep, at Astra's request; no measurement stands
   behind it. Node counts measure activity; the matches decide strength.)
+  Before the bundle enters self-play or any timed play, the program is built again with the adopted switches
+  ON in its profile run (N16, Neon): the PC's recipe records a program whose profile had not seen a switch
+  and that ran at half speed with it on (0.487 against 0.984).
 
 **W15. Correctness duties that stay (P8; N6).** Every build: the three reference numbers, 12 perft counts, every
 option checked against the program's own list, a checking build with a planted fault that must be caught, a
@@ -523,7 +552,7 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4), A14 and N15 (W5 i), F5 (W3 a), F6 (W8, together with F2). Open from the extension: only A15 (W8, the test of the program that stops and resumes), agreed by Astra and Fable and waiting for Neon's vote; the other sixteen are agreed by all three. The PC's Windows run of N15's seventh game is done (equal to both Linux runs).
+- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4), A14 and N15 (W5 i), F5 (W3 a), F6 (W8, together with F2). A15 (W8) is agreed by all three as well. N16 (W5 a, R3, W14) is agreed in its checks by all three; its rule for an undecided timing is Fable's wording and waits for Astra's and Neon's votes. The PC's Windows run of N15's seventh game is done (equal to both Linux runs).
 - After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
