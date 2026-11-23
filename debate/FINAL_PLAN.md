@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:07:10Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:08:13Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 4) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 36 proposals were
@@ -207,8 +207,10 @@ processor; rehearsed in the PC's Linux subsystem.
     proven by then.
     Sharpened (Neon, Astra): the opening draws come from ONE root seed, made once for the run and kept with
     the manifest, and from each game's own id; a game id played again after a crash gets the same opening,
-    two ids get different ones. BAR: with at least four workers started in the same second, at least 99 % of
-    the finished games are distinct, and two workers given the same seed on purpose must FAIL that bar (64
+    two ids get draws that do not depend on each other (by chance they can still land on the same opening:
+    1.86 % of 16.37 million draws did in Astra's fixture, so a whole healthy day is 98.14 % distinct). BAR,
+    on the rehearsal's short outage fixture only, its game count and seed fixed beforehand (Astra): with at
+    least four workers started in the same second, at least 99 % of the finished games are distinct, and two workers given the same seed on purpose must FAIL that bar (64
     workers with one seed would play one game 64 times and every other bar would still pass); a finished
     game id is never played again; the kept rows an hour during the outage meet the fallback's own pilot
     rate. The 20 to 30 minutes are a forecast: the two shares come from different counts (16 of 29 are pairs
@@ -317,8 +319,11 @@ processor; rehearsed in the PC's Linux subsystem.
   card and data path that will be paid for, a short run at the FULL shape before the long booking: either
   the full-size tensors are allocated and touched with the optimizer's state and one update and export run
   beside them (2 billion rows at 40.8 bytes are 81.6 GB = 76.0 GiB for the rows alone, on a card of 80; the
-  PC's rounds 19 to 21 measured 50.3 bytes a used row where the first session had given 44.7, which would
-  be about 92 GB: from the lab's notes, not recounted for this debate), or,
+  PC's rounds 19 to 21 measured 50.3 bytes a USED row where the first session had given 44.7; the trainer
+  uses about 91 % of the kept rows, so that is 45.9 against 40.8 bytes a kept row, about 92 GB = 85.5 GiB
+  for 2 billion kept rows, and 100.6 GB = 93.7 GiB if all 2 billion were used rows (Astra's unit check);
+  the two byte figures are from the lab's notes, not recounted for this debate; the measured full-shape
+  allocation is the bar, not any of these), or,
   with W8's disk feeder, the full row count and the real batch size are streamed from pieces that were not
   read before, and load, transfer and update are timed. Reported apart: peak card memory, peak main memory
   with no swapping, the read rate of the disk (4.445 million rows a second at 44 bytes are 196 MB a second),
