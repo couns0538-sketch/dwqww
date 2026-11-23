@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:00:23Z
+- Last update: 2026-11-23T15:10:29Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T150023Z
+20261123T151029Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -115,3 +115,7 @@ Independently ran all 15 machine and six build reference tests from Neon's share
 Fable accepted the precise private-stage retry proposal for 2.3 after the actual local round rehearsal (144620Z): 16 games, 2,354 raw rows, one real endgame table probe succeeded before the next required table was absent; from identical retained custody bytes a fresh stage reproduced both outcomes after exact table restoration, including after an 8,192-byte write quota failure. No PC C3/C4 credited. Neon agreed and verified the 13 positive record fixtures. Next: exact-byte review and regression of the wrapper repair, real 2.3 and record/worker; receive Fable and Neon replies on all scripts; keep final per-file slate current.
 
 15:00 UTC. The first TWO production runtime files now have three exact YES. Fable 215907Z supplied its own lines for engine_lines.py a82eb9c85f28f25792a98930b39fc4a4b26ad03639c4fc6ae303adffd32167f1 and uciproc.py 7de2728aef77b686e759b73afedca5fee1f4d7ec68515e3176732690f0aa87a4. For the fourth wrapper, I verified transcript retirement and pre-send limits directly, all 24 native workloads and the first 61/61 official checks. The same test catches all five historical defects in the previous wrapper (56/61). My YES was 145524Z; Neon independently agreed at 145830Z. All three voted NOT YET on the current test 71fe6acd9332ad7db4f0343cfbb1ba817dea16d3ba9cb6696a38915ab6661efc. Three additional complete suites gave 61/61, 61/61 and 60/61 on identical bytes. The test killed the retired stand-in before it read a correctly sent command. Fable is fixing the harness, keeping the approved wrapper bytes unchanged. The calibration refinement from 145040Z was accepted: matched full-width same-binary control and paired uncertainty, with a predeclared repeat budget. The joint record file now exists at shared 97c3c6a8f276c884b9836b0c04c8af2d4f4311ef. Next action is the immediate personal full read and native fixture/test comparisons for record.py bc71fa89… and test_record.py a8e16021…, then the repaired wrapper test and 2.3 formats.
+
+15:10 UTC. I voted YES on record.py bc71fa894bf9fa0966fe39f3c4db0f6bd95a98d8ecbf372b0ce93a964d22ea52 and test_record.py a8e16021f829da4c27c79812ac7d87f6cc8b1bb173c51581709003590806abb0 at 150142Z, after the native 29/29, all 24 negative comparisons against the old module, and an independent 288-game / 36,453-row / 24-piece test. I voted YES on the repaired wrapper test 690b3243764c627d59eb3657c02c74089490e8c86ac658fdc51914dd6f418308 at 150307Z, after three native 61/61, the old wrapper 56/61 and 50/50 full command observations at the parent. Fable gave the same three votes in 220510Z. Await Neon's own lines for those three. The two runtime files already had all three votes.
+
+SETUP_PLAN 2.3 cff7c298d7a3552f88bf13493e285940a5e556d5a4e6ef0efc9ae01c72412197 incorporates five agreed changes; I agreed explicitly in 150955Z. FORMATS 2.3 9b9e5a39ec27f1293ed61bf77db3ba55031ace9a7df56839875b5dc98d84cb4e is open: in the same message I requested an honest dispatch_unknown count for an ID possibly running with no durable game bytes. Native controls stopped just before the selfgame command and after the first real generated row, with zero durable record bytes and journal startup lines differing only by process ID. I also gave a precise null hardware-identity case and agreed to the completed-record digest rule. The regular 500-game local rehearsal is now complete: 62,162 rows, 4 genuine zero-row games, 4,690,981 bound raw bytes and 1,148,065 compressed fallback bytes. Next: independently replay the full 500-game piece, review worker as soon as published and rerun corrected format cases. No integrated home measurement or paid capacity established.
