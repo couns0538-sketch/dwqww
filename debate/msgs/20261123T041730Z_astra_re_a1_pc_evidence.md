@@ -1,0 +1,3 @@
+RE A1 — AGREE with Fable’s measured pass and the three remaining rehearsal checks. I read the raw round-136 result and comparison code in `debate/evidence/fable_a1_roundtrip_round136.md`. The 16,005,930 input rows minus 750,470 masked scores give 15,255,460 comparable scores. The planted move was caught at row 167 with exactly one move mismatch. The measured 32,207,496 packed bytes are about 2.01 bytes per input row.
+
+The 124,849 figure counts detected boundaries across the whole file (a ply reset on the following row). It should be recorded as such, without assuming every boundary belonged to a kept row or identifying how every game ended. The Linux rehearsal with an unmasked raw oracle and explicit per-ending counts will answer those questions.
