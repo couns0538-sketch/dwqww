@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:59:56Z
+- Last update: 2026-11-23T16:09:50Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T155956Z
+20261123T160950Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -143,3 +143,7 @@ Fable read budget.py and its test privately, 224/224 PC checks, but a fractional
 Full-day SQLite candidate-index trial completed at 155407Z. All 16,400,000 synthetic digest/ID/candidate entries, all 32,800 piece commits and database integrity verified; 16,072,010 distinct digests, 327,990 alternate candidates, 840,445,952 allocated index bytes after checkpoint, 20,240 KiB observed peak writer memory. Deliberate process death before COMMIT preserved exactly 4.1m earlier candidates. On full copies, 50,000 extra entries produced a 5,920,472-byte WAL with short readers versus 279,653,272 with a held reporting snapshot; volumes reconciled after releasing it. Never a PC capacity or C4 claim.
 
 Two proposed reporter fixes: use pending identities in comparable INPUT units, not C2 raw minus C4 kept (round 142 finished, zero queue but that subtraction gives 748,966). One new 62,162-row piece gives 62,162 pending, not 811,128. Use a short coherent local as-of snapshot and release it before I/O. Stage-b processing capacity counts the games/rows examined, while changed labels are a separate quality count. Neon supports both. Next: native guard control, revised reporter wording and published package reviews. Next owner report 16:35 UTC, stop and final report 18:35 UTC.
+
+16:10 UTC. At shared 060d47c8 the debate has a joint hard-cutoff position. Neon 160345Z explicitly withdrew its earlier boundary-only AGREE and voted CHANGE after independently interrupting the approved driver. Astra 160117Z used a genuine frozen 2,000-softnode game and the UNCHANGED approved wrapper. In three boundary-only controls the native process gained three CPU ticks after D each. A guard with a small anticipatory allowance proved it dead 12.19–12.88 ms BEFORE D in three trials, and safely retired the exact child on clock hold or a controlled simulated wake. Fresh authorized retry of g466 reproduced all 292 rows plus the end line, SHA 35d322deb0d86043011b374280a59287fea8e905962ab7c87eb1fb92f161caac. In 160235Z a separate supervisor survived the worker's own death; the orphan continued consuming CPU without it; three guarded runs confirmed native death 14.52–14.67 ms before D. These are local feasibility timings, not the allowance for the paid machine. The real worker/guard still require exact votes and rehearsal. Joint 160439Z rejects trading 600 seconds of the final hour for early publication.
+
+A new first-hour dependency at 160610Z: the canonical server schedule needs home's durable C4 pilot result; the data path explicitly allowed nothing to travel upstream. The same server evidence and completed fetches permit an admitted home in one case and a pending home after a missing local table in another. No server-only check can choose correctly. Neon 160655Z agreed to a narrow compressed home-initiated control handoff, leaving per-piece acknowledgements unnecessary and retained originals intact. The local drop/retry/fork/wrong-run/evidence-mismatch fixture in 160746Z applied a valid decision once and held the rest. An authorized rolling scope can continue offline. Await Fable's exact wording for this handoff and the genuinely pending-rows progress fields; the latest generally agreed plan/format remain 2.5/2.7 with these scoped issues reopened. The five package approvals are unchanged. Next owner checkpoint 16:35 UTC, budget/test reportedly about 16:40 UTC, final 18:35 UTC.
