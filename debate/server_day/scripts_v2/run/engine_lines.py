@@ -8,7 +8,9 @@ old net loader) and may get new messages with a new source; a list of bad words 
 
 Every allowed kind is matched as a WHOLE line in the exact shape the source prints it (second version, after
 Astra's read of the first: a bare prefix such as `info string eval hce ` with nothing behind it was accepted).
-A cut-off line is therefore refused like an unknown one. What the shapes do NOT judge: whether a score, a node
+A cut-off line is therefore refused like an unknown one. Third version, after Astra's read of the second: the
+search line and the option line had kept a free tail (`info depth 18 seldepth` and `option name Hash type
+spinach` passed); both now have the source's exact forms. What the shapes do NOT judge: whether a score, a node
 count or a checksum is the right one; that is the known answers' and the net check's work.
 
 INFO_ALLOWED / INFO_REFUSING / INFO_NOT_ON_THE_DAY classify every `info string` literal of the engine's source
@@ -38,18 +40,28 @@ _INFO_OK = re.compile(
     r"NNUE v3 (loaded|active): " + _NET
     + r"|eval hce -?\d+ nnue -?\d+ total -?\d+( incheck 1)?"
     + r"|bench depth \d+ nodes \d+ time \d+ nps \d+")
+# a search line (search.cpp, the one `info depth` print): two token orders, the second when the engine shows
+# more than one line a position; the move list may be empty and may hold `0000`, as the source prints them
+_SCORE = r"(cp|mate) -?\d+"
+_SEARCH = (r"info depth \d+ (seldepth \d+ score " + _SCORE + r"|multipv \d+ score " + _SCORE + r" seldepth \d+)"
+           r" nodes \d+ nps \d+ hashfull \d+ time \d+ pv( (0000|" + _MOVE + r"))*")
+# an option line (uci.cpp): the four forms the source prints, each type a whole word with its own tail
+_OPTION = (r"option name \S.*? type (check default (true|false)|spin default -?\d+ min -?\d+ max -?\d+"
+           r"|string default <empty>|button)")
 _OTHER = re.compile(
     r"sg \d+ -?\d+ " + _MOVE + r" " + _FEN                                        # a row: ply score move fen
     + r"|sgend result (-1|0|1) reason (mate|stalemate|rule|plylimit|matescore|evallimit|drawadj)"
       r" plies \d+ run \d+ searches \d+ nodes \d+ fen " + _FEN + r" moves( " + _MOVE + r")*"
-    + r"|info depth \d+ .+"
+    + r"|" + _SEARCH
     + r"|bestmove " + _MOVE + r"( ponder " + _MOVE + r")?"
     + r"|readyok|uciok"
     + r"|id (name|author) .+"
-    + r"|option name .+ type (check|spin|string|button|combo).*"
+    + r"|" + _OPTION
     + r"|" + _MOVE + r": \d+"                                                    # a perft line
-    + r"|nodes \d+"                                                              # perft's total
-    + r"|")                                                                      # an empty line
+    + r"|nodes \d+")                                                             # perft's total
+# NOT in the table, on purpose: an empty line (no clean run prints one: 16 transcripts of the PC, 24 runs of
+# Astra's) and `bestmove 0000` (the engine's answer to a search on a position without a legal move, which the
+# day never asks for: it would mean that another position than the intended one was searched).
 
 
 def why_not(line: str) -> str:

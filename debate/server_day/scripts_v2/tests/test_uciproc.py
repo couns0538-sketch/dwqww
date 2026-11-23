@@ -1,5 +1,6 @@
-"""Fable 2026-11-23, server-day plan: the test of run/uciproc.py and run/engine_lines.py (version 2, second
-edition after the reads of Astra `134620Z` and Neon `134912Z`: L13 to L20 are their reproductions).
+"""Fable 2026-11-23, server-day plan: the test of run/uciproc.py and run/engine_lines.py (version 2, third
+edition: L13 to L20 are the reproductions of Astra `134620Z` and Neon `134912Z`, L21 to L24 and the search
+and option lines of L2 and L20 those of Astra `142216Z` and Neon `143000Z`).
 
     test_uciproc.py <engine exe> <folder with the engine's source (.cpp, .h, .hpp)> <serverday folder> <NEW work folder>
 
@@ -17,8 +18,8 @@ pipes are the product's.
  L4  a stand-in that prints 50 lines a second for ever: the wait ends at its limit (1.5 s), not later than 4 s
  L5  a silent stand-in: the wait ends at its limit; and with a cutoff of 1 s inside a limit of 60 s, at 1 s
  L6  stand-in lines: every refusing form, every form not expected on the day, a crash text, a line on the
-     error output, an `sgerror`: each is refused; whole lines of each expected kind, as the engine printed them
-     in the PC's clean runs: none is refused
+     error output, an `sgerror`: each is refused; whole lines of each expected kind (WHOLE: some verbatim from
+     the PC's clean runs, some built to the source's print statements; see its comment): none is refused
  L7  300,000 bytes without a line end; L8 a byte outside ASCII; L9 the engine ends inside an answer; L10 the
      line bound of one wait; L11 a command with a line break or a character outside ASCII; L12 the end
  L13 a last line WITHOUT its line end from an engine that ended is an error, never a finished answer
@@ -31,7 +32,16 @@ pipes are the product's.
      that is not finite and a line bound of 0 are refused
  L19 `info string ERROR NNUE v3` followed by exit code 2 is reported as that refusal WITH the exit code; an
      `sgerror` with no end line is refused at once, not at the limit
- L20 the table on whole and on cut lines: every whole native line passes, every cut or altered one is refused
+ L20 the table on whole and on cut lines: every whole line passes, every cut or altered one is refused
+ L21 every argument of a call is judged BEFORE its first byte: on the real engine a `go perft 1` with an
+     unusable limit or cutoff sends nothing, so the next `go perft 2` answers 400 and never 20; on the stand-in
+     no call with an unusable argument, text or length puts one byte on the pipe
+ L22 a retired object is never given new work: after a timeout send(), command(), ready(), uci_options() and
+     run() raise at once, quit() ends the process without writing; a write the system refuses retires it too
+ L23 a line that arrived while nobody waited is never taken into the next answer; an engine that ended while
+     nobody waited is reported by the next call at once
+ L24 an `sgerror` after another unexpected line ends the wait at once (also when the caller judges the lines
+     itself); an option line is read by its type
 """
 import queue
 import re
@@ -60,7 +70,7 @@ results = []
 TIMEOUT = getattr(uciproc, "EngineTimeout", ())    # an earlier version has no such class: then nothing is caught
 
 
-def check(name: str, ok, detail="") -> bool:
+def check(name: str, ok, detail: object = "") -> bool:
     results.append((name, bool(ok)))
     print(f"{'ok  ' if ok else 'FAIL'} {name}" + (f": {str(detail)[:300]}" if detail != "" and not ok else ""), flush=True)
     return bool(ok)
@@ -71,7 +81,22 @@ def judged(line):
     return engine_lines.why_not(line) if engine_lines is not None else None
 
 
-# whole lines exactly as the frozen engine printed them in the PC's clean runs (the net's path exchanged)
+# WHOLE: whole lines of the expected kinds, of two origins.
+# VERBATIM from the PC's clean runs of the frozen engine (each found there by a search for the exact whole
+# line): the two net lines (only the path exchanged, one with spaces, and in one of them the kernel's name),
+# the bench line, the two `sg` rows, the `rule` end line, the first depth line, `bestmove e2e4`, the id line,
+# the option lines of Hash, Ponder, OwnBook, Book File and Clear Hash, `readyok`, `uciok`.
+# BUILT to the source's print statements (uci.cpp, search.cpp, nnue_v3.cpp): both eval lines' values (the
+# clean runs hold `eval hce 0 nnue 87 total 87`) and the `incheck 1` form, the `mate` end line, the shortened
+# `evallimit` end line, the three further search lines (two lines a position, a mate score with an empty move
+# list, the move `0000` in a list), `bestmove` with a ponder move and with a promotion, the option `Some
+# Margin` (a made-up name with negative numbers), `e2e4: 20` and `nodes 8902` (the clean runs hold these two
+# shapes with other numbers). L2 below adds what no list can: every line of the REAL engine's option list and
+# of two real searches (one and two lines a position) passes the table.
+# In CUT on purpose, although the engine can print them: an empty line (no clean run prints one) and
+# `bestmove 0000` (the answer to a search on a position without a legal move; the day's worker never asks for
+# one: `go perft 1` for the opening, the ordinary start position at start-up, `sgend` or `sgerror` for a game;
+# on the day it would mean that another position than the intended one was searched).
 NET = ("v3 {} hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 290bbb0b2e578ac "
        "max|w1| 559 max|b1| 432 max|w2| 127 kernel {}")
 START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -"
@@ -86,8 +111,14 @@ WHOLE = ["info string NNUE v3 loaded: " + NET.format("D:/nets/cand.fnn3", "avx51
          "rnb1kbnr/ppp2pp1/3pp2p/8/6Pq/1PN2P2/P1PPP2P/R1BQKBNR w KQkq - 1 5 moves",
          "sgend result 1 reason evallimit plies 10 run 0 searches 3 nodes 6021 fen 3B1r2/8/2k3R1/pp6/8/5P2/P7/1K1R4 b - - 2 43 moves f3d4 e5d4",
          "info depth 1 seldepth 1 score cp -15 nodes 23 nps 0 hashfull 0 time 0 pv d2d4",
+         "info depth 3 multipv 2 score cp 12 seldepth 4 nodes 512 nps 51200 hashfull 0 time 10 pv g1f3 d7d5 d2d4",
+         "info depth 9 seldepth 14 score mate -3 nodes 70111 nps 1402220 hashfull 2 time 50 pv",
+         "info depth 2 seldepth 2 score cp 0 nodes 40 nps 0 hashfull 0 time 0 pv 0000 e7e8q",
          "bestmove e2e4", "bestmove e2e4 ponder e7e5", "bestmove e7e8q", "id name Chess Engine Forge 6.4.24 candidate",
-         "option name Hash type spin default 32 min 1 max 2048", "e2e4: 20", "nodes 8902", "readyok", "uciok", ""]
+         "option name Hash type spin default 32 min 1 max 2048", "option name Ponder type check default false",
+         "option name OwnBook type check default true", "option name Book File type string default <empty>",
+         "option name Clear Hash type button", "option name Some Margin type spin default -12 min -400 max 400",
+         "e2e4: 20", "nodes 8902", "uciok", "readyok"]
 CUT = ["info string NNUE v3 loaded: ", "info string NNUE v3 active: ", "info string eval hce ", "info string bench depth ",
        "info string NNUE v3 loaded: x 9463528 bytes", "info string NNUE v3 active: 768 checksum 1",
        "info string NNUE v3 loaded: " + NET.format("D:/nets/cand.fnn3", "avx512")[:-12],
@@ -99,7 +130,19 @@ CUT = ["info string NNUE v3 loaded: ", "info string NNUE v3 active: ", "info str
        "sgend result 0 reason fifty plies 8 run 0 searches 0 nodes 0 fen " + START + " 8 5 moves",
        "sgend result 0 reason rule plies 1 x", "sgend result 0 reason fifty plies 212 rows 180",
        SGEND[:-6], SGEND + " e2", "sg 17 -35 e2e4", "sg 17 -35 e2e4 " + START, "sg 17 e2e4 " + START + " 0 1",
-       "bestmove", "bestmove e2", "bestmove 0000", "id name", "nodes", "e2e4:", "readyok ", " uciok"]
+       "bestmove", "bestmove e2", "bestmove 0000", "id name", "nodes", "e2e4:", "readyok ", " uciok", "",
+       # the search line and the option line, cut or altered (Astra's two, and their neighbours)
+       "info depth 18 seldepth", "option name Hash type spinach", "info depth 1 score cp 0 nodes 1 pv e2e4",
+       "info depth 1 seldepth 1 score cp -15 nodes 23 nps 0 hashfull 0 time 0",
+       "info depth 1 seldepth 1 score cp -15 nodes 23 nps 0 hashfull 0 time 0 pv d2d",
+       "info depth 1 seldepth 1 score cp -15 nodes 23 nps 0 hashfull 0 time 0 pv d2d4 ",
+       "info depth 1 score cp -15 seldepth 1 nodes 23 nps 0 hashfull 0 time 0 pv d2d4",
+       "info depth 3 multipv 2 seldepth 4 score cp 12 nodes 512 nps 51200 hashfull 0 time 10 pv g1f3",
+       "info depth 1 seldepth 1 score cp nodes 23 nps 0 hashfull 0 time 0 pv d2d4",
+       "info depth 1 seldepth 1 score win 3 nodes 23 nps 0 hashfull 0 time 0 pv d2d4",
+       "option name Hash type spin default 32 min 1", "option name Hash type spin", "option name Ponder type check",
+       "option name Ponder type check default maybe", "option name Book File type string default",
+       "option name Clear Hash type buttons", "option name  type button", "option name Hash type combo default a var a var b"]
 
 # ---------------------------------------------------------------- the stand-in
 STANDIN = WORK / "standin.py"
@@ -126,7 +169,7 @@ for raw in sys.stdin.buffer:
         print("id name stand-in", flush=True); print("uciok", flush=True)
     elif cmd == "go" and mode == "flood":
         while True:
-            print("info depth 1 score cp 0 nodes 1 pv e2e4", flush=True)
+            print("info depth 1 seldepth 1 score cp 0 nodes 1 nps 0 hashfull 0 time 0 pv e2e4", flush=True)
             time.sleep(0.02)
     elif cmd == "go" and mode == "silent":
         time.sleep(30)
@@ -137,7 +180,7 @@ for raw in sys.stdin.buffer:
         put(b"info depth 1 caf\\xc3\\xa9\\n")
         print("bestmove e2e4", flush=True)
     elif cmd == "go" and mode == "exit7":                      # the engine ends in the middle of an answer
-        print("info depth 1 score cp 0 nodes 1 pv e2e4", flush=True)
+        print("info depth 1 seldepth 1 score cp 0 nodes 1 nps 0 hashfull 0 time 0 pv e2e4", flush=True)
         os._exit(7)
     elif cmd == "go" and mode == "cutline":                    # the ending line WITHOUT its line end, then the end
         put(b"bestmove e2e4")
@@ -151,13 +194,27 @@ for raw in sys.stdin.buffer:
                 pass
         time.sleep(10)
     elif cmd == "go" and mode.startswith("ctl:"):              # one control byte in the middle of a line
-        put(b"info depth 1 score cp 0 nodes 1 pv e2e4" + bytes.fromhex(mode[4:]) + b" e7e5\\n")
+        put(b"info depth 1 seldepth 1 score cp 0 nodes 1 nps 0 hashfull 0 time 0 pv e2e4" + bytes.fromhex(mode[4:]) + b" e7e5\\n")
         put(b"bestmove e2e4\\n")
     elif cmd == "go" and mode == "ten":                        # ten lines and the end, at once
-        put(b"".join(b"info depth %d score cp 0 nodes 1 pv e2e4\\n" % d for d in range(1, 11)) + b"bestmove e2e4\\n")
+        put(b"".join(b"info depth %d seldepth 1 score cp 0 nodes 1 nps 0 hashfull 0 time 0 pv e2e4\\n" % d for d in range(1, 11)) + b"bestmove e2e4\\n")
     elif cmd == "go" and mode == "slow":                       # the answer comes after one second
         time.sleep(1.0)
         put(b"bestmove e2e4\\n")
+    elif cmd == "go" and mode == "extra":                      # the answer, and one more line nobody asked for
+        put(b"bestmove e2e4\\nbestmove e2e4\\n")
+    elif cmd == "go" and mode == "badsg":                      # an unexpected line, THEN a game given up
+        put(b"info string unknown option Foo\\n")
+        put(b"sgerror noscore ply 12 searches 5 nodes 0 fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\\n")
+        time.sleep(20)
+    elif cmd == "go" and mode == "deaf":                       # the input closes, the process lives on for a while
+        sys.stdin.close()
+        try:
+            os.close(0)
+        except OSError:
+            pass
+        time.sleep(4)
+        os._exit(0)
     elif cmd == "go" and mode == "err2":                       # the engine's own refusal of a net, then exit code 2
         put(b"info string ERROR NNUE v3: the file is not a v3 net\\n")
         os._exit(2)
@@ -175,7 +232,7 @@ def standin(mode, lines=None, got=None):
     argv = [sys.executable, "-I", "-B", str(STANDIN), mode, "-", "-"]
     if lines is not None:
         f = WORK / f"say_{len(list(WORK.glob('say_*')))}.txt"
-        f.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        f.write_text("".join(ln + "\n" for ln in lines), encoding="utf-8", newline="\n")   # no line for an empty list
         argv[5] = str(f)
     if got is not None:
         argv[6] = str(got)
@@ -285,6 +342,22 @@ try:
         check("L2 perft 3 from the start = 8,902, no line refused", "nodes 8902" in perft, perft[-3:])
     except uciproc.EngineError as e:
         check("L2 perft 3 from the start = 8,902, no line refused", False, e)
+
+    def searched(lines_a_position):
+        eng.command("setoption name OwnBook value false")
+        eng.command(f"setoption name MultiPV value {lines_a_position}")
+        eng.command("position startpos moves e2e4 e7e5 g1f3")
+        eng.send("go depth 6")
+        return eng.read_until(lambda s: s.startswith("bestmove"), 120, f"a search with {lines_a_position} lines a position")
+    try:
+        one, two = searched(1), searched(2)
+        eng.command("setoption name MultiPV value 1")
+        n1 = sum(ln.startswith("info depth ") and " multipv " not in ln for ln in one)
+        n2 = sum(" multipv 2 " in ln for ln in two)
+        check("L2 two real searches, one and two lines a position: every line passes the table (both forms of the search line seen)",
+              n1 >= 3 and n2 >= 3, (n1, n2, one[:1], two[:1]))
+    except uciproc.EngineError as e:
+        check("L2 two real searches, one and two lines a position: every line passes the table (both forms of the search line seen)", False, e)
     cases = [("an unknown option", lambda e: e.command("setoption name NoSuchThing value 1"), "unknown option"),
              ("an invalid value", lambda e: e.command("setoption name Hash value many"), "invalid value"),
              ("an invalid FEN", lambda e: e.command("position fen 8/8/8/8/8/8/8/8 w - - 0 1"), "invalid FEN"),
@@ -358,7 +431,7 @@ check(f"L6 each of {len(bad_lines)} lines that must stop the work is refused", n
 e = standin("say", WHOLE)
 try:
     r = refused(e, lambda x: x.ready(10))
-    check(f"L6 {len(WHOLE)} whole lines of the expected kinds, as the engine printed them: none is refused", r == "", r)
+    check(f"L6 {len(WHOLE)} whole lines of the expected kinds (verbatim or built to the source's print statements): none is refused", r == "", r)
 finally:
     e.kill()
 
@@ -484,7 +557,7 @@ finally:
 arrived = got.read_bytes() if got.exists() else b"(no file)"
 check("L16 a command with a NUL, a CR, an escape, a DEL or a tab inside is never sent (the engine received `isready` and `quit` only)",
       not went and arrived == b"isready\nquit\n", (went, arrived[:120]))
-base = "info depth 1 score cp 0 nodes 1 pv e2e4"
+base = "info depth 1 seldepth 1 score cp 0 nodes 1 nps 0 hashfull 0 time 0 pv e2e4"
 check("L16 the table refuses a line with a control character and passes the same line without it",
       judged(base + " e7e5") == "" and all(judged(base + c + " e7e5") for c in ("\x00", "\r", "\x1b", "\x7f", "\t")),
       [repr(c) for c in ("\x00", "\r", "\x1b", "\x7f", "\t") if not judged(base + c + " e7e5")])
@@ -536,9 +609,178 @@ check("L19 ... and that engine object is not used again", how2 == "EngineError" 
 
 # ---------------------------------------------------------------- L20: the table on whole and on cut lines
 not_whole = [ln for ln in WHOLE if judged(ln) != ""]
-check(f"L20 each of {len(WHOLE)} whole native lines passes the table", not not_whole, [(ln[:60], judged(ln)) for ln in not_whole][:4])
+check(f"L20 each of {len(WHOLE)} whole lines passes the table", not not_whole, [(ln[:60], judged(ln)) for ln in not_whole][:4])
 not_cut = [ln for ln in CUT if not judged(ln)]
 check(f"L20 each of {len(CUT)} cut or altered lines is refused by the table", not not_cut, not_cut[:8])
+
+# ---------------------------------------------------------------- L21: every argument is judged before the first byte
+BAD_ARGS = (("a negative limit", {"secs": -1}), ("a cutoff that is not a number", {"cutoff": float("nan")}),
+            ("an infinite limit", {"secs": float("inf")}), ("a limit that is a text", {"secs": "5"}),
+            ("a limit that is True", {"secs": True}), ("a cutoff that is True", {"cutoff": True}))
+eng = uciproc.Engine(EXE)
+native = []
+try:
+    eng.command("position startpos")
+    for label, kw in BAD_ARGS:
+        try:
+            eng.command("go perft 1", **kw)
+            how = "returned"
+        except uciproc.EngineError as x:
+            how = type(x).__name__
+        except Exception as x:  # noqa: BLE001
+            how = "another error: " + type(x).__name__
+        try:
+            nodes = [ln for ln in eng.command("go perft 2", 60) if ln.startswith("nodes ")]
+        except uciproc.EngineError as x:
+            nodes = ["ERROR " + str(x)[:80]]
+        native.append((label, how, nodes))
+finally:
+    eng.kill()
+check(f"L21 the REAL engine: `go perft 1` with each of {len(BAD_ARGS)} unusable limits or cutoffs raises EngineError, and the NEXT "
+      "`go perft 2` answers `nodes 400` every time (never the 20 of a probe that went out after all)",
+      len(native) == len(BAD_ARGS) and all(h == "EngineError" and n == ["nodes 400"] for _, h, n in native), native)
+got = WORK / "got_l21.bin"
+e = standin("say", [], got=got)
+slipped = []
+try:
+    e.ready(10)
+    run = getattr(e, "run", None)
+    calls = []
+    for label, kw in BAD_ARGS:
+        calls += [(f"command with {label}", lambda kw=kw: e.command("go perft 1", **kw)),
+                  (f"ready with {label}", lambda kw=kw: e.ready(**kw)),
+                  (f"uci_options with {label}", lambda kw=kw: e.uci_options(**kw)),
+                  (f"run with {label}", (lambda kw=kw: run("go perft 1", lambda s: True, **{"secs": 5, **kw})) if run else None)]
+    calls += [("command with a number as its text", lambda: e.command(17)),
+              ("command with a text of 65,636 characters", lambda: e.command("x" * 65636)),
+              ("send with a text of 65,636 characters", lambda: e.send("x" * 65636)),
+              ("send with a number as its text", lambda: e.send(17)),
+              ("run with a line bound of 0", (lambda: run("go", lambda s: True, 5, max_lines=0)) if run else None),
+              ("run with a line bound that is True", (lambda: run("go", lambda s: True, 5, max_lines=True)) if run else None),
+              ("run with an ending test that cannot be called", (lambda: run("go", None, 5)) if run else None)]
+    for name, fn in calls:
+        if fn is None:
+            slipped.append(name + ": no such call")
+            continue
+        try:
+            fn()
+            slipped.append(name + " returned")
+        except uciproc.EngineError:
+            pass
+        except Exception as x:  # noqa: BLE001
+            slipped.append(f"{name}: {type(x).__name__}")
+    after = outcome(lambda: e.ready(10), 5.0)
+    e.quit(5)
+finally:
+    e.kill()
+arrived = got.read_bytes() if got.exists() else b"(no file)"
+check(f"L21 the stand-in: each of {len(calls)} calls with an unusable argument raises EngineError, not one byte of them arrives "
+      "(the engine received `isready`, `isready`, `quit` and nothing else), and the next command is answered",
+      not slipped and arrived == b"isready\nisready\nquit\n" and after[1] == "returned", (slipped[:6], arrived[:120], after))
+
+# ---------------------------------------------------------------- L22: a retired object is never given new work
+got = WORK / "got_l22.bin"
+e = standin("slow", got=got)
+tries = []
+try:
+    e.ready(10)
+    e.send("go")
+    first = outcome(lambda: e.read_until(lambda s: s.startswith("bestmove"), 0.3, "a slow answer"), 8.0)
+    run = getattr(e, "run", None)
+    for name, fn in (("send", lambda: e.send("go perft 1")), ("command", lambda: e.command("go perft 1", 5)),
+                     ("ready", lambda: e.ready(5)), ("uci_options", lambda: e.uci_options(5)),
+                     ("run", (lambda: run("go perft 1", lambda s: s.startswith("nodes"), 5)) if run else None)):
+        if fn is None:
+            tries.append(name + ": no such call")
+            continue
+        s, how, _text = outcome(fn, 8.0)
+        if how != "EngineError" or s > 1.0:
+            tries.append((name, how, round(s, 2)))
+    code = e.quit(5)
+    time.sleep(0.3)
+    ended = e.p.poll() is not None
+finally:
+    e.kill()
+arrived = got.read_bytes() if got.exists() else b"(no file)"
+check("L22 after a timeout the object is retired: send(), command(), ready(), uci_options() and run() each raise at once, quit() "
+      "ends the process without writing (it returns None), and the engine received `isready`, `go` and not one byte more",
+      first[1] == "EngineTimeout" and not tries and code is None and ended and arrived == b"isready\ngo\n",
+      (first[1], tries, code, ended, arrived[:120]))
+e = standin("deaf")
+try:
+    e.ready(10)
+    e.send("go")                               # the stand-in closes its input and lives on
+    time.sleep(0.5)
+    how = []
+    for _ in range(40):                        # a pipe takes what its buffer holds: write until the system refuses
+        s, h, text = outcome(lambda: e.send("isready"), 5.0)
+        if h != "returned":
+            how = [h, text[:80]]
+            break
+    later = outcome(lambda: e.send("isready"), 5.0)
+    gone = getattr(e, "gone", "")
+finally:
+    e.kill()
+check("L22 a write that the system refuses (the engine closed its input) retires the object: that send() raises EngineError, "
+      "and the next one fails as a retired object without another write",
+      how[:1] == ["EngineError"] and bool(gone) and later[1] == "EngineError" and "not used any further" in later[2], (how, gone[:60], later))
+
+# ---------------------------------------------------------------- L23: no line is taken that nobody asked for
+got = WORK / "got_l23.bin"
+e = standin("extra", got=got)
+try:
+    e.ready(10)
+    e.send("go")
+    first = outcome(lambda: e.read_until(lambda s: s.startswith("bestmove"), 5, "an answer with one line too many"), 8.0)
+    time.sleep(0.4)
+    again = outcome(lambda: e.ready(5), 8.0)
+    more = outcome(lambda: e.ready(5), 8.0)
+finally:
+    e.kill()
+arrived = got.read_bytes() if got.exists() else b"(no file)"
+check("L23 a second `bestmove` after the answer: the next command is refused BEFORE it is sent, the object is retired, and the "
+      "engine received `isready`, `go` and nothing else",
+      first[1] == "returned" and again[1] == "EngineError" and "no command had asked for" in again[2] and more[1] == "EngineError"
+      and arrived == b"isready\ngo\n", (first[1], again[1], again[2][:100], more[1], arrived[:120]))
+e = standin("say", [])
+try:
+    e.ready(10)
+    e.send("quit")
+    time.sleep(0.5)
+    s, how, text = outcome(lambda: e.ready(30), 8.0)
+finally:
+    e.kill()
+check("L23 an engine that ended while nobody waited: the next call says so at once, with its exit code",
+      how == "EngineError" and "exit code 0" in text and s <= 2.0, (round(s, 2), how, text[:120]))
+
+# ---------------------------------------------------------------- L24: a game given up after another unexpected line; options by type
+(secs, how, text), (secs2, how2, _t2) = go_and_wait("badsg")
+check("L24 `info string unknown option Foo`, then `sgerror`, then nothing: refused within 2 s of the 10 s limit, the FIRST "
+      "unexpected line named first, the object retired",
+      how == "EngineRefused" and "unknown option Foo" in text and secs <= 2.0 and how2 == "EngineError" and secs2 <= 1.0,
+      (round(secs, 2), how, text[:160], how2))
+e = standin("badsg")
+try:
+    e.ready(10)
+    e.send("go")
+    s, how, text = outcome(lambda: e.read_until(lambda x: x.startswith("sgend"), 10, "a game", refuse=False), 8.0)
+finally:
+    e.kill()
+check("L24 the same with refuse=False (the caller judges the lines itself): `sgerror` still ends the wait at once",
+      how == "EngineRefused" and "sgerror" in text and s <= 2.0, (round(s, 2), how, text[:160]))
+pat = getattr(uciproc, "_OPTION_LINE", None)
+parsed = {}
+if pat is not None:
+    for ln in ("option name Book File type string default a b min c max d", "option name Hash type spin default 32 min 1 max 2048",
+               "option name Ponder type check default false", "option name Clear Hash type button"):
+        m = pat.fullmatch(ln)
+        parsed[ln.split(" type ")[0][12:]] = {k: v for k, v in m.groupdict().items() if v is not None} if m else None
+check("L24 an option line is read by its type: a text default with spaces and the words `min` and `max` inside stays ONE default "
+      "and gives no `min`; a spin gives default, min and max; a button gives its name alone",
+      parsed == {"Book File": {"name": "Book File", "string": "a b min c max d"},
+                 "Hash": {"name": "Hash", "spin": "32", "min": "1", "max": "2048"},
+                 "Ponder": {"name": "Ponder", "check": "false"},
+                 "Clear Hash": {"name": "Clear Hash", "button": "button"}}, parsed)
 
 bad = [n for n, ok in results if not ok]
 print(f"\n{len(results) - len(bad)} of {len(results)} checks pass")
