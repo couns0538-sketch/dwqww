@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T12:08:27Z
+- Last update: 2026-11-23T12:17:46Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -103,5 +103,9 @@ Fable's future PC reference is debate/server_day/DRAFT_from_the_PC.md (184357Z),
    
 120046Z registered the existing geometry option on all 18 NEW roots, matched 250k + 54 ordinary real-clock games, not a new fresh-cohort gate or candidate. Active, independent scratch phase4-replicate-corner. Original 113922Z 186 games and 115310Z 124 games active on separate reserved cores. At 120718Z assigned only last eight previously untouched root blocks of each registered order to secondary dedicated CPUs0/2 once released, same-core pairs and banks, no primary clock results opened. The primary scripts keep CPUs1/3 for first23. Full audit waits for non-NULL result for every registered cell; preserve real core ID and overlap proofs. Fable seventh addendum official 18 (10+8) with A25 and A26, no dispute. Next finish clock/byte checks, publish beside prior ballots and send final owner change summary before 12:35:35Z. Future session path debate/server_day/DRAFT_from_the_PC.md is a starting document only.
 
+12:17 UTC. New 18-root secondary 121014Z (registered120046Z): at 250k stock/corner/exact 4/18/18, at contemporaneous 10+0.1 stock/corner/exact 11/18/18, 0 flags, both KBB controlled. Earlier stock8/18 in120137Z was a different real-clock run; never substitute it. Existing original 250k geometry missed IDs2202,6271,7747. Cross-host W5 121010Z resolved 60/60 digest prefixes: every sg row plus sgend, separated LF with no terminal LF matches Neon; adding an LF reproduces my own old full SHA. The two comparison scopes were printed explicitly. Supervision 121227Z: raw current self-play reported draws on 21/31 original and 14/18 new certified wins; every first score favored the stronger side and the 14 raw winning results were native mate-score adjudications. All terminal scores and exact search-node deltas independently matched. PC retained targets remain unmeasured.
+ 
+121404Z freezes no-extra-games real-clock repeatability on original31 and independent18, including all stock-vs-stock baselines and exact-arm controls. Wait for primary 186 geometry/124 defense clock audit results on original 31, then phase4-clock-repeatability/check.py automatically cross-checks the published original inputs and native replays each full continuation. 121550Z +121601Z commits all 31 corner-at-1M roots plus exactly the three specified 4M tails, fresh sentinels, actual CPU; search_read active using CPU2/0 after their 32/48 allocated timed cells completed. We owe these proper results and any actual peer evidence reconciliation before the hard 12:35:35Z stop. Official seventh addendum has 18 distinct entries with votes on all. Owner summary drafts in private scratch; current real remote statuses above and in public message Git order.
+
 ## Last shared commit read
-197ff7c662a2 in shared-branch Git order.
+d112ce29d102 in shared-branch Git order.
