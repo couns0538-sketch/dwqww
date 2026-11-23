@@ -1,29 +1,24 @@
 # Neon Phase 4 Memory (2026-11-23)
 
-## Current State (09:38Z)
+## Current State (09:49Z)
 - Shared branch `debate/forge-plan-20261123` synced through Fable `3489272237` (`161335Z` third addendum). Closing look `12:40Z` UTC (`_agreed_` cutoff `12:35Z`).
-- **TWO NEW AGREED ITEMS READY FOR FABLE'S NEXT REVIEW:**
+- **TWO NEW AGREED ITEMS READY FOR FABLE'S NEXT REVIEW (Batch 4):**
   1. **`AGREED A23`** (`093214Z` Astra, co-signed Neon `093520Z`): W5(c,e,f) server rehearsal binds immutable per-game reservation/local-fallback, actual serialized `position` write, and returned receipt under exchanged concurrent A7 histories & restarts (no mandatory production `sgstate`).
-  2. **`AGREED N23`** (`093730Z` Neon; Neon `092931Z`/`093520Z`, Astra `093243Z`/`093458Z`/`093539Z`): W1 final-value liveness audit & N22 Stage A — adds `final vs start` & `final vs [min, max]` descriptors for `0/600` local-step settings, restricts automatic reversion of a changed `final` strictly to structurally disabled parent guards in the deployed final vector (`EvalSwingMax`, `CaptureFutilityDepth`/`Multiplier`, `AspFailHighMaxReduce`) or source-proved global equivalence (`QsSeeMargin` 100-cp bin at `1857`/`board.cpp:25`), and requires an `A18`-clean whole-vector parity check (`deployment` vs raw `final` on 600 positions, cancelling any suspect reset on first diff). Both seats reproduced 60-opening d12 plateaus, `SingularDepth 14 vs 15` 250k censoring (`58/60`), and legal `-1000` SEE witness `8/7k/8/1R6/8/7K/p7/1n6 w - - 0 1` `b5b1`.
-- Independently verified Astra `092804Z` (equal-cost readout), `092801Z` (quiet-move prior), `093458Z` (`N23` deeper panel & SEE witness), and `093502Z` (`768->640` width compression negative, all SHAs & 6-decimal metrics exact). Also verified 4T Lazy SMP TSan clean (0 warnings).
+  2. **`AGREED N23`** (`093730Z` Neon; Neon `092931Z`/`093520Z`, Astra `093243Z`/`093458Z`/`093539Z`/`093840Z`): W1 final-value liveness audit & N22 Stage A — adds `final vs start` & `final vs [min, max]` descriptors for `0/600` local-step settings, restricts automatic reversion of a changed `final` strictly to structurally disabled parent guards in the deployed final vector (`EvalSwingMax`, `CaptureFutilityDepth`/`Multiplier`, `AspFailHighMaxReduce`) or source-proved global equivalence (`QsSeeMargin` 100-cp bin `floor(M/100)` at `1857`/`board.cpp:25`), and requires an `A18`-clean whole-vector parity check (`deployment` vs raw `final` on 600 positions, cancelling any suspect reset on first diff). Both seats reproduced 60-opening d12 plateaus, `SingularDepth 14 vs 15` 250k censoring (`58/60`), and legal `-1000` SEE witness `8/7k/8/1R6/8/7K/p7/1n6 w - - 0 1` `b5b1`.
 
-## Active Proposals / Open Threads
-1. **`PROPOSAL A23` (Astra `092436Z`):** Bind each W5 game ID's independently reserved opening to the serialized `position ...` command written to that worker's engine stream and its receipt, including retries and local fallback. Neon reproduced all 5 plants to exact SHAs and 512-game timing bootstrap (`CPU +0.27086% [-0.91929, +1.51088]`, `wall +0.24229% [-0.94888, +1.48182]`), confirmed `W5(c, e, f)` misses concurrent payload/receipt swaps, and voted **AGREE** (`092930Z`) — awaiting Astra's `_agreed_a23.md`.
-2. **`PROPOSAL N23` (Neon `092931Z`):** `W1`'s final-value liveness audit (`FINAL_PLAN.md:47-61`, `N1`) — and later `A18` parameter-liveness tables (`N22` Stage A) — must not classify a setting dead or revert `final -> start` on local `final +/- step == 0/600` alone. `source/src/board.cpp:25` (`SeeValue` `gcd = 100`) creates exact flat plateaus in `QsSeeMargin` (width 100 — explaining the 17 Nov `0/600` surprise), `SeeNoisyMultiplier` (`145 +/- 4 = 0/60`, `106 +/- 6 = 0/60` while differing from start `150` on `59/60` and `60/60`), and `SeeQuietMultiplier` (`21 +/- 1 = 0/60`, `26 +/- 1 = 0/60` vs start `24` `60/60`), plus depth-12 threshold censoring (`SingularDepth = 14`: `14 +/- 1 = 0/60` vs start `6` `60/60`). Three-case rule using `final vs start` + `final vs [min, max]` protects moved plateau settings while cleanly reverting genuinely gated-off partners (`0/60` at both `[min, max]`) and within-start-plateau drift. Awaiting Astra verification & feedback.
-3. **Astra's pending measurements to verify when posted:**
-   - `085142Z` natural-castling A7 opening draw check
-   - `090046Z` output-bucket head ablations (`r67`)
-   - `090939Z` quiet-move prior offline study
-   - `091351Z` equal-CPU 2k vs 8k frozen-L1 readout proxy
-   - `092620Z` post-training `768 -> 640` width compression (arithmetic verified `092930Z`)
+## Independently Verified Astra Results (All Exact)
+- `090010Z` (W5 Linux build handoff), `090705Z` (510 board-finished continuations), `092804Z` (equal-cost readout), `092801Z` (offline quiet-move prior), `093458Z` (`N23` deeper panel & SEE witness), `093502Z` (`768->640` width compression negative), `094234Z` (live quiet-tie negative closure: `3.040937%` tied, prior rank `3.135775` vs native `2.802292`, `-0.333483 [-0.403080, -0.260419]`; `events.csv` SHA-256 `ed02a6a9...` & all 11 6-decimal CIs exact).
 
-## Completed Local Diagnostics (Scratch in `/tmp/`, `source/` untouched)
-1. **`r67_h768` weight & activation audit:** completely healthy (`max|w1|=559`, `max|b1|=432`, accumulator headroom `18,320/32,767`, `|w2|==127` clips `14/12,288 = 0.114%`, king-bucket `MAE=22.57 cp`, output-bucket `MAE=38.18 cp`, active `88.4/768`, saturated `1.1/768`).
-2. **Correction-history saturation & LOO audit:** clean negative across `2k..1M` cold and `20k/250k` warm; all 6 tables reduce MAE, saturation `<= 4.25%`.
-3. **ASan/UBSan sweep across all 26+ OFF options + `1T/4T` + `MultiPV=4` + `selfgame`:** 0 errors.
-4. **`W14` 5-candidate firing-rate audit (`/tmp/w14_audit`, `bench 11 = 312866` exact):** `C1`, `C3`, `C4`, `C5` (`LmrDeeperShallower value true`) all `120/120` live at depth 12 (`C5` `+0.325` mean depth at `250k`); `C2` (no root IIR, `search.cpp:2184`) is `0/120` at d12 / 20k and `0/40` at 250k (`W14`'s existing `6/600` rule drops it automatically).
-5. **Next deep code audits to explore (zero bloat — only propose if genuinely load-bearing):**
-   - **TSan race audit on 4T/8T Lazy SMP** (`source/src/search.cpp`, `tt.hpp`, `nnue_v3.cpp`, `uci.cpp`) — relevant for `N18` multi-thread / `W13` / `N20`!
-   - **Time management & clock edge cases** (`source/include/forge/clock_plan.hpp`, `tm_*.hpp`, `search.cpp` `check_time()` / `go wtime ...` / `movestogo` / `ponder` / `stop` / `Move Overhead`) — relevant for `N19` / `N20` `60+0.6` clock matches!
-   - **NNUE v3 AVX2 speed gap at `H=768` / `H=1024`** (`source/src/nnue_v3.cpp` missing fused `apply_pair_and_evaluate` & 4-col refresh on AVX2) — check exact measured speedup on Linux AVX2 vs AVX-512!
-   - **`eval.cpp` / `book.cpp` / `board.cpp` / `movegen` / `selfgame`** edge-case audit (`halfmove_clock`, threefold at ply 0/1, `evallimit` vs mate scores, `drawply`/`drawscore`/`drawcount`, `PawnHistory` clear bug at `search.cpp:1224`).
+## Pending Astra Measurements to Verify When Posted
+- `094111Z` (`has_legal_move()` pawn shortcut benchmark)
+- `094601Z` (`N20` opening-suite information-rate diagnostic, 4k vs 2k hard nodes, 2x128 pairs)
+- Earlier pending: `085142Z` natural castling, `090046Z` output-bucket head ablations.
+
+## Completed Local Diagnostics & Active Profiling Work (Scratch in `/tmp/`, `source/` untouched)
+- `r67` weight/activation audit, correction-history saturation/LOO audit, ASan/UBSan sweep, 4T Lazy SMP TSan sweep (0 warnings), `W14` 5-candidate firing-rate audit, `FORGE_NNUE_V3_VERIFY=1` + asserts torture test on `r67` + max-boundary `1024/16KB` & `1024/32KB` nets across AVX-512 and AVX2 (bit-exact `353/353` rows, 0 mismatches).
+- Noted compile check for `W5(a)`: `-DFORGE_SPD_NNUE_ZMM=1` hard-fails on non-AVX-512 targets (`source/src/nnue.cpp:28`, must set `=0` for AVX2 variants).
+- **2,000 Hz `SIGPROF` profile of 60 `r67` `selfgame softnodes 2000` games (`29.8M` nodes):**
+  - `has_legal_move()`: `1.22%` AVX-512 / `1.63%` AVX2.
+  - `nnue::v3`: `22.2%` AVX-512 / `27.9%` AVX2 (`AVX2` is `+5.62%` slower than `AVX-512` on `r67`).
+  - Exact v3 path counts (`13,351,483` evals): `3,089,300` `refresh_from_pieces` calls (`75.3%` `n_sub<=3`, `75.4%` `n_add<=3` — skipping the 4-col AVX-512 loop!), `4,068,120` `make_valid` evals (`30.5%` of all evals) unfused before `evaluate()`, and on AVX2 all `9,104,938` `fast_pair` evals run unfused + double `collect_changes`.
+- **Next:** Pre-declare and rigorously measure an exact 0-node-change `nnue_v3` kernel/fusion benchmark (single-pass tiled `refresh_from_pieces`, fused `make_valid` final ply, fused AVX2 `apply_pair_and_evaluate`) across `H=768` (`r67`) and `H=1024` (16 KB) on both AVX-512 and AVX2, ONLY proposing if it delivers a clean, repeatable, zero-regression speedup!
