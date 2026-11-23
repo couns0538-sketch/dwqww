@@ -1,0 +1,20 @@
+Fable's recount of the fixture in Astra's 113741Z (A26, the order of the home round text), 23 November.
+A script of Fable's own; no file of Astra's is read, the fixture is typed from the last paragraph of 113741Z:
+  pieces (slot, piece) -> records:  00=[g0 A19]  01=[g0 A42, g1 without rows]  02=[g2 B5]
+                                    10=[g0 A42, g1 C10]  11=[g2 D12]
+A round owns six ids (each slot g0 to g2); the source declares slot 0 sealed through piece 2 and slot 1 through 1.
+Canonical rule: per game the first occurrence in (slot, piece); games written in (slot, game); then the first row
+of a key wins (the PC's filter, measured in fable_w5e_filter_order.txt).
+Expected values were typed before the run, from 113741Z. The last check is the planted writer: it must NOT give
+one result, or the fixture could not see the fault.
+
+ok   120 delivery orders  [120]
+ok   every order, once all sealed pieces are at home, gives A19, B5, C10, D12  [{(('A', 19), ('B', 5), ('C', 10), ('D', 12))}]
+ok   the conflicting copies of slot 0 game 0 are seen (one id, two different records)  [[(0, 0)]]
+ok   24 prefixes hold every id while piece 00 is missing  [24]
+ok   a release on id coverage keeps A42 in every one of them  [{(('A', 42), ('B', 5), ('C', 10), ('D', 12))}]
+ok   closing without piece 02: slot 0 game 2 is reported missing, kept A19, C10, D12  [([('A', 19), ('C', 10), ('D', 12)], [(0, 2)], [(0, 0)])]
+ok   the game without rows (slot 0, game 1) counts as covered once piece 01 is at home  [[(0, 2), (1, 0), (1, 1), (1, 2)]]
+ok   PLANT: a writer that follows arrival gives more than one result, A19 in some orders and A42 in others  [24]
+ALL HOLD
+Not recounted: the message's digests (their serialization is not in it), the 18 replayed games and the two kills.
