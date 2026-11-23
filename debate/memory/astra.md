@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T03:51:51Z
+- Last update: 2026-11-23T04:00:25Z
 - Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -48,25 +48,23 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 
 ## What I found (each with file and line, or with the figures I recomputed)
 
-All mandatory source, plan, state and settings have been read to EOF on this machine, with parallel source readers. Fable checked all twelve answers in `debate/msgs/20261123T034427Z_astra_readcheck.md` against the key and recorded 12/12. READY.
-
-- Fable corrected the hard cap in STATE to 8,000 and traced 5,000 to a legacy setting. The live driver uses the softnodes selfgame command. See Fable's shared read-check reply and `source/src/search.cpp:2659–2665,3151–3155`. My independent one-search Linux run on line 4 of `loop/build_recipe/pgo_selfplay_books.epd` exceeded 5,000.
-- `source/src/uci.cpp:539–552,573–607`: a draw-adjudicated final row can carry an unplayed best move. A1 contains raw output and build command. The local unmodified AVX-512 build also matched the published default bench/perft and active-net bench totals.
-- Fable maintains the shared branch and carries over Astra's files from the fallback. The board invited READY participants to file proposals while Fable completes reading.
+Readiness and source ledger are complete. Fable checked Astra's read-check message against the key and entered 12/12 on the board. Fable traced the former 5,000-node value to an unused legacy setting and corrected STATE to 2,000 soft, 8,000 hard (`source/src/uci.cpp:489–497`, `source/src/search.cpp:2659–2665`). Astra's Linux build produced 5,506 nodes on one search at opening line 4. Default bench 11/13, perft 5, and active-net bench 11/13 matched the five reference totals. The Linux diagnostic used unmodified source, GCC 14.2.0 and AVX-512. No PC strength match was run here.
 
 ## My proposals and their status
 
-- A1: compact record transport, exact replay of every retained row of one full round, final unplayed move and corruption controls. Filed, awaiting Fable's disposition.
-- A2: P3 disk feeder throughput and row coverage. Filed. Re-parsing text each epoch implies about 175 hours under the reported parser assumption. The 4.18-hour GPU estimate excludes parsing.
-- A3: rental capacity counted at the receiver in eligible rows. Filed. At half the extrapolated speed, 24 hours produces about 1.916 billion kept rows at the current retention, before downtime.
+- A1: compact data transport, full-round row equality and planted terminal-move mutation. Neon reproduced my unplayed-move fixture. I accepted Neon's coverage of mate/eval cutoffs and game-relative ply. Await the board decision.
+- A2: measured end-to-end disk feeder with actual storage, row coverage and throughput. Neon independently recomputed the rates. I accepted a test of cross-round mixing with a chronological-reader negative control. Await the board.
+- A3: count receiver-verified eligible rows over available paid time. Neon checked the arithmetic. Preserve raw compact chunks and versioned keep flags within actual storage and transfer capacity. Await the board.
+- A4: compare the current LmrDeeperShallower code to the old measured patch before P7. Neon agrees. Include both re-search suppression and propagation of the changed depth to the PV call. `source/src/search.cpp:2430–2452`.
+- A5: scope the breadth result to rounds 29–78 versus 54–78. Separate win, loss and uncertainty, and handle unrepresented strata explicitly. Filed.
 
 ## What I still owe (questions to me that have no answer yet)
 
-Fable's request for the full-round codec proposal was answered in A1 and its full-round follow-up. No outstanding direct question seen. Continue to reply to each peer proposal and give an item-by-item final.
+I replied to N1–N7. N1–N4 refinements were acknowledged by Neon. On N5 I dissent from declaring a ceiling when a single candidate's interval crosses zero and its point estimate is ≤+3. An upper confidence bound below a predeclared practical margin supports only a candidate-specific flat verdict. I support N6's targeted tests and N7 as a conditional, predeclared search experiment. I also clarified that the engine's format checksum and the net file SHA-256 identify different things. No open direct question known. The item-by-item final remains due.
 
 ## My next step
 
-Follow the shared branch continuously for proposals, measurement replies and board decisions. Check Fable's 2-billion training schedule, the breadth interpretation, and the decision bars for the tune against the evidence as they are discussed.
+Continue watching Fable and Neon on the shared branch, review each new proposal immediately, check measured results, and audit the eventual ordered final plan against the agreed tests. Astra publishes only on its authorized fallback branch.
 
 ## Last shared commit read
-0b40df3d9af6 in shared-branch Git order.
+12280f9fa03f in shared-branch Git order.
