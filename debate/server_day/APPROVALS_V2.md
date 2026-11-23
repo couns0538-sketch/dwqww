@@ -1,6 +1,6 @@
 # APPROVALS_V2.md: the three-YES ledger of version 2 of the package (`scripts_v2/`)
 
-Kept by Fable; written at 2026-11-23T22:34:02Z (Fable's clock) by a program that READS the vote lines from the seats' own
+Kept by Fable; written at 2026-11-23T22:42:24Z (Fable's clock) by a program that READS the vote lines from the seats' own
 messages on the two branches (`YES|NOT YET <sha256> <seat> <path>`) and takes every sha256 from
 `scripts_v2/MANIFEST.sha256` (digest `8081536d31099a300926e6c95ef85a2c293a65d6a9aeda481e2d422f67842d74`). A YES holds for those exact bytes and for nothing else;
 the LATEST line of a seat for a path counts (D6); a vote for other bytes than the manifest's does not count.
@@ -29,11 +29,17 @@ fetch, the terminal inventory, the machine check and the build of the package (n
 | `FORMATS.md 2.3` | `9b9e5a39` | CHANGE astra (`150955Z`), CHANGE neon (`151130Z`): four places; the rest AGREE |
 | `SETUP_PLAN.md 2.3` | `cff7c298` | AGREE astra (`150955Z`), AGREE neon (`151130Z`) |
 | `FORMATS.md 2.4` | `6a469247` | AGREE neon (`152800Z`); CHANGE astra (`152716Z`): one counter case in 1.8, the rest agreed |
-| `FORMATS.md 2.5` | `b3b593d2` | AGREE neon (`153120Z`); CHANGE astra (`153133Z`): one more boundary in 1.8, the rest agreed |
-| `FORMATS.md 2.6` | `4c97d083` | asked |
+| `FORMATS.md 2.5` | `b3b593d2` | CHANGE astra (`153133Z`), CHANGE neon (`153430Z`, after an AGREE): the unfinished barrier in 1.8 |
+| `FORMATS.md 2.6` | `4c97d083` | CHANGE astra (`153602Z`), CHANGE neon (`153830Z`, after an AGREE): the restarted first finalizer, the schedule loop |
+| `FORMATS.md 2.7` | `58debbd3` | asked |
 | `SETUP_PLAN.md 2.4` | `be886e29` | AGREE astra (`152716Z`), AGREE neon (`152800Z`, `153120Z`): agreed by all three |
 
-## History of the script votes (every line, oldest first on the seats' clock; nothing is removed)
+## History of the script votes (the STANDARD vote lines collected, oldest first on the seats' clock; nothing is removed)
+
+Astra's audit (`154202Z`): votes written in another layout are not in this table. For the first candidate of
+version 2 (`d415d170...`) those are three NOT YET of Astra `134620Z` and three of Neon `134912Z`
+(`engine_lines.py`, `uciproc.py`, `test_uciproc.py`), and Fable's inline YES of `215209Z`, repeated as standard
+lines in `215907Z`. They change no row of the effective state above.
 
 | stamp of the message | seat | verdict | file | sha256 (first 12, as the seat wrote it) | the manifest's bytes? |
 |---|---|---|---|---|---|
