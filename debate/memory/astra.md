@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:29:43Z
+- Last update: 2026-11-23T15:39:53Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T152943Z
+20261123T153953Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -127,3 +127,9 @@ I completed the independent rules replay of the 500 native games in 151219Z: 62,
 15:30 UTC. Shared e3330196: SETUP_PLAN 2.4 be886e29954b8141786eeb8442d1543efdcb7e2330c9c367e518c1f97ce97361 now incorporates corrected custody/semantic counts, real closing-space admission, two rounds of lookahead during ongoing production and five unanimous v2 file votes. Astra AGREE 152716Z, Neon AGREE 152800Z, Fable editor 222530Z. FORMATS 2.4 6a469247c404b4c75965e1806f42ad1a8d1c0ba3e6367c765659b504fb15fd47 fixes four earlier findings and compresses never-dispatched tails to intervals. Neon AGREE on these bytes. Astra CHANGE §1.8.3: g1 done/g2 failed/g3–4 no line means g2 unfinished, g3–4 never dispatched and zero unknown; the current “lowest counter with no line” wrongly selects g3 as unknown. A clean STOP with an ended line and a pause without any durable boundary are different. Sent exact case at 152716Z and 152920Z. Fable privately read its 1,057-line draft worker and withheld approval; its date parser accepted November 31, and the worker/test need the revised contract and review. No new paid-package executable was published in this interval.
 
 Native 1,500-game, three-slot compressed recovery fixture, 152429Z: 188,004 rows independently replayed, 3 receipts, 3,474,309 unique member bytes, 5,770,999 actually copied under two interruptions, one damaged prefix and one lost kept member. Ordinary listing revisits must not be counted as fresh confirmations; Fable included the distinction in formats 2.4. Rechecking an entire 32,800-offer directory on every minute poll would make 22,647,720 piece visits on the stated uniform-arrival scenario. Both seats measured the proposed interval saving: my 152820Z, 71,229,440 allocated bytes vs the old 2,409,435,136 for 16,384,000 still-unplayed IDs, with 16,386 file entries including both terminal fragments; Neon's independent result was 71.246 MB. Reconstructed interval counts and contiguous coverage exactly. Next: resolve failed-ID rule, run provided worker/packer bytes and native recovery cases as soon as they arrive, and keep the per-file owner report current. No full rental-day rehearsal or paid capacity yet.
+
+15:40 UTC. Shared 5dc51c47: central plan 2.4 be886e29… now has both seat agreements and Fable's confirmation. Fable's independent APPROVALS_V2 records the same five unanimous paid-package file votes as my per-file ledger. The first worker and packer remain private PC drafts with Fable NOT YET; the worker accepted an impossible cutoff date and the packer can jam after a crash between its canonical and wire offer. Their revised files and tests still need publication and all three exact-byte reviews.
+
+FORMATS 2.5 b3b593d2… fixed the outstanding failed retry, but a durable unfinished record at D was incorrectly skipped on the next finalizer; 13 of 120 enumerated four-ID cases demonstrated it (153133Z). FORMATS 2.6 4c97d0838da3c11bb247e1dbaf2b3990580ebdd07e35814475ed64135eb6ed80 fixed that; the new counter rule passed all 120. Both seats then requested CHANGE on an independent empty-slot crash: fence before any worker, first-ever finalizer writes its epoch and dies, second finalizer mistakenly infers a possible game (153602Z; Neon amended its earlier vote at 153830Z). Mark an epoch play-capable or seal-only in the already durable line. The role-qualified result stays invariant under repeated finalizers in all 76 permitted histories checked. A worker must consume every pending successor schedule before reserving, not stop after just one new file. Await revised format.
+
+Measured the separate cost of cumulative schedules: 64 slots/128 rounds with one-round extensions used 85,946,368 allocated bytes for control history and its terminal portion, versus 43,880,448 with two-round extensions (153200Z). A simulated same-boot suspend left a monotonic-only timer showing 1,200 s available 300 s after D; seal-only on proven expiry, hold when clocks cannot be trusted (153451Z). Actual local sockets used the native fallback member to show 98,304 stalled versus 557,056 progressing temporary bytes, both zero verified receipts at simulated expiry; each later recovered the original hash. A separate release-time reporter must not block behind the fetch process (153725Z). No paid capacity or complete home rehearsal. Current local owner draft and independently verified grouped votes are ready for eventual final review. Next owner report 16:35 UTC, final 18:35 UTC.
