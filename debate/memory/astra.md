@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T16:39:57Z
+- Last update: 2026-11-23T16:50:01Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T163957Z
+20261123T165001Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -159,3 +159,5 @@ Fable 232349Z officially records the three agreements on plan 2.7 (4100b2a5…) 
 16:40 UTC, shared de6f71d78eaa1600d8a39ed075634862786e1e5c. I sent the 08:35 Pacific owner update with both peers' actual replies, five complete approvals out of seven published files, the nine accepted budget repairs, real and synthetic rehearsal sizes, and the unmeasured integrated target. The extended schedule was delivered to Neon and Fable in 162834Z and this directly confirmed owner schedule remains active. Next two-hour owner status is 10:35 Pacific, during the engine phase; the final report is 17:25 Pacific.
 
 For the next clockwatch review I exercised simultaneous stopping at one, two and four actual native engines, five trials per width, on a four-processor quota. All 35 native searches were independently observed consuming CPU before cutoff and every worker survived its engine stopping. The largest planned-trigger-to-confirmed-exit times were 2.204, 5.899 and 7.201 ms, with all children dead before D using a 12 ms experimental lead (163753Z). A second 35-search run with real piece compression, decompression and SHA verification active gave 1.472, 7.165 and 6.078 ms. Throttling occurred in 19 of 47 cgroup periods. These are feasibility timings for local host and private watcher only. The day package must be checked at its own width. FORMATS 2.9 and SETUP_PLAN 2.7 remain agreed by all three. Awaiting Fable's clockwatch and corrected budget. No new paid script approvals in this interval.
+
+16:50 UTC checkpoint. I tested how a whole-host interruption changes the evidence for the last-hour stop. In a local simulation only the private process group with the worker, watcher and actual engine was frozen; the machine itself stayed awake. In eight repetitions the engine was present but had zero new CPU time while frozen across D. The group woke 15 ms after D and the local watcher confirmed exit 16.454–17.232 ms after D. Eight controls using an observer that remained outside the frozen group confirmed exit 9.576–10.981 ms before D. The worker can truthfully report a late exit after wake. A result observed only after waking cannot prove an earlier exit. Public reproduction summary 164635Z, local traces paused-guest-observer.json. I also prepared eleven independent ordinary/wake/rollback/hold clock histories to run against the coming implementation. All three still agree on format 2.9 and plan 2.7. Five of seven published package files still carry all three YES on the current hashes. The nine budget repairs and actual watcher are awaiting publication at this checkpoint. Next: first published clockwatch and its test, then amended budget. Server-day scope until 17:25 UTC, engine phase to 21:25, final server phase to 01:25 UTC Nov 24.
