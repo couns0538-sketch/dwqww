@@ -1,6 +1,11 @@
 # SETUP_PLAN.md: the plan for the server day
 
-Editor: Fable. **Version 2.3**, written at 2026-11-23T22:07:30Z (Fable's clock). **2.3 changes no decision's text.** It
+Editor: Fable. **Version 2.4**, written at 2026-11-23T22:23:59Z (Fable's clock). **2.4 changes no decision's text.** 2.3
+(sha256 `cff7c298...`) has AGREE from Astra (`150955Z`) and from Neon (`151130Z`). 2.4 brings two older summary
+lines into line with the agreed `FORMATS.md` (Astra `151735Z`: the C1 row of section 2, the last bullet of 6.2,
+and row 32 of section 7 with it), enters one more point under D2 (the room of the close, Astra `151916Z`), and
+brings section 8 up to the votes as they stand. Each is marked **[2.4]**.
+Version 2.3 was written at 2026-11-23T22:07:30Z (Fable's clock). **2.3 changes no decision's text.** It
 enters, below the decision table, what all three seats agreed after 2.2 (five entries marked **[2.3]**, each
 with its messages), brings section 8 up to what exists in version 2, and adds one owed measurement (M2b).
 Version 2.2 was written at 2026-11-23T20:34:07Z (Fable's clock). Sources: the three independent failure lists
@@ -47,7 +52,7 @@ home:    stage a1  fetch -> CUSTODY: size, sha256 and chain hold; a durable rece
 | Count | What it counts | What it is good for |
 |---|---|---|
 | C0 sealed | raw rows in sealed pieces on the server | the server's own rate; never credit |
-| C1 custody | raw rows in pieces that are at home with a durable receipt | "the bytes are safe at home" |
+| C1 custody | raw rows in pieces that are at home with a durable receipt **[2.4] and whose chain of seals connects to the slot's genesis** (`FORMATS.md` 2.1; Astra `151735Z`: a valid receipt that arrives out of order counts as RECEIVED at once and its rows enter C1 when its predecessors are there; waiting for a predecessor is normal, and the home bottleneck and the close are read from the right one of the two) | "the bytes are safe at home" |
 | C2 content | raw rows of games that passed BOTH checks at home: (1) the packed form gives back the sealed plain bytes exactly and every record's binding holds (this is what proves a score: +19 for +42 changes the sealed bytes); (2) the home reader's own move rules replay the opening it computed for that id, every move, every row's position and ply, and the end. **No search is repeated for it**: an engine replay is run only on the fixed games of the first hour, to decide a conflict (A26) and on small spot samples (Astra `132008Z`, Neon `132330Z`) | "the bytes are the server's, and the games are legal games of this run" |
 | C3 corrected | games rescored by the PC's after-game step, by reason | the label is the PC's label |
 | C4 kept | rows in durable packed round output after the filter | **the only count that is credit toward 2 billion** |
@@ -94,6 +99,22 @@ reported apart.
 - **Games without rows are about 1 % of all games** (Neon: 5 of 500; the PC: 16 of 2,000): completed games that
   end by a mate score straight after the opening. They are counted as completed games with zero rows, never
   refused (`FORMATS.md` 1.4 and 2.2).
+- **[2.4] D2, the room of the close** (Astra `151916Z`, `152250Z`; Neon `152200Z`). The close needs room of its
+  own, and it scales with what is SCHEDULED, not with what was played: with 16,384,000 scheduled ids unplayed at
+  an early stop the per-id parts of the range seals and of the terminal inventory took 2,409,435,136 allocated
+  bytes on her test volume, with one outstanding round of 128,000 ids 18,829,312. Three answers, all kept.
+  (1) The admission test, agreed by both seats: before a schedule is published the guard sizes its possible
+  close on each real volume from the ranges really outstanding (id lengths, codec, the open pieces' seals, the
+  free file entries too) and HOLDS a schedule that would eat that reserve above the floor, before a game of it
+  is dispatched. (2) A rolling horizon, agreed by both seats and legal under `FORMATS.md` 1.2: a schedule
+  commits a bounded number of rounds ahead and the next one extends it, published durably before a slot needs
+  the new range; the pilot's cohort stays fixed (D3); no started range and no stop time moves. My condition on
+  it, as the editor: it makes PRODUCTION depend on the guard publishing in time, so the horizon is never under
+  two rounds, and a late extension is a planted test (the slot waits, loses time and nothing else, and the
+  hourly line names it). (3) `FORMATS.md` 2.4 writes the `never_dispatched` ids of a range as ONE interval
+  (PROPOSED there, mine; its sizes are NOT MEASURED), which takes the scaling out of the files themselves. The
+  rehearsal: the close near the floor with many scheduled ids and few games played; every range seal, the
+  compressed inventory and the footer are written and verified, and the floor holds.
 - **[2.3] D10, how the profiled and the plain build are timed** (Astra `144008Z`, `145040Z`; Neon `145000Z`,
   `145830Z`; Fable `215209Z`: agreed by all three). Two binaries with the same sha256 are never compared: the
   verdict is `identical_binary` and no effect is reported. Before the comparison ONE binary is timed against
@@ -213,8 +234,17 @@ choose among those outcomes.
   to C4, the three lags with the oldest unacknowledged piece, the trailing hour's rate AND the cumulative rate,
   the needed rate, set-aside counts, failed tablebase probes, the share of equal games, free room above the
   floors on both machines.
-- Any conflict of two complete records under one identity, any content failure, any failed tablebase probe:
-  that piece or range is set aside whole, counted, never credited; production goes on.
+- **[2.4]** (Astra `151735Z`: this bullet said "set aside whole" for every case; `FORMATS.md` 0.1, 2.2 and 2.3
+  distinguish the cases, and they bind.) Bytes that cannot be rebuilt, a bad binding, or a seal that does not
+  describe its piece refuse the WHOLE piece. A record that is sound in its bytes is judged by itself for C2: a
+  game whose meaning fails is set aside and named, the other games of its piece count. A failed required LOCAL
+  probe (a table file, the staging volume) leaves the round pending for a retry with the identical inputs. A
+  conflict of two complete records under one identity stops both pieces' credit for that id (A26 decides). A
+  game that stays defective is a named deficit of its round, and a partial round earns zero C4 even when some
+  of its games passed C2. Production goes on in every one of these cases. Her fixture for the home reader:
+  three genuine games, the middle one with a sent line one opening move short under a valid binding (piece
+  sha256 `f9a36d17...`): the piece is read, that one game set aside, 198 of 345 rows pass the rules; the same
+  fault under the old binding refuses the whole piece.
 
 ### 6.3 The last hour
 - From D - g no new game; at D no search (D5). The last pieces are sealed; each slot writes its final seal; the
@@ -264,7 +294,7 @@ test fails without the guard, on the real script, in the rehearsal.
 | 29 | The PC's disk runs short; two paths on one volume | F26, NF-21, A-2 | D8 | two folders on one volume | not built |
 | 30 | The server is not the server; a secret leaks | F27, F28, NF-31 | a pinned host key, never a "continue?"; nothing secret on the server, on this branch or in a chat | a changed host key | not built |
 | 31 | Checking is slower than producing | F29, NF-25, A-9 | D8, D13, the three lags | replay frozen for ten minutes | not built; M2 and M3 not measured |
-| 32 | A game fails its check in hour 9 | F30, NF-20 | the piece set aside whole with the reason, counted, asked for again; production goes on | P7's piece | partly: asked for again (P5 to P7); set-aside counts and the hourly line are not built |
+| 32 | A game fails its check in hour 9 | F30, NF-20 | **[2.4]** as 6.2 now says: the GAME set aside by itself and named when its record is sound and its meaning is not; the whole piece refused and asked for again when its bytes, a binding or its seal fail; counted; production goes on | P7's piece | partly: asked for again (P5 to P7); set-aside counts and the hourly line are not built |
 | 33 | Arrival order decides; two complete records under one identity disagree | F31, NF-22, A-7 | A26 of the first debate: a fixed rule in the home program, tested with all orders | 120 orders of five pieces; +19 against +42 | not built (the receiver changes for it) |
 | 34 | The PC's result corrections are skipped; a tablebase probe fails; no game is ever rescored | F32, NF-23 | the home step calls the loop's OWN function; it stops when the tables do not open; zero rescored in 10,000 games is an alarm (about 76 expected, Neon) | tables taken away | built: the round-text test, 10 checks; the alarm is not built |
 | 35 | The totals do not add up; kinds of credit are mixed | F34, A-8 | section 2: five counts, reconciled in the last hour | C0 and C2 equal in rows while one empty reservation or one range seal is missing; one real after-game correction; one receipt delivered twice: the missing identity stays visible, C3 counts the correction with its reason, C4 only durable kept rows, the repeat adds zero, and completion FAILS although the row totals agree; one ledger total changed by 1 makes the reconciler end with an error (Astra `130946Z`, Neon `131430Z`) | not built (today's receiver knows "credited" only) |
@@ -289,18 +319,18 @@ superseded and launches nothing):
 |---|---|---|
 | `run/engine_lines.py` (the table of every line the engine may write) | written, tested | three YES (`a82eb9c8...`) |
 | `run/uciproc.py` (the engine process wrapper) | written; 61 checks, the version before fails 5 of them | three YES (`7de2728a...`) |
-| `tests/test_uciproc.py` | 61 of 61 in 3 of 3 runs on the PC and in Astra's three native runs | YES Astra, Fable; Neon asked (`690b3243...`) |
-| `run/record.py` (the record of 0.1, binding 2) and `tests/test_record.py` | written; 29 checks on Astra's 23 vectors; this morning's module fails all 24 module checks; Astra ran 288 native games through it | YES Astra, Fable; Neon asked (`bc71fa89...`, `a8e16021...`) |
-| `run/worker.py` and its test | written by Opus to `FORMATS.md` 2.2 and the 2.3 readings; his count: 105 of 105 on the three-YES wrapper, this morning's worker 27 of 77; one repair in work (1.4, "the cut leaves its evidence"); then Fable's line-by-line read | not published yet |
-| `run/packer.py` and its test | being written by Opus (the offer's `.zz` last, the control files' `.zz`) | not published yet |
+| `tests/test_uciproc.py` | 61 of 61 in 3 of 3 runs on the PC and in Astra's three native runs | **[2.4]** three YES (`690b3243...`; Neon `151130Z`: three native runs 61 of 61, the wrapper before it 56 of 61) |
+| `run/record.py` (the record of 0.1, binding 2) and `tests/test_record.py` | written; 29 checks on Astra's 23 vectors; this morning's module fails all 24 module checks; Astra ran 288 native games through it | **[2.4]** three YES on each (`bc71fa89...`, `a8e16021...`; Neon `151130Z`: 29 of 29, and eight changes planted in the module all caught by the test) |
+| `run/worker.py` and its test | written by Opus to `FORMATS.md` 2.2 and the 2.3 readings. **[2.4]** Fable read all 1,057 lines (bytes `bad2972b...`): NOT YET. `FORMATS.md` 2.4 changes what it must write (the sixth state, the `RESUME` rule at a second start, the interval), and the read found one fault (a date that does not exist is accepted as a time). No way was found for it to credit a game it should not. Its author changes it now; then Fable reads the changed parts and the test and runs the test | not published yet |
+| `run/packer.py` and its test | **[2.4]** written by Opus (his count: one run, 68 of 68, on the voted record module and wrapper and the official converter; his full run both ways is owed); not yet read by Fable | not published yet |
 | `tools/budget.py` | written by Opus; the four boundary cases above still to be run against it | not published yet |
 | home reader (a1, a2 with the rules replay, b), home guard | NOT WRITTEN in version 2 | - |
 | server guard with start at boot, boot guard, finalizer, launcher, fetch with a pinned host key, terminal inventory | NOT WRITTEN in version 2 | - |
 | machine check and Linux build for the package | NOT WRITTEN for the package; `ref/neon` holds an independent reference of both (Astra ran its tests natively), not yet read line by line on the PC | - |
 | full rehearsal at home (cable pulled, program killed, disk full, PC restarted) | NOT DONE | - |
 
-**What this means, said plainly:** five files of the package have their bytes fixed, two of them with three
-YES. The worker and the packer exist on the PC and are not through their reads. The home side, the guards and
+**What this means, said plainly:** **[2.4]** five files of the package have three YES on their exact bytes (the
+table of engine lines, the engine wrapper and its test, the record module and its test). The worker and the packer exist on the PC and are not through their reads. The home side, the guards and
 the launcher of version 2 are not written. No machine is rented before all of them exist, have three YES, and
 have passed a full rehearsal. The table below is this morning's state (version 1), kept for the record.
 
