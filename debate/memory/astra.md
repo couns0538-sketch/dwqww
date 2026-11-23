@@ -9,8 +9,8 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T12:27:28Z
-- Phase: 4 addendum
+- Last update: 2026-11-23T12:33:06Z
+- Phase: DONE
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
 - [x] debate/README.md
@@ -60,7 +60,7 @@ Fable’s seventh addendum (f4dcaef1bd0a8c30e3a21d5313f425aeb578105e, 185427Z) a
 
 - Current checks: A16 stable identity and exactly-once match credit, A17 source-game diversity in each training batch, N17 verify the requested net actually evaluated, A18 cold setting-liveness tests with a positive control, A20 fresh reader ordering on every pass, A22 catch one replayed pass even after resume, A23 bind the actual opening and return to the scheduled game, N23 distinguish shallow SEE plateaus and depth censoring before resetting knobs, A24 verify final gathered features/head/targets belong to the same source row, A26 canonical home output across out-of-order arrivals and restarts.
 - For later: A19 generation-cost-matched deeper labels versus more rows, N18 multithread safety and scaling, N19 real-clock policy including forced moves, N20 a stronger opening suite/external referee bridge, N21 safe larger or deeper networks, A21 independent second training seed, N22 deep-search retuning after measured changes with a promoted net, A25 root-only KBN conversion after a promoted net proves there is still sufficient exposure and failure.
-- A24 Astra 100437Z/104027Z, Neon 103953Z, joint 104059Z. A26 Astra 112803Z/113105Z/113741Z/114050Z, Neon 114741Z, joint 114850Z. A25 Astra 112653Z, Neon 115033Z, joint 115134Z. All 18 have both recorded votes. A19 supplementary result Astra 105542Z, Neon 110117Z, joint 110211Z, incorporated. The later A25 supplementary result has both votes (Astra 120137Z and 121859Z; Neon 121724Z section 3; joint 121859Z). At Fable’s 191718Z closing message he was still waiting for that joint message, and it arrived afterwards. Verify the latest shared plan before calling the A25 note incorporated. It adds no item.
+- A24 Astra 100437Z/104027Z, Neon 103953Z, joint 104059Z. A26 Astra 112803Z/113105Z/113741Z/114050Z, Neon 114741Z, joint 114850Z. A25 Astra 112653Z, Neon 115033Z, joint 115134Z. All 18 have both recorded votes. A19 supplementary result Astra 105542Z, Neon 110117Z, joint 110211Z, incorporated. The later A25 supplementary result has both votes (Astra 120137Z and 121859Z; Neon 121724Z section 3; joint 121859Z). The supplementary A25 evidence note has both votes and was sent to Fable in 121859Z. At this check Fable’s shared A25 entry still contains its seventh-batch evidence. The two votes cover the second cohort’s missed 18-of-20 exposure gate and the separately timed controls. Incorporation of this note is pending. The eighteen-item count and the stronger-net trigger stand.
 
 ## Evidence and limits
 
@@ -69,11 +69,15 @@ Fable’s seventh addendum (f4dcaef1bd0a8c30e3a21d5313f425aeb578105e, 185427Z) a
 - A19: 8k labels gave 3.40% lower numeric error against independent SF500k on 2,902 positions but yielded 74.22% fewer rows per generation CPU-second. Two small 128-wide trained comparisons favored more 2k positions. Two 768-wide short matched games series at 250k did not separate the recipes. Equal-cost quarter relabeling, averaging previous depths and reflected 2k labels failed their bars. Keep 2k until a bigger true training/playing test. Neon’s optimized AVX2-only fusion yielded +1.098% on r67 and +0.819% on H1024 against a 3% bar. Both timing ledgers (1,440 rows) independently recounted. Eligible NNUE pair-path calls on the same 60 inputs were 68.58% in W5 selfgames, 83.97% in 1M cold opening probes.
 - A25: Original 8,192 current-net games produced 31 certified first wins. Exact root attack converted 31 against exact delay. Stock 250k/1M/4M converted 7/8/13; table-free geometry 28/30 at 250k/1M. Three former geometry failures succeeded in the 4M targeted subset, but a separate 250k geometry win drew at 1M. On the 31-root three-arm actual-clock check, stock/corner/exact mated 14/31/31 at 10+0.1 and 15/31/31 at 1+0.1, zero flags (122425Z).
 - Independent 8,192-game cohort: only 18 certified first wins, below the fixed minimum 20; overall replication failed and cohorts remain separate. At 250k exact/stock =18/4; at 10+0.1 exact/stock =18/8. In a new three-arm comparison on those same 18, stock/corner/exact=11/18/18. The real-clock native baselines changed outcomes on 13/31 in the original three schedules and 5/18 in the new two. Separate defense-only exact play saved 11 draws at the long bank but lost three stock draws, failing its no-regressions gate. The 31+18 raw producer games credited draws in 21 and 14 respectively; Fable says the PC already postgame-rescores many bare-king draws as wins. These are not 35 wrong PC labels. No global DeadMaterial, training-label, production or Elo claim.
-- Fable independently replayed 93 first-cohort fixed games and 7,240 plies on the PC; Neon independently verified the deeper 62 games, second-cohort fixed/clock records, geometry and registered confidence intervals. Other real studies and every vote are in Astra’s six-hour summary.
+- Fable independently replayed 93 first-cohort fixed games and 7,240 plies on the PC; Neon independently verified the deeper 62 games, second-cohort fixed/clock records, geometry and registered confidence intervals. Neon’s closing 123010Z also independently replayed 348 late continuations, 21,698 plies and the per-root repeatability audit. Other studies and every vote are in Astra’s six-hour summary.
 
 ## Next owner-started session
 
 The source draft is **debate/server_day/DRAFT_from_the_PC.md**. The planned deliverable is **debate/server_day/SETUP_PLAN.md**. Each seat first writes its own list of failure, detection and automated reaction before reading peers. The owner wants all three to review and approve each script. No scripts have yet been approved by this debate. Candidate EPYC 8534P, 64 cores/128 threads, 576 GB, two 3.84 TB drives; substitute host possible. Verify actual host and measured end-to-end kept throughput. Of 24 total hours, 23 cover setup+production and at least one is reserved for final receipts and return. Exact two-billion goal needs 24,155 verified kept rows/s with 23 hours or 26,456/s with two setup hours. Keep output packed at home (about 9.2 GB estimated), because expanded round text is about 186 GiB, and expand one training window at a time. At home run the PC’s true row corrections and fixed canonical filter. Keep a single known exact-byte W5 checksum as a first-hour fixture. No provider action in this research session.
 
+## Close
+
+All registered calculations and timed panels for this session are complete and published. All formal proposals have been adjudicated. The original three ballots and the two extension votes for each of the 18 addendum entries are in the issued plan and six-hour summary. The final task is to post that summary as Astra’s last timestamped final Markdown, verify the remote bytes, and tell the owner.
+
 ## Last shared commit read
-210b90644a43 in shared-branch Git order.
+db234d6a04e2 in shared-branch Git order.
