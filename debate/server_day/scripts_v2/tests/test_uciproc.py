@@ -251,6 +251,42 @@ def standin(mode, lines=None, got=None):
         subprocess.Popen = real
 
 
+class Tap:
+    """A recorder on the PARENT's side of the engine's input: every byte the wrapper really wrote. What the
+    stand-in writes down is what the CHILD read, and a child that is ended may not have read what was already in
+    its pipe (Astra `145524Z`: 14 of 50 runs); "nothing more was sent" is therefore judged here, on the parent."""
+
+    def __init__(self, f):
+        self.f, self.data = f, b""
+
+    def write(self, b):
+        self.data += bytes(b)
+        return self.f.write(b)
+
+    def flush(self):
+        return self.f.flush()
+
+    def close(self):
+        return self.f.close()
+
+
+def tapped(e) -> Tap:
+    e.p.stdin = Tap(e.p.stdin)
+    return e.p.stdin
+
+
+def received(got, want: bytes, secs: float = 5.0) -> bool:
+    """True once the stand-in's receipt file holds exactly `want`, waited for (bounded) BEFORE the stand-in is
+    ended: the child had its chance to read what had gone out."""
+    end = time.monotonic() + secs
+    while True:
+        if got.exists() and got.read_bytes() == want:
+            return True
+        if time.monotonic() >= end:
+            return False
+        time.sleep(0.02)
+
+
 def outcome(fn, give_up):
     """(seconds, the exception's class name or 'returned' or 'STILL WAITING', its text) of fn."""
     box = queue.Queue()
@@ -687,6 +723,7 @@ check(f"L21 the stand-in: each of {len(calls)} calls with an unusable argument r
 # ---------------------------------------------------------------- L22: a retired object is never given new work
 got = WORK / "got_l22.bin"
 e = standin("slow", got=got)
+tap = tapped(e)
 tries = []
 try:
     e.ready(10)
@@ -702,16 +739,17 @@ try:
         s, how, _text = outcome(fn, 8.0)
         if how != "EngineError" or s > 1.0:
             tries.append((name, how, round(s, 2)))
+    seen = received(got, b"isready\ngo\n")
     code = e.quit(5)
     time.sleep(0.3)
     ended = e.p.poll() is not None
 finally:
     e.kill()
-arrived = got.read_bytes() if got.exists() else b"(no file)"
 check("L22 after a timeout the object is retired: send(), command(), ready(), uci_options() and run() each raise at once, quit() "
-      "ends the process without writing (it returns None), and the engine received `isready`, `go` and not one byte more",
-      first[1] == "EngineTimeout" and not tries and code is None and ended and arrived == b"isready\ngo\n",
-      (first[1], tries, code, ended, arrived[:120]))
+      "ends the process without writing (it returns None), and the wrapper wrote `isready`, `go` and not one byte more (judged "
+      "on the parent's own writes; the stand-in had read both)",
+      first[1] == "EngineTimeout" and not tries and code is None and ended and tap.data == b"isready\ngo\n" and seen,
+      (first[1], tries, code, ended, tap.data[:120], seen))
 e = standin("deaf")
 try:
     e.ready(10)
@@ -734,6 +772,7 @@ check("L22 a write that the system refuses (the engine closed its input) retires
 # ---------------------------------------------------------------- L23: no line is taken that nobody asked for
 got = WORK / "got_l23.bin"
 e = standin("extra", got=got)
+tap = tapped(e)
 try:
     e.ready(10)
     e.send("go")
@@ -743,11 +782,10 @@ try:
     more = outcome(lambda: e.ready(5), 8.0)
 finally:
     e.kill()
-arrived = got.read_bytes() if got.exists() else b"(no file)"
 check("L23 a second `bestmove` after the answer: the next command is refused BEFORE it is sent, the object is retired, and the "
-      "engine received `isready`, `go` and nothing else",
+      "wrapper wrote `isready`, `go` and nothing else (judged on the parent's own writes)",
       first[1] == "returned" and again[1] == "EngineError" and "no command had asked for" in again[2] and more[1] == "EngineError"
-      and arrived == b"isready\ngo\n", (first[1], again[1], again[2][:100], more[1], arrived[:120]))
+      and tap.data == b"isready\ngo\n", (first[1], again[1], again[2][:100], more[1], tap.data[:120]))
 e = standin("say", [])
 try:
     e.ready(10)
@@ -829,39 +867,39 @@ slips = []
 for at, want in ((3, b"isready\n"), (4, b"isready\nposition startpos\n"), (5, b"isready\nposition startpos\nisready\n")):
     got = WORK / f"got_l25_{at}.bin"
     e = standin("say", [], got=got)
+    tap = tapped(e)
     e.log = FullDisk(at)
     try:
         e.ready(10)
         first = tried(lambda: e.command("position startpos", 10))
         nxt = tried(lambda: e.command("go perft 1", 10))
         one_more = tried(lambda: e.send("stop"))
+        wrote = tap.data                     # the PARENT's writes so far: nothing of the three failed calls beyond `want`
+        seen = received(got, want)           # the child reads what had gone out, waited for BEFORE it is ended
         code = e.quit(5)
-        time.sleep(0.3)
     finally:
         e.kill()
-    arrived = got.read_bytes() if got.exists() else b"(no file)"
     if not (first[0] == "EngineLogError" and nxt[0] == "EngineError" and one_more[0] == "EngineError" and code is None
-            and arrived == want):
-        slips.append((at, first[0], nxt[0], one_more[0], code, arrived[:80]))
+            and wrote == want and tap.data == want and seen):
+        slips.append((at, first[0], nxt[0], one_more[0], code, wrote[:80], tap.data[:80], seen))
 check("L25 the stand-in, the transcript failing at its third, fourth and fifth line (before a command, between the command and "
-      "its end mark, inside the answer): each time EngineLogError, every later call refused, and the engine received exactly "
-      "what had gone out before the failure and not one byte more", not slips, slips)
-got = WORK / "got_l25_test.bin"
-e = standin("ten", got=got)
+      "its end mark, inside the answer): each time EngineLogError, every later call refused, and the wrapper wrote exactly "
+      "what had gone out before the failure and not one byte more (judged on the parent's own writes, also after quit(); the "
+      "stand-in's receipt of exactly those bytes is waited for before it is ended)", not slips, slips)
+e = standin("ten")
+tap = tapped(e)
 try:
     e.ready(10)
     run = getattr(e, "run", None)
     first = tried(lambda: run("go", lambda s: 1 // 0, 5)) if run else ("no such call", "")
     nxt = tried(lambda: e.ready(5))
     e.quit(5)
-    time.sleep(0.3)
 finally:
     e.kill()
-arrived = got.read_bytes() if got.exists() else b"(no file)"
 check("L25 an ending test that raises inside an answer: an EngineError that names it (not the test's own error passed "
-      "through), the object retired, nothing sent afterwards",
-      first[0] == "EngineError" and "ZeroDivisionError" in str(first[1]) and nxt[0] == "EngineError" and arrived == b"isready\ngo\n",
-      (first[0], str(first[1])[:100], nxt[0], arrived[:80]))
+      "through), the object retired, nothing written afterwards (the parent's own writes are `isready`, `go`)",
+      first[0] == "EngineError" and "ZeroDivisionError" in str(first[1]) and nxt[0] == "EngineError" and tap.data == b"isready\ngo\n",
+      (first[0], str(first[1])[:100], nxt[0], tap.data[:80]))
 
 bad = [n for n, ok in results if not ok]
 print(f"\n{len(results) - len(bad)} of {len(results)} checks pass")
