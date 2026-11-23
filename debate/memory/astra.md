@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T04:09:48Z
+- Last update: 2026-11-23T04:19:31Z
 - Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -54,19 +54,19 @@ The active Hash option changes the live searcher while bench constructs its own 
 
 ## My proposals and their status
 
-- A1: compact data transport, full-round row equality and planted terminal-move mutation. Neon reproduced my unplayed-move fixture. I accepted Neon's coverage of mate/eval cutoffs and game-relative ply. Await the board decision.
-- A2: measured end-to-end disk feeder with actual storage, row coverage and throughput. Neon independently recomputed the rates. I accepted a test of cross-round mixing with a chronological-reader negative control. Await the board.
-- A3: count receiver-verified eligible rows over available paid time. Neon checked the arithmetic. Preserve raw compact chunks and versioned keep flags within actual storage and transfer capacity. Await the board.
-- A4: compare the current LmrDeeperShallower code to the old measured patch before P7. Neon agrees. Include both re-search suppression and propagation of the changed depth to the PV call. `source/src/search.cpp:2430–2452`.
-- A5: scope the breadth result to rounds 29–78 versus 54–78. Separate win, loss and uncertainty, and handle unrepresented strata explicitly. Neon agrees. A stride-only follow-up must share rounds and per-round quotas.
+- A1 ACCEPTED. The PC compared 16,005,930 ordered rows, every move/ply/result/FEN, 15,255,460 observable scores. Negative control found the planted move at row 167. Unmasked score oracle, per-ending counts, Linux converter, transport and retry remain rehearsal checks.
+- A2 TO MEASURE AFTER THE DEBATE. Existing trainer parses text once; current secondary disk can fit the 88 GB decoded store. Measure the cold end-to-end path against 4.445 million presentations/s and verify row coverage and cross-round mixing.
+- A3 ACCEPTED. Count each delivered logical piece once. Use the reference round partition for the existing duplicate filter regardless of transport chunk boundaries, and report cross-piece repeat estimates separately. This answers Fable's open question.
+- A4 ACCEPTED. Fable compared the earlier rule to the existing LmrDeeperShallower arm. Astra then independently reproduced the declared 595569 bench-13 nodes with the switch on. Switch off was 616966. This supports equivalence checks, with the strength test still due post-P1.
+- A5 ACCEPTED. Apply win/loss/inconclusive to the specific breadth mixture. A stride-only follow-up would keep the same rounds and per-round quotas.
 
 ## What I still owe (questions to me that have no answer yet)
 
-I replied to N1–N9. Neon accepted the corrected three-way/overlap treatment for N5, plus a fresh confirmation of the selected candidate. N8 addresses persistent work IDs and independent trainer/export parity; N9 records the current teacher before any matched ablation. N1–N4 refinements were acknowledged by Neon. On N5 I dissent from declaring a ceiling when a single candidate's interval crosses zero and its point estimate is ≤+3. An upper confidence bound below a predeclared practical margin supports only a candidate-specific flat verdict. I support N6's targeted tests and N7 as a conditional, predeclared search experiment. I also clarified that the engine's format checksum and the net file SHA-256 identify different things. No open direct question known. The item-by-item final remains due.
+I replied to N1–N9. Neon accepted the corrected three-way/overlap treatment for N5, plus a fresh confirmation of the selected candidate. N8 addresses persistent work IDs and independent trainer/export parity; N9 records the current teacher before any matched ablation. N1–N4 refinements were acknowledged by Neon. On N5 I dissent from declaring a ceiling when a single candidate's interval crosses zero and its point estimate is ≤+3. An upper confidence bound below a predeclared practical margin supports only a candidate-specific flat verdict. I support N6's targeted tests and N7 as a conditional, predeclared search experiment. I also clarified that the engine's format checksum and the net file SHA-256 identify different things. All three are READY. F1 has received Astra's reply: use the paired [−3,0] noninferiority SPRT, require calibrated handling at its cap or call that inconclusive, use runner controls as smoke tests, and measure time. I corrected the unpaired diffusion midpoint estimate to about 76,800 uncapped games under the stated assumptions. The new hypothetical cut-at-1000 arm of N4 must drop the crossing row and suffix, relabel the prefix and re-filter. No open direct question known. The item-by-item final remains due.
 
 ## My next step
 
 Continue watching Fable and Neon on the shared branch, review each new proposal immediately, check measured results, and audit the eventual ordered final plan against the agreed tests. Astra publishes only on its authorized fallback branch.
 
 ## Last shared commit read
-f84ff57be57f in shared-branch Git order.
+bb858e893ad9 in shared-branch Git order.
