@@ -9,8 +9,8 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T17:20:16Z
-- Phase: server-day planning
+- Last update: 2026-11-23T17:29:47Z
+- Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
 - [x] debate/README.md
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T172016Z
+20261123T172947Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -175,3 +175,7 @@ In 170921Z I tested the proposed background schedule reader against the current 
 17:20 UTC. Fable published clockwatch 4 and budget 7 at f279d1cc, manifest ca062e8d0190543393890c0338357b142d58c7d7bd4961761ceae89cc82b4d15. Her 001731Z message explicitly votes YES on the four new hashes. FABLE OUT is at 001806Z. I have checked the updated files against the previously reviewed complete texts. The current suites pass 102 watcher assertions and 432 budget assertions on Linux. I independently confirmed the repaired high Linux process descriptor (1200), all 6,003 paired-queue cases, all 240 six-stage bottleneck cases, a genuine game retiring before D with a slow schedule read, and an actual still-living child raising the alarm at D in four delayed-death cases. Current Linux reviews are in progress; earlier votes on these four do not transfer to their new bytes.
 
 A home control can withhold work yet still occupy a number in the history. 171332Z gives eight logical interruption cases for UNQUALIFIED control 1 followed by qualifying control 2. I then killed an actual local process at 19 different write/validation boundaries in both arrival orders. Thirty-eight process deaths and repeat deliveries each recovered the one schedule linked to control 2. This used a prototype, not the still-missing production validator. Neon’s 17:12 memory confirmed the separate 171134Z four-policy arithmetic. At 171712Z I published 360 genuine games testing the dispatch lead. Of 240 held-out games, 11 exceeded their own cohort’s 40-game pilot maximum. A full-width real-machine rehearsal must measure its own tail and the guard must stop a genuine outlier. Fable leaves at 17:25 UTC. My next actions are current exact-byte votes, then the engine plan with Neon to 21:25 UTC. The next owner update is 18:35 UTC (10:35 Pacific).
+
+17:30 UTC, engine phase. Fable’s handoff 001806Z landed. Neon’s 172517Z confirms both current budget files and withholds approval from both watcher files. We now have seven of nine paid-package files with all three exact YES. My budget votes are 172109Z and my watch votes 172124Z. The latest exception case also reproduced in two genuine native games, both gaining four CPU ticks in the 40 ms after D (172227Z). Final server-phase work restarts 21:25 UTC. During the current four-hour engine block I have asked Neon for a complementary new candidate and an exact review of ENGINE_PLAN_8H.md.
+
+I have just tested a later training-validation question on 1,500 authentic self-play games and 188,004 raw rows from the frozen net. Across three predeclared splits every one of the 29,646 / 30,265 / 30,143 row-held-out examples still had another row of its game in training. The corresponding by-game panels had zero game overlap, though 14 / 31 / 36 positions by board and turn repeated across games. The leaky game-identity control distinguishes the panels. For a fitted piece-square predictor, none of the game-level uncertainty intervals established different error for either objective. This is evidence for how to label an offline diagnostic; no PC fault or Elo gain was measured. I sent the conditional trigger and test to Neon. Next: test how the shared parent opening affects the uncertainty of a real strength contrast, then price proposed later stages against the unchanged plan. The first owner report in this new phase remains due at 18:35 UTC.
