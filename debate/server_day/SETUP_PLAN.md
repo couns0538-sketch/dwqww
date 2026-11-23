@@ -1,11 +1,18 @@
 # SETUP_PLAN.md: the plan for the server day
 
-Editor: Fable. **Version 2.5**, written at 2026-11-23T22:51:11Z (Fable's clock). **2.5 changes ONE decision, D4's last row,**
+Editor: Fable. **Version 2.6**, written at 2026-11-23T23:09:55Z (Fable's clock). 2.5 (sha256 `cd63421b...`) is agreed by all three
+(Astra `155309Z`, Neon `155330Z`). **2.6 changes three places, each by CHANGE votes of both seats:** what a
+progress line reports as waiting work (section 2 and 6.2: a difference of two counts is not a queue; `155631Z`,
+`155704Z`, `155820Z`); D5's hard stop INSIDE a game (an entry below the decision table; the rule itself is
+`FORMATS.md` 2.8, section 1.8; `155748Z`, `160117Z`, `160345Z`, `160439Z`); and how home's decision on the pilot
+reaches the server (an entry below the table and step 6 of the first hour; `160610Z`, `160655Z`). Section 8
+follows. Each place is marked **[2.6]**; every other byte is 2.5's. **PROPOSED: your votes on these exact
+bytes, please.**
+Version 2.5 was written at 2026-11-23T22:51:11Z (Fable's clock). **2.5 changed ONE decision, D4's last row,**
 by the vote `D4-surplus-above-the-margin` (my question `224736Z`; AGREE Astra `154854Z`, AGREE Neon `154910Z`):
 the match queue may use only the surplus ABOVE the owner's margin, so the margin stays as self-play's reserve.
 The boundary entry under the table and O1 follow it, and section 8 gets the budget tool's state; each place is
-marked **[2.5]**. Every other byte is 2.4's (sha256 `be886e29...`, agreed by all three). **PROPOSED: your votes
-on these exact bytes, please.**
+marked **[2.5]**. Every other byte is 2.4's (sha256 `be886e29...`, agreed by all three).
 Version 2.4 was written at 2026-11-23T22:23:59Z (Fable's clock). **2.4 changed no decision's text.** 2.3
 (sha256 `cff7c298...`) has AGREE from Astra (`150955Z`) and from Neon (`151130Z`). 2.4 brings two older summary
 lines into line with the agreed `FORMATS.md` (Astra `151735Z`: the C1 row of section 2, the last bullet of 6.2,
@@ -63,8 +70,21 @@ home:    stage a1  fetch -> CUSTODY: size, sha256 and chain hold; a durable rece
 | C3 corrected | games rescored by the PC's after-game step, by reason | the label is the PC's label |
 | C4 kept | rows in durable packed round output after the filter | **the only count that is credit toward 2 billion** |
 
-Every progress line and every decision names which count it uses, and the lags C0-C1, C1-C2, C2-C4 are
-reported apart.
+Every progress line and every decision names which count it uses. **[2.6]** (Astra `155631Z`, Neon `155820Z`) The
+counts stay as they are, but a difference of two counts is NOT the work that waits: C2 counts verified RAW rows
+and C4 KEPT rows after the filter's intended removals. The PC's round 142 has 16,007,134 raw and 15,258,168
+kept rows: when it is fully processed nothing waits, and C2 - C4 still reads 748,966 (about 100 million phantom
+rows at the day's scale); a piece set aside for good would stay in C1 - C2 for ever. What waits is reported for
+each transition (server to custody, custody to content, content to stage b) as the identities not yet
+processed, their amount in that transition's own INPUT unit, and the oldest outstanding identity with its time
+(absent when nothing waits). For stage b that is the raw C2 rows of eligible games whose round has no stage-b
+disposition yet. Rows the filter removed, duplicates excluded and permanent deficits are counters of their own,
+never a queue. Only what waits enters a time to drain, the reconnect margin and D13's forecast; what the
+server holds beyond home's last observation stays "unknown beyond". One progress line reads all its counts as
+of one short consistent snapshot. A stage's rate is the INPUT it examined a second (Astra `155704Z`: for the
+correction stage the games and raw rows examined, changed or not; labels changed are counted apart for the
+10,000-game alarm), turned into kept rows with the kept share of the same complete cohort before it is
+compared with C4 (D3). The fields: `FORMATS.md` 2.4.
 
 ## 3. Decisions
 
@@ -134,6 +154,29 @@ reported apart.
   comparator's record of a game carries whether the opening loop COMPLETED, beside its move list; its two
   required cases: root seed `edge3146` (mate at ply 7: nothing is sent, `sent none`, `openingend plies 7 reason
   nomoves`) and `edge4013` (mate exactly at ply 8: the game command IS sent, zero rows).
+- **[2.6] D5, the hard stop holds inside a game** (Astra `155748Z`, `160117Z`; Neon `155820Z`). The last hour is
+  checks only, so "at D any search still running is ended" is enforced on the NATIVE engine process also
+  while its worker is blocked in a wait: the owner of that process keeps a watch beside every engine wait and
+  ends the process group so that it is gone AT D by the earliest of the three clocks, and at once in a clock
+  hold (`FORMATS.md` 2.8, section 1.8 point 1). The approved driver's bytes do not change (Astra's Linux trial:
+  the unchanged driver returned its error in 12 of 12 interrupted games, the worker stayed alive to write the
+  reason, and a retried id gave its 292 rows back byte for byte). The stop allowance is measured in the
+  rehearsal on the real platform and belongs to what D5 reserves before D. A worker that reads the clocks only
+  between games is NOT enough for the operational path: it could search up to its game limit (600 seconds)
+  into the last hour, and throwing that game away does not give the time back. A worker that DIES leaves its
+  engine searching, which no watch inside it can stop: the server guard owns every worker's process group and
+  ends it so that it is gone at D (Astra `160235Z`); the guard is not written, and a paid day needs it.
+- **[2.6] D3 and D4 are decided AT HOME, and the decision reaches the server by ONE narrow control record**
+  (Astra `160610Z`, Neon `160655Z`). The pilot's verdict rests on home's durable kept rows, which the server
+  cannot see: two servers with identical bytes differ when home lost a table after the same fetch. Home runs
+  the budget tool on its own evidence, stores the result and sends one immutable, compressed control record
+  over the connection it opens itself. The server guard checks the run, the sequence and predecessor, the
+  evidence, the owner's policy and that no bound moves later; it then creates the schedule, and only then do
+  workers leave the pilot ranges (`FORMATS.md` 2.8, sections 0 and 1.2). The same record again changes
+  nothing; missing or differing evidence holds the change. There is still no acknowledgement of pieces, no
+  pruning instruction and no home credential on the server (D2 stands). After an accepted record a home
+  outage does not stop the self-play it authorized, inside its scope, its reserve and D; matches, a changed
+  target or any later claim that depends on home need a new record.
 - **[2.3] D3 and D4, the budget tool's boundaries** (Astra `140827Z`, `143323Z`; Neon `144130Z`). Every
   comparison is an exact inequality of integers, cross-multiplied BEFORE any rounding (rates in thousandths of
   a kept row a second). The order of the decision, each with its required case: (1) the target is already
@@ -232,13 +275,16 @@ choose among those outcomes.
    lines equal to the PC's known answers; one fixed game's sha256 under the written byte rule equal on both
    sides. Fail: stop.
 5. Pilot at the full worker count, judged by D3. Then D4.
-6. The budget table is written from the pilot: which row of D4 holds, D and D - g (D5), what fits.
+6. The budget table is written from the pilot: which row of D4 holds, D and D - g (D5), what fits. **[2.6]** It
+   is written AT HOME from home's durable evidence, and its decision reaches the server as the control record
+   (`FORMATS.md` 1.2); without an accepted record the server stays in its pilot ranges.
 
 ### 6.2 The 23 hours
 - Server: the guard keeps workers, packer and spool alive (D14, D15); one stop rule; nothing is a child of a
   login.
 - Home: stages a1, a2, b (D8). One progress line an hour, written at home also when the server is silent: C0
-  to C4, the three lags with the oldest unacknowledged piece, the trailing hour's rate AND the cumulative rate,
+  to C4, **[2.6]** what waits at each of the three transitions in its own input unit with the oldest outstanding
+  identity (section 2; never a difference of two counts), the trailing hour's rate AND the cumulative rate,
   the needed rate, set-aside counts, failed tablebase probes, the share of equal games, free room above the
   floors on both machines.
 - **[2.4]** (Astra `151735Z`: this bullet said "set aside whole" for every case; `FORMATS.md` 0.1, 2.2 and 2.3
@@ -300,7 +346,7 @@ test fails without the guard, on the real script, in the rehearsal.
 | 28 | The PC is down, asleep, or another program holds a file at a rename | F25, NF-24, A-12 | D7; the home guard; a retried rename; the programs ask Windows not to sleep while they run | the home guard's process killed; a held file | partly: a home guard exists on the PC (unread); no retry; no sleep request |
 | 29 | The PC's disk runs short; two paths on one volume | F26, NF-21, A-2 | D8 | two folders on one volume | not built |
 | 30 | The server is not the server; a secret leaks | F27, F28, NF-31 | a pinned host key, never a "continue?"; nothing secret on the server, on this branch or in a chat | a changed host key | not built |
-| 31 | Checking is slower than producing | F29, NF-25, A-9 | D8, D13, the three lags | replay frozen for ten minutes | not built; M2 and M3 not measured |
+| 31 | Checking is slower than producing | F29, NF-25, A-9 | D8, D13, **[2.6]** what waits at each transition (section 2) | replay frozen for ten minutes | not built; M2 and M3 not measured |
 | 32 | A game fails its check in hour 9 | F30, NF-20 | **[2.4]** as 6.2 now says: the GAME set aside by itself and named when its record is sound and its meaning is not; the whole piece refused and asked for again when its bytes, a binding or its seal fail; counted; production goes on | P7's piece | partly: asked for again (P5 to P7); set-aside counts and the hourly line are not built |
 | 33 | Arrival order decides; two complete records under one identity disagree | F31, NF-22, A-7 | A26 of the first debate: a fixed rule in the home program, tested with all orders | 120 orders of five pieces; +19 against +42 | not built (the receiver changes for it) |
 | 34 | The PC's result corrections are skipped; a tablebase probe fails; no game is ever rescored | F32, NF-23 | the home step calls the loop's OWN function; it stops when the tables do not open; zero rescored in 10,000 games is an alarm (about 76 expected, Neon) | tables taken away | built: the round-text test, 10 checks; the alarm is not built |
@@ -330,7 +376,8 @@ superseded and launches nothing):
 | `run/record.py` (the record of 0.1, binding 2) and `tests/test_record.py` | written; 29 checks on Astra's 23 vectors; this morning's module fails all 24 module checks; Astra ran 288 native games through it | **[2.4]** three YES on each (`bc71fa89...`, `a8e16021...`; Neon `151130Z`: 29 of 29, and eight changes planted in the module all caught by the test) |
 | `run/worker.py` and its test | written by Opus to `FORMATS.md` 2.2 and the 2.3 readings. **[2.4]** Fable read all 1,057 lines (bytes `bad2972b...`): NOT YET. `FORMATS.md` 2.4 changes what it must write (the sixth state, the `RESUME` rule at a second start, the interval), and the read found one fault (a date that does not exist is accepted as a time). No way was found for it to credit a game it should not. Its author changes it now; then Fable reads the changed parts and the test and runs the test | not published yet |
 | `run/packer.py` and its test | **[2.4]** written by Opus (his count: one run, 68 of 68, on the voted record module and wrapper and the official converter; his full run both ways is owed); not yet read by Fable | not published yet |
-| `tools/budget.py` | written by Opus; **[2.5]** read whole and run by Fable: the four boundary cases hold (224 of 224 checks, the bytes before fail 10); one input fault (row counts that are not whole numbers are accepted) and D4's new last row are being put in | not published yet |
+| `tools/budget.py` | written by Opus; **[2.5]** read whole and run by Fable: the four boundary cases hold (224 of 224 checks, the bytes before fail 10); one input fault (row counts that are not whole numbers are accepted) and D4's new last row are being put in; **[2.6]** both are in (the author's count: 278 of 278, the bytes before fail 50), Fable's read and run of the new bytes come before it is published | not published yet |
+| `run/clockwatch.py` and its test | **[2.6]** NOT WRITTEN YET: the three clocks as one function (earliest bound, the latch, the hold) and the watch beside an engine wait that ends the native process at D; Fable writes it, the worker's author builds it into the worker | not published yet |
 | home reader (a1, a2 with the rules replay, b), home guard | NOT WRITTEN in version 2 | - |
 | server guard with start at boot, boot guard, finalizer, launcher, fetch with a pinned host key, terminal inventory | NOT WRITTEN in version 2 | - |
 | machine check and Linux build for the package | NOT WRITTEN for the package; `ref/neon` holds an independent reference of both (Astra ran its tests natively), not yet read line by line on the PC | - |

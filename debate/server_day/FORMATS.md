@@ -1,12 +1,19 @@
 # FORMATS.md: every file the server day writes, field by field
 
-Editor: Fable. **Version 2.7**, written at 2026-11-23T22:41:51Z (Fable's clock): 2.6 (sha256 `4c97d083...`) has AGREE from
+Editor: Fable. **Version 2.8**, written at 2026-11-23T23:09:55Z (Fable's clock): 2.7 (sha256 `58debbd3...`) is agreed by all three
+(Astra `154359Z`, Neon `154410Z`). 2.8 changes three places, each by CHANGE votes of both seats: the bound is
+enforced INSIDE a game by a watch beside every engine wait (1.8 point 1; `155748Z`, `160117Z`, `160235Z`,
+`160345Z`, `160439Z`); a progress line reports what WAITS at each transition instead of differences of counts
+(2.4; `155631Z`, `155704Z`, `155820Z`); and ONE thing may travel to the server, the control record by which home's
+decision on the pilot creates a schedule (section 0 and 1.2; `160610Z`, `160655Z`). Section 3 gets their cases.
+Each place is marked **[2.8]**; every other byte is 2.7's.
+**PROPOSED: your votes on these exact bytes, please.**
+Version 2.7 was written at 2026-11-23T22:41:51Z (Fable's clock): 2.6 (sha256 `4c97d083...`) had AGREE from
 Neon (`153530Z`) and Astra's agreement on all of it but one more restart boundary (`153602Z`: a finalizer that
 is started again must not create an unknown id) and one precision of 1.2's schedule reading. 2.7 adds `mode`
 to the epoch line and makes the unknown id depend on an earlier `play` epoch, follows every new schedule
 before a reservation, says by which clocks D has come (Astra `153451Z`), and names a journal against the
-serial order (Neon `153430Z`), each marked **[2.7]**; every other byte is 2.6's. **PROPOSED: your votes on
-these exact bytes, please.**
+serial order (Neon `153430Z`), each marked **[2.7]**; every other byte is 2.6's.
 Version 2.6 was written at 2026-11-23T22:34:02Z (Fable's clock): 2.5 (sha256 `b3b593d2...`) has AGREE from
 Neon (`153120Z`) and Astra's agreement on all of it but ONE more boundary of 1.8 point 3 (`153133Z`: an id that
 is durably `unfinished` at D is a barrier, not something to skip). 2.6 changes that rule, adds her measured
@@ -89,7 +96,8 @@ home side to it.** Nothing here exists in code yet unless a line says so.
   none: a journal line's kind is its `t`.
 - **On the day there is ONE immutable offer for a logical piece:** after a broken connection the same saved
   bytes are copied again. Another seal at an index that has one is a FORK (2.1).
-- **Nothing travels to the server during the day.** No acknowledgement, no receipt. "Outstanding" is computed
+- **Nothing travels to the server during the day, with ONE exception [2.8]: the control record of 1.2.** No
+  acknowledgement, no receipt, no pruning instruction; no home credential is ever held on the server. "Outstanding" is computed
   at home: seals SEEN at home minus custody receipts held. What home has not seen is UNKNOWN until the terminal
   inventory arrives; no report calls it zero.
 - **The plain records stay on the server too:** `closed/p<NNNNNN>.raw` lies beside its offer for the whole
@@ -193,6 +201,29 @@ for the NEXT number and, **[2.7]** (Astra `153602Z`) while one is there, verifie
 and applies it, again until the next number is absent: only the highest valid schedule authorizes a game (with
 numbers 2 and 3 both new and 3's dispatch end already past, taking number 2 alone must not start one). A schedule whose link to
 its predecessor does not hold never authorizes work.
+**[2.8] Who may create a schedule: the control record `CONTROL.<k>.json`** (Astra `160610Z`, Neon `160655Z`). D3
+and D4 are decided from home's durable kept rows, and two servers with the same bytes on disk cannot tell
+whether home published the pilot round or lost a table after the same fetch; no rule on the server alone can
+start the day. Home sends the decision: `CONTROL.<k>.json`, k = 1, 2, ..., immutable and canonical, sent by home
+over the connection home opens itself (the server never calls home), compressed like everything that travels
+(`CONTROL.<k>.json.zz`, and the evidence file it names beside it, compressed). Fields: `schema`,
+`run_fingerprint`, `k`, `prev` (sha256 of control k - 1; for k = 1 the text `first`), `kind` (`pilot_decision`,
+`matches`, `target` or `fence`), `decision` (the row of D4 that holds, in the budget tool's words; for `matches`
+the pairs assigned), `evidence` (sha256 of the report it rests on: the budget tool's output, which names the
+pilot report), `owner_policy` (sha256 of the owner's policy file in the approved package: floor, margin,
+choice), `scope` (the highest round and the target rows that self-play may be scheduled for), `cutoff_utc`,
+`dispatch_end_utc`, `at_utc`. The server guard accepts a record only when all of this holds: canonical bytes of
+this run; k is the next number and `prev` links; the evidence file is there with that sha256; `owner_policy` is
+the package's; neither bound is later than the one in force. It then durably creates the schedule the record
+authorizes, with the record's sha256 as that schedule's `evidence`, and only then may a worker leave the pilot
+ranges. The same record sent again changes nothing (create-only, equal bytes). A record with a known k and
+other bytes, a missing or differing evidence file, a broken link or a later bound HOLDS: nothing changes, the
+guard writes an alarm, and the work already authorized goes on. Home learns of the acceptance from the schedule
+it fetches, never from a reply. A `pilot_decision` that authorizes nothing (UNQUALIFIED, STOP) creates no
+schedule: the server keeps to its pilot ranges and the day ends by the fence and D5. **What survives a home
+outage:** inside the `scope`, the room reserve and the D that an accepted record authorized, the guard extends
+the rolling schedule by itself, each such schedule naming the same control record as its `evidence`; it never
+moves D later, never starts or lengthens matches, and never changes the target without a new record.
 
 ### 1.3 Slot identity `w<NNN>/IDENTITY.json` (one record, written once by the slot's first worker)
 `schema`, `run`, `slot`, `run_fingerprint`. A worker that finds another identity, or a journal without one,
@@ -354,6 +385,38 @@ the ids of the four other states only (noselfgame, refused, unfinished, dispatch
    writer, and the failed id is `unfinished` by point 3. A bound that the steady or the boot-time clock says
    has come HAS come. That the clock is right when the anchor is taken is the guard's check (D5); nothing
    here can see a clock that is wrong from the start and stays so.
+   **[2.8] The bound holds inside a game too** (Astra `155748Z`, `160117Z`; Neon `160345Z`; joint `160439Z`). The last hour is
+   checks only (D5). The engine driver waits on the steady clock and retires its engine when a wait ends
+   early, so a worker that read the clocks only between games could let a native search run up to its game
+   limit (600 seconds) past D; throwing that game away does not give the time back. The owner of the native
+   engine process therefore keeps a WATCH beside every wait for the engine, in the same reviewed program
+   and with the driver's bytes unchanged. About every quarter of a second the watch judges the dispatch end
+   and D by the three clocks as above, with the D in force: a valid newer schedule that TIGHTENS D while
+   the game runs is taken, one that lengthens it is read at the next reservation. When D less the stop
+   allowance has come by the earliest clock, or the hold applies, the watch ends the native process (its
+   whole group), verifies that it is gone and notes its reason; the driver's wait then returns with its
+   error, and the worker, alive, records the game by that reason: `unfinished` at D; `failed` with `why`
+   "clock" in the hold, played again only by a `play` start that is admitted anew before D. The native
+   process must be gone AT D. The stop allowance is the time from the watch's decision to the process being
+   gone, measured in the rehearsal on the real platform (Astra's Linux trials read about a millisecond and
+   are no allowance for the paid machine); until it is measured it is 2 seconds, the editor's choice. A
+   watch that has fired and does not find the process gone when D comes is an alarm and exit code 8. The
+   steady cutoff the worker hands the driver is computed afresh before every wait, as now plus the least
+   time left by any clock (Neon; never once at the start, or an early suspension would shift it for good).
+   A wait that returns after the dispatch end alone has come, and before D by every clock, keeps the game's
+   normal disposition (1.8.1); nothing more is reserved. The alarm of the hold is the line `ALARM clock:
+   ...` in the slot's `worker.log`, the same line printed, and exit code 8, written after the `failed` line
+   and the piece's seal. The log names, each with the three clock readings: the watch's decision, the end
+   of the native process, and the process found gone. The watch holds a handle to the native process that a
+   reused process number cannot confuse (a pidfd on Linux, the kernel's process handle on Windows), ends
+   that process alone, and never touches the driver's pipes or its reader from its own thread (Neon
+   `160345Z`; on Linux 1.5 to 1.9 ms from the stop to the driver's return in three cases). After a wait has
+   returned the worker judges the bounds again, also when the game ended by itself in the same moment. A
+   WORKER that dies leaves its engine searching (Astra `160235Z`: two more processor ticks in 24 ms, three
+   after D), and a watch inside the worker cannot cover that: the server guard owns every worker's session
+   and process group, ends the group so that it is gone at D and verifies it, and the finalizer then reports
+   the id from the durable evidence it has (`dispatch_unknown` where that is all). That guard has a life of
+   its own and belongs to the acceptance test of a paid day.
 2. **A slot is ended only by its durable `ended` line.** Each worker seals its last piece and its range seals,
    writes `ended`, releases its lock.
 3. **A slot without that line and without a live writer** gets the seal-only FINALIZER under a new epoch: it
@@ -573,15 +636,31 @@ of every frozen input (filter code, config, net, options, the tables' list).
 
 ### 2.4 Progress `progress.jsonl` (append-only; home guard, one line an hour, also when the server is silent)
 `at_utc`, `server` ("ok", "unreachable since ..", "stale since .."), C0 as SEEN at home (with the words
-"unknown beyond"), RECEIVED, C1, C2, C3, C4, the three lags with the oldest piece of each, the rates of the
-trailing hour and since the start for the server and each home stage (integers, thousandths of a row a second),
+"unknown beyond"), RECEIVED, C1, C2, C3, C4, and **[2.8]** what WAITS at each of the three transitions (Astra
+`155631Z`, Neon `155820Z`). It is never a difference of two counts: C2 counts raw rows and C4 kept rows, so with
+the PC's round 142 fully filtered `C2 - C4` still reads 748,966 while nothing waits, and a piece that was set
+aside would stay in `C1 - C2` for ever. For server to custody, custody to content, and content to stage b each:
+the identities not yet processed (pieces; pieces and games; rounds), their amount in that transition's own
+INPUT unit (packed bytes and raw rows offered; raw rows in custody; the raw C2 rows of eligible games whose
+round has no stage-b disposition yet), and the oldest outstanding identity with its time, absent when nothing
+waits. Apart from them, as counters that are never a queue: rows the filter removed, duplicates excluded, and
+permanent deficits (games and pieces set aside for good). Only what waits enters a time to drain, the
+reconnect margin below and D13's forecast. All counts of one line are read as of ONE short consistent snapshot
+(Astra's control: a reader in autocommit saw C1 62,162 and then C2 124,253, a lag below zero), and that
+snapshot is closed before any network work or formatting (`155407Z`: one held snapshot kept 280 MB of log from
+being checkpointed). Then the rates of the trailing hour and since the start for the server and each home stage
+(integers, thousandths a second), **[2.8]** each in the stage's INPUT units successfully EXAMINED (Astra `155704Z`:
+the correction stage's rate is the games and raw rows it examined, changed or not; a stage's capacity is turned
+into kept rows with the kept share of the SAME complete cohort before it is compared with C4, D3; probes
+attempted, probes failed, games examined, labels changed by reason and durable rows are counted apart, so that
+a partial run or a missing table never reads as a fast clean stage),
 the needed rate, set-aside counts, repeats, conflicts, failed probes, games rescored in 10,000, rounds complete
 through stage b, equal games in the last 10,000, free room above the floor on every volume of both machines,
 and the row of D4 that holds. **[2.3]** Every failed attempt of stage b (2.3) is a line of its own:
 `{"t":"stage_b_attempt","round":r,"at_utc":"..","result":"failed","why":".."}`; it is never removed, and the
 round's `report.json` counts the failed attempts before the one that published it (`attempts_failed`). **The reconnect margin**: time left to the lease's end less the EARLIEST possible
 finish of what is outstanding, in two forms that are never mixed: (a) from totals, max(outstanding offered
-bytes / measured fetch rate, pending rows / measured content rate), printed with the words "impossible on this
+bytes / measured fetch rate, **[2.8]** the raw rows that wait for the content check / measured content rate), printed with the words "impossible on this
 bound" or "possibly feasible, unverified" and never as "safe"; (b) piece by piece, where measured times a
 piece exist: fetch_finish[i], then content_finish[i] = max(fetch_finish[i], content_finish[i-1]) +
 content_time[i], plus the terminal inventory. Only (b), from a rehearsal at full piece size, may say that a
@@ -635,7 +714,21 @@ unknown id, the same six counts); two new schedules at once, the second with its
 clocks: the wake is past D, no reservation, no engine start) and a wall clock set back after D (play is not
 revived); a wall clock set forward past D while the boot-time clock says there is time (the hold: the game in
 flight `failed`, the piece sealed, no `ended` line, an alarm; a `play` start after the clock is right again
-plays that id again); Astra's endgame of `151513Z` with each child table removed in turn after the preflight
+plays that id again); **[2.8]** the watch on the REAL engine in a long game (Astra `160117Z`; the witness that a
+search is active is the native process's own processor time, never a printed row, which this engine may
+hold back until its search is over): ordinary D, a wake on the same boot beyond D, and a clock hold, each
+with the native process gone at D or at the hold inside the allowance, the parent returning only after it
+and alive to write the reason, the disposition of 1.8 point 1, zero new dispatch, and for the hold a retry
+of that id after a new admission that gives its record back byte for byte; a planted watch whose stop
+does nothing (the process is found alive at D: the alarm and exit code 8, never a silent return); a worker
+killed in the middle of a search (Astra `160235Z`: the guard ends the group before D, the finalizer names
+the id); **[2.8]** the control record (Astra `160610Z`): two servers with identical bytes, home's pilot round
+published for one and its last table lost for the other (the first is scheduled, the second stays in its
+pilot ranges, both without a hand); a decision that never arrives (no schedule, no start); the acceptance
+not seen at home and the same record sent again, also across a restart of the guard (one schedule, never
+a second); home unable to finish the pilot although every member reached custody (UNQUALIFIED, nothing
+starts); a record with a known number and other bytes, or with a later D (held, the alarm, the authorized
+work goes on); Astra's endgame of `151513Z` with each child table removed in turn after the preflight
 (pending, the missing file named) and then restored by its hash (draw, ONE complete round); the close near
 the floor with 16,384,000 scheduled ids and few games played (Astra `151916Z`: every range seal, the
 compressed inventory and the footer are written and verified and the floor holds; **[2.5]** the interval form was
