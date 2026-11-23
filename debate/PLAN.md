@@ -74,15 +74,18 @@ Where this file says "not checked", nobody has checked it.
   use: the runner's transcript on one fixed position must show the soft command's known answer (nodes 5506,
   g1f3) and its hard-node mode must fail that check (nodes 1926, b2b3); a level pair and a pair with half the
   nodes are run as controls of the pipeline (two H0 in a row from level pairs = look at the harness). To build:
-  the sequential stop over the runner's pair results. If a timed run shows more than 4 hours at the cap, the
+  the sequential stop over the runner's pair results (Neon: its statistic must come from the pairs, not from
+  single games; the wrapper that exists is checked for that or replaced, on a made-up list of pair results whose
+  answer is known). If a timed run shows more than 4 hours at the cap, the
   declared fallback is -5 / 0.
 - **J11 (from the debate, N11). One rule for a search bundle** (J4, P7 and P12 named three different ones):
   (1) every switch off = equal node counts, and per switch a count of how many of 600 positions change;
   (2) SPRT between 0 and 5 at 20,000 nodes on each of two declared opening seeds; (3) 4,000 games at 250,000
-  nodes; (4) J10 before self-play uses it. The bar of stage 3 is still OPEN in the debate: "lower bound above
-  0" (Neon; a bundle truly worth +5 at depth passes 36 %) or "lower bound above -3" (Fable; +5 passes 72 %,
-  a true -3 passes 2.5 %). Both from the measured error of this depth: +/- 6.1 at 4,000 games; 4,000 games are
-  about 70 minutes with 12 at once.
+  nodes; (4) J10 before self-play uses it. The bar of stage 3 (closed in the debate, all three): the lower end
+  of the 95 % interval, taken from the opening pairs, above -3. From the measured error of this depth (+/- 6.1
+  at 4,000 games) that needs a measured +3.1; a bundle truly worth +5 passes 72 % (with "above 0": 36 %), a
+  level bundle 16 %, a true -3 passes 2.5 %. The tune's own deep match (P1) keeps its declared bar, above 0.
+  4,000 games are about 70 minutes with 12 at once.
 
 ## 3. Where the work stands
 
@@ -295,9 +298,17 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   for a search twice, inside ONE frozen producer only (same program, net, options, limits; never across
   manifests, whose games are new labels), one allocator process hands the workers their openings in batches
   (Neon) and refuses an opening it has handed out before; the PC's earlier games count only if they are the
-  same producer. THE KEY OF THAT TABLE IS OPEN in the debate: the whole FEN after the random plies (Fable:
-  stopped 16 of 16 observed copies and refused 0 of 13 distinct games) or the eight moves in order (Astra, Neon:
-  refuses no distinct game, stops about 1 copy in 100); (3) each game's eight opening moves are logged (today
+  same producer. THE KEY OF THAT TABLE (changed twice in the debate): the whole FEN after the random plies
+  TOGETHER WITH the positions since the last pawn move or capture, in order (Astra's candidate; measured by
+  Fable: section 10 of the evidence file). The whole FEN alone is not enough: Astra's two openings into the
+  start position with halfmove clock 8, one of which has repeated it three times, give 0 rows and a 127-row
+  game (reproduced on the PC; today's driver does send such an opening: it tests the draw rules before each
+  random ply, not after the last). The engine reads its game history in three functions
+  (`source/src/board.cpp` 1463 to 1487 and 1770 to 1808), each only back to the last pawn move or capture, so
+  this key is sufficient. In 300,000 draws of the opening rule it keeps 113 of 132 copies (86 %); the eight
+  moves in order keep 3 (2 %). Safeguard (Astra, Neon): refused pairs are sampled and replayed, and one replay
+  with other rows makes the table fall back to the eight moves in order; the rehearsal must hand out BOTH of
+  Astra's openings; (3) each game's eight opening moves are logged (today
   they are in no row); (4) controls (Astra): the identical request under one manifest is credited once; two
   histories or two manifests with the same position both stay eligible; a planted duplicate payload under a
   fresh delivery ID is recognised; (Neon) with 2 random plies, the table off and 200 games the receiver must
@@ -581,7 +592,8 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   it, keep the verdict (H0, 1,860 games) and mark the gate finished; the file before must fail this test.
   Repair 2: replayed on a copy of the state, round 113 must pool rounds 106 to 113 into one pool of 14,811 pairs,
   -0.53 [-2.98, +1.93], and a gate with neither all its games nor a verdict must still stop the pool.
-  A bundle is adopted only with H1 at 20,000 nodes AND a lower bound above 0 at 250,000 nodes.
+  A bundle is adopted only with H1 at 20,000 nodes AND a lower bound above 0 at 250,000 nodes. (Changed in the
+  debate: the bundle rule is J11, and its bar at 250,000 nodes is a lower bound above -3.)
 - WHAT WOULD CHANGE OUR MIND: bundles that pass at 20,000 nodes and fail at 250,000 nodes, twice in a row. Then
   shallow tests mislead for this engine and the first stage of every test moves to 250,000 nodes.
 
@@ -610,4 +622,6 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   rule (J11, its stage 3 still open), P5 as an offline pair, P6 deferred, what the paid day plays (P3b), one
   more test for repair 1 (P2). N10 (Neon): how a net of another speed is judged (P4). Astra on N8: the opening
   key corrected, its replacement still open (P3b). A6 (Astra): the wide net after the data does not wait for
-  the 768 net to win (P11 step 4, P4).
+  the 768 net to win (P11 step 4, P4). After the second hour: J11's stage 3 closed at a lower bound above -3
+  (all three); the opening key changed again after Astra's counterexample (the whole FEN plus the positions
+  since the last pawn move or capture; P3b); Neon's note on J10 (the stop's statistic comes from the pairs).

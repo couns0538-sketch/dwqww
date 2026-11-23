@@ -2,7 +2,8 @@
 
 Measured by Fable on the PC, 23 November 2026, 03:28 to 03:45 (PC clock). Tools and raw files beside this
 file: sections 1 to 5 `fable_n8_pairs.py.txt`, `fable_n8_replay.py.txt`, `fable_n8_pairs_round136.txt`;
-sections 6 to 8 name theirs. Section 9 is the summary.
+sections 6 to 8 and 10 name theirs. Section 9 is the summary; SECTION 10 (measured 03:50 to 03:55 PC clock) CHANGES ITS ANSWER: the
+whole FEN alone is not the key.
 
 ## 1. The 29 shared openings of round 136
 
@@ -141,8 +142,71 @@ Prediction written into the tool before the run: fewer than 5 differ. With secti
 |---|---|---|
 | position, 4 FEN fields (Fable's first proposal, withdrawn) | 13 of the 29 observed pairs | all 16 observed |
 | the eight opening moves in order (Astra, Neon) | none | about 1 in 100 |
-| whole FEN after the random plies | 0 of 13 observed; 0 of 130 replayed | 16 of 16 observed; 130 of 130 replayed |
+| whole FEN after the random plies (Fable's second proposal, withdrawn: section 10) | 0 of 13 observed; 0 of 130 replayed; 1 pair found by Astra | 16 of 16 observed; 130 of 130 replayed |
+| whole FEN + the positions since the last pawn move or capture, in order (Astra's candidate) | none, by the engine's code (section 10) | 113 of 132 in 300,000 draws (86 %) |
 
 Not proven: that no history can ever change the game (a later return to a position of the first eight plies
 could change a repetition verdict). Seen: 0 cases in 130. Size of what is at stake: 2.05e-9 to 2.93e-9 a pair
 = 2 to 3 % of 20 million games, which is paid search time only, because the receiver credits a game once.
+
+## 10. Astra's counterexample to the whole FEN, and the key that survives it
+
+Astra's two openings (`debate/msgs/20261123T044849Z_astra_re_n8_counterexample.md`), replayed with the loop's
+Windows program, the loop's 24 options, round 67's net and the loop's `selfgame` line (the tool of section 8;
+raw `fable_n8_astra_pair_replay.txt`):
+
+```text
+control 1, the same request twice: equal = True
+control 2, two different openings: differ = True
+DIFFER pair 0: rows 0 / 127, first different row 0;
+   end A: sgend result 0 reason rule plies 8 run 0 searches 0 nodes 0
+   end B: sgend result -1 reason evallimit plies 135 run 0 searches 128 nodes 530258
+   order A: g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8
+   order B: g1f3 g8f6 b1c3 b8c6 c3b1 c6b8 f3g1 f6g8
+   whole FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5
+```
+
+Astra is right: one whole FEN, two different games. My stated condition for withdrawing the whole-FEN key is met.
+
+**Does the production driver exclude opening A before it is sent?** No. The PC's driver (not on this branch)
+tests the draw rules (material, halfmove clock, third occurrence) BEFORE each random ply, so for the last time
+on the position after seven plies; after the eighth ply it sends the request. The engine then ends the game at
+once (`reason rule`, 0 searches, 0 rows). So opening A costs no search time, but in a whole-FEN table it would
+block opening B, a real game.
+
+**What the engine can see of an opening.** It reads its position history in three functions, and each looks
+back no further than the halfmove clock allows: `source/src/board.cpp` 1463 to 1472 (third occurrence), 1474
+to 1487 (repetition inside the search), 1770 to 1808 (a repetition one move ahead). Their callers:
+`source/src/search.cpp` 1592, 1601, 2551 to 2584, 2790, 2797 and `source/src/uci.cpp` 424 (used at 482). The
+accessor `key_history()` has no caller in `source/src`; `history_size()` is used as a length only
+(`search.cpp` 2645, `uci.cpp` 457), which is equal for every eight-ply opening. So all the engine can ever see
+of the opening is the whole FEN and the positions since the last pawn move or capture, in their order.
+
+**The key built on that**, counted on the 300,000 draws of section 7 (same seed; tool
+`fable_n8_windowkey.py.txt`, raw `fable_n8_windowkey_300k.txt`). Controls written into the tool and met:
+Astra's pair gets one whole FEN and two different window keys; the same history twice gets one key.
+
+```text
+(a) whole FEN                                     :  132 pairs = 100.0% of (a)
+(b) whole FEN + multiset of the reversible window :  113 pairs =  85.6% of (a)
+(c) whole FEN + that window in order              :  113 pairs =  85.6% of (a)
+(d) the eight moves in order                      :    3 pairs =   2.3% of (a)
+by halfmove clock of the opening (pairs with the same whole FEN / of them kept by key b):
+  clock 0:   99 /   99
+  clock 1:   26 /   12
+  clock 2:    7 /    2
+```
+
+- Three quarters of the copies come from openings whose last move was a pawn move or a capture (clock 0): there
+  the window is empty and the whole FEN is the whole key.
+- Key (c) is sufficient by the code above and keeps 86 % of the copies; the eight moves in order keep 2 %.
+  In order and not as a set, because the third reader (1770 to 1808) combines neighbouring positions, and the
+  order costs nothing here (113 either way).
+- The 19 pairs that (c) treats as different all replayed to the SAME game in section 8 (they are among the
+  129). So (c) is sufficient, not necessary: the price of being sure is 14 % of the copies. I did not look for
+  a key between the two.
+- In the tool the window's positions carry the en-passant square after every double push, which is finer than
+  the engine's key (it hashes that square only when a capture is legal: `board.cpp` 1298 to 1300), so the count
+  errs on the safe side.
+- What would overturn it: a pair with equal whole FEN and equal window that replays to different rows under
+  one manifest, or a reader of the history that looks behind the last pawn move or capture.

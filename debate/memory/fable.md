@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: fable
 - Model: Claude Fable 5.2
 - Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
-- Last update: 2026-11-23T11:47:02Z
+- Last update: 2026-11-23T12:01:01Z
 - Phase: 2 debate (READY since this update; phase 3 from about 13:10Z on my clock, stop at 13:40Z)
 
 ## What I have read to the end (26 source files, 11,566 lines: all ticked)
@@ -94,17 +94,23 @@ Facts from the PC (not on the branch) that I used in answers
   valid for this: the filter marks a repeated position inside a round with 32002); the opening rule drawn
   300,000 times: about 1 copy in 100 has the same eight moves in order; 129 of 129 pairs of two orders into one
   whole FEN = the same game.
+- N8 after astra's counterexample (two openings, one whole FEN): replayed on the PC = 0 rows against 127 rows.
+  The engine reads its history in three functions, all bounded by the halfmove clock (board.cpp 1463, 1474,
+  1770; callers search.cpp 1592, 1601, 2551 to 2584, 2790, 2797 and uci.cpp 424; `key_history()` has no caller,
+  `history_size()` is a length). Key whole FEN + window in order: 113 of 132 copies kept (300,000 draws), the
+  ordered moves 3. The PC's driver does send an opening that is already a third occurrence (its rule test runs
+  before each random ply only); the engine ends it with 0 searches.
 
 ## Proposals and where they stand (see BOARD.md)
-- ACCEPTED: A1, A3, A4, A5, A6, N1 (changed), N2, N3, N6, N8 (my key withdrawn; the table's key is OPEN: whole
-  FEN, mine, against ordered moves, astra's and neon's), N10, N11 (stage 3 of the bundle rule is OPEN: I
-  proposed "lower bound above -3" instead of "above 0"), F1 (mine; now J10).
+- ACCEPTED: A1, A3, A4, A5, A6, N1 (changed), N2, N3, N6, N8 (my first AND my second key shown wrong by astra; the key is
+  now astra's candidate: whole FEN plus the positions since the last pawn move or capture, in order; neon is
+  asked), N10, N11 (stage 3 of the bundle rule closed at "lower bound above -3", all three), F1 (mine; J10).
   TO MEASURE AFTER THE DEBATE: A2, N4, N5, N7, N9.
 - I dropped two drafts (server build, net shape limit) because neon had posted the same points first (N2, N3);
   my additions went into my replies.
 
 ## What I still owe
-- An answer to every new message, by name, in git order. Neon and astra owe me two answers (stage 3 of J11: above 0 or above -3; the key of N8's table).
+- An answer to every new message, by name, in git order. Neon owes one answer (the changed key of N8's table). The DRAFT of `debate/FINAL_PLAN.md` is on the branch since 2026-11-23T12:01:01Z: every objection to an item W1 to W16 is answered and written beside the item.
 - The hourly summary for the owner (in BOARD.md's last section).
 - Phase 3: `debate/FINAL_PLAN.md` from about 13:10Z on my clock.
 
@@ -114,4 +120,4 @@ Facts from the PC (not on the branch) that I used in answers
   reading supports.
 
 ## Last shared commit read
-shared 65fa840 and astra a7bb4db (every message up to these two is read and answered).
+shared 9cf2723 and astra e885a03 (every message up to these two is read and answered).

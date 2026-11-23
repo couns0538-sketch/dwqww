@@ -1,0 +1,100 @@
+"""Fable 2026-11-23, debate RE N8 after Astra's counterexample: how many of the copies does a key keep that is
+SUFFICIENT by the engine's own repetition code?
+
+The engine sees the game's past only through position keys inside the reversible window (`source/src/board.cpp`
+1463 to 1487: both repetition tests count matches of the current key among the positions since the last pawn
+move or capture). So two openings give the same game for certain when they agree in (whole FEN, the multiset of
+positions since the last pawn move or capture). This draws N openings by the loop's rule (8 uniformly random
+legal plies, as in n8_seqsim.py, same seed = same draws) and counts the pairs that agree in
+  (a) the whole FEN,  (b) whole FEN + that multiset,  (c) whole FEN + that list in order,  (d) the eight moves.
+One thread, no engine.
+
+    n8_windowkey.py <N> <seed>
+
+Controls: Astra's two histories (same whole FEN; one repeats the start position three times) must get the same
+key (a) and DIFFERENT keys (b); the same history twice must get equal keys (b).
+"""
+import random
+import sys
+from collections import Counter
+
+sys.path.insert(0, "C:/nnue-lab/tools/venv_tb/Lib/site-packages")
+import chess  # noqa: E402
+
+
+def keys(moves):
+    """whole FEN, and the positions since the last pawn move or capture (before the final one), finest form"""
+    b = chess.Board()
+    pos = [b.epd(en_passant="fen")]
+    for m in moves:
+        b.push(m)
+        pos.append(b.epd(en_passant="fen"))
+    clock = b.halfmove_clock
+    window = pos[len(pos) - 1 - clock:len(pos) - 1]
+    return b.fen(), tuple(sorted(window)), tuple(window), clock
+
+
+def from_uci(s):
+    b = chess.Board()
+    out = []
+    for u in s.split():
+        m = chess.Move.from_uci(u)
+        assert b.is_legal(m)
+        b.push(m)
+        out.append(m)
+    return out
+
+
+A1 = from_uci("g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8")
+A2 = from_uci("g1f3 g8f6 b1c3 b8c6 c3b1 c6b8 f3g1 f6g8")
+k1, k2 = keys(A1), keys(A2)
+print(f"control, astra's pair: whole FEN equal {k1[0] == k2[0]}; multiset key differs {k1[1] != k2[1]}; clocks {k1[3]} {k2[3]}")
+print(f"control, the same history twice: multiset key equal {keys(A1)[1] == k1[1]}")
+assert k1[0] == k2[0] and k1[1] != k2[1]
+
+N, seed = int(sys.argv[1]), int(sys.argv[2])
+rng = random.Random(seed)
+ca, cb, cc, cd = Counter(), Counter(), Counter(), Counter()
+clock_of = {}
+done = 0
+while done < N:
+    b = chess.Board()
+    ms = []
+    for _ply in range(8):
+        legal = list(b.legal_moves)
+        if not legal:
+            break
+        m = rng.choice(legal)
+        ms.append(m)
+        b.push(m)
+    if len(ms) < 8:
+        continue
+    done += 1
+    fen, multi, seq, clock = keys(ms)
+    ca[fen] += 1
+    cb[(fen, multi)] += 1
+    cc[(fen, seq)] += 1
+    cd[tuple(ms)] += 1
+    clock_of[fen] = clock
+
+
+def pairs(c):
+    return sum(v * (v - 1) // 2 for v in c.values())
+
+
+pa = pairs(ca)
+print(f"draws {N}, seed {seed}")
+for name, c in (("(a) whole FEN", ca), ("(b) whole FEN + multiset of the reversible window", cb),
+                ("(c) whole FEN + that window in order", cc), ("(d) the eight moves in order", cd)):
+    print(f"{name:50s}: {pairs(c):4d} pairs = {pairs(c) / pa:6.1%} of (a)")
+by_clock = Counter()
+kept_by_clock = Counter()
+for fen, v in ca.items():
+    if v > 1:
+        by_clock[clock_of[fen]] += v * (v - 1) // 2
+for (fen, _), v in cb.items():
+    if v > 1:
+        kept_by_clock[clock_of[fen]] += v * (v - 1) // 2
+print("by halfmove clock of the opening (pairs with the same whole FEN / of them kept by key b):")
+for c in sorted(by_clock):
+    print(f"  clock {c}: {by_clock[c]:4d} / {kept_by_clock[c]:4d}")
