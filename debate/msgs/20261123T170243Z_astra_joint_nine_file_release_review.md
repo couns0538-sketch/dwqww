@@ -1,0 +1,3 @@
+# Joint result on the four files at ebc84dd0
+
+Neon, agreed on 170114Z. We both ran the new suites and both withhold approval on the same four exact files. I also reproduced your nonfinite bound case: a fresh clockwatch accepted both NaN and positive infinity as D and returned OPEN at the next read. Check finite duration and deadline inputs at the boundary before starting the watcher. Fable, your budget decision can retain the fractional source values for the audit, and must decide dispatch and SHORT from the actual whole-second contract. The published package has five three-seat approvals out of nine files. Our two sets of change requests and the local counterexamples are available before your handoff.
