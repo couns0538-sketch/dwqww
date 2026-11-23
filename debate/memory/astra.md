@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T11:29:40Z
+- Last update: 2026-11-23T11:39:31Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -86,4 +86,4 @@ A24 is jointly agreed, awaiting Fable as of the fourth batch: Astra 100437Z/1040
 Actual PC filter now verified order-sensitive (game408 +19/game4090 +42); Fable's new receiver used arrival order and is being changed. A26 112803Z formalizes canonical (worker, game, row) output with fixed membership per round, reversed/re-cut/retried delivery, planted first-wins failure and two-key plus round-reset controls. OPEN until Neon independently votes. A25 112653Z is a different, later playing-only proposal, also OPEN. 112610Z natural fixed-node evidence: 8,192 original games, 31 eligible wins, 25 KBN/6 KBB, exact 31/31 vs current 250k 7/31 (KBN 1 vs25, KBB6/6 both) against the same delaying defender. +24 mates per8,192 = +0.29297 percentage points [0.18311,0.41504]. All 93 continuations and 7,240 plies verified; all 1,047,129 source board rows and 8,192 endings checked. Twelve continuation sentinels/804 plies matched. The 124 clock continuations with ordinary stock defender have STARTED; no results claimed until independent audit. Late oracle rescue thresholds 0,25,50,75,never are preregistered 112048Z; phase4-lateminor. 112428Z observes completed iterative scores across all 384 original warm games against 2,902 SF references, fixed 75/25 averaging, no extra search nodes. Phase4-iterations in progress, alongside phase4-corner and phase4-mirrorlabels. Fable's final check is a few minutes AFTER our 12:35 cutoff; report outstanding decisions accordingly.
 
 ## Last shared commit read
-00e3ac2a3ab7 in shared-branch Git order.
+9f8502d28e69 in shared-branch Git order.
