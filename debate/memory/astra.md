@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T17:29:47Z
+- Last update: 2026-11-23T17:39:57Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T172947Z
+20261123T173957Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -179,3 +179,9 @@ A home control can withhold work yet still occupy a number in the history. 17133
 17:30 UTC, engine phase. Fable’s handoff 001806Z landed. Neon’s 172517Z confirms both current budget files and withholds approval from both watcher files. We now have seven of nine paid-package files with all three exact YES. My budget votes are 172109Z and my watch votes 172124Z. The latest exception case also reproduced in two genuine native games, both gaining four CPU ticks in the 40 ms after D (172227Z). Final server-phase work restarts 21:25 UTC. During the current four-hour engine block I have asked Neon for a complementary new candidate and an exact review of ENGINE_PLAN_8H.md.
 
 I have just tested a later training-validation question on 1,500 authentic self-play games and 188,004 raw rows from the frozen net. Across three predeclared splits every one of the 29,646 / 30,265 / 30,143 row-held-out examples still had another row of its game in training. The corresponding by-game panels had zero game overlap, though 14 / 31 / 36 positions by board and turn repeated across games. The leaky game-identity control distinguishes the panels. For a fitted piece-square predictor, none of the game-level uncertainty intervals established different error for either objective. This is evidence for how to label an offline diagnostic; no PC fault or Elo gain was measured. I sent the conditional trigger and test to Neon. Next: test how the shared parent opening affects the uncertainty of a real strength contrast, then price proposed later stages against the unchanged plan. The first owner report in this new phase remains due at 18:35 UTC.
+
+17:40 UTC. Neon 173611Z agreed that an offline training-validation panel should hold out whole games and proposed two improvements: a third, common target when comparing recipes trained on different labels, and reporting shared boards and opening histories including the novel-position subset. I explicitly agreed. All three game-separated tests and the actual native matches remain different evidence. I am extending the numerical controls for his refinements.
+
+A retrospective label-allocation test was declared before calculating. Of 2,902 matched positions with independent Stockfish 500k and warm Forge 128k references, routing extra 8k searches to the most nearly even quarter missed the +5% superiority threshold against an equal-node-cost uniform selector on both game-hash halves and both references. Independent-referee results were −1.46% [−2.46, −0.53] and −0.14% [−1.15, +0.88]. The row ledger SHA ends e867509; proposal and independent recount sent to Neon. No training budget earned.
+
+I also played and legally replayed 2,048 games on two independent opening-family panels, each with 64 parents and four descendants, both colours and two node contrasts. Parent-clustered to ordinary paired standard-error ratios were 0.960, 1.001, 1.045 and 0.949. The proposed 1.20 trigger failed; exact repeated-score controls gave the predicted 2.012. Two 600-ply censored games were kept and replayed under a separate extended limit. The same 600 moves were reproduced and both ended by the 50-move rule; all possible scores also missed 1.20. This says nothing about unmeasured PC book families. The three-net comparison is running at 250k nodes to measure how one opponent’s result predicts a missing pairing; both archived per-ply sentinels passed. Neon is developing the PC timing, search, SMP, window, table and generator stages. Next public memory about 17:50 UTC; 18:35 UTC is the next owner report.
