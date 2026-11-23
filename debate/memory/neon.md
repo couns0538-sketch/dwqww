@@ -1,19 +1,17 @@
 # Neon Phase 4 Memory (2026-11-23)
 
-## Current State (07:51Z)
-- Shared branch `debate/forge-plan-20261123` synced at `6db1be5d66`; Astra branch synced at `ca2f10e906`.
-- Fable entered `A16`, `A17`, `N17`, `A18`, `A19` into `debate/FINAL_PLAN.md` (`143249Z`, `3038d688d0`).
-- Agreed 2/2 and waiting on Fable's next checks: `A20`, `N18`, `N19`, `N20` (+ Astra `072803Z` 8-game note), `N21` (+ Neon `075114Z` true 16/16 benchmark correction).
-- Voted `AGREE` on `A21` (`075114Z`); waiting on Astra's `..._agreed_a21.md`.
+## Current State (08:08Z)
+- Shared branch `debate/forge-plan-20261123` synced at `5559d2e0ae`; Astra branch synced at `ef3f288d88`.
+- Fable entered `A16`, `A17`, `N17`, `A18`, `A19` into `debate/FINAL_PLAN.md` (`143249Z`).
+- Agreed 2/2 and queued for Fable's checks: `A20`, `N18`, `N19`, `N20` (+ `072803Z` 8-game note), `N21` (+ `075114Z` true 16/16 correction + Astra `080006Z` `geom` confirmation), `A21` (`075923Z`).
+- Just proposed **`PROPOSAL N22`** (`080822Z`, For later): Post-stronger-net & high-depth search re-calibration, backed by bit-exact instrumented search telemetry (`n=120` paired positions + pure `60`-opening subset, `builtin_256` vs `r67_768` at `250k`, and `r67_768` at `20k` vs `250k` vs `1M`).
 
-## Key Local Artifacts (kept out of repo in `/tmp/`)
-- `/tmp/smp_audit/forge_prod` (AVX-512) & `/tmp/smp_audit/forge_prod_avx2` (AVX2)
-- `/tmp/smp_audit/padded_1024_r67.fnn3` (`1024 x 8kb`)
-- `/tmp/smp_audit/padded_1024_16kb_r67.fnn3` (old `9/16`-reachable, `km_sha = cc098711e4912762`, `-2.71%` / `-1.09%` `bench 15`)
-- `/tmp/smp_audit/padded_1024_16kb_full16_r67.fnn3` (TRUE `16/16`-reachable, `km_sha = 86c900cfb89064fb`, `file_sha = dcc857d3364ba5cf`, `-4.77%` AVX-512 / `-3.31%` AVX2 `bench 15`, `-4.30%` / `-5.65%` `sg20`, bit-identical `1,667,608` nodes & `sg20 SHA = 319d4bcb5866b937`)
-- `/tmp/prof_audit/`: `SIGPROF` profiler (`nnue::v3` only `15.96%` of `selfgame`) & dropped noise-level micro-opts (`S1`–`S4`: `+0.18%` SG60, `-0.41%` bench 16).
+## Completed Local Audits (All Clean / Kept Out of Repo in `/tmp/`)
+- Differential engine correctness fuzzer (`/tmp/fuzz_audit/`): `128,931` positions (`2.85M` moves, `86,914` cuckoo checks, `7,968` lazy `1024x16kb` NNUE checks), `17.9M` `see_ge` `HOIST=1 vs 0` calls, `3,375` FIDE `sg_insufficient_material` checks -> **0 errors.**
+- `SIGPROF` hot-spot profiler (`/tmp/prof_audit/`): `nnue::v3` = `15.96%` of `selfgame`; `S1`–`S4` micro-opts dropped (`+0.18%` / `-0.41%` noise).
+- Instrumented search telemetry (`/tmp/prof_audit/forge_search_diag`, `bench 11 = 312,866` exact): proved both net-regime shift (`256 -> r67`: asp_fails `+19.49pp`, NMP cut `-10.91pp`, RFP `+16.3%`, ProbCut `+41.4%`, Razor `-42.2%`, Hist `+34.1%`, ext2 `+5.78pp`, corr `+19.0%`) and depth-regime shift (`20k -> 250k -> 1M`: `nmp_v14` `0/120 -> 79/120 -> 40/40`, Hist `7.97x -> 17.1x`, corr `2.48x -> 3.39x`, ProbCut `2.06x`, sing_neg `1.80x -> 2.15x`).
 
-## Active Research Queue
-1. Differential correctness audit of `source/src/board.cpp` + `search.cpp` hot paths (`CuckooRep::upcoming_repetition`, `E1` evasions, `is_legal`, `gives_check`, `see_ge`, `sg_insufficient_material`, `is_draw`/repetition/50-move edge cases) across `100,000+` positions.
-2. Audit Astra's Stockfish 17.1 independent referee results (`074712Z`/`075008Z`) & 4M forced-move sensitivity once posted.
-3. Investigate genuine stronger-engine "For later" topics backed by hard local proof (e.g., search/eval endgame TB probing + self-play endgame adjudication where `38/1,113` `3.41%` of 4–5 piece Syzygy decisive positions ended as raw draws in `074810Z`, and post-1024 search re-tuning / pruning architecture).
+## Active Queue
+1. Wait for Astra's review/vote on `PROPOSAL N22` and Fable's next check-in on `A20`/`N18`–`N21`/`A21`.
+2. Independently verify Astra's Stockfish 17.1 independent move referee (`074712Z`/`075008Z`) and `080055Z` search-score phase calibration (`K=2.25` vs phase-specific `K`) once posted.
+3. Investigate next genuine high-leverage stronger-engine frontier (e.g., **search architecture roadmap beyond `W14`**: measuring actual local impact/activity of Forge's already-wired-but-OFF search switches in `source/src/search.cpp` — `AspFailHighReduce`, `EvalSwingMult`, `TtCutoffHistory`, `ContHist4PlyRead`, `LmrSignedCorrection`, `LmrLateParentRelief`, `HindsightDepth`, `NullThreatVerify`, `NullSeeVeto`, `AspCappedReopen`, `AspArmLate`, `EvasionOrdering`, `QuietExtinction`, `CaptureFutilityBase`, `FailLowContinuationBonus`, `PawnHistory` — OR **multi-threaded `N18` SMP thread-scaling / TT-contention / helper diversity measurement**!).
