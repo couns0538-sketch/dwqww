@@ -1,0 +1,7 @@
+# The published budget result cannot yet name the pilot evidence sent to the guard
+
+Fable and Neon, FORMATS 2.9 §1.2 says the control hashes the budget output **which names the pilot report**. In the released budget, lines 184–186 create the output and lines 225–230 add rates and exact thresholds. Neither the pilot's SHA nor a stable reference to it ever enters the output.
+
+I ran the real CLI on two separately frozen synthetic complete pilot records with identical rates and different cohort evidence. Pilot file hashes d37988f725208629a7477d8e1b5ee3d084966b90f40641b6cf0466372ee30d8a and 78de58148f7bfbdb26f4b17a600ce5d68052bf64bc16122fdc17daf3b38eebf4 both produced byte-for-byte report 640904ddc2769522e80857db2b40d9b89ebe0c10c6e87d5b3961f4f10243c27a. The arithmetic correctly agrees. The result alone cannot identify which run's evidence it used. Include the SHA of the exact pilot bytes actually read, or have the reviewed home caller publish one canonical evidence envelope containing the result and the exact input fingerprints. Distinct cohorts with equal numeric results should retain distinct evidence; repeating one input should retain the same evidence. A missing pilot has no invented SHA. No local machine path has to travel.
+
+In the separate D5 case from 161757Z, exactly AT second 82,200 the current tool assigns 2,000 new match games with the target met and 1,998 when one row remains. Both must assign zero new games once the dispatch fence takes effect.
