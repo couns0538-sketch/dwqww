@@ -1,10 +1,10 @@
 # Neon Memory (Server Day + 8h Continuation Debate)
 
-Updated: 2026-11-23T16:37:45Z (UTC).
+Updated: 2026-11-23T16:49:30Z (UTC).
 Active branch: `debate/server-plan-20261123` (fetch `origin/debate/server-plan-20261123-astra` too; Astra edits after `17:25Z`).
 
 ## Owner-Confirmed 8h Continuation Schedule (`232555Z`, confirmed directly by owner to Astra `162834Z`)
-- **Now – `17:25Z` (~47m remaining with Fable):** Fable leaves at `17:25Z` (`FABLE OUT`). Priority: audit + get 3/3 `YES` on `run/clockwatch.py`, repaired `tools/budget.py` (all 9 points), and any other `scripts_v2/` drops before `17:25Z`.
+- **Now – `17:25Z` (~35m remaining with Fable):** Fable leaves at `17:25Z` (`FABLE OUT`). Priority: audit + get 3/3 `YES` on `run/clockwatch.py`, repaired `tools/budget.py` (all 9 points), and any other `scripts_v2/` drops before `17:25Z`.
 - **Hours 1–4 (`17:25Z` – `21:25Z`): Engine plan & later stages.** Astra edits, Neon reviews/verifies with evidence & `forge6.5` branch measurements. Deliverable: `debate/engine_plan/ENGINE_PLAN_8H.md` + `AGREE <sha256> neon ENGINE_PLAN_8H.md` (Fable checks once at `21:55Z`).
 - **Hours 5–8 (`21:25Z` – `01:25Z` Nov 24): Server-day plan.** Vote (`YES`/`NOT YET`) on Opus's `scripts_v2/` drops (`<stamp>_opus_<subject>.md`), write/verify exact specs + hand-computed test cases under `debate/server_day/specs/`, write ordered rehearsal & measurements, and finalize plain-words `debate/server_day/FINAL_FOR_THE_OWNER.md` + exact-byte `AGREE` (Fable checks once at `01:55Z`). Deliver final plain-words summary to user at `01:25Z`.
 - **Strict rules:** Only touch files under `debate/` (never `source/`); nothing personal/secret; update memory ~every 10 minutes; plain pushes only.
@@ -14,9 +14,14 @@ Active branch: `debate/server-plan-20261123` (fetch `origin/debate/server-plan-2
 - **`SETUP_PLAN.md` 2.7** (`4100b2a5cdc6d44dab1e38816ad317d23f8dd96618ed1facfd70c6a80c3eb374`): **3/3 AGREED** (Astra `161757Z`, Neon `162055Z`, Fable `231527Z`).
 - **5 files with 3/3 `YES`:** `run/engine_lines.py` (`a82eb9c8`), `run/uciproc.py` (`7de2728a`), `tests/test_uciproc.py` (`690b3243`), `run/record.py` (`bc71fa89`), `tests/test_record.py` (`a8e16021`).
 - **2 files with `NOT YET` from both seats (Fable repairing all 9 points):** `tools/budget.py` (`c7aab952`), `tests/test_budget.py` (`2c0fc9f6`).
-- **Imminent drops before `17:25Z`:** `run/clockwatch.py` + test (Fable running tests on PC), repaired `tools/budget.py` + test; Opus working on `run/worker.py` (with `clockwatch.py`) and `run/packer.py`.
+- **New empirical rehearsal controls collected while waiting:**
+  - Astra `163753Z`: 1/2/4 concurrent Forge engines on 4-CPU quota (`2.204` -> `5.899` -> `7.201 ms` trigger-to-exit).
+  - Neon local Linux measurement (4 CPUs, native Forge + concurrent `lzma` preset 6 packer): width 1 = `3.557 ms`, width 4 = `5.760 ms`, oversubscribed width 8 + active `lzma-6` packer = `7.574 ms` worst wake / **`15.165 ms`** worst trigger-to-all-gone (4.3x single-engine latency).
+  - Astra `164635Z`: whole-group pause across D (`16.454–17.232 ms` late exit on resume) — watcher must record actual late stop rather than certifying on-time exit.
+- **Imminent drops before `17:25Z`:** `run/clockwatch.py` + test, repaired `tools/budget.py` + test; Opus working on `run/worker.py` (with `clockwatch.py`) and `run/packer.py`.
 - **Cached Linux Forge binary (outside repo):** `/tmp/neon_forge_bin/forge_avx2` (`8c934216...`).
 
 ## Next actions
-1. Poll both branches (`AwaitShell`) for `run/clockwatch.py` + test and repaired `tools/budget.py` + test; audit line-by-line & live-test on Linux immediately!
-2. At `17:25Z` (`FABLE OUT`), transition cleanly with Astra to Hours 1–4 (`ENGINE_PLAN_8H.md`, `forge6.5`).
+1. Commit & push `16:49Z` memory refresh.
+2. Check for Fable's `run/clockwatch.py` + repaired `tools/budget.py` drops before `17:25Z`; audit line-by-line & live-test on Linux immediately!
+3. At `17:25Z` (`FABLE OUT`), transition cleanly with Astra to Hours 1–4 (`ENGINE_PLAN_8H.md`, `forge6.5`).
