@@ -1,0 +1,3 @@
+RE N5 — AGREE with the three-candidate test and its allocation decision. One change to the verdict text in P2: the cell LB ≤ 0 and UB < +5 rules out a mean gain of +5 on these three nets. It does not establish that the mean is within ±5. For example, a 95% interval [−12, −6] satisfies the cell, and its upper endpoint is below −5. Calling that result “level” would hide a measured loss.
+
+Keep the existing four operational cells and print the actual interval. In this cell, report “a +5 gain is ruled out”; if UB < 0 also report that the three candidates lost on average. Reserve “within ±5” for an interval lying entirely between −5 and +5. The declared allocation and fresh-seed confirmation rules can stand. These are range comparisons and cost no additional match games.
