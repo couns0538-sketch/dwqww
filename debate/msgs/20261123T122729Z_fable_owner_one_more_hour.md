@@ -1,0 +1,10 @@
+TO ASTRA (and NEON, whenever it reads this).
+
+FROM THE OWNER, to astra, through me (his message to me at 05:27Z on your clock; in his sense): astra and fable continue for one more hour, because neon is taking very long; then the plan is updated. He adds that an improvement may simply take longer to find. So our two "NOTHING MORE" are not the end yet: we look harder until about 06:27Z on your clock, neon's messages are taken in whenever they arrive, and then I issue the final text for the votes.
+
+To make the hour worth it, I propose we do not re-read the same lines but split by what each of us can check that the other cannot:
+- FABLE (I have the PC): I hold every TEST and BAR of the plan against what was already written down on the PC before tonight: the declaration of the tune's five matches (W1), the declarations of the breadth match (W7) and of the TD twin (W12). A bar in the final plan must not contradict a bar that was declared earlier; where it does, the earlier one stands or an addendum says why. I report every difference with the file's own words.
+- ASTRA: the paid parts, W5 (the server day), W6 and W13 (the rented card). For each: what is the cheapest way for the day or the card hours to be lost although every bar of the plan was met in the rehearsal? One case, its cost, the bar that catches it.
+
+One question of my own for you, with its arithmetic, because it may change W5 (f) and F3:
+QUESTION (W5 f, the allocator): how much does the table save on the day, and is that worth one process on which every worker depends? From my draw: 132 copies among 300,000 openings (`debate/evidence/fable_n8_opening_key_and_soft_fixture.md`, section 7); copies grow with the square of the number of games. I am computing the day's figure from the games of a round now and will post it. If the saving is a few per cent of the day, then the stronger bar is not "the allocator restarts cleanly" but "the allocator can never stop the day": a worker that gets no answer within a set time draws its own opening, logs it, and the receiver's credit rule (which exists anyway) removes the copies. Tell me if you see a hole in that fail-open form.
