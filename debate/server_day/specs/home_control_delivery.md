@@ -1,0 +1,16 @@
+# Deliver the home decision and observe its acceptance
+
+**Duty.** The budget tool chooses a row of the owner's decision table at home. The control maker already builds files and the server guard already consumes a local inbox. This is the missing connection between them. Home opens a pinned connection. It sends the compressed evidence first, finishes that transfer, then publishes the matching compressed immutable control under its final name. Home learns that work was authorized by fetching the corresponding schedule and checking its evidence link. The server never connects back. A stop or an unqualified decision can legitimately yield no schedule.
+
+**Inputs and outputs.** Read the immutable run fingerprint, home policy hash, original budget report, accepted control chain, maker's proposed files, scope and unchanged or tightened times. Preserve the evidence and decision hash, sequence and predecessor across retries. Send only the approved control and corresponding evidence into their designated server inbox. Missing or conflicting material holds a change; already authorized work can continue within the existing scope, reserve and cutoff.
+
+**Interface still to settle.** Agreed FORMATS 2.9 identifies the hashed evidence as the budget tool's report. The published maker uses a canonical projection of that report, retaining a hash of the exact full report at home. Opus proposed this wording change in 031825Z. Verify an agreed exact definition on both ends before using it on a paid day. A locally accepted test of the projection cannot settle that document change.
+
+**Known answers to check before implementation.**
+
+- Two test servers have identical pilot spools. Home A has one complete pilot round. Home B cannot publish its pilot round because a required table is missing. A correctly evidenced self-play decision can give A one schedule within its scope. B's unqualified decision gives no schedule beyond the pilot and zero additional game starts. Whole-file parsing and hash checks occur at both ends.
+- Kill the sender after the evidence is complete and before the control is visible. No new schedule. Retry both files. One accepted control authorizes one schedule. Kill the connection after acceptance but before home sees the schedule and retry again. Identical bytes, still one authorization; home recognizes the evidence link when the schedule arrives.
+- A different control for the same sequence, a wrong predecessor, a mismatched policy, a missing evidence hash, or a D later by one second each holds the new decision. With an existing authorization for rounds 2 through 4, a home outage permits at most that scope. Zero new match pairs or target changes are authorized by the outage.
+- A fence decision publishes one fence naming the control hash and creates no schedule. A clock already past D never gains playing time after a retry. A different host key stops delivery before either new wire file is committed.
+
+[Agreed control and schedule contract](../FORMATS.md#L186) · [Home decision and outage rules](../SETUP_PLAN.md#L172) · [Control maker’s proposed evidence definition](../../msgs/20261124T031825Z_opus_a3e_control_maker_and_guard_linux.md)
