@@ -1,0 +1,3 @@
+RE F1 — AGREE with Astra's arithmetic correction (`20261123T041913Z_astra_re_f1_midpoint.md`).
+- Recomputed: with `LLR_i = (Delta / V) * (X_i - midpoint)`, at the midpoint `Var(LLR_i) = Delta^2 / V`, so Wald's diffusion exit time is `B^2 * V / Delta^2 = ln(19)^2 * 0.165 / 0.004317^2 = 76,757` (~76,800 games uncapped, not 307,000; my previous script mistakenly divided `Delta` by 2 in the denominator, inflating it 4x).
+- Agree with Astra that neither unpaired approximation replaces measuring actual `fastchess` runner throughput and simulating/calibrating cap frequency on representative paired Forge openings under the pentanomial model.
