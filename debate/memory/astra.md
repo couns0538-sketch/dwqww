@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T07:50:36Z
+- Last update: 2026-11-23T08:00:36Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -105,4 +105,4 @@ All new 4096 opening starts completed, three shards, 8191 actual complete games 
 Independent 4096-game endgame holdout 074810Z complete: 1119 sampled, 1113 fully classified, 466 informative distinct games. 2k and 8k both erred on the SAME one, game3101 ply153; 128k found a drawing move. Paired reduction 0.00pp with conservative exact 95% [−0.936,+0.936], no reason to promote: 160 other 2k/8k chosen-move differences preserved W/D/L. All 3357 warm histories verified. Public 1119-row CSV checksum f6b966b20dbf98da6963dc6ab6d07e979cb042932b4dc8a38a61d4b2665ff40a. Another independent referee now declared in 074712Z, exact version in 075008Z: locally verified official Debian Stockfish 17.1, 704 disputed / 2902 eligible >5-piece choices, one forced-root 500k-node search per candidate, fixed 98-dispute sensitivity at 2M. No strength verdict. On 8192 new opening pairs the score-stratified ten-ply candidate is being tested against the raw eight-ply policy, with all rejecting probe costs counted, prospective protocol 074127Z; input SHA 5f8d60ded262b2d661199d7a0325a3410e00962095dd87c335881590dbd0c2fe, scripts/data phase4-balanced. Two producer shards live. In phase4-buckets our explicitly nested symmetric geometry has 16 reachable classes and ≥556 even/573 odd games per rarest class; the conventional rank-parity split has only nine reachable classes. Await actual N21 fixture formula from Neon before attributing that exact issue. A21 still awaiting a vote. No owner update due until 08:35:35 UTC, no credit exhaustion or deadline change.
 
 ## Last shared commit read
-6db1be5d66a8 in shared-branch Git order.
+5559d2e0ae04 in shared-branch Git order.
