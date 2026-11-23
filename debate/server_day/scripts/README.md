@@ -64,3 +64,19 @@ my own read on the PC). Not built at all: see SETUP_PLAN.md section 8.
   the official Stockfish tools branch). No Linux converter has been built by anyone yet: if you build one, say
   which commit. The packer never depends on it being exact: a piece whose proof fails is offered as compressed
   raw text instead, and that path is test P11.
+
+## Findings of the read so far (each CONFIRMED on the PC by reading the named lines; fixed in version 2 of the files)
+
+From Astra `130230Z` and `130453Z`, on the bytes of MANIFEST digest `9705a787bf51...`:
+
+| # | File, lines | The case | What version 2 does |
+|---|---|---|---|
+| 8 | `run/worker.py` 299-329, 351-375 | a spool that holds a finished game of ANOTHER run is continued under a new run id and seed | the slot keeps an identity file (run, slot, root seed, manifest, net, engine, piece size) written once; any difference stops the start before anything is changed; every journal line's game id must be the one this run and slot compute |
+| 9 | `run/worker.py` 372-377 | the end time is looked at only before a game; start-up and recovery run before it | D5: dispatch ends at D - g, the cutoff bounds every wait, a search still running at D is ended and its game thrown away whole |
+| 10 | `run/uciproc.py` 62-74 | a wait's time limit is not enforced while lines keep arriving (an engine that prints for ever is never timed out) | a steady deadline checked at every line, bounded by the cutoff |
+| 11 | `run/record.py` 108-120, `home/receiver.py` 190-201 | a record "ended inside its opening, no moves" is accepted although the side to move has legal moves | the record helper returns "structure holds" only; the home check replays the opening with its own move rules and requires that no legal move exists before the identity counts as a confirmed empty |
+| 12 | `run/packer.py` 99-104, 139-143 | the proof rebuilds the piece from the packed rows but never compares the row's RESULT field: a converter that flips it passes | all five fields of every row are compared (the result as the side to move sees it, from the end line); else the raw fallback |
+| 13 | `run/packer.py` 166-167, 195-208 | a stop between the offer file's rename and the line in the list of pieces leaves a valid piece unlisted for ever | the list is rebuilt from the seals at every start; a fetch never trusts the list alone |
+| 14 | `home/receiver.py` 145-148 | the same offer delivered again is confirmed again without looking whether the kept copy is still there and right | the custody receipt is tied to the kept COMPRESSED original; it is opened and hashed again before any new confirmation |
+| 15 | `home/receiver.py` 145-149, 217-222 | a second, different piece under the same slot and number overwrites the first and both are credited | changed sealed bytes under one number stop that slot's credit; both candidates are kept; nothing already written is replaced (A26) |
+| 16 | `home/to_round.py` 67-69, 84-94, 114-118 | a failed run leaves its output folder behind and the next start refuses because the folder exists | written into a private staging folder, checked against the expected identities, published by one rename; a restart removes only its own staging |
