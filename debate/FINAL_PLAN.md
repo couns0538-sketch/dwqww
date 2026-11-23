@@ -1458,3 +1458,41 @@ the order of the work that is in order now.
     the clock games and the corner-formula games (Neon recounted those). From the PC's own records of 16
     November (round 17's net, a helper's 60 bare-king positions with bishop and knight; not repeated for this
     entry): 25 of 60 mated at 2,000 soft nodes, 35 of 60 at 20,000 nodes, 60 of 60 with the tables.
+  - EVIDENCE NOTE, added at 2026-11-23T20:12:22Z (Fable's clock). A note only: this entry's wording, its place
+    after W16 and its trigger are unchanged. Agreed: `20261123T121859Z_astra_agreed_a25_evidence_note.md`
+    (Astra `120137Z` with `120133Z`, `121014Z`, `121227Z`; Neon `121724Z`, section 3).
+    - More nodes alone do not close it. First cohort, the plain search against the best delaying defence at
+      250,000 / 1,000,000 / 4,000,000 nodes: 7 / 8 / 13 mates of 31 (with bishop and knight 1 / 2 / 7 of 25;
+      with two bishops 6 of 6 each time); exact root moves 31 of 31. No mate of a smaller budget was lost at
+      a larger one.
+    - THE INDEPENDENT REPLICATION FAILED ITS OWN GATE. A second frozen cohort of 8,192 games held 18 certified
+      wins (16 with bishop and knight, 2 with two bishops) where the trigger asks for at least 20. Nothing is
+      pooled with the first 31, and the trigger is not lowered.
+    - On those 18 the direction repeated: at 250,000 nodes exact root moves mated 18 of 18 and the plain
+      search 4 of 18; at 10+0.1 against a normal defender 18 of 18 and 8 of 18; no loss on time.
+    - The table-free corner formula on the SAME 18 roots (not a third cohort): 18 of 18 at fixed nodes and 18
+      of 18 on the clock, as exact moves did. On the first cohort it had missed three wins with bishop and
+      knight at fixed nodes (games 2202, 6271, 7747, each a fifty-move draw): it is not shown to equal exact
+      moves.
+    - A REAL CLOCK REPEATS ONLY ROUGHLY. The plain search on the same 18 roots mated 8 in one clock run and 11
+      in a later one; 5 of the 18 results switched (916, 3191, 4428, 6710 to a mate; 7727 away from one). A
+      baseline of an earlier clock run is never set beside a later run's treatment.
+    - What self-play credited: for the 49 first certified wins the RAW game record of the 2,000-node producer
+      gave the stronger side 14 wins and 35 draws (21 draws of 31, 14 of 18), every first search score
+      positive. That is the producer's record, NOT a count of wrong training targets on the PC: after every
+      game the loop's own step rescores a DRAWN game that ends with a lone king against mating material, or
+      with five pieces or fewer as a tablebase win at the start and at the end of the ending, as a win on
+      every row (`pipeline/nnloop/datagen_uci.py`; in force since rounds 17 and 18), and W5's home path runs
+      the same step before a round's text is written. What is left after that step is not measured.
+    - Fable's check (`debate/evidence/fable_a25_note_recount.txt`): the ledgers of `120133Z`, `120137Z` and
+      `121014Z` replayed on the PC with a script of its own and the PC's OWN tablebase files. First cohort,
+      deeper search: 62 lines, 5,036 plies, the counts above. Second cohort: 18 roots, each history legal,
+      each a tablebase win for the stronger side; 36 lines at fixed nodes (the plain search's other 14: 12
+      fifty-move draws, 1 repetition, 1 without mating material left), 44 clock lines (36 first games and 8
+      repeats: the plain search repeated 3 of 4, game 916 not; exact moves 4 of 4), no loss on time. Corner
+      formula: 54 lines at fixed nodes (plain 4, corner 18, exact 18) and 54 on the clock (11, 18, 18; the
+      plain search's 7 misses all fifty-move draws); the five switched results are the five named. Every line
+      is legal and ends as its ledger says; one planted wrong line fails the recount. NOT recounted on the
+      PC: the resampling intervals, the 8,192 source games of the second cohort and its count of 18, the
+      times and cores of the clock games, the raw self-play outcomes of `121227Z`, and the corner formula's
+      three misses on the first cohort.

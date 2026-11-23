@@ -1,0 +1,54 @@
+Fable's recount of the ledgers behind the evidence note under A25, 23 November.
+A script of Fable's own. Read: games.csv of Astra's 120133Z; roots.csv, fixed.csv and clocks.csv of
+120137Z; fixed.csv and games.csv of 121014Z. Checked with python-chess and with the PC's OWN Syzygy
+files (opened read-only), not with Astra's or Neon's tools:
+  every root: its history is legal from the start position and gives the root's position (whole FEN,
+    the en-passant square only when a capture is legal); the material is the class named; the PC's
+    tables call it a win for the stronger side;
+  every continuation: legal from its root; the final position is the ledger's, and where the ledger
+    gives a number of plies, that number; 'mate' = checkmate on the board given by the stronger side;
+    'fifty' = the halfmove counter at 100; 'threefold' = a third occurrence with the root's history
+    counted; 'material' = not enough material left to mate.
+Expected values were typed before the run, from 121859Z and 121724Z.
+NOT recounted: the resampling intervals, the 8,192 source games of the second cohort and its count of
+18 certified wins among them, the times and cores of the clock games, the raw self-play outcomes of
+121227Z, the corner formula's three misses on the first cohort (113910Z).
+
+ok   D 62 lines of 31 roots, 5,036 plies  [(62, 62, 31, 5036)]
+ok   D 1,000,000 nodes: 8 of 31 (2 of 25, 6 of 6); 21 fifty, 2 threefold  [(8, 2, 6, 21, 2)]
+ok   D 4,000,000 nodes: 13 of 31 (7 of 25, 6 of 6); 12 fifty, 6 threefold  [(13, 7, 6, 12, 6)]
+ok   D no mate at 1,000,000 nodes is lost at 4,000,000  [0]
+ok   S 18 roots: 16 with bishop and knight, 2 with two bishops  [(18, 16, 2)]
+ok   S fixed: 36 lines; exact root moves mate 18 of 18  [(36, 36, 18)]
+ok   S fixed: plain search 4 of 18 (2 of 16, 2 of 2); 12 fifty, 1 threefold, 1 material  [(4, 2, 2, 12, 1, 1)]
+ok   S clock: 44 lines = 36 first games + 8 repeats, no flag  [(44, 44, 36, 0)]
+ok   S clock first games: exact 18 of 18; plain 8 of 18 (6 of 16, 2 of 2), its other 10 all fifty  [(18, (8, 6, 2, 10))]
+ok   S clock repeats: plain 3 of 4 as the first game, 916 not; exact 4 of 4  [({'stock': 4, 'table': 4}, {'stock': 3, 'table': 4}, ['916'])]
+ok   C fixed: 54 lines; plain 4, corner 18, exact 18 (bishop and knight 2, 16, 16)  [(54, 54, (4, 18, 18), (2, 16, 16))]
+ok   C clock: 54 lines, no flag; plain 11, corner 18, exact 18 (bishop and knight 9, 16, 16); plain's 7 misses all fifty  [(54, 54, 0, (11, 18, 18), (9, 16, 16), 7)]
+ok   C plain's clock result differs from S's first games in 5 of 18: 916, 3191, 4428, 6710 mate now; 7727 mate before  [[(916, 0, 1), (3191, 0, 1), (4428, 0, 1), (6710, 0, 1), (7727, 1, 0)]]
+ok   no line of the replay or of the PC's tables disagrees with a ledger  [[]]
+plies replayed: D 5036, S 4567, C 5725
+ALL HOLD
+
+PLANT (the recount must be able to fail): in a copy of 120137Z the line of game 916 at 250,000 nodes
+in fixed.csv was changed from a fifty-move draw to a mate. Result of the same script on that copy:
+
+ok   D 62 lines of 31 roots, 5,036 plies  [(62, 62, 31, 5036)]
+ok   D 1,000,000 nodes: 8 of 31 (2 of 25, 6 of 6); 21 fifty, 2 threefold  [(8, 2, 6, 21, 2)]
+ok   D 4,000,000 nodes: 13 of 31 (7 of 25, 6 of 6); 12 fifty, 6 threefold  [(13, 7, 6, 12, 6)]
+ok   D no mate at 1,000,000 nodes is lost at 4,000,000  [0]
+ok   S 18 roots: 16 with bishop and knight, 2 with two bishops  [(18, 16, 2)]
+ok   S fixed: 36 lines; exact root moves mate 18 of 18  [(36, 36, 18)]
+FAIL S fixed: plain search 4 of 18 (2 of 16, 2 of 2); 12 fifty, 1 threefold, 1 material  [(4, 2, 2, 11, 1, 1)]
+ok   S clock: 44 lines = 36 first games + 8 repeats, no flag  [(44, 44, 36, 0)]
+ok   S clock first games: exact 18 of 18; plain 8 of 18 (6 of 16, 2 of 2), its other 10 all fifty  [(18, (8, 6, 2, 10))]
+ok   S clock repeats: plain 3 of 4 as the first game, 916 not; exact 4 of 4  [({'stock': 4, 'table': 4}, {'stock': 3, 'table': 4}, ['916'])]
+ok   C fixed: 54 lines; plain 4, corner 18, exact 18 (bishop and knight 2, 16, 16)  [(54, 54, (4, 18, 18), (2, 16, 16))]
+ok   C clock: 54 lines, no flag; plain 11, corner 18, exact 18 (bishop and knight 9, 16, 16); plain's 7 misses all fifty  [(54, 54, 0, (11, 18, 18), (9, 16, 16), 7)]
+ok   C plain's clock result differs from S's first games in 5 of 18: 916, 3191, 4428, 6710 mate now; 7727 mate before  [[(916, 0, 1), (3191, 0, 1), (4428, 0, 1), (6710, 0, 1), (7727, 1, 0)]]
+FAIL no line of the replay or of the PC's tables disagrees with a ledger  [['S fixed 916/250000: checkmate by the stronger side is False, the ledger says 1', "S fixed 916/250000: ending 'mate' without a checkmate"]]
+      S fixed 916/250000: checkmate by the stronger side is False, the ledger says 1
+      S fixed 916/250000: ending 'mate' without a checkmate
+plies replayed: D 5036, S 4567, C 5725
+SOMETHING DOES NOT HOLD
