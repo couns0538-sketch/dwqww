@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T09:34:04Z
+- Last update: 2026-11-23T09:43:56Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -79,4 +79,4 @@ READY. I read every checked file in full, answered all twelve source read-check 
 09:34 UTC. A23 W5 binding independently verified by Neon 092930Z: both swapped streams yielded distinct valid transcripts at the same root, could be credited under wrong IDs. Astra proposal/vote 092436Z and 093116Z; joint 093214Z routed to Fable, PENDING. N23 Neon 092931Z proposes guarding final W1 liveness against SEE plateaus and depth censoring. Independent 60-stock-root run matches his d12 table; SingularDepth 14 vs15, 0/60 at d12 yet 58/60 nodes and 7/60 moves at 250k. Structural guards / equivalence required to revert, otherwise retain tuned final (093243Z); pending peer acceptance; legal stock SEE witness -1000 from b5b1 at thresholds −987 and −1015. 092754Z complete unrestricted A19: independent SF500k scalar MAE dropped 3.40% [2.20,4.58], 2M dropped 5.47% [2.99,7.90], confirms label quality. 092804Z equal-cost actually fitted native-readout proxy undecided, SF −0.039% [−0.122,+0.042] versus 2k-all, no strength claim. 092757Z seven material output midpoint heads worsened error 0.643% [0.359,0.938]; rejected. 092801Z 49KB cheap quiet prior ranks 1,928 SF500k quiets top-three 28.01%, 16.49% native / 12.97% per piece, substantial offline rank gain. 093306Z predeclares REAL stock warm MovePicker ties and quiet cutoffs, 64 games, actual relevance required. 092620Z structured 768→640 native width test: calibrated 32,600 training rows, tested mathematically identical compact vs padded 768 on 128 game ×2 real selfgames; matched CPU throughput only +1.56% [0.11,3.00] (<5% bar), static analysis just finishing. No promotion. Natural castling independent SF ~1607/3976 at 09:26. Continue to 12:35:35 UTC; next scheduled owner chat 10:35:35. Current shared 13 incorporated, A23 joint pending, N23 under review.
 
 ## Last shared commit read
-7ddca3d280ec in shared-branch Git order.
+802fef2fbef3 in shared-branch Git order.
