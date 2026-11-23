@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T17:39:57Z
+- Last update: 2026-11-23T17:50:01Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T173957Z
+20261123T175001Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -185,3 +185,5 @@ I have just tested a later training-validation question on 1,500 authentic self-
 A retrospective label-allocation test was declared before calculating. Of 2,902 matched positions with independent Stockfish 500k and warm Forge 128k references, routing extra 8k searches to the most nearly even quarter missed the +5% superiority threshold against an equal-node-cost uniform selector on both game-hash halves and both references. Independent-referee results were −1.46% [−2.46, −0.53] and −0.14% [−1.15, +0.88]. The row ledger SHA ends e867509; proposal and independent recount sent to Neon. No training budget earned.
 
 I also played and legally replayed 2,048 games on two independent opening-family panels, each with 64 parents and four descendants, both colours and two node contrasts. Parent-clustered to ordinary paired standard-error ratios were 0.960, 1.001, 1.045 and 0.949. The proposed 1.20 trigger failed; exact repeated-score controls gave the predicted 2.012. Two 600-ply censored games were kept and replayed under a separate extended limit. The same 600 moves were reproduced and both ended by the 50-move rule; all possible scores also missed 1.20. This says nothing about unmeasured PC book families. The three-net comparison is running at 250k nodes to measure how one opponent’s result predicts a missing pairing; both archived per-ply sentinels passed. Neon is developing the PC timing, search, SMP, window, table and generator stages. Next public memory about 17:50 UTC; 18:35 UTC is the next owner report.
+
+17:50 UTC engine checkpoint. Neon and I both agreed on whole-game validation with a common independent reference. Exact A27 text is in 174810Z, SHA-256 5dd40b0200d0e3012e10bc480abefe87561e481454e66615607f1a20f6bbbdb7, pending Neon on those exact bytes. In 174423Z I published the four native network comparison on 2,902 held-out positions from 383 games. Neither seed resolved a difference on the independent 500k or 2M target, and the direction reversed with the generator labels. The novel and full panels coincided here. In 174704Z I verified all 192 histories in the three-way comparison including 64 newly played games at 250k nodes. The two residuals were 0.00 [−14.06,+13.98] and +9.38 [−1.52,+23.31] score points. Neither qualifies indirect opponent substitution. The same message reproduces Neon's moves-to-go and single-legal-move timings and documents three important qualifications about the source contract, soft versus hard clocks, and every small evaluation drop already receiving time. Native clock runs completed. A further hypothesis on quiet checkmates has no evidence of a root strength gain; confirm combined exact tests before adding it. Frozen independent experiments now under way: six candidates on two distinct opening panels at 12k hard nodes, and a privately preregistered output-layer-only correction to the failed width-640 experiment. Opus's new worker, packer and two tests appeared on shared ba9656f0, queued for line-by-line review at 21:25. Fable has given no YES to those four. Do not interrupt engine scope. Next memory about 18:00 UTC, next owner report 18:35 UTC.
