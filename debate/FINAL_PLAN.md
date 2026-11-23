@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:24:48Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:33:00Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 19 proposals were
@@ -69,7 +69,18 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
   FAILS that check (nodes 1926, b2b3); the same engine against itself gives a pair total of exactly 1 on
   every opening and the stop answers "no information" (a wiring test with a known answer; Astra); a candidate
   at half the nodes ends in H0, one at double the nodes in H1; Astra's two made-up logs, (win, win), (loss,
-  loss) and (win, loss), (loss, win), give the pair counts [1,0,0,0,1] and [0,0,2,0,0] and different statistics. The time of these runs is written down (it sets the fallback of R1).
+  loss) and (win, loss), (loss, win), give the pair counts [1,0,0,0,1] and [0,0,2,0,0] and different statistics.
+  Added in the extension (N13, Neon; agreed by all three): the stop's formula is written down before it is
+  built: the likelihood ratio of the five pair outcomes (0, 1/4, 1/2, 3/4, 1 a pair) between the logistic-Elo
+  means of -3 and 0, each maximised under its mean, with the bounds +/- ln 19 = 2.944. The runner's own stop
+  function must give, on four made-up tables of pair counts [LL, LD, DD+WL, WD, WW]:
+  [1100, 3300, 13200, 3300, 1100] -> +4.684, H1; [550, 1650, 6600, 1650, 550] -> +2.342, no stop;
+  [1043, 3086, 12000, 2914, 957] -> -4.227, H0; [957, 2914, 12000, 3086, 1043] -> +12.732, H1 (three
+  separate programs, Neon's, Astra's and Fable's, agree to six digits: `debate/evidence/fable_n13_recount.txt`;
+  the normal approximation gives 4.686, 2.343, -4.228, 12.752, the same decisions, so a tolerance of 0.01
+  holds only between programs of this formula). A stop with the statistic doubled stops on the second table,
+  one with the hypotheses 0 / +3 gives H0 on the first, one with -5 / 0 gives +13.002 there, one with the
+  sides swapped gives H0 on the fourth. The time of these runs is written down (it sets the fallback of R1).
 - (b) The speed measurement for R3: as many one-thread engines at once as the match will run, elapsed time by
   paired opening and colour. BAR, declared before the timing (Astra): the 95 % interval of the speed ratio
   is no wider than +/- 1 % of the ratio (the 1024 match used 0.9447); if a repeat misses that too, no odds match
@@ -105,7 +116,7 @@ processor; rehearsed in the PC's Linux subsystem.
 - (c) The package by scripts alone (the owner's condition 1). TEST: one start command on a small rehearsal.
   BAR: it checks itself first; it restarts a worker that was killed on purpose; it reports a full disk and a
   stalled worker (both made on purpose); it stops by itself at the set time; every step is in a log.
-  Added in the extension (F3, Fable, sharpened by Astra; Neon's vote awaited): the run goes on after the
+  Added in the extension (F3, Fable, sharpened by Astra; agreed by all three): the run goes on after the
   session that started it was closed on purpose. The allocator is killed on purpose twice: once after it has
   written a reservation and before it has handed the batch out, once after the hand-out and before the games
   are finished; after each restart no opening is handed out twice and no reservation is lost for good (its
@@ -147,6 +158,17 @@ processor; rehearsed in the PC's Linux subsystem.
     the record is skipped (the receiver still finds exact duplicate games).
   - Safeguard: refused requests are sampled and replayed; one replay with other rows makes the table fall back to
     the eight moves in order. Credit is given only by the receiver's verified rows (e).
+  - Added in the extension (F4, Fable; Astra agrees with the fallback; the rest not yet voted): THE DAY NEVER
+    DEPENDS ON THIS TABLE. A worker that gets no opening within a set time draws its own, as the PC's loop
+    does, logs it under its own game id, and declines a late answer for a game it has started (Astra); the
+    receiver's credit rule (e) removes the copies. BAR: with the allocator killed and not restarted for a
+    declared interval, the workers go on, every verified game is credited once, and no finished game is
+    played again. What the table is worth: 2 billion positions are about 16 million games (round 135: 124,412
+    games for a round of 16 million rows); from 132 copies among 300,000 openings, growing with the square
+    of the number of games, that is about 390,000 pairs with one whole FEN, of which between 55 % (16 of 29
+    in round 136) and 89 % (117 of 132) are the same game: 1.3 to 2.1 % of the day, about 20 to 30 minutes of
+    24 hours. So the table is the LAST part of W5 to be built, and the day is booked without it if it is not
+    proven by then.
   - BARS in the rehearsal: with 2 random plies, 200 games and the table off, the receiver reports about 42
     copies; with it on, none; an exhausted opening space ends with a clear error; all four openings of Astra's
     two pairs are handed out (the two into the start position; `b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4` and
@@ -163,12 +185,23 @@ processor; rehearsed in the PC's Linux subsystem.
   trainings on 2 billion are unfinished or inconclusive when the rental comes (draft 1 said W8 here; Neon): the proven configuration, or the day is moved.
 - (i) BAR for the whole of W5: one end-to-end rehearsal at small scale, started by one command and not
   touched until it has stopped by itself, with (a) to (f) passing inside it.
+  Added in the extension (N12, Neon; agreed by all three): inside it, ONE worker that stays alive plays a
+  fixed, ordered batch of at least four openings (games ending by draw adjudication, by the score limit and by
+  a rule among them) through the real launcher, packer, transport and unpacker, and every game, the first AND
+  the later ones, equals the PC's Windows program on the same batch with the day's frozen settings: 0
+  differences in the five fields and in the end line (reason, plies, searches, nodes), compared before the
+  filter marks anything. Two planted faults must FAIL: the new-game command left out between two games (the
+  engine clears its tables only on that command: `source/src/uci.cpp` 448 to 499 and 873 to 875; Neon's run
+  gave 43 rows where 101 are right), and one changed game setting that changes a frozen game (`writeminply 9`;
+  Astra). The reference batch is made again whenever the settings change (W1's values, a new best net). The
+  PC's own driver sends that command before every game (`pipeline/nnloop/datagen_uci.py` 401, not on this
+  branch); a launcher written new for the server has to be shown to do the same.
 
 **W6. The card test before paid card hours (N8 b).** Needs a short rental or loan of an NVIDIA card.
 - TEST: one pass on one round there. BAR: the exported net loads on the PC and the PC's trainer-against-engine
   check passes on at least 1,000 named positions; peak memory and rows a second are read. If the teacher stays
   (W11): the hand-written evaluation's Linux build gives the same values as the Windows one on 3,000 positions.
-- Added in the extension (A8, Astra; Fable agrees; Neon's vote awaited): the UPDATE is compared, not only the
+- Added in the extension (A8, Astra; agreed by all three): the UPDATE is compared, not only the
   export (a trainer that skips every update still exports a net that loads and agrees with itself). From the
   same weights and optimizer state, the same rows in the same order, a few optimizer steps on the PC and on
   the rented card: the CHANGES of the predictions on fixed probe positions and the size of the update of each
@@ -198,7 +231,7 @@ processor; rehearsed in the PC's Linux subsystem.
   equal length are each refused before training starts; the round mix of the batches matches a declared
   reference shuffle on a fixed fixture, and a reader that walks the rounds in order FAILS that check; on today's
   388-million window it gives a net whose hold-out loss is within 0.0001 of today's trainer's.
-- Added in the extension (F2, Fable; Astra agrees; Neon's vote awaited): the row ids, recipe, seed, opponents
+- Added in the extension (F2, Fable; agreed by all three): the row ids, recipe, seed, opponents
   and opening pairs are written down before the training (Astra), and that net is also judged by games (R5) against the net
   of today's trainer on the same window: a paired SPRT between -5 and 0 at 250,000 nodes (alpha = beta = 0.05,
   cap 20,000 games; about 8,300 games = 2.4 hours when the truth is level). H1 = the trainer may be used for
@@ -301,8 +334,8 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension: F2 (W8) and F3 (W5 c), agreed by Astra and Fable; A8 (W6, Astra), agreed by Fable. Neon's votes on the three are awaited.
-- Astra's own stop of 06:39:46Z is withdrawn (the owner confirmed the extension to Astra directly). The final text is issued for the three votes when all three have said "NOTHING MORE", at the latest at about 06:50Z on Astra's and Neon's clocks; the last stop is 07:17Z.
+- Added in the extension and agreed by all three: F2 (W8), F3 (W5 c), A8 (W6), N12 (W5 i), N13 (W3 a). Open: F4 (W5 f: the day never depends on the opening table, which is built last; Astra agrees with the fallback).
+- Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
 
 ## What was measured on the PC for this debate

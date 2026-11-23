@@ -1,0 +1,91 @@
+"""Fable 2026-11-23: N13 (Neon), the four made-up tables of pair counts for the stop rule of R1, counted a third
+time on the PC, two ways. No engine, no file read; plain arithmetic.
+
+  (1) the declared formula: the likelihood ratio of the five pair outcomes (0, 1/4, 1/2, 3/4, 1 a pair) between
+      the logistic-Elo means of -3 and 0, each maximised under its mean. Under the constraint "mean = mu" the
+      most likely probabilities are p_i = f_i / (1 + t (x_i - mu)), f_i the observed share, with t chosen so that
+      the mean is mu (found here by bisection). LLR = sum n_i (log p_i(mu1) - log p_i(mu0)).
+  (2) the normal approximation: N (s1 - s0) (2 mean - s0 - s1) / (2 variance), variance of the pair score.
+
+    n13_recount.py            (no arguments)
+"""
+import math
+
+X = (0.0, 0.25, 0.5, 0.75, 1.0)
+BOUND = math.log(19.0)                       # alpha = beta = 0.05
+
+
+def score(elo):
+    return 1.0 / (1.0 + 10.0 ** (-elo / 400.0))
+
+
+def constrained_logl(counts, mu):
+    n = sum(counts)
+    f = [c / n for c in counts]
+    used = [(fi, xi) for fi, xi in zip(f, X) if fi > 0]
+    lo_x, hi_x = min(x for _f, x in used), max(x for _f, x in used)
+    # 1 + t (x - mu) must stay positive for every outcome that occurred
+    t_lo = -1.0 / (hi_x - mu) + 1e-12
+    t_hi = -1.0 / (lo_x - mu) - 1e-12
+
+    def g(t):                                 # mean under p(t) minus mu; falls as t grows
+        return sum(fi * (xi - mu) / (1.0 + t * (xi - mu)) for fi, xi in used)
+
+    a, b = t_lo, t_hi
+    for _ in range(200):
+        m = 0.5 * (a + b)
+        if g(m) > 0:
+            a = m
+        else:
+            b = m
+    t = 0.5 * (a + b)
+    p = [fi / (1.0 + t * (xi - mu)) for fi, xi in used]
+    assert abs(sum(p) - 1.0) < 1e-9, sum(p)
+    assert abs(sum(pi * xi for pi, (_f, xi) in zip(p, used)) - mu) < 1e-9
+    return sum(c * math.log(pi) for c, pi in zip([c for c in counts if c > 0], p))
+
+
+def llr_exact(counts, elo0, elo1):
+    return constrained_logl(counts, score(elo1)) - constrained_logl(counts, score(elo0))
+
+
+def llr_normal(counts, elo0, elo1):
+    n = sum(counts)
+    mean = sum(c * x for c, x in zip(counts, X)) / n
+    var = sum(c * x * x for c, x in zip(counts, X)) / n - mean * mean
+    s0, s1 = score(elo0), score(elo1)
+    return n * (s1 - s0) * (2.0 * mean - s0 - s1) / (2.0 * var)
+
+
+def verdict(llr):
+    return "H1" if llr >= BOUND else ("H0" if llr <= -BOUND else "no stop")
+
+
+TABLES = (
+    ((1100, 3300, 13200, 3300, 1100), 4.684394, "H1"),
+    ((550, 1650, 6600, 1650, 550), 2.342197, "no stop"),
+    ((1043, 3086, 12000, 2914, 957), -4.227008, "H0"),
+    ((957, 2914, 12000, 3086, 1043), 12.731538, "H1"),
+)
+
+print(f"s(-3 Elo) = {score(-3.0):.7f}, s(0) = {score(0.0):.7f}, bound = +/- {BOUND:.6f}")
+print("pair counts [LL, LD, DD+WL, WD, WW] | pairs | exact LLR(-3, 0) | astra's value | normal approx | decision")
+bad = 0
+for counts, theirs, want in TABLES:
+    e = llr_exact(counts, -3.0, 0.0)
+    a = llr_normal(counts, -3.0, 0.0)
+    ok = abs(e - theirs) < 1e-4 and verdict(e) == want and verdict(a) == want
+    bad += 0 if ok else 1
+    print(f"{list(counts)} | {sum(counts)} | {e:+.6f} | {theirs:+.6f} | {a:+.4f} | {verdict(e)}"
+          f"{'' if ok else '   <-- NOT AS EXPECTED'}")
+
+print("the faults N13 names, on table 2 (must NOT give 'no stop' or must differ from the right decision elsewhere):")
+c2 = TABLES[1][0]
+print(f"  statistic doubled on table 2: {2 * llr_exact(c2, -3.0, 0.0):+.4f} -> {verdict(2 * llr_exact(c2, -3.0, 0.0))} (right: no stop)")
+c1 = TABLES[0][0]
+print(f"  hypotheses 0 / +3 on table 1: {llr_exact(c1, 0.0, 3.0):+.4f} -> {verdict(llr_exact(c1, 0.0, 3.0))} (right: H1)")
+print(f"  hypotheses -5 / 0 on table 1: {llr_exact(c1, -5.0, 0.0):+.4f} (right value: {TABLES[0][1]:+.4f})")
+c4 = TABLES[3][0]
+print(f"  sides swapped on table 4: {llr_exact(tuple(reversed(c4)), -3.0, 0.0):+.4f} -> "
+      f"{verdict(llr_exact(tuple(reversed(c4)), -3.0, 0.0))} (right: H1)")
+print("ALL FOUR AS EXPECTED" if bad == 0 else f"{bad} TABLE(S) NOT AS EXPECTED")
