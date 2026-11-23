@@ -1,6 +1,14 @@
 # FORMATS.md: every file the server day writes, field by field
 
-Editor: Fable. **Version 2.2**, written at 2026-11-23T21:19:17Z (Fable's clock): 2.1 (`5f8a1f6`, sha256 `637d13f3...`) has
+Editor: Fable. **Version 2.3**, written at 2026-11-23T22:04:16Z (Fable's clock): 2.2 (sha256 `02bd23ad...`) has AGREE from
+Astra and from Neon. 2.3 changes nothing that 2.2 fixed; it adds what all three agreed after it, each marked
+**[2.3]**: Neon's four closures (`143000Z`: a wire file and a publisher for every fetched control file; the
+seal's own fields recomputed at home; the packed form proved against the plain bytes before the rules replay;
+`instance` with empty and placeholder values), Astra's retry of a round after a LOCAL outage (`144620Z`; Neon
+`145000Z` AGREE), the record's two judgments with Astra's 23 vectors as known answers (0.1), and the thirteen
+readings that writing the version 2 worker forced, each its own marked line so that a seat can say CHANGE to
+one of them. **PROPOSED: your votes on these exact bytes, please.**
+Version 2.2 was written at 2026-11-23T21:19:17Z (Fable's clock): 2.1 (`5f8a1f6`, sha256 `637d13f3...`) has
 Astra's AGREE to both byte definitions of 0.1 and to its wire, chain, identity, equal-games and rules text, and
 her CHANGE on three close and restart cases (`141212Z`); those three are 2.2's only changes, marked **[2.2]**.
 Version 2.1 was written at 2026-11-23T21:09:50Z (Fable's clock). Version 2 (`82b9ac6`) got CHANGE from both
@@ -44,6 +52,15 @@ home side to it.** Nothing here exists in code yet unless a line says so.
   files, 1,022,512 bytes, at 0.9375 with zlib 6 and 0.9303 with lzma 6, so a second pass over them is not
   made). **Identity is always the sha256 of the DECODED canonical bytes**; a receipt records the wire file's
   length and sha256 beside it, and the wire bytes as fetched are what home keeps.
+  **[2.3] Who publishes each wire file** (Neon `143000Z` 1), always create-only and beside its canonical file:
+  the PACKER publishes `RUN.json.zz`, `SCHEDULE.<n>.json.zz`, `RESUME.<n>.json.zz`, `FENCE.json.zz` and
+  `ranges/r<NNNN>.w<NNN>.seal.json.zz` as it finds their canonical files, and every member's wire file of an
+  offer; the GUARD publishes `TERMINAL.jsonl.zz` after the footer. An offer's own wire file
+  `p<NNNNNN>.offer.json.zz` is published LAST: after the plain offer and after every member's wire file.
+  **The fetcher lists and fetches only `*.offer.json.zz`** (and the control files' `.zz`), so it can never
+  take an offer whose members are still being written.
+- **[2.3] Every immutable record carries `schema` 2** (reading 1). The lines of the append-only files carry
+  none: a journal line's kind is its `t`.
 - **On the day there is ONE immutable offer for a logical piece:** after a broken connection the same saved
   bytes are copied again. Another seal at an index that has one is a FORK (2.1).
 - **Nothing travels to the server during the day.** No acknowledgement, no receipt. "Outstanding" is computed
@@ -85,6 +102,22 @@ and a run fingerprint of 64 times the letter `a`, the binding is
 the binding and leaves the rows digest; changing a score or the result changes both. An index that outlives
 a run stores the recipe's version (2) beside every digest.
 
+**[2.3] Two judgments of a piece, never mixed.** (1) Its BYTES are refused whole, at the first byte or line
+that does not fit: a byte outside printable ASCII and LF (a CR is one), a last line without its LF, an empty
+line, a name outside the grammar of section 0, a line out of the order game / sent / rows / end / bind, a row
+or an end line that is not in its shape (also under a binding that holds), a binding that does not hold in this
+run. Bytes that fail are not a sequence of records of this run. (2) The MEANING of one record whose bytes hold
+is judged apart, and a fault there sets that RECORD aside, never the piece: a sent line that is not the
+position line of the record's own opening; an `openingend` with rows, with a sent line other than `none`, or
+naming another length than its opening has; an opening that is not the one the reader computed for that id.
+The writer uses the same judge of the parts as the reader, so a worker cannot seal a record its readers refuse.
+**Known answers:** `cases/astra/record_v2_vectors.json` (11,361 bytes, sha256
+`4fb382d0c350b0b20aa7d5184f5f55427669ff82ffc1b8963366c552a235032c`): 13 records that must be accepted with the
+binding, length, hash, row count and rows digest it names, and ten byte streams that must be refused, each by
+the check it names (another run; the id changed under the same bind; a score changed under the same bind; the
+last LF missing; an LF between two records; CR LF; a run name in upper case; counter 0; a slot of four digits;
+this morning's binding).
+
 ## 1. On the server
 
 ### 1.1 Run header `RUN.json` (one record; written before the PILOT, never again)
@@ -96,6 +129,15 @@ disk: the machine id, the hardware's product UUID and board serial, as the machi
 (Neon `134130Z` 5.2: a structure, not a text); `slots` (ordered integers); `piece_games`; `pilot_ranges` (rows as
 in 1.2, each with `"schedule":0`). It holds NO time or range that the pilot has to teach us. Fingerprint of the
 run = sha256 of this file.
+**[2.3] `instance`, exactly** (Neon `143000Z` 4): an object `{"machine_id":..,"product_uuid":..,"board_serial":..}`.
+A value that is missing, unreadable, empty or a placeholder (`Not Specified`, `To Be Filled By O.E.M.`, `Default
+string`, `None`, a UUID of zeros only) is written `null`. Beside it `instance_provable`: true only when the
+machine id AND at least one of the two hardware values are not `null`. Two instances are EQUAL only when both
+are provable, the machine ids are equal, at least one hardware value is not `null` on both sides and equal, and
+no value differs; a value that is `null` on one side only is a difference, and a `null` never equals a `null`.
+**[2.3] The list rule** (reading 8): with `kind` "list" the opening of counter c is entry (c - 1) mod `count`.
+The paid day's header carries the SEED rule; the launcher refuses a list rule with more than one slot (two
+slots would play the same openings).
 
 ### 1.2 Schedule `SCHEDULE.<n>.json`, n = 1, 2, ... (immutable, each links to the one before)
 `schema`, `run_fingerprint`, `n`, `prev` (sha256 of schedule n - 1; for n = 1 the text `first`), `evidence`
@@ -123,6 +165,17 @@ the header; every slot's chain verifies from its genesis; no fence exists. Then 
 epoch. After D the same guard does seal-only recovery (1.8), never a search. Another or an unprovable instance
 writes nothing and stays held until it is fenced and admitted anew. Two required cases, apart: a genuine
 restart of the same machine (goes on by itself), and the spool copied to another machine (held).
+- **[2.3] `RESUME.<n>.json`, its keys** (reading 6): `schema`, `run_fingerprint`, `n` (1, 2, ...), `prev` (sha256
+  of RESUME n - 1; for n = 1 the text `first`), `old_boot_id`, `new_boot_id`, `instance`, `instance_provable`,
+  `slots` (rows `{"slot":K,"last_index":I,"last_seal":".."}` for every slot of the header), `checks` (each
+  check of the paragraph above with its evidence), `at_utc`. A worker reads `run_fingerprint`, `new_boot_id` and
+  its own row of `slots`, and stops when any of them is not what it finds. An instance that is not provable
+  (1.1) gets no `RESUME` from the guard: it holds for a person.
+- **[2.3] When the engine is hashed** (reading 10): before the worker writes anything, whenever the start may
+  run an engine, and again at every start of an engine process. A seal-only start (1.8) runs no engine and so
+  hashes none.
+- **[2.3] A started range that a later schedule changed** (reading 11) stops the worker BEFORE its epoch line;
+  the lock and `IDENTITY.json` may exist by then, nothing else of that start does.
 
 ### 1.4 Slot journal `w<NNN>/journal.txt` (append-only; the slot's working memory)
 ```
@@ -147,6 +200,22 @@ bytes up to the `end` of the line before it; a seal file that exists for an inde
 verified against the plain bytes and the journal and the line is appended, never a second seal; an open piece
 longer than the last `end` is cut back to it. **A free lock is NOT the end of a slot** (Astra `134153Z`: a
 killed worker frees its lock and leaves no record): only the `ended` line is.
+- **[2.3] The cut leaves its evidence** (reading 9; found while the worker was written). BEFORE the open piece
+  is cut back: when the bytes beyond the last `end` begin with a whole game line of an id of this run and slot
+  (judged by the grammar of section 0), that id lies in a range of the slot and has no `done`, `noselfgame` or
+  `refused` line, the worker appends a `failed` line for it whose `why` says that its bytes were cut at a
+  restart, makes that line durable, and only then cuts. The id is played again while the dispatch end allows
+  it; otherwise it is `unfinished`. Bytes beyond the last `end` that are anything else are cut without a line.
+- **[2.3] A `failed` id that was never played again is `unfinished`** in its range seal and in 1.9 (reading 7).
+- **[2.3] `resume` in an epoch line** (reading 6): the first epoch line a slot writes under a boot that needed
+  a `RESUME` names that file by its sha256; later epoch lines under the same boot carry `null`.
+- **[2.3] `why` of the `ended` line** (reading 4): "finalizer" when this start found the dispatch end passed or
+  the fence there and so played nothing; "ranges done" when every range of the slot is complete; otherwise
+  "cutoff".
+- **[2.3] No program concludes anything from a heartbeat** (reading 13). A worker may write one for people to
+  look at. That a slot's writer lives is its lock; that a slot has ended is its `ended` line. Not the worker's
+  work at all: the count rules of an end line (home, 2.2), whether the clock can be trusted (the boot guard,
+  1.3), the wire copies (the packer).
 
 ### 1.5 Piece seal `w<NNN>/closed/p<NNNNNN>.seal.json` (one record; the logical identity of a piece)
 `schema`, `run`, `run_fingerprint`, `slot`, `epoch` (the epoch that closed it), `index` (rises by one through
@@ -180,17 +249,27 @@ a probe that passes writes `normal`. No sealed input is ever removed in either m
 `through_index`, `through_seal`, **[2.1]** `games`, `rows`, `raw_bytes` (sums over the range's pieces), and
 `dispositions`: the count of the range's ids in each final state (done, noselfgame, refused, unfinished,
 never_dispatched), with every id that is not `done` listed.
+**[2.3] Exactly** (readings 2 and 3): `dispositions` is an object with the five counts under those five names
+and `"not_done"`: a list of `[<id>, <state>]` pairs in counter order. A range without a piece has
+`first_index` -1, `first_prev_seal` null, `through_index` -1 and `through_seal` null.
 
 ### 1.8 [2.1] The end of the day on the server (Astra `133940Z`, `134153Z`; Neon `134130Z`)
 1. **The fence first:** the guard publishes `FENCE.json` (`run_fingerprint`, `at_utc`, `cutoff_utc`, `why`) at D
    or at an earlier stop. No worker reserves a game once it exists; a worker inside a game ends it by D5 and
-   records it `unfinished`.
+   records it `unfinished`. **[2.3]** (readings 5 and 12) The fence stops RESERVATIONS and never cuts a game:
+   a game in progress ends by itself, or at D by D5. Its `cutoff_utc` is the D in force (the highest valid
+   schedule's), copied, never a new time. Without a fence a worker reserves no game at or after the schedule's
+   `dispatch_end_utc`, and every wait of a worker (for the engine, a lock, the disk) ends at D.
 2. **A slot is ended only by its durable `ended` line.** Each worker seals its last piece and its range seals,
    writes `ended`, releases its lock.
 3. **A slot without that line and without a live writer** gets the seal-only FINALIZER under a new epoch: it
    verifies the open piece against the journal, seals what is complete, records the cut game `unfinished`,
    writes the range seals and `ended` with `why` "finalizer". It never starts an engine. What it cannot verify
    stays as it is and the slot is `unreconciled`: the day then closes PARTIAL for that slot's open range.
+   **[2.3]** (reading 9) It writes `unfinished` only on EVIDENCE: bytes of that game's record in the open piece
+   beyond the last `end`, or a `failed` line never followed by a final line of the same id. An id of the range
+   without evidence is `never_dispatched`. The journal has NO reservation line (it would cost one durable
+   append a game); a seat that wants one says CHANGE.
 4. ONLY when every slot is `ended` or `unreconciled` does the packer make its last pass; only then is 1.9
    written. A packer never ends while a slot is neither.
 
@@ -219,6 +298,7 @@ piece or a round, plus ONE index on the disk (2.2).
 
 ### 2.1 Stage a1, custody receipt `custody/w<NNN>/p<NNNNNN>.receipt.json`
 `schema`, `run_fingerprint`, `slot`, `index`, `epoch`, `first_counter`, `last_counter`, `offer_sha256`,
+**[2.3]** `offer_wire_bytes`, `offer_wire_sha256` (of `p<NNNNNN>.offer.json.zz` as found on the home disk),
 `seal_sha256`, `members` (as offered, with the wire length and wire sha256 as FOUND on the home disk), `kept`
 (where the wire bytes lie unchanged; a path RELATIVE to the day's home folder), `at_utc`. Written only after
 every member is on the home disk under its final name and was hashed again FROM the disk, wire bytes and
@@ -240,6 +320,15 @@ durable receipt, in any order) and **C1 = chain-eligible** (unbroken from the ge
 (2) RULES: with the reader's own move rules, the opening it computed for that id, every move's legality, every
 row's position and ply, and the end. It does NOT repeat a search; an engine replay happens only for the first
 hour's fixed games, for an A26 conflict and for small spot samples, and is recorded apart.
+
+**[2.3] Before the rules replay, in this order** (Neon `143000Z` 2 and 3). (i) The offered form is turned back
+into the plain bytes: for "raw" the decoded `p<NNNNNN>.raw.zz`; for "binpack" the `binpack` and the `meta.xz`
+TOGETHER must give back `closed/p<NNNNNN>.raw` byte for byte. In both forms the result's sha256 is the seal's
+`raw_sha256` and its length the seal's `raw_bytes`; a piece that fails here is not replayed and not credited.
+(ii) From those bytes alone the reader recomputes `games`, `rows`, `first_game`, `last_game`, `first_counter`,
+`last_counter` and `ids_digest` (`state` is `noselfgame` for a record that ends with `openingend`, otherwise
+`done`), and each must equal the seal's field. A seal whose fields do not describe its own bytes is refused
+whole, whatever its chain says.
 
 **[2.1] The rules replay, from the engine's source** (`uci.cpp`, the self-game loop, read by all three seats;
 Astra `134405Z`). In its order: no legal move, a rule draw or the ply limit end a game BEFORE a search; then
@@ -312,6 +401,15 @@ of every frozen input (filter code, config, net, options, the tables' list).
   round. A round with a
   missing id, a set-aside game, a failed probe or a missing range seal is `partial` and credits nothing. A
   second publication of a round does not exist: the folder's name is taken.
+- **[2.3] A LOCAL outage is not a verdict on the games** (Astra `144620Z`, rehearsed with a table removed after
+  its first successful probe and with a full staging volume; Neon `145000Z` AGREE). When a positively diagnosed
+  LOCAL prerequisite (a tablebase file, the staging volume) becomes unavailable during stage b, the round stays
+  PENDING in private staging and the failed attempt is recorded durably (2.4) and never erased. A whole-round
+  retry is allowed after the identical inputs are restored and verified by their hashes. Only an attempt that
+  completed with every probe made, every field validated and no unresolved failure publishes the ONE immutable
+  output. A conclusively wrong record, or a required probe that stays unresolved, still withholds credit; no
+  missing prerequisite can support a clean release. After the lease's end a later success is reported at its
+  later time and never rewrites an earlier `partial` release.
 - **[2.1] A conflict is a record of its own**, `conflicts/<game id>.json` (immutable): the id, both pieces'
   keys and seals, both bindings, how it was found (an interval overlap of 2.1, or two records under one id).
   Both pieces' credit for that id stops there. The first plan's A26 decides: the record of the LOWER piece
@@ -324,7 +422,9 @@ of every frozen input (filter code, config, net, options, the tables' list).
 trailing hour and since the start for the server and each home stage (integers, thousandths of a row a second),
 the needed rate, set-aside counts, repeats, conflicts, failed probes, games rescored in 10,000, rounds complete
 through stage b, equal games in the last 10,000, free room above the floor on every volume of both machines,
-and the row of D4 that holds. **The reconnect margin**: time left to the lease's end less the EARLIEST possible
+and the row of D4 that holds. **[2.3]** Every failed attempt of stage b (2.3) is a line of its own:
+`{"t":"stage_b_attempt","round":r,"at_utc":"..","result":"failed","why":".."}`; it is never removed, and the
+round's `report.json` counts the failed attempts before the one that published it (`attempts_failed`). **The reconnect margin**: time left to the lease's end less the EARLIEST possible
 finish of what is outstanding, in two forms that are never mixed: (a) from totals, max(outstanding offered
 bytes / measured fetch rate, pending rows / measured content rate), printed with the words "impossible on this
 bound" or "possibly feasible, unverified" and never as "safe"; (b) piece by piece, where measured times a
@@ -352,7 +452,13 @@ it; a piece without rows (offered as "raw"); the converter failing three times (
 still offered); a round whose last piece arrives after a later round's; Astra's three equal games in both
 delivery orders; **[2.2]** a genuine restart of the same machine during the day (the boot guard writes `RESUME`,
 the slots go on) and one after D (seal-only); p0, then the terminal inventory, then p1 a second later (one
-complete round); a pilot that stops before the first schedule (the inventory names schedule 0).
+complete round); a pilot that stops before the first schedule (the inventory names schedule 0); **[2.3]**
+Astra's 13 positive record vectors; a worker killed inside a game whose record had begun in the open piece
+(the restart writes `failed` before the cut; the id is played again, or is `unfinished` after the fence, and a
+second restart finds the same); the control beside it, other bytes beyond the last `end` (cut without a line,
+the ids `never_dispatched`); a table file and the staging volume lost during stage b and restored with the
+same hashes (ONE complete round, the failed attempt still in the progress file); a fetch that lists while a
+member's wire file is being written (it sees no offer yet).
 
 **B. These must WITHHOLD the clean verdict and name the slot, id or piece:** two different seals at one index;
 epochs [1, 2, 1] along the index; two held pieces of a slot with overlapping counters; a counter outside the
@@ -364,4 +470,9 @@ reservation fails); a schedule that moves a started range; a converter that flip
 of a journal; a record with a key twice, a float, a control byte; a malformed game id; a search that runs past
 D (Astra `135328Z`: processor time of the engine process read at D and after the stop); a reservation inside
 the guard; a slot with a free lock and no `ended` line that the finalizer cannot verify; a never-offered piece
-counted as zero work; a second publication of a round; an id with two different complete records.
+counted as zero work; a second publication of a round; an id with two different complete records; **[2.3]**
+Astra's ten negative record vectors, each by its named check; a seal whose `games`, counters or `ids_digest`
+do not describe its own bytes; a `binpack` and `meta.xz` that give back other plain bytes than the seal's; an
+instance of placeholders only (`instance_provable` false: no `RESUME`, held for a person) and two instances
+whose only common values are `null`; a list opening rule with two slots; a round published `complete` while a
+required probe is unresolved; a failed stage b attempt missing from the progress file.
