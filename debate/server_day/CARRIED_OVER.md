@@ -1,1 +1,2 @@
 - 2026-11-23T19:48:15Z: carried over `debate/server-plan-20261123-astra` at `c71b191` (the newer version of Astra's own failure list taken)
+- 2026-11-23T19:49:14Z: carried over `debate/server-plan-20261123-astra` at `41d913dc1030`
