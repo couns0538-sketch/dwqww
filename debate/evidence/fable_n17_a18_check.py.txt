@@ -1,0 +1,119 @@
+"""Fable 2026-11-23: live check on the PC's own exe of neon's N17 (four of its five failure paths; the fifth is a
+source fact) and of astra's A18 (the two-position sentinel). One thread, eight searches to depth 12, no game.
+    n17_a18_check.py <forge.exe> <net .fnn3> <LOOP_OPTIONS.txt> <book .epd> <an existing folder> <new output file>
+Expected values are the two seats' (Linux builds of the same source), typed in before the first run.
+"""
+import hashlib
+import subprocess
+import sys
+
+exe, net, opt_file, book, folder, out_path = sys.argv[1:7]
+net = net.replace("\\", "/")
+lines = []
+
+
+def say(text):
+    lines.append(text)
+    print(text)
+
+
+def sha(path):
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+
+
+say(f"exe sha256 {sha(exe)[:16]} | net sha256 {sha(net)[:16]} | book sha256 {sha(book)[:16]}")
+
+
+def run(tag, script, want):
+    p = subprocess.run([exe], input=script, text=True, capture_output=True, timeout=60)
+    keep = [x for x in p.stdout.splitlines()
+            if "NNUE v3" in x or x.startswith("info string eval") or x == "readyok" or "ERROR" in x]
+    short = [x.replace(net, "<net>").replace(folder, "<folder>")[:110] for x in keep]
+    say(f"N17 {tag}: rc={p.returncode}")
+    for x in short:
+        say(f"      {x}")
+    ok = all(any(w in x for x in keep) for w in want["has"]) and p.returncode == want["rc"] \
+        and not any(any(w in x for x in keep) for w in want.get("hasnot", []))
+    say(f"      {'AS REPORTED' if ok else 'DIFFERENT from the report'} (expected rc {want['rc']}, lines with {want['has']}"
+        + (f", none with {want['hasnot']}" if want.get("hasnot") else "") + ")")
+    return ok
+
+
+good = []
+good.append(run("(0) control, file then switch", f"setoption name NNUEArchFile value {net}\nsetoption name NNUEArch value true\nisready\neval\nquit\n",
+                {"rc": 0, "has": ["NNUE v3 active", "readyok", "eval hce 0 nnue 87 total 87"], "hasnot": ["ERROR"]}))
+good.append(run("(1) missing file, then eval", "setoption name NNUEArchFile value C:/no/such.fnn3\nsetoption name NNUEArch value true\neval\nquit\n",
+                {"rc": 0, "has": ["ERROR NNUE v3", "eval hce 18 nnue 20 total 38"]}))
+good.append(run("(1b) missing file, then isready", "setoption name NNUEArchFile value C:/no/such.fnn3\nsetoption name NNUEArch value true\nisready\nquit\n",
+                {"rc": 2, "has": ["ERROR NNUE v3"], "hasnot": ["readyok"]}))
+good.append(run("(2) UseNNUE false with the net on", f"setoption name UseNNUE value false\nsetoption name NNUEArchFile value {net}\nsetoption name NNUEArch value true\nisready\neval\nquit\n",
+                {"rc": 0, "has": ["NNUE v3 active", "readyok", "eval hce 18 nnue 0 total 18"], "hasnot": ["ERROR"]}))
+good.append(run("(4) switch before file", f"setoption name NNUEArch value true\nsetoption name NNUEArchFile value {net}\nisready\neval\nquit\n",
+                {"rc": 0, "has": ["ERROR NNUE v3: NNUEArch is on but no v3 network is loaded", "readyok", "eval hce 0 nnue 87 total 87"]}))
+# (3) is a Linux observation (abort on a folder path). What does THIS Windows exe do? No expectation typed in.
+p = subprocess.run([exe], input=f"setoption name NNUEArchFile value {folder}\nisready\nquit\n", text=True, capture_output=True, timeout=60)
+say(f"N17 (3) a folder as the net file, on this Windows exe: rc={p.returncode}; "
+    + " | ".join(x.replace(folder, '<folder>')[:100] for x in p.stdout.splitlines() if 'NNUE' in x or x == 'readyok'))
+say("N17: " + ("ALL FIVE CHECKED LINES AS REPORTED" if all(good) else f"{good.count(False)} OF 5 DIFFERENT"))
+
+# ---- A18: the two-position sentinel
+opts = [x.strip() for x in open(opt_file, encoding="utf-8") if x.startswith("setoption")]
+opts = [f"setoption name NNUEArchFile value {net}" if "NNUEArchFile" in x else x for x in opts]
+fens = [x.strip() for x in open(book, encoding="utf-8") if x.strip()][:2]
+
+
+def session(reset, values):
+    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+
+    def send(s):
+        p.stdin.write(s + "\n")
+        p.stdin.flush()
+
+    def until(word):
+        seen = []
+        while True:
+            x = p.stdout.readline()
+            if not x:
+                raise SystemExit(f"engine ended while waiting for {word}")
+            x = x.strip()
+            seen.append(x)
+            if x.startswith(word):
+                return seen
+
+    for o in opts:
+        send(o)
+    send("isready")
+    got = until("readyok")
+    if any("ERROR" in x or "unknown option" in x or "invalid value" in x for x in got):
+        raise SystemExit("an option was refused: " + " | ".join(x for x in got if "info string" in x)[:300])
+    res = []
+    for fen, v in zip(fens, values):
+        send(reset)
+        send(f"setoption name IirDepth value {v}")
+        send("isready")
+        until("readyok")
+        send(f"position fen {fen}")
+        send("go depth 12")
+        got = until("bestmove")
+        info = [x.split() for x in got if x.startswith("info") and " nodes " in x and " score " in x][-1]
+        res.append((int(info[info.index("nodes") + 1]), int(info[info.index("score") + 2]), got[-1].split()[1]))
+    send("quit")
+    p.wait(timeout=20)
+    return res
+
+
+want = {("setoption name Clear Hash", "control"): [(31797, -23, "f5g6"), (42959, 60, "f8d6")],
+        ("setoption name Clear Hash", "treatment"): [(39208, -32, "f5g6"), (27059, 54, "f8d6")],
+        ("ucinewgame", "control"): [(31797, -23, "f5g6"), (43614, 55, "f8d6")],
+        ("ucinewgame", "treatment"): [(39208, -32, "f5g6"), (43614, 55, "f8d6")]}
+bad = 0
+for reset in ("setoption name Clear Hash", "ucinewgame"):
+    for arm, values in (("control", (2, 2)), ("treatment", (8, 2))):
+        got = session(reset, values)
+        ok = got == want[(reset, arm)]
+        bad += 0 if ok else 1
+        say(f"A18 reset '{reset}', {arm} (IirDepth {values[0]} then {values[1]}): "
+            + "; ".join(f"{n}/{s:+d}/{m}" for n, s, m in got) + ("  as both seats" if ok else f"  DIFFERENT, seats: {want[(reset, arm)]}"))
+say("A18: " + ("ALL EIGHT SEARCHES AS BOTH SEATS: after Clear Hash the second position differs between the arms although "
+               "its settings are equal; after ucinewgame it is equal" if bad == 0 else f"{bad} OF 4 SESSIONS DIFFERENT"))
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

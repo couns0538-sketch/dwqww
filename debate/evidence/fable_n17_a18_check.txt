@@ -1,0 +1,36 @@
+exe sha256 cef2f21589102392 | net sha256 737f197808fef489 | book sha256 ac44af15ef0d7233
+N17 (0) control, file then switch: rc=0
+      info string NNUE v3 loaded: v3 <net> hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale
+      info string NNUE v3 active: v3 <net> hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale
+      readyok
+      info string eval hce 0 nnue 87 total 87
+      AS REPORTED (expected rc 0, lines with ['NNUE v3 active', 'readyok', 'eval hce 0 nnue 87 total 87'], none with ['ERROR'])
+N17 (1) missing file, then eval: rc=0
+      info string ERROR NNUE v3: cannot open C:/no/such.fnn3
+      info string ERROR NNUE v3: cannot open C:/no/such.fnn3
+      info string eval hce 18 nnue 20 total 38
+      AS REPORTED (expected rc 0, lines with ['ERROR NNUE v3', 'eval hce 18 nnue 20 total 38'])
+N17 (1b) missing file, then isready: rc=2
+      info string ERROR NNUE v3: cannot open C:/no/such.fnn3
+      info string ERROR NNUE v3: cannot open C:/no/such.fnn3
+      info string ERROR NNUE v3: cannot open C:/no/such.fnn3
+      AS REPORTED (expected rc 2, lines with ['ERROR NNUE v3'], none with ['readyok'])
+N17 (2) UseNNUE false with the net on: rc=0
+      info string NNUE v3 loaded: v3 <net> hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale
+      info string NNUE v3 active: v3 <net> hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale
+      readyok
+      info string eval hce 18 nnue 0 total 18
+      AS REPORTED (expected rc 0, lines with ['NNUE v3 active', 'readyok', 'eval hce 18 nnue 0 total 18'], none with ['ERROR'])
+N17 (4) switch before file: rc=0
+      info string ERROR NNUE v3: NNUEArch is on but no v3 network is loaded (set NNUEArchFile)
+      info string NNUE v3 loaded: v3 <net> hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale
+      readyok
+      info string eval hce 0 nnue 87 total 87
+      AS REPORTED (expected rc 0, lines with ['ERROR NNUE v3: NNUEArch is on but no v3 network is loaded', 'readyok', 'eval hce 0 nnue 87 total 87'])
+N17 (3) a folder as the net file, on this Windows exe: rc=0; info string ERROR NNUE v3: cannot open <folder> | readyok
+N17: ALL FIVE CHECKED LINES AS REPORTED
+A18 reset 'setoption name Clear Hash', control (IirDepth 2 then 2): 31797/-23/f5g6; 42959/+60/f8d6  as both seats
+A18 reset 'setoption name Clear Hash', treatment (IirDepth 8 then 2): 39208/-32/f5g6; 27059/+54/f8d6  as both seats
+A18 reset 'ucinewgame', control (IirDepth 2 then 2): 31797/-23/f5g6; 43614/+55/f8d6  as both seats
+A18 reset 'ucinewgame', treatment (IirDepth 8 then 2): 39208/-32/f5g6; 43614/+55/f8d6  as both seats
+A18: ALL EIGHT SEARCHES AS BOTH SEATS: after Clear Hash the second position differs between the arms although its settings are equal; after ucinewgame it is equal

@@ -1,0 +1,139 @@
+"""Fable 2026-11-23: recount of astra's raw rows behind A19 (label depth: 065710Z; whole-game cost: 070501Z).
+    a19_recount.py <depth message file> <cost message file> <new output file>
+Reads the two message files as exported from the branch; no engine, no game. Expected values are astra's and
+neon's, typed in before the first run. The last block applies the PC trainer's own score-to-target map
+(sigmoid(cp x 2.25 / 400); pipeline/forge_train.py line 36, forge_train_v3.py lines 175 to 177).
+"""
+import csv
+import io
+import math
+import sys
+
+import numpy as np
+
+depth_file, cost_file, out_path = sys.argv[1:4]
+lines = []
+bad = 0
+
+
+def say(t):
+    lines.append(t)
+    print(t)
+
+
+def check(label, got, want, tol):
+    global bad
+    ok = abs(got - want) <= tol
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {label}: got {got:.4f}, reported {want}")
+
+
+def block(path):
+    t = open(path, encoding="utf-8").read()
+    a = t.index("```csv") + len("```csv")
+    b = t.index("```", a) if "```" in t[a:] else len(t)
+    return list(csv.DictReader(io.StringIO(t[a:b].strip())))
+
+
+def cell(c):
+    if not c:
+        return None
+    mv, sc, dp, nd = c.split("/")
+    mate = sc.startswith("m")
+    return mv, (None if mate else int(sc)), int(nd)
+
+
+rows = block(depth_file)
+games = sorted({int(r["game"]) for r in rows})
+searches = sum(1 for r in rows for k in ("soft2k", "soft8k", "soft32k", "soft128k", "soft512k") if r[k])
+say(f"depth panel: {len(rows)} rows, {len(games)} games, {searches} cold searches (reported 3,064 / 383 / 12,639)")
+bad += 0 if (len(rows), len(games), searches) == (3064, 383, 12639) else 1
+
+g = np.array([int(r["game"]) for r in rows])
+c2, c8, c128 = ([cell(r[k]) for r in rows] for k in ("soft2k", "soft8k", "soft128k"))
+warm = np.array([int(r["warm_cp"]) for r in rows], dtype=float)
+agree2 = np.array([a[0] == b[0] for a, b in zip(c2, c128)], dtype=float)
+agree8 = np.array([a[0] == b[0] for a, b in zip(c8, c128)], dtype=float)
+agreew = np.array([r["warm_move"] == b[0] for r, b in zip(rows, c128)], dtype=float)
+fin = np.array([a[1] is not None and b[1] is not None and c[1] is not None for a, b, c in zip(c2, c8, c128)])
+s2 = np.array([a[1] if a[1] is not None else 0 for a in c2], dtype=float)
+s8 = np.array([a[1] if a[1] is not None else 0 for a in c8], dtype=float)
+s128 = np.array([a[1] if a[1] is not None else 0 for a in c128], dtype=float)
+say(f"rows with a finite score at 2k, 8k and 128k: {int(fin.sum())} (reported 3,048); "
+    f"128k is a mate score in {sum(1 for a in c128 if a[1] is None)} rows")
+check("move agreement with 128k, cold 2k (%)", 100 * agree2.mean(), 54.31, 0.006)
+check("move agreement with 128k, cold 8k (%)", 100 * agree8.mean(), 64.49, 0.006)
+check("move agreement with 128k, production warm 2k (%) [neon]", 100 * agreew.mean(), 56.17, 0.006)
+e2, e8, ew = np.abs(s2 - s128)[fin], np.abs(s8 - s128)[fin], np.abs(warm - s128)[fin]
+check("mean |score - 128k|, cold 2k (cp)", e2.mean(), 124.72, 0.006)
+check("mean |score - 128k|, cold 8k (cp)", e8.mean(), 97.21, 0.006)
+check("mean |score - 128k|, production warm 2k (cp) [neon]", ew.mean(), 98.00, 0.006)
+check("reduction 2k -> 8k (%)", 100 * (1 - e8.mean() / e2.mean()), 22.05, 0.006)
+closer_w, closer_c = int((ew < e2).sum()), int((ew > e2).sum())
+say(f"    warm 2k closer to 128k than cold 2k on {closer_w} rows, farther on {closer_c}, equal on {int((ew == e2).sum())} "
+    f"(neon: 1,901 / 1,050 / 97)")
+# 512k on the k = 3 rows
+r3 = [r for r in rows if r["soft512k"]]
+c512 = [cell(r["soft512k"]) for r in r3]
+a2 = np.mean([cell(r["soft2k"])[0] == b[0] for r, b in zip(r3, c512)])
+a8 = np.mean([cell(r["soft8k"])[0] == b[0] for r, b in zip(r3, c512)])
+f3 = [(cell(r["soft2k"])[1], cell(r["soft8k"])[1], b[1]) for r, b in zip(r3, c512)]
+f3 = [x for x in f3 if None not in x]
+m2 = np.mean([abs(x[0] - x[2]) for x in f3])
+m8 = np.mean([abs(x[1] - x[2]) for x in f3])
+say(f"against 512k on {len(r3)} rows: move agreement 8k minus 2k {100 * (a8 - a2):+.2f} points (reported +6.27); "
+    f"finite-score discrepancy lower by {100 * (1 - m8 / m2):.2f} % on {len(f3)} rows (reported 11.54)")
+# my own bootstrap over whole games, another seed than astra's
+rng = np.random.default_rng(2311)
+idx_by_game = [np.flatnonzero(g == k) for k in games]
+dm, dr = [], []
+for _ in range(2000):
+    pick = np.concatenate([idx_by_game[i] for i in rng.integers(0, len(games), len(games))])
+    dm.append(100 * (agree8[pick].mean() - agree2[pick].mean()))
+    f = fin[pick]
+    dr.append(100 * (1 - np.abs(s8 - s128)[pick][f].mean() / np.abs(s2 - s128)[pick][f].mean()))
+say(f"    my bootstrap over games (2,000 draws, another seed): move agreement gain [{np.percentile(dm, 2.5):.2f}, "
+    f"{np.percentile(dm, 97.5):.2f}] points (astra [8.64, 11.72]); discrepancy reduction [{np.percentile(dr, 2.5):.2f}, "
+    f"{np.percentile(dr, 97.5):.2f}] % (astra [20.36, 23.77])")
+
+# the whole-game cost arm
+cost = block(cost_file)
+tot = {}
+for r in cost:
+    t = tot.setdefault(int(r["softnodes"]), [0, 0, 0.0, 0])
+    t[0] += int(r["rows"]); t[1] += int(r["nodes"]); t[2] += float(r["child_cpu_s"]); t[3] += 1
+say("cost arm: " + "; ".join(f"{k}: {v[3]} games, {v[0]} rows, {v[1]} nodes, {v[2]:.4f} s" for k, v in sorted(tot.items())))
+want = {2000: (48469, 189317979, 69.7451), 4000: (50631, 378403593, 142.4574), 8000: (47427, 682751296, 264.7367),
+        16000: (46978, 1303485364, 513.8189)}
+for k, w in want.items():
+    ok = tot[k][0] == w[0] and tot[k][1] == w[1] and abs(tot[k][2] - w[2]) < 0.0001
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} totals at {k}: rows, nodes and CPU seconds as reported")
+base = tot[2000][0] / tot[2000][2]
+for k, w in ((4000, 0.5114), (8000, 0.2578), (16000, 0.1316)):
+    check(f"rows per CPU second at {k} relative to 2k", tot[k][0] / tot[k][2] / base, w, 0.00006)
+check("rows per node at 8k relative to 2k", (tot[8000][0] / tot[8000][1]) / (tot[2000][0] / tot[2000][1]), 0.2713, 0.00006)
+res = {}
+for r in cost:
+    res.setdefault(int(r["game"]), {})[int(r["softnodes"])] = r["raw_white_result"]
+same = sum(1 for v in res.values() if v.get(2000) == v.get(8000))
+say(f"{'ok ' if same == 204 else 'BAD'} games with the same raw result at 2k and 8k: {same} of {len(res)} (reported 204 of 384)")
+bad += 0 if same == 204 else 1
+
+# the PC trainer's own map from a search score to its training target
+def tgt(cp):
+    return 1.0 / (1.0 + np.exp(-np.clip(cp * 2.25 / 400.0, -40, 40)))
+
+
+t2, t8, tw = (np.abs(tgt(x) - tgt(s128))[fin].mean() for x in (s2, s8, warm))
+say("with the PC trainer's map, target = sigmoid(cp x 2.25 / 400): mean |target - target of 128k| on the same "
+    f"{int(fin.sum())} rows: cold 2k {t2:.5f}, production warm 2k {tw:.5f}, cold 8k {t8:.5f}")
+say(f"    cold 8k lower than cold 2k by {100 * (1 - t8 / t2):.2f} %; warm 2k lower than cold 2k by {100 * (1 - tw / t2):.2f} %; "
+    f"warm 2k closes {100 * (t2 - tw) / (t2 - t8):.1f} % of the cold 2k -> cold 8k gap (in raw centipawns: "
+    f"{100 * (e2.mean() - ew.mean()) / (e2.mean() - e8.mean()):.1f} %)")
+big = np.abs(s128) > 1000
+say(f"    rows with |128k score| above 1000 cp: {int((big & fin).sum())} of {int(fin.sum())}; they carry "
+    f"{100 * e2[big[fin]].sum() / e2.sum():.1f} % of the cold 2k centipawn discrepancy and "
+    f"{100 * np.abs(tgt(s2) - tgt(s128))[fin][big[fin]].sum() / np.abs(tgt(s2) - tgt(s128))[fin].sum():.1f} % of its target discrepancy")
+say("ALL REPORTED NUMBERS REPRODUCED" if bad == 0 else f"{bad} NUMBER(S) DIFFER")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

@@ -592,7 +592,123 @@ and W1 to W16. No dissent. Before the final text was issued, Astra (`20261123T06
 
 ### Changes to the items above
 
-- None yet.
+The first five entries (four here, one in the second list) were entered at 2026-11-23T14:32:48Z (Fable's clock). Each
+entry: the items it changes, the message that holds the agreed wording and both votes, what is required, the
+proof, and what Fable's own check showed and did not show.
+
+- **A16 (changes W2, W3 (a) and W8; Astra, form with Neon). The match runner counts every game exactly once.**
+  Agreed wording: `20261123T064956Z_astra_agreed_a16.md` (Astra `064019Z`, `064928Z`; Neon `064747Z`).
+  - The production runner's raw-result and restart path identifies each game by its declared match, its scheduled
+    opening occurrence and the candidate's colour. An identical retry counts once; a conflicting retry is refused;
+    a scheduled look is made only when its whole prefix of opening pairs exists. Two scheduled occurrences may
+    hold the same position: equal FENs are not one game.
+  - Tests on made-up records through the runner's real entry point: games that finish out of order; a missing and
+    a duplicated result in the same outcome class; a late missing result after a restore. 1,000 interleaved
+    finishes give [250, 0, 0, 0, 250] and +0.018639 with no stop, whatever the order of arrival. At W8's look 21
+    a duplicated win-win pair that leaves all five class counts nominal leaves only 10,499 distinct pairs: no
+    look is due (that partial state stands at +2.928513); the pending pair counted once on arrival gives
+    +3.017664 and H1, once, at 10,500 pairs.
+  - A result summary is read as ONE complete block in the frozen orientation of the candidate: games = wins +
+    losses + draws = 2 x completed pairs, and pair half-points = 2 x wins + draws. A run of 1,000 or 2,000 games
+    that was cut off without a boundary is recorded as partial; "complete" needs the declared cap or the
+    runner's own final verdict. A mixed or truncated summary must be refused.
+  - Fable's check (`debate/evidence/fable_a16_check.txt`): all five numbers recomputed and equal. The plan's own
+    evidence reader let the planted mixed summary through; it is repaired
+    (`debate/evidence/fable_f2_pair_tables.py.txt`) and its six historical records are unchanged. Not shown by
+    anyone yet, and owed by the agreed text: the end-to-end rehearsal on the live runner.
+  - Cost: made-up records, processor seconds, no games.
+
+- **A17 (changes W8; Astra). The new trainer's reader is checked for games, not only for rows.** Agreed wording:
+  `20261123T065016Z_astra_agreed_a17.md` (Astra `064306Z`, `064928Z`; Neon `064747Z`).
+  - At the real sampler's output, on a fixed fixture: row coverage and the round-composition checks stay. Added,
+    with game numbers that exist only in the test: the mean share of same-game pairs inside a batch, the sum
+    over games of n(n-1) divided by B(B-1), is held against a reference declared before for the chosen policy,
+    seed and batch size. A shuffled reader (the control that must pass) passes; a reader that keeps blocks of one
+    game in time order while matching every round count must fail.
+  - Astra's fixture: both readers visit all 8,192 rows exactly once and give 16 rows per stratum in all 64
+    batches; the reference holds 82.484375 distinct games a batch and a share of 0.007353054257, the planted
+    reader 8 games and 0.118110236220 (16.06 times as much). Where the new reader's ordered row sequence can be
+    shown EQUAL to the trusted reader's, that stronger check is used instead.
+  - No production threshold and no Elo gain is claimed; W8's strength gate stays the decision.
+  - Fable's check (`debate/evidence/fable_a17_check.txt`): the fixture rebuilt, all six numbers equal; 200 other
+    seeds give 0.006992 to 0.007588 (the plant is 15.6 times the largest). The PC's trainer of today draws one
+    random order over the whole window for every pass, so today's reader is of the shuffled kind; the check is
+    for the reader that W8 builds.
+  - Cost: processor seconds, no games.
+
+- **N17 (changes W5 (a) and (i), W6, W9 and W15; Neon). A net that was asked for and is not the one that
+  evaluates must stop the program, on every path.** Agreed wording: `20261123T065155Z_neon_agreed_n17.md`
+  (Neon `064748Z`; Astra `065058Z`).
+  - Checks that need no source change (in force before W15's repairs):
+    - W5 (i): the start script sends `setoption name UseNNUE value true` (or refuses `UseNNUE false` together
+      with `NNUEArch true`) and keeps the frozen order, `NNUEArchFile` before `NNUEArch`, so that N15's stop on
+      an `ERROR` line is not tripped by the line the program prints when the switch comes first (`uci.cpp` 977).
+    - W6: the trainer-against-engine check proves WHICH evaluator answered: the line
+      `info string NNUE v3 active:` with the checksum of the exported file, no `ERROR` line, one fixed known
+      position whose value is not near zero, and on every probe position the three fields
+      `hce 0 nnue X total X` (never `total` alone). A planted file with a wrong checksum must fail `isready`
+      with exit code 2 and an `ERROR` line.
+    - W6 / W9, before W13 (b) uses a 1024-wide net: the AVX-512, the AVX2 and the plain build (with
+      `-DFORGE_NNUE_V3_VERIFY=1`) give the same values, the same `bench 11` and the same `selfgame` rows on a
+      1024-wide fixture, among its cases `b1 = 255, w2 = +/-127` and `max|b1| + 32 x max|w1| = 32767`; the
+      reload 768 -> 1024 -> 768 in one process and the published known answers stay.
+  - Repairs of the source under W15, each with a test that fails before the repair and passes after it:
+    - `uci.cpp` 1203 (`eval`): with a requested net that cannot evaluate it prints the `ERROR` line and ends
+      with exit code 2, as `isready`, `go`, `bench` and `selfgame` do.
+    - `nnue_v3.cpp` 704 (`problem()`): `NNUEArch true` together with `UseNNUE false` (or with no usable
+      evaluation) is a problem, so the program can no longer print "NNUE v3 active", answer `readyok` and
+      evaluate by hand.
+    - `nnue_v3.cpp` 589: the net path must be a readable regular file, and a read that fails ends in the
+      loader's own error.
+    - `uci.cpp` 976: `NNUEArch true` before a file is named prints the notice that `isready` already prints for
+      that state, not an `ERROR` line; real load errors and `go` / `bench` / `selfgame` / `eval` stay loud.
+    - `nnue_v3.cpp` 617: the loader itself refuses a residual net in a stand-alone build (or every consumer
+      does), so that no caller can get one past `uci.cpp` 1002.
+  - Proof by both, on untouched Linux builds with the branch's net: a missing file, the switch on, then `eval`:
+    an `ERROR` line, then `hce 18 nnue 20 total 38` and exit code 0 (the same with `isready`: exit code 2);
+    `UseNNUE false` with the net on: "loaded", "active", `readyok`, then `hce 18 nnue 0 total 18`; the switch
+    before the file: an `ERROR` line, then `hce 0 nnue 87 total 87`. By Neon alone: on Linux a folder given as
+    the net file ends the program with an uncaught exception; four builds agree bit for bit on the 768 net and
+    on a made-up 1024 net; with `UseNNUE false`, `bench 11` gives 375354 instead of 226187.
+  - Fable's check: the five places in the source read (`source/` on this branch is the source of the PC's program): they are
+    as described. On the PC's own Windows program (the loop's, the same file as `loop/forge.exe`;
+    `debate/evidence/fable_n17_a18_check.txt`): the control, the missing file with `eval` (two `ERROR` lines,
+    then `hce 18 nnue 20 total 38`, exit code 0) and with `isready` (exit code 2, no `readyok`), `UseNNUE false`
+    (`hce 18 nnue 0 total 18` after "active" and `readyok`) and the switch before the file (`ERROR`, then
+    `hce 0 nnue 87 total 87`) all come out as reported. A folder as the net file does NOT end the Windows
+    program: it answers `cannot open`; that fault belongs to the Linux builds, which is where the rented server
+    runs. Two facts of the PC: its trainer-against-engine tool reads the field `total` alone
+    (`pipeline/tools/v3_model_check.py` 72), so W6's part changes a tool that is in use; and the loop sends the
+    file before the switch and never `UseNNUE` (`nnloop/engine.py` 76), so today's loop is not hit. Not checked
+    by Fable: the four builds on a 1024-wide net and the `bench 11` figures (Neon's alone).
+  - Cost: processor seconds for the fixtures and small guards in the source; no card, no games.
+
+- **A18 (changes W1 and W14; Astra). A count of "how many positions does this setting change" starts every
+  position from a fully reset program.** Agreed wording: `20261123T071114Z_astra_agreed_a18.md` (Astra
+  `065145Z`, `071057Z`; Neon `070959Z`).
+  - Before an option's per-position node counts are used to keep or to drop it (W1's table at the final values;
+    W14's "fewer than 6 of the 600"), every independent position in every arm is searched after `ucinewgame`
+    (or in a fresh process shown to be equal to it), and the nodes are stored with the position's identity.
+    W1's sweep over all 45 settings and W14's bar of 6 of 600 stay as they are.
+  - Two sentinels through the launcher that makes the real table: an inert option (or the same arm twice) must
+    change 0 positions; a change of `IirDepth` on the FIRST position only must change the node count of exactly
+    that one position.
+  - Why: `setoption name Clear Hash` empties the hash table and leaves the search worker's history tables
+    (`uci.cpp` 922 to 924 against 873 to 880; `search.cpp` 3272 to 3286 against 1217 to 1238). Both seats, on the
+    60 positions of `loop/build_recipe/pgo_selfplay_books.epd`: after `IirDepth` 2 -> 8 -> 2 on the first
+    position the node count differed on all 59 later ones, the score on 56, the move on 15; with `ucinewgame`
+    on none. An inert option (`Book Depth` 10 -> 11 -> 10 with the book off): 60 of 60 "changed" after Clear
+    Hash, 0 after `ucinewgame`. The two-position fixture: the second position under EQUAL settings 42,959
+    against 27,059 nodes after Clear Hash, 43,614 in both arms after `ucinewgame`.
+  - Fable's check: the source lines read: `ucinewgame` calls the full reset (every history table of the worker), `Clear
+    Hash` only empties the hash table and the caches. On the PC's own Windows program all eight searches of the
+    two-position fixture give the seats' numbers to the node (position 1: 31,797 and 39,208; position 2:
+    42,959 against 27,059 after Clear Hash, 43,614 in both arms after `ucinewgame`;
+    `debate/evidence/fable_n17_a18_check.txt`). The PC's tool behind W1's table (`tmp/tree_factor/tree_factor.py`,
+    called by the tune's liveness script; not on this branch) already sends `ucinewgame` and `isready` before
+    every search in every arm and runs the base arm twice (the zero sentinel). It has no one-position pulse:
+    that sentinel is owed before the table at the final values. Not run by Fable: the two 60-position sweeps.
+  - Cost: seconds; no games.
 
 ### For later, once the engine is stronger
 
@@ -603,4 +719,50 @@ condition that can be measured and that starts it), WHAT, its TEST, its BAR, and
 that is not there yet). A forecast is called a forecast. Such an entry changes no item above and nothing in
 the order of the work that is in order now.
 
-- None yet.
+- **A19 (Astra; one addition by Neon). Deeper searches for the self-play labels: fewer, better positions against
+  more of today's.** Entered at 2026-11-23T14:32:48Z (Fable's clock). Agreed wording: `20261123T071136Z_astra_agreed_a19.md`
+  (Astra `070539Z`, `071057Z`; Neon `070959Z`).
+  - WHEN: W8's trainer has qualified AND the store of 2 billion positions is verified AND either a successor
+    of round 67's net has passed its promotion gates or W13's matched 768 pair has really given its declared
+    equivalence inside +/- 5 Elo. Then the label panel below is measured again with the producer of that day,
+    the accepted new kept positions per paid hour are measured on the target machine, and both trainings and
+    both matches are declared and paid for before the pilot is used.
+  - WHAT: two ways of making positions under the same paid generation time, 2,000 against 8,000 soft nodes a
+    move, with the same frozen producer, adjudication and filter; then two nets of the same supported width,
+    start, recipe, teacher and seed policy at equal passes. If the deeper set is too small for 1024, both arms
+    are screened at 768. Card, storage and transfer costs are printed apart. The panel reports the labels a
+    real game writes (search state carried from move to move: "warm") beside searches from a reset program
+    ("cold"), compares 8,000 with 2,000 under the same warm state, and uses the trainer's real map from a score
+    to its target and its handling of mate scores. A deeper search is a reference, not the truth.
+  - TEST and BAR: the two matched trainings, then 4,000 games at 250,000 nodes declared before, on new
+    openings played from both sides: the lower end of the 95 % interval from the opening pairs above 0 to go
+    on. Then an independent second comparison whose opponent, length, clock or nodes and bar (lower end above
+    0) were fixed before the training. R1, R3 and R4 where they apply, and the receiver's paid-rate budget,
+    before any use in production. Not clear or lost: 2,000 stays. The optional test of the CAUSE (are the
+    labels themselves better?) holds the positions, their move histories, the training rows, the results, the
+    optimizer steps and every other target fixed and changes only the search scores, both arms under one
+    declared state (cold or warm); equal openings alone do not hold the games equal.
+  - WHY IT WAITS: with today's net, from a reset program, labels at 8,000 nodes agree with a 128,000-node search
+    on 10.18 points more moves than labels at 2,000 nodes, and their scores lie 22.05 % closer (against 512,000
+    nodes the direction is the same). But 8,000 nodes gave only 25.78 % of the positions per processor second,
+    only 204 of 384 games ended with the same result, and (Neon) the labels a real game writes at 2,000 nodes
+    are already as close to the 128,000-node scores as the reset 8,000-node ones (98.00 against 97.21
+    centipawns; reset 2,000: 124.72): the reset comparison overstates what deeper labels would add. A cheaper
+    rule (deepen only where the last two iterations disagree) missed its declared bar (Astra `065752Z`). Only
+    a pilot on the target machine and trained nets playing games can say whether fewer, deeper labels are worth
+    a generation budget, and that needs the trainer, the store and a stronger producer first. This entry is a
+    question with its test, not a forecast of a gain.
+  - Fable's check: both raw files recounted with a script of Fable's own (`debate/evidence/fable_a19_recount.txt`): 3,064
+    rows, 383 games, 12,639 searches; every figure above equal, also Neon's (98.00 centipawns; closer on 1,901
+    rows, farther on 1,050, equal on 97). An own bootstrap over games with another seed: 8.75 to 11.72 points
+    and 20.37 to 23.81 %. With the PC trainer's own map from a score to its target (sigmoid of score x 2.25 /
+    400; no training row carries a mate score or a score of 2,000 or more) the mean distance to the target of
+    the 128,000-node score is 0.04330 for reset 2,000, 0.03375 for the real game's 2,000 and 0.03199 for reset
+    8,000: in the trainer's units the real labels close 84.4 % of the gap (97.1 % in raw centipawns), and the
+    430 rows beyond 1,000 centipawns hold 54.7 % of the centipawn distance but 2.5 % of the target distance.
+    Measured AFTER the agreed message, recomputed by Neon (`072612Z`), not yet recounted by Fable: with warm
+    searches at both depths (Astra `072450Z`) 8,000 against 2,000 gives 6.89 points more agreement [5.45, 8.32]
+    and scores 15.05 % closer [13.38, 16.86]: smaller than the reset figures, still positive. And against
+    endgame tables (Astra `072543Z`): on 69 informative rows no depth from 2,000 to 128,000 played a move that
+    lost the table's result, and the bar Astra had declared for it failed: agreeing more often with one deep
+    search is not the same as playing objectively better moves.
