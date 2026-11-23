@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:12:11Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**FINAL TEXT, issued at 2026-11-23T13:22:08Z (Fable's clock) for the last votes. Each of the three writes one message `..._<name>_final.md` with AGREE or DISSENT for every item (R1 to R6, W1 to W16); a dissent is put beside its item, word for word. After the votes nothing above the addendum at the end is rewritten.**
 
 Written by Fable from `debate/PLAN.md` (version 4) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 37 proposals were
@@ -138,8 +138,8 @@ processor; rehearsed in the PC's Linux subsystem.
   self-play, not by `bench`. Owner's direction, after the debate: full link-time optimisation against ThinLTO,
   two builds each. A fused AVX2 kernel is written only if the server has no AVX-512 AND the plain AVX2 build misses
   (g)'s rate (Neon).
-  Added in the extension (N16, Neon; its checks agreed by all three; the rule for an undecided timing is
-  Fable's wording and waits for Astra's and Neon's votes): THE PROFILE OF A PROFILE-GUIDED BUILD IS PART OF
+  Added in the extension (N16, Neon; agreed by all three, the rule for an undecided timing in Fable's
+  wording): THE PROFILE OF A PROFILE-GUIDED BUILD IS PART OF
   THE TEST. A build profiled on the wrong work passes every bar above. Neon built three programs from one
   source (no profile; profiled on `bench` with the net off; profiled with the loop's net, options and 30
   `selfgame` games): all three print the same known numbers, the wrongly profiled one makes 2.8 % fewer rows
@@ -156,7 +156,8 @@ processor; rehearsed in the PC's Linux subsystem.
   openings that were not in the profile run, equal rows a second of wall time at the day's real number of
   workers, and a repeat budget with three outcomes declared beforehand: measurably slower = the profile is
   wrong, it is repaired or the build without a profile is used; measurably faster = kept; neither = the
-  rightly profiled build is used, as the owner directed, and the report says "gain not shown". In Neon's three
+  rightly profiled build is used, as the owner directed, and the report says "gain not shown"; an undecided
+  comparison waives nothing: the pilot of (g) must still meet its rate (Astra). In Neon's three
   rounds the build without a profile takes 1.85 % [-5.0, +9.2] longer than the rightly profiled one: not
   decided (Astra's interval). On the PC two builds
   of one source differed by up to 1.5 %, and the self-play profile gained 2.2 % in processor time over the
@@ -260,7 +261,7 @@ processor; rehearsed in the PC's Linux subsystem.
 - (h) What the day plays, written down before the rental (N11): the one best proven net (R4), no second
   player; W1's values only if all five matches held, else today's list; 2,000 soft nodes; games end at 2000
   unless W10's "cut at 1000" net passed. Anything else only after a pilot declared before and succeeded. If W13's
-  trainings on 2 billion are unfinished or inconclusive when the rental comes (draft 1 said W8 here; Neon): the proven configuration, or the day is moved.
+  trainings on 2 billion are unfinished or inconclusive when the rental comes (Neon): the proven configuration, or the day is moved.
 - (i) BAR for the whole of W5: one end-to-end rehearsal at small scale, started by one command and not
   touched until it has stopped by itself, with (a) to (f) passing inside it.
   Added in the extension (N12, Neon; agreed by all three): inside it, ONE worker that stays alive plays a
@@ -542,7 +543,9 @@ teacher; judging a training by its hold-out loss.
 ## The order by resource
 
 - Processor: the loop and W1 (running) -> W1's matches 1 to 3 -> W3's runs -> W1's matches 4 and 5 -> W4 -> W7 -> the TD twin (W12) -> the matches of W10 to W12 as
-  their nets are ready -> W14.
+  their nets are ready -> W14. W8's match of the new trainer's net (F2, F6: 3.0 hours on average, at most
+  11.8) is played as soon as that net exists and goes before the matches of W10 to W12, because the paid
+  card waits for W8.
 - Build: W2 (minutes) -> W3 (while W1's first three matches play) -> W5 (the largest piece; it decides whether the server day can be booked) -> W8
   -> W9 only when a net wider than 1024 is wanted.
 - Card, between the loop's trainings: W8's tests -> W10, W11, W12 (one at a time).
@@ -550,12 +553,22 @@ teacher; judging a training by its hold-out loss.
 
 ## What is still open, with both sides
 
-- The opening key (W5 f) is closed: it is A7, and all three agree.
-- Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4), A14 and N15 (W5 i), F5 (W3 a), F6 (W8, together with F2). A15 (W8) is agreed by all three as well. N16 (W5 a, R3, W14) is agreed in its checks by all three; its rule for an undecided timing is Fable's wording and waits for Astra's and Neon's votes. The PC's Windows run of N15's seventh game is done (equal to both Linux runs).
-- After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
-- Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
-- The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
+- Nothing is in dispute. Every objection to the two drafts of this text was either written into it or
+  withdrawn by its author, and neither Astra nor Neon had a dissent left on the second draft (Neon
+  `20261123T051650Z`). A DISSENT written in a final vote is put beside its item, word for word.
+- The count: 37 proposals (15 Astra, 16 Neon, 6 Fable), none rejected. 32 are written into the items above;
+  5 are tests that can only be run after the debate and stand in their items with the bar written beforehand.
+  Remedies of Fable's were shown wrong by Astra and replaced (the opening key; the repeat of the trainer's
+  match), and a fault in Fable's own evidence script was found by Astra and repaired; the corrections are
+  listed on the board.
+- Eighteen of the 37 came in the two more hours the owner gave: F2, F6 and A15 (W8), F3 and A11 (W5 c), F4
+  (W5 f), N12, A14 and N15 (W5 i), N13 and F5 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4),
+  N16 (W5 a, R3, W14). All eighteen are agreed by all three.
+- After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of
+  them runs out of credit; Fable reads the branch every 30 minutes and writes a change that both agree on,
+  with its proof checked, into the ADDENDUM at the end of this file. The items above are not rewritten.
+- The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels,
+  W13), and the dates and prices of the rentals.
 
 ## What was measured on the PC for this debate
 
@@ -564,3 +577,11 @@ old match; pieces against score on a whole round; the live-search pin on four pr
 who wins after a high score; the opening key (the 29 pairs, five fields, the opening rule drawn 300,000 times,
 130 replayed pairs, Astra's two pairs of openings with one whole FEN and different games, the key that survives
 them); the soft-node fixture. In the extension: the stop's four known tables and the two one-sided ones recomputed (N13, F5) and the made-up matches of A15; the old run's pair counts (R1) and the pair tables of the loop's own deep matches (F2); the tune's, the breadth match's and the TD twin's declarations held against the plan (W1, W7, W12); the after-game rule counted on round 137 (A14); Astra's six test games and Neon's seventh on the PC's Windows program, each with the expected numbers typed in before the first run (N12, N15). Corrections of our own numbers are listed on the board.
+
+## Addendum: changes agreed by Astra and Neon after the debate's end
+
+Kept by Fable. An entry is made only for a change that Astra AND Neon both agree on in a message
+`..._<name>_agreed_<item>.md` (final wording, proof, both votes), after Fable has checked the proof. Each
+entry names the item above that it changes; the item's own text stays as it was voted.
+
+- None yet.

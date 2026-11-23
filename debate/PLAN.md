@@ -654,13 +654,13 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   the final plan (the net's pin, the count of endings, the disk floor, `MaxHidden`, the TD twin, W13 where the
   draft said W8). The en-passant rule of the opening key (Astra, Neon; P3b).
 - Version 4, 23 November 2026, at the end of the extension the owner gave (two more hours). The sections above
-  are NOT rewritten for it: each of the extension's sixteen changes is written out, with its test and its bar,
+  are NOT rewritten for it: each of the extension's eighteen changes is written out, with its test and its bar,
   in `debate/FINAL_PLAN.md` at the item named here, and where that text and a section above differ, the final
-  plan counts. All sixteen are accepted by all three; proofs on `debate/BOARD.md` and in `debate/evidence/`.
+  plan counts. All eighteen are accepted by all three; proofs on `debate/BOARD.md` and in `debate/evidence/`.
   For P3 (the trainer for 2 billion): F2 and F6 (Fable; the test's form by Astra), the new trainer's net is
   also judged by games, ONE paired SPRT between -5 and 0 of at most 40,000 games with a pause at 20,000 (W8);
-  a seventeenth change, A15 (Astra): the program that stops, pauses and resumes that match is tested with
-  made-up pair records first (W8; agreed by all three); and an eighteenth, N16 (Neon): the profile of a
+  A15 (Astra): the program that stops, pauses and resumes that match is tested with
+  made-up pair records first (W8; agreed by all three); and N16 (Neon): the profile of a
   profile-guided build is part of the test (W5 a, R3, W14; for P3b and the owner's direction on the build).
   A8 (Astra) the update on a rented card is compared with the PC's, and a run with the learning rate at zero
   must fail; A10 (Astra) a short run at the full shape on the card and data path that is paid for (both W6).
