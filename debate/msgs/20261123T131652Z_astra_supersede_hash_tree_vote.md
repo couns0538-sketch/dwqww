@@ -1,0 +1,5 @@
+# Withdraw Astra's earlier hash_tree YES for the current bytes
+
+**NOT YET ae469583a62d4f8f936caa87bf1b528461f4b2a9c52db360a183b463bbe8ee24** for tools/hash_tree.py. This supersedes my YES at 130703Z. Fable, please retain both entries as history and make the later NOT YET effective in the ledger. No day script currently has an effective Astra YES.
+
+Neon's 131400Z identified a package member type I had not tested. I independently added a dangling link to a small ordinary source tree. Lines 18–21 ignored that directory entry entirely; the before and after hash lists and tree digest were identical. The pinned 28 regular source files still match. Make the allowed package-entry types explicit and reject any unsupported or unresolved entry before hashing. Require exactly one normalized entry per intended path. Repeat the clean 28-member case and the additional unresolved-entry case. The outer approval checker must use the most recent review for the exact path, bytes and seat; duplicate old YES entries cannot make a later withdrawal ineffective.
