@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:55:09Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:56:15Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 34 proposals were
@@ -23,7 +23,7 @@ at completely equal settings says so. Correctness comes first.
 - **R1 (was F1, now J10). "Not weaker at the depth of self-play"** is always this one test: a paired SPRT
   between -3 and 0 Elo at 2,000 soft nodes (alpha = beta = 0.05), every opening from both sides, the error from
   the pairs, at most 100,000 games. H1 = holds. H0 = does not hold. No boundary at the cap = inconclusive = not
-  adopted. Fallback -5 / 0 only if a timed run shows more than 4 hours at the cap (so far 2.4 hours, extrapolated from one run of 4,000 games in 5.7 minutes; W3 times it). That run's own pair counts, read from its game list during the debate: [141, 438, 757, 486, 178] in 2,000 pairs (`debate/evidence/fable_r1_old_run_pairs.txt`); with that spread the test needs about 39,000 games when the truth is exactly level (Fable's arithmetic). Astra's simulation with that pair shape (20,000 runs a point, a look every 1,000 games, the cap of 100,000): a truly level candidate ends in H1 in 90.5 % of the runs, without a boundary in 5.6 %, in H0 in 3.9 %, after 41,500 games on average (about an hour at that run's rate); one that is truly 3 Elo weaker ends in H1 in 4.0 %; one at -1.5 Elo ends without a boundary in 23.8 %, after 59,500 games on average. So about one truly level candidate in ten is not adopted by this rule; the rule stays as it is (Astra, Fable).
+  adopted. The stop is looked at after every 1,000 games (the runner's chunk; the numbers below are for that). Fallback -5 / 0 only if a timed run shows more than 4 hours at the cap (so far 2.4 hours, extrapolated from one run of 4,000 games in 5.7 minutes; W3 times it). That run's own pair counts, read from its game list during the debate: [141, 438, 757, 486, 178] in 2,000 pairs (`debate/evidence/fable_r1_old_run_pairs.txt`); with that spread the test needs about 39,000 games when the truth is exactly level (Fable's arithmetic). Astra's simulation with that pair shape (20,000 runs a point, a look every 1,000 games, the cap of 100,000): a truly level candidate ends in H1 in 90.5 % of the runs, without a boundary in 5.6 %, in H0 in 3.9 %, after 41,500 games on average (about an hour at that run's rate); one that is truly 3 Elo weaker ends in H1 in 4.0 %; one at -1.5 Elo ends without a boundary in 23.8 %, after 59,500 games on average. So about one truly level candidate in ten is not adopted by this rule; the rule stays as it is (Astra, Fable).
 - **R2 (J11). A search change is tested as a bundle, in four stages:** (1) every switch off = the old node
   counts, and per switch a count of how many of 600 positions change; (2) SPRT between 0 and 5 at 20,000 nodes
   on each of two declared opening seeds, both H1; (3) 4,000 games at 250,000 nodes; (4) R1 before self-play
@@ -269,6 +269,12 @@ processor; rehearsed in the PC's Linux subsystem.
   result must equal the PC's. With the tables hidden, and with the rule switched off, the run must refuse or
   disagree with the PC's rows; delivering the draw without a word FAILS. (3) Every piece carries its count of
   relabelled games, and the receiver checks it: none among 10,000 games is a FAIL (76 are expected).
+  The frozen list holds the three combinations that round 137's log shows in its first three lines: Black to
+  move and Black wins, Black to move and White wins, White to move and Black wins, so that a handler which
+  takes the tables' answer for the side to move as the result for White cannot pass on one example (Astra).
+  The engine's own result and end reason stay stored beside the corrected result. A probe that FAILED is
+  recorded apart from a probe that answered "draw", and a single failed probe is shown even when other
+  games of the piece were relabelled.
 
 **W6. The card test before paid card hours (N8 b).** Needs a short rental or loan of an NVIDIA card.
 - TEST: one pass on one round there. BAR: the exported net loads on the PC and the PC's trainer-against-engine
@@ -328,7 +334,8 @@ processor; rehearsed in the PC's Linux subsystem.
   (Astra's simulation from the pair counts of three of the loop's own 2,000-game matches at this depth,
   pooled [55, 713, 1399, 760, 73], `debate/evidence/fable_f2_deep_pair_tables.txt`): a truly level trainer
   ends in H1 in 87.7 % of the runs, without a boundary in 9.2 %, in H0 in 3.1 %, after 9,800 games on average
-  = 2.9 hours at 3,400 games an hour (5.9 hours at the cap); one that is truly 5 Elo weaker ends in H1 in
+  = 2.9 hours at 3,400 games an hour (5.9 hours at the cap; with a look after every pair it would be 8,300
+  games = 2.4 hours, but the declared cadence is 1,000 games); one that is truly 5 Elo weaker ends in H1 in
   2.9 %. So about one sound trainer in eight is sent back although nothing is wrong with it.
   PROPOSED in the extension (F6, Fable; not yet voted): when the hunt for a cause finds nothing (the trainer's
   own checks above, the hold-out loss, the row ids), the match is played ONCE more with a fresh declared seed
