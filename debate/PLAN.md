@@ -173,7 +173,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 - The test that separates the two (N5, Neon, with Astra's bounds; to measure after the debate): every gate
   since round 67 was played at 50,000 nodes and none of the 69 candidates passed, so none was ever played at
   250,000 nodes (J3). The three newest plain candidates at the moment the match starts, each 2,000 games at
-  250,000 nodes against round 67's net, pooled (6,000 games, about 4.5 processor hours). Four outcomes,
+  250,000 nodes against round 67's net, pooled (6,000 games: about 1.8 hours with 12 games at once, at the 3,400 games an hour of round 67's
+  confirmation; an earlier "4.5 hours" of Fable's had no measurement behind it). Four outcomes,
   declared before (LB and UB = the ends of the pooled 95 % interval): LB above 0 and UB at or above +5 = a
   positive average whose size against +5 is not settled ("at least +5" only if LB itself is at or above +5):
   no pause; the candidate with the highest point value is confirmed alone, with a fresh seed, before any
@@ -321,7 +322,9 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   only when a capture is legal); the current position keeps its target whenever a pawn stands ready to capture
   it, legal or not (Astra's pinned-pawn position: such a target changes scores although the key is the same).
   With this rule the count stays 117 of 132; with every raw target kept it is 77. Neon reached the
-  same rule from the source on its own and replayed the 40 pairs in between: 40 of 40 identical games. Safeguard (Astra, Neon): refused pairs are sampled and replayed, and one replay
+  same rule from the source on its own and replayed the 40 pairs in between: 40 of 40 identical games. Astra agrees
+  (for the producer with its book off). Older rounds without logged opening moves seed the table only where the
+  halfmove clock is 0 (Neon) and the whole key can be rebuilt from the record (Astra). Safeguard (Astra, Neon): refused pairs are sampled and replayed, and one replay
   with other rows makes the table fall back to the eight moves in order; the rehearsal must hand out BOTH
   openings of each of Astra's two pairs (0 rows against 127 rows; and 81 rows against 67 rows, where neither
   opening is drawn at the start; both pairs reproduced by Neon and on the PC); (3) each game's eight opening moves are logged (today
@@ -387,7 +390,7 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   counterfactual result, the production filter runs again, the baseline corpus stays untouched. If that net is
   not weaker, ending self-play games at 1000 (today 2000) becomes a candidate of its own: how many more games
   it gives is TIMED, not computed from row shares, and it needs the 2,000-node check. The advance criterion for
-  that step (Astra's question on the draft): the same lower bound above 0 in the same match. A rule that changes
+  that step (Astra's question on the draft; Astra agrees): the same lower bound above 0 in the same match. A rule that changes
   every self-play game needs a shown gain; a level result leaves the games ending at 2000.
 
 ### P4. Width: the 1024-wide net. STOPPED until P3 (3a)
