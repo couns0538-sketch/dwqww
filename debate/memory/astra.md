@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:10:29Z
+- Last update: 2026-11-23T15:19:58Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T151029Z
+20261123T151958Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -119,3 +119,7 @@ Fable accepted the precise private-stage retry proposal for 2.3 after the actual
 15:10 UTC. I voted YES on record.py bc71fa894bf9fa0966fe39f3c4db0f6bd95a98d8ecbf372b0ce93a964d22ea52 and test_record.py a8e16021f829da4c27c79812ac7d87f6cc8b1bb173c51581709003590806abb0 at 150142Z, after the native 29/29, all 24 negative comparisons against the old module, and an independent 288-game / 36,453-row / 24-piece test. I voted YES on the repaired wrapper test 690b3243764c627d59eb3657c02c74089490e8c86ac658fdc51914dd6f418308 at 150307Z, after three native 61/61, the old wrapper 56/61 and 50/50 full command observations at the parent. Fable gave the same three votes in 220510Z. Await Neon's own lines for those three. The two runtime files already had all three votes.
 
 SETUP_PLAN 2.3 cff7c298d7a3552f88bf13493e285940a5e556d5a4e6ef0efc9ae01c72412197 incorporates five agreed changes; I agreed explicitly in 150955Z. FORMATS 2.3 9b9e5a39ec27f1293ed61bf77db3ba55031ace9a7df56839875b5dc98d84cb4e is open: in the same message I requested an honest dispatch_unknown count for an ID possibly running with no durable game bytes. Native controls stopped just before the selfgame command and after the first real generated row, with zero durable record bytes and journal startup lines differing only by process ID. I also gave a precise null hardware-identity case and agreed to the completed-record digest rule. The regular 500-game local rehearsal is now complete: 62,162 rows, 4 genuine zero-row games, 4,690,981 bound raw bytes and 1,148,065 compressed fallback bytes. Next: independently replay the full 500-game piece, review worker as soon as published and rerun corrected format cases. No integrated home measurement or paid capacity established.
+
+15:20 UTC. Shared f456c914 contains Neon's three YES at 151130Z. All five currently published v2 files now have three exact approvals: engine_lines.py, uciproc.py and its test, record.py and its test. SETUP_PLAN 2.3 has my AGREE and Neon's AGREE on the editor's current bytes. Both seats requested CHANGE on FORMATS 2.3. In 151303Z I also agreed to Neon's two corrections: a second worker start on the same reboot needs a chain back to the original RESUME anchor, and a fence with no schedule 1 copies the immutable header cutoff. No worker, packer or home pipeline has been approved from unpublished bytes.
+
+I completed the independent rules replay of the 500 native games in 151219Z: 62,162 raw rows, three runs at 27,874–30,702 rows/s and the same verdict and ordered seal fingerprints. Four zero-row games counted; zlib wire plus original used 94.028 allocated bytes/raw row. These Linux measurements do not qualify the server or measure the integrated PC. In 151513Z a genuine final board demonstrated a required WDL lookup that fails with its root table present if either child is missing; 127/127 passed with the local table set, 15/127 failed with the root table alone. In 151735Z the same three native records yielded 345 valid C2-side rows unchanged, 198 with an individually wrong sent line under a valid binding, zero with a broken binding. Proposed aligning SETUP_PLAN §2 RECEIVED versus C1 and §6.2 individual versus whole-piece failures. At 151916Z sized the closing ID fragments on 16,384,000 already scheduled but untouched game IDs: 2,409,435,136 allocated bytes for retained canonical and compressed fragments; one open 128,000-ID round took 18,829,312 bytes. Sent the guard a concrete close-at-the-floor test. Next: revised format, worker bytes and direct guard/transport cases. Next owner report 16:35 UTC; end 18:35 UTC.
