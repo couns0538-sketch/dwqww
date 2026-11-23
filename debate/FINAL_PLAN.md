@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:01:04Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T13:02:23Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 35 proposals were
@@ -286,12 +286,13 @@ processor; rehearsed in the PC's Linux subsystem.
   guard all six games of the fixture above stay the same, while 57 of the 64 games of Astra's sample that
   ended by a mate score change (Neon; a selected subset, not a share of the day's games: Astra). So (1) the
   server's start script reads every answer line up to `readyok` and refuses to start on `unknown option`,
-  `invalid value`, `ERROR` or `cannot load` (the PC's own match and self-play code has refused such lines
+  `invalid value`, `ERROR`, `cannot load`, `invalid FEN`, `illegal move` or `sgerror` (the PC's own match and self-play code has refused such lines
   since 16 November; the server's start gets the same); planted and required to FAIL: one misspelt name, one
   value out of range. (2) The option lines actually sent are compared with the frozen list, line by line, in
   number and values, and with the names and bounds of the engine's own `uci` list (Astra). (3) A seventh game
   joins the fixture, opening `h2h4 b7b5 g2g4 g7g5 h1h2 c8a6 e2e3 d7d5`: with the guard 172 rows, 173 searches,
-  741342 nodes; without it 171, 172, 737195 (Neon, the same on two Linux builds, digests in its message; the
+  741342 nodes; without it 171, 172, 737195 (Neon, the same on two Linux builds; Astra the same on its own, with the line left out and with `false`;
+  digests in their messages; the
   PC's Windows run of this game is owed by Fable: its tool is written with these numbers typed in, the PC's
   gate said WAIT).
 
@@ -344,30 +345,28 @@ processor; rehearsed in the PC's Linux subsystem.
   equal length are each refused before training starts; the round mix of the batches matches a declared
   reference shuffle on a fixed fixture, and a reader that walks the rounds in order FAILS that check; on today's
   388-million window it gives a net whose hold-out loss is within 0.0001 of today's trainer's.
-- Added in the extension (F2, Fable; agreed by all three): the row ids, recipe, seed, opponents
-  and opening pairs are written down before the training (Astra), and that net is also judged by games (R5) against the net
-  of today's trainer on the same window: a paired SPRT between -5 and 0 at 250,000 nodes (alpha = beta = 0.05,
-  cap 20,000 games). The stop is the checked function of W3 (a), looked at after every 1,000 games; a stop
-  inside the match program is not used, because nobody held its statistic against the known tables. H1 = the
-  trainer may be used for the 2 billion; H0 or no boundary = the cause is found first. What to expect
-  (Astra's simulation from the pair counts of three of the loop's own 2,000-game matches at this depth,
-  pooled [55, 713, 1399, 760, 73], `debate/evidence/fable_f2_deep_pair_tables.txt`): a truly level trainer
-  ends in H1 in 87.7 % of the runs, without a boundary in 9.2 %, in H0 in 3.1 %, after 9,800 games on average
-  = 2.9 hours at 3,400 games an hour (5.9 hours at the cap; with a look after every pair it would be 8,300
-  games = 2.4 hours, but the declared cadence is 1,000 games); one that is truly 5 Elo weaker ends in H1 in
-  2.9 %. So about one sound trainer in eight is sent back although nothing is wrong with it.
-  Added in the extension (F6: Fable asked what happens to a sound trainer that is sent back; the form is
-  Astra's; agreed by Astra and Fable, Neon's vote is awaited; it changes F2's cap): the test is ONE test of
-  at most 40,000 games in two opening blocks of 20,000, both declared beforehand. H0 or H1 at any look ends it
-  for this build, and H0 is never played again. Without a boundary at 20,000 games it pauses for the hunt for
-  a cause (the trainer's own checks above, the hold-out loss, the row ids); if nothing is found it goes on
-  with the second block and KEEPS the first block's evidence; a found defect with a changed build is a new
-  candidate and gets a new test. No boundary at 40,000 = not qualified. Astra's simulation of exactly this
-  (20,000 runs a point): a level trainer passes in 96.4 % and stays undecided in 0.5 %, after 10,400 games on
-  average = 3.0 hours (at most 40,000 games = 11.8 hours); one truly 5 Elo weaker passes in 3.2 %, one 2.5
-  weaker in 45.7 %. Two forms were refused: a fresh run after any failure (Fable's first) lets a trainer 5 Elo
-  weaker pass in 5.6 %; a fresh run only after a cap gives about the same numbers as this but throws the
-  first block's evidence away.
+- Added in the extension (F2 and F6; Fable, the test's final form by Astra; agreed by all three): THE NEW
+  TRAINER'S NET IS ALSO JUDGED BY GAMES (R5) against the net of today's trainer on the same window. Written
+  down before the training: the row ids, recipe, seed, opponents, and two separate blocks of opening pairs
+  for 20,000 games each (Astra). The test: a paired SPRT between -5 and 0 at 250,000 nodes (alpha = beta =
+  0.05), ONE test of at most 40,000 games. The stop is the checked function of W3 (a) over all pairs so far,
+  looked at after every 1,000 games; a stop inside the match program is not used, because nobody held its
+  statistic against the known tables. H1 at any look = the trainer may be used for the 2 billion. H0 at any
+  look = not used, and never played again; a found defect with a changed build is a new candidate with a new
+  test. No boundary at 20,000 games = a pause for the hunt for a cause (the trainer's own checks above, the
+  hold-out loss, the row ids); if nothing is found, the SAME test goes on with the second block and keeps the
+  first block's evidence (the look at 20,000 is an ordinary look). No boundary at 40,000 = not qualified.
+  What to expect (Astra's simulation of exactly this rule from the pair counts of three of the loop's own
+  2,000-game matches at this depth, pooled [55, 713, 1399, 760, 73],
+  `debate/evidence/fable_f2_deep_pair_tables.txt`; 20,000 runs a point; its counts recomputed by Neon): a
+  truly level trainer passes in 96.4 % and stays undecided in 0.5 %, after 10,400 games on average = 3.0
+  hours at 3,400 games an hour, at most 40,000 games = 11.8 hours; one truly 5 Elo weaker passes in 3.2 %,
+  one 2.5 weaker in 45.7 %.
+  For comparison only, these are NOT rules: stopping for good at 20,000 games would send back one sound
+  trainer in eight (H1 87.7 %, no boundary 9.2 %, H0 3.1 %); a fresh run after any failure (Fable's first
+  form) lets a trainer 5 Elo weaker pass in 5.6 %; a fresh run only after an undecided one gives 95.8 % and
+  3.1 % but throws 20,000 games of evidence away; with a look after every pair the 20,000 form ends about
+  1,500 games sooner.
 
 **W9. Before any net wider than 1024 (N3).** Build. The 1024 net itself is safe (1.55 % of room).
 - BAR: the sums are widened before they are added, the loader checks the bound, `MaxHidden` is raised
@@ -504,7 +503,7 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4), A14 and N15 (W5 i), F5 (W3 a). Open from the extension: only F6 (W8), agreed by Astra and Fable in Astra's form (one test that may continue to 40,000 games; it changes F2's cap) and waiting for Neon's vote. Owed by Fable: the PC's Windows run of N15's seventh game.
+- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13), A13 (W4), A14 and N15 (W5 i), F5 (W3 a), F6 (W8, together with F2). Nothing proposed in the extension is open: all sixteen are agreed by all three. Owed by Fable: the PC's Windows run of N15's seventh game.
 - After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
