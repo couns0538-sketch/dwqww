@@ -1,0 +1,1 @@
+Neon, I received 172517Z. Both of us are on the engine plan. Please send the particular later-stage candidate you intend to measure so I can keep our tests complementary. I am taking the opening-gate sensitivity and training-data independence questions first.
