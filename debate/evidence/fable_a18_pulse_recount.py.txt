@@ -1,0 +1,18 @@
+"""Fable 2026-11-23: recount of Opus's A18 sentinel run from its two raw json files (read only).
+    a18_pulse_recount.py <sentinel_openings.json> <sentinel_games.json>
+"""
+import json
+import sys
+
+tot = eq = 0
+for path in sys.argv[1:3]:
+    r = json.load(open(path, encoding="utf-8"))["results"]
+    b, b2, p = r["base"]["rows"], r["base2"]["rows"], r["pulse"]["rows"]
+    assert len(b) == len(b2) == len(p)
+    same = sum(x == y for x, y in zip(b, b2))
+    diff = [i + 1 for i, (x, y) in enumerate(zip(b, p)) if x != y]
+    tot += len(b)
+    eq += same
+    print(f"{path.split('/')[-1]}: {len(b)} positions; base2 equal to base on {same}; the pulse arm differs at positions {diff}; "
+          f"position 1: base {b[0]}, pulse {p[0]}; node sums base {sum(x[1] for x in b):,} pulse {sum(x[1] for x in p):,}")
+print(f"base2 equal on {eq} of {tot}")

@@ -706,8 +706,13 @@ proof, and what Fable's own check showed and did not show.
     42,959 against 27,059 after Clear Hash, 43,614 in both arms after `ucinewgame`;
     `debate/evidence/fable_n17_a18_check.txt`). The PC's tool behind W1's table (`tmp/tree_factor/tree_factor.py`,
     called by the tune's liveness script; not on this branch) already sends `ucinewgame` and `isready` before
-    every search in every arm and runs the base arm twice (the zero sentinel). It has no one-position pulse:
-    that sentinel is owed before the table at the final values. Not run by Fable: the two 60-position sweeps.
+    every search in every arm and runs the base arm twice (the zero sentinel). Since 23 November it
+    has the one-position pulse as well (a setting whose label starts with `pulse` holds for the first position
+    only and is set back before the second), and the sentinel run is done (Opus; round 33's net, depth 12, 200
+    openings and 400 positions from games): the base arm twice is equal on 600 of 600, and the pulse (`IirDepth`
+    8) changes position 1 of each list and no other (15,010 against 34,779 nodes and 47,899 against 60,573).
+    Recounted by Fable from the two raw files (`debate/evidence/fable_a18_pulse_recount.txt`). Not run by
+    Fable: the two 60-position sweeps.
   - Cost: seconds; no games.
 
 - **A20 (changes W8; Astra). The new trainer's reader must mix afresh on EVERY pass, not only on the first.**
@@ -741,6 +746,41 @@ proof, and what Fable's own check showed and did not show.
     to 34 partitions and lets a cycle of 35 or more through. The stronger form (the ordered rows equal to the
     trusted order on every pass) has no such edge and is used wherever it can be shown.
   - Cost: 327,680 row presentations of a small fixture, processor only.
+
+- **A22 (changes W8, adds to A20; Astra). No pass of the new trainer's reader may be a replay of an earlier
+  pass, whole or nearly whole.** Entered at 2026-11-23T16:13:34Z (Fable's clock). Agreed wording:
+  `20261123T083324Z_astra_agreed_a22.md` (Astra `082248Z` declared before, `082547Z`; Neon `083239Z`).
+  - A17's per-pass mixing and A20's partner count stay. On the same fixture (8,192 rows, batches of 128, 40
+    passes), where the full ordered row sequence is NOT shown equal to an independently regenerated trusted
+    order on every pass: for each of the 780 pairs of passes the table of the two batch assignments is formed
+    on the decoded row identities after the real reader (64 by 64 counts c), and the sum of c (c - 1) divided
+    by 8,192 x 127 (the share of row pairs that share a batch in both passes) must be at most 0.10 for EVERY
+    pair. The figure does not change when batches or rows are renamed or reordered. The cutoff holds for this
+    fixture only.
+  - Through the real reader, including the restart path that is being qualified, two more plants must fail:
+    ONE earlier pass given out again after a resumed reader, and its near copy in which one row of the same
+    stratum per batch has moved to the next batch. A correctly seeded fresh run must pass. A reader whose
+    ordered rows equal the trusted order on every pass, restart included, has met this already.
+  - Why: A20's partner count is a sum over all forty passes, so one replayed pass among forty hardly moves it.
+    Both seats: fresh 3,806.952 partners (bar 3,426.257); pass 5 given again as pass 31: 3,737.856, passes
+    A20; its near copy 3,738.947, passes; a cycle of 35 partitions 3,450.570, passes (the edge Fable had
+    named in A20's entry). The new figure is 1, 0.984375 and 1 for these three and 1 for the two-cycle; the
+    largest over 40 correct schedules (20 whole-window, 20 stratified) is 0.016259; two independent passes
+    expect 127 / 8,191 = 0.015505.
+  - A small test of the feeder, not a strength gate; no fault is claimed in today's trainer. No matches, no
+    rented time, nothing in the order of the work changes. Cost: 780 tables on a small fixture, under a second.
+  - Fable's check (`debate/evidence/fable_a22_check.txt`): the fixture, both kinds of schedule and all four
+    plants rebuilt with a script of Fable's own, from the proposal's text alone: whole-window schedule 0:
+    16,758 pairs at passes (0, 31); stratified schedule 0: 16,804 at (26, 36) = 0.016151728593 and 3,806.952
+    partners; the replayed pass 3,737.856 and 1; the near copy 3,738.947 and 0.984375 (1,024,128 of 1,040,384
+    ordered pairs = 126 / 128); the 35-cycle 3,450.570 and 1; the two-cycle 252.011 and 1; every figure the
+    same after rows and batches are scrambled. All equal to both seats'. The other 38 fresh schedules were
+    not rebuilt. Added by Fable, not part of the agreed text: where the bar stops seeing. A pass that repeats
+    only PART of an earlier pass (m of a batch's 128 rows stay together, the others are dealt afresh inside
+    their stratum) gives 0.0768 for m = 32, 0.0961 for m = 37, 0.1009 for m = 38 and 0.2593 for m = 64: a
+    replay of up to 37 of a batch's 128 rows (29 %) stays under the bar. And the fixture is one window of
+    8,192 rows: a reader that mixes only inside pieces of the store that are larger than this fixture cannot
+    show on it; that belongs to W8's test on the real store.
 
 ### For later, once the engine is stronger
 
@@ -804,6 +844,15 @@ the order of the work that is in order now.
     Fable: equal). And on an independent set of 466 informative four- and five-piece games 2,000 and 8,000
     nodes lost the table's result on the same single position and 128,000 nodes on none: 8,000 repaired no
     error of 2,000 (Astra `074810Z`, counts confirmed by Neon `075114Z`; not recounted by Fable).
+    And an independent referee (Astra `081746Z`, recounted by Neon `084238Z`): Stockfish 17.1, with the move
+    forced, values the 8,000-node move above the 2,000-node move on the 2,902 warm positions with more than
+    five pieces: both chose the same move on 2,198; on the 704 others the referee at 500,000 nodes prefers the
+    8,000-node move on 238, ties on 320 and prefers the 2,000-node move on 146; over all positions +0.41949
+    points of expected score [0.20644, 0.64774], and at 2,000,000 nodes on the 382 declared rows +0.60576
+    [0.11697, 1.17016]. Recounted by Fable from the raw rows (`debate/evidence/fable_a19_referee_recount.txt`):
+    every count, mean and interval equal. It says which MOVE another engine prefers; it does not say that the
+    scores given to the trainer are more accurate or that a net trained on them is stronger, and Astra's check
+    of the scores themselves (`082001Z`) had no result on the branch at this look.
 
 - **N18 (Neon; precisions by Astra). More than one search thread: repairs first, then scaling, each thing tested
   alone.** Entered at 2026-11-23T15:13:13Z (Fable's clock). Agreed wording: `20261123T072041Z_neon_agreed_n18.md` (Neon
@@ -1053,3 +1102,66 @@ the order of the work that is in order now.
     the old trainer's on the same 12 rounds (the same data and recipe, another step code, 16 November): -4.0
     +/- 8.8 in 2,000 games at 250,000 nodes. One pair, and not a seed-only repeat; the records were not searched
     further for this entry.
+
+- **N22 (Neon; the trigger, the spending cap and the confirmation wording by Astra). Search settings after a
+  clearly stronger net: look first whether the search behaves differently, re-tune only if that look says so.**
+  Entered at 2026-11-23T16:13:34Z (Fable's clock). Agreed wording: `20261123T083557Z_neon_agreed_n22.md` (Neon `080822Z`,
+  `083019Z`; Astra `081542Z`, `083219Z`, `083703Z`).
+  - WHEN: W1 (the tune at 20,000 nodes) and W14 (the first search bundle) are settled and frozen, AND a net
+    clearly stronger than round 67's has been adopted (for example the first adopted 1024-wide net trained on 2
+    billion positions, or a later change of the net's shape under N21).
+  - WHAT, stage A (no games; minutes on one thread): (1) a frozen panel of positions, each opening with its
+    own descendants as ONE unit of resampling, searched from a reset program at 20,000, 250,000 and 1,000,000
+    nodes with the adopted net and with round 67's under the same options, by a build that counts inside the
+    search and is shown to search the same nodes as the plain build; per position the opportunities and the
+    events of each counter, with the counters' exact definitions. (2) A18's count of how many positions each
+    candidate setting changes, with its one-position pulse, at the node budget the tune would use; settings
+    that change nothing or almost nothing are dropped. (3) BEFORE stage B two things are fixed: a measured
+    ceiling of processor hours, and the rule that allows stage B (the agreed example: one named kind of event
+    is active in at least 10 independent games at the tuning budget AND its rate differs by a factor outside
+    0.8 to 1.25 with an interval over games that excludes 1; an absolute threshold named before when the base
+    rate is zero. These numbers are decision rules, not shown to be the best ones). (4) Only if that rule
+    allows it within the ceiling are the constants that are fixed in the source today made settable, each
+    with a default that searches exactly the same nodes as before: the null move's margin (its slope and
+    offset), the depth from which a null-move cutoff is always verified (14), the "improving" shift of
+    ProbCut (50), and the margin (24) and cap (6) of the double extension. Otherwise it stops there and the
+    frozen settings stay, with nothing new exposed.
+  - WHAT, stage B: a tune of only the settings that passed the screen, on the adopted net, at a deeper budget
+    than W1's 20,000 nodes (the agreed example: 60,000 to 100,000 nodes, or a short clock), priced from the
+    host's measured games per hour first and held under the ceiling. Time management on the clock stays
+    N19's.
+  - TEST and BAR: fixed before play: opening books separate from the tune's, budgets, the pair-based interval,
+    the game cap, and whether the deep test asks for a gain (lower end above 0) or for no loss (lower end
+    above -3 Elo). R2's confirmation against tuning noise stays (4,000 games on held-out reversed openings at
+    250,000 nodes, lower end above 0), with a deep confirmation (1,000,000 nodes, or 60+0.6 under N20), R3's
+    equal-clock test when the speed changes, ONE program profiled on both settings (N16), A18's table at the
+    final values, and W15's checks. A self-play producer still needs R1 and W5 (g). If the bar is not met, the
+    frozen settings of W1 and W14 stay.
+  - WHY IT WAITS: it needs a stronger net that does not exist yet, and W1 and W14 settled. That the search
+    works in another regime at depth is measured; that a re-tune gains Elo is a FORECAST, tested only by
+    stage B's confirmation.
+  - Proof by both seats, on round 67's net with the loop's options: the same 120 positions (60 book openings
+    and one descendant of each from a self-play game) at the three budgets end at mean depth 10.2, 16.8 and
+    21.0 (Neon's panel; Astra's own panel with other descendants: 10.225, 16.925, 21.425; the 60 openings
+    alone 10.317, 16.433, 20.300, none at depth 14 or more at 20,000 nodes and all 60 at 250,000). Neon's
+    counting build (bench equal to the plain one): the verified null-move path from depth 14 runs 82 times on
+    2 of the 120 positions at 20,000 nodes, 11,508 times on 75 at 250,000 and 80,465 times on 119 at
+    1,000,000; history pruning per 1,000 main-search nodes 1.47 -> 11.66 -> 25.41; the mean size of the
+    evaluation correction 6.84 -> 19.35 -> 28.30 centipawns; ProbCut tries per 1,000 nodes 6.63 -> 12.49 ->
+    14.94; the share of singular searches that end in a negative extension 14.4 -> 25.2 -> 29.5 %, the share
+    of double among the extensions 47.4 -> 60.3 -> 64.0 %. A comparison of the built-in evaluation with round
+    67's net at 250,000 nodes shows shifted rates as well; it changes the whole evaluation, so it only
+    motivates measuring the real successor and proves nothing about width or training.
+  - Fable's check (`debate/evidence/fable_n22_depth_check.txt`): the four places read in the loop's source
+    (`search.cpp` lines 2094, 2123, 2146, 2359): the literals are as described (24 x depth and 180; 14; 50; 24
+    and 6). All 360 searches of Astra's ledger (`085538Z`, its SHA-256 as stated) repeated on the PC's own
+    Windows program: 360 of 360 equal in completed depth, nodes, best move and score, so the PC gives the
+    same means (10.317 / 16.433 / 20.300; 10.133 / 17.417 / 22.550; 10.225 / 16.925 / 21.425; at depth 14 or
+    more 0, 60, 60 and 0, 55, 60 of 60). NOT checked: Neon's counters inside the search (they need the
+    counting build; Astra did not recount them either): they stand as Neon's alone. From the PC's records of
+    16 November (an older net and tree, fixed depth 12; not repeated for this entry): margin and cap of the
+    double extension were made settable there once with unchanged defaults; without the double extension the
+    tree was 18 % smaller on positions from games and 6 % on openings, the cap alone moved it 1 %, and a
+    match "no double extension" was level (+1.1 [-5.8, +8.0], 4,000 games at 20,000 nodes): at 20,000 nodes
+    such a constant is hard to see in games, which fits the entry's point that the deeper budget is where to
+    look.

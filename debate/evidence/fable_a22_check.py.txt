@@ -1,0 +1,158 @@
+"""Fable 2026-11-23: my own recount of A22 (Astra 082547Z, agreed 083324Z; Neon's vote 083239Z), written from the
+proposal's "Reproduction" paragraph only, with numpy, no code of theirs.
+    a22_check.py <new output file>
+Fixture: 8,192 row ids = 64 * game + written_row (128 games), stratum = (id // 64) % 8; 40 passes; 64 batches of 128.
+  whole j=0      : Random(202611230639 + epoch).shuffle(all ids), chunks of 128
+  stratified j=0 : the same generator shuffles the eight strata in order (increasing ids each); batch b takes the
+                   next 16 of every stratum (so columns 48..63 of a batch are stratum 3)
+Measures: A22 = over all 780 pairs of passes the largest sum over the 64 x 64 table of n (n - 1), divided by
+8192 * 127; A20 = the mean number of DISTINCT batch partners of a row over the 40 passes.
+Known answers taken from their messages BEFORE this run (printed beside mine):
+  whole 0 max 16,758 at (0, 31); stratified 0 max 16,804 at (26, 36), partners 3,806.952
+  copy pass 5 into 31: partners 3,737.856, max 1.000000;  near copy (column 48 moved down one batch): 3,738.947, 0.984375
+  35-pass cycle: 3,450.570, 1.000000;  2-pass cycle: 252.011, 1.000000;  the bar: max <= 0.10
+"""
+import itertools
+import random
+import sys
+
+import numpy as np
+
+out = open(sys.argv[1], "x", encoding="utf-8")
+N, B, K, P = 8192, 64, 128, 40
+DEN = N * (K - 1)
+
+
+def say(t):
+    print(t, flush=True)
+    out.write(t + "\n")
+
+
+def whole(epoch, add=0):
+    r = random.Random(202611230639 + add + epoch)
+    ids = list(range(N))
+    r.shuffle(ids)
+    return [ids[b * K:(b + 1) * K] for b in range(B)]
+
+
+def stratified(epoch, add=0):
+    r = random.Random(202611230639 + add + epoch)
+    strata = []
+    for s in range(8):
+        x = [i for i in range(N) if (i // 64) % 8 == s]
+        r.shuffle(x)
+        strata.append(x)
+    return [[i for s in range(8) for i in strata[s][16 * b:16 * b + 16]] for b in range(B)]
+
+
+def labels(batches):
+    lab = np.empty(N, dtype=np.int64)
+    seen = 0
+    for b, rows in enumerate(batches):
+        lab[rows] = b
+        seen += len(rows)
+    assert seen == N and len({i for rows in batches for i in rows}) == N
+    return lab
+
+
+def a22(passes):
+    labs = [labels(p) for p in passes]
+    best, where, ties = -1, None, 0
+    for i, j in itertools.combinations(range(len(passes)), 2):
+        t = np.zeros((B, B), dtype=np.int64)
+        np.add.at(t, (labs[i], labs[j]), 1)
+        num = int((t * (t - 1)).sum())
+        if num > best:
+            best, where, ties = num, (i, j), 1
+        elif num == best:
+            ties += 1
+    return best, where, ties
+
+
+def a20(passes):
+    m = np.zeros((N, N), dtype=bool)
+    for p in passes:
+        for rows in p:
+            idx = np.array(rows)
+            m[np.ix_(idx, idx)] = True
+    return float((m.sum(axis=1) - 1).mean())
+
+
+def scramble(passes):
+    res = []
+    for e, p in enumerate(passes):
+        r = random.Random(202611230822 + e)
+        q = [list(rows) for rows in p]
+        for rows in q:
+            r.shuffle(rows)
+        r.shuffle(q)
+        res.append(q)
+    return res
+
+
+def report(name, passes, want):
+    num, where, ties = a22(passes)
+    part = a20(passes)
+    snum, swhere, _ = a22(scramble(passes))
+    verdict = "FAILS the bar 0.10" if num / DEN > 0.10 else "passes the bar 0.10"
+    say(f"{name}: A22 max {num / DEN:.12f} (num {num:,} at {where}, ties {ties}), {verdict}; A20 partners {part:,.3f} "
+        f"({'passes' if part >= 3426.257 else 'FAILS'} the old floor 3,426.257); scrambled rows and batch order: "
+        f"{'the same' if (snum, swhere) == (num, where) else 'DIFFERENT ' + str((snum, swhere))} | theirs: {want}")
+
+
+w0 = [whole(e) for e in range(P)]
+num, where, ties = a22(w0)
+say(f"whole 0: max num {num:,} at {where} = {num / DEN:.12f} | theirs: 16,758 at (0, 31) = 0.016107514149")
+for add in (0, 1000):
+    s0 = [stratified(e, add) for e in range(P)]
+    num, where, ties = a22(s0)
+    say(f"stratified 0 with seed + {add}: max num {num:,} at {where} = {num / DEN:.12f} | theirs: 16,804 at (26, 36)")
+    if (num, where) == (16804, (26, 36)):
+        break
+else:
+    say("NEITHER seed reading gives their stratified 0: the plants below run on the + 1000 reading and prove the arithmetic only")
+report("fresh stratified 0", s0, "3,806.952 and 0.016151728593")
+copy = list(s0)
+copy[31] = s0[5]
+report("pass 5 copied into pass 31", copy, "3,737.856 and 1.000000")
+near = list(s0)
+moved = [list(rows) for rows in s0[5]]
+col = [rows[48] for rows in moved]
+for b in range(B):
+    moved[(b + 1) % B][48] = col[b]
+near[31] = moved
+report("near copy (column 48 one batch down)", near, "3,738.947 and 0.984375")
+report("35-pass cycle", [s0[e % 35] for e in range(P)], "3,450.570 and 1.000000")
+report("2-pass cycle", [s0[e % 2] for e in range(P)], "252.011 and 1.000000")
+say(f"closed forms: near copy 64 * 127 * 126 / (8192 * 127) = {64 * 127 * 126 / DEN:.6f} (num {64 * 127 * 126:,} of {DEN:,}); "
+    f"two independent uniform passes expect 127 / 8191 = {127 / 8191:.6f}; the bar 0.10 is {0.10 / (127 / 8191):.2f} times that")
+out.close()
+
+
+# ---- added by Fable after the first run (08:04): where the bar of 0.10 stops seeing a PARTIAL replay ------------
+# Pass 31 := pass 5 with m of the 128 columns of every batch kept in place; each other column's 64 rows are dealt
+# to the batches afresh (one random permutation of the batches per column, so every batch keeps its 16 rows per
+# stratum). Expected before the run, from the closed form
+#   [m (m - 1) + ((128 - m)(127 - m) + 2 m (128 - m)) / 64] / (128 * 127):
+#   m = 32: 0.0764, 36: 0.0920, 37: 0.0963 (under the bar), 38: 0.1008 (over it), 40: 0.1100, 64: 0.2638.
+out = open(sys.argv[1], "a", encoding="utf-8")
+say("partial replay of pass 5 at pass 31, m of 128 rows of every batch kept together (my addition, not in the agreed text):")
+for m in (16, 32, 36, 37, 38, 40, 64):
+    r = random.Random(202611230905 + m)
+    keep = set(r.sample(range(K), m))
+    new = [list(rows) for rows in s0[5]]
+    for c in range(K):
+        if c in keep:
+            continue
+        perm = list(range(B))
+        r.shuffle(perm)
+        for b in range(B):
+            new[perm[b]][c] = s0[5][b][c]
+    passes = list(s0)
+    passes[31] = new
+    assert all(sorted((i // 64) % 8 for i in rows) == sorted(s for s in range(8) for _ in range(16)) for rows in new)
+    num, where, ties = a22(passes)
+    closed = (m * (m - 1) + ((128 - m) * (127 - m) + 2 * m * (128 - m)) / 64) / (128 * 127)
+    say(f"  m = {m:3d}: A22 max {num / DEN:.6f} at {where} (closed form {closed:.4f}): "
+        f"{'FAILS the bar, seen' if num / DEN > 0.10 else 'passes the bar, NOT seen'}")
+out.close()

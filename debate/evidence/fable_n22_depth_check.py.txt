@@ -1,0 +1,100 @@
+"""Fable 2026-11-23: N22's evidence on the PC's own exe. Astra's ledger of 085538Z (120 positions: the 60 book
+openings and one self-play descendant of each, at 20,000, 250,000 and 1,000,000 hard nodes; stock r67 with all 24
+loop options, one thread, ucinewgame + isready before every search) is searched again here, row by row.
+    n22_depth_check.py <forge.exe> <net .fnn3> <LOOP_OPTIONS.txt> <Astra's ledger csv> <new output file>
+Expected BEFORE the run (their Linux builds give the same node counts as the PC's exe on every pin so far): every
+one of the 360 rows equal in completed depth, the last info line's nodes, best move and score; and the means of the
+message: openings 10.317 / 16.433 / 20.300 with 0, 60, 60 of 60 at depth 14 or more; descendants 10.133 / 17.417 /
+22.550 with 0, 55, 60; all 120: 10.225 / 16.925 / 21.425.
+Not checked here: Neon's counters inside the search (they need an instrumented build; Astra did not recount them
+either).
+"""
+import csv
+import hashlib
+import subprocess
+import sys
+import time
+
+exe, net, opt_file, ledger, out_path = sys.argv[1:6]
+net = net.replace("\\", "/")
+out = open(out_path, "x", encoding="utf-8")
+
+
+def say(text):
+    print(text, flush=True)
+    out.write(text + "\n")
+
+
+def sha(path):
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+
+
+OPTS = [x.strip() for x in open(opt_file, encoding="utf-8") if x.startswith("setoption")]
+OPTS = [f"setoption name NNUEArchFile value {net}" if "NNUEArchFile" in x else x for x in OPTS]
+assert len(OPTS) == 24, len(OPTS)
+ROWS = list(csv.DictReader(open(ledger, encoding="utf-8", newline="")))
+assert len(ROWS) == 360, len(ROWS)
+say(f"exe sha256 {sha(exe)[:16]} | net sha256 {sha(net)[:16]} | ledger sha256 {sha(ledger)[:16]} | 24 loop options | 360 rows")
+
+p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+
+
+def send(s):
+    p.stdin.write(s + "\n")
+    p.stdin.flush()
+
+
+def until(word):
+    seen = []
+    while True:
+        x = p.stdout.readline()
+        if not x:
+            raise SystemExit(f"engine ended while waiting for {word}")
+        x = x.strip()
+        seen.append(x)
+        if x.startswith(word):
+            return seen
+
+
+for o in OPTS:
+    send(o)
+send("isready")
+got = until("readyok")
+if any("ERROR" in x or "unknown option" in x or "invalid value" in x for x in got):
+    raise SystemExit("an option was refused: " + " | ".join(x for x in got if "info string" in x)[:300])
+if not any("NNUE v3 active" in x for x in got):
+    raise SystemExit("the line 'NNUE v3 active' did not come")
+
+t0 = time.perf_counter()
+diff = 0
+depth = {}
+for i, row in enumerate(ROWS):
+    send("ucinewgame")
+    send("isready")
+    until("readyok")
+    send(f"position fen {row['fen']}")
+    send(f"go nodes {row['budget']}")
+    got = until("bestmove")
+    info = [x.split() for x in got if x.startswith("info ") and " depth " in x and " score " in x and " pv " in x]
+    last = info[-1]
+    mine = (last[last.index("depth") + 1], last[last.index("nodes") + 1], got[-1].split()[1],
+            last[last.index("score") + 1], last[last.index("score") + 2])
+    theirs = (row["completed_depth"], row["info_nodes"], row["move"], row["score_type"], row["score"])
+    depth.setdefault((row["kind"], row["budget"]), []).append(int(mine[0]))
+    if mine != theirs:
+        diff += 1
+        say(f"DIFFERENT row {i + 1} ({row['kind']} {row['opening']}, {row['budget']} nodes): mine {mine}, theirs {theirs}")
+send("quit")
+p.wait(timeout=20)
+say(f"{len(ROWS) - diff} of {len(ROWS)} rows equal in depth, nodes, best move and score ({time.perf_counter() - t0:.0f} s, one thread)")
+for kind in ("opening", "descendant"):
+    for budget in ("20000", "250000", "1000000"):
+        d = depth[(kind, budget)]
+        say(f"  {kind:10s} {int(budget):>9,} nodes: mean completed depth {sum(d) / len(d):.3f} (from {min(d)} to {max(d)}); "
+            f"{sum(x >= 14 for x in d)} of {len(d)} at depth 14 or more")
+for budget in ("20000", "250000", "1000000"):
+    d = depth[("opening", budget)] + depth[("descendant", budget)]
+    say(f"  all 120    {int(budget):>9,} nodes: mean completed depth {sum(d) / len(d):.3f}")
+say("NO DIFFERENCE" if diff == 0 else f"{diff} ROWS DIFFER")
+out.close()
+sys.exit(1 if diff else 0)
