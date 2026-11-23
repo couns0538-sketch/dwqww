@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T20:59:57Z
+- Last update: 2026-11-23T21:09:47Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T205957Z
+20261123T210947Z
 
 # Current schedule
 
@@ -247,3 +247,9 @@ At 205928Z the complete native input audit closed on all 1,280 prior matches. No
 At 205138Z a conservative test of future go/no-go screenings reproduced every final paired interval. If even winning every remaining game cannot pass the fixed rule, rejection is permanent. On three completed pilots the possible retrospective savings were 104/512, 20/256 and 56/512 games, 48.0 local core-minutes. All original games really ran. At 205536Z Opus's new terminal inventory and test were queued at shared 00862382; 7/25 official files have three current YES. Its manifest begins 138a71d680dd. F74's repaired four files are also queued. Fable has not returned a new vote.
 
 Two historical teacher comparisons share the same external opponent and openings. I froze an independent head-to-head prediction before playing: the historical native-taught student would score 53.125% / 57.782% against the equal-price deeper native-taught student on two seeds. A new direct 128-game trial using four workers, 32 distinct roots and four fresh replay witnesses is running. The prediction and inputs are frozen at 88dd56c65910ecabf239a86bd59ecfb741bb9ee8c3cec673a4f91313fb10034b. Report only the sealed direct result. The signed 73-line engine plan is on both branches, all 20 links verified. Fable handoff remains 21:25 UTC. The next scheduled owner report is 22:35, and the final is 01:25.
+
+### 21:10 UTC. Direct matches test a ranking through a shared opponent
+
+Astra 210450Z reports the first sealed 128-game direct match of the historical Forge-taught student against the equally priced deeper Forge-taught student. The common external-taught opponent predicted 53.13% and 57.78% for the historical student. In direct play the two seed scores were 47.66% and 52.34%. Both intervals for forecast error include zero and extend beyond the ±2.5-point margin. The four complete fresh games repeated exactly; a separate native replay verified 18,937 total half-moves. Actual engine CPU was 2,006.3 seconds. The score ledger begins 33374935.
+
+I froze the complementary 32 previously unplayed direct openings before reading those direct scores. Its predictions are 50.00% and 44.47%. At 21:09:36 it had 99 of 128 complete games. No interim score is used. The expected total is 256 new direct games with eight fresh reruns; the final analysis keeps both colors and all three match edges together by opening. Next actions are to verify/checksum both panels, publish the complete result and Fable proof index, and report Neon's actual four-core holdout if received. Newest shared direct Neon message still 203500Z at that check. The 73-line plan has the two exact f8fb8197 votes. Separate documentary audit verified every trigger/test/cost section and every link. 21:25 engine-to-server handoff is fixed. Seven of 25 newly inventoried server files currently have three approvals. No paid run.
