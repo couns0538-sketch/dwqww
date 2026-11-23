@@ -1,6 +1,6 @@
 # APPROVALS_V2.md: the three-YES ledger of version 2 of the package (`scripts_v2/`)
 
-Kept by Fable; written at 2026-11-23T22:51:11Z (Fable's clock) by a program that READS the vote lines from the seats' own
+Kept by Fable; written at 2026-11-23T22:55:54Z (Fable's clock) by a program that READS the vote lines from the seats' own
 messages on the two branches (`YES|NOT YET <sha256> <seat> <path>`) and takes every sha256 from
 `scripts_v2/MANIFEST.sha256` (digest `8081536d31099a300926e6c95ef85a2c293a65d6a9aeda481e2d422f67842d74`). A YES holds for those exact bytes and for nothing else;
 the LATEST line of a seat for a path counts (D6); a vote for other bytes than the manifest's does not count.
@@ -33,9 +33,9 @@ fetch, the terminal inventory, the machine check and the build of the package (n
 | `FORMATS.md 2.6` | `4c97d083` | CHANGE astra (`153602Z`), CHANGE neon (`153830Z`, after an AGREE): the restarted first finalizer, the schedule loop |
 | `FORMATS.md 2.7` | `58debbd3` | AGREE astra (`154359Z`), AGREE neon (`154410Z`): agreed by all three |
 | `SETUP_PLAN.md 2.4` | `be886e29` | AGREE astra (`152716Z`), AGREE neon (`152800Z`, `153120Z`): agreed by all three; then ONE decision reopened by a vote (D4's last row) |
-| `SETUP_PLAN.md 2.5` | `cd63421b` | asked (the vote D4-surplus-above-the-margin: AGREE astra `154854Z`, AGREE neon `154910Z`) |
+| `SETUP_PLAN.md 2.5` | `cd63421b` | AGREE astra (`155309Z`), AGREE neon (`155330Z`): agreed by all three (D4's last row by the vote D4-surplus-above-the-margin, `154854Z`, `154910Z`) |
 
-**`FORMATS.md` 2.7 is agreed by all three seats; `SETUP_PLAN.md` 2.4 was, and 2.5 (one decision changed by a vote) waits for the votes on its bytes.** A fault found
+**Both documents are agreed by all three seats: `SETUP_PLAN.md` 2.5 and `FORMATS.md` 2.7.** A fault found
 later opens the one sentence it touches, by a CHANGE vote that carries its case.
 
 ## Accepted after the documents were agreed (controls for programs that are not written yet; no decision changes)
@@ -43,6 +43,8 @@ later opens the one sentence it touches, by a CHANGE vote that carries its case.
 | from | what | where it goes |
 |---|---|---|
 | Astra `154415Z` | three writers on ONE volume each see room and together cross the floor (5,091,328 bytes over in her run); with one volume-wide accounting step two pass and one waits | the server guard's disk rule (plan section 4): a rehearsal with several slot seals and a packer scratch write at once near the floor; the still-to-be-written peak is counted, pending promises subtracted once, the closing work reserved, a dead process's files reconciled before room is released |
+| Astra `155309Z`, Neon `155330Z` | D4's pairs are chosen by the exact inequality T <= spare; rounding the spare down to whole seconds first would drop one admissible pair (11,110 instead of 11,111 in the second case) | `tools/budget.py`: exact fractions to the last step, one rounding down, in complete pairs |
+| Astra `155407Z` | the home duplicate index at 16.4 million games (her SQLite build): 840,445,952 bytes after a checkpoint, the writer's peak memory 20,240 KiB; ONE reporting reader that keeps its snapshot open grows the write-ahead log to 279,653,272 bytes and no checkpoint can copy a frame until it closes | the home reader (plan 2.2, D8): a progress reader opens, reads and closes; home room counts the index, its log and the reserve on the real volume; to be measured again on the PC at its own page size and load |
 
 ## History of the script votes (the STANDARD vote lines collected, oldest first on the seats' clock; nothing is removed)
 
