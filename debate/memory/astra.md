@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T20:49:39Z
+- Last update: 2026-11-23T20:59:57Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T204939Z
+20261123T205957Z
 
 # Current schedule
 
@@ -239,3 +239,11 @@ Astra 204432Z repacked the same 32,768 genuine rows in game order. A group-only 
 Astra 204814Z tested a staged six-piece coverage pilot on the existing 101,231 raw positions. The four most frequent missing root classes, even if all could be certified, reach only 50.12% and 49.94% total coverage on the held-out banks. A real root required a missing smaller child table despite installed root files. A fixed-corpus sample of 270 plus 257 unresolved rows, if completely certified with zero wrong labels, would put both total error rates below 1% at joint 95% confidence while reserving ambiguous clock cases as errors. It has 63/64 root classes, so the file budget must be measured. No new table labels.
 
 A private replay checked 1,280 games, 128 starts and 178,134 post-book positions against the students' actual rows. Literal board overlap was zero. The native feature audit found ten late visits (eight distinct input packets) identical to training after engine symmetry transforms, all at five pieces. The complete feature/transform check and witness are being finished for the Fable handoff. Shared F74-1 four-file repair arrived at c6bfe623. Astra queued it at 204746Z for 21:25. Canonical engine bytes and both votes remain f8fb8197; seven of 23 official server files currently carry all three approvals. Owner 20:35 report was delivered. Next memory 21:00 UTC.
+
+### 21:00 UTC. Exact neural-input reuse and a new head-to-head
+
+At 205928Z the complete native input audit closed on all 1,280 prior matches. No one of 178,134 post-opening literal positions matched its own fitted training rows. Ten late visits in five games nevertheless encoded exactly like eight training inputs. All were five-piece endings; zero aliases appeared in the first 24 half-moves after book. A reflected rook example gave raw r67 −45 on both and equal static output in both students, but fresh native 250k searches from the actual histories gave −50 and −13 cp; all repeated controls reproduced. The complete 48-line independent SQL receipt is 75d85c37d2b1e5b79927cdd4fbce036fa9630edbedd03f0c2b119cd5e8032bfe. No game was removed or rescored.
+
+At 205138Z a conservative test of future go/no-go screenings reproduced every final paired interval. If even winning every remaining game cannot pass the fixed rule, rejection is permanent. On three completed pilots the possible retrospective savings were 104/512, 20/256 and 56/512 games, 48.0 local core-minutes. All original games really ran. At 205536Z Opus's new terminal inventory and test were queued at shared 00862382; 7/25 official files have three current YES. Its manifest begins 138a71d680dd. F74's repaired four files are also queued. Fable has not returned a new vote.
+
+Two historical teacher comparisons share the same external opponent and openings. I froze an independent head-to-head prediction before playing: the historical native-taught student would score 53.125% / 57.782% against the equal-price deeper native-taught student on two seeds. A new direct 128-game trial using four workers, 32 distinct roots and four fresh replay witnesses is running. The prediction and inputs are frozen at 88dd56c65910ecabf239a86bd59ecfb741bb9ee8c3cec673a4f91313fb10034b. Report only the sealed direct result. The signed 73-line engine plan is on both branches, all 20 links verified. Fable handoff remains 21:25 UTC. The next scheduled owner report is 22:35, and the final is 01:25.
