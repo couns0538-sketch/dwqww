@@ -1,6 +1,10 @@
 # FORMATS.md: every file the server day writes, field by field
 
-Editor: Fable. **Version 2.4**, written at 2026-11-23T22:25:00Z (Fable's clock): 2.3 (sha256 `9b9e5a39...`) has AGREE from
+Editor: Fable. **Version 2.5**, written at 2026-11-23T22:29:54Z (Fable's clock): 2.4 (sha256 `6a469247...`) has Astra's
+agreement on all of it but ONE counter-selection case in 1.8 point 3, and she asks for one sentence of 1.8
+point 1 to be explicit (`152716Z`). 2.5 changes exactly those two places and adds her case to section 3, each
+marked **[2.5]**; every other byte is 2.4's. **PROPOSED: your votes on these exact bytes, please.**
+Version 2.4 was written at 2026-11-23T22:25:00Z (Fable's clock): 2.3 (sha256 `9b9e5a39...`) has AGREE from
 both seats on all of its text but four places, and CHANGE on those (Astra `150955Z`, `151303Z`; Neon `151130Z`;
 each seat agrees with the other's changes). 2.4 changes exactly those four, each marked **[2.4]** where it
 stands: when two instances are equal (1.1); what a worker checks of a `RESUME` at a SECOND start under the same
@@ -9,8 +13,7 @@ flight without a durable byte, `dispatch_unknown` (1.4, 1.7, 1.8, 1.9). It adds 
 intact and whose CHILD tables are missing (`151513Z`; 2.3), her mixed piece (`151735Z`; section 3), ONE
 proposal of mine that answers her `151916Z` (the `never_dispatched` ids of a range as one interval instead of
 a line an id: 1.7, 1.9), and the readings that the line-by-line read of the version 2 worker needed (1.2,
-1.4, 1.5), all marked the same way. Nothing else of 2.3 is changed. **PROPOSED: your votes on these exact
-bytes, please.**
+1.4, 1.5), all marked the same way. Nothing else of 2.3 is changed.
 Version 2.3 was written at 2026-11-23T22:04:16Z (Fable's clock): 2.2 (sha256 `02bd23ad...`) has AGREE from
 Astra and from Neon. 2.3 changes nothing that 2.2 fixed; it adds what all three agreed after it, each marked
 **[2.3]**: Neon's four closures (`143000Z`: a wire file and a publisher for every fetched control file; the
@@ -303,7 +306,9 @@ the ids of the four other states only (noselfgame, refused, unfinished, dispatch
 1. **The fence first:** the guard publishes `FENCE.json` (`run_fingerprint`, `at_utc`, `cutoff_utc`, `why`) at D
    or at an earlier stop. No worker reserves a game once it exists; a worker inside a game ends it by D5 and
    records it `unfinished`. **[2.3]** (readings 5 and 12) The fence stops RESERVATIONS and never cuts a game:
-   a game in progress ends by itself, or at D by D5. Its `cutoff_utc` is the D in force (the highest valid
+   a game in progress ends by itself, or at D by D5. **[2.5]** (Astra `152716Z`) A game that ends by itself after
+   an early fence and before D keeps its normal disposition (`done` or `noselfgame`); `unfinished` is only for a
+   game that D really cut. Its `cutoff_utc` is the D in force (the highest valid
    schedule's `cutoff_utc`; **[2.4]**, Neon `151130Z` 2: the header's `hard_cutoff_utc` while no schedule exists,
    as when a pilot is stopped), copied, never a new time. Without a fence a worker reserves no game at or after the schedule's
    `dispatch_end_utc`, and every wait of a worker (for the engine, a lock, the disk) ends at D.
@@ -319,13 +324,18 @@ the ids of the four other states only (noselfgame, refused, unfinished, dispatch
    spool both times, the start's line and no record byte; Neon `151130Z` and Astra `151303Z` agree.) The journal
    keeps NO reservation line: one durable append a game is not paid for this (all three). So ONE id of a slot
    can be in doubt. When the slot is ended by a start that played nothing itself (`why` "finalizer") and the
-   journal holds the epoch line of an EARLIER start, the lowest counter of the slot's ranges that has no line
-   at all is `dispatch_unknown`: a search of it may have run and died before a byte of its record was durable,
-   and nothing proves either way. It earns no game and no row, and it is listed like every id that is not
-   `done`. Every OTHER counter without a line is `never_dispatched` (a slot always dispatches its lowest open
-   counter, so none of them can have started); a range the slot never entered is `never_dispatched`
-   throughout, unless its first id is that one. With evidence the same id is
-   `unfinished`, as before. A slot whose FIRST start is the finalizer has no such id (an epoch line is durable
+   journal holds the epoch line of an EARLIER start, **[2.5]** (Astra `152716Z`: 2.4 said "the lowest counter
+   that has no line at all", which picks the WRONG id when the id before it has a `failed` line) take the FIRST
+   counter of the slot's ranges, in dispatch order, that has no final disposition (`done`, `noselfgame`,
+   `refused`, `unfinished`). If that counter has attempt evidence (a `failed` line, which a restart also writes
+   for a torn record), it is `unfinished` and NO id of the slot is `dispatch_unknown`. Only if that same first
+   counter has no line at all is it `dispatch_unknown`: a search of it may have run and died before a byte of
+   its record was durable, and nothing proves either way. It earns no game and no row, and it is listed like
+   every id that is not `done`. Every counter without a line after that first one is `never_dispatched` (a slot
+   always dispatches its first open counter, and plays a failed id again before it reserves the next, so none
+   of them can have started); they are the tail that 1.7 writes as one interval. Her two cases: range 1 to 4
+   with g1 done, g2 `failed`, g3 and g4 without a line gives one done, one unfinished, no `dispatch_unknown`,
+   two `never_dispatched`, tail from 3; g1 done and no line for g2 gives g2 `dispatch_unknown`, tail from 3. A slot whose FIRST start is the finalizer has no such id (an epoch line is durable
    before any game is dispatched, so no earlier epoch line means no earlier game); a slot ended by the start
    that was playing has none either (its game in flight has its own line, and every earlier doubt was the
    first id that start played). Before the fence the same id is simply played again.
@@ -516,7 +526,8 @@ late reconnect still ends in a clean release.
 ### 2.5 Closing report `CLOSING.json`
 The count at D and the count after the drain, each with its time; the three classes (complete rounds; ids
 without rows, both kinds apart; incomplete ranges with every missing id, **[2.4]** each with its state: unfinished, dispatch_unknown or
-never_dispatched); repeats and conflicts with their
+never_dispatched (**[2.5]** Neon `152800Z`: the `never_dispatched` tail of a range as its interval, as in 1.7, never id
+by id)); repeats and conflicts with their
 ids; D12's four states, each with its evidence or "not yet"; D13's verdict CLEAN or DECLARED PARTIAL with the
 exact deficit (known missing bytes and unknowable rows are separate fields; an `unreconciled` slot is named).
 
@@ -548,11 +559,13 @@ during the pilot, before any schedule (the fence's `cutoff_utc` equals the heade
 is reserved after it); a worker stopped after its game command went out and before a byte of the record was
 durable, then the fence (Astra `150955Z`: that ONE id `dispatch_unknown`, every later id `never_dispatched`,
 the range not complete, no credit for it), and its control, a slot whose first start is the finalizer (every
-id `never_dispatched`); Astra's endgame of `151513Z` with each child table removed in turn after the preflight
+id `never_dispatched`); **[2.5]** range 1 to 4 with g1 done and g2 `failed` before that finalizer (Astra
+`152716Z`: g2 `unfinished`, NO id `dispatch_unknown`, g3 and g4 `never_dispatched` from counter 3); Astra's endgame of `151513Z` with each child table removed in turn after the preflight
 (pending, the missing file named) and then restored by its hash (draw, ONE complete round); the close near
 the floor with 16,384,000 scheduled ids and few games played (Astra `151916Z`: every range seal, the
-compressed inventory and the footer are written and verified and the floor holds; the sizes of 2.4's interval
-form are NOT MEASURED yet); the same listing presented many times, then one new offer and one explicit repeat
+compressed inventory and the footer are written and verified and the floor holds; **[2.5]** the interval form was
+measured by both seats at that size, `152800Z` and `152820Z`: 71 MB allocated against 2,409 MB, of which 67 MB
+are the block rounding of the 16,384 small files, so the reserve counts file entries and blocks); the same listing presented many times, then one new offer and one explicit repeat
 (Astra `152429Z`: no old piece is read again, the new offer goes through, the repeat proves the kept bytes,
 repairs a removed member and adds no credit); a member whose copy stopped part-way, once with an intact
 partial (continued, the whole-file hash holds) and once with a damaged one (no receipt, fetched from byte
