@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T14:40:27Z
+- Last update: 2026-11-23T14:50:17Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T144027Z
+20261123T145017Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -109,3 +109,7 @@ Fable requested Astra's independent full-rules home reference. Published at fall
 14:40 UTC. Fable is active. All three agreed FORMATS 2.2 (02bd23ad…) as recorded by Fable 213251Z. I agreed to Neon's four clarifications for 2.3 in 143221Z: publish the compressed offer last, recompute every seal summary from decoded records, reconstruct the exact source bytes before replay, and require provable instance identity. New document bytes still need review. Fable 213501Z took the 143323Z D4 day-budget edge cases and the paid-day bestmove 0000 rejection. No official script yet has three YES. Latest published driver hashes remain 94e7518e… and 42cf67d9… (Astra and Neon NOT YET); Fable said the new driver is written with its test in progress. The 14:35 two-hour owner report was delivered. For the next record module, published data-only 13 native / 10 negative cases at bf7fada8480546012f33bafca9f091dd150c27e6, SHA 4fb382d0c350b0b20aa7d5184f5f55427669ff82ffc1b8963366c552a235032c. Rebuilt and checked all 23 input byte streams.
 
 Independently ran all 15 machine and six build reference tests from Neon's shared 268ce93e. Two genuine unchanged native binaries each passed startup, verification and N12 for the clean build case. Reference preflight accepted a 2 GiB / four additional tasks request against 1 GiB and only two tasks of ancestor headroom; sent 143622Z. The D10 comparator given the exact SAME native binary under two labels returned faster twice, slower twice and inconclusive four times over eight two-repetition cohorts, each pair with matching game digest. The native worker and comparator also distinguish early mate differently on seed edge3146, but agree on mate at exactly eight plies, edge4013. These control results were sent to both seats. Next: read and test the PC's third driver, record module, budget and 2.3 formats when published; verify vote ledger against each new SHA. Keep the final owner document and 16:35/18:35 deadlines.
+
+14:50 UTC. On shared fe66fbfa467dc6acb0304c1bf1ed9c4c7c10be89 I read all 1,243 lines of the third driver package. The three hashes match its manifest; all 58 native Linux tests and 24 full clean workload/CPU combinations passed, older versions c7 and d415 passed 48/58 and 34/58 on my host. My actual votes at 144526Z (b31a7067a1a29f586acca5e64a99affd62fa9e64): YES a82eb9c85f28f25792a98930b39fc4a4b26ad03639c4fc6ae303adffd32167f1 for run/engine_lines.py; YES 4c8cef0910a616265309de0f530707a4f7709c98998e7cc8d7134a0273194774 for tests/test_uciproc.py; NOT YET ab4e7ec8d3e48dcf5d26cd63b6dc0f1f1672bc60e46dec705c5e2319a7030a8c for run/uciproc.py. Injected transcript-volume ENOSPC between the command and isready left a supposedly failed position change in force: the following native perft returned 29 instead of the prior 20. A finite wait above the platform limit sent work before raising OverflowError. Fable 214753Z accepted both, adding callback failure and very large integer cases. Neon 145000Z independently reproduced and recorded the same three votes. Only votes actually cast by Fable count as Fable's yes. Fable plans a new test; its votes start again on changed bytes.
+
+Fable accepted the precise private-stage retry proposal for 2.3 after the actual local round rehearsal (144620Z): 16 games, 2,354 raw rows, one real endgame table probe succeeded before the next required table was absent; from identical retained custody bytes a fresh stage reproduced both outcomes after exact table restoration, including after an 8,192-byte write quota failure. No PC C3/C4 credited. Neon agreed and verified the 13 positive record fixtures. Next: exact-byte review and regression of the wrapper repair, real 2.3 and record/worker; receive Fable and Neon replies on all scripts; keep final per-file slate current.
