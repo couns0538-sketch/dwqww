@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:50:08Z
+- Last update: 2026-11-23T15:59:56Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T155008Z
+20261123T155956Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -137,3 +137,9 @@ Measured the separate cost of cumulative schedules: 64 slots/128 rounds with one
 15:50 UTC. SETUP_PLAN 2.4 be886e29954b8141786eeb8442d1543efdcb7e2330c9c367e518c1f97ce97361 and FORMATS 2.7 58debbd34fc951fc9a4ba49b5cd2d197fae8f0c9a3d490902a01f4dae5626f4b are both agreed by all three, recorded by Fable 224736Z. My exact format AGREE is 154359Z, Neon 154410Z. The 120 disposition cases and 76 epoch histories are resolved by the new contract. Clocks, schedule-chain walk, late transfer and the as-of expiry report are explicit. Section 4's same-volume rule now has a genuine concurrent three-writer control (154415Z, accepted by Fable): independent checks exceed a 12,582,912-byte private margin by 5,091,328; volume-wide reservations admit two, not three. APPROVALS_V2 now distinguishes its standardized history and links the previously omitted early votes. All five published v2 executable/test files still have all three YES. The home side, guards, launcher and whole-day rehearsal remain missing.
 
 Fable read budget.py and its test privately, 224/224 PC checks, but a fractional position count is accepted; not published or approved. Both Astra and Neon voted AGREE on retaining the owner's chosen margin after allocating match time (Fable 224736Z; Neon 154910Z; my agree_d4_surplus_above_margin message). At 80,000 s, 2 billion outstanding, 27,500 kept/s, zero matches fit; at 30,000/s, cap is 6,666 whole seconds. A 9% drop gives 2.002 billion with retained margin vs 1.820 billion spending the full surplus. We favored SELF_PLAY when no whole pair actually fits. The revised plan's exact bytes still need review. The full-scale local synthetic disk-index trial is in progress: an intentional exit before piece 8,200's COMMIT reopened with exactly 8,200 committed pieces/4,100,000 candidate records; remaining scale and final integrity checks pending. Its purpose is home memory/disk sizing and duplicate succession, not a measured PC C4 rate. Next: read and test the revised official budget, worker and packer as each arrives.
+
+16:00 UTC. SETUP_PLAN 2.5 cd63421ba4203b98ac7c43e695cbaaa8d28c120f79423686eda98b21049eb91c and FORMATS 2.7 58debbd34fc951fc9a4ba49b5cd2d197fae8f0c9a3d490902a01f4dae5626f4b both have three agreements, per Fable 225604Z. I independently reproduced all three exact surplus examples and voted 155309Z; Neon agreed 155330Z. At 12,000 match games/h, choosing whole pairs directly yields 11,111 or 7,460 pairs in the two surplus cases. Fable has now asked to weaken the clock contract to checks only at game boundaries. My CHANGE in change_keep_hard_midgame_cutoff preserves the owner's checks-only final hour: zero credit for a late game does not excuse up to 600 seconds of real native search after D. Neon favors a bounded boundary-only path on the first worker. An independent interrupting guard with native-process evidence may preserve the approved transport bytes; local feasibility control is in progress. Fable expects corrected budget/test about 16:40Z, worker and packer later. All three will still need to read the actual published files.
+
+Full-day SQLite candidate-index trial completed at 155407Z. All 16,400,000 synthetic digest/ID/candidate entries, all 32,800 piece commits and database integrity verified; 16,072,010 distinct digests, 327,990 alternate candidates, 840,445,952 allocated index bytes after checkpoint, 20,240 KiB observed peak writer memory. Deliberate process death before COMMIT preserved exactly 4.1m earlier candidates. On full copies, 50,000 extra entries produced a 5,920,472-byte WAL with short readers versus 279,653,272 with a held reporting snapshot; volumes reconciled after releasing it. Never a PC capacity or C4 claim.
+
+Two proposed reporter fixes: use pending identities in comparable INPUT units, not C2 raw minus C4 kept (round 142 finished, zero queue but that subtraction gives 748,966). One new 62,162-row piece gives 62,162 pending, not 811,128. Use a short coherent local as-of snapshot and release it before I/O. Stage-b processing capacity counts the games/rows examined, while changed labels are a separate quality count. Neon supports both. Next: native guard control, revised reporter wording and published package reviews. Next owner report 16:35 UTC, stop and final report 18:35 UTC.
