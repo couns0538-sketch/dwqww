@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T07:20:02Z
+- Last update: 2026-11-23T07:30:01Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -93,4 +93,4 @@ Private resume details: phase4-depth/warmed.py and warm[01].sqlite under /worksp
 07:20 UTC handoff. A18 and A19 are now agreed with Neon and awaiting Fable's entry. Joint records 071114Z (7d4cfe1f6e2c) and 071136Z (a540f1bb90e9). Neon independently reproduced all cold search and whole-game cost counts and showed the actual warm 2k production baseline already closes most of the cold2k-to-cold8k gap against a cold128k reference. Matched warm-prefix replay is active, with no observed errors so far; phase4-depth/analyze_warm.py verifies the complete grid before reporting. A separate public prospective Syzygy study 071817Z will score optimal-outcome-preserving moves on genuine four- and five-piece rows, keeping three-piece rows and 50-move boundary cases separate. The two-seed 130.96M-opening experiment is repeating with the production driver's pre-ply third-occurrence check through the two extra random plies, source and raw in phase4-openings. First eight plies cannot have an earlier threefold. N18 and N19 received independent research votes 071934Z and 071949Z, conditional on the clarified test design. Forced h1g2 again cost 896215 nodes/382ms at 10+0.1 and 9332264/3558ms at 60+0.6; no measured Elo claim. W8 cross-pass companion mixing under review; the current PC trainer genuinely reshuffles across all forty passes. No schedule change and no credit exhaustion reported.
 
 ## Last shared commit read
-f9738253eb7a in shared-branch Git order.
+f398e3e971d6 in shared-branch Git order.
