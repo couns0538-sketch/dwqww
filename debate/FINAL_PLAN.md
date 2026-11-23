@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:56:15Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:57:18Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 34 proposals were
@@ -121,7 +121,10 @@ trainings; "build" = code and tests, no chip. Items on different resources run s
   together as one unit of the error (each candidate keeps the same weight in the pooled mean; the grouping
   changes only the error; Astra). Control with a known answer: one candidate's list of pair scores entered
   three times under three names must give the single candidate's interval, not one narrower by the square
-  root of 3 (+/- 9 would be printed as +/- 5.2). The 50,000-node matches of the depth claim use the same three
+  root of 3 (+/- 9 would be printed as +/- 5.2). The control's numbers, from a real match (Astra): round 52's
+  1,000 pairs [20, 240, 456, 255, 29] give +5.73 [-3.2, +14.7]; entered three times and grouped by opening they
+  must give the same interval; counted as 3,000 separate pairs they give [+0.57, +10.90], a "gain" made of
+  three copies of one undecided match. The 50,000-node matches of the depth claim use the same three
   opening sets, and that difference is taken opening by opening.
 
 **W5. Everything the rented server day needs, proven on the PC before the day is booked (P3b).** Build +
@@ -337,11 +340,13 @@ processor; rehearsed in the PC's Linux subsystem.
   = 2.9 hours at 3,400 games an hour (5.9 hours at the cap; with a look after every pair it would be 8,300
   games = 2.4 hours, but the declared cadence is 1,000 games); one that is truly 5 Elo weaker ends in H1 in
   2.9 %. So about one sound trainer in eight is sent back although nothing is wrong with it.
-  PROPOSED in the extension (F6, Fable; not yet voted): when the hunt for a cause finds nothing (the trainer's
-  own checks above, the hold-out loss, the row ids), the match is played ONCE more with a fresh declared seed
-  and the same bars, and both results are reported; H1 there = usable, anything else = not used. By Astra's
-  table a level trainer then passes in 98.5 %, one truly 5 Elo weaker in 5.6 %, one 2.5 weaker in 56 %
-  instead of 34 %.
+  Added in the extension (F6, Fable, in Astra's stricter form; agreed by Astra and Fable, Neon's vote is
+  awaited): H0 is evidence against the trainer and is NOT played again. Only a run that reached its cap
+  without a boundary, followed by a hunt for a cause that found nothing (the trainer's own checks above, the
+  hold-out loss, the row ids), is played ONCE more with a fresh opening seed declared beforehand and the same
+  bars: H1 there = usable, H0 = not used, a second cap = still undecided. Both runs are reported. From
+  Astra's table, with independent runs: a level trainer then passes in 95.8 % (10,700 games on average), one
+  truly 5 Elo weaker in 3.1 %, one 2.5 weaker in 45 % instead of 34 %.
 
 **W9. Before any net wider than 1024 (N3).** Build. The 1024 net itself is safe (1.55 % of room).
 - BAR: the sums are widened before they are added, the loader checks the bound, `MaxHidden` is raised
@@ -478,7 +483,7 @@ teacher; judging a training by its hold-out loss.
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
 - Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
-- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Open from the extension: A13 (W4), A14 (W5 i) and F5 (W3 a) are agreed by Astra and Fable and wait for Neon's vote; F6 (W8) is proposed by Fable and not yet voted.
+- Added in the extension the owner gave, and agreed by all three: F2 (W8), F3 and A11 (W5 c), F4 (W5 f), N12 (W5 i), N13 (W3 a), A8 and A10 (W6), N14 (W9), A9 and A12 (W13). Open from the extension: A13 (W4), A14 (W5 i) and F5 (W3 a) are agreed by Astra and Fable and wait for Neon's vote, and so is F6 (W8) in Astra's stricter form.
 - After the two hours (the owner, to all three): Astra and Neon may go on between themselves until one of them runs out of credit; Fable reads the branch every 30 minutes and writes an improvement that both agree on, with its proof checked, into an addendum of this plan.
 - Timing (the owner, to all three, at about 05:35Z on Astra's and Neon's clocks): the debate runs for the two hours he gave and ends at 07:17Z; Neon has enough credit for the whole window, so its answers are waited for however long one takes. The final text is issued for the votes at about 06:40Z, so that each of the three can vote before the end.
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
